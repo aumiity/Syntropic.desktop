@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,65 +6,66 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71% 4%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    /* Emerald green brand — matches PHP version */
+    --background: 220 14% 96%;        /* gray-100  #f3f4f6 */
+    --foreground: 215 28% 17%;        /* slate-800 #1e293b */
+    --card: 0 0% 100%;                /* white */
+    --card-foreground: 215 28% 17%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-    --primary: 220 90% 56%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 9% 46%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 220 14% 96%;
-    --accent-foreground: 220 9% 46%;
+    --popover-foreground: 215 28% 17%;
+    --primary: 161 94% 30%;           /* emerald-600 #059669 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 152 76% 95%;         /* emerald-50 tint */
+    --secondary-foreground: 162 87% 24%; /* emerald-700 */
+    --muted: 210 20% 93%;             /* slate-100 */
+    --muted-foreground: 215 16% 47%;  /* slate-500 */
+    --accent: 152 76% 95%;
+    --accent-foreground: 162 87% 24%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 220 90% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;            /* slate-200 */
+    --input: 214 32% 91%;
+    --ring: 160 84% 39%;              /* emerald-500 */
     --radius: 0.5rem;
-    --sidebar: 220 14% 96%;
-    --sidebar-foreground: 224 71% 4%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-accent: 220 90% 56%;
-    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar: 162 87% 21%;           /* emerald-700 #047857 */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-border: 163 88% 16%;    /* emerald-800 */
+    --sidebar-accent: 161 94% 30%;    /* emerald-600 */
+    --sidebar-accent-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 210 40% 98%;
-    --card: 224 50% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 224 50% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 220 90% 56%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 215 28% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 215 28% 17%;
-    --muted-foreground: 217 33% 60%;
-    --accent: 215 28% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 215 28% 17%;
-    --input: 215 28% 17%;
-    --ring: 220 90% 56%;
-    --sidebar: 224 50% 6%;
-    --sidebar-foreground: 210 40% 90%;
-    --sidebar-border: 215 28% 14%;
-    --sidebar-accent: 220 90% 56%;
-    --sidebar-accent-foreground: 210 40% 98%;
+    --background: 215 28% 8%;
+    --foreground: 210 40% 96%;
+    --card: 215 28% 12%;
+    --card-foreground: 210 40% 96%;
+    --popover: 215 28% 12%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 160 84% 39%;           /* emerald-500 — lighter on dark */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 28% 18%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 215 28% 15%;
+    --muted-foreground: 217 24% 58%;
+    --accent: 215 28% 18%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 28% 18%;
+    --input: 215 28% 18%;
+    --ring: 160 84% 39%;
+    --sidebar: 164 86% 10%;           /* emerald-900 */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-border: 163 88% 8%;
+    --sidebar-accent: 160 84% 39%;    /* emerald-500 */
+    --sidebar-accent-foreground: 0 0% 100%;
   }
 }
 
 @layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground font-sans; }
-  html { font-size: 14px; }
+  html { font-size: 15px; }
 }
 
 @layer utilities {
@@ -72,4 +73,33 @@
   .scrollbar-thin::-webkit-scrollbar-track { @apply bg-transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb { @apply bg-muted-foreground/30 rounded-full; }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/50; }
+}
+
+
+@font-face {
+  font-family: 'GoogleSans';
+  src: url('./assets/fonts/GoogleSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'GoogleSans';
+  src: url('./assets/fonts/GoogleSans-Medium.ttf') format('truetype');
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: 'GoogleSans';
+  src: url('./assets/fonts/GoogleSans-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: 'GoogleSans';
+  src: url('./assets/fonts/GoogleSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+}
+
+* {
+  font-family: 'GoogleSans', sans-serif;
 }

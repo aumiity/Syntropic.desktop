@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { useThemeStore } from '@/stores/themeStore'
 import {
   ShoppingCart, Package, PackagePlus, Users, BarChart2, Settings,
-  Sun, Moon, Store,
+  Sun, Moon,
 } from 'lucide-react'
 
 const navItems = [
@@ -20,16 +20,15 @@ export function Sidebar() {
   const { theme, toggleTheme } = useThemeStore()
 
   return (
-    <aside className="flex flex-col w-[72px] h-screen bg-sidebar border-r border-sidebar-border shrink-0">
+    <aside className="flex flex-col w-20 h-screen bg-sidebar border-r border-sidebar-border shrink-0">
       {/* Logo */}
-      <div className="flex items-center justify-center h-16 border-b border-sidebar-border">
-        <div className="flex items-center justify-center w-10 h-10 bg-primary rounded-lg">
-          <Store className="h-5 w-5 text-primary-foreground" />
-        </div>
+      <div className="flex flex-col items-center justify-center h-16 border-b border-sidebar-border">
+        <div className="text-white font-extrabold text-lg leading-none">Rx</div>
+        <div className="text-emerald-300 text-[10px] font-medium leading-tight">Syntropic</div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 flex flex-col items-center py-4 gap-1 overflow-y-auto scrollbar-thin">
+      <nav className="flex-1 flex flex-col items-center py-3 gap-1 overflow-y-auto scrollbar-thin">
         {navItems.map(({ to, label, icon: Icon, exact }) => (
           <NavLink
             key={to}
@@ -37,16 +36,16 @@ export function Sidebar() {
             end={exact}
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-colors text-xs gap-1',
+                'flex flex-col items-center justify-center w-16 h-16 rounded-xl transition-colors gap-1',
                 isActive
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                  : 'text-sidebar-foreground/70 hover:bg-sidebar-border hover:text-sidebar-foreground'
+                  : 'text-emerald-200 hover:bg-emerald-600 hover:text-white'
               )
             }
             title={label}
           >
-            <Icon className="h-5 w-5" />
-            <span className="text-[10px] leading-none">{label}</span>
+            <Icon className="h-6 w-6" />
+            <span className="text-[10px] font-medium leading-none">{label}</span>
           </NavLink>
         ))}
       </nav>
@@ -55,7 +54,7 @@ export function Sidebar() {
       <div className="flex items-center justify-center pb-4">
         <button
           onClick={toggleTheme}
-          className="flex items-center justify-center w-10 h-10 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-border hover:text-sidebar-foreground transition-colors"
+          className="flex flex-col items-center justify-center w-16 h-10 rounded-xl text-emerald-300 hover:bg-emerald-600 hover:text-white transition-colors"
           title={theme === 'dark' ? 'โหมดสว่าง' : 'โหมดมืด'}
         >
           {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

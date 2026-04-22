@@ -1,6 +1,6 @@
 # Syntropic Desktop - Build Progress
 
-## Status: ~55% Complete
+## Status: 100% Complete + UI Polish ✅
 ## Last updated: 2026-04-21
 ## App is RUNNABLE — run `npm run electron:dev` to launch
 
@@ -82,6 +82,48 @@ npm run electron:dev
 
 ### Pages — Implemented
 - `src/pages/POS/index.tsx` ✅ FULL
+- `src/pages/Settings/index.tsx` ✅ FULL
+  - Tab ข้อมูลร้าน: shop name, address, phone, license no, tax ID, LINE ID
+  - Tab หมวดหมู่: list with code/sort_order, CRUD dialog, toggle enable/disable
+  - Tab หน่วยนับ: list with usage count, CRUD dialog
+  - Tab ประเภทยา: list with อย.9/10/11/13 flags, CRUD dialog with checkboxes, toggle
+  - Tab การพิมพ์ฉลาก: paper size, padding, font family, font sizes + bold per row, line/section spacing, live label preview
+- `src/pages/Reports/Sales.tsx` ✅ FULL
+  - Date range + text search filters, sortable columns
+  - 6 summary cards: bill count, subtotal, discount, net total, cost, profit (with %)
+  - Table with sale type badges, void badge, profit colouring
+  - Detail modal: header info + items with cost/profit per line + totals footer
+  - Void with require-reason ConfirmDialog, restores stock automatically
+- `src/pages/Reports/Purchases.tsx` ✅ FULL
+  - Date range + supplier + text search filters
+  - Summary strip: total receipts, page value, overdue credit count
+  - Table with payment type badges (cash/credit/paid), due dates
+  - Receipt detail modal with full line items + total
+- `src/pages/People/index.tsx` ✅ FULL
+  - Tab ลูกค้า: search, paginated table with health coverage badges + alert icon, full CRUD dialog (id_card, HN, DOB, phone, address, UC/Gov/SSO toggles, allergies, alert flags), read-only drug allergy list
+  - Tab ผู้จัดจำหน่าย: search, paginated table, full CRUD dialog (name, contact, phone, tax_id, address)
+  - Tab พนักงาน: table with roles, CRUD dialog (name, email, password, role), soft-delete (is_disabled)
+- `src/pages/Products/EditProduct.tsx` ✅ FULL
+  - Tab 1 ข้อมูลทั่วไป: all product fields (barcodes x4, prices, drug type, dosage form, generic name autocomplete, strength, registration, flags, stock alerts, notes, status)
+  - Tab 2 หน่วยนับ: CRUD table of product_units with unit dropdown, barcode, qty_per_base, prices, sale/purchase/base flags
+  - Tab 3 ฉลากยา: card list of product_labels + add/edit dialog (dosage, frequency, meal timing, time, advice, multilingual indication/notes)
+  - Tab 4 ล็อต: read-only lot history with expiry colour coding
+- `src/pages/Products/index.tsx` ✅ FULL
+  - Search by name/barcode/code, filter by category + drug type
+  - Table: trade name, dosage form, code, category, drug type, price, stock qty with low/out badges
+  - Drug flags: antibiotic, sale control, FDA13
+  - Quick-create product dialog → redirects to EditProduct
+  - Adjust stock dialog (in/out) with note, updates via IPC
+  - Pagination (50 per page)
+- `src/pages/Purchase/index.tsx` ✅ FULL
+  - GR# auto-generated (GR-YYYYMMDD-NNNN)
+  - Supplier dropdown, supplier invoice no, receive date
+  - Payment type: cash / credit (with due date + paid tracking)
+  - Multi-row item entry with live product search + lot/expiry/cost/sell/qty fields
+  - Running total per row + grand total footer
+  - Save with validation → success dialog → form reset
+  - History table with filters (search, supplier, date range) + pagination
+  - Receipt detail modal
   - Product search (barcode/name/code, live results with lot info + expiry warnings)
   - Cart: add/merge duplicate items, qty +/- inline, remove, per-item discount
   - Customer search dialog (name/phone/HN), alert badge, quick-clear
@@ -124,6 +166,35 @@ npm run electron:dev
 Original project: `D:\Syntropic.Project\Syntropic.php`
 Stack: Laravel + Blade + SQLite + Tailwind
 Full schema + business logic analysis in conversation history.
+
+## UI Polish (2026-04-21)
+- `src/index.css` — theme updated to emerald green (primary emerald-600, sidebar emerald-700) matching PHP version; background changed to gray-100 equivalent; Inter + Sarabun Google Fonts; base font-size 15px
+- `tailwind.config.js` — `fontFamily.sans: ['Inter', 'Sarabun', 'sans-serif']`
+- `src/components/layout/Sidebar.tsx` — widened to w-20, rounded-xl nav items (w-16 h-16), PHP-style "Rx / Syntropic" text logo, emerald-200/hover-emerald-600 colors
+- `src/pages/POS/index.tsx` — gradient header banner (from-emerald-600 to-sky-600) with shop name + live date/time clock matching PHP POS header
+- `src/components/ui/card.tsx` — rounded-lg → rounded-xl (matches PHP)
+- `src/components/ui/table.tsx` — TableHeader gets bg-muted/60 (matches PHP's bg-slate-100 thead); header height h-12 → h-10
+
+## Frameless Window + Custom Title Bar (2026-04-21)
+- `electron/main.ts` — `frame: false`; IPC handlers `window:minimize/maximize/close/isMaximized`
+- `electron/preload.ts` — added `window` namespace on `window.api`
+- `src/components/layout/TitleBar.tsx` (new) — 36px drag bar (`WebkitAppRegion: 'drag'`) with "SYNTROPIC RX" title, Min/Max/Close buttons (`WebkitAppRegion: 'no-drag'`), red hover on close
+- `src/components/layout/Layout.tsx` — stacks TitleBar + (Sidebar + Outlet)
+
+## POS Search UX (2026-04-21, matches PHP behaviour)
+- **Always-focused main input** — `mainInputRef` with `autoFocus`; global `click` listener on document refocuses it when user clicks any non-interactive area (skips `input, button, select, textarea, a, [role=button]`). `refocusSearch()` is also called after `changeCartUnit` / `changeCartPrice`.
+- **Auto-opens modal** — typing in main input opens the fixed-size modal and transfers focus to `modalInputRef`; both inputs share the same `query` state.
+- **Fixed-size modal** — `width: 600px, height: 480px` via inline style; header/column-header/footer are `shrink-0`, list is `flex-1 overflow-y-auto` so empty space stays empty and overflow scrolls internally.
+- **Column layout** — grid `1fr 80px 100px 70px`: ชื่อสินค้า / หน่วย / ราคาขาย / คงเหลือ. Active row `bg-emerald-100`, hover `hover:bg-emerald-50`.
+- **Keyboard nav** — ArrowUp/Down/Enter/Escape with `preventDefault()`. `activeRowRef` + useEffect on `[highlightIdx]` calls `scrollIntoView({ block: 'nearest' })` to keep the highlight visible inside the list container only.
+- **Highlight persistence fix** — `setHighlightIdx(0)` lives in a dedicated `useEffect` keyed on `[query]` so it resets ONLY when the query text actually changes. Removed `onMouseEnter={() => setHighlightIdx(i)}` on rows — it was firing on rows passing under the stationary cursor during `scrollIntoView`, resetting the highlight.
+- **Unit / price popovers in cart rows** — inline `Popover` component (no Radix); click a cart row's unit/price chevron to switch between product_units or retail/wholesale1/wholesale2 tiers.
+- **Quick-add customer** — `UserPlus` button next to the customer selector; dialog captures name/phone/alert_note and assigns to cart.
+- **Sale types** — retail / wholesale only (Rx removed per product decision).
+
+## Database Location
+`C:\Users\ANYA\AppData\Roaming\syntropic-desktop\database\syntropic.db`
+Use DB Browser for SQLite to inspect or import data from PHP version.
 
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source

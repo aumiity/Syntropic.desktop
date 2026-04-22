@@ -2,9 +2,9 @@ import { ipcMain } from 'electron'
 import { getDb } from '../db'
 
 export function registerProductHandlers() {
-  ipcMain.handle('products:list', (_e, filters: { q?: string; category_id?: number; page?: number }) => {
+  ipcMain.handle('products:list', (_e, filters: { q?: string; category_id?: number; drug_type_id?: number; page?: number }) => {
     const db = getDb()
-    const { q, category_id, page = 1 } = filters
+    const { q, category_id, drug_type_id, page = 1 } = filters
     const limit = 50
     const offset = (page - 1) * limit
     const conditions: string[] = []
@@ -16,6 +16,7 @@ export function registerProductHandlers() {
       params.push(lq, lq, lq, lq)
     }
     if (category_id) { conditions.push(`p.category_id = ?`); params.push(category_id) }
+    if (drug_type_id) { conditions.push(`p.drug_type_id = ?`); params.push(drug_type_id) }
 
     const where = conditions.length ? `WHERE p.is_disabled = 0 AND ${conditions.join(' AND ')}` : `WHERE p.is_disabled = 0`
 

@@ -82,6 +82,13 @@ const api = {
     printReceipt: (data: any) => ipcRenderer.invoke('printer:printReceipt', data),
     openCashDrawer: (data: any) => ipcRenderer.invoke('printer:openCashDrawer', data),
   },
+  // Window controls
+  window: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+  },
   // App
   app: {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/Syntropic.Project/Syntropic.php/**)",
+      "Bash(python *)"
+    ]
+  }
+}

@@ -20,14 +20,14 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     title: 'Syntropic RX',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#065f46',
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
     },
-    titleBarStyle: 'default',
     show: false,
   })
 
@@ -47,6 +47,15 @@ function createWindow() {
 
   mainWindow.on('closed', () => { mainWindow = null })
 }
+
+// Window control IPC
+ipcMain.handle('window:minimize', () => mainWindow?.minimize())
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow?.isMaximized()) mainWindow.unmaximize()
+  else mainWindow?.maximize()
+})
+ipcMain.handle('window:close', () => mainWindow?.close())
+ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized() ?? false)
 
 // Register all IPC handlers
 registerPosHandlers()

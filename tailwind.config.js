@@ -55,7 +55,7 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['Noto Sans Thai', 'Sarabun', 'sans-serif'],
+        sans: ['GoogleSans', 'sans-serif'],
       },
     },
   },
