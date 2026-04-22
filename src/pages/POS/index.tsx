@@ -8,7 +8,7 @@ import { formatCurrency, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, Customer } from '@/types'
 import {
   Search, User, Trash2, Plus, Minus,
-  CreditCard, Banknote, Smartphone, AlertTriangle, ChevronDown, X, UserPlus,
+  CreditCard, Banknote, Smartphone, AlertTriangle, ChevronDown, X, UserPlus, Info,
 } from 'lucide-react'
 
 interface ProductWithDetails extends Product {
@@ -67,6 +67,7 @@ export default function POSPage() {
   const [showCustomerSearch, setShowCustomerSearch] = useState(false)
   const [customerQuery, setCustomerQuery] = useState('')
   const [customerResults, setCustomerResults] = useState<Customer[]>([])
+  const [showCustomerInfo, setShowCustomerInfo] = useState(false)
 
   // Quick add customer
   const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -82,8 +83,11 @@ export default function POSPage() {
   // Per-row modals
   const [unitModalIdx, setUnitModalIdx] = useState<number | null>(null)
   const [priceModalIdx, setPriceModalIdx] = useState<number | null>(null)
+  const [customPriceInput, setCustomPriceInput] = useState<string>('')
   const [discountModalIdx, setDiscountModalIdx] = useState<number | null>(null)
   const [discountInput, setDiscountInput] = useState<string>('')
+  const [qtyModalIdx, setQtyModalIdx] = useState<number | null>(null)
+  const [qtyInput, setQtyInput] = useState<string>('')
 
   useEffect(() => {
     loadDailyStats()
@@ -102,14 +106,28 @@ export default function POSPage() {
     activeRowRef.current?.scrollIntoView({ block: 'nearest' })
   }, [highlightIdx])
 
+  // Global ESC handler for per-row modals (unit/price/discount/qty) and search modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (qtyModalIdx !== null) { setQtyModalIdx(null); return }
+      if (discountModalIdx !== null) { setDiscountModalIdx(null); return }
+      if (priceModalIdx !== null) { setPriceModalIdx(null); return }
+      if (unitModalIdx !== null) { setUnitModalIdx(null); return }
+      if (searchOpen) { setSearchOpen(false); setQuery(''); setResults([]); return }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [qtyModalIdx, discountModalIdx, priceModalIdx, unitModalIdx, searchOpen])
+
   const refocusSearch = useCallback(() => {
     setTimeout(() => {
-      if (showPayment || showCustomerSearch || showQuickAdd || showSuccess) return
-      if (unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null) return
+      if (showPayment || showCustomerSearch || showQuickAdd || showSuccess || showCustomerInfo) return
+      if (unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null) return
       if (searchOpen) modalInputRef.current?.focus()
       else mainInputRef.current?.focus()
     }, 50)
-  }, [searchOpen, showPayment, showCustomerSearch, showQuickAdd, showSuccess, unitModalIdx, priceModalIdx, discountModalIdx])
+  }, [searchOpen, showPayment, showCustomerSearch, showQuickAdd, showSuccess, showCustomerInfo, unitModalIdx, priceModalIdx, discountModalIdx, qtyModalIdx])
 
   // Global click listener: any click on non-interactive area returns focus to search
   useEffect(() => {
@@ -117,14 +135,14 @@ export default function POSPage() {
       const t = e.target as HTMLElement | null
       if (!t) return
       if (t.closest('input, button, select, textarea, a, [role="button"], [contenteditable="true"]')) return
-      if (showPayment || showCustomerSearch || showQuickAdd || showSuccess) return
-      if (unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null) return
+      if (showPayment || showCustomerSearch || showQuickAdd || showSuccess || showCustomerInfo) return
+      if (unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null) return
       if (searchOpen) modalInputRef.current?.focus()
       else mainInputRef.current?.focus()
     }
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
-  }, [searchOpen, showPayment, showCustomerSearch, showQuickAdd, showSuccess, unitModalIdx, priceModalIdx, discountModalIdx])
+  }, [searchOpen, showPayment, showCustomerSearch, showQuickAdd, showSuccess, showCustomerInfo, unitModalIdx, priceModalIdx, discountModalIdx, qtyModalIdx])
 
   const loadDailyStats = async () => {
     const stats = await window.api.pos.getDailyStats() as any
@@ -160,8 +178,8 @@ export default function POSPage() {
 
   const handleSelectItem = (product: ProductWithDetails, unit: ProductUnit | null) => {
     const price = unit
-      ? (cart.saleType === 'wholesale' ? unit.price_wholesale1 : unit.price_retail)
-      : (cart.saleType === 'wholesale' ? product.price_wholesale1 : product.price_retail)
+      ? (cart.saleType === 'wholesale' ? (unit.price_wholesale1 || unit.price_retail) : unit.price_retail)
+      : (cart.saleType === 'wholesale' ? (product.price_wholesale1 || product.price_retail) : product.price_retail)
     const unitName = unit?.unit_name ?? product.unit_name ?? 'ชิ้น'
     cart.addItem({ product_id: product.id, item_name: product.trade_name, unit_name: unitName, qty: 1, unit_price: price, discount: 0, line_total: price, product, selectedUnit: unit ?? undefined })
     closeSearch()
@@ -221,7 +239,7 @@ export default function POSPage() {
 
   const changeCartUnit = (idx: number, unit: ProductUnit) => {
     const item = cart.items[idx]
-    const price = cart.saleType === 'wholesale' ? unit.price_wholesale1 : unit.price_retail
+    const price = cart.saleType === 'wholesale' ? (unit.price_wholesale1 || unit.price_retail) : unit.price_retail
     cart.updateItem(idx, { unit_name: unit.unit_name, unit_price: price, selectedUnit: unit, line_total: (price - (item.discount || 0)) * item.qty })
     setUnitModalIdx(null)
     refocusSearch()
@@ -247,7 +265,7 @@ export default function POSPage() {
           {/* Gradient banner */}
           <div className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-sky-600 text-white shadow-md flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-extrabold leading-tight">Syntropic RX</h1>
+              <h1 className="text-xl font-extrabold leading-tight">Rx Syntropic</h1>
               <p className="text-xs opacity-80">หน้าจอขายสินค้า</p>
             </div>
             <div className="text-right text-xs opacity-90 leading-relaxed">
@@ -275,7 +293,7 @@ export default function POSPage() {
             <div className="flex rounded-xl overflow-hidden border border-slate-300 shadow-sm shrink-0" style={{ height: '52px' }}>
               {(['retail', 'wholesale'] as const).map(t => (
                 <button key={t} onClick={() => cart.setSaleType(t)}
-                  className={`px-4 font-bold text-sm transition-colors ${cart.saleType === t ? 'bg-emerald-500 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                  className={`px-4 font-bold text-sm transition-colors ${cart.saleType === t ? 'min w-12 bg-emerald-500 text-white' : 'min w-12 bg-white text-slate-500 hover:bg-slate-50'}`}>
                   {t === 'retail' ? 'ปลีก' : 'ส่ง'}
                 </button>
               ))}
@@ -301,6 +319,12 @@ export default function POSPage() {
                 <X className="h-4 w-4" />
               </button>
             )}
+
+            <button onClick={() => setShowCustomerInfo(true)} disabled={!cart.customer} title="ข้อมูลลูกค้า"
+              className="h-[52px] w-[52px] bg-white border border-slate-300 rounded-xl flex flex-col items-center justify-center transition-colors shadow-sm shrink-0 gap-0.5 enabled:text-slate-500 enabled:hover:bg-slate-50 disabled:text-slate-300 disabled:cursor-not-allowed">
+              <Info className="h-5 w-5" />
+              <span className="text-[10px] leading-none">ข้อมูล</span>
+            </button>
 
             <button onClick={() => setShowQuickAdd(true)}
               className="h-[52px] w-[52px] bg-white border border-slate-300 rounded-xl flex flex-col items-center justify-center hover:bg-slate-50 transition-colors shadow-sm shrink-0 text-slate-500 gap-0.5">
@@ -333,7 +357,7 @@ export default function POSPage() {
           <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden min-h-0">
             {/* Table header */}
             <div className="grid px-3 py-3 bg-slate-100 text-slate-600 text-xs font-bold border-b border-slate-200 shrink-0"
-              style={{ gridTemplateColumns: '36px 1fr 100px 120px 120px 120px 120px 60px' }}>
+              style={{ gridTemplateColumns: '36px 1fr 110px 110px 100px 110px 110px 60px' }}>
               <div className="text-center">#</div>
               <div>รายการสินค้า</div>
               <div className="text-center">หน่วย</div>
@@ -356,16 +380,11 @@ export default function POSPage() {
               ) : cart.items.map((item, idx) => {
                 const product = item.product as ProductWithDetails | undefined
                 const units = product?.units ?? []
-                const priceOptions = product ? [
-                  { label: 'ราคาปลีก', price: item.selectedUnit ? item.selectedUnit.price_retail : product.price_retail },
-                  ...(product.has_wholesale1 || product.price_wholesale1 > 0 ? [{ label: 'ราคาส่ง 1', price: item.selectedUnit ? item.selectedUnit.price_wholesale1 : product.price_wholesale1 }] : []),
-                  ...(product.has_wholesale2 || product.price_wholesale2 > 0 ? [{ label: 'ราคาส่ง 2', price: item.selectedUnit ? item.selectedUnit.price_wholesale2 : product.price_wholesale2 }] : []),
-                ] : []
 
                 return (
                   <div key={idx}
                     className="grid px-3 py-1.5 border-b border-slate-100 hover:bg-slate-50 transition-colors items-center"
-                    style={{ gridTemplateColumns: '36px 1fr 100px 120px 120px 120px 120px 60px' }}>
+                    style={{ gridTemplateColumns: '36px 1fr 110px 110px 100px 110px 110px 60px' }}>
 
                     <div className="text-center text-xs text-muted-foreground">{idx + 1}</div>
 
@@ -377,53 +396,51 @@ export default function POSPage() {
                     <div className="flex justify-center">
                       {units.length > 1 ? (
                         <button onClick={() => setUnitModalIdx(idx)}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-400 text-xs font-medium text-slate-700 transition-colors">
+                          className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-700 text-sm font-semibold hover:bg-slate-100 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 transition-colors">
                           {item.unit_name}
-                          <ChevronDown className="h-3 w-3 text-slate-400" />
                         </button>
                       ) : (
-                        <span className="text-xs text-slate-600">{item.unit_name}</span>
+                        <span className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-600 text-sm font-medium">
+                          {item.unit_name}
+                        </span>
                       )}
                     </div>
 
                     {/* Qty */}
-                    <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => cart.updateItem(idx, { qty: Math.max(1, item.qty - 1) })}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold">
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <input type="number" value={item.qty} min={1}
-                        style={{ MozAppearance: 'textfield' }}
-                        onChange={e => cart.updateItem(idx, { qty: parseFloat(e.target.value) || 1 })}
-                        className="w-12 h-8 text-center text-sm bg-white border border-slate-200 rounded focus:ring-1 focus:ring-emerald-500 outline-none" />
-                      <button onClick={() => cart.updateItem(idx, { qty: item.qty + 1 })}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold">
-                        <Plus className="h-4 w-4" />
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
+                        className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700 text-sm font-semibold tabular-nums hover:bg-yellow-100 hover:border-yellow-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 transition-colors">
+                        <span className="flex-1 text-center">{item.qty}</span>
                       </button>
                     </div>
 
                     {/* Price selector */}
                     <div className="flex justify-end">
-                      {priceOptions.length > 1 ? (
-                        <button onClick={() => setPriceModalIdx(idx)}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-400 text-sm font-medium text-emerald-700 transition-colors">
-                          {formatCurrency(item.unit_price)}
-                        </button>
-                      ) : (
-                        <span className="text-sm font-medium">{formatCurrency(item.unit_price)}</span>
-                      )}
+                      <button onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
+                        className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-semibold tabular-nums hover:bg-emerald-100 hover:border-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-colors">
+                        <span className="flex-1 text-right">{formatCurrency(item.unit_price)}</span>
+                      </button>
                     </div>
 
                     {/* Discount */}
                     <div className="flex justify-end">
-                      <button
-                        onClick={() => { setDiscountInput(item.discount ? String(item.discount) : ''); setDiscountModalIdx(idx) }}
-                        className="min-w-14 h-8 px-2 text-right text-sm bg-white border border-slate-200 rounded hover:border-emerald-400 text-slate-700 font-medium transition-colors">
-                        {item.discount ? formatCurrency(item.discount) : '0'}
-                      </button>
+                      {item.discount ? (
+                        <button
+                          onClick={() => { setDiscountInput(String(item.discount)); setDiscountModalIdx(idx) }}
+                          className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-red-200 bg-red-50 text-red-700 text-sm font-semibold tabular-nums hover:bg-red-100 hover:border-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
+                          <span className="flex-1 text-right">{formatCurrency(item.discount)}</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => { setDiscountInput(''); setDiscountModalIdx(idx) }}
+                          className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-slate-200 bg-white text-slate-400 text-sm font-medium tabular-nums hover:bg-slate-50 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
+                          <span className="flex-1 text-right">0</span>
+                        </button>
+                      )}
                     </div>
 
-                    <div className="text-right font-semibold text-emerald-700 text-sm">฿{formatCurrency(item.line_total)}</div>
+                    <div className="text-right font-semibold text-emerald-700 text-sm">{formatCurrency(item.line_total)}</div>
 
                     <div className="flex justify-end">
                       <button onClick={() => cart.removeItem(idx)}
@@ -539,9 +556,7 @@ export default function POSPage() {
               ) : (
                 flatItems.map((it, i) => {
                   const stock = it.product.lots?.reduce((s, l) => s + l.qty_on_hand, 0) ?? 0
-                  const price = it.unit
-                    ? (cart.saleType === 'wholesale' ? it.unit.price_wholesale1 : it.unit.price_retail)
-                    : (cart.saleType === 'wholesale' ? it.product.price_wholesale1 : it.product.price_retail)
+                  const price = it.unit ? it.unit.price_retail : it.product.price_retail
                   const unitName = it.unit?.unit_name ?? it.product.unit_name ?? '-'
                   const active = i === highlightIdx
                   const expiryWarn = it.product.lots?.some(l => getExpiryStatus(l.expiry_date) !== 'normal')
@@ -609,6 +624,84 @@ export default function POSPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={showCustomerInfo} onOpenChange={setShowCustomerInfo}>
+        <DialogContent size="sm" onClose={() => setShowCustomerInfo(false)}>
+          <DialogHeader><DialogTitle>ข้อมูลลูกค้า</DialogTitle></DialogHeader>
+          <DialogBody className="space-y-3">
+            {cart.customer && (
+              <>
+                <div>
+                  <div className="text-xs text-slate-400">ชื่อ-นามสกุล</div>
+                  <div className="font-bold text-slate-800 text-lg flex items-center gap-1.5">
+                    {cart.customer.is_alert ? <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" /> : null}
+                    {cart.customer.full_name}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-xs text-slate-400">รหัสลูกค้า</div>
+                    <div className="text-slate-700 font-mono text-sm">{cart.customer.code || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">HN</div>
+                    <div className="text-slate-700 text-sm">{cart.customer.hn || '-'}</div>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-400">เบอร์โทร</div>
+                  <div className="text-slate-700">{cart.customer.phone || '-'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-400">ที่อยู่</div>
+                  <div className="text-slate-700 whitespace-pre-line">{cart.customer.address || '-'}</div>
+                </div>
+                {(cart.customer.hc_uc || cart.customer.hc_gov || cart.customer.hc_sso) ? (
+                  <div>
+                    <div className="text-xs text-slate-400">สิทธิการรักษา</div>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {cart.customer.hc_uc ? <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">บัตรทอง</span> : null}
+                      {cart.customer.hc_gov ? <span className="text-xs bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-md">ข้าราชการ</span> : null}
+                      {cart.customer.hc_sso ? <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md">ประกันสังคม</span> : null}
+                    </div>
+                  </div>
+                ) : null}
+                {cart.customer.food_allergy ? (
+                  <div>
+                    <div className="text-xs text-slate-400">แพ้อาหาร</div>
+                    <div className="text-slate-700 whitespace-pre-line">{cart.customer.food_allergy}</div>
+                  </div>
+                ) : null}
+                {cart.customer.other_allergy ? (
+                  <div>
+                    <div className="text-xs text-slate-400">แพ้อื่นๆ</div>
+                    <div className="text-slate-700 whitespace-pre-line">{cart.customer.other_allergy}</div>
+                  </div>
+                ) : null}
+                {cart.customer.chronic_diseases ? (
+                  <div>
+                    <div className="text-xs text-slate-400">โรคประจำตัว</div>
+                    <div className="text-slate-700 whitespace-pre-line">{cart.customer.chronic_diseases}</div>
+                  </div>
+                ) : null}
+                {cart.customer.alert_note ? (
+                  <div>
+                    <div className="text-xs text-slate-400">หมายเหตุ / ประวัติแพ้ยา</div>
+                    <div className="text-red-600 whitespace-pre-line bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm">{cart.customer.alert_note}</div>
+                  </div>
+                ) : null}
+                {cart.customer.warning_note ? (
+                  <div>
+                    <div className="text-xs text-slate-400">คำเตือน</div>
+                    <div className="text-amber-700 whitespace-pre-line bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">{cart.customer.warning_note}</div>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </DialogBody>
+          <DialogFooter><Button variant="outline" onClick={() => setShowCustomerInfo(false)}>ปิด</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
         <DialogContent size="sm" onClose={() => setShowQuickAdd(false)}>
           <DialogHeader><DialogTitle>เพิ่มลูกค้าใหม่</DialogTitle></DialogHeader>
@@ -637,10 +730,6 @@ export default function POSPage() {
             </div>
             <div className="space-y-2"><label className="flex items-center gap-2 text-sm font-medium"><Banknote className="h-4 w-4 text-green-500" /> เงินสด</label>
               <Input type="number" value={cashAmount} onChange={e => setCashAmount(e.target.value)} placeholder="0.00" className="text-right text-lg" /></div>
-            <div className="space-y-2"><label className="flex items-center gap-2 text-sm font-medium"><CreditCard className="h-4 w-4 text-blue-500" /> บัตรเครดิต/เดบิต</label>
-              <Input type="number" value={cardAmount} onChange={e => setCardAmount(e.target.value)} placeholder="0.00" className="text-right" /></div>
-            <div className="space-y-2"><label className="flex items-center gap-2 text-sm font-medium"><Smartphone className="h-4 w-4 text-purple-500" /> โอนเงิน</label>
-              <Input type="number" value={transferAmount} onChange={e => setTransferAmount(e.target.value)} placeholder="0.00" className="text-right" /></div>
             <div className="rounded-xl bg-muted p-3 space-y-1.5 text-sm">
               <div className="flex justify-between"><span>รับเงินรวม</span>
                 <span className={totalPaid >= cart.totalAmount() ? 'text-green-500 font-semibold' : 'text-red-500 font-semibold'}>฿{formatCurrency(totalPaid)}</span></div>
@@ -651,7 +740,7 @@ export default function POSPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPayment(false)}>ยกเลิก</Button>
             <Button variant="success" disabled={saving || totalPaid < cart.totalAmount()} onClick={handleCompleteSale} className="min-w-[120px]">
-              {saving ? 'กำลังบันทึก...' : '✓ บันทึกบิล'}
+              {saving ? 'กำลังบันทึก...' : '✓ บันทึก'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -674,10 +763,8 @@ export default function POSPage() {
         const product = item?.product as ProductWithDetails | undefined
         const units = product?.units ?? []
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-            onClick={() => setUnitModalIdx(null)}>
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4"
-              onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
               <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
                 <div className="font-bold text-slate-700 text-sm truncate pr-2">เลือกหน่วย — {item?.item_name}</div>
                 <button onClick={() => setUnitModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
@@ -714,18 +801,60 @@ export default function POSPage() {
           ...(product.has_wholesale1 || product.price_wholesale1 > 0 ? [{ label: 'ราคาส่ง 1', price: item.selectedUnit ? item.selectedUnit.price_wholesale1 : product.price_wholesale1 }] : []),
           ...(product.has_wholesale2 || product.price_wholesale2 > 0 ? [{ label: 'ราคาส่ง 2', price: item.selectedUnit ? item.selectedUnit.price_wholesale2 : product.price_wholesale2 }] : []),
         ] : []
+        const customPrice = parseFloat(customPriceInput) || 0
+        const customProfit = customPrice - cost
+        const customProfitPct = customPrice > 0 ? (customProfit / customPrice) * 100 : 0
+        const applyCustomPrice = () => {
+          if (customPrice <= 0) return
+          changeCartPrice(priceModalIdx, customPrice)
+        }
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-            onClick={() => setPriceModalIdx(null)}>
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4"
-              onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
               <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <div className="font-bold text-slate-700 text-sm truncate pr-2">เลือกราคา — {item?.item_name}</div>
+                <div className="font-bold text-slate-700 text-sm truncate pr-2">ราคา — {item?.item_name}</div>
                 <button onClick={() => setPriceModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="p-3 space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
+                {/* Custom price input */}
+                <div className="w-full px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50/40">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-emerald-700">กำหนดราคา</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="number"
+                      autoFocus
+                      value={customPriceInput}
+                      min={0}
+                      step="0.01"
+                      style={{ MozAppearance: 'textfield' }}
+                      onFocus={e => e.currentTarget.select()}
+                      onChange={e => setCustomPriceInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') applyCustomPrice() }}
+                      placeholder="0.00"
+                      className="w-full flex-1 h-11 text-right text-lg font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-3 tabular-nums"
+                    />
+                    <Button onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-11 px-4">ตกลง</Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <div className="text-slate-400">ทุน</div>
+                      <div className="font-semibold text-slate-600 tabular-nums">฿{formatCurrency(cost)}</div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400">กำไร</div>
+                      <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-green-600' : 'text-red-500'}`}>฿{formatCurrency(customProfit)}</div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400">กำไร %</div>
+                      <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-green-600' : 'text-red-500'}`}>{customPrice > 0 ? customProfitPct.toFixed(1) : '0.0'}%</div>
+                    </div>
+                  </div>
+                </div>
+
                 {priceOptions.map((opt, i) => {
                   const active = item?.unit_price === opt.price
                   const profit = opt.price - cost
@@ -764,6 +893,84 @@ export default function POSPage() {
         )
       })()}
 
+      {/* ── QTY MODAL ── */}
+      {qtyModalIdx !== null && (() => {
+        const item = cart.items[qtyModalIdx]
+        const q = Math.max(1, parseFloat(qtyInput) || 0)
+        const lineTotal = Math.max(0, (item?.unit_price ?? 0) - (item?.discount ?? 0)) * q
+        const applyQty = (val: number) => {
+          if (!item) return
+          const safe = Math.max(1, val)
+          cart.updateItem(qtyModalIdx, { qty: safe, line_total: (item.unit_price - (item.discount || 0)) * safe })
+          setQtyModalIdx(null)
+          refocusSearch()
+        }
+        const bump = (delta: number) => {
+          const cur = parseFloat(qtyInput) || 0
+          const next = Math.max(1, cur + delta)
+          setQtyInput(String(next))
+        }
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
+              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                <div className="font-bold text-slate-700 text-sm truncate pr-2">จำนวน — {item?.item_name}</div>
+                <button onClick={() => setQtyModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">ราคา/หน่วย</span>
+                  <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(item?.unit_price ?? 0)}</span>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">จำนวน ({item?.unit_name})</label>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => bump(-1)}
+                      className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
+                      <Minus className="h-5 w-5" />
+                    </button>
+                    <input
+                      type="number"
+                      autoFocus
+                      value={qtyInput}
+                      min={1}
+                      style={{ MozAppearance: 'textfield' }}
+                      onFocus={e => e.currentTarget.select()}
+                      onChange={e => setQtyInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') applyQty(q) }}
+                      placeholder="1"
+                      className="w-16 flex-1 h-14 text-center text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
+                    />
+                    <button onClick={() => bump(1)}
+                      className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
+                      <Plus className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {[1, 5, 10, 20, 50].map(n => (
+                    <button key={n} onClick={() => setQtyInput(String(n))}
+                      className="h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-emerald-300 text-sm font-semibold text-slate-600 tabular-nums transition-colors">
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between text-sm bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                  <span className="text-slate-600 font-medium">รวมเงิน</span>
+                  <span className="font-extrabold text-emerald-600 tabular-nums">฿{formatCurrency(lineTotal)}</span>
+                </div>
+              </div>
+              <div className="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
+                <Button onClick={() => applyQty(q)}>ตกลง</Button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* ── DISCOUNT MODAL ── */}
       {discountModalIdx !== null && (() => {
         const item = cart.items[discountModalIdx]
@@ -776,10 +983,8 @@ export default function POSPage() {
           refocusSearch()
         }
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-            onClick={() => setDiscountModalIdx(null)}>
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4"
-              onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
               <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
                 <div className="font-bold text-slate-700 text-sm truncate pr-2">ส่วนลด — {item?.item_name}</div>
                 <button onClick={() => setDiscountModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">

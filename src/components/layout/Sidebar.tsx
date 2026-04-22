@@ -9,7 +9,7 @@ import {
 
 const navItems = [
   { to: '/', label: 'การขาย', icon: ShoppingCart, exact: true },
-  { to: '/purchase', label: 'รับสินค้า', icon: PackagePlus },
+  { to: '/purchase', label: 'การซื้อ', icon: PackagePlus },
   { to: '/products', label: 'สินค้า', icon: Package },
   { to: '/people', label: 'บุคคล', icon: Users },
   { to: '/reports', label: 'รายงาน', icon: BarChart2 },
@@ -24,7 +24,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex flex-col items-center justify-center h-16 border-b border-sidebar-border">
         <div className="text-white font-extrabold text-lg leading-none">Rx</div>
-        <div className="text-emerald-300 text-[10px] font-medium leading-tight">Syntropic</div>
+        <div className="text-emerald-300 text-[14px] font-medium leading-tight">Syntropic</div>
       </div>
 
       {/* Nav */}
@@ -45,13 +45,13 @@ export function Sidebar() {
             title={label}
           >
             <Icon className="h-6 w-6" />
-            <span className="text-[10px] font-medium leading-none">{label}</span>
+            <span className="text-[14px] font-medium leading-none">{label}</span>
           </NavLink>
         ))}
       </nav>
 
       {/* Theme toggle */}
-      <div className="flex items-center justify-center pb-4">
+      <div className="flex items-center justify-center pb-10">
         <button
           onClick={toggleTheme}
           className="flex flex-col items-center justify-center w-16 h-10 rounded-xl text-emerald-300 hover:bg-emerald-600 hover:text-white transition-colors"

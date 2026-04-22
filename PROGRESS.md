@@ -1,7 +1,7 @@
 # Syntropic Desktop - Build Progress
 
 ## Status: 100% Complete + UI Polish ✅
-## Last updated: 2026-04-22
+## Last updated: 2026-04-23
 ## App is RUNNABLE — run `npm run electron:dev` to launch
 
 ---
@@ -201,6 +201,20 @@ Full schema + business logic analysis in conversation history.
   - **Discount input → Modal** — `discountModalIdx` + `discountInput` state; row now shows a button with current discount or `—`. Modal shows unit price, large no-spinner number input (autoFocus, Enter applies), live "ราคาหลังหักส่วนลด". Buttons: ล้าง (zero) / ยกเลิก / ตกลง
   - **Focus management** — `refocusSearch` and the global non-interactive-click handler now skip refocusing while any of the three new modals are open (mirrors how `showPayment`/`showCustomerSearch` are already gated)
   - Removed `openUnitPopover` / `openPricePopover` state. Inline `Popover` helper component left in place (unused) per scoping constraint
+
+## POS Wholesale Price Fallback (2026-04-23)
+- `src/stores/cartStore.ts` — `setSaleType` now falls back to retail price when wholesale is selected but the item (or its selected unit) has no `price_wholesale1` (0/null). Previously toggling to wholesale would zero out prices for items without a wholesale rate.
+- `src/pages/POS/index.tsx`:
+  - `handleSelectItem` — same wholesale → retail fallback when adding an item while in wholesale mode
+  - `changeCartUnit` — same fallback when switching units on an existing cart row in wholesale mode
+  - Search result list price display — always shows retail price regardless of `cart.saleType` (wholesale pricing is applied only when added to cart, not in the search list)
+
+## POS Customer Info Button (2026-04-22)
+- `src/pages/POS/index.tsx` — added "ข้อมูล" (Info) button next to the customer selector, mirroring PHP `btn-customer-info`
+  - Disabled (slate-300, cursor-not-allowed) when no customer selected; enabled (slate-500, hover:bg-slate-50) when one is
+  - 52×52 white rounded-xl with `Info` icon (lucide-react) + "ข้อมูล" text label
+  - Opens `showCustomerInfo` Dialog (size sm) showing: full_name (with red AlertTriangle if `is_alert`), code + HN, phone, address, health coverage badges (บัตรทอง/ข้าราชการ/ประกันสังคม — only if any flag set), food_allergy / other_allergy / chronic_diseases (only if filled), alert_note (red box) and warning_note (amber box)
+  - `refocusSearch` + global non-interactive-click handler updated to gate on `showCustomerInfo` so the search input doesn't steal focus while the modal is open
 
 ## Database Location
 `C:\Users\ANYA\AppData\Roaming\syntropic-desktop\database\syntropic.db`

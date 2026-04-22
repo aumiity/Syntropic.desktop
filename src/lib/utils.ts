@@ -1,5 +1,5 @@
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
 import dayjs from 'dayjs'
 import 'dayjs/locale/th'
 import buddhistEra from 'dayjs/plugin/buddhistEra'
@@ -50,6 +50,6 @@ export function generateInvoiceNo(prefix: string, existingCount: number): string
 
 declare global {
   interface Window {
-    api: import('../../../electron/preload').ElectronAPI
+    api: import('@electron/preload').ElectronAPI
   }
 }

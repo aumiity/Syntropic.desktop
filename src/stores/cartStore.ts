@@ -68,7 +68,19 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
   setCustomer: (customer) => set({ customer }),
   setCustomerNameFree: (name) => set({ customerNameFree: name }),
-  setSaleType: (type) => set({ saleType: type }),
+  setSaleType: (type) => {
+    const { items, saleType } = get()
+    if (type === saleType) return
+    const repriced = items.map(item => {
+      const { product, selectedUnit } = item
+      if (!product) return item
+      const price = selectedUnit
+        ? (type === 'wholesale' ? (selectedUnit.price_wholesale1 || selectedUnit.price_retail) : selectedUnit.price_retail)
+        : (type === 'wholesale' ? (product.price_wholesale1 || product.price_retail) : product.price_retail)
+      return { ...item, unit_price: price, line_total: (price - (item.discount || 0)) * item.qty }
+    })
+    set({ saleType: type, items: repriced })
+  },
   setSymptomNote: (note) => set({ symptomNote: note }),
   setAgeRange: (range) => set({ ageRange: range }),
 

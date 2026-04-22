@@ -5,6 +5,7 @@ export interface Product {
   category_id?: number; dosage_form_id?: number; unit_id?: number
   is_stock_item: number; is_disabled: number; is_hidden: number
   price_retail: number; price_wholesale1: number; price_wholesale2: number; cost_price: number
+  has_wholesale1: number; has_wholesale2: number
   has_vat: number; no_discount: number
   reorder_point?: number; safety_stock?: number
   drug_type_id?: number; strength?: string; registration_no?: string

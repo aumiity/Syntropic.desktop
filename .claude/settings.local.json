@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Read(//d/Syntropic.Project/Syntropic.php/**)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(npx tsc *)"
     ]
   }
 }
