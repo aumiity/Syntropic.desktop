@@ -79,9 +79,11 @@ export default function POSPage() {
   const [lastInvoice, setLastInvoice] = useState('')
   const [showSuccess, setShowSuccess] = useState(false)
 
-  // Per-row popovers
-  const [openUnitPopover, setOpenUnitPopover] = useState<number | null>(null)
-  const [openPricePopover, setOpenPricePopover] = useState<number | null>(null)
+  // Per-row modals
+  const [unitModalIdx, setUnitModalIdx] = useState<number | null>(null)
+  const [priceModalIdx, setPriceModalIdx] = useState<number | null>(null)
+  const [discountModalIdx, setDiscountModalIdx] = useState<number | null>(null)
+  const [discountInput, setDiscountInput] = useState<string>('')
 
   useEffect(() => {
     loadDailyStats()
@@ -103,10 +105,11 @@ export default function POSPage() {
   const refocusSearch = useCallback(() => {
     setTimeout(() => {
       if (showPayment || showCustomerSearch || showQuickAdd || showSuccess) return
+      if (unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null) return
       if (searchOpen) modalInputRef.current?.focus()
       else mainInputRef.current?.focus()
     }, 50)
-  }, [searchOpen, showPayment, showCustomerSearch, showQuickAdd, showSuccess])
+  }, [searchOpen, showPayment, showCustomerSearch, showQuickAdd, showSuccess, unitModalIdx, priceModalIdx, discountModalIdx])
 
   // Global click listener: any click on non-interactive area returns focus to search
   useEffect(() => {
@@ -115,12 +118,13 @@ export default function POSPage() {
       if (!t) return
       if (t.closest('input, button, select, textarea, a, [role="button"], [contenteditable="true"]')) return
       if (showPayment || showCustomerSearch || showQuickAdd || showSuccess) return
+      if (unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null) return
       if (searchOpen) modalInputRef.current?.focus()
       else mainInputRef.current?.focus()
     }
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
-  }, [searchOpen, showPayment, showCustomerSearch, showQuickAdd, showSuccess])
+  }, [searchOpen, showPayment, showCustomerSearch, showQuickAdd, showSuccess, unitModalIdx, priceModalIdx, discountModalIdx])
 
   const loadDailyStats = async () => {
     const stats = await window.api.pos.getDailyStats() as any
@@ -219,14 +223,14 @@ export default function POSPage() {
     const item = cart.items[idx]
     const price = cart.saleType === 'wholesale' ? unit.price_wholesale1 : unit.price_retail
     cart.updateItem(idx, { unit_name: unit.unit_name, unit_price: price, selectedUnit: unit, line_total: (price - (item.discount || 0)) * item.qty })
-    setOpenUnitPopover(null)
+    setUnitModalIdx(null)
     refocusSearch()
   }
 
   const changeCartPrice = (idx: number, price: number) => {
     const item = cart.items[idx]
     cart.updateItem(idx, { unit_price: price, line_total: (price - (item.discount || 0)) * item.qty })
-    setOpenPricePopover(null)
+    setPriceModalIdx(null)
     refocusSearch()
   }
 
@@ -312,9 +316,6 @@ export default function POSPage() {
           <div className="text-right text-5xl font-extrabold text-emerald-600 leading-none tabular-nums">
             {formatCurrency(cart.totalAmount())}
           </div>
-          {cart.totalDiscount() > 0 && (
-            <div className="text-right text-xs text-muted-foreground mt-2">ส่วนลด ฿{formatCurrency(cart.totalDiscount())}</div>
-          )}
         </div>
       </div>
 
@@ -332,7 +333,7 @@ export default function POSPage() {
           <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden min-h-0">
             {/* Table header */}
             <div className="grid px-3 py-3 bg-slate-100 text-slate-600 text-xs font-bold border-b border-slate-200 shrink-0"
-              style={{ gridTemplateColumns: '36px 1fr 100px 110px 100px 80px 100px 40px' }}>
+              style={{ gridTemplateColumns: '36px 1fr 100px 120px 120px 120px 120px 60px' }}>
               <div className="text-center">#</div>
               <div>รายการสินค้า</div>
               <div className="text-center">หน่วย</div>
@@ -364,7 +365,7 @@ export default function POSPage() {
                 return (
                   <div key={idx}
                     className="grid px-3 py-2.5 border-b border-slate-100 hover:bg-slate-50 transition-colors items-center"
-                    style={{ gridTemplateColumns: '36px 1fr 100px 110px 100px 80px 100px 40px' }}>
+                    style={{ gridTemplateColumns: '36px 1fr 100px 120px 120px 120px 120px 60px', minHeight: '64px' }}>
 
                     <div className="text-center text-xs text-muted-foreground">{idx + 1}</div>
 
@@ -376,84 +377,58 @@ export default function POSPage() {
                     {/* Unit selector */}
                     <div className="flex justify-center">
                       {units.length > 1 ? (
-                        <Popover
-                          open={openUnitPopover === idx}
-                          onClose={() => setOpenUnitPopover(null)}
-                          trigger={
-                            <button onClick={() => setOpenUnitPopover(openUnitPopover === idx ? null : idx)}
-                              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-400 text-xs font-medium text-slate-700 transition-colors">
-                              {item.unit_name}
-                              <ChevronDown className="h-3 w-3 text-slate-400" />
-                            </button>
-                          }
-                        >
-                          {units.map(u => (
-                            <button key={u.id} onClick={() => changeCartUnit(idx, u)}
-                              className={`w-full px-3 py-2 text-left text-sm hover:bg-emerald-50 transition-colors ${item.unit_name === u.unit_name ? 'bg-emerald-50 text-emerald-700 font-semibold' : ''}`}>
-                              {u.unit_name}
-                            </button>
-                          ))}
-                        </Popover>
+                        <button onClick={() => setUnitModalIdx(idx)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-400 text-xs font-medium text-slate-700 transition-colors">
+                          {item.unit_name}
+                          <ChevronDown className="h-3 w-3 text-slate-400" />
+                        </button>
                       ) : (
                         <span className="text-xs text-slate-600">{item.unit_name}</span>
                       )}
                     </div>
 
                     {/* Qty */}
-                    <div className="flex items-center justify-center gap-0.5">
+                    <div className="flex items-center justify-center gap-1">
                       <button onClick={() => cart.updateItem(idx, { qty: Math.max(1, item.qty - 1) })}
-                        className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:bg-slate-200">
-                        <Minus className="h-3 w-3" />
+                        className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold">
+                        <Minus className="h-4 w-4" />
                       </button>
                       <input type="number" value={item.qty} min={1}
+                        style={{ MozAppearance: 'textfield' }}
                         onChange={e => cart.updateItem(idx, { qty: parseFloat(e.target.value) || 1 })}
                         className="w-12 h-8 text-center text-sm bg-white border border-slate-200 rounded focus:ring-1 focus:ring-emerald-500 outline-none" />
                       <button onClick={() => cart.updateItem(idx, { qty: item.qty + 1 })}
-                        className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:bg-slate-200">
-                        <Plus className="h-3 w-3" />
+                        className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold">
+                        <Plus className="h-4 w-4" />
                       </button>
                     </div>
 
                     {/* Price selector */}
                     <div className="flex justify-end">
                       {priceOptions.length > 1 ? (
-                        <Popover
-                          open={openPricePopover === idx}
-                          onClose={() => setOpenPricePopover(null)}
-                          trigger={
-                            <button onClick={() => setOpenPricePopover(openPricePopover === idx ? null : idx)}
-                              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-400 text-sm font-medium text-emerald-700 transition-colors">
-                              ฿{formatCurrency(item.unit_price)}
-                              <ChevronDown className="h-3 w-3 text-slate-400" />
-                            </button>
-                          }
-                        >
-                          {priceOptions.map((opt, i) => (
-                            <button key={i} onClick={() => changeCartPrice(idx, opt.price)}
-                              className={`w-full px-3 py-2 text-left text-sm hover:bg-emerald-50 transition-colors ${item.unit_price === opt.price ? 'bg-emerald-50 text-emerald-700 font-semibold' : ''}`}>
-                              <div className="font-medium">{opt.label}</div>
-                              <div className="text-emerald-600">฿{formatCurrency(opt.price)}</div>
-                            </button>
-                          ))}
-                        </Popover>
+                        <button onClick={() => setPriceModalIdx(idx)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-400 text-sm font-medium text-emerald-700 transition-colors">
+                          {formatCurrency(item.unit_price)}
+                        </button>
                       ) : (
-                        <span className="text-sm font-medium">฿{formatCurrency(item.unit_price)}</span>
+                        <span className="text-sm font-medium">{formatCurrency(item.unit_price)}</span>
                       )}
                     </div>
 
                     {/* Discount */}
                     <div className="flex justify-end">
-                      <input type="number" value={item.discount || ''} min={0}
-                        onChange={e => { const d = parseFloat(e.target.value) || 0; cart.updateItem(idx, { discount: d, line_total: (item.unit_price - d) * item.qty }) }}
-                        placeholder="0"
-                        className="w-16 h-8 text-right text-sm bg-white border border-slate-200 rounded focus:ring-1 focus:ring-emerald-500 outline-none px-1" />
+                      <button
+                        onClick={() => { setDiscountInput(item.discount ? String(item.discount) : ''); setDiscountModalIdx(idx) }}
+                        className="min-w-14 h-8 px-2 text-right text-sm bg-white border border-slate-200 rounded hover:border-emerald-400 text-slate-700 font-medium transition-colors">
+                        {item.discount ? formatCurrency(item.discount) : '0'}
+                      </button>
                     </div>
 
                     <div className="text-right font-semibold text-emerald-700 text-sm">฿{formatCurrency(item.line_total)}</div>
 
-                    <div className="flex justify-center">
+                    <div className="flex justify-end">
                       <button onClick={() => cart.removeItem(idx)}
-                        className="w-7 h-7 rounded flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50">
+                        className="w-7 h-7 rounded flex items-center justify-end text-slate-300 hover:text-red-500 hover:bg-red-50">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -510,10 +485,9 @@ export default function POSPage() {
       {/* ── SEARCH MODAL (fixed 600×480) ── */}
       {searchOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
-          onMouseDown={e => { if (e.target === e.currentTarget) closeSearch() }}>
+          style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
-            style={{ width: '600px', height: '480px' }}
+            style={{ width: '1000px', height: '800px' }}
             onMouseDown={e => e.stopPropagation()}>
 
             {/* Search input */}
@@ -540,7 +514,7 @@ export default function POSPage() {
 
             {/* Column header */}
             <div className="grid items-center px-4 py-2 bg-slate-50 text-xs font-bold text-slate-500 border-b border-slate-200 shrink-0"
-              style={{ gridTemplateColumns: '1fr 80px 100px 70px' }}>
+              style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}>
               <div>ชื่อสินค้า</div>
               <div className="text-center">หน่วย</div>
               <div className="text-right">ราคาขาย</div>
@@ -573,13 +547,13 @@ export default function POSPage() {
                       ref={active ? activeRowRef : undefined}
                       onClick={() => handleSelectItem(it.product, it.unit)}
                       className={`grid items-center px-4 py-2.5 cursor-pointer border-b border-slate-100 transition-colors ${active ? 'bg-emerald-100' : 'hover:bg-emerald-50'}`}
-                      style={{ gridTemplateColumns: '1fr 80px 100px 70px' }}
+                      style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
                     >
                       <div className="min-w-0 pr-2">
                         <div className="font-semibold text-sm flex items-center gap-1.5 truncate">
                           {expiryWarn && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
                           <span className="truncate">{it.product.trade_name}</span>
-                          {stock === 0 && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium shrink-0">หมด</span>}
+                          {stock === 0 && <span className="text-[15px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium shrink-0">หมด</span>}
                         </div>
                         {it.product.code && <div className="text-xs text-slate-400 font-mono truncate">{it.product.code}</div>}
                       </div>
@@ -608,7 +582,7 @@ export default function POSPage() {
           <DialogBody className="space-y-3">
             <Input autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
             <button onClick={() => { cart.setCustomer(null); setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}
-              className="w-full px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-emerald-600 font-medium text-left transition-colors text-sm">
+              className="w-full px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-left transition-colors text-sm">
               👤 ลูกค้าทั่วไป (เงินสด)
             </button>
             <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
@@ -689,6 +663,160 @@ export default function POSPage() {
           </DialogBody>
         </DialogContent>
       </Dialog>
+
+      {/* ── UNIT MODAL ── */}
+      {unitModalIdx !== null && (() => {
+        const item = cart.items[unitModalIdx]
+        const product = item?.product as ProductWithDetails | undefined
+        const units = product?.units ?? []
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            onClick={() => setUnitModalIdx(null)}>
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4"
+              onClick={e => e.stopPropagation()}>
+              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                <div className="font-bold text-slate-700 text-sm truncate pr-2">เลือกหน่วย — {item?.item_name}</div>
+                <button onClick={() => setUnitModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-3 space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
+                {units.map(u => {
+                  const active = item?.unit_name === u.unit_name
+                  return (
+                    <button key={u.id}
+                      onClick={() => changeCartUnit(unitModalIdx, u)}
+                      className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}>
+                      <div className="text-sm">{u.unit_name}</div>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+                <Button variant="outline" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── PRICE MODAL ── */}
+      {priceModalIdx !== null && (() => {
+        const item = cart.items[priceModalIdx]
+        const product = item?.product as ProductWithDetails | undefined
+        const cost = product?.cost_price ?? 0
+        const priceOptions = product ? [
+          { label: 'ราคาปลีก', price: item.selectedUnit ? item.selectedUnit.price_retail : product.price_retail },
+          ...(product.has_wholesale1 || product.price_wholesale1 > 0 ? [{ label: 'ราคาส่ง 1', price: item.selectedUnit ? item.selectedUnit.price_wholesale1 : product.price_wholesale1 }] : []),
+          ...(product.has_wholesale2 || product.price_wholesale2 > 0 ? [{ label: 'ราคาส่ง 2', price: item.selectedUnit ? item.selectedUnit.price_wholesale2 : product.price_wholesale2 }] : []),
+        ] : []
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            onClick={() => setPriceModalIdx(null)}>
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4"
+              onClick={e => e.stopPropagation()}>
+              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                <div className="font-bold text-slate-700 text-sm truncate pr-2">เลือกราคา — {item?.item_name}</div>
+                <button onClick={() => setPriceModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-3 space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
+                {priceOptions.map((opt, i) => {
+                  const active = item?.unit_price === opt.price
+                  const profit = opt.price - cost
+                  const profitPct = opt.price > 0 ? (profit / opt.price) * 100 : 0
+                  return (
+                    <button key={i}
+                      onClick={() => changeCartPrice(priceModalIdx, opt.price)}
+                      className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-sm font-bold ${active ? 'text-emerald-700' : 'text-slate-700'}`}>{opt.label}</span>
+                        <span className="text-base font-extrabold text-emerald-600 tabular-nums">฿{formatCurrency(opt.price)}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <div className="text-slate-400">ทุน</div>
+                          <div className="font-semibold text-slate-600 tabular-nums">฿{formatCurrency(cost)}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">กำไร</div>
+                          <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-green-600' : 'text-red-500'}`}>฿{formatCurrency(profit)}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">กำไร %</div>
+                          <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-green-600' : 'text-red-500'}`}>{profitPct.toFixed(1)}%</div>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+                <Button variant="outline" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── DISCOUNT MODAL ── */}
+      {discountModalIdx !== null && (() => {
+        const item = cart.items[discountModalIdx]
+        const d = parseFloat(discountInput) || 0
+        const after = Math.max(0, (item?.unit_price ?? 0) - d)
+        const applyDiscount = (val: number) => {
+          if (!item) return
+          cart.updateItem(discountModalIdx, { discount: val, line_total: (item.unit_price - val) * item.qty })
+          setDiscountModalIdx(null)
+          refocusSearch()
+        }
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            onClick={() => setDiscountModalIdx(null)}>
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4"
+              onClick={e => e.stopPropagation()}>
+              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                <div className="font-bold text-slate-700 text-sm truncate pr-2">ส่วนลด — {item?.item_name}</div>
+                <button onClick={() => setDiscountModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">ราคา/หน่วย</span>
+                  <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(item?.unit_price ?? 0)}</span>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">จำนวนส่วนลด (บาท)</label>
+                  <input
+                    type="number"
+                    autoFocus
+                    value={discountInput}
+                    min={0}
+                    style={{ MozAppearance: 'textfield' }}
+                    onChange={e => setDiscountInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
+                    placeholder="0.00"
+                    className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
+                  />
+                </div>
+                <div className="flex justify-between text-sm bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                  <span className="text-slate-600 font-medium">ราคาหลังหักส่วนลด</span>
+                  <span className="font-extrabold text-emerald-600 tabular-nums">฿{formatCurrency(after)}</span>
+                </div>
+              </div>
+              <div className="px-5 py-3 border-t border-slate-200 flex justify-between gap-2">
+                <Button variant="outline" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}>ล้าง</Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setDiscountModalIdx(null)}>ยกเลิก</Button>
+                  <Button onClick={() => applyDiscount(d)}>ตกลง</Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

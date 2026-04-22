@@ -1,7 +1,7 @@
 # Syntropic Desktop - Build Progress
 
 ## Status: 100% Complete + UI Polish ✅
-## Last updated: 2026-04-21
+## Last updated: 2026-04-22
 ## App is RUNNABLE — run `npm run electron:dev` to launch
 
 ---
@@ -191,6 +191,16 @@ Full schema + business logic analysis in conversation history.
 - **Unit / price popovers in cart rows** — inline `Popover` component (no Radix); click a cart row's unit/price chevron to switch between product_units or retail/wholesale1/wholesale2 tiers.
 - **Quick-add customer** — `UserPlus` button next to the customer selector; dialog captures name/phone/alert_note and assigns to cart.
 - **Sale types** — retail / wholesale only (Rx removed per product decision).
+
+## POS Cart Row Touch UX (2026-04-22)
+- `src/index.css` — global rule strips number-input spinner arrows (WebKit + Firefox)
+- `src/pages/POS/index.tsx` — cart row redesigned for touchscreen pharmacy use:
+  - **Larger qty +/- buttons** — `w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-slate-600` with `h-4 w-4` icons (was `w-7 h-7`); qty input gets `style={{ MozAppearance: 'textfield' }}`
+  - **Unit Popover → Modal** — `unitModalIdx` state; centred overlay (`fixed inset-0 z-50 bg-black/40`), panel `bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm`. Lists each `product_units` row, highlights current selection, calls `changeCartUnit` on click
+  - **Price Popover → Modal with cost/profit** — `priceModalIdx` state; same overlay pattern. Each price option (ราคาปลีก / ราคาส่ง 1 / ราคาส่ง 2) shows price + cost (`product.cost_price`) + profit (₿ + %, green when positive). Selected option highlighted emerald. Calls `changeCartPrice` on click
+  - **Discount input → Modal** — `discountModalIdx` + `discountInput` state; row now shows a button with current discount or `—`. Modal shows unit price, large no-spinner number input (autoFocus, Enter applies), live "ราคาหลังหักส่วนลด". Buttons: ล้าง (zero) / ยกเลิก / ตกลง
+  - **Focus management** — `refocusSearch` and the global non-interactive-click handler now skip refocusing while any of the three new modals are open (mirrors how `showPayment`/`showCustomerSearch` are already gated)
+  - Removed `openUnitPopover` / `openPricePopover` state. Inline `Popover` helper component left in place (unused) per scoping constraint
 
 ## Database Location
 `C:\Users\ANYA\AppData\Roaming\syntropic-desktop\database\syntropic.db`

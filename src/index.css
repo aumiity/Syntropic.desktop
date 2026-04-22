@@ -65,7 +65,7 @@
 @layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground font-sans; }
-  html { font-size: 15px; }
+  html { font-size: 20px; }
 }
 
 @layer utilities {
@@ -74,6 +74,10 @@
   .scrollbar-thin::-webkit-scrollbar-thumb { @apply bg-muted-foreground/30 rounded-full; }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/50; }
 }
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
 
 
 @font-face {
