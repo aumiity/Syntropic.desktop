@@ -364,14 +364,13 @@ export default function POSPage() {
 
                 return (
                   <div key={idx}
-                    className="grid px-3 py-2.5 border-b border-slate-100 hover:bg-slate-50 transition-colors items-center"
-                    style={{ gridTemplateColumns: '36px 1fr 100px 120px 120px 120px 120px 60px', minHeight: '64px' }}>
+                    className="grid px-3 py-1.5 border-b border-slate-100 hover:bg-slate-50 transition-colors items-center"
+                    style={{ gridTemplateColumns: '36px 1fr 100px 120px 120px 120px 120px 60px' }}>
 
                     <div className="text-center text-xs text-muted-foreground">{idx + 1}</div>
 
                     <div className="min-w-0 pr-2">
                       <div className="font-medium truncate text-sm">{item.item_name}</div>
-                      <div className="text-xs text-muted-foreground">{cart.saleType === 'wholesale' ? 'ขายส่ง' : 'ขายปลีก'}</div>
                     </div>
 
                     {/* Unit selector */}
@@ -438,11 +437,16 @@ export default function POSPage() {
             </div>
 
             {cart.items.length > 0 && (
-              <div className="border-t border-slate-200 px-4 py-2.5 bg-slate-50 shrink-0 flex justify-end gap-6 text-sm">
-                <span className="text-muted-foreground">ราคารวม: <span className="font-semibold text-foreground">฿{formatCurrency(cart.subtotal())}</span></span>
-                {cart.totalDiscount() > 0 && (
-                  <span className="text-muted-foreground">ส่วนลด: <span className="font-semibold text-red-500">-฿{formatCurrency(cart.totalDiscount())}</span></span>
-                )}
+              <div className="border-t border-slate-200 px-4 py-2.5 bg-slate-50 shrink-0 flex justify-between text-sm">
+                <span className="text-muted-foreground">
+                  รายการ: <span className="font-semibold text-foreground">{cart.items.length} รายการ</span>
+                </span>
+                <div className="flex gap-6">
+                  <span className="text-muted-foreground">ราคารวม: <span className="font-semibold text-foreground">฿{formatCurrency(cart.subtotal())}</span></span>
+                  {cart.totalDiscount() > 0 && (
+                    <span className="text-muted-foreground">ส่วนลด: <span className="font-semibold text-red-500">-฿{formatCurrency(cart.totalDiscount())}</span></span>
+                  )}
+                </div>
               </div>
             )}
           </div>
