@@ -1,7 +1,7 @@
 # Syntropic Desktop - Build Progress
 
 ## Status: 100% Complete + UI Polish ✅
-## Last updated: 2026-04-23
+## Last updated: 2026-04-24
 ## App is RUNNABLE — run `npm run electron:dev` to launch
 
 ---
@@ -236,6 +236,23 @@ Use DB Browser for SQLite to inspect or import data from PHP version.
 - `TableHeader` gets `sticky top-0 z-10 bg-slate-100` so the header pins while rows scroll — same UX as before
 - All interactive pill buttons preserved: slate unit selector, yellow qty, emerald price, red discount, trash icon
 - Empty-state (shopping-bag SVG + "ยังไม่มีรายการสั่งซื้อ") and summary footer (รายการ count / ราคารวม / ส่วนลด) untouched
+
+## POS shadcn/ui Pass (2026-04-24)
+Incremental migration of POS page from hand-rolled primitives to shadcn components, plus several UX/style fixes.
+
+- **Sticky cart header fix** — `src/pages/POS/index.tsx` cart table now uses a raw `<table>` (still with shadcn `TableHeader`/`Body`/etc). The shadcn `Table` wrapper adds an `overflow-x-auto` div that became the sticky ancestor, so the `sticky top-0` thead was pinned to that inner div — not the outer `overflow-y-auto` scroll container — and rode up with the rows. Keeping the thead + cells under a plain `<table>` lets sticky attach to the right scroll container.
+- **Raw → shadcn primitive swaps in POS**:
+  - 7 raw `<input>` → `Input` (main search, modal search, custom price, qty, discount %, discount ฿, final price)
+  - 4 raw `<label>` → `Label`
+  - 3 right-panel action buttons → `Button` (รับชำระเงิน payment, เปิดลิ้นชัก cash drawer, ยกเลิกบิล clear cart). Colorful cart-row pill buttons (unit/qty/price/discount chips) left as raw `<button>` — they're styled toggle-chips, not standard buttons.
+- **`src/components/ui/input.tsx` — removed `md:text-sm`** from the base className. The shadcn default shrinks font-size at `md+` breakpoints (to avoid iOS zoom on focus), but this is a desktop-only Electron app and the responsive override was silently winning over any `text-2xl`/`text-3xl` className consumers passed. Base now stays at `text-base` at all widths; page-level overrides land.
+- **Modal title sizes** — unit / price / discount modal headers were `text-sm` (and price had an invalid `text-m` that rendered as default). All three bumped to `text-lg` to match the qty modal.
+- **Label sizes** — the four Labels in qty + discount modals bumped from `text-xs` to `text-sm` for a less cramped feel.
+- **Discount modal layout** — restructured: % preset buttons (3/5/10/15/20) as a standalone top row, then ส่วนลด (%) + ส่วนลด (บาท) inputs side-by-side in a `grid-cols-2` (both `h-14 text-2xl` for alignment), then ราคาสุดท้าย below. The % input keeps its trailing `%` glyph and two-way sync with baht/final-price is preserved.
+- **`Card` on customer info** — the identity + contact block in the customer info modal now uses shadcn `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent`. Name as the title, `รหัส` and `HN` in the description, `เบอร์โทร` and `ที่อยู่` in a compact 2-column label→value grid. Coverage badges, allergies, and warning notes below remain flat (red/amber boxes for warnings keep their semantic styling).
+- **Customer modals → hand-rolled shell** — converted the 3 customer dialogs (`showCustomerSearch`, `showCustomerInfo`, `showQuickAdd`) from shadcn `Dialog`/`DialogContent` to the same `fixed inset-0 z-50 flex items-center justify-center bg-black/40` shell used by the unit/qty/price/discount modals (`bg-white rounded-2xl shadow-2xl border border-slate-200`, header with X button + border-b, body, footer with border-t). Customer info body gets `max-h-[70vh] overflow-y-auto` since it can grow tall. Payment and success modals still use shadcn `Dialog`.
+- **Unified Esc handler** — the global ESC `useEffect` in POS now also closes the 3 newly hand-rolled customer modals (previously Radix handled Esc for them). Close cascade: qty → discount → price → unit → quickAdd → customerInfo → customerSearch → searchOpen.
+- **`popover` component installed** — `src/components/ui/popover.tsx` added via `npx shadcn@latest add popover`. Not yet wired to any feature. The dead inline `Popover` helper at the top of POS/index.tsx (declared but never rendered) was removed.
 
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source

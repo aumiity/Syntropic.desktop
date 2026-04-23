@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { formatCurrency, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, Customer } from '@/types'
 import {
@@ -87,7 +88,7 @@ export default function POSPage() {
     activeRowRef.current?.scrollIntoView({ block: 'nearest' })
   }, [highlightIdx])
 
-  // Global ESC handler for per-row modals (unit/price/discount/qty) and search modal
+  // Global ESC handler for all modals (closes the top-most one)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
@@ -95,11 +96,14 @@ export default function POSPage() {
       if (discountModalIdx !== null) { setDiscountModalIdx(null); return }
       if (priceModalIdx !== null) { setPriceModalIdx(null); return }
       if (unitModalIdx !== null) { setUnitModalIdx(null); return }
+      if (showQuickAdd) { setShowQuickAdd(false); return }
+      if (showCustomerInfo) { setShowCustomerInfo(false); return }
+      if (showCustomerSearch) { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]); return }
       if (searchOpen) { setSearchOpen(false); setQuery(''); setResults([]); return }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [qtyModalIdx, discountModalIdx, priceModalIdx, unitModalIdx, searchOpen])
+  }, [qtyModalIdx, discountModalIdx, priceModalIdx, unitModalIdx, searchOpen, showQuickAdd, showCustomerInfo, showCustomerSearch])
 
   const refocusSearch = useCallback(() => {
     setTimeout(() => {
@@ -370,9 +374,9 @@ export default function POSPage() {
                   <TableBody>
                     {cart.items.map((item, idx) => (
                       <TableRow key={idx} className="hover:bg-slate-50">
-                        <TableCell className="text-center text-xs text-muted-foreground">{idx + 1}</TableCell>
+                        <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
                         <TableCell className="min-w-0 pr-2">
-                          <div className="font-medium truncate text-xs">{item.item_name}</div>
+                          <div className="font-medium truncate text-sm">{item.item_name}</div>
                         </TableCell>
 
                         <TableCell className="text-center">
@@ -572,130 +576,154 @@ export default function POSPage() {
 
       {/* ── DIALOGS ── */}
 
-      <Dialog open={showCustomerSearch} onOpenChange={setShowCustomerSearch}>
-        <DialogContent size="md" onClose={() => setShowCustomerSearch(false)}>
-          <DialogHeader><DialogTitle>เลือกลูกค้า</DialogTitle></DialogHeader>
-          <DialogBody className="space-y-3">
-            <Input autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
-            <button onClick={() => { cart.setCustomer(null); setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}
-              className="w-full px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-left transition-colors text-sm">
-              👤 ลูกค้าทั่วไป (เงินสด)
-            </button>
-            <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
-              {customerResults.map(c => (
-                <button key={c.id} onClick={() => { cart.setCustomer(c); setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted text-left transition-colors">
-                  <User className="h-8 w-8 p-1.5 bg-muted rounded-full text-muted-foreground shrink-0" />
-                  <div>
-                    <div className="font-medium text-sm flex items-center gap-1">
-                      {c.is_alert && <AlertTriangle className="h-3 w-3 text-red-500" />}{c.full_name}
-                    </div>
-                    <div className="text-xs text-muted-foreground">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
-                  </div>
-                </button>
-              ))}
-              {customerQuery && customerResults.length === 0 && <div className="text-sm text-center text-muted-foreground py-4">ไม่พบลูกค้า</div>}
+      {showCustomerSearch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full mx-4">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div className="font-bold text-slate-700 text-lg">เลือกลูกค้า</div>
+              <button onClick={() => setShowCustomerSearch(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          </DialogBody>
-          <DialogFooter><Button variant="outline" onClick={() => setShowCustomerSearch(false)}>ปิด</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showCustomerInfo} onOpenChange={setShowCustomerInfo}>
-        <DialogContent size="sm" onClose={() => setShowCustomerInfo(false)}>
-          <DialogHeader><DialogTitle>ข้อมูลลูกค้า</DialogTitle></DialogHeader>
-          <DialogBody className="space-y-3">
-            {cart.customer && (
-              <>
-                <div>
-                  <div className="text-xs text-slate-400">ชื่อ-นามสกุล</div>
-                  <div className="font-bold text-slate-800 text-lg flex items-center gap-1.5">
-                    {cart.customer.is_alert ? <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" /> : null}
-                    {cart.customer.full_name}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <div className="text-xs text-slate-400">รหัสลูกค้า</div>
-                    <div className="text-slate-700 font-mono text-sm">{cart.customer.code || '-'}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-400">HN</div>
-                    <div className="text-slate-700 text-sm">{cart.customer.hn || '-'}</div>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400">เบอร์โทร</div>
-                  <div className="text-slate-700">{cart.customer.phone || '-'}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400">ที่อยู่</div>
-                  <div className="text-slate-700 whitespace-pre-line">{cart.customer.address || '-'}</div>
-                </div>
-                {(cart.customer.hc_uc || cart.customer.hc_gov || cart.customer.hc_sso) ? (
-                  <div>
-                    <div className="text-xs text-slate-400">สิทธิการรักษา</div>
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {cart.customer.hc_uc ? <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">บัตรทอง</span> : null}
-                      {cart.customer.hc_gov ? <span className="text-xs bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-md">ข้าราชการ</span> : null}
-                      {cart.customer.hc_sso ? <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md">ประกันสังคม</span> : null}
+            <div className="p-5 space-y-3">
+              <Input autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
+              <button onClick={() => { cart.setCustomer(null); setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}
+                className="w-full px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-left transition-colors text-sm">
+                👤 ลูกค้าทั่วไป (เงินสด)
+              </button>
+              <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
+                {customerResults.map(c => (
+                  <button key={c.id} onClick={() => { cart.setCustomer(c); setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted text-left transition-colors">
+                    <User className="h-8 w-8 p-1.5 bg-muted rounded-full text-muted-foreground shrink-0" />
+                    <div>
+                      <div className="font-medium text-sm flex items-center gap-1">
+                        {c.is_alert && <AlertTriangle className="h-3 w-3 text-red-500" />}{c.full_name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
                     </div>
-                  </div>
-                ) : null}
-                {cart.customer.food_allergy ? (
-                  <div>
-                    <div className="text-xs text-slate-400">แพ้อาหาร</div>
-                    <div className="text-slate-700 whitespace-pre-line">{cart.customer.food_allergy}</div>
-                  </div>
-                ) : null}
-                {cart.customer.other_allergy ? (
-                  <div>
-                    <div className="text-xs text-slate-400">แพ้อื่นๆ</div>
-                    <div className="text-slate-700 whitespace-pre-line">{cart.customer.other_allergy}</div>
-                  </div>
-                ) : null}
-                {cart.customer.chronic_diseases ? (
-                  <div>
-                    <div className="text-xs text-slate-400">โรคประจำตัว</div>
-                    <div className="text-slate-700 whitespace-pre-line">{cart.customer.chronic_diseases}</div>
-                  </div>
-                ) : null}
-                {cart.customer.alert_note ? (
-                  <div>
-                    <div className="text-xs text-slate-400">หมายเหตุ / ประวัติแพ้ยา</div>
-                    <div className="text-red-600 whitespace-pre-line bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm">{cart.customer.alert_note}</div>
-                  </div>
-                ) : null}
-                {cart.customer.warning_note ? (
-                  <div>
-                    <div className="text-xs text-slate-400">คำเตือน</div>
-                    <div className="text-amber-700 whitespace-pre-line bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">{cart.customer.warning_note}</div>
-                  </div>
-                ) : null}
-              </>
-            )}
-          </DialogBody>
-          <DialogFooter><Button variant="outline" onClick={() => setShowCustomerInfo(false)}>ปิด</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+                  </button>
+                ))}
+                {customerQuery && customerResults.length === 0 && <div className="text-sm text-center text-muted-foreground py-4">ไม่พบลูกค้า</div>}
+              </div>
+            </div>
+            <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+              <Button variant="outline" onClick={() => setShowCustomerSearch(false)}>ปิด</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
-        <DialogContent size="sm" onClose={() => setShowQuickAdd(false)}>
-          <DialogHeader><DialogTitle>เพิ่มลูกค้าใหม่</DialogTitle></DialogHeader>
-          <DialogBody className="space-y-4">
-            <div><label className="block text-sm font-medium mb-1">ชื่อ-นามสกุล <span className="text-red-500">*</span></label>
-              <Input autoFocus value={qaName} onChange={e => setQaName(e.target.value)} placeholder="ชื่อ-นามสกุล" /></div>
-            <div><label className="block text-sm font-medium mb-1">เบอร์โทรศัพท์</label>
-              <Input value={qaPhone} onChange={e => setQaPhone(e.target.value)} placeholder="เบอร์โทร" /></div>
-            <div><label className="block text-sm font-medium mb-1">หมายเหตุ / ประวัติแพ้ยา</label>
-              <Input value={qaNote} onChange={e => setQaNote(e.target.value)} placeholder="ถ้ามี" /></div>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowQuickAdd(false)}>ยกเลิก</Button>
-            <Button onClick={handleQuickAdd} disabled={qaSaving}>{qaSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {showCustomerInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div className="font-bold text-slate-700 text-lg">ข้อมูลลูกค้า</div>
+              <button onClick={() => setShowCustomerInfo(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-3 max-h-[70vh] overflow-y-auto scrollbar-thin">
+              {cart.customer && (
+                <>
+                  <Card size="sm">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-1.5">
+                        {cart.customer.is_alert ? <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" /> : null}
+                        {cart.customer.full_name}
+                      </CardTitle>
+                      <CardDescription className="flex gap-3 text-xs">
+                        <span><span className="text-slate-400">รหัส:</span> <span className="text-slate-600 font-mono">{cart.customer.code || '-'}</span></span>
+                        <span><span className="text-slate-400">HN:</span> <span className="text-slate-600">{cart.customer.hn || '-'}</span></span>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                      <span className="text-slate-400">เบอร์โทร</span>
+                      <span className="text-slate-700">{cart.customer.phone || '-'}</span>
+                      <span className="text-slate-400">ที่อยู่</span>
+                      <span className="text-slate-700 whitespace-pre-line">{cart.customer.address || '-'}</span>
+                    </CardContent>
+                  </Card>
+                  {(cart.customer.hc_uc || cart.customer.hc_gov || cart.customer.hc_sso) ? (
+                    <div>
+                      <div className="text-xs text-slate-400">สิทธิการรักษา</div>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {cart.customer.hc_uc ? <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">บัตรทอง</span> : null}
+                        {cart.customer.hc_gov ? <span className="text-xs bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-md">ข้าราชการ</span> : null}
+                        {cart.customer.hc_sso ? <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md">ประกันสังคม</span> : null}
+                      </div>
+                    </div>
+                  ) : null}
+                  {cart.customer.food_allergy ? (
+                    <div>
+                      <div className="text-xs text-slate-400">แพ้อาหาร</div>
+                      <div className="text-slate-700 whitespace-pre-line">{cart.customer.food_allergy}</div>
+                    </div>
+                  ) : null}
+                  {cart.customer.other_allergy ? (
+                    <div>
+                      <div className="text-xs text-slate-400">แพ้อื่นๆ</div>
+                      <div className="text-slate-700 whitespace-pre-line">{cart.customer.other_allergy}</div>
+                    </div>
+                  ) : null}
+                  {cart.customer.chronic_diseases ? (
+                    <div>
+                      <div className="text-xs text-slate-400">โรคประจำตัว</div>
+                      <div className="text-slate-700 whitespace-pre-line">{cart.customer.chronic_diseases}</div>
+                    </div>
+                  ) : null}
+                  {cart.customer.alert_note ? (
+                    <div>
+                      <div className="text-xs text-slate-400">หมายเหตุ / ประวัติแพ้ยา</div>
+                      <div className="text-red-600 whitespace-pre-line bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm">{cart.customer.alert_note}</div>
+                    </div>
+                  ) : null}
+                  {cart.customer.warning_note ? (
+                    <div>
+                      <div className="text-xs text-slate-400">คำเตือน</div>
+                      <div className="text-amber-700 whitespace-pre-line bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">{cart.customer.warning_note}</div>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+            <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+              <Button variant="outline" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showQuickAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div className="font-bold text-slate-700 text-lg">เพิ่มลูกค้าใหม่</div>
+              <button onClick={() => setShowQuickAdd(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <Label className="block text-sm font-medium mb-1">ชื่อ-นามสกุล <span className="text-red-500">*</span></Label>
+                <Input autoFocus value={qaName} onChange={e => setQaName(e.target.value)} placeholder="ชื่อ-นามสกุล" />
+              </div>
+              <div>
+                <Label className="block text-sm font-medium mb-1">เบอร์โทรศัพท์</Label>
+                <Input value={qaPhone} onChange={e => setQaPhone(e.target.value)} placeholder="เบอร์โทร" />
+              </div>
+              <div>
+                <Label className="block text-sm font-medium mb-1">หมายเหตุ / ประวัติแพ้ยา</Label>
+                <Input value={qaNote} onChange={e => setQaNote(e.target.value)} placeholder="ถ้ามี" />
+              </div>
+            </div>
+            <div className="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowQuickAdd(false)}>ยกเลิก</Button>
+              <Button onClick={handleQuickAdd} disabled={qaSaving}>{qaSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent size="sm" onClose={() => setShowPayment(false)}>
