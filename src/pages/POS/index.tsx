@@ -3,6 +3,7 @@ import { useCartStore } from '@/stores/cartStore'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { formatCurrency, getExpiryStatus } from '@/lib/utils'
@@ -15,29 +16,6 @@ import {
 interface ProductWithDetails extends Product {
   lots: ProductLot[]
   units: ProductUnit[]
-}
-
-// Simple inline popover
-function Popover({ open, onClose, children, trigger }: {
-  open: boolean; onClose: () => void; children: React.ReactNode; trigger: React.ReactNode
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose() }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [open, onClose])
-  return (
-    <div className="relative inline-block" ref={ref}>
-      {trigger}
-      {open && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[140px]">
-          {children}
-        </div>
-      )}
-    </div>
-  )
 }
 
 export default function POSPage() {
@@ -279,7 +257,7 @@ export default function POSPage() {
           <div className="flex gap-2 items-center">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500 pointer-events-none" />
-              <input
+              <Input
                 ref={mainInputRef}
                 value={query}
                 onChange={e => handleSearch(e.target.value)}
@@ -394,7 +372,7 @@ export default function POSPage() {
                       <TableRow key={idx} className="hover:bg-slate-50">
                         <TableCell className="text-center text-xs text-muted-foreground">{idx + 1}</TableCell>
                         <TableCell className="min-w-0 pr-2">
-                          <div className="font-medium truncate text-sm">{item.item_name}</div>
+                          <div className="font-medium truncate text-xs">{item.item_name}</div>
                         </TableCell>
 
                         <TableCell className="text-center">
@@ -470,20 +448,20 @@ export default function POSPage() {
 
         {/* Right action panel */}
         <div className="w-64 shrink-0 flex flex-col gap-2.5">
-          <button disabled={cart.items.length === 0}
+          <Button disabled={cart.items.length === 0}
             onClick={() => { setCashAmount(cart.totalAmount().toFixed(2)); setShowPayment(true) }}
-            className="flex-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-2xl shadow-md transition-all flex flex-col items-center justify-center gap-1 min-h-[120px]">
+            className="flex-1 flex-col gap-1 min-h-[120px] h-auto rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-100 text-white font-bold text-2xl shadow-md">
             <span>รับชำระเงิน</span>
             <span className="text-sm bg-black/10 px-3 py-0.5 rounded-md font-medium">F9</span>
-          </button>
-          <button onClick={() => (window.api.printer as any)?.openCashDrawer?.()}
-            className="w-full py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-600 font-medium border border-slate-300 transition-colors shadow-sm text-sm">
+          </Button>
+          <Button variant="outline" onClick={() => (window.api.printer as any)?.openCashDrawer?.()}
+            className="w-full h-10 rounded-xl text-sm shadow-sm text-slate-600">
             เปิดลิ้นชัก
-          </button>
-          <button disabled={cart.items.length === 0} onClick={cart.clearCart}
-            className="w-full py-3 rounded-xl bg-white hover:bg-red-50 text-slate-600 hover:text-red-500 font-medium border border-slate-300 hover:border-red-200 transition-colors shadow-sm text-sm disabled:opacity-40 flex items-center justify-center gap-2">
+          </Button>
+          <Button variant="outline" disabled={cart.items.length === 0} onClick={cart.clearCart}
+            className="w-full h-10 rounded-xl text-sm shadow-sm text-slate-600 hover:bg-red-50 hover:text-red-500 hover:border-red-200 gap-2">
             <Trash2 className="h-4 w-4" /> ยกเลิกบิล
-          </button>
+          </Button>
 
           <div className="bg-white rounded-xl shadow-sm border-2 border-emerald-50 p-4 shrink-0">
             <div className="flex justify-between items-center mb-2">
@@ -513,13 +491,13 @@ export default function POSPage() {
             {/* Search input */}
             <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200 shrink-0">
               <Search className="h-5 w-5 text-emerald-500 shrink-0" />
-              <input
+              <Input
                 ref={modalInputRef}
                 value={query}
                 onChange={e => handleSearch(e.target.value)}
                 onKeyDown={handleModalKeyDown}
                 placeholder="ค้นหารหัส, ชื่อยา หรือสแกนบาร์โค้ด..."
-                className="flex-1 text-base outline-none bg-transparent"
+                className="flex-1 text-base outline-none bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 h-auto px-0"
                 autoComplete="off"
               />
               {query && (
@@ -774,7 +752,7 @@ export default function POSPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
               <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <div className="font-bold text-slate-700 text-sm truncate pr-2">เลือกหน่วย — {item?.item_name}</div>
+                <div className="font-bold text-slate-700 text-lg truncate pr-2">เลือกหน่วย — {item?.item_name}</div>
                 <button onClick={() => setUnitModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
                   <X className="h-4 w-4" />
                 </button>
@@ -824,7 +802,7 @@ export default function POSPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
               <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <div className="font-bold text-slate-700 text-sm truncate pr-2">ราคา — {item?.item_name}</div>
+                <div className="font-bold text-slate-700 text-lg truncate pr-2">ราคา — {item?.item_name}</div>
                 <button onClick={() => setPriceModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
                   <X className="h-4 w-4" />
                 </button>
@@ -833,10 +811,10 @@ export default function POSPage() {
                 {/* Custom price input */}
                 <div className="w-full px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50/40">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold text-emerald-700">กำหนดราคา</span>
+                    <span className="text-m font-bold text-emerald-700">กำหนดราคา</span>
                   </div>
                   <div className="flex items-center gap-2 mb-2">
-                    <input
+                    <Input
                       type="number"
                       autoFocus
                       value={customPriceInput}
@@ -929,28 +907,24 @@ export default function POSPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
               <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <div className="font-bold text-slate-700 text-sm truncate pr-2">จำนวน — {item?.item_name}</div>
+                <div className="font-bold text-slate-700 text-lg truncate pr-2">จำนวน — {item?.item_name}</div>
                 <button onClick={() => setQtyModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="p-5 space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">ราคา/หน่วย</span>
-                  <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(item?.unit_price ?? 0)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
                   <span className="text-slate-500">คงเหลือ</span>
                   <span className={`font-semibold tabular-nums ${stockQty > 0 ? 'text-slate-700' : 'text-red-500'}`}>{stockQty} {item?.unit_name}</span>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">จำนวน ({item?.unit_name})</label>
+                  <Label className="block text-sm font-bold text-slate-500 mb-1">จำนวน ({item?.unit_name})</Label>
                   <div className="flex items-center gap-2">
                     <button onClick={() => bump(-1)}
                       className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
                       <Minus className="h-5 w-5" />
                     </button>
-                    <input
+                    <Input
                       type="number"
                       autoFocus
                       value={qtyInput}
@@ -975,10 +949,6 @@ export default function POSPage() {
                       {n}
                     </button>
                   ))}
-                </div>
-                <div className="flex justify-between text-sm bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
-                  <span className="text-slate-600 font-medium">รวมเงิน</span>
-                  <span className="font-extrabold text-emerald-600 tabular-nums">฿{formatCurrency(lineTotal)}</span>
                 </div>
               </div>
               <div className="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
@@ -1013,88 +983,91 @@ export default function POSPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
               <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <div className="font-bold text-slate-700 text-sm truncate pr-2">ส่วนลด — {item?.item_name}</div>
+                <div className="font-bold text-slate-700 text-lg truncate pr-2">ส่วนลด — {item?.item_name}</div>
                 <button onClick={() => setDiscountModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="p-5 space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">ราคารวม ({qty} × ฿{formatCurrency(unitPrice)})</span>
+                  <span className="text-slate-500">ราคารวม</span>
                   <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(totalPrice)}</span>
                 </div>
 
                 {/* Percent presets */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5">ส่วนลด (%)</label>
-                  <div className="grid grid-cols-5 gap-2 mb-2">
-                    {([
-                      { pct: 3,  base: 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300',   active: 'bg-red-200 border-red-500 text-red-800 ring-2 ring-red-300' },
-                      { pct: 5,  base: 'bg-red-100 border-red-300 text-red-700 hover:bg-red-200 hover:border-red-400',  active: 'bg-red-300 border-red-600 text-red-900 ring-2 ring-red-400' },
-                      { pct: 10, base: 'bg-red-200 border-red-400 text-red-800 hover:bg-red-300 hover:border-red-500', active: 'bg-red-400 border-red-700 text-white ring-2 ring-red-500' },
-                      { pct: 15, base: 'bg-red-300 border-red-500 text-red-900 hover:bg-red-400 hover:border-red-600', active: 'bg-red-500 border-red-800 text-white ring-2 ring-red-600' },
-                      { pct: 20, base: 'bg-red-400 border-red-600 text-white hover:bg-red-500 hover:border-red-700',   active: 'bg-red-600 border-red-900 text-white ring-2 ring-red-700' },
-                    ] as const).map(({ pct, base, active }) => {
-                      const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
-                      return (
-                        <button key={pct} onClick={() => applyPercent(pct)}
-                          className={`h-10 rounded-xl border text-sm font-semibold transition-colors ${isActive ? active : base}`}>
-                          {pct}%
-                        </button>
-                      )
-                    })}
+                <div className="grid grid-cols-5 gap-2">
+                  {([
+                    { pct: 3,  base: 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300',   active: 'bg-red-200 border-red-500 text-red-800 ring-2 ring-red-300' },
+                    { pct: 5,  base: 'bg-red-100 border-red-300 text-red-700 hover:bg-red-200 hover:border-red-400',  active: 'bg-red-300 border-red-600 text-red-900 ring-2 ring-red-400' },
+                    { pct: 10, base: 'bg-red-200 border-red-400 text-red-800 hover:bg-red-300 hover:border-red-500', active: 'bg-red-400 border-red-700 text-white ring-2 ring-red-500' },
+                    { pct: 15, base: 'bg-red-300 border-red-500 text-red-900 hover:bg-red-400 hover:border-red-600', active: 'bg-red-500 border-red-800 text-white ring-2 ring-red-600' },
+                    { pct: 20, base: 'bg-red-400 border-red-600 text-white hover:bg-red-500 hover:border-red-700',   active: 'bg-red-600 border-red-900 text-white ring-2 ring-red-700' },
+                  ] as const).map(({ pct, base, active }) => {
+                    const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
+                    return (
+                      <button key={pct} onClick={() => applyPercent(pct)}
+                        className={`h-10 rounded-xl border text-sm font-semibold transition-colors ${isActive ? active : base}`}>
+                        {pct}%
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* ส่วนลด (%)  +  ส่วนลด (บาท) — side by side */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="block text-sm font-bold text-slate-500 mb-1">ส่วนลด (%)</Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        value={discountPctInput}
+                        min={0}
+                        max={100}
+                        style={{ MozAppearance: 'textfield' }}
+                        onFocus={e => e.currentTarget.select()}
+                        onChange={e => {
+                          setDiscountPctInput(e.target.value)
+                          const pct = parseFloat(e.target.value)
+                          if (!isNaN(pct)) {
+                            const disc = parseFloat((totalPrice * pct / 100).toFixed(2))
+                            setDiscountInput(String(disc))
+                            setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
+                          }
+                        }}
+                        onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
+                        placeholder="0"
+                        className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none pl-4 pr-10 tabular-nums"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg font-bold pointer-events-none">%</span>
+                    </div>
                   </div>
-                  <div className="relative">
-                    <input
+
+                  <div>
+                    <Label className="block text-sm font-bold text-slate-500 mb-1">ส่วนลด (บาท)</Label>
+                    <Input
                       type="number"
-                      value={discountPctInput}
+                      autoFocus
+                      value={discountInput}
                       min={0}
-                      max={100}
                       style={{ MozAppearance: 'textfield' }}
                       onFocus={e => e.currentTarget.select()}
                       onChange={e => {
-                        setDiscountPctInput(e.target.value)
-                        const pct = parseFloat(e.target.value)
-                        if (!isNaN(pct)) {
-                          const disc = parseFloat((totalPrice * pct / 100).toFixed(2))
-                          setDiscountInput(String(disc))
-                          setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
-                        }
+                        setDiscountInput(e.target.value)
+                        const disc = parseFloat(e.target.value) || 0
+                        if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
+                        setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
                       }}
                       onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
-                      placeholder="0"
-                      className="w-full h-10 text-right text-base font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none pl-3 pr-8 tabular-nums"
+                      placeholder="0.00"
+                      className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none px-4 tabular-nums"
                     />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold pointer-events-none">%</span>
-                    </div>
-                </div>
-
-                {/* Discount baht input */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">ส่วนลด (บาท)</label>
-                  <input
-                    type="number"
-                    autoFocus
-                    value={discountInput}
-                    min={0}
-                    style={{ MozAppearance: 'textfield' }}
-                    onFocus={e => e.currentTarget.select()}
-                    onChange={e => {
-                      setDiscountInput(e.target.value)
-                      const disc = parseFloat(e.target.value) || 0
-                      if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
-                      setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
-                    }}
-                    onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
-                    placeholder="0.00"
-                    className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none px-4 tabular-nums"
-                  />
+                  </div>
                 </div>
 
                 {/* Final price reverse-calc input */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">ราคาสุดท้าย (บาท)</label>
-                  <input
+                  <Label className="block text-sm font-bold text-slate-500 mb-1">ราคาสุดท้าย (บาท)</Label>
+                  <Input
                     type="number"
                     value={finalPriceInput}
                     min={0}
