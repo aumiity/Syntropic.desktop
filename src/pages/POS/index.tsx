@@ -86,6 +86,8 @@ export default function POSPage() {
   const [customPriceInput, setCustomPriceInput] = useState<string>('')
   const [discountModalIdx, setDiscountModalIdx] = useState<number | null>(null)
   const [discountInput, setDiscountInput] = useState<string>('')
+  const [discountPctInput, setDiscountPctInput] = useState<string>('')
+  const [finalPriceInput, setFinalPriceInput] = useState<string>('')
   const [qtyModalIdx, setQtyModalIdx] = useState<number | null>(null)
   const [qtyInput, setQtyInput] = useState<string>('')
 
@@ -293,7 +295,7 @@ export default function POSPage() {
             <div className="flex rounded-xl overflow-hidden border border-slate-300 shadow-sm shrink-0" style={{ height: '52px' }}>
               {(['retail', 'wholesale'] as const).map(t => (
                 <button key={t} onClick={() => cart.setSaleType(t)}
-                  className={`px-4 font-bold text-sm transition-colors ${cart.saleType === t ? 'min w-12 bg-emerald-500 text-white' : 'min w-12 bg-white text-slate-500 hover:bg-slate-50'}`}>
+                  className={`font-bold text-sm transition-colors ${cart.saleType === t ? 'min w-12 bg-emerald-500 text-white' : 'min w-12 bg-white text-slate-500 hover:bg-slate-50'}`}>
                   {t === 'retail' ? 'ปลีก' : 'ส่ง'}
                 </button>
               ))}
@@ -378,9 +380,6 @@ export default function POSPage() {
                   <p className="text-sm">คลิกช่องค้นหาหรือสแกนบาร์โค้ด</p>
                 </div>
               ) : cart.items.map((item, idx) => {
-                const product = item.product as ProductWithDetails | undefined
-                const units = product?.units ?? []
-
                 return (
                   <div key={idx}
                     className="grid px-3 py-1.5 border-b border-slate-100 hover:bg-slate-50 transition-colors items-center"
@@ -394,16 +393,10 @@ export default function POSPage() {
 
                     {/* Unit selector */}
                     <div className="flex justify-center">
-                      {units.length > 1 ? (
-                        <button onClick={() => setUnitModalIdx(idx)}
-                          className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-700 text-sm font-semibold hover:bg-slate-100 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 transition-colors">
-                          {item.unit_name}
-                        </button>
-                      ) : (
-                        <span className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-600 text-sm font-medium">
-                          {item.unit_name}
-                        </span>
-                      )}
+                      <button onClick={() => setUnitModalIdx(idx)}
+                        className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-700 text-sm font-semibold hover:bg-slate-100 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 transition-colors">
+                        {item.unit_name}
+                      </button>
                     </div>
 
                     {/* Qty */}
@@ -427,13 +420,14 @@ export default function POSPage() {
                     <div className="flex justify-end">
                       {item.discount ? (
                         <button
-                          onClick={() => { setDiscountInput(String(item.discount)); setDiscountModalIdx(idx) }}
-                          className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-red-200 bg-red-50 text-red-700 text-sm font-semibold tabular-nums hover:bg-red-100 hover:border-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
-                          <span className="flex-1 text-right">{formatCurrency(item.discount)}</span>
+                          onClick={() => { setDiscountInput(String(item.discount)); setDiscountPctInput(item.unit_price > 0 ? String(parseFloat((item.discount / item.unit_price * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((item.unit_price - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
+                          className="inline-flex flex-col items-end justify-center min-w-14 h-8 px-2.5 rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
+                          <span className="text-sm font-semibold tabular-nums leading-none">{formatCurrency(item.discount)}</span>
+                          {item.unit_price > 0 && <span className="text-[10px] font-medium text-red-400 leading-none">{(item.discount / item.unit_price * 100).toFixed(0)}%</span>}
                         </button>
                       ) : (
                         <button
-                          onClick={() => { setDiscountInput(''); setDiscountModalIdx(idx) }}
+                          onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
                           className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-slate-200 bg-white text-slate-400 text-sm font-medium tabular-nums hover:bg-slate-50 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
                           <span className="flex-1 text-right">0</span>
                         </button>
@@ -762,6 +756,15 @@ export default function POSPage() {
         const item = cart.items[unitModalIdx]
         const product = item?.product as ProductWithDetails | undefined
         const units = product?.units ?? []
+        const baseUnit = product ? {
+          id: -1,
+          unit_name: product.unit_name ?? item?.unit_name ?? '',
+          price_retail: product.price_retail,
+          price_wholesale1: product.price_wholesale1,
+          price_wholesale2: product.price_wholesale2,
+          is_base_unit: true,
+        } as unknown as ProductUnit : null
+        const allUnits = baseUnit ? [baseUnit, ...units.filter(u => u.unit_name !== baseUnit.unit_name)] : units
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
@@ -772,13 +775,16 @@ export default function POSPage() {
                 </button>
               </div>
               <div className="p-3 space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
-                {units.map(u => {
+                {allUnits.map(u => {
                   const active = item?.unit_name === u.unit_name
                   return (
                     <button key={u.id}
                       onClick={() => changeCartUnit(unitModalIdx, u)}
                       className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}>
-                      <div className="text-sm">{u.unit_name}</div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">{u.unit_name}</span>
+                        {u.id === -1 && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">หลัก</span>}
+                      </div>
                     </button>
                   )
                 })}
@@ -898,6 +904,8 @@ export default function POSPage() {
         const item = cart.items[qtyModalIdx]
         const q = Math.max(1, parseFloat(qtyInput) || 0)
         const lineTotal = Math.max(0, (item?.unit_price ?? 0) - (item?.discount ?? 0)) * q
+        const product = item?.product as ProductWithDetails | undefined
+        const stockQty = product?.lots?.reduce((s, l) => s + l.qty_on_hand, 0) ?? 0
         const applyQty = (val: number) => {
           if (!item) return
           const safe = Math.max(1, val)
@@ -923,6 +931,10 @@ export default function POSPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">ราคา/หน่วย</span>
                   <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(item?.unit_price ?? 0)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">คงเหลือ</span>
+                  <span className={`font-semibold tabular-nums ${stockQty > 0 ? 'text-slate-700' : 'text-red-500'}`}>{stockQty} {item?.unit_name}</span>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1">จำนวน ({item?.unit_name})</label>
@@ -975,12 +987,18 @@ export default function POSPage() {
       {discountModalIdx !== null && (() => {
         const item = cart.items[discountModalIdx]
         const d = parseFloat(discountInput) || 0
-        const after = Math.max(0, (item?.unit_price ?? 0) - d)
+        const unitPrice = item?.unit_price ?? 0
         const applyDiscount = (val: number) => {
           if (!item) return
           cart.updateItem(discountModalIdx, { discount: val, line_total: (item.unit_price - val) * item.qty })
           setDiscountModalIdx(null)
           refocusSearch()
+        }
+        const applyPercent = (pct: number) => {
+          const disc = parseFloat((unitPrice * pct / 100).toFixed(2))
+          setDiscountInput(String(disc))
+          setDiscountPctInput(String(pct))
+          setFinalPriceInput(String(parseFloat((unitPrice - disc).toFixed(2))))
         }
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -994,25 +1012,92 @@ export default function POSPage() {
               <div className="p-5 space-y-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">ราคา/หน่วย</span>
-                  <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(item?.unit_price ?? 0)}</span>
+                  <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(unitPrice)}</span>
                 </div>
+
+                {/* Percent presets */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">จำนวนส่วนลด (บาท)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">ส่วนลด (%)</label>
+                  <div className="grid grid-cols-5 gap-2 mb-2">
+                    {[3, 5, 10, 15, 20].map(pct => {
+                      const isActive = unitPrice > 0 && Math.abs(d - unitPrice * pct / 100) < 0.01
+                      return (
+                        <button key={pct} onClick={() => applyPercent(pct)}
+                          className={`h-10 rounded-xl border text-sm font-semibold transition-colors ${isActive ? 'bg-red-100 border-red-400 text-red-700' : 'bg-white border-slate-200 hover:bg-red-50 hover:border-red-300 text-slate-600'}`}>
+                          {pct}%
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={discountPctInput}
+                      min={0}
+                      max={100}
+                      style={{ MozAppearance: 'textfield' }}
+                      onFocus={e => e.currentTarget.select()}
+                      onChange={e => {
+                        setDiscountPctInput(e.target.value)
+                        const pct = parseFloat(e.target.value)
+                        if (!isNaN(pct)) {
+                          const disc = parseFloat((unitPrice * pct / 100).toFixed(2))
+                          setDiscountInput(String(disc))
+                          setFinalPriceInput(String(parseFloat((unitPrice - disc).toFixed(2))))
+                        }
+                      }}
+                      onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
+                      placeholder="0"
+                      className="w-full h-10 text-right text-base font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none pl-3 pr-8 tabular-nums"
+                    />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold pointer-events-none">%</span>
+                    </div>
+                </div>
+
+                {/* Discount baht input */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">ส่วนลด (บาท)</label>
                   <input
                     type="number"
                     autoFocus
                     value={discountInput}
                     min={0}
                     style={{ MozAppearance: 'textfield' }}
-                    onChange={e => setDiscountInput(e.target.value)}
+                    onFocus={e => e.currentTarget.select()}
+                    onChange={e => {
+                      setDiscountInput(e.target.value)
+                      const disc = parseFloat(e.target.value) || 0
+                      if (unitPrice > 0) setDiscountPctInput(String(parseFloat((disc / unitPrice * 100).toFixed(2))))
+                      setFinalPriceInput(String(parseFloat((unitPrice - disc).toFixed(2))))
+                    }}
                     onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                     placeholder="0.00"
-                    className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
+                    className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none px-4 tabular-nums"
                   />
                 </div>
-                <div className="flex justify-between text-sm bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
-                  <span className="text-slate-600 font-medium">ราคาหลังหักส่วนลด</span>
-                  <span className="font-extrabold text-emerald-600 tabular-nums">฿{formatCurrency(after)}</span>
+
+                {/* Final price reverse-calc input */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">ราคาสุดท้าย (บาท)</label>
+                  <input
+                    type="number"
+                    value={finalPriceInput}
+                    min={0}
+                    style={{ MozAppearance: 'textfield' }}
+                    onFocus={e => e.currentTarget.select()}
+                    onChange={e => {
+                      setFinalPriceInput(e.target.value)
+                      const fp = parseFloat(e.target.value)
+                      if (!isNaN(fp)) {
+                        const disc = Math.max(0, parseFloat((unitPrice - fp).toFixed(2)))
+                        setDiscountInput(String(disc))
+                        if (unitPrice > 0) setDiscountPctInput(String(parseFloat((disc / unitPrice * 100).toFixed(2))))
+                      }
+                    }}
+                    onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
+                    placeholder={formatCurrency(unitPrice)}
+                    className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
+                  />
                 </div>
               </div>
               <div className="px-5 py-3 border-t border-slate-200 flex justify-between gap-2">
