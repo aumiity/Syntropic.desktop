@@ -7,6 +7,9 @@ export function registerPosHandlers() {
   ipcMain.handle('pos:searchProducts', (_e, query: string) => {
     const db = getDb()
     const q = `%${query}%`
+    const prefix = `${query}%`
+    const kwMid = `%,${query}%`
+    const kwMidSp = `%, ${query}%`
     const products = db.prepare(`
       SELECT p.*, c.name as category_name, dt.name_th as drug_type_name,
              df.name_th as dosage_form_name, u.name as unit_name
@@ -19,9 +22,16 @@ export function registerPosHandlers() {
         AND (p.trade_name LIKE ? OR p.barcode LIKE ? OR p.barcode2 LIKE ?
              OR p.barcode3 LIKE ? OR p.barcode4 LIKE ?
              OR p.code LIKE ? OR p.search_keywords LIKE ?)
-      ORDER BY p.trade_name
+      ORDER BY
+        CASE
+          WHEN p.trade_name LIKE ? THEN 1
+          WHEN p.code LIKE ? THEN 2
+          WHEN p.search_keywords LIKE ? OR p.search_keywords LIKE ? OR p.search_keywords LIKE ? THEN 3
+          ELSE 4
+        END,
+        p.trade_name
       LIMIT 30
-    `).all(q, q, q, q, q, q, q)
+    `).all(q, q, q, q, q, q, q, prefix, prefix, prefix, kwMid, kwMidSp)
 
     for (const prod of products as any[]) {
       prod.lots = db.prepare(`
