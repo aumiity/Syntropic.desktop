@@ -4,7 +4,7 @@ import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { formatCurrency, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, Customer } from '@/types'
 import {
@@ -366,7 +366,7 @@ export default function POSPage() {
                   <p className="text-sm">คลิกช่องค้นหาหรือสแกนบาร์โค้ด</p>
                 </div>
               ) : (
-                <Table className="table-fixed">
+                <table className="w-full caption-bottom text-sm table-fixed">
                   <colgroup>
                     <col style={{ width: 36 }} />
                     <col />
@@ -448,7 +448,7 @@ export default function POSPage() {
                       </TableRow>
                     ))}
                   </TableBody>
-                </Table>
+                </table>
               )}
             </div>
 
