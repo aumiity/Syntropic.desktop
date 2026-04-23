@@ -40,7 +40,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
       const updated = [...items]
       const existing = updated[idx]
       const newQty = existing.qty + item.qty
-      updated[idx] = { ...existing, qty: newQty, line_total: (newQty * existing.unit_price) - existing.discount }
+      updated[idx] = { ...existing, qty: newQty, line_total: Math.max(0, newQty * existing.unit_price - existing.discount) }
       set({ items: updated })
     } else {
       set({ items: [...items, item] })
@@ -51,7 +51,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
     const { items } = get()
     const updated = [...items]
     const item = { ...updated[index], ...updates }
-    item.line_total = (item.qty * item.unit_price) - item.discount
+    item.line_total = Math.max(0, item.qty * item.unit_price - item.discount)
     updated[index] = item
     set({ items: updated })
   },
@@ -77,7 +77,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
       const price = selectedUnit
         ? (type === 'wholesale' ? (selectedUnit.price_wholesale1 || selectedUnit.price_retail) : selectedUnit.price_retail)
         : (type === 'wholesale' ? (product.price_wholesale1 || product.price_retail) : product.price_retail)
-      return { ...item, unit_price: price, line_total: (price - (item.discount || 0)) * item.qty }
+      return { ...item, unit_price: price, line_total: Math.max(0, price * item.qty - (item.discount || 0)) }
     })
     set({ saleType: type, items: repriced })
   },

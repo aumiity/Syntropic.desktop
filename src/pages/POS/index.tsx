@@ -240,16 +240,14 @@ export default function POSPage() {
   }
 
   const changeCartUnit = (idx: number, unit: ProductUnit) => {
-    const item = cart.items[idx]
     const price = cart.saleType === 'wholesale' ? (unit.price_wholesale1 || unit.price_retail) : unit.price_retail
-    cart.updateItem(idx, { unit_name: unit.unit_name, unit_price: price, selectedUnit: unit, line_total: (price - (item.discount || 0)) * item.qty })
+    cart.updateItem(idx, { unit_name: unit.unit_name, unit_price: price, selectedUnit: unit })
     setUnitModalIdx(null)
     refocusSearch()
   }
 
   const changeCartPrice = (idx: number, price: number) => {
-    const item = cart.items[idx]
-    cart.updateItem(idx, { unit_price: price, line_total: (price - (item.discount || 0)) * item.qty })
+    cart.updateItem(idx, { unit_price: price })
     setPriceModalIdx(null)
     refocusSearch()
   }
@@ -420,10 +418,9 @@ export default function POSPage() {
                     <div className="flex justify-end">
                       {item.discount ? (
                         <button
-                          onClick={() => { setDiscountInput(String(item.discount)); setDiscountPctInput(item.unit_price > 0 ? String(parseFloat((item.discount / item.unit_price * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((item.unit_price - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
+                          onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
                           className="inline-flex flex-col items-end justify-center min-w-14 h-8 px-2.5 rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
                           <span className="text-sm font-semibold tabular-nums leading-none">{formatCurrency(item.discount)}</span>
-                          {item.unit_price > 0 && <span className="text-[10px] font-medium text-red-400 leading-none">{(item.discount / item.unit_price * 100).toFixed(0)}%</span>}
                         </button>
                       ) : (
                         <button
@@ -438,7 +435,7 @@ export default function POSPage() {
 
                     <div className="flex justify-end">
                       <button onClick={() => cart.removeItem(idx)}
-                        className="w-7 h-7 rounded flex items-center justify-end text-slate-300 hover:text-red-500 hover:bg-red-50">
+                        className="w-7 h-7 rounded flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -783,7 +780,7 @@ export default function POSPage() {
                       className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">{u.unit_name}</span>
-                        {u.id === -1 && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">หลัก</span>}
+                        {u.id === -1 && <span className="text-[15px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">หลัก</span>}
                       </div>
                     </button>
                   )
@@ -810,6 +807,7 @@ export default function POSPage() {
         const customPrice = parseFloat(customPriceInput) || 0
         const customProfit = customPrice - cost
         const customProfitPct = customPrice > 0 ? (customProfit / customPrice) * 100 : 0
+        const customMarkupPct = cost > 0 ? (customProfit / cost) * 100 : 0
         const applyCustomPrice = () => {
           if (customPrice <= 0) return
           changeCartPrice(priceModalIdx, customPrice)
@@ -855,8 +853,8 @@ export default function POSPage() {
                       <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-green-600' : 'text-red-500'}`}>฿{formatCurrency(customProfit)}</div>
                     </div>
                     <div>
-                      <div className="text-slate-400">กำไร %</div>
-                      <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-green-600' : 'text-red-500'}`}>{customPrice > 0 ? customProfitPct.toFixed(1) : '0.0'}%</div>
+                      <div className="text-slate-400">% ทุน</div>
+                      <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-green-600' : 'text-red-500'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</div>
                     </div>
                   </div>
                 </div>
@@ -865,6 +863,7 @@ export default function POSPage() {
                   const active = item?.unit_price === opt.price
                   const profit = opt.price - cost
                   const profitPct = opt.price > 0 ? (profit / opt.price) * 100 : 0
+                  const markupPct = cost > 0 ? (profit / cost) * 100 : 0
                   return (
                     <button key={i}
                       onClick={() => changeCartPrice(priceModalIdx, opt.price)}
@@ -883,8 +882,8 @@ export default function POSPage() {
                           <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-green-600' : 'text-red-500'}`}>฿{formatCurrency(profit)}</div>
                         </div>
                         <div>
-                          <div className="text-slate-400">กำไร %</div>
-                          <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-green-600' : 'text-red-500'}`}>{profitPct.toFixed(1)}%</div>
+                          <div className="text-slate-400">% ทุน</div>
+                          <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-green-600' : 'text-red-500'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</div>
                         </div>
                       </div>
                     </button>
@@ -903,13 +902,13 @@ export default function POSPage() {
       {qtyModalIdx !== null && (() => {
         const item = cart.items[qtyModalIdx]
         const q = Math.max(1, parseFloat(qtyInput) || 0)
-        const lineTotal = Math.max(0, (item?.unit_price ?? 0) - (item?.discount ?? 0)) * q
+        const lineTotal = Math.max(0, (item?.unit_price ?? 0) * q - (item?.discount ?? 0))
         const product = item?.product as ProductWithDetails | undefined
         const stockQty = product?.lots?.reduce((s, l) => s + l.qty_on_hand, 0) ?? 0
         const applyQty = (val: number) => {
           if (!item) return
           const safe = Math.max(1, val)
-          cart.updateItem(qtyModalIdx, { qty: safe, line_total: (item.unit_price - (item.discount || 0)) * safe })
+          cart.updateItem(qtyModalIdx, { qty: safe })
           setQtyModalIdx(null)
           refocusSearch()
         }
@@ -988,17 +987,19 @@ export default function POSPage() {
         const item = cart.items[discountModalIdx]
         const d = parseFloat(discountInput) || 0
         const unitPrice = item?.unit_price ?? 0
-        const applyDiscount = (val: number) => {
+        const qty = item?.qty ?? 1
+        const totalPrice = unitPrice * qty
+        const applyDiscount = (totalDisc: number) => {
           if (!item) return
-          cart.updateItem(discountModalIdx, { discount: val, line_total: (item.unit_price - val) * item.qty })
+          cart.updateItem(discountModalIdx, { discount: totalDisc })
           setDiscountModalIdx(null)
           refocusSearch()
         }
         const applyPercent = (pct: number) => {
-          const disc = parseFloat((unitPrice * pct / 100).toFixed(2))
+          const disc = parseFloat((totalPrice * pct / 100).toFixed(2))
           setDiscountInput(String(disc))
           setDiscountPctInput(String(pct))
-          setFinalPriceInput(String(parseFloat((unitPrice - disc).toFixed(2))))
+          setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
         }
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -1011,19 +1012,25 @@ export default function POSPage() {
               </div>
               <div className="p-5 space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">ราคา/หน่วย</span>
-                  <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(unitPrice)}</span>
+                  <span className="text-slate-500">ราคารวม ({qty} × ฿{formatCurrency(unitPrice)})</span>
+                  <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(totalPrice)}</span>
                 </div>
 
                 {/* Percent presets */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">ส่วนลด (%)</label>
                   <div className="grid grid-cols-5 gap-2 mb-2">
-                    {[3, 5, 10, 15, 20].map(pct => {
-                      const isActive = unitPrice > 0 && Math.abs(d - unitPrice * pct / 100) < 0.01
+                    {([
+                      { pct: 3,  base: 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300',   active: 'bg-red-200 border-red-500 text-red-800 ring-2 ring-red-300' },
+                      { pct: 5,  base: 'bg-red-100 border-red-300 text-red-700 hover:bg-red-200 hover:border-red-400',  active: 'bg-red-300 border-red-600 text-red-900 ring-2 ring-red-400' },
+                      { pct: 10, base: 'bg-red-200 border-red-400 text-red-800 hover:bg-red-300 hover:border-red-500', active: 'bg-red-400 border-red-700 text-white ring-2 ring-red-500' },
+                      { pct: 15, base: 'bg-red-300 border-red-500 text-red-900 hover:bg-red-400 hover:border-red-600', active: 'bg-red-500 border-red-800 text-white ring-2 ring-red-600' },
+                      { pct: 20, base: 'bg-red-400 border-red-600 text-white hover:bg-red-500 hover:border-red-700',   active: 'bg-red-600 border-red-900 text-white ring-2 ring-red-700' },
+                    ] as const).map(({ pct, base, active }) => {
+                      const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
                       return (
                         <button key={pct} onClick={() => applyPercent(pct)}
-                          className={`h-10 rounded-xl border text-sm font-semibold transition-colors ${isActive ? 'bg-red-100 border-red-400 text-red-700' : 'bg-white border-slate-200 hover:bg-red-50 hover:border-red-300 text-slate-600'}`}>
+                          className={`h-10 rounded-xl border text-sm font-semibold transition-colors ${isActive ? active : base}`}>
                           {pct}%
                         </button>
                       )
@@ -1041,9 +1048,9 @@ export default function POSPage() {
                         setDiscountPctInput(e.target.value)
                         const pct = parseFloat(e.target.value)
                         if (!isNaN(pct)) {
-                          const disc = parseFloat((unitPrice * pct / 100).toFixed(2))
+                          const disc = parseFloat((totalPrice * pct / 100).toFixed(2))
                           setDiscountInput(String(disc))
-                          setFinalPriceInput(String(parseFloat((unitPrice - disc).toFixed(2))))
+                          setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
                         }
                       }}
                       onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
@@ -1067,8 +1074,8 @@ export default function POSPage() {
                     onChange={e => {
                       setDiscountInput(e.target.value)
                       const disc = parseFloat(e.target.value) || 0
-                      if (unitPrice > 0) setDiscountPctInput(String(parseFloat((disc / unitPrice * 100).toFixed(2))))
-                      setFinalPriceInput(String(parseFloat((unitPrice - disc).toFixed(2))))
+                      if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
+                      setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
                     }}
                     onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                     placeholder="0.00"
@@ -1089,13 +1096,13 @@ export default function POSPage() {
                       setFinalPriceInput(e.target.value)
                       const fp = parseFloat(e.target.value)
                       if (!isNaN(fp)) {
-                        const disc = Math.max(0, parseFloat((unitPrice - fp).toFixed(2)))
+                        const disc = Math.max(0, parseFloat((totalPrice - fp).toFixed(2)))
                         setDiscountInput(String(disc))
-                        if (unitPrice > 0) setDiscountPctInput(String(parseFloat((disc / unitPrice * 100).toFixed(2))))
+                        if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
                       }
                     }}
                     onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
-                    placeholder={formatCurrency(unitPrice)}
+                    placeholder={formatCurrency(totalPrice)}
                     className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
                   />
                 </div>
