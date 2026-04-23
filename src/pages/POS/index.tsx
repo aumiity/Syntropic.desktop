@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { formatCurrency, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, Customer } from '@/types'
 import {
@@ -355,19 +356,6 @@ export default function POSPage() {
           )}
 
           <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden min-h-0">
-            {/* Table header */}
-            <div className="grid px-3 py-3 bg-slate-100 text-slate-600 text-xs font-bold border-b border-slate-200 shrink-0"
-              style={{ gridTemplateColumns: '36px 1fr 110px 110px 100px 110px 110px 60px' }}>
-              <div className="text-center">#</div>
-              <div>รายการสินค้า</div>
-              <div className="text-center">หน่วย</div>
-              <div className="text-center">จำนวน</div>
-              <div className="text-right">ราคา/หน่วย</div>
-              <div className="text-right">ส่วนลด</div>
-              <div className="text-right">รวมเงิน</div>
-              <div />
-            </div>
-
             <div className="flex-1 overflow-y-auto scrollbar-thin">
               {cart.items.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-3">
@@ -377,71 +365,91 @@ export default function POSPage() {
                   <p className="text-lg font-medium">ยังไม่มีรายการสั่งซื้อ</p>
                   <p className="text-sm">คลิกช่องค้นหาหรือสแกนบาร์โค้ด</p>
                 </div>
-              ) : cart.items.map((item, idx) => {
-                return (
-                  <div key={idx}
-                    className="grid px-3 py-1.5 border-b border-slate-100 hover:bg-slate-50 transition-colors items-center"
-                    style={{ gridTemplateColumns: '36px 1fr 110px 110px 100px 110px 110px 60px' }}>
+              ) : (
+                <Table className="table-fixed">
+                  <colgroup>
+                    <col style={{ width: 36 }} />
+                    <col />
+                    <col style={{ width: 110 }} />
+                    <col style={{ width: 110 }} />
+                    <col style={{ width: 100 }} />
+                    <col style={{ width: 110 }} />
+                    <col style={{ width: 110 }} />
+                    <col style={{ width: 60 }} />
+                  </colgroup>
+                  <TableHeader className="sticky top-0 z-10 bg-slate-100">
+                    <TableRow className="hover:bg-slate-100">
+                      <TableHead className="text-center text-xs font-bold text-slate-600">#</TableHead>
+                      <TableHead className="text-xs font-bold text-slate-600">รายการสินค้า</TableHead>
+                      <TableHead className="text-center text-xs font-bold text-slate-600">หน่วย</TableHead>
+                      <TableHead className="text-center text-xs font-bold text-slate-600">จำนวน</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-slate-600">ราคา/หน่วย</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-slate-600">ส่วนลด</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-slate-600">รวมเงิน</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {cart.items.map((item, idx) => (
+                      <TableRow key={idx} className="hover:bg-slate-50">
+                        <TableCell className="text-center text-xs text-muted-foreground">{idx + 1}</TableCell>
+                        <TableCell className="min-w-0 pr-2">
+                          <div className="font-medium truncate text-sm">{item.item_name}</div>
+                        </TableCell>
 
-                    <div className="text-center text-xs text-muted-foreground">{idx + 1}</div>
+                        <TableCell className="text-center">
+                          <button onClick={() => setUnitModalIdx(idx)}
+                            className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-700 text-sm font-semibold hover:bg-slate-100 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 transition-colors">
+                            {item.unit_name}
+                          </button>
+                        </TableCell>
 
-                    <div className="min-w-0 pr-2">
-                      <div className="font-medium truncate text-sm">{item.item_name}</div>
-                    </div>
+                        <TableCell className="text-center">
+                          <button
+                            onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
+                            className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700 text-sm font-semibold tabular-nums hover:bg-yellow-100 hover:border-yellow-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 transition-colors">
+                            <span className="flex-1 text-center">{item.qty}</span>
+                          </button>
+                        </TableCell>
 
-                    {/* Unit selector */}
-                    <div className="flex justify-center">
-                      <button onClick={() => setUnitModalIdx(idx)}
-                        className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-700 text-sm font-semibold hover:bg-slate-100 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 transition-colors">
-                        {item.unit_name}
-                      </button>
-                    </div>
+                        <TableCell className="text-right">
+                          <button onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
+                            className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-semibold tabular-nums hover:bg-emerald-100 hover:border-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-colors">
+                            <span className="flex-1 text-right">{formatCurrency(item.unit_price)}</span>
+                          </button>
+                        </TableCell>
 
-                    {/* Qty */}
-                    <div className="flex justify-center">
-                      <button
-                        onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                        className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700 text-sm font-semibold tabular-nums hover:bg-yellow-100 hover:border-yellow-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 transition-colors">
-                        <span className="flex-1 text-center">{item.qty}</span>
-                      </button>
-                    </div>
+                        <TableCell className="text-right">
+                          {item.discount ? (
+                            <button
+                              onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
+                              className="inline-flex flex-col items-end justify-center min-w-14 h-8 px-2.5 rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
+                              <span className="text-sm font-semibold tabular-nums leading-none">{formatCurrency(item.discount)}</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
+                              className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-slate-200 bg-white text-slate-400 text-sm font-medium tabular-nums hover:bg-slate-50 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
+                              <span className="flex-1 text-right">0</span>
+                            </button>
+                          )}
+                        </TableCell>
 
-                    {/* Price selector */}
-                    <div className="flex justify-end">
-                      <button onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
-                        className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-semibold tabular-nums hover:bg-emerald-100 hover:border-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-colors">
-                        <span className="flex-1 text-right">{formatCurrency(item.unit_price)}</span>
-                      </button>
-                    </div>
+                        <TableCell className="text-right font-semibold text-emerald-700 text-sm">
+                          {formatCurrency(item.line_total)}
+                        </TableCell>
 
-                    {/* Discount */}
-                    <div className="flex justify-end">
-                      {item.discount ? (
-                        <button
-                          onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
-                          className="inline-flex flex-col items-end justify-center min-w-14 h-8 px-2.5 rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
-                          <span className="text-sm font-semibold tabular-nums leading-none">{formatCurrency(item.discount)}</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
-                          className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-slate-200 bg-white text-slate-400 text-sm font-medium tabular-nums hover:bg-slate-50 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
-                          <span className="flex-1 text-right">0</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="text-right font-semibold text-emerald-700 text-sm">{formatCurrency(item.line_total)}</div>
-
-                    <div className="flex justify-end">
-                      <button onClick={() => cart.removeItem(idx)}
-                        className="w-7 h-7 rounded flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+                        <TableCell className="text-right">
+                          <button onClick={() => cart.removeItem(idx)}
+                            className="w-7 h-7 rounded inline-flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </div>
 
             {cart.items.length > 0 && (

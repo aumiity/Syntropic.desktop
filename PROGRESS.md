@@ -220,6 +220,23 @@ Full schema + business logic analysis in conversation history.
 `C:\Users\ANYA\AppData\Roaming\syntropic-desktop\database\syntropic.db`
 Use DB Browser for SQLite to inspect or import data from PHP version.
 
+## shadcn/ui Install + Compatibility Patch (2026-04-23)
+- `shadcn` v4 CLI + `tw-animate-css` + `@fontsource-variable/geist` added to `package.json`; CLI regenerated all 13 primitives in `src/components/ui/` (badge, button, card, checkbox, dialog, input, label, pagination, select, switch, table, tabs, textarea).
+- **CSS rollback** — shadcn overwrote `src/index.css` with Tailwind v4 syntax (`@import "shadcn/tailwind.css"`, `oklch()` color values, `@theme` directives). The project is still on Tailwind **v3.4.4** and `tailwind.config.js` consumes variables via `hsl(var(--primary))`, so the v4 `oklch()` values produced invalid CSS (`hsl(oklch(...))`) and nothing rendered. Reverted `src/index.css` to the HSL-based v3 version.
+- **Custom API preserved on shadcn primitives**:
+  - `src/components/ui/button.tsx` — added `success` and `warning` variants + `xl` size back to the CVA config
+  - `src/components/ui/badge.tsx` — added `success`, `warning`, `danger` variants back
+  - `src/components/ui/dialog.tsx` — added `size` prop (`sm | md | lg | xl | 2xl | full`) via a `dialogSizeMap`, wired `onClose` through to the built-in X button, re-exported `DialogBody`
+  - `src/components/ui/pagination.tsx` — replaced shadcn's composed-parts API with a simple `<Pagination page totalPages onPageChange />` wrapper (shadcn `Button` + lucide chevrons), matching what every consumer page already calls it with
+- Pre-existing type errors left alone: toast call sites use `toast({ title, description, variant })` but the hook signature is `toast(message, type)`; `FullProduct` / `ProductLabel` / `ProductLot` types missing several fields; `adjustStock` called with 4 args when API expects 1. None of these were caused by the shadcn install.
+
+## POS Cart Table → shadcn Table (2026-04-23)
+- `src/pages/POS/index.tsx` — replaced the hand-rolled grid-div cart table with shadcn `Table / TableHeader / TableBody / TableRow / TableHead / TableCell`
+- Column widths locked via `<colgroup>` (36 / flex / 110 / 110 / 100 / 110 / 110 / 60 px) instead of `gridTemplateColumns` inline style
+- `TableHeader` gets `sticky top-0 z-10 bg-slate-100` so the header pins while rows scroll — same UX as before
+- All interactive pill buttons preserved: slate unit selector, yellow qty, emerald price, red discount, trash icon
+- Empty-state (shopping-bag SVG + "ยังไม่มีรายการสั่งซื้อ") and summary footer (รายการ count / ราคารวม / ส่วนลด) untouched
+
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source
 - better-sqlite3 prebuilt binary obtained via prebuild-install targeting Electron 31.7.7
