@@ -73,6 +73,9 @@ export default function POSPage() {
   const [saving, setSaving] = useState(false)
   const [totalDiscountInput, setTotalDiscountInput] = useState('')
   const [showBreakdown, setShowBreakdown] = useState(false)
+  // Per-line discount redistribution preview — local to the payment modal.
+  // Not committed to cart store until Save, so cancelling leaves the cart untouched.
+  const [pendingDiscounts, setPendingDiscounts] = useState<number[]>([])
 
   // Customer
   const [showCustomerSearch, setShowCustomerSearch] = useState(false)
@@ -273,8 +276,15 @@ export default function POSPage() {
     finally { setQaSaving(false) }
   }
 
+  // Modal-scoped pending values — fall back to cart discounts when the modal
+  // hasn't seeded (or items changed since the last seed).
+  const pendingEffectiveDiscounts = pendingDiscounts.length === cart.items.length
+    ? pendingDiscounts
+    : cart.items.map(i => i.discount)
+  const pendingTotalDiscount = pendingEffectiveDiscounts.reduce((s, d) => s + d, 0)
+  const pendingNet = cart.subtotal() - pendingTotalDiscount
   const totalPaid = (parseFloat(cashAmount) || 0) + (parseFloat(cardAmount) || 0) + (parseFloat(transferAmount) || 0)
-  const change = totalPaid - cart.totalAmount()
+  const change = totalPaid - pendingNet
 
   const handleCompleteSale = async () => {
     if (cart.items.length === 0) { toast('กรุณาเพิ่มสินค้าในตะกร้า', 'error'); return }
@@ -282,8 +292,11 @@ export default function POSPage() {
     try {
       const result = await window.api.pos.saveBill({
         sale_type: cart.saleType, customer_id: cart.customer?.id ?? null, customer_name_free: cart.customerNameFree,
-        items: cart.items.map(i => ({ product_id: i.product_id, item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, unit_price: i.unit_price, discount: i.discount, line_total: i.line_total, item_note: i.item_note })),
-        subtotal: cart.subtotal(), total_discount: cart.totalDiscount(), total_amount: cart.totalAmount(),
+        items: cart.items.map((i, idx) => {
+          const d = pendingEffectiveDiscounts[idx]
+          return { product_id: i.product_id, item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, unit_price: i.unit_price, discount: d, line_total: i.qty * i.unit_price - d, item_note: i.item_note }
+        }),
+        subtotal: cart.subtotal(), total_discount: pendingTotalDiscount, total_amount: pendingNet,
         cash_amount: parseFloat(cashAmount) || 0, card_amount: parseFloat(cardAmount) || 0, transfer_amount: parseFloat(transferAmount) || 0,
         change_amount: Math.max(0, change), symptom_note: cart.symptomNote, age_range: cart.ageRange, sold_by: 1,
       }) as any
@@ -554,6 +567,7 @@ export default function POSPage() {
         <div className="w-64 shrink-0 flex flex-col gap-2.5">
           <Button disabled={cart.items.length === 0}
             onClick={() => {
+              setPendingDiscounts(cart.items.map(i => i.discount))
               setTotalDiscountInput(cart.totalDiscount().toFixed(2))
               setCashAmount(cart.totalAmount().toFixed(2))
               setShowBreakdown(false)
@@ -829,7 +843,7 @@ export default function POSPage() {
             {(() => {
               const subtotal = cart.subtotal()
               const totalCost = cart.items.reduce((s, i) => s + i.qty * (i.product?.cost_price ?? 0), 0)
-              const net = cart.totalAmount()
+              const net = pendingNet
               const profit = net - totalCost
               const margin = net > 0 ? (profit / net) * 100 : 0
               const netNegative = net < 0
@@ -838,19 +852,16 @@ export default function POSPage() {
               const applyTotalDiscount = (raw: string) => {
                 const parsed = parseFloat(raw)
                 const next = Number.isFinite(parsed) ? Math.max(0, parsed) : 0
-                const current = cart.totalDiscount()
-                if (Math.abs(next - current) < 1e-6) return
-                const newDiscounts = redistributeDiscounts(cart.items, next)
-                newDiscounts.forEach((d, i) => {
-                  if (Math.abs(d - cart.items[i].discount) > 1e-6) {
-                    cart.updateItem(i, { discount: d })
-                  }
-                })
-                setCashAmount(Math.max(0, cart.totalAmount()).toFixed(2))
+                if (Math.abs(next - pendingTotalDiscount) < 1e-6) return
+                const tempItems = cart.items.map((item, idx) => ({ ...item, discount: pendingEffectiveDiscounts[idx] }))
+                const newDiscounts = redistributeDiscounts(tempItems, next)
+                setPendingDiscounts(newDiscounts)
+                const newNet = subtotal - newDiscounts.reduce((s, d) => s + d, 0)
+                setCashAmount(Math.max(0, newNet).toFixed(2))
               }
 
               const normalizeTotalDiscount = () => {
-                setTotalDiscountInput(cart.totalDiscount().toFixed(2))
+                setTotalDiscountInput(pendingTotalDiscount.toFixed(2))
               }
 
               return (
@@ -944,7 +955,7 @@ export default function POSPage() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPayment(false)}>ยกเลิก</Button>
-            <Button variant="success" disabled={saving || totalPaid < cart.totalAmount() || cart.totalAmount() < 0} onClick={handleCompleteSale} className="min-w-[120px]">
+            <Button variant="success" disabled={saving || change < 0 || pendingNet < 0} onClick={handleCompleteSale} className="min-w-[120px]">
               {saving ? 'กำลังบันทึก...' : '✓ บันทึก'}
             </Button>
           </DialogFooter>
