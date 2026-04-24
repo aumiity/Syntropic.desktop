@@ -9,6 +9,7 @@ import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/compon
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { formatCurrency, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, Customer } from '@/types'
+import { redistributeDiscounts } from './redistributeDiscount'
 import {
   Search, User, Trash2, Plus, Minus,
   Banknote, AlertTriangle, ChevronDown, X, UserPlus, Info,
@@ -70,6 +71,8 @@ export default function POSPage() {
   const [cardAmount, setCardAmount] = useState('')
   const [transferAmount, setTransferAmount] = useState('')
   const [saving, setSaving] = useState(false)
+  const [totalDiscountInput, setTotalDiscountInput] = useState('')
+  const [showBreakdown, setShowBreakdown] = useState(false)
 
   // Customer
   const [showCustomerSearch, setShowCustomerSearch] = useState(false)
@@ -424,7 +427,7 @@ export default function POSPage() {
                         : 'border-transparent text-slate-400 hover:text-slate-600'
                     }`}
                   >
-                    ออเดอร์ {i + 1}
+                    รายการขาย {i + 1}
                     {hasItems && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />}
                   </button>
                 </React.Fragment>
@@ -550,7 +553,12 @@ export default function POSPage() {
         {/* Right action panel */}
         <div className="w-64 shrink-0 flex flex-col gap-2.5">
           <Button disabled={cart.items.length === 0}
-            onClick={() => { setCashAmount(cart.totalAmount().toFixed(2)); setShowPayment(true) }}
+            onClick={() => {
+              setTotalDiscountInput(cart.totalDiscount().toFixed(2))
+              setCashAmount(cart.totalAmount().toFixed(2))
+              setShowBreakdown(false)
+              setShowPayment(true)
+            }}
             className="flex-1 flex-col gap-1 min-h-[120px] h-auto rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-100 text-white font-bold text-2xl shadow-md">
             <span>รับชำระเงิน</span>
             <span className="text-sm bg-black/10 px-3 py-0.5 rounded-md font-medium">F9</span>
@@ -815,25 +823,128 @@ export default function POSPage() {
       )}
 
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent size="sm" onClose={() => setShowPayment(false)}>
+        <DialogContent size="lg" onClose={() => setShowPayment(false)}>
           <DialogHeader><DialogTitle>ชำระเงิน</DialogTitle></DialogHeader>
           <DialogBody className="space-y-4">
-            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl px-5 py-4 border border-emerald-200">
-              <div className="text-sm text-slate-600 font-semibold mb-1">ยอดสุทธิ</div>
-              <div className="text-5xl font-extrabold text-emerald-600 text-right leading-none tabular-nums">{formatCurrency(cart.totalAmount())}</div>
-            </div>
-            <div className="space-y-2"><label className="flex items-center gap-2 text-sm font-medium"><Banknote className="h-4 w-4 text-green-500" /> เงินสด</label>
-              <Input type="number" value={cashAmount} onChange={e => setCashAmount(e.target.value)} placeholder="0.00" className="text-right text-lg" /></div>
-            <div className="rounded-xl bg-muted p-3 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span>รับเงินรวม</span>
-                <span className={totalPaid >= cart.totalAmount() ? 'text-green-500 font-semibold' : 'text-red-500 font-semibold'}>฿{formatCurrency(totalPaid)}</span></div>
-              <div className="flex justify-between font-semibold border-t border-border pt-1.5"><span>เงินทอน</span>
-                <span className={change >= 0 ? 'text-green-500' : 'text-red-500'}>฿{formatCurrency(Math.max(0, change))}</span></div>
-            </div>
+            {(() => {
+              const subtotal = cart.subtotal()
+              const totalCost = cart.items.reduce((s, i) => s + i.qty * (i.product?.cost_price ?? 0), 0)
+              const net = cart.totalAmount()
+              const profit = net - totalCost
+              const margin = net > 0 ? (profit / net) * 100 : 0
+              const netNegative = net < 0
+              const needsCheck = netNegative || change < 0
+
+              const applyTotalDiscount = (raw: string) => {
+                const parsed = parseFloat(raw)
+                const next = Number.isFinite(parsed) ? Math.max(0, parsed) : 0
+                const current = cart.totalDiscount()
+                if (Math.abs(next - current) < 1e-6) return
+                const newDiscounts = redistributeDiscounts(cart.items, next)
+                newDiscounts.forEach((d, i) => {
+                  if (Math.abs(d - cart.items[i].discount) > 1e-6) {
+                    cart.updateItem(i, { discount: d })
+                  }
+                })
+                setCashAmount(Math.max(0, cart.totalAmount()).toFixed(2))
+              }
+
+              const normalizeTotalDiscount = () => {
+                setTotalDiscountInput(cart.totalDiscount().toFixed(2))
+              }
+
+              return (
+                <>
+                  {/* Section 1 — Gross + editable discount */}
+                  <div className="rounded-xl border border-border bg-background p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-base text-muted-foreground">ราคาขายรวม</span>
+                      <span className="text-xl font-semibold tabular-nums">฿{formatCurrency(subtotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-base text-muted-foreground">ส่วนลดรวม</span>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        value={totalDiscountInput}
+                        onChange={e => { setTotalDiscountInput(e.target.value); applyTotalDiscount(e.target.value) }}
+                        onBlur={normalizeTotalDiscount}
+                        onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                        placeholder="0.00"
+                        disabled={cart.items.length === 0 || subtotal <= 0}
+                        className="text-right tabular-nums w-52 h-12 text-xl font-semibold bg-red-50 border-red-300 text-red-600 focus-visible:border-red-400 focus-visible:ring-red-200"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Section 2 — Net total */}
+                  <div className={`rounded-xl px-5 py-4 border ${netNegative
+                    ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200'
+                    : 'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200'}`}>
+                    <div className="text-sm text-slate-600 font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
+                    <div className={`text-5xl font-extrabold text-right leading-none tabular-nums ${netNegative ? 'text-red-600' : 'text-emerald-600'}`}>
+                      {formatCurrency(net)}
+                    </div>
+                  </div>
+
+                  {/* Single-line breakdown + toggle */}
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowBreakdown(v => !v)}
+                      className="ml-left shrink-0"
+                    >
+                      {'ดูรายละเอียด'}
+                    </Button>
+                    {showBreakdown ? (
+                      <div className="flex items-center gap-3 tabular-nums">
+                        <span><span className="text-muted-foreground">ต้นทุน</span> ฿{formatCurrency(totalCost)}</span>
+                        <span className="text-muted-foreground">•</span>
+                        <span><span className="text-muted-foreground">กำไร</span> <span className={`font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>฿{formatCurrency(profit)}</span></span>
+                        <span className="text-muted-foreground">•</span>
+                        <span><span className="text-muted-foreground">% กำไร</span> <span className={`font-semibold ${margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{margin.toFixed(2)}%</span></span>
+                      </div>
+                    ) : <span />}
+                  </div>
+
+                  {/* Cash input */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-base font-medium">
+                      <Banknote className="h-5 w-5 text-green-500" /> รับเงินมา
+                    </label>
+                    <Input
+                      type="number"
+                      value={cashAmount}
+                      onChange={e => setCashAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="text-right text-3xl font-bold tabular-nums h-16"
+                    />
+                  </div>
+
+                  {/* Change */}
+                  <div className={`rounded-xl px-5 py-4 ${needsCheck ? 'bg-red-50 border border-red-200' : 'bg-muted'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-base font-semibold">เงินทอน</span>
+                      {needsCheck ? (
+                        <span className="flex items-center gap-2 text-3xl font-extrabold text-red-600 tracking-wider">
+                          <AlertTriangle className="h-7 w-7" />
+                          ตรวจสอบ
+                        </span>
+                      ) : (
+                        <span className="text-3xl font-extrabold tabular-nums text-green-600">
+                          ฿{formatCurrency(Math.max(0, change))}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPayment(false)}>ยกเลิก</Button>
-            <Button variant="success" disabled={saving || totalPaid < cart.totalAmount()} onClick={handleCompleteSale} className="min-w-[120px]">
+            <Button variant="success" disabled={saving || totalPaid < cart.totalAmount() || cart.totalAmount() < 0} onClick={handleCompleteSale} className="min-w-[120px]">
               {saving ? 'กำลังบันทึก...' : '✓ บันทึก'}
             </Button>
           </DialogFooter>
