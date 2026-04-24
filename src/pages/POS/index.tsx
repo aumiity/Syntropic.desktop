@@ -11,12 +11,40 @@ import { formatCurrency, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, Customer } from '@/types'
 import {
   Search, User, Trash2, Plus, Minus,
-  CreditCard, Banknote, Smartphone, AlertTriangle, ChevronDown, X, UserPlus, Info,
+  Banknote, AlertTriangle, ChevronDown, X, UserPlus, Info,
 } from 'lucide-react'
 
 interface ProductWithDetails extends Product {
   lots: ProductLot[]
   units: ProductUnit[]
+}
+
+const resolveSalePrice = (
+  src: { price_retail: number; price_wholesale1?: number | null },
+  saleType: string,
+) => saleType === 'wholesale' ? (src.price_wholesale1 || src.price_retail) : src.price_retail
+
+function InlineModal({ title, onClose, children, footer, maxWidth = 'max-w-sm' }: {
+  title: string
+  onClose: () => void
+  children: React.ReactNode
+  footer?: React.ReactNode
+  maxWidth?: string
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className={`bg-white rounded-2xl shadow-2xl border border-slate-200 ${maxWidth} w-full mx-4`}>
+        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div className="font-bold text-slate-700 text-lg truncate pr-2">{title}</div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {children}
+        {footer}
+      </div>
+    </div>
+  )
 }
 
 export default function POSPage() {
@@ -77,11 +105,28 @@ export default function POSPage() {
     return () => clearInterval(tick)
   }, [])
 
-  // Auto-focus modal input when opened
+  const anyModalOpen = searchOpen || showPayment || showCustomerSearch || showQuickAdd || showSuccess || showCustomerInfo ||
+    unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null
+
+  // Refs so focus callbacks always see current modal state without stale closures
+  const anyModalOpenRef = useRef(anyModalOpen)
+  const searchOpenRef = useRef(searchOpen)
+  anyModalOpenRef.current = anyModalOpen
+  searchOpenRef.current = searchOpen
+
+  // Focus modal input when search opens
   useEffect(() => {
     if (searchOpen) setTimeout(() => modalInputRef.current?.focus(), 50)
-    else setTimeout(() => mainInputRef.current?.focus(), 50)
   }, [searchOpen])
+
+  // Refocus main input whenever all modals close
+  const prevAnyModalOpen = useRef(false)
+  useEffect(() => {
+    if (prevAnyModalOpen.current && !anyModalOpen) {
+      setTimeout(() => mainInputRef.current?.focus(), 150)
+    }
+    prevAnyModalOpen.current = anyModalOpen
+  }, [anyModalOpen])
 
   // Keep highlighted row visible as user navigates with arrow keys
   useEffect(() => {
@@ -107,27 +152,51 @@ export default function POSPage() {
 
   const refocusSearch = useCallback(() => {
     setTimeout(() => {
-      if (showPayment || showCustomerSearch || showQuickAdd || showSuccess || showCustomerInfo) return
-      if (unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null) return
-      if (searchOpen) modalInputRef.current?.focus()
-      else mainInputRef.current?.focus()
-    }, 50)
-  }, [searchOpen, showPayment, showCustomerSearch, showQuickAdd, showSuccess, showCustomerInfo, unitModalIdx, priceModalIdx, discountModalIdx, qtyModalIdx])
+      if (anyModalOpenRef.current) return
+      mainInputRef.current?.focus()
+    }, 100)
+  }, [])
 
-  // Global click listener: any click on non-interactive area returns focus to search
+  // Keep search input permanently focused.
+  // Registered once ([] deps) — reads modal state from refs to avoid stale closures.
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    // Intentionally excludes [tabindex] — Chromium auto-adds tabindex="0" to overflow:scroll/auto
+    // containers for keyboard scrolling, making them "focusable". Including [tabindex] in this
+    // selector caused the focusout handler to treat those divs as legitimate focus targets and bail.
+    const INTERACTIVE = 'input, button, select, textarea, a, [role="button"], [contenteditable="true"]'
+
+    // mousedown fires before the browser shifts focus, so preventDefault here is the real lock.
+    const onMouseDown = (e: MouseEvent) => {
       const t = e.target as HTMLElement | null
-      if (!t) return
-      if (t.closest('input, button, select, textarea, a, [role="button"], [contenteditable="true"]')) return
-      if (showPayment || showCustomerSearch || showQuickAdd || showSuccess || showCustomerInfo) return
-      if (unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null) return
-      if (searchOpen) modalInputRef.current?.focus()
-      else mainInputRef.current?.focus()
+      if (!t || t.closest(INTERACTIVE)) return
+      if (anyModalOpenRef.current && !searchOpenRef.current) return
+      e.preventDefault()
+      const inp = searchOpenRef.current ? modalInputRef.current : mainInputRef.current
+      inp?.focus()
     }
-    document.addEventListener('click', handler)
-    return () => document.removeEventListener('click', handler)
-  }, [searchOpen, showPayment, showCustomerSearch, showQuickAdd, showSuccess, showCustomerInfo, unitModalIdx, priceModalIdx, discountModalIdx, qtyModalIdx])
+
+    // Safety net via focusout (bubbles, so one listener catches both inputs).
+    // If either the main input or the modal input loses focus to a non-interactive target, snap back.
+    const onFocusOut = (e: FocusEvent) => {
+      const lost = e.target as HTMLElement | null
+      const isOurInput = lost === mainInputRef.current || lost === modalInputRef.current
+      if (!isOurInput) return
+      setTimeout(() => {
+        if (anyModalOpenRef.current && !searchOpenRef.current) return
+        const active = document.activeElement as HTMLElement | null
+        if (active && active.matches(INTERACTIVE)) return
+        const inp = searchOpenRef.current ? modalInputRef.current : mainInputRef.current
+        inp?.focus()
+      }, 0)
+    }
+
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('focusout', onFocusOut)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('focusout', onFocusOut)
+    }
+  }, [])
 
   const loadDailyStats = async () => {
     const stats = await window.api.pos.getDailyStats() as any
@@ -162,9 +231,7 @@ export default function POSPage() {
   )
 
   const handleSelectItem = (product: ProductWithDetails, unit: ProductUnit | null) => {
-    const price = unit
-      ? (cart.saleType === 'wholesale' ? (unit.price_wholesale1 || unit.price_retail) : unit.price_retail)
-      : (cart.saleType === 'wholesale' ? (product.price_wholesale1 || product.price_retail) : product.price_retail)
+    const price = resolveSalePrice(unit ?? product, cart.saleType)
     const unitName = unit?.unit_name ?? product.unit_name ?? 'ชิ้น'
     cart.addItem({ product_id: product.id, item_name: product.trade_name, unit_name: unitName, qty: 1, unit_price: price, discount: 0, line_total: price, product, selectedUnit: unit ?? undefined })
     closeSearch()
@@ -178,7 +245,6 @@ export default function POSPage() {
       const sel = flatItems[highlightIdx]
       if (sel) handleSelectItem(sel.product, sel.unit)
     }
-    else if (e.key === 'Escape') closeSearch()
   }
 
   const handleSearchCustomer = async (q: string) => {
@@ -186,6 +252,10 @@ export default function POSPage() {
     if (!q.trim()) { setCustomerResults([]); return }
     const data = await window.api.pos.searchCustomers(q)
     setCustomerResults(data as Customer[])
+  }
+
+  const closeCustomerSearch = () => {
+    setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([])
   }
 
   const handleQuickAdd = async () => {
@@ -223,7 +293,7 @@ export default function POSPage() {
   }
 
   const changeCartUnit = (idx: number, unit: ProductUnit) => {
-    const price = cart.saleType === 'wholesale' ? (unit.price_wholesale1 || unit.price_retail) : unit.price_retail
+    const price = resolveSalePrice(unit, cart.saleType)
     cart.updateItem(idx, { unit_name: unit.unit_name, unit_price: price, selectedUnit: unit })
     setUnitModalIdx(null)
     refocusSearch()
@@ -275,7 +345,7 @@ export default function POSPage() {
             {/* Sale type */}
             <div className="flex rounded-xl overflow-hidden border border-slate-300 shadow-sm shrink-0" style={{ height: '52px' }}>
               {(['retail', 'wholesale'] as const).map(t => (
-                <button key={t} onClick={() => cart.setSaleType(t)}
+                <button key={t} onClick={() => { cart.setSaleType(t); refocusSearch() }}
                   className={`font-bold text-sm transition-colors ${cart.saleType === t ? 'min w-12 bg-emerald-500 text-white' : 'min w-12 bg-white text-slate-500 hover:bg-slate-50'}`}>
                   {t === 'retail' ? 'ปลีก' : 'ส่ง'}
                 </button>
@@ -297,7 +367,7 @@ export default function POSPage() {
             </button>
 
             {cart.customer && (
-              <button onClick={() => cart.setCustomer(null)}
+              <button onClick={() => { cart.setCustomer(null); refocusSearch() }}
                 className="h-[52px] w-[52px] bg-white border border-slate-300 rounded-xl flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors shadow-sm shrink-0 text-slate-400">
                 <X className="h-4 w-4" />
               </button>
@@ -330,49 +400,77 @@ export default function POSPage() {
       <div className="flex gap-3 flex-1 min-h-0">
 
         {/* Cart table */}
-        <div className="flex-1 flex flex-col gap-2.5 min-h-0">
+        <div className="flex-1 flex flex-col min-h-0">
           {cart.customer?.is_alert && cart.customer.alert_note && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-sm text-red-600 flex items-center gap-2 font-medium shrink-0">
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-sm text-red-600 flex items-center gap-2 font-medium shrink-0 mb-2">
               <AlertTriangle className="h-4 w-4 shrink-0" />{cart.customer.alert_note}
             </div>
           )}
 
-          <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden min-h-0">
-            <div className="flex-1 overflow-y-auto scrollbar-thin">
-              {cart.items.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-3">
-                  <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  <p className="text-lg font-medium">ยังไม่มีรายการสั่งซื้อ</p>
-                  <p className="text-sm">คลิกช่องค้นหาหรือสแกนบาร์โค้ด</p>
-                </div>
-              ) : (
-                <table className="w-full caption-bottom text-sm table-fixed">
-                  <colgroup>
-                    <col style={{ width: 36 }} />
-                    <col />
-                    <col style={{ width: 110 }} />
-                    <col style={{ width: 110 }} />
-                    <col style={{ width: 100 }} />
-                    <col style={{ width: 110 }} />
-                    <col style={{ width: 110 }} />
-                    <col style={{ width: 60 }} />
-                  </colgroup>
-                  <TableHeader className="sticky top-0 z-10 bg-slate-100">
-                    <TableRow className="hover:bg-slate-100">
-                      <TableHead className="text-center text-xs font-bold text-slate-600">#</TableHead>
-                      <TableHead className="text-xs font-bold text-slate-600">รายการสินค้า</TableHead>
-                      <TableHead className="text-center text-xs font-bold text-slate-600">หน่วย</TableHead>
-                      <TableHead className="text-center text-xs font-bold text-slate-600">จำนวน</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-slate-600">ราคา/หน่วย</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-slate-600">ส่วนลด</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-slate-600">รวมเงิน</TableHead>
-                      <TableHead />
+          {/* Chrome-style tab strip */}
+          <div className="flex items-end border-b border-slate-200 shrink-0">
+            {([0, 1, 2] as const).map(i => {
+              const isActive = i === cart.activeSlot
+              const hasItems = (i === cart.activeSlot ? cart.items : cart.slots[i].items).length > 0
+              const showSep = i > 0 && cart.activeSlot !== i && cart.activeSlot !== i - 1
+              return (
+                <React.Fragment key={i}>
+                  {i > 0 && <span className={`self-center h-3.5 w-px mx-0.5 shrink-0 transition-colors ${showSep ? 'bg-slate-300' : 'bg-transparent'}`} />}
+                  <button
+                    onClick={() => { cart.setActiveSlot(i); refocusSearch() }}
+                    className={`relative px-12 py-1.5 text-sm font-semibold rounded-t-lg -mb-px border border-b-0 transition-colors ${
+                      isActive
+                        ? 'bg-slate-100 border-slate-200 text-slate-700 z-10'
+                        : 'border-transparent text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    ออเดอร์ {i + 1}
+                    {hasItems && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                  </button>
+                </React.Fragment>
+              )
+            })}
+          </div>
+
+          <div className="flex-1 bg-white rounded-b-xl rounded-tr-xl shadow-sm border border-t-0 border-slate-200 flex flex-col overflow-hidden min-h-0">
+            <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
+              <table className="w-full caption-bottom text-sm table-fixed">
+                <colgroup>
+                  <col style={{ width: 36 }} />
+                  <col />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 100 }} />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 60 }} />
+                </colgroup>
+                <TableHeader className="sticky top-0 z-10 bg-slate-100">
+                  <TableRow className="hover:bg-slate-100">
+                    <TableHead className="text-center text-xs font-bold text-slate-600">#</TableHead>
+                    <TableHead className="text-xs font-bold text-slate-600">รายการสินค้า</TableHead>
+                    <TableHead className="text-center text-xs font-bold text-slate-600">หน่วย</TableHead>
+                    <TableHead className="text-center text-xs font-bold text-slate-600">จำนวน</TableHead>
+                    <TableHead className="text-right text-xs font-bold text-slate-600">ราคา/หน่วย</TableHead>
+                    <TableHead className="text-right text-xs font-bold text-slate-600">ส่วนลด</TableHead>
+                    <TableHead className="text-right text-xs font-bold text-slate-600">รวมเงิน</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cart.items.length === 0 ? (
+                    <TableRow className="hover:bg-white">
+                      <TableCell colSpan={8} className="text-center py-16">
+                        <div className="flex flex-col items-center justify-center text-slate-300 gap-3">
+                          <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                          <p className="text-lg font-medium">ยังไม่มีรายการสั่งซื้อ</p>
+                          <p className="text-sm">คลิกช่องค้นหาหรือสแกนบาร์โค้ด</p>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {cart.items.map((item, idx) => (
+                  ) : cart.items.map((item, idx) => (
                       <TableRow key={idx} className="hover:bg-slate-50">
                         <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
                         <TableCell className="min-w-0 pr-2">
@@ -422,7 +520,7 @@ export default function POSPage() {
                         </TableCell>
 
                         <TableCell className="text-right">
-                          <button onClick={() => cart.removeItem(idx)}
+                          <button onClick={() => { cart.removeItem(idx); refocusSearch() }}
                             className="w-7 h-7 rounded inline-flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50">
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -431,7 +529,6 @@ export default function POSPage() {
                     ))}
                   </TableBody>
                 </table>
-              )}
             </div>
 
             {cart.items.length > 0 && (
@@ -458,11 +555,11 @@ export default function POSPage() {
             <span>รับชำระเงิน</span>
             <span className="text-sm bg-black/10 px-3 py-0.5 rounded-md font-medium">F9</span>
           </Button>
-          <Button variant="outline" onClick={() => (window.api.printer as any)?.openCashDrawer?.()}
+          <Button variant="outline" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
             className="w-full h-10 rounded-xl text-sm shadow-sm text-slate-600">
             เปิดลิ้นชัก
           </Button>
-          <Button variant="outline" disabled={cart.items.length === 0} onClick={cart.clearCart}
+          <Button variant="outline" disabled={cart.items.length === 0} onClick={() => { cart.clearCart(); refocusSearch() }}
             className="w-full h-10 rounded-xl text-sm shadow-sm text-slate-600 hover:bg-red-50 hover:text-red-500 hover:border-red-200 gap-2">
             <Trash2 className="h-4 w-4" /> ยกเลิกบิล
           </Button>
@@ -524,7 +621,7 @@ export default function POSPage() {
             </div>
 
             {/* Results — flex-1, scrolls internally, empty space stays empty */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin">
+            <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
               {searching && flatItems.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground text-sm">กำลังค้นหา...</div>
               ) : query && flatItems.length === 0 ? (
@@ -577,53 +674,52 @@ export default function POSPage() {
       {/* ── DIALOGS ── */}
 
       {showCustomerSearch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full mx-4">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <div className="font-bold text-slate-700 text-lg">เลือกลูกค้า</div>
-              <button onClick={() => setShowCustomerSearch(false)} className="text-slate-400 hover:text-slate-600 p-1">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="p-5 space-y-3">
-              <Input autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
-              <button onClick={() => { cart.setCustomer(null); setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}
-                className="w-full px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-left transition-colors text-sm">
-                👤 ลูกค้าทั่วไป (เงินสด)
-              </button>
-              <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
-                {customerResults.map(c => (
-                  <button key={c.id} onClick={() => { cart.setCustomer(c); setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted text-left transition-colors">
-                    <User className="h-8 w-8 p-1.5 bg-muted rounded-full text-muted-foreground shrink-0" />
-                    <div>
-                      <div className="font-medium text-sm flex items-center gap-1">
-                        {c.is_alert && <AlertTriangle className="h-3 w-3 text-red-500" />}{c.full_name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
-                    </div>
-                  </button>
-                ))}
-                {customerQuery && customerResults.length === 0 && <div className="text-sm text-center text-muted-foreground py-4">ไม่พบลูกค้า</div>}
-              </div>
-            </div>
+        <InlineModal
+          title="เลือกลูกค้า"
+          onClose={() => setShowCustomerSearch(false)}
+          maxWidth="max-w-md"
+          footer={
             <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
               <Button variant="outline" onClick={() => setShowCustomerSearch(false)}>ปิด</Button>
             </div>
+          }
+        >
+          <div className="p-5 space-y-3">
+            <Input autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
+            <button onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
+              className="w-full px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-left transition-colors text-sm">
+              👤 ลูกค้าทั่วไป (เงินสด)
+            </button>
+            <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
+              {customerResults.map(c => (
+                <button key={c.id} onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted text-left transition-colors">
+                  <User className="h-8 w-8 p-1.5 bg-muted rounded-full text-muted-foreground shrink-0" />
+                  <div>
+                    <div className="font-medium text-sm flex items-center gap-1">
+                      {c.is_alert && <AlertTriangle className="h-3 w-3 text-red-500" />}{c.full_name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
+                  </div>
+                </button>
+              ))}
+              {customerQuery && customerResults.length === 0 && <div className="text-sm text-center text-muted-foreground py-4">ไม่พบลูกค้า</div>}
+            </div>
           </div>
-        </div>
+        </InlineModal>
       )}
 
       {showCustomerInfo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <div className="font-bold text-slate-700 text-lg">ข้อมูลลูกค้า</div>
-              <button onClick={() => setShowCustomerInfo(false)} className="text-slate-400 hover:text-slate-600 p-1">
-                <X className="h-4 w-4" />
-              </button>
+        <InlineModal
+          title="ข้อมูลลูกค้า"
+          onClose={() => setShowCustomerInfo(false)}
+          footer={
+            <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+              <Button variant="outline" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
             </div>
-            <div className="p-5 space-y-3 max-h-[70vh] overflow-y-auto scrollbar-thin">
+          }
+        >
+          <div className="p-5 space-y-3 max-h-[70vh] overflow-y-auto scrollbar-thin">
               {cart.customer && (
                 <>
                   <Card size="sm">
@@ -686,43 +782,36 @@ export default function POSPage() {
                   ) : null}
                 </>
               )}
-            </div>
-            <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
-              <Button variant="outline" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
-            </div>
           </div>
-        </div>
+        </InlineModal>
       )}
 
       {showQuickAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <div className="font-bold text-slate-700 text-lg">เพิ่มลูกค้าใหม่</div>
-              <button onClick={() => setShowQuickAdd(false)} className="text-slate-400 hover:text-slate-600 p-1">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <Label className="block text-sm font-medium mb-1">ชื่อ-นามสกุล <span className="text-red-500">*</span></Label>
-                <Input autoFocus value={qaName} onChange={e => setQaName(e.target.value)} placeholder="ชื่อ-นามสกุล" />
-              </div>
-              <div>
-                <Label className="block text-sm font-medium mb-1">เบอร์โทรศัพท์</Label>
-                <Input value={qaPhone} onChange={e => setQaPhone(e.target.value)} placeholder="เบอร์โทร" />
-              </div>
-              <div>
-                <Label className="block text-sm font-medium mb-1">หมายเหตุ / ประวัติแพ้ยา</Label>
-                <Input value={qaNote} onChange={e => setQaNote(e.target.value)} placeholder="ถ้ามี" />
-              </div>
-            </div>
+        <InlineModal
+          title="เพิ่มลูกค้าใหม่"
+          onClose={() => setShowQuickAdd(false)}
+          footer={
             <div className="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowQuickAdd(false)}>ยกเลิก</Button>
               <Button onClick={handleQuickAdd} disabled={qaSaving}>{qaSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
             </div>
+          }
+        >
+          <div className="p-5 space-y-4">
+            <div>
+              <Label className="block text-sm font-medium mb-1">ชื่อ-นามสกุล <span className="text-red-500">*</span></Label>
+              <Input autoFocus value={qaName} onChange={e => setQaName(e.target.value)} placeholder="ชื่อ-นามสกุล" />
+            </div>
+            <div>
+              <Label className="block text-sm font-medium mb-1">เบอร์โทรศัพท์</Label>
+              <Input value={qaPhone} onChange={e => setQaPhone(e.target.value)} placeholder="เบอร์โทร" />
+            </div>
+            <div>
+              <Label className="block text-sm font-medium mb-1">หมายเหตุ / ประวัติแพ้ยา</Label>
+              <Input value={qaNote} onChange={e => setQaNote(e.target.value)} placeholder="ถ้ามี" />
+            </div>
           </div>
-        </div>
+        </InlineModal>
       )}
 
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
@@ -777,34 +866,31 @@ export default function POSPage() {
         } as unknown as ProductUnit : null
         const allUnits = baseUnit ? [baseUnit, ...units.filter(u => u.unit_name !== baseUnit.unit_name)] : units
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
-              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <div className="font-bold text-slate-700 text-lg truncate pr-2">เลือกหน่วย — {item?.item_name}</div>
-                <button onClick={() => setUnitModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="p-3 space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
-                {allUnits.map(u => {
-                  const active = item?.unit_name === u.unit_name
-                  return (
-                    <button key={u.id}
-                      onClick={() => changeCartUnit(unitModalIdx, u)}
-                      className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">{u.unit_name}</span>
-                        {u.id === -1 && <span className="text-[15px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">หลัก</span>}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+          <InlineModal
+            title={`เลือกหน่วย — ${item?.item_name}`}
+            onClose={() => setUnitModalIdx(null)}
+            footer={
               <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
                 <Button variant="outline" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
               </div>
+            }
+          >
+            <div className="p-3 space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
+              {allUnits.map(u => {
+                const active = item?.unit_name === u.unit_name
+                return (
+                  <button key={u.id}
+                    onClick={() => changeCartUnit(unitModalIdx, u)}
+                    className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">{u.unit_name}</span>
+                      {u.id === -1 && <span className="text-[15px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">หลัก</span>}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
-          </div>
+          </InlineModal>
         )
       })()}
 
@@ -820,22 +906,22 @@ export default function POSPage() {
         ] : []
         const customPrice = parseFloat(customPriceInput) || 0
         const customProfit = customPrice - cost
-        const customProfitPct = customPrice > 0 ? (customProfit / customPrice) * 100 : 0
         const customMarkupPct = cost > 0 ? (customProfit / cost) * 100 : 0
         const applyCustomPrice = () => {
           if (customPrice <= 0) return
           changeCartPrice(priceModalIdx, customPrice)
         }
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
-              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <div className="font-bold text-slate-700 text-lg truncate pr-2">ราคา — {item?.item_name}</div>
-                <button onClick={() => setPriceModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
-                  <X className="h-4 w-4" />
-                </button>
+          <InlineModal
+            title={`ราคา — ${item?.item_name}`}
+            onClose={() => setPriceModalIdx(null)}
+            footer={
+              <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+                <Button variant="outline" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
               </div>
-              <div className="p-3 space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
+            }
+          >
+            <div className="p-3 space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
                 {/* Custom price input */}
                 <div className="w-full px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50/40">
                   <div className="flex items-center justify-between mb-2">
@@ -876,7 +962,6 @@ export default function POSPage() {
                 {priceOptions.map((opt, i) => {
                   const active = item?.unit_price === opt.price
                   const profit = opt.price - cost
-                  const profitPct = opt.price > 0 ? (profit / opt.price) * 100 : 0
                   const markupPct = cost > 0 ? (profit / cost) * 100 : 0
                   return (
                     <button key={i}
@@ -903,12 +988,8 @@ export default function POSPage() {
                     </button>
                   )
                 })}
-              </div>
-              <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
-                <Button variant="outline" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
-              </div>
             </div>
-          </div>
+          </InlineModal>
         )
       })()}
 
@@ -932,59 +1013,56 @@ export default function POSPage() {
           setQtyInput(String(next))
         }
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
-              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <div className="font-bold text-slate-700 text-lg truncate pr-2">จำนวน — {item?.item_name}</div>
-                <button onClick={() => setQtyModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="p-5 space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">คงเหลือ</span>
-                  <span className={`font-semibold tabular-nums ${stockQty > 0 ? 'text-slate-700' : 'text-red-500'}`}>{stockQty} {item?.unit_name}</span>
-                </div>
-                <div>
-                  <Label className="block text-sm font-bold text-slate-500 mb-1">จำนวน ({item?.unit_name})</Label>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => bump(-1)}
-                      className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
-                      <Minus className="h-5 w-5" />
-                    </button>
-                    <Input
-                      type="number"
-                      autoFocus
-                      value={qtyInput}
-                      min={1}
-                      style={{ MozAppearance: 'textfield' }}
-                      onFocus={e => e.currentTarget.select()}
-                      onChange={e => setQtyInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') applyQty(q) }}
-                      placeholder="1"
-                      className="w-16 flex-1 h-14 text-center text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
-                    />
-                    <button onClick={() => bump(1)}
-                      className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
-                      <Plus className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-5 gap-2">
-                  {[1, 5, 10, 20, 50].map(n => (
-                    <button key={n} onClick={() => setQtyInput(String(n))}
-                      className="h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-emerald-300 text-sm font-semibold text-slate-600 tabular-nums transition-colors">
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <InlineModal
+            title={`จำนวน — ${item?.item_name}`}
+            onClose={() => setQtyModalIdx(null)}
+            footer={
               <div className="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
                 <Button onClick={() => applyQty(q)}>ตกลง</Button>
               </div>
+            }
+          >
+            <div className="p-5 space-y-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">คงเหลือ</span>
+                <span className={`font-semibold tabular-nums ${stockQty > 0 ? 'text-slate-700' : 'text-red-500'}`}>{stockQty} {item?.unit_name}</span>
+              </div>
+              <div>
+                <Label className="block text-sm font-bold text-slate-500 mb-1">จำนวน ({item?.unit_name})</Label>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => bump(-1)}
+                    className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
+                    <Minus className="h-5 w-5" />
+                  </button>
+                  <Input
+                    type="number"
+                    autoFocus
+                    value={qtyInput}
+                    min={1}
+                    style={{ MozAppearance: 'textfield' }}
+                    onFocus={e => e.currentTarget.select()}
+                    onChange={e => setQtyInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') applyQty(q) }}
+                    placeholder="1"
+                    className="w-16 flex-1 h-14 text-center text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
+                  />
+                  <button onClick={() => bump(1)}
+                    className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
+                    <Plus className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 5, 10, 20, 50].map(n => (
+                  <button key={n} onClick={() => setQtyInput(String(n))}
+                    className="h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-emerald-300 text-sm font-semibold text-slate-600 tabular-nums transition-colors">
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          </InlineModal>
         )
       })()}
 
@@ -1008,114 +1086,10 @@ export default function POSPage() {
           setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
         }
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
-              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <div className="font-bold text-slate-700 text-lg truncate pr-2">ส่วนลด — {item?.item_name}</div>
-                <button onClick={() => setDiscountModalIdx(null)} className="text-slate-400 hover:text-slate-600 p-1">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="p-5 space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">ราคารวม</span>
-                  <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(totalPrice)}</span>
-                </div>
-
-                {/* Percent presets */}
-                <div className="grid grid-cols-5 gap-2">
-                  {([
-                    { pct: 3,  base: 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300',   active: 'bg-red-200 border-red-500 text-red-800 ring-2 ring-red-300' },
-                    { pct: 5,  base: 'bg-red-100 border-red-300 text-red-700 hover:bg-red-200 hover:border-red-400',  active: 'bg-red-300 border-red-600 text-red-900 ring-2 ring-red-400' },
-                    { pct: 10, base: 'bg-red-200 border-red-400 text-red-800 hover:bg-red-300 hover:border-red-500', active: 'bg-red-400 border-red-700 text-white ring-2 ring-red-500' },
-                    { pct: 15, base: 'bg-red-300 border-red-500 text-red-900 hover:bg-red-400 hover:border-red-600', active: 'bg-red-500 border-red-800 text-white ring-2 ring-red-600' },
-                    { pct: 20, base: 'bg-red-400 border-red-600 text-white hover:bg-red-500 hover:border-red-700',   active: 'bg-red-600 border-red-900 text-white ring-2 ring-red-700' },
-                  ] as const).map(({ pct, base, active }) => {
-                    const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
-                    return (
-                      <button key={pct} onClick={() => applyPercent(pct)}
-                        className={`h-10 rounded-xl border text-sm font-semibold transition-colors ${isActive ? active : base}`}>
-                        {pct}%
-                      </button>
-                    )
-                  })}
-                </div>
-
-                {/* ส่วนลด (%)  +  ส่วนลด (บาท) — side by side */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="block text-sm font-bold text-slate-500 mb-1">ส่วนลด (%)</Label>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        value={discountPctInput}
-                        min={0}
-                        max={100}
-                        style={{ MozAppearance: 'textfield' }}
-                        onFocus={e => e.currentTarget.select()}
-                        onChange={e => {
-                          setDiscountPctInput(e.target.value)
-                          const pct = parseFloat(e.target.value)
-                          if (!isNaN(pct)) {
-                            const disc = parseFloat((totalPrice * pct / 100).toFixed(2))
-                            setDiscountInput(String(disc))
-                            setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
-                          }
-                        }}
-                        onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
-                        placeholder="0"
-                        className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none pl-4 pr-10 tabular-nums"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg font-bold pointer-events-none">%</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="block text-sm font-bold text-slate-500 mb-1">ส่วนลด (บาท)</Label>
-                    <Input
-                      type="number"
-                      autoFocus
-                      value={discountInput}
-                      min={0}
-                      style={{ MozAppearance: 'textfield' }}
-                      onFocus={e => e.currentTarget.select()}
-                      onChange={e => {
-                        setDiscountInput(e.target.value)
-                        const disc = parseFloat(e.target.value) || 0
-                        if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
-                        setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
-                      }}
-                      onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
-                      placeholder="0.00"
-                      className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none px-4 tabular-nums"
-                    />
-                  </div>
-                </div>
-
-                {/* Final price reverse-calc input */}
-                <div>
-                  <Label className="block text-sm font-bold text-slate-500 mb-1">ราคาสุดท้าย (บาท)</Label>
-                  <Input
-                    type="number"
-                    value={finalPriceInput}
-                    min={0}
-                    style={{ MozAppearance: 'textfield' }}
-                    onFocus={e => e.currentTarget.select()}
-                    onChange={e => {
-                      setFinalPriceInput(e.target.value)
-                      const fp = parseFloat(e.target.value)
-                      if (!isNaN(fp)) {
-                        const disc = Math.max(0, parseFloat((totalPrice - fp).toFixed(2)))
-                        setDiscountInput(String(disc))
-                        if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
-                      }
-                    }}
-                    onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
-                    placeholder={formatCurrency(totalPrice)}
-                    className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
-                  />
-                </div>
-              </div>
+          <InlineModal
+            title={`ส่วนลด — ${item?.item_name}`}
+            onClose={() => setDiscountModalIdx(null)}
+            footer={
               <div className="px-5 py-3 border-t border-slate-200 flex justify-between gap-2">
                 <Button variant="outline" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}>ล้าง</Button>
                 <div className="flex gap-2">
@@ -1123,8 +1097,109 @@ export default function POSPage() {
                   <Button onClick={() => applyDiscount(d)}>ตกลง</Button>
                 </div>
               </div>
+            }
+          >
+            <div className="p-5 space-y-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">ราคารวม</span>
+                <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(totalPrice)}</span>
+              </div>
+
+              {/* Percent presets */}
+              <div className="grid grid-cols-5 gap-2">
+                {([
+                  { pct: 3,  base: 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300',   active: 'bg-red-200 border-red-500 text-red-800 ring-2 ring-red-300' },
+                  { pct: 5,  base: 'bg-red-100 border-red-300 text-red-700 hover:bg-red-200 hover:border-red-400',  active: 'bg-red-300 border-red-600 text-red-900 ring-2 ring-red-400' },
+                  { pct: 10, base: 'bg-red-200 border-red-400 text-red-800 hover:bg-red-300 hover:border-red-500', active: 'bg-red-400 border-red-700 text-white ring-2 ring-red-500' },
+                  { pct: 15, base: 'bg-red-300 border-red-500 text-red-900 hover:bg-red-400 hover:border-red-600', active: 'bg-red-500 border-red-800 text-white ring-2 ring-red-600' },
+                  { pct: 20, base: 'bg-red-400 border-red-600 text-white hover:bg-red-500 hover:border-red-700',   active: 'bg-red-600 border-red-900 text-white ring-2 ring-red-700' },
+                ] as const).map(({ pct, base, active }) => {
+                  const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
+                  return (
+                    <button key={pct} onClick={() => applyPercent(pct)}
+                      className={`h-10 rounded-xl border text-sm font-semibold transition-colors ${isActive ? active : base}`}>
+                      {pct}%
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* ส่วนลด (%)  +  ส่วนลด (บาท) — side by side */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="block text-sm font-bold text-slate-500 mb-1">ส่วนลด (%)</Label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={discountPctInput}
+                      min={0}
+                      max={100}
+                      style={{ MozAppearance: 'textfield' }}
+                      onFocus={e => e.currentTarget.select()}
+                      onChange={e => {
+                        setDiscountPctInput(e.target.value)
+                        const pct = parseFloat(e.target.value)
+                        if (!isNaN(pct)) {
+                          const disc = parseFloat((totalPrice * pct / 100).toFixed(2))
+                          setDiscountInput(String(disc))
+                          setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
+                        }
+                      }}
+                      onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
+                      placeholder="0"
+                      className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none pl-4 pr-10 tabular-nums"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg font-bold pointer-events-none">%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="block text-sm font-bold text-slate-500 mb-1">ส่วนลด (บาท)</Label>
+                  <Input
+                    type="number"
+                    autoFocus
+                    value={discountInput}
+                    min={0}
+                    style={{ MozAppearance: 'textfield' }}
+                    onFocus={e => e.currentTarget.select()}
+                    onChange={e => {
+                      setDiscountInput(e.target.value)
+                      const disc = parseFloat(e.target.value) || 0
+                      if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
+                      setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
+                    }}
+                    onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
+                    placeholder="0.00"
+                    className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none px-4 tabular-nums"
+                  />
+                </div>
+              </div>
+
+              {/* Final price reverse-calc input */}
+              <div>
+                <Label className="block text-sm font-bold text-slate-500 mb-1">ราคาสุดท้าย (บาท)</Label>
+                <Input
+                  type="number"
+                  value={finalPriceInput}
+                  min={0}
+                  style={{ MozAppearance: 'textfield' }}
+                  onFocus={e => e.currentTarget.select()}
+                  onChange={e => {
+                    setFinalPriceInput(e.target.value)
+                    const fp = parseFloat(e.target.value)
+                    if (!isNaN(fp)) {
+                      const disc = Math.max(0, parseFloat((totalPrice - fp).toFixed(2)))
+                      setDiscountInput(String(disc))
+                      if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
+                    }
+                  }}
+                  onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
+                  placeholder={formatCurrency(totalPrice)}
+                  className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
+                />
+              </div>
             </div>
-          </div>
+          </InlineModal>
         )
       })()}
     </div>

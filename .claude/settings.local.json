@@ -3,7 +3,9 @@
     "allow": [
       "Read(//d/Syntropic.Project/Syntropic.php/**)",
       "Bash(python *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(node -e \"const r = require\\('/Users/anya/Documents/GitHub/Syntropic.desktop/node_modules/radix-ui'\\); console.log\\(Object.keys\\(r\\).filter\\(k => k.toLowerCase\\(\\).includes\\('label'\\)\\)\\)\")",
+      "Bash(node -e \"const r = require\\('/Users/anya/Documents/GitHub/Syntropic.desktop/node_modules/radix-ui'\\); console.log\\(typeof r.Label, JSON.stringify\\(Object.keys\\(r.Label || {}\\)\\)\\)\")"
     ]
   }
 }

@@ -1,13 +1,24 @@
 import { create } from 'zustand'
 import type { CartItem, Customer } from '../types'
 
-interface CartStore {
+interface CartSlot {
   items: CartItem[]
   customer: Customer | null
   customerNameFree: string
   saleType: string
   symptomNote: string
   ageRange: string
+}
+
+const emptySlot = (): CartSlot => ({
+  items: [], customer: null, customerNameFree: '',
+  saleType: 'retail', symptomNote: '', ageRange: '',
+})
+
+interface CartStore extends CartSlot {
+  slots: [CartSlot, CartSlot, CartSlot]
+  activeSlot: number
+  setActiveSlot: (idx: number) => void
   addItem: (item: CartItem) => void
   updateItem: (index: number, item: Partial<CartItem>) => void
   removeItem: (index: number) => void
@@ -22,17 +33,27 @@ interface CartStore {
   totalAmount: () => number
 }
 
+const snapCurrent = (s: CartStore): CartSlot => ({
+  items: s.items, customer: s.customer, customerNameFree: s.customerNameFree,
+  saleType: s.saleType, symptomNote: s.symptomNote, ageRange: s.ageRange,
+})
+
 export const useCartStore = create<CartStore>((set, get) => ({
-  items: [],
-  customer: null,
-  customerNameFree: '',
-  saleType: 'retail',
-  symptomNote: '',
-  ageRange: '',
+  ...emptySlot(),
+  slots: [emptySlot(), emptySlot(), emptySlot()],
+  activeSlot: 0,
+
+  setActiveSlot: (idx) => {
+    const s = get()
+    if (idx === s.activeSlot) return
+    const slots = [...s.slots] as [CartSlot, CartSlot, CartSlot]
+    slots[s.activeSlot] = snapCurrent(s)
+    const target = slots[idx]
+    set({ slots, activeSlot: idx, ...target })
+  },
 
   addItem: (item) => {
     const { items } = get()
-    // Check if same product+unit exists → increment qty
     const idx = items.findIndex(
       i => i.product_id === item.product_id && i.unit_name === item.unit_name
     )
@@ -61,10 +82,13 @@ export const useCartStore = create<CartStore>((set, get) => ({
     set({ items: items.filter((_, i) => i !== index) })
   },
 
-  clearCart: () => set({
-    items: [], customer: null, customerNameFree: '',
-    saleType: 'retail', symptomNote: '', ageRange: '',
-  }),
+  clearCart: () => {
+    const { activeSlot, slots } = get()
+    const fresh = emptySlot()
+    const newSlots = [...slots] as [CartSlot, CartSlot, CartSlot]
+    newSlots[activeSlot] = fresh
+    set({ ...fresh, slots: newSlots })
+  },
 
   setCustomer: (customer) => set({ customer }),
   setCustomerNameFree: (name) => set({ customerNameFree: name }),
