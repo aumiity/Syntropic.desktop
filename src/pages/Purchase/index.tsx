@@ -852,7 +852,7 @@ export default function PurchasePage() {
                         </table>
                       </div>
 
-                      <div className="px-4 py-2 border-t border-slate-100 bg-slate-50 text-[11px] text-slate-400 flex gap-4">
+                      <div className="px-4 py-2 border-t border-slate-100 bg-slate-50 text-xs text-slate-400 flex gap-4">
                         <span><kbd className="font-mono bg-white border border-slate-200 px-1 rounded text-[10px]">Tab</kbd> ข้ามช่อง</span>
                         <span><kbd className="font-mono bg-white border border-slate-200 px-1 rounded text-[10px]">↑↓</kbd> เลือกสินค้า</span>
                         <span><kbd className="font-mono bg-white border border-slate-200 px-1 rounded text-[10px]">Enter</kbd> ยืนยัน / แถวถัดไป</span>
@@ -1232,15 +1232,15 @@ export default function PurchasePage() {
 
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-slate-50 border border-slate-200 px-2 py-2">
-                  <div className="text-[11px] text-slate-400">ทุน/หน่วย</div>
+                  <div className="text-xs text-slate-400">ทุน/หน่วย</div>
                   <div className="text-sm font-semibold text-slate-700 tabular-nums">฿{formatCurrency(cost)}</div>
                 </div>
                 <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-2">
-                  <div className="text-[11px] text-emerald-600">กำไร/หน่วย</div>
+                  <div className="text-xs text-emerald-600">กำไร/หน่วย</div>
                   <div className={`text-sm font-semibold tabular-nums ${profit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>฿{formatCurrency(profit)}</div>
                 </div>
                 <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-2">
-                  <div className="text-[11px] text-emerald-600">มาร์จิ้น</div>
+                  <div className="text-xs text-emerald-600">มาร์จิ้น</div>
                   <div className={`text-sm font-semibold tabular-nums ${margin >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{margin.toFixed(1)}%</div>
                 </div>
               </div>
@@ -1297,7 +1297,7 @@ export default function PurchasePage() {
           <div className="p-4 space-y-3">
             <div className="text-xs text-slate-500 leading-relaxed">
               คัดลอกตารางจาก Excel / Sheets แล้ววางที่นี่ คอลัมน์ตามลำดับ คั่นด้วย Tab:
-              <div className="mt-1 font-mono bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] text-slate-600">
+              <div className="mt-1 font-mono bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-600">
                 Barcode/รหัส/ชื่อ ⇥ จำนวน ⇥ ล็อต ⇥ วันผลิต(dd/mm/yyyy) ⇥ วันหมดอายุ(dd/mm/yyyy) ⇥ ราคารวม
               </div>
               <div className="mt-1 text-slate-400">บรรทัดแรกถ้าเป็นหัวตารางจะถูกข้ามอัตโนมัติ</div>
