@@ -3,12 +3,18 @@ import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
-import { Search, Plus, Trash2, Package, ChevronDown, CheckCircle } from 'lucide-react'
+import {
+  Search, Plus, Trash2, Package, ChevronDown, X,
+  Building2, Banknote, CreditCard, FileText, CalendarDays,
+} from 'lucide-react'
+
+// ── Types ──────────────────────────────────────────────────────────────────
 
 interface ReceiptRow {
   product_id: number
@@ -24,16 +30,9 @@ interface ReceiptRow {
 }
 
 const emptyRow = (): ReceiptRow => ({
-  product_id: 0,
-  trade_name: '',
-  product_code: '',
-  lot_number: '',
-  manufactured_date: '',
-  expiry_date: '',
-  cost_price: '',
-  sell_price: '',
-  qty: '',
-  note: '',
+  product_id: 0, trade_name: '', product_code: '',
+  lot_number: '', manufactured_date: '', expiry_date: '',
+  cost_price: '', sell_price: '', qty: '', note: '',
 })
 
 interface HistoryRow {
@@ -60,34 +59,74 @@ interface ProductSuggestion {
   unit_name?: string
 }
 
+// ── Inline modal (same pattern as POS) ─────────────────────────────────────
+
+function InlineModal({ title, onClose, children, footer, maxWidth = 'max-w-sm' }: {
+  title: string
+  onClose: () => void
+  children: React.ReactNode
+  footer?: React.ReactNode
+  maxWidth?: string
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className={`bg-white rounded-2xl shadow-2xl border border-slate-200 ${maxWidth} w-full mx-4`}>
+        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div className="font-bold text-slate-700 text-base truncate pr-2">{title}</div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {children}
+        {footer}
+      </div>
+    </div>
+  )
+}
+
+// ── Main component ─────────────────────────────────────────────────────────
+
 export default function PurchasePage() {
   const { toast } = useToast()
   const today = new Date().toISOString().slice(0, 10)
+  const [now, setNow] = useState(new Date())
 
-  // --- Form state ---
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(tick)
+  }, [])
+
+  // Form
   const [invoiceNo, setInvoiceNo] = useState('')
   const [supplierId, setSupplierId] = useState<number>(0)
+  const [supplierName, setSupplierName] = useState('')
   const [supplierInvoiceNo, setSupplierInvoiceNo] = useState('')
+  const [orderDate, setOrderDate] = useState(today)
   const [receiveDate, setReceiveDate] = useState(today)
   const [paymentType, setPaymentType] = useState<'cash' | 'credit'>('cash')
   const [dueDate, setDueDate] = useState('')
   const [isPaid, setIsPaid] = useState(false)
   const [paidDate, setPaidDate] = useState('')
+  const [grNote, setGrNote] = useState('')
   const [rows, setRows] = useState<ReceiptRow[]>([emptyRow()])
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [savedInvoice, setSavedInvoice] = useState('')
 
-  // --- Suppliers ---
+  // Suppliers
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [showSupplierModal, setShowSupplierModal] = useState(false)
+  const [supplierQuery, setSupplierQuery] = useState('')
 
-  // --- Product search per row ---
+  // Product search per row
   const [searchQueries, setSearchQueries] = useState<string[]>([''])
   const [suggestions, setSuggestions] = useState<ProductSuggestion[][]>([[]])
   const [activeSuggRow, setActiveSuggRow] = useState<number | null>(null)
+  const [suggHighlight, setSuggHighlight] = useState(0)
+  const [activeRow, setActiveRow] = useState<number | null>(null)
   const searchTimers = useRef<(ReturnType<typeof setTimeout> | null)[]>([null])
 
-  // --- History ---
+  // History
   const [history, setHistory] = useState<HistoryRow[]>([])
   const [histTotal, setHistTotal] = useState(0)
   const [histPage, setHistPage] = useState(1)
@@ -97,7 +136,10 @@ export default function PurchasePage() {
   const [histDateTo, setHistDateTo] = useState('')
   const [loadingHist, setLoadingHist] = useState(false)
 
-  // --- Receipt detail modal ---
+  // Active tab
+  const [activeTab, setActiveTab] = useState<'receive' | 'history'>('receive')
+
+  // Receipt detail modal
   const [receiptModal, setReceiptModal] = useState(false)
   const [receiptItems, setReceiptItems] = useState<ReceiptDetail[]>([])
   const [receiptInvoice, setReceiptInvoice] = useState('')
@@ -136,15 +178,17 @@ export default function PurchasePage() {
     }
   }, [histQ, histSupplierId, histDateFrom, histDateTo])
 
-  // --- Row management ---
-  const addRow = () => {
+  // ── Row management ────────────────────────────────────────────────────────
+
+  const addRow = useCallback(() => {
     setRows(r => [...r, emptyRow()])
     setSearchQueries(q => [...q, ''])
     setSuggestions(s => [...s, []])
     searchTimers.current.push(null)
-  }
+  }, [])
 
   const removeRow = (i: number) => {
+    if (rows.length === 1) return
     setRows(r => r.filter((_, idx) => idx !== i))
     setSearchQueries(q => q.filter((_, idx) => idx !== i))
     setSuggestions(s => s.filter((_, idx) => idx !== i))
@@ -155,10 +199,21 @@ export default function PurchasePage() {
     setRows(r => r.map((row, idx) => idx === i ? { ...row, [field]: value } : row))
   }
 
-  // --- Product search ---
+  // ── Keyboard nav helpers ──────────────────────────────────────────────────
+
+  const focusCell = (row: number, col: number) => {
+    setTimeout(() => {
+      const el = document.querySelector<HTMLInputElement>(`[data-cell="${row}-${col}"]`)
+      if (el) { el.focus(); el.select?.() }
+    }, 30)
+  }
+
+  // ── Product search ────────────────────────────────────────────────────────
+
   const handleProductSearch = (i: number, q: string) => {
     setSearchQueries(prev => prev.map((v, idx) => idx === i ? q : v))
     setActiveSuggRow(i)
+    setSuggHighlight(0)
     if (searchTimers.current[i]) clearTimeout(searchTimers.current[i]!)
     if (!q.trim()) {
       setSuggestions(s => s.map((v, idx) => idx === i ? [] : v))
@@ -169,7 +224,7 @@ export default function PurchasePage() {
         const data = await window.api.pos.searchProducts(q) as any[]
         setSuggestions(s => s.map((v, idx) => idx === i ? data.slice(0, 8) : v))
       } catch {}
-    }, 220)
+    }, 180)
   }
 
   const selectProduct = (i: number, p: ProductSuggestion) => {
@@ -179,446 +234,674 @@ export default function PurchasePage() {
     setSearchQueries(q => q.map((v, idx) => idx === i ? p.trade_name : v))
     setSuggestions(s => s.map((v, idx) => idx === i ? [] : v))
     setActiveSuggRow(null)
+    focusCell(i, 1)
   }
 
-  // --- Totals ---
-  const totalCost = rows.reduce((sum, r) => {
-    const cost = parseFloat(r.cost_price) || 0
-    const qty = parseFloat(r.qty) || 0
-    return sum + cost * qty
-  }, 0)
+  const handleProductKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    const suggs = suggestions[i] ?? []
+    if (e.key === 'ArrowDown') {
+      e.preventDefault(); setSuggHighlight(h => Math.min(h + 1, suggs.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); setSuggHighlight(h => Math.max(h - 1, 0))
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (suggs[suggHighlight]) selectProduct(i, suggs[suggHighlight])
+    } else if (e.key === 'Escape') {
+      setSuggestions(s => s.map((v, idx) => idx === i ? [] : v))
+      setActiveSuggRow(null)
+    } else if (e.key === 'Tab') {
+      setSuggestions(s => s.map((v, idx) => idx === i ? [] : v))
+      setActiveSuggRow(null)
+    }
+  }
 
-  // --- Save ---
+  const handleQtyKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === 'Tab' && !e.shiftKey) || e.key === 'Enter') {
+      if (i === rows.length - 1) {
+        e.preventDefault()
+        addRow()
+        focusCell(i + 1, 0)
+      }
+    }
+  }
+
+  // ── Supplier modal ────────────────────────────────────────────────────────
+
+  const filteredSuppliers = supplierQuery.trim()
+    ? suppliers.filter(s =>
+        s.name.toLowerCase().includes(supplierQuery.toLowerCase()) ||
+        s.code?.toLowerCase().includes(supplierQuery.toLowerCase()))
+    : suppliers
+
+  const selectSupplier = (s: Supplier) => {
+    setSupplierId(s.id)
+    setSupplierName(s.name)
+    setShowSupplierModal(false)
+    setSupplierQuery('')
+  }
+
+  // ── Totals ────────────────────────────────────────────────────────────────
+
+  const validRows = rows.filter(r => r.product_id && r.lot_number && r.expiry_date && parseFloat(r.qty) > 0)
+  const totalCost = rows.reduce((sum, r) => sum + (parseFloat(r.cost_price) || 0) * (parseFloat(r.qty) || 0), 0)
+
+  // ── Save ──────────────────────────────────────────────────────────────────
+
   const handleSave = async () => {
-    const validRows = rows.filter(r => r.product_id && r.lot_number && r.expiry_date && parseFloat(r.qty) > 0)
-    if (!supplierId) { toast({ title: 'กรุณาเลือกผู้จัดจำหน่าย', variant: 'error' }); return }
-    if (validRows.length === 0) { toast({ title: 'กรุณาเพิ่มรายการสินค้า', variant: 'error' }); return }
-    if (paymentType === 'credit' && !dueDate) { toast({ title: 'กรุณาระบุวันครบกำหนดชำระ', variant: 'error' }); return }
-
+    if (!supplierId) { toast('กรุณาเลือกผู้จัดจำหน่าย', 'error'); return }
+    if (validRows.length === 0) { toast('กรุณาเพิ่มรายการสินค้าให้ครบถ้วน', 'error'); return }
+    if (paymentType === 'credit' && !dueDate) { toast('กรุณาระบุวันครบกำหนดชำระ', 'error'); return }
     setSaving(true)
     try {
       await window.api.purchase.save({
-        invoice_no: invoiceNo,
-        supplier_id: supplierId,
-        supplier_invoice_no: supplierInvoiceNo,
-        receive_date: receiveDate,
-        payment_type: paymentType,
-        due_date: dueDate || undefined,
-        is_paid: isPaid,
-        paid_date: paidDate || undefined,
-        userId: 1,
+        invoice_no: invoiceNo, supplier_id: supplierId, supplier_invoice_no: supplierInvoiceNo,
+        receive_date: receiveDate, payment_type: paymentType,
+        due_date: dueDate || undefined, is_paid: isPaid, paid_date: paidDate || undefined,
+        note: grNote || undefined, userId: 1,
         items: validRows.map(r => ({
-          product_id: r.product_id,
-          lot_number: r.lot_number,
-          manufactured_date: r.manufactured_date || undefined,
-          expiry_date: r.expiry_date,
-          cost_price: parseFloat(r.cost_price) || 0,
-          sell_price: parseFloat(r.sell_price) || 0,
-          qty: parseFloat(r.qty),
-          note: r.note || undefined,
+          product_id: r.product_id, lot_number: r.lot_number,
+          manufactured_date: r.manufactured_date || undefined, expiry_date: r.expiry_date,
+          cost_price: parseFloat(r.cost_price) || 0, sell_price: parseFloat(r.sell_price) || 0,
+          qty: parseFloat(r.qty), note: r.note || undefined,
         })),
       })
       setSavedInvoice(invoiceNo)
       setShowSuccess(true)
-      // Reset form
       await loadNextGR()
-      setSupplierId(0)
-      setSupplierInvoiceNo('')
-      setReceiveDate(today)
-      setPaymentType('cash')
-      setDueDate('')
-      setIsPaid(false)
-      setPaidDate('')
-      setRows([emptyRow()])
-      setSearchQueries([''])
-      setSuggestions([[]])
+      setSupplierId(0); setSupplierName(''); setSupplierInvoiceNo('')
+      setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
+      setIsPaid(false); setPaidDate(''); setGrNote('')
+      setRows([emptyRow()]); setSearchQueries(['']); setSuggestions([[]])
       loadHistory()
     } catch (e: any) {
-      toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+      toast(e?.message ? `บันทึกไม่สำเร็จ: ${e.message}` : 'บันทึกไม่สำเร็จ', 'error')
     } finally {
       setSaving(false)
     }
   }
 
-  // --- Receipt modal ---
+  const resetForm = () => {
+    setSupplierId(0); setSupplierName(''); setSupplierInvoiceNo('')
+    setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
+    setIsPaid(false); setPaidDate(''); setGrNote('')
+    setRows([emptyRow()]); setSearchQueries(['']); setSuggestions([[]])
+    loadNextGR()
+  }
+
+  // ── Receipt modal ─────────────────────────────────────────────────────────
+
   const openReceipt = async (invoice_no: string) => {
     const data = await window.api.purchase.getReceipt(invoice_no) as ReceiptDetail[]
-    setReceiptItems(data)
-    setReceiptInvoice(invoice_no)
-    setReceiptModal(true)
+    setReceiptItems(data); setReceiptInvoice(invoice_no); setReceiptModal(true)
   }
 
   const histTotalPages = Math.ceil(histTotal / 20)
 
+  const rowIsValid = (r: ReceiptRow) =>
+    r.product_id > 0 && r.lot_number.trim() !== '' && r.expiry_date !== '' && parseFloat(r.qty) > 0
+
+  const rowIsPartial = (r: ReceiptRow) =>
+    (r.product_id > 0 || r.lot_number || r.expiry_date || r.qty) && !rowIsValid(r)
+
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
+    <div className="flex flex-col h-full p-3 gap-3">
+
+      {/* ── Banner — rounded card, identical style to POS ── */}
+      <div className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-sky-600 text-white shadow-md flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">รับสินค้า</h1>
-          <p className="text-sm text-muted-foreground">บันทึกการรับสินค้าเข้าคลัง</p>
+          <h1 className="text-xl font-extrabold leading-tight">การซื้อ</h1>
+          <p className="text-xs opacity-80">จัดการการรับสินค้าและประวัติการสั่งซื้อ</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">เลขที่ใบรับ:</span>
-          <span className="font-mono font-bold text-primary">{invoiceNo}</span>
+        <div className="text-right text-xs opacity-90 leading-relaxed">
+          <div>วันที่: <span className="font-semibold">{now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span></div>
+          <div>เวลา: <span className="font-semibold tabular-nums">{now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span></div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {/* GR Form */}
-        <div className="p-6 space-y-6">
-          {/* Header fields */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {/* Supplier */}
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium mb-1">ผู้จัดจำหน่าย <span className="text-destructive">*</span></label>
-              <div className="relative">
-                <select
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-                  value={supplierId}
-                  onChange={e => setSupplierId(Number(e.target.value))}
-                >
-                  <option value={0}>— เลือกผู้จัดจำหน่าย —</option>
-                  {suppliers.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              </div>
-            </div>
+      {/* ── Tab area ── */}
+      <div className="flex-1 min-h-0 flex flex-col">
 
-            {/* Supplier invoice no */}
-            <div>
-              <label className="block text-sm font-medium mb-1">เลขที่ใบกำกับสินค้า</label>
-              <Input value={supplierInvoiceNo} onChange={e => setSupplierInvoiceNo(e.target.value)} placeholder="เช่น INV-2024-001" />
-            </div>
-
-            {/* Receive date */}
-            <div>
-              <label className="block text-sm font-medium mb-1">วันที่รับสินค้า</label>
-              <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />
-            </div>
-
-            {/* Payment type */}
-            <div>
-              <label className="block text-sm font-medium mb-1">ประเภทการชำระ</label>
-              <div className="flex gap-2">
+        {/* Chrome-style tab strip — identical to POS */}
+        <div className="flex items-end border-b border-slate-200 shrink-0">
+          {(['receive', 'history'] as const).map((tab, i) => {
+            const label = tab === 'receive' ? 'รับสินค้า' : 'ประวัติการรับสินค้า'
+            const isActive = activeTab === tab
+            const showSep = i > 0 && !isActive && activeTab !== 'receive'
+            return (
+              <React.Fragment key={tab}>
+                {i > 0 && (
+                  <span className={`self-center h-3.5 w-px mx-0.5 shrink-0 transition-colors ${showSep ? 'bg-slate-300' : 'bg-transparent'}`} />
+                )}
                 <button
-                  type="button"
-                  onClick={() => setPaymentType('cash')}
-                  className={`flex-1 h-9 rounded-md border text-sm font-medium transition-colors ${paymentType === 'cash' ? 'bg-primary text-primary-foreground border-primary' : 'border-input bg-background hover:bg-accent'}`}
+                  onClick={() => setActiveTab(tab)}
+                  className={`relative px-10 py-1.5 text-sm font-semibold rounded-t-lg -mb-px border border-b-0 transition-colors ${
+                    isActive
+                      ? 'bg-slate-100 border-slate-200 text-slate-700 z-10'
+                      : 'border-transparent text-slate-400 hover:text-slate-600'
+                  }`}
                 >
-                  เงินสด
+                  {label}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentType('credit')}
-                  className={`flex-1 h-9 rounded-md border text-sm font-medium transition-colors ${paymentType === 'credit' ? 'bg-primary text-primary-foreground border-primary' : 'border-input bg-background hover:bg-accent'}`}
-                >
-                  เครดิต
-                </button>
-              </div>
-            </div>
+              </React.Fragment>
+            )
+          })}
+        </div>
 
-            {/* Due date (credit only) */}
-            {paymentType === 'credit' && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-1">วันครบกำหนด <span className="text-destructive">*</span></label>
-                  <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">ชำระแล้ว</label>
-                  <div className="flex items-center gap-3 h-9">
-                    <input
-                      type="checkbox"
-                      id="isPaid"
-                      checked={isPaid}
-                      onChange={e => setIsPaid(e.target.checked)}
-                      className="w-4 h-4 rounded"
-                    />
-                    <label htmlFor="isPaid" className="text-sm">ชำระแล้ว</label>
-                    {isPaid && (
-                      <Input type="date" value={paidDate} onChange={e => setPaidDate(e.target.value)} className="flex-1" />
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+        {/* White content panel — same as POS cart panel */}
+        <div className="flex-1 bg-white rounded-b-xl rounded-tr-xl shadow-sm border border-t-0 border-slate-200 overflow-hidden min-h-0">
 
-          {/* Line items table */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold">รายการสินค้า</h2>
-              <Button size="sm" variant="outline" onClick={addRow}>
-                <Plus className="w-3.5 h-3.5 mr-1" /> เพิ่มรายการ
-              </Button>
-            </div>
+          {/* ── Tab: รับสินค้า ── */}
+          {activeTab === 'receive' && (
+            <div className="h-full overflow-y-auto">
+              <div className="p-4 space-y-3 max-w-screen-2xl mx-auto">
 
-            <div className="border border-border rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground w-8">#</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground min-w-[200px]">ชื่อสินค้า</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground w-32">Lot No.</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground w-32">ผลิต</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground w-32">หมดอายุ</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">ราคาทุน</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">ราคาขาย</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground w-24">จำนวน</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">รวม</th>
-                      <th className="w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, i) => (
-                      <tr key={i} className="border-t border-border hover:bg-muted/30">
-                        <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                {/* Form + sidebar row */}
+                <div className="flex gap-4 items-start">
 
-                        {/* Product search */}
-                        <td className="px-3 py-1.5 relative">
+                  {/* Left: GR form */}
+                  <div className="flex-1 min-w-0 space-y-3">
+
+                    {/* Header fields */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+                      <div className="grid grid-cols-[1fr_180px_160px] gap-3">
+
+                        {/* Supplier selector */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 mb-1.5">
+                            ผู้จัดจำหน่าย <span className="text-red-500">*</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setShowSupplierModal(true)}
+                            className={`w-full h-10 flex items-center justify-between px-3 rounded-lg border text-sm transition-colors ${
+                              supplierId
+                                ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                                : 'border-slate-300 bg-white text-slate-400 hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Building2 className="h-4 w-4 shrink-0 opacity-60" />
+                              <span className={`truncate font-medium ${supplierId ? 'text-emerald-800' : 'text-slate-400'}`}>
+                                {supplierName || '— เลือกผู้จัดจำหน่าย —'}
+                              </span>
+                            </div>
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                          </button>
+                        </div>
+
+                        {/* Supplier invoice no */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 mb-1.5">เลขที่ใบกำกับสินค้า</label>
+                          <div className="relative">
+                            <FileText className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                            <Input
+                              value={supplierInvoiceNo}
+                              onChange={e => setSupplierInvoiceNo(e.target.value)}
+                              placeholder="เช่น INV-2024-001"
+                              className="pl-8 h-10 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Order date (bill date) */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 mb-1.5">วันที่สั่งซื้อตามบิล</label>
+                          <div className="relative">
+                            <CalendarDays className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                            <Input
+                              type="date"
+                              value={orderDate}
+                              onChange={e => setOrderDate(e.target.value)}
+                              className="pl-8 h-10 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Line items */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                        <span className="text-sm font-semibold text-slate-700">รายการสินค้า</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400">{validRows.length}/{rows.length} รายการ</span>
+                          <Button size="sm" variant="outline" onClick={() => { addRow(); focusCell(rows.length, 0) }} className="h-7 text-xs gap-1">
+                            <Plus className="h-3 w-3" /> เพิ่มแถว
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-xs font-semibold text-slate-500 bg-slate-50 border-b border-slate-100">
+                              <th className="px-3 py-2 text-left w-8">#</th>
+                              <th className="px-3 py-2 text-left" style={{ minWidth: 220 }}>ชื่อสินค้า</th>
+                              <th className="px-3 py-2 text-left w-28">Lot No.</th>
+                              <th className="px-3 py-2 text-left w-32">วันผลิต</th>
+                              <th className="px-3 py-2 text-left w-32">วันหมดอายุ</th>
+                              <th className="px-3 py-2 text-right w-28">ราคาทุน</th>
+                              <th className="px-3 py-2 text-right w-28">ราคาขาย</th>
+                              <th className="px-3 py-2 text-right w-24">จำนวน</th>
+                              <th className="px-3 py-2 text-right w-28">รวม</th>
+                              <th className="w-8" />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map((row, i) => {
+                              const lineTotal = (parseFloat(row.cost_price) || 0) * (parseFloat(row.qty) || 0)
+                              const expStatus = row.expiry_date ? getExpiryStatus(row.expiry_date) : null
+                              const isPartial = rowIsPartial(row)
+                              return (
+                                <tr key={i} className={`border-t border-slate-100 transition-colors border-l-2 ${activeRow === i ? 'border-l-emerald-400 bg-emerald-100' : isPartial ? 'border-l-transparent bg-amber-50/60' : 'border-l-transparent hover:bg-emerald-50/40'}`}>
+
+                                  {/* Row # + status dot */}
+                                  <td className="px-3 py-1.5">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-slate-400 tabular-nums w-4 text-center">{i + 1}</span>
+                                      {isPartial && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />}
+                                      {rowIsValid(row) && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
+                                    </div>
+                                  </td>
+
+                                  {/* Product search */}
+                                  <td className="px-2 py-1.5 relative">
+                                    <Input
+                                      data-cell={`${i}-0`}
+                                      value={searchQueries[i] ?? ''}
+                                      onChange={e => handleProductSearch(i, e.target.value)}
+                                      onFocus={() => { setActiveRow(i); setActiveSuggRow(i); setSuggHighlight(0) }}
+                                      onBlur={() => setTimeout(() => setActiveSuggRow(v => v === i ? null : v), 200)}
+                                      onKeyDown={e => handleProductKeyDown(i, e)}
+                                      placeholder="ค้นหาสินค้า..."
+                                      className="h-8 text-sm"
+                                      autoComplete="off"
+                                    />
+                                    {activeSuggRow === i && (suggestions[i]?.length ?? 0) > 0 && (
+                                      <div className="absolute left-2 top-full mt-0.5 z-50 w-80 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                                        {suggestions[i].map((p, si) => (
+                                          <button
+                                            key={p.id}
+                                            type="button"
+                                            onMouseDown={() => selectProduct(i, p)}
+                                            className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
+                                              si === suggHighlight ? 'bg-emerald-100 text-emerald-700' : 'hover:bg-emerald-50'
+                                            }`}
+                                          >
+                                            <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                            <span className="truncate flex-1">{p.trade_name}</span>
+                                            {p.code && <span className="text-xs text-slate-400 font-mono shrink-0">{p.code}</span>}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </td>
+
+                                  <td className="px-2 py-1.5">
+                                    <Input data-cell={`${i}-1`} value={row.lot_number} onChange={e => updateRow(i, 'lot_number', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="LOT-001" className="h-8 text-sm font-mono" />
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <Input data-cell={`${i}-2`} type="date" value={row.manufactured_date} onChange={e => updateRow(i, 'manufactured_date', e.target.value)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <Input
+                                      data-cell={`${i}-3`}
+                                      type="date"
+                                      value={row.expiry_date}
+                                      onChange={e => updateRow(i, 'expiry_date', e.target.value)}
+                                      onFocus={() => setActiveRow(i)}
+                                      className={`h-8 text-sm ${
+                                        expStatus === 'expired' ? 'border-red-400 bg-red-50 text-red-700' :
+                                        expStatus === 'danger'  ? 'border-orange-400 bg-orange-50' :
+                                        expStatus === 'warning' ? 'border-yellow-400 bg-yellow-50' : ''
+                                      }`}
+                                    />
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <Input data-cell={`${i}-4`} type="number" value={row.cost_price} onChange={e => updateRow(i, 'cost_price', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="0.00" className="h-8 text-sm text-right" min={0} step="0.01" />
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <Input data-cell={`${i}-5`} type="number" value={row.sell_price} onChange={e => updateRow(i, 'sell_price', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="0.00" className="h-8 text-sm text-right" min={0} step="0.01" />
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <Input data-cell={`${i}-6`} type="number" value={row.qty} onChange={e => updateRow(i, 'qty', e.target.value)} onFocus={() => setActiveRow(i)} onKeyDown={e => handleQtyKeyDown(i, e)} placeholder="0" className="h-8 text-sm text-right" min={1} />
+                                  </td>
+
+                                  <td className="px-3 py-1.5 text-right font-semibold text-sm tabular-nums">
+                                    {lineTotal > 0
+                                      ? <span className="text-emerald-700">฿{formatCurrency(lineTotal)}</span>
+                                      : <span className="text-slate-300">—</span>}
+                                  </td>
+
+                                  <td className="px-2 py-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => removeRow(i)}
+                                      disabled={rows.length === 1}
+                                      className="w-6 h-6 flex items-center justify-center rounded text-slate-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="border-t-2 border-slate-200 bg-slate-50">
+                              <td colSpan={8} className="px-3 py-2.5 text-right text-sm font-semibold text-slate-600">มูลค่ารวมทั้งหมด</td>
+                              <td className="px-3 py-2.5 text-right font-extrabold text-emerald-700 text-base tabular-nums">฿{formatCurrency(totalCost)}</td>
+                              <td />
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+
+                      <div className="px-4 py-2 border-t border-slate-100 bg-slate-50 text-[11px] text-slate-400 flex gap-4">
+                        <span><kbd className="font-mono bg-white border border-slate-200 px-1 rounded text-[10px]">Tab</kbd> ข้ามช่อง</span>
+                        <span><kbd className="font-mono bg-white border border-slate-200 px-1 rounded text-[10px]">↑↓</kbd> เลือกสินค้า</span>
+                        <span><kbd className="font-mono bg-white border border-slate-200 px-1 rounded text-[10px]">Enter</kbd> ยืนยัน / แถวถัดไป</span>
+                      </div>
+                    </div>
+
+                  </div>{/* end left */}
+
+                  {/* ── Right sidebar ── */}
+                  <div className="w-64 shrink-0 sticky top-0 space-y-3">
+
+                    {/* GR summary */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">สรุปใบรับสินค้า</div>
+                      <div>
+                        <div className="text-[11px] text-slate-400 mb-0.5">เลขที่ใบรับ</div>
+                        <div className="font-mono font-bold text-sm text-emerald-700">{invoiceNo || '—'}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-slate-400 mb-0.5">ผู้จัดจำหน่าย</div>
+                        <div className="text-sm font-semibold text-slate-700 truncate">
+                          {supplierName || <span className="text-red-400 font-normal">ยังไม่เลือก</span>}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-slate-400 mb-0.5 block">วันที่รับสินค้า</label>
+                        <div className="relative">
+                          <CalendarDays className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
                           <Input
-                            value={searchQueries[i] ?? ''}
-                            onChange={e => handleProductSearch(i, e.target.value)}
-                            onFocus={() => setActiveSuggRow(i)}
-                            onBlur={() => setTimeout(() => setActiveSuggRow(null), 200)}
-                            placeholder="ค้นหาสินค้า..."
-                            className="h-8 text-sm"
+                            type="date"
+                            value={receiveDate}
+                            onChange={e => setReceiveDate(e.target.value)}
+                            className="pl-6 h-7 text-xs"
                           />
-                          {activeSuggRow === i && (suggestions[i]?.length ?? 0) > 0 && (
-                            <div className="absolute left-3 top-full mt-1 z-50 w-72 bg-popover border border-border rounded-md shadow-lg max-h-52 overflow-y-auto">
-                              {suggestions[i].map(p => (
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div className="bg-slate-50 rounded-lg p-2.5">
+                          <div className="text-[11px] text-slate-400">รายการ</div>
+                          <div className="text-lg font-extrabold text-slate-700 tabular-nums">{validRows.length}</div>
+                        </div>
+                        <div className="bg-emerald-50 rounded-lg p-2.5">
+                          <div className="text-[11px] text-emerald-600">มูลค่า</div>
+                          <div className="text-base font-extrabold text-emerald-700 tabular-nums leading-tight">฿{formatCurrency(totalCost)}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Payment type */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">การชำระเงิน</div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentType('cash')}
+                          className={`flex-1 h-9 rounded-lg border text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                            paymentType === 'cash'
+                              ? 'bg-emerald-500 text-white border-emerald-500'
+                              : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          <Banknote className="h-3.5 w-3.5" /> เงินสด
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentType('credit')}
+                          className={`flex-1 h-9 rounded-lg border text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                            paymentType === 'credit'
+                              ? 'bg-amber-500 text-white border-amber-500'
+                              : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          <CreditCard className="h-3.5 w-3.5" /> เครดิต
+                        </button>
+                      </div>
+                      {paymentType === 'credit' && (
+                        <div className="space-y-2.5">
+                          <div>
+                            <label className="text-xs font-semibold text-slate-500 mb-1 block">วันครบกำหนด <span className="text-red-500">*</span></label>
+                            <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="h-9 text-sm" />
+                            <div className="flex gap-1 mt-1.5">
+                              {[15, 30, 60, 90].map(d => (
                                 <button
-                                  key={p.id}
+                                  key={d}
                                   type="button"
-                                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
-                                  onMouseDown={() => selectProduct(i, p)}
+                                  onClick={() => {
+                                    const dt = new Date()
+                                    dt.setDate(dt.getDate() + d)
+                                    setDueDate(dt.toISOString().slice(0, 10))
+                                  }}
+                                  className="flex-1 h-7 rounded-md border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 hover:border-amber-300 transition-colors"
                                 >
-                                  <Package className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                  <span className="truncate">{p.trade_name}</span>
-                                  {p.code && <span className="text-xs text-muted-foreground ml-auto">{p.code}</span>}
+                                  {d} วัน
                                 </button>
                               ))}
                             </div>
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <Checkbox checked={isPaid} onCheckedChange={v => setIsPaid(v === true)} />
+                            <span className="text-sm text-slate-600">ชำระแล้ว</span>
+                          </label>
+                          {isPaid && (
+                            <div className="space-y-1.5">
+                              <Input type="date" value={paidDate} onChange={e => setPaidDate(e.target.value)} className="h-9 text-sm" />
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setPaidDate(today)}
+                                  className="flex-1 h-7 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 hover:border-emerald-300 transition-colors"
+                                >
+                                  วันนี้
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => dueDate && setPaidDate(dueDate)}
+                                  disabled={!dueDate}
+                                  className="flex-1 h-7 rounded-md border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 hover:border-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  วันครบกำหนด
+                                </button>
+                              </div>
+                            </div>
                           )}
-                        </td>
+                        </div>
+                      )}
+                    </div>
 
-                        <td className="px-3 py-1.5">
-                          <Input
-                            value={row.lot_number}
-                            onChange={e => updateRow(i, 'lot_number', e.target.value)}
-                            placeholder="LOT-001"
-                            className="h-8 text-sm"
-                          />
-                        </td>
-                        <td className="px-3 py-1.5">
-                          <Input
-                            type="date"
-                            value={row.manufactured_date}
-                            onChange={e => updateRow(i, 'manufactured_date', e.target.value)}
-                            className="h-8 text-sm"
-                          />
-                        </td>
-                        <td className="px-3 py-1.5">
-                          <Input
-                            type="date"
-                            value={row.expiry_date}
-                            onChange={e => updateRow(i, 'expiry_date', e.target.value)}
-                            className="h-8 text-sm"
-                          />
-                        </td>
-                        <td className="px-3 py-1.5">
-                          <Input
-                            type="number"
-                            value={row.cost_price}
-                            onChange={e => updateRow(i, 'cost_price', e.target.value)}
-                            placeholder="0.00"
-                            className="h-8 text-sm text-right"
-                            min={0}
-                            step="0.01"
-                          />
-                        </td>
-                        <td className="px-3 py-1.5">
-                          <Input
-                            type="number"
-                            value={row.sell_price}
-                            onChange={e => updateRow(i, 'sell_price', e.target.value)}
-                            placeholder="0.00"
-                            className="h-8 text-sm text-right"
-                            min={0}
-                            step="0.01"
-                          />
-                        </td>
-                        <td className="px-3 py-1.5">
-                          <Input
-                            type="number"
-                            value={row.qty}
-                            onChange={e => updateRow(i, 'qty', e.target.value)}
-                            placeholder="0"
-                            className="h-8 text-sm text-right"
-                            min={1}
-                          />
-                        </td>
-                        <td className="px-3 py-2 text-right font-medium">
-                          {(parseFloat(row.cost_price) || 0) * (parseFloat(row.qty) || 0) > 0
-                            ? formatCurrency((parseFloat(row.cost_price) || 0) * (parseFloat(row.qty) || 0))
-                            : <span className="text-muted-foreground">—</span>}
-                        </td>
-                        <td className="px-2 py-1.5">
-                          {rows.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeRow(i)}
-                              className="w-7 h-7 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-border bg-muted/30">
-                      <td colSpan={8} className="px-3 py-2 text-right text-sm font-medium">มูลค่ารวมทั้งหมด</td>
-                      <td className="px-3 py-2 text-right font-bold text-primary">{formatCurrency(totalCost)}</td>
-                      <td />
-                    </tr>
-                  </tfoot>
-                </table>
+                    {/* Note */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-2">
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">หมายเหตุ</div>
+                      <textarea
+                        value={grNote}
+                        onChange={e => setGrNote(e.target.value)}
+                        placeholder="บันทึกเพิ่มเติม..."
+                        rows={3}
+                        className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition-colors"
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="space-y-2">
+                      <Button
+                        onClick={handleSave}
+                        disabled={saving || !supplierId || validRows.length === 0}
+                        className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-100 text-white font-bold text-base shadow-md"
+                      >
+                        {saving ? 'กำลังบันทึก...' : 'บันทึกใบรับสินค้า'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={resetForm}
+                        className="w-full h-9 rounded-xl text-sm text-slate-600 hover:bg-red-50 hover:text-red-500 hover:border-red-200"
+                      >
+                        ล้างฟอร์ม
+                      </Button>
+                    </div>
+
+                  </div>{/* end sidebar */}
+                </div>{/* end flex row */}
+              </div>{/* end p-4 */}
+            </div>
+          )}{/* end receive tab */}
+
+          {/* ── Tab: ประวัติการรับสินค้า ── */}
+          {activeTab === 'history' && (
+            <div className="h-full overflow-y-auto">
+              <div className="p-4 max-w-screen-2xl mx-auto">
+
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  {/* Filters */}
+                  <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap gap-2">
+                    <div className="relative flex-1 min-w-[160px]">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <Input value={histQ} onChange={e => setHistQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadHistory(1)} placeholder="ค้นหาเลขที่ใบรับ..." className="pl-8 h-8 text-sm" />
+                    </div>
+                    <div className="relative w-44">
+                      <select
+                        className="w-full h-8 rounded-md border border-input bg-background px-2.5 pr-7 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                        value={histSupplierId}
+                        onChange={e => setHistSupplierId(Number(e.target.value))}
+                      >
+                        <option value={0}>ทุกผู้จัดจำหน่าย</option>
+                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                    </div>
+                    <Input type="date" value={histDateFrom} onChange={e => setHistDateFrom(e.target.value)} className="w-36 h-8 text-sm" />
+                    <Input type="date" value={histDateTo} onChange={e => setHistDateTo(e.target.value)} className="w-36 h-8 text-sm" />
+                    <Button size="sm" variant="outline" onClick={() => loadHistory(1)} className="h-8 text-xs">
+                      <Search className="w-3 h-3 mr-1" /> ค้นหา
+                    </Button>
+                  </div>
+
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>เลขที่ใบรับ</TableHead>
+                        <TableHead>วันที่</TableHead>
+                        <TableHead>ผู้จัดจำหน่าย</TableHead>
+                        <TableHead className="text-center">รายการ</TableHead>
+                        <TableHead className="text-right">มูลค่า</TableHead>
+                        <TableHead className="text-center">การชำระ</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loadingHist ? (
+                        <TableRow><TableCell colSpan={7} className="text-center text-slate-400 py-10 text-sm">กำลังโหลด...</TableCell></TableRow>
+                      ) : history.length === 0 ? (
+                        <TableRow><TableCell colSpan={7} className="text-center text-slate-400 py-10 text-sm">ไม่พบข้อมูล</TableCell></TableRow>
+                      ) : history.map(h => (
+                        <TableRow key={h.invoice_no} className="hover:bg-emerald-50/40">
+                          <TableCell className="font-mono text-sm font-medium">{h.invoice_no}</TableCell>
+                          <TableCell className="text-sm">{formatDate(h.created_at)}</TableCell>
+                          <TableCell className="text-sm">{h.supplier_name ?? '—'}</TableCell>
+                          <TableCell className="text-center text-sm">{h.item_count}</TableCell>
+                          <TableCell className="text-right font-semibold tabular-nums">฿{formatCurrency(h.total_cost)}</TableCell>
+                          <TableCell className="text-center">
+                            {h.payment_type === 'credit'
+                              ? h.is_paid
+                                ? <Badge variant="success" className="text-xs">ชำระแล้ว</Badge>
+                                : <Badge variant="warning" className="text-xs">เครดิต{h.due_date ? ` ${formatDate(h.due_date)}` : ''}</Badge>
+                              : <Badge variant="secondary" className="text-xs">เงินสด</Badge>
+                            }
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="ghost" onClick={() => openReceipt(h.invoice_no)} className="text-xs h-7">ดูรายการ</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {histTotalPages > 1 && (
+                    <div className="py-3 flex justify-center border-t border-slate-100">
+                      <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} />
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
-          </div>
+          )}{/* end history tab */}
 
-          {/* Save button */}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => {
-              setRows([emptyRow()])
-              setSearchQueries([''])
-              setSuggestions([[]])
-              setSupplierId(0)
-              setSupplierInvoiceNo('')
-              setPaymentType('cash')
-              setDueDate('')
-              setIsPaid(false)
-              setPaidDate('')
-              loadNextGR()
-            }}>
-              ล้างฟอร์ม
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'กำลังบันทึก...' : 'บันทึกการรับสินค้า'}
-            </Button>
-          </div>
+        </div>{/* end white content panel */}
+      </div>{/* end tab area */}
 
-          {/* History */}
-          <div>
-            <h2 className="text-base font-semibold mb-3">ประวัติการรับสินค้า</h2>
-
-            {/* History filters */}
-            <div className="flex flex-wrap gap-2 mb-3">
-              <div className="relative flex-1 min-w-[180px]">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  value={histQ}
-                  onChange={e => setHistQ(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && loadHistory(1)}
-                  placeholder="ค้นหาเลขที่ใบรับ..."
-                  className="pl-8"
-                />
-              </div>
-              <div className="relative w-44">
-                <select
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-                  value={histSupplierId}
-                  onChange={e => setHistSupplierId(Number(e.target.value))}
+      {/* ── Supplier modal ── */}
+      {showSupplierModal && (
+        <InlineModal
+          title="เลือกผู้จัดจำหน่าย"
+          onClose={() => { setShowSupplierModal(false); setSupplierQuery('') }}
+          maxWidth="max-w-md"
+          footer={
+            <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+              <Button variant="outline" onClick={() => { setShowSupplierModal(false); setSupplierQuery('') }}>ปิด</Button>
+            </div>
+          }
+        >
+          <div className="p-4 space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input autoFocus value={supplierQuery} onChange={e => setSupplierQuery(e.target.value)} placeholder="ชื่อหรือรหัสผู้จัดจำหน่าย..." className="pl-9" />
+            </div>
+            <div className="max-h-72 overflow-y-auto space-y-1">
+              {filteredSuppliers.length === 0 ? (
+                <div className="text-sm text-center text-slate-400 py-6">ไม่พบผู้จัดจำหน่าย</div>
+              ) : filteredSuppliers.map(s => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => selectSupplier(s)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors border ${
+                    s.id === supplierId
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                      : 'border-transparent hover:bg-slate-50 hover:border-slate-200'
+                  }`}
                 >
-                  <option value={0}>ผู้จัดจำหน่ายทั้งหมด</option>
-                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              </div>
-              <Input type="date" value={histDateFrom} onChange={e => setHistDateFrom(e.target.value)} className="w-36" />
-              <Input type="date" value={histDateTo} onChange={e => setHistDateTo(e.target.value)} className="w-36" />
-              <Button variant="outline" onClick={() => loadHistory(1)}>
-                <Search className="w-3.5 h-3.5 mr-1" /> ค้นหา
-              </Button>
+                  <Building2 className={`h-4 w-4 shrink-0 ${s.id === supplierId ? 'text-emerald-500' : 'text-slate-400'}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold truncate">{s.name}</div>
+                    {s.code && <div className="text-xs text-slate-400 font-mono">{s.code}</div>}
+                  </div>
+                </button>
+              ))}
             </div>
-
-            <div className="border border-border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>เลขที่ใบรับ</TableHead>
-                    <TableHead>วันที่</TableHead>
-                    <TableHead>ผู้จัดจำหน่าย</TableHead>
-                    <TableHead className="text-center">รายการ</TableHead>
-                    <TableHead className="text-right">มูลค่า</TableHead>
-                    <TableHead className="text-center">การชำระ</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loadingHist ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">กำลังโหลด...</TableCell>
-                    </TableRow>
-                  ) : history.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell>
-                    </TableRow>
-                  ) : history.map(h => (
-                    <TableRow key={h.invoice_no}>
-                      <TableCell className="font-mono text-sm">{h.invoice_no}</TableCell>
-                      <TableCell className="text-sm">{formatDate(h.created_at)}</TableCell>
-                      <TableCell className="text-sm">{h.supplier_name ?? '—'}</TableCell>
-                      <TableCell className="text-center text-sm">{h.item_count}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(h.total_cost)}</TableCell>
-                      <TableCell className="text-center">
-                        {h.payment_type === 'credit' ? (
-                          h.is_paid
-                            ? <Badge variant="success" className="text-xs">ชำระแล้ว</Badge>
-                            : <Badge variant="warning" className="text-xs">เครดิต {h.due_date ? formatDate(h.due_date) : ''}</Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">เงินสด</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="ghost" onClick={() => openReceipt(h.invoice_no)}>
-                          ดูรายการ
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {histTotalPages > 1 && (
-              <div className="mt-3 flex justify-center">
-                <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} />
-              </div>
-            )}
           </div>
-        </div>
-      </div>
+        </InlineModal>
+      )}
 
-      {/* Receipt detail modal */}
+      {/* ── Receipt detail modal ── */}
       <Dialog open={receiptModal} onOpenChange={setReceiptModal}>
         <DialogContent size="2xl">
           <DialogHeader>
-            <DialogTitle>รายละเอียดใบรับสินค้า: {receiptInvoice}</DialogTitle>
+            <DialogTitle>ใบรับสินค้า: {receiptInvoice}</DialogTitle>
           </DialogHeader>
           <DialogBody>
             {receiptItems.length > 0 && (
-              <div className="text-sm text-muted-foreground mb-3">
-                ผู้จัดจำหน่าย: <span className="text-foreground font-medium">{receiptItems[0]?.supplier_name ?? '—'}</span>
+              <div className="text-sm text-slate-500 mb-3">
+                ผู้จัดจำหน่าย: <span className="text-slate-800 font-semibold">{receiptItems[0]?.supplier_name ?? '—'}</span>
               </div>
             )}
-            <div className="border border-border rounded-lg overflow-hidden">
+            <div className="border border-slate-200 rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -633,32 +916,36 @@ export default function PurchasePage() {
                 </TableHeader>
                 <TableBody>
                   {receiptItems.map(item => {
-                    const expStatus = getExpiryStatus(item.expiry_date, 90, 60, 30)
+                    const es = getExpiryStatus(item.expiry_date)
                     return (
                       <TableRow key={item.id}>
                         <TableCell>
-                          <div className="font-medium">{item.trade_name}</div>
-                          {item.product_code && <div className="text-xs text-muted-foreground">{item.product_code}</div>}
+                          <div className="font-medium text-sm">{item.trade_name}</div>
+                          {item.product_code && <div className="text-xs text-slate-400">{item.product_code}</div>}
                         </TableCell>
                         <TableCell className="font-mono text-sm">{item.lot_number}</TableCell>
                         <TableCell className="text-center text-sm">
-                          <span className={expStatus === 'expired' ? 'text-destructive' : expStatus === 'danger' ? 'text-orange-500' : expStatus === 'warning' ? 'text-yellow-500' : ''}>
+                          <span className={
+                            es === 'expired' ? 'text-red-600 font-semibold' :
+                            es === 'danger'  ? 'text-orange-500 font-semibold' :
+                            es === 'warning' ? 'text-yellow-600' : ''
+                          }>
                             {formatExpiry(item.expiry_date)}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right">{formatCurrency(item.cost_price)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(item.sell_price)}</TableCell>
-                        <TableCell className="text-right">{item.qty_received}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(item.cost_price * item.qty_received)}</TableCell>
+                        <TableCell className="text-right tabular-nums">฿{formatCurrency(item.cost_price)}</TableCell>
+                        <TableCell className="text-right tabular-nums">฿{formatCurrency(item.sell_price)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{item.qty_received}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">฿{formatCurrency(item.cost_price * item.qty_received)}</TableCell>
                       </TableRow>
                     )
                   })}
                 </TableBody>
                 <tfoot>
-                  <tr className="border-t border-border bg-muted/30">
-                    <td colSpan={6} className="px-4 py-2 text-right text-sm font-medium">มูลค่ารวม</td>
-                    <td className="px-4 py-2 text-right font-bold">
-                      {formatCurrency(receiptItems.reduce((s, i) => s + i.cost_price * i.qty_received, 0))}
+                  <tr className="border-t-2 border-slate-200 bg-slate-50">
+                    <td colSpan={6} className="px-4 py-2.5 text-right text-sm font-semibold text-slate-600">มูลค่ารวม</td>
+                    <td className="px-4 py-2.5 text-right font-extrabold text-emerald-700 tabular-nums">
+                      ฿{formatCurrency(receiptItems.reduce((s, i) => s + i.cost_price * i.qty_received, 0))}
                     </td>
                   </tr>
                 </tfoot>
@@ -671,24 +958,22 @@ export default function PurchasePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Success dialog */}
+      {/* ── Success dialog ── */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
         <DialogContent size="sm">
-          <DialogHeader>
-            <DialogTitle>บันทึกสำเร็จ</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <div className="flex flex-col items-center gap-3 py-4">
-              <CheckCircle className="w-14 h-14 text-green-500" />
-              <p className="text-lg font-semibold">{savedInvoice}</p>
-              <p className="text-sm text-muted-foreground">บันทึกการรับสินค้าเรียบร้อยแล้ว</p>
+          <DialogBody className="text-center py-8 space-y-4">
+            <div className="text-6xl">✅</div>
+            <div>
+              <div className="text-lg font-semibold">บันทึกสำเร็จ</div>
+              <div className="text-muted-foreground text-sm mt-1 font-mono">{savedInvoice}</div>
             </div>
+            <Button onClick={() => setShowSuccess(false)} className="w-full bg-emerald-500 hover:bg-emerald-600">
+              รับสินค้าล็อตใหม่
+            </Button>
           </DialogBody>
-          <DialogFooter>
-            <Button onClick={() => setShowSuccess(false)}>ตกลง</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   )
 }

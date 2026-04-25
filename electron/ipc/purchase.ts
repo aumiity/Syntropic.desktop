@@ -22,6 +22,7 @@ export function registerPurchaseHandlers() {
     due_date?: string
     is_paid: boolean
     paid_date?: string
+    note?: string
     items: Array<{
       product_id: number
       lot_number: string
@@ -36,6 +37,9 @@ export function registerPurchaseHandlers() {
   }) => {
     const db = getDb()
     const save = db.transaction(() => {
+      db.prepare(`INSERT OR REPLACE INTO purchase_receipts (invoice_no, note, created_at) VALUES (?, ?, datetime('now','localtime'))`)
+        .run(payload.invoice_no, payload.note ?? '')
+
       for (const item of payload.items) {
         const existing = db.prepare(`SELECT * FROM product_lots WHERE product_id = ? AND lot_number = ?`).get(item.product_id, item.lot_number) as any
 

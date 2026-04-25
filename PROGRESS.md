@@ -1,7 +1,7 @@
 # Syntropic Desktop - Build Progress
 
 ## Status: 100% Complete + UI Polish ✅
-## Last updated: 2026-04-24
+## Last updated: 2026-04-25
 ## App is RUNNABLE — run `npm run electron:dev` to launch
 
 ---
@@ -117,20 +117,19 @@ npm run electron:dev
   - Pagination (50 per page)
 - `src/pages/Purchase/index.tsx` ✅ FULL
   - GR# auto-generated (GR-YYYYMMDD-NNNN)
-  - Supplier dropdown, supplier invoice no, receive date
+  - Supplier dropdown, supplier invoice no, วันที่สั่งซื้อตามบิล (bill order date) in header
+  - วันที่รับสินค้า moved to สรุปใบรับสินค้า sidebar as compact editable field
   - Payment type: cash / credit (with due date + paid tracking)
+  - วันครบกำหนด quick-pick buttons: 15 / 30 / 60 / 90 วัน (sets date from today)
+  - ชำระแล้ว quick-fill buttons: วันนี้ / วันครบกำหนด (fills paid date)
   - Multi-row item entry with live product search + lot/expiry/cost/sell/qty fields
+  - Active row highlight: emerald-100 bg + left border accent (matches POS UX)
   - Running total per row + grand total footer
+  - หมายเหตุ textarea in sidebar, saved to `purchase_receipts` table (invoice_no PK + note)
   - Save with validation → success dialog → form reset
   - History table with filters (search, supplier, date range) + pagination
   - Receipt detail modal
-  - Product search (barcode/name/code, live results with lot info + expiry warnings)
-  - Cart: add/merge duplicate items, qty +/- inline, remove, per-item discount
-  - Customer search dialog (name/phone/HN), alert badge, quick-clear
-  - Sale type selector (retail/wholesale/rx)
-  - Payment dialog: cash + card + transfer, change calculation, disabled until paid enough
-  - Saves bill via IPC (FEFO deduction), shows daily stats (bills count, total, last time)
-  - Success dialog with invoice number
+  - Banner top-right: live date/time clock (Thai locale, ticking every second, matches POS)
 
 ---
 
@@ -138,15 +137,7 @@ npm run electron:dev
 
 ### Pages — Stubs only (show "กำลังพัฒนา"), need full implementation:
 
-| Page | File | Key Features Needed |
-|------|------|---------------------|
-| รับสินค้า | `src/pages/Purchase/index.tsx` | GR# auto, supplier select, line items table, lot/expiry/cost inputs, save + history table |
-| สินค้า (list) | `src/pages/Products/index.tsx` | Search/filter, stock qty, category filter, link to edit |
-| แก้ไขสินค้า | `src/pages/Products/EditProduct.tsx` | All product fields, unit variants tab, medicine labels tab, lots tab |
-| บุคคล | `src/pages/People/index.tsx` | 3 tabs: Customers (with allergy info) / Suppliers / Staff |
-| รายงานการขาย | `src/pages/Reports/Sales.tsx` | Date filter, summary cards (subtotal/discount/cost/profit), list, sale detail modal, void with reason |
-| รายงานการซื้อ | `src/pages/Reports/Purchases.tsx` | Date/supplier filter, receipt list, receipt detail modal |
-| ตั้งค่า | `src/pages/Settings/index.tsx` | 3 tabs: Categories / Units / Drug Types + Shop info form |
+All pages are now complete. No pending stubs.
 
 ---
 
@@ -274,6 +265,16 @@ Rebuilt the payment dialog to match the PHP reference screen (two-section layout
   - Card / transfer payment state (`cardAmount`, `transferAmount`) kept but no UI; saved as `0` through the existing `saveBill` payload.
   - Modal-open handler now seeds `totalDiscountInput`, `cashAmount`, and `showBreakdown=false` in one go.
 - **`src/pages/POS/redistributeDiscount.ts` + cart store line_total downstream effects** — `sale_items.line_total` can now persist negative in the DB when a bill is saved with a discount ≥ subtotal; Reports/Sales.tsx just renders whatever's there (`formatCurrency` handles negatives). Save button block on `net < 0` is the primary guard, so this only happens if someone types exactly `net = 0` (not negative) with partial line overshoots, which `redistributeDiscounts` already balances.
+
+## Purchase Page UX Polish (2026-04-25)
+
+- **Active row highlight** — `activeRow` state tracks which row has focus; focused row gets `bg-emerald-100` + `border-l-2 border-emerald-400` left accent (same pattern as POS search modal highlight). All 7 inputs per row set `activeRow` on `onFocus`. Unfocused rows retain `hover:bg-emerald-50/40`; partial rows keep amber tint with transparent left border.
+- **Live clock in banner** — `now` state with `setInterval` 1 s tick; top-right of the gradient banner now shows วันที่ + เวลา in Thai locale (matches POS header, replaces static เลขที่ใบรับ).
+- **วันที่สั่งซื้อตามบิล** — new `orderDate` state (defaults today) replaces วันที่รับสินค้า in the header field grid; represents the date printed on the supplier's bill.
+- **วันที่รับสินค้า moved to sidebar** — compact date input added to สรุปใบรับสินค้า card under ผู้จัดจำหน่าย; still bound to `receiveDate` and saved as `receive_date` in the IPC payload.
+- **วันครบกำหนด quick buttons** — four amber pills (15ว / 30ว / 60ว / 90ว) appear below the due date input when เครดิต is selected; each sets `dueDate` to today + N days.
+- **ชำระแล้ว quick buttons** — วันนี้ (emerald) and วันครบกำหนด (amber, disabled when no due date) appear below the paid date input; วันครบกำหนด copies `dueDate` into `paidDate`.
+- **หมายเหตุ section** — textarea card in sidebar between การชำระเงิน and save button; bound to `grNote` state. Saved via new `purchase_receipts` table (`invoice_no TEXT PRIMARY KEY, note TEXT, created_at`). IPC `purchase:save` now accepts optional `note` and does `INSERT OR REPLACE INTO purchase_receipts` inside the existing transaction. Schema added `CREATE TABLE IF NOT EXISTS purchase_receipts` — non-breaking for existing DBs. `grNote` reset on both save success and ล้างฟอร์ม.
 
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source

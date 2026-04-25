@@ -389,6 +389,13 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    -- Purchase receipt headers (GR-level metadata, one row per invoice_no)
+    CREATE TABLE IF NOT EXISTS purchase_receipts (
+      invoice_no TEXT PRIMARY KEY,
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     -- Indexes
     CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
     CREATE INDEX IF NOT EXISTS idx_products_barcode2 ON products(barcode2);

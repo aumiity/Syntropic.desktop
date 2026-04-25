@@ -940,7 +940,7 @@ export default function POSPage() {
                       {needsCheck ? (
                         <span className="flex items-center gap-2 text-3xl font-extrabold text-red-600 tracking-wider">
                           <AlertTriangle className="h-7 w-7" />
-                          ตรวจสอบ
+                          กรุณาตรวจสอบ
                         </span>
                       ) : (
                         <span className="text-3xl font-extrabold tabular-nums text-green-600">
