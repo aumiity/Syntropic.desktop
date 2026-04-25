@@ -291,6 +291,17 @@ export function initializeSchema(db: Database.Database) {
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    -- Price change history
+    CREATE TABLE IF NOT EXISTS price_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      price_type TEXT NOT NULL DEFAULT 'retail',
+      old_price REAL NOT NULL DEFAULT 0,
+      new_price REAL NOT NULL DEFAULT 0,
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     -- Label Frequencies
     CREATE TABLE IF NOT EXISTS label_frequencies (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -409,5 +420,6 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_stock_movements_product ON stock_movements(product_id, lot_id);
     CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON stock_movements(movement_type);
     CREATE INDEX IF NOT EXISTS idx_stock_movements_created ON stock_movements(created_at);
+    CREATE INDEX IF NOT EXISTS idx_price_logs_product ON price_logs(product_id, created_at DESC);
   `)
 }

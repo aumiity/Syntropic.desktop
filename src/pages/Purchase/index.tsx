@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
@@ -11,29 +12,44 @@ import { formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib
 import type { Supplier, ProductLot } from '@/types'
 import {
   Search, Plus, Trash2, Package, ChevronDown, X,
-  Building2, Banknote, CreditCard, FileText, CalendarDays,
+  Building2, Banknote, CreditCard, FileText, CalendarDays, ClipboardPaste,
 } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
 
 // ── Types ──────────────────────────────────────────────────────────────────
+
+interface ProductUnitOption {
+  id: number
+  unit_name: string
+  qty_per_base: number
+  is_base_unit: number | boolean
+  price_retail?: number
+}
 
 interface ReceiptRow {
   product_id: number
   trade_name: string
   product_code: string
+  unit_name: string
+  units: ProductUnitOption[]
+  default_sell_price: number
   lot_number: string
   manufactured_date: string
   expiry_date: string
-  cost_price: string
-  sell_price: string
   qty: string
+  cost_price: string
+  total: string
   note: string
 }
 
 const emptyRow = (): ReceiptRow => ({
   product_id: 0, trade_name: '', product_code: '',
+  unit_name: '', units: [], default_sell_price: 0,
   lot_number: '', manufactured_date: '', expiry_date: '',
-  cost_price: '', sell_price: '', qty: '', note: '',
+  qty: '', cost_price: '', total: '', note: '',
 })
+
+const stripTrailingZeros = (s: string) => s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s
 
 interface HistoryRow {
   invoice_no: string
@@ -57,6 +73,8 @@ interface ProductSuggestion {
   trade_name: string
   code?: string
   unit_name?: string
+  price_retail?: number
+  units?: ProductUnitOption[]
 }
 
 // ── Inline modal (same pattern as POS) ─────────────────────────────────────
@@ -144,6 +162,21 @@ export default function PurchasePage() {
   const [receiptItems, setReceiptItems] = useState<ReceiptDetail[]>([])
   const [receiptInvoice, setReceiptInvoice] = useState('')
 
+  // Unit swap modal (per row)
+  const [unitModalIdx, setUnitModalIdx] = useState<number | null>(null)
+
+  // Sell-price quick-edit modal (per row)
+  const [priceModalIdx, setPriceModalIdx] = useState<number | null>(null)
+  const [priceDraft, setPriceDraft] = useState('')
+  const [priceNote, setPriceNote] = useState('')
+  const [priceSaving, setPriceSaving] = useState(false)
+  const [priceHistory, setPriceHistory] = useState<Array<{ id: number; price_type: string; old_price: number; new_price: number; note?: string; created_at: string }>>([])
+
+  // Bulk import modal
+  const [showImport, setShowImport] = useState(false)
+  const [importText, setImportText] = useState('')
+  const [importing, setImporting] = useState(false)
+
   useEffect(() => {
     loadNextGR()
     loadSuppliers()
@@ -199,6 +232,27 @@ export default function PurchasePage() {
     setRows(r => r.map((row, idx) => idx === i ? { ...row, [field]: value } : row))
   }
 
+  // qty / cost_price / total are interrelated: total = qty * cost_price.
+  // Editing one auto-fills the dependent field when the math is valid.
+  const updateLineMath = (i: number, field: 'qty' | 'cost_price' | 'total', value: string) => {
+    setRows(rs => rs.map((row, idx) => {
+      if (idx !== i) return row
+      const next: ReceiptRow = { ...row, [field]: value }
+      const qty = parseFloat(next.qty)
+      const cost = parseFloat(next.cost_price)
+      const total = parseFloat(next.total)
+      if (field === 'cost_price' && qty > 0 && isFinite(cost)) {
+        next.total = (qty * cost).toFixed(2)
+      } else if (field === 'total' && qty > 0 && isFinite(total)) {
+        next.cost_price = stripTrailingZeros((total / qty).toFixed(4))
+      } else if (field === 'qty' && qty > 0) {
+        if (isFinite(cost)) next.total = (qty * cost).toFixed(2)
+        else if (isFinite(total)) next.cost_price = stripTrailingZeros((total / qty).toFixed(4))
+      }
+      return next
+    }))
+  }
+
   // ── Keyboard nav helpers ──────────────────────────────────────────────────
 
   const focusCell = (row: number, col: number) => {
@@ -228,13 +282,178 @@ export default function PurchasePage() {
   }
 
   const selectProduct = (i: number, p: ProductSuggestion) => {
-    updateRow(i, 'product_id', p.id)
-    updateRow(i, 'trade_name', p.trade_name)
-    updateRow(i, 'product_code', p.code ?? '')
+    const baseName = p.unit_name || 'ชิ้น'
+    const incoming = p.units ?? []
+    const baseUnit: ProductUnitOption = {
+      id: -1,
+      unit_name: baseName,
+      qty_per_base: 1,
+      is_base_unit: true,
+      price_retail: p.price_retail ?? 0,
+    }
+    const allUnits: ProductUnitOption[] = [
+      baseUnit,
+      ...incoming.filter(u => u.unit_name !== baseName),
+    ]
+    setRows(r => r.map((row, idx) => idx === i ? {
+      ...row,
+      product_id: p.id,
+      trade_name: p.trade_name,
+      product_code: p.code ?? '',
+      unit_name: baseName,
+      units: allUnits,
+      default_sell_price: p.price_retail ?? 0,
+    } : row))
     setSearchQueries(q => q.map((v, idx) => idx === i ? p.trade_name : v))
     setSuggestions(s => s.map((v, idx) => idx === i ? [] : v))
     setActiveSuggRow(null)
     focusCell(i, 1)
+  }
+
+  const buildRowFromProduct = (p: ProductSuggestion, fields: Partial<ReceiptRow>): ReceiptRow => {
+    const baseName = p.unit_name || 'ชิ้น'
+    const incoming = p.units ?? []
+    const baseUnit: ProductUnitOption = {
+      id: -1, unit_name: baseName, qty_per_base: 1, is_base_unit: true,
+      price_retail: p.price_retail ?? 0,
+    }
+    const allUnits: ProductUnitOption[] = [
+      baseUnit,
+      ...incoming.filter(u => u.unit_name !== baseName),
+    ]
+    return {
+      ...emptyRow(),
+      product_id: p.id,
+      trade_name: p.trade_name,
+      product_code: p.code ?? '',
+      unit_name: baseName,
+      units: allUnits,
+      default_sell_price: p.price_retail ?? 0,
+      ...fields,
+    }
+  }
+
+  const parseDdMmYyyy = (s: string): string => {
+    const m = s.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
+    if (!m) return ''
+    const [, d, mo, y] = m
+    return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`
+  }
+
+  const handleImport = async () => {
+    setImporting(true)
+    try {
+      const lines = importText.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+      if (lines.length === 0) { toast('กรุณาวางข้อมูล', 'error'); return }
+      const dataLines = /barcode|รหัส|ชื่อ/i.test(lines[0]) ? lines.slice(1) : lines
+
+      const newRows: ReceiptRow[] = []
+      const newQueries: string[] = []
+      const notFound: string[] = []
+
+      for (const line of dataLines) {
+        const cells = line.split('\t').map(c => c.trim())
+        if (cells.length < 6) continue
+        const [key, qtyRaw, lot, mfgRaw, expRaw, totalRaw] = cells
+        const matches = await window.api.pos.searchProducts(key) as ProductSuggestion[]
+        const p = matches?.[0]
+        if (!p) { notFound.push(key); continue }
+        const qtyClean = qtyRaw.replace(/,/g, '')
+        const totalClean = totalRaw.replace(/,/g, '')
+        const qtyN = parseFloat(qtyClean)
+        const totalN = parseFloat(totalClean)
+        const costClean = qtyN > 0 && isFinite(totalN) ? stripTrailingZeros((totalN / qtyN).toFixed(4)) : ''
+        newRows.push(buildRowFromProduct(p, {
+          lot_number: lot,
+          manufactured_date: parseDdMmYyyy(mfgRaw),
+          expiry_date: parseDdMmYyyy(expRaw),
+          qty: qtyClean,
+          cost_price: costClean,
+          total: totalClean,
+        }))
+        newQueries.push(p.trade_name)
+      }
+
+      if (newRows.length === 0) {
+        toast(notFound.length ? `ไม่พบสินค้า: ${notFound.slice(0, 3).join(', ')}${notFound.length > 3 ? '...' : ''}` : 'ไม่พบข้อมูลที่นำเข้าได้', 'error')
+        return
+      }
+
+      // Drop fully-empty existing rows, append imported rows
+      const keepIdx = rows.map((r, i) => ({ r, i })).filter(({ r }) =>
+        r.product_id || r.lot_number || r.qty || r.total || r.expiry_date
+      ).map(x => x.i)
+      const keptRows = keepIdx.map(i => rows[i])
+      const keptQueries = keepIdx.map(i => searchQueries[i] ?? '')
+      const keptSuggs = keepIdx.map(i => suggestions[i] ?? [])
+
+      const finalRows = [...keptRows, ...newRows]
+      const finalQueries = [...keptQueries, ...newQueries]
+      const finalSuggs: ProductSuggestion[][] = [...keptSuggs, ...newRows.map(() => [] as ProductSuggestion[])]
+
+      setRows(finalRows)
+      setSearchQueries(finalQueries)
+      setSuggestions(finalSuggs)
+      searchTimers.current = finalRows.map(() => null)
+
+      const msg = `นำเข้า ${newRows.length} รายการ` + (notFound.length ? ` · ไม่พบ ${notFound.length}` : '')
+      toast(msg, notFound.length ? 'error' : 'success')
+      setShowImport(false)
+      setImportText('')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const openPriceModal = async (i: number) => {
+    const row = rows[i]
+    if (!row?.product_id) return
+    setPriceModalIdx(i)
+    setPriceDraft(String(row.default_sell_price || ''))
+    setPriceNote('')
+    setPriceHistory([])
+    try {
+      const logs = await window.api.products.priceHistory(row.product_id, 10) as any[]
+      setPriceHistory(logs ?? [])
+    } catch { /* swallow — history is best-effort */ }
+  }
+
+  const closePriceModal = () => {
+    setPriceModalIdx(null)
+    setPriceDraft('')
+    setPriceNote('')
+    setPriceHistory([])
+  }
+
+  const savePriceModal = async () => {
+    if (priceModalIdx === null) return
+    const row = rows[priceModalIdx]
+    if (!row?.product_id) return
+    const newPrice = parseFloat(priceDraft)
+    if (!isFinite(newPrice) || newPrice < 0) { toast('ราคาไม่ถูกต้อง', 'error'); return }
+    setPriceSaving(true)
+    try {
+      await window.api.products.updatePrice(row.product_id, {
+        price_type: 'retail', new_price: newPrice, note: priceNote || undefined,
+      })
+      const targetId = row.product_id
+      setRows(rs => rs.map(r => r.product_id === targetId ? { ...r, default_sell_price: newPrice } : r))
+      toast('อัปเดตราคาขายแล้ว', 'success')
+      closePriceModal()
+    } catch (e: any) {
+      toast(e?.message ?? 'อัปเดตราคาไม่สำเร็จ', 'error')
+    } finally {
+      setPriceSaving(false)
+    }
+  }
+
+  const changeRowUnit = (i: number, u: ProductUnitOption) => {
+    setRows(r => r.map((row, idx) => idx === i ? {
+      ...row,
+      unit_name: u.unit_name,
+      default_sell_price: u.price_retail ?? row.default_sell_price,
+    } : row))
+    setUnitModalIdx(null)
   }
 
   const handleProductKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -283,7 +502,7 @@ export default function PurchasePage() {
   // ── Totals ────────────────────────────────────────────────────────────────
 
   const validRows = rows.filter(r => r.product_id && r.lot_number && r.expiry_date && parseFloat(r.qty) > 0)
-  const totalCost = rows.reduce((sum, r) => sum + (parseFloat(r.cost_price) || 0) * (parseFloat(r.qty) || 0), 0)
+  const totalCost = rows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0)
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
@@ -298,12 +517,20 @@ export default function PurchasePage() {
         receive_date: receiveDate, payment_type: paymentType,
         due_date: dueDate || undefined, is_paid: isPaid, paid_date: paidDate || undefined,
         note: grNote || undefined, userId: 1,
-        items: validRows.map(r => ({
-          product_id: r.product_id, lot_number: r.lot_number,
-          manufactured_date: r.manufactured_date || undefined, expiry_date: r.expiry_date,
-          cost_price: parseFloat(r.cost_price) || 0, sell_price: parseFloat(r.sell_price) || 0,
-          qty: parseFloat(r.qty), note: r.note || undefined,
-        })),
+        items: validRows.map(r => {
+          const qtyNum = parseFloat(r.qty) || 0
+          const totalNum = parseFloat(r.total) || 0
+          const typedCost = parseFloat(r.cost_price)
+          const costPerUnit = isFinite(typedCost) && typedCost > 0
+            ? typedCost
+            : (qtyNum > 0 ? totalNum / qtyNum : 0)
+          return {
+            product_id: r.product_id, lot_number: r.lot_number,
+            manufactured_date: r.manufactured_date || undefined, expiry_date: r.expiry_date,
+            cost_price: costPerUnit, sell_price: r.default_sell_price || 0,
+            qty: qtyNum, note: r.note || undefined,
+          }
+        }),
       })
       setSavedInvoice(invoiceNo)
       setShowSuccess(true)
@@ -338,10 +565,10 @@ export default function PurchasePage() {
   const histTotalPages = Math.ceil(histTotal / 20)
 
   const rowIsValid = (r: ReceiptRow) =>
-    r.product_id > 0 && r.lot_number.trim() !== '' && r.expiry_date !== '' && parseFloat(r.qty) > 0
+    r.product_id > 0 && r.lot_number.trim() !== '' && r.expiry_date !== '' && parseFloat(r.qty) > 0 && parseFloat(r.total) > 0
 
   const rowIsPartial = (r: ReceiptRow) =>
-    (r.product_id > 0 || r.lot_number || r.expiry_date || r.qty) && !rowIsValid(r)
+    (r.product_id > 0 || r.lot_number || r.expiry_date || r.qty || r.total) && !rowIsValid(r)
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -377,7 +604,7 @@ export default function PurchasePage() {
                   onClick={() => setActiveTab(tab)}
                   className={`relative px-10 py-1.5 text-sm font-semibold rounded-t-lg -mb-px border border-b-0 transition-colors ${
                     isActive
-                      ? 'bg-slate-100 border-slate-200 text-slate-700 z-10'
+                      ? 'bg-white border-slate-200 text-slate-700 z-10'
                       : 'border-transparent text-slate-400 hover:text-slate-600'
                   }`}
                 >
@@ -394,7 +621,7 @@ export default function PurchasePage() {
           {/* ── Tab: รับสินค้า ── */}
           {activeTab === 'receive' && (
             <div className="h-full overflow-y-auto">
-              <div className="p-4 space-y-3 max-w-screen-2xl mx-auto">
+              <div className="p-4 space-y-3 max-w-screen mx-auto">
 
                 {/* Form + sidebar row */}
                 <div className="flex gap-4 items-start">
@@ -404,12 +631,12 @@ export default function PurchasePage() {
 
                     {/* Header fields */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
-                      <div className="grid grid-cols-[1fr_180px_160px] gap-3">
+                      <div className="grid grid-cols-[1fr_200px_200px] gap-3">
 
                         {/* Supplier selector */}
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 mb-1.5">
-                            ผู้จัดจำหน่าย <span className="text-red-500">*</span>
+                            ผู้จำหน่าย <span className="text-red-500">*</span>
                           </label>
                           <button
                             type="button"
@@ -438,7 +665,7 @@ export default function PurchasePage() {
                             <Input
                               value={supplierInvoiceNo}
                               onChange={e => setSupplierInvoiceNo(e.target.value)}
-                              placeholder="เช่น INV-2024-001"
+                              placeholder="PO-123456"
                               className="pl-8 h-10 text-sm"
                             />
                           </div>
@@ -449,10 +676,9 @@ export default function PurchasePage() {
                           <label className="block text-xs font-semibold text-slate-500 mb-1.5">วันที่สั่งซื้อตามบิล</label>
                           <div className="relative">
                             <CalendarDays className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                            <Input
-                              type="date"
+                            <DateInput
                               value={orderDate}
-                              onChange={e => setOrderDate(e.target.value)}
+                              onChange={setOrderDate}
                               className="pl-8 h-10 text-sm"
                             />
                           </div>
@@ -466,6 +692,9 @@ export default function PurchasePage() {
                         <span className="text-sm font-semibold text-slate-700">รายการสินค้า</span>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-slate-400">{validRows.length}/{rows.length} รายการ</span>
+                          <Button size="sm" variant="outline" onClick={() => setShowImport(true)} className="h-7 text-xs gap-1">
+                            <ClipboardPaste className="h-3 w-3" /> นำเข้าข้อมูล
+                          </Button>
                           <Button size="sm" variant="outline" onClick={() => { addRow(); focusCell(rows.length, 0) }} className="h-7 text-xs gap-1">
                             <Plus className="h-3 w-3" /> เพิ่มแถว
                           </Button>
@@ -478,19 +707,19 @@ export default function PurchasePage() {
                             <tr className="text-xs font-semibold text-slate-500 bg-slate-50 border-b border-slate-100">
                               <th className="px-3 py-2 text-left w-8">#</th>
                               <th className="px-3 py-2 text-left" style={{ minWidth: 220 }}>ชื่อสินค้า</th>
-                              <th className="px-3 py-2 text-left w-28">Lot No.</th>
-                              <th className="px-3 py-2 text-left w-32">วันผลิต</th>
-                              <th className="px-3 py-2 text-left w-32">วันหมดอายุ</th>
-                              <th className="px-3 py-2 text-right w-28">ราคาทุน</th>
-                              <th className="px-3 py-2 text-right w-28">ราคาขาย</th>
-                              <th className="px-3 py-2 text-right w-24">จำนวน</th>
+                              <th className="px-3 py-2 text-center w-20">หน่วย</th>
+                              <th className="px-3 py-2 text-center w-20">จำนวน</th>
+                              <th className="px-3 py-2 text-left w-20">Lot No.</th>
+                              <th className="px-3 py-2 text-left w-28">วันผลิต</th>
+                              <th className="px-3 py-2 text-left w-28">วันหมดอายุ</th>
+                              <th className="px-3 py-2 text-right w-24">ราคาทุน</th>
+                              <th className="px-3 py-2 text-center w-24">ราคาขาย</th>
                               <th className="px-3 py-2 text-right w-28">รวม</th>
                               <th className="w-8" />
                             </tr>
                           </thead>
                           <tbody>
                             {rows.map((row, i) => {
-                              const lineTotal = (parseFloat(row.cost_price) || 0) * (parseFloat(row.qty) || 0)
                               const expStatus = row.expiry_date ? getExpiryStatus(row.expiry_date) : null
                               const isPartial = rowIsPartial(row)
                               return (
@@ -515,7 +744,7 @@ export default function PurchasePage() {
                                       onBlur={() => setTimeout(() => setActiveSuggRow(v => v === i ? null : v), 200)}
                                       onKeyDown={e => handleProductKeyDown(i, e)}
                                       placeholder="ค้นหาสินค้า..."
-                                      className="h-8 text-sm"
+                                      className="text-xs"
                                       autoComplete="off"
                                     />
                                     {activeSuggRow === i && (suggestions[i]?.length ?? 0) > 0 && (
@@ -531,25 +760,42 @@ export default function PurchasePage() {
                                           >
                                             <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                             <span className="truncate flex-1">{p.trade_name}</span>
-                                            {p.code && <span className="text-xs text-slate-400 font-mono shrink-0">{p.code}</span>}
+                                            {(() => {
+                                              const unitText = p.units && p.units.length > 0 ? p.units.map(u => u.unit_name).join(', ') : p.unit_name
+                                              return unitText ? <span className="text-xs text-red-400 font-mono shrink-0">{unitText}</span> : null
+                                            })()}
                                           </button>
                                         ))}
                                       </div>
                                     )}
                                   </td>
 
-                                  <td className="px-2 py-1.5">
-                                    <Input data-cell={`${i}-1`} value={row.lot_number} onChange={e => updateRow(i, 'lot_number', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="LOT-001" className="h-8 text-sm font-mono" />
+                                  {/* Unit selector — opens swap modal like POS */}
+                                  <td className="px-3 py-1.5">
+                                    <button
+                                      type="button"
+                                      disabled={!row.product_id}
+                                      onClick={() => { setActiveRow(i); setUnitModalIdx(i) }}
+                                      className="h-8 w-full inline-flex items-center justify-center gap-1 px-2 rounded-lg border border-slate-300 bg-white text-sm hover:border-emerald-400 hover:bg-emerald-50/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      <span className={`truncate ${row.unit_name ? 'text-slate-700' : 'text-slate-300'}`}>{row.unit_name || '—'}</span>
+                                    </button>
+                                  </td>
+
+                                  <td className="px-3 py-1.5">
+                                    <Input data-cell={`${i}-1`} type="number" value={row.qty} onChange={e => updateLineMath(i, 'qty', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="0" className="h-8 text-sm text-right" min={1} />
                                   </td>
                                   <td className="px-2 py-1.5">
-                                    <Input data-cell={`${i}-2`} type="date" value={row.manufactured_date} onChange={e => updateRow(i, 'manufactured_date', e.target.value)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
+                                    <Input data-cell={`${i}-2`} value={row.lot_number} onChange={e => updateRow(i, 'lot_number', e.target.value)} onFocus={() => setActiveRow(i)} className="text-sm" />
                                   </td>
                                   <td className="px-2 py-1.5">
-                                    <Input
-                                      data-cell={`${i}-3`}
-                                      type="date"
+                                    <DateInput data-cell={`${i}-3`} value={row.manufactured_date} onChange={v => updateRow(i, 'manufactured_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <DateInput
+                                      data-cell={`${i}-4`}
                                       value={row.expiry_date}
-                                      onChange={e => updateRow(i, 'expiry_date', e.target.value)}
+                                      onChange={v => updateRow(i, 'expiry_date', v)}
                                       onFocus={() => setActiveRow(i)}
                                       className={`h-8 text-sm ${
                                         expStatus === 'expired' ? 'border-red-400 bg-red-50 text-red-700' :
@@ -558,20 +804,28 @@ export default function PurchasePage() {
                                       }`}
                                     />
                                   </td>
-                                  <td className="px-2 py-1.5">
-                                    <Input data-cell={`${i}-4`} type="number" value={row.cost_price} onChange={e => updateRow(i, 'cost_price', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="0.00" className="h-8 text-sm text-right" min={0} step="0.01" />
-                                  </td>
-                                  <td className="px-2 py-1.5">
-                                    <Input data-cell={`${i}-5`} type="number" value={row.sell_price} onChange={e => updateRow(i, 'sell_price', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="0.00" className="h-8 text-sm text-right" min={0} step="0.01" />
-                                  </td>
-                                  <td className="px-2 py-1.5">
-                                    <Input data-cell={`${i}-6`} type="number" value={row.qty} onChange={e => updateRow(i, 'qty', e.target.value)} onFocus={() => setActiveRow(i)} onKeyDown={e => handleQtyKeyDown(i, e)} placeholder="0" className="h-8 text-sm text-right" min={1} />
+
+                                  {/* ราคาทุน — input; auto-syncs with รวม via qty */}
+                                  <td className="px-3 py-1.5">
+                                    <Input data-cell={`${i}-5`} type="number" value={row.cost_price} onChange={e => updateLineMath(i, 'cost_price', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="0.00" className="h-8 text-sm text-right" min={0} step="0.01" />
                                   </td>
 
-                                  <td className="px-3 py-1.5 text-right font-semibold text-sm tabular-nums">
-                                    {lineTotal > 0
-                                      ? <span className="text-emerald-700">฿{formatCurrency(lineTotal)}</span>
-                                      : <span className="text-slate-300">—</span>}
+                                  {/* ราคาขาย — button opens quick-edit modal */}
+                                  <td className="px-2 py-1.5">
+                                    <button
+                                      type="button"
+                                      disabled={!row.product_id}
+                                      onClick={() => { setActiveRow(i); openPriceModal(i) }}
+                                      className="h-8 w-full inline-flex items-center justify-end gap-1 px-2 rounded-lg border border-slate-300 bg-white text-sm hover:border-emerald-400 hover:bg-emerald-50/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors tabular-nums"
+                                    >
+                                      <span className={row.product_id ? 'text-slate-700' : 'text-slate-300'}>
+                                        {row.product_id ? `${formatCurrency(row.default_sell_price || 0)}` : '—'}
+                                      </span>
+                                    </button>
+                                  </td>
+
+                                  <td className="px-3 py-1.5">
+                                    <Input data-cell={`${i}-6`} type="number" value={row.total} onChange={e => updateLineMath(i, 'total', e.target.value)} onFocus={() => setActiveRow(i)} onKeyDown={e => handleQtyKeyDown(i, e)} placeholder="0.00" className="h-8 text-sm text-right" min={0} step="0.01" />
                                   </td>
 
                                   <td className="px-2 py-1.5">
@@ -590,7 +844,7 @@ export default function PurchasePage() {
                           </tbody>
                           <tfoot>
                             <tr className="border-t-2 border-slate-200 bg-slate-50">
-                              <td colSpan={8} className="px-3 py-2.5 text-right text-sm font-semibold text-slate-600">มูลค่ารวมทั้งหมด</td>
+                              <td colSpan={9} className="px-3 py-2.5 text-right text-sm font-semibold text-slate-600">มูลค่ารวมทั้งหมด</td>
                               <td className="px-3 py-2.5 text-right font-extrabold text-emerald-700 text-base tabular-nums">฿{formatCurrency(totalCost)}</td>
                               <td />
                             </tr>
@@ -612,36 +866,35 @@ export default function PurchasePage() {
 
                     {/* GR summary */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
-                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">สรุปใบรับสินค้า</div>
+                      <div className="text-sm font-semibold text-slate-400 uppercase tracking-wide">สรุปใบรับสินค้า</div>
                       <div>
-                        <div className="text-[11px] text-slate-400 mb-0.5">เลขที่ใบรับ</div>
+                        <div className="text-xs text-slate-400 mb-0.5">เลขที่ใบรับ</div>
                         <div className="font-mono font-bold text-sm text-emerald-700">{invoiceNo || '—'}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-slate-400 mb-0.5">ผู้จัดจำหน่าย</div>
+                        <div className="text-xs text-slate-400 mb-0.5">ผู้จัดจำหน่าย</div>
                         <div className="text-sm font-semibold text-slate-700 truncate">
-                          {supplierName || <span className="text-red-400 font-normal">ยังไม่เลือก</span>}
+                          {supplierName || <span className="text-red-400 font-normal">N/A</span>}
                         </div>
                       </div>
                       <div>
-                        <label className="text-[11px] text-slate-400 mb-0.5 block">วันที่รับสินค้า</label>
+                        <label className="text-xs text-slate-400 mb-0.5 block">วันที่รับสินค้า</label>
                         <div className="relative">
                           <CalendarDays className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
-                          <Input
-                            type="date"
+                          <DateInput
                             value={receiveDate}
-                            onChange={e => setReceiveDate(e.target.value)}
-                            className="pl-6 h-7 text-xs"
+                            onChange={setReceiveDate}
+                            className="pl-6 h-9 text-sm"
                           />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 pt-1">
                         <div className="bg-slate-50 rounded-lg p-2.5">
-                          <div className="text-[11px] text-slate-400">รายการ</div>
+                          <div className="text-xs text-slate-400">รายการ</div>
                           <div className="text-lg font-extrabold text-slate-700 tabular-nums">{validRows.length}</div>
                         </div>
                         <div className="bg-emerald-50 rounded-lg p-2.5">
-                          <div className="text-[11px] text-emerald-600">มูลค่า</div>
+                          <div className="text-xs text-emerald-600">มูลค่า</div>
                           <div className="text-base font-extrabold text-emerald-700 tabular-nums leading-tight">฿{formatCurrency(totalCost)}</div>
                         </div>
                       </div>
@@ -649,7 +902,7 @@ export default function PurchasePage() {
 
                     {/* Payment type */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
-                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">การชำระเงิน</div>
+                      <div className="text-sm font-semibold text-slate-400 uppercase tracking-wide">การชำระเงิน</div>
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -678,7 +931,10 @@ export default function PurchasePage() {
                         <div className="space-y-2.5">
                           <div>
                             <label className="text-xs font-semibold text-slate-500 mb-1 block">วันครบกำหนด <span className="text-red-500">*</span></label>
-                            <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="h-9 text-sm" />
+                            <div className="relative">
+                            <CalendarDays className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                            <DateInput value={dueDate} onChange={setDueDate} className="pl-6 text-sm h-9" />
+                            </div>
                             <div className="flex gap-1 mt-1.5">
                               {[15, 30, 60, 90].map(d => (
                                 <button
@@ -689,7 +945,7 @@ export default function PurchasePage() {
                                     dt.setDate(dt.getDate() + d)
                                     setDueDate(dt.toISOString().slice(0, 10))
                                   }}
-                                  className="flex-1 h-7 rounded-md border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 hover:border-amber-300 transition-colors"
+                                  className="flex-1 h-7 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 hover:border-amber-300 transition-colors"
                                 >
                                   {d} วัน
                                 </button>
@@ -698,16 +954,19 @@ export default function PurchasePage() {
                           </div>
                           <label className="flex items-center gap-2 cursor-pointer select-none">
                             <Checkbox checked={isPaid} onCheckedChange={v => setIsPaid(v === true)} />
-                            <span className="text-sm text-slate-600">ชำระแล้ว</span>
+                            <span className="text-xs text-slate-600">ชำระแล้ว</span>
                           </label>
                           {isPaid && (
                             <div className="space-y-1.5">
-                              <Input type="date" value={paidDate} onChange={e => setPaidDate(e.target.value)} className="h-9 text-sm" />
+                              <div className="relative">
+                              <CalendarDays className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                              <DateInput value={paidDate} onChange={setPaidDate} className="pl-6 h-9 text-sm" />
+                              </div>
                               <div className="flex gap-1">
                                 <button
                                   type="button"
                                   onClick={() => setPaidDate(today)}
-                                  className="flex-1 h-7 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 hover:border-emerald-300 transition-colors"
+                                  className="flex-1 h-7 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 hover:border-emerald-300 transition-colors"
                                 >
                                   วันนี้
                                 </button>
@@ -715,7 +974,7 @@ export default function PurchasePage() {
                                   type="button"
                                   onClick={() => dueDate && setPaidDate(dueDate)}
                                   disabled={!dueDate}
-                                  className="flex-1 h-7 rounded-md border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 hover:border-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                  className="flex-1 h-7 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 hover:border-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                   วันครบกำหนด
                                 </button>
@@ -728,7 +987,7 @@ export default function PurchasePage() {
 
                     {/* Note */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-2">
-                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">หมายเหตุ</div>
+                      <div className="text-sm font-semibold text-slate-400 uppercase tracking-wide">หมายเหตุ</div>
                       <textarea
                         value={grNote}
                         onChange={e => setGrNote(e.target.value)}
@@ -785,8 +1044,8 @@ export default function PurchasePage() {
                       </select>
                       <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                     </div>
-                    <Input type="date" value={histDateFrom} onChange={e => setHistDateFrom(e.target.value)} className="w-36 h-8 text-sm" />
-                    <Input type="date" value={histDateTo} onChange={e => setHistDateTo(e.target.value)} className="w-36 h-8 text-sm" />
+                    <DateInput value={histDateFrom} onChange={setHistDateFrom} className="w-36 h-8 text-sm" />
+                    <DateInput value={histDateTo} onChange={setHistDateTo} className="w-36 h-8 text-sm" />
                     <Button size="sm" variant="outline" onClick={() => loadHistory(1)} className="h-8 text-xs">
                       <Search className="w-3 h-3 mr-1" /> ค้นหา
                     </Button>
@@ -885,6 +1144,171 @@ export default function PurchasePage() {
                 </button>
               ))}
             </div>
+          </div>
+        </InlineModal>
+      )}
+
+      {/* ── Unit swap modal ── */}
+      {unitModalIdx !== null && (() => {
+        const row = rows[unitModalIdx]
+        if (!row) return null
+        return (
+          <InlineModal
+            title={`เลือกหน่วย — ${row.trade_name || '-'}`}
+            onClose={() => setUnitModalIdx(null)}
+            footer={
+              <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+                <Button variant="outline" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
+              </div>
+            }
+          >
+            <div className="p-3 space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
+              {row.units.length === 0 ? (
+                <div className="text-sm text-center text-slate-400 py-6">ไม่มีหน่วยให้เลือก</div>
+              ) : row.units.map(u => {
+                const active = row.unit_name === u.unit_name
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => changeRowUnit(unitModalIdx, u)}
+                    className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">{u.unit_name}</span>
+                      {u.is_base_unit && <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">หลัก</span>}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </InlineModal>
+        )
+      })()}
+
+      {/* ── Sell-price quick-edit modal ── */}
+      {priceModalIdx !== null && (() => {
+        const row = rows[priceModalIdx]
+        if (!row) return null
+        const qtyNum = parseFloat(row.qty) || 0
+        const totalNum = parseFloat(row.total) || 0
+        const typedCost = parseFloat(row.cost_price)
+        const cost = isFinite(typedCost) && typedCost > 0
+          ? typedCost
+          : (qtyNum > 0 ? totalNum / qtyNum : 0)
+        const newPrice = parseFloat(priceDraft) || 0
+        const profit = newPrice - cost
+        const margin = newPrice > 0 ? (profit / newPrice) * 100 : 0
+        const fmtDate = (s: string) => {
+          const m = s?.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/)
+          return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}` : (s ?? '')
+        }
+        return (
+          <InlineModal
+            title={`แก้ไขราคาขาย — ${row.trade_name || '-'}`}
+            onClose={closePriceModal}
+            maxWidth="max-w-md"
+            footer={
+              <div className="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+                <Button variant="outline" disabled={priceSaving} onClick={closePriceModal}>ยกเลิก</Button>
+                <Button disabled={priceSaving || !priceDraft} onClick={savePriceModal}>
+                  {priceSaving ? 'กำลังบันทึก…' : 'บันทึกราคา'}
+                </Button>
+              </div>
+            }
+          >
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">ราคาขายใหม่ (ต่อ {row.unit_name || 'ชิ้น'})</label>
+                <Input
+                  autoFocus
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={priceDraft}
+                  onChange={e => setPriceDraft(e.target.value)}
+                  className="h-10 text-right tabular-nums text-base"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-slate-50 border border-slate-200 px-2 py-2">
+                  <div className="text-[11px] text-slate-400">ทุน/หน่วย</div>
+                  <div className="text-sm font-semibold text-slate-700 tabular-nums">฿{formatCurrency(cost)}</div>
+                </div>
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-2">
+                  <div className="text-[11px] text-emerald-600">กำไร/หน่วย</div>
+                  <div className={`text-sm font-semibold tabular-nums ${profit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>฿{formatCurrency(profit)}</div>
+                </div>
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-2">
+                  <div className="text-[11px] text-emerald-600">มาร์จิ้น</div>
+                  <div className={`text-sm font-semibold tabular-nums ${margin >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{margin.toFixed(1)}%</div>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-slate-500 mb-1.5">ประวัติการแก้ไขล่าสุด</div>
+                <div className="rounded-lg border border-slate-200 max-h-40 overflow-y-auto">
+                  {priceHistory.length === 0 ? (
+                    <div className="text-xs text-slate-400 text-center py-3">ยังไม่มีประวัติ</div>
+                  ) : (
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-500">
+                          <th className="px-2 py-1 text-left font-medium">วันที่</th>
+                          <th className="px-2 py-1 text-right font-medium">เดิม</th>
+                          <th className="px-2 py-1 text-right font-medium">ใหม่</th>
+                          <th className="px-2 py-1 text-left font-medium">หมายเหตุ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {priceHistory.map(h => (
+                          <tr key={h.id} className="border-t border-slate-100">
+                            <td className="px-2 py-1 text-slate-600 tabular-nums">{fmtDate(h.created_at)}</td>
+                            <td className="px-2 py-1 text-right text-slate-500 tabular-nums">฿{formatCurrency(h.old_price)}</td>
+                            <td className="px-2 py-1 text-right text-slate-700 font-semibold tabular-nums">฿{formatCurrency(h.new_price)}</td>
+                            <td className="px-2 py-1 text-slate-500 truncate max-w-[120px]">{h.note || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </div>
+          </InlineModal>
+        )
+      })()}
+
+      {/* ── Import paste modal ── */}
+      {showImport && (
+        <InlineModal
+          title="นำเข้าข้อมูลจากตาราง (วาง / Paste)"
+          onClose={() => { if (!importing) { setShowImport(false); setImportText('') } }}
+          maxWidth="max-w-2xl"
+          footer={
+            <div className="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+              <Button variant="outline" disabled={importing} onClick={() => { setShowImport(false); setImportText('') }}>ยกเลิก</Button>
+              <Button disabled={importing || !importText.trim()} onClick={handleImport}>
+                {importing ? 'กำลังนำเข้า…' : 'นำเข้า'}
+              </Button>
+            </div>
+          }
+        >
+          <div className="p-4 space-y-3">
+            <div className="text-xs text-slate-500 leading-relaxed">
+              คัดลอกตารางจาก Excel / Sheets แล้ววางที่นี่ คอลัมน์ตามลำดับ คั่นด้วย Tab:
+              <div className="mt-1 font-mono bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] text-slate-600">
+                Barcode/รหัส/ชื่อ ⇥ จำนวน ⇥ ล็อต ⇥ วันผลิต(dd/mm/yyyy) ⇥ วันหมดอายุ(dd/mm/yyyy) ⇥ ราคารวม
+              </div>
+              <div className="mt-1 text-slate-400">บรรทัดแรกถ้าเป็นหัวตารางจะถูกข้ามอัตโนมัติ</div>
+            </div>
+            <Textarea
+              autoFocus
+              value={importText}
+              onChange={e => setImportText(e.target.value)}
+              placeholder={'CETRIZIN\t200\t41128\t04/11/2028\t04/11/2028\t1,020.00'}
+              className="font-mono text-xs h-48"
+            />
           </div>
         </InlineModal>
       )}

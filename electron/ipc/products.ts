@@ -89,6 +89,33 @@ export function registerProductHandlers() {
     return db.prepare(`SELECT * FROM products WHERE id = ?`).get(id)
   })
 
+  ipcMain.handle('products:updatePrice', (_e, productId: number, data: { price_type?: 'retail' | 'wholesale1' | 'wholesale2'; new_price: number; note?: string }) => {
+    const db = getDb()
+    const type = data.price_type ?? 'retail'
+    const col = type === 'retail' ? 'price_retail' : type === 'wholesale1' ? 'price_wholesale1' : 'price_wholesale2'
+    return db.transaction(() => {
+      const product = db.prepare(`SELECT id, ${col} as current FROM products WHERE id = ?`).get(productId) as any
+      if (!product) throw new Error('ไม่พบสินค้า')
+      const oldPrice = Number(product.current) || 0
+      const newPrice = Number(data.new_price) || 0
+      if (oldPrice === newPrice) return { product_id: productId, price_type: type, old_price: oldPrice, new_price: newPrice, changed: false }
+      db.prepare(`UPDATE products SET ${col} = ?, updated_at = datetime('now','localtime') WHERE id = ?`).run(newPrice, productId)
+      db.prepare(`INSERT INTO price_logs (product_id, price_type, old_price, new_price, note) VALUES (?, ?, ?, ?, ?)`)
+        .run(productId, type, oldPrice, newPrice, data.note ?? null)
+      return { product_id: productId, price_type: type, old_price: oldPrice, new_price: newPrice, changed: true }
+    })()
+  })
+
+  ipcMain.handle('products:priceHistory', (_e, productId: number, limit = 10) => {
+    return getDb().prepare(`
+      SELECT id, price_type, old_price, new_price, note, created_at
+      FROM price_logs
+      WHERE product_id = ?
+      ORDER BY created_at DESC, id DESC
+      LIMIT ?
+    `).all(productId, limit)
+  })
+
   ipcMain.handle('products:adjustStock', (_e, productId: number, data: { qty: number; type: 'in' | 'out'; note: string; userId: number }) => {
     const db = getDb()
     const adjust = db.transaction(() => {

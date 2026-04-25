@@ -707,7 +707,7 @@ export default function POSPage() {
           }
         >
           <div className="p-5 space-y-3">
-            <Input autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
+            <Input className="h-10" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
             <button onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
               className="w-full px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-left transition-colors text-sm">
               👤 ลูกค้าทั่วไป (เงินสด)
@@ -940,7 +940,7 @@ export default function POSPage() {
                       {needsCheck ? (
                         <span className="flex items-center gap-2 text-3xl font-extrabold text-red-600 tracking-wider">
                           <AlertTriangle className="h-7 w-7" />
-                          ตรวจสอบ
+                          กรุณาตรวจสอบ
                         </span>
                       ) : (
                         <span className="text-3xl font-extrabold tabular-nums text-green-600">
@@ -1061,7 +1061,7 @@ export default function POSPage() {
                       onChange={e => setCustomPriceInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') applyCustomPrice() }}
                       placeholder="0.00"
-                      className="w-full flex-1 h-11 text-right text-lg font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-3 tabular-nums"
+                      className="w-full flex-1 h-10 text-right text-lg font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-3 tabular-nums"
                     />
                     <Button onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-11 px-4">ตกลง</Button>
                   </div>
