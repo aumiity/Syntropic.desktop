@@ -33,6 +33,9 @@ const api = {
     save: (payload: any) => ipcRenderer.invoke('purchase:save', payload),
     history: (filters: any) => ipcRenderer.invoke('purchase:history', filters),
     getReceipt: (invoiceNo: string) => ipcRenderer.invoke('purchase:getReceipt', invoiceNo),
+    cancel: (payload: { invoice_no: string; reason: string; userId: number }) =>
+      ipcRenderer.invoke('purchase:cancel', payload),
+    updateHeader: (payload: any) => ipcRenderer.invoke('purchase:updateHeader', payload),
   },
   // People
   people: {

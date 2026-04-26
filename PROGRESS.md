@@ -298,6 +298,51 @@ Rebuilt the payment dialog to match the PHP reference screen (two-section layout
 - Now: unmatched rows are added as empty rows with the supplier key text pre-filled in the product search input. They appear as partial (amber dot) so the user can immediately see which need manual product selection.
 - Toast reports both counts: "นำเข้า N รายการ (พบ M · ไม่พบ K — กรุณาเลือกสินค้าด้วยตนเอง)".
 
+## Purchase — Receive Ledger Refactor + Cancel + Edit Bill (2026-04-26)
+
+Three-part rework around the GR data model. The first part fixes a long-standing data-loss bug in ประวัติการรับสินค้า where older GRs would silently disappear; the second adds a cancel-bill workflow on top; the third moves header metadata onto `purchase_receipts` so the new "edit bill" modal is coherent.
+
+### Part 1 — `purchase_receipt_items` ledger (fixes the lot-merge bug)
+- **The bug.** `purchase:save` used `(product_id, lot_number)` as a UNIQUE key on `product_lots`. When the same lot was received twice (top-up), the existing row's `qty_received`/`qty_on_hand` were incremented BUT `invoice_no`, `supplier_invoice_no`, `payment_type`, etc. were **overwritten** with the new GR's values. The history page read from `product_lots GROUP BY invoice_no`, so older GRs whose only lots got reused vanished from history; the newer GR also displayed the wrong `created_at` (still the lot's original creation date).
+- **Schema** (`electron/db/schema.ts`, `electron/ipc/purchase.ts` migrations) — new `purchase_receipt_items` table: `id, invoice_no, product_id, lot_id, lot_number, manufactured_date, expiry_date, cost_price, sell_price, qty, note, created_at`. Indexes on `invoice_no` and `lot_id`. This is an **immutable receive ledger** — one row per line per GR, never mutated by subsequent top-ups. `product_lots` stays as the mutable stock-state table.
+- **One-time backfill** runs on startup when `purchase_receipt_items` is empty: copies one row per `(invoice_no, lot_id)` from existing `product_lots` using current `qty_received` as the contribution. GRs that were already overwritten by the lot-merge bug cannot be recovered — only the most recent `invoice_no` on each lot survives in `product_lots`. Going forward this never happens again because every save writes a fresh `purchase_receipt_items` row independently.
+- **`purchase:save`** — still merges `product_lots` for stock state (intentional), but additionally inserts an immutable `purchase_receipt_items` row per line. Stock movement uses the resolved `lotId` from either the UPDATE or INSERT branch.
+- **`purchase:nextGRNumber`** now reads from `purchase_receipts` (the actual GR header table) instead of the lots table.
+- **`purchase:history`** rewritten to read from `purchase_receipts` joined to `purchase_receipt_items` for counts/totals. Old GRs no longer disappear when their lots are reused.
+- **`purchase:getReceipt`** rewritten to read `pri.qty as qty_received` (the exact qty contributed by THIS GR, not whatever the lot currently holds), `pri.created_at` (the receive date for this specific GR), etc.
+
+### Part 2 — Cancel-bill workflow
+- **Header columns added to `purchase_receipts`**: `status TEXT NOT NULL DEFAULT 'completed'`, `cancelled_at TEXT`, `cancelled_by INTEGER REFERENCES users(id)`, `cancel_reason TEXT`. Migrated via idempotent ALTERs.
+- **`purchase:cancel({ invoice_no, reason, userId })`** — soft-cancel handler mirroring the sales-void pattern:
+  - Validates: header exists, not already cancelled, reason text required.
+  - Stock check: each line's contribution qty must still be on hand. If any blocker is found (sold/consumed), returns `{ success: false, error: 'stock_consumed', blockers: [...] }` with `trade_name`, `lot_number`, `need`, `have` per blocking line. The transaction is **not** opened until validation passes, so cancellation is all-or-nothing.
+  - On success in one transaction: subtracts `pri.qty` from each lot's `qty_on_hand` + `qty_received`, marks the lot `is_closed=1` if exhausted, inserts `stock_movements` with `movement_type='purchase_return'` + `ref_type='gr_cancel'`, recomputes `products.cost_price` as weighted avg over remaining open lots per touched product, sets `purchase_receipts.status='cancelled'` + `cancelled_at` + `cancelled_by` + `cancel_reason`.
+- **`purchase:history`** — added `status` filter (`completed | cancelled | all`). Summary cards (`total_cost`, `unpaid_cost`) exclude rows where `status='cancelled'`.
+- **UI — history list** ([src/pages/Purchase/index.tsx](src/pages/Purchase/index.tsx))
+  - Filter chips now include "ยกเลิกแล้ว" (red when active, slate border otherwise). `loadHistory` sends `status='cancelled'` when this chip is picked.
+  - List rows: cancelled bills get `opacity-70`, slate left border, line-through on the invoice number and total amount, plus a red "ยกเลิก" pill in the metadata strip.
+- **UI — detail panel**
+  - Red banner at the top of cancelled bills (`AlertTriangle` icon + `บิลถูกยกเลิก · <date>` + `เหตุผล: <reason>`).
+  - "ยกเลิกบิล" red outline button in the header (hidden when already cancelled).
+  - Confirm dialog: required reason `Textarea`, warning copy explaining stock will be returned. If backend returns `stock_consumed`, the blocker list renders inline as a red bordered box listing each product/lot/need-vs-have so the user knows exactly what to do.
+- **Preload** — `window.api.purchase.cancel({ invoice_no, reason, userId })`.
+
+### Part 3 — Edit-bill (header) modal
+The "edit bill" feature (supplier, supplier invoice no, order date, receive date, payment type) required the same fix as part 1 but for header metadata: those fields lived on `product_lots` (last-write-wins across shared lots), so editing GR-A could corrupt GR-B's view of a shared lot.
+- **Header columns added to `purchase_receipts`**: `supplier_id`, `supplier_invoice_no`, `order_date`, `payment_type`, `due_date`, `is_paid`, `paid_date`. Migrated via ALTER + idempotent backfill that copies from any matching `product_lots` row when fields are still NULL.
+- **`purchase:save`** — now writes header metadata to `purchase_receipts` (still writes the same fields to `product_lots` for stock-display compatibility, but reads no longer depend on it).
+- **`purchase:history` / `purchase:getReceipt`** — now read supplier/payment/dates straight from `purchase_receipts`. No more subqueries on `product_lots` for header data. History list search now matches against `pr.invoice_no` and `pr.supplier_invoice_no`.
+- **`purchase:updateHeader({ invoice_no, supplier_id, supplier_invoice_no, order_date?, receive_date, payment_type, due_date?, is_paid, paid_date?, userId })`** — new handler.
+  - Refuses with `error: 'cancelled'` when the GR is cancelled. Field-level errors: `supplier_required`, `supplier_invoice_required`, `receive_date_required`, `due_date_required`.
+  - In one transaction: updates `purchase_receipts` (header metadata + `created_at = receive_date`), and updates every `purchase_receipt_items.created_at` for this invoice so the detail panel's วันที่รับสินค้า stays consistent. **Never touches `product_lots`** — edits cannot corrupt other GRs that share a lot.
+- **UI — detail panel** — "แก้ไขบิล" emerald outline button next to "ยกเลิกบิล" (hidden when cancelled).
+- **UI — edit modal** — `Dialog` with: supplier `<select>`, supplier invoice no `Input`, order date + receive date `DateInput`s in a 2-col grid, payment-type chips (cash/credit), and a credit sub-panel that appears when credit is selected: due date `DateInput`, ชำระแล้ว `Checkbox`, paid date `DateInput` (only when `is_paid` is checked). On save: refreshes both the detail panel and the history list.
+- **Preload** — `window.api.purchase.updateHeader(payload)`.
+
+### Smaller related changes
+- New `order_date TEXT` column on `product_lots` and `purchase_receipts` (วันที่สั่งซื้อตามบิล — the supplier's bill date, distinct from receive date). The receive form already had this field but was discarding it; it's now persisted on save and read back in the detail panel.
+- Detail panel now shows BOTH วันที่สั่งซื้อตามบิล and วันที่รับสินค้า in a 2×2 grid (with ผู้จำหน่าย and เลขที่ใบกำกับสินค้า).
+
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source
 - better-sqlite3 prebuilt binary obtained via prebuild-install targeting Electron 31.7.7

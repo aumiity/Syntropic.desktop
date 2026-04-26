@@ -62,12 +62,18 @@ interface HistoryRow {
   supplier_name?: string
   item_count: number
   total_cost: number
+  status: 'completed' | 'cancelled'
+  cancelled_at?: string
+  cancel_reason?: string
 }
 
 interface ReceiptDetail extends ProductLot {
   trade_name: string
   product_code: string
   supplier_name: string
+  status?: 'completed' | 'cancelled'
+  cancelled_at?: string
+  cancel_reason?: string
 }
 
 interface ProductSuggestion {
@@ -184,9 +190,27 @@ export default function PurchasePage() {
   const [histSupplierId, setHistSupplierId] = useState<number>(0)
   const [histDateFrom, setHistDateFrom] = useState('')
   const [histDateTo, setHistDateTo] = useState('')
-  const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit'>('all')
+  const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'cancelled'>('all')
   const [histSummary, setHistSummary] = useState({ count: 0, total_cost: 0, unpaid_cost: 0 })
   const [loadingHist, setLoadingHist] = useState(false)
+
+  // Cancel-bill modal
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelBlockers, setCancelBlockers] = useState<Array<{ trade_name: string; product_code: string; lot_number: string; need: number; have: number }>>([])
+
+  // Edit-bill (header-only) modal
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editSupplierId, setEditSupplierId] = useState<number>(0)
+  const [editSupplierInvoiceNo, setEditSupplierInvoiceNo] = useState('')
+  const [editOrderDate, setEditOrderDate] = useState('')
+  const [editReceiveDate, setEditReceiveDate] = useState('')
+  const [editPaymentType, setEditPaymentType] = useState<'cash' | 'credit'>('cash')
+  const [editDueDate, setEditDueDate] = useState('')
+  const [editIsPaid, setEditIsPaid] = useState(false)
+  const [editPaidDate, setEditPaidDate] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   // Active tab
   const [activeTab, setActiveTab] = useState<'receive' | 'history'>('receive')
@@ -250,8 +274,8 @@ export default function PurchasePage() {
     setSuppliers(data as Supplier[])
   }
 
-  const loadHistory = useCallback(async (page = 1, paymentTypeOverride?: 'all' | 'cash' | 'credit') => {
-    const pmtFilter = paymentTypeOverride ?? histPaymentFilter
+  const loadHistory = useCallback(async (page = 1, filterOverride?: 'all' | 'cash' | 'credit' | 'cancelled') => {
+    const filter = filterOverride ?? histPaymentFilter
     setLoadingHist(true)
     try {
       const res = await window.api.purchase.history({
@@ -259,7 +283,8 @@ export default function PurchasePage() {
         supplier_id: histSupplierId || undefined,
         date_from: histDateFrom || undefined,
         date_to: histDateTo || undefined,
-        payment_type: pmtFilter !== 'all' ? pmtFilter : undefined,
+        payment_type: (filter === 'cash' || filter === 'credit') ? filter : undefined,
+        status: filter === 'cancelled' ? 'cancelled' : 'all',
         page,
       }) as any
       setHistory(res.rows)
@@ -270,6 +295,98 @@ export default function PurchasePage() {
       setLoadingHist(false)
     }
   }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter])
+
+  const openEditBill = () => {
+    if (!receiptInvoice || receiptItems.length === 0) return
+    const first = receiptItems[0]
+    setEditSupplierId((first as any).supplier_id ?? 0)
+    setEditSupplierInvoiceNo(first.supplier_invoice_no ?? '')
+    setEditOrderDate(first.order_date ?? '')
+    setEditReceiveDate(first.created_at ?? '')
+    const pt = (first.payment_type === 'credit' ? 'credit' : 'cash') as 'cash' | 'credit'
+    setEditPaymentType(pt)
+    setEditDueDate(first.due_date ?? '')
+    setEditIsPaid(!!first.is_paid)
+    setEditPaidDate(first.paid_date ?? '')
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!receiptInvoice) return
+    if (!editSupplierId) { toast('กรุณาเลือกผู้จัดจำหน่าย', 'error'); return }
+    if (!editSupplierInvoiceNo.trim()) { toast('กรุณาระบุเลขที่ใบกำกับสินค้า', 'error'); return }
+    if (!editReceiveDate) { toast('กรุณาระบุวันที่รับสินค้า', 'error'); return }
+    if (editPaymentType === 'credit' && !editDueDate) { toast('กรุณาระบุวันครบกำหนดชำระ', 'error'); return }
+    setEditSaving(true)
+    try {
+      const res = await window.api.purchase.updateHeader({
+        invoice_no: receiptInvoice,
+        supplier_id: editSupplierId,
+        supplier_invoice_no: editSupplierInvoiceNo.trim(),
+        order_date: editOrderDate || undefined,
+        receive_date: editReceiveDate,
+        payment_type: editPaymentType,
+        due_date: editPaymentType === 'credit' ? (editDueDate || undefined) : undefined,
+        is_paid: editIsPaid,
+        paid_date: editIsPaid ? (editPaidDate || undefined) : undefined,
+        userId: 1,
+      }) as any
+      if (res?.success) {
+        toast('บันทึกการแก้ไขสำเร็จ', 'success')
+        setShowEditModal(false)
+        await loadHistory(histPage)
+        const data = await window.api.purchase.getReceipt(receiptInvoice) as ReceiptDetail[]
+        setReceiptItems(data)
+      } else if (res?.error === 'cancelled') {
+        toast('บิลถูกยกเลิกแล้ว ไม่สามารถแก้ไขได้', 'error')
+      } else if (res?.error === 'not_found') {
+        toast('ไม่พบบิล', 'error')
+      } else {
+        toast('บันทึกไม่สำเร็จ', 'error')
+      }
+    } catch (e: any) {
+      toast(e?.message ? `บันทึกไม่สำเร็จ: ${e.message}` : 'บันทึกไม่สำเร็จ', 'error')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const handleCancelBill = async () => {
+    if (!receiptInvoice) return
+    const reason = cancelReason.trim()
+    if (!reason) { toast('กรุณาระบุเหตุผล', 'error'); return }
+    setCancelling(true)
+    try {
+      const res = await window.api.purchase.cancel({
+        invoice_no: receiptInvoice,
+        reason,
+        userId: 1,
+      }) as any
+      if (res?.success) {
+        toast('ยกเลิกบิลสำเร็จ', 'success')
+        setShowCancelModal(false)
+        setCancelReason('')
+        setCancelBlockers([])
+        await loadHistory(histPage)
+        // Refresh detail panel
+        const data = await window.api.purchase.getReceipt(receiptInvoice) as ReceiptDetail[]
+        setReceiptItems(data)
+      } else if (res?.error === 'stock_consumed') {
+        setCancelBlockers(res.blockers ?? [])
+        toast('ไม่สามารถยกเลิกได้ — สินค้าบางรายการถูกขายแล้ว', 'error')
+      } else if (res?.error === 'already_cancelled') {
+        toast('บิลนี้ถูกยกเลิกไปแล้ว', 'error')
+      } else if (res?.error === 'not_found') {
+        toast('ไม่พบบิล', 'error')
+      } else {
+        toast('ยกเลิกไม่สำเร็จ', 'error')
+      }
+    } catch (e: any) {
+      toast(e?.message ? `ยกเลิกไม่สำเร็จ: ${e.message}` : 'ยกเลิกไม่สำเร็จ', 'error')
+    } finally {
+      setCancelling(false)
+    }
+  }
 
   // ── Row management ────────────────────────────────────────────────────────
 
@@ -1353,21 +1470,27 @@ export default function PurchasePage() {
                           <DateInput value={histDateTo} onChange={setHistDateTo} className="w-full h-8 text-sm" />
                         </div>
                       </div>
-                      {/* Payment chips */}
-                      <div className="flex gap-1.5">
-                        {(['all', 'cash', 'credit'] as const).map(v => (
-                          <button
-                            key={v}
-                            onClick={() => { setHistPaymentFilter(v); loadHistory(1, v) }}
-                            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
-                              histPaymentFilter === v
-                                ? 'bg-emerald-500 text-white border-emerald-500'
-                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                            }`}
-                          >
-                            {v === 'all' ? 'ทั้งหมด' : v === 'cash' ? 'เงินสด' : 'เครดิต'}
-                          </button>
-                        ))}
+                      {/* Filter chips */}
+                      <div className="flex gap-1.5 flex-wrap">
+                        {(['all', 'cash', 'credit', 'cancelled'] as const).map(v => {
+                          const active = histPaymentFilter === v
+                          const cancelChip = v === 'cancelled'
+                          return (
+                            <button
+                              key={v}
+                              onClick={() => { setHistPaymentFilter(v); loadHistory(1, v) }}
+                              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+                                active
+                                  ? cancelChip
+                                    ? 'bg-red-500 text-white border-red-500'
+                                    : 'bg-emerald-500 text-white border-emerald-500'
+                                  : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                              }`}
+                            >
+                              {v === 'all' ? 'ทั้งหมด' : v === 'cash' ? 'เงินสด' : v === 'credit' ? 'เครดิต' : 'ยกเลิกแล้ว'}
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
 
@@ -1378,7 +1501,8 @@ export default function PurchasePage() {
                       ) : history.length === 0 ? (
                         <div className="text-center text-slate-400 py-12 text-sm">ไม่พบข้อมูล</div>
                       ) : history.map(h => {
-                        const isOverdue = h.payment_type === 'credit' && !h.is_paid && !!h.due_date && h.due_date < today
+                        const isCancelled = h.status === 'cancelled'
+                        const isOverdue = !isCancelled && h.payment_type === 'credit' && !h.is_paid && !!h.due_date && h.due_date < today
                         const isSelected = selectedInvoice === h.invoice_no
                         return (
                           <button
@@ -1388,30 +1512,36 @@ export default function PurchasePage() {
                               isSelected
                                 ? 'bg-emerald-50'
                                 : 'hover:bg-slate-50'
-                            } ${isOverdue ? 'border-l-[3px] border-l-red-400' : 'border-l-[3px] border-l-transparent'}`}
+                            } ${isCancelled
+                                ? 'border-l-[3px] border-l-slate-300 opacity-70'
+                                : isOverdue
+                                  ? 'border-l-[3px] border-l-red-400'
+                                  : 'border-l-[3px] border-l-transparent'}`}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <div className={` text-xs font-semibold ${isSelected ? 'text-emerald-700' : 'text-slate-700'}`}>
+                                <div className={`text-xs font-semibold ${isCancelled ? 'text-slate-500 line-through' : isSelected ? 'text-emerald-700' : 'text-slate-700'}`}>
                                   {h.invoice_no}
                                 </div>
                                 <div className="text-xs text-slate-400 truncate mt-0.5">{h.supplier_name ?? '—'}</div>
                               </div>
                               <div className="text-right shrink-0">
-                                <div className="text-sm font-bold tabular-nums text-slate-800">฿{formatCurrency(h.total_cost)}</div>
+                                <div className={`text-sm font-bold tabular-nums ${isCancelled ? 'text-slate-400 line-through' : 'text-slate-800'}`}>฿{formatCurrency(h.total_cost)}</div>
                                 <div className="text-[11px] text-slate-400 mt-0.5">{formatDate(h.created_at)}</div>
                               </div>
                             </div>
                             <div className="mt-1.5 flex items-center gap-1.5">
                               <span className="text-xs text-slate-400">{h.item_count} รายการ</span>
                               <span className="text-slate-200">·</span>
-                              {h.payment_type === 'credit'
-                                ? h.is_paid
-                                  ? <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium">ชำระแล้ว</span>
-                                  : isOverdue
-                                    ? <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
-                                    : <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
-                                : <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">เงินสด</span>
+                              {isCancelled
+                                ? <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">ยกเลิก</span>
+                                : h.payment_type === 'credit'
+                                  ? h.is_paid
+                                    ? <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium">ชำระแล้ว</span>
+                                    : isOverdue
+                                      ? <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
+                                      : <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
+                                  : <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">เงินสด</span>
                               }
                             </div>
                           </button>
@@ -1431,30 +1561,73 @@ export default function PurchasePage() {
                   <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     {selectedInvoice && receiptItems.length > 0 ? (() => {
                       const h = history.find(r => r.invoice_no === receiptInvoice)
-                      const isOverdue = h && h.payment_type === 'credit' && !h.is_paid && !!h.due_date && h.due_date < today
                       const first = receiptItems[0]
+                      const isCancelled = (first.status ?? h?.status) === 'cancelled'
+                      const isOverdue = !isCancelled && h && h.payment_type === 'credit' && !h.is_paid && !!h.due_date && h.due_date < today
                       const rawTotal = receiptItems.reduce((s, i) => s + i.cost_price * i.qty_received, 0)
                       const discountAmt = first.discount_amount ?? 0
                       const surchargeAmt = first.surcharge_amount ?? 0
                       const hasAdjust = discountAmt > 0 || surchargeAmt > 0
                       return (
                         <>
+                          {/* Cancelled banner */}
+                          {isCancelled && (
+                            <div className="px-5 py-2.5 bg-red-50 border-b border-red-200 shrink-0">
+                              <div className="flex items-start gap-2">
+                                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                                <div className="min-w-0">
+                                  <div className="text-xs font-semibold text-red-700">
+                                    บิลถูกยกเลิก{first.cancelled_at ? ` · ${formatDate(first.cancelled_at)}` : ''}
+                                  </div>
+                                  {first.cancel_reason && (
+                                    <div className="text-xs text-red-600 mt-0.5 break-words">เหตุผล: {first.cancel_reason}</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Header */}
                           <div className="px-5 py-4 border-b border-slate-200 shrink-0">
                             <div className="flex items-start justify-between gap-3">
                               <div>
                                 <div className="text-xs text-slate-400 uppercase tracking-wide">เลขที่ใบรับ</div>
-                                <div className=" font-bold text-slate-800 text-base">{receiptInvoice}</div>
+                                <div className={`font-bold text-base ${isCancelled ? 'text-slate-500 line-through' : 'text-slate-800'}`}>{receiptInvoice}</div>
                               </div>
-                              {h && (
-                                h.payment_type === 'credit'
-                                  ? h.is_paid
-                                    ? <Badge variant="success" className="text-xs shrink-0">ชำระแล้ว</Badge>
-                                    : isOverdue
-                                      ? <Badge variant="destructive" className="text-xs shrink-0">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                                      : <Badge variant="warning" className="text-xs shrink-0">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                                  : <Badge variant="secondary" className="text-xs shrink-0">เงินสด</Badge>
-                              )}
+                              <div className="flex items-center gap-2 shrink-0">
+                                {isCancelled
+                                  ? <Badge variant="destructive" className="text-xs">ยกเลิกแล้ว</Badge>
+                                  : h && (
+                                    h.payment_type === 'credit'
+                                      ? h.is_paid
+                                        ? <Badge variant="success" className="text-xs">ชำระแล้ว</Badge>
+                                        : isOverdue
+                                          ? <Badge variant="destructive" className="text-xs">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                                          : <Badge variant="warning" className="text-xs">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                                      : <Badge variant="secondary" className="text-xs">เงินสด</Badge>
+                                  )}
+                                {!isCancelled && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={openEditBill}
+                                      className="h-7 px-2.5 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300"
+                                    >
+                                      แก้ไขบิล
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => { setCancelReason(''); setCancelBlockers([]); setShowCancelModal(true) }}
+                                      className="h-7 px-2.5 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                                    >
+                                      <X className="w-3 h-3 mr-1" />
+                                      ยกเลิกบิล
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-3">
                               <div>
@@ -1568,6 +1741,168 @@ export default function PurchasePage() {
 
         </div>{/* end white content panel */}
       </div>{/* end tab area */}
+
+      {/* ── Edit-bill (header) modal ── */}
+      <Dialog open={showEditModal} onOpenChange={(o) => { if (!editSaving) setShowEditModal(o) }}>
+        <DialogContent className="max-w-lg">
+          <DialogBody>
+            <div className="space-y-3">
+              <div>
+                <div className="font-bold text-slate-800">แก้ไขรายละเอียดบิล</div>
+                <div className="text-xs text-slate-500 mt-0.5">{receiptInvoice}</div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-600 mb-1 block">ผู้จำหน่าย <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-background px-2.5 pr-7 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    value={editSupplierId}
+                    onChange={e => setEditSupplierId(Number(e.target.value))}
+                  >
+                    <option value={0}>— เลือกผู้จำหน่าย —</option>
+                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-600 mb-1 block">เลขที่ใบกำกับสินค้า <span className="text-red-500">*</span></label>
+                <Input
+                  value={editSupplierInvoiceNo}
+                  onChange={e => setEditSupplierInvoiceNo(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 mb-1 block">วันที่สั่งซื้อตามบิล</label>
+                  <DateInput value={editOrderDate} onChange={setEditOrderDate} className="w-full h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 mb-1 block">วันที่รับสินค้า <span className="text-red-500">*</span></label>
+                  <DateInput value={editReceiveDate} onChange={setEditReceiveDate} className="w-full h-9 text-sm" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-600 mb-1 block">ประเภทการชำระเงิน</label>
+                <div className="flex gap-2">
+                  {(['cash', 'credit'] as const).map(v => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setEditPaymentType(v)}
+                      className={`flex-1 h-9 rounded-lg border text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                        editPaymentType === v
+                          ? 'bg-emerald-500 text-white border-emerald-500'
+                          : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      {v === 'cash' ? <><Banknote className="w-3.5 h-3.5" /> เงินสด</> : <><CreditCard className="w-3.5 h-3.5" /> เครดิต</>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {editPaymentType === 'credit' && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2.5">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 mb-1 block">วันครบกำหนดชำระ <span className="text-red-500">*</span></label>
+                    <DateInput value={editDueDate} onChange={setEditDueDate} className="w-full h-9 text-sm" />
+                  </div>
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <Checkbox
+                      id="edit-is-paid"
+                      checked={editIsPaid}
+                      onCheckedChange={(v) => setEditIsPaid(!!v)}
+                    />
+                    <label htmlFor="edit-is-paid" className="text-xs font-semibold text-slate-600 cursor-pointer">ชำระแล้ว</label>
+                  </div>
+                  {editIsPaid && (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 mb-1 block">วันที่ชำระ</label>
+                      <DateInput value={editPaidDate} onChange={setEditPaidDate} className="w-full h-9 text-sm" />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={() => setShowEditModal(false)} disabled={editSaving}>ปิด</Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveEdit}
+                  disabled={editSaving}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                >
+                  {editSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+                </Button>
+              </div>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Cancel-bill confirm dialog ── */}
+      <Dialog open={showCancelModal} onOpenChange={(o) => { if (!cancelling) setShowCancelModal(o) }}>
+        <DialogContent className="max-w-md">
+          <DialogBody>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-slate-800">ยกเลิกบิลรับสินค้า</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{receiptInvoice}</div>
+                </div>
+              </div>
+              <div className="text-xs text-slate-600 leading-relaxed">
+                การยกเลิกจะคืนสต็อกที่รับเข้ามาของบิลนี้ออกจากคลัง และไม่สามารถย้อนกลับได้ หากสินค้าบางส่วนถูกขายไปแล้ว ระบบจะไม่อนุญาตให้ยกเลิก
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600 mb-1 block">เหตุผล <span className="text-red-500">*</span></label>
+                <Textarea
+                  value={cancelReason}
+                  onChange={e => setCancelReason(e.target.value)}
+                  rows={3}
+                  placeholder="ระบุเหตุผลในการยกเลิก..."
+                  className="text-sm"
+                  autoFocus
+                />
+              </div>
+              {cancelBlockers.length > 0 && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-2.5">
+                  <div className="text-xs font-semibold text-red-700 mb-1.5">สินค้าต่อไปนี้ถูกขายไปแล้ว ไม่สามารถยกเลิกบิลได้:</div>
+                  <ul className="text-xs text-red-700 space-y-0.5 list-disc pl-4">
+                    {cancelBlockers.map((b, i) => (
+                      <li key={i}>
+                        <span className="font-medium">{b.trade_name}</span>
+                        <span className="text-red-500"> · Lot {b.lot_number}</span>
+                        <span className="text-red-500"> · ต้องคืน {b.need} แต่เหลือเพียง {b.have}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={() => setShowCancelModal(false)} disabled={cancelling}>ปิด</Button>
+                <Button
+                  size="sm"
+                  onClick={handleCancelBill}
+                  disabled={cancelling || !cancelReason.trim()}
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                >
+                  {cancelling ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิก'}
+                </Button>
+              </div>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Supplier modal ── */}
       {showSupplierModal && (

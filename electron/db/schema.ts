@@ -401,14 +401,47 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
-    -- Purchase receipt headers (GR-level metadata, one row per invoice_no)
+    -- Purchase receipt headers (GR-level metadata, one row per invoice_no).
+    -- Authoritative source for supplier / payment / dates of a GR.
+    -- product_lots also stores some of these for stock display, but is last-write-wins.
     CREATE TABLE IF NOT EXISTS purchase_receipts (
       invoice_no TEXT PRIMARY KEY,
+      supplier_id INTEGER REFERENCES suppliers(id),
+      supplier_invoice_no TEXT,
+      order_date TEXT,
+      payment_type TEXT NOT NULL DEFAULT 'cash',
+      due_date TEXT,
+      is_paid INTEGER NOT NULL DEFAULT 0,
+      paid_date TEXT,
       note TEXT NOT NULL DEFAULT '',
       discount_amount REAL NOT NULL DEFAULT 0,
       surcharge_amount REAL NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'completed',
+      cancelled_at TEXT,
+      cancelled_by INTEGER REFERENCES users(id),
+      cancel_reason TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
+
+    -- Purchase receipt line items (immutable receive ledger).
+    -- One row per line per GR. NEVER mutated after insert (except is_cancelled flag).
+    -- Source of truth for ประวัติการรับสินค้า history and cancellation.
+    CREATE TABLE IF NOT EXISTS purchase_receipt_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_no TEXT NOT NULL,
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      lot_id INTEGER REFERENCES product_lots(id),
+      lot_number TEXT NOT NULL,
+      manufactured_date TEXT,
+      expiry_date TEXT,
+      cost_price REAL NOT NULL DEFAULT 0,
+      sell_price REAL NOT NULL DEFAULT 0,
+      qty REAL NOT NULL DEFAULT 0,
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_pri_invoice ON purchase_receipt_items(invoice_no);
+    CREATE INDEX IF NOT EXISTS idx_pri_lot ON purchase_receipt_items(lot_id);
 
     -- Indexes
     CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
