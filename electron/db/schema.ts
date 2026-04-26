@@ -404,6 +404,8 @@ export function initializeSchema(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS purchase_receipts (
       invoice_no TEXT PRIMARY KEY,
       note TEXT NOT NULL DEFAULT '',
+      discount_amount REAL NOT NULL DEFAULT 0,
+      surcharge_amount REAL NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -422,4 +424,12 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_stock_movements_created ON stock_movements(created_at);
     CREATE INDEX IF NOT EXISTS idx_price_logs_product ON price_logs(product_id, created_at DESC);
   `)
+
+  // Safe column migrations for existing databases
+  for (const sql of [
+    `ALTER TABLE purchase_receipts ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE purchase_receipts ADD COLUMN surcharge_amount REAL NOT NULL DEFAULT 0`,
+  ]) {
+    try { db.exec(sql) } catch {}
+  }
 }

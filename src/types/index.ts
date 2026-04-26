@@ -36,8 +36,9 @@ export interface ProductLot {
   qty_received: number; qty_on_hand: number; qty_reserved: number
   invoice_no?: string; supplier_invoice_no?: string
   payment_type: string; due_date?: string; is_paid: number; paid_date?: string
-  is_closed: number; note?: string
-  supplier_name?: string
+  is_closed: number; note?: string; created_at?: string
+  unit_name?: string; supplier_name?: string
+  discount_amount?: number; surcharge_amount?: number
 }
 
 export interface ProductLabel {

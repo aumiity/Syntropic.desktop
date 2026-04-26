@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { DateInput } from '@/components/ui/date-input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogBody } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib/utils'
@@ -184,13 +184,15 @@ export default function PurchasePage() {
   const [histSupplierId, setHistSupplierId] = useState<number>(0)
   const [histDateFrom, setHistDateFrom] = useState('')
   const [histDateTo, setHistDateTo] = useState('')
+  const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit'>('all')
+  const [histSummary, setHistSummary] = useState({ count: 0, total_cost: 0, unpaid_cost: 0 })
   const [loadingHist, setLoadingHist] = useState(false)
 
   // Active tab
   const [activeTab, setActiveTab] = useState<'receive' | 'history'>('receive')
 
-  // Receipt detail modal
-  const [receiptModal, setReceiptModal] = useState(false)
+  // Receipt detail panel (replaces modal)
+  const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null)
   const [receiptItems, setReceiptItems] = useState<ReceiptDetail[]>([])
   const [receiptInvoice, setReceiptInvoice] = useState('')
 
@@ -213,17 +215,24 @@ export default function PurchasePage() {
 
   // Bill adjustment modal
   const [showBillAdjust, setShowBillAdjust] = useState(false)
-  // Draft inputs — only live while the modal is open
-  const [billDiscountVal, setBillDiscountVal] = useState('')
-  const [billDiscountType, setBillDiscountType] = useState<'amount' | 'percent'>('amount')
-  const [billSurchargeVal, setBillSurchargeVal] = useState('')
-  const [billSurchargeType, setBillSurchargeType] = useState<'amount' | 'percent'>('amount')
+  const [billAdjustTab, setBillAdjustTab] = useState<'discount' | 'surcharge'>('discount')
+  // Draft inputs — separate baht + percent boxes per tab
+  const [billDiscountBaht, setBillDiscountBaht] = useState('')
+  const [billDiscountPct, setBillDiscountPct]   = useState('')
+  const [billSurchargeBaht, setBillSurchargeBaht] = useState('')
+  const [billSurchargePct, setBillSurchargePct]   = useState('')
+  // Pre-adjustment sum shown in the modal preview
+  const [adjustModalSum, setAdjustModalSum] = useState(0)
+  // Controlled value for the editable ยอดสุทธิ input in the modal
+  const [billNetInput, setBillNetInput] = useState('')
   // Last committed values — restored into drafts on next open
-  const [appliedDiscount, setAppliedDiscount] = useState({ val: '', type: 'amount' as 'amount' | 'percent' })
-  const [appliedSurcharge, setAppliedSurcharge] = useState({ val: '', type: 'amount' as 'amount' | 'percent' })
+  const [appliedDiscount, setAppliedDiscount] = useState({ baht: '', pct: '' })
+  const [appliedSurcharge, setAppliedSurcharge] = useState({ baht: '', pct: '' })
   const [adjustSubtotal, setAdjustSubtotal] = useState<number | null>(null)
   const [adjustDiscountAmt, setAdjustDiscountAmt] = useState(0)
   const [adjustSurchargeAmt, setAdjustSurchargeAmt] = useState(0)
+  // Original per-row totals before any bill adjustment — re-applying always starts from here
+  const [baseRowTotals, setBaseRowTotals] = useState<number[] | null>(null)
 
   useEffect(() => {
     loadNextGR()
@@ -241,7 +250,8 @@ export default function PurchasePage() {
     setSuppliers(data as Supplier[])
   }
 
-  const loadHistory = useCallback(async (page = 1) => {
+  const loadHistory = useCallback(async (page = 1, paymentTypeOverride?: 'all' | 'cash' | 'credit') => {
+    const pmtFilter = paymentTypeOverride ?? histPaymentFilter
     setLoadingHist(true)
     try {
       const res = await window.api.purchase.history({
@@ -249,19 +259,22 @@ export default function PurchasePage() {
         supplier_id: histSupplierId || undefined,
         date_from: histDateFrom || undefined,
         date_to: histDateTo || undefined,
+        payment_type: pmtFilter !== 'all' ? pmtFilter : undefined,
         page,
       }) as any
       setHistory(res.rows)
       setHistTotal(res.total)
       setHistPage(page)
+      if (res.summary) setHistSummary(res.summary)
     } finally {
       setLoadingHist(false)
     }
-  }, [histQ, histSupplierId, histDateFrom, histDateTo])
+  }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter])
 
   // ── Row management ────────────────────────────────────────────────────────
 
   const addRow = useCallback(() => {
+    setBaseRowTotals(null)
     setRows(r => [...r, emptyRow()])
     setSearchQueries(q => [...q, ''])
     setSuggestions(s => [...s, []])
@@ -270,6 +283,7 @@ export default function PurchasePage() {
 
   const removeRow = (i: number) => {
     if (rows.length === 1) return
+    setBaseRowTotals(null)
     setRows(r => r.filter((_, idx) => idx !== i))
     setSearchQueries(q => q.filter((_, idx) => idx !== i))
     setSuggestions(s => s.filter((_, idx) => idx !== i))
@@ -277,11 +291,13 @@ export default function PurchasePage() {
   }
 
   const updateRow = (i: number, field: keyof ReceiptRow, value: string | number) => {
+    if ((field === 'total' || field === 'cost_price' || field === 'qty') && baseRowTotals) setBaseRowTotals(null)
     setRows(r => r.map((row, idx) => idx === i ? { ...row, [field]: value } : row))
   }
 
   // total = qty * cost_price − discount. Editing any field auto-fills dependents.
   const updateLineMath = (i: number, field: 'qty' | 'cost_price' | 'discount' | 'total', value: string) => {
+    if (baseRowTotals) setBaseRowTotals(null)
     setRows(rs => rs.map((row, idx) => {
       if (idx !== i) return row
       const next: ReceiptRow = { ...row, [field]: value }
@@ -622,7 +638,10 @@ export default function PurchasePage() {
         invoice_no: invoiceNo, supplier_id: supplierId, supplier_invoice_no: supplierInvoiceNo,
         receive_date: receiveDate, payment_type: paymentType,
         due_date: dueDate || undefined, is_paid: isPaid, paid_date: paidDate || undefined,
-        note: grNote || undefined, userId: 1,
+        note: grNote || undefined,
+        discount_amount: adjustDiscountAmt || undefined,
+        surcharge_amount: adjustSurchargeAmt || undefined,
+        userId: 1,
         items: validRows.map(r => {
           const qtyNum = parseFloat(r.qty) || 0
           const totalNum = parseFloat(r.total) || 0
@@ -652,34 +671,46 @@ export default function PurchasePage() {
   }
 
   const openBillAdjust = () => {
-    const nonZero = (v: string) => (parseFloat(v) || 0) !== 0 ? v : ''
-    setBillDiscountVal(nonZero(appliedDiscount.val))
-    setBillDiscountType(appliedDiscount.type)
-    setBillSurchargeVal(nonZero(appliedSurcharge.val))
-    setBillSurchargeType(appliedSurcharge.type)
+    const origTotals = baseRowTotals ?? rows.map(r => parseFloat(r.total) || 0)
+    const sum = origTotals.reduce((a, b) => a + b, 0)
+    setAdjustModalSum(sum)
+    setBillNetInput(sum.toFixed(2))
+    setBillDiscountBaht(appliedDiscount.baht)
+    setBillDiscountPct(appliedDiscount.pct)
+    setBillSurchargeBaht(appliedSurcharge.baht)
+    setBillSurchargePct(appliedSurcharge.pct)
+    setBillAdjustTab('discount')
     setShowBillAdjust(true)
   }
 
   const closeBillAdjust = () => { setShowBillAdjust(false) }
 
   const applyBillAdjust = () => {
-    const rawTotals = rows.map(r => parseFloat(r.total) || 0)
-    const sumRaw = rawTotals.reduce((a, b) => a + b, 0)
+    // Always adjust from the original totals captured before any bill adjustment.
+    // Without this, re-opening and confirming stacks the adjustment on already-adjusted values.
+    const origTotals = baseRowTotals ?? rows.map(r => parseFloat(r.total) || 0)
+    const sumRaw = origTotals.reduce((a, b) => a + b, 0)
     if (sumRaw === 0) { toast('ยอดรวมเป็น 0 ไม่สามารถปรับยอดได้', 'error'); return }
-    const discAmt = billDiscountType === 'percent' ? sumRaw * ((parseFloat(billDiscountVal) || 0) / 100) : (parseFloat(billDiscountVal) || 0)
-    const surAmt  = billSurchargeType === 'percent' ? sumRaw * ((parseFloat(billSurchargeVal) || 0) / 100) : (parseFloat(billSurchargeVal) || 0)
-    const netAdjust = surAmt - discAmt
+    const discAmt = parseFloat(billDiscountBaht) || 0
+    const surAmt  = parseFloat(billSurchargeBaht) || 0
     setRows(rs => rs.map((row, i) => {
-      const newTotal = Math.max((rawTotals[i] + (rawTotals[i] / sumRaw) * netAdjust), 0)
+      const base = origTotals[i] ?? 0
+      const ratio = base / sumRaw
+      const rowDisc = ratio * discAmt
+      const rowSur  = ratio * surAmt
+      const newTotal = Math.max(base - rowDisc + rowSur, 0)
       const qty = parseFloat(row.qty)
-      const newCost = qty > 0 ? stripTrailingZeros((newTotal / qty).toFixed(4)) : row.cost_price
-      return { ...row, total: newTotal.toFixed(2), cost_price: newCost }
+      // cost_price absorbs the surcharge; discount column shows the discount share
+      // so that: qty * cost_price - discount = newTotal
+      const newCost = qty > 0 ? stripTrailingZeros(((base + rowSur) / qty).toFixed(4)) : row.cost_price
+      return { ...row, total: newTotal.toFixed(2), cost_price: newCost, discount: rowDisc > 0 ? rowDisc.toFixed(2) : '0' }
     }))
+    if (!baseRowTotals) setBaseRowTotals(origTotals)
     setAdjustSubtotal(sumRaw)
     setAdjustDiscountAmt(discAmt)
     setAdjustSurchargeAmt(surAmt)
-    setAppliedDiscount({ val: billDiscountVal, type: billDiscountType })
-    setAppliedSurcharge({ val: billSurchargeVal, type: billSurchargeType })
+    setAppliedDiscount({ baht: billDiscountBaht, pct: billDiscountPct })
+    setAppliedSurcharge({ baht: billSurchargeBaht, pct: billSurchargePct })
     setShowBillAdjust(false)
   }
 
@@ -689,15 +720,22 @@ export default function PurchasePage() {
     setIsPaid(false); setPaidDate(''); setGrNote('')
     setRows([emptyRow()]); setSearchQueries(['']); setSuggestions([[]])
     setAdjustSubtotal(null); setAdjustDiscountAmt(0); setAdjustSurchargeAmt(0)
-    setAppliedDiscount({ val: '', type: 'amount' }); setAppliedSurcharge({ val: '', type: 'amount' })
+    setAppliedDiscount({ baht: '', pct: '' }); setAppliedSurcharge({ baht: '', pct: '' })
+    setBaseRowTotals(null)
     loadNextGR()
   }
 
-  // ── Receipt modal ─────────────────────────────────────────────────────────
+  // ── Receipt detail panel ──────────────────────────────────────────────────
 
   const openReceipt = async (invoice_no: string) => {
-    const data = await window.api.purchase.getReceipt(invoice_no) as ReceiptDetail[]
-    setReceiptItems(data); setReceiptInvoice(invoice_no); setReceiptModal(true)
+    try {
+      const data = await window.api.purchase.getReceipt(invoice_no) as ReceiptDetail[]
+      setReceiptItems(data)
+      setReceiptInvoice(invoice_no)
+      setSelectedInvoice(invoice_no)
+    } catch (e: any) {
+      toast(e?.message ? `โหลดใบรับไม่สำเร็จ: ${e.message}` : 'โหลดใบรับไม่สำเร็จ', 'error')
+    }
   }
 
   const histTotalPages = Math.ceil(histTotal / 20)
@@ -826,14 +864,14 @@ export default function PurchasePage() {
 
                     {/* Line items */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                      <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50 gap-2">
                         <span className="text-sm font-semibold text-slate-700">รายการสินค้า</span>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" onClick={openBillAdjust} className="h-7 text-xs gap-1 border-emerald-300 text-emerald-600 hover:bg-emerald-50">
-                            ปรับยอดท้ายบิล
-                          </Button>
                           <Button size="sm" variant="outline" onClick={() => setShowImport(true)} className="h-7 text-xs gap-1">
                             <ClipboardPaste className="h-3 w-3" /> นำเข้าข้อมูล
+                          </Button>                          
+                          <Button size="sm" variant="outline" onClick={openBillAdjust} className="h-7 text-xs gap-1 border-emerald-300 text-emerald-600 hover:bg-emerald-50">
+                            ปรับยอดท้ายบิล
                           </Button>
                         </div>
                       </div>
@@ -880,7 +918,7 @@ export default function PurchasePage() {
                                         onBlur={() => setTimeout(() => setActiveSuggRow(v => v === i ? null : v), 200)}
                                         onKeyDown={e => handleProductKeyDown(i, e)}
                                         placeholder="ค้นหาสินค้า..."
-                                        className="text-xs"
+                                        className="text-xs h-7"
                                         autoComplete="off"
                                       />
                                       {activeSuggRow === i && (suggestions[i]?.length ?? 0) > 0 && (
@@ -890,7 +928,7 @@ export default function PurchasePage() {
                                               key={p.id}
                                               type="button"
                                               onMouseDown={() => selectProduct(i, p)}
-                                              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
+                                              className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
                                                 si === suggHighlight ? 'bg-emerald-100 text-emerald-700' : 'hover:bg-emerald-50'
                                               }`}
                                             >
@@ -912,14 +950,14 @@ export default function PurchasePage() {
                                         type="button"
                                         disabled={!row.product_id}
                                         onClick={() => { setActiveRow(i); setUnitModalIdx(i) }}
-                                        className="h-8 w-full inline-flex items-center justify-center gap-1 px-2 rounded-lg border border-slate-300 bg-white text-sm hover:border-emerald-400 hover:bg-emerald-50/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="h-7 w-full inline-flex items-center justify-center gap-1 px-2 rounded-lg border border-slate-300 bg-white text-xs hover:border-emerald-400 hover:bg-emerald-50/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                       >
-                                        <span className={`truncate ${row.unit_name ? 'text-slate-700' : 'text-slate-300'}`}>{row.unit_name || '—'}</span>
+                                        <span className={`truncate ${row.unit_name ? 'text-slate-700' : 'text-slate-500'}`}>{row.unit_name || 'หน่วย'}</span>
                                       </button>
                                     </td>
 
                                     <td className="px-3 py-1.5">
-                                      <Input data-cell={`${i}-1`} type="number" value={row.qty} onChange={e => updateLineMath(i, 'qty', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="0" className="h-8 text-sm text-right" min={1} />
+                                      <Input data-cell={`${i}-1`} type="number" value={row.qty} onChange={e => updateLineMath(i, 'qty', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="จำนวน" className="h-7 text-xs text-right" min={1} />
                                     </td>
 
                                     {/* ราคาทุน — input; auto-syncs with รวม via qty */}
@@ -931,7 +969,7 @@ export default function PurchasePage() {
                                         const costCls = costChanged
                                           ? (enteredCost > sc! ? 'border-red-400 bg-red-50' : 'border-emerald-400 bg-emerald-50')
                                           : ''
-                                        return <Input data-cell={`${i}-5`} type="number" value={row.cost_price} onChange={e => updateLineMath(i, 'cost_price', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="0.00" className={`h-8 text-sm text-right ${costCls}`} min={0} step="0.01" />
+                                        return <Input data-cell={`${i}-5`} type="number" value={row.cost_price} onChange={e => updateLineMath(i, 'cost_price', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="ราคาทุน" className={`h-7 text-xs text-right ${costCls}`} min={0} step="0.01" />
                                       })()}
                                     </td>
 
@@ -945,10 +983,10 @@ export default function PurchasePage() {
                                             type="button"
                                             disabled={!row.product_id}
                                             onClick={() => { setActiveRow(i); openPriceModal(i) }}
-                                            className={`h-8 w-full inline-flex items-center justify-end gap-1 px-2 rounded-lg border text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors tabular-nums ${belowCost ? 'border-red-400 bg-red-50 hover:bg-red-100' : 'border-slate-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/40'}`}
+                                            className={`h-7 w-full inline-flex items-center justify-end gap-1 px-2 rounded-lg border text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors tabular-nums ${belowCost ? 'border-red-400 bg-red-50 hover:bg-red-100' : 'border-slate-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/40'}`}
                                           >
-                                            <span className={belowCost ? 'text-red-600 font-semibold' : row.product_id ? 'text-slate-700' : 'text-slate-300'}>
-                                              {row.product_id ? `${formatCurrency(row.default_sell_price || 0)}` : '—'}
+                                            <span className={belowCost ? 'text-red-600 font-semibold' : row.product_id ? 'text-slate-700' : 'text-slate-500'}>
+                                              {row.product_id ? `${formatCurrency(row.default_sell_price || 0)}` : 'ราคาขาย'}
                                             </span>
                                           </button>
                                         )
@@ -957,11 +995,11 @@ export default function PurchasePage() {
 
                                     {/* ส่วนลด */}
                                     <td className="px-3 py-1.5">
-                                      <Input data-cell={`${i}-5b`} type="number" value={row.discount} onChange={e => updateLineMath(i, 'discount', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="0.00" className="h-8 text-sm text-right" min={0} step="0.01" />
+                                      <Input data-cell={`${i}-5b`} type="number" value={row.discount} onChange={e => updateLineMath(i, 'discount', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="ส่วนลด" className="h-7 text-xs text-right" min={0} step="0.01" />
                                     </td>
 
                                     <td className="px-3 py-1.5">
-                                      <Input data-cell={`${i}-6`} type="number" value={row.total} onChange={e => updateLineMath(i, 'total', e.target.value)} onFocus={() => setActiveRow(i)} onKeyDown={e => handleQtyKeyDown(i, e)} placeholder="0.00" className="h-8 text-sm text-right" min={0} step="0.01" />
+                                      <Input data-cell={`${i}-6`} type="number" value={row.total} onChange={e => updateLineMath(i, 'total', e.target.value)} onFocus={() => setActiveRow(i)} onKeyDown={e => handleQtyKeyDown(i, e)} placeholder="ราคารวม" className="h-7 text-xs text-right" min={0} step="0.01" />
                                     </td>
 
                                     <td className="px-2 py-1.5">
@@ -1024,7 +1062,7 @@ export default function PurchasePage() {
                             {adjustSubtotal !== null && (
                               <>
                                 <tr className="bg-slate-50 border-t border-slate-100">
-                                  <td colSpan={7} className="px-3 py-1 text-right text-xs text-slate-500">ยอดก่อนปรับ</td>
+                                  <td colSpan={7} className="px-3 py-1 text-right text-xs text-slate-500">ราคารวม</td>
                                   <td className="px-3 py-1 text-right text-xs text-slate-500 tabular-nums">฿{formatCurrency(adjustSubtotal)}</td>
                                   <td />
                                 </tr>
@@ -1227,85 +1265,303 @@ export default function PurchasePage() {
           )}{/* end receive tab */}
 
           {/* ── Tab: ประวัติการรับสินค้า ── */}
-          {activeTab === 'history' && (
-            <div className="h-full overflow-y-auto">
-              <div className="p-4 max-w-screen-2xl mx-auto">
+          {activeTab === 'history' && (() => {
+            const today = new Date().toISOString().split('T')[0]
+            return (
+              <div className="h-full flex flex-col overflow-hidden p-4 gap-3">
 
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                  {/* Filters */}
-                  <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap gap-2">
-                    <div className="relative flex-1 min-w-[160px]">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                      <Input value={histQ} onChange={e => setHistQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadHistory(1)} placeholder="ค้นหาเลขที่ใบรับ..." className="pl-8 h-8 text-sm" />
+                {/* ── Summary bar ── */}
+                <div className="grid grid-cols-3 gap-3 shrink-0">
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-slate-500" />
                     </div>
-                    <div className="relative w-44">
-                      <select
-                        className="w-full h-8 rounded-md border border-input bg-background px-2.5 pr-7 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-                        value={histSupplierId}
-                        onChange={e => setHistSupplierId(Number(e.target.value))}
-                      >
-                        <option value={0}>ทุกผู้จัดจำหน่าย</option>
-                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                    <div className="min-w-0">
+                      <div className="text-xs text-slate-400">รับสินค้าทั้งหมด</div>
+                      <div className="text-lg font-bold text-slate-800 leading-tight">
+                        {histSummary.count} <span className="text-sm font-normal text-slate-400">ใบ</span>
+                      </div>
                     </div>
-                    <DateInput value={histDateFrom} onChange={setHistDateFrom} className="w-36 h-8 text-sm" />
-                    <DateInput value={histDateTo} onChange={setHistDateTo} className="w-36 h-8 text-sm" />
-                    <Button size="sm" variant="outline" onClick={() => loadHistory(1)} className="h-8 text-xs">
-                      <Search className="w-3 h-3 mr-1" /> ค้นหา
-                    </Button>
                   </div>
-
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>เลขที่ใบรับ</TableHead>
-                        <TableHead>วันที่</TableHead>
-                        <TableHead>ผู้จัดจำหน่าย</TableHead>
-                        <TableHead className="text-center">รายการ</TableHead>
-                        <TableHead className="text-right">มูลค่า</TableHead>
-                        <TableHead className="text-center">การชำระ</TableHead>
-                        <TableHead />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loadingHist ? (
-                        <TableRow><TableCell colSpan={7} className="text-center text-slate-400 py-10 text-sm">กำลังโหลด...</TableCell></TableRow>
-                      ) : history.length === 0 ? (
-                        <TableRow><TableCell colSpan={7} className="text-center text-slate-400 py-10 text-sm">ไม่พบข้อมูล</TableCell></TableRow>
-                      ) : history.map(h => (
-                        <TableRow key={h.invoice_no} className="hover:bg-emerald-50/40">
-                          <TableCell className="font-mono text-sm font-medium">{h.invoice_no}</TableCell>
-                          <TableCell className="text-sm">{formatDate(h.created_at)}</TableCell>
-                          <TableCell className="text-sm">{h.supplier_name ?? '—'}</TableCell>
-                          <TableCell className="text-center text-sm">{h.item_count}</TableCell>
-                          <TableCell className="text-right font-semibold tabular-nums">฿{formatCurrency(h.total_cost)}</TableCell>
-                          <TableCell className="text-center">
-                            {h.payment_type === 'credit'
-                              ? h.is_paid
-                                ? <Badge variant="success" className="text-xs">ชำระแล้ว</Badge>
-                                : <Badge variant="warning" className="text-xs">เครดิต{h.due_date ? ` ${formatDate(h.due_date)}` : ''}</Badge>
-                              : <Badge variant="secondary" className="text-xs">เงินสด</Badge>
-                            }
-                          </TableCell>
-                          <TableCell>
-                            <Button size="sm" variant="ghost" onClick={() => openReceipt(h.invoice_no)} className="text-xs h-7">ดูรายการ</Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-
-                  {histTotalPages > 1 && (
-                    <div className="py-3 flex justify-center border-t border-slate-100">
-                      <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} />
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                      <Banknote className="w-4 h-4 text-emerald-500" />
                     </div>
-                  )}
+                    <div className="min-w-0">
+                      <div className="text-xs text-slate-400">มูลค่ารวม</div>
+                      <div className="text-lg font-bold text-emerald-700 leading-tight tabular-nums">
+                        ฿{formatCurrency(histSummary.total_cost)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${histSummary.unpaid_cost > 0 ? 'bg-red-50' : 'bg-slate-100'}`}>
+                      <CreditCard className={`w-4 h-4 ${histSummary.unpaid_cost > 0 ? 'text-red-400' : 'text-slate-400'}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs text-slate-400">ค้างชำระ</div>
+                      <div className={`text-lg font-bold leading-tight tabular-nums ${histSummary.unpaid_cost > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                        ฿{formatCurrency(histSummary.unpaid_cost)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
+                {/* ── Split pane ── */}
+                <div className="flex-1 flex gap-3 min-h-0">
+
+                  {/* Left 40% — filters + list */}
+                  <div className="w-[40%] flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+
+                    {/* Filters */}
+                    <div className="px-3 pt-3 pb-2 border-b border-slate-100 space-y-2 shrink-0">
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                          <Input
+                            value={histQ}
+                            onChange={e => setHistQ(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && loadHistory(1)}
+                            placeholder="ค้นหาเลขที่ใบรับ..."
+                            className="pl-8 h-8 text-sm"
+                          />
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => loadHistory(1)} className="h-8 px-3 text-xs shrink-0">
+                          <Search className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <select
+                            className="w-full h-8 rounded-md border border-input bg-background px-2.5 pr-7 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                            value={histSupplierId}
+                            onChange={e => setHistSupplierId(Number(e.target.value))}
+                          >
+                            <option value={0}>ทุกผู้จัดจำหน่าย</option>
+                            {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1 space-y-0.5">
+                          <label className="text-[10px] text-slate-400 px-0.5">จากวันที่</label>
+                          <DateInput value={histDateFrom} onChange={setHistDateFrom} className="w-full h-8 text-sm" />
+                        </div>
+                        <div className="flex-1 space-y-0.5">
+                          <label className="text-[10px] text-slate-400 px-0.5">ถึงวันที่</label>
+                          <DateInput value={histDateTo} onChange={setHistDateTo} className="w-full h-8 text-sm" />
+                        </div>
+                      </div>
+                      {/* Payment chips */}
+                      <div className="flex gap-1.5">
+                        {(['all', 'cash', 'credit'] as const).map(v => (
+                          <button
+                            key={v}
+                            onClick={() => { setHistPaymentFilter(v); loadHistory(1, v) }}
+                            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+                              histPaymentFilter === v
+                                ? 'bg-emerald-500 text-white border-emerald-500'
+                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            {v === 'all' ? 'ทั้งหมด' : v === 'cash' ? 'เงินสด' : 'เครดิต'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* List */}
+                    <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                      {loadingHist ? (
+                        <div className="text-center text-slate-400 py-12 text-sm">กำลังโหลด...</div>
+                      ) : history.length === 0 ? (
+                        <div className="text-center text-slate-400 py-12 text-sm">ไม่พบข้อมูล</div>
+                      ) : history.map(h => {
+                        const isOverdue = h.payment_type === 'credit' && !h.is_paid && !!h.due_date && h.due_date < today
+                        const isSelected = selectedInvoice === h.invoice_no
+                        return (
+                          <button
+                            key={h.invoice_no}
+                            onClick={() => openReceipt(h.invoice_no)}
+                            className={`w-full text-left px-3 py-2.5 transition-colors ${
+                              isSelected
+                                ? 'bg-emerald-50'
+                                : 'hover:bg-slate-50'
+                            } ${isOverdue ? 'border-l-[3px] border-l-red-400' : 'border-l-[3px] border-l-transparent'}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className={`font-mono text-xs font-semibold ${isSelected ? 'text-emerald-700' : 'text-slate-700'}`}>
+                                  {h.invoice_no}
+                                </div>
+                                <div className="text-xs text-slate-400 truncate mt-0.5">{h.supplier_name ?? '—'}</div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-sm font-bold tabular-nums text-slate-800">฿{formatCurrency(h.total_cost)}</div>
+                                <div className="text-[11px] text-slate-400 mt-0.5">{formatDate(h.created_at)}</div>
+                              </div>
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <span className="text-[10px] text-slate-400">{h.item_count} รายการ</span>
+                              <span className="text-slate-200">·</span>
+                              {h.payment_type === 'credit'
+                                ? h.is_paid
+                                  ? <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium">ชำระแล้ว</span>
+                                  : isOverdue
+                                    ? <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
+                                    : <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
+                                : <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">เงินสด</span>
+                              }
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Pagination */}
+                    {histTotalPages > 1 && (
+                      <div className="py-2.5 flex justify-center border-t border-slate-100 shrink-0">
+                        <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right 60% — detail panel */}
+                  <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    {selectedInvoice && receiptItems.length > 0 ? (() => {
+                      const h = history.find(r => r.invoice_no === receiptInvoice)
+                      const isOverdue = h && h.payment_type === 'credit' && !h.is_paid && !!h.due_date && h.due_date < today
+                      const first = receiptItems[0]
+                      const rawTotal = receiptItems.reduce((s, i) => s + i.cost_price * i.qty_received, 0)
+                      const discountAmt = first.discount_amount ?? 0
+                      const surchargeAmt = first.surcharge_amount ?? 0
+                      const hasAdjust = discountAmt > 0 || surchargeAmt > 0
+                      return (
+                        <>
+                          {/* Header */}
+                          <div className="px-5 py-4 border-b border-slate-200 shrink-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-[10px] text-slate-400 uppercase tracking-wide">เลขที่ใบรับ</div>
+                                <div className="font-mono font-bold text-slate-800 text-base">{receiptInvoice}</div>
+                              </div>
+                              {h && (
+                                h.payment_type === 'credit'
+                                  ? h.is_paid
+                                    ? <Badge variant="success" className="text-xs shrink-0">ชำระแล้ว</Badge>
+                                    : isOverdue
+                                      ? <Badge variant="destructive" className="text-xs shrink-0">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                                      : <Badge variant="warning" className="text-xs shrink-0">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                                  : <Badge variant="secondary" className="text-xs shrink-0">เงินสด</Badge>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-3">
+                              <div>
+                                <div className="text-[10px] text-slate-400 uppercase tracking-wide">ผู้จำหน่าย</div>
+                                <div className="text-sm font-medium text-slate-700 truncate">{first.supplier_name ?? '—'}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] text-slate-400 uppercase tracking-wide">วันที่สั่งซื้อตามบิล</div>
+                                <div className="text-sm font-medium text-slate-700">{first.created_at ? formatDate(first.created_at) : '—'}</div>
+                              </div>
+                              <div className="col-span-2">
+                                <div className="text-[10px] text-slate-400 uppercase tracking-wide">เลขที่ใบกำกับสินค้า</div>
+                                <div className="text-sm font-mono font-medium text-slate-700">{first.supplier_invoice_no || '—'}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Items table */}
+                          <div className="flex-1 overflow-y-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>สินค้า</TableHead>
+                                  <TableHead>หน่วย</TableHead>
+                                  <TableHead className="text-right">ราคาทุน</TableHead>
+                                  <TableHead className="text-right">จำนวน</TableHead>
+                                  <TableHead className="text-right">รวม</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {receiptItems.map(item => {
+                                  const es = getExpiryStatus(item.expiry_date)
+                                  return (
+                                    <TableRow key={item.id}>
+                                      <TableCell>
+                                        <div className="font-medium text-sm">{item.trade_name}</div>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                          {item.lot_number && (
+                                            <span className="font-mono text-xs text-slate-400">{item.lot_number}</span>
+                                          )}
+                                          {item.lot_number && item.expiry_date && (
+                                            <span className="text-slate-300">·</span>
+                                          )}
+                                          {item.expiry_date && (
+                                            <span className={`text-xs ${
+                                              es === 'expired' ? 'text-red-600 font-semibold' :
+                                              es === 'danger'  ? 'text-orange-500 font-semibold' :
+                                              es === 'warning' ? 'text-yellow-600' :
+                                              'text-slate-400'
+                                            }`}>
+                                              {formatExpiry(item.expiry_date)}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-sm text-slate-500">{item.unit_name || '—'}</TableCell>
+                                      <TableCell className="text-right tabular-nums">฿{formatCurrency(item.cost_price)}</TableCell>
+                                      <TableCell className="text-right tabular-nums">{item.qty_received}</TableCell>
+                                      <TableCell className="text-right font-semibold tabular-nums">฿{formatCurrency(item.cost_price * item.qty_received)}</TableCell>
+                                    </TableRow>
+                                  )
+                                })}
+                              </TableBody>
+                              {hasAdjust && (
+                                <tfoot>
+                                  <tr className="border-t border-slate-100">
+                                    <td colSpan={4} className="px-4 py-1.5 text-right text-xs text-slate-500">ราคารวมก่อนปรับ</td>
+                                    <td className="px-4 py-1.5 text-right text-xs tabular-nums text-slate-600">฿{formatCurrency(rawTotal)}</td>
+                                  </tr>
+                                  {discountAmt > 0 && (
+                                    <tr>
+                                      <td colSpan={4} className="px-4 py-1 text-right text-xs text-emerald-600">ส่วนลดรวม</td>
+                                      <td className="px-4 py-1 text-right text-xs tabular-nums text-emerald-600">−฿{formatCurrency(discountAmt)}</td>
+                                    </tr>
+                                  )}
+                                  {surchargeAmt > 0 && (
+                                    <tr>
+                                      <td colSpan={4} className="px-4 py-1 text-right text-xs text-amber-600">ส่วนเพิ่ม</td>
+                                      <td className="px-4 py-1 text-right text-xs tabular-nums text-amber-600">+฿{formatCurrency(surchargeAmt)}</td>
+                                    </tr>
+                                  )}
+                                </tfoot>
+                              )}
+                            </Table>
+                          </div>
+
+                          {/* Footer total */}
+                          <div className="shrink-0 border-t-2 border-slate-200 bg-slate-50 px-5 py-3 flex justify-between items-center">
+                            <div className="text-sm text-slate-500">{receiptItems.length} รายการ</div>
+                            <div className="font-extrabold text-emerald-700 tabular-nums text-lg">
+                              ฿{formatCurrency(rawTotal - discountAmt + surchargeAmt)}
+                            </div>
+                          </div>
+                        </>
+                      )
+                    })() : (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-400 gap-3">
+                        <FileText className="w-12 h-12 opacity-20" />
+                        <div className="text-sm">เลือกใบรับสินค้าเพื่อดูรายละเอียด</div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
               </div>
-            </div>
-          )}{/* end history tab */}
+            )
+          })()}{/* end history tab */}
 
         </div>{/* end white content panel */}
       </div>{/* end tab area */}
@@ -1542,65 +1798,176 @@ export default function PurchasePage() {
       })()}
 
       {/* ── Bill adjustment modal ── */}
-      {showBillAdjust && (
-        <InlineModal
-          title="ปรับยอดท้ายบิล"
-          onClose={closeBillAdjust}
-          onConfirm={applyBillAdjust}
-          maxWidth="max-w-sm"
-          footer={
-            <div className="px-5 py-3 border-t border-slate-200 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={closeBillAdjust}>ยกเลิก</Button>
-              <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600" onClick={applyBillAdjust}>ตกลง</Button>
-            </div>
+      {showBillAdjust && (() => {
+        const isDisc = billAdjustTab === 'discount'
+        // baht ↔ pct are two views of the same value; calcNet uses baht only
+        const calcNet = (dB: string, sB: string) =>
+          Math.max(adjustModalSum - (parseFloat(dB) || 0) + (parseFloat(sB) || 0), 0).toFixed(2)
+        const bahtToPct = (b: string) => {
+          const v = adjustModalSum > 0 ? (parseFloat(b) || 0) / adjustModalSum * 100 : 0
+          return v > 0 ? String(parseFloat(v.toFixed(4))) : ''
+        }
+        const pctToBaht = (p: string) => {
+          const v = (parseFloat(p) || 0) / 100 * adjustModalSum
+          return v > 0 ? v.toFixed(2) : ''
+        }
+        const previewDisc = parseFloat(billDiscountBaht) || 0
+        const previewSur  = parseFloat(billSurchargeBaht) || 0
+        const PCTS = ['3', '5', '10', '15', '20']
+        const handleNetChange = (val: string) => {
+          setBillNetInput(val)
+          const netTyped = parseFloat(val) || 0
+          if (isDisc) {
+            const needed = Math.max(adjustModalSum + (parseFloat(billSurchargeBaht) || 0) - netTyped, 0)
+            const newBaht = needed > 0 ? needed.toFixed(2) : ''
+            setBillDiscountBaht(newBaht); setBillDiscountPct(bahtToPct(newBaht))
+          } else {
+            const needed = Math.max(netTyped - adjustModalSum + (parseFloat(billDiscountBaht) || 0), 0)
+            const newBaht = needed > 0 ? needed.toFixed(2) : ''
+            setBillSurchargeBaht(newBaht); setBillSurchargePct(bahtToPct(newBaht))
           }
-        >
-          <div className="p-5 space-y-4">
-            <div className="grid grid-cols-3 items-center gap-2">
-              <label className="text-sm text-slate-600">ส่วนลด</label>
-              <Input
-                autoFocus
-                type="number"
-                min={0}
-                step="0.01"
-                value={billDiscountVal}
-                onChange={e => setBillDiscountVal(e.target.value)}
-                placeholder="0.00"
-                className="h-10 text-sm text-right"
-              />
-              <select
-                value={billDiscountType}
-                onChange={e => setBillDiscountType(e.target.value as 'amount' | 'percent')}
-                className="h-10 rounded-lg border border-slate-300 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              >
-                <option value="amount">บาท</option>
-                <option value="percent">%</option>
-              </select>
+        }
+        return (
+          <InlineModal
+            title="ปรับยอดท้ายบิล"
+            onClose={closeBillAdjust}
+            onConfirm={applyBillAdjust}
+            maxWidth="max-w-sm"
+            footer={
+              <div className="px-5 py-3 border-t border-slate-200 flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={closeBillAdjust}>ยกเลิก</Button>
+                <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600" onClick={applyBillAdjust}>ตกลง</Button>
+              </div>
+            }
+          >
+            <div className="flex flex-col">
+              {/* Tabs */}
+              <div className="flex border-b border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setBillAdjustTab('discount')}
+                  className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${isDisc ? 'border-b-2 border-emerald-500 text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  ส่วนลด
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillAdjustTab('surcharge')}
+                  className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${!isDisc ? 'border-b-2 border-amber-500 text-amber-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  ส่วนเพิ่ม
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* Quick percent buttons */}
+                <div className="flex gap-1.5">
+                  {PCTS.map(p => {
+                    const active = isDisc ? billDiscountPct === p : billSurchargePct === p
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => {
+                          const newPct = active ? '' : p
+                          const newBaht = pctToBaht(newPct)
+                          if (isDisc) { setBillDiscountPct(newPct); setBillDiscountBaht(newBaht); setBillNetInput(calcNet(newBaht, billSurchargeBaht)) }
+                          else { setBillSurchargePct(newPct); setBillSurchargeBaht(newBaht); setBillNetInput(calcNet(billDiscountBaht, newBaht)) }
+                        }}
+                        className={`flex-1 h-8 rounded-lg text-xs font-semibold border transition-colors ${active
+                          ? isDisc ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-amber-500 border-amber-500 text-white'
+                          : 'border-slate-300 text-slate-600 hover:border-emerald-400 hover:bg-emerald-50'}`}
+                      >
+                        {p}%
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Inputs: baht + percent side by side */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-500">จำนวนเงิน (บาท)</label>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">฿</span>
+                      <Input
+                        autoFocus
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={isDisc ? billDiscountBaht : billSurchargeBaht}
+                        onChange={e => {
+                          const newBaht = e.target.value
+                          if (isDisc) { setBillDiscountBaht(newBaht); setBillDiscountPct(bahtToPct(newBaht)); setBillNetInput(calcNet(newBaht, billSurchargeBaht)) }
+                          else { setBillSurchargeBaht(newBaht); setBillSurchargePct(bahtToPct(newBaht)); setBillNetInput(calcNet(billDiscountBaht, newBaht)) }
+                        }}
+                        placeholder="0.00"
+                        className="h-10 text-sm text-right pl-6"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-500">เปอร์เซ็นต์ (%)</label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.01"
+                        value={isDisc ? billDiscountPct : billSurchargePct}
+                        onChange={e => {
+                          const newPct = e.target.value
+                          const newBaht = pctToBaht(newPct)
+                          if (isDisc) { setBillDiscountPct(newPct); setBillDiscountBaht(newBaht); setBillNetInput(calcNet(newBaht, billSurchargeBaht)) }
+                          else { setBillSurchargePct(newPct); setBillSurchargeBaht(newBaht); setBillNetInput(calcNet(billDiscountBaht, newBaht)) }
+                        }}
+                        placeholder="0.00"
+                        className="h-10 text-sm text-right pr-7"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total preview */}
+                <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 space-y-1.5 text-sm">
+                  <div className="flex justify-between text-slate-500">
+                    <span>ยอดรวมเดิม</span>
+                    <span className="tabular-nums">฿{formatCurrency(adjustModalSum)}</span>
+                  </div>
+                  {previewDisc > 0 && (
+                    <div className="flex justify-between text-emerald-600">
+                      <span>ส่วนลด</span>
+                      <span className="tabular-nums">−฿{formatCurrency(previewDisc)}</span>
+                    </div>
+                  )}
+                  {previewSur > 0 && (
+                    <div className="flex justify-between text-amber-600">
+                      <span>ส่วนเพิ่ม</span>
+                      <span className="tabular-nums">+฿{formatCurrency(previewSur)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between font-semibold text-slate-800 border-t border-slate-200 pt-1.5 mt-1">
+                    <span>ยอดสุทธิ</span>
+                    <div className="relative w-36">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">฿</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={billNetInput}
+                        onChange={e => handleNetChange(e.target.value)}
+                        onBlur={() => setBillNetInput(calcNet(billDiscountBaht, billSurchargeBaht))}
+                        className="h-9 text-sm font-semibold text-right pl-6 bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-3 items-center gap-2">
-              <label className="text-sm text-slate-600">ส่วนเพิ่ม</label>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={billSurchargeVal}
-                onChange={e => setBillSurchargeVal(e.target.value)}
-                placeholder="0.00"
-                className="h-10 text-sm text-right"
-              />
-              <select
-                value={billSurchargeType}
-                onChange={e => setBillSurchargeType(e.target.value as 'amount' | 'percent')}
-                className="h-10 rounded-lg border border-slate-300 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              >
-                <option value="amount">บาท</option>
-                <option value="percent">%</option>
-              </select>
-            </div>
-            <p className="text-xs text-slate-400">ยอดจะถูกกระจายตามสัดส่วนของแต่ละรายการ และคำนวณราคาทุน/หน่วยใหม่</p>
-          </div>
-        </InlineModal>
-      )}
+          </InlineModal>
+        )
+      })()}
 
       {/* ── Import paste modal ── */}
       {showImport && (
@@ -1681,74 +2048,6 @@ export default function PurchasePage() {
         </InlineModal>
       )}
 
-      {/* ── Receipt detail modal ── */}
-      <Dialog open={receiptModal} onOpenChange={setReceiptModal}>
-        <DialogContent size="2xl">
-          <DialogHeader>
-            <DialogTitle>ใบรับสินค้า: {receiptInvoice}</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            {receiptItems.length > 0 && (
-              <div className="text-sm text-slate-500 mb-3">
-                ผู้จัดจำหน่าย: <span className="text-slate-800 font-semibold">{receiptItems[0]?.supplier_name ?? '—'}</span>
-              </div>
-            )}
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>สินค้า</TableHead>
-                    <TableHead>Lot No.</TableHead>
-                    <TableHead className="text-center">หมดอายุ</TableHead>
-                    <TableHead className="text-center">ราคาทุน</TableHead>
-                    <TableHead className="text-center">ราคาขาย</TableHead>
-                    <TableHead className="text-center">จำนวน</TableHead>
-                    <TableHead className="text-center">รวม</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {receiptItems.map(item => {
-                    const es = getExpiryStatus(item.expiry_date)
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <div className="font-medium text-sm">{item.trade_name}</div>
-                          {item.product_code && <div className="text-xs text-slate-400">{item.product_code}</div>}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">{item.lot_number}</TableCell>
-                        <TableCell className="text-center text-sm">
-                          <span className={
-                            es === 'expired' ? 'text-red-600 font-semibold' :
-                            es === 'danger'  ? 'text-orange-500 font-semibold' :
-                            es === 'warning' ? 'text-yellow-600' : ''
-                          }>
-                            {formatExpiry(item.expiry_date)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">฿{formatCurrency(item.cost_price)}</TableCell>
-                        <TableCell className="text-right tabular-nums">฿{formatCurrency(item.sell_price)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{item.qty_received}</TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">฿{formatCurrency(item.cost_price * item.qty_received)}</TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-                <tfoot>
-                  <tr className="border-t-2 border-slate-200 bg-slate-50">
-                    <td colSpan={6} className="px-4 py-2.5 text-right text-sm font-semibold text-slate-600">มูลค่ารวม</td>
-                    <td className="px-4 py-2.5 text-right font-extrabold text-emerald-700 tabular-nums">
-                      ฿{formatCurrency(receiptItems.reduce((s, i) => s + i.cost_price * i.qty_received, 0))}
-                    </td>
-                  </tr>
-                </tfoot>
-              </Table>
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setReceiptModal(false)}>ปิด</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* ── Success dialog ── */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
