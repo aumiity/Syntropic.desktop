@@ -8,6 +8,7 @@ export function registerPurchaseHandlers() {
   for (const sql of [
     `ALTER TABLE purchase_receipts ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE purchase_receipts ADD COLUMN surcharge_amount REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE product_lots ADD COLUMN order_date TEXT`,
   ]) { try { db.exec(sql) } catch {} }
 
   ipcMain.handle('purchase:nextGRNumber', () => {
@@ -25,6 +26,7 @@ export function registerPurchaseHandlers() {
     supplier_id: number
     supplier_invoice_no: string
     receive_date: string
+    order_date?: string
     payment_type: string
     due_date?: string
     is_paid: boolean
@@ -66,6 +68,7 @@ export function registerPurchaseHandlers() {
               supplier_id = ?,
               invoice_no = ?,
               supplier_invoice_no = ?,
+              order_date = ?,
               payment_type = ?,
               due_date = ?,
               is_paid = ?,
@@ -73,7 +76,8 @@ export function registerPurchaseHandlers() {
               updated_at = ?
             WHERE id = ?
           `).run(item.qty, item.qty, avgCost, item.sell_price, payload.supplier_id,
-            payload.invoice_no, payload.supplier_invoice_no, payload.payment_type,
+            payload.invoice_no, payload.supplier_invoice_no, payload.order_date ?? null,
+            payload.payment_type,
             payload.due_date ?? null, payload.is_paid ? 1 : 0, payload.paid_date ?? null,
             payload.receive_date, existing.id)
 
@@ -86,11 +90,12 @@ export function registerPurchaseHandlers() {
           const lotResult = db.prepare(`
             INSERT INTO product_lots (product_id, supplier_id, lot_number, manufactured_date, expiry_date,
               cost_price, sell_price, qty_received, qty_on_hand,
-              invoice_no, supplier_invoice_no, payment_type, due_date, is_paid, paid_date, note, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              invoice_no, supplier_invoice_no, order_date, payment_type, due_date, is_paid, paid_date, note, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(item.product_id, payload.supplier_id, item.lot_number, item.manufactured_date ?? null, item.expiry_date,
             item.cost_price, item.sell_price, item.qty, item.qty,
-            payload.invoice_no, payload.supplier_invoice_no, payload.payment_type,
+            payload.invoice_no, payload.supplier_invoice_no, payload.order_date ?? null,
+            payload.payment_type,
             payload.due_date ?? null, payload.is_paid ? 1 : 0, payload.paid_date ?? null, item.note ?? '',
             payload.receive_date, payload.receive_date)
 

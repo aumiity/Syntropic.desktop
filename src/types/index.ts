@@ -34,7 +34,7 @@ export interface ProductLot {
   lot_number: string; manufactured_date?: string; expiry_date?: string
   cost_price: number; sell_price: number
   qty_received: number; qty_on_hand: number; qty_reserved: number
-  invoice_no?: string; supplier_invoice_no?: string
+  invoice_no?: string; supplier_invoice_no?: string; order_date?: string
   payment_type: string; due_date?: string; is_paid: number; paid_date?: string
   is_closed: number; note?: string; created_at?: string
   unit_name?: string; supplier_name?: string

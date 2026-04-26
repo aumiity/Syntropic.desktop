@@ -156,6 +156,7 @@ export function initializeSchema(db: Database.Database) {
       qty_reserved REAL NOT NULL DEFAULT 0,
       invoice_no TEXT,
       supplier_invoice_no TEXT,
+      order_date TEXT,
       payment_type TEXT DEFAULT 'cash',
       due_date TEXT,
       is_paid INTEGER NOT NULL DEFAULT 1,

@@ -40,7 +40,7 @@ export function formatExpiry(expiryDate: string | null | undefined): string {
   const dateStr = formatDate(expiryDate)
   if (days < 0) return `หมดอายุแล้ว (${dateStr})`
   if (days === 0) return `หมดอายุวันนี้`
-  return `${dateStr} (อีก ${days} วัน)`
+  return `${dateStr}`
 }
 
 export function generateInvoiceNo(prefix: string, existingCount: number): string {

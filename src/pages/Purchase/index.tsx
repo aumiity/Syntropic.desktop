@@ -636,7 +636,7 @@ export default function PurchasePage() {
     try {
       await window.api.purchase.save({
         invoice_no: invoiceNo, supplier_id: supplierId, supplier_invoice_no: supplierInvoiceNo,
-        receive_date: receiveDate, payment_type: paymentType,
+        receive_date: receiveDate, order_date: orderDate || undefined, payment_type: paymentType,
         due_date: dueDate || undefined, is_paid: isPaid, paid_date: paidDate || undefined,
         note: grNote || undefined,
         discount_amount: adjustDiscountAmt || undefined,
@@ -826,7 +826,7 @@ export default function PurchasePage() {
                             <div className="flex items-center gap-2 min-w-0">
                               <Building2 className="h-4 w-4 shrink-0 opacity-60" />
                               <span className={`truncate font-medium ${supplierId ? 'text-emerald-800' : 'text-slate-400'}`}>
-                                {supplierName || '— เลือกผู้จัดจำหน่าย —'}
+                                {supplierName || '— เลือกผู้จำหน่าย —'}
                               </span>
                             </div>
                             <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
@@ -936,7 +936,7 @@ export default function PurchasePage() {
                                               <span className="truncate flex-1">{p.trade_name}</span>
                                               {(() => {
                                                 const unitText = p.units && p.units.length > 0 ? p.units.map(u => u.unit_name).join(', ') : p.unit_name
-                                                return unitText ? <span className="text-xs text-red-400 font-mono shrink-0">{unitText}</span> : null
+                                                return unitText ? <span className="text-xs text-red-400  shrink-0">{unitText}</span> : null
                                               })()}
                                             </button>
                                           ))}
@@ -1112,7 +1112,7 @@ export default function PurchasePage() {
                       <div className="text-sm font-semibold text-slate-400 uppercase tracking-wide">สรุปใบรับสินค้า</div>
                       <div>
                         <div className="text-xs text-slate-400 mb-0.5">เลขที่ใบรับ</div>
-                        <div className="font-mono font-bold text-sm text-emerald-700">{invoiceNo || '—'}</div>
+                        <div className=" font-bold text-sm text-emerald-700">{invoiceNo || '—'}</div>
                       </div>
                       <div>
                         <div className="text-xs text-slate-400 mb-0.5">ผู้จัดจำหน่าย</div>
@@ -1345,11 +1345,11 @@ export default function PurchasePage() {
                       </div>
                       <div className="flex gap-2">
                         <div className="flex-1 space-y-0.5">
-                          <label className="text-[10px] text-slate-400 px-0.5">จากวันที่</label>
+                          <label className="text-xs text-slate-400 px-0.5">จากวันที่</label>
                           <DateInput value={histDateFrom} onChange={setHistDateFrom} className="w-full h-8 text-sm" />
                         </div>
                         <div className="flex-1 space-y-0.5">
-                          <label className="text-[10px] text-slate-400 px-0.5">ถึงวันที่</label>
+                          <label className="text-xs text-slate-400 px-0.5">ถึงวันที่</label>
                           <DateInput value={histDateTo} onChange={setHistDateTo} className="w-full h-8 text-sm" />
                         </div>
                       </div>
@@ -1392,7 +1392,7 @@ export default function PurchasePage() {
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <div className={`font-mono text-xs font-semibold ${isSelected ? 'text-emerald-700' : 'text-slate-700'}`}>
+                                <div className={` text-xs font-semibold ${isSelected ? 'text-emerald-700' : 'text-slate-700'}`}>
                                   {h.invoice_no}
                                 </div>
                                 <div className="text-xs text-slate-400 truncate mt-0.5">{h.supplier_name ?? '—'}</div>
@@ -1403,15 +1403,15 @@ export default function PurchasePage() {
                               </div>
                             </div>
                             <div className="mt-1.5 flex items-center gap-1.5">
-                              <span className="text-[10px] text-slate-400">{h.item_count} รายการ</span>
+                              <span className="text-xs text-slate-400">{h.item_count} รายการ</span>
                               <span className="text-slate-200">·</span>
                               {h.payment_type === 'credit'
                                 ? h.is_paid
-                                  ? <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium">ชำระแล้ว</span>
+                                  ? <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium">ชำระแล้ว</span>
                                   : isOverdue
-                                    ? <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
-                                    : <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
-                                : <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">เงินสด</span>
+                                    ? <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
+                                    : <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
+                                : <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">เงินสด</span>
                               }
                             </div>
                           </button>
@@ -1443,8 +1443,8 @@ export default function PurchasePage() {
                           <div className="px-5 py-4 border-b border-slate-200 shrink-0">
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <div className="text-[10px] text-slate-400 uppercase tracking-wide">เลขที่ใบรับ</div>
-                                <div className="font-mono font-bold text-slate-800 text-base">{receiptInvoice}</div>
+                                <div className="text-xs text-slate-400 uppercase tracking-wide">เลขที่ใบรับ</div>
+                                <div className=" font-bold text-slate-800 text-base">{receiptInvoice}</div>
                               </div>
                               {h && (
                                 h.payment_type === 'credit'
@@ -1456,18 +1456,22 @@ export default function PurchasePage() {
                                   : <Badge variant="secondary" className="text-xs shrink-0">เงินสด</Badge>
                               )}
                             </div>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-3">
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-3">
                               <div>
-                                <div className="text-[10px] text-slate-400 uppercase tracking-wide">ผู้จำหน่าย</div>
+                                <div className="text-xs text-slate-400 uppercase tracking-wide">ผู้จำหน่าย</div>
                                 <div className="text-sm font-medium text-slate-700 truncate">{first.supplier_name ?? '—'}</div>
                               </div>
                               <div>
-                                <div className="text-[10px] text-slate-400 uppercase tracking-wide">วันที่สั่งซื้อตามบิล</div>
-                                <div className="text-sm font-medium text-slate-700">{first.created_at ? formatDate(first.created_at) : '—'}</div>
+                                <div className="text-xs text-slate-400 uppercase tracking-wide">เลขที่ใบกำกับสินค้า</div>
+                                <div className="text-sm font-medium text-slate-700">{first.supplier_invoice_no || '—'}</div>
                               </div>
-                              <div className="col-span-2">
-                                <div className="text-[10px] text-slate-400 uppercase tracking-wide">เลขที่ใบกำกับสินค้า</div>
-                                <div className="text-sm font-mono font-medium text-slate-700">{first.supplier_invoice_no || '—'}</div>
+                              <div>
+                                <div className="text-xs text-slate-400 uppercase tracking-wide">วันที่สั่งซื้อตามบิล</div>
+                                <div className="text-sm font-medium text-slate-700">{first.order_date ? formatDate(first.order_date) : '—'}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-slate-400 uppercase tracking-wide">วันที่รับสินค้า</div>
+                                <div className="text-sm font-medium text-slate-700">{first.created_at ? formatDate(first.created_at) : '—'}</div>
                               </div>
                             </div>
                           </div>
@@ -1476,7 +1480,7 @@ export default function PurchasePage() {
                           <div className="flex-1 overflow-y-auto">
                             <Table>
                               <TableHeader>
-                                <TableRow>
+                                <TableRow className="bg-slate-100">
                                   <TableHead>สินค้า</TableHead>
                                   <TableHead>หน่วย</TableHead>
                                   <TableHead className="text-right">ราคาทุน</TableHead>
@@ -1493,10 +1497,10 @@ export default function PurchasePage() {
                                         <div className="font-medium text-sm">{item.trade_name}</div>
                                         <div className="flex items-center gap-2 mt-0.5">
                                           {item.lot_number && (
-                                            <span className="font-mono text-xs text-slate-400">{item.lot_number}</span>
+                                            <span className="text-xs text-slate-400">Lot. {item.lot_number}</span>
                                           )}
                                           {item.lot_number && item.expiry_date && (
-                                            <span className="text-slate-300">·</span>
+                                            <span className="text-slate-300 text-xs"></span>
                                           )}
                                           {item.expiry_date && (
                                             <span className={`text-xs ${
@@ -1504,8 +1508,7 @@ export default function PurchasePage() {
                                               es === 'danger'  ? 'text-orange-500 font-semibold' :
                                               es === 'warning' ? 'text-yellow-600' :
                                               'text-slate-400'
-                                            }`}>
-                                              {formatExpiry(item.expiry_date)}
+                                            }`}>exp. {formatExpiry(item.expiry_date)}
                                             </span>
                                           )}
                                         </div>
@@ -1603,7 +1606,7 @@ export default function PurchasePage() {
                   <Building2 className={`h-4 w-4 shrink-0 ${s.id === supplierId ? 'text-emerald-500' : 'text-slate-400'}`} />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold truncate">{s.name}</div>
-                    {s.code && <div className="text-xs text-slate-400 font-mono">{s.code}</div>}
+                    {s.code && <div className="text-xs text-slate-400 ">{s.code}</div>}
                   </div>
                 </button>
               ))}
@@ -1991,7 +1994,7 @@ export default function PurchasePage() {
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="text-xs font-semibold text-slate-500">จัดลำดับคอลัมน์ (ตรงกับตารางที่วาง)</div>
                 {!importColumns.includes('key') && (
-                  <div className="flex items-center gap-1 text-[10px] font-semibold text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5">
+                  <div className="flex items-center gap-1 text-xs font-semibold text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5">
                     <AlertTriangle className="h-3 w-3 shrink-0" /> ต้องมีคอลัมน์ Barcode / ชื่อ
                   </div>
                 )}
@@ -1999,7 +2002,7 @@ export default function PurchasePage() {
               <div className="flex flex-wrap items-end gap-2">
                 {importColumns.map((col, ci) => (
                   <div key={ci} className="flex flex-col gap-0.5">
-                    <div className="text-[10px] text-slate-400 text-center">Col {ci + 1}</div>
+                    <div className="text-xs text-slate-400 text-center">Col {ci + 1}</div>
                     <select
                       value={col}
                       onChange={e => {
@@ -2016,7 +2019,7 @@ export default function PurchasePage() {
                   </div>
                 ))}
                 <div className="flex flex-col gap-0.5">
-                  <div className="text-[10px] text-transparent select-none">.</div>
+                  <div className="text-xs text-transparent select-none">.</div>
                   <div className="flex gap-1">
                     <button
                       type="button"
@@ -2042,7 +2045,7 @@ export default function PurchasePage() {
               value={importText}
               onChange={e => setImportText(e.target.value)}
               placeholder={'CETRIZIN\t200\t41128\t04/11/2028\t04/11/2028\t1,020.00'}
-              className="font-mono text-xs h-40"
+              className=" text-xs h-40"
             />
           </div>
         </InlineModal>
@@ -2056,10 +2059,10 @@ export default function PurchasePage() {
             <div className="text-6xl">✅</div>
             <div>
               <div className="text-lg font-semibold">บันทึกสำเร็จ</div>
-              <div className="text-muted-foreground text-sm mt-1 font-mono">{savedInvoice}</div>
+              <div className="text-muted-foreground text-sm mt-1 ">{savedInvoice}</div>
             </div>
             <Button onClick={() => setShowSuccess(false)} className="w-full bg-emerald-500 hover:bg-emerald-600">
-              รับสินค้าล็อตใหม่
+              เสร็จสิ้น
             </Button>
           </DialogBody>
         </DialogContent>
