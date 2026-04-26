@@ -343,6 +343,39 @@ The "edit bill" feature (supplier, supplier invoice no, order date, receive date
 - New `order_date TEXT` column on `product_lots` and `purchase_receipts` (วันที่สั่งซื้อตามบิล — the supplier's bill date, distinct from receive date). The receive form already had this field but was discarding it; it's now persisted on save and read back in the detail panel.
 - Detail panel now shows BOTH วันที่สั่งซื้อตามบิล and วันที่รับสินค้า in a 2×2 grid (with ผู้จำหน่าย and เลขที่ใบกำกับสินค้า).
 
+## Date Pickers — Shadcn Calendar + Range Picker (2026-04-26)
+
+Replaced the custom hidden-native `<input type="date">` calendar trigger with a shadcn-style Popover+Calendar, and added a range picker with presets for the GR history filter.
+
+### Dependency
+- `react-day-picker@^8` installed via `npm install react-day-picker --ignore-scripts` so the prebuilt `better-sqlite3` native binary stays intact. `date-fns` and `@radix-ui/react-popover` were already installed.
+
+### `src/components/ui/calendar.tsx` (new)
+- Shadcn Calendar wrapper around `react-day-picker` v8. Themed via `buttonVariants({ variant: 'ghost' })` for day cells and `outline` for nav arrows so it picks up the project's emerald primary automatically.
+- Standard shadcn classNames (head_cell, day_selected, day_today, day_outside, day_range_*) — works for both `mode="single"` and `mode="range"`.
+
+### `src/components/ui/date-input.tsx` (rewritten internals)
+- **Public API unchanged** — same `<DateInput value={iso} onChange={(iso) => ...} />` shape, all callers work as before.
+- Typeable `dd/mm/yyyy` input preserved (auto-formatting via `autoFormat`, `displayToIso`, `isoToDisplay` helpers). Copy/paste workflow for mfd/exp on the GR receive form intact.
+- The calendar icon button now opens a shadcn `Popover` with `Calendar` (mode="single") instead of triggering a hidden native `<input type="date">`. Picking a day writes the ISO out and closes the popover.
+- The hidden native input was removed entirely.
+
+### `src/components/ui/date-range-picker.tsx` (new)
+Reusable range picker for filtering by date intervals.
+- **Trigger:** button styled to match `Input` (h-8, border-input, rounded-md), shows `dd/mm/yyyy – dd/mm/yyyy` or single date if same day, or the placeholder when empty.
+- **Popover layout:** preset rail on the left + 2-month `Calendar` (`mode="range"`, `numberOfMonths={2}`) on the right.
+- **8 presets (Thai):** วันนี้, เมื่อวาน, 7 วันล่าสุด, 30 วันล่าสุด, เดือนนี้, เดือนที่แล้ว, ปีนี้, ทั้งหมด (the last clears the range).
+- **Behaviour:**
+  - Preset click → fires onChange, closes popover immediately.
+  - First click in calendar → writes start ISO so the trigger label updates to a single date, popover stays open.
+  - Second click in calendar (range complete) → fires onChange, closes popover.
+- **API:** `<DateRangePicker from={iso} to={iso} onChange={(from, to) => ...} />` — both empty strings when cleared.
+
+### Wired into ประวัติการรับสินค้า filter ([src/pages/Purchase/index.tsx](src/pages/Purchase/index.tsx))
+- `loadHistory` now accepts an optional third arg `dateOverride: { from: string; to: string }` (same pattern as the existing `filterOverride` for payment chips) so preset clicks reload immediately without stale-state issues from the memoized callback.
+- The two `DateInput` fields (`จากวันที่` / `ถึงวันที่`) replaced with a single `DateRangePicker` labelled `ช่วงวันที่`. `onChange` sets state AND calls `loadHistory(1, undefined, { from, to })` — no extra search-button press needed for date filter changes.
+- Mfd / exp / receive-date / order-date / due-date / paid-date fields elsewhere in the page still use `DateInput` — unchanged.
+
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source
 - better-sqlite3 prebuilt binary obtained via prebuild-install targeting Electron 31.7.7

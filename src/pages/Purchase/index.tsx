@@ -3,6 +3,7 @@ import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DateInput } from '@/components/ui/date-input'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogBody } from '@/components/ui/dialog'
@@ -274,15 +275,21 @@ export default function PurchasePage() {
     setSuppliers(data as Supplier[])
   }
 
-  const loadHistory = useCallback(async (page = 1, filterOverride?: 'all' | 'cash' | 'credit' | 'cancelled') => {
+  const loadHistory = useCallback(async (
+    page = 1,
+    filterOverride?: 'all' | 'cash' | 'credit' | 'cancelled',
+    dateOverride?: { from: string; to: string },
+  ) => {
     const filter = filterOverride ?? histPaymentFilter
+    const dFrom = dateOverride?.from ?? histDateFrom
+    const dTo = dateOverride?.to ?? histDateTo
     setLoadingHist(true)
     try {
       const res = await window.api.purchase.history({
         q: histQ || undefined,
         supplier_id: histSupplierId || undefined,
-        date_from: histDateFrom || undefined,
-        date_to: histDateTo || undefined,
+        date_from: dFrom || undefined,
+        date_to: dTo || undefined,
         payment_type: (filter === 'cash' || filter === 'credit') ? filter : undefined,
         status: filter === 'cancelled' ? 'cancelled' : 'all',
         page,
@@ -1460,15 +1467,17 @@ export default function PurchasePage() {
                           <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <div className="flex-1 space-y-0.5">
-                          <label className="text-xs text-slate-400 px-0.5">จากวันที่</label>
-                          <DateInput value={histDateFrom} onChange={setHistDateFrom} className="w-full h-8 text-sm" />
-                        </div>
-                        <div className="flex-1 space-y-0.5">
-                          <label className="text-xs text-slate-400 px-0.5">ถึงวันที่</label>
-                          <DateInput value={histDateTo} onChange={setHistDateTo} className="w-full h-8 text-sm" />
-                        </div>
+                      <div className="space-y-0.5">
+                        <label className="text-xs text-slate-400 px-0.5">ช่วงวันที่</label>
+                        <DateRangePicker
+                          from={histDateFrom}
+                          to={histDateTo}
+                          onChange={(from, to) => {
+                            setHistDateFrom(from)
+                            setHistDateTo(to)
+                            loadHistory(1, undefined, { from, to })
+                          }}
+                        />
                       </div>
                       {/* Filter chips */}
                       <div className="flex gap-1.5 flex-wrap">
