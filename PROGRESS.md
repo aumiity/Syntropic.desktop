@@ -1,7 +1,7 @@
 # Syntropic Desktop - Build Progress
 
 ## Status: 100% Complete + UI Polish ✅
-## Last updated: 2026-04-25
+## Last updated: 2026-04-26
 ## App is RUNNABLE — run `npm run electron:dev` to launch
 
 ---
@@ -275,6 +275,28 @@ Rebuilt the payment dialog to match the PHP reference screen (two-section layout
 - **วันครบกำหนด quick buttons** — four amber pills (15ว / 30ว / 60ว / 90ว) appear below the due date input when เครดิต is selected; each sets `dueDate` to today + N days.
 - **ชำระแล้ว quick buttons** — วันนี้ (emerald) and วันครบกำหนด (amber, disabled when no due date) appear below the paid date input; วันครบกำหนด copies `dueDate` into `paidDate`.
 - **หมายเหตุ section** — textarea card in sidebar between การชำระเงิน and save button; bound to `grNote` state. Saved via new `purchase_receipts` table (`invoice_no TEXT PRIMARY KEY, note TEXT, created_at`). IPC `purchase:save` now accepts optional `note` and does `INSERT OR REPLACE INTO purchase_receipts` inside the existing transaction. Schema added `CREATE TABLE IF NOT EXISTS purchase_receipts` — non-breaking for existing DBs. `grNote` reset on both save success and ล้างฟอร์ม.
+
+## Purchase Page — Two-Row Table + Import Overhaul (2026-04-26)
+
+### Line Items Table Redesigned (two-row layout per product)
+- Each product entry now spans two `<tr>` wrapped in `<React.Fragment key={i}>`.
+- **Row 1 (main):** # · ชื่อสินค้า · หน่วย · จำนวน · ราคาทุน · ราคาขาย · ส่วนลด · รวม · ×  — 9 columns total (was 12).
+- **Row 2 (sub-row):** `colSpan={9}`, `bg-slate-50/50`, no border-top. Contains three compact inline fields — Lot No. input, วันผลิต DateInput, วันหมดอายุ DateInput — each with a tiny `text-[10px]` label above, indented `pl-10` to align under the product name column. Expiry color-coding (red/orange/yellow border) preserved.
+- Active row highlight (`border-l-emerald-400 bg-emerald-100`) and partial row tint (`bg-amber-50/60`) applied to both rows in the pair; `border-l-2` indicator only on row 1.
+- Removed Lot No. / วันผลิต / วันหมดอายุ column headers from `<thead>`.
+- `<tfoot>` colSpan values updated: 12→9 (duplicates alert row), 10→7 (adjust subtotal rows + totals footer row).
+
+### Import Modal — Custom Column Mapping
+- Added `IMPORT_FIELD_OPTIONS` constant with 8 mappable field types: `Barcode/ชื่อ`, `จำนวน`, `Lot No.`, `วันผลิต`, `วันหมดอายุ`, `ราคารวม`, `ราคาทุน/หน่วย`, `— ข้าม —`.
+- `importColumns` state (default `['key','qty','lot','mfg','exp','total']`) drives a row of compact dropdowns in the modal — one per column position, with `+` / `−` buttons to add/remove slots.
+- Parser switched from fixed positional destructuring to mapping-based extraction (`colIdx` map + `pick(field)` helper). Minimum-6-cells guard removed; shorter rows parse correctly.
+- New `ราคาทุน/หน่วย` field type supported; falls back to `total ÷ qty` when absent.
+- Validation: import blocked (toast + greyed button + inline red badge) when no column is mapped to `Barcode/ชื่อ`.
+
+### Import — Unmatched Rows Land in Table
+- Previously: products not found in DB were blocked (toast error or resolve modal).
+- Now: unmatched rows are added as empty rows with the supplier key text pre-filled in the product search input. They appear as partial (amber dot) so the user can immediately see which need manual product selection.
+- Toast reports both counts: "นำเข้า N รายการ (พบ M · ไม่พบ K — กรุณาเลือกสินค้าด้วยตนเอง)".
 
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source
