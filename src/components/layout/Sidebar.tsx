@@ -24,8 +24,8 @@ export function Sidebar() {
     <aside className="flex flex-col w-20 h-screen bg-sidebar border-r border-sidebar-border shrink-0">
       {/* Logo */}
       <div className="flex flex-col items-center justify-center h-16 border-b border-sidebar-border">
-        <div className="text-white font-extrabold text-lg leading-none">Rx</div>
-        <div className="text-emerald-300 text-[14px] font-medium leading-tight">Syntropic</div>
+        <div className="text-sidebar-foreground font-extrabold text-lg leading-none">Rx</div>
+        <div className="text-sidebar-primary-foreground text-[14px] font-medium leading-tight">Syntropic</div>
       </div>
 
       {/* Nav */}
@@ -40,7 +40,7 @@ export function Sidebar() {
                 'flex flex-col items-center justify-center w-16 h-16 rounded-xl transition-colors gap-1',
                 isActive
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                  : 'text-emerald-200 hover:bg-emerald-600 hover:text-white'
+                  : 'text-sidebar-primary-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
               )
             }
             title={label}
