@@ -325,7 +325,7 @@ export default function POSPage() {
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
-    <div className="flex flex-col h-full p-3 gap-3">
+    <div className="flex flex-col h-full p-3 gap-2">
 
           {/* Gradient banner */}
           <div className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-sky-600 text-white shadow-md flex items-center justify-between">
@@ -399,14 +399,6 @@ export default function POSPage() {
               <UserPlus className="h-5 w-5" />
               <span className="text-[10px] leading-none">เพิ่มลูกค้า</span>
             </button>
-          </div>
-        </div>
-
-        {/* Grand total */}
-        <div className="w-64 bg-white rounded-xl shadow-sm border-2 border-emerald-50 p-5 flex flex-col justify-center shrink-0">
-          <div className="text-right text-sm font-bold text-slate-500 mb-1">ยอดสุทธิ</div>
-          <div className="text-right text-5xl font-extrabold text-emerald-600 leading-none tabular-nums">
-            {formatCurrency(cart.totalAmount())}
           </div>
         </div>
       </div>
@@ -564,6 +556,13 @@ export default function POSPage() {
 
         {/* Right action panel */}
         <div className="w-64 shrink-0 flex flex-col gap-2.5">
+                  {/* Grand total */}
+        <div className="w-64 bg-white rounded-xl shadow-sm border-2 border-emerald-50 p-5 flex flex-col justify-center shrink-0">
+          <div className="text-right text-sm font-bold text-slate-500 mb-1">ยอดสุทธิ</div>
+          <div className="text-right text-5xl font-extrabold text-emerald-600 leading-none tabular-nums">
+            {formatCurrency(cart.totalAmount())}
+          </div>
+        </div>
           <Button disabled={cart.items.length === 0}
             onClick={() => {
               setPendingDiscounts(cart.items.map(i => i.discount))
@@ -926,9 +925,12 @@ export default function POSPage() {
                     <Input
                       type="number"
                       value={cashAmount}
+                      onFocus={e => e.currentTarget.select()}
                       onChange={e => setCashAmount(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleCompleteSale() }}
                       placeholder="0.00"
                       className="text-right text-3xl font-bold tabular-nums h-16"
+                      autoFocus
                     />
                   </div>
 
@@ -1326,3 +1328,4 @@ export default function POSPage() {
     </div>
   )
 }
+
