@@ -327,10 +327,6 @@ export default function POSPage() {
   return (
     <div className="flex flex-col h-full p-3 gap-3">
 
-      {/* ── TOP ROW ── */}
-      <div className="flex gap-3 shrink-0">
-        <div className="flex-1 flex flex-col gap-2.5 min-w-0">
-
           {/* Gradient banner */}
           <div className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-sky-600 text-white shadow-md flex items-center justify-between">
             <div>
@@ -342,6 +338,9 @@ export default function POSPage() {
               <div>เวลา: <span className="font-semibold tabular-nums">{timeStr}</span></div>
             </div>
           </div>
+      {/* ── TOP ROW ── */}
+      <div className="flex gap-3 shrink-0">
+        <div className="flex-1 flex flex-col gap-2.5 min-w-0">
 
           {/* Search input + controls */}
           <div className="flex gap-2 items-center">
@@ -416,7 +415,7 @@ export default function POSPage() {
       <div className="flex gap-3 flex-1 min-h-0">
 
         {/* Cart table */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex flex-1 flex-col min-h-0">
           {cart.customer?.is_alert && cart.customer.alert_note && (
             <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-sm text-red-600 flex items-center gap-2 font-medium shrink-0 mb-2">
               <AlertTriangle className="h-4 w-4 shrink-0" />{cart.customer.alert_note}

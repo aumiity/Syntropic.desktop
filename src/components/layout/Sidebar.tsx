@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { useThemeStore } from '@/stores/themeStore'
 import {
   ShoppingCart, Package, PackagePlus, Users, BarChart2, Settings,
-  Sun, Moon,
+  Sun, Moon, Layers,
 } from 'lucide-react'
 
 const navItems = [
@@ -14,6 +14,7 @@ const navItems = [
   { to: '/people', label: 'บุคคล', icon: Users },
   { to: '/reports', label: 'รายงาน', icon: BarChart2 },
   { to: '/settings', label: 'ตั้งค่า', icon: Settings },
+  { to: '/ui', label: 'UI', icon: Layers },
 ]
 
 export function Sidebar() {

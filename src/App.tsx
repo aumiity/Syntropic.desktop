@@ -11,6 +11,7 @@ const People = lazy(() => import('./pages/People'))
 const ReportsSales = lazy(() => import('./pages/Reports/Sales'))
 const ReportsPurchases = lazy(() => import('./pages/Reports/Purchases'))
 const Settings = lazy(() => import('./pages/Settings'))
+const UIComponents = lazy(() => import('./pages/UIComponents'))
 
 function PageLoader() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
               <Route path="reports" element={<ReportsSales />} />
               <Route path="reports/purchases" element={<ReportsPurchases />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="ui" element={<UIComponents />} />
             </Route>
           </Routes>
         </Suspense>
