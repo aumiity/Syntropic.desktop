@@ -285,7 +285,7 @@ export default function UIComponents() {
         <Tabs defaultValue="components" className="w-full max-w-6xl rounded-xl border border-border bg-card overflow-hidden">
           <div className="border-b border-border bg-muted/30 px-4 py-3">
             <TabsList className="mb-0">
-              <TabsTrigger value="components">Component</TabsTrigger>
+              <TabsTrigger value="components">Component</TabsTrigger> | 
               <TabsTrigger value="color-ui">Color UI</TabsTrigger>
             </TabsList>
           </div>
