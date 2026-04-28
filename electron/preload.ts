@@ -81,6 +81,11 @@ const api = {
     allCategories: () => ipcRenderer.invoke('settings:allCategories'),
     allDrugTypes: () => ipcRenderer.invoke('settings:allDrugTypes'),
     allDosageForms: () => ipcRenderer.invoke('settings:allDosageForms'),
+    getThemeColors: () => ipcRenderer.invoke('settings:getThemeColors'),
+    saveThemeColors: (payload: Array<{ token: string; light: string; dark: string }>) =>
+      ipcRenderer.invoke('settings:saveThemeColors', payload),
+    getThemeFontSize: () => ipcRenderer.invoke('settings:getThemeFontSize'),
+    saveThemeFontSize: (fontSize: string) => ipcRenderer.invoke('settings:saveThemeFontSize', fontSize),
   },
   // Printer
   printer: {

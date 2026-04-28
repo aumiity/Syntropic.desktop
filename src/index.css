@@ -13,26 +13,26 @@
     --card-foreground: 215 28% 17%;
     --popover: 0 0% 100%;
     --popover-foreground: 215 28% 17%;
-    --primary: 161 94% 30%;           /* emerald-600 #059669 */
+    --primary: 161 94% 30%;           /* emerald-500 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 161 94% 25%;        /* emerald-700 #047857 */
+    --primary-hover: 163 94% 24%;        /* emerald-700 #047857 */
     --secondary: 0 0% 100%;         /* emerald-50 tint */
-    --secondary-foreground: 221 39% 11%; /* emerald-700 */
+    --secondary-foreground: 215 28% 17%; /* emerald-700 */
     --muted: 210 20% 93%;             /* slate-100 */
     --muted-foreground: 215 16% 47%;  /* slate-500 */
     --accent: 152 76% 95%;
-    --accent-foreground: 162 87% 24%;
+    --accent-foreground: 161 94% 30%;
     --destructive: 0 84% 60%;       /* red-600 #dc2626 */
     --destructive-foreground: 0 0% 100%;
-    --destructive-hover: 0 74% 42%;        /* red-700 #b91c1c */
+    --destructive-hover: 0 72% 51%;        /* red-700 #b91c1c */
     --border: 214 32% 91%;            /* slate-200 */
     --input: 214 32% 91%;
-    --ring: 160 84% 39%;              /* emerald-500 */
+    --ring: 161 94% 30%;              /* emerald-500 */
     --radius: 0.5rem;
     --sidebar: 162 87% 21%;           /* emerald-700 #047857 */
     --sidebar-foreground: 0 0% 100%;
     --sidebar-border: 163 88% 16%;    /* emerald-800 */
-    --sidebar-accent: 161 94% 30%;    /* emerald-600 */
+    --sidebar-accent: 160 84% 39%;    /* emerald-500 */
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-ring: 161 94% 25%;       /* emerald-700 */
     --sidebar-primary: 162 87% 21%;           /* emerald-700 */
@@ -40,15 +40,15 @@
   }
 
   .dark {
-    --background: 215 28% 8%;
+    --background: 215 28% 17%;
     --foreground: 210 40% 96%;
-    --card: 215 28% 12%;
+    --card: 215 28% 17%;
     --card-foreground: 210 40% 96%;
-    --popover: 215 28% 12%;
+    --popover: 215 28% 17%;
     --popover-foreground: 210 40% 96%;
-    --primary: 160 84% 39%;           /* emerald-500 — lighter on dark */
+    --primary: 161 94% 30%;           /* emerald-500 — lighter on dark */
     --primary-foreground: 0 0% 100%;
-    --secondary: 215 28% 18%;
+    --secondary: 215 28% 17%;
     --secondary-foreground: 210 40% 96%;
     --muted: 215 28% 15%;
     --muted-foreground: 217 24% 58%;
@@ -64,6 +64,12 @@
     --sidebar-border: 163 88% 8%;
     --sidebar-accent: 160 84% 39%;    /* emerald-500 */
     --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-ring: 161 94% 25%;       /* emerald-700 */
+    --sidebar-primary: 162 87% 21%;           /* emerald-700 */
+    --sidebar-primary-foreground: 152 76% 80%;
+    --primary-hover: 163 94% 24%;
+    --destructive-hover: 0 74% 42%;
+    --radius: 0.5rem;
   }
 }
 

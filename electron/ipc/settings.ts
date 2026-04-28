@@ -1,5 +1,85 @@
 import { ipcMain } from 'electron'
+import { app } from 'electron'
+import fs from 'fs'
+import path from 'path'
 import { getDb } from '../db'
+
+type ThemeColorPayload = {
+  token: string
+  light: string
+  dark: string
+}
+
+function resolveThemeCssPath() {
+  const appPath = app.getAppPath()
+  const candidates = [
+    path.resolve(appPath, 'src/index.css'),
+    path.resolve(process.cwd(), 'src/index.css'),
+  ]
+  const found = candidates.find(candidate => fs.existsSync(candidate))
+  if (!found) {
+    throw new Error('ไม่พบไฟล์ src/index.css สำหรับแก้ไขธีมสี')
+  }
+  return found
+}
+
+function parseVars(block: string) {
+  const vars: Record<string, string> = {}
+  const re = /(--[a-z0-9-]+)\s*:\s*([^;]+);/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(block))) {
+    vars[m[1]] = m[2].trim()
+  }
+  return vars
+}
+
+function upsertVar(block: string, token: string, value: string) {
+  const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const lineRe = new RegExp(`(^\\s*${escapedToken}\\s*:\\s*)([^;]+)(;.*$)`, 'm')
+  if (lineRe.test(block)) {
+    return block.replace(lineRe, `$1${value}$3`)
+  }
+  const trimmed = block.replace(/\s*$/, '')
+  return `${trimmed}\n    ${token}: ${value};`
+}
+
+function updateSelectorBlock(content: string, selector: ':root' | '.dark', updates: Record<string, string>) {
+  const selectorRe = selector === ':root' ? /(:root\s*\{)([\s\S]*?)(\n\s*\})/m : /(\.dark\s*\{)([\s\S]*?)(\n\s*\})/m
+  const match = content.match(selectorRe)
+  if (!match) {
+    throw new Error(`ไม่พบบล็อก ${selector} ในไฟล์ index.css`)
+  }
+
+  const [, open, body, close] = match
+  let newBody = body
+  for (const [token, value] of Object.entries(updates)) {
+    newBody = upsertVar(newBody, token, value)
+  }
+  return content.replace(selectorRe, `${open}${newBody}${close}`)
+}
+
+function getHtmlFontSize(css: string) {
+  const htmlBlock = css.match(/html\s*\{([\s\S]*?)\}/m)
+  if (!htmlBlock) return null
+  const fontSizeMatch = htmlBlock[1].match(/font-size\s*:\s*([^;]+);/m)
+  if (!fontSizeMatch) return null
+  return fontSizeMatch[1].trim()
+}
+
+function setHtmlFontSize(css: string, value: string) {
+  const htmlBlockRe = /(html\s*\{)([\s\S]*?)(\})/m
+  const htmlBlock = css.match(htmlBlockRe)
+  if (!htmlBlock) {
+    return `${css}\n\nhtml { font-size: ${value}; }\n`
+  }
+
+  const [, open, body, close] = htmlBlock
+  const bodyWithFontSize = /font-size\s*:/m.test(body)
+    ? body.replace(/(font-size\s*:\s*)([^;]+)(;)/m, `$1${value}$3`)
+    : `${body.replace(/\s*$/, '')}\n  font-size: ${value};\n`
+
+  return css.replace(htmlBlockRe, `${open}${bodyWithFontSize}${close}`)
+}
 
 export function registerSettingsHandlers() {
   // Shop settings
@@ -123,5 +203,64 @@ export function registerSettingsHandlers() {
   // All dosage forms (for dropdowns)
   ipcMain.handle('settings:allDosageForms', () => {
     return getDb().prepare(`SELECT * FROM dosage_forms WHERE is_disabled = 0 ORDER BY name_th`).all()
+  })
+
+  // Theme color tokens in src/index.css
+  ipcMain.handle('settings:getThemeColors', () => {
+    const cssPath = resolveThemeCssPath()
+    const css = fs.readFileSync(cssPath, 'utf8')
+    const rootMatch = css.match(/:root\s*\{([\s\S]*?)\n\s*\}/m)
+    const darkMatch = css.match(/\.dark\s*\{([\s\S]*?)\n\s*\}/m)
+    if (!rootMatch || !darkMatch) {
+      throw new Error('ไม่พบบล็อก :root หรือ .dark ในไฟล์ index.css')
+    }
+
+    return {
+      path: cssPath,
+      root: parseVars(rootMatch[1]),
+      dark: parseVars(darkMatch[1]),
+    }
+  })
+
+  ipcMain.handle('settings:saveThemeColors', (_e, payload: ThemeColorPayload[]) => {
+    const cssPath = resolveThemeCssPath()
+    const css = fs.readFileSync(cssPath, 'utf8')
+
+    const rootUpdates: Record<string, string> = {}
+    const darkUpdates: Record<string, string> = {}
+    for (const row of payload ?? []) {
+      if (!row?.token || !/^--[a-z0-9-]+$/i.test(row.token)) continue
+      if (typeof row.light === 'string' && row.light.trim()) rootUpdates[row.token] = row.light.trim()
+      if (typeof row.dark === 'string' && row.dark.trim()) darkUpdates[row.token] = row.dark.trim()
+    }
+
+    let updated = css
+    if (Object.keys(rootUpdates).length) {
+      updated = updateSelectorBlock(updated, ':root', rootUpdates)
+    }
+    if (Object.keys(darkUpdates).length) {
+      updated = updateSelectorBlock(updated, '.dark', darkUpdates)
+    }
+
+    fs.writeFileSync(cssPath, updated, 'utf8')
+    return true
+  })
+
+  ipcMain.handle('settings:getThemeFontSize', () => {
+    const cssPath = resolveThemeCssPath()
+    const css = fs.readFileSync(cssPath, 'utf8')
+    return getHtmlFontSize(css) ?? '18px'
+  })
+
+  ipcMain.handle('settings:saveThemeFontSize', (_e, fontSize: string) => {
+    const value = String(fontSize ?? '').trim()
+    if (!/^\d+(\.\d+)?px$/i.test(value)) {
+      throw new Error('รูปแบบขนาดฟอนต์ไม่ถูกต้อง (ตัวอย่าง: 18px)')
+    }
+    const cssPath = resolveThemeCssPath()
+    const css = fs.readFileSync(cssPath, 'utf8')
+    const updated = setHtmlFontSize(css, value)
+    fs.writeFileSync(cssPath, updated, 'utf8')
+    return true
   })
 }

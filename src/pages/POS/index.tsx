@@ -361,7 +361,7 @@ export default function POSPage() {
             <div className="flex rounded-xl overflow-hidden border border-slate-300 shadow-sm shrink-0" style={{ height: '52px' }}>
               {(['retail', 'wholesale'] as const).map(t => (
                 <button key={t} onClick={() => { cart.setSaleType(t); refocusSearch() }}
-                  className={`font-bold text-sm transition-colors ${cart.saleType === t ? 'min w-12 bg-emerald-500 text-white' : 'min w-12 bg-white text-slate-500 hover:bg-slate-50'}`}>
+                  className={`font-bold text-sm transition-colors ${cart.saleType === t ? 'min w-12 bg-primary text-primary-foreground' : 'min w-12 bg-primary-foreground text-primary hover:bg-slate-50'}`}>
                   {t === 'retail' ? 'ปลีก' : 'ส่ง'}
                 </button>
               ))}
