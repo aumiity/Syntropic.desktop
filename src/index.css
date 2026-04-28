@@ -41,34 +41,34 @@
 
   .dark {
     --background: 215 28% 17%;
-    --foreground: 210 40% 96%;
+    --foreground: 220 14% 96%;
     --card: 215 28% 17%;
     --card-foreground: 210 40% 96%;
     --popover: 215 28% 17%;
     --popover-foreground: 210 40% 96%;
-    --primary: 161 94% 30%;           /* emerald-500 — lighter on dark */
+    --primary: 222 47% 11%;           /* emerald-500 — lighter on dark */
     --primary-foreground: 0 0% 100%;
-    --secondary: 215 28% 17%;
-    --secondary-foreground: 210 40% 96%;
-    --muted: 215 28% 15%;
-    --muted-foreground: 217 24% 58%;
-    --accent: 215 28% 18%;
-    --accent-foreground: 210 40% 96%;
-    --destructive: 0 72% 51%;
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 215 16% 47%;
+    --muted-foreground: 210 20% 93%;
+    --accent: 152 76% 95%;
+    --accent-foreground: 215 28% 17%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 28% 18%;
-    --input: 215 28% 18%;
-    --ring: 160 84% 39%;
-    --sidebar: 164 86% 10%;           /* emerald-900 */
+    --border: 215 25% 27%;
+    --input: 215 25% 27%;
+    --ring: 215 19% 35%;
+    --sidebar: 215 28% 17%;           /* emerald-900 */
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-border: 163 88% 8%;
-    --sidebar-accent: 160 84% 39%;    /* emerald-500 */
+    --sidebar-border: 222 47% 11%;
+    --sidebar-accent: 215 20% 65%;    /* emerald-500 */
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-ring: 161 94% 25%;       /* emerald-700 */
-    --sidebar-primary: 162 87% 21%;           /* emerald-700 */
-    --sidebar-primary-foreground: 152 76% 80%;
-    --primary-hover: 163 94% 24%;
-    --destructive-hover: 0 74% 42%;
+    --sidebar-ring: 215 19% 35%;       /* emerald-700 */
+    --sidebar-primary: 215 28% 17%;           /* emerald-700 */
+    --sidebar-primary-foreground: 214 32% 91%;
+    --primary-hover: 222 47% 11%;
+    --destructive-hover: 0 72% 51%;
     --radius: 0.5rem;
   }
 }
