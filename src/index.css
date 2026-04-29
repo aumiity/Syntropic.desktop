@@ -6,37 +6,61 @@
 
 @layer base {
   :root {
-    /* Emerald green brand — matches PHP version */
-    --background: 220 14% 96%;        /* gray-100  #f3f4f6 */
-    --foreground: 215 28% 17%;        /* slate-800 #1e293b */
-    --card: 0 0% 100%;                /* white */
+    /* Blue brand — #0485F7 */
+    --background: 220 14% 96%;
+    --foreground: 215 28% 17%;
+    --card: 0 0% 100%;
     --card-foreground: 215 28% 17%;
     --popover: 0 0% 100%;
     --popover-foreground: 215 28% 17%;
-    --primary: 161 94% 30%;           /* emerald-500 */
+    --primary: 208 97% 49%;           /* #0485F7 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 163 94% 24%;        /* emerald-700 #047857 */
-    --secondary: 0 0% 100%;         /* emerald-50 tint */
-    --secondary-foreground: 215 28% 17%; /* emerald-700 */
-    --muted: 210 20% 93%;             /* slate-100 */
-    --muted-foreground: 215 16% 47%;  /* slate-500 */
-    --accent: 152 81% 96%;
-    --accent-foreground: 161 94% 30%;
-    --destructive: 0 84% 60%;       /* red-600 #dc2626 */
+    --primary-hover: 208 97% 42%;
+    --secondary: 0 0% 100%;
+    --secondary-foreground: 215 28% 17%;
+    --muted: 210 20% 93%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 208 97% 95%;
+    --accent-foreground: 208 97% 49%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-hover: 0 72% 51%;        /* red-700 #b91c1c */
-    --border: 214 32% 91%;            /* slate-200 */
+    --destructive-hover: 0 72% 51%;
+    --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 161 94% 30%;              /* emerald-500 */
+    --ring: 208 97% 49%;
     --radius: 0.5rem;
-    --sidebar: 162 87% 21%;           /* emerald-700 #047857 */
+    --sidebar: 208 97% 35%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-border: 163 88% 16%;    /* emerald-800 */
-    --sidebar-accent: 160 84% 39%;    /* emerald-500 */
+    --sidebar-border: 208 97% 28%;
+    --sidebar-accent: 208 97% 49%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-ring: 161 94% 25%;       /* emerald-700 */
-    --sidebar-primary: 162 87% 21%;           /* emerald-700 */
-    --sidebar-primary-foreground: 152 76% 80%;    /* radius */
+    --sidebar-ring: 208 97% 42%;
+    --sidebar-primary: 208 97% 35%;
+    --sidebar-primary-foreground: 208 97% 80%;
+
+    /* Extended semantic tokens */
+    --foreground-subtle: 215 20% 65%;
+    --surface-hover: 210 40% 98%;
+    --border-strong: 213 27% 84%;
+
+    --primary-soft: 208 97% 95%;
+    --primary-soft-hover: 208 97% 90%;
+    --primary-soft-border: 208 97% 80%;
+    --primary-strong: 208 97% 35%;
+
+    --success: 142 71% 36%;
+    --success-foreground: 0 0% 100%;
+    --success-hover: 142 71% 30%;
+    --success-soft: 138 76% 95%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --warning-hover: 35 92% 45%;
+    --warning-soft: 48 100% 96%;
+    --warning-strong: 26 90% 37%;
+
+    --destructive-soft: 0 86% 97%;
+    --destructive-strong: 0 70% 35%;
   }
 
   .dark {
@@ -46,30 +70,54 @@
     --card-foreground: 210 40% 96%;
     --popover: 215 28% 17%;
     --popover-foreground: 210 40% 96%;
-    --primary: 222 47% 11%;           /* emerald-500 — lighter on dark */
+    --primary: 208 97% 49%;
     --primary-foreground: 0 0% 100%;
     --secondary: 222 47% 11%;
     --secondary-foreground: 0 0% 100%;
     --muted: 215 16% 47%;
     --muted-foreground: 210 20% 93%;
-    --accent: 152 76% 95%;
-    --accent-foreground: 215 28% 17%;
+    --accent: 208 97% 20%;
+    --accent-foreground: 208 97% 95%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 215 25% 27%;
     --input: 215 25% 27%;
-    --ring: 215 19% 35%;
-    --sidebar: 215 28% 17%;           /* emerald-900 */
+    --ring: 208 97% 49%;
+    --sidebar: 215 28% 17%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-border: 222 47% 11%;
-    --sidebar-accent: 215 20% 65%;    /* emerald-500 */
+    --sidebar-accent: 208 97% 55%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-ring: 215 19% 35%;       /* emerald-700 */
-    --sidebar-primary: 215 28% 17%;           /* emerald-700 */
+    --sidebar-ring: 208 97% 49%;
+    --sidebar-primary: 208 97% 35%;
     --sidebar-primary-foreground: 214 32% 91%;
-    --primary-hover: 222 47% 11%;
+    --primary-hover: 208 97% 42%;
     --destructive-hover: 0 72% 51%;
     --radius: 0.5rem;
+
+    /* Extended semantic tokens (dark) */
+    --foreground-subtle: 215 16% 47%;
+    --surface-hover: 215 25% 22%;
+    --border-strong: 215 25% 35%;
+
+    --primary-soft: 208 97% 18%;
+    --primary-soft-hover: 208 97% 22%;
+    --primary-soft-border: 208 97% 30%;
+    --primary-strong: 208 97% 70%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --success-hover: 142 71% 50%;
+    --success-soft: 142 30% 18%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+    --warning-hover: 35 92% 60%;
+    --warning-soft: 38 30% 18%;
+    --warning-strong: 38 92% 70%;
+
+    --destructive-soft: 0 50% 18%;
+    --destructive-strong: 0 84% 65%;
   }
 }
 

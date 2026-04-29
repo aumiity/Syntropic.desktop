@@ -297,6 +297,21 @@ Each product can have multiple label templates. A label combines: dose_qty, freq
 ---
 
 ## UI Conventions
+
+### Theming rules (HARD — do not break)
+The app must be re-themable by editing one file (`src/index.css`). To keep that guarantee:
+
+1. **Never use Tailwind palette literals for colors.** Forbidden: `bg-blue-500`, `text-slate-600`, `border-amber-200`, `from-red-50`, `hover:bg-emerald-100`, `ring-sky-400`, etc. Use semantic tokens only:
+   - Brand: `bg-primary`, `bg-primary-soft`, `bg-primary-soft-hover`, `border-primary-soft-border`, `bg-primary-strong`, `text-primary-foreground`, `hover:bg-primary-hover`
+   - Text: `text-foreground` (strong), `text-muted-foreground` (secondary), `text-foreground-subtle` (placeholder/disabled)
+   - Surface: `bg-background`, `bg-card`, `bg-muted`, `bg-surface-hover`, `border-border`, `border-border-strong`
+   - Status: `bg-success`/`bg-success-soft`/`text-success`, `bg-warning`/`bg-warning-soft`/`text-warning-strong`, `bg-destructive`/`bg-destructive-soft`/`text-destructive`
+   - Sidebar: `bg-sidebar`, `text-sidebar-foreground`, `bg-sidebar-accent`, `text-sidebar-primary-foreground`
+2. **Need a token that doesn't exist? Add it.** Add the variable to BOTH `:root` and `.dark` in `src/index.css`, then register it under `colors` in `tailwind.config.js`. Token names describe the *role* (`--success`, `--primary-soft`) — never the shade (`--blue-500` is forbidden).
+3. **Never write inline UI primitives.** Forbidden: raw `<button>`, `<input>`, custom toggle div, custom dialog, custom select. Always use `src/components/ui/` (Button, Input, Switch, Dialog, Badge, Toast, Card, Table, Pagination, etc.). If a needed variant is missing, add it to the existing component (e.g., new entry in `buttonVariants.variant`).
+4. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`, `tabular-nums`) are encouraged — only **color literals** are banned.
+
+### Other conventions
 - Thai UI language throughout
 - Inter + Sarabun fonts (Noto Sans Thai fallback); base font-size 15px
 - Dark/light theme via CSS variables (toggled via themeStore)
@@ -305,12 +320,11 @@ Each product can have multiple label templates. A label combines: dose_qty, freq
 - Toast notifications via `useToast()` hook
 - Pagination: `pagination.tsx`
 - Tables: `table.tsx` components
-- Always check `src/components/ui/` before writing inline UI primitives
 
 ## POS Search UX Rules (important — mirrors PHP behaviour)
 - **Search input is always focused.** `mainInputRef` on the POS page + `modalInputRef` in the search modal. A global `click` listener refocuses whichever is active when the user clicks a non-interactive area. `refocusSearch()` is called after cart unit/price changes. Respects `showPayment/showCustomerSearch/showQuickAdd/showSuccess` — doesn't steal focus from those dialogs.
 - **Modal is fixed size.** 600×480 via inline `style`. Header + column-header + footer are `shrink-0`; result list is `flex-1 overflow-y-auto`. Empty space stays empty; overflow scrolls internally — never reflows.
-- **Highlight state is owned by keyboard only.** `highlightIdx` resets **only** in `useEffect(() => setHighlightIdx(0), [query])` — never in `onChange`, scroll handlers, or mouse events. Do **not** add `onMouseEnter={() => setHighlightIdx(i)}` to rows: `scrollIntoView` makes rows pass under a stationary cursor and mouseenter would fire spuriously, resetting the highlight. Hover visuals come from Tailwind `hover:bg-emerald-50`, not state.
+- **Highlight state is owned by keyboard only.** `highlightIdx` resets **only** in `useEffect(() => setHighlightIdx(0), [query])` — never in `onChange`, scroll handlers, or mouse events. Do **not** add `onMouseEnter={() => setHighlightIdx(i)}` to rows: `scrollIntoView` makes rows pass under a stationary cursor and mouseenter would fire spuriously, resetting the highlight. Hover visuals come from Tailwind `hover:bg-primary-soft`, not state.
 - **Keyboard scroll.** `activeRowRef` attached to the active row, `useEffect(() => activeRowRef.current?.scrollIntoView({ block: 'nearest' }), [highlightIdx])`. `block: 'nearest'` keeps scroll inside the list container — does not scroll the page.
 - **Arrow keys call `e.preventDefault()`** to stop page/input default behaviour.
 

@@ -1,8 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅
-## Last updated: 2026-04-26
+## Status: 100% Complete + UI Polish ✅ — 🚧 Theme refactor in progress
+## Last updated: 2026-04-30
 ## App is RUNNABLE — run `npm run electron:dev` to launch
+## ⚠️ Pick up next session: see "🚧 IN PROGRESS — Theme tokenization" below
 
 ---
 
@@ -375,6 +376,108 @@ Reusable range picker for filtering by date intervals.
 - `loadHistory` now accepts an optional third arg `dateOverride: { from: string; to: string }` (same pattern as the existing `filterOverride` for payment chips) so preset clicks reload immediately without stale-state issues from the memoized callback.
 - The two `DateInput` fields (`จากวันที่` / `ถึงวันที่`) replaced with a single `DateRangePicker` labelled `ช่วงวันที่`. `onChange` sets state AND calls `loadHistory(1, undefined, { from, to })` — no extra search-button press needed for date filter changes.
 - Mfd / exp / receive-date / order-date / due-date / paid-date fields elsewhere in the page still use `DateInput` — unchanged.
+
+---
+
+## 🚧 IN PROGRESS — Theme tokenization (start here next session)
+
+### Goal
+Make the entire app re-themable by editing **only** `src/index.css`. Remove all Tailwind palette literals (`bg-blue-500`, `text-slate-600`, `border-amber-200`, etc.) and replace with semantic CSS-variable-backed classes (`bg-primary`, `text-foreground`, `bg-warning-soft`, etc.).
+
+### Why
+User wants easy brand-color switching. Originally emerald green; today changed to blue `#0485F7`. Going forward, theme swaps should be one-file edits. Hard rules now codified in [CLAUDE.md](CLAUDE.md) under "UI Conventions → Theming rules (HARD)".
+
+### What's already done (this session, 2026-04-30)
+1. **Theme color** — emerald → blue `#0485F7` (HSL `208 97% 49%`). Both `:root` and `.dark` blocks updated in [src/index.css](src/index.css). All `emerald-*` literals across [POS](src/pages/POS/index.tsx), [Purchase](src/pages/Purchase/index.tsx), [UIComponents](src/pages/UIComponents/index.tsx), [Sidebar](src/components/layout/Sidebar.tsx), [TitleBar](src/components/layout/TitleBar.tsx) renamed to `blue-*` (1 stale `'emerald'` color-name string remains in UIComponents palette picker — intentionally left).
+2. **Switch component** ported to HeroUI visual style ([src/components/ui/switch.tsx](src/components/ui/switch.tsx)) — pill-shaped thumb, margin-based slide, added `lg` size variant.
+3. **17 new semantic tokens** added to [src/index.css](src/index.css) (light + dark) and registered in [tailwind.config.js](tailwind.config.js):
+   - `--foreground-subtle`, `--surface-hover`, `--border-strong`
+   - `--primary-soft`, `--primary-soft-hover`, `--primary-soft-border`, `--primary-strong`
+   - `--success` + `-foreground` + `-hover` + `-soft`
+   - `--warning` + `-foreground` + `-hover` + `-soft` + `-strong`
+   - `--destructive-soft`, `--destructive-strong`
+4. **CLAUDE.md updated** with "Theming rules (HARD — do not break)" subsection: no palette literals, add tokens when missing, no inline UI primitives, layout utilities still allowed.
+5. **Pilot conversion** done on [Sidebar.tsx](src/components/layout/Sidebar.tsx) (1 line) — verified pattern works.
+
+### Remaining files (in suggested order — easiest → hardest)
+**Decisions already locked in:** include `src/components/ui/*`, file-by-file (not batch), collapse `slate-500/600` → single `--muted-foreground`.
+
+| Order | File | Lit count | Notes |
+|------:|------|----------:|-------|
+| 1 | [src/components/layout/TitleBar.tsx](src/components/layout/TitleBar.tsx) | 4 | Sidebar context — use `--sidebar-*` tokens like the Sidebar pilot |
+| 2 | [src/components/ui/badge.tsx](src/components/ui/badge.tsx) | 4 | `success`/`warning`/`danger` variants → use new `bg-success`/`bg-warning`/`bg-destructive` |
+| 3 | [src/components/ui/button.tsx](src/components/ui/button.tsx) | 3 | Same pattern as badge variants |
+| 4 | [src/components/ui/toast.tsx](src/components/ui/toast.tsx) | 3 | Same pattern |
+| 5 | [src/components/ui/date-input.tsx](src/components/ui/date-input.tsx) | 1 | quick |
+| 6 | [src/components/ui/date-range-picker.tsx](src/components/ui/date-range-picker.tsx) | 3 | quick |
+| 7 | [src/pages/Reports/Sales.tsx](src/pages/Reports/Sales.tsx) | 17 | mostly status colors |
+| 8 | [src/pages/Reports/Purchases.tsx](src/pages/Reports/Purchases.tsx) | 1 | trivial |
+| 9 | [src/pages/Products/index.tsx](src/pages/Products/index.tsx) | 1 | trivial |
+| 10 | [src/pages/Products/EditProduct.tsx](src/pages/Products/EditProduct.tsx) | 2 | trivial |
+| 11 | [src/pages/UIComponents/index.tsx](src/pages/UIComponents/index.tsx) | 4 | demo page |
+| 12 | [src/pages/POS/index.tsx](src/pages/POS/index.tsx) | 136 | the search-result row hover/highlight is the tricky part — see CLAUDE.md POS rules |
+| 13 | [src/pages/Purchase/index.tsx](src/pages/Purchase/index.tsx) | 270 | biggest — many soft/strong brand bg + amber warning + green profit chips |
+
+**Total remaining: ~449 literal occurrences across 13 files.**
+
+### Mapping cheat sheet (use this when converting)
+| Tailwind literal | Semantic token |
+|---|---|
+| `bg-blue-50` / `bg-blue-100` | `bg-primary-soft` / `bg-primary-soft-hover` |
+| `border-blue-200` / `border-blue-300` | `border-primary-soft-border` |
+| `text-blue-600` / `text-blue-700` / `text-blue-800` | `text-primary` / `text-primary-strong` |
+| `bg-blue-500` / `bg-blue-600` | `bg-primary` / `bg-primary-hover` |
+| `text-slate-700` / `text-slate-800` / `text-slate-900` | `text-foreground` |
+| `text-slate-500` / `text-slate-600` | `text-muted-foreground` (collapsed) |
+| `text-slate-400` / placeholder | `text-foreground-subtle` |
+| `bg-slate-50` | `bg-surface-hover` |
+| `bg-slate-100` | `bg-muted` |
+| `border-slate-200` / `border-slate-100` | `border-border` |
+| `border-slate-300` | `border-border-strong` |
+| `bg-green-600` / `bg-green-700` | `bg-success` / `bg-success-hover` |
+| `bg-green-50` / `bg-green-100` | `bg-success-soft` |
+| `text-green-600` / `text-green-700` | `text-success` |
+| `bg-amber-50` / `bg-yellow-50` | `bg-warning-soft` |
+| `bg-amber-500` / `bg-yellow-500` | `bg-warning` |
+| `bg-amber-600` / `bg-yellow-600` | `bg-warning-hover` |
+| `text-amber-700` / `text-amber-800` | `text-warning-strong` |
+| `bg-red-50` / `bg-red-100` | `bg-destructive-soft` |
+| `bg-red-500` / `bg-red-600` | `bg-destructive` |
+| `text-red-600` / `text-red-700` | `text-destructive` |
+| `bg-white` (cards) | `bg-card` |
+| `text-white` | `text-primary-foreground` (on brand bg) or `text-sidebar-accent-foreground` (on sidebar) |
+
+### Sidebar context exception
+Anything that lives on the dark sidebar surface uses `--sidebar-*` token family, NOT `--primary-*`. See completed Sidebar.tsx for pattern: `text-blue-300` → `text-sidebar-primary-foreground`, `hover:bg-blue-600` → `hover:bg-sidebar-accent`, `hover:text-white` → `hover:text-sidebar-accent-foreground`.
+
+### Verification command (after each file)
+```bash
+# from project root, should drop monotonically toward 0:
+grep -rE "(bg|text|border|ring|from|to|via|fill|stroke|shadow|outline|divide)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]" src/ | wc -l
+```
+Last reading: **450** (before any conversion). After Sidebar pilot: **449** (only the 1 `'emerald'` palette-name string remains as a non-class literal).
+
+### Not started — uncommitted git state
+Today's session left everything as **uncommitted working changes**. Files modified:
+```
+M src/components/ui/button.tsx          (still has 3 lits — to be converted)
+M src/components/ui/switch.tsx          (HeroUI port — done)
+M src/index.css                         (blue brand + 17 new tokens — done)
+M src/pages/POS/index.tsx               (emerald→blue done; 136 lits remain)
+M src/pages/Purchase/index.tsx          (emerald→blue done; 270 lits remain)
+M src/components/layout/Sidebar.tsx     (1 lit converted — pilot done)
+M src/components/layout/TitleBar.tsx    (emerald→blue done; 4 lits remain)
+M src/pages/UIComponents/index.tsx      (emerald→blue done; 4 lits remain)
+M tailwind.config.js                    (new tokens registered — done)
+M CLAUDE.md                             (theming rules added — done)
+M PROGRESS.md                           (this entry — done)
+```
+Suggested commit at any natural break: `style: tokenize colors — sidebar+titlebar+ui` etc.
+
+### Open question for next session
+Should `src/components/ui/button.tsx`'s `secondary` variant `border-gray-300 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/60` collapse to `border-border hover:bg-surface-hover`? Loses the dark-mode-specific shade tweaks. User said "collapse" — leaning yes, but worth a 5-second eyeball after conversion.
+
+---
 
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source

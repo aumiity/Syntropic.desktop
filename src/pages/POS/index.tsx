@@ -475,7 +475,7 @@ export default function POSPage() {
 
                         <TableCell className="text-right">
                           <Button variant="outline" size="sm" onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
-                            className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-semibold tabular-nums hover:bg-emerald-100 hover:border-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-colors">
+                            className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 text-sm font-semibold tabular-nums hover:bg-blue-100 hover:border-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition-colors">
                             <span className="flex-1 text-right">{formatCurrency(item.unit_price)}</span>
                           </Button>
                         </TableCell>
@@ -496,7 +496,7 @@ export default function POSPage() {
                           )}
                         </TableCell>
 
-                        <TableCell className="text-right font-semibold text-emerald-700 text-sm">
+                        <TableCell className="text-right font-semibold text-blue-700 text-sm">
                           {formatCurrency(item.line_total)}
                         </TableCell>
 
@@ -531,7 +531,7 @@ export default function POSPage() {
         {/* Right action panel */}
         <div className="w-64 shrink-0 flex flex-col gap-2.5">
                   {/* Grand total */}
-        <div className="w-64 bg-white rounded-xl shadow-sm border-2 border-emerald-50 p-5 flex flex-col justify-center shrink-0">
+        <div className="w-64 bg-white rounded-xl shadow-sm border-2 border-blue-50 p-5 flex flex-col justify-center shrink-0">
           <div className="text-right text-sm font-bold text-slate-500 mb-1">ยอดสุทธิ</div>
           <div className="text-right text-5xl font-extrabold text-primary leading-none tabular-nums">
             {formatCurrency(cart.totalAmount())}
@@ -558,7 +558,7 @@ export default function POSPage() {
             <Trash2 className="h-4 w-4" /> ยกเลิกบิล
           </Button>
 
-          <div className="bg-white rounded-xl shadow-sm border-2 border-emerald-50 p-4 shrink-0">
+          <div className="bg-white rounded-xl shadow-sm border-2 border-blue-50 p-4 shrink-0">
             <div className="flex justify-between items-center mb-2">
               <span className="text-slate-500 text-sm">บิลล่าสุด</span>
               <span className="font-bold text-slate-700">{dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}</span>
@@ -637,7 +637,7 @@ export default function POSPage() {
                     key={`${it.product.id}-${it.unit?.id ?? 'base'}`}
                     ref={active ? activeRowRef : undefined}
                     onClick={() => handleSelectItem(it.product, it.unit)}
-                    className={`grid items-center px-4 py-2.5 cursor-pointer border-b border-slate-100 transition-colors ${active ? 'bg-emerald-100' : 'hover:bg-emerald-50'}`}
+                    className={`grid items-center px-4 py-2.5 cursor-pointer border-b border-slate-100 transition-colors ${active ? 'bg-blue-100' : 'hover:bg-blue-50'}`}
                     style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
                   >
                     <div className="min-w-0 pr-2">
@@ -727,7 +727,7 @@ export default function POSPage() {
                     <div>
                       <div className="text-xs text-slate-400">สิทธิการรักษา</div>
                       <div className="flex flex-wrap gap-1.5 mt-1">
-                        {cart.customer.hc_uc ? <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 px-2 py-0.5 rounded-md">บัตรทอง</Badge> : null}
+                        {cart.customer.hc_uc ? <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 px-2 py-0.5 rounded-md">บัตรทอง</Badge> : null}
                         {cart.customer.hc_gov ? <Badge variant="outline" className="text-xs bg-sky-50 text-sky-700 border-sky-200 px-2 py-0.5 rounded-md">ข้าราชการ</Badge> : null}
                         {cart.customer.hc_sso ? <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 px-2 py-0.5 rounded-md">ประกันสังคม</Badge> : null}
                       </div>
@@ -854,7 +854,7 @@ export default function POSPage() {
                   {/* Section 2 — Net total */}
                   <div className={`rounded-xl px-5 py-4 border ${netNegative
                     ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200'
-                    : 'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200'}`}>
+                    : 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200'}`}>
                     <div className="text-sm text-slate-600 font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
                     <div className={`text-5xl font-extrabold text-right leading-none tabular-nums ${netNegative ? 'text-red-600' : 'text-primary'}`}>
                       {formatCurrency(net)}
@@ -965,7 +965,7 @@ export default function POSPage() {
                     return (
                       <Button key={u.id} variant="outline"
                         onClick={() => changeCartUnit(unitModalIdx, u)}
-                        className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}>
+                        className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-blue-50 border-blue-300 text-blue-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-blue-300'}`}>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">{u.unit_name}</span>
                           {u.id === -1 && <span className="text-[15px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">หลัก</span>}
@@ -1007,9 +1007,9 @@ export default function POSPage() {
               <DialogBody>
                 <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
                   {/* Custom price input */}
-                  <div className="w-full px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50/40">
+                  <div className="w-full px-4 py-3 rounded-xl border border-blue-200 bg-blue-50/40">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-m font-bold text-emerald-700">กำหนดราคา</span>
+                      <span className="text-m font-bold text-blue-700">กำหนดราคา</span>
                     </div>
                     <div className="flex items-center gap-2 mb-2">
                       <Input
@@ -1050,9 +1050,9 @@ export default function POSPage() {
                     return (
                       <Button key={i} variant="outline"
                         onClick={() => changeCartPrice(priceModalIdx, opt.price)}
-                        className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}>
+                        className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-blue-50 border-blue-300' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-blue-300'}`}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className={`text-sm font-bold ${active ? 'text-emerald-700' : 'text-slate-700'}`}>{opt.label}</span>
+                          <span className={`text-sm font-bold ${active ? 'text-blue-700' : 'text-slate-700'}`}>{opt.label}</span>
                           <span className="text-base font-extrabold text-primary tabular-nums">฿{formatCurrency(opt.price)}</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-xs">
@@ -1138,7 +1138,7 @@ export default function POSPage() {
                 <div className="grid grid-cols-5 gap-2">
                   {[1, 5, 10, 20, 50].map(n => (
                     <Button key={n} variant="outline" size="sm" onClick={() => setQtyInput(String(n))}
-                      className="h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-emerald-300 text-sm font-semibold text-slate-600 tabular-nums transition-colors">
+                      className="h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 text-sm font-semibold text-slate-600 tabular-nums transition-colors">
                       {n}
                     </Button>
                   ))}

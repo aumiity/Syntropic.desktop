@@ -10,14 +10,23 @@ export default {
     extend: {
       colors: {
         border: 'hsl(var(--border))',
+        'border-strong': 'hsl(var(--border-strong))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        foreground: {
+          DEFAULT: 'hsl(var(--foreground))',
+          subtle: 'hsl(var(--foreground-subtle))',
+        },
+        'surface-hover': 'hsl(var(--surface-hover))',
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
           hover: 'hsl(var(--primary-hover))',
+          soft: 'hsl(var(--primary-soft))',
+          'soft-hover': 'hsl(var(--primary-soft-hover))',
+          'soft-border': 'hsl(var(--primary-soft-border))',
+          strong: 'hsl(var(--primary-strong))',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
@@ -27,6 +36,21 @@ export default {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
           hover: 'hsl(var(--destructive-hover))',
+          soft: 'hsl(var(--destructive-soft))',
+          strong: 'hsl(var(--destructive-strong))',
+        },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+          hover: 'hsl(var(--success-hover))',
+          soft: 'hsl(var(--success-soft))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+          hover: 'hsl(var(--warning-hover))',
+          soft: 'hsl(var(--warning-soft))',
+          strong: 'hsl(var(--warning-strong))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',

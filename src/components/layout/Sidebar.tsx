@@ -55,7 +55,7 @@ export function Sidebar() {
       <div className="flex items-center justify-center pb-10">
         <button
           onClick={toggleTheme}
-          className="flex flex-col items-center justify-center w-16 h-10 rounded-xl text-emerald-300 hover:bg-emerald-600 hover:text-white transition-colors"
+          className="flex flex-col items-center justify-center w-16 h-10 rounded-xl text-sidebar-primary-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           title={theme === 'dark' ? 'โหมดสว่าง' : 'โหมดมืด'}
         >
           {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

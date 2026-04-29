@@ -877,7 +877,7 @@ export default function PurchasePage() {
     <div className="flex flex-col h-full p-3 gap-3">
 
       {/* ── Banner — rounded card, identical style to POS ── */}
-      <div className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-sky-600 text-white shadow-md flex items-center justify-between">
+      <div className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md flex items-center justify-between">
         <div>
           <h1 className="text-xl font-extrabold leading-tight">การซื้อ</h1>
           <p className="text-xs opacity-80">จัดการการรับสินค้าและประวัติการสั่งซื้อ</p>
@@ -945,13 +945,13 @@ export default function PurchasePage() {
                             onClick={() => setShowSupplierModal(true)}
                             className={`w-full h-10 flex items-center justify-between px-3 rounded-lg border text-sm transition-colors ${
                               supplierId
-                                ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                                ? 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100'
                                 : 'border-slate-300 bg-white text-slate-400 hover:bg-slate-50'
                             }`}
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <Building2 className="h-4 w-4 shrink-0 opacity-60" />
-                              <span className={`truncate font-medium ${supplierId ? 'text-emerald-800' : 'text-slate-400'}`}>
+                              <span className={`truncate font-medium ${supplierId ? 'text-blue-800' : 'text-slate-400'}`}>
                                 {supplierName || '— เลือกผู้จำหน่าย —'}
                               </span>
                             </div>
@@ -996,7 +996,7 @@ export default function PurchasePage() {
                           <Button size="sm" variant="outline" onClick={() => setShowImport(true)} className="h-7 text-xs gap-1">
                             <ClipboardPaste className="h-3 w-3" /> นำเข้าข้อมูล
                           </Button>                          
-                          <Button size="sm" variant="outline" onClick={openBillAdjust} className="h-7 text-xs gap-1 border-emerald-300 text-emerald-600 hover:bg-emerald-50">
+                          <Button size="sm" variant="outline" onClick={openBillAdjust} className="h-7 text-xs gap-1 border-blue-300 text-blue-600 hover:bg-blue-50">
                             ปรับยอดท้ายบิล
                           </Button>
                         </div>
@@ -1023,14 +1023,14 @@ export default function PurchasePage() {
                               const isPartial = rowIsPartial(row)
                               return (
                                 <React.Fragment key={i}>
-                                  <tr className={`border-t border-slate-100 transition-colors border-l-2 ${activeRow === i ? 'border-l-emerald-400 bg-emerald-100' : isPartial ? 'border-l-transparent bg-amber-50/60' : 'border-l-transparent hover:bg-emerald-50/40'}`}>
+                                  <tr className={`border-t border-slate-100 transition-colors border-l-2 ${activeRow === i ? 'border-l-blue-400 bg-blue-100' : isPartial ? 'border-l-transparent bg-amber-50/60' : 'border-l-transparent hover:bg-blue-50/40'}`}>
 
                                     {/* Row # + status dot */}
                                     <td className="px-3 py-1.5">
                                       <div className="flex items-center gap-1">
                                         <span className="text-xs text-slate-400 tabular-nums w-4 text-center">{i + 1}</span>
                                         {isPartial && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />}
-                                        {rowIsValid(row) && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
+                                        {rowIsValid(row) && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />}
                                       </div>
                                     </td>
 
@@ -1055,7 +1055,7 @@ export default function PurchasePage() {
                                               type="button"
                                               onMouseDown={() => selectProduct(i, p)}
                                               className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
-                                                si === suggHighlight ? 'bg-emerald-100 text-emerald-700' : 'hover:bg-emerald-50'
+                                                si === suggHighlight ? 'bg-blue-100 text-blue-700' : 'hover:bg-blue-50'
                                               }`}
                                             >
                                               <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -1076,7 +1076,7 @@ export default function PurchasePage() {
                                         type="button"
                                         disabled={!row.product_id}
                                         onClick={() => { setActiveRow(i); setUnitModalIdx(i) }}
-                                        className="h-7 w-full inline-flex items-center justify-center gap-1 px-2 rounded-lg border border-slate-300 bg-white text-xs hover:border-emerald-400 hover:bg-emerald-50/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="h-7 w-full inline-flex items-center justify-center gap-1 px-2 rounded-lg border border-slate-300 bg-white text-xs hover:border-blue-400 hover:bg-blue-50/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                       >
                                         <span className={`truncate ${row.unit_name ? 'text-slate-700' : 'text-slate-500'}`}>{row.unit_name || 'หน่วย'}</span>
                                       </button>
@@ -1093,7 +1093,7 @@ export default function PurchasePage() {
                                         const sc = row.stored_cost_price
                                         const costChanged = sc != null && isFinite(enteredCost) && Math.abs(enteredCost - sc) > 0.001
                                         const costCls = costChanged
-                                          ? (enteredCost > sc! ? 'border-red-400 bg-red-50' : 'border-emerald-400 bg-emerald-50')
+                                          ? (enteredCost > sc! ? 'border-red-400 bg-red-50' : 'border-blue-400 bg-blue-50')
                                           : ''
                                         return <Input data-cell={`${i}-5`} type="number" value={row.cost_price} onChange={e => updateLineMath(i, 'cost_price', e.target.value)} onFocus={() => setActiveRow(i)} placeholder="ราคาทุน" className={`h-7 text-xs text-right ${costCls}`} min={0} step="0.01" />
                                       })()}
@@ -1109,7 +1109,7 @@ export default function PurchasePage() {
                                             type="button"
                                             disabled={!row.product_id}
                                             onClick={() => { setActiveRow(i); openPriceModal(i) }}
-                                            className={`h-7 w-full inline-flex items-center justify-end gap-1 px-2 rounded-lg border text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors tabular-nums ${belowCost ? 'border-red-400 bg-red-50 hover:bg-red-100' : 'border-slate-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/40'}`}
+                                            className={`h-7 w-full inline-flex items-center justify-end gap-1 px-2 rounded-lg border text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors tabular-nums ${belowCost ? 'border-red-400 bg-red-50 hover:bg-red-100' : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/40'}`}
                                           >
                                             <span className={belowCost ? 'text-red-600 font-semibold' : row.product_id ? 'text-slate-700' : 'text-slate-500'}>
                                               {row.product_id ? `${formatCurrency(row.default_sell_price || 0)}` : 'ราคาขาย'}
@@ -1141,7 +1141,7 @@ export default function PurchasePage() {
                                   </tr>
 
                                   {/* Sub-row: Lot No., วันผลิต, วันหมดอายุ */}
-                                  <tr className={`border-l-2 border-l-transparent transition-colors ${activeRow === i ? 'bg-emerald-100' : isPartial ? 'bg-amber-50/60' : 'bg-slate-50/50'}`}>
+                                  <tr className={`border-l-2 border-l-transparent transition-colors ${activeRow === i ? 'bg-blue-100' : isPartial ? 'bg-amber-50/60' : 'bg-slate-50/50'}`}>
                                     <td colSpan={9} className="px-2 pb-2 pt-0">
                                       <div className="flex items-end gap-3 pl-10">
                                         <div>
@@ -1194,8 +1194,8 @@ export default function PurchasePage() {
                                 </tr>
                                 {adjustDiscountAmt > 0 && (
                                   <tr className="bg-slate-50">
-                                    <td colSpan={7} className="px-3 py-1 text-right text-xs text-emerald-600">ส่วนลด</td>
-                                    <td className="px-3 py-1 text-right text-xs text-emerald-600 tabular-nums">−฿{formatCurrency(adjustDiscountAmt)}</td>
+                                    <td colSpan={7} className="px-3 py-1 text-right text-xs text-blue-600">ส่วนลด</td>
+                                    <td className="px-3 py-1 text-right text-xs text-blue-600 tabular-nums">−฿{formatCurrency(adjustDiscountAmt)}</td>
                                     <td />
                                   </tr>
                                 )}
@@ -1220,7 +1220,7 @@ export default function PurchasePage() {
                                   <span className="text-sm font-semibold text-slate-600">มูลค่ารวมทั้งหมด</span>
                                 </div>
                               </td>
-                              <td className="px-3 py-2.5 text-right font-extrabold text-emerald-700 text-base tabular-nums">฿{formatCurrency(totalCost)}</td>
+                              <td className="px-3 py-2.5 text-right font-extrabold text-blue-700 text-base tabular-nums">฿{formatCurrency(totalCost)}</td>
                               <td />
                             </tr>
                           </tfoot>
@@ -1238,7 +1238,7 @@ export default function PurchasePage() {
                       <div className="text-sm font-semibold text-slate-400 uppercase tracking-wide">สรุปใบรับสินค้า</div>
                       <div>
                         <div className="text-xs text-slate-400 mb-0.5">เลขที่ใบรับ</div>
-                        <div className=" font-bold text-sm text-emerald-700">{invoiceNo || '—'}</div>
+                        <div className=" font-bold text-sm text-blue-700">{invoiceNo || '—'}</div>
                       </div>
                       <div>
                         <div className="text-xs text-slate-400 mb-0.5">ผู้จัดจำหน่าย</div>
@@ -1262,9 +1262,9 @@ export default function PurchasePage() {
                           <div className="text-xs text-slate-400">รายการ</div>
                           <div className="text-lg font-extrabold text-slate-700 tabular-nums">{validRows.length}</div>
                         </div>
-                        <div className="bg-emerald-50 rounded-lg p-2.5">
-                          <div className="text-xs text-emerald-600">มูลค่า</div>
-                          <div className="text-base font-extrabold text-emerald-700 tabular-nums leading-tight">฿{formatCurrency(totalCost)}</div>
+                        <div className="bg-blue-50 rounded-lg p-2.5">
+                          <div className="text-xs text-blue-600">มูลค่า</div>
+                          <div className="text-base font-extrabold text-blue-700 tabular-nums leading-tight">฿{formatCurrency(totalCost)}</div>
                         </div>
                       </div>
                     </div>
@@ -1278,7 +1278,7 @@ export default function PurchasePage() {
                           onClick={() => setPaymentType('cash')}
                           className={`flex-1 h-9 rounded-lg border text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
                             paymentType === 'cash'
-                              ? 'bg-emerald-500 text-white border-emerald-500'
+                              ? 'bg-blue-500 text-white border-blue-500'
                               : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
                           }`}
                         >
@@ -1335,7 +1335,7 @@ export default function PurchasePage() {
                                 <button
                                   type="button"
                                   onClick={() => setPaidDate(today)}
-                                  className="flex-1 h-7 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 hover:border-emerald-300 transition-colors"
+                                  className="flex-1 h-7 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 hover:border-blue-300 transition-colors"
                                 >
                                   วันนี้
                                 </button>
@@ -1362,7 +1362,7 @@ export default function PurchasePage() {
                         onChange={e => setGrNote(e.target.value)}
                         placeholder="บันทึกเพิ่มเติม..."
                         rows={3}
-                        className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition-colors"
+                        className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
                       />
                     </div>
 
@@ -1371,7 +1371,7 @@ export default function PurchasePage() {
                       <Button
                         onClick={handleSave}
                         disabled={saving || !supplierId || validRows.length === 0 || duplicateNames.length > 0}
-                        className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-100 text-white font-bold text-base shadow-md"
+                        className="w-full h-12 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-100 text-white font-bold text-base shadow-md"
                       >
                         {saving ? 'กำลังบันทึก...' : 'บันทึกใบรับสินค้า'}
                       </Button>
@@ -1413,12 +1413,12 @@ export default function PurchasePage() {
                   </Card>
                   <Card size="sm" className="bg-white">
                     <CardContent className="px-4 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                        <Banknote className="w-4 h-4 text-emerald-500" />
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                        <Banknote className="w-4 h-4 text-blue-500" />
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs text-slate-400">มูลค่ารวม</div>
-                        <div className="text-lg font-bold text-emerald-700 leading-tight tabular-nums">
+                        <div className="text-lg font-bold text-blue-700 leading-tight tabular-nums">
                           ฿{formatCurrency(histSummary.total_cost)}
                         </div>
                       </div>
@@ -1504,7 +1504,7 @@ export default function PurchasePage() {
                               className={cn(
                                 'rounded-full px-3 h-7 text-xs font-medium',
                                 active && cancelChip && 'bg-red-500 hover:bg-red-600 border-red-500 text-white',
-                                active && !cancelChip && 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white',
+                                active && !cancelChip && 'bg-blue-500 hover:bg-blue-600 border-blue-500 text-white',
                                 !active && 'bg-white text-slate-500 border-slate-200 hover:border-slate-300',
                               )}
                             >
@@ -1531,7 +1531,7 @@ export default function PurchasePage() {
                             onClick={() => openReceipt(h.invoice_no)}
                             className={`w-full text-left px-3 py-2.5 transition-colors ${
                               isSelected
-                                ? 'bg-emerald-50'
+                                ? 'bg-blue-50'
                                 : 'hover:bg-slate-50'
                             } ${isCancelled
                                 ? 'border-l-[3px] border-l-slate-300 opacity-70'
@@ -1541,7 +1541,7 @@ export default function PurchasePage() {
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <div className={`text-xs font-semibold ${isCancelled ? 'text-slate-500 line-through' : isSelected ? 'text-emerald-700' : 'text-slate-700'}`}>
+                                <div className={`text-xs font-semibold ${isCancelled ? 'text-slate-500 line-through' : isSelected ? 'text-blue-700' : 'text-slate-700'}`}>
                                   {h.invoice_no}
                                 </div>
                                 <div className="text-xs text-slate-400 truncate mt-0.5">{h.supplier_name ?? '—'}</div>
@@ -1633,7 +1633,7 @@ export default function PurchasePage() {
                                       size="sm"
                                       variant="outline"
                                       onClick={openEditBill}
-                                      className="h-7 px-2.5 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300"
+                                      className="h-7 px-2.5 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
                                     >
                                       แก้ไขบิล
                                     </Button>
@@ -1723,8 +1723,8 @@ export default function PurchasePage() {
                                   </tr>
                                   {discountAmt > 0 && (
                                     <tr>
-                                      <td colSpan={4} className="px-4 py-1 text-right text-xs text-emerald-600">ส่วนลดรวม</td>
-                                      <td className="px-4 py-1 text-right text-xs tabular-nums text-emerald-600">−฿{formatCurrency(discountAmt)}</td>
+                                      <td colSpan={4} className="px-4 py-1 text-right text-xs text-blue-600">ส่วนลดรวม</td>
+                                      <td className="px-4 py-1 text-right text-xs tabular-nums text-blue-600">−฿{formatCurrency(discountAmt)}</td>
                                     </tr>
                                   )}
                                   {surchargeAmt > 0 && (
@@ -1741,7 +1741,7 @@ export default function PurchasePage() {
                           {/* Footer total */}
                           <div className="shrink-0 border-t-2 border-slate-200 bg-slate-50 px-5 py-3 flex justify-between items-center">
                             <div className="text-sm text-slate-500">{receiptItems.length} รายการ</div>
-                            <div className="font-extrabold text-emerald-700 tabular-nums text-lg">
+                            <div className="font-extrabold text-blue-700 tabular-nums text-lg">
                               ฿{formatCurrency(rawTotal - discountAmt + surchargeAmt)}
                             </div>
                           </div>
@@ -1818,7 +1818,7 @@ export default function PurchasePage() {
                       onClick={() => setEditPaymentType(v)}
                       className={`flex-1 h-9 rounded-lg border text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
                         editPaymentType === v
-                          ? 'bg-emerald-500 text-white border-emerald-500'
+                          ? 'bg-blue-500 text-white border-blue-500'
                           : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
                       }`}
                     >
@@ -1857,7 +1857,7 @@ export default function PurchasePage() {
                   size="sm"
                   onClick={handleSaveEdit}
                   disabled={editSaving}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
                 >
                   {editSaving ? 'กำลังบันทึก...' : 'บันทึก'}
                 </Button>
@@ -1953,13 +1953,13 @@ export default function PurchasePage() {
                   onClick={() => selectSupplier(s)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors border ${
                     s.id === supplierId
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                      ? 'bg-blue-50 border-blue-200 text-blue-700'
                       : si === supplierHighlight
                       ? 'bg-slate-50 border-slate-200'
                       : 'border-transparent hover:bg-slate-50 hover:border-slate-200'
                   }`}
                 >
-                  <Building2 className={`h-4 w-4 shrink-0 ${s.id === supplierId ? 'text-emerald-500' : 'text-slate-400'}`} />
+                  <Building2 className={`h-4 w-4 shrink-0 ${s.id === supplierId ? 'text-blue-500' : 'text-slate-400'}`} />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold truncate">{s.name}</div>
                     {s.code && <div className="text-xs text-slate-400 ">{s.code}</div>}
@@ -1994,7 +1994,7 @@ export default function PurchasePage() {
                   <button
                     key={u.id}
                     onClick={() => changeRowUnit(unitModalIdx, u)}
-                    className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}
+                    className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-blue-50 border-blue-300 text-blue-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-blue-300'}`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm">{u.unit_name}</span>
@@ -2083,13 +2083,13 @@ export default function PurchasePage() {
                           <div className="text-xs text-slate-400">ทุน/หน่วย</div>
                           <div className="text-sm font-semibold text-slate-700 tabular-nums">฿{formatCurrency(cost)}</div>
                         </div>
-                        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-2">
-                          <div className="text-xs text-emerald-600">กำไร/หน่วย</div>
-                          <div className={`text-sm font-semibold tabular-nums ${profit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>฿{formatCurrency(profit)}</div>
+                        <div className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-2">
+                          <div className="text-xs text-blue-600">กำไร/หน่วย</div>
+                          <div className={`text-sm font-semibold tabular-nums ${profit >= 0 ? 'text-blue-700' : 'text-red-600'}`}>฿{formatCurrency(profit)}</div>
                         </div>
-                        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-2">
-                          <div className="text-xs text-emerald-600">มาร์จิ้น</div>
-                          <div className={`text-sm font-semibold tabular-nums ${margin >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{margin.toFixed(1)}%</div>
+                        <div className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-2">
+                          <div className="text-xs text-blue-600">มาร์จิ้น</div>
+                          <div className={`text-sm font-semibold tabular-nums ${margin >= 0 ? 'text-blue-700' : 'text-red-600'}`}>{margin.toFixed(1)}%</div>
                         </div>
                       </div>
                     </div>
@@ -2101,13 +2101,13 @@ export default function PurchasePage() {
                     <div className="text-xs text-slate-400">ทุน/หน่วย</div>
                     <div className="text-sm font-semibold text-slate-700 tabular-nums">฿{formatCurrency(cost)}</div>
                   </div>
-                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-2">
-                    <div className="text-xs text-emerald-600">กำไร/หน่วย</div>
-                    <div className={`text-sm font-semibold tabular-nums ${profit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>฿{formatCurrency(profit)}</div>
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-2">
+                    <div className="text-xs text-blue-600">กำไร/หน่วย</div>
+                    <div className={`text-sm font-semibold tabular-nums ${profit >= 0 ? 'text-blue-700' : 'text-red-600'}`}>฿{formatCurrency(profit)}</div>
                   </div>
-                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-2">
-                    <div className="text-xs text-emerald-600">มาร์จิ้น</div>
-                    <div className={`text-sm font-semibold tabular-nums ${margin >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{margin.toFixed(1)}%</div>
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-2">
+                    <div className="text-xs text-blue-600">มาร์จิ้น</div>
+                    <div className={`text-sm font-semibold tabular-nums ${margin >= 0 ? 'text-blue-700' : 'text-red-600'}`}>{margin.toFixed(1)}%</div>
                   </div>
                 </div>
               )}
@@ -2195,7 +2195,7 @@ export default function PurchasePage() {
             footer={
               <div className="px-5 py-3 border-t border-slate-200 flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={closeBillAdjust}>ยกเลิก</Button>
-                <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600" onClick={applyBillAdjust}>ตกลง</Button>
+                <Button className="flex-1 bg-blue-500 hover:bg-blue-600" onClick={applyBillAdjust}>ตกลง</Button>
               </div>
             }
           >
@@ -2205,7 +2205,7 @@ export default function PurchasePage() {
                 <button
                   type="button"
                   onClick={() => setBillAdjustTab('discount')}
-                  className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${isDisc ? 'border-b-2 border-emerald-500 text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${isDisc ? 'border-b-2 border-blue-500 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   ส่วนลด
                 </button>
@@ -2234,8 +2234,8 @@ export default function PurchasePage() {
                           else { setBillSurchargePct(newPct); setBillSurchargeBaht(newBaht); setBillNetInput(calcNet(billDiscountBaht, newBaht)) }
                         }}
                         className={`flex-1 h-8 rounded-lg text-xs font-semibold border transition-colors ${active
-                          ? isDisc ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-amber-500 border-amber-500 text-white'
-                          : 'border-slate-300 text-slate-600 hover:border-emerald-400 hover:bg-emerald-50'}`}
+                          ? isDisc ? 'bg-blue-500 border-blue-500 text-white' : 'bg-amber-500 border-amber-500 text-white'
+                          : 'border-slate-300 text-slate-600 hover:border-blue-400 hover:bg-blue-50'}`}
                       >
                         {p}%
                       </button>
@@ -2295,7 +2295,7 @@ export default function PurchasePage() {
                     <span className="tabular-nums">฿{formatCurrency(adjustModalSum)}</span>
                   </div>
                   {previewDisc > 0 && (
-                    <div className="flex justify-between text-emerald-600">
+                    <div className="flex justify-between text-blue-600">
                       <span>ส่วนลด</span>
                       <span className="tabular-nums">−฿{formatCurrency(previewDisc)}</span>
                     </div>
@@ -2366,7 +2366,7 @@ export default function PurchasePage() {
                         next[ci] = e.target.value
                         setImportColumns(next)
                       }}
-                      className="h-7 rounded border border-slate-200 bg-white px-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                      className="h-7 rounded border border-slate-200 bg-white px-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
                     >
                       {IMPORT_FIELD_OPTIONS.map(o => (
                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -2417,7 +2417,7 @@ export default function PurchasePage() {
               <div className="text-lg font-semibold">บันทึกสำเร็จ</div>
               <div className="text-muted-foreground text-sm mt-1 ">{savedInvoice}</div>
             </div>
-            <Button onClick={() => setShowSuccess(false)} className="w-full bg-emerald-500 hover:bg-emerald-600">
+            <Button onClick={() => setShowSuccess(false)} className="w-full bg-blue-500 hover:bg-blue-600">
               เสร็จสิ้น
             </Button>
           </DialogBody>
