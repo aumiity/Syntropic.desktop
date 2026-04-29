@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DateInput } from '@/components/ui/date-input'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Badge } from '@/components/ui/badge'
@@ -9,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogBody } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
-import { formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib/utils'
+import { cn, formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import {
   Search, Plus, Trash2, Package, ChevronDown, X,
@@ -1396,39 +1398,45 @@ export default function PurchasePage() {
 
                 {/* ── Summary bar ── */}
                 <div className="grid grid-cols-3 gap-3 shrink-0">
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs text-slate-400">รับสินค้าทั้งหมด</div>
-                      <div className="text-lg font-bold text-slate-800 leading-tight">
-                        {histSummary.count} <span className="text-sm font-normal text-slate-400">ใบ</span>
+                  <Card size="sm" className="bg-white">
+                    <CardContent className="px-4 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4 text-slate-500" />
                       </div>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                      <Banknote className="w-4 h-4 text-emerald-500" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs text-slate-400">มูลค่ารวม</div>
-                      <div className="text-lg font-bold text-emerald-700 leading-tight tabular-nums">
-                        ฿{formatCurrency(histSummary.total_cost)}
+                      <div className="min-w-0">
+                        <div className="text-xs text-slate-400">รับสินค้าทั้งหมด</div>
+                        <div className="text-lg font-bold text-slate-800 leading-tight">
+                          {histSummary.count} <span className="text-sm font-normal text-slate-400">ใบ</span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${histSummary.unpaid_cost > 0 ? 'bg-red-50' : 'bg-slate-100'}`}>
-                      <CreditCard className={`w-4 h-4 ${histSummary.unpaid_cost > 0 ? 'text-red-400' : 'text-slate-400'}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs text-slate-400">ค้างชำระ</div>
-                      <div className={`text-lg font-bold leading-tight tabular-nums ${histSummary.unpaid_cost > 0 ? 'text-red-600' : 'text-slate-400'}`}>
-                        ฿{formatCurrency(histSummary.unpaid_cost)}
+                    </CardContent>
+                  </Card>
+                  <Card size="sm" className="bg-white">
+                    <CardContent className="px-4 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                        <Banknote className="w-4 h-4 text-emerald-500" />
                       </div>
-                    </div>
-                  </div>
+                      <div className="min-w-0">
+                        <div className="text-xs text-slate-400">มูลค่ารวม</div>
+                        <div className="text-lg font-bold text-emerald-700 leading-tight tabular-nums">
+                          ฿{formatCurrency(histSummary.total_cost)}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card size="sm" className="bg-white">
+                    <CardContent className="px-4 flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${histSummary.unpaid_cost > 0 ? 'bg-red-50' : 'bg-slate-100'}`}>
+                        <CreditCard className={`w-4 h-4 ${histSummary.unpaid_cost > 0 ? 'text-red-400' : 'text-slate-400'}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs text-slate-400">ค้างชำระ</div>
+                        <div className={`text-lg font-bold leading-tight tabular-nums ${histSummary.unpaid_cost > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                          ฿{formatCurrency(histSummary.unpaid_cost)}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 {/* ── Split pane ── */}
@@ -1455,17 +1463,20 @@ export default function PurchasePage() {
                         </Button>
                       </div>
                       <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <select
-                            className="w-full h-8 rounded-md border border-input bg-background px-2.5 pr-7 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-                            value={histSupplierId}
-                            onChange={e => setHistSupplierId(Number(e.target.value))}
-                          >
-                            <option value={0}>ทุกผู้จัดจำหน่าย</option>
-                            {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                          </select>
-                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                        </div>
+                        <Select
+                          value={String(histSupplierId)}
+                          onValueChange={v => setHistSupplierId(Number(v))}
+                        >
+                          <SelectTrigger size="sm" className="w-full h-8 text-sm">
+                            <SelectValue placeholder="ทุกผู้จัดจำหน่าย" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">ทุกผู้จัดจำหน่าย</SelectItem>
+                            {suppliers.map(s => (
+                              <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-0.5">
                         <label className="text-xs text-slate-400 px-0.5">ช่วงวันที่</label>
@@ -1485,19 +1496,20 @@ export default function PurchasePage() {
                           const active = histPaymentFilter === v
                           const cancelChip = v === 'cancelled'
                           return (
-                            <button
+                            <Button
                               key={v}
+                              size="sm"
+                              variant={active ? 'default' : 'outline'}
                               onClick={() => { setHistPaymentFilter(v); loadHistory(1, v) }}
-                              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
-                                active
-                                  ? cancelChip
-                                    ? 'bg-red-500 text-white border-red-500'
-                                    : 'bg-emerald-500 text-white border-emerald-500'
-                                  : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                              }`}
+                              className={cn(
+                                'rounded-full px-3 h-7 text-xs font-medium',
+                                active && cancelChip && 'bg-red-500 hover:bg-red-600 border-red-500 text-white',
+                                active && !cancelChip && 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white',
+                                !active && 'bg-white text-slate-500 border-slate-200 hover:border-slate-300',
+                              )}
                             >
                               {v === 'all' ? 'ทั้งหมด' : v === 'cash' ? 'เงินสด' : v === 'credit' ? 'เครดิต' : 'ยกเลิกแล้ว'}
-                            </button>
+                            </Button>
                           )
                         })}
                       </div>
@@ -1543,14 +1555,14 @@ export default function PurchasePage() {
                               <span className="text-xs text-slate-400">{h.item_count} รายการ</span>
                               <span className="text-slate-200">·</span>
                               {isCancelled
-                                ? <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">ยกเลิก</span>
+                                ? <Badge variant="destructive" className="text-[11px] px-1.5 py-0">ยกเลิก</Badge>
                                 : h.payment_type === 'credit'
                                   ? h.is_paid
-                                    ? <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium">ชำระแล้ว</span>
+                                    ? <Badge variant="success" className="text-[11px] px-1.5 py-0">ชำระแล้ว</Badge>
                                     : isOverdue
-                                      ? <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
-                                      : <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</span>
-                                  : <span className="inline-flex items-center text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">เงินสด</span>
+                                      ? <Badge variant="destructive" className="text-[11px] px-1.5 py-0">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                                      : <Badge variant="warning" className="text-[11px] px-1.5 py-0">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                                  : <Badge variant="secondary" className="text-[11px] px-1.5 py-0">เงินสด</Badge>
                               }
                             </div>
                           </button>

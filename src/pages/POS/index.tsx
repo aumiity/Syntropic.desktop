@@ -4,9 +4,12 @@ import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
 import { formatCurrency, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, Customer } from '@/types'
 import { redistributeDiscounts } from './redistributeDiscount'
@@ -305,7 +308,7 @@ export default function POSPage() {
     <div className="flex flex-col h-full p-3 gap-2">
 
           {/* Gradient banner */}
-          <div className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-sky-600 text-white shadow-md flex items-center justify-between">
+          <div className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-sky-600 text-white shadow-md flex items-center justify-between">
             <div>
               <h1 className="text-xl font-extrabold leading-tight">Rx Syntropic</h1>
               <p className="text-xs opacity-80">หน้าจอขายสินค้า</p>
@@ -322,7 +325,7 @@ export default function POSPage() {
           {/* Search input + controls */}
           <div className="flex gap-2 items-center">
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500 pointer-events-none" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary pointer-events-none" />
               <Input
                 ref={mainInputRef}
                 value={query}
@@ -330,52 +333,49 @@ export default function POSPage() {
                 placeholder="ค้นหารหัส, ชื่อยา หรือสแกนบาร์โค้ด [F2]..."
                 autoFocus
                 autoComplete="off"
-                className="w-full h-[52px] pl-12 pr-4 rounded-xl border border-slate-300 shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-base bg-white outline-none transition-all"
+                className="w-full h-[52px] pl-12 pr-4 rounded-xl border border-slate-300 shadow-sm focus:ring-2 focus:ring-primary focus:border-primary text-base bg-white outline-none transition-all"
               />
             </div>
 
             {/* Sale type */}
-            <div className="flex rounded-xl overflow-hidden border border-slate-300 shadow-sm shrink-0" style={{ height: '52px' }}>
-              {(['retail', 'wholesale'] as const).map(t => (
-                <button key={t} onClick={() => { cart.setSaleType(t); refocusSearch() }}
-                  className={`font-bold text-sm transition-colors ${cart.saleType === t ? 'min w-12 bg-primary text-primary-foreground' : 'min w-12 bg-primary-foreground text-primary hover:bg-slate-50'}`}>
-                  {t === 'retail' ? 'ปลีก' : 'ส่ง'}
-                </button>
-              ))}
+            <div className="flex shrink-0 items-center gap-3 px-4 bg-white border border-slate-300 rounded-xl shadow-sm" style={{ height: '52px' }}>
+              <span className={`w-[30px] text-center select-none transition-colors ${cart.saleType === 'retail' ? 'text-primary font-bold' : 'text-slate-400 font-medium'} cursor-pointer`} onClick={() => { cart.setSaleType('retail'); refocusSearch() }}>ปลีก</span>
+              <Switch className="data-[state=unchecked]:bg-primary" checked={cart.saleType === 'wholesale'} onCheckedChange={v => { cart.setSaleType(v ? 'wholesale' : 'retail'); refocusSearch() }}/>
+              <span className={`w-[30px] text-center select-none transition-colors ${cart.saleType === 'wholesale' ? 'text-primary font-bold' : 'text-slate-400 font-medium'} cursor-pointer`} onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}>ส่ง</span>
             </div>
 
             {/* Customer selector */}
-            <button onClick={() => setShowCustomerSearch(true)}
+            <Button variant="outline" onClick={() => setShowCustomerSearch(true)}
               className="h-[52px] bg-white border border-slate-300 rounded-xl px-4 w-64 flex items-center justify-between hover:bg-slate-50 transition-colors shadow-sm shrink-0">
               <div className="flex flex-col text-left overflow-hidden pr-2">
                 <span className="text-xs text-slate-400 font-medium">ลูกค้า / สมาชิก</span>
-                <span className={`text-sm font-bold truncate ${cart.customer ? 'text-slate-400' : 'text-emerald-600'}`}>
+                <span className={`text-sm font-bold truncate ${cart.customer ? 'text-slate-400' : 'text-primary'}`}>
                   {cart.customer
                     ? <span className="flex items-center gap-1">{cart.customer.is_alert && <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />}{cart.customer.full_name}</span>
                     : 'ลูกค้าทั่วไป (เงินสด)'}
                 </span>
               </div>
               <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
-            </button>
+            </Button>
 
             {cart.customer && (
-              <button onClick={() => { cart.setCustomer(null); refocusSearch() }}
+              <Button variant="ghost" size="icon" onClick={() => { cart.setCustomer(null); refocusSearch() }}
                 className="h-[52px] w-[52px] bg-white border border-slate-300 rounded-xl flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors shadow-sm shrink-0 text-slate-400">
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             )}
 
-            <button onClick={() => setShowCustomerInfo(true)} disabled={!cart.customer} title="ข้อมูลลูกค้า"
+            <Button variant="ghost" size="icon" onClick={() => setShowCustomerInfo(true)} disabled={!cart.customer} title="ข้อมูลลูกค้า"
               className="h-[52px] w-[52px] bg-white border border-slate-300 rounded-xl flex flex-col items-center justify-center transition-colors shadow-sm shrink-0 gap-0.5 enabled:text-slate-500 enabled:hover:bg-slate-50 disabled:text-slate-300 disabled:cursor-not-allowed">
               <Info className="h-5 w-5" />
               <span className="text-[10px] leading-none">ข้อมูล</span>
-            </button>
+            </Button>
 
-            <button onClick={() => setShowQuickAdd(true)}
+            <Button variant="ghost" size="icon" onClick={() => setShowQuickAdd(true)}
               className="h-[52px] w-[52px] bg-white border border-slate-300 rounded-xl flex flex-col items-center justify-center hover:bg-slate-50 transition-colors shadow-sm shrink-0 text-slate-500 gap-0.5">
               <UserPlus className="h-5 w-5" />
               <span className="text-[10px] leading-none">เพิ่มลูกค้า</span>
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -392,29 +392,26 @@ export default function POSPage() {
           )}
 
           {/* Chrome-style tab strip */}
-          <div className="flex items-end border-b border-slate-200 shrink-0">
-            {([0, 1, 2] as const).map(i => {
-              const isActive = i === cart.activeSlot
-              const hasItems = (i === cart.activeSlot ? cart.items : cart.slots[i].items).length > 0
-              const showSep = i > 0 && cart.activeSlot !== i && cart.activeSlot !== i - 1
-              return (
-                <React.Fragment key={i}>
-                  {i > 0 && <span className={`self-center h-3.5 w-px mx-0.5 shrink-0 transition-colors ${showSep ? 'bg-slate-300' : 'bg-transparent'}`} />}
-                  <button
-                    onClick={() => { cart.setActiveSlot(i); refocusSearch() }}
-                    className={`relative px-12 py-1.5 text-sm font-semibold rounded-t-lg -mb-px border border-b-0 transition-colors ${
-                      isActive
-                        ? 'bg-slate-100 border-slate-200 text-slate-700 z-10'
-                        : 'border-transparent text-slate-400 hover:text-slate-600'
-                    }`}
-                  >
-                    รายการขาย {i + 1}
-                    {hasItems && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-                  </button>
-                </React.Fragment>
-              )
-            })}
-          </div>
+          <Tabs value={String(cart.activeSlot)} onValueChange={(v) => { cart.setActiveSlot(Number(v)); refocusSearch() }} className="shrink-0">
+            <TabsList variant="line" className="flex items-end border-b border-slate-200 rounded-none p-0 gap-0 h-auto">
+              {([0, 1, 2] as const).map(i => {
+                const isActive = i === cart.activeSlot
+                const hasItems = (i === cart.activeSlot ? cart.items : cart.slots[i].items).length > 0
+                const showSep = i > 0 && cart.activeSlot !== i && cart.activeSlot !== i - 1
+                return (
+                  <React.Fragment key={i}>
+                    {i > 0 && <span className={`self-center h-3.5 w-px mx-0.5 shrink-0 transition-colors ${showSep ? 'bg-slate-300' : 'bg-transparent'}`} />}
+                    <TabsTrigger value={String(i)}
+                      className={`relative px-12 py-1.5 text-sm font-semibold rounded-t-lg -mb-px border border-b-0 transition-colors data-[state=active]:bg-slate-100 data-[state=active]:border-slate-200 data-[state=active]:text-slate-700 data-[state=active]:z-10 data-[state=active]:shadow-none border-transparent text-slate-400 hover:text-slate-600`}
+                    >
+                      รายการขาย {i + 1}
+                      {hasItems && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />}
+                    </TabsTrigger>
+                  </React.Fragment>
+                )
+              })}
+            </TabsList>
+          </Tabs>
 
           <div className="flex-1 bg-white rounded-b-xl rounded-tr-xl shadow-sm border border-t-0 border-slate-200 flex flex-col overflow-hidden min-h-0">
             <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
@@ -462,40 +459,40 @@ export default function POSPage() {
                         </TableCell>
 
                         <TableCell className="text-center">
-                          <button onClick={() => setUnitModalIdx(idx)}
+                          <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
                             className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-700 text-sm font-semibold hover:bg-slate-100 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 transition-colors">
                             {item.unit_name}
-                          </button>
+                          </Button>
                         </TableCell>
 
                         <TableCell className="text-center">
-                          <button
+                          <Button variant="outline" size="sm"
                             onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
                             className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700 text-sm font-semibold tabular-nums hover:bg-yellow-100 hover:border-yellow-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 transition-colors">
                             <span className="flex-1 text-center">{item.qty}</span>
-                          </button>
+                          </Button>
                         </TableCell>
 
                         <TableCell className="text-right">
-                          <button onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
+                          <Button variant="outline" size="sm" onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
                             className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-semibold tabular-nums hover:bg-emerald-100 hover:border-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-colors">
                             <span className="flex-1 text-right">{formatCurrency(item.unit_price)}</span>
-                          </button>
+                          </Button>
                         </TableCell>
 
                         <TableCell className="text-right">
                           {item.discount ? (
-                            <button
+                            <Button variant="outline" size="sm"
                               onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
                               className="inline-flex flex-col items-end justify-center min-w-14 h-8 px-2.5 rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
                               <span className="text-sm font-semibold tabular-nums leading-none">{formatCurrency(item.discount)}</span>
-                            </button>
+                            </Button>
                           ) : (
-                            <button
+                            <Button variant="outline" size="sm"
                               onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
                               className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-slate-200 bg-white text-slate-400 text-sm font-medium tabular-nums hover:bg-slate-50 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
                               <span className="flex-1 text-right">0</span>
-                            </button>
+                            </Button>
                           )}
                         </TableCell>
 
@@ -504,10 +501,10 @@ export default function POSPage() {
                         </TableCell>
 
                         <TableCell className="text-right">
-                          <button onClick={() => { cart.removeItem(idx); refocusSearch() }}
+                          <Button variant="ghost" size="icon" onClick={() => { cart.removeItem(idx); refocusSearch() }}
                             className="w-7 h-7 rounded inline-flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50">
                             <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -536,7 +533,7 @@ export default function POSPage() {
                   {/* Grand total */}
         <div className="w-64 bg-white rounded-xl shadow-sm border-2 border-emerald-50 p-5 flex flex-col justify-center shrink-0">
           <div className="text-right text-sm font-bold text-slate-500 mb-1">ยอดสุทธิ</div>
-          <div className="text-right text-5xl font-extrabold text-emerald-600 leading-none tabular-nums">
+          <div className="text-right text-5xl font-extrabold text-primary leading-none tabular-nums">
             {formatCurrency(cart.totalAmount())}
           </div>
         </div>
@@ -548,7 +545,7 @@ export default function POSPage() {
               setShowBreakdown(false)
               setShowPayment(true)
             }}
-            className="flex-1 flex-col gap-1 min-h-[120px] h-auto rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-100 text-white font-bold text-2xl shadow-md">
+            className="flex-1 flex-col gap-1 min-h-[120px] h-auto rounded-xl bg-primary hover:bg-primary disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-100 text-white font-bold text-2xl shadow-md">
             <span>รับชำระเงิน</span>
             <span className="text-sm bg-black/10 px-3 py-0.5 rounded-md font-medium">F9</span>
           </Button>
@@ -572,7 +569,7 @@ export default function POSPage() {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-500 text-sm">ยอดรวม</span>
-              <span className="font-bold text-emerald-500">฿{formatCurrency(dailyStats.total)}</span>
+              <span className="font-bold text-primary">฿{formatCurrency(dailyStats.total)}</span>
             </div>
           </div>
         </div>
@@ -588,7 +585,7 @@ export default function POSPage() {
         >
           {/* Search input */}
           <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200 shrink-0">
-            <Search className="h-5 w-5 text-emerald-500 shrink-0" />
+            <Search className="h-5 w-5 text-primary shrink-0" />
             <Input
               ref={modalInputRef}
               value={query}
@@ -599,13 +596,13 @@ export default function POSPage() {
               autoComplete="off"
             />
             {query && (
-              <button onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
-                className="text-slate-400 hover:text-slate-600 p-1"><X className="h-4 w-4" /></button>
+              <Button variant="ghost" size="icon" onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
+                className="text-slate-400 hover:text-slate-600 p-1"><X className="h-4 w-4" /></Button>
             )}
-            <button onClick={closeSearch}
+            <Button variant="ghost" size="sm" onClick={closeSearch}
               className="text-slate-400 hover:text-slate-600 text-xs px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-50">
               Esc
-            </button>
+            </Button>
           </div>
 
           {/* Column header */}
@@ -649,10 +646,9 @@ export default function POSPage() {
                         <span className="truncate">{it.product.trade_name}</span>
                         {stock === 0 && <span className="text-[15px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium shrink-0">หมด</span>}
                       </div>
-                      {it.product.code && <div className="text-xs text-slate-400 font-mono truncate">{it.product.code}</div>}
                     </div>
                     <div className="text-center text-sm text-slate-600 truncate">{unitName}</div>
-                    <div className="text-right font-bold text-emerald-600 text-sm tabular-nums">฿{formatCurrency(price)}</div>
+                    <div className="text-right font-bold text-primary text-sm tabular-nums">฿{formatCurrency(price)}</div>
                     <div className={`text-right text-sm font-semibold tabular-nums ${stock > 0 ? 'text-slate-700' : 'text-red-500'}`}>{stock}</div>
                   </div>
                 )
@@ -674,14 +670,14 @@ export default function POSPage() {
           <DialogBody>
             <div className="space-y-3">
               <Input className="h-10" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
-              <button onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
-                className="w-full px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-left transition-colors text-sm">
+              <Button variant="ghost" onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
+                className="w-full justify-start px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-left transition-colors text-sm">
                 👤 ลูกค้าทั่วไป (เงินสด)
-              </button>
+              </Button>
               <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
                 {customerResults.map(c => (
-                  <button key={c.id} onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted text-left transition-colors">
+                  <Button key={c.id} variant="ghost" onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
+                    className="w-full justify-start flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted text-left transition-colors">
                     <User className="h-8 w-8 p-1.5 bg-muted rounded-full text-muted-foreground shrink-0" />
                     <div>
                       <div className="font-medium text-sm flex items-center gap-1">
@@ -689,7 +685,7 @@ export default function POSPage() {
                       </div>
                       <div className="text-xs text-muted-foreground">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
                     </div>
-                  </button>
+                  </Button>
                 ))}
                 {customerQuery && customerResults.length === 0 && <div className="text-sm text-center text-muted-foreground py-4">ไม่พบลูกค้า</div>}
               </div>
@@ -731,9 +727,9 @@ export default function POSPage() {
                     <div>
                       <div className="text-xs text-slate-400">สิทธิการรักษา</div>
                       <div className="flex flex-wrap gap-1.5 mt-1">
-                        {cart.customer.hc_uc ? <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">บัตรทอง</span> : null}
-                        {cart.customer.hc_gov ? <span className="text-xs bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-md">ข้าราชการ</span> : null}
-                        {cart.customer.hc_sso ? <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md">ประกันสังคม</span> : null}
+                        {cart.customer.hc_uc ? <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 px-2 py-0.5 rounded-md">บัตรทอง</Badge> : null}
+                        {cart.customer.hc_gov ? <Badge variant="outline" className="text-xs bg-sky-50 text-sky-700 border-sky-200 px-2 py-0.5 rounded-md">ข้าราชการ</Badge> : null}
+                        {cart.customer.hc_sso ? <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 px-2 py-0.5 rounded-md">ประกันสังคม</Badge> : null}
                       </div>
                     </div>
                   ) : null}
@@ -860,7 +856,7 @@ export default function POSPage() {
                     ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200'
                     : 'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200'}`}>
                     <div className="text-sm text-slate-600 font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
-                    <div className={`text-5xl font-extrabold text-right leading-none tabular-nums ${netNegative ? 'text-red-600' : 'text-emerald-600'}`}>
+                    <div className={`text-5xl font-extrabold text-right leading-none tabular-nums ${netNegative ? 'text-red-600' : 'text-primary'}`}>
                       {formatCurrency(net)}
                     </div>
                   </div>
@@ -879,18 +875,18 @@ export default function POSPage() {
                       <div className="flex items-center gap-3 tabular-nums">
                         <span><span className="text-muted-foreground">ต้นทุน</span> ฿{formatCurrency(totalCost)}</span>
                         <span className="text-muted-foreground">•</span>
-                        <span><span className="text-muted-foreground">กำไร</span> <span className={`font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>฿{formatCurrency(profit)}</span></span>
+                        <span><span className="text-muted-foreground">กำไร</span> <span className={`font-semibold ${profit >= 0 ? 'text-primary' : 'text-red-500'}`}>฿{formatCurrency(profit)}</span></span>
                         <span className="text-muted-foreground">•</span>
-                        <span><span className="text-muted-foreground">% กำไร</span> <span className={`font-semibold ${margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{margin.toFixed(2)}%</span></span>
+                        <span><span className="text-muted-foreground">% กำไร</span> <span className={`font-semibold ${margin >= 0 ? 'text-primary' : 'text-red-500'}`}>{margin.toFixed(2)}%</span></span>
                       </div>
                     ) : <span />}
                   </div>
 
                   {/* Cash input */}
                   <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-base font-medium">
+                    <Label className="text-base">
                       <Banknote className="h-5 w-5 text-green-500" /> รับเงินมา
-                    </label>
+                    </Label>
                     <Input
                       type="number"
                       value={cashAmount}
@@ -967,14 +963,14 @@ export default function POSPage() {
                   {allUnits.map(u => {
                     const active = item?.unit_name === u.unit_name
                     return (
-                      <button key={u.id}
+                      <Button key={u.id} variant="outline"
                         onClick={() => changeCartUnit(unitModalIdx, u)}
                         className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">{u.unit_name}</span>
                           {u.id === -1 && <span className="text-[15px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">หลัก</span>}
                         </div>
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>
@@ -1027,7 +1023,7 @@ export default function POSPage() {
                         onChange={e => setCustomPriceInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') applyCustomPrice() }}
                         placeholder="0.00"
-                        className="w-full flex-1 h-10 text-right text-lg font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-3 tabular-nums"
+                        className="w-full flex-1 h-10 text-right text-lg font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none px-3 tabular-nums"
                       />
                       <Button onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-11 px-4">ตกลง</Button>
                     </div>
@@ -1052,12 +1048,12 @@ export default function POSPage() {
                     const profit = opt.price - cost
                     const markupPct = cost > 0 ? (profit / cost) * 100 : 0
                     return (
-                      <button key={i}
+                      <Button key={i} variant="outline"
                         onClick={() => changeCartPrice(priceModalIdx, opt.price)}
                         className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-300'}`}>
                         <div className="flex items-center justify-between mb-1">
                           <span className={`text-sm font-bold ${active ? 'text-emerald-700' : 'text-slate-700'}`}>{opt.label}</span>
-                          <span className="text-base font-extrabold text-emerald-600 tabular-nums">฿{formatCurrency(opt.price)}</span>
+                          <span className="text-base font-extrabold text-primary tabular-nums">฿{formatCurrency(opt.price)}</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-xs">
                           <div>
@@ -1073,7 +1069,7 @@ export default function POSPage() {
                             <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-green-600' : 'text-red-500'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</div>
                           </div>
                         </div>
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>
@@ -1117,10 +1113,10 @@ export default function POSPage() {
                 <div>
                   <Label className="block text-sm font-bold text-slate-500 mb-1">จำนวน ({item?.unit_name})</Label>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => bump(-1)}
+                    <Button variant="outline" size="icon" onClick={() => bump(-1)}
                       className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
                       <Minus className="h-5 w-5" />
-                    </button>
+                    </Button>
                     <Input
                       type="number"
                       autoFocus
@@ -1131,20 +1127,20 @@ export default function POSPage() {
                       onChange={e => setQtyInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') applyQty(q) }}
                       placeholder="1"
-                      className="w-16 flex-1 h-14 text-center text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
+                      className="w-16 flex-1 h-14 text-center text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none px-4 tabular-nums"
                     />
-                    <button onClick={() => bump(1)}
+                    <Button variant="outline" size="icon" onClick={() => bump(1)}
                       className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
                       <Plus className="h-5 w-5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div className="grid grid-cols-5 gap-2">
                   {[1, 5, 10, 20, 50].map(n => (
-                    <button key={n} onClick={() => setQtyInput(String(n))}
+                    <Button key={n} variant="outline" size="sm" onClick={() => setQtyInput(String(n))}
                       className="h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-emerald-300 text-sm font-semibold text-slate-600 tabular-nums transition-colors">
                       {n}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </DialogBody>
@@ -1197,10 +1193,10 @@ export default function POSPage() {
                   ] as const).map(({ pct, base, active }) => {
                     const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
                     return (
-                      <button key={pct} onClick={() => applyPercent(pct)}
+                      <Button key={pct} variant="outline" size="sm" onClick={() => applyPercent(pct)}
                         className={`h-10 rounded-xl border text-sm font-semibold transition-colors ${isActive ? active : base}`}>
                         {pct}%
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>
@@ -1276,7 +1272,7 @@ export default function POSPage() {
                     }}
                     onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                     placeholder={formatCurrency(totalPrice)}
-                    className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none px-4 tabular-nums"
+                    className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none px-4 tabular-nums"
                   />
                 </div>
               </DialogBody>

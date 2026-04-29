@@ -36,7 +36,7 @@
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-ring: 161 94% 25%;       /* emerald-700 */
     --sidebar-primary: 162 87% 21%;           /* emerald-700 */
-    --sidebar-primary-foreground: 152 76% 80%;
+    --sidebar-primary-foreground: 152 76% 80%;    /* radius */
   }
 
   .dark {
