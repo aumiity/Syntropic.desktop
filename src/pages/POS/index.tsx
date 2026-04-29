@@ -25,29 +25,6 @@ const resolveSalePrice = (
   saleType: string,
 ) => saleType === 'wholesale' ? (src.price_wholesale1 || src.price_retail) : src.price_retail
 
-function InlineModal({ title, onClose, children, footer, maxWidth = 'max-w-sm' }: {
-  title: string
-  onClose: () => void
-  children: React.ReactNode
-  footer?: React.ReactNode
-  maxWidth?: string
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className={`bg-white rounded-2xl shadow-2xl border border-slate-200 ${maxWidth} w-full mx-4`}>
-        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-          <div className="font-bold text-slate-700 text-lg truncate pr-2">{title}</div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        {children}
-        {footer}
-      </div>
-    </div>
-  )
-}
-
 export default function POSPage() {
   const { toast } = useToast()
   const cart = useCartStore()
