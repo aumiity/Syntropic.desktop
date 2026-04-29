@@ -10,7 +10,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         type={type}
         data-slot="input"
         className={cn(
-          "h-7 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-sm shadow-sm outline-none transition-all file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20",
+          "h-7 w-full min-w-0 rounded-lg border border-input bg-white px-2.5 py-1 text-sm shadow-sm outline-none transition-all file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus:ring-2 [&:focus:not([aria-invalid])]:ring-ring [&:focus:not([aria-invalid])]:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/30",
           className
         )}
         {...props}
@@ -21,3 +21,5 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 Input.displayName = "Input"
 
 export { Input }
+
+
