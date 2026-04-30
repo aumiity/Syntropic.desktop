@@ -647,7 +647,7 @@ export default function UIComponents() {
                     <Switch checked={switchOn} onCheckedChange={setSwitchOn} />
                     <span className={cn('text-sm font-medium transition-colors', !switchOn ? 'text-foreground' : 'text-muted-foreground/50')}>ปิด</span>
                     <span className="text-muted-foreground/30 text-sm select-none">/</span>
-                    <span className={cn('text-sm font-medium transition-colors', switchOn ? 'text-blue-600' : 'text-muted-foreground/50')}>เปิด</span>
+                    <span className={cn('text-sm font-medium transition-colors', switchOn ? 'text-primary' : 'text-muted-foreground/50')}>เปิด</span>
                   </div>
                 </DemoRow>
                 <DemoRow label="Sizes">
@@ -772,7 +772,7 @@ export default function UIComponents() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">สต็อก</span>
-                          <span className="text-blue-600 font-medium">142 เม็ด</span>
+                          <span className="text-primary font-medium">142 เม็ด</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">ราคาขาย</span>
@@ -794,7 +794,7 @@ export default function UIComponents() {
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-                        <Package className="size-8 text-blue-600" />
+                        <Package className="size-8 text-primary" />
                         <div>
                           <p className="font-semibold text-foreground">1,284</p>
                           <p className="text-xs text-muted-foreground">รายการสินค้าทั้งหมด</p>
@@ -978,7 +978,7 @@ export default function UIComponents() {
                         </div>
                         <div className="flex justify-between">
                           <span>คงเหลือ</span>
-                          <span className="text-blue-600 font-medium">142 เม็ด</span>
+                          <span className="text-primary font-medium">142 เม็ด</span>
                         </div>
                         <div className="flex justify-between">
                           <span>ราคาทุน</span>

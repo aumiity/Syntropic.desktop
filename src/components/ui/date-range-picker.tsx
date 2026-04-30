@@ -126,17 +126,17 @@ export function DateRangePicker({
           className={cn(
             'flex items-center gap-2 w-full h-8 rounded-md border border-input bg-background px-2.5 text-sm text-left',
             'focus:outline-none focus:ring-2 focus:ring-ring',
-            !from && !to ? 'text-slate-400' : 'text-slate-700',
+            !from && !to ? 'text-foreground-subtle' : 'text-foreground',
             className,
           )}
         >
-          <CalendarDays className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <CalendarDays className="w-3.5 h-3.5 text-foreground-subtle shrink-0" />
           <span className="truncate flex-1">{display}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align={align}>
         <div className="flex">
-          <div className="flex flex-col gap-0.5 p-2 border-r border-slate-100 min-w-[120px]">
+          <div className="flex flex-col gap-0.5 p-2 border-r border-border min-w-[120px]">
             {PRESETS.map(p => (
               <Button
                 key={p.label}

@@ -418,7 +418,7 @@ export default function ProductsPage() {
                 <button
                   type="button"
                   onClick={() => setAdjustType('in')}
-                  className={`flex-1 h-9 rounded-md border text-sm font-medium transition-colors ${adjustType === 'in' ? 'bg-green-600 text-white border-green-600' : 'border-input bg-background hover:bg-accent'}`}
+                  className={`flex-1 h-9 rounded-md border text-sm font-medium transition-colors ${adjustType === 'in' ? 'bg-success text-success-foreground border-success' : 'border-input bg-background hover:bg-accent'}`}
                 >
                   เพิ่มสต็อก
                 </button>

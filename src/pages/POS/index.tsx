@@ -308,7 +308,7 @@ export default function POSPage() {
     <div className="flex flex-col h-full p-3 gap-2">
 
           {/* Gradient banner */}
-          <div className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-sky-600 text-white shadow-md flex items-center justify-between">
+          <div className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary-strong text-white shadow-md flex items-center justify-between">
             <div>
               <h1 className="text-xl font-extrabold leading-tight">Rx Syntropic</h1>
               <p className="text-xs opacity-80">หน้าจอขายสินค้า</p>
@@ -333,46 +333,46 @@ export default function POSPage() {
                 placeholder="ค้นหารหัส, ชื่อยา หรือสแกนบาร์โค้ด [F2]..."
                 autoFocus
                 autoComplete="off"
-                className="w-full h-[52px] pl-12 pr-4 rounded-xl border border-slate-300 shadow-sm focus:ring-2 focus:ring-primary focus:border-primary text-base bg-white outline-none transition-all"
+                className="w-full h-[52px] pl-12 pr-4 rounded-xl border border-border-strong shadow-sm focus:ring-2 focus:ring-primary focus:border-primary text-base bg-card outline-none transition-all"
               />
             </div>
 
             {/* Sale type */}
-            <div className="flex shrink-0 items-center gap-3 px-4 bg-white border border-slate-300 rounded-xl shadow-sm" style={{ height: '52px' }}>
-              <span className={`w-[30px] text-center select-none transition-colors ${cart.saleType === 'retail' ? 'text-primary font-bold' : 'text-slate-400 font-medium'} cursor-pointer`} onClick={() => { cart.setSaleType('retail'); refocusSearch() }}>ปลีก</span>
+            <div className="flex shrink-0 items-center gap-3 px-4 bg-card border border-border-strong rounded-xl shadow-sm" style={{ height: '52px' }}>
+              <span className={`w-[30px] text-center select-none transition-colors ${cart.saleType === 'retail' ? 'text-primary font-bold' : 'text-foreground-subtle font-medium'} cursor-pointer`} onClick={() => { cart.setSaleType('retail'); refocusSearch() }}>ปลีก</span>
               <Switch className="data-[state=unchecked]:bg-primary" checked={cart.saleType === 'wholesale'} onCheckedChange={v => { cart.setSaleType(v ? 'wholesale' : 'retail'); refocusSearch() }}/>
-              <span className={`w-[30px] text-center select-none transition-colors ${cart.saleType === 'wholesale' ? 'text-primary font-bold' : 'text-slate-400 font-medium'} cursor-pointer`} onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}>ส่ง</span>
+              <span className={`w-[30px] text-center select-none transition-colors ${cart.saleType === 'wholesale' ? 'text-primary font-bold' : 'text-foreground-subtle font-medium'} cursor-pointer`} onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}>ส่ง</span>
             </div>
 
             {/* Customer selector */}
             <Button variant="outline" onClick={() => setShowCustomerSearch(true)}
-              className="h-[52px] bg-white border border-slate-300 rounded-xl px-4 w-64 flex items-center justify-between hover:bg-slate-50 transition-colors shadow-sm shrink-0">
+              className="h-[52px] bg-card border border-border-strong rounded-xl px-4 w-64 flex items-center justify-between hover:bg-muted transition-colors shadow-sm shrink-0">
               <div className="flex flex-col text-left overflow-hidden pr-2">
-                <span className="text-xs text-slate-400 font-medium">ลูกค้า / สมาชิก</span>
-                <span className={`text-sm font-bold truncate ${cart.customer ? 'text-slate-400' : 'text-primary'}`}>
+                <span className="text-xs text-foreground-subtle font-medium">ลูกค้า / สมาชิก</span>
+                <span className={`text-sm font-bold truncate ${cart.customer ? 'text-foreground-subtle' : 'text-primary'}`}>
                   {cart.customer
-                    ? <span className="flex items-center gap-1">{cart.customer.is_alert && <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />}{cart.customer.full_name}</span>
+                    ? <span className="flex items-center gap-1">{cart.customer.is_alert && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}{cart.customer.full_name}</span>
                     : 'ลูกค้าทั่วไป (เงินสด)'}
                 </span>
               </div>
-              <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
+              <ChevronDown className="h-4 w-4 text-foreground-subtle shrink-0" />
             </Button>
 
             {cart.customer && (
               <Button variant="ghost" size="icon" onClick={() => { cart.setCustomer(null); refocusSearch() }}
-                className="h-[52px] w-[52px] bg-white border border-slate-300 rounded-xl flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors shadow-sm shrink-0 text-slate-400">
+                className="h-[52px] w-[52px] bg-card border border-border-strong rounded-xl flex items-center justify-center hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-colors shadow-sm shrink-0 text-foreground-subtle">
                 <X className="h-4 w-4" />
               </Button>
             )}
 
             <Button variant="ghost" size="icon" onClick={() => setShowCustomerInfo(true)} disabled={!cart.customer} title="ข้อมูลลูกค้า"
-              className="h-[52px] w-[52px] bg-white border border-slate-300 rounded-xl flex flex-col items-center justify-center transition-colors shadow-sm shrink-0 gap-0.5 enabled:text-slate-500 enabled:hover:bg-slate-50 disabled:text-slate-300 disabled:cursor-not-allowed">
+              className="h-[52px] w-[52px] bg-card border border-border-strong rounded-xl flex flex-col items-center justify-center transition-colors shadow-sm shrink-0 gap-0.5 enabled:text-muted-foreground enabled:hover:bg-muted disabled:text-foreground-subtle disabled:cursor-not-allowed">
               <Info className="h-5 w-5" />
               <span className="text-[10px] leading-none">ข้อมูล</span>
             </Button>
 
             <Button variant="ghost" size="icon" onClick={() => setShowQuickAdd(true)}
-              className="h-[52px] w-[52px] bg-white border border-slate-300 rounded-xl flex flex-col items-center justify-center hover:bg-slate-50 transition-colors shadow-sm shrink-0 text-slate-500 gap-0.5">
+              className="h-[52px] w-[52px] bg-card border border-border-strong rounded-xl flex flex-col items-center justify-center hover:bg-muted transition-colors shadow-sm shrink-0 text-muted-foreground gap-0.5">
               <UserPlus className="h-5 w-5" />
               <span className="text-[10px] leading-none">เพิ่มลูกค้า</span>
             </Button>
@@ -386,23 +386,23 @@ export default function POSPage() {
         {/* Cart table */}
         <div className="flex flex-1 flex-col min-h-0">
           {cart.customer?.is_alert && cart.customer.alert_note && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-sm text-red-600 flex items-center gap-2 font-medium shrink-0 mb-2">
+            <div className="bg-destructive-soft border border-destructive/30 rounded-lg px-4 py-2.5 text-sm text-destructive flex items-center gap-2 font-medium shrink-0 mb-2">
               <AlertTriangle className="h-4 w-4 shrink-0" />{cart.customer.alert_note}
             </div>
           )}
 
           {/* Chrome-style tab strip */}
           <Tabs value={String(cart.activeSlot)} onValueChange={(v) => { cart.setActiveSlot(Number(v)); refocusSearch() }} className="shrink-0">
-            <TabsList variant="line" className="flex items-end border-b border-slate-200 rounded-none p-0 gap-0 h-auto">
+            <TabsList variant="line" className="flex items-end border-b border-border rounded-none p-0 gap-0 h-auto">
               {([0, 1, 2] as const).map(i => {
                 const isActive = i === cart.activeSlot
                 const hasItems = (i === cart.activeSlot ? cart.items : cart.slots[i].items).length > 0
                 const showSep = i > 0 && cart.activeSlot !== i && cart.activeSlot !== i - 1
                 return (
                   <React.Fragment key={i}>
-                    {i > 0 && <span className={`self-center h-3.5 w-px mx-0.5 shrink-0 transition-colors ${showSep ? 'bg-slate-300' : 'bg-transparent'}`} />}
+                    {i > 0 && <span className={`self-center h-3.5 w-px mx-0.5 shrink-0 transition-colors ${showSep ? 'bg-border-strong' : 'bg-transparent'}`} />}
                     <TabsTrigger value={String(i)}
-                      className={`relative px-12 py-1.5 text-sm font-semibold rounded-t-lg -mb-px border border-b-0 transition-colors data-[state=active]:bg-slate-100 data-[state=active]:border-slate-200 data-[state=active]:text-slate-700 data-[state=active]:z-10 data-[state=active]:shadow-none border-transparent text-slate-400 hover:text-slate-600`}
+                      className={`relative px-12 py-1.5 text-sm font-semibold rounded-t-lg -mb-px border border-b-0 transition-colors data-[state=active]:bg-muted data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:z-10 data-[state=active]:shadow-none border-transparent text-foreground-subtle hover:text-muted-foreground`}
                     >
                       รายการขาย {i + 1}
                       {hasItems && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />}
@@ -413,7 +413,7 @@ export default function POSPage() {
             </TabsList>
           </Tabs>
 
-          <div className="flex-1 bg-white rounded-b-xl rounded-tr-xl shadow-sm border border-t-0 border-slate-200 flex flex-col overflow-hidden min-h-0">
+          <div className="flex-1 bg-card rounded-b-xl rounded-tr-xl shadow-sm border border-t-0 border-border flex flex-col overflow-hidden min-h-0">
             <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
               <table className="w-full caption-bottom text-sm table-fixed">
                 <colgroup>
@@ -426,23 +426,23 @@ export default function POSPage() {
                   <col style={{ width: 110 }} />
                   <col style={{ width: 60 }} />
                 </colgroup>
-                <TableHeader className="sticky top-0 z-10 bg-slate-100">
-                  <TableRow className="hover:bg-slate-100">
-                    <TableHead className="text-center text-xs font-bold text-slate-600">#</TableHead>
-                    <TableHead className="text-xs font-bold text-slate-600">รายการสินค้า</TableHead>
-                    <TableHead className="text-center text-xs font-bold text-slate-600">หน่วย</TableHead>
-                    <TableHead className="text-center text-xs font-bold text-slate-600">จำนวน</TableHead>
-                    <TableHead className="text-right text-xs font-bold text-slate-600">ราคา/หน่วย</TableHead>
-                    <TableHead className="text-right text-xs font-bold text-slate-600">ส่วนลด</TableHead>
-                    <TableHead className="text-right text-xs font-bold text-slate-600">รวมเงิน</TableHead>
+                <TableHeader className="sticky top-0 z-10 bg-muted">
+                  <TableRow className="hover:bg-muted">
+                    <TableHead className="text-center text-xs font-bold text-muted-foreground">#</TableHead>
+                    <TableHead className="text-xs font-bold text-muted-foreground">รายการสินค้า</TableHead>
+                    <TableHead className="text-center text-xs font-bold text-muted-foreground">หน่วย</TableHead>
+                    <TableHead className="text-center text-xs font-bold text-muted-foreground">จำนวน</TableHead>
+                    <TableHead className="text-right text-xs font-bold text-muted-foreground">ราคา/หน่วย</TableHead>
+                    <TableHead className="text-right text-xs font-bold text-muted-foreground">ส่วนลด</TableHead>
+                    <TableHead className="text-right text-xs font-bold text-muted-foreground">รวมเงิน</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {cart.items.length === 0 ? (
-                    <TableRow className="hover:bg-white">
+                    <TableRow className="hover:bg-muted">
                       <TableCell colSpan={8} className="text-center py-16">
-                        <div className="flex flex-col items-center justify-center text-slate-300 gap-3">
+                        <div className="flex flex-col items-center justify-center text-foreground-subtle gap-3">
                           <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                           </svg>
@@ -452,7 +452,7 @@ export default function POSPage() {
                       </TableCell>
                     </TableRow>
                   ) : cart.items.map((item, idx) => (
-                      <TableRow key={idx} className="hover:bg-slate-50">
+                      <TableRow key={idx} className="hover:bg-muted">
                         <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
                         <TableCell className="min-w-0 pr-2">
                           <div className="font-medium truncate text-sm">{item.item_name}</div>
@@ -460,7 +460,7 @@ export default function POSPage() {
 
                         <TableCell className="text-center">
                           <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
-                            className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-700 text-sm font-semibold hover:bg-slate-100 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 transition-colors">
+                            className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-border bg-surface-hover text-foreground text-sm font-semibold hover:bg-muted hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors">
                             {item.unit_name}
                           </Button>
                         </TableCell>
@@ -468,14 +468,14 @@ export default function POSPage() {
                         <TableCell className="text-center">
                           <Button variant="outline" size="sm"
                             onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                            className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700 text-sm font-semibold tabular-nums hover:bg-yellow-100 hover:border-yellow-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 transition-colors">
+                            className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-warning/30 bg-warning-soft text-warning-strong text-sm font-semibold tabular-nums hover:bg-warning-soft hover:border-warning/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/50 transition-colors">
                             <span className="flex-1 text-center">{item.qty}</span>
                           </Button>
                         </TableCell>
 
                         <TableCell className="text-right">
                           <Button variant="outline" size="sm" onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
-                            className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 text-sm font-semibold tabular-nums hover:bg-blue-100 hover:border-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition-colors">
+                            className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md border border-primary/30 bg-primary-soft text-primary text-sm font-semibold tabular-nums hover:bg-primary-soft hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors">
                             <span className="flex-1 text-right">{formatCurrency(item.unit_price)}</span>
                           </Button>
                         </TableCell>
@@ -484,25 +484,25 @@ export default function POSPage() {
                           {item.discount ? (
                             <Button variant="outline" size="sm"
                               onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
-                              className="inline-flex flex-col items-end justify-center min-w-14 h-8 px-2.5 rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
+                              className="inline-flex flex-col items-end justify-center min-w-14 h-8 px-2.5 rounded-md border border-destructive/30 bg-destructive-soft text-destructive hover:bg-destructive/20 hover:border-destructive/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 transition-colors">
                               <span className="text-sm font-semibold tabular-nums leading-none">{formatCurrency(item.discount)}</span>
                             </Button>
                           ) : (
                             <Button variant="outline" size="sm"
                               onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
-                              className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-slate-200 bg-white text-slate-400 text-sm font-medium tabular-nums hover:bg-slate-50 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors">
+                              className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-border bg-card text-foreground-subtle text-sm font-medium tabular-nums hover:bg-muted hover:border-destructive/30 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 transition-colors">
                               <span className="flex-1 text-right">0</span>
                             </Button>
                           )}
                         </TableCell>
 
-                        <TableCell className="text-right font-semibold text-blue-700 text-sm">
+                        <TableCell className="text-right font-semibold text-primary text-sm">
                           {formatCurrency(item.line_total)}
                         </TableCell>
 
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={() => { cart.removeItem(idx); refocusSearch() }}
-                            className="w-7 h-7 rounded inline-flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50">
+                            className="w-7 h-7 rounded inline-flex items-center justify-center text-foreground-subtle hover:text-destructive hover:bg-destructive/10">
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </TableCell>
@@ -513,14 +513,14 @@ export default function POSPage() {
             </div>
 
             {cart.items.length > 0 && (
-              <div className="border-t border-slate-200 px-4 py-2.5 bg-slate-50 shrink-0 flex justify-between text-sm">
+              <div className="border-t border-border px-4 py-2.5 bg-surface-hover shrink-0 flex justify-between text-sm">
                 <span className="text-muted-foreground">
                   รายการ: <span className="font-semibold text-foreground">{cart.items.length} รายการ</span>
                 </span>
                 <div className="flex gap-6">
                   <span className="text-muted-foreground">ราคารวม: <span className="font-semibold text-foreground">฿{formatCurrency(cart.subtotal())}</span></span>
                   {cart.totalDiscount() > 0 && (
-                    <span className="text-muted-foreground">ส่วนลด: <span className="font-semibold text-red-500">-฿{formatCurrency(cart.totalDiscount())}</span></span>
+                    <span className="text-muted-foreground">ส่วนลด: <span className="font-semibold text-destructive">-฿{formatCurrency(cart.totalDiscount())}</span></span>
                   )}
                 </div>
               </div>
@@ -531,8 +531,8 @@ export default function POSPage() {
         {/* Right action panel */}
         <div className="w-64 shrink-0 flex flex-col gap-2.5">
                   {/* Grand total */}
-        <div className="w-64 bg-white rounded-xl shadow-sm border-2 border-blue-50 p-5 flex flex-col justify-center shrink-0">
-          <div className="text-right text-sm font-bold text-slate-500 mb-1">ยอดสุทธิ</div>
+        <div className="w-64 bg-card rounded-xl shadow-sm border-2 border-primary-soft-border p-5 flex flex-col justify-center shrink-0">
+          <div className="text-right text-sm font-bold text-muted-foreground mb-1">ยอดสุทธิ</div>
           <div className="text-right text-5xl font-extrabold text-primary leading-none tabular-nums">
             {formatCurrency(cart.totalAmount())}
           </div>
@@ -545,30 +545,30 @@ export default function POSPage() {
               setShowBreakdown(false)
               setShowPayment(true)
             }}
-            className="flex-1 flex-col gap-1 min-h-[120px] h-auto rounded-xl bg-primary hover:bg-primary disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-100 text-white font-bold text-2xl shadow-md">
+            className="flex-1 flex-col gap-1 min-h-[120px] h-auto rounded-xl bg-primary hover:bg-primary disabled:bg-muted disabled:text-foreground-subtle disabled:opacity-100 text-white font-bold text-2xl shadow-md">
             <span>รับชำระเงิน</span>
             <span className="text-sm bg-black/10 px-3 py-0.5 rounded-md font-medium">F9</span>
           </Button>
           <Button variant="outline" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
-            className="w-full h-10 rounded-xl text-sm shadow-sm text-slate-600">
+            className="w-full h-10 rounded-xl text-sm shadow-sm text-muted-foreground">
             เปิดลิ้นชัก
           </Button>
           <Button variant="outline" disabled={cart.items.length === 0} onClick={() => { cart.clearCart(); refocusSearch() }}
-            className="w-full h-10 rounded-xl text-sm shadow-sm text-slate-600 hover:bg-red-50 hover:text-red-500 hover:border-red-200 gap-2">
+            className="w-full h-10 rounded-xl text-sm shadow-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 gap-2">
             <Trash2 className="h-4 w-4" /> ยกเลิกบิล
           </Button>
 
-          <div className="bg-white rounded-xl shadow-sm border-2 border-blue-50 p-4 shrink-0">
+          <div className="bg-card rounded-xl shadow-sm border-2 border-primary-soft-border p-4 shrink-0">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-slate-500 text-sm">บิลล่าสุด</span>
-              <span className="font-bold text-slate-700">{dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}</span>
+              <span className="text-muted-foreground text-sm">บิลล่าสุด</span>
+              <span className="font-bold text-foreground">{dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-slate-500 text-sm">จำนวนบิล</span>
-              <span className="font-bold text-slate-700">{dailyStats.bills}</span>
+              <span className="text-muted-foreground text-sm">จำนวนบิล</span>
+              <span className="font-bold text-foreground">{dailyStats.bills}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-500 text-sm">ยอดรวม</span>
+              <span className="text-muted-foreground text-sm">ยอดรวม</span>
               <span className="font-bold text-primary">฿{formatCurrency(dailyStats.total)}</span>
             </div>
           </div>
@@ -584,7 +584,7 @@ export default function POSPage() {
           style={{ width: '1000px', maxWidth: 'calc(100vw - 2rem)', height: '800px', maxHeight: 'calc(100vh - 4rem)' }}
         >
           {/* Search input */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200 shrink-0">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
             <Search className="h-5 w-5 text-primary shrink-0" />
             <Input
               ref={modalInputRef}
@@ -597,16 +597,16 @@ export default function POSPage() {
             />
             {query && (
               <Button variant="ghost" size="icon" onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
-                className="text-slate-400 hover:text-slate-600 p-1"><X className="h-4 w-4" /></Button>
+                className="text-foreground-subtle hover:text-muted-foreground p-1"><X className="h-4 w-4" /></Button>
             )}
             <Button variant="ghost" size="sm" onClick={closeSearch}
-              className="text-slate-400 hover:text-slate-600 text-xs px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-50">
+              className="text-foreground-subtle hover:text-muted-foreground text-xs px-2 py-1 rounded-lg border border-border hover:bg-muted">
               Esc
             </Button>
           </div>
 
           {/* Column header */}
-          <div className="grid items-center px-4 py-2 bg-slate-50 text-xs font-bold text-slate-500 border-b border-slate-200 shrink-0"
+          <div className="grid items-center px-4 py-2 bg-surface-hover text-xs font-bold text-muted-foreground border-b border-border shrink-0"
             style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}>
             <div>ชื่อสินค้า</div>
             <div className="text-center">หน่วย</div>
@@ -621,7 +621,7 @@ export default function POSPage() {
             ) : query && flatItems.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground text-sm">ไม่พบสินค้า "{query}"</div>
             ) : !query ? (
-              <div className="py-12 text-center text-slate-300">
+              <div className="py-12 text-center text-foreground-subtle">
                 <Search className="h-10 w-10 mx-auto mb-2 opacity-40" />
                 <p className="text-sm">พิมพ์เพื่อค้นหาสินค้า</p>
               </div>
@@ -637,19 +637,19 @@ export default function POSPage() {
                     key={`${it.product.id}-${it.unit?.id ?? 'base'}`}
                     ref={active ? activeRowRef : undefined}
                     onClick={() => handleSelectItem(it.product, it.unit)}
-                    className={`grid items-center px-4 py-2.5 cursor-pointer border-b border-slate-100 transition-colors ${active ? 'bg-blue-100' : 'hover:bg-blue-50'}`}
+                    className={`grid items-center px-4 py-2.5 cursor-pointer border-b border-border transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft'}`}
                     style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
                   >
                     <div className="min-w-0 pr-2">
                       <div className="font-semibold text-sm flex items-center gap-1.5 truncate">
-                        {expiryWarn && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                        {expiryWarn && <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />}
                         <span className="truncate">{it.product.trade_name}</span>
-                        {stock === 0 && <span className="text-[15px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium shrink-0">หมด</span>}
+                        {stock === 0 && <span className="text-[15px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded font-medium shrink-0">หมด</span>}
                       </div>
                     </div>
-                    <div className="text-center text-sm text-slate-600 truncate">{unitName}</div>
+                    <div className="text-center text-sm text-muted-foreground truncate">{unitName}</div>
                     <div className="text-right font-bold text-primary text-sm tabular-nums">฿{formatCurrency(price)}</div>
-                    <div className={`text-right text-sm font-semibold tabular-nums ${stock > 0 ? 'text-slate-700' : 'text-red-500'}`}>{stock}</div>
+                    <div className={`text-right text-sm font-semibold tabular-nums ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock}</div>
                   </div>
                 )
               })
@@ -657,7 +657,7 @@ export default function POSPage() {
           </div>
 
           {/* Footer status */}
-          <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 text-xs text-muted-foreground shrink-0">
+          <div className="px-4 py-2 bg-surface-hover border-t border-border text-xs text-muted-foreground shrink-0">
             ค้นหา: "{query}" — พบ {results.length} รายการ
           </div>
         </DialogContent>
@@ -671,7 +671,7 @@ export default function POSPage() {
             <div className="space-y-3">
               <Input className="h-10" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
               <Button variant="ghost" onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
-                className="w-full justify-start px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-left transition-colors text-sm">
+                className="w-full justify-start px-4 py-3 rounded-xl bg-muted hover:bg-muted text-foreground font-medium text-left transition-colors text-sm">
                 👤 ลูกค้าทั่วไป (เงินสด)
               </Button>
               <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
@@ -681,7 +681,7 @@ export default function POSPage() {
                     <User className="h-8 w-8 p-1.5 bg-muted rounded-full text-muted-foreground shrink-0" />
                     <div>
                       <div className="font-medium text-sm flex items-center gap-1">
-                        {c.is_alert && <AlertTriangle className="h-3 w-3 text-red-500" />}{c.full_name}
+                        {c.is_alert && <AlertTriangle className="h-3 w-3 text-destructive" />}{c.full_name}
                       </div>
                       <div className="text-xs text-muted-foreground">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
                     </div>
@@ -707,60 +707,60 @@ export default function POSPage() {
                 <>
                   <Card size="sm">
                     <CardHeader>
-                      <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-1.5">
-                        {cart.customer.is_alert ? <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" /> : null}
+                      <CardTitle className="text-lg font-bold text-foreground flex items-center gap-1.5">
+                        {cart.customer.is_alert ? <AlertTriangle className="h-4 w-4 text-destructive shrink-0" /> : null}
                         {cart.customer.full_name}
                       </CardTitle>
                       <CardDescription className="flex gap-3 text-xs">
-                        <span><span className="text-slate-400">รหัส:</span> <span className="text-slate-600 font-mono">{cart.customer.code || '-'}</span></span>
-                        <span><span className="text-slate-400">HN:</span> <span className="text-slate-600">{cart.customer.hn || '-'}</span></span>
+                        <span><span className="text-foreground-subtle">รหัส:</span> <span className="text-muted-foreground font-mono">{cart.customer.code || '-'}</span></span>
+                        <span><span className="text-foreground-subtle">HN:</span> <span className="text-muted-foreground">{cart.customer.hn || '-'}</span></span>
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-                      <span className="text-slate-400">เบอร์โทร</span>
-                      <span className="text-slate-700">{cart.customer.phone || '-'}</span>
-                      <span className="text-slate-400">ที่อยู่</span>
-                      <span className="text-slate-700 whitespace-pre-line">{cart.customer.address || '-'}</span>
+                      <span className="text-foreground-subtle">เบอร์โทร</span>
+                      <span className="text-foreground">{cart.customer.phone || '-'}</span>
+                      <span className="text-foreground-subtle">ที่อยู่</span>
+                      <span className="text-foreground whitespace-pre-line">{cart.customer.address || '-'}</span>
                     </CardContent>
                   </Card>
                   {(cart.customer.hc_uc || cart.customer.hc_gov || cart.customer.hc_sso) ? (
                     <div>
-                      <div className="text-xs text-slate-400">สิทธิการรักษา</div>
+                      <div className="text-xs text-foreground-subtle">สิทธิการรักษา</div>
                       <div className="flex flex-wrap gap-1.5 mt-1">
-                        {cart.customer.hc_uc ? <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 px-2 py-0.5 rounded-md">บัตรทอง</Badge> : null}
-                        {cart.customer.hc_gov ? <Badge variant="outline" className="text-xs bg-sky-50 text-sky-700 border-sky-200 px-2 py-0.5 rounded-md">ข้าราชการ</Badge> : null}
-                        {cart.customer.hc_sso ? <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 px-2 py-0.5 rounded-md">ประกันสังคม</Badge> : null}
+                        {cart.customer.hc_uc ? <Badge variant="outline" className="text-xs bg-primary-soft text-primary border-primary/30 px-2 py-0.5 rounded-md">บัตรทอง</Badge> : null}
+                        {cart.customer.hc_gov ? <Badge variant="outline" className="text-xs bg-primary-soft text-primary border-primary/30 px-2 py-0.5 rounded-md">ข้าราชการ</Badge> : null}
+                        {cart.customer.hc_sso ? <Badge variant="outline" className="text-xs bg-warning-soft text-warning-strong border-warning/30 px-2 py-0.5 rounded-md">ประกันสังคม</Badge> : null}
                       </div>
                     </div>
                   ) : null}
                   {cart.customer.food_allergy ? (
                     <div>
-                      <div className="text-xs text-slate-400">แพ้อาหาร</div>
-                      <div className="text-slate-700 whitespace-pre-line">{cart.customer.food_allergy}</div>
+                      <div className="text-xs text-foreground-subtle">แพ้อาหาร</div>
+                      <div className="text-foreground whitespace-pre-line">{cart.customer.food_allergy}</div>
                     </div>
                   ) : null}
                   {cart.customer.other_allergy ? (
                     <div>
-                      <div className="text-xs text-slate-400">แพ้อื่นๆ</div>
-                      <div className="text-slate-700 whitespace-pre-line">{cart.customer.other_allergy}</div>
+                      <div className="text-xs text-foreground-subtle">แพ้อื่นๆ</div>
+                      <div className="text-foreground whitespace-pre-line">{cart.customer.other_allergy}</div>
                     </div>
                   ) : null}
                   {cart.customer.chronic_diseases ? (
                     <div>
-                      <div className="text-xs text-slate-400">โรคประจำตัว</div>
-                      <div className="text-slate-700 whitespace-pre-line">{cart.customer.chronic_diseases}</div>
+                      <div className="text-xs text-foreground-subtle">โรคประจำตัว</div>
+                      <div className="text-foreground whitespace-pre-line">{cart.customer.chronic_diseases}</div>
                     </div>
                   ) : null}
                   {cart.customer.alert_note ? (
                     <div>
-                      <div className="text-xs text-slate-400">หมายเหตุ / ประวัติแพ้ยา</div>
-                      <div className="text-red-600 whitespace-pre-line bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm">{cart.customer.alert_note}</div>
+                      <div className="text-xs text-foreground-subtle">หมายเหตุ / ประวัติแพ้ยา</div>
+                      <div className="text-destructive whitespace-pre-line bg-destructive-soft border border-destructive/30 rounded-lg px-3 py-2 text-sm">{cart.customer.alert_note}</div>
                     </div>
                   ) : null}
                   {cart.customer.warning_note ? (
                     <div>
-                      <div className="text-xs text-slate-400">คำเตือน</div>
-                      <div className="text-amber-700 whitespace-pre-line bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">{cart.customer.warning_note}</div>
+                      <div className="text-xs text-foreground-subtle">คำเตือน</div>
+                      <div className="text-warning-strong whitespace-pre-line bg-warning-soft border border-warning/30 rounded-lg px-3 py-2 text-sm">{cart.customer.warning_note}</div>
                     </div>
                   ) : null}
                 </>
@@ -779,7 +779,7 @@ export default function POSPage() {
           <DialogHeader><DialogTitle>เพิ่มลูกค้าใหม่</DialogTitle></DialogHeader>
           <DialogBody className="space-y-4">
             <div>
-              <Label className="block text-sm font-medium mb-1">ชื่อ-นามสกุล <span className="text-red-500">*</span></Label>
+              <Label className="block text-sm font-medium mb-1">ชื่อ-นามสกุล <span className="text-destructive">*</span></Label>
               <Input autoFocus value={qaName} onChange={e => setQaName(e.target.value)} placeholder="ชื่อ-นามสกุล" />
             </div>
             <div>
@@ -846,17 +846,17 @@ export default function POSPage() {
                         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                         placeholder="0.00"
                         disabled={cart.items.length === 0 || subtotal <= 0}
-                        className="text-right tabular-nums w-52 h-12 text-xl font-semibold bg-red-50 border-red-300 text-red-600 focus-visible:border-red-400 focus-visible:ring-red-200"
+                        className="text-right tabular-nums w-52 h-12 text-xl font-semibold bg-destructive-soft border-destructive/40 text-destructive focus-visible:border-destructive/50 focus-visible:ring-destructive/30"
                       />
                     </div>
                   </div>
 
                   {/* Section 2 — Net total */}
                   <div className={`rounded-xl px-5 py-4 border ${netNegative
-                    ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200'
-                    : 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200'}`}>
-                    <div className="text-sm text-slate-600 font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
-                    <div className={`text-5xl font-extrabold text-right leading-none tabular-nums ${netNegative ? 'text-red-600' : 'text-primary'}`}>
+                    ? 'bg-destructive-soft border-destructive/30'
+                    : 'bg-primary-soft border-primary/30'}`}>
+                    <div className="text-sm text-muted-foreground font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
+                    <div className={`text-5xl font-extrabold text-right leading-none tabular-nums ${netNegative ? 'text-destructive' : 'text-primary'}`}>
                       {formatCurrency(net)}
                     </div>
                   </div>
@@ -875,9 +875,9 @@ export default function POSPage() {
                       <div className="flex items-center gap-3 tabular-nums">
                         <span><span className="text-muted-foreground">ต้นทุน</span> ฿{formatCurrency(totalCost)}</span>
                         <span className="text-muted-foreground">•</span>
-                        <span><span className="text-muted-foreground">กำไร</span> <span className={`font-semibold ${profit >= 0 ? 'text-primary' : 'text-red-500'}`}>฿{formatCurrency(profit)}</span></span>
+                        <span><span className="text-muted-foreground">กำไร</span> <span className={`font-semibold ${profit >= 0 ? 'text-primary' : 'text-destructive'}`}>฿{formatCurrency(profit)}</span></span>
                         <span className="text-muted-foreground">•</span>
-                        <span><span className="text-muted-foreground">% กำไร</span> <span className={`font-semibold ${margin >= 0 ? 'text-primary' : 'text-red-500'}`}>{margin.toFixed(2)}%</span></span>
+                        <span><span className="text-muted-foreground">% กำไร</span> <span className={`font-semibold ${margin >= 0 ? 'text-primary' : 'text-destructive'}`}>{margin.toFixed(2)}%</span></span>
                       </div>
                     ) : <span />}
                   </div>
@@ -885,7 +885,7 @@ export default function POSPage() {
                   {/* Cash input */}
                   <div className="space-y-2">
                     <Label className="text-base">
-                      <Banknote className="h-5 w-5 text-green-500" /> รับเงินมา
+                      <Banknote className="h-5 w-5 text-success" /> รับเงินมา
                     </Label>
                     <Input
                       type="number"
@@ -900,16 +900,16 @@ export default function POSPage() {
                   </div>
 
                   {/* Change */}
-                  <div className={`rounded-xl px-5 py-4 ${needsCheck ? 'bg-red-50 border border-red-200' : 'bg-muted'}`}>
+                  <div className={`rounded-xl px-5 py-4 ${needsCheck ? 'bg-destructive-soft border border-destructive/30' : 'bg-muted'}`}>
                     <div className="flex items-center justify-between">
                       <span className="text-base font-semibold">เงินทอน</span>
                       {needsCheck ? (
-                        <span className="flex items-center gap-2 text-3xl font-extrabold text-red-600 tracking-wider">
+                        <span className="flex items-center gap-2 text-3xl font-extrabold text-destructive tracking-wider">
                           <AlertTriangle className="h-7 w-7" />
                           กรุณาตรวจสอบ
                         </span>
                       ) : (
-                        <span className="text-3xl font-extrabold tabular-nums text-green-600">
+                        <span className="text-3xl font-extrabold tabular-nums text-success">
                           ฿{formatCurrency(Math.max(0, change))}
                         </span>
                       )}
@@ -965,10 +965,10 @@ export default function POSPage() {
                     return (
                       <Button key={u.id} variant="outline"
                         onClick={() => changeCartUnit(unitModalIdx, u)}
-                        className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-blue-50 border-blue-300 text-blue-700 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-blue-300'}`}>
+                        className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-primary-soft border-primary/40 text-primary font-bold' : 'bg-card border-border hover:bg-muted hover:border-primary/40'}`}>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">{u.unit_name}</span>
-                          {u.id === -1 && <span className="text-[15px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">หลัก</span>}
+                          {u.id === -1 && <span className="text-[15px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">หลัก</span>}
                         </div>
                       </Button>
                     )
@@ -1007,9 +1007,9 @@ export default function POSPage() {
               <DialogBody>
                 <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
                   {/* Custom price input */}
-                  <div className="w-full px-4 py-3 rounded-xl border border-blue-200 bg-blue-50/40">
+                  <div className="w-full px-4 py-3 rounded-xl border border-primary/30 bg-primary-soft">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-m font-bold text-blue-700">กำหนดราคา</span>
+                      <span className="text-m font-bold text-primary">กำหนดราคา</span>
                     </div>
                     <div className="flex items-center gap-2 mb-2">
                       <Input
@@ -1023,22 +1023,22 @@ export default function POSPage() {
                         onChange={e => setCustomPriceInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') applyCustomPrice() }}
                         placeholder="0.00"
-                        className="w-full flex-1 h-10 text-right text-lg font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none px-3 tabular-nums"
+                        className="w-full flex-1 h-10 text-right text-lg font-bold bg-card border border-border-strong rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none px-3 tabular-nums"
                       />
                       <Button onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-11 px-4">ตกลง</Button>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <div className="text-slate-400">ทุน</div>
-                        <div className="font-semibold text-slate-600 tabular-nums">฿{formatCurrency(cost)}</div>
+                        <div className="text-foreground-subtle">ทุน</div>
+                        <div className="font-semibold text-muted-foreground tabular-nums">฿{formatCurrency(cost)}</div>
                       </div>
                       <div>
-                        <div className="text-slate-400">กำไร</div>
-                        <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-green-600' : 'text-red-500'}`}>฿{formatCurrency(customProfit)}</div>
+                        <div className="text-foreground-subtle">กำไร</div>
+                        <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>฿{formatCurrency(customProfit)}</div>
                       </div>
                       <div>
-                        <div className="text-slate-400">% ทุน</div>
-                        <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-green-600' : 'text-red-500'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</div>
+                        <div className="text-foreground-subtle">% ทุน</div>
+                        <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</div>
                       </div>
                     </div>
                   </div>
@@ -1050,23 +1050,23 @@ export default function POSPage() {
                     return (
                       <Button key={i} variant="outline"
                         onClick={() => changeCartPrice(priceModalIdx, opt.price)}
-                        className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-blue-50 border-blue-300' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-blue-300'}`}>
+                        className={`w-full px-4 py-3 rounded-xl text-left transition-colors border ${active ? 'bg-primary-soft border-primary/40' : 'bg-card border-border hover:bg-muted hover:border-primary/40'}`}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className={`text-sm font-bold ${active ? 'text-blue-700' : 'text-slate-700'}`}>{opt.label}</span>
+                          <span className={`text-sm font-bold ${active ? 'text-primary' : 'text-foreground'}`}>{opt.label}</span>
                           <span className="text-base font-extrabold text-primary tabular-nums">฿{formatCurrency(opt.price)}</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-xs">
                           <div>
-                            <div className="text-slate-400">ทุน</div>
-                            <div className="font-semibold text-slate-600 tabular-nums">฿{formatCurrency(cost)}</div>
+                            <div className="text-foreground-subtle">ทุน</div>
+                            <div className="font-semibold text-muted-foreground tabular-nums">฿{formatCurrency(cost)}</div>
                           </div>
                           <div>
-                            <div className="text-slate-400">กำไร</div>
-                            <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-green-600' : 'text-red-500'}`}>฿{formatCurrency(profit)}</div>
+                            <div className="text-foreground-subtle">กำไร</div>
+                            <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-success' : 'text-destructive'}`}>฿{formatCurrency(profit)}</div>
                           </div>
                           <div>
-                            <div className="text-slate-400">% ทุน</div>
-                            <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-green-600' : 'text-red-500'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</div>
+                            <div className="text-foreground-subtle">% ทุน</div>
+                            <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</div>
                           </div>
                         </div>
                       </Button>
@@ -1107,14 +1107,14 @@ export default function POSPage() {
               <DialogHeader><DialogTitle>จำนวน — {item?.item_name}</DialogTitle></DialogHeader>
               <DialogBody className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">คงเหลือ</span>
-                  <span className={`font-semibold tabular-nums ${stockQty > 0 ? 'text-slate-700' : 'text-red-500'}`}>{stockQty} {item?.unit_name}</span>
+                  <span className="text-muted-foreground">คงเหลือ</span>
+                  <span className={`font-semibold tabular-nums ${stockQty > 0 ? 'text-foreground' : 'text-destructive'}`}>{stockQty} {item?.unit_name}</span>
                 </div>
                 <div>
-                  <Label className="block text-sm font-bold text-slate-500 mb-1">จำนวน ({item?.unit_name})</Label>
+                  <Label className="block text-sm font-bold text-muted-foreground mb-1">จำนวน ({item?.unit_name})</Label>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" onClick={() => bump(-1)}
-                      className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
+                      className="w-14 h-14 rounded-xl flex items-center justify-center bg-muted hover:bg-muted text-muted-foreground font-bold shrink-0">
                       <Minus className="h-5 w-5" />
                     </Button>
                     <Input
@@ -1127,10 +1127,10 @@ export default function POSPage() {
                       onChange={e => setQtyInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') applyQty(q) }}
                       placeholder="1"
-                      className="w-16 flex-1 h-14 text-center text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none px-4 tabular-nums"
+                      className="w-16 flex-1 h-14 text-center text-2xl font-bold bg-card border border-border-strong rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none px-4 tabular-nums"
                     />
                     <Button variant="outline" size="icon" onClick={() => bump(1)}
-                      className="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold shrink-0">
+                      className="w-14 h-14 rounded-xl flex items-center justify-center bg-muted hover:bg-muted text-muted-foreground font-bold shrink-0">
                       <Plus className="h-5 w-5" />
                     </Button>
                   </div>
@@ -1138,7 +1138,7 @@ export default function POSPage() {
                 <div className="grid grid-cols-5 gap-2">
                   {[1, 5, 10, 20, 50].map(n => (
                     <Button key={n} variant="outline" size="sm" onClick={() => setQtyInput(String(n))}
-                      className="h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 text-sm font-semibold text-slate-600 tabular-nums transition-colors">
+                      className="h-10 rounded-xl border border-border bg-card hover:bg-muted hover:border-primary/40 text-sm font-semibold text-muted-foreground tabular-nums transition-colors">
                       {n}
                     </Button>
                   ))}
@@ -1178,18 +1178,18 @@ export default function POSPage() {
               <DialogHeader><DialogTitle>ส่วนลด — {item?.item_name}</DialogTitle></DialogHeader>
               <DialogBody className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">ราคารวม</span>
-                  <span className="font-semibold text-slate-700 tabular-nums">฿{formatCurrency(totalPrice)}</span>
+                  <span className="text-muted-foreground">ราคารวม</span>
+                  <span className="font-semibold text-foreground tabular-nums">฿{formatCurrency(totalPrice)}</span>
                 </div>
 
                 {/* Percent presets */}
                 <div className="grid grid-cols-5 gap-2">
                   {([
-                    { pct: 3,  base: 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300',   active: 'bg-red-200 border-red-500 text-red-800 ring-2 ring-red-300' },
-                    { pct: 5,  base: 'bg-red-100 border-red-300 text-red-700 hover:bg-red-200 hover:border-red-400',  active: 'bg-red-300 border-red-600 text-red-900 ring-2 ring-red-400' },
-                    { pct: 10, base: 'bg-red-200 border-red-400 text-red-800 hover:bg-red-300 hover:border-red-500', active: 'bg-red-400 border-red-700 text-white ring-2 ring-red-500' },
-                    { pct: 15, base: 'bg-red-300 border-red-500 text-red-900 hover:bg-red-400 hover:border-red-600', active: 'bg-red-500 border-red-800 text-white ring-2 ring-red-600' },
-                    { pct: 20, base: 'bg-red-400 border-red-600 text-white hover:bg-red-500 hover:border-red-700',   active: 'bg-red-600 border-red-900 text-white ring-2 ring-red-700' },
+                    { pct: 3,  base: 'bg-destructive-soft border-destructive/20 text-destructive hover:bg-destructive/15 hover:border-destructive/30',  active: 'bg-destructive/25 border-destructive/60 text-destructive ring-2 ring-destructive/30' },
+                    { pct: 5,  base: 'bg-destructive/15 border-destructive/30 text-destructive hover:bg-destructive/25 hover:border-destructive/40', active: 'bg-destructive/35 border-destructive/70 text-destructive ring-2 ring-destructive/40' },
+                    { pct: 10, base: 'bg-destructive/25 border-destructive/40 text-destructive hover:bg-destructive/35 hover:border-destructive/50', active: 'bg-destructive/50 border-destructive/80 text-white ring-2 ring-destructive/50' },
+                    { pct: 15, base: 'bg-destructive/35 border-destructive/50 text-destructive hover:bg-destructive/50 hover:border-destructive/65', active: 'bg-destructive/65 border-destructive/90 text-white ring-2 ring-destructive/60' },
+                    { pct: 20, base: 'bg-destructive/50 border-destructive/65 text-white hover:bg-destructive/65 hover:border-destructive/80',   active: 'bg-destructive border-destructive text-primary-foreground ring-2 ring-destructive/70' },
                   ] as const).map(({ pct, base, active }) => {
                     const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
                     return (
@@ -1204,7 +1204,7 @@ export default function POSPage() {
                 {/* ส่วนลด (%)  +  ส่วนลด (บาท) — side by side */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="block text-sm font-bold text-slate-500 mb-1">ส่วนลด (%)</Label>
+                    <Label className="block text-sm font-bold text-muted-foreground mb-1">ส่วนลด (%)</Label>
                     <div className="relative">
                       <Input
                         type="number"
@@ -1224,14 +1224,14 @@ export default function POSPage() {
                         }}
                         onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                         placeholder="0"
-                        className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none pl-4 pr-10 tabular-nums"
+                        className="w-full h-14 text-right text-2xl font-bold bg-card border border-border-strong rounded-xl focus:ring-2 focus:ring-destructive/50 focus:border-destructive/50 outline-none pl-4 pr-10 tabular-nums"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg font-bold pointer-events-none">%</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-subtle text-lg font-bold pointer-events-none">%</span>
                     </div>
                   </div>
 
                   <div>
-                    <Label className="block text-sm font-bold text-slate-500 mb-1">ส่วนลด (บาท)</Label>
+                    <Label className="block text-sm font-bold text-muted-foreground mb-1">ส่วนลด (บาท)</Label>
                     <Input
                       type="number"
                       autoFocus
@@ -1247,14 +1247,14 @@ export default function POSPage() {
                       }}
                       onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                       placeholder="0.00"
-                      className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none px-4 tabular-nums"
+                      className="w-full h-14 text-right text-2xl font-bold bg-card border border-border-strong rounded-xl focus:ring-2 focus:ring-destructive/50 focus:border-destructive/50 outline-none px-4 tabular-nums"
                     />
                   </div>
                 </div>
 
                 {/* Final price reverse-calc input */}
                 <div>
-                  <Label className="block text-sm font-bold text-slate-500 mb-1">ราคาสุดท้าย (บาท)</Label>
+                  <Label className="block text-sm font-bold text-muted-foreground mb-1">ราคาสุดท้าย (บาท)</Label>
                   <Input
                     type="number"
                     value={finalPriceInput}
@@ -1272,7 +1272,7 @@ export default function POSPage() {
                     }}
                     onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                     placeholder={formatCurrency(totalPrice)}
-                    className="w-full h-14 text-right text-2xl font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none px-4 tabular-nums"
+                    className="w-full h-14 text-right text-2xl font-bold bg-card border border-border-strong rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none px-4 tabular-nums"
                   />
                 </div>
               </DialogBody>

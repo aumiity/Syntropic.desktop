@@ -819,8 +819,8 @@ export default function EditProductPage() {
                         <TableCell className="text-center text-sm">
                           <span className={
                             expStatus === 'expired' ? 'text-destructive font-medium' :
-                            expStatus === 'danger' ? 'text-orange-500 font-medium' :
-                            expStatus === 'warning' ? 'text-yellow-600' : ''
+                            expStatus === 'danger' ? 'text-warning-strong font-medium' :
+                            expStatus === 'warning' ? 'text-warning' : ''
                           }>
                             {formatExpiry(lot.expiry_date)}
                           </span>

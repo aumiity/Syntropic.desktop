@@ -80,7 +80,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
             <button
               type="button"
               tabIndex={-1}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-foreground-subtle hover:text-muted-foreground hover:bg-muted transition-colors"
             >
               <CalendarDays className="w-3.5 h-3.5" />
             </button>

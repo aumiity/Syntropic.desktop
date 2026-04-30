@@ -1,0 +1,207 @@
+# Syntropic Desktop — Cline Rules
+
+## Project Overview
+Pharmacy POS desktop app built with Electron 31 + React 18 + Vite 5 + TypeScript + better-sqlite3 + Tailwind CSS v3 + Zustand.
+Frameless Electron window. Thai UI language throughout. All pages are complete — work is mostly enhancements and fixes.
+
+---
+
+## Critical Safety Rules
+
+- **NEVER run `npm install`** — it will break the native sqlite3 binary. The project has a custom-compiled native module.
+- **NEVER run `npm install <package>`** without explicit user approval and understanding of the risk.
+- Dev command: `npm run electron:dev`
+- If you need to verify a type or API signature, read the file — do not guess.
+
+---
+
+## Architecture
+
+```
+electron/main.ts          — Electron main process
+electron/ipc/*.ts         — IPC handlers (one file per domain)
+electron/preload.ts       — Exposes window.api bridge to renderer
+electron/db/              — SQLite via better-sqlite3 (index.ts, schema.ts, seed.ts)
+src/pages/                — React pages (one folder per route)
+src/components/ui/        — Shared UI primitives (Button, Input, Dialog, Table, etc.)
+src/components/layout/    — TitleBar
+src/stores/               — Zustand stores (cartStore, themeStore)
+src/types/index.ts        — Shared TypeScript types
+src/index.css             — CSS variables for theming (THE ONLY FILE to change brand colors)
+tailwind.config.js        — Registers semantic tokens under `colors`
+```
+
+IPC is exposed as `window.api.<namespace>.<method>()`. Namespaces: `pos`, `products`, `purchase`, `people`, `reports`, `settings`, `printer`, `window`.
+
+---
+
+## Theming Rules — HARD CONSTRAINTS, never break these
+
+The app is re-themable by editing only `src/index.css`. This guarantee must be preserved.
+
+### ❌ FORBIDDEN — palette literals
+Never use Tailwind color palette classes in any `.tsx` or `.ts` file:
+```
+bg-blue-500   text-slate-600   border-amber-200   from-red-50
+hover:bg-emerald-100   ring-sky-400   text-gray-400   bg-zinc-100
+```
+Any named color with a numeric shade (50–950) is forbidden.
+
+### ✅ REQUIRED — semantic tokens only
+Always use these CSS-variable-backed classes:
+
+**Brand / Primary**
+- `bg-primary` `hover:bg-primary-hover` `bg-primary-soft` `hover:bg-primary-soft-hover`
+- `border-primary-soft-border` `bg-primary-strong` `text-primary` `text-primary-foreground`
+
+**Text**
+- `text-foreground` — strong body text
+- `text-muted-foreground` — secondary/label text
+- `text-foreground-subtle` — placeholder, disabled, icons
+
+**Surface / Layout**
+- `bg-background` — page background
+- `bg-card` — white card/panel (replaces `bg-white`)
+- `bg-muted` — light gray fill (replaces `bg-slate-100`)
+- `bg-surface-hover` — very light hover surface (replaces `bg-slate-50`)
+- `border-border` — default border (replaces `border-slate-200`)
+- `border-border-strong` — stronger border (replaces `border-slate-300`)
+
+**Status**
+- `bg-success` `bg-success-soft` `text-success` `hover:bg-success-hover`
+- `bg-warning` `bg-warning-soft` `text-warning` `text-warning-strong` `hover:bg-warning-hover`
+- `bg-destructive` `bg-destructive-soft` `text-destructive` `hover:bg-destructive-hover`
+- `bg-destructive-strong` `text-destructive-strong` (rarely needed)
+
+**Opacity modifiers on semantic tokens are allowed:**
+```
+bg-destructive/20   border-primary/30   ring-destructive/50
+```
+This works because CSS variables hold raw HSL triplets (no `hsl()` wrapper).
+
+**Sidebar** (only for sidebar/titlebar elements — NOT for page content)
+- `bg-sidebar` `text-sidebar-foreground` `bg-sidebar-accent` `text-sidebar-accent-foreground`
+- `text-sidebar-primary-foreground`
+
+### Adding a new token
+If no existing token fits, add it to BOTH `:root` and `.dark` in `src/index.css` AND register it under `colors` in `tailwind.config.js`. Token names must describe the *role* (`--success-soft`), never the shade (`--green-100` is forbidden).
+
+---
+
+## UI Component Rules
+
+**Never write raw HTML primitives for interactive elements.** Always use components from `src/components/ui/`:
+- Buttons → `<Button variant="..." size="...">`
+- Inputs → `<Input>`
+- Dialogs → `<Dialog>` / `<DialogContent>` / `<DialogHeader>` / `<DialogBody>` / `<DialogFooter>`
+- Tables → `<Table>` / `<TableHeader>` / `<TableBody>` / `<TableRow>` / `<TableHead>` / `<TableCell>`
+- Badges → `<Badge variant="...">`
+- Toasts → `useToast()` hook
+- Pagination → `<Pagination>`
+- Cards → `<Card>` / `<CardContent>`
+- Tabs → `<Tabs>` / `<TabsList>` / `<TabsTrigger>`
+- Switch → `<Switch>`
+- Checkbox → `<Checkbox>`
+
+If a needed variant doesn't exist, add it to the existing component file (new entry in `buttonVariants`, etc.) — do not create a one-off inline element.
+
+---
+
+## Code Style Rules
+
+### General
+- **No comments by default.** Only add a comment when the WHY is non-obvious — a hidden constraint, a subtle invariant, or a workaround for a specific bug. If removing the comment wouldn't confuse a future reader, don't write it.
+- **No docstrings.** Never write multi-line block comments explaining what a function does. Well-named identifiers are self-documenting.
+- **No explanatory comments** like `// fetch the data`, `// update state`, `// handle click`. These explain WHAT, not WHY.
+- **No backwards-compat stubs.** If something is removed, delete it fully. No `// removed`, no re-exports, no `_unused` renames.
+
+### Scope of changes
+- Fix only what was asked. A bug fix does not need surrounding cleanup.
+- Do not add features, abstractions, or refactors beyond the task.
+- Do not add error handling for scenarios that cannot happen. Trust internal code guarantees.
+- Only validate at system boundaries (user input, `window.api` responses).
+- No feature flags, no `TODO: remove later`, no commented-out alternatives.
+
+### TypeScript
+- Prefer explicit types at function boundaries. Avoid `any` — if an API returns unknown shape, cast with a comment explaining why.
+- Use `as const` for literal arrays used in config/maps.
+- Destructure at the top of a component for clarity.
+
+### React / Components
+- Keep component logic co-located with its JSX unless it's reused.
+- `useCallback` / `useMemo` only when there is a concrete performance reason (passed to memoized child, expensive computation). Don't wrap everything.
+- Event handlers named `handle<Event>` for DOM events, `on<Action>` for callback props.
+- Avoid deeply nested ternaries. Use early returns or a variable for complex conditional JSX.
+
+### Tailwind
+- Layout/spacing/typography utilities are encouraged: `flex`, `gap-2`, `px-4`, `text-sm`, `rounded-xl`, `tabular-nums`, `overflow-hidden`, etc.
+- Only **color literals** are banned (see Theming section).
+- Compose responsive/state variants normally: `hover:`, `focus:`, `disabled:`, `data-[state=active]:`.
+
+---
+
+## IPC / Database Patterns
+
+- IPC calls are `async`/`await` with `window.api.<ns>.<method>()`.
+- Wrap in try/catch only at the UI layer where a toast is shown to the user.
+- IPC handlers in `electron/ipc/*.ts` use better-sqlite3 synchronous API — no `async` needed there.
+- Never call IPC from inside a render function. Use `useEffect` or event handlers.
+
+---
+
+## Business Logic to Know
+
+### FEFO — First Expiry First Out
+Sales deduct from `product_lots` ordered by `expiry_date ASC`. Each deduction creates a `sale_item_lots` row and updates `qty_on_hand`. Logged in `stock_movements` as `movement_type = 'sale'`.
+
+### Invoice number formats
+- Sales: `INV-YYYYMMDD-001` (sequential per day)
+- GR (stock receive): `GR-YYYYMMDD-001`
+- Customers: `C0001`, `C0002`…
+- Suppliers: `S0001`, `S0002`…
+
+### Pricing
+- `products.cost_price` = weighted average across open lots (updated on each GR save)
+- Retail/wholesale prices live on `products` and can be overridden per `product_units`
+- `has_wholesale1` / `has_wholesale2` flags gate wholesale price usage
+
+### Void sale
+Restore `qty_on_hand` for each lot via `sale_item_lots`. Insert `stock_movements` with `movement_type = 'sale_return'`. Set `sales.status = 'voided'`. Requires a non-empty `void_reason`.
+
+### Expiry status (from `getExpiryStatus()` in `src/lib/utils.ts`)
+- `expired` → past expiry date → `text-destructive`
+- `danger` → approaching very soon → `text-warning-strong`
+- `warning` → approaching → `text-warning`
+- `ok` → fine → normal text
+
+---
+
+## POS Search UX Rules (do not break)
+
+- The search input must always be focused. `mainInputRef` on the POS page, `modalInputRef` in the search modal. A global `click` listener refocuses the active input when non-interactive areas are clicked.
+- `highlightIdx` resets **only** in `useEffect(() => setHighlightIdx(0), [query])`. Never reset it in `onChange`, scroll handlers, or mouse events.
+- Do **not** add `onMouseEnter={() => setHighlightIdx(i)}` to search result rows — `scrollIntoView` causes spurious mouseenter fires.
+- `activeRowRef.current?.scrollIntoView({ block: 'nearest' })` — `block: 'nearest'` is required to prevent page scroll.
+- Arrow keys must call `e.preventDefault()`.
+
+---
+
+## File Structure Conventions
+
+- One page = one folder under `src/pages/` (e.g., `src/pages/POS/index.tsx`)
+- Large pages may have co-located helpers (e.g., `src/pages/POS/redistributeDiscount.ts`)
+- UI primitives only in `src/components/ui/` — no one-off component files for a single use case
+- Types shared across pages go in `src/types/index.ts`
+
+---
+
+## What NOT To Do
+
+- Do not run `npm install` or modify `package.json` without being asked.
+- Do not create new files when editing an existing one would suffice.
+- Do not add `console.log` debug statements.
+- Do not create `.md` documentation files unless explicitly asked.
+- Do not add loading spinners, skeleton states, or error boundaries unless the task specifically requires them.
+- Do not "improve" surrounding code while fixing a targeted issue.
+- Do not use `any` as a shortcut — either type it properly or cast with a brief comment.
+- Do not use Radix UI or install new component libraries — the project has its own `src/components/ui/`.

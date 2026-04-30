@@ -18,7 +18,7 @@ export function TitleBar() {
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       {/* App title */}
-      <div className="px-4 text-xs font-semibold text-blue-300 tracking-widest uppercase">
+      <div className="px-4 text-xs font-semibold text-sidebar-primary-foreground tracking-widest uppercase">
         Syntropic RX
       </div>
 
@@ -29,21 +29,21 @@ export function TitleBar() {
       >
         <button
           onClick={minimize}
-          className="w-12 h-full flex items-center justify-center text-blue-300 hover:bg-blue-600 hover:text-white transition-colors"
+          className="w-12 h-full flex items-center justify-center text-sidebar-primary-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           title="ย่อ"
         >
           <Minus className="h-3.5 w-3.5" />
         </button>
         <button
           onClick={maximize}
-          className="w-12 h-full flex items-center justify-center text-blue-300 hover:bg-blue-600 hover:text-white transition-colors"
+          className="w-12 h-full flex items-center justify-center text-sidebar-primary-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           title={maximized ? 'คืนขนาด' : 'ขยาย'}
         >
           {maximized ? <Square className="h-3 w-3" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </button>
         <button
           onClick={close}
-          className="w-12 h-full flex items-center justify-center text-blue-300 hover:bg-red-600 hover:text-white transition-colors"
+          className="w-12 h-full flex items-center justify-center text-sidebar-primary-foreground hover:bg-destructive hover:text-primary-foreground transition-colors"
           title="ปิด"
         >
           <X className="h-3.5 w-3.5" />

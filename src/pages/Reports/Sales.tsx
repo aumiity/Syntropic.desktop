@@ -153,7 +153,7 @@ export default function ReportsSalesPage() {
   }
 
   const profitColor = (profit: number) =>
-    profit > 0 ? 'text-green-600' : profit < 0 ? 'text-destructive' : ''
+    profit > 0 ? 'text-success' : profit < 0 ? 'text-destructive' : ''
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -187,39 +187,39 @@ export default function ReportsSalesPage() {
               <SummaryCard
                 label="จำนวนบิล"
                 value={summary.sale_count.toLocaleString()}
-                icon={<Receipt className="w-4 h-4 text-blue-600" />}
-                color="bg-blue-50 dark:bg-blue-950"
+                icon={<Receipt className="w-4 h-4 text-primary" />}
+                color="bg-primary-soft"
               />
               <SummaryCard
                 label="ยอดขาย (ก่อนส่วนลด)"
                 value={formatCurrency(summary.total_subtotal)}
-                icon={<ShoppingBag className="w-4 h-4 text-indigo-600" />}
-                color="bg-indigo-50 dark:bg-indigo-950"
+                icon={<ShoppingBag className="w-4 h-4 text-primary" />}
+                color="bg-primary-soft"
               />
               <SummaryCard
                 label="ส่วนลดรวม"
                 value={formatCurrency(summary.total_discount)}
-                icon={<TrendingDown className="w-4 h-4 text-orange-600" />}
-                color="bg-orange-50 dark:bg-orange-950"
+                icon={<TrendingDown className="w-4 h-4 text-warning-strong" />}
+                color="bg-warning-soft"
               />
               <SummaryCard
                 label="ยอดสุทธิ"
                 value={formatCurrency(summary.total_amount)}
-                icon={<Receipt className="w-4 h-4 text-green-600" />}
-                color="bg-green-50 dark:bg-green-950"
+                icon={<Receipt className="w-4 h-4 text-success" />}
+                color="bg-success-soft"
               />
               <SummaryCard
                 label="ต้นทุนรวม"
                 value={formatCurrency(summary.total_cost)}
-                icon={<TrendingDown className="w-4 h-4 text-red-600" />}
-                color="bg-red-50 dark:bg-red-950"
+                icon={<TrendingDown className="w-4 h-4 text-destructive" />}
+                color="bg-destructive-soft"
               />
               <SummaryCard
                 label="กำไรสุทธิ"
                 value={formatCurrency(summary.total_profit)}
                 sub={summary.total_amount > 0 ? `${((summary.total_profit / summary.total_amount) * 100).toFixed(1)}%` : undefined}
-                icon={<TrendingUp className={`w-4 h-4 ${summary.total_profit >= 0 ? 'text-green-600' : 'text-red-600'}`} />}
-                color={summary.total_profit >= 0 ? 'bg-green-50 dark:bg-green-950' : 'bg-red-50 dark:bg-red-950'}
+                icon={<TrendingUp className={`w-4 h-4 ${summary.total_profit >= 0 ? 'text-success' : 'text-destructive'}`} />}
+                color={summary.total_profit >= 0 ? 'bg-success-soft' : 'bg-destructive-soft'}
               />
             </div>
           )}
@@ -271,7 +271,7 @@ export default function ReportsSalesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right text-sm">{formatCurrency(s.subtotal)}</TableCell>
-                      <TableCell className="text-right text-sm text-orange-600">
+                      <TableCell className="text-right text-sm text-warning-strong">
                         {s.total_discount > 0 ? `-${formatCurrency(s.total_discount)}` : '—'}
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(s.total_amount)}</TableCell>
@@ -369,7 +369,7 @@ export default function ReportsSalesPage() {
                             <TableCell className="text-center text-sm">{item.unit_name}</TableCell>
                             <TableCell className="text-right text-sm">{item.qty}</TableCell>
                             <TableCell className="text-right text-sm">{formatCurrency(item.unit_price)}</TableCell>
-                            <TableCell className="text-right text-sm text-orange-600">
+                            <TableCell className="text-right text-sm text-warning-strong">
                               {item.discount > 0 ? formatCurrency(item.discount) : '—'}
                             </TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(item.line_total)}</TableCell>
@@ -385,7 +385,7 @@ export default function ReportsSalesPage() {
                       <tr className="border-t border-border bg-muted/30">
                         <td colSpan={4} className="px-4 py-2" />
                         <td className="px-4 py-2 text-right text-sm font-medium text-muted-foreground">ส่วนลด</td>
-                        <td className="px-4 py-2 text-right text-sm font-medium text-orange-600">
+                        <td className="px-4 py-2 text-right text-sm font-medium text-warning-strong">
                           {detailSale.total_discount > 0 ? `-${formatCurrency(detailSale.total_discount)}` : '—'}
                         </td>
                         <td colSpan={2} />
@@ -435,7 +435,7 @@ export default function ReportsSalesPage() {
 }
 
 function profitColor(profit: number) {
-  if (profit > 0) return 'text-green-600'
+  if (profit > 0) return 'text-success'
   if (profit < 0) return 'text-destructive'
   return ''
 }

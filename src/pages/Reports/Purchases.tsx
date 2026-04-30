@@ -149,7 +149,7 @@ export default function ReportsPurchasesPage() {
               <div><span className="text-muted-foreground">มูลค่ารวม (หน้านี้):</span> <span className="font-semibold">{formatCurrency(pageTotalCost)}</span></div>
               <div><span className="text-muted-foreground">จำนวนรายการ:</span> <span className="font-semibold">{pageItemCount.toLocaleString()}</span></div>
               {creditUnpaid.length > 0 && (
-                <div className="text-orange-600 font-medium">⚠ เครดิตค้างชำระ {creditUnpaid.length} ใบ</div>
+                <div className="text-warning-strong font-medium">⚠ เครดิตค้างชำระ {creditUnpaid.length} ใบ</div>
               )}
             </div>
           )}
