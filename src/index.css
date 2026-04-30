@@ -61,6 +61,8 @@
 
     --destructive-soft: 0 86% 97%;
     --destructive-strong: 0 70% 35%;
+
+    --selection-bg: hsl(208 97% 70% / 0.4);
   }
 
   .dark {
@@ -118,12 +120,15 @@
 
     --destructive-soft: 0 50% 18%;
     --destructive-strong: 0 84% 65%;
+
+    --selection-bg: hsl(208 97% 70% / 0.4);
   }
 }
 
 @layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground font-sans; }
+  ::selection { background: var(--selection-bg); }
   html { font-size: 18px; }
   ::-webkit-scrollbar { 
     @apply w-[10px] h-[10px]; 

@@ -1,11 +1,11 @@
-import React from 'react'
+import React, { useRef, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { useThemeStore } from '@/stores/themeStore'
 import {
   ShoppingCart, Package, PackagePlus, Users, BarChart2, Settings,
-  Sun, Moon, Layers,
+  Layers, Palette,
 } from 'lucide-react'
+import { AppearancePanel } from './AppearancePanel'
 
 const navItems = [
   { to: '/', label: 'การขาย', icon: ShoppingCart, exact: true },
@@ -18,10 +18,25 @@ const navItems = [
 ]
 
 export function Sidebar() {
-  const { theme, toggleTheme } = useThemeStore()
+  const [open, setOpen] = React.useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // close on outside click
+  useEffect(() => {
+    if (!open) return
+    function handle(e: MouseEvent) {
+      if (
+        panelRef.current && !panelRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) setOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [open])
 
   return (
-    <aside className="flex flex-col w-20 h-screen bg-sidebar border-r border-sidebar-border shrink-0">
+    <aside className="relative flex flex-col w-20 h-screen bg-sidebar border-r border-sidebar-border shrink-0">
       {/* Logo */}
       <div className="flex flex-col items-center justify-center h-16 border-b border-sidebar-border">
         <div className="text-sidebar-foreground font-extrabold text-lg leading-none">Rx</div>
@@ -51,16 +66,32 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Theme toggle */}
+      {/* Appearance trigger */}
       <div className="flex items-center justify-center pb-10">
         <button
-          onClick={toggleTheme}
-          className="flex flex-col items-center justify-center w-16 h-10 rounded-xl text-sidebar-primary-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-          title={theme === 'dark' ? 'โหมดสว่าง' : 'โหมดมืด'}
+          ref={btnRef}
+          onClick={() => setOpen(v => !v)}
+          className={cn(
+            'flex flex-col items-center justify-center w-16 h-10 rounded-xl transition-colors',
+            open
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+              : 'text-sidebar-primary-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+          )}
+          title="รูปลักษณ์"
         >
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          <Palette className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Inline panel — slides out to the right of the sidebar */}
+      {open && (
+        <div
+          ref={panelRef}
+          className="absolute bottom-6 left-[84px] z-50"
+        >
+          <AppearancePanel onClose={() => setOpen(false)} />
+        </div>
+      )}
     </aside>
   )
 }

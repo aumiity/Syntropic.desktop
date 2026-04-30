@@ -4,9 +4,8 @@ import App from './App'
 import './index.css'
 import { useThemeStore } from './stores/themeStore'
 
-// Apply saved theme immediately
-const theme = useThemeStore.getState().theme
-document.documentElement.classList.toggle('dark', theme === 'dark')
+// Apply saved appearance (dark/light class + accent CSS vars) before first render
+useThemeStore.getState().applyTheme()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
