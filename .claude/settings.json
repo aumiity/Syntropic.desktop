@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(git stash *)",
-      "Bash(grep -E \"^\\(react-day-picker|date-fns\\)$|^@radix-ui$\")"
+      "Bash(grep -E \"^\\(react-day-picker|date-fns\\)$|^@radix-ui$\")",
+      "Bash(git show *)",
+      "Read(//c/Users/ANYA/AppData/Local/Temp/**)"
     ]
   }
 }

@@ -35,7 +35,6 @@ function Switch({
         data-slot="switch-thumb"
         className={cn(
           "pointer-events-none flex origin-center rounded-full bg-white",
-          /*"shadow-[0_1px_2px_rgb(0_0_0/0.08)]",*/
           "ms-0.5",
           "transition-[margin,background-color,box-shadow] duration-300 ease-out motion-reduce:transition-none",
           "group-data-[size=sm]/switch:h-[12px] group-data-[size=sm]/switch:w-[20px]",
@@ -44,7 +43,6 @@ function Switch({
           "group-data-[size=sm]/switch:data-[state=checked]:ms-[calc(100%-22px)]",
           "group-data-[size=default]/switch:data-[state=checked]:ms-[calc(100%-28px)]",
           "group-data-[size=lg]/switch:data-[state=checked]:ms-[calc(100%-32px)]",
-          /*"data-[state=checked]:shadow-[0_0_5px_0_rgb(0_0_0/0.02),0_2px_10px_0_rgb(0_0_0/0.06),0_0_1px_0_rgb(0_0_0/0.3)]"*/
         )}
       />
     </SwitchPrimitive.Root>

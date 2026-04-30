@@ -53,12 +53,9 @@ function buildVars(h: number, s: number, isDark: boolean, baseL = 49): Record<st
       '--primary-soft-border':       `${h} ${s}% ${l(-19)}%`,
       '--accent':                    `${h} ${s}% ${l(-29)}%`,
       '--accent-foreground':         `${h} ${s}% ${l(46)}%`,
-      '--ring':                      `${h} ${s}% ${baseL}%`,
-      '--sidebar-accent':            `${h} ${s}% ${l(6)}%`,
-      '--sidebar-accent-foreground': '0 0% 100%',
+      '--ring':                      `${h} ${s}% ${l(30)}%`,
+      '--sidebar-accent-foreground': `${h} ${s}% ${baseL}%`,
       '--sidebar-ring':              `${h} ${s}% ${baseL}%`,
-      '--sidebar-primary':           `${h} ${s}% ${l(-14)}%`,
-      '--sidebar-primary-foreground':'214 32% 91%',
     }
   }
   return {
@@ -71,14 +68,9 @@ function buildVars(h: number, s: number, isDark: boolean, baseL = 49): Record<st
     '--primary-soft-border':       `${h} ${s}% ${l(31)}%`,
     '--accent':                    `${h} ${s}% ${l(46)}%`,
     '--accent-foreground':         `${h} ${s}% ${baseL}%`,
-    '--ring':                      `${h} ${s}% ${baseL}%`,
-    '--sidebar':                   `${h} ${s}% ${l(-14)}%`,
-    '--sidebar-border':            `${h} ${s}% ${l(-21)}%`,
-    '--sidebar-accent':            `${h} ${s}% ${baseL}%`,
-    '--sidebar-accent-foreground': '0 0% 100%',
+    '--ring':                      `${h} ${s}% ${l(30)}%`,
+    '--sidebar-accent-foreground': `${h} ${s}% ${baseL}%`,
     '--sidebar-ring':              `${h} ${s}% ${l(-7)}%`,
-    '--sidebar-primary':           `${h} ${s}% ${l(-14)}%`,
-    '--sidebar-primary-foreground':`${h} ${s}% ${l(31)}%`,
   }
 }
 

@@ -15,26 +15,26 @@
     --popover-foreground: 240 6% 10%;
     --primary: 208 97% 49%;           /* #0485F7 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 208 97% 42%;
+    --primary-hover: 208 97% 40%;
     --secondary: 0 0% 100%;
     --secondary-foreground: 240 6% 10%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 6% 10%;
     --accent: 208 97% 95%;
     --accent-foreground: 208 97% 49%;
-    --destructive: 0 84% 60%;
+    --destructive: 3 100% 59%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-hover: 0 72% 51%;
-    --border: 240 6% 90%;
+    --destructive-hover: 3 100% 39%;
+    --border: 0 0% 80%;
     --input: 0 0% 100%;
     --ring: 212 96% 78%;
     --radius: 0.5rem;
     --sidebar: 240 5% 96%;
     --sidebar-foreground: 240 6% 10%;
     --sidebar-border: 0 0% 100%;
-    --sidebar-accent: 240 6% 90%;
-    --sidebar-accent-foreground: 217 91% 60%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 208 97% 49%;
+    --sidebar-ring: 208 97% 49%;
     --sidebar-primary: 240 5% 96%;
     --sidebar-primary-foreground: 240 6% 10%;
 
@@ -53,9 +53,9 @@
     --success-hover: 142 71% 30%;
     --success-soft: 138 76% 95%;
 
-    --warning: 38 92% 50%;
+    --warning: 48 100% 45%;
     --warning-foreground: 0 0% 100%;
-    --warning-hover: 35 92% 45%;
+    --warning-hover: 48 100% 38%;
     --warning-soft: 48 100% 96%;
     --warning-strong: 26 90% 37%;
 
@@ -66,35 +66,35 @@
   }
 
   .dark {
-    --background: 215 28% 17%;
-    --foreground: 220 14% 96%;
-    --card: 215 28% 17%;
-    --card-foreground: 210 40% 96%;
-    --popover: 215 28% 17%;
-    --popover-foreground: 210 40% 96%;
+    --background: 0 0% 12%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 20%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 20%;
+    --popover-foreground: 0 0% 100%;
     --primary: 208 97% 49%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 222 47% 11%;
+    --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 215 16% 47%;
-    --muted-foreground: 210 20% 93%;
-    --accent: 208 97% 20%;
-    --accent-foreground: 208 97% 95%;
-    --destructive: 0 84% 60%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 6% 10%;
+    --accent: 208 97% 95%;
+    --accent-foreground: 208 97% 49%;
+    --destructive: 3 100% 59%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 25% 27%;
-    --input: 215 25% 27%;
-    --ring: 208 97% 49%;
-    --sidebar: 215 28% 17%;
+    --border: 0 0% 10%;
+    --input: 0 0% 20%;
+    --ring: 212 96% 78%;
+    --sidebar: 0 0% 20%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-border: 222 47% 11%;
-    --sidebar-accent: 208 97% 55%;
-    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 10%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 208 97% 49%;
     --sidebar-ring: 208 97% 49%;
     --sidebar-primary: 208 97% 35%;
     --sidebar-primary-foreground: 214 32% 91%;
-    --primary-hover: 208 97% 42%;
-    --destructive-hover: 0 72% 51%;
+    --primary-hover: 208 97% 40%;
+    --destructive-hover: 3 100% 39%;
     --radius: 0.5rem;
 
     /* Extended semantic tokens (dark) */
@@ -105,21 +105,21 @@
     --primary-soft: 208 97% 18%;
     --primary-soft-hover: 208 97% 22%;
     --primary-soft-border: 208 97% 30%;
-    --primary-strong: 208 97% 70%;
+    --primary-strong: 208 97% 35%;
 
-    --success: 142 71% 45%;
+    --success: 142 71% 36%;
     --success-foreground: 0 0% 100%;
-    --success-hover: 142 71% 50%;
+    --success-hover: 142 71% 30%;
     --success-soft: 142 30% 18%;
 
-    --warning: 38 92% 55%;
+    --warning: 48 100% 45%;
     --warning-foreground: 0 0% 100%;
-    --warning-hover: 35 92% 60%;
+    --warning-hover: 48 100% 38%;
     --warning-soft: 38 30% 18%;
-    --warning-strong: 38 92% 70%;
+    --warning-strong: 26 90% 37%;
 
-    --destructive-soft: 0 50% 18%;
-    --destructive-strong: 0 84% 65%;
+    --destructive-soft: 0 86% 97%;
+    --destructive-strong: 0 70% 35%;
 
     --selection-bg: hsl(208 97% 70% / 0.4);
   }
