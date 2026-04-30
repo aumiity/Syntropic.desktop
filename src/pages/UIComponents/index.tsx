@@ -652,6 +652,10 @@ export default function UIComponents() {
                 </DemoRow>
                 <DemoRow label="Sizes">
                   <div className="flex items-center gap-2">
+                    <Switch size="lg" defaultChecked />
+                    <Label>Large</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <Switch defaultChecked />
                     <Label>Default</Label>
                   </div>

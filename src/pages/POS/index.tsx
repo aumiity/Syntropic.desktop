@@ -440,7 +440,7 @@ export default function POSPage() {
                 </TableHeader>
                 <TableBody>
                   {cart.items.length === 0 ? (
-                    <TableRow className="hover:bg-muted">
+                    <TableRow className="hover:bg-transparent">
                       <TableCell colSpan={8} className="text-center py-16">
                         <div className="flex flex-col items-center justify-center text-foreground-subtle gap-3">
                           <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
