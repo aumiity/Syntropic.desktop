@@ -22,8 +22,8 @@ function Switch({
         "data-[size=sm]:h-[16px] data-[size=sm]:w-[36px]",
         "data-[size=default]:h-[20px] data-[size=default]:w-[44px]",
         "data-[size=lg]:h-[24px] data-[size=lg]:w-[54px]",
-        "bg-input hover:bg-input/80 dark:bg-input/80",
-        "data-[state=checked]:bg-primary data-[state=checked]:hover:bg-primary-hover",
+        "bg-foreground/20 dark:bg-foreground/20",
+        "data-[state=checked]:bg-primary",
         "focus-visible:ring-3 focus-visible:ring-ring/50",
         "aria-invalid:ring-3 aria-invalid:ring-destructive/20",
         "data-disabled:cursor-not-allowed data-disabled:opacity-50",
@@ -43,6 +43,7 @@ function Switch({
           "group-data-[size=sm]/switch:data-[state=checked]:ms-[calc(100%-22px)]",
           "group-data-[size=default]/switch:data-[state=checked]:ms-[calc(100%-28px)]",
           "group-data-[size=lg]/switch:data-[state=checked]:ms-[calc(100%-32px)]",
+          "group-active/switch:scale-110",
         )}
       />
     </SwitchPrimitive.Root>

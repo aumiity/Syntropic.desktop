@@ -34,7 +34,7 @@ const buttonVariants = cva(
           "border-border hover:bg-surface-hover",
         ].join(" "),
         outline: [
-          "border-transparent bg-background",
+          "border-transparent bg-muted",
           "hover:bg-muted hover:text-foreground",
           "aria-expanded:bg-muted aria-expanded:text-foreground",
           "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",

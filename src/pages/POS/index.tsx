@@ -333,7 +333,7 @@ export default function POSPage() {
                 placeholder="ค้นหารหัส, ชื่อยา หรือสแกนบาร์โค้ด [F2]..."
                 autoFocus
                 autoComplete="off"
-                className="w-full h-[52px] pl-12 pr-4 rounded-xl border border-border-strong shadow-sm focus:ring-2 focus:ring-primary focus:border-primary text-base bg-card outline-none transition-all"
+                className="w-full h-[52px] pl-12 pr-4 rounded-xl border border-border-strong shadow-sm focus:ring-2 focus:ring-ring focus:border-ring text-base bg-background outline-none transition-all"
               />
             </div>
 
@@ -348,22 +348,15 @@ export default function POSPage() {
             <Button variant="outline" onClick={() => setShowCustomerSearch(true)}
               className="h-[52px] bg-card border border-border-strong rounded-xl px-4 w-64 flex items-center justify-between hover:bg-muted transition-colors shadow-sm shrink-0">
               <div className="flex flex-col text-left overflow-hidden pr-2">
-                <span className="text-xs text-foreground-subtle font-medium">ลูกค้า / สมาชิก</span>
-                <span className={`text-sm font-bold truncate ${cart.customer ? 'text-foreground-subtle' : 'text-primary'}`}>
+                <span className="text-xs text-foreground font-medium">ลูกค้า / สมาชิก</span>
+                <span className={`text-sm font-bold truncate ${cart.customer ? 'text-primary' : 'text-foreground-subtle'}`}>
                   {cart.customer
-                    ? <span className="flex items-center gap-1">{cart.customer.is_alert && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}{cart.customer.full_name}</span>
+                      ? <span className="flex items-center gap-1">{cart.customer.is_alert > 0 && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}{cart.customer.full_name}</span>
                     : 'ลูกค้าทั่วไป (เงินสด)'}
                 </span>
               </div>
               <ChevronDown className="h-4 w-4 text-foreground-subtle shrink-0" />
             </Button>
-
-            {cart.customer && (
-              <Button variant="ghost" size="icon" onClick={() => { cart.setCustomer(null); refocusSearch() }}
-                className="h-[52px] w-[52px] bg-card border border-border-strong rounded-xl flex items-center justify-center hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-colors shadow-sm shrink-0 text-foreground-subtle">
-                <X className="h-4 w-4" />
-              </Button>
-            )}
 
             <Button variant="ghost" size="icon" onClick={() => setShowCustomerInfo(true)} disabled={!cart.customer} title="ข้อมูลลูกค้า"
               className="h-[52px] w-[52px] bg-card border border-border-strong rounded-xl flex flex-col items-center justify-center transition-colors shadow-sm shrink-0 gap-0.5 enabled:text-muted-foreground enabled:hover:bg-muted disabled:text-foreground-subtle disabled:cursor-not-allowed">
@@ -385,7 +378,7 @@ export default function POSPage() {
 
         {/* Cart table */}
         <div className="flex flex-1 flex-col min-h-0">
-          {cart.customer?.is_alert && cart.customer.alert_note && (
+          {(cart.customer?.is_alert ?? 0) > 0 && cart.customer?.alert_note && (
             <div className="bg-destructive-soft border border-destructive/30 rounded-lg px-4 py-2.5 text-sm text-destructive flex items-center gap-2 font-medium shrink-0 mb-2">
               <AlertTriangle className="h-4 w-4 shrink-0" />{cart.customer.alert_note}
             </div>
@@ -596,17 +589,17 @@ export default function POSPage() {
               autoComplete="off"
             />
             {query && (
-              <Button variant="ghost" size="icon" onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
-                className="text-foreground-subtle hover:text-muted-foreground p-1"><X className="h-4 w-4" /></Button>
+              <Button variant="secondary" size="icon" onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
+                className="text-foreground-subtle rounded-full hover:text-muted-foreground p-1 h-4 w-4"><X className="size-3" /></Button>
             )}
-            <Button variant="ghost" size="sm" onClick={closeSearch}
-              className="text-foreground-subtle hover:text-muted-foreground text-xs px-2 py-1 rounded-lg border border-border hover:bg-muted">
+            <Button variant="secondary" size="sm" onClick={closeSearch}
+              className="h-7">
               Esc
             </Button>
           </div>
 
           {/* Column header */}
-          <div className="grid items-center px-4 py-2 bg-surface-hover text-xs font-bold text-muted-foreground border-b border-border shrink-0"
+          <div className="grid items-center px-4 py-2 bg-muted text-xs font-bold text-muted-foreground border-b border-border shrink-0"
             style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}>
             <div>ชื่อสินค้า</div>
             <div className="text-center">หน่วย</div>
@@ -637,7 +630,7 @@ export default function POSPage() {
                     key={`${it.product.id}-${it.unit?.id ?? 'base'}`}
                     ref={active ? activeRowRef : undefined}
                     onClick={() => handleSelectItem(it.product, it.unit)}
-                    className={`grid items-center px-4 py-2.5 cursor-pointer border-b border-border transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft'}`}
+                    className={`grid items-center px-4 py-2.5 cursor-pointer border-b border-border transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-muted'}`}
                     style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
                   >
                     <div className="min-w-0 pr-2">
@@ -657,7 +650,7 @@ export default function POSPage() {
           </div>
 
           {/* Footer status */}
-          <div className="px-4 py-2 bg-surface-hover border-t border-border text-xs text-muted-foreground shrink-0">
+          <div className="px-4 py-2 bg-muted border-t border-border text-xs text-muted-foreground shrink-0">
             ค้นหา: "{query}" — พบ {results.length} รายการ
           </div>
         </DialogContent>
@@ -670,18 +663,18 @@ export default function POSPage() {
           <DialogBody>
             <div className="space-y-3">
               <Input className="h-10" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
-              <Button variant="ghost" onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
-                className="w-full justify-start px-4 py-3 rounded-xl bg-muted hover:bg-muted text-foreground font-medium text-left transition-colors text-sm">
-                👤 ลูกค้าทั่วไป (เงินสด)
+              <Button variant="secondary" onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
+                className="w-full h-12 justify-start px-4 py-3 rounded-xl text-foreground font-medium text-left transition-colors text-sm">
+                <User className="size-8 p-1 bg-background rounded-full text-muted-foreground shrink-0" /> ลูกค้าทั่วไป (เงินสด)
               </Button>
               <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
                 {customerResults.map(c => (
-                  <Button key={c.id} variant="ghost" onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
-                    className="w-full justify-start flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted text-left transition-colors">
-                    <User className="h-8 w-8 p-1.5 bg-muted rounded-full text-muted-foreground shrink-0" />
+                  <Button key={c.id} variant="secondary" onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
+                    className="w-full px-4 py-3 h-12 justify-start flex items-center rounded-xl bg-background hover:bg-surface-hover text-left transition-colors">
+                    <User className="size-8 p-1 bg-muted rounded-full text-muted-foreground shrink-0" />
                     <div>
                       <div className="font-medium text-sm flex items-center gap-1">
-                        {c.is_alert && <AlertTriangle className="h-3 w-3 text-destructive" />}{c.full_name}
+                        {c.is_alert > 0 && <AlertTriangle className="h-3 w-3 text-destructive" />}{c.full_name}
                       </div>
                       <div className="text-xs text-muted-foreground">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
                     </div>
@@ -692,7 +685,7 @@ export default function POSPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}>ปิด</Button>
+            <Button variant="secondary" onClick={() => { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -768,7 +761,7 @@ export default function POSPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
+            <Button variant="secondary" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -792,7 +785,7 @@ export default function POSPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowQuickAdd(false)}>ยกเลิก</Button>
+            <Button variant="secondary" onClick={() => setShowQuickAdd(false)}>ยกเลิก</Button>
             <Button onClick={handleQuickAdd} disabled={qaSaving}>{qaSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
@@ -920,7 +913,7 @@ export default function POSPage() {
             })()}
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPayment(false)}>ยกเลิก</Button>
+            <Button variant="secondary" onClick={() => setShowPayment(false)}>ยกเลิก</Button>
             <Button variant="success" disabled={saving || change < 0 || pendingNet < 0} onClick={handleCompleteSale} className="min-w-[120px]">
               {saving ? 'กำลังบันทึก...' : '✓ บันทึก'}
             </Button>
@@ -976,7 +969,7 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
+                <Button variant="secondary" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -1075,7 +1068,7 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
+                <Button variant="secondary" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -1145,7 +1138,7 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
+                <Button variant="secondary" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
                 <Button onClick={() => applyQty(q)}>ตกลง</Button>
               </DialogFooter>
             </DialogContent>
@@ -1278,7 +1271,7 @@ export default function POSPage() {
               </DialogBody>
               <DialogFooter>
                 <Button variant="outline" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}>ล้าง</Button>
-                <Button variant="outline" onClick={() => setDiscountModalIdx(null)}>ยกเลิก</Button>
+                <Button variant="secondary" onClick={() => setDiscountModalIdx(null)}>ยกเลิก</Button>
                 <Button onClick={() => applyDiscount(d)}>ตกลง</Button>
               </DialogFooter>
             </DialogContent>

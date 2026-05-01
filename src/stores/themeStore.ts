@@ -50,8 +50,8 @@ export const useThemeStore = create<AppearanceStore>()(
   persist(
     (set, get) => ({
       mode: 'dark',
-      accentKey: 'blue',
-      customAccentHsl: '208 97 49',
+      accentKey: '',
+      customAccentHsl: '',
       customColorKey: '',
       highlightKey: 'auto',
       theme: 'dark',

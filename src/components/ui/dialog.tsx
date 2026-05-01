@@ -89,7 +89,7 @@ const DialogContent = React.forwardRef<
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close data-slot="dialog-close" asChild onClick={onClose}>
-          <Button variant="ghost" className="absolute top-2 right-2" size="icon-sm">
+          <Button variant="secondary" className="absolute top-2 right-2" size="icon-sm">
             <XIcon />
             <span className="sr-only">Close</span>
           </Button>
@@ -133,7 +133,7 @@ function DialogFooter({
       data-slot="dialog-footer"
       className={cn(
         "-mx-4 -mb-4 flex flex-col-reverse gap-2",
-        "rounded-b-xl border-t bg-muted/50",
+        "rounded-b-xl",
         "p-4 sm:flex-row sm:justify-end",
         className
       )}

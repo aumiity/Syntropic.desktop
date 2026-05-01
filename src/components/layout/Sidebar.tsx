@@ -3,8 +3,9 @@ import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   ShoppingCart, Package, PackagePlus, Users, BarChart2, Settings,
-  Palette,
+  Palette, Sun, Moon,
 } from 'lucide-react'
+import { useThemeStore } from '@/stores/themeStore'
 
 const mainNavItems = [
   { to: '/', label: 'การขาย', icon: ShoppingCart, exact: true },
@@ -41,10 +42,13 @@ function NavItem({ to, label, icon: Icon, exact }: { to: string; label: string; 
 }
 
 export function Sidebar() {
+  const { theme, toggleTheme } = useThemeStore()
+  const isDark = theme === 'dark'
+
   return (
-    <aside className="flex flex-col w-20 h-screen bg-sidebar border-r border-sidebar-border shrink-0">
+    <aside className="flex flex-col w-20 h-screen bg-sidebar shrink-0 shadow-lg border-r border-sidebar-border">
       {/* Logo */}
-      <div className="flex flex-col items-center justify-center h-16 border-b border-sidebar-border bg-sidebar-accent-foreground">
+      <div className="flex flex-col items-center justify-center h-16 bg-sidebar-accent-foreground">
         <div className="text-primary-foreground font-extrabold text-lg leading-none">Rx</div>
         <div className="text-primary-foreground text-[14px] font-medium leading-tight">Syntropic</div>
       </div>
@@ -61,6 +65,16 @@ export function Sidebar() {
         {bottomNavItems.map((item) => (
           <NavItem key={item.to} {...item} />
         ))}
+        <button
+          onClick={toggleTheme}
+          title={isDark ? 'เปลี่ยนเป็นโหมดสว่าง' : 'เปลี่ยนเป็นโหมดมืด'}
+          className="flex flex-col items-center justify-center w-16 h-16 rounded-xl transition-colors gap-1 text-sidebar-foreground hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
+        >
+          {isDark ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+          <span className="text-[14px] font-medium leading-none text-sidebar-foreground">
+            {isDark ? 'สว่าง' : 'มืด'}
+          </span>
+        </button>
       </nav>
     </aside>
   )
