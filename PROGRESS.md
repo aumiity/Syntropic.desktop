@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 🚧 Theme refactor in progress
-## Last updated: 2026-04-30
+## Status: 100% Complete + UI Polish ✅ — 🚧 Theme refactor in progress · POS reskinned to teal+yellow (2026-05-02)
+## Last updated: 2026-05-02
 ## App is RUNNABLE — run `npm run electron:dev` to launch
-## ⚠️ Pick up next session: see "🚧 IN PROGRESS — Theme tokenization" below
+## ⚠️ Pick up next session: see "🚧 IN PROGRESS — Theme tokenization" below — and the new "Session 2026-05-02 — POS Reskin" entry for what just changed
 
 ---
 

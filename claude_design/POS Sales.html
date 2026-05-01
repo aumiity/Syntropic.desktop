@@ -1,0 +1,1185 @@
+<!DOCTYPE html><html lang="th" data-theme="light" style="--primary: #0F5D56; --accent: #F5C24A;"><head>
+
+
+<meta charset="UTF-8">
+<title>หน้าจอการขายสินค้า — POS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --surface-2: #F1F1F1;
+    --ink: #14201D;
+    --ink-2: #4B5752;
+    --ink-3: #8A938E;
+    --line: #EDEDED;
+    --line-2: #EDEDED;
+    --primary: #0F5D56;
+    --primary-ink: #FFFFFF;
+    --primary-soft: #E3EDEB;
+    --accent: #F5C24A;
+    --accent-ink: #2A1F00;
+    --accent-soft: #FCEFC8;
+    --danger: #C8533C;
+    --danger-soft: #F7E2DB;
+    --success: #2F7D58;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --shadow-card: 0 1px 0 rgba(20,32,29,0.04), 0 8px 24px -16px rgba(20,32,29,0.10);
+  }
+
+  [data-theme="dark"] {
+    --bg: #0E1614;
+    --surface: #16201D;
+    --surface-2: #111A18;
+    --ink: #ECEFEC;
+    --ink-2: #A7B2AD;
+    --ink-3: #6E7873;
+    --line: #243029;
+    --line-2: #1C2622;
+    --primary: #2BA396;
+    --primary-ink: #06120F;
+    --primary-soft: #1A2A28;
+    --accent: #F5C24A;
+    --accent-ink: #2A1F00;
+    --accent-soft: #2C2410;
+    --danger: #E07964;
+    --danger-soft: #2D1A14;
+    --success: #5BBE93;
+    --shadow-card: 0 1px 0 rgba(0,0,0,0.3), 0 12px 28px -18px rgba(0,0,0,0.6);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: system-ui;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr) 320px;
+    gap: 14px;
+    padding: 14px;
+    min-height: 100vh;
+    max-width: 1640px;
+    margin: 0 auto;
+  }
+  @media (max-width: 1180px) {
+    .app { grid-template-columns: 200px minmax(0, 1fr) 280px; gap: 10px; padding: 10px; }
+  }
+
+  /* ─── Sidebar ─────────────────────────────────────── */
+  .sidebar {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 22px 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--line-2);
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px 22px;
+    border-bottom: 1px solid var(--line-2);
+    margin-bottom: 16px;
+  }
+  .logo-mark {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: var(--primary-ink);
+    display: grid; place-items: center;
+    font-weight: 700;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  .logo-text { font-weight: 700; font-size: 16px; letter-spacing: 0.2px; }
+  .logo-text small { display:block; font-weight:400; color: var(--ink-3); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 12px;
+    border-radius: var(--radius-md);
+    color: var(--ink-2);
+    cursor: pointer;
+    font-weight: 500;
+    transition: background .15s, color .15s;
+  }
+  .nav-item:hover { background: var(--surface-2); color: var(--ink); }
+  .nav-item.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+  .nav-item.active .ico { color: var(--accent-ink); }
+  .ico { width: 20px; height: 20px; flex-shrink: 0; color: var(--ink-3); }
+  .nav-item.active .ico { color: var(--accent-ink); }
+
+  .sidebar-foot {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--line-2);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .switch {
+    width: 36px; height: 20px;
+    background: var(--line);
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+  [data-theme="dark"] .switch { background: var(--primary); }
+  [data-theme="dark"] .switch::after { transform: translateX(16px); }
+
+  /* ─── Main ────────────────────────────────────────── */
+  .main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .page-title {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 4px 0;
+  }
+  .page-title h1 { font-size: 22px; margin: 0; font-weight: 700; letter-spacing: -0.2px; }
+  .page-title .meta { color: var(--ink-3); font-size: 13px; }
+
+  .toolbar {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line-2);
+    box-shadow: var(--shadow-card);
+    padding: 14px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    gap: 14px;
+    align-items: stretch;
+  }
+  @media (max-width: 1280px) {
+    .toolbar { grid-template-columns: 1fr; }
+  }
+  .toolbar-left { display: flex; flex-direction: column; gap: 12px; }
+
+  .seg-full { width: 100%; }
+  .seg-full button { flex: 1; }
+  .seg-full { display: flex; }
+
+  .search {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--line-2);
+    border-radius: var(--radius-md);
+    padding: 11px 14px;
+  }
+  .search input {
+    flex: 1; border: 0; background: transparent;
+    font: inherit; color: var(--ink); outline: none;
+  }
+  .search input::placeholder { color: var(--ink-3); }
+  .search .kbd {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
+  .seg {
+    display: inline-flex;
+    background: var(--surface-2);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-2);
+    width: fit-content;
+  }
+  .seg button {
+    border: 0; background: transparent;
+    padding: 8px 18px;
+    font: inherit; font-weight: 500;
+    color: var(--ink-2);
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .seg button.on {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  /* customer card */
+  .customer {
+    background: var(--surface-2);
+    border: 1px solid var(--line-2);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    gap: 12px;
+    align-items: center;
+  }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    display: grid; place-items: center;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .cust-name { font-weight: 600; font-size: 13px; }
+  .cust-meta { color: var(--ink-3); font-size: 12px; margin-top: 1px; }
+  .cust-actions { display: flex; flex-direction: column; gap: 6px; }
+  .cust-actions button {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 6px 12px;
+    border-radius: 7px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .cust-actions button.primary {
+    background: var(--primary);
+    color: var(--primary-ink);
+    border-color: var(--primary);
+  }
+
+  /* Cart card */
+  .cart {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line-2);
+    box-shadow: var(--shadow-card);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .tab {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ink-3);
+  }
+  .tab.active {
+    background: var(--primary-soft);
+    color: var(--primary);
+    border-color: transparent;
+  }
+  [data-theme="dark"] .tab.active { color: #6FD9CB; }
+  .tab.active .dot { background: var(--primary); }
+  .tab.add {
+    width: 32px; height: 32px;
+    padding: 0;
+    display: grid; place-items: center;
+    color: var(--ink-3);
+  }
+  .clear-btn {
+    margin-left: auto;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--danger-soft);
+    background: var(--danger-soft);
+    color: var(--danger);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* table */
+  .table-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  table.cart-table { width: 100%; border-collapse: collapse; }
+  .cart-table thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--ink-3);
+    padding: 11px 10px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line-2);
+    white-space: nowrap;
+  }
+  .cart-table tbody td {
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--line-2);
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  /* Editable-cell buttons (หน่วย / จำนวน / ราคา / ส่วนลด) */
+  .cell-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    border: none;
+    background: var(--primary-soft);
+    border-radius: 10px;
+    padding: 9px 10px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--primary);
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    box-shadow: 0 1px 0 rgba(15,93,86,0.06), inset 0 0 0 1px rgba(15,93,86,0.04);
+    transition: background .12s, transform .08s;
+  }
+  [data-theme="dark"] .cell-btn { color: #6FD9CB; }
+  .cell-btn:hover {
+    background: color-mix(in oklab, var(--primary-soft), var(--primary) 12%);
+  }
+  .cell-btn:active { transform: translateY(1px); }
+  .cell-btn.muted {
+    background: var(--surface-2);
+    color: var(--ink-3);
+    box-shadow: inset 0 0 0 1px var(--line-2);
+  }
+  .cell-btn.discount {
+    background: var(--danger-soft);
+    color: var(--danger);
+    box-shadow: inset 0 0 0 1px rgba(200,83,60,0.1);
+  }
+  .cell-btn .caret {
+    width: 10px; height: 10px;
+    opacity: 0.55;
+    flex-shrink: 0;
+  }
+  .cell-btn.unit { font-family: inherit; font-weight: 600; }
+  .cart-table tbody tr:last-child td { border-bottom: 0; }
+  .cart-table .num { font-family: 'IBM Plex Mono', monospace; }
+  .cart-table .right { text-align: right; }
+  .cart-table .center { text-align: center; }
+  .item-cell { display: flex; align-items: center; gap: 12px; }
+  .item-thumb {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--line-2);
+    display: grid; place-items: center;
+    color: var(--ink-3);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .item-name { font-weight: 500; }
+  .item-sku { color: var(--ink-3); font-size: 12px; font-family: 'IBM Plex Mono', monospace; margin-top: 1px; }
+
+  .qty {
+    display: inline-flex; align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .qty button {
+    width: 22px; height: 26px;
+    border: 0;
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+    font: inherit;
+  }
+  .qty button:hover { background: var(--surface-2); }
+  .qty span {
+    min-width: 26px;
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    line-height: 26px;
+    font-size: 12px;
+  }
+
+  .row-del {
+    width: 28px; height: 28px;
+    border: 0;
+    background: transparent;
+    border-radius: 6px;
+    color: var(--ink-3);
+    cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .row-del:hover { background: var(--danger-soft); color: var(--danger); }
+
+  .cart-foot {
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border-top: 1px solid var(--line-2);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .foot-spacer { flex: 1; }
+  .foot-cell.right-align { text-align: right; }
+  .foot-cell .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--ink-3); font-weight: 600;
+  }
+  .foot-cell .value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    margin-top: 2px;
+    font-size: 14px;
+  }
+  .foot-cell .value.discount { color: var(--danger); }
+
+  /* ─── Right column ────────────────────────────────── */
+  .right-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line-2);
+    box-shadow: var(--shadow-card);
+    padding: 18px;
+  }
+
+  .total-card {
+    background: var(--primary);
+    color: var(--primary-ink);
+    border: none;
+    padding: 26px 22px;
+  }
+  .total-card .label {
+    font-size: 13px;
+    opacity: 0.78;
+    letter-spacing: 0.4px;
+    font-weight: 500;
+  }
+  .total-card .amount {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 48px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1.5px;
+    font-weight: 600;
+    margin-top: 6px;
+    letter-spacing: -1.5px;
+    line-height: 1.05;
+  }
+  .total-card .amount .baht { font-size: 26px; opacity: 0.7; margin-right: 6px; }
+  .total-card .meta-row {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    opacity: 0.85;
+  }
+  .total-card .meta-row .v { font-family: 'IBM Plex Mono', monospace; }
+
+  .pay-btn {
+    width: 100%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 22px 20px;
+    font: inherit;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: 0 8px 20px -10px rgba(245,194,74,0.6);
+  }
+  .pay-btn .sub { font-size: 12px; font-weight: 500; opacity: 0.7; display: block; margin-top: 2px; }
+  .pay-btn:hover { transform: translateY(-1px); }
+
+  .quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .qa-btn {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--ink);
+    font: inherit;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    transition: border-color .15s, background .15s;
+  }
+  .qa-btn .qa-label { font-size: 13px; font-weight: 500; }
+
+  /* daily summary strip below cart */
+  .summary-strip { padding: 16px 18px; }
+  .summary-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .summary-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
+  .date-pill {
+    background: var(--surface-2);
+    color: var(--ink-2);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line-2);
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .summary-cell.big { grid-column: 1 / -1; padding-top: 10px; border-top: 1px solid var(--line-2); }
+  .summary-cell .s-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--ink-3);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .summary-cell .s-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 14px;
+  }
+  .summary-cell.big .s-value { font-size: 18px; font-weight: 600; }
+  .summary-cell .s-value.primary { color: var(--primary); }
+
+  /* sidebar theme buttons */
+  .theme-quick .switch { background: var(--line); }
+  [data-theme="dark"] .theme-quick .switch { background: var(--primary); }
+  .theme-settings-btn {
+    width: 100%;
+    border: 0;
+    text-align: left;
+    font: inherit;
+  }
+  .caret-r { margin-left: auto; color: var(--ink-3); }
+
+  /* Theme settings modal */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(20,32,29,0.45);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(2px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 18px;
+    width: 520px;
+    max-width: calc(100vw - 40px);
+    max-height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.4);
+    border: 1px solid var(--line-2);
+    overflow: hidden;
+  }
+  .modal-head {
+    padding: 20px 22px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .modal-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .modal-head .x {
+    width: 32px; height: 32px;
+    border: 0; background: var(--surface-2);
+    border-radius: 8px; cursor: pointer;
+    display: grid; place-items: center;
+    color: var(--ink-2);
+  }
+  .modal-body { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; flex: 1; min-height: 0; }
+  .field-label { font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 8px; }
+  .mode-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mode-tile {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    background: var(--surface);
+    text-align: left;
+    font: inherit;
+    color: var(--ink);
+  }
+  .mode-tile.on { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+  .mode-tile .swatch-row { display: flex; gap: 4px; margin-bottom: 8px; }
+  .mode-tile .sw { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--line); }
+  .mode-tile .name { font-weight: 600; font-size: 13px; }
+  .mode-tile .desc { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+  .color-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .color-pick {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface);
+  }
+  .color-pick .dot-lg {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  .color-pick .lbl { font-size: 12px; color: var(--ink-3); }
+  .color-pick .hex { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; }
+
+  .palette-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .palette-chip {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+  .palette-chip.on { border-color: var(--ink); }
+
+  .density-seg { display: inline-flex; background: var(--surface-2); padding: 4px; border-radius: 10px; border: 1px solid var(--line-2); }
+  .density-seg button { border: 0; background: transparent; padding: 7px 14px; font: inherit; font-size: 12px; font-weight: 500; color: var(--ink-2); border-radius: 7px; cursor: pointer; }
+  .density-seg button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+  .modal-foot {
+    padding: 14px 22px;
+    border-top: 1px solid var(--line-2);
+    background: var(--surface-2);
+    display: flex; justify-content: flex-end; gap: 8px;
+  }
+  .btn-ghost, .btn-primary {
+    padding: 9px 16px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink-2); }
+  .btn-primary { background: var(--primary); color: var(--primary-ink); border: 0; }
+
+  /* Empty placeholder */
+  .empty-placeholder {
+    padding: 36px;
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body style="background-color: rgb(240, 241, 236);">
+
+<div class="app">
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">POS</div>
+      <div class="logo-text">
+        ร้านค้า
+        <small>SYNTROPIC</small>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-item active">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18l-2 12H5L3 7Z"></path><path d="M8 7V5a4 4 0 0 1 8 0v2"></path></svg>
+        การขาย
+      </div>
+      <div class="nav-item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h2l2 11h12l2-8H6"></path><circle cx="9" cy="20" r="1.5"></circle><circle cx="17" cy="20" r="1.5"></circle></svg>
+        การซื้อ
+      </div>
+      <div class="nav-item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"></path><path d="m3 8 9 5 9-5"></path><path d="M12 13v8"></path></svg>
+        สินค้า
+      </div>
+      <div class="nav-item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+        บุคคล
+      </div>
+      <div class="nav-item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5"></path><path d="M8 19v-7"></path><path d="M12 19V9"></path><path d="M16 19v-4"></path><path d="M20 19V7"></path></svg>
+        รายงาน
+      </div>
+      <div class="nav-item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"></path></svg>
+        ตั้งค่า
+      </div>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="nav-item theme-quick" id="theme-toggle" style="cursor:pointer;">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg>
+        <span>โหมดมืด/สว่าง</span>
+        <div class="switch" style="margin-left:auto;"></div>
+      </div>
+      <button class="nav-item theme-settings-btn" id="theme-settings-open">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"></path></svg>
+        <span>ตั้งค่าธีม</span>
+        <svg class="caret-r" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+      </button>
+    </div>
+  </aside>
+
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <main class="main">
+
+    <div class="page-title">
+      <h1>หน้าจอการขายสินค้า</h1>
+      <div class="meta">วันพุธ, 1 พฤษภาคม 2569 · 14:32 น.</div>
+    </div>
+
+    <!-- toolbar: search + mode (full width row) / customer -->
+    <section class="toolbar">
+      <div class="toolbar-left">
+        <div class="search">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          <input type="text" placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า">
+          <span class="kbd">F2</span>
+        </div>
+
+        <div class="seg seg-full" role="tablist">
+          <button class="on">ขายปลีก</button>
+          <button>ขายส่ง</button>
+        </div>
+      </div>
+
+      <div class="customer">
+        <div class="avatar">สม</div>
+        <div>
+          <div class="cust-name">สมชาย ใจดี</div>
+          <div class="cust-meta">089-123-4567 · สมาชิก Gold</div>
+        </div>
+        <div class="cust-actions">
+          <button>ดูข้อมูล</button>
+          <button class="primary">+ เพิ่มลูกค้า</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- cart -->
+    <section class="cart">
+      <div class="tabs">
+        <button class="tab active">
+          <span class="dot"></span> รายการขาย 1
+          <span style="color:var(--ink-3);font-size:11px;font-family:'IBM Plex Mono',monospace;">3</span>
+        </button>
+        <button class="tab"><span class="dot"></span> รายการขาย 2</button>
+        <button class="tab"><span class="dot"></span> รายการขาย 3</button>
+        <button class="clear-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="m19 6-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+          ลบสินค้าทั้งหมด
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="cart-table">
+          <thead>
+            <tr>
+              <th class="center" style="width:36px;">#</th>
+              <th>ชื่อสินค้า</th>
+              <th class="center" style="width:60px;">หน่วย</th>
+              <th class="center" style="width:96px;">จำนวน</th>
+              <th class="right" style="width:80px;">ราคา</th>
+              <th class="right" style="width:80px;">ส่วนลด</th>
+              <th class="right" style="width:90px;">รวม</th>
+              <th style="width:36px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="center num" style="color:var(--ink-3);">1</td>
+              <td>
+                <div class="item-name">กาแฟอาราบิก้า คั่วกลาง 250g</div>
+              </td>
+              <td><button class="cell-btn unit">ถุง<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn">2<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn">285.00<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn muted">—<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td class="right num" style="font-weight:600;">570.00</td>
+              <td>
+                <button class="row-del" title="ลบ">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td class="center num" style="color:var(--ink-3);">2</td>
+              <td>
+                <div class="item-name">นมสดพาสเจอร์ไรซ์ 1L</div>
+              </td>
+              <td><button class="cell-btn unit">ขวด<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn">3<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn">62.00<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn discount">−10.00<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td class="right num" style="font-weight:600;">176.00</td>
+              <td>
+                <button class="row-del">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td class="center num" style="color:var(--ink-3);">3</td>
+              <td>
+                <div class="item-name">ขนมปังโฮลวีท แผ่นหนา</div>
+              </td>
+              <td><button class="cell-btn unit">แพ็ค<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn">1<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn">85.00<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn muted">—<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td class="right num" style="font-weight:600;">85.00</td>
+              <td>
+                <button class="row-del">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td class="center num" style="color:var(--ink-3);">4</td>
+              <td>
+                <div class="item-name">ไข่ไก่เบอร์ 2 (แพ็ค 10 ฟอง)</div>
+              </td>
+              <td><button class="cell-btn unit">แพ็ค<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn">2<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn">68.00<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn muted">—<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td class="right num" style="font-weight:600;">136.00</td>
+              <td>
+                <button class="row-del">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td class="center num" style="color:var(--ink-3);">5</td>
+              <td>
+                <div class="item-name">ช็อกโกแลตดาร์ก 70% บาร์</div>
+              </td>
+              <td><button class="cell-btn unit">ชิ้น<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn">4<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn">95.00<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td><button class="cell-btn discount">−20.00<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 3 3 3-3"></path></svg></button></td>
+              <td class="right num" style="font-weight:600;">360.00</td>
+              <td>
+                <button class="row-del">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="cart-foot">
+        <div class="foot-cell">
+          <div class="label">จำนวนรายการ</div>
+          <div class="value">5 / 12 ชิ้น</div>
+        </div>
+        <div class="foot-spacer"></div>
+        <div class="foot-cell right-align">
+          <div class="label">ส่วนลด</div>
+          <div class="value discount">−30.00</div>
+        </div>
+        <div class="foot-cell right-align">
+          <div class="label">ราคารวม</div>
+          <div class="value" style="font-weight:600;font-size:15px;">1,357.00</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+
+  <!-- ═══════════ RIGHT ═══════════ -->
+  <aside class="right-col">
+
+    <div class="card total-card">
+      <div class="label">ยอดสุทธิ</div>
+      <div class="amount"><span class="baht">฿</span>1,234.00</div>
+      <div class="meta-row">
+        <span>รวม 5 รายการ · 12 ชิ้น</span>
+        <span class="v">VAT 92.89</span>
+      </div>
+    </div>
+
+    <button class="pay-btn">
+      <span>
+        ชำระเงิน
+        <span class="sub">เงินสด · โอน · บัตร · QR</span>
+      </span>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+    </button>
+
+    <div class="quick-actions">
+      <button class="qa-btn">
+        <div class="qa-ico">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="11" rx="2"></rect><path d="M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"></path><path d="M9 13h6"></path></svg>
+        </div>
+        <span class="qa-label">เปิดลิ้นชัก</span>
+      </button>
+      <button class="qa-btn">
+        <div class="qa-ico">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"></path><rect x="3" y="9" width="18" height="9" rx="2"></rect><path d="M6 14h12v8H6z"></path></svg>
+        </div>
+        <span class="qa-label">พิมพ์ฉลาก</span>
+      </button>
+      <button class="qa-btn">
+        <div class="qa-ico">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h13l5 5v5h-3"></path><path d="M3 7v10h3"></path><circle cx="9" cy="17" r="2"></circle><circle cx="17" cy="17" r="2"></circle><path d="m9 4-3 3 3 3"></path></svg>
+        </div>
+        <span class="qa-label">รับคืนสินค้า</span>
+      </button>
+      <button class="qa-btn">
+        <div class="qa-ico">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"></path><path d="m3 8 9 5 9-5"></path><path d="m15 12 3 3-3 3"></path></svg>
+        </div>
+        <span class="qa-label">ปรับสต็อก</span>
+      </button>
+    </div>
+
+    <!-- daily summary strip (bottom of right column) -->
+    <div class="card summary-strip">
+      <div class="summary-head">
+        <h3>สรุปยอดขายวันนี้</h3>
+        <span class="date-pill">2 พ.ค. 2569</span>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-cell">
+          <div class="s-label">บิลล่าสุด</div>
+          <div class="s-value">14:18 น.</div>
+        </div>
+        <div class="summary-cell">
+          <div class="s-label">จำนวนบิล</div>
+          <div class="s-value">42 บิล</div>
+        </div>
+        <div class="summary-cell">
+          <div class="s-label">บิลเฉลี่ย</div>
+          <div class="s-value">฿ 677.38</div>
+        </div>
+        <div class="summary-cell big">
+          <div class="s-label">ยอดรวมของวัน</div>
+          <div class="s-value primary">฿ 28,450.00</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+<script>
+  // theme toggle (sidebar button)
+  const root = document.documentElement;
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+  });
+</script>
+
+<!-- ═══════════ THEME SETTINGS MODAL ═══════════ -->
+<div class="modal-backdrop" id="theme-settings-modal">
+  <div class="modal" role="dialog" aria-labelledby="theme-modal-title">
+    <div class="modal-head">
+      <h2 id="theme-modal-title">ตั้งค่าธีม &amp; การแสดงผล</h2>
+      <button class="x" id="theme-settings-close" aria-label="ปิด">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div class="field-label">โหมดสี</div>
+        <div class="mode-tiles">
+          <button class="mode-tile on">
+            <div class="swatch-row">
+              <div class="sw" style="background:#FBF7EE;"></div>
+              <div class="sw" style="background:#FFFFFF;"></div>
+              <div class="sw" style="background:#0F5D56;"></div>
+              <div class="sw" style="background:#F5C24A;"></div>
+            </div>
+            <div class="name">สว่าง</div>
+            <div class="desc">เหมาะกับการใช้งานกลางวัน</div>
+          </button>
+          <button class="mode-tile">
+            <div class="swatch-row">
+              <div class="sw" style="background:#0E1614;"></div>
+              <div class="sw" style="background:#16201D;"></div>
+              <div class="sw" style="background:#2BA396;"></div>
+              <div class="sw" style="background:#F5C24A;"></div>
+            </div>
+            <div class="name">มืด</div>
+            <div class="desc">ลดแสงจ้าในที่แสงน้อย</div>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label">ชุดสี</div>
+        <div class="palette-row">
+          <div class="palette-chip on" style="background:linear-gradient(135deg,#0F5D56 50%,#F5C24A 50%);" title="Teal · Yellow"></div>
+          <div class="palette-chip" style="background:linear-gradient(135deg,#1F4D8C 50%,#FF8A3D 50%);" title="Navy · Orange"></div>
+          <div class="palette-chip" style="background:linear-gradient(135deg,#7A1E3A 50%,#E8C547 50%);" title="Wine · Gold"></div>
+          <div class="palette-chip" style="background:linear-gradient(135deg,#2F4F2F 50%,#C8A415 50%);" title="Olive · Mustard"></div>
+          <div class="palette-chip" style="background:linear-gradient(135deg,#1A1A1A 50%,#FFD23F 50%);" title="Mono · Yellow"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label">สีหลัก / สีเน้น</div>
+        <div class="color-row">
+          <div class="color-pick">
+            <div class="dot-lg" style="background:#0F5D56;"></div>
+            <div>
+              <div class="lbl">สีหลัก</div>
+              <div class="hex">#0F5D56</div>
+            </div>
+          </div>
+          <div class="color-pick">
+            <div class="dot-lg" style="background:#F5C24A;"></div>
+            <div>
+              <div class="lbl">สีเน้น</div>
+              <div class="hex">#F5C24A</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label">ความหนาแน่นข้อมูล</div>
+        <div class="density-seg">
+          <button>กะทัดรัด</button>
+          <button class="on">ปกติ</button>
+          <button>โปร่ง</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label">ขนาดตัวอักษร</div>
+        <div class="density-seg">
+          <button>เล็ก</button>
+          <button class="on">กลาง</button>
+          <button>ใหญ่</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="theme-settings-cancel">ยกเลิก</button>
+      <button class="btn-primary">บันทึกการตั้งค่า</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // theme settings modal
+  const _modal = document.getElementById('theme-settings-modal');
+  document.getElementById('theme-settings-open').addEventListener('click', () => _modal.classList.add('open'));
+  document.getElementById('theme-settings-close').addEventListener('click', () => _modal.classList.remove('open'));
+  document.getElementById('theme-settings-cancel').addEventListener('click', () => _modal.classList.remove('open'));
+  _modal.addEventListener('click', (e) => { if (e.target === _modal) _modal.classList.remove('open'); });
+  // mode tile toggle
+  document.querySelectorAll('.mode-tile').forEach((t, i) => t.addEventListener('click', () => {
+    document.querySelectorAll('.mode-tile').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    root.dataset.theme = i === 1 ? 'dark' : 'light';
+  }));
+</script>
+
+<!-- ═══════════ TWEAKS PANEL ═══════════ -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx" data-plugins="transform-react-jsx-source,om-src-id,om-text-extract" data-filename="tweaks-panel.jsx"></script>
+
+<div id="tweaks-root"></div>
+
+<script type="text/babel" data-plugins="transform-react-jsx-source,om-src-id,om-text-extract" data-filename="inline-1">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "theme": "light",
+    "primary": "#0F5D56",
+    "accent": "#F5C24A"
+  }/*EDITMODE-END*/;
+
+  function App() {
+    const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+    React.useEffect(() => {
+      document.documentElement.dataset.theme = tweaks.theme;
+      document.documentElement.style.setProperty('--primary', tweaks.primary);
+      document.documentElement.style.setProperty('--accent', tweaks.accent);
+    }, [tweaks]);
+
+    return (
+      <TweaksPanel title="Tweaks">
+        <TweakSection title="ธีม">
+          <TweakRadio
+            label="โหมด"
+            value={tweaks.theme}
+            onChange={(v) => setTweak('theme', v)}
+            options={[
+              { value: 'light', label: 'สว่าง' },
+              { value: 'dark', label: 'มืด' },
+            ]}
+          />
+        </TweakSection>
+        <TweakSection title="สี">
+          <TweakColor label="สีหลัก" value={tweaks.primary} onChange={(v) => setTweak('primary', v)} />
+          <TweakColor label="สีเน้น" value={tweaks.accent} onChange={(v) => setTweak('accent', v)} />
+        </TweakSection>
+      </TweaksPanel>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<App />);
+</script>
+
+
+
+</body></html>

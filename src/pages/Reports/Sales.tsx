@@ -57,6 +57,7 @@ function SummaryCard({ label, value, sub, icon, color = '' }: {
 export default function ReportsSalesPage() {
   const { toast } = useToast()
   const today = new Date().toISOString().slice(0, 10)
+  const [now, setNow] = useState(new Date())
 
   // Filters
   const [q, setQ] = useState('')
@@ -155,12 +156,26 @@ export default function ReportsSalesPage() {
   const profitColor = (profit: number) =>
     profit > 0 ? 'text-success' : profit < 0 ? 'text-destructive' : ''
 
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(tick)
+  }, [])
+
+  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border shrink-0">
-        <h1 className="text-xl font-semibold">รายงานการขาย</h1>
-        <p className="text-sm text-muted-foreground">ยอดขาย ต้นทุน และกำไร</p>
+      <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border">
+        <div>
+          <h1 className="text-xl font-semibold">รายงานการขาย</h1>
+          <p className="text-sm text-muted-foreground">ยอดขาย ต้นทุน และกำไร</p>
+        </div>
+        <div className="text-right text-xs text-muted-foreground leading-relaxed">
+          <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
+        </div>
       </div>
 
       {/* Filters */}

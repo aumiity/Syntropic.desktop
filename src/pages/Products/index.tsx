@@ -56,6 +56,8 @@ export default function ProductsPage() {
   const [adjustNote, setAdjustNote] = useState('')
   const [adjusting, setAdjusting] = useState(false)
 
+  const [now, setNow] = useState(new Date())
+
   const limit = 50
   const totalPages = Math.ceil(total / limit)
 
@@ -66,6 +68,11 @@ export default function ProductsPage() {
   useEffect(() => {
     load(1)
   }, [categoryId, drugTypeId])
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(tick)
+  }, [])
 
   const loadDropdowns = async () => {
     const [cats, dts] = await Promise.all([
@@ -169,6 +176,9 @@ export default function ProductsPage() {
     return <span className="text-sm font-medium">{qty.toLocaleString()}</span>
   }
 
+  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
@@ -177,9 +187,15 @@ export default function ProductsPage() {
           <h1 className="text-xl font-semibold">สินค้า</h1>
           <p className="text-sm text-muted-foreground">จัดการรายการสินค้าและยา</p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> เพิ่มสินค้า
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="text-right text-xs text-muted-foreground leading-relaxed">
+            <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+            <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
+          </div>
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus className="w-4 h-4 mr-1.5" /> เพิ่มสินค้า
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

@@ -6,35 +6,36 @@
 
 @layer base {
   :root {
-    /* Blue brand — #0485F7 */
+    /* Teal brand — #0F5D56 / Yellow accent — #F5C24A */
     --background: 0 0% 100%;
     --foreground: 240 6% 10%;
     --card: 0 0% 100%;
     --card-foreground: 240 6% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 6% 10%;
-    --primary: 208 97% 49%;           /* #0485F7 */
+    --primary: 175 72% 21%;           /* #0F5D56 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 208 97% 40%;
+    --primary-hover: 175 72% 17%;
     --secondary: 240 5% 96%;
     --secondary-foreground: 240 6% 10%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 6% 10%;
-    --accent: 208 97% 95%;
-    --accent-foreground: 208 97% 49%;
+    --accent: 42 90% 63%;             /* #F5C24A */
+    --accent-foreground: 44 100% 8%;  /* #2A1F00 */
+    --accent-soft: 45 90% 89%;        /* #FCEFC8 */
     --destructive: 3 100% 59%;
     --destructive-foreground: 0 0% 100%;
     --destructive-hover: 3 100% 39%;
     --border: 0 0% 80%;
     --input: 0 0% 100%;
-    --ring: 213 97% 87%;
+    --ring: 175 35% 75%;
     --radius: 0.5rem;
     --sidebar: 240 5% 96%;
     --sidebar-foreground: 240 6% 10%;
     --sidebar-border: 0 0% 100%;
-    --sidebar-accent: 0 0% 10%;
-    --sidebar-accent-foreground: 208 97% 49%;
-    --sidebar-ring: 208 97% 49%;
+    --sidebar-accent: 42 90% 63%;
+    --sidebar-accent-foreground: 44 100% 8%;
+    --sidebar-ring: 175 72% 21%;
     --sidebar-primary: 240 5% 96%;
     --sidebar-primary-foreground: 240 6% 10%;
 
@@ -43,10 +44,10 @@
     --surface-hover: 240 6% 90%;
     --border-strong: 213 27% 84%;
 
-    --primary-soft: 214 100% 97%;
-    --primary-soft-hover: 214 100% 97%;
-    --primary-soft-border: 208 97% 80%;
-    --primary-strong: 208 97% 35%;
+    --primary-soft: 168 22% 91%;        /* #E3EDEB */
+    --primary-soft-hover: 168 22% 87%;
+    --primary-soft-border: 175 35% 70%;
+    --primary-strong: 175 75% 17%;
 
     --success: 142 71% 36%;
     --success-foreground: 0 0% 100%;
@@ -62,7 +63,8 @@
     --destructive-soft: 0 86% 97%;
     --destructive-strong: 0 70% 35%;
 
-    --selection-bg: hsl(208 97% 70% / 0.4);
+    --shadow-card: 0 1px 0 rgba(20, 32, 29, 0.04), 0 8px 24px -16px rgba(20, 32, 29, 0.10);
+    --selection-bg: hsl(175 60% 60% / 0.4);
   }
 
   .dark {
@@ -72,28 +74,29 @@
     --card-foreground: 0 0% 100%;
     --popover: 0 0% 20%;
     --popover-foreground: 0 0% 100%;
-    --primary: 208 97% 49%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 173 58% 40%;           /* #2BA396 */
+    --primary-foreground: 165 50% 5%; /* #06120F */
     --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 100%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 6% 10%;
-    --accent: 208 97% 95%;
-    --accent-foreground: 208 97% 49%;
+    --accent: 42 90% 63%;
+    --accent-foreground: 44 100% 8%;
+    --accent-soft: 43 47% 12%;        /* #2C2410 */
     --destructive: 3 100% 59%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 10%;
     --input: 0 0% 20%;
-    --ring: 228 96% 89%;
+    --ring: 175 35% 60%;
     --sidebar: 0 0% 20%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-border: 0 0% 10%;
-    --sidebar-accent: 0 0% 100%;
-    --sidebar-accent-foreground: 208 97% 49%;
-    --sidebar-ring: 208 97% 49%;
-    --sidebar-primary: 208 97% 35%;
+    --sidebar-accent: 42 90% 63%;
+    --sidebar-accent-foreground: 44 100% 8%;
+    --sidebar-ring: 173 58% 40%;
+    --sidebar-primary: 175 72% 21%;
     --sidebar-primary-foreground: 214 32% 91%;
-    --primary-hover: 208 97% 40%;
+    --primary-hover: 173 58% 35%;
     --destructive-hover: 3 100% 39%;
     --radius: 0.5rem;
 
@@ -102,10 +105,10 @@
     --surface-hover: 215 25% 22%;
     --border-strong: 215 25% 35%;
 
-    --primary-soft: 208 97% 18%;
-    --primary-soft-hover: 208 97% 22%;
-    --primary-soft-border: 208 97% 30%;
-    --primary-strong: 208 97% 35%;
+    --primary-soft: 173 24% 13%;        /* #1A2A28 */
+    --primary-soft-hover: 173 28% 17%;
+    --primary-soft-border: 173 30% 25%;
+    --primary-strong: 173 60% 30%;
 
     --success: 142 71% 36%;
     --success-foreground: 0 0% 100%;
@@ -121,7 +124,8 @@
     --destructive-soft: 0 86% 97%;
     --destructive-strong: 0 70% 35%;
 
-    --selection-bg: hsl(208 97% 70% / 0.4);
+    --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 28px -18px rgba(0, 0, 0, 0.6);
+    --selection-bg: hsl(175 60% 60% / 0.4);
   }
 }
 

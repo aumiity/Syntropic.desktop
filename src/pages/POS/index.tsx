@@ -17,7 +17,7 @@ import { redistributeDiscounts } from './redistributeDiscount'
 import {
   Search, User, Trash2, Plus, Minus,
   Banknote, AlertTriangle, ChevronDown, X, UserPlus, Info,
-  RotateCcw, ChevronRight, ChevronLeft,
+  RotateCcw, ChevronRight, ChevronLeft, Tag,
 } from 'lucide-react'
 
 interface ReturnLineItem {
@@ -430,101 +430,110 @@ export default function POSPage() {
     <div className="flex flex-col h-full p-3 gap-3">
 
       {/* ── HEADER ── */}
-      <div className="flex items-center justify-between shrink-0 pb-3 border-b border-border">
-        <div>
-          <h1 className="text-xl font-semibold">Rx Syntropic</h1>
-          <p className="text-sm text-muted-foreground">หน้าจอขายสินค้า</p>
-        </div>
-        <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
-          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
+      <div className="flex items-end justify-between shrink-0 px-1">
+        <h1 className="text-[22px] font-bold leading-none tracking-tight">หน้าจอการขายสินค้า</h1>
+        <div className="text-[13px] text-foreground-subtle">
+          {dateStr} · <span className="tabular-nums">{timeStr}</span>
         </div>
       </div>
 
       <div className="flex gap-3 flex-1 min-h-0">
 
-        {/* Left column: search + cart table */}
-        <div className="flex-1 flex flex-col gap-2 min-h-0">
-          {/* Search input */}
-          <div className="flex gap-2 items-center shrink-0">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary pointer-events-none" />
-              <Input
-                ref={mainInputRef}
-                value={query}
-                onChange={e => handleSearch(e.target.value)}
-                placeholder="ค้นหารหัส, ชื่อยา หรือสแกนบาร์โค้ด [F2]..."
-                autoFocus
-                autoComplete="off"
-                className="w-full h-[52px] pl-12 pr-4 rounded-xl border border-border-strong shadow-sm focus:ring-2 focus:ring-ring focus:border-ring text-base bg-background outline-none transition-all"
-              />
-            </div>
+        {/* Left column: toolbar + cart card */}
+        <div className="flex-1 flex flex-col gap-3.5 min-h-0">
 
-            {/* Sale type */}
-            <div className="flex shrink-0 items-center gap-3 px-4 bg-card border border-border-strong rounded-xl shadow-sm" style={{ height: '52px' }}>
-              <span className={`w-[30px] text-center select-none transition-colors ${cart.saleType === 'retail' ? 'text-primary font-bold' : 'text-foreground-subtle font-medium'} cursor-pointer`} onClick={() => { cart.setSaleType('retail'); refocusSearch() }}>ปลีก</span>
-              <Switch size="lg" className="data-[state=unchecked]:bg-primary" checked={cart.saleType === 'wholesale'} onCheckedChange={v => { cart.setSaleType(v ? 'wholesale' : 'retail'); refocusSearch() }}/>
-              <span className={`w-[30px] text-center select-none transition-colors ${cart.saleType === 'wholesale' ? 'text-primary font-bold' : 'text-foreground-subtle font-medium'} cursor-pointer`} onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}>ส่ง</span>
-            </div>
-
-            {/* Customer selector */}
-            <Button variant="outline" onClick={() => setShowCustomerSearch(true)}
-              className="h-[52px] bg-card border border-border-strong rounded-xl px-4 w-64 flex items-center justify-between hover:bg-muted transition-colors shadow-sm shrink-0">
-              <div className="flex flex-col text-left overflow-hidden pr-2">
-                <span className="text-xs text-foreground font-medium">ลูกค้า / สมาชิก</span>
-                <span className={`text-sm font-bold truncate ${cart.customer ? 'text-primary' : 'text-primary'}`}>
-                  {cart.customer
-                      ? <span className="flex items-center gap-1">{cart.customer.is_alert > 0 && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}{cart.customer.full_name}</span>
-                    : 'ลูกค้าทั่วไป'}
-                </span>
+          {/* Toolbar card */}
+          <div className="bg-card border border-border rounded-2xl shadow-card p-3.5 grid gap-3.5 shrink-0" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(260px,320px)' }}>
+            {/* Left: search + retail/wholesale segmented */}
+            <div className="flex flex-col gap-3 min-w-0">
+              <div className="flex items-center gap-2.5 bg-muted border border-border rounded-xl px-3.5 py-2.5">
+                <Search className="h-5 w-5 text-foreground-subtle shrink-0" />
+                <Input
+                  ref={mainInputRef}
+                  value={query}
+                  onChange={e => handleSearch(e.target.value)}
+                  placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
+                  autoFocus
+                  autoComplete="off"
+                  className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-0 h-auto p-0 text-[15px]"
+                />
+                <span className="text-[11px] font-mono text-foreground-subtle bg-card border border-border rounded px-1.5 py-0.5 leading-none">F2</span>
               </div>
-              <ChevronDown className="h-4 w-4 text-foreground-subtle shrink-0" />
-            </Button>
 
-            <Button variant="ghost" size="icon" onClick={() => setShowCustomerInfo(true)} disabled={!cart.customer} title="ข้อมูลลูกค้า"
-              className="h-[52px] w-[52px] bg-card border border-border-strong rounded-xl flex flex-col items-center justify-center transition-colors shadow-sm shrink-0 gap-0.5 enabled:text-muted-foreground enabled:hover:bg-muted disabled:text-foreground-subtle disabled:cursor-not-allowed">
-              <Info className="h-5 w-5" />
-              <span className="text-[10px] leading-none">ข้อมูล</span>
-            </Button>
+              <div className="flex bg-muted border border-border rounded-xl p-1">
+                <button type="button" onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
+                  className={`flex-1 py-2 px-4 rounded-lg text-[14px] font-medium transition-colors ${cart.saleType === 'retail' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  ขายปลีก
+                </button>
+                <button type="button" onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
+                  className={`flex-1 py-2 px-4 rounded-lg text-[14px] font-medium transition-colors ${cart.saleType === 'wholesale' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  ขายส่ง
+                </button>
+              </div>
+            </div>
 
-            <Button variant="ghost" size="icon" onClick={() => setShowQuickAdd(true)}
-              className="h-[52px] w-[52px] bg-card border border-border-strong rounded-xl flex flex-col items-center justify-center hover:bg-muted transition-colors shadow-sm shrink-0 text-muted-foreground gap-0.5">
-              <UserPlus className="h-5 w-5" />
-              <span className="text-[10px] leading-none">เพิ่มลูกค้า</span>
-            </Button>
+            {/* Right: customer card */}
+            <div className="bg-muted border border-border rounded-xl p-3 grid items-center gap-3" style={{ gridTemplateColumns: '44px minmax(0,1fr) auto' }}>
+              <button type="button" onClick={() => setShowCustomerSearch(true)}
+                className="w-11 h-11 rounded-full bg-primary-soft text-primary font-semibold text-sm grid place-items-center shrink-0 hover:bg-primary-soft-hover transition-colors">
+                {cart.customer ? cart.customer.full_name.slice(0, 2) : <User className="h-5 w-5" />}
+              </button>
+              <button type="button" onClick={() => setShowCustomerSearch(true)} className="text-left min-w-0">
+                <div className="text-[13px] font-semibold truncate flex items-center gap-1">
+                  {cart.customer?.is_alert ? <AlertTriangle className="h-3 w-3 text-destructive shrink-0" /> : null}
+                  {cart.customer ? cart.customer.full_name : 'ลูกค้าทั่วไป'}
+                </div>
+                <div className="text-xs text-foreground-subtle truncate mt-0.5">
+                  {cart.customer?.phone || 'แตะเพื่อเลือกลูกค้า'}
+                </div>
+              </button>
+              <div className="flex flex-col gap-1.5">
+                <Button variant="outline" size="sm" onClick={() => setShowCustomerInfo(true)} disabled={!cart.customer}
+                  className="h-auto px-3 py-1.5 rounded-md bg-card border-border text-foreground text-xs font-medium hover:bg-muted whitespace-nowrap">
+                  ดูข้อมูล
+                </Button>
+                <Button size="sm" onClick={() => setShowQuickAdd(true)}
+                  className="h-auto px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary-hover whitespace-nowrap gap-1">
+                  <UserPlus className="h-3 w-3" /> เพิ่มลูกค้า
+                </Button>
+              </div>
+            </div>
           </div>
 
-          {/* Cart table */}
-          <div className="flex flex-1 flex-col min-h-0">
           {(cart.customer?.is_alert ?? 0) > 0 && cart.customer?.alert_note && (
-            <div className="bg-destructive-soft border border-destructive/30 rounded-lg px-4 py-2.5 text-sm text-destructive flex items-center gap-2 font-medium shrink-0 mb-2">
+            <div className="bg-destructive-soft border border-destructive/30 rounded-xl px-4 py-2.5 text-sm text-destructive flex items-center gap-2 font-medium shrink-0">
               <AlertTriangle className="h-4 w-4 shrink-0" />{cart.customer.alert_note}
             </div>
           )}
 
-          {/* Chrome-style tab strip */}
-          <Tabs value={String(cart.activeSlot)} onValueChange={(v) => { cart.setActiveSlot(Number(v)); refocusSearch() }} className="shrink-0">
-            <TabsList variant="line" className="flex items-end border-b border-border rounded-none p-0 gap-0 h-auto">
-              {([0, 1, 2] as const).map(i => {
-                const isActive = i === cart.activeSlot
-                const hasItems = (i === cart.activeSlot ? cart.items : cart.slots[i].items).length > 0
-                const showSep = i > 0 && cart.activeSlot !== i && cart.activeSlot !== i - 1
-                return (
-                  <React.Fragment key={i}>
-                    {i > 0 && <span className={`self-center h-3.5 w-px mx-0.5 shrink-0 transition-colors ${showSep ? 'bg-border-strong' : 'bg-transparent'}`} />}
-                    <TabsTrigger value={String(i)}
-                      className={`relative px-12 py-1.5 text-sm font-semibold rounded-t-lg -mb-px border border-b-0 transition-colors data-[state=active]:bg-muted data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:z-10 data-[state=active]:shadow-none border-transparent text-foreground-subtle hover:text-muted-foreground`}
-                    >
-                      รายการขาย {i + 1}
-                      {hasItems && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />}
-                    </TabsTrigger>
-                  </React.Fragment>
-                )
-              })}
-            </TabsList>
-          </Tabs>
+          {/* Cart card (tabs + table + footer) */}
+          <div className="flex flex-1 flex-col min-h-0 bg-card border border-border rounded-2xl shadow-card overflow-hidden">
 
-          <div className="flex-1 bg-muted rounded-xl flex flex-col overflow-hidden min-h-0">
+          {/* Cart slot tabs + clear-all */}
+          <div className="flex items-center gap-2 px-3.5 py-3 border-b border-border shrink-0">
+            <Tabs value={String(cart.activeSlot)} onValueChange={(v) => { cart.setActiveSlot(Number(v)); refocusSearch() }}>
+              <TabsList variant="line" className="flex items-center gap-2 p-0 h-auto bg-transparent">
+                {([0, 1, 2] as const).map(i => {
+                  const count = (i === cart.activeSlot ? cart.items : cart.slots[i].items).length
+                  return (
+                    <TabsTrigger key={i} value={String(i)}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-border bg-card text-muted-foreground text-[13px] font-medium data-[state=active]:bg-primary-soft data-[state=active]:text-primary data-[state=active]:border-transparent">
+                      <span className={`w-1.5 h-1.5 rounded-full ${i === cart.activeSlot ? 'bg-primary' : 'bg-foreground-subtle'}`} />
+                      รายการขาย {i + 1}
+                      {count > 0 && <span className="text-[11px] tabular-nums text-foreground-subtle">{count}</span>}
+                    </TabsTrigger>
+                  )
+                })}
+              </TabsList>
+            </Tabs>
+            <Button variant="outline" size="sm" disabled={cart.items.length === 0}
+              onClick={() => { cart.clearCart(); refocusSearch() }}
+              className="ml-auto gap-1.5 px-3.5 py-2 h-auto rounded-lg border border-destructive-soft bg-destructive-soft text-destructive text-[13px] font-medium hover:bg-destructive-soft hover:border-destructive/30">
+              <Trash2 className="h-3.5 w-3.5" /> ลบสินค้าทั้งหมด
+            </Button>
+          </div>
+
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
               <table className="w-full caption-bottom text-sm table-fixed">
                 <colgroup>
@@ -538,14 +547,14 @@ export default function POSPage() {
                   <col style={{ width: 60 }} />
                 </colgroup>
                 <TableHeader className="sticky top-0 z-10 bg-muted">
-                  <TableRow className="hover:bg-muted">
-                    <TableHead className="text-center text-xs font-bold text-muted-foreground">#</TableHead>
-                    <TableHead className="text-xs font-bold text-muted-foreground">รายการสินค้า</TableHead>
-                    <TableHead className="text-center text-xs font-bold text-muted-foreground">หน่วย</TableHead>
-                    <TableHead className="text-center text-xs font-bold text-muted-foreground">จำนวน</TableHead>
-                    <TableHead className="text-right text-xs font-bold text-muted-foreground">ราคา/หน่วย</TableHead>
-                    <TableHead className="text-right text-xs font-bold text-muted-foreground">ส่วนลด</TableHead>
-                    <TableHead className="text-right text-xs font-bold text-muted-foreground">รวมเงิน</TableHead>
+                  <TableRow className="hover:bg-muted border-b border-border">
+                    <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-foreground-subtle">#</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-foreground-subtle">ชื่อสินค้า</TableHead>
+                    <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-foreground-subtle">หน่วย</TableHead>
+                    <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-foreground-subtle">จำนวน</TableHead>
+                    <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-foreground-subtle">ราคา</TableHead>
+                    <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-foreground-subtle">ส่วนลด</TableHead>
+                    <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-foreground-subtle">รวม</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
@@ -624,20 +633,21 @@ export default function POSPage() {
             </div>
 
             {cart.items.length > 0 && (
-              <div className="flex justify-center shrink-0">
-                <div className="h-px bg-border w-[98%]" />
-              </div>
-            )}
-            {cart.items.length > 0 && (
-              <div className="px-4 py-2.5 shrink-0 flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">
-                  รายการ: <span className="font-semibold text-foreground">{cart.items.length} รายการ</span>
-                </span>
-                <div className="flex gap-6">
-                  <span className="text-muted-foreground">ราคารวม: <span className="font-semibold text-foreground">฿{formatCurrency(cart.subtotal())}</span></span>
-                  {cart.totalDiscount() > 0 && (
-                    <span className="text-muted-foreground">ส่วนลด: <span className="font-semibold text-destructive">-฿{formatCurrency(cart.totalDiscount())}</span></span>
-                  )}
+              <div className="px-4 py-3.5 shrink-0 flex items-center gap-6 bg-muted border-t border-border">
+                <div>
+                  <div className="text-[11px] uppercase tracking-wider font-semibold text-foreground-subtle">จำนวนรายการ</div>
+                  <div className="mt-0.5 text-sm font-medium tabular-nums">{cart.items.length} / {cart.items.reduce((n, i) => n + i.qty, 0)} ชิ้น</div>
+                </div>
+                <div className="flex-1" />
+                {cart.totalDiscount() > 0 && (
+                  <div className="text-right">
+                    <div className="text-[11px] uppercase tracking-wider font-semibold text-foreground-subtle">ส่วนลด</div>
+                    <div className="mt-0.5 text-sm font-medium tabular-nums text-destructive">−{formatCurrency(cart.totalDiscount())}</div>
+                  </div>
+                )}
+                <div className="text-right">
+                  <div className="text-[11px] uppercase tracking-wider font-semibold text-foreground-subtle">ราคารวม</div>
+                  <div className="mt-0.5 text-[15px] font-semibold tabular-nums">{formatCurrency(cart.subtotal())}</div>
                 </div>
               </div>
             )}
@@ -646,15 +656,23 @@ export default function POSPage() {
 
         </div>
 
-        {/* Right action panel */}
-        <div className="w-64 shrink-0 flex flex-col gap-2.5">
-                            {/* Grand total */}
-        <div className="w-64 bg-ring rounded-xl shadow-sm ring-2 ring-ring border-ring border-2 p-5 flex flex-col justify-center shrink-0">
-          <div className="text-right text-sm font-bold text-muted-foreground mb-1">ยอดสุทธิ</div>
-          <div className="text-right text-5xl font-extrabold text-primary leading-none tabular-nums">
-            {formatCurrency(cart.totalAmount())}
+        {/* Right column */}
+        <div className="w-80 shrink-0 flex flex-col gap-3.5">
+          {/* Total card */}
+          <div className="rounded-2xl bg-primary text-primary-foreground p-6 shadow-card shrink-0">
+            <div className="text-[13px] font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
+            <div className="mt-1.5 font-bold tabular-nums leading-[1.05] tracking-tight" style={{ fontSize: '48px', letterSpacing: '-1.5px' }}>
+              <span className="opacity-70 mr-1.5" style={{ fontSize: '26px' }}>฿</span>{formatCurrency(cart.totalAmount())}
+            </div>
+            <div className="mt-3.5 pt-3.5 border-t border-white/15 flex justify-between text-xs opacity-85">
+              <span>รวม {cart.items.length} รายการ · {cart.items.reduce((n, i) => n + i.qty, 0)} ชิ้น</span>
+              {cart.totalDiscount() > 0 && (
+                <span className="tabular-nums">ส่วนลด {formatCurrency(cart.totalDiscount())}</span>
+              )}
+            </div>
           </div>
-        </div>
+
+          {/* Pay button */}
           <Button disabled={cart.items.length === 0}
             onClick={() => {
               setPendingDiscounts(cart.items.map(i => i.discount))
@@ -663,35 +681,53 @@ export default function POSPage() {
               setShowBreakdown(false)
               setShowPayment(true)
             }}
-            className="flex-1 flex-col gap-1 min-h-[120px] h-auto rounded-xl bg-primary hover:bg-primary disabled:bg-muted disabled:text-foreground-subtle disabled:opacity-100 text-white font-bold text-2xl shadow-md">
-            <span>รับชำระเงิน</span>
-            <span className="text-sm bg-black/10 px-3 py-0.5 rounded-md font-medium">F9</span>
-          </Button>
-          <Button variant="outline" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
-            className="w-full h-10 rounded-xl text-sm shadow-sm text-muted-foreground">
-            เปิดลิ้นชัก
-          </Button>
-          <Button variant="outline" onClick={() => setShowReturn(true)}
-            className="w-full h-10 rounded-xl text-sm shadow-sm gap-2 text-warning-strong border-warning/40 hover:bg-warning-soft hover:border-warning/60">
-            <RotateCcw className="h-4 w-4" /> คืนสินค้า
-          </Button>
-          <Button variant="outline" disabled={cart.items.length === 0} onClick={() => { cart.clearCart(); refocusSearch() }}
-            className="w-full h-10 rounded-xl text-sm shadow-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 gap-2">
-            <Trash2 className="h-4 w-4" /> ยกเลิกบิล
+            className="w-full h-auto justify-between bg-accent text-accent-foreground hover:bg-accent hover:-translate-y-px disabled:bg-muted disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-5 shadow-[0_8px_20px_-10px_rgba(245,194,74,0.6)]">
+            <span className="flex flex-col items-start gap-0.5">
+              <span className="text-lg font-bold leading-none">ชำระเงิน</span>
+              <span className="text-xs font-medium opacity-70 leading-none">เงินสด · โอน · บัตร · QR</span>
+            </span>
+            <ChevronRight className="h-[22px] w-[22px]" strokeWidth={2.4} />
           </Button>
 
-          <div className="bg-card rounded-xl shadow-sm border-2 border-primary-soft-border p-4 shrink-0">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-muted-foreground text-sm">บิลล่าสุด</span>
-              <span className="font-bold text-foreground">{dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}</span>
+          {/* Quick actions (vertical stack) */}
+          <div className="flex flex-col gap-2">
+            <Button variant="outline" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
+              className="w-full justify-start gap-3 rounded-xl px-4 py-3.5 h-auto bg-card text-foreground border-border hover:bg-muted hover:border-primary text-[13px] font-medium">
+              <Banknote className="h-4 w-4 text-foreground-subtle" /> เปิดลิ้นชัก
+            </Button>
+            <Button variant="outline" disabled
+              className="w-full justify-start gap-3 rounded-xl px-4 py-3.5 h-auto bg-card text-foreground border-border hover:bg-muted hover:border-primary text-[13px] font-medium">
+              <Tag className="h-4 w-4 text-foreground-subtle" /> พิมพ์ฉลาก
+            </Button>
+            <Button variant="outline" onClick={() => setShowReturn(true)}
+              className="w-full justify-start gap-3 rounded-xl px-4 py-3.5 h-auto bg-card text-foreground border-border hover:bg-muted hover:border-primary text-[13px] font-medium">
+              <RotateCcw className="h-4 w-4 text-foreground-subtle" /> รับคืนสินค้า
+            </Button>
+            <Button variant="outline" disabled={cart.items.length === 0} onClick={() => { cart.clearCart(); refocusSearch() }}
+              className="w-full justify-start gap-3 rounded-xl px-4 py-3.5 h-auto bg-card text-foreground border-border hover:bg-muted hover:border-destructive hover:text-destructive text-[13px] font-medium">
+              <Trash2 className="h-4 w-4 text-foreground-subtle" /> ยกเลิกบิล
+            </Button>
+          </div>
+
+          {/* Daily summary */}
+          <div className="rounded-2xl bg-card border border-border shadow-card p-4 shrink-0">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">สรุปยอดขายวันนี้</h3>
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">{dateStr}</span>
             </div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-muted-foreground text-sm">จำนวนบิล</span>
-              <span className="font-bold text-foreground">{dailyStats.bills}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground text-sm">ยอดรวม</span>
-              <span className="font-bold text-primary">฿{formatCurrency(dailyStats.total)}</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-[11px] uppercase tracking-wider font-semibold text-foreground-subtle mb-1">บิลล่าสุด</div>
+                <div className="text-sm font-medium tabular-nums">{dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}</div>
+              </div>
+              <div>
+                <div className="text-[11px] uppercase tracking-wider font-semibold text-foreground-subtle mb-1">จำนวนบิล</div>
+                <div className="text-sm font-medium tabular-nums">{dailyStats.bills} บิล</div>
+              </div>
+              <div className="col-span-2 pt-3 border-t border-border">
+                <div className="text-[11px] uppercase tracking-wider font-semibold text-foreground-subtle mb-1">ยอดรวมของวัน</div>
+                <div className="text-lg font-semibold tabular-nums text-primary">฿ {formatCurrency(dailyStats.total)}</div>
+              </div>
             </div>
           </div>
         </div>

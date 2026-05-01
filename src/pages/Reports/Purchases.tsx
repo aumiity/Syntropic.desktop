@@ -32,6 +32,7 @@ export default function ReportsPurchasesPage() {
   const { toast } = useToast()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = today.slice(0, 7) + '-01'
+  const [now, setNow] = useState(new Date())
 
   // Filters
   const [q, setQ] = useState('')
@@ -103,14 +104,27 @@ export default function ReportsPurchasesPage() {
   const pageItemCount = rows.reduce((s, r) => s + (r.item_count ?? 0), 0)
   const creditUnpaid = rows.filter(r => r.payment_type === 'credit' && !r.is_paid)
 
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(tick)
+  }, [])
+
   const receiptTotal = receiptItems.reduce((s, i) => s + i.cost_price * i.qty_received, 0)
+  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border shrink-0">
-        <h1 className="text-xl font-semibold">รายงานการรับสินค้า</h1>
-        <p className="text-sm text-muted-foreground">ประวัติการรับสินค้าและการชำระเงิน</p>
+      <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border">
+        <div>
+          <h1 className="text-xl font-semibold">รายงานการรับสินค้า</h1>
+          <p className="text-sm text-muted-foreground">ประวัติการรับสินค้าและการชำระเงิน</p>
+        </div>
+        <div className="text-right text-xs text-muted-foreground leading-relaxed">
+          <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
+        </div>
       </div>
 
       {/* Filters */}

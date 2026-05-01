@@ -656,13 +656,28 @@ function StaffTab() {
 // ========================
 export default function PeoplePage() {
   const [tab, setTab] = useState('customers')
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(tick)
+  }, [])
+
+  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border shrink-0">
-        <h1 className="text-xl font-semibold">บุคคล</h1>
-        <p className="text-sm text-muted-foreground">จัดการลูกค้า ผู้จัดจำหน่าย และพนักงาน</p>
+      <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border">
+        <div>
+          <h1 className="text-xl font-semibold">บุคคล</h1>
+          <p className="text-sm text-muted-foreground">จัดการลูกค้า ผู้จัดจำหน่าย และพนักงาน</p>
+        </div>
+        <div className="text-right text-xs text-muted-foreground leading-relaxed">
+          <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
+        </div>
       </div>
 
       <div className="flex-1 overflow-hidden flex flex-col">

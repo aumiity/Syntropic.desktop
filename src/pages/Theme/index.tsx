@@ -285,15 +285,29 @@ export default function Theme() {
     }
   }
 
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(tick)
+  }, [])
+
+  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+
   return (
     <div className="h-full overflow-y-auto bg-background">
 
       {/* ── Header ── */}
-      <div className="border-b border-border bg-card px-8 py-6">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">ปรับแต่งธีม</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          ปรับเปลี่ยนโหมดสี สีธีม และสีไฮไลต์ของแอปพลิเคชัน
-        </p>
+      <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
+        <div>
+          <h1 className="text-xl font-semibold">ธีม</h1>
+          <p className="text-sm text-muted-foreground">ปรับแต่งสีและรูปลักษณ์ของระบบ</p>
+        </div>
+        <div className="text-right text-xs text-muted-foreground leading-relaxed">
+          <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
+        </div>
       </div>
 
       <div className="p-8">

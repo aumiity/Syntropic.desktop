@@ -876,15 +876,15 @@ export default function PurchasePage() {
   return (
     <div className="flex flex-col h-full p-3 gap-3">
 
-      {/* ── Banner — rounded card, identical style to POS ── */}
-      <div className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary-strong text-white shadow-md flex items-center justify-between">
+      {/* ── Banner — flat style, matching POS ── */}
+      <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border">
         <div>
-          <h1 className="text-xl font-extrabold leading-tight">การซื้อ</h1>
-          <p className="text-xs opacity-80">จัดการการรับสินค้าและประวัติการสั่งซื้อ</p>
+          <h1 className="text-xl font-semibold">การซื้อ</h1>
+          <p className="text-sm text-muted-foreground">จัดการการรับสินค้าและประวัติการสั่งซื้อ</p>
         </div>
-        <div className="text-right text-xs opacity-90 leading-relaxed">
-          <div>วันที่: <span className="font-semibold">{now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span></div>
-          <div>เวลา: <span className="font-semibold tabular-nums">{now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span></div>
+        <div className="text-right text-xs text-muted-foreground leading-relaxed">
+          <div>วันที่: <span className="font-semibold text-foreground">{now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span></div>
+          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span></div>
         </div>
       </div>
 

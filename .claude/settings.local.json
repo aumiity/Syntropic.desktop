@@ -5,7 +5,12 @@
       "Bash(python *)",
       "Bash(npx tsc *)",
       "Bash(node -e \"const r = require\\('/Users/anya/Documents/GitHub/Syntropic.desktop/node_modules/radix-ui'\\); console.log\\(Object.keys\\(r\\).filter\\(k => k.toLowerCase\\(\\).includes\\('label'\\)\\)\\)\")",
-      "Bash(node -e \"const r = require\\('/Users/anya/Documents/GitHub/Syntropic.desktop/node_modules/radix-ui'\\); console.log\\(typeof r.Label, JSON.stringify\\(Object.keys\\(r.Label || {}\\)\\)\\)\")"
+      "Bash(node -e \"const r = require\\('/Users/anya/Documents/GitHub/Syntropic.desktop/node_modules/radix-ui'\\); console.log\\(typeof r.Label, JSON.stringify\\(Object.keys\\(r.Label || {}\\)\\)\\)\")",
+      "Bash(\"C:\\\\\\\\Users\\\\\\\\ANYA\\\\\\\\.claude\\\\\\\\count_tokens.js\")",
+      "Bash(echo \"---exit:$?\")",
+      "Read(//c/Users/ANYA/.claude/**)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" --max-time 10 https://api.claudecount.com/api/usage/hook -X POST -H \"Content-Type: application/json\" -H \"X-CLI-Version: 0.2.9\" -d '{}')",
+      "Bash(node \"C:\\\\\\\\Users\\\\\\\\ANYA\\\\\\\\.claude\\\\\\\\count_tokens.js\")"
     ]
   }
 }

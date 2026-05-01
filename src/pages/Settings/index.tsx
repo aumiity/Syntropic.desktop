@@ -594,12 +594,27 @@ function LabelSettingsTab() {
 // ========================
 export default function SettingsPage() {
   const [tab, setTab] = useState('shop')
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(tick)
+  }, [])
+
+  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-6 py-4 border-b border-border shrink-0">
-        <h1 className="text-xl font-semibold">ตั้งค่า</h1>
-        <p className="text-sm text-muted-foreground">จัดการข้อมูลร้านและระบบ</p>
+      <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border">
+        <div>
+          <h1 className="text-xl font-semibold">ตั้งค่า</h1>
+          <p className="text-sm text-muted-foreground">ตั้งค่าร้านค้า หมวดหมู่ และหน่วยนับ</p>
+        </div>
+        <div className="text-right text-xs text-muted-foreground leading-relaxed">
+          <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
+        </div>
       </div>
 
       <div className="flex-1 overflow-hidden flex flex-col">
