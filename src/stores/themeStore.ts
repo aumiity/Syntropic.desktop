@@ -49,26 +49,32 @@ function detachAutoListener() {
 export const useThemeStore = create<AppearanceStore>()(
   persist(
     (set, get) => ({
-      mode: 'dark',
+      mode: 'light',
       accentKey: '',
       customAccentHsl: '',
       customColorKey: '',
-      highlightKey: 'auto',
-      theme: 'dark',
+      highlightKey: '',
+      theme: '',
 
       applyTheme() {
         const { mode, accentKey, customAccentHsl, highlightKey } = get()
         const isDark = resolveIsDark(mode)
 
-        document.documentElement.classList.toggle('dark', isDark)
-
-        const vars = getAccentVars(accentKey, customAccentHsl, isDark)
         const root = document.documentElement
-        for (const [k, v] of Object.entries(vars)) {
-          root.style.setProperty(k, v)
+        root.classList.toggle('dark', isDark)
+
+        // accentKey = '' means "use CSS :root defaults from src/index.css"
+        if (accentKey) {
+          const vars = getAccentVars(accentKey, customAccentHsl, isDark)
+          for (const [k, v] of Object.entries(vars)) {
+            root.style.setProperty(k, v)
+            get().resetAccent()
+          }
         }
 
-        const primary = vars['--primary']
+        // Read primary from inline style (if set) or fallback to computed CSS value
+        const primaryHsl = root.style.getPropertyValue('--primary')
+        const primaryVal = primaryHsl || getComputedStyle(root).getPropertyValue('--primary').trim()
         const highlightMap: Record<string, string> = {
           blue:   'hsl(208 97% 70% / 0.5)',
           purple: 'hsl(265 85% 75% / 0.5)',
@@ -77,8 +83,8 @@ export const useThemeStore = create<AppearanceStore>()(
           orange: 'hsl(25 90% 65% / 0.5)',
         }
         const selBg = highlightKey === 'auto'
-          ? `hsl(${primary} / 0.4)`
-          : (highlightMap[highlightKey] ?? `hsl(${primary} / 0.4)`)
+          ? `hsl(${primaryVal} / 0.4)`
+          : (highlightMap[highlightKey] ?? `hsl(${primaryVal} / 0.4)`)
         root.style.setProperty('--selection-bg', selBg)
 
         set({ theme: isDark ? 'dark' : 'light' })
@@ -122,7 +128,7 @@ export const useThemeStore = create<AppearanceStore>()(
         for (const name of ACCENT_VAR_NAMES) {
           root.style.removeProperty(name)
         }
-        set({ accentKey: 'blue', customAccentHsl: '208 97 49', highlightKey: 'auto' })
+         //set({ accentKey: 'blue', customAccentHsl: '208 97 49', highlightKey: 'auto' })
         // reapply only dark/light class — CSS file takes over for colors
         const isDark = resolveIsDark(get().mode)
         root.classList.toggle('dark', isDark)

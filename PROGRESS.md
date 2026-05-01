@@ -527,6 +527,80 @@ All changes above are uncommitted working tree modifications.
 
 ---
 
+## Session 2026-05-02 — POS Reskin (Teal + Yellow design from claude_design/POS Sales.html)
+
+### Goal
+Reskin the POS page (colors + layout rearrangement) to match a high-fidelity HTML design dropped in `claude_design/POS Sales.html`. **Visual only — no logic, IPC, or interaction redesign.** User explicitly said "keep current cell-btn interaction style and change only color" — so unit/qty/price/discount editors stay as inputs/dropdowns.
+
+### Brand color change (global — affects all pages)
+Primary swapped **blue `#0485F7` → teal `#0F5D56`** (light) / `#2BA396` (dark). Accent swapped **blue-tinted → yellow `#F5C24A`**. Other pages still need adjustment (user said they'll do those later — Q2).
+
+### Files changed
+
+#### `src/index.css`
+- `--primary` → teal `175 72% 21%` light / `173 58% 40%` dark
+- `--primary-soft` → teal-tint `168 22% 91%` light / `173 24% 13%` dark
+- `--primary-soft-hover`, `--primary-soft-border`, `--primary-strong`, `--primary-hover` retinted teal
+- `--accent` → yellow `42 90% 63%` (was blue tint)
+- `--accent-foreground` → dark brown `44 100% 8%` (was blue text)
+- `--ring` → teal tint `175 35% 75%`
+- `--sidebar-accent` → yellow (was near-black) so active nav row turns yellow
+- `--sidebar-accent-foreground` → dark brown
+- `--selection-bg` → teal-tinted
+- **Added** `--accent-soft` (`#FCEFC8` light / `#2C2410` dark) for soft yellow surfaces
+- **Added** `--shadow-card` for the design's soft card shadow (light + dark variants)
+- Comment header changed from "Blue brand" → "Teal brand / Yellow accent"
+
+#### `tailwind.config.js`
+- Registered `accent.soft: 'hsl(var(--accent-soft))'`
+- Registered `boxShadow.card: 'var(--shadow-card)'` (use as `shadow-card`)
+
+#### `src/components/layout/Sidebar.tsx`
+- Logo block: `bg-sidebar-accent-foreground` (dark brown) → `bg-primary` (teal). The "Rx Syntropic" mark now sits on a teal block.
+- Active nav item: `bg-sidebar-accent/10 text-sidebar-accent-foreground` (10% blue tint) → `bg-sidebar-accent text-sidebar-accent-foreground font-semibold` (full yellow + dark brown).
+- Inactive hover: `hover:bg-sidebar-accent/10` → `hover:bg-accent-soft`.
+- **Bug fix:** removed the inner `<span class="text-sidebar-foreground">` color override that was making active-state label text wrong (parent text color now inherited correctly).
+
+#### `src/pages/POS/index.tsx` (the bulk of the work)
+Layout rearrangement (matches `claude_design/POS Sales.html`):
+
+- **Header** simplified — was "Rx Syntropic / หน้าจอขายสินค้า" + `วันที่: ... เวลา: ...` two-line block. Now a single row: `<h1>หน้าจอการขายสินค้า</h1>` left + `dateStr · timeStr` meta on the right (`text-foreground-subtle text-[13px]`).
+- **Toolbar card** restructured into a 2-column grid (`minmax(0,1fr) minmax(260px,320px)`):
+  - Left col stacks: search input row (`bg-muted` pill with `Search` icon + `<Input>` + `F2` kbd badge) over a full-width retail/wholesale segmented control (2 buttons in a `bg-muted` track, white pill on active). Replaced the previous horizontal switch UI.
+  - Right col: customer card with 44×44 avatar circle (`bg-primary-soft`, shows initials or `<User>`), name + meta lines, and a vertical action stack: `ดูข้อมูล` (outline) + `+ เพิ่มลูกค้า` (primary teal). Avatar + name area both clickable → `setShowCustomerSearch(true)`.
+- **Customer alert banner** (when `is_alert`) now sits between the toolbar and cart card as its own rounded pill (was inside the cart container).
+- **Cart card** is now a single `bg-card border rounded-2xl shadow-card` wrapper holding tabs + table + footer (was three loose elements).
+  - **Tab strip + clear-all** in one row at the top of the cart card. Tabs are pill-style (`px-3.5 py-2 rounded-lg border`), active = `bg-primary-soft text-primary border-transparent`. Each tab shows: 1.5px dot + `รายการขาย {n}` + inline mono count (only when count > 0). Reverted from the badge-above-label tab-6 style we added two commits ago to match the HTML design's inline-count layout. The `ลบสินค้าทั้งหมด` clear-all button sits on the right of the same row (`bg-destructive-soft text-destructive`).
+  - **Table header** restyled: column labels are now 11px uppercase `tracking-wider text-foreground-subtle` (was bold muted). Renamed "รายการสินค้า" → "ชื่อสินค้า", "ราคา/หน่วย" → "ราคา", "รวมเงิน" → "รวม" to match the design's column names.
+  - **Cart footer** restructured to 3 cells per design: `จำนวนรายการ` left (e.g. `5 / 12 ชิ้น`), spacer flex-1, `ส่วนลด` right (red, only when > 0), `ราคารวม` right (15px semibold). Removed the old single-row summary line.
+- **Right column** widened from `w-64` (256px) to `w-80` (320px). Top → bottom:
+  1. **Total card** — `bg-primary text-primary-foreground rounded-2xl p-6 shadow-card`. Label "ยอดสุทธิ" + giant 48px IBM Plex Mono–style amount with a 26px ฿ symbol at 70% opacity. Meta row with top-divider: "รวม N รายการ · M ชิ้น" + ส่วนลด (only when > 0). VAT was in the design but the cart store doesn't track it — substituted with discount info; if VAT is wanted later, add `totalVat()` to the cart store.
+  2. **Pay button** — `bg-accent text-accent-foreground rounded-2xl` with a yellow glow `shadow-[0_8px_20px_-10px_rgba(245,194,74,0.6)]`. Label "ชำระเงิน" + sublabel "เงินสด · โอน · บัตร · QR" + right `<ChevronRight>`. Hover lifts 1px.
+  3. **Quick actions** — vertical stack of 4 outline buttons (per HTML — NOT a 2×2 grid as the README said): `เปิดลิ้นชัก` / `พิมพ์ฉลาก` / `รับคืนสินค้า` / `ยกเลิกบิล`. `พิมพ์ฉลาก` is `disabled` (no flow yet, per Q1). The "F9" payment button keybinding hint was dropped from the pay button — keybinding still works.
+  4. **Daily summary card** — `bg-card border rounded-2xl shadow-card`. Head row: `สรุปยอดขายวันนี้` + date pill (`bg-muted` rounded-full, today's `dateStr`). 2-col grid: `บิลล่าสุด` / `จำนวนบิล`, then full-width `ยอดรวมของวัน` row above a top-border, value in `text-primary` mono.
+- **Imports** — added `Tag` from lucide-react for the พิมพ์ฉลาก quick action icon.
+
+### What was NOT touched (per user)
+- **Cell-btn interaction redesign** — the HTML design uses click-to-edit pill buttons for unit/qty/price/discount that open popovers. Current code uses inline `<Input>`s and `<Button>` chips that open modals. User explicitly said "keep current style, change only color" — so the existing chip-styled buttons stay as-is. Only their backgrounds harmonize with the new teal/yellow palette via existing `bg-primary-soft` / `bg-warning-soft` / `bg-destructive-soft` tokens.
+- **Fonts** — user said "Font touch font setting" meaning *don't touch fonts*. GoogleSans stays as the default. The HTML uses IBM Plex Sans Thai + Plex Mono — not adopted.
+- **Layout sidebar width** — design shows a 220px text+icon sidebar. Current shared `Sidebar` is 80px icon-only and used by every page. Left as-is; user is OK with global brand color change but didn't ask for sidebar width change.
+- **Other pages** — primary color change ripples to every page that uses `bg-primary` / `text-primary` / `bg-accent` etc. User confirmed they'll adjust those next.
+
+### TypeScript verification
+- 68 pre-existing errors before, 68 after the changes. Zero new errors in `src/pages/POS/index.tsx`. The one error in `src/components/layout/Sidebar.tsx` line 38 (`Type '{ className: string; }' is not assignable to type 'IntrinsicAttributes'`) is pre-existing — `icon: React.ComponentType` type signature missing the `<{ className?: string }>` generic — not introduced this session.
+
+### Visual testing
+- **NOT done** — Claude Code can't render the Electron UI. User must run `npm run electron:dev` to verify. Per CLAUDE.md "If you can't test the UI, say so explicitly rather than claiming success."
+
+### Reference files
+- `claude_design/POS Sales.html` — the design source. **This is the authoritative reference**, not the README in the same folder. The README description differed from the HTML in three important places: cart table column layout (HTML is unit/qty/price/discount cell-buttons + no thumbnails; README implied a thumbnail and a qty stepper), cart footer (HTML has 3 cells, README said 4), quick actions (HTML is vertical stack, README said 2×2 grid).
+- `claude_design/README.md` — design tokens reference (color tables, typography, spacing). Useful for spec-level info but trumped by the HTML for actual layout decisions.
+
+### Uncommitted changes
+All changes above are uncommitted working tree modifications.
+
+---
+
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source
 - better-sqlite3 prebuilt binary obtained via prebuild-install targeting Electron 31.7.7
