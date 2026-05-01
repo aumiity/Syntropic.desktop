@@ -773,15 +773,15 @@ export default function POSPage() {
           <DialogBody className="space-y-4">
             <div>
               <Label className="block text-sm font-medium mb-1">ชื่อ-นามสกุล <span className="text-destructive">*</span></Label>
-              <Input autoFocus value={qaName} onChange={e => setQaName(e.target.value)} placeholder="ชื่อ-นามสกุล" />
+              <Input autoFocus value={qaName} onChange={e => setQaName(e.target.value)} />
             </div>
             <div>
               <Label className="block text-sm font-medium mb-1">เบอร์โทรศัพท์</Label>
-              <Input value={qaPhone} onChange={e => setQaPhone(e.target.value)} placeholder="เบอร์โทร" />
+              <Input value={qaPhone} onChange={e => setQaPhone(e.target.value)}/>
             </div>
             <div>
               <Label className="block text-sm font-medium mb-1">หมายเหตุ / ประวัติแพ้ยา</Label>
-              <Input value={qaNote} onChange={e => setQaNote(e.target.value)} placeholder="ถ้ามี" />
+              <Input value={qaNote} onChange={e => setQaNote(e.target.value)}/>
             </div>
           </DialogBody>
           <DialogFooter>
