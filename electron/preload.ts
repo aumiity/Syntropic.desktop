@@ -8,6 +8,7 @@ const api = {
     addCustomer: (data: any) => ipcRenderer.invoke('pos:addCustomer', data),
     saveBill: (payload: any) => ipcRenderer.invoke('pos:saveBill', payload),
     getDailyStats: () => ipcRenderer.invoke('pos:getDailyStats'),
+    returnItems: (payload: any) => ipcRenderer.invoke('pos:returnItems', payload),
   },
   // Products
   products: {

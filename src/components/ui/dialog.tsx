@@ -89,7 +89,7 @@ const DialogContent = React.forwardRef<
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close data-slot="dialog-close" asChild onClick={onClose}>
-          <Button variant="secondary" className="absolute top-2 right-2" size="icon-sm">
+          <Button variant="outline" className="h-8 w-8 absolute top-4 right-4" size="icon-m">
             <XIcon />
             <span className="sr-only">Close</span>
           </Button>

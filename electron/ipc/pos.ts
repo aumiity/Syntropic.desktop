@@ -173,6 +173,83 @@ export function registerPosHandlers() {
     return saveBill()
   })
 
+  // Return items — Option B: negative sales record + stock restore + movements
+  ipcMain.handle('pos:returnItems', (_e, payload: {
+    items: Array<{
+      product_id: number
+      lot_id: number
+      product_name: string
+      unit_name: string
+      qty: number
+      unit_price: number
+      line_total: number
+      reason: string
+    }>
+    customer_id?: number | null
+    reason: string
+    created_by: number
+  }) => {
+    const db = getDb()
+    const doReturn = db.transaction(() => {
+      // Generate RT-YYYYMMDD-NNN invoice number
+      const today = dayjs().format('YYYYMMDD')
+      const countRow = db.prepare(
+        `SELECT COUNT(*) as c FROM sales WHERE invoice_no LIKE ? AND sold_at >= ? AND sold_at < ?`
+      ).get(`RT-${today}-%`, `${today} 00:00:00`, `${today} 23:59:59`) as { c: number }
+      const invoiceNo = `RT-${today}-${String(countRow.c + 1).padStart(4, '0')}`
+
+      const totalAmount = payload.items.reduce((s, i) => s + i.line_total, 0)
+
+      // Negative sales record — total_amount is negative, decreases daily stats automatically
+      const saleResult = db.prepare(`
+        INSERT INTO sales (invoice_no, sale_type, customer_id, sold_by, sold_at,
+          subtotal, total_discount, total_vat, total_amount,
+          cash_amount, card_amount, transfer_amount, change_amount,
+          note, status)
+        VALUES (?, 'return', ?, ?, datetime('now','localtime'),
+          ?, 0, 0, ?,
+          0, 0, 0, 0,
+          ?, 'completed')
+      `).run(invoiceNo, payload.customer_id ?? null, payload.created_by,
+        -totalAmount, -totalAmount, payload.reason)
+      const saleId = saleResult.lastInsertRowid
+
+      for (const item of payload.items) {
+        const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(item.lot_id) as any
+        if (!lot) throw new Error(`Lot not found: ${item.lot_id}`)
+
+        // Negative sale_items row
+        const saleItemResult = db.prepare(`
+          INSERT INTO sale_items (sale_id, product_id, item_name, unit_name, qty, unit_price, discount, line_total, item_note)
+          VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+        `).run(saleId, item.product_id, item.product_name, item.unit_name,
+          -item.qty, item.unit_price, -item.line_total, item.reason)
+        const saleItemId = saleItemResult.lastInsertRowid
+
+        // Lot tracing — negative qty mirrors sale_items
+        db.prepare(`
+          INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty)
+          VALUES (?, ?, ?, ?)
+        `).run(saleItemId, item.lot_id, item.product_id, -item.qty)
+
+        // Restore stock
+        const qtyBefore = lot.qty_on_hand
+        const qtyAfter = qtyBefore + item.qty
+        db.prepare(`UPDATE product_lots SET qty_on_hand = qty_on_hand + ? WHERE id = ?`).run(item.qty, item.lot_id)
+
+        // Stock movement — ref_id links back to the return sales record
+        db.prepare(`
+          INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, unit_cost, note, created_by)
+          VALUES (?, ?, 'sale_return', 'return', ?, ?, ?, ?, ?, ?, ?)
+        `).run(item.product_id, item.lot_id, saleId,
+          item.qty, qtyBefore, qtyAfter, lot.cost_price, item.reason, payload.created_by)
+      }
+
+      return { success: true, invoice_no: invoiceNo, count: payload.items.length, total_amount: totalAmount }
+    })
+    return doReturn()
+  })
+
   // Get daily stats
   ipcMain.handle('pos:getDailyStats', () => {
     const db = getDb()

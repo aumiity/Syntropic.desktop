@@ -479,6 +479,54 @@ Should `src/components/ui/button.tsx`'s `secondary` variant `border-gray-300 dar
 
 ---
 
+## Session 2026-05-01 — Return Items System
+
+### Goal
+Add a full freeform return-items flow to the POS page. Staff scans a barcode, selects the lot, enters qty, builds a return list, enters a reason, and confirms. Daily totals decrease automatically.
+
+### Implementation strategy: Option B
+Create a **negative `sales` record** (`sale_type='return'`, `total_amount = -sum`) so `getDailyStats`'s `SUM(total_amount)` decreases without any query change. No payment dialog needed.
+
+Invoice series: **RT-YYYYMMDD-NNN**
+
+### Files changed
+
+#### `electron/ipc/pos.ts`
+- Replaced stub `pos:returnItems` with full Option B transaction:
+  - Generates `RT-YYYYMMDD-NNN` invoice number
+  - Inserts negative `sales` row (`total_amount = -totalAmount`)
+  - Per item: inserts negative `sale_items` (qty, line_total negated) + `sale_item_lots` (qty negated) + restores `product_lots.qty_on_hand` + inserts `stock_movements` (`movement_type='sale_return'`, positive `qty_change`, `ref_id = saleId`)
+  - Returns `{ success, invoice_no, count, total_amount }`
+
+#### `electron/preload.ts`
+- Added `returnItems: (payload: any) => ipcRenderer.invoke('pos:returnItems', payload)` to `pos` namespace
+
+#### `src/pages/POS/index.tsx`
+- New `ReturnLineItem` interface: `{ product_id, lot_id, product_name, unit_name, lot_number, expiry_date, qty, sell_price, line_total }` — uses `lot.sell_price` (not cost) as refund price
+- 12 new state vars: `showReturn`, `returnQuery`, `returnResults`, `returnSearching`, `returnSelectedProduct`, `returnProductLots`, `returnSelectedLotId`, `returnQtyInput`, `returnList`, `returnReason`, `returnSaving`, `returnInputRef`
+- `handleAddReturnItem`: merges duplicate product+lot entries; `line_total = qty × sell_price`
+- `handleConfirmReturn`: sends payload to `window.api.pos.returnItems`, calls `loadDailyStats()` on success, resets state
+- "คืนสินค้า" button in right panel with warning styling
+- Return dialog: `DialogContent size="2xl"` → two-column `DialogBody` (`flex gap-0 p-0 overflow-hidden rounded-xl h-[460px]`)
+  - Left column: barcode search input → product results or lot picker
+  - Right column: return list, `ยอดคืนรวม` total, reason textarea, confirm button
+  - Big +/− qty buttons (`h-12 w-12`) with large centered input (`text-2xl font-bold`)
+
+#### `CLAUDE.md`
+- Theming Rule 1: added "Opacity modifiers allowed: `bg-primary/30`, `border-warning/40`"
+- Theming Rule 3: explicit mappings — `<button>` → `<Button variant="...">`, `<input>` → `<Input>`, raw dialog → `<Dialog>` with all sub-components
+- Theming Rule 4 (new): mandatory dialog structure — every `DialogContent` must contain `DialogHeader` + `DialogTitle` + `DialogBody` + `DialogFooter`
+
+### Key decisions
+- `sell_price` (lot's sell price) used as refund unit price — mirrors what customer paid
+- Two-column layout inside `DialogBody` achieved by overriding default `p-4` with `p-0` via `cn()` (twMerge)
+- `loadDailyStats()` called post-confirm — header total updates immediately without page reload
+
+### Uncommitted changes (continuation from previous session)
+All changes above are uncommitted working tree modifications.
+
+---
+
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source
 - better-sqlite3 prebuilt binary obtained via prebuild-install targeting Electron 31.7.7

@@ -307,16 +307,28 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - Surface: `bg-background`, `bg-card`, `bg-muted`, `bg-surface-hover`, `border-border`, `border-border-strong`
    - Status: `bg-success`/`bg-success-soft`/`text-success`, `bg-warning`/`bg-warning-soft`/`text-warning-strong`, `bg-destructive`/`bg-destructive-soft`/`text-destructive`
    - Sidebar: `bg-sidebar`, `text-sidebar-foreground`, `bg-sidebar-accent`, `text-sidebar-primary-foreground`
+   - Opacity modifiers on semantic tokens are allowed: `bg-primary/30`, `border-warning/40`, `text-destructive/80`
 2. **Need a token that doesn't exist? Add it.** Add the variable to BOTH `:root` and `.dark` in `src/index.css`, then register it under `colors` in `tailwind.config.js`. Token names describe the *role* (`--success`, `--primary-soft`) — never the shade (`--blue-500` is forbidden).
-3. **Never write inline UI primitives.** Forbidden: raw `<button>`, `<input>`, custom toggle div, custom dialog, custom select. Always use `src/components/ui/` (Button, Input, Switch, Dialog, Badge, Toast, Card, Table, Pagination, etc.). If a needed variant is missing, add it to the existing component (e.g., new entry in `buttonVariants.variant`).
-4. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`, `tabular-nums`) are encouraged — only **color literals** are banned.
+3. **Never write raw HTML UI elements.** Use `src/components/ui/` components exclusively:
+   - `<button>` → `<Button variant="...">` — always, no exceptions
+   - `<input>` → `<Input>`
+   - `<select>` → use `Select` component or `<Input>` workaround
+   - custom toggle div → `<Switch>`
+   - raw dialog/modal → `<Dialog>` with `<DialogContent>`, `<DialogHeader>`, `<DialogTitle>`, `<DialogBody>`, `<DialogFooter>`
+   - If a needed variant is missing, add it to the existing component file (e.g., new entry in `buttonVariants.variant`). Do not work around it with raw elements.
+4. **Dialog structure is mandatory.** Every `<DialogContent>` must contain:
+   - `<DialogHeader>` + `<DialogTitle>` — provides accessible title (Radix requirement)
+   - `<DialogBody>` — wraps the main content
+   - `<DialogFooter>` — wraps action buttons
+   - The body layout inside `DialogBody` may use flex/grid as needed. Override default padding with `className` (twMerge handles conflicts).
+5. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`, `tabular-nums`) are encouraged — only **color literals** are banned.
 
 ### Other conventions
 - Thai UI language throughout
 - Inter + Sarabun fonts (Noto Sans Thai fallback); base font-size 15px
 - Dark/light theme via CSS variables (toggled via themeStore)
 - Frameless Electron window — `frame: false` in `electron/main.ts`. Custom `TitleBar.tsx` uses `WebkitAppRegion: 'drag' | 'no-drag'` inline styles and IPC via `window.api.window.{minimize,maximize,close,isMaximized}`.
-- All dialogs use custom `dialog.tsx` (no Radix)
+- All dialogs use `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogBody`, `DialogFooter` from `src/components/ui/dialog.tsx`
 - Toast notifications via `useToast()` hook
 - Pagination: `pagination.tsx`
 - Tables: `table.tsx` components
