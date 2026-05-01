@@ -563,64 +563,64 @@ export default function POSPage() {
                       </TableCell>
                     </TableRow>
                   ) : cart.items.map((item, idx) => (
-                      <TableRow key={idx} className="hover:bg-muted border-b border-black">
-                        <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
-                        <TableCell className="min-w-0 pr-2">
-                          <div className="font-medium truncate text-sm">{item.item_name}</div>
-                        </TableCell>
+                    <TableRow key={idx} className="hover:bg-surface-hover border-b border-border">
+                      <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
+                      <TableCell className="min-w-0 pr-2">
+                        <div className="font-medium truncate text-sm">{item.item_name}</div>
+                      </TableCell>
 
-                        <TableCell className="text-center">
-                          <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
-                            className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border-border text-foreground text-sm font-semibold hover:bg-muted hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors">
-                            {item.unit_name}
-                          </Button>
-                        </TableCell>
+                      <TableCell className="text-center">
+                        <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
+                          className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md border-border text-foreground text-sm font-semibold hover:bg-muted hover:border-border-strong transition-colors">
+                          {item.unit_name}
+                        </Button>
+                      </TableCell>
 
-                        <TableCell className="text-center">
+                      <TableCell className="text-center">
+                        <Button variant="outline" size="sm"
+                          onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
+                          className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-warning/30 bg-warning-soft text-warning-strong text-sm font-semibold tabular-nums hover:bg-warning-soft hover:border-warning/40 transition-colors">
+                          <span className="flex-1 text-center">{item.qty}</span>
+                        </Button>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
+                          className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md border border-primary/30 bg-primary-soft text-primary text-sm font-semibold tabular-nums hover:bg-primary-soft hover:border-primary/40 transition-colors">
+                          <span className="flex-1 text-right">{formatCurrency(item.unit_price)}</span>
+                        </Button>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        {item.discount ? (
                           <Button variant="outline" size="sm"
-                            onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                            className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-warning/30 bg-warning-soft text-warning-strong text-sm font-semibold tabular-nums hover:bg-warning-soft hover:border-warning/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/50 transition-colors">
-                            <span className="flex-1 text-center">{item.qty}</span>
+                            onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
+                            className="inline-flex flex-col items-end justify-center min-w-14 h-8 px-2.5 rounded-md border border-destructive/30 bg-destructive-soft text-destructive hover:bg-destructive/20 hover:border-destructive/40 transition-colors">
+                            <span className="text-sm font-semibold tabular-nums leading-none">{formatCurrency(item.discount)}</span>
                           </Button>
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          <Button variant="outline" size="sm" onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
-                            className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md border border-primary/30 bg-primary-soft text-primary text-sm font-semibold tabular-nums hover:bg-primary-soft hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors">
-                            <span className="flex-1 text-right">{formatCurrency(item.unit_price)}</span>
+                        ) : (
+                          <Button variant="outline" size="sm"
+                            onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
+                            className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-border bg-card text-foreground-subtle text-sm font-medium tabular-nums hover:bg-muted hover:border-destructive/30 hover:text-destructive transition-colors">
+                            <span className="flex-1 text-right">0</span>
                           </Button>
-                        </TableCell>
+                        )}
+                      </TableCell>
 
-                        <TableCell className="text-right">
-                          {item.discount ? (
-                            <Button variant="outline" size="sm"
-                              onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
-                              className="inline-flex flex-col items-end justify-center min-w-14 h-8 px-2.5 rounded-md border border-destructive/30 bg-destructive-soft text-destructive hover:bg-destructive/20 hover:border-destructive/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 transition-colors">
-                              <span className="text-sm font-semibold tabular-nums leading-none">{formatCurrency(item.discount)}</span>
-                            </Button>
-                          ) : (
-                            <Button variant="outline" size="sm"
-                              onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
-                              className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md border border-border bg-card text-foreground-subtle text-sm font-medium tabular-nums hover:bg-muted hover:border-destructive/30 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 transition-colors">
-                              <span className="flex-1 text-right">0</span>
-                            </Button>
-                          )}
-                        </TableCell>
+                      <TableCell className="text-right font-semibold text-primary text-sm">
+                        {formatCurrency(item.line_total)}
+                      </TableCell>
 
-                        <TableCell className="text-right font-semibold text-primary text-sm">
-                          {formatCurrency(item.line_total)}
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => { cart.removeItem(idx); refocusSearch() }}
-                            className="w-7 h-7 rounded inline-flex items-center justify-center text-foreground-subtle hover:text-destructive hover:bg-destructive/10">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </table>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => { cart.removeItem(idx); refocusSearch() }}
+                          className="w-7 h-7 rounded inline-flex items-center justify-center text-foreground-subtle hover:text-destructive hover:bg-destructive/10">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </table>
             </div>
 
             {cart.items.length > 0 && (
@@ -629,7 +629,7 @@ export default function POSPage() {
               </div>
             )}
             {cart.items.length > 0 && (
-              <div className="px-4 py-2.5 bg-muted shrink-0 flex justify-between text-sm">
+              <div className="px-4 py-2.5 shrink-0 flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">
                   รายการ: <span className="font-semibold text-foreground">{cart.items.length} รายการ</span>
                 </span>
