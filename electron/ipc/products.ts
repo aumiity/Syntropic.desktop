@@ -207,4 +207,89 @@ export function registerProductHandlers() {
       WHERE pl.product_id = ? ORDER BY pl.created_at DESC
     `).all(productId)
   })
+
+  // System A — FEFO stock-out (POS quick adjust)
+  ipcMain.handle('products:adjustLot', (_e, payload: {
+    product_id: number
+    qty: number
+    note: string
+  }) => {
+    const db = getDb()
+    return db.transaction(() => {
+      const lot = db.prepare(`
+        SELECT * FROM product_lots
+        WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0
+        ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC
+        LIMIT 1
+      `).get(payload.product_id) as any
+
+      if (!lot) throw new Error('ไม่พบล็อตสินค้าที่มีสต็อก')
+      if (payload.qty > lot.qty_on_hand) throw new Error(`จำนวนที่ต้องการตัด (${payload.qty}) มากกว่าคงเหลือในล็อต (${lot.qty_on_hand})`)
+
+      const qtyBefore = lot.qty_on_hand
+      const qtyAfter = qtyBefore - payload.qty
+
+      db.prepare(`UPDATE product_lots SET qty_on_hand = qty_on_hand - ? WHERE id = ?`).run(payload.qty, lot.id)
+      db.prepare(`
+        INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
+        VALUES (?, ?, 'adjust_out', 'adjust', ?, ?, ?, ?, ?, 1)
+      `).run(payload.product_id, lot.id, -payload.qty, qtyBefore, qtyAfter, lot.cost_price, payload.note || '')
+
+      return { success: true, lot_number: lot.lot_number, expiry_date: lot.expiry_date, qty_before: qtyBefore, qty_after: qtyAfter }
+    })()
+  })
+
+  // System B — Direct lot edit (metadata + qty)
+  ipcMain.handle('products:updateLot', (_e, id: number, data: {
+    lot_number?: string
+    expiry_date?: string | null
+    manufactured_date?: string | null
+    qty_on_hand?: number
+    cost_price?: number
+  }) => {
+    const db = getDb()
+    return db.transaction(() => {
+      const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(id) as any
+      if (!lot) throw new Error('ไม่พบล็อต')
+
+      if (data.qty_on_hand !== undefined && data.qty_on_hand !== lot.qty_on_hand) {
+        const delta = data.qty_on_hand - lot.qty_on_hand
+        const movType = delta > 0 ? 'adjust_in' : 'adjust_out'
+        db.prepare(`
+          INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
+          VALUES (?, ?, ?, 'manual_edit', ?, ?, ?, ?, 'แก้ไขโดยตรง', 1)
+        `).run(lot.product_id, id, movType, delta, lot.qty_on_hand, data.qty_on_hand, lot.cost_price)
+      }
+
+      const updatable = ['lot_number', 'expiry_date', 'manufactured_date', 'qty_on_hand', 'cost_price'] as const
+      const fields: string[] = []
+      const vals: any = { id }
+      for (const key of updatable) {
+        if (key in data) { fields.push(`${key} = @${key}`); vals[key] = (data as any)[key] }
+      }
+      if (fields.length === 0) return lot
+
+      db.prepare(`UPDATE product_lots SET ${fields.join(', ')}, updated_at = datetime('now','localtime') WHERE id = @id`).run(vals)
+      return db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(id)
+    })()
+  })
+
+  // System C — Full lot expiry disposal
+  ipcMain.handle('products:expireLot', (_e, lot_id: number) => {
+    const db = getDb()
+    return db.transaction(() => {
+      const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(lot_id) as any
+      if (!lot) throw new Error('ไม่พบล็อต')
+      if (lot.qty_on_hand <= 0) throw new Error('ล็อตนี้ไม่มีสินค้าคงเหลือ')
+
+      const qtyBefore = lot.qty_on_hand
+      db.prepare(`UPDATE product_lots SET qty_on_hand = 0, is_closed = 1, closed_at = datetime('now','localtime') WHERE id = ?`).run(lot_id)
+      db.prepare(`
+        INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
+        VALUES (?, ?, 'expired', 'expiry_report', ?, ?, 0, ?, 'ตัดออกเนื่องจากหมดอายุ', 1)
+      `).run(lot.product_id, lot_id, -qtyBefore, qtyBefore, lot.cost_price)
+
+      return { success: true, product_id: lot.product_id, lot_number: lot.lot_number, qty_removed: qtyBefore }
+    })()
+  })
 }

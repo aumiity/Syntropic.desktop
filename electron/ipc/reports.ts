@@ -107,6 +107,53 @@ export function registerReportHandlers() {
     return voidSale()
   })
 
+  // System C — Expiry report data
+  ipcMain.handle('reports:expiringLots', (_e, filters: {
+    filter: 'expired' | 30 | 60 | 90 | 'all'
+    category_id?: number
+    q?: string
+  }) => {
+    const db = getDb()
+    const { filter, category_id, q } = filters
+    const conditions = [`pl.qty_on_hand > 0`, `pl.is_closed = 0`]
+    const params: any[] = []
+
+    if (filter === 'expired') {
+      conditions.push(`pl.expiry_date IS NOT NULL AND date(pl.expiry_date) < date('now')`)
+    } else if (typeof filter === 'number') {
+      conditions.push(`pl.expiry_date IS NOT NULL AND date(pl.expiry_date) <= date('now', '+' || ? || ' days')`)
+      params.push(filter)
+    }
+    // 'all' → no date condition
+
+    if (category_id) { conditions.push(`p.category_id = ?`); params.push(category_id) }
+    if (q) { conditions.push(`(p.trade_name LIKE ? OR pl.lot_number LIKE ?)`); const lq = `%${q}%`; params.push(lq, lq) }
+
+    const where = `WHERE ${conditions.join(' AND ')}`
+
+    return db.prepare(`
+      SELECT
+        pl.id          AS lot_id,
+        pl.lot_number,
+        pl.expiry_date,
+        pl.qty_on_hand,
+        pl.cost_price,
+        ROUND(pl.qty_on_hand * pl.cost_price, 2) AS total_cost,
+        p.id           AS product_id,
+        p.trade_name,
+        p.unit_name,
+        c.name         AS category_name,
+        s.name         AS supplier_name,
+        CAST(julianday(date(pl.expiry_date)) - julianday(date('now')) AS INTEGER) AS days_remaining
+      FROM product_lots pl
+      JOIN products p ON p.id = pl.product_id
+      LEFT JOIN product_categories c ON c.id = p.category_id
+      LEFT JOIN suppliers s ON s.id = pl.supplier_id
+      ${where}
+      ORDER BY pl.expiry_date ASC, p.trade_name ASC
+    `).all(...params)
+  })
+
   ipcMain.handle('reports:purchaseList', (_e, filters: {
     q?: string; supplier_id?: number; date_from?: string; date_to?: string; page?: number
   }) => {

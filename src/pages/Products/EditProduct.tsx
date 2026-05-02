@@ -9,7 +9,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { useToast } from '@/components/ui/toast'
 import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, ProductLabel, ProductCategory, DrugType, DosageForm, ItemUnit } from '@/types'
-import { ArrowLeft, Save, Plus, Trash2, Edit2, ChevronDown, AlertTriangle } from 'lucide-react'
+import { DateInput } from '@/components/ui/date-input'
+import { ArrowLeft, Save, Plus, Trash2, Edit2, ChevronDown, AlertTriangle, Check, X } from 'lucide-react'
 
 // ---- Types ----
 interface FullProduct extends Product {
@@ -112,6 +113,14 @@ export default function EditProductPage() {
   const [editingLabel, setEditingLabel] = useState<ProductLabel | null>(null)
   const [labelForm, setLabelForm] = useState<any>({})
   const [labelSaving, setLabelSaving] = useState(false)
+
+  // Lot inline edit
+  const [editingLotId, setEditingLotId] = useState<number | null>(null)
+  const [lotEditForm, setLotEditForm] = useState<{
+    lot_number: string; expiry_date: string; manufactured_date: string
+    qty_on_hand: string; cost_price: string
+  }>({ lot_number: '', expiry_date: '', manufactured_date: '', qty_on_hand: '', cost_price: '' })
+  const [lotSaving, setLotSaving] = useState(false)
 
   useEffect(() => {
     loadAll()
@@ -432,6 +441,39 @@ export default function EditProductPage() {
       setProduct(updated)
     } catch (e: any) {
       toast({ title: 'ลบไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
+  }
+
+  const startEditLot = (lot: ProductLot) => {
+    setEditingLotId(lot.id)
+    setLotEditForm({
+      lot_number: lot.lot_number ?? '',
+      expiry_date: lot.expiry_date ?? '',
+      manufactured_date: (lot as any).manufactured_date ?? '',
+      qty_on_hand: String(lot.qty_on_hand ?? 0),
+      cost_price: String(lot.cost_price ?? 0),
+    })
+  }
+
+  const handleSaveLot = async () => {
+    if (!editingLotId) return
+    setLotSaving(true)
+    try {
+      await window.api.products.updateLot(editingLotId, {
+        lot_number: lotEditForm.lot_number || undefined,
+        expiry_date: lotEditForm.expiry_date || null,
+        manufactured_date: lotEditForm.manufactured_date || null,
+        qty_on_hand: parseFloat(lotEditForm.qty_on_hand) || 0,
+        cost_price: parseFloat(lotEditForm.cost_price) || 0,
+      })
+      toast('บันทึกล็อตสำเร็จ', 'success')
+      setEditingLotId(null)
+      const updated = await window.api.products.get(productId) as FullProduct
+      setProduct(updated)
+    } catch (e: any) {
+      toast(e?.message ?? 'บันทึกไม่สำเร็จ', 'error')
+    } finally {
+      setLotSaving(false)
     }
   }
 
@@ -789,7 +831,9 @@ export default function EditProductPage() {
         {/* ======================== TAB: LOTS ======================== */}
         {tab === 'lots' && (
           <div className="pt-4">
-            <p className="text-sm text-muted-foreground mb-3">ประวัติล็อตสินค้าทั้งหมด</p>
+            <p className="text-sm text-muted-foreground mb-3">
+              คลิก <Edit2 className="inline w-3 h-3" /> เพื่อแก้ไขข้อมูลล็อตโดยตรง — การเปลี่ยนจำนวนคงเหลือจะบันทึกในประวัติการเคลื่อนไหวสต็อกอัตโนมัติ
+            </p>
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
@@ -797,29 +841,92 @@ export default function EditProductPage() {
                     <TableHead>Lot No.</TableHead>
                     <TableHead>ใบรับ</TableHead>
                     <TableHead>ผู้จัดจำหน่าย</TableHead>
-                    <TableHead className="text-center">วันหมดอายุ</TableHead>
+                    <TableHead>วันผลิต</TableHead>
+                    <TableHead>วันหมดอายุ</TableHead>
                     <TableHead className="text-right">รับเข้า</TableHead>
                     <TableHead className="text-right">คงเหลือ</TableHead>
                     <TableHead className="text-right">ราคาทุน</TableHead>
                     <TableHead className="text-center">สถานะ</TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(product.lots?.length ?? 0) === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">ยังไม่มีล็อต</TableCell>
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-8">ยังไม่มีล็อต</TableCell>
                     </TableRow>
                   ) : product.lots.map(lot => {
                     const expStatus = getExpiryStatus(lot.expiry_date, form.expiry_alert_days1, form.expiry_alert_days2, form.expiry_alert_days3)
+                    const isEditing = editingLotId === lot.id
+
+                    if (isEditing) {
+                      return (
+                        <TableRow key={lot.id} className="bg-primary-soft/50">
+                          {/* Lot No. */}
+                          <TableCell>
+                            <Input value={lotEditForm.lot_number} onChange={e => setLotEditForm(f => ({ ...f, lot_number: e.target.value }))}
+                              className="h-8 w-28 text-sm font-mono" />
+                          </TableCell>
+                          {/* ใบรับ — read only */}
+                          <TableCell className="text-xs text-muted-foreground">{lot.invoice_no ?? '—'}</TableCell>
+                          {/* ผู้จัดจำหน่าย — read only */}
+                          <TableCell className="text-sm">{(lot as any).supplier_name ?? '—'}</TableCell>
+                          {/* วันผลิต */}
+                          <TableCell>
+                            <DateInput value={lotEditForm.manufactured_date}
+                              onChange={v => setLotEditForm(f => ({ ...f, manufactured_date: v }))}
+                              className="h-8 w-32 text-sm" />
+                          </TableCell>
+                          {/* วันหมดอายุ */}
+                          <TableCell>
+                            <DateInput value={lotEditForm.expiry_date}
+                              onChange={v => setLotEditForm(f => ({ ...f, expiry_date: v }))}
+                              className="h-8 w-32 text-sm" />
+                          </TableCell>
+                          {/* รับเข้า — read only */}
+                          <TableCell className="text-right text-sm">{lot.qty_received}</TableCell>
+                          {/* คงเหลือ */}
+                          <TableCell>
+                            <Input type="number" value={lotEditForm.qty_on_hand}
+                              onChange={e => setLotEditForm(f => ({ ...f, qty_on_hand: e.target.value }))}
+                              className="h-8 w-20 text-right text-sm tabular-nums" min={0} />
+                          </TableCell>
+                          {/* ราคาทุน */}
+                          <TableCell>
+                            <Input type="number" value={lotEditForm.cost_price}
+                              onChange={e => setLotEditForm(f => ({ ...f, cost_price: e.target.value }))}
+                              className="h-8 w-24 text-right text-sm tabular-nums" min={0} step="0.01" />
+                          </TableCell>
+                          <TableCell />
+                          {/* Save / Cancel */}
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button size="sm" onClick={handleSaveLot} disabled={lotSaving}
+                                className="h-7 px-2 bg-success hover:bg-success text-primary-foreground">
+                                <Check className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => setEditingLotId(null)} disabled={lotSaving}
+                                className="h-7 px-2">
+                                <X className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    }
+
                     return (
                       <TableRow key={lot.id}>
                         <TableCell className="font-mono text-sm">{lot.lot_number}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{lot.invoice_no ?? '—'}</TableCell>
-                        <TableCell className="text-sm">{lot.supplier_name ?? '—'}</TableCell>
-                        <TableCell className="text-center text-sm">
+                        <TableCell className="text-sm">{(lot as any).supplier_name ?? '—'}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {(lot as any).manufactured_date ? formatExpiry((lot as any).manufactured_date) : '—'}
+                        </TableCell>
+                        <TableCell className="text-sm">
                           <span className={
                             expStatus === 'expired' ? 'text-destructive font-medium' :
-                            expStatus === 'danger' ? 'text-warning-strong font-medium' :
+                            expStatus === 'danger'  ? 'text-warning-strong font-medium' :
                             expStatus === 'warning' ? 'text-warning' : ''
                           }>
                             {formatExpiry(lot.expiry_date)}
@@ -836,6 +943,14 @@ export default function EditProductPage() {
                             : lot.qty_on_hand === 0
                             ? <Badge variant="secondary" className="text-xs">หมด</Badge>
                             : <Badge variant="success" className="text-xs">ใช้งาน</Badge>}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {!lot.is_cancelled && (
+                            <Button size="sm" variant="ghost" onClick={() => startEditLot(lot)}
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     )

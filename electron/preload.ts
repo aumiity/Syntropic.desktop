@@ -27,6 +27,9 @@ const api = {
     deleteLabel: (id: number) => ipcRenderer.invoke('products:deleteLabel', id),
     searchGenericNames: (q: string) => ipcRenderer.invoke('products:searchGenericNames', q),
     getLots: (productId: number) => ipcRenderer.invoke('products:getLots', productId),
+    adjustLot: (payload: any) => ipcRenderer.invoke('products:adjustLot', payload),
+    updateLot: (id: number, data: any) => ipcRenderer.invoke('products:updateLot', id, data),
+    expireLot: (lotId: number) => ipcRenderer.invoke('products:expireLot', lotId),
   },
   // Purchase
   purchase: {
@@ -58,6 +61,7 @@ const api = {
     getSale: (id: number) => ipcRenderer.invoke('reports:getSale', id),
     voidSale: (id: number, reason: string) => ipcRenderer.invoke('reports:voidSale', id, reason),
     purchaseList: (filters: any) => ipcRenderer.invoke('reports:purchaseList', filters),
+    expiringLots: (filters: any) => ipcRenderer.invoke('reports:expiringLots', filters),
   },
   // Settings
   settings: {

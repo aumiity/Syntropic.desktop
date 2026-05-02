@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   ShoppingCart, Package, PackagePlus, Users, BarChart2, Settings,
-  Palette, Sun, Moon,
+  Palette, Sun, Moon, CalendarClock,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 
@@ -13,6 +13,7 @@ const mainNavItems = [
   { to: '/products', label: 'สินค้า', icon: Package },
   { to: '/people', label: 'บุคคล', icon: Users },
   { to: '/reports', label: 'รายงาน', icon: BarChart2 },
+  { to: '/reports/expiry', label: 'หมดอายุ', icon: CalendarClock },
   { to: '/settings', label: 'ตั้งค่า', icon: Settings },
 ]
 

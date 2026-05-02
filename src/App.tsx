@@ -10,6 +10,7 @@ const EditProduct = lazy(() => import('./pages/Products/EditProduct'))
 const People = lazy(() => import('./pages/People'))
 const ReportsSales = lazy(() => import('./pages/Reports/Sales'))
 const ReportsPurchases = lazy(() => import('./pages/Reports/Purchases'))
+const ReportsExpiry = lazy(() => import('./pages/Reports/Expiry'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Theme = lazy(() => import('./pages/Theme'))
 
@@ -35,6 +36,7 @@ export default function App() {
               <Route path="people" element={<People />} />
               <Route path="reports" element={<ReportsSales />} />
               <Route path="reports/purchases" element={<ReportsPurchases />} />
+              <Route path="reports/expiry" element={<ReportsExpiry />} />
               <Route path="settings" element={<Settings />} />
               <Route path="theme" element={<Theme />} />
             </Route>
