@@ -103,8 +103,9 @@ export default function ReportsExpiryPage() {
   const handleExpire = async (lot: ExpiringLot) => {
     setExpiring(true)
     try {
-      await window.api.products.expireLot(lot.lot_id, getCurrentUserId())
-      toast(`ตัดออกล็อต ${lot.lot_number} (${lot.trade_name}) สำเร็จ`, 'success')
+      const res = await window.api.products.expireLot(lot.lot_id, getCurrentUserId()) as { classification: 'expired' | 'near_expiry' }
+      const label = res?.classification === 'near_expiry' ? 'ใกล้หมดอายุ' : 'หมดอายุ'
+      toast(`ตัดออกล็อต ${lot.lot_number} (${lot.trade_name}) — ${label} สำเร็จ`, 'success')
       setConfirmLotId(null)
       setRows(r => r.filter(x => x.lot_id !== lot.lot_id))
     } catch (e: any) {

@@ -305,7 +305,11 @@ export function registerProductHandlers() {
     })()
   })
 
-  // System C — Full lot expiry disposal
+  // System C — Full lot disposal from Expiry report.
+  // Auto-classifies movement_type based on expiry_date vs today:
+  //   expired      → expiry_date <= today
+  //   near_expiry  → expiry_date >  today (or expiry_date IS NULL — disposed without expiry tracking)
+  // Used ONLY by the Expiry / Expiring Products page. Other disposal flows are unaffected.
   ipcMain.handle('products:expireLot', (_e, lot_id: number, user_id: number) => {
     if (!user_id) throw new Error('ไม่พบผู้ใช้งาน')
 
@@ -315,14 +319,25 @@ export function registerProductHandlers() {
       if (!lot) throw new Error('ไม่พบล็อต')
       if (lot.qty_on_hand <= 0) throw new Error('ล็อตนี้ไม่มีสินค้าคงเหลือ')
 
+      const today = (db.prepare(`SELECT date('now','localtime') AS d`).get() as { d: string }).d
+      const isExpired = !!lot.expiry_date && lot.expiry_date <= today
+      const movementType = isExpired ? 'expired' : 'near_expiry'
+      const note = isExpired ? 'ตัดออกเนื่องจากหมดอายุ' : 'ตัดออกก่อนหมดอายุ'
+
       const qtyBefore = lot.qty_on_hand
       db.prepare(`UPDATE product_lots SET qty_on_hand = 0, is_closed = 1, closed_at = datetime('now','localtime') WHERE id = ?`).run(lot_id)
       db.prepare(`
         INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
-        VALUES (?, ?, 'expired', 'expiry_report', ?, ?, 0, ?, 'ตัดออกเนื่องจากหมดอายุ', ?)
-      `).run(lot.product_id, lot_id, -qtyBefore, qtyBefore, lot.cost_price, user_id)
+        VALUES (?, ?, ?, 'expiry_report', ?, ?, 0, ?, ?, ?)
+      `).run(lot.product_id, lot_id, movementType, -qtyBefore, qtyBefore, lot.cost_price, note, user_id)
 
-      return { success: true, product_id: lot.product_id, lot_number: lot.lot_number, qty_removed: qtyBefore }
+      return {
+        success: true,
+        product_id: lot.product_id,
+        lot_number: lot.lot_number,
+        qty_removed: qtyBefore,
+        classification: movementType,
+      }
     })()
   })
 }
