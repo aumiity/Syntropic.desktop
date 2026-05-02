@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useToast } from '@/components/ui/toast'
+import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency } from '@/lib/utils'
 import { Search, PackageX, AlertTriangle, Check, X } from 'lucide-react'
 
@@ -102,7 +103,7 @@ export default function ReportsExpiryPage() {
   const handleExpire = async (lot: ExpiringLot) => {
     setExpiring(true)
     try {
-      await window.api.products.expireLot(lot.lot_id)
+      await window.api.products.expireLot(lot.lot_id, getCurrentUserId())
       toast(`ตัดออกล็อต ${lot.lot_number} (${lot.trade_name}) สำเร็จ`, 'success')
       setConfirmLotId(null)
       setRows(r => r.filter(x => x.lot_id !== lot.lot_id))

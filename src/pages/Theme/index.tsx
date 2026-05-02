@@ -311,11 +311,11 @@ export default function Theme() {
       </div>
 
       <div className="p-8">
-        <Tabs defaultValue="theme" className="w-full max-w-6xl rounded-xl border border-border bg-card overflow-hidden">
+        <Tabs defaultValue="components" className="w-full max-w-6xl rounded-xl border border-border bg-card overflow-hidden">
           <div className="border-b border-border bg-muted/30 px-4 py-3">
             <TabsList className="mb-0">
-              <TabsTrigger value="theme">ธีม</TabsTrigger>
-              <TabsTrigger value="components">คอมโพเนนต์</TabsTrigger>
+              {/* <TabsTrigger value="theme">ธีม</TabsTrigger> */}
+              <TabsTrigger value="components">คอมโพเนนต์</TabsTrigger> | 
               <TabsTrigger value="css">CSS</TabsTrigger>
             </TabsList>
           </div>

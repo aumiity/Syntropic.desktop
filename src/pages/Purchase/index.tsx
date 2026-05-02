@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '@/components/ui/toast'
+import { getCurrentUserId } from '@/stores/userStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -338,7 +339,7 @@ export default function PurchasePage() {
         due_date: editPaymentType === 'credit' ? (editDueDate || undefined) : undefined,
         is_paid: editIsPaid,
         paid_date: editIsPaid ? (editPaidDate || undefined) : undefined,
-        userId: 1,
+        userId: getCurrentUserId(),
       }) as any
       if (res?.success) {
         toast('บันทึกการแก้ไขสำเร็จ', 'success')
@@ -369,7 +370,7 @@ export default function PurchasePage() {
       const res = await window.api.purchase.cancel({
         invoice_no: receiptInvoice,
         reason,
-        userId: 1,
+        userId: getCurrentUserId(),
       }) as any
       if (res?.success) {
         toast('ยกเลิกบิลสำเร็จ', 'success')
@@ -767,7 +768,7 @@ export default function PurchasePage() {
         note: grNote || undefined,
         discount_amount: adjustDiscountAmt || undefined,
         surcharge_amount: adjustSurchargeAmt || undefined,
-        userId: 1,
+        userId: getCurrentUserId(),
         items: validRows.map(r => {
           const qtyNum = parseFloat(r.qty) || 0
           const totalNum = parseFloat(r.total) || 0

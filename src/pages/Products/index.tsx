@@ -7,6 +7,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Pagination } from '@/components/ui/pagination'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
+import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductCategory, DrugType } from '@/types'
 import { Search, Plus, Edit2, AlertTriangle, Package, ChevronDown } from 'lucide-react'
@@ -159,7 +160,7 @@ export default function ProductsPage() {
     if (!adjustNote.trim()) { toast({ title: 'กรุณาระบุหมายเหตุ', variant: 'error' }); return }
     setAdjusting(true)
     try {
-      await window.api.products.adjustStock(adjustProduct.id, { qty, type: adjustType, note: adjustNote, userId: 1 })
+      await window.api.products.adjustStock(adjustProduct.id, { qty, type: adjustType, note: adjustNote, userId: getCurrentUserId() })
       toast({ title: 'ปรับสต็อกสำเร็จ', variant: 'success' })
       setAdjustProduct(null)
       load(page)

@@ -163,6 +163,9 @@ export function initializeSchema(db: Database.Database) {
       paid_date TEXT,
       is_closed INTEGER NOT NULL DEFAULT 0,
       closed_at TEXT,
+      is_cancelled INTEGER NOT NULL DEFAULT 0,
+      cancelled_at TEXT,
+      cancel_note TEXT,
       note TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
@@ -291,6 +294,19 @@ export function initializeSchema(db: Database.Database) {
       created_by INTEGER REFERENCES users(id),
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
+
+    -- Lot cost change history (cost_price edits via products:updateLot)
+    CREATE TABLE IF NOT EXISTS lot_cost_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lot_id INTEGER NOT NULL REFERENCES product_lots(id) ON DELETE CASCADE,
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      old_cost REAL NOT NULL DEFAULT 0,
+      new_cost REAL NOT NULL DEFAULT 0,
+      note TEXT,
+      created_by INTEGER REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_lot_cost_logs_lot ON lot_cost_logs(lot_id, created_at DESC);
 
     -- Price change history
     CREATE TABLE IF NOT EXISTS price_logs (
@@ -463,6 +479,9 @@ export function initializeSchema(db: Database.Database) {
   for (const sql of [
     `ALTER TABLE purchase_receipts ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE purchase_receipts ADD COLUMN surcharge_amount REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE product_lots ADD COLUMN is_cancelled INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE product_lots ADD COLUMN cancelled_at TEXT`,
+    `ALTER TABLE product_lots ADD COLUMN cancel_note TEXT`,
   ]) {
     try { db.exec(sql) } catch {}
   }

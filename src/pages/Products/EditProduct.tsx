@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useToast } from '@/components/ui/toast'
+import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, ProductLabel, ProductCategory, DrugType, DosageForm, ItemUnit } from '@/types'
 import { DateInput } from '@/components/ui/date-input'
@@ -465,6 +466,7 @@ export default function EditProductPage() {
         manufactured_date: lotEditForm.manufactured_date || null,
         qty_on_hand: parseFloat(lotEditForm.qty_on_hand) || 0,
         cost_price: parseFloat(lotEditForm.cost_price) || 0,
+        user_id: getCurrentUserId(),
       })
       toast('บันทึกล็อตสำเร็จ', 'success')
       setEditingLotId(null)

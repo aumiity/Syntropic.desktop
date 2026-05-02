@@ -1,8 +1,14 @@
 import type Database from 'better-sqlite3'
 
 export function seedDatabase(db: Database.Database) {
-  // Only seed if tables are empty
-  const userCount = (db.prepare('SELECT COUNT(*) as c FROM users').get() as { c: number }).c
+  // Idempotent staff test user — added to every install so audit trail has a non-admin actor
+  // until proper login lands. Keyed by unique email.
+  db.prepare(`INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`).run(
+    'Staff Test', 'staff@syntropic.local', 'staff', 'staff'
+  )
+
+  // Only seed the rest if tables are empty
+  const userCount = (db.prepare(`SELECT COUNT(*) as c FROM users WHERE email = 'admin@syntropic.local'`).get() as { c: number }).c
   if (userCount > 0) {
     seedMockProducts(db)
     return

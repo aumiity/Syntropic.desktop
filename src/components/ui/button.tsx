@@ -29,8 +29,8 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground",
           "border-border hover:bg-surface-hover",
         ].join(" "),
-        closebutton: [
-          "bg-secondary text-secondary-foreground",
+        tertiary: [
+          "bg-tertiary text-tertiary-foreground",
           "border-border hover:bg-surface-hover",
         ].join(" "),
         outline: [

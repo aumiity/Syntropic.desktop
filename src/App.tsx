@@ -1,7 +1,8 @@
-import React, { Suspense, lazy } from 'react'
+import React, { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { ToastProvider } from './components/ui/toast'
+import { useUserStore } from './stores/userStore'
 
 const POS = lazy(() => import('./pages/POS'))
 const Purchase = lazy(() => import('./pages/Purchase'))
@@ -23,6 +24,9 @@ function PageLoader() {
 }
 
 export default function App() {
+  const hydrateUser = useUserStore(s => s.hydrate)
+  useEffect(() => { hydrateUser() }, [hydrateUser])
+
   return (
     <ToastProvider>
       <HashRouter>

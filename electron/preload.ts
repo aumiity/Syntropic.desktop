@@ -27,9 +27,10 @@ const api = {
     deleteLabel: (id: number) => ipcRenderer.invoke('products:deleteLabel', id),
     searchGenericNames: (q: string) => ipcRenderer.invoke('products:searchGenericNames', q),
     getLots: (productId: number) => ipcRenderer.invoke('products:getLots', productId),
-    adjustLot: (payload: any) => ipcRenderer.invoke('products:adjustLot', payload),
+    adjustLot: (payload: { product_id: number; qty: number; note?: string; user_id: number }) =>
+      ipcRenderer.invoke('products:adjustLot', payload),
     updateLot: (id: number, data: any) => ipcRenderer.invoke('products:updateLot', id, data),
-    expireLot: (lotId: number) => ipcRenderer.invoke('products:expireLot', lotId),
+    expireLot: (lotId: number, userId: number) => ipcRenderer.invoke('products:expireLot', lotId, userId),
   },
   // Purchase
   purchase: {
@@ -107,6 +108,10 @@ const api = {
   // App
   app: {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),
+  },
+  // Auth (placeholder until proper login)
+  auth: {
+    getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
   },
 }
 

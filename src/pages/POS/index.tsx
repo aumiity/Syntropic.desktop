@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useCartStore } from '@/stores/cartStore'
+import { getCurrentUserId } from '@/stores/userStore'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -337,7 +338,7 @@ export default function POSPage() {
     if (qty > fefoLot.qty_on_hand) { toast(`จำนวนเกินกว่าคงเหลือในล็อต (${fefoLot.qty_on_hand})`, 'error'); return }
     setAdjustSaving(true)
     try {
-      await window.api.products.adjustLot({ product_id: adjustSelected.id, qty, note: adjustNote.trim() })
+      await window.api.products.adjustLot({ product_id: adjustSelected.id, qty, note: adjustNote.trim(), user_id: getCurrentUserId() })
       toast(`ตัดสต็อก ${adjustSelected.trade_name} ${qty} ${adjustSelected.unit_name} สำเร็จ`, 'success')
       closeAdjust()
       refocusSearch()
@@ -418,7 +419,7 @@ export default function POSPage() {
         })),
         customer_id: cart.customer?.id ?? null,
         reason: returnReason.trim(),
-        created_by: 1,
+        created_by: getCurrentUserId(),
       }) as any
       await loadDailyStats()
       toast(`บันทึกการคืนสินค้าสำเร็จ ${result.invoice_no}`, 'success')
@@ -464,7 +465,7 @@ export default function POSPage() {
         }),
         subtotal: cart.subtotal(), total_discount: pendingTotalDiscount, total_amount: pendingNet,
         cash_amount: parseFloat(cashAmount) || 0, card_amount: parseFloat(cardAmount) || 0, transfer_amount: parseFloat(transferAmount) || 0,
-        change_amount: Math.max(0, change), symptom_note: cart.symptomNote, age_range: cart.ageRange, sold_by: 1,
+        change_amount: Math.max(0, change), symptom_note: cart.symptomNote, age_range: cart.ageRange, sold_by: getCurrentUserId(),
       }) as any
       setLastInvoice(result.invoice_no)
       setDailyStats({ bills: result.daily_bills, total: result.daily_total, latest: result.latest_bill_time })

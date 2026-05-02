@@ -213,12 +213,16 @@ export function registerProductHandlers() {
     product_id: number
     qty: number
     note: string
+    user_id: number
   }) => {
+    if (!payload.qty || payload.qty <= 0) throw new Error('จำนวนต้องมากกว่า 0')
+    if (!payload.user_id) throw new Error('ไม่พบผู้ใช้งาน')
+
     const db = getDb()
     return db.transaction(() => {
       const lot = db.prepare(`
         SELECT * FROM product_lots
-        WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0
+        WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0 AND is_cancelled = 0
         ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC
         LIMIT 1
       `).get(payload.product_id) as any
@@ -232,8 +236,8 @@ export function registerProductHandlers() {
       db.prepare(`UPDATE product_lots SET qty_on_hand = qty_on_hand - ? WHERE id = ?`).run(payload.qty, lot.id)
       db.prepare(`
         INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
-        VALUES (?, ?, 'adjust_out', 'adjust', ?, ?, ?, ?, ?, 1)
-      `).run(payload.product_id, lot.id, -payload.qty, qtyBefore, qtyAfter, lot.cost_price, payload.note || '')
+        VALUES (?, ?, 'adjust_out', 'adjust', ?, ?, ?, ?, ?, ?)
+      `).run(payload.product_id, lot.id, -payload.qty, qtyBefore, qtyAfter, lot.cost_price, payload.note || null, payload.user_id)
 
       return { success: true, lot_number: lot.lot_number, expiry_date: lot.expiry_date, qty_before: qtyBefore, qty_after: qtyAfter }
     })()
@@ -246,19 +250,46 @@ export function registerProductHandlers() {
     manufactured_date?: string | null
     qty_on_hand?: number
     cost_price?: number
+    user_id: number
   }) => {
+    if (!data.user_id) throw new Error('ไม่พบผู้ใช้งาน')
+
     const db = getDb()
     return db.transaction(() => {
       const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(id) as any
       if (!lot) throw new Error('ไม่พบล็อต')
 
+      // Pre-flight: lot_number rename collision
+      if (data.lot_number !== undefined && data.lot_number !== lot.lot_number) {
+        const dup = db.prepare(`
+          SELECT id FROM product_lots
+          WHERE product_id = ? AND lot_number = ? AND id <> ?
+          LIMIT 1
+        `).get(lot.product_id, data.lot_number, id) as any
+        if (dup) throw new Error(`มีล็อตหมายเลข "${data.lot_number}" อยู่แล้วในสินค้านี้`)
+      }
+
+      // qty must be non-negative
+      if (data.qty_on_hand !== undefined && data.qty_on_hand < 0) {
+        throw new Error('จำนวนคงเหลือต้องไม่ติดลบ')
+      }
+
+      // Log qty change as stock movement
       if (data.qty_on_hand !== undefined && data.qty_on_hand !== lot.qty_on_hand) {
         const delta = data.qty_on_hand - lot.qty_on_hand
         const movType = delta > 0 ? 'adjust_in' : 'adjust_out'
         db.prepare(`
           INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
-          VALUES (?, ?, ?, 'manual_edit', ?, ?, ?, ?, 'แก้ไขโดยตรง', 1)
-        `).run(lot.product_id, id, movType, delta, lot.qty_on_hand, data.qty_on_hand, lot.cost_price)
+          VALUES (?, ?, ?, 'manual_edit', ?, ?, ?, ?, 'แก้ไขโดยตรง', ?)
+        `).run(lot.product_id, id, movType, delta, lot.qty_on_hand, data.qty_on_hand, lot.cost_price, data.user_id)
+      }
+
+      // Log cost_price change to lot_cost_logs (regulatory-significant for retroactive profit)
+      if (data.cost_price !== undefined && Number(data.cost_price) !== Number(lot.cost_price)) {
+        db.prepare(`
+          INSERT INTO lot_cost_logs (lot_id, product_id, old_cost, new_cost, note, created_by)
+          VALUES (?, ?, ?, ?, 'แก้ไขราคาทุนผ่านหน้าล็อต', ?)
+        `).run(id, lot.product_id, lot.cost_price, data.cost_price, data.user_id)
       }
 
       const updatable = ['lot_number', 'expiry_date', 'manufactured_date', 'qty_on_hand', 'cost_price'] as const
@@ -275,7 +306,9 @@ export function registerProductHandlers() {
   })
 
   // System C — Full lot expiry disposal
-  ipcMain.handle('products:expireLot', (_e, lot_id: number) => {
+  ipcMain.handle('products:expireLot', (_e, lot_id: number, user_id: number) => {
+    if (!user_id) throw new Error('ไม่พบผู้ใช้งาน')
+
     const db = getDb()
     return db.transaction(() => {
       const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(lot_id) as any
@@ -286,8 +319,8 @@ export function registerProductHandlers() {
       db.prepare(`UPDATE product_lots SET qty_on_hand = 0, is_closed = 1, closed_at = datetime('now','localtime') WHERE id = ?`).run(lot_id)
       db.prepare(`
         INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
-        VALUES (?, ?, 'expired', 'expiry_report', ?, ?, 0, ?, 'ตัดออกเนื่องจากหมดอายุ', 1)
-      `).run(lot.product_id, lot_id, -qtyBefore, qtyBefore, lot.cost_price)
+        VALUES (?, ?, 'expired', 'expiry_report', ?, ?, 0, ?, 'ตัดออกเนื่องจากหมดอายุ', ?)
+      `).run(lot.product_id, lot_id, -qtyBefore, qtyBefore, lot.cost_price, user_id)
 
       return { success: true, product_id: lot.product_id, lot_number: lot.lot_number, qty_removed: qtyBefore }
     })()
