@@ -243,6 +243,48 @@ export function registerProductHandlers() {
     })()
   })
 
+  // System A (batch) — Multi-item explicit-lot stock-out from POS adjust modal.
+  // Atomic: any per-item failure rolls back the entire batch.
+  ipcMain.handle('products:adjustLotBatch', (_e, payload: {
+    items: Array<{ product_id: number; lot_id: number; qty: number }>
+    reason: string
+    user_id: number
+  }) => {
+    if (!payload.user_id) throw new Error('ไม่พบผู้ใช้งาน')
+    if (!payload.reason || !payload.reason.trim()) throw new Error('กรุณาระบุสาเหตุ')
+    if (!payload.items || payload.items.length === 0) throw new Error('ไม่มีรายการที่จะตัด')
+
+    const db = getDb()
+    return db.transaction(() => {
+      const results: Array<{ product_id: number; lot_id: number; lot_number: string; qty_before: number; qty_after: number }> = []
+
+      for (const item of payload.items) {
+        if (!item.qty || item.qty <= 0) throw new Error('จำนวนต้องมากกว่า 0')
+
+        const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(item.lot_id) as any
+        if (!lot) throw new Error(`ไม่พบล็อต #${item.lot_id}`)
+        if (lot.product_id !== item.product_id) throw new Error(`ล็อต ${lot.lot_number} ไม่ตรงกับสินค้าที่ระบุ`)
+        if (lot.is_closed || lot.is_cancelled) throw new Error(`ล็อต ${lot.lot_number} ถูกปิดหรือยกเลิกแล้ว`)
+        if (item.qty > lot.qty_on_hand) {
+          throw new Error(`จำนวนที่ตัด (${item.qty}) มากกว่าคงเหลือในล็อต ${lot.lot_number} (${lot.qty_on_hand})`)
+        }
+
+        const qtyBefore = lot.qty_on_hand
+        const qtyAfter = qtyBefore - item.qty
+
+        db.prepare(`UPDATE product_lots SET qty_on_hand = qty_on_hand - ? WHERE id = ?`).run(item.qty, lot.id)
+        db.prepare(`
+          INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
+          VALUES (?, ?, 'adjust_out', 'adjust', ?, ?, ?, ?, ?, ?)
+        `).run(item.product_id, lot.id, -item.qty, qtyBefore, qtyAfter, lot.cost_price, payload.reason.trim(), payload.user_id)
+
+        results.push({ product_id: item.product_id, lot_id: lot.id, lot_number: lot.lot_number, qty_before: qtyBefore, qty_after: qtyAfter })
+      }
+
+      return { success: true, count: results.length, items: results }
+    })()
+  })
+
   // System B — Direct lot edit (metadata + qty)
   ipcMain.handle('products:updateLot', (_e, id: number, data: {
     lot_number?: string

@@ -9,6 +9,7 @@ const Purchase = lazy(() => import('./pages/Purchase'))
 const Products = lazy(() => import('./pages/Products'))
 const EditProduct = lazy(() => import('./pages/Products/EditProduct'))
 const People = lazy(() => import('./pages/People'))
+const ReportsLayout = lazy(() => import('./pages/Reports'))
 const ReportsSales = lazy(() => import('./pages/Reports/Sales'))
 const ReportsPurchases = lazy(() => import('./pages/Reports/Purchases'))
 const ReportsExpiry = lazy(() => import('./pages/Reports/Expiry'))
@@ -38,9 +39,11 @@ export default function App() {
               <Route path="products" element={<Products />} />
               <Route path="products/:id/edit" element={<EditProduct />} />
               <Route path="people" element={<People />} />
-              <Route path="reports" element={<ReportsSales />} />
-              <Route path="reports/purchases" element={<ReportsPurchases />} />
-              <Route path="reports/expiry" element={<ReportsExpiry />} />
+              <Route path="reports" element={<ReportsLayout />}>
+                <Route index element={<ReportsSales />} />
+                <Route path="purchases" element={<ReportsPurchases />} />
+                <Route path="expiry" element={<ReportsExpiry />} />
+              </Route>
               <Route path="settings" element={<Settings />} />
               <Route path="theme" element={<Theme />} />
             </Route>

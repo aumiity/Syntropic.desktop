@@ -10,7 +10,8 @@
       "Bash(echo \"---exit:$?\")",
       "Read(//c/Users/ANYA/.claude/**)",
       "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" --max-time 10 https://api.claudecount.com/api/usage/hook -X POST -H \"Content-Type: application/json\" -H \"X-CLI-Version: 0.2.9\" -d '{}')",
-      "Bash(node \"C:\\\\\\\\Users\\\\\\\\ANYA\\\\\\\\.claude\\\\\\\\count_tokens.js\")"
+      "Bash(node \"C:\\\\\\\\Users\\\\\\\\ANYA\\\\\\\\.claude\\\\\\\\count_tokens.js\")",
+      "Bash(findstr /i \"vite.config\")"
     ]
   }
 }

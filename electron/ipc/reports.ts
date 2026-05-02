@@ -141,12 +141,13 @@ export function registerReportHandlers() {
         ROUND(pl.qty_on_hand * pl.cost_price, 2) AS total_cost,
         p.id           AS product_id,
         p.trade_name,
-        p.unit_name,
+        u.name         AS unit_name,
         c.name         AS category_name,
         s.name         AS supplier_name,
         CAST(julianday(date(pl.expiry_date)) - julianday(date('now')) AS INTEGER) AS days_remaining
       FROM product_lots pl
       JOIN products p ON p.id = pl.product_id
+      LEFT JOIN item_units u ON u.id = p.unit_id
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN suppliers s ON s.id = pl.supplier_id
       ${where}

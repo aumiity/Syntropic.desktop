@@ -33,6 +33,18 @@ interface ReturnLineItem {
   line_total: number
 }
 
+interface AdjustLineItem {
+  product_id: number
+  lot_id: number
+  product_name: string
+  unit_name: string
+  lot_number: string
+  expiry_date: string | null
+  qty: number
+  cost_price: number
+  line_total: number
+}
+
 interface ProductWithDetails extends Product {
   lots: ProductLot[]
   units: ProductUnit[]
@@ -114,14 +126,16 @@ export default function POSPage() {
   const [returnSaving, setReturnSaving] = useState(false)
   const returnInputRef = useRef<HTMLInputElement>(null)
 
-  // Adjust stock dialog (System A)
+  // Adjust stock dialog (System A — multi-item, mirrors return modal)
   const [showAdjust, setShowAdjust] = useState(false)
   const [adjustQuery, setAdjustQuery] = useState('')
   const [adjustResults, setAdjustResults] = useState<ProductWithDetails[]>([])
   const [adjustSearching, setAdjustSearching] = useState(false)
   const [adjustSelected, setAdjustSelected] = useState<ProductWithDetails | null>(null)
+  const [adjustSelectedLotId, setAdjustSelectedLotId] = useState<number | null>(null)
   const [adjustQtyInput, setAdjustQtyInput] = useState('1')
-  const [adjustNote, setAdjustNote] = useState('')
+  const [adjustList, setAdjustList] = useState<AdjustLineItem[]>([])
+  const [adjustReason, setAdjustReason] = useState('')
   const [adjustSaving, setAdjustSaving] = useState(false)
   const adjustInputRef = useRef<HTMLInputElement>(null)
 
@@ -304,12 +318,14 @@ export default function POSPage() {
   const closeAdjust = () => {
     setShowAdjust(false)
     setAdjustQuery(''); setAdjustResults([]); setAdjustSelected(null)
-    setAdjustQtyInput('1'); setAdjustNote('')
+    setAdjustSelectedLotId(null); setAdjustQtyInput('1')
+    setAdjustList([]); setAdjustReason('')
   }
 
   const handleAdjustSearch = useCallback(async (q: string) => {
     setAdjustQuery(q)
     setAdjustSelected(null)
+    setAdjustSelectedLotId(null)
     if (!q.trim()) { setAdjustResults([]); return }
     setAdjustSearching(true)
     try {
@@ -325,21 +341,63 @@ export default function POSPage() {
     setAdjustQuery(product.trade_name)
     setAdjustResults([])
     setAdjustQtyInput('1')
-    setAdjustNote('')
+    // Default to FEFO lot (already first in lots array from pos:searchProducts)
+    setAdjustSelectedLotId(product.lots?.[0]?.id ?? null)
     setTimeout(() => adjustInputRef.current?.blur(), 0)
   }
 
-  const handleConfirmAdjust = async () => {
-    if (!adjustSelected) return
+  const handleAddAdjustItem = () => {
+    if (!adjustSelected || !adjustSelectedLotId) return
     const qty = parseFloat(adjustQtyInput)
     if (!qty || qty <= 0) { toast('กรุณาระบุจำนวน', 'error'); return }
-    const fefoLot = adjustSelected.lots?.[0]
-    if (!fefoLot) { toast('ไม่พบล็อตสินค้า', 'error'); return }
-    if (qty > fefoLot.qty_on_hand) { toast(`จำนวนเกินกว่าคงเหลือในล็อต (${fefoLot.qty_on_hand})`, 'error'); return }
+    const lot = adjustSelected.lots?.find(l => l.id === adjustSelectedLotId)
+    if (!lot) { toast('ไม่พบล็อต', 'error'); return }
+
+    const existingIdx = adjustList.findIndex(i => i.product_id === adjustSelected.id && i.lot_id === adjustSelectedLotId)
+    const alreadyQueued = existingIdx >= 0 ? adjustList[existingIdx].qty : 0
+    if (qty + alreadyQueued > lot.qty_on_hand) {
+      toast(`จำนวนรวม (${qty + alreadyQueued}) เกินคงเหลือในล็อต (${lot.qty_on_hand})`, 'error')
+      return
+    }
+
+    if (existingIdx >= 0) {
+      const merged = adjustList[existingIdx].qty + qty
+      setAdjustList(list => list.map((it, i) => i === existingIdx
+        ? { ...it, qty: merged, line_total: merged * lot.cost_price }
+        : it))
+    } else {
+      setAdjustList(list => [...list, {
+        product_id: adjustSelected.id,
+        lot_id: adjustSelectedLotId,
+        product_name: adjustSelected.trade_name,
+        unit_name: adjustSelected.unit_name ?? 'ชิ้น',
+        lot_number: lot.lot_number || '',
+        expiry_date: lot.expiry_date ?? null,
+        qty,
+        cost_price: lot.cost_price,
+        line_total: qty * lot.cost_price,
+      }])
+    }
+
+    // Reset for next item — back to search
+    setAdjustSelected(null)
+    setAdjustQuery('')
+    setAdjustResults([])
+    setAdjustSelectedLotId(null)
+    setAdjustQtyInput('1')
+    setTimeout(() => adjustInputRef.current?.focus(), 50)
+  }
+
+  const handleConfirmAdjust = async () => {
+    if (adjustList.length === 0 || !adjustReason.trim()) return
     setAdjustSaving(true)
     try {
-      await window.api.products.adjustLot({ product_id: adjustSelected.id, qty, note: adjustNote.trim(), user_id: getCurrentUserId() })
-      toast(`ตัดสต็อก ${adjustSelected.trade_name} ${qty} ${adjustSelected.unit_name} สำเร็จ`, 'success')
+      await window.api.products.adjustLotBatch({
+        items: adjustList.map(i => ({ product_id: i.product_id, lot_id: i.lot_id, qty: i.qty })),
+        reason: adjustReason.trim(),
+        user_id: getCurrentUserId(),
+      })
+      toast(`ตัดสต็อก ${adjustList.length} รายการสำเร็จ`, 'success')
       closeAdjust()
       refocusSearch()
     } catch (e: any) {
@@ -896,7 +954,11 @@ export default function POSPage() {
           <DialogHeader><DialogTitle>เลือกลูกค้า</DialogTitle></DialogHeader>
           <DialogBody>
             <div className="space-y-3">
-              <Input className="h-10" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..." value={customerQuery} onChange={e => handleSearchCustomer(e.target.value)} />
+              <Input className="h-10" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..."
+                value={customerQuery}
+                onChange={e => handleSearchCustomer(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && customerResults[0]) { cart.setCustomer(customerResults[0]); closeCustomerSearch() } }}
+              />
               <Button variant="secondary" onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
                 className="w-full h-12 justify-start px-4 py-3 rounded-xl text-foreground font-medium text-left transition-colors text-sm">
                 <User className="size-8 p-1 bg-background rounded-full text-muted-foreground shrink-0" /> ลูกค้าทั่วไป
@@ -995,7 +1057,7 @@ export default function POSPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
+            <Button autoFocus variant="secondary" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1004,7 +1066,8 @@ export default function POSPage() {
       <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
         <DialogContent size="md" onClose={() => setShowQuickAdd(false)}>
           <DialogHeader><DialogTitle>เพิ่มลูกค้าใหม่</DialogTitle></DialogHeader>
-          <DialogBody className="space-y-4">
+          <DialogBody className="space-y-4"
+            onKeyDown={e => { if (e.key === 'Enter' && !qaSaving && qaName.trim()) handleQuickAdd() }}>
             <div>
               <Label className="block text-sm font-medium mb-1">ชื่อ-นามสกุล <span className="text-destructive">*</span></Label>
               <Input autoFocus value={qaName} onChange={e => setQaName(e.target.value)} />
@@ -1155,7 +1218,7 @@ export default function POSPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── ADJUST STOCK DIALOG (System A) ── */}
+      {/* ── ADJUST STOCK DIALOG (System A — multi-item) ── */}
       <Dialog open={showAdjust} onOpenChange={(v) => { if (!v) closeAdjust() }}>
         <DialogContent size="2xl" onClose={closeAdjust}>
           <DialogHeader>
@@ -1164,9 +1227,8 @@ export default function POSPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <DialogBody className="flex gap-0 p-0 overflow-hidden rounded-xl" style={{ height: '420px' }}>
-
-            {/* ── Left column: search + results / product info ── */}
+          <DialogBody className="flex gap-0 p-0 overflow-hidden rounded-xl" style={{ height: '460px' }}>
+            {/* Left column — search + product results / lot picker */}
             <div className="flex flex-col flex-1 min-w-0 overflow-hidden border-r border-border">
               <div className="p-3 border-b border-border shrink-0">
                 <div className="relative">
@@ -1194,139 +1256,169 @@ export default function POSPage() {
                       <p className="text-sm">พิมพ์ชื่อ, บาร์โค้ด หรือรหัสสินค้า</p>
                     </div>
                   ) : (
-                    adjustResults.map(p => {
-                      const fefo = p.lots?.[0]
-                      return (
-                        <div key={p.id} onClick={() => handleAdjustSelectProduct(p)}
-                          className="px-4 py-2.5 cursor-pointer border-b border-border last:border-0 hover:bg-surface-hover flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="font-semibold text-sm truncate">{p.trade_name}</div>
-                            <div className="text-xs text-muted-foreground">{p.unit_name} · {p.barcode || p.code || '—'}</div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-xs text-muted-foreground">คงเหลือ</div>
-                            <div className="font-semibold tabular-nums text-sm">{fefo ? fefo.qty_on_hand : 0}</div>
-                          </div>
+                    adjustResults.map(p => (
+                      <div key={p.id} onClick={() => handleAdjustSelectProduct(p)}
+                        className="px-4 py-2.5 cursor-pointer border-b border-border last:border-0 hover:bg-surface-hover flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-sm truncate">{p.trade_name}</div>
+                          <div className="text-xs text-muted-foreground">{p.unit_name} · {p.barcode || p.code || '—'}</div>
                         </div>
-                      )
-                    })
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </div>
+                    ))
                   )
                 ) : (
                   <div className="p-3 space-y-3">
-                    {/* Product header + back */}
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="font-semibold text-sm">{adjustSelected.trade_name}</div>
                         <div className="text-xs text-muted-foreground">{adjustSelected.unit_name}</div>
                       </div>
                       <button
-                        onClick={() => { setAdjustSelected(null); setAdjustQuery(''); setTimeout(() => adjustInputRef.current?.focus(), 50) }}
+                        onClick={() => { setAdjustSelected(null); setAdjustQuery(''); setAdjustSelectedLotId(null); setTimeout(() => adjustInputRef.current?.focus(), 50) }}
                         className="text-xs text-primary flex items-center gap-0.5 shrink-0 hover:underline mt-0.5"
                       >
                         <ChevronLeft className="h-3 w-3" /> เปลี่ยน
                       </button>
                     </div>
 
-                    {/* FEFO lot info card */}
-                    {adjustSelected.lots?.[0] ? (
-                      <div className="bg-muted rounded-lg px-3 py-2.5 space-y-1">
-                        <div className="text-xs font-semibold text-foreground-subtle">ล็อตที่จะตัด (FEFO)</div>
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono font-semibold text-sm">{adjustSelected.lots[0].lot_number || '—'}</span>
-                          <Badge variant="outline" className="text-xs px-1.5">คงเหลือ {adjustSelected.lots[0].qty_on_hand}</Badge>
+                    <div>
+                      <div className="text-xs font-semibold text-foreground-subtle mb-1.5">เลือก Lot (ค่าเริ่มต้น = FEFO)</div>
+                      {(adjustSelected.lots?.length ?? 0) === 0 ? (
+                        <div className="text-sm text-muted-foreground py-1">ไม่พบ Lot ที่มีสต็อก</div>
+                      ) : (
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto scrollbar-thin">
+                          {adjustSelected.lots.map(lot => (
+                            <button key={lot.id} onClick={() => setAdjustSelectedLotId(lot.id)}
+                              className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${adjustSelectedLotId === lot.id ? 'bg-primary-soft border-primary/40 text-primary' : 'bg-background border-border hover:bg-muted'}`}>
+                              <div className="flex justify-between items-center">
+                                <span className="font-mono font-medium">{lot.lot_number || '—'}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold tabular-nums">฿{formatCurrency(lot.cost_price)}</span>
+                                  <Badge variant="outline" className="text-xs px-1.5">คงเหลือ {lot.qty_on_hand}</Badge>
+                                </div>
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                หมดอายุ: {lot.expiry_date ? dayjs(lot.expiry_date).format('DD/MM/YYYY') : '—'}
+                                {lot.supplier_name ? ` · ${lot.supplier_name}` : ''}
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          หมดอายุ: {adjustSelected.lots[0].expiry_date ? dayjs(adjustSelected.lots[0].expiry_date).format('DD/MM/YYYY') : '—'}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-destructive-soft border border-destructive/30 rounded-lg px-3 py-2 text-sm text-destructive">
-                        ไม่พบล็อตที่มีสต็อก
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+                      )}
+                    </div>
 
-            {/* ── Right column: qty + note ── */}
-            <div className="flex flex-col w-72 shrink-0 overflow-hidden">
-              <div className="px-3 py-2.5 border-b border-border shrink-0">
-                <span className="text-xs font-semibold text-foreground-subtle">จำนวนและหมายเหตุ</span>
-              </div>
-
-              <div className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-4">
-                {!adjustSelected?.lots?.[0] ? (
-                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
-                    <Minus className="h-7 w-7 opacity-25" />
-                    <p className="text-sm text-center">เลือกสินค้าจากด้านซ้าย</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Qty */}
                     <div className="space-y-2">
-                      <label className="text-xs font-semibold text-foreground-subtle block">
-                        จำนวนที่ตัดออก ({adjustSelected.unit_name})
-                      </label>
+                      <Label className="text-xs font-semibold text-foreground-subtle block">จำนวนที่ตัด ({adjustSelected.unit_name})</Label>
                       <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon"
                           onClick={() => setAdjustQtyInput(v => String(Math.max(1, (parseFloat(v) || 1) - 1)))}
                           className="h-12 w-12 shrink-0 rounded-xl">
                           <Minus className="h-5 w-5" />
                         </Button>
-                        <Input type="number" value={adjustQtyInput}
+                        <Input
+                          type="number"
+                          value={adjustQtyInput}
                           onChange={e => setAdjustQtyInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleAddAdjustItem() }}
                           className="h-12 text-center text-2xl font-bold tabular-nums"
-                          min={1} max={adjustSelected.lots[0].qty_on_hand} />
+                          min="1" step="1"
+                        />
                         <Button variant="outline" size="icon"
-                          onClick={() => setAdjustQtyInput(v => String(Math.min((parseFloat(v) || 0) + 1, adjustSelected!.lots[0].qty_on_hand)))}
+                          onClick={() => setAdjustQtyInput(v => String((parseFloat(v) || 0) + 1))}
                           className="h-12 w-12 shrink-0 rounded-xl">
                           <Plus className="h-5 w-5" />
                         </Button>
                       </div>
+                      <Button
+                        onClick={handleAddAdjustItem}
+                        disabled={!adjustSelectedLotId || !adjustQtyInput || parseFloat(adjustQtyInput) <= 0}
+                        className="w-full h-10 gap-1.5"
+                      >
+                        <Plus className="h-4 w-4" /> เพิ่มในรายการตัด
+                      </Button>
                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                    {/* Quick note buttons */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-foreground-subtle block">
-                        หมายเหตุ <span className="font-normal text-muted-foreground">(ไม่บังคับ)</span>
-                      </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {['ใช้ภายใน', 'เสียหาย/แตกหัก', 'สูญหาย'].map(note => (
-                          <Button key={note} variant="outline" size="sm"
-                            onClick={() => setAdjustNote(n => n === note ? '' : note)}
-                            className={`h-7 px-2.5 text-xs rounded-lg ${adjustNote === note ? 'bg-primary-soft border-primary/40 text-primary' : 'border-border'}`}>
-                            {note}
-                          </Button>
-                        ))}
-                      </div>
-                      <Input value={adjustNote} onChange={e => setAdjustNote(e.target.value)}
-                        placeholder="พิมพ์หมายเหตุเพิ่มเติม..." className="text-sm" />
-                    </div>
-                  </>
+            {/* Right column — adjust list + total + reason */}
+            <div className="flex flex-col w-72 shrink-0 overflow-hidden">
+              <div className="px-3 py-2.5 border-b border-border shrink-0 flex items-center justify-between">
+                <span className="text-xs font-semibold text-foreground-subtle">รายการที่จะตัด</span>
+                {adjustList.length > 0 && (
+                  <Badge variant="outline" className="bg-warning-soft text-warning-strong border-warning/40 text-xs">{adjustList.length} รายการ</Badge>
                 )}
               </div>
 
-              {/* Summary strip */}
-              {adjustSelected?.lots?.[0] && parseFloat(adjustQtyInput) > 0 && (
-                <div className="px-3 py-2.5 border-t border-border shrink-0 bg-warning-soft/40">
-                  <div className="text-xs text-muted-foreground">จะตัดออก</div>
-                  <div className="font-bold text-warning-strong tabular-nums">
-                    {adjustQtyInput} {adjustSelected.unit_name}
+              <div className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-1.5">
+                {adjustList.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
+                    <Minus className="h-7 w-7 opacity-25" />
+                    <p className="text-sm">ยังไม่มีรายการ</p>
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">{adjustSelected.trade_name}</div>
+                ) : adjustList.map((item, idx) => (
+                  <div key={idx} className="bg-background border border-border rounded-lg px-2.5 py-2 flex items-center gap-1.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-xs truncate">{item.product_name}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{item.lot_number || '—'}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs text-muted-foreground tabular-nums">×{item.qty}</div>
+                      <div className="text-xs font-bold tabular-nums text-warning-strong">฿{formatCurrency(item.line_total)}</div>
+                    </div>
+                    <Button variant="ghost" size="icon"
+                      onClick={() => setAdjustList(list => list.filter((_, i) => i !== idx))}
+                      className="w-6 h-6 shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive/10">
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-3 border-t border-border shrink-0 space-y-2">
+                {adjustList.length > 0 && (
+                  <div className="flex items-center justify-between px-2 py-2 rounded-lg bg-warning-soft border border-warning/30">
+                    <span className="text-xs font-semibold text-warning-strong">มูลค่าทุนรวม</span>
+                    <span className="text-base font-extrabold tabular-nums text-warning-strong">
+                      ฿{formatCurrency(adjustList.reduce((s, i) => s + i.line_total, 0))}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-xs font-semibold text-foreground-subtle mb-1 block">
+                    สาเหตุการตัด <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="flex flex-wrap gap-1 mb-1.5">
+                    {['ใช้ภายใน', 'เสียหาย/แตกหัก', 'สูญหาย'].map(reason => (
+                      <Button key={reason} variant="outline" size="sm"
+                        onClick={() => setAdjustReason(r => r === reason ? '' : reason)}
+                        className={`h-6 px-2 text-xs rounded-md ${adjustReason === reason ? 'bg-primary-soft border-primary/40 text-primary' : 'border-border'}`}>
+                        {reason}
+                      </Button>
+                    ))}
+                  </div>
+                  <Input
+                    placeholder="ระบุสาเหตุ..."
+                    value={adjustReason}
+                    onChange={e => setAdjustReason(e.target.value)}
+                    className="h-8 text-xs"
+                  />
                 </div>
-              )}
+              </div>
             </div>
           </DialogBody>
 
           <DialogFooter>
             <Button variant="secondary" onClick={closeAdjust}>ยกเลิก</Button>
             <Button
-              disabled={!adjustSelected?.lots?.[0] || !adjustQtyInput || parseFloat(adjustQtyInput) <= 0 || adjustSaving}
               onClick={handleConfirmAdjust}
-              className="bg-warning hover:bg-warning-hover text-accent-foreground font-semibold">
-              {adjustSaving ? 'กำลังบันทึก...' : 'ยืนยันตัดสต็อก'}
+              disabled={adjustList.length === 0 || !adjustReason.trim() || adjustSaving}
+              className="bg-warning hover:bg-warning-hover text-white font-semibold gap-1.5"
+            >
+              <Minus className="h-4 w-4" />
+              {adjustSaving ? 'กำลังบันทึก...' : `ยืนยันตัดสต็อก${adjustList.length > 0 ? ` ${adjustList.length} รายการ` : ''}`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1536,7 +1628,7 @@ export default function POSPage() {
             <div className="text-6xl">✅</div>
             <div><div className="text-lg font-semibold">บันทึกบิลสำเร็จ</div>
               <div className="text-muted-foreground text-sm mt-1">{lastInvoice}</div></div>
-            <Button onClick={() => setShowSuccess(false)} className="w-full">เปิดบิลใหม่</Button>
+            <Button autoFocus onClick={() => setShowSuccess(false)} className="w-full">เปิดบิลใหม่</Button>
           </DialogBody>
         </DialogContent>
       </Dialog>

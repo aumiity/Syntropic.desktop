@@ -321,7 +321,12 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - `<DialogBody>` — wraps the main content
    - `<DialogFooter>` — wraps action buttons
    - The body layout inside `DialogBody` may use flex/grid as needed. Override default padding with `className` (twMerge handles conflicts).
-5. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`, `tabular-nums`) are encouraged — only **color literals** are banned.
+5. **Modal interaction contract (HARD).** Applies to every modal in the project — no exceptions.
+   - **Outside-click does NOT close.** Already enforced inside `dialog.tsx` via `onPointerDownOutside`/`onInteractOutside` `preventDefault()`. Do NOT pass replacements that re-enable closing.
+   - **Esc closes** (Radix default — leave on).
+   - **Enter triggers the primary OK action** when the modal has one. For multi-step modals where Enter on a working input advances to the next step (e.g. POS return/adjust qty → "เพิ่มในรายการ"), that's fine; the final confirm still needs a click.
+   - When adding a new modal, wire Enter on the primary input or via an `onKeyDown` on the dialog body — call the same handler the OK button calls.
+6. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`, `tabular-nums`) are encouraged — only **color literals** are banned.
 
 ### Other conventions
 - Thai UI language throughout

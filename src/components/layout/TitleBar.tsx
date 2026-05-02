@@ -14,11 +14,11 @@ export function TitleBar() {
 
   return (
     <div
-      className="flex items-center justify-between h-9 bg-sidebar border-b border-sidebar-border shrink-0 select-none"
+      className="flex items-center justify-between h-9 bg-background shrink-0 select-none"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       {/* App title */}
-      <div className="px-4 text-xs font-semibold text-sidebar-foreground tracking-widest uppercase">
+      <div className="px-4 text-xs font-semibold text-foreground tracking-widest uppercase">
         Syntropic RX
       </div>
 
@@ -29,21 +29,21 @@ export function TitleBar() {
       >
         <button
           onClick={minimize}
-          className="w-12 h-full flex items-center justify-center text-sidebar-foreground hover:bg-success hover:text-background transition-colors"
+          className="w-12 h-full flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
           title="ย่อ"
         >
           <Minus className="h-3.5 w-3.5" />
         </button>
         <button
           onClick={maximize}
-          className="w-12 h-full flex items-center justify-center text-sidebar-foreground hover:bg-warning hover:text-background transition-colors"
+          className="w-12 h-full flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
           title={maximized ? 'คืนขนาด' : 'ขยาย'}
         >
           {maximized ? <Square className="h-3 w-3" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </button>
         <button
           onClick={close}
-          className="w-12 h-full flex items-center justify-center text-sidebar-foreground hover:bg-destructive hover:text-background transition-colors"
+          className="w-12 h-full flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
           title="ปิด"
         >
           <X className="h-3.5 w-3.5" />

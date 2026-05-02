@@ -29,6 +29,11 @@ const api = {
     getLots: (productId: number) => ipcRenderer.invoke('products:getLots', productId),
     adjustLot: (payload: { product_id: number; qty: number; note?: string; user_id: number }) =>
       ipcRenderer.invoke('products:adjustLot', payload),
+    adjustLotBatch: (payload: {
+      items: Array<{ product_id: number; lot_id: number; qty: number }>
+      reason: string
+      user_id: number
+    }) => ipcRenderer.invoke('products:adjustLotBatch', payload),
     updateLot: (id: number, data: any) => ipcRenderer.invoke('products:updateLot', id, data),
     expireLot: (lotId: number, userId: number) => ipcRenderer.invoke('products:expireLot', lotId, userId),
   },

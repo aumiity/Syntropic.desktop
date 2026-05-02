@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency } from '@/lib/utils'
-import { Search, PackageX, AlertTriangle, Check, X } from 'lucide-react'
+import { Search, PackageX, AlertTriangle } from 'lucide-react'
 
 type FilterType = 'expired' | 30 | 60 | 90 | 'all'
 
@@ -72,8 +73,8 @@ export default function ReportsExpiryPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Inline confirm state — stores lot_id of the row pending confirmation
-  const [confirmLotId, setConfirmLotId] = useState<number | null>(null)
+  // Modal confirm state — stores the lot pending confirmation
+  const [confirmingLot, setConfirmingLot] = useState<ExpiringLot | null>(null)
   const [expiring, setExpiring] = useState(false)
 
   const load = useCallback(async () => {
@@ -100,13 +101,15 @@ export default function ReportsExpiryPage() {
 
   const handleSearch = (e: React.FormEvent) => { e.preventDefault(); load() }
 
-  const handleExpire = async (lot: ExpiringLot) => {
+  const handleExpire = async () => {
+    const lot = confirmingLot
+    if (!lot) return
     setExpiring(true)
     try {
       const res = await window.api.products.expireLot(lot.lot_id, getCurrentUserId()) as { classification: 'expired' | 'near_expiry' }
       const label = res?.classification === 'near_expiry' ? 'ใกล้หมดอายุ' : 'หมดอายุ'
       toast(`ตัดออกล็อต ${lot.lot_number} (${lot.trade_name}) — ${label} สำเร็จ`, 'success')
-      setConfirmLotId(null)
+      setConfirmingLot(null)
       setRows(r => r.filter(x => x.lot_id !== lot.lot_id))
     } catch (e: any) {
       toast(e?.message ?? 'ตัดออกไม่สำเร็จ', 'error')
@@ -222,7 +225,6 @@ export default function ReportsExpiryPage() {
             </TableHeader>
             <TableBody>
               {rows.map(lot => {
-                const isConfirming = confirmLotId === lot.lot_id
                 const isExpired = (lot.days_remaining ?? 1) < 0
                 return (
                   <TableRow key={lot.lot_id}
@@ -242,26 +244,11 @@ export default function ReportsExpiryPage() {
                     <TableCell className="text-sm text-muted-foreground">{lot.unit_name || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{lot.supplier_name || '—'}</TableCell>
                     <TableCell className="text-center">
-                      {isConfirming ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <span className="text-xs text-destructive font-medium mr-1">ยืนยัน?</span>
-                          <Button size="sm" disabled={expiring} onClick={() => handleExpire(lot)}
-                            className="h-6 w-6 p-0 bg-destructive hover:bg-destructive text-primary-foreground">
-                            <Check className="w-3 h-3" />
-                          </Button>
-                          <Button size="sm" variant="outline" disabled={expiring}
-                            onClick={() => setConfirmLotId(null)}
-                            className="h-6 w-6 p-0">
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button size="sm" variant="outline"
-                          onClick={() => setConfirmLotId(lot.lot_id)}
-                          className="h-7 px-2 text-xs border-destructive/40 text-destructive hover:bg-destructive-soft hover:border-destructive/60">
-                          ตัดออก
-                        </Button>
-                      )}
+                      <Button size="sm" variant="outline"
+                        onClick={() => setConfirmingLot(lot)}
+                        className="h-7 px-2 text-xs border-destructive/40 text-destructive hover:bg-destructive-soft hover:border-destructive/60">
+                        ตัดออก
+                      </Button>
                     </TableCell>
                   </TableRow>
                 )
@@ -270,6 +257,21 @@ export default function ReportsExpiryPage() {
           </Table>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmingLot !== null}
+        onOpenChange={(v) => { if (!v && !expiring) setConfirmingLot(null) }}
+        variant="destructive"
+        title="ยืนยันการตัดออก"
+        description={
+          confirmingLot
+            ? `ตัดออกล็อต ${confirmingLot.lot_number || '—'} (${confirmingLot.trade_name}) จำนวน ${confirmingLot.qty_on_hand} ${confirmingLot.unit_name || ''} — มูลค่าทุน ฿${formatCurrency(confirmingLot.total_cost)} — การดำเนินการนี้ย้อนกลับไม่ได้`
+            : ''
+        }
+        confirmLabel={expiring ? 'กำลังตัด...' : 'ยืนยันตัดออก'}
+        cancelLabel="ยกเลิก"
+        onConfirm={handleExpire}
+      />
     </div>
   )
 }
