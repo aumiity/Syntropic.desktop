@@ -5,7 +5,7 @@ import { TitleBar } from './TitleBar'
 
 export function Layout() {
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="relative flex flex-col h-screen overflow-hidden bg-background">
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />

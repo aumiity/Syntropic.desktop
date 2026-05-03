@@ -31,8 +31,8 @@
     --ring: 175 35% 75%;
     --radius: 0.5rem;
     --sidebar: 0 0% 100%;
-    --sidebar-foreground: 0 0% 75%;
-    --sidebar-border: 0 0% 100%;
+    --sidebar-foreground: 0 0% 32%;
+    --sidebar-border: 0 0% 90%;
     --sidebar-accent: 43 100% 64%;
     --sidebar-accent-foreground: 179 91% 22%;
     --sidebar-ring: 179 91% 22%;
@@ -47,7 +47,7 @@
     --primary-soft: 168 22% 91%;        /* #E3EDEB */
     --primary-soft-hover: 168 22% 87%;
     --primary-soft-border: 175 35% 70%;
-    --primary-strong: 179 91% 22%;
+    --primary-strong: 179 91% 12%;
 
     --success: 142 71% 36%;
     --success-foreground: 0 0% 100%;
