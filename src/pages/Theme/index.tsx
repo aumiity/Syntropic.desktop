@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useThemeStore, type ThemeMode } from '@/stores/themeStore'
 import { ACCENT_PRESETS, HIGHLIGHT_PRESETS } from '@/lib/accent-presets'
 import { TAILWIND_FAMILIES, SHADES, swatchColor } from '@/lib/tailwind-palette'
-import { cn } from '@/lib/utils'
+import { cn, formatThaiDateHeader } from '@/lib/utils'
 import { useToast } from '@/components/ui/toast'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -41,77 +41,6 @@ import {
   Search, Plus, Edit, Trash2, Info,
   AlertTriangle, CheckCircle, Package, ChevronRight,
 } from 'lucide-react'
-import tailwindColors from 'tailwindcss/colors'
-
-// ─── CSS color editor types & helpers ─────────────────────────────────────────
-
-type ColorTokenRow = {
-  token: string
-  light: string
-  dark: string
-}
-
-type SelectedPaletteColor = {
-  family: string
-  shade: string
-  hex: string
-  hsl: string
-}
-
-const CSS_PALETTE_FAMILIES = [
-  'slate', 'gray', 'zinc', 'neutral', 'stone',
-  'red', 'orange', 'amber', 'yellow', 'lime',
-  'green', 'emerald', 'teal', 'cyan', 'sky',
-  'blue', 'indigo', 'violet', 'purple', 'fuchsia',
-  'pink', 'rose',
-] as const
-
-const CSS_PALETTE_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'] as const
-
-function toCssColor(value: string) {
-  const v = value.trim()
-  if (!v) return null
-  if (/^\d+(\.\d+)?\s+\d+(\.\d+)?%\s+\d+(\.\d+)?%$/i.test(v)) return `hsl(${v})`
-  if (/^(#|rgb\(|rgba\(|hsl\(|hsla\(|oklch\(|oklab\(|lch\(|lab\(|color-mix\(|var\()/i.test(v)) return v
-  return null
-}
-
-function hexToHslTriplet(hex: string) {
-  const clean = hex.replace('#', '')
-  const normalized = clean.length === 3
-    ? clean.split('').map(c => c + c).join('')
-    : clean
-  if (!/^[0-9a-f]{6}$/i.test(normalized)) return null
-
-  const r = parseInt(normalized.slice(0, 2), 16) / 255
-  const g = parseInt(normalized.slice(2, 4), 16) / 255
-  const b = parseInt(normalized.slice(4, 6), 16) / 255
-
-  const max = Math.max(r, g, b)
-  const min = Math.min(r, g, b)
-  let h = 0
-  let s = 0
-  const l = (max + min) / 2
-
-  if (max !== min) {
-    const d = max - min
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
-    switch (max) {
-      case r:
-        h = (g - b) / d + (g < b ? 6 : 0)
-        break
-      case g:
-        h = (b - r) / d + 2
-        break
-      case b:
-        h = (r - g) / d + 4
-        break
-    }
-    h /= 6
-  }
-
-  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
-}
 
 const MODE_CARDS: { mode: ThemeMode; label: string }[] = [
   { mode: 'light', label: 'สว่าง' },
@@ -184,13 +113,6 @@ export default function Theme() {
   const { mode, accentKey, highlightKey, customColorKey,
           setMode, setAccent, setHighlight, setCustomColor, resetAccent } = useThemeStore()
 
-  // ── CSS color editor state ──
-  const [colorRows, setColorRows] = useState<ColorTokenRow[]>([])
-  const [isSavingColors, setIsSavingColors] = useState(false)
-  const [fontSize, setFontSize] = useState('18px')
-  const [isSavingFontSize, setIsSavingFontSize] = useState(false)
-  const [selectedPaletteColor, setSelectedPaletteColor] = useState<SelectedPaletteColor | null>(null)
-
   // ── component showcase state ──
   const [inputVal, setInputVal] = useState('')
   const [selectVal, setSelectVal] = useState('')
@@ -206,85 +128,6 @@ export default function Theme() {
   const [confirmDestrOpen, setConfirmDestrOpen] = useState(false)
   const [confirmReasonOpen, setConfirmReasonOpen] = useState(false)
 
-  useEffect(() => {
-    ;(async () => {
-      try {
-        const [res, currentFontSize] = await Promise.all([
-          window.api.settings.getThemeColors(),
-          window.api.settings.getThemeFontSize(),
-        ])
-        const rootEntries = Object.entries(res?.root ?? {}) as Array<[string, string]>
-        const darkEntries = Object.entries(res?.dark ?? {}) as Array<[string, string]>
-
-        const seen = new Set<string>()
-        const orderedTokens: string[] = []
-        for (const [token] of rootEntries) {
-          seen.add(token)
-          orderedTokens.push(token)
-        }
-        for (const [token] of darkEntries) {
-          if (!seen.has(token)) orderedTokens.push(token)
-        }
-
-        setColorRows(
-          orderedTokens.map(token => ({
-            token,
-            light: res?.root?.[token] ?? res?.dark?.[token] ?? '',
-            dark: res?.dark?.[token] ?? res?.root?.[token] ?? '',
-          })),
-        )
-        if (typeof currentFontSize === 'string' && currentFontSize.trim()) {
-          setFontSize(currentFontSize.trim())
-        }
-      } catch {
-        toast('โหลดค่าสีจาก index.css ไม่สำเร็จ', 'error')
-      }
-    })()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const updateColorValue = (token: string, mode: 'light' | 'dark', value: string) => {
-    setColorRows(prev => prev.map(row => (
-      row.token === token
-        ? { ...row, [mode]: value }
-        : row
-    )))
-  }
-
-  const saveColorTokens = async () => {
-    try {
-      setIsSavingColors(true)
-      await window.api.settings.saveThemeColors(
-        colorRows.map(({ token, light, dark }) => ({
-          token,
-          light: light.trim(),
-          dark: dark.trim(),
-        })),
-      )
-      toast('บันทึกสีลง src/index.css แล้ว', 'success')
-    } catch {
-      toast('บันทึกสีไม่สำเร็จ', 'error')
-    } finally {
-      setIsSavingColors(false)
-    }
-  }
-
-  const saveFontSize = async () => {
-    try {
-      const value = fontSize.trim()
-      if (!/^\d+(\.\d+)?px$/i.test(value)) {
-        toast('กรุณาใส่ขนาดฟอนต์เป็น px เช่น 18px', 'error')
-        return
-      }
-      setIsSavingFontSize(true)
-      await window.api.settings.saveThemeFontSize(value)
-      toast('บันทึกขนาดฟอนต์ลง src/index.css แล้ว', 'success')
-    } catch {
-      toast('บันทึกขนาดฟอนต์ไม่สำเร็จ', 'error')
-    } finally {
-      setIsSavingFontSize(false)
-    }
-  }
-
   const [now, setNow] = useState(new Date())
 
   useEffect(() => {
@@ -292,7 +135,7 @@ export default function Theme() {
     return () => clearInterval(tick)
   }, [])
 
-  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const dateStr = formatThaiDateHeader(now)
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
@@ -305,7 +148,7 @@ export default function Theme() {
           <p className="text-sm text-muted-foreground">ปรับแต่งสีและรูปลักษณ์ของระบบ</p>
         </div>
         <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+          <div className="font-semibold text-foreground">{dateStr}</div>
           <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
         </div>
       </div>
@@ -315,8 +158,7 @@ export default function Theme() {
           <div className="border-b border-border bg-muted/30 px-4 py-3">
             <TabsList className="mb-0">
               {/* <TabsTrigger value="theme">ธีม</TabsTrigger> */}
-              <TabsTrigger value="components">คอมโพเนนต์</TabsTrigger> | 
-              <TabsTrigger value="css">CSS</TabsTrigger>
+              <TabsTrigger value="components">คอมโพเนนต์</TabsTrigger>
             </TabsList>
           </div>
 
@@ -475,6 +317,7 @@ export default function Theme() {
                         <div className="flex flex-wrap gap-2">
                           <Button variant="default">ปุ่มหลัก</Button>
                           <Button variant="secondary">รอง</Button>
+                          <Button variant="tertiary">รอง3</Button>
                           <Button variant="destructive">ลบ</Button>
                         </div>
                         <div className="max-w-xs space-y-4">
@@ -501,6 +344,7 @@ export default function Theme() {
                 <DemoRow label="Variants">
                   <Button variant="default">Default</Button>
                   <Button variant="secondary">Secondary</Button>
+                  <Button variant="tertiary">Tertiary</Button>
                   <Button variant="outline">Outline</Button>
                   <Button variant="ghost">Ghost</Button>
                   <Button variant="destructive">Destructive</Button>
@@ -1188,153 +1032,6 @@ export default function Theme() {
             </div>
           </TabsContent>
 
-          {/* ── CSS Tab ─────────────────────────────────────── */}
-          <TabsContent value="css" className="m-0 p-6">
-            <div className="grid grid-cols-2 gap-4">
-              {/* ── COLOR TOKENS ── */}
-              <Section title="Color Tokens (from index.css)" path="src/index.css" full>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-foreground">
-                    แก้ค่า HSL ได้จากหน้านี้ แล้วกดบันทึกเพื่อเขียนลงไฟล์ <code className="font-mono">src/index.css</code>
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      className="h-8 w-24 text-xs font-mono"
-                      value={fontSize}
-                      onChange={e => setFontSize(e.target.value)}
-                      placeholder="18px"
-                    />
-                    <Button size="sm" variant="outline" onClick={saveFontSize} disabled={isSavingFontSize}>
-                      {isSavingFontSize ? 'กำลังบันทึก...' : 'บันทึกขนาดฟอนต์'}
-                    </Button>
-                    <Button size="sm" onClick={saveColorTokens} disabled={isSavingColors}>
-                      {isSavingColors ? 'กำลังบันทึก...' : 'บันทึกสีลงไฟล์'}
-                    </Button>
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="grid grid-cols-[190px_1fr_1fr] bg-muted/40 border-b border-border">
-                    <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Token</div>
-                    <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Light (:root)</div>
-                    <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Dark (.dark)</div>
-                  </div>
-                  {colorRows.map(({ token, light, dark }) => {
-                    const lightPreview = toCssColor(light)
-                    const darkPreview = toCssColor(dark)
-                    return (
-                      <div key={token} className="grid grid-cols-[190px_1fr_1fr] border-b border-border last:border-b-0 bg-card">
-                        <div className="px-3 py-2 flex items-center">
-                          <p className="text-[11px] font-mono text-foreground">{token}</p>
-                        </div>
-                        <div className="px-3 py-2">
-                          <div
-                            className="h-7 rounded-md px-2 flex items-center justify-between"
-                            style={{
-                              backgroundColor: lightPreview ?? 'hsl(var(--muted))',
-                              border: lightPreview ? undefined : '1px dashed hsl(var(--border))',
-                            }}
-                          >
-                            <span className="text-[10px] font-semibold text-foreground">Aa</span>
-                            <Input
-                              className="h-6 w-40 border-border/70 bg-background/85 text-[10px] font-mono text-foreground placeholder:text-muted-foreground"
-                              value={light}
-                              onChange={e => updateColorValue(token, 'light', e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <div className="px-3 py-2">
-                          <div
-                            className="h-7 rounded-md px-2 flex items-center justify-between"
-                            style={{
-                              backgroundColor: darkPreview ?? 'hsl(var(--muted))',
-                              border: darkPreview ? undefined : '1px dashed hsl(var(--border))',
-                            }}
-                          >
-                            <span className="text-[10px] leading-none text-foreground">Aa</span>
-                            <Input
-                              className="h-6 w-40 border-border/70 bg-background/85 text-[10px] font-mono text-foreground placeholder:text-muted-foreground"
-                              value={dark}
-                              onChange={e => updateColorValue(token, 'dark', e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <div className="rounded-lg border border-border bg-card p-4">
-                  <div className="mb-3">
-                    <p className="text-sm font-semibold text-foreground">Tailwind Full Palette (HSL)</p>
-                    <p className="text-xs text-muted-foreground">คลิกที่สีเพื่อดูโค้ดสีด้านล่าง</p>
-                  </div>
-                  <div className="mt-3 rounded-md border border-border bg-muted/20 p-3">
-                    {selectedPaletteColor ? (
-                      <div className="flex items-center justify-center gap-3 text-xs">
-                        <div
-                          className="size-8 rounded border border-border shrink-0"
-                          style={{ backgroundColor: selectedPaletteColor.hex }}
-                        />
-                        <p className="font-semibold text-xs text-foreground">{selectedPaletteColor.family}-{selectedPaletteColor.shade}</p>
-                        <p className="font-mono text-xs text-muted-foreground">{selectedPaletteColor.hex}</p>
-                        <p className="font-mono text-xs text-muted-foreground">{selectedPaletteColor.hsl}</p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">ยังไม่ได้เลือกสี</p>
-                    )}
-                  </div>
-                  <div className="space-y-2 mt-3">
-                    <div className="flex items-stretch gap-2 px-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                      <span className="text-xs w-16 shrink-0">Family</span>
-                      <div className="grid grid-cols-11 gap-1 flex-1 min-w-0">
-                        {CSS_PALETTE_SHADES.map(shade => (
-                          <span key={`shade-head-${shade}`} className="text-center text-xs">{shade}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="rounded-md border border-border overflow-hidden bg-background divide-y divide-border">
-                      {CSS_PALETTE_FAMILIES.map(family => (
-                        <div key={family} className="flex items-center gap-2 px-2 py-0.5">
-                          <span className="w-16 shrink-0 text-xs font-semibold text-foreground">{family}</span>
-                          <div className="grid grid-cols-11 flex-1 min-w-0 gap-0.5">
-                            {CSS_PALETTE_SHADES.map(shade => {
-                              const hex = (tailwindColors as any)?.[family]?.[shade] as string | undefined
-                              if (!hex) {
-                                return (
-                                  <div
-                                    key={`${family}-${shade}-empty`}
-                                    className="h-8 w-full rounded border border-transparent"
-                                    aria-hidden="true"
-                                  />
-                                )
-                              }
-                              const hslValue = hexToHslTriplet(hex) ?? '-'
-                              const isActive =
-                                selectedPaletteColor?.family === family &&
-                                selectedPaletteColor?.shade === shade
-                              return (
-                                <button
-                                  key={`${family}-${shade}`}
-                                  type="button"
-                                  onClick={() => setSelectedPaletteColor({ family, shade, hex, hsl: hslValue })}
-                                  className={cn(
-                                    'h-8 w-full rounded border transition-all',
-                                    isActive ? 'border-foreground ring-2 ring-ring/40' : 'border-border hover:border-foreground/40'
-                                  )}
-                                  style={{ backgroundColor: hex }}
-                                  title={`${family}-${shade} | ${hslValue} | ${hex}`}
-                                />
-                              )
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </Section>
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
     </div>

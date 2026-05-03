@@ -16,7 +16,7 @@ const buttonVariants = cva(
     "aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20",
     "dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-    "transition-transform duration-100 active:scale-95 active:translate-y-[1px]",
+    "transition-transform duration-100 active:scale-95 active:translate-y-[1px] py-1",
   ].join(" "),
   {
     variants: {
@@ -27,11 +27,11 @@ const buttonVariants = cva(
         ].join(" "),
         secondary: [
           "bg-secondary text-secondary-foreground",
-          "border-border hover:bg-surface-hover",
+          "hover:bg-primary hover:text-primary-foreground [a]:hover:bg-secondary/80",
         ].join(" "),
         tertiary: [
           "bg-tertiary text-tertiary-foreground",
-          "border-border hover:bg-surface-hover",
+          "hover:bg-tertiary-hover [a]:hover:bg-tertiary/80",
         ].join(" "),
         outline: [
           "border-transparent bg-muted",
@@ -55,7 +55,7 @@ const buttonVariants = cva(
       },
       size: {
         default: [
-          "h-7 gap-1.5 px-2.5",
+          "h-8 gap-1.5 px-2.5",
           "has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         ].join(" "),
         xs: [
@@ -71,7 +71,7 @@ const buttonVariants = cva(
           "[&_svg:not([class*='size-'])]:size-3.5",
         ].join(" "),
         lg: [
-          "h-8 gap-1.5 px-2.5",
+          "h-9 gap-1.5 px-2.5",
           "has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         ].join(" "),
         xl: "h-10 gap-2 rounded-lg px-10 text-base",

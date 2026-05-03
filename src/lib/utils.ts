@@ -20,6 +20,10 @@ export function formatDate(date: string | null | undefined, format = 'DD/MM/YYYY
   return dayjs(date).format(format)
 }
 
+export function formatThaiDateHeader(date: Date): string {
+  return dayjs(date).format('dddd, D MMMM BBBB')
+}
+
 export function formatDateTime(date: string | null | undefined): string {
   if (!date) return '-'
   return dayjs(date).format('DD/MM/YYYY HH:mm')

@@ -11,7 +11,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         data-slot="input"
         className={cn(
           "h-8 w-full min-w-0",
-          "rounded-lg border-[1px] border-border bg-input",
+          "rounded-lg bg-input",
           "px-2.5 py-1",
           "text-sm outline-none transition-all",
           "file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",

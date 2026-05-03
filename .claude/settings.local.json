@@ -11,7 +11,10 @@
       "Read(//c/Users/ANYA/.claude/**)",
       "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" --max-time 10 https://api.claudecount.com/api/usage/hook -X POST -H \"Content-Type: application/json\" -H \"X-CLI-Version: 0.2.9\" -d '{}')",
       "Bash(node \"C:\\\\\\\\Users\\\\\\\\ANYA\\\\\\\\.claude\\\\\\\\count_tokens.js\")",
-      "Bash(findstr /i \"vite.config\")"
+      "Bash(findstr /i \"vite.config\")",
+      "Bash(npx vite *)",
+      "Bash(python3 /tmp/strip_borders.py /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/POS/index.tsx)",
+      "WebFetch(domain:shadcnstudio.com)"
     ]
   }
 }

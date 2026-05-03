@@ -7,7 +7,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
-import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
+import { formatCurrency, formatDate, formatDateTime, formatThaiDateHeader } from '@/lib/utils'
 import type { Sale, SaleItem } from '@/types'
 import { Search, TrendingUp, TrendingDown, Receipt, ShoppingBag, Ban, ChevronDown } from 'lucide-react'
 
@@ -161,7 +161,7 @@ export default function ReportsSalesPage() {
     return () => clearInterval(tick)
   }, [])
 
-  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const dateStr = formatThaiDateHeader(now)
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
@@ -173,7 +173,7 @@ export default function ReportsSalesPage() {
           <p className="text-sm text-muted-foreground">ยอดขาย ต้นทุน และกำไร</p>
         </div>
         <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+          <div className="font-semibold text-foreground">{dateStr}</div>
           <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
         </div>
       </div>

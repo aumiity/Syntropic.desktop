@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogBody } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
-import { cn, formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib/utils'
+import { cn, formatCurrency, formatDate, formatExpiry, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import {
   Search, Plus, Trash2, Package, ChevronDown, X,
@@ -884,7 +884,7 @@ export default function PurchasePage() {
           <p className="text-sm text-muted-foreground">จัดการการรับสินค้าและประวัติการสั่งซื้อ</p>
         </div>
         <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div>วันที่: <span className="font-semibold text-foreground">{now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span></div>
+          <div className="font-semibold text-foreground">{formatThaiDateHeader(now)}</div>
           <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span></div>
         </div>
       </div>

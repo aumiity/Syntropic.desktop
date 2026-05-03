@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   ShoppingCart, Pill, PackagePlus, Users, BarChart2, Settings,
-  Palette, Sun, Moon,
+  Palette, Sun, Moon, Braces,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 
@@ -17,6 +17,7 @@ const mainNavItems = [
 ]
 
 const bottomNavItems = [
+  { to: '/css', label: 'CSS', icon: Braces },
   { to: '/theme', label: 'Appearance', icon: Palette },
 ]
 
@@ -27,16 +28,16 @@ function NavItem({ to, label, icon: Icon, exact }: { to: string; label: string; 
       end={exact}
       className={({ isActive }) =>
         cn(
-          'flex items-center w-full h-11 px-6 gap-3 rounded-xl transition-colors',
+          'flex items-center w-full h-11 px-6 gap-3 rounded-xl transition-colors mb-1',
           isActive
-            ? 'bg-sidebar-accent text-primary-strong font-bold'
+            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
             : 'text-sidebar-primary-foreground hover:bg-sidebar-accent/20'
         )
       }
       title={label}
     >
       <Icon className="h-5 w-5 shrink-0" />
-      <span className="text-sm font-medium leading-none">{label}</span>
+      <span className="text-m font-bold leading-none">{label}</span>
     </NavLink>
   )
 }
@@ -68,12 +69,9 @@ export function Sidebar() {
         <button
           onClick={toggleTheme}
           title={isDark ? 'เปลี่ยนเป็นโหมดสว่าง' : 'เปลี่ยนเป็นโหมดมืด'}
-          className="flex items-center w-full h-11 px-6 gap-3 rounded-xl transition-colors text-sidebar-foreground hover:bg-accent-soft"
+          className="flex justify-center items-center w-full h-11 gap-3 rounded-xl transition-colors text-sidebar-foreground hover:bg-accent-soft"
         >
           {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
-          <span className="text-sm font-medium leading-none">
-            {isDark ? 'สว่าง' : 'มืด'}
-          </span>
         </button>
       </nav>
     </aside>

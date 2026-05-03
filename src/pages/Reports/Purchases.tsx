@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { useToast } from '@/components/ui/toast'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, formatThaiDateHeader } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import { Search, ChevronDown } from 'lucide-react'
 
@@ -110,7 +110,7 @@ export default function ReportsPurchasesPage() {
   }, [])
 
   const receiptTotal = receiptItems.reduce((s, i) => s + i.cost_price * i.qty_received, 0)
-  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const dateStr = formatThaiDateHeader(now)
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
@@ -122,7 +122,7 @@ export default function ReportsPurchasesPage() {
           <p className="text-sm text-muted-foreground">ประวัติการรับสินค้าและการชำระเงิน</p>
         </div>
         <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+          <div className="font-semibold text-foreground">{dateStr}</div>
           <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
         </div>
       </div>

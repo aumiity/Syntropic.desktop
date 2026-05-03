@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { formatThaiDateHeader } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -663,7 +664,7 @@ export default function PeoplePage() {
     return () => clearInterval(tick)
   }, [])
 
-  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const dateStr = formatThaiDateHeader(now)
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
@@ -675,7 +676,7 @@ export default function PeoplePage() {
           <p className="text-sm text-muted-foreground">จัดการลูกค้า ผู้จัดจำหน่าย และพนักงาน</p>
         </div>
         <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+          <div className="font-semibold text-foreground">{dateStr}</div>
           <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
         </div>
       </div>

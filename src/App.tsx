@@ -15,6 +15,7 @@ const ReportsPurchases = lazy(() => import('./pages/Reports/Purchases'))
 const ReportsExpiry = lazy(() => import('./pages/Reports/Expiry'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Theme = lazy(() => import('./pages/Theme'))
+const CSSPage = lazy(() => import('./pages/CSS'))
 
 function PageLoader() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
               </Route>
               <Route path="settings" element={<Settings />} />
               <Route path="theme" element={<Theme />} />
+              <Route path="css" element={<CSSPage />} />
             </Route>
           </Routes>
         </Suspense>

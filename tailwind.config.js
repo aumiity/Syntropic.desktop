@@ -31,6 +31,12 @@ export default {
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
+          hover: 'hsl(var(--secondary-hover))',
+        },
+        tertiary: {
+          DEFAULT: 'hsl(var(--tertiary))',
+          foreground: 'hsl(var(--tertiary-foreground))',
+          hover: 'hsl(var(--tertiary-hover))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -55,6 +61,7 @@ export default {
         muted: {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
+          hover: 'hsl(var(--muted-hover))',
         },
         accent: {
           DEFAULT: 'hsl(var(--accent))',

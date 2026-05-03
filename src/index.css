@@ -10,16 +10,21 @@
     --background: 72 15% 94%;
     --foreground: 0 0% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 0 0% 32%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
     --primary: 179 91% 22%;           /* #0F5D56 */
     --primary-foreground: 0 0% 100%;
     --primary-hover: 175 72% 17%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 0 0% 10%;
+    --secondary: 0 0% 100%;
+    --secondary-foreground: 0 0% 32%;
+    --secondary-hover: 240 5% 92%;
+    --tertiary: 43 100% 64%;
+    --tertiary-foreground: 0 0% 10%;
+    --tertiary-hover: 43 100% 44%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 6% 10%;
+    --muted-hover: 240 5% 90%;
     --accent: 43 100% 64%;             /* #F5C24A */
     --accent-foreground: 44 100% 8%;  /* #2A1F00 */
     --accent-soft: 45 90% 89%;        /* #FCEFC8 */
@@ -27,7 +32,7 @@
     --destructive-foreground: 0 0% 100%;
     --destructive-hover: 3 100% 39%;
     --border: 0 0% 80%;
-    --input: 0 0% 100%;
+    --input: 0 0% 95%;
     --ring: 175 35% 75%;
     --radius: 0.5rem;
     --sidebar: 0 0% 100%;
@@ -78,8 +83,13 @@
     --primary-foreground: 165 50% 5%; /* #06120F */
     --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 100%;
+    --secondary-hover: 0 0% 28%;
+    --tertiary: 0 0% 15%;
+    --tertiary-foreground: 0 0% 100%;
+    --tertiary-hover: 0 0% 22%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 6% 10%;
+    --muted-hover: 240 4% 25%;
     --accent: 43 100% 64%;
     --accent-foreground: 44 100% 8%;
     --accent-soft: 43 47% 12%;        /* #2C2410 */
@@ -185,5 +195,6 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
 }
 
 * {
-  font-family: 'GoogleSans', sans-serif;
+  font-family: 'Inter', 'GoogleSans', sans-serif;
+/* Old: font-family: 'GoogleSans', sans-serif; */
 }

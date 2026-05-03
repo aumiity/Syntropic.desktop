@@ -8,7 +8,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
-import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
+import { formatCurrency, formatExpiry, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
 import type { Product, ProductCategory, DrugType } from '@/types'
 import { Search, Plus, Edit2, AlertTriangle, Package, ChevronDown } from 'lucide-react'
 
@@ -177,7 +177,7 @@ export default function ProductsPage() {
     return <span className="text-sm font-medium">{qty.toLocaleString()}</span>
   }
 
-  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const dateStr = formatThaiDateHeader(now)
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
@@ -190,7 +190,7 @@ export default function ProductsPage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right text-xs text-muted-foreground leading-relaxed">
-            <div>วันที่: <span className="font-semibold text-foreground">{dateStr}</span></div>
+            <div className="font-semibold text-foreground">{dateStr}</div>
             <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
           </div>
           <Button onClick={() => setShowCreate(true)}>
