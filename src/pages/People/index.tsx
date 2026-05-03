@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { formatThaiDateHeader } from '@/lib/utils'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -657,32 +657,13 @@ function StaffTab() {
 // ========================
 export default function PeoplePage() {
   const [tab, setTab] = useState('customers')
-  const [now, setNow] = useState(new Date())
-
-  useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(tick)
-  }, [])
-
-  const dateStr = formatThaiDateHeader(now)
-  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border">
-        <div>
-          <h1 className="text-xl font-semibold">บุคคล</h1>
-          <p className="text-sm text-muted-foreground">จัดการลูกค้า ผู้จัดจำหน่าย และพนักงาน</p>
-        </div>
-        <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div className="font-semibold text-foreground">{dateStr}</div>
-          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
-        </div>
-      </div>
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+      <PageHeader title="บุคคล" />
 
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="px-6 pt-4 shrink-0">
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
+        <div className="px-4 pt-4 shrink-0">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList>
               <TabsTrigger value="customers">
@@ -698,7 +679,7 @@ export default function PeoplePage() {
           </Tabs>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
+        <div className="flex-1 overflow-y-auto px-4 pb-6 pt-4">
           {tab === 'customers' && <CustomersTab />}
           {tab === 'suppliers' && <SuppliersTab />}
           {tab === 'staff' && <StaffTab />}

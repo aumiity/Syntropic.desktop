@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { useToast } from '@/components/ui/toast'
-import { formatCurrency, formatDate, formatThaiDateHeader } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
+import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, ProductLot } from '@/types'
 import { Search, ChevronDown } from 'lucide-react'
 
@@ -32,7 +33,6 @@ export default function ReportsPurchasesPage() {
   const { toast } = useToast()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = today.slice(0, 7) + '-01'
-  const [now, setNow] = useState(new Date())
 
   // Filters
   const [q, setQ] = useState('')
@@ -104,31 +104,16 @@ export default function ReportsPurchasesPage() {
   const pageItemCount = rows.reduce((s, r) => s + (r.item_count ?? 0), 0)
   const creditUnpaid = rows.filter(r => r.payment_type === 'credit' && !r.is_paid)
 
-  useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(tick)
-  }, [])
-
   const receiptTotal = receiptItems.reduce((s, i) => s + i.cost_price * i.qty_received, 0)
-  const dateStr = formatThaiDateHeader(now)
-  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border">
-        <div>
-          <h1 className="text-xl font-semibold">รายงานการรับสินค้า</h1>
-          <p className="text-sm text-muted-foreground">ประวัติการรับสินค้าและการชำระเงิน</p>
-        </div>
-        <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div className="font-semibold text-foreground">{dateStr}</div>
-          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
-        </div>
-      </div>
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+      <PageHeader title="รายงานการรับสินค้า" />
+
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
 
       {/* Filters */}
-      <form onSubmit={handleSearch} className="px-6 py-3 border-b border-border bg-muted/30 shrink-0 flex flex-wrap gap-2 items-center">
+      <form onSubmit={handleSearch} className="px-4 py-3 border-b border-border shrink-0 flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาเลขใบรับ..." className="pl-8" />
@@ -229,6 +214,7 @@ export default function ReportsPurchasesPage() {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Receipt detail modal */}

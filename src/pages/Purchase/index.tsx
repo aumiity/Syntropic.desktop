@@ -12,7 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogBody } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
-import { cn, formatCurrency, formatDate, formatExpiry, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
+import { cn, formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib/utils'
+import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, ProductLot } from '@/types'
 import {
   Search, Plus, Trash2, Package, ChevronDown, X,
@@ -148,12 +149,6 @@ function InlineModal({ title, onClose, onConfirm, children, footer, maxWidth = '
 export default function PurchasePage() {
   const { toast } = useToast()
   const today = new Date().toISOString().slice(0, 10)
-  const [now, setNow] = useState(new Date())
-
-  useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(tick)
-  }, [])
 
   // Form
   const [invoiceNo, setInvoiceNo] = useState('')
@@ -875,19 +870,8 @@ export default function PurchasePage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full p-3 gap-3">
-
-      {/* ── Banner — flat style, matching POS ── */}
-      <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border">
-        <div>
-          <h1 className="text-xl font-semibold">การซื้อ</h1>
-          <p className="text-sm text-muted-foreground">จัดการการรับสินค้าและประวัติการสั่งซื้อ</p>
-        </div>
-        <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div className="font-semibold text-foreground">{formatThaiDateHeader(now)}</div>
-          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span></div>
-        </div>
-      </div>
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+      <PageHeader title="การซื้อ" />
 
       {/* ── Tab area ── */}
       <div className="flex-1 min-h-0 flex flex-col">

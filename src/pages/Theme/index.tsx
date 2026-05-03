@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useThemeStore, type ThemeMode } from '@/stores/themeStore'
 import { ACCENT_PRESETS, HIGHLIGHT_PRESETS } from '@/lib/accent-presets'
 import { TAILWIND_FAMILIES, SHADES, swatchColor } from '@/lib/tailwind-palette'
-import { cn, formatThaiDateHeader } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { useToast } from '@/components/ui/toast'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -128,32 +129,11 @@ export default function Theme() {
   const [confirmDestrOpen, setConfirmDestrOpen] = useState(false)
   const [confirmReasonOpen, setConfirmReasonOpen] = useState(false)
 
-  const [now, setNow] = useState(new Date())
-
-  useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(tick)
-  }, [])
-
-  const dateStr = formatThaiDateHeader(now)
-  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-
   return (
-    <div className="h-full overflow-y-auto bg-background">
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+      <PageHeader title="ธีม" />
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
-        <div>
-          <h1 className="text-xl font-semibold">ธีม</h1>
-          <p className="text-sm text-muted-foreground">ปรับแต่งสีและรูปลักษณ์ของระบบ</p>
-        </div>
-        <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div className="font-semibold text-foreground">{dateStr}</div>
-          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
-        </div>
-      </div>
-
-      <div className="p-8">
+      <div className="flex-1 overflow-y-auto">
         <Tabs defaultValue="components" className="w-full max-w-6xl rounded-xl border border-border bg-card overflow-hidden">
           <div className="border-b border-border bg-muted/30 px-4 py-3">
             <TabsList className="mb-0">

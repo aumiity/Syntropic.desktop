@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { cn, formatThaiDateHeader } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -106,13 +107,6 @@ export default function CSSPage() {
   const [isSavingFontSize, setIsSavingFontSize] = useState(false)
   const [selectedPaletteColor, setSelectedPaletteColor] = useState<SelectedPaletteColor | null>(null)
 
-  const [now, setNow] = useState(new Date())
-
-  useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(tick)
-  }, [])
-
   useEffect(() => {
     ;(async () => {
       try {
@@ -181,25 +175,11 @@ export default function CSSPage() {
     }
   }
 
-  const dateStr = formatThaiDateHeader(now)
-  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-
   return (
-    <div className="h-full overflow-y-auto bg-background">
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+      <PageHeader title="CSS" />
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
-        <div>
-          <h1 className="text-xl font-semibold">CSS</h1>
-          <p className="text-sm text-muted-foreground">ปรับแต่ง CSS variables และขนาดฟอนต์</p>
-        </div>
-        <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div className="font-semibold text-foreground">{dateStr}</div>
-          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
-        </div>
-      </div>
-
-      <div className="p-8">
+      <div className="flex-1 overflow-y-auto">
         <div className="grid grid-cols-2 gap-4">
           {/* ── COLOR TOKENS ── */}
           <Section title="Color Tokens (from index.css)" path="src/index.css" full>

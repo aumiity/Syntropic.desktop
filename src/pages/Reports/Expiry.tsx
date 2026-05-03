@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency } from '@/lib/utils'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { Search, PackageX, AlertTriangle } from 'lucide-react'
 
 type FilterType = 'expired' | 30 | 60 | 90 | 'all'
@@ -125,23 +126,23 @@ export default function ReportsExpiryPage() {
   const expiredCount = rows.filter(r => (r.days_remaining ?? 1) < 0).length
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border">
-        <div>
-          <h1 className="text-xl font-semibold">รายงานวันหมดอายุ</h1>
-          <p className="text-sm text-muted-foreground">ล็อตสินค้าที่ใกล้หมดอายุและหมดอายุแล้ว</p>
-        </div>
-        {expiredCount > 0 && (
-          <div className="flex items-center gap-2 bg-destructive-soft border border-destructive/30 rounded-lg px-3 py-2 text-sm text-destructive">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>หมดอายุแล้ว <span className="font-bold">{expiredCount}</span> ล็อต</span>
-          </div>
-        )}
-      </div>
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+      <PageHeader
+        title="รายงานวันหมดอายุ"
+        right={
+          expiredCount > 0 ? (
+            <div className="flex items-center gap-2 bg-destructive-soft border border-destructive/30 rounded-lg px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>หมดอายุแล้ว <span className="font-bold">{expiredCount}</span> ล็อต</span>
+            </div>
+          ) : null
+        }
+      />
+
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
 
       {/* Filter bar */}
-      <div className="px-6 py-3 border-b border-border bg-muted/30 shrink-0">
+      <div className="px-4 py-3 border-b border-border shrink-0">
         <div className="flex flex-wrap gap-2 items-center">
           {/* Preset filter chips */}
           <div className="flex gap-1">
@@ -256,6 +257,7 @@ export default function ReportsExpiryPage() {
             </TableBody>
           </Table>
         )}
+      </div>
       </div>
 
       <ConfirmDialog

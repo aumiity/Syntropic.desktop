@@ -11,6 +11,7 @@ import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, ProductLabel, ProductCategory, DrugType, DosageForm, ItemUnit } from '@/types'
 import { DateInput } from '@/components/ui/date-input'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { ArrowLeft, Save, Plus, Trash2, Edit2, ChevronDown, AlertTriangle, Check, X } from 'lucide-react'
 
 // ---- Types ----
@@ -487,37 +488,38 @@ export default function EditProductPage() {
   const setLF = (key: string, v: any) => setLabelForm((f: any) => ({ ...f, [key]: v }))
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-border flex items-center gap-4 shrink-0">
-        <button onClick={() => navigate('/products')} className="text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold truncate">{product.trade_name}</h1>
-          <p className="text-xs text-muted-foreground">{product.code ?? ''} {product.barcode ? `· ${product.barcode}` : ''}</p>
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+      <PageHeader
+        title={product.trade_name}
+        right={
+          <>
+            <button onClick={() => navigate('/products')} className="text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            {tab === 'general' && (
+              <Button onClick={handleSave} disabled={saving}>
+                <Save className="w-4 h-4 mr-1.5" />
+                {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+              </Button>
+            )}
+          </>
+        }
+      />
+
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
+        {/* Tabs */}
+        <div className="px-4 pt-4 shrink-0">
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList>
+              <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
+              <TabsTrigger value="units">หน่วยนับ ({product.units?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="labels">ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="lots">ล็อต ({product.lots?.length ?? 0})</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
-        {tab === 'general' && (
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="w-4 h-4 mr-1.5" />
-            {saving ? 'กำลังบันทึก...' : 'บันทึก'}
-          </Button>
-        )}
-      </div>
 
-      {/* Tabs */}
-      <div className="px-6 pt-4 shrink-0">
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList>
-            <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
-            <TabsTrigger value="units">หน่วยนับ ({product.units?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="labels">ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="lots">ล็อต ({product.lots?.length ?? 0})</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 pb-8">
+        <div className="flex-1 overflow-y-auto px-4 pb-8">
 
         {/* ======================== TAB: GENERAL ======================== */}
         {tab === 'general' && (
@@ -962,6 +964,7 @@ export default function EditProductPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* ======================== UNIT DIALOG ======================== */}

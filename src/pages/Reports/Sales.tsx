@@ -7,7 +7,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
-import { formatCurrency, formatDate, formatDateTime, formatThaiDateHeader } from '@/lib/utils'
+import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
+import { PageHeader } from '@/components/layout/PageHeader'
 import type { Sale, SaleItem } from '@/types'
 import { Search, TrendingUp, TrendingDown, Receipt, ShoppingBag, Ban, ChevronDown } from 'lucide-react'
 
@@ -57,7 +58,6 @@ function SummaryCard({ label, value, sub, icon, color = '' }: {
 export default function ReportsSalesPage() {
   const { toast } = useToast()
   const today = new Date().toISOString().slice(0, 10)
-  const [now, setNow] = useState(new Date())
 
   // Filters
   const [q, setQ] = useState('')
@@ -156,30 +156,14 @@ export default function ReportsSalesPage() {
   const profitColor = (profit: number) =>
     profit > 0 ? 'text-success' : profit < 0 ? 'text-destructive' : ''
 
-  useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(tick)
-  }, [])
-
-  const dateStr = formatThaiDateHeader(now)
-  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border">
-        <div>
-          <h1 className="text-xl font-semibold">รายงานการขาย</h1>
-          <p className="text-sm text-muted-foreground">ยอดขาย ต้นทุน และกำไร</p>
-        </div>
-        <div className="text-right text-xs text-muted-foreground leading-relaxed">
-          <div className="font-semibold text-foreground">{dateStr}</div>
-          <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
-        </div>
-      </div>
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+      <PageHeader title="รายงานการขาย" />
+
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
 
       {/* Filters */}
-      <form onSubmit={handleSearch} className="px-6 py-3 border-b border-border bg-muted/30 shrink-0 flex flex-wrap gap-2 items-center">
+      <form onSubmit={handleSearch} className="px-4 py-3 border-b border-border shrink-0 flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..." className="pl-8" />
@@ -321,6 +305,7 @@ export default function ReportsSalesPage() {
             )}
           </div>
         </div>
+      </div>
       </div>
 
       {/* Sale detail modal */}

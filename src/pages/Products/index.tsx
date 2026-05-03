@@ -8,7 +8,8 @@ import { Pagination } from '@/components/ui/pagination'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
-import { formatCurrency, formatExpiry, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
+import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
+import { PageHeader } from '@/components/layout/PageHeader'
 import type { Product, ProductCategory, DrugType } from '@/types'
 import { Search, Plus, Edit2, AlertTriangle, Package, ChevronDown } from 'lucide-react'
 
@@ -57,8 +58,6 @@ export default function ProductsPage() {
   const [adjustNote, setAdjustNote] = useState('')
   const [adjusting, setAdjusting] = useState(false)
 
-  const [now, setNow] = useState(new Date())
-
   const limit = 50
   const totalPages = Math.ceil(total / limit)
 
@@ -69,11 +68,6 @@ export default function ProductsPage() {
   useEffect(() => {
     load(1)
   }, [categoryId, drugTypeId])
-
-  useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(tick)
-  }, [])
 
   const loadDropdowns = async () => {
     const [cats, dts] = await Promise.all([
@@ -177,81 +171,67 @@ export default function ProductsPage() {
     return <span className="text-sm font-medium">{qty.toLocaleString()}</span>
   }
 
-  const dateStr = formatThaiDateHeader(now)
-  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-xl font-semibold">สินค้า</h1>
-          <p className="text-sm text-muted-foreground">จัดการรายการสินค้าและยา</p>
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+      <PageHeader title="สินค้า" />
+
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
+        {/* Filters */}
+        <div className="px-4 py-3 border-b border-border shrink-0">
+          <form onSubmit={handleSearch} className="flex flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="ค้นหาชื่อ, บาร์โค้ด, รหัส..."
+                className="pl-8"
+              />
+            </div>
+
+            {/* Category filter */}
+            <div className="relative w-44">
+              <select
+                className="w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                value={categoryId}
+                onChange={e => setCategoryId(Number(e.target.value))}
+              >
+                <option value={0}>หมวดหมู่ทั้งหมด</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            </div>
+
+            {/* Drug type filter */}
+            <div className="relative w-44">
+              <select
+                className="w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                value={drugTypeId}
+                onChange={e => setDrugTypeId(Number(e.target.value))}
+              >
+                <option value={0}>ประเภทยาทั้งหมด</option>
+                {drugTypes.map(d => <option key={d.id} value={d.id}>{d.name_th}</option>)}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            </div>
+
+            <Button type="submit" variant="outline">
+              <Search className="w-3.5 h-3.5 mr-1" /> ค้นหา
+            </Button>
+            <Button type="button" onClick={() => setShowCreate(true)} className="ml-auto">
+              <Plus className="w-4 h-4 mr-1.5" /> เพิ่มสินค้า
+            </Button>
+          </form>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right text-xs text-muted-foreground leading-relaxed">
-            <div className="font-semibold text-foreground">{dateStr}</div>
-            <div>เวลา: <span className="font-semibold tabular-nums text-foreground">{timeStr}</span></div>
-          </div>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="w-4 h-4 mr-1.5" /> เพิ่มสินค้า
-          </Button>
+
+        {/* Summary bar */}
+        <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border shrink-0">
+          {loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="px-6 py-3 border-b border-border bg-muted/30 shrink-0">
-        <form onSubmit={handleSearch} className="flex flex-wrap gap-2">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหาชื่อ, บาร์โค้ด, รหัส..."
-              className="pl-8"
-            />
-          </div>
-
-          {/* Category filter */}
-          <div className="relative w-44">
-            <select
-              className="w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-              value={categoryId}
-              onChange={e => setCategoryId(Number(e.target.value))}
-            >
-              <option value={0}>หมวดหมู่ทั้งหมด</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          </div>
-
-          {/* Drug type filter */}
-          <div className="relative w-44">
-            <select
-              className="w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-              value={drugTypeId}
-              onChange={e => setDrugTypeId(Number(e.target.value))}
-            >
-              <option value={0}>ประเภทยาทั้งหมด</option>
-              {drugTypes.map(d => <option key={d.id} value={d.id}>{d.name_th}</option>)}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          </div>
-
-          <Button type="submit" variant="outline">
-            <Search className="w-3.5 h-3.5 mr-1" /> ค้นหา
-          </Button>
-        </form>
-      </div>
-
-      {/* Summary bar */}
-      <div className="px-6 py-2 text-xs text-muted-foreground border-b border-border shrink-0">
-        {loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}
-      </div>
-
-      {/* Table */}
-      <div className="flex-1 overflow-y-auto">
-        <Table>
+        {/* Table */}
+        <div className="flex-1 overflow-y-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-12">#</TableHead>
@@ -322,16 +302,17 @@ export default function ProductsPage() {
                 </TableCell>
               </TableRow>
             ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="px-6 py-3 border-t border-border flex justify-center shrink-0">
-          <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} />
+            </TableBody>
+          </Table>
         </div>
-      )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-4 py-3 border-t border-border flex justify-center shrink-0">
+            <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} />
+          </div>
+        )}
+      </div>
 
       {/* Create product dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
