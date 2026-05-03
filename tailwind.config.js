@@ -38,6 +38,11 @@ export default {
           foreground: 'hsl(var(--tertiary-foreground))',
           hover: 'hsl(var(--tertiary-hover))',
         },
+        quaternary: {
+          DEFAULT: 'hsl(var(--quaternary))',
+          foreground: 'hsl(var(--quaternary-foreground))',
+          hover: 'hsl(var(--quaternary-hover))',
+        },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',

@@ -325,6 +325,7 @@ export default function Theme() {
                   <Button variant="default">Default</Button>
                   <Button variant="secondary">Secondary</Button>
                   <Button variant="tertiary">Tertiary</Button>
+                  <Button variant="quaternary">Quaternary</Button>
                   <Button variant="outline">Outline</Button>
                   <Button variant="ghost">Ghost</Button>
                   <Button variant="destructive">Destructive</Button>

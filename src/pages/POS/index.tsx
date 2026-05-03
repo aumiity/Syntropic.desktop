@@ -566,7 +566,7 @@ export default function POSPage() {
         <div className="flex-1 flex flex-col gap-3.5 min-h-0">
 
           {/* Toolbar card */}
-          <div className="rounded-2xl shadow-card p-3.5 grid gap-3.5 shrink-0" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(360px,440px)' }}>
+          <div className="grid gap-3.5 shrink-0" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(360px,440px)' }}>
             {/* Left: search + retail/wholesale segmented */}
             <div className="flex flex-col gap-3 min-w-0">
               <div className="relative min-w-0">
@@ -581,33 +581,32 @@ export default function POSPage() {
                   <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground pointer-events-none"/>
               </div>
 
-              <button
-                type="button"
-                role="switch"
-                aria-checked={cart.saleType === 'wholesale'}
-                onClick={() => { cart.setSaleType(cart.saleType === 'retail' ? 'wholesale' : 'retail'); refocusSearch() }}
-                className="relative flex items-stretch w-full h-11 bg-muted rounded-full p-1 select-none">
-                <span
-                  aria-hidden
-                  style={{ width: 'calc(50% - 0.25rem)' }}
-                  className={`absolute top-1 bottom-1 left-1 rounded-full bg-card shadow-sm transition-transform duration-200 ease-out ${cart.saleType === 'wholesale' ? 'translate-x-full' : 'translate-x-0'}`}/>
-                <span className={`relative z-10 flex-1 grid place-items-center text-[14px] font-medium transition-colors ${cart.saleType === 'retail' ? 'text-foreground' : 'text-muted-foreground'}`}>
+              <div className="flex w-full gap-2">
+                <Button
+                  type="button"
+                  variant={cart.saleType === 'retail' ? 'default' : 'secondary'}
+                  onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
+                  className="flex-1 h-11 rounded-xl text-sm font-bold">
                   ขายปลีก
-                </span>
-                <span className={`relative z-10 flex-1 grid place-items-center text-[14px] font-medium transition-colors ${cart.saleType === 'wholesale' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                </Button>
+                <Button
+                  type="button"
+                  variant={cart.saleType === 'wholesale' ? 'default' : 'secondary'}
+                  onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
+                  className="flex-1 h-11 rounded-xl text-sm font-bold">
                   ขายส่ง
-                </span>
-              </button>
+                </Button>
+              </div>
             </div>
 
             {/* Right: customer card */}
-            <div className="bg-muted rounded-xl p-3 grid items-center gap-3" style={{ gridTemplateColumns: '44px minmax(0,1fr) auto' }}>
+            <div className="bg-card rounded-xl p-3 grid items-center gap-3" style={{ gridTemplateColumns: '44px minmax(0,1fr) auto' }}>
               <button type="button" onClick={() => setShowCustomerSearch(true)}
                 className="w-11 h-11 rounded-full bg-primary-soft text-primary font-semibold text-base grid place-items-center shrink-0 hover:bg-primary-soft-hover transition-colors">
                 {cart.customer ? cart.customer.full_name.slice(0, 2) : <User className="h-5 w-5" />}
               </button>
               <button type="button" onClick={() => setShowCustomerSearch(true)} className="text-left min-w-0">
-                <div className="text-[15px] font-semibold truncate flex items-center gap-1">
+                <div className="text-sm font-semibold truncate flex items-center gap-1">
                   {cart.customer?.is_alert ? <AlertTriangle className="h-3 w-3 text-destructive shrink-0" /> : null}
                   {cart.customer ? cart.customer.full_name : 'ลูกค้าทั่วไป'}
                 </div>
@@ -616,12 +615,12 @@ export default function POSPage() {
                 </div>
               </button>
               <div className="flex flex-col gap-1.5">
-                <Button variant="outline" size="sm" onClick={() => setShowCustomerInfo(true)} disabled={!cart.customer}
-                  className="h-auto px-3 py-1.5 rounded-md bg-card text-foreground text-sm font-medium hover:bg-muted whitespace-nowrap">
+                <Button variant="quaternary" size="sm" onClick={() => setShowCustomerInfo(true)} disabled={!cart.customer}
+                  className="h-auto px-3 py-1.5 rounded-r-lg text-sm font-medium whitespace-nowrap">
                   ดูข้อมูล
                 </Button>
-                <Button size="sm" onClick={() => setShowQuickAdd(true)}
-                  className="h-auto px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary-hover whitespace-nowrap gap-1">
+                <Button variant="tertiary" size="sm" onClick={() => setShowQuickAdd(true)}
+                  className="h-auto px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap gap-1">
                   <UserPlus className="h-3 w-3" /> เพิ่มลูกค้า
                 </Button>
               </div>

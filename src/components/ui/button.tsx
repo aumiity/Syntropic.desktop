@@ -27,15 +27,19 @@ const buttonVariants = cva(
         ].join(" "),
         secondary: [
           "bg-secondary text-secondary-foreground",
-          "hover:bg-primary hover:text-primary-foreground [a]:hover:bg-secondary/80",
+          "hover:bg-secondary-hover [a]:hover:bg-secondary/80",
         ].join(" "),
         tertiary: [
           "bg-tertiary text-tertiary-foreground",
           "hover:bg-tertiary-hover [a]:hover:bg-tertiary/80",
         ].join(" "),
+        quaternary: [
+          "bg-quaternary text-quaternary-foreground",
+          "hover:bg-quaternary-hover [a]:hover:bg-quaternary/80",
+        ].join(" "),
         outline: [
           "border-transparent bg-muted",
-          "hover:bg-muted hover:text-foreground",
+          "hover:bg-muted-hover hover:text-foreground",
           "aria-expanded:bg-muted aria-expanded:text-foreground",
           "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         ].join(" "),
