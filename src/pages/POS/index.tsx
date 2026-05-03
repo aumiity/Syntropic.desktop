@@ -566,7 +566,7 @@ export default function POSPage() {
         <div className="flex-1 flex flex-col gap-3.5 min-h-0">
 
           {/* Toolbar card */}
-          <div className="bg-card rounded-2xl shadow-card p-3.5 grid gap-3.5 shrink-0" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(360px,440px)' }}>
+          <div className="rounded-2xl shadow-card p-3.5 grid gap-3.5 shrink-0" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(360px,440px)' }}>
             {/* Left: search + retail/wholesale segmented */}
             <div className="flex flex-col gap-3 min-w-0">
               <div className="relative min-w-0">
@@ -577,7 +577,7 @@ export default function POSPage() {
                   placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                   autoFocus
                   autoComplete="off"
-                  className="h-auto py-2.5 pl-3.5 pr-10 text-sm bg-muted rounded-xl border-0 shadow-none focus-visible:ring-0 placeholder:text-foreground-subtle"/>
+                  className="h-auto py-2.5 pl-3.5 pr-10 text-sm bg-card rounded-xl border-0 shadow-none focus-visible:ring-0 placeholder:text-foreground-subtle"/>
                   <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground pointer-events-none"/>
               </div>
 

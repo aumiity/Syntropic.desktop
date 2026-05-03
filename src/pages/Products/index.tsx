@@ -175,10 +175,9 @@ export default function ProductsPage() {
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
       <PageHeader title="สินค้า" />
 
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
-        {/* Filters */}
-        <div className="px-4 py-3 border-b border-border shrink-0">
-          <form onSubmit={handleSearch} className="flex flex-wrap gap-2 items-center">
+      {/* Search & Filters — standalone */}
+      <div className="shrink-0">
+        <form onSubmit={handleSearch} className="flex flex-wrap gap-2 items-center">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
@@ -222,8 +221,10 @@ export default function ProductsPage() {
               <Plus className="w-4 h-4 mr-1.5" /> เพิ่มสินค้า
             </Button>
           </form>
-        </div>
+      </div>
 
+      {/* Card: table + pagination */}
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
         {/* Summary bar */}
         <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border shrink-0">
           {loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}
