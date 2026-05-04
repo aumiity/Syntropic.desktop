@@ -18,7 +18,7 @@ import {
   Search, User, Trash2, Plus, Minus,
   Banknote, AlertTriangle, ChevronDown, X, UserPlus, Info,
   RotateCcw, ChevronRight, ChevronLeft, Tag,
-  ShoppingCart, Timer,
+  ShoppingBasket, Timer,
 } from 'lucide-react'
 
 interface ReturnLineItem {
@@ -576,24 +576,24 @@ export default function POSPage() {
               const isActive = i === cart.activeSlot
               const hasItems = slot.items.length > 0
               const isWaiting = !isActive && hasItems
-              const Icon = isWaiting ? Timer : ShoppingCart
+              const Icon = isWaiting ? Timer : ShoppingBasket
               const iconBox = isActive
                 ? 'bg-card text-primary'
                 : isWaiting
-                  ? 'bg-warning-soft text-warning-strong'
+                  ? 'bg-accent-soft text-warning-strong'
                   : 'bg-primary-soft text-primary'
               return (
                 <Button key={i} variant="ghost"
                   onClick={() => { cart.setActiveSlot(i); refocusSearch() }}
                   className={`flex flex-col items-stretch justify-between text-left h-40 p-5 rounded-2xl transition-colors ${
                     isActive
-                      ? 'bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
                       : 'bg-card text-foreground hover:bg-surface-hover'
                   }`}>
                   <div className="flex items-start justify-between w-full">
                     <span className="text-base font-semibold">รายการขาย {i + 1}</span>
                     <span className={`grid place-items-center w-10 h-10 rounded-xl shrink-0 ${iconBox}`}>
-                      <Icon className="h-5 w-5" />
+                      <Icon className="size-5" strokeWidth={2}/>
                     </span>
                   </div>
                   <div className="flex flex-col gap-1 w-full">
@@ -601,59 +601,53 @@ export default function POSPage() {
                       <span className="opacity-70 mr-1 text-2xl">฿</span>{formatCurrency(total)}
                     </span>
                     <span className={`text-sm tabular-nums ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                      {pieces} รายการ ·{' '}
+                      {pieces} รายการ {' '}
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant="warning" className="text-xs">ขายส่ง</Badge>
+                        <Badge variant="tertiary" className="ml-2 text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
-                        <Badge variant="success" className="text-xs">ขายปลีก</Badge>
+                        <Badge variant="quaternary" className="ml-2 text-xs rounded-md">ขายปลีก</Badge>
                       )}
                     </span>
                   </div>
                 </Button>
               )
             })}
-            <div className="relative h-40 rounded-2xl bg-card text-foreground hover:bg-surface-hover transition-colors">
+            <div className="flex flex-col gap-2 h-40 p-3 bg-card rounded-2xl">
               <Button variant="ghost"
                 onClick={() => setShowCustomerSearch(true)}
-                className="absolute inset-0 flex flex-col items-stretch justify-between text-left p-5 rounded-2xl bg-transparent hover:bg-transparent">
-                <div className="flex items-start justify-between w-full">
-                  <span className="text-base font-semibold">ลูกค้า</span>
-                  <span className="grid place-items-center w-10 h-10 rounded-xl shrink-0 bg-primary-soft text-primary">
-                    <User className="h-5 w-5" />
-                  </span>
-                </div>
-                <div className="flex flex-col gap-0.5 w-full min-w-0 pr-36">
+                className="relative flex items-center gap-3 flex-1 min-h-0 p-2 rounded-xl hover:bg-transparent text-left">
+                <span className="grid place-items-center w-14 h-14 rounded-full shrink-0 bg-primary-soft text-primary">
+                  <User className="size-7" />
+                </span>
+                <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                   <span className="text-base font-bold leading-tight truncate flex items-center gap-1.5">
-                    {cart.customer?.is_alert ? <AlertTriangle className="h-4 w-4 text-destructive shrink-0" /> : null}
                     {cart.customer ? cart.customer.full_name : 'ลูกค้าทั่วไป'}
                   </span>
                   <span className="text-sm text-muted-foreground truncate">
                     {cart.customer?.phone || 'แตะเพื่อเลือกลูกค้า'}
                   </span>
+                  {cart.customer?.is_alert && cart.customer.alert_note ? (
+                    <Badge variant="destructive" className="text-xs rounded-md"><AlertTriangle className="size-3 shrink-0" />
+                      {cart.customer.alert_note}
+                    </Badge>
+                  ) : null}
                 </div>
               </Button>
-              <div className="absolute bottom-3 right-3 z-10 flex gap-1.5">
-                {cart.customer && (
-                  <Button variant="quaternary" size="xs"
-                    onClick={() => setShowCustomerInfo(true)}
-                    className="px-2 h-6 rounded-md text-xs gap-1">
-                    <Info className="h-3 w-3" /> ดูข้อมูล
-                  </Button>
-                )}
-                <Button variant="tertiary" size="xs"
+              <div className="grid grid-cols-2 gap-2 shrink-0">
+                <Button variant="quaternary"
+                  onClick={() => setShowCustomerInfo(true)}
+                  disabled={!cart.customer}
+                  className="h-9 rounded-lg text-xs gap-1">
+                  <Info className="size-3.5" /> ดูข้อมูล
+                </Button>
+                <Button variant="tertiary"
                   onClick={() => setShowQuickAdd(true)}
-                  className="px-2 h-6 rounded-md text-xs gap-1">
-                  <UserPlus className="h-3 w-3" /> เพิ่ม
+                  className="h-9 rounded-lg text-xs gap-1">
+                  <UserPlus className="size-3.5" /> เพิ่มลูกค้า
                 </Button>
               </div>
             </div>
           </div>
-
-          {(cart.customer?.is_alert ?? 0) > 0 && cart.customer?.alert_note && (
-            <div className="bg-destructive-soft rounded-xl px-4 py-2.5 text-base text-destructive flex items-center gap-2 font-medium shrink-0">
-              <AlertTriangle className="h-4 w-4 shrink-0" />{cart.customer.alert_note}
-            </div>
-          )}
 
           {/* Cart card (search + table + footer) */}
           <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
@@ -669,7 +663,7 @@ export default function POSPage() {
             </Button>
             <Button
               type="button"
-              variant={cart.saleType === 'wholesale' ? 'default' : 'secondary'}
+              variant={cart.saleType === 'wholesale' ? 'tertiary' : 'secondary'}
               onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
               className="flex h-9 w-[84px] px-0 rounded-lg text-sm font-semibold shrink-0 justify-center">
               ขายส่ง
@@ -688,7 +682,7 @@ export default function POSPage() {
             <Button variant="outline" size="sm" disabled={cart.items.length === 0}
               onClick={() => { cart.clearCart(); refocusSearch() }}
               className="gap-1.5 px-3 py-1.5 h-auto rounded-lg bg-destructive-soft text-destructive text-sm font-medium hover:bg-destructive-soft shrink-0">
-              <Trash2 className="h-3.5 w-3.5" /> ลบสินค้าทั้งหมด
+              <Trash2 className="size-3.5" /> ลบสินค้าทั้งหมด
             </Button>
           </div>
 
@@ -782,7 +776,7 @@ export default function POSPage() {
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => { cart.removeItem(idx); refocusSearch() }}
                           className="w-7 h-7 rounded inline-flex items-center justify-center text-foreground-subtle hover:text-destructive hover:bg-destructive/10">
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="size-3.5" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -792,21 +786,19 @@ export default function POSPage() {
             </div>
 
             {cart.items.length > 0 && (
-              <div className="px-4 py-3.5 shrink-0 flex items-center gap-6 bg-muted">
+              <div className="px-4 h-9 shrink-0 flex items-center gap-6 bg-muted">
                 <div>
-                  <div className="text-[15px] uppercase tracking-wider font-semibold text-foreground-subtle">จำนวนรายการ</div>
-                  <div className="mt-0.5 text-base font-medium tabular-nums">{cart.items.length} / {cart.items.reduce((n, i) => n + i.qty, 0)} ชิ้น</div>
+                  <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle">จำนวน <span className="text-sm font-medium tabular-nums text-foreground">{cart.items.length}</span> รายการ</div>
                 </div>
                 <div className="flex-1" />
                 {cart.totalDiscount() > 0 && (
                   <div className="text-right">
-                    <div className="text-[15px] uppercase tracking-wider font-semibold text-foreground-subtle">ส่วนลด</div>
-                    <div className="mt-0.5 text-base font-medium tabular-nums text-destructive">−{formatCurrency(cart.totalDiscount())}</div>
+                    <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle">ส่วนลดรวม
+                    <span className="text-sm font-bold text-destructive"> ฿{formatCurrency(cart.totalDiscount())}</span></div>
                   </div>
                 )}
                 <div className="text-right">
-                  <div className="text-[15px] uppercase tracking-wider font-semibold text-foreground-subtle">ราคารวม</div>
-                  <div className="mt-0.5 text-[15px] font-semibold tabular-nums">{formatCurrency(cart.subtotal())}</div>
+                  <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle">ราคารวม <span className="text-sm font-bold tabular-nums text-foreground">฿{formatCurrency(cart.subtotal())}</span></div>
                 </div>
               </div>
             )}
@@ -818,16 +810,10 @@ export default function POSPage() {
         {/* Right column */}
         <div className="w-80 shrink-0 flex flex-col gap-3.5">
           {/* Total card */}
-          <div className="rounded-2xl bg-primary text-primary-foreground p-6 shadow-card shrink-0">
-            <div className="text-[15px] font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
-            <div className="mt-1.5 font-bold tabular-nums leading-[1.05] tracking-tight" style={{ fontSize: '48px', letterSpacing: '-1.5px' }}>
-              <span className="opacity-70 mr-1.5" style={{ fontSize: '26px' }}>฿</span>{formatCurrency(cart.totalAmount())}
-            </div>
-            <div className="mt-3.5 pt-3.5 flex justify-between text-sm opacity-85">
-              <span>รวม {cart.items.length} รายการ · {cart.items.reduce((n, i) => n + i.qty, 0)} ชิ้น</span>
-              {cart.totalDiscount() > 0 && (
-                <span className="tabular-nums">ส่วนลด {formatCurrency(cart.totalDiscount())}</span>
-              )}
+          <div className="h-40 rounded-2xl bg-primary text-primary-foreground p-6 shadow-card shrink-0">
+            <div className="text-right text-md font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
+            <div className="mt-6 text-right font-bold tabular-nums leading-[1.05] tracking-tight text-right" style={{ fontSize: '62px', letterSpacing: '-1.5px' }}>
+              {formatCurrency(cart.totalAmount())}
             </div>
           </div>
 
@@ -840,59 +826,59 @@ export default function POSPage() {
               setShowBreakdown(false)
               setShowPayment(true)
             }}
-            className="w-full h-auto justify-between bg-accent text-accent-foreground hover:bg-accent hover:-translate-y-px disabled:bg-muted disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-5 shadow-[0_8px_20px_-10px_rgba(245,194,74,0.6)]">
+            className="w-full h-40 justify-between bg-accent text-accent-foreground hover:bg-tertiary-hover disabled:bg-muted disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-5">
             <span className="flex flex-col items-start gap-0.5">
               <span className="text-xl font-bold leading-none">ชำระเงิน</span>
-              <span className="text-sm font-medium opacity-70 leading-none">เงินสด · โอน · บัตร · QR</span>
             </span>
-            <ChevronRight className="h-[22px] w-[22px]" strokeWidth={2.4} />
+            <ChevronRight className="size-[22px]" strokeWidth={2.4} />
           </Button>
 
           {/* Quick actions (vertical stack) */}
           <div className="flex flex-col gap-2">
             <Button variant="outline" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
               className="w-full justify-start gap-3 rounded-xl px-4 py-3.5 h-auto bg-card text-foreground hover:bg-muted text-[15px] font-medium">
-              <Banknote className="h-4 w-4 text-foreground-subtle" /> เปิดลิ้นชัก
+              <Banknote className="size-4 text-foreground-subtle" /> เปิดลิ้นชัก
             </Button>
             <Button variant="outline" disabled
               className="w-full justify-start gap-3 rounded-xl px-4 py-3.5 h-auto bg-card text-foreground hover:bg-muted text-[15px] font-medium">
-              <Tag className="h-4 w-4 text-foreground-subtle" /> พิมพ์ฉลาก
+              <Tag className="size-4 text-foreground-subtle" /> พิมพ์ฉลาก
             </Button>
             <Button variant="outline" onClick={() => setShowAdjust(true)}
               className="w-full justify-start gap-3 rounded-xl px-4 py-3.5 h-auto bg-card hover:bg-warning-soft hover:text-warning-strong text-[15px] font-medium text-foreground">
-              <Minus className="h-4 w-4 text-foreground-subtle" /> ตัดสต็อก
+              <Minus className="size-4 text-foreground-subtle" /> ตัดสต็อก
             </Button>
             <Button variant="outline" onClick={() => setShowReturn(true)}
               className="w-full justify-start gap-3 rounded-xl px-4 py-3.5 h-auto bg-card text-foreground hover:bg-muted text-[15px] font-medium">
-              <RotateCcw className="h-4 w-4 text-foreground-subtle" /> รับคืนสินค้า
+              <RotateCcw className="size-4 text-foreground-subtle" /> รับคืนสินค้า
             </Button>
             <Button variant="outline" disabled={cart.items.length === 0} onClick={() => { cart.clearCart(); refocusSearch() }}
               className="w-full justify-start gap-3 rounded-xl px-4 py-3.5 h-auto bg-card text-foreground hover:bg-muted hover:text-destructive text-[15px] font-medium">
-              <Trash2 className="h-4 w-4 text-foreground-subtle" /> ยกเลิกบิล
+              <Trash2 className="size-4 text-foreground-subtle" /> ยกเลิกบิล
             </Button>
           </div>
 
           {/* Daily summary */}
-          <div className="rounded-2xl bg-card shadow-card p-4 shrink-0">
+        <div className="mt-10"></div>
+          <div className="flex-1 h-auto rounded-2xl bg-card shadow-card p-4 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-semibold text-foreground">สรุปยอดขายวันนี้</h3>
-              <span className="text-[15px] px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">{dateStr}</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <div className="text-[15px] uppercase tracking-wider font-semibold text-foreground-subtle mb-1">บิลล่าสุด</div>
+                <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle mb-1">บิลล่าสุด</div>
                 <div className="text-base font-medium tabular-nums">{dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}</div>
               </div>
               <div>
-                <div className="text-[15px] uppercase tracking-wider font-semibold text-foreground-subtle mb-1">จำนวนบิล</div>
+                <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle mb-1">จำนวนบิล</div>
                 <div className="text-base font-medium tabular-nums">{dailyStats.bills} บิล</div>
               </div>
-              <div className="col-span-2 pt-3">
-                <div className="text-[15px] uppercase tracking-wider font-semibold text-foreground-subtle mb-1">ยอดรวมของวัน</div>
+              <div className="col-span-2">
+                <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle mb-1">ยอดรวมของวัน</div>
                 <div className="text-xl font-semibold tabular-nums text-primary">฿ {formatCurrency(dailyStats.total)}</div>
               </div>
             </div>
           </div>
+        
         </div>
       </div>
 
@@ -1006,7 +992,7 @@ export default function POSPage() {
                     <User className="size-8 p-1 bg-muted rounded-full text-muted-foreground shrink-0" />
                     <div>
                       <div className="font-medium text-base flex items-center gap-1">
-                        {c.is_alert > 0 && <AlertTriangle className="h-3 w-3 text-destructive" />}{c.full_name}
+                        {c.is_alert > 0}{c.full_name}
                       </div>
                       <div className="text-sm text-muted-foreground">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
                     </div>
@@ -1033,7 +1019,6 @@ export default function POSPage() {
                   <Card size="sm">
                     <CardHeader>
                       <CardTitle className="text-xl font-bold text-foreground flex items-center gap-1.5">
-                        {cart.customer.is_alert ? <AlertTriangle className="h-4 w-4 text-destructive shrink-0" /> : null}
                         {cart.customer.full_name}
                       </CardTitle>
                       <CardDescription className="flex gap-3 text-sm">
@@ -1259,7 +1244,7 @@ export default function POSPage() {
         <DialogContent size="2xl" onClose={closeAdjust}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-warning-strong">
-              <Minus className="h-4 w-4" /> ตัดสต็อก
+              <Minus className="size-4" /> ตัดสต็อก
             </DialogTitle>
           </DialogHeader>
 
@@ -1350,7 +1335,7 @@ export default function POSPage() {
                         <Button variant="outline" size="icon"
                           onClick={() => setAdjustQtyInput(v => String(Math.max(1, (parseFloat(v) || 1) - 1)))}
                           className="h-12 w-12 shrink-0 rounded-xl">
-                          <Minus className="h-5 w-5" />
+                          <Minus className="size-5" />
                         </Button>
                         <Input
                           type="number"
@@ -1363,7 +1348,7 @@ export default function POSPage() {
                         <Button variant="outline" size="icon"
                           onClick={() => setAdjustQtyInput(v => String((parseFloat(v) || 0) + 1))}
                           className="h-12 w-12 shrink-0 rounded-xl">
-                          <Plus className="h-5 w-5" />
+                          <Plus className="size-5" />
                         </Button>
                       </div>
                       <Button
@@ -1371,7 +1356,7 @@ export default function POSPage() {
                         disabled={!adjustSelectedLotId || !adjustQtyInput || parseFloat(adjustQtyInput) <= 0}
                         className="w-full h-10 gap-1.5"
                       >
-                        <Plus className="h-4 w-4" /> เพิ่มในรายการตัด
+                        <Plus className="size-4" /> เพิ่มในรายการตัด
                       </Button>
                     </div>
                   </div>
@@ -1407,7 +1392,7 @@ export default function POSPage() {
                     <Button variant="ghost" size="icon"
                       onClick={() => setAdjustList(list => list.filter((_, i) => i !== idx))}
                       className="w-6 h-6 shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="size-3" />
                     </Button>
                   </div>
                 ))}
@@ -1453,7 +1438,7 @@ export default function POSPage() {
               disabled={adjustList.length === 0 || !adjustReason.trim() || adjustSaving}
               className="bg-warning hover:bg-warning-hover text-white font-semibold gap-1.5"
             >
-              <Minus className="h-4 w-4" />
+              <Minus className="size-4" />
               {adjustSaving ? 'กำลังบันทึก...' : `ยืนยันตัดสต็อก${adjustList.length > 0 ? ` ${adjustList.length} รายการ` : ''}`}
             </Button>
           </DialogFooter>
@@ -1465,7 +1450,7 @@ export default function POSPage() {
         <DialogContent size="2xl" onClose={closeReturn}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-warning-strong">
-              <RotateCcw className="h-4 w-4" /> คืนสินค้า
+              <RotateCcw className="size-4" /> คืนสินค้า
             </DialogTitle>
           </DialogHeader>
 
@@ -1556,7 +1541,7 @@ export default function POSPage() {
                         <Button variant="outline" size="icon"
                           onClick={() => setReturnQtyInput(v => String(Math.max(1, (parseFloat(v) || 1) - 1)))}
                           className="h-12 w-12 shrink-0 rounded-xl">
-                          <Minus className="h-5 w-5" />
+                          <Minus className="size-5" />
                         </Button>
                         <Input
                           type="number"
@@ -1569,7 +1554,7 @@ export default function POSPage() {
                         <Button variant="outline" size="icon"
                           onClick={() => setReturnQtyInput(v => String((parseFloat(v) || 0) + 1))}
                           className="h-12 w-12 shrink-0 rounded-xl">
-                          <Plus className="h-5 w-5" />
+                          <Plus className="size-5" />
                         </Button>
                       </div>
                       <Button
@@ -1577,7 +1562,7 @@ export default function POSPage() {
                         disabled={!returnSelectedLotId || !returnQtyInput || parseFloat(returnQtyInput) <= 0}
                         className="w-full h-10 gap-1.5"
                       >
-                        <Plus className="h-4 w-4" /> เพิ่มในรายการคืน
+                        <Plus className="size-4" /> เพิ่มในรายการคืน
                       </Button>
                     </div>
                   </div>
@@ -1613,7 +1598,7 @@ export default function POSPage() {
                     <Button variant="ghost" size="icon"
                       onClick={() => setReturnList(list => list.filter((_, i) => i !== idx))}
                       className="w-6 h-6 shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="size-3" />
                     </Button>
                   </div>
                 ))}
@@ -1650,7 +1635,7 @@ export default function POSPage() {
               disabled={returnList.length === 0 || !returnReason.trim() || returnSaving}
               className="bg-warning hover:bg-warning-hover text-white font-semibold gap-1.5"
             >
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="size-4" />
               {returnSaving ? 'กำลังบันทึก...' : `ยืนยันคืน${returnList.length > 0 ? ` ${returnList.length} รายการ` : ''}`}
             </Button>
           </DialogFooter>
@@ -1844,7 +1829,7 @@ export default function POSPage() {
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" onClick={() => bump(-1)}
                       className="w-14 h-14 rounded-xl flex items-center justify-center bg-muted hover:bg-muted text-muted-foreground font-bold shrink-0">
-                      <Minus className="h-5 w-5" />
+                      <Minus className="size-5" />
                     </Button>
                     <Input
                       type="number"
@@ -1860,7 +1845,7 @@ export default function POSPage() {
                     />
                     <Button variant="outline" size="icon" onClick={() => bump(1)}
                       className="w-14 h-14 rounded-xl flex items-center justify-center bg-muted hover:bg-muted text-muted-foreground font-bold shrink-0">
-                      <Plus className="h-5 w-5" />
+                      <Plus className="size-5" />
                     </Button>
                   </div>
                 </div>

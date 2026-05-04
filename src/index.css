@@ -30,7 +30,7 @@
     --muted-hover: 0 0% 75%;
     --accent: 43 100% 64%;             /* #F5C24A */
     --accent-foreground: 44 100% 8%;  /* #2A1F00 */
-    --accent-soft: 45 90% 89%;        /* #FCEFC8 */
+    --accent-soft: 45 96% 90%;        /* #FCEFC8 */
     --destructive: 3 100% 59%;
     --destructive-foreground: 0 0% 100%;
     --destructive-hover: 3 100% 39%;
@@ -66,7 +66,7 @@
     --warning-foreground: 0 0% 100%;
     --warning-hover: 48 100% 38%;
     --warning-soft: 48 100% 96%;
-    --warning-strong: 26 90% 37%;
+    --warning-strong: 32 88% 33%;
 
     --destructive-soft: 0 86% 97%;
     --destructive-strong: 0 70% 35%;

@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 🚧 Theme refactor in progress · POS reskinned to teal+yellow (2026-05-02)
-## Last updated: 2026-05-02
+## Status: 100% Complete + UI Polish ✅ — 🚧 Theme refactor in progress · POS customer card redesigned (2026-05-04)
+## Last updated: 2026-05-04
 ## App is RUNNABLE — run `npm run electron:dev` to launch
-## ⚠️ Pick up next session: see "🚧 IN PROGRESS — Theme tokenization" below — and the new "Session 2026-05-02 — POS Reskin" entry for what just changed
+## ⚠️ Pick up next session: see "🚧 IN PROGRESS — Theme tokenization" below — and the new "Session 2026-05-04 — POS Customer Card Redesign + Icon Sizing Fix" entry for what just changed
 
 ---
 
@@ -595,6 +595,54 @@ Layout rearrangement (matches `claude_design/POS Sales.html`):
 ### Reference files
 - `claude_design/POS Sales.html` — the design source. **This is the authoritative reference**, not the README in the same folder. The README description differed from the HTML in three important places: cart table column layout (HTML is unit/qty/price/discount cell-buttons + no thumbnails; README implied a thumbnail and a qty stepper), cart footer (HTML has 3 cells, README said 4), quick actions (HTML is vertical stack, README said 2×2 grid).
 - `claude_design/README.md` — design tokens reference (color tables, typography, spacing). Useful for spec-level info but trumped by the HTML for actual layout decisions.
+
+### Uncommitted changes
+All changes above are uncommitted working tree modifications.
+
+---
+
+## Session 2026-05-04 — POS Customer Card Redesign + Button Icon Sizing Fix
+
+### Goal
+Redesign the customer card in POS so it stops looking like a 4th cart slot, and fix a hidden Tailwind/Button bug that was silently shrinking icons.
+
+### Customer card redesign (`src/pages/POS/index.tsx:615-648`)
+Iterated four times against user direction:
+
+1. **Removed cart-slot mimicry** — was identical h-40 card with header label + corner icon + big number. Replaced with a 2-column internal layout (profile column / actions column).
+2. **Matched user sketch** (`sketch.png`) — restructured into a vertical split:
+   - **Top: profile box** — horizontal layout. Avatar circle (`size-14 rounded-full bg-primary-soft text-primary`) on the left, name + phone text on the right. Allergy badge "แพ้ยา" (`bg-destructive-soft text-destructive`) absolutely positioned at top-right of the box, shown when `food_allergy || other_allergy`.
+   - **Bottom: action row** — 2-column grid of `ดูข้อมูล` (quaternary, disabled when no customer) + `เพิ่มลูกค้า` (tertiary), equal width, `h-9`.
+3. **Main card wrap** — wrapped both sections in `bg-card rounded-2xl p-3` so the whole customer cell reads as one card matching the cart slots' visual weight. Inner profile box's own `bg-card` removed (no double-card).
+4. **Alert moved inside the card** — the standalone destructive-soft banner that previously sat between the top row and the cart card was deleted. `alert_note` now renders as a small `text-xs text-destructive font-medium` row below the phone number, with an inline `AlertTriangle` icon. Single-line truncated; full text remains in the customer info dialog.
+
+Renamed the `+ เพิ่ม` button to `เพิ่มลูกค้า` per sketch.
+
+### Button icon sizing fix (`src/pages/POS/index.tsx`, 24 icons across the file)
+**The bug** — `button.tsx:18` has `[&_svg:not([class*='size-'])]:size-4`. The `:not()` only excludes svgs whose className contains the literal substring `size-`. `h-7 w-7` doesn't contain `size-`, so the descendant rule still matches and — because it's more specific than the `.h-7 .w-7` rules — wins. Result: every lucide icon written as `h-N w-N` inside a `<Button>` was silently snapped to 16px regardless of the value. User noticed when extending the cart-slot icon from `h-5 w-5` to `h-8 w-8` and seeing zero visual change.
+
+**The fix** — rewrite all icons inside `<Button>` from `h-N w-N` → `size-N`:
+
+| Class / icon | Sites |
+|---|---|
+| `<User size-7>` | customer avatar |
+| `<AlertTriangle size-3 shrink-0>` | inside แพ้ยา badge (now removed by the alert-row refactor — kept the new size on the alert-row icon) |
+| `<Info size-3.5>` / `<UserPlus size-3.5>` | ดูข้อมูล / เพิ่มลูกค้า |
+| `<Trash2 size-3.5>` | clear-all + cart-row delete |
+| `<ChevronRight size-[22px]>` | pay button |
+| `size-4 text-foreground-subtle` | 5 quick-action icons (เปิดลิ้นชัก / พิมพ์ฉลาก / ตัดสต็อก / รับคืนสินค้า / ยกเลิกบิล) |
+| `<Minus size-5>` / `<Plus size-5>` | qty steppers in adjust + return + qty modals (×3 each) |
+| `<Plus size-4>` / `<Minus size-4>` / `<RotateCcw size-4>` | confirm-add / confirm-cut / confirm-return footers |
+| `<Trash2 size-3>` | small delete buttons in adjust/return list rows |
+
+Skipped icons that aren't inside `<Button>` (icons in `<Input>`, `<Label>`, `<DialogTitle>`, empty-state divs, raw `<button>` elements) — the override doesn't apply to them, and `h-N w-N` continues to work.
+
+### Documented the trap
+- **`CLAUDE.md`** — added rule #7 under "Theming rules (HARD)" so future sessions reading project instructions see the rule alongside other hard UI conventions.
+- **Memory** — saved `feedback_button_icon_size.md` and indexed in `MEMORY.md` for cross-session recall (the *why* and an audit checklist).
+
+### Visual testing
+**NOT done** — Claude Code can't render the Electron UI. User must run `npm run electron:dev` to verify the redesigned customer card and the icon-size fixes.
 
 ### Uncommitted changes
 All changes above are uncommitted working tree modifications.

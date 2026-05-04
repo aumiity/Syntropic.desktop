@@ -48,7 +48,7 @@ export function TitleBar() {
           }}
           title="ย่อ"
         >
-          <Minus className={`${iconBase} text-[#7A4E00]`} size={12} strokeWidth={4} />
+          <Minus className={`${iconBase} text-[#003D0A]`} size={12} strokeWidth={4} />
         </button>
 
         {/* Maximize — green */}
@@ -63,7 +63,7 @@ export function TitleBar() {
           }}
           title={maximized ? 'คืนขนาด' : 'ขยาย'}
         >
-          <Plus className={`${iconBase} text-[#003D0A]`} size={12} strokeWidth={4} />
+          <Plus className={`${iconBase} text-[#7A4E00]`} size={12} strokeWidth={4} />
         </button>
 
         {/* Close — red */}
