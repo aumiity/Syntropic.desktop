@@ -577,7 +577,6 @@ export default function POSPage() {
               const hasItems = slot.items.length > 0
               const isWaiting = !isActive && hasItems
               const Icon = isWaiting ? Timer : ShoppingCart
-              const saleTypeLabel = slot.saleType === 'wholesale' ? 'ขายส่ง' : 'ขายปลีก'
               const iconBox = isActive
                 ? 'bg-card text-primary'
                 : isWaiting
@@ -586,9 +585,9 @@ export default function POSPage() {
               return (
                 <Button key={i} variant="ghost"
                   onClick={() => { cart.setActiveSlot(i); refocusSearch() }}
-                  className={`flex flex-col items-stretch justify-between text-left h-32 p-5 rounded-2xl transition-colors ${
+                  className={`flex flex-col items-stretch justify-between text-left h-40 p-5 rounded-2xl transition-colors ${
                     isActive
-                      ? 'bg-primary text-primary-foreground hover:bg-primary-hover'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground'
                       : 'bg-card text-foreground hover:bg-surface-hover'
                   }`}>
                   <div className="flex items-start justify-between w-full">
@@ -602,13 +601,18 @@ export default function POSPage() {
                       <span className="opacity-70 mr-1 text-2xl">฿</span>{formatCurrency(total)}
                     </span>
                     <span className={`text-sm tabular-nums ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                      {pieces} ชิ้น · {saleTypeLabel}
+                      {pieces} รายการ ·{' '}
+                      {slot.saleType === 'wholesale' ? (
+                        <Badge variant="warning" className="text-xs">ขายส่ง</Badge>
+                      ) : (
+                        <Badge variant="success" className="text-xs">ขายปลีก</Badge>
+                      )}
                     </span>
                   </div>
                 </Button>
               )
             })}
-            <div className="relative h-32 rounded-2xl bg-card text-foreground hover:bg-surface-hover transition-colors">
+            <div className="relative h-40 rounded-2xl bg-card text-foreground hover:bg-surface-hover transition-colors">
               <Button variant="ghost"
                 onClick={() => setShowCustomerSearch(true)}
                 className="absolute inset-0 flex flex-col items-stretch justify-between text-left p-5 rounded-2xl bg-transparent hover:bg-transparent">
@@ -660,14 +664,14 @@ export default function POSPage() {
               type="button"
               variant={cart.saleType === 'retail' ? 'default' : 'secondary'}
               onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
-              className="flex h-9 px-3.5 rounded-lg text-sm font-semibold shrink-0">
+              className="flex h-9 w-[84px] px-0 rounded-lg text-sm font-semibold shrink-0 justify-center">
               ขายปลีก
             </Button>
             <Button
               type="button"
               variant={cart.saleType === 'wholesale' ? 'default' : 'secondary'}
               onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
-              className="flex h-9 px-3.5 rounded-lg text-sm font-semibold shrink-0">
+              className="flex h-9 w-[84px] px-0 rounded-lg text-sm font-semibold shrink-0 justify-center">
               ขายส่ง
             </Button>
             <div className="relative flex-1 min-w-0">
@@ -678,7 +682,7 @@ export default function POSPage() {
                 placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                 autoFocus
                 autoComplete="off"
-                className="h-9 py-2 pl-3 pr-9 text-sm bg-background rounded-lg border-0 shadow-none focus-visible:ring-0 placeholder:text-foreground-subtle"/>
+                className="h-9 py-2 pl-3 pr-9 text-sm rounded-lg border-0 shadow-none focus-visible:ring-0"/>
               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
             </div>
             <Button variant="outline" size="sm" disabled={cart.items.length === 0}

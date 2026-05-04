@@ -20,9 +20,15 @@ const badgeVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         secondary:
-          "bg-secondary text-secondary-foreground border-border hover:bg-surface-hover",
+          "bg-secondary text-secondary-foreground border-border",
+        tertiary: [
+          "bg-tertiary text-tertiary-foreground",
+        ].join(" "),
+        quaternary: [
+          "bg-quaternary text-quaternary-foreground",
+        ].join(" "),
         destructive:
-          "bg-destructive text-white hover:bg-destructive-hover dark:bg-destructive-hover dark:hover:bg-destructive dark:text-white",
+          "bg-destructive text-white dark:bg-destructive-hover dark:text-white",
         outline:
           "border-transparent bg-background aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 [a]:hover:bg-muted [a]:hover:text-muted-foreground",
         ghost:

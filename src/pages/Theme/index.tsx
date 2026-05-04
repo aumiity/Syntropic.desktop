@@ -364,6 +364,8 @@ export default function Theme() {
                 <DemoRow label="Variants">
                   <Badge variant="default">Default</Badge>
                   <Badge variant="secondary">Secondary</Badge>
+                  <Badge variant="tertiary">Tertiary</Badge>
+                  <Badge variant="quaternary">Quaternary</Badge>
                   <Badge variant="outline">Outline</Badge>
                   <Badge variant="success">Success</Badge>
                   <Badge variant="warning">Warning</Badge>
