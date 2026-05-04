@@ -566,9 +566,26 @@ export default function POSPage() {
         <div className="flex-1 flex flex-col gap-3.5 min-h-0">
 
           {/* Toolbar card */}
-          <div className="grid gap-3.5 shrink-0" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(360px,440px)' }}>
+          <div className="grid gap-3.5 shrink-0" style={{ gridTemplateColumns: 'minmax(296px,1fr) minmax(324px,424px)' }}>
             {/* Left: search + retail/wholesale segmented */}
             <div className="flex flex-col gap-3 min-w-0">
+              <div className="flex w-full gap-2">
+                <Button
+                  type="button"
+                  variant={cart.saleType === 'retail' ? 'default' : 'secondary'}
+                  onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
+                  className="flex h-11 w-32 rounded-lg text-sm font-semibold">
+                  ขายปลีก
+                </Button>
+                <Button
+                  type="button"
+                  variant={cart.saleType === 'wholesale' ? 'default' : 'secondary'}
+                  onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
+                  className="flex h-11 w-32 rounded-lg text-sm font-semibold">
+                  ขายส่ง
+                </Button>
+              </div>
+
               <div className="relative min-w-0">
                 <Input
                   ref={mainInputRef}
@@ -577,25 +594,8 @@ export default function POSPage() {
                   placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                   autoFocus
                   autoComplete="off"
-                  className="h-auto py-2.5 pl-3.5 pr-10 text-sm bg-card rounded-xl border-0 shadow-none focus-visible:ring-0 placeholder:text-foreground-subtle"/>
+                  className="h-auto py-2.5 pl-3.5 pr-10 text-sm bg-card rounded-lg border-0 shadow-none focus-visible:ring-0 placeholder:text-foreground-subtle"/>
                   <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground pointer-events-none"/>
-              </div>
-
-              <div className="flex w-full gap-2">
-                <Button
-                  type="button"
-                  variant={cart.saleType === 'retail' ? 'default' : 'secondary'}
-                  onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
-                  className="flex-1 h-11 rounded-xl text-sm font-bold">
-                  ขายปลีก
-                </Button>
-                <Button
-                  type="button"
-                  variant={cart.saleType === 'wholesale' ? 'default' : 'secondary'}
-                  onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
-                  className="flex-1 h-11 rounded-xl text-sm font-bold">
-                  ขายส่ง
-                </Button>
               </div>
             </div>
 
@@ -616,7 +616,7 @@ export default function POSPage() {
               </button>
               <div className="flex flex-col gap-1.5">
                 <Button variant="quaternary" size="sm" onClick={() => setShowCustomerInfo(true)} disabled={!cart.customer}
-                  className="h-auto px-3 py-1.5 rounded-r-lg text-sm font-medium whitespace-nowrap">
+                  className="h-auto px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap">
                   ดูข้อมูล
                 </Button>
                 <Button variant="tertiary" size="sm" onClick={() => setShowQuickAdd(true)}
@@ -869,7 +869,7 @@ export default function POSPage() {
         <DialogContent
           showCloseButton={false}
           onClose={closeSearch}
-          className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none"
+          className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
           style={{ width: '1000px', maxWidth: 'calc(100vw - 2rem)', height: '800px', maxHeight: 'calc(100vh - 4rem)' }}
         >
           {/* Search input */}
@@ -885,17 +885,17 @@ export default function POSPage() {
               autoComplete="off"
             />
             {query && (
-              <Button variant="secondary" size="icon" onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
-                className="text-foreground-subtle rounded-full hover:text-muted-foreground p-1 h-4 w-4"><X className="size-3" /></Button>
+              <Button variant="outline" size="icon-xs" onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
+                className="rounded-full text-foreground-subtle"><X className="size-3" strokeWidth={3} /></Button>
             )}
-            <Button variant="secondary" size="sm" onClick={closeSearch}
+            <Button variant="outline" size="sm" onClick={closeSearch}
               className="h-7">
               Esc
             </Button>
           </div>
 
           {/* Column header */}
-          <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0"
+          <div className="grid items-center px-4 py-2 bg-input text-sm font-bold text-muted-foreground shrink-0"
             style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}>
             <div>ชื่อสินค้า</div>
             <div className="text-center">หน่วย</div>
@@ -906,9 +906,9 @@ export default function POSPage() {
           {/* Results — flex-1, scrolls internally, empty space stays empty */}
           <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
             {searching && flatItems.length === 0 ? (
-              <div className="py-12 text-center text-muted-foreground text-base">กำลังค้นหา...</div>
+              <div className="py-12 text-center text-foreground-subtle text-base">กำลังค้นหา...</div>
             ) : query && flatItems.length === 0 ? (
-              <div className="py-12 text-center text-muted-foreground text-base">ไม่พบสินค้า "{query}"</div>
+              <div className="py-12 text-center text-foreground-subtle text-base">ไม่พบสินค้า "{query}"</div>
             ) : !query ? (
               <div className="py-12 text-center text-foreground-subtle">
                 <Search className="h-10 w-10 mx-auto mb-2 opacity-40" />
@@ -926,7 +926,7 @@ export default function POSPage() {
                     key={`${it.product.id}-${it.unit?.id ?? 'base'}`}
                     ref={active ? activeRowRef : undefined}
                     onClick={() => handleSelectItem(it.product, it.unit)}
-                    className={`grid items-center px-4 py-2.5 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-muted'}`}
+                    className={`grid items-center px-4 py-2.5 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft'}`}
                     style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
                   >
                     <div className="min-w-0 pr-2">
@@ -946,7 +946,7 @@ export default function POSPage() {
           </div>
 
           {/* Footer status */}
-          <div className="px-4 py-2 bg-muted text-sm text-muted-foreground shrink-0">
+          <div className="px-4 py-2 bg-input text-sm text-muted-foreground shrink-0">
             ค้นหา: "{query}" — พบ {results.length} รายการ
           </div>
         </DialogContent>
