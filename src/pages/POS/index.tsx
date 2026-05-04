@@ -9,7 +9,6 @@ import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { formatCurrency, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
 import dayjs from 'dayjs'
@@ -19,6 +18,7 @@ import {
   Search, User, Trash2, Plus, Minus,
   Banknote, AlertTriangle, ChevronDown, X, UserPlus, Info,
   RotateCcw, ChevronRight, ChevronLeft, Tag,
+  ShoppingCart, Timer,
 } from 'lucide-react'
 
 interface ReturnLineItem {
@@ -565,38 +565,69 @@ export default function POSPage() {
         {/* Left column: toolbar + cart card */}
         <div className="flex-1 flex flex-col gap-3.5 min-h-0">
 
+          {/* Cart slot cards */}
+          <div className="grid grid-cols-3 gap-3.5 shrink-0">
+            {([0, 1, 2] as const).map(i => {
+              const slot = i === cart.activeSlot
+                ? { items: cart.items, saleType: cart.saleType }
+                : { items: cart.slots[i].items, saleType: cart.slots[i].saleType }
+              const pieces = slot.items.reduce((n, it) => n + it.qty, 0)
+              const total = slot.items.reduce((s, it) => s + it.line_total, 0)
+              const isActive = i === cart.activeSlot
+              const hasItems = slot.items.length > 0
+              const isWaiting = !isActive && hasItems
+              const Icon = isWaiting ? Timer : ShoppingCart
+              const saleTypeLabel = slot.saleType === 'wholesale' ? 'ขายส่ง' : 'ขายปลีก'
+              const iconBox = isActive
+                ? 'bg-card text-primary'
+                : isWaiting
+                  ? 'bg-warning-soft text-warning-strong'
+                  : 'bg-primary-soft text-primary'
+              return (
+                <Button key={i} variant="ghost"
+                  onClick={() => { cart.setActiveSlot(i); refocusSearch() }}
+                  className={`flex flex-col items-stretch justify-between text-left h-32 p-5 rounded-2xl transition-colors ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground hover:bg-primary-hover'
+                      : 'bg-card text-foreground hover:bg-surface-hover'
+                  }`}>
+                  <div className="flex items-start justify-between w-full">
+                    <span className="text-base font-semibold">รายการขาย {i + 1}</span>
+                    <span className={`grid place-items-center w-10 h-10 rounded-xl shrink-0 ${iconBox}`}>
+                      <Icon className="h-5 w-5" />
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 w-full">
+                    <span className="text-3xl font-bold tabular-nums leading-none">
+                      <span className="opacity-70 mr-1 text-2xl">฿</span>{formatCurrency(total)}
+                    </span>
+                    <span className={`text-sm tabular-nums ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                      {pieces} ชิ้น · {saleTypeLabel}
+                    </span>
+                  </div>
+                </Button>
+              )
+            })}
+          </div>
+
           {/* Toolbar card */}
           <div className="grid gap-3.5 shrink-0" style={{ gridTemplateColumns: 'minmax(296px,1fr) minmax(324px,424px)' }}>
-            {/* Left: search + retail/wholesale segmented */}
-            <div className="flex flex-col gap-3 min-w-0">
-              <div className="flex w-full gap-2">
-                <Button
-                  type="button"
-                  variant={cart.saleType === 'retail' ? 'default' : 'secondary'}
-                  onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
-                  className="flex h-11 w-32 rounded-lg text-sm font-semibold">
-                  ขายปลีก
-                </Button>
-                <Button
-                  type="button"
-                  variant={cart.saleType === 'wholesale' ? 'default' : 'secondary'}
-                  onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
-                  className="flex h-11 w-32 rounded-lg text-sm font-semibold">
-                  ขายส่ง
-                </Button>
-              </div>
-
-              <div className="relative min-w-0">
-                <Input
-                  ref={mainInputRef}
-                  value={query}
-                  onChange={e => handleSearch(e.target.value)}
-                  placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
-                  autoFocus
-                  autoComplete="off"
-                  className="h-auto py-2.5 pl-3.5 pr-10 text-sm bg-card rounded-lg border-0 shadow-none focus-visible:ring-0 placeholder:text-foreground-subtle"/>
-                  <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground pointer-events-none"/>
-              </div>
+            {/* Left: retail/wholesale segmented */}
+            <div className="flex w-full gap-2 self-center">
+              <Button
+                type="button"
+                variant={cart.saleType === 'retail' ? 'default' : 'secondary'}
+                onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
+                className="flex h-11 w-32 rounded-lg text-sm font-semibold">
+                ขายปลีก
+              </Button>
+              <Button
+                type="button"
+                variant={cart.saleType === 'wholesale' ? 'default' : 'secondary'}
+                onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
+                className="flex h-11 w-32 rounded-lg text-sm font-semibold">
+                ขายส่ง
+              </Button>
             </div>
 
             {/* Right: customer card */}
@@ -633,29 +664,25 @@ export default function POSPage() {
             </div>
           )}
 
-          {/* Cart card (tabs + table + footer) */}
+          {/* Cart card (search + table + footer) */}
           <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
 
-          {/* Cart slot tabs + clear-all */}
-          <div className="flex items-center gap-2 px-3.5 py-3 shrink-0">
-            <Tabs value={String(cart.activeSlot)} onValueChange={(v) => { cart.setActiveSlot(Number(v)); refocusSearch() }}>
-              <TabsList variant="line" className="flex items-center gap-2 p-0 h-auto bg-transparent">
-                {([0, 1, 2] as const).map(i => {
-                  const count = (i === cart.activeSlot ? cart.items : cart.slots[i].items).length
-                  return (
-                    <TabsTrigger key={i} value={String(i)}
-                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-card text-muted-foreground text-[15px] font-medium data-[state=active]:bg-primary-soft data-[state=active]:text-primary">
-                      <span className={`w-1.5 h-1.5 rounded-full ${i === cart.activeSlot ? 'bg-primary' : 'bg-foreground-subtle'}`} />
-                      รายการขาย {i + 1}
-                      {count > 0 && <span className="text-[15px] tabular-nums text-foreground-subtle">{count}</span>}
-                    </TabsTrigger>
-                  )
-                })}
-              </TabsList>
-            </Tabs>
+          {/* Search + clear-all header */}
+          <div className="flex items-center gap-2 px-3.5 py-2.5 shrink-0 border-b border-border">
+            <div className="relative flex-1 min-w-0">
+              <Input
+                ref={mainInputRef}
+                value={query}
+                onChange={e => handleSearch(e.target.value)}
+                placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
+                autoFocus
+                autoComplete="off"
+                className="h-9 py-2 pl-3 pr-9 text-sm bg-background rounded-lg border-0 shadow-none focus-visible:ring-0 placeholder:text-foreground-subtle"/>
+              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
+            </div>
             <Button variant="outline" size="sm" disabled={cart.items.length === 0}
               onClick={() => { cart.clearCart(); refocusSearch() }}
-              className="ml-auto gap-1.5 px-3.5 py-2 h-auto rounded-lg bg-destructive-soft text-destructive text-[15px] font-medium hover:bg-destructive-soft">
+              className="gap-1.5 px-3 py-1.5 h-auto rounded-lg bg-destructive-soft text-destructive text-sm font-medium hover:bg-destructive-soft shrink-0">
               <Trash2 className="h-3.5 w-3.5" /> ลบสินค้าทั้งหมด
             </Button>
           </div>
