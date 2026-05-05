@@ -25,6 +25,9 @@
     --quaternary: 180 20% 90%;
     --quaternary-foreground: 179 91% 22%;
     --quaternary-hover: 180 20% 85%;
+    --quinary: 219 100% 94%;
+    --quinary-foreground: 219 30% 44%;
+    --quinary-hover: 219 100% 74%;
     --muted: 0 0% 90%;
     --muted-foreground: 0 0% 10%;
     --muted-hover: 0 0% 75%;
@@ -50,7 +53,7 @@
     /* Extended semantic tokens */
     --foreground-subtle: 0 0% 40%;
     --surface-hover: 240 6% 90%;
-    --border-strong: 213 27% 84%;
+    --border-strong: 0 0% 50%;
 
     --primary-soft: 168 22% 91%;        /* #E3EDEB */
     --primary-soft-hover: 168 22% 87%;
@@ -93,6 +96,9 @@
     --quaternary: 180 20% 95%;
     --quaternary-foreground: 179 91% 22%;
     --quaternary-hover: 180 20% 80%;
+    --quinary: 219 100% 94%;
+    --quinary-foreground: 219 30% 44%;
+    --quinary-hover: 219 100% 74%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 6% 10%;
     --muted-hover: 240 4% 25%;

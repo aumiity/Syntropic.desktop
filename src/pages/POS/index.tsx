@@ -650,10 +650,10 @@ export default function POSPage() {
           </div>
 
           {/* Cart card (search + table + footer) */}
-          <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
+          <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden border-0">
 
           {/* Sale type + search + clear-all header */}
-          <div className="flex items-center gap-2 px-3.5 py-2.5 shrink-0 border-0 border-border">
+          <div className="flex items-center gap-2 px-3.5 py-2.5 shrink-0 border-0">
             <Button
               type="button"
               variant={cart.saleType === 'retail' ? 'default' : 'secondary'}
@@ -681,25 +681,25 @@ export default function POSPage() {
             </div>
             <Button variant="outline" size="sm" disabled={cart.items.length === 0}
               onClick={() => { cart.clearCart(); refocusSearch() }}
-              className="gap-1.5 px-3 py-1.5 h-auto rounded-lg bg-destructive-soft text-destructive text-sm font-medium hover:bg-destructive-soft shrink-0">
+              className="gap-1.5 px-3 py-1.5 h-9 rounded-lg bg-destructive/20 text-destructive text-sm font-medium hover:bg-destructive hover:text-primary-foreground shrink-0">
               <Trash2 className="size-3.5" /> ลบสินค้าทั้งหมด
             </Button>
           </div>
 
-          <div className="flex-1 flex flex-col overflow-hidden min-h-0 border-0">
-            <div className="flex-1 overflow-y-auto scrollbar-thin border-0" tabIndex={-1}>
-              <table className="w-full caption-bottom text-base table-fixed border-0">
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
+              <table className="w-full caption-bottom text-base table-fixed border-l-8 border-r-8 border-white">
                 <colgroup>
                   <col style={{ width: 36 }} />
                   <col />
-                  <col style={{ width: 110 }} />
-                  <col style={{ width: 110 }} />
-                  <col style={{ width: 100 }} />
-                  <col style={{ width: 110 }} />
-                  <col style={{ width: 110 }} />
+                  <col style={{ width: 108 }} />
+                  <col style={{ width: 108 }} />
+                  <col style={{ width: 122 }} />
+                  <col style={{ width: 108 }} />
+                  <col style={{ width: 104 }} />
                   <col style={{ width: 60 }} />
                 </colgroup>
-                <TableHeader className="sticky top-0 z-10 bg-input border-0">
+                <TableHeader className="sticky top-0 z-10 bg-input">
                   <TableRow className="hover:bg-input">
                     <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">#</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ชื่อสินค้า</TableHead>
@@ -713,8 +713,8 @@ export default function POSPage() {
                 </TableHeader>
                 <TableBody>
                   {cart.items.length === 0 ? (
-                    <TableRow className="hover:bg-transparent border-0">
-                      <TableCell colSpan={8} className="text-center py-16 border-0">
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={8} className="text-center py-16">
                         <div className="flex flex-col items-center justify-center text-foreground-subtle gap-3">
                           <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -725,15 +725,15 @@ export default function POSPage() {
                       </TableCell>
                     </TableRow>
                   ) : cart.items.map((item, idx) => (
-                    <TableRow key={idx} className="hover:bg-surface-hover">
-                      <TableCell className="text-center text-base text-muted-foreground">{idx + 1}</TableCell>
-                      <TableCell className="min-w-0 pr-2">
-                        <div className="font-medium truncate text-base">{item.item_name}</div>
+                    <TableRow key={idx} className="hover:bg-transparent [&_td]:py-1">
+                      <TableCell className="text-center text-md text-muted-foreground">{idx + 1}</TableCell>
+                      <TableCell className="min-w-0 pr-2 ">
+                        <div className="font-medium truncate text-md">{item.item_name}</div>
                       </TableCell>
 
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
-                          className="min-w-14 inline-flex items-center justify-center h-8 px-2.5 rounded-md text-foreground text-base font-semibold hover:bg-muted transition-colors">
+                          className="min-w-14 inline-flex items-center w-[80px] justify-center h-8 px-2.5 rounded-md text-foreground text-md font-semibold hover:bg-muted transition-colors">
                           {item.unit_name}
                         </Button>
                       </TableCell>
@@ -741,15 +741,15 @@ export default function POSPage() {
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm"
                           onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                          className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md bg-warning-soft text-warning-strong text-base font-semibold tabular-nums hover:bg-warning-soft transition-colors">
+                          className="inline-flex items-center gap-1 min-w-14 w-[80px] h-8 px-2.5 rounded-md bg-accent-soft text-warning-strong text-md font-semibold tabular-nums hover:bg-accent-soft transition-colors">
                           <span className="flex-1 text-center">{item.qty}</span>
                         </Button>
                       </TableCell>
 
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
-                          className="inline-flex items-center gap-1 min-w-16 h-8 px-2.5 rounded-md bg-primary-soft text-primary text-base font-semibold tabular-nums hover:bg-primary-soft transition-colors">
-                          <span className="flex-1 text-right">{formatCurrency(item.unit_price)}</span>
+                          className="inline-flex items-center justify-end w-[100px] h-8 pl-2.5 pr-1 rounded-md bg-primary-soft text-primary text-md font-semibold tabular-nums hover:bg-primary-soft transition-colors">
+                          <span className="text-right">{formatCurrency(item.unit_price)}</span>
                         </Button>
                       </TableCell>
 
@@ -757,19 +757,19 @@ export default function POSPage() {
                         {item.discount ? (
                           <Button variant="outline" size="sm"
                             onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
-                            className="inline-flex flex-col items-end justify-center min-w-14 h-8 px-2.5 rounded-md bg-destructive-soft text-destructive hover:bg-destructive/20 transition-colors">
-                            <span className="text-base font-semibold tabular-nums leading-none">{formatCurrency(item.discount)}</span>
+                            className="inline-flex items-center justify-end w-[80px] h-8 pl-2.5 pr-1 rounded-md bg-destructive-soft text-destructive text-md font-semibold tabular-nums hover:bg-destructive/20 transition-colors">
+                            <span className="leading-none">{formatCurrency(item.discount)}</span>
                           </Button>
                         ) : (
                           <Button variant="outline" size="sm"
                             onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
-                            className="inline-flex items-center gap-1 min-w-14 h-8 px-2.5 rounded-md bg-card text-foreground-subtle text-base font-medium tabular-nums hover:bg-muted hover:text-destructive transition-colors">
-                            <span className="flex-1 text-right">0</span>
+                            className="inline-flex items-center justify-end w-[80px] h-8 pl-2.5 pr-1 rounded-md bg-card text-destructive text-md font-medium tabular-nums bg-destructive-soft hover:bg-destructive-soft hover:text-destructive transition-colors">
+                            <span className="text-right">0</span>
                           </Button>
                         )}
                       </TableCell>
 
-                      <TableCell className="text-right font-semibold text-primary text-base">
+                      <TableCell className="text-right font-semibold text-primary text-md">
                         {formatCurrency(item.line_total)}
                       </TableCell>
 
