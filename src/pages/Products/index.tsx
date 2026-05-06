@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,12 +6,16 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
-import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { Product, ProductCategory, DrugType } from '@/types'
-import { Search, Plus, Edit2, AlertTriangle, Package, ChevronDown } from 'lucide-react'
+import {
+  Search, Plus, Edit2, AlertTriangle, Package, PackageX,
+  Boxes, ArrowUpCircle, ArrowDownCircle,
+} from 'lucide-react'
 
 interface ProductRow extends Product {
   category_name?: string
@@ -65,9 +69,12 @@ export default function ProductsPage() {
     loadDropdowns()
   }, [])
 
+  // Live search: debounce text + reactive filters
   useEffect(() => {
-    load(1)
-  }, [categoryId, drugTypeId])
+    const t = setTimeout(() => load(1), 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, categoryId, drugTypeId])
 
   const loadDropdowns = async () => {
     const [cats, dts] = await Promise.all([
@@ -94,11 +101,6 @@ export default function ProductsPage() {
       setLoading(false)
     }
   }, [q, categoryId, drugTypeId, page])
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    load(1)
-  }
 
   // --- Create product ---
   const handleCreate = async () => {
@@ -165,149 +167,194 @@ export default function ProductsPage() {
     }
   }
 
-  const stockBadge = (qty: number, reorder: number) => {
-    if (qty <= 0) return <Badge variant="destructive" className="text-xs">หมดสต็อก</Badge>
-    if (reorder > 0 && qty <= reorder) return <Badge variant="warning" className="text-xs">ต่ำกว่าจุดสั่ง</Badge>
-    return <span className="text-sm font-medium">{qty.toLocaleString()}</span>
+  // Page-scoped stock health stats (from current rows)
+  const pageStats = useMemo(() => {
+    let out = 0, low = 0
+    for (const r of rows) {
+      if (r.stock_qty <= 0) out++
+      else if ((r.reorder_point ?? 0) > 0 && r.stock_qty <= (r.reorder_point ?? 0)) low++
+    }
+    return { out, low }
+  }, [rows])
+
+  const renderStockCell = (qty: number, reorder: number) => {
+    if (qty <= 0) {
+      return (
+        <Badge variant="destructive" className="rounded-lg gap-1.5">
+          <span className="size-1.5 rounded-full bg-white/90" />
+          หมดสต็อก
+        </Badge>
+      )
+    }
+    if (reorder > 0 && qty <= reorder) {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning-strong">
+          <AlertTriangle className="size-3" />
+          {qty.toLocaleString()}
+        </span>
+      )
+    }
+    return <span className="text-sm font-semibold tabular-nums text-foreground">{qty.toLocaleString()}</span>
   }
 
   return (
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
-      <PageHeader title="สินค้า" />
+      <PageHeader
+        title="สินค้า"
+      />
 
-      {/* Search & Filters — standalone */}
-      <div className="shrink-0">
-        <form onSubmit={handleSearch} className="flex flex-wrap gap-2 items-center">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                value={q}
-                onChange={e => setQ(e.target.value)}
-                placeholder="ค้นหาชื่อ, บาร์โค้ด, รหัส..."
-                className="pl-8"
-              />
-            </div>
-
-            {/* Category filter */}
-            <div className="relative w-44">
-              <select
-                className="w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-                value={categoryId}
-                onChange={e => setCategoryId(Number(e.target.value))}
-              >
-                <option value={0}>หมวดหมู่ทั้งหมด</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            </div>
-
-            {/* Drug type filter */}
-            <div className="relative w-44">
-              <select
-                className="w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-                value={drugTypeId}
-                onChange={e => setDrugTypeId(Number(e.target.value))}
-              >
-                <option value={0}>ประเภทยาทั้งหมด</option>
-                {drugTypes.map(d => <option key={d.id} value={d.id}>{d.name_th}</option>)}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            </div>
-
-            <Button type="submit" variant="outline">
-              <Search className="w-3.5 h-3.5 mr-1" /> ค้นหา
-            </Button>
-            <Button type="button" onClick={() => setShowCreate(true)} className="ml-auto">
-              <Plus className="w-4 h-4 mr-1.5" /> เพิ่มสินค้า
-            </Button>
-          </form>
+      {/* Stat strip — page-scoped health */}
+      <div className="grid grid-cols-3 gap-3 shrink-0">
+        <StatCard
+          label="สินค้าทั้งหมด"
+          value={total.toLocaleString()}
+          icon={<Boxes className="size-5" />}
+          tint="primary"
+        />
+        <StatCard
+          label="ใกล้หมด (หน้านี้)"
+          value={pageStats.low.toLocaleString()}
+          icon={<AlertTriangle className="size-5" />}
+          tint="warning"
+        />
+        <StatCard
+          label="หมดสต็อก (หน้านี้)"
+          value={pageStats.out.toLocaleString()}
+          icon={<PackageX className="size-5" />}
+          tint="destructive"
+        />
       </div>
 
-      {/* Card: table + pagination */}
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
-        {/* Summary bar */}
-        <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border shrink-0">
-          {loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}
+      {/* Toolbar — search + filters */}
+      <div className="flex flex-wrap gap-2 items-center shrink-0">
+        <div className="relative flex-1 min-w-[260px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
+            className="h-10 pl-9 rounded-xl text-sm bg-card"
+          />
         </div>
 
-        {/* Table */}
-        <div className="flex-1 overflow-y-auto">
-          <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">#</TableHead>
-              <TableHead>ชื่อสินค้า</TableHead>
-              <TableHead>บาร์โค้ด</TableHead>
-              <TableHead>หมวดหมู่</TableHead>
-              <TableHead>ประเภทยา</TableHead>
-              <TableHead className="text-right">ราคาขาย</TableHead>
-              <TableHead className="text-center">สต็อก</TableHead>
-              <TableHead className="text-center w-32">จัดการ</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
-              </TableRow>
-            ) : rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
-                  <Package className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                  ไม่พบสินค้า
-                </TableCell>
-              </TableRow>
-            ) : rows.map((row, i) => (
-              <TableRow key={row.id} className="hover:bg-muted/30">
-                <TableCell className="text-muted-foreground text-xs">{(page - 1) * limit + i + 1}</TableCell>
-                <TableCell>
-                  <div className="font-medium">{row.trade_name}</div>
-                  {row.dosage_form_name && (
-                    <div className="text-xs text-muted-foreground">{row.dosage_form_name}{row.strength ? ` ${row.strength}` : ''}</div>
-                  )}
-                  <div className="flex gap-1 mt-0.5 flex-wrap">
-                    {row.is_antibiotic ? <Badge variant="warning" className="text-xs">ยาปฏิชีวนะ</Badge> : null}
-                    {row.is_sale_control ? <Badge variant="danger" className="text-xs">ควบคุม</Badge> : null}
-                    {row.is_fda13_report ? <Badge variant="secondary" className="text-xs">อย.13</Badge> : null}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-mono text-xs text-muted-foreground">{row.code ?? '—'}</div>
-                  {row.barcode && <div className="font-mono text-xs text-muted-foreground">{row.barcode}</div>}
-                </TableCell>
-                <TableCell className="text-sm">{row.category_name ?? '—'}</TableCell>
-                <TableCell className="text-sm">{row.drug_type_name ?? '—'}</TableCell>
-                <TableCell className="text-right font-medium">{formatCurrency(row.price_retail)}</TableCell>
-                <TableCell className="text-center">
-                  {stockBadge(row.stock_qty, row.reorder_point ?? 0)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => navigate(`/products/${row.id}/edit`)}
-                      title="แก้ไข"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => openAdjust(row)}
-                      title="ปรับสต็อก"
-                    >
-                      <Package className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
+        <Select value={String(categoryId)} onValueChange={v => setCategoryId(Number(v))}>
+          <SelectTrigger className="h-10 w-48 rounded-xl bg-card text-sm">
+            <SelectValue placeholder="หมวดหมู่ทั้งหมด" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">หมวดหมู่ทั้งหมด</SelectItem>
+            {categories.map(c => (
+              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={String(drugTypeId)} onValueChange={v => setDrugTypeId(Number(v))}>
+          <SelectTrigger className="h-10 w-48 rounded-xl bg-card text-sm">
+            <SelectValue placeholder="ประเภทยาทั้งหมด" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">ประเภทยาทั้งหมด</SelectItem>
+            {drugTypes.map(d => (
+              <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* List card */}
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
+        <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground border-b border-border shrink-0 flex items-center justify-between">
+          <span>{loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}</span>
+          <Button onClick={() => setShowCreate(true)} className="h-9 rounded-lg px-2 text-sm">
+            <Plus className="size-4" /> เพิ่มสินค้า
+          </Button>
+        </div>
+
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin">
+          <Table>
+            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted [&_th]:shadow-[0_1px_0_var(--border)]">
+              <TableRow>
+                <TableHead className="w-12 text-foreground-subtle">#</TableHead>
+                <TableHead className="text-foreground-subtle">ชื่อสินค้า</TableHead>
+                <TableHead className="text-center text-foreground-subtle">หน่วย</TableHead>
+                <TableHead className="text-right text-foreground-subtle">ต้นทุน</TableHead>
+                <TableHead className="text-right text-foreground-subtle">ราคาขาย</TableHead>
+                <TableHead className="text-right text-foreground-subtle">กำไร</TableHead>
+                <TableHead className="text-center text-foreground-subtle">สต็อก</TableHead>
+                <TableHead className="text-center w-28 text-foreground-subtle">จัดการ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                </TableRow>
+              ) : rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
+                    <Package className="size-10 mx-auto mb-2 opacity-30" />
+                    ไม่พบสินค้า
+                  </TableCell>
+                </TableRow>
+              ) : rows.map((row, i) => {
+                const profit = row.price_retail - (row.cost_price ?? 0)
+                const pct = (row.cost_price ?? 0) > 0 ? (profit / row.cost_price!) * 100 : 0
+                return (
+                  <TableRow key={row.id} className="hover:bg-primary-soft/60 transition-colors">
+                    <TableCell className="text-foreground-subtle text-xs tabular-nums">{(page - 1) * limit + i + 1}</TableCell>
+                    <TableCell>
+                      <div className="font-semibold text-sm text-foreground">{row.trade_name}</div>
+                      {row.dosage_form_name && (
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {row.dosage_form_name}{row.strength ? ` · ${row.strength}` : ''}
+                        </div>
+                      )}
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {row.is_antibiotic ? <Badge variant="warning" className="text-[10px] rounded-md px-1.5 py-0">ยาปฏิชีวนะ</Badge> : null}
+                        {row.is_sale_control ? <Badge variant="destructive" className="text-[10px] rounded-md px-1.5 py-0">ควบคุม</Badge> : null}
+                        {row.is_fda13_report ? <Badge variant="senary" className="text-[10px] rounded-md px-1.5 py-0">อย.13</Badge> : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
+                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
+                    <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">{formatCurrency(row.price_retail)}</TableCell>
+                    <TableCell className="text-right text-sm font-medium tabular-nums">
+                      <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
+                        {formatCurrency(profit)}
+                        <span className="ml-1 text-xs opacity-70">({pct.toFixed(0)}%)</span>
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {renderStockCell(row.stock_qty, row.reorder_point ?? 0)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          onClick={() => navigate(`/products/${row.id}/edit`)}
+                          title="แก้ไข"
+                        >
+                          <Edit2 />
+                        </Button>
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          onClick={() => openAdjust(row)}
+                          title="ปรับสต็อก"
+                        >
+                          <Package />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="px-4 py-3 border-t border-border flex justify-center shrink-0">
             <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} />
@@ -317,7 +364,7 @@ export default function ProductsPage() {
 
       {/* Create product dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent size="md">
+        <DialogContent size="md" onClose={() => setShowCreate(false)}>
           <DialogHeader>
             <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
           </DialogHeader>
@@ -328,6 +375,7 @@ export default function ProductsPage() {
                 value={newProduct.trade_name}
                 onChange={e => setNewProduct(p => ({ ...p, trade_name: e.target.value }))}
                 placeholder="เช่น Paracetamol 500mg"
+                className="h-10 rounded-xl"
                 autoFocus
               />
             </div>
@@ -338,6 +386,7 @@ export default function ProductsPage() {
                   value={newProduct.code}
                   onChange={e => setNewProduct(p => ({ ...p, code: e.target.value }))}
                   placeholder="เช่น MED001"
+                  className="h-10 rounded-xl"
                 />
               </div>
               <div>
@@ -346,6 +395,7 @@ export default function ProductsPage() {
                   value={newProduct.barcode}
                   onChange={e => setNewProduct(p => ({ ...p, barcode: e.target.value }))}
                   placeholder="8851234567890"
+                  className="h-10 rounded-xl"
                 />
               </div>
             </div>
@@ -359,6 +409,7 @@ export default function ProductsPage() {
                   placeholder="0.00"
                   min={0}
                   step="0.01"
+                  className="h-10 rounded-xl"
                 />
               </div>
               <div>
@@ -367,28 +418,32 @@ export default function ProductsPage() {
                   value={newProduct.unit_name}
                   onChange={e => setNewProduct(p => ({ ...p, unit_name: e.target.value }))}
                   placeholder="เช่น เม็ด, ซอง, ขวด"
+                  className="h-10 rounded-xl"
                 />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">หมวดหมู่</label>
-              <div className="relative">
-                <select
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-                  value={newProduct.category_id}
-                  onChange={e => setNewProduct(p => ({ ...p, category_id: Number(e.target.value) }))}
-                >
-                  <option value={0}>— ไม่ระบุ —</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              </div>
+              <Select
+                value={String(newProduct.category_id)}
+                onValueChange={v => setNewProduct(p => ({ ...p, category_id: Number(v) }))}
+              >
+                <SelectTrigger className="h-10 w-full rounded-xl">
+                  <SelectValue placeholder="— ไม่ระบุ —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">— ไม่ระบุ —</SelectItem>
+                  {categories.map(c => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <p className="text-xs text-muted-foreground">สามารถเพิ่มข้อมูลอื่นๆ ได้ในหน้าแก้ไขสินค้า</p>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>ยกเลิก</Button>
-            <Button onClick={handleCreate} disabled={creating}>
+            <Button variant="secondary" className="h-10 rounded-xl px-5" onClick={() => setShowCreate(false)}>ยกเลิก</Button>
+            <Button onClick={handleCreate} disabled={creating} className="h-10 rounded-xl px-5">
               {creating ? 'กำลังบันทึก...' : 'เพิ่มสินค้า'}
             </Button>
           </DialogFooter>
@@ -397,37 +452,41 @@ export default function ProductsPage() {
 
       {/* Adjust stock dialog */}
       <Dialog open={!!adjustProduct} onOpenChange={open => { if (!open) setAdjustProduct(null) }}>
-        <DialogContent size="sm">
+        <DialogContent size="sm" onClose={() => setAdjustProduct(null)}>
           <DialogHeader>
             <DialogTitle>ปรับสต็อก</DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-4">
             {adjustProduct && (
-              <div className="bg-muted/40 rounded-lg px-4 py-3">
-                <div className="font-medium">{adjustProduct.trade_name}</div>
-                <div className="text-sm text-muted-foreground mt-0.5">
-                  สต็อกปัจจุบัน: <span className="font-semibold text-foreground">{adjustProduct.stock_qty.toLocaleString()}</span> {adjustProduct.unit_name ?? 'ชิ้น'}
+              <div className="bg-muted rounded-xl px-4 py-3">
+                <div className="font-semibold text-sm">{adjustProduct.trade_name}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  สต็อกปัจจุบัน:{' '}
+                  <span className="font-bold text-foreground tabular-nums">{adjustProduct.stock_qty.toLocaleString()}</span>{' '}
+                  {adjustProduct.unit_name ?? 'ชิ้น'}
                 </div>
               </div>
             )}
 
             <div>
               <label className="block text-sm font-medium mb-2">ประเภทการปรับ</label>
-              <div className="flex gap-2">
-                <button
+              <div className="grid grid-cols-2 gap-2">
+                <Button
                   type="button"
+                  variant={adjustType === 'in' ? 'success' : 'secondary'}
+                  className="h-10 rounded-xl"
                   onClick={() => setAdjustType('in')}
-                  className={`flex-1 h-9 rounded-md border text-sm font-medium transition-colors ${adjustType === 'in' ? 'bg-success text-success-foreground border-success' : 'border-input bg-background hover:bg-accent'}`}
                 >
-                  เพิ่มสต็อก
-                </button>
-                <button
+                  <ArrowUpCircle /> เพิ่มสต็อก
+                </Button>
+                <Button
                   type="button"
+                  variant={adjustType === 'out' ? 'destructive' : 'secondary'}
+                  className="h-10 rounded-xl"
                   onClick={() => setAdjustType('out')}
-                  className={`flex-1 h-9 rounded-md border text-sm font-medium transition-colors ${adjustType === 'out' ? 'bg-destructive text-destructive-foreground border-destructive' : 'border-input bg-background hover:bg-accent'}`}
                 >
-                  ลดสต็อก
-                </button>
+                  <ArrowDownCircle /> ลดสต็อก
+                </Button>
               </div>
             </div>
 
@@ -439,6 +498,7 @@ export default function ProductsPage() {
                 onChange={e => setAdjustQty(e.target.value)}
                 placeholder="0"
                 min={1}
+                className="h-10 rounded-xl"
                 autoFocus
               />
             </div>
@@ -449,21 +509,49 @@ export default function ProductsPage() {
                 value={adjustNote}
                 onChange={e => setAdjustNote(e.target.value)}
                 placeholder="เหตุผลการปรับสต็อก"
+                className="h-10 rounded-xl"
+                onKeyDown={e => { if (e.key === 'Enter') handleAdjust() }}
               />
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAdjustProduct(null)}>ยกเลิก</Button>
+            <Button variant="secondary" className="h-10 rounded-xl px-5" onClick={() => setAdjustProduct(null)}>ยกเลิก</Button>
             <Button
               onClick={handleAdjust}
               disabled={adjusting}
-              variant={adjustType === 'out' ? 'destructive' : 'default'}
+              variant={adjustType === 'out' ? 'destructive' : 'success'}
+              className="h-10 rounded-xl px-5"
             >
               {adjusting ? 'กำลังบันทึก...' : 'ยืนยัน'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+interface StatCardProps {
+  label: string
+  value: string
+  icon: React.ReactNode
+  tint: 'primary' | 'warning' | 'destructive'
+}
+
+function StatCard({ label, value, icon, tint }: StatCardProps) {
+  const iconBox =
+    tint === 'primary' ? 'bg-primary-soft text-primary'
+    : tint === 'warning' ? 'bg-warning-soft text-warning-strong'
+    : 'bg-destructive-soft text-destructive'
+  return (
+    <div className="bg-card rounded-2xl shadow-card px-4 py-3 flex items-center gap-3">
+      <span className={`grid place-items-center size-11 rounded-xl shrink-0 ${iconBox}`}>
+        {icon}
+      </span>
+      <div className="flex flex-col min-w-0">
+        <span className="text-xs text-muted-foreground truncate">{label}</span>
+        <span className="text-2xl font-bold tabular-nums leading-tight">{value}</span>
+      </div>
     </div>
   )
 }

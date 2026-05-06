@@ -14,7 +14,8 @@
       "Bash(findstr /i \"vite.config\")",
       "Bash(npx vite *)",
       "Bash(python3 /tmp/strip_borders.py /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/POS/index.tsx)",
-      "WebFetch(domain:shadcnstudio.com)"
+      "WebFetch(domain:shadcnstudio.com)",
+      "Bash(copy *)"
     ]
   }
 }

@@ -31,6 +31,12 @@ npm run electron:dev
 
 ## Exact Database Schema (from syntropic_rx.sql)
 
+> ⚠️ **The PHP schema below is the *intent* spec, not the desktop runtime schema.** The actual SQLite definition the desktop ships with lives in `electron/db/schema.ts` and is a strict subset. **Always cross-check `schema.ts` before writing any save/update code** — if you trust this section blindly, you will write bugs. Known `products` divergences (as of 2026-05-06):
+> - **Renamed:** `is_vat` → `has_vat`, `is_not_discount` → `no_discount`, `unit_name` → `unit_id` (FK to `item_units`; `unit_name` only resolves via JOIN, never write to it)
+> - **Missing entirely (PHP-only, not in SQLite):** `default_qty`, `has_wholesale1`, `has_wholesale2`, `drug_generic_name_id`, `old_item_key`
+>
+> The IPC `products:update` (and similar generic update handlers) builds dynamic SQL from `Object.keys(data)`. Any payload key that isn't a real column throws `no such column: X` and aborts the entire UPDATE. Allow-list your save payload — never spread `...form` blindly.
+
 ### products
 ```
 id, old_item_key, barcode, barcode2, barcode3, barcode4, code,
@@ -337,7 +343,8 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
 - All dialogs use `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogBody`, `DialogFooter` from `src/components/ui/dialog.tsx`
 - Toast notifications via `useToast()` hook
 - Pagination: `pagination.tsx`
-- Tables: `table.tsx` components
+- Tables: `table.tsx` components.
+  - **Sticky headers:** the `<Table>` wrapper renders `<div data-slot="table-container" className="… overflow-x-auto">`, which auto-promotes to a vertical scroll container too — meaning `sticky` on `<thead>` pins to *that* div, not the page-level scroll wrapper, so the header rides up with the rows. Fix: (a) on the parent, target the inner div via `[&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto` so it becomes the actual scroll element; (b) put `sticky top-0 z-10 bg-muted` on each `<th>` (NOT on `<thead>` — many renderers ignore sticky there). For a hairline that scrolls with the sticky cell, add `shadow-[0_1px_0_var(--border)]` per `<th>` (a plain `border-b` doesn't move with sticky and leaves a gap).
 
 ## POS Search UX Rules (important — mirrors PHP behaviour)
 - **Search input is always focused.** `mainInputRef` on the POS page + `modalInputRef` in the search modal. A global `click` listener refocuses whichever is active when the user clicks a non-interactive area. `refocusSearch()` is called after cart unit/price changes. Respects `showPayment/showCustomerSearch/showQuickAdd/showSuccess` — doesn't steal focus from those dialogs.
@@ -345,6 +352,14 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
 - **Highlight state is owned by keyboard only.** `highlightIdx` resets **only** in `useEffect(() => setHighlightIdx(0), [query])` — never in `onChange`, scroll handlers, or mouse events. Do **not** add `onMouseEnter={() => setHighlightIdx(i)}` to rows: `scrollIntoView` makes rows pass under a stationary cursor and mouseenter would fire spuriously, resetting the highlight. Hover visuals come from Tailwind `hover:bg-primary-soft`, not state.
 - **Keyboard scroll.** `activeRowRef` attached to the active row, `useEffect(() => activeRowRef.current?.scrollIntoView({ block: 'nearest' }), [highlightIdx])`. `block: 'nearest'` keeps scroll inside the list container — does not scroll the page.
 - **Arrow keys call `e.preventDefault()`** to stop page/input default behaviour.
+
+## POS Unit Selection Rules (HARD — main unit always at top)
+The base ("หลัก") unit must always be the first option in BOTH the cart unit dialog and the search modal. Selection state must NEVER influence ordering.
+
+- **Synthesize the base unit from `product.unit_name` only.** Do NOT fall back to `item.unit_name` — that's the currently-selected unit and would put the selected unit at top with the "หลัก" badge. Use `product?.unit_name ?? ''`.
+- **Unit dialog (`POS/index.tsx`)** — `allUnits = [syntheticBase, ...units.filter(u => !u.is_base_unit && u.unit_name !== baseUnitName)]`. Filter on BOTH `!u.is_base_unit` (drops the DB's base product_unit row) AND name (drops same-name collisions) to avoid rendering two "main" entries.
+- **Search modal `flatItems`** — emit `{ product, unit: null }` first, then `(product.units ?? []).filter(u => !u.is_base_unit)`. The display fallback `it.unit?.unit_name ?? it.product.unit_name ?? '-'` then resolves correctly per row (base row → product.unit_name; non-base → unit.unit_name). `handleSelectItem(p, null)` sets `selectedUnit: undefined`, which the cart treats as the synthetic base — keeping price/name sourced from `product.*`, consistent with the unit dialog.
+- **Why this matters beyond aesthetics:** the DB query orders product_units by `is_base_unit DESC, qty_per_base ASC`, but if a product's product_units have NO `is_base_unit=1` row (data anomaly), the previous "use whatever's first" approach silently dropped the base unit from search. The synthetic-base approach is robust to that.
 
 ## Known Issues
 - `postcss.config.js` ESM warning — harmless

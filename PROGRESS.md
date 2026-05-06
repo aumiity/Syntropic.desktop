@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 🚧 Theme refactor in progress · POS customer card redesigned (2026-05-04)
-## Last updated: 2026-05-04
+## Status: 100% Complete + UI Polish ✅ — 🚧 Theme refactor in progress · Products page redesigned + EditProduct save bug fixed (2026-05-06)
+## Last updated: 2026-05-06
 ## App is RUNNABLE — run `npm run electron:dev` to launch
-## ⚠️ Pick up next session: see "🚧 IN PROGRESS — Theme tokenization" below — and the new "Session 2026-05-04 — POS Customer Card Redesign + Icon Sizing Fix" entry for what just changed
+## ⚠️ Pick up next session: see "🚧 IN PROGRESS — Theme tokenization" below — and the new "Session 2026-05-06 — POS Unit Logic Hardening + Products Redesign + EditProduct Save Fix" entry for what just changed
 
 ---
 
@@ -649,8 +649,99 @@ All changes above are uncommitted working tree modifications.
 
 ---
 
+## Session 2026-05-06 — POS Unit Logic Hardening + Products Redesign + EditProduct Save Fix
+
+### Goal
+Three things in one session: tighten the "main unit always on top" logic in POS (both the cart unit dialog and the search modal), redesign the Products list page in POS style, and find why EditProduct save was silently failing.
+
+### POS unit dialog — synthetic base unit (`src/pages/POS/index.tsx:1666-1680`)
+**Bug** — synthetic `baseUnit.unit_name` fell back to `item?.unit_name` when `product.unit_name` was null. Since `item.unit_name` is the *currently selected* unit's name, the synthetic "หลัก" button at position 0 could end up displaying the SELECTED unit's name. The filter `units.filter(u => u.unit_name !== baseUnit.unit_name)` then removed that name from the rest of the list, so the selected unit visually appeared as the main unit at the top. Also, the filter only compared by name — if the DB had a `product_units` row with `is_base_unit=1` but a different `unit_name` than `products.unit_name`, both the synthetic base and the DB base would render (duplicate "main" entries).
+
+**Fix**
+- `baseUnitName = product?.unit_name ?? ''` — no longer falls back to `item?.unit_name`.
+- Filter expanded to `units.filter(u => !u.is_base_unit && u.unit_name !== baseUnitName)` — drops both the renamed DB base and any name-collision.
+- Synthetic baseUnit `is_base_unit: true` → `1` to match the field type (`number` per `ProductUnit`).
+
+### POS search modal — flatItems base row (`src/pages/POS/index.tsx:280-289`)
+**Parallel issue** — when `p.units.length > 0`, the search modal showed only DB `product_units`. The "base" row came from the DB's `is_base_unit=1` row whose `unit_name` is sourced via `product_units → item_units` JOIN. If a product had product_units with NO `is_base_unit=1` entry at all (data anomaly), the base unit was completely missing from search.
+
+**Fix** — `flatItems` now always emits a synthetic base row `{ product: p, unit: null }` first, and excludes any DB unit with `is_base_unit=1` from the rest. The existing display fallback `it.unit?.unit_name ?? it.product.unit_name ?? '-'` then naturally:
+- resolves to `it.product.unit_name` for the base row
+- resolves to `it.unit.unit_name` for non-base rows
+
+`handleSelectItem` already handles the `unit: null` case correctly (sets `unit_name = product.unit_name`, `selectedUnit: undefined`), so no downstream changes were needed.
+
+### Products page redesign (`src/pages/Products/index.tsx` — full rewrite, backup at `index.tsx.bak`)
+Goal: bring the back-office product list visually in line with POS while fixing CLAUDE.md hard-rule violations.
+
+**Hard-rule violations fixed**
+- 3× raw `<select>` → `Select` component (toolbar Category/DrugType, Create dialog Category)
+- 2× raw `<button>` (in/out segmented control in Adjust dialog) → `<Button>` with `success`/`destructive`/`secondary` variants
+- All colors stayed on semantic tokens — no Tailwind palette literals introduced
+- Icons inside `<Button>` rely on Button's own `size-N` rule (no `h-N w-N`)
+
+**Visual / behavioral changes**
+- **Stats strip** (3 POS-style cards): `สินค้าทั้งหมด` (total from API), `ใกล้หมด (หน้านี้)`, `หมดสต็อก (หน้านี้)` — counts derived from current page rows. Each card uses a tinted icon box (`bg-primary-soft text-primary` / `bg-warning-soft text-warning-strong` / `bg-destructive-soft text-destructive`) and is rendered via a small local `StatCard` helper component at the bottom of the file.
+- **Live debounced search** (300 ms) — submit button removed; filter selects also reactive. Initial load happens 300 ms after mount (acceptable trade-off).
+- **Toolbar** — `h-10 rounded-xl bg-card` on every control, magnifier icon anchored inside the search Input.
+- **Sticky table header** — see "Sticky header fix" below; per-cell sticky on `<th>` plus a child-selector wrapper that promotes the Table component's inner `data-slot=table-container` div to the actual scroll container.
+- **Stock cell** — three states: out-of-stock = `Badge variant="destructive"` with white dot; low-stock = `bg-warning-soft text-warning-strong` chip with `AlertTriangle`; healthy = bare tabular number.
+- **Action buttons** → `size="icon-sm"` ghost.
+- **Adjust dialog** — in/out is a 2-column `Button` segmented control; Confirm button color follows the chosen direction; note input gains Enter-to-submit.
+- **Create dialog** — raw `<select>` for category replaced with `Select`. All inputs `h-10 rounded-xl` for visual consistency.
+- **Removed** unused `formatExpiry` / `getExpiryStatus` imports from the original file.
+
+**Sticky header fix** — first attempt put `sticky top-0 z-10 bg-muted` on `TableHeader`. It didn't stick because the `Table` component's inner `<div data-slot="table-container" className="... overflow-x-auto">` creates its own scroll context (per CSS overflow spec, `overflow-x: auto` with no constraint also auto-promotes `overflow-y` to auto). The thead was sticking inside that inner container, but the inner container itself rode up with the outer `overflow-y-auto` wrapper. Fix: outer wrapper now uses `[&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin` to make the table-container itself the scroll element, and `sticky` was moved to each `<th>` directly via `[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted [&_th]:shadow-[0_1px_0_var(--border)]`. The shadow paints a hairline under the sticky row so it visually separates from scrolling rows (a normal `border-b` doesn't move with the sticky cell, leaving a gap).
+
+> Note: PageHeader's `right` slot (Add product button) was put back in by my edit; the user's subsequent local edit removed it again — keeping the user's preference in current code.
+
+### EditProduct save bug — found + fixed (`src/pages/Products/EditProduct.tsx:212-249`)
+**User report:** "can't save product edit."
+
+**Root cause** — `products:update` IPC handler builds dynamic SQL:
+```js
+const fields = Object.keys(data).map(k => `${k} = @${k}`).join(', ')
+db.prepare(`UPDATE products SET ${fields}, ...`).run({ ...data, id })
+```
+Any payload key that isn't an actual column on `products` causes SQLite to throw `no such column: X` and abort the entire UPDATE. The form spread `...form` in `handleSave` was leaking several non-columns:
+
+| Payload key (form) | Reality (`schema.ts:81-124`) |
+|---|---|
+| `is_vat` | column is `has_vat` |
+| `is_not_discount` | column is `no_discount` |
+| `unit_name` | column is `unit_id` (FK to `item_units`); `unit_name` only comes back via JOIN |
+| `drug_generic_name_id` | **not in schema** |
+| `has_wholesale1`, `has_wholesale2` | **not in schema** |
+| `default_qty` | **not in schema** |
+
+CLAUDE.md's products-table description listed these as if they existed, but neither `CREATE TABLE products` nor any later `ALTER TABLE products …` defines them. The existing `has_vat: form.is_vat` / `no_discount: form.is_not_discount` overrides in handleSave didn't help — they ran *after* the spread, so both the bad and good keys ended up in the payload, and SQLite died on whichever ghost column it hit first.
+
+**Fix applied** — destructure the bad keys out of `form` before spreading, then map the renamed flags explicitly:
+```ts
+const { is_vat, is_not_discount,
+        unit_name, drug_generic_name_id, has_wholesale1, has_wholesale2, default_qty,
+        ...rest } = form
+const payload = { ...rest, /* overrides */, has_vat: is_vat ? 1 : 0, no_discount: is_not_discount ? 1 : 0 }
+```
+Also changed `cost_price` default from `|| null` → `|| 0` (column is `REAL NOT NULL DEFAULT 0`; null would have hit a NOT NULL constraint if anyone cleared the field).
+
+**Known consequence** — the four form fields with no schema column (`unit_name` free-text, `drug_generic_name_id`, `has_wholesale1/2`, `default_qty`) now silently drop their values on save. The UI still accepts input but nothing persists. To make any of these stick, schema migration + IPC update + UI mapping is required (e.g. `unit_name` → `unit_id` Select). Deferred until the user signals which of these they actually need.
+
+### Visual testing
+**NOT done** — Claude Code can't render the Electron UI. User must run `npm run electron:dev` to verify:
+- POS unit dialog: open with a product where the selected unit isn't the main one, confirm "หลัก" still sits on top.
+- POS search: confirm a single base row shows per product, with non-base units below.
+- Products page: stats strip renders, sticky header pins while scrolling, action buttons work, Adjust + Create dialogs save.
+- EditProduct: change any field on the General tab and verify save now succeeds (toast "บันทึกสำเร็จ").
+
+### Uncommitted changes
+All changes above are uncommitted working tree modifications.
+
+---
+
 ## Known Issues / Notes
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source
 - better-sqlite3 prebuilt binary obtained via prebuild-install targeting Electron 31.7.7
 - `postcss.config.js` ESM warning — harmless, can be silenced by adding `"type": "module"` to package.json
+- **EditProduct ghost columns** — `unit_name` (free-text), `drug_generic_name_id`, `has_wholesale1`, `has_wholesale2`, `default_qty` are accepted by the UI but silently discarded on save (no matching column in `products` table). Either remove the inputs or migrate the schema. CLAUDE.md's schema notes still list these as if they exist — should be reconciled.
 - DevTools Autofill errors — harmless Chromium noise

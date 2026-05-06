@@ -213,16 +213,22 @@ export default function EditProductPage() {
     if (!form.trade_name?.trim()) { toast({ title: 'กรุณาระบุชื่อสินค้า', variant: 'error' }); return }
     setSaving(true)
     try {
+      // products:update builds dynamic SQL from Object.keys(data); any non-column key
+      // aborts the UPDATE with "no such column". Strip UI-only / renamed keys here.
+      const {
+        is_vat, is_not_discount,
+        unit_name, drug_generic_name_id, has_wholesale1, has_wholesale2, default_qty,
+        ...rest
+      } = form
       const payload = {
-        ...form,
+        ...rest,
         category_id: form.category_id || null,
         drug_type_id: form.drug_type_id || null,
         dosage_form_id: form.dosage_form_id || null,
-        drug_generic_name_id: form.drug_generic_name_id || null,
         price_retail: parseFloat(form.price_retail) || 0,
         price_wholesale1: parseFloat(form.price_wholesale1) || 0,
         price_wholesale2: parseFloat(form.price_wholesale2) || 0,
-        cost_price: parseFloat(form.cost_price) || null,
+        cost_price: parseFloat(form.cost_price) || 0,
         max_dispense_qty: form.max_dispense_qty !== '' ? parseFloat(form.max_dispense_qty) : null,
         sale_control_qty: form.sale_control_qty !== '' ? parseFloat(form.sale_control_qty) : null,
         barcode: form.barcode || null,
@@ -230,8 +236,8 @@ export default function EditProductPage() {
         barcode3: form.barcode3 || null,
         barcode4: form.barcode4 || null,
         code: form.code || null,
-        has_vat: form.is_vat,
-        no_discount: form.is_not_discount,
+        has_vat: is_vat ? 1 : 0,
+        no_discount: is_not_discount ? 1 : 0,
       }
       await window.api.products.update(productId, payload)
       toast({ title: 'บันทึกสำเร็จ', variant: 'success' })

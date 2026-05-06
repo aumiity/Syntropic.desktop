@@ -52,7 +52,7 @@ function SelectTrigger({
         "disabled:cursor-not-allowed disabled:opacity-50",
         "aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20",
         "data-placeholder:text-muted-foreground",
-        "data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-lg",
+        "data-[size=sm]:rounded-lg",
         "dark:hover:bg-input/50",
         "dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
         "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5",
@@ -140,7 +140,7 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5",
-        "rounded-md py-1 pr-8 pl-1.5",
+        "rounded-md py-2 pr-8 pl-1.5",
         "text-sm outline-hidden select-none",
         "focus:bg-accent focus:text-accent-foreground",
         "not-data-[variant=destructive]:focus:**:text-accent-foreground",
