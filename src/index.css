@@ -28,9 +28,12 @@
     --quinary: 219 100% 94%;
     --quinary-foreground: 219 30% 44%;
     --quinary-hover: 219 100% 74%;
-    --muted: 0 0% 90%;
+    --senary: 45 96% 90%;
+    --senary-hover: 43 100% 64%;
+    --senary-foreground: 32 88% 33%;
+    --muted: 0 0% 95%;
     --muted-foreground: 0 0% 10%;
-    --muted-hover: 0 0% 75%;
+    --muted-hover: 0 0% 80%;
     --accent: 43 100% 64%;             /* #F5C24A */
     --accent-foreground: 44 100% 8%;  /* #2A1F00 */
     --accent-soft: 45 96% 90%;        /* #FCEFC8 */
@@ -99,6 +102,9 @@
     --quinary: 219 100% 94%;
     --quinary-foreground: 219 30% 44%;
     --quinary-hover: 219 100% 74%;
+    --senary: 43 25% 14%;
+    --senary-hover: 43 20% 22%;
+    --senary-foreground: 45 90% 80%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 6% 10%;
     --muted-hover: 240 4% 25%;

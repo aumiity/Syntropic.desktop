@@ -160,6 +160,10 @@ export default function POSPage() {
   }, [searchOpen])
 
   useEffect(() => {
+    if (showCustomerSearch) { setCustomerQuery(''); handleSearchCustomer('') }
+  }, [showCustomerSearch])
+
+  useEffect(() => {
     if (showReturn) setTimeout(() => returnInputRef.current?.focus(), 50)
   }, [showReturn])
 
@@ -299,7 +303,6 @@ export default function POSPage() {
 
   const handleSearchCustomer = async (q: string) => {
     setCustomerQuery(q)
-    if (!q.trim()) { setCustomerResults([]); return }
     const data = await window.api.pos.searchCustomers(q)
     setCustomerResults(data as Customer[])
   }
@@ -605,7 +608,7 @@ export default function POSPage() {
                         {pieces} รายการ
                       </span>
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant="tertiary" className="text-xs rounded-md">ขายส่ง</Badge>
+                        <Badge variant="senary" className="text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
                         <Badge variant="quaternary" className="text-xs rounded-md">ขายปลีก</Badge>
                       )}
@@ -701,8 +704,8 @@ export default function POSPage() {
                   <col style={{ width: 120 }} />
                   <col style={{ width: 60 }} />
                 </colgroup>
-                <TableHeader className="sticky top-0 z-10 bg-input">
-                  <TableRow className="hover:bg-input">
+                <TableHeader className="sticky top-0 z-10 bg-muted">
+                  <TableRow className="hover:bg-muted">
                     <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">#</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ชื่อสินค้า</TableHead>
                     <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">หน่วย</TableHead>
@@ -828,11 +831,8 @@ export default function POSPage() {
               setShowBreakdown(false)
               setShowPayment(true)
             }}
-            className="w-full h-40 justify-between bg-accent text-accent-foreground hover:bg-tertiary-hover disabled:bg-muted disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-5">
-            <span className="flex flex-col items-start gap-0.5">
-              <span className="text-xl font-bold leading-none">ชำระเงิน</span>
-            </span>
-            <ChevronRight className="size-[22px]" strokeWidth={2.4} />
+            className="w-full h-40 justify-center bg-accent text-accent-foreground hover:bg-tertiary-hover  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-5">
+              <span className="text-4xl font-bold leading-none">ชำระเงิน</span>
           </Button>
 
           {/* Quick actions (vertical stack) */}
@@ -914,7 +914,7 @@ export default function POSPage() {
           </div>
 
           {/* Column header */}
-          <div className="grid items-center px-4 py-2 bg-input text-sm font-bold text-muted-foreground shrink-0"
+          <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0"
             style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}>
             <div>ชื่อสินค้า</div>
             <div className="text-center">หน่วย</div>
@@ -965,7 +965,7 @@ export default function POSPage() {
           </div>
 
           {/* Footer status */}
-          <div className="px-4 py-2 bg-input text-sm text-muted-foreground shrink-0">
+          <div className="px-4 py-2 bg-muted text-sm text-muted-foreground shrink-0">
             ค้นหา: "{query}" — พบ {results.length} รายการ
           </div>
         </DialogContent>
@@ -973,38 +973,44 @@ export default function POSPage() {
 
       {/* ── CUSTOMER SEARCH DIALOG ── */}
       <Dialog open={showCustomerSearch} onOpenChange={(v) => { if (!v) { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) } }}>
-        <DialogContent size="md" onClose={() => { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}>
-          <DialogHeader><DialogTitle>เลือกลูกค้า</DialogTitle></DialogHeader>
-          <DialogBody>
-            <div className="space-y-3">
-              <Input className="h-10" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..."
-                value={customerQuery}
-                onChange={e => handleSearchCustomer(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && customerResults[0]) { cart.setCustomer(customerResults[0]); closeCustomerSearch() } }}
-              />
-              <Button variant="secondary" onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
-                className="w-full h-12 justify-start px-4 py-3 rounded-xl text-foreground font-medium text-left transition-colors text-base">
-                <User className="size-8 p-1 bg-background rounded-full text-muted-foreground shrink-0" /> ลูกค้าทั่วไป
-              </Button>
-              <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
-                {customerResults.map(c => (
-                  <Button key={c.id} variant="secondary" onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
-                    className="w-full px-4 py-3 h-12 justify-start flex items-center rounded-xl bg-background hover:bg-surface-hover text-left transition-colors">
-                    <User className="size-8 p-1 bg-muted rounded-full text-muted-foreground shrink-0" />
-                    <div>
-                      <div className="font-medium text-base flex items-center gap-1">
-                        {c.is_alert > 0}{c.full_name}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
+        <DialogContent
+          showCloseButton={true}
+          onClose={() => { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}
+          className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
+          style={{ width: '480px', maxWidth: 'calc(100vw - 2rem)', height: '510px', maxHeight: 'calc(100vh - 4rem)' }}
+        >
+          <DialogHeader className="text-2xl px-3 pt-3 pb-0 shrink-0"><DialogTitle>เลือกลูกค้า</DialogTitle></DialogHeader>
+          <div className="px-5 pt-4 pb-2 space-y-3 shrink-0">
+            <Input className="h-10" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..."
+              value={customerQuery}
+              onChange={e => handleSearchCustomer(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && customerResults[0]) { cart.setCustomer(customerResults[0]); closeCustomerSearch() } }}
+            />
+            <Button variant="secondary" onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
+              className="w-full h-14 justify-start px-4 py-3 rounded-xl text-foreground font-medium text-left transition-colors hover:bg-muted">
+              <User className="size-10 p-1 bg-tertiary rounded-xl text-tertiary-foreground shrink-0" /> <span className="pl-2 text-sm" >ลูกค้าทั่วไป</span>
+              <Badge variant="senary" className="ml-auto text-xs rounded-md">ค่าเริ่มต้น</Badge>
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-5 pb-2">
+            <div className="space-y-1">
+              {customerResults.map(c => (
+                <Button key={c.id} variant="secondary" onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
+                  className="w-full px-4 py-7 h-12 justify-start flex items-center rounded-xl hover:bg-muted text-left transition-colors">
+                  <User className="size-10 p-1 bg-primary rounded-xl text-primary-foreground shrink-0" />
+                  <div>
+                    <div className="pl-2 font-medium text-sm text-foreground flex items-center gap-1">
+                      {c.is_alert > 0}{c.full_name}
                     </div>
-                  </Button>
-                ))}
-                {customerQuery && customerResults.length === 0 && <div className="text-base text-center text-muted-foreground py-4">ไม่พบลูกค้า</div>}
-              </div>
+                    <div className="pl-2 text-xs text-secondary-foreground/60">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
+                  </div>
+                </Button>
+              ))}
+              {customerQuery && customerResults.length === 0 && <div className="text-base text-center text-muted-foreground py-4">ไม่พบลูกค้า</div>}
             </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}>ปิด</Button>
+          </div>
+          <DialogFooter className="px-5 pb-5 pt-2 shrink-0">
+            <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1079,7 +1085,7 @@ export default function POSPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button autoFocus variant="secondary" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
+            <Button autoFocus variant="secondary" className="w-32 h-10 text-base" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1104,8 +1110,8 @@ export default function POSPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setShowQuickAdd(false)}>ยกเลิก</Button>
-            <Button onClick={handleQuickAdd} disabled={qaSaving}>{qaSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
+            <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setShowQuickAdd(false)}>ยกเลิก</Button>
+            <Button className="w-32 h-10 text-base" onClick={handleQuickAdd} disabled={qaSaving}>{qaSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1232,8 +1238,8 @@ export default function POSPage() {
             })()}
           </DialogBody>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setShowPayment(false)}>ยกเลิก</Button>
-            <Button variant="success" disabled={saving || change < 0 || pendingNet < 0} onClick={handleCompleteSale} className="min-w-[120px]">
+            <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setShowPayment(false)}>ยกเลิก</Button>
+            <Button variant="success" className="w-32 h-10 text-base" disabled={saving || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
               {saving ? 'กำลังบันทึก...' : '✓ บันทึก'}
             </Button>
           </DialogFooter>
@@ -1433,11 +1439,11 @@ export default function POSPage() {
           </DialogBody>
 
           <DialogFooter>
-            <Button variant="secondary" onClick={closeAdjust}>ยกเลิก</Button>
+            <Button variant="secondary" className="w-32 h-10 text-base" onClick={closeAdjust}>ยกเลิก</Button>
             <Button
               onClick={handleConfirmAdjust}
               disabled={adjustList.length === 0 || !adjustReason.trim() || adjustSaving}
-              className="bg-warning hover:bg-warning-hover text-white font-semibold gap-1.5"
+              className="w-32 h-10 text-base bg-warning hover:bg-warning-hover text-white font-semibold gap-1.5"
             >
               <Minus className="size-4" />
               {adjustSaving ? 'กำลังบันทึก...' : `ยืนยันตัดสต็อก${adjustList.length > 0 ? ` ${adjustList.length} รายการ` : ''}`}
@@ -1630,11 +1636,11 @@ export default function POSPage() {
           </DialogBody>
 
           <DialogFooter>
-            <Button variant="secondary" onClick={closeReturn}>ยกเลิก</Button>
+            <Button variant="secondary" className="w-32 h-10 text-base" onClick={closeReturn}>ยกเลิก</Button>
             <Button
               onClick={handleConfirmReturn}
               disabled={returnList.length === 0 || !returnReason.trim() || returnSaving}
-              className="bg-warning hover:bg-warning-hover text-white font-semibold gap-1.5"
+              className="w-32 h-10 text-base bg-warning hover:bg-warning-hover text-white font-semibold gap-1.5"
             >
               <RotateCcw className="size-4" />
               {returnSaving ? 'กำลังบันทึก...' : `ยืนยันคืน${returnList.length > 0 ? ` ${returnList.length} รายการ` : ''}`}
@@ -1672,7 +1678,7 @@ export default function POSPage() {
           const allUnits = baseUnit ? [baseUnit, ...units.filter(u => u.unit_name !== baseUnit.unit_name)] : units
           return (
             <DialogContent size="sm" onClose={() => setUnitModalIdx(null)}>
-              <DialogHeader><DialogTitle>เลือกหน่วย — {item?.item_name}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle className="text-lg">เลือกหน่วย — {item?.item_name}</DialogTitle></DialogHeader>
               <DialogBody>
                 <div className="space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
                   {allUnits.map(u => {
@@ -1680,7 +1686,7 @@ export default function POSPage() {
                     return (
                       <Button key={u.id} variant="outline"
                         onClick={() => changeCartUnit(unitModalIdx, u)}
-                        className={`w-full px-4 py-3 rounded-xl text-left transition-colors ${active ? 'bg-primary-soft text-primary font-bold' : 'bg-card hover:bg-muted'}`}>
+                        className={`w-full h-14 px-4 py-3 rounded-xl text-left transition-colors ${active ? 'bg-primary-soft text-primary font-bold' : 'bg-card hover:bg-muted'}`}>
                         <div className="flex items-center justify-between">
                           <span className="text-base">{u.unit_name}</span>
                           {u.id === -1 && <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">หลัก</span>}
@@ -1691,7 +1697,7 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="secondary" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
+                <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -1790,7 +1796,7 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="secondary" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
+                <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -1860,8 +1866,8 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="secondary" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
-                <Button onClick={() => applyQty(q)}>ตกลง</Button>
+                <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
+                <Button className="w-32 h-10 text-base" onClick={() => applyQty(q)}>ตกลง</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -1992,9 +1998,9 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="outline" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}>ล้าง</Button>
-                <Button variant="secondary" onClick={() => setDiscountModalIdx(null)}>ยกเลิก</Button>
-                <Button onClick={() => applyDiscount(d)}>ตกลง</Button>
+                <Button variant="outline" className="w-32 h-10 text-base" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}>ล้าง</Button>
+                <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setDiscountModalIdx(null)}>ยกเลิก</Button>
+                <Button className="w-32 h-10 text-base" onClick={() => applyDiscount(d)}>ตกลง</Button>
               </DialogFooter>
             </DialogContent>
           )

@@ -48,6 +48,11 @@ export default {
           foreground: 'hsl(var(--quinary-foreground))',
           hover: 'hsl(var(--quinary-hover))',
         },
+        senary: {
+          DEFAULT: 'hsl(var(--senary))',
+          hover: 'hsl(var(--senary-hover))',
+          foreground: 'hsl(var(--senary-foreground))',
+        },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',

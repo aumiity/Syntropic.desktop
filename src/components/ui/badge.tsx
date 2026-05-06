@@ -27,6 +27,9 @@ const badgeVariants = cva(
         quaternary: [
           "bg-quaternary text-quaternary-foreground",
         ].join(" "),
+        senary: [
+          "bg-senary text-senary-foreground",
+        ].join(" "),
         destructive:
           "bg-destructive text-white dark:bg-destructive-hover dark:text-white",
         outline:

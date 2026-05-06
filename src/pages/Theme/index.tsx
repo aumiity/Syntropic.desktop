@@ -326,6 +326,7 @@ export default function Theme() {
                   <Button variant="secondary">Secondary</Button>
                   <Button variant="tertiary">Tertiary</Button>
                   <Button variant="quaternary">Quaternary</Button>
+                  <Button variant="senary">Senary</Button>
                   <Button variant="outline">Outline</Button>
                   <Button variant="ghost">Ghost</Button>
                   <Button variant="destructive">Destructive</Button>
@@ -366,6 +367,7 @@ export default function Theme() {
                   <Badge variant="secondary">Secondary</Badge>
                   <Badge variant="tertiary">Tertiary</Badge>
                   <Badge variant="quaternary">Quaternary</Badge>
+                  <Badge variant="senary">Senary</Badge>
                   <Badge variant="outline">Outline</Badge>
                   <Badge variant="success">Success</Badge>
                   <Badge variant="warning">Warning</Badge>
