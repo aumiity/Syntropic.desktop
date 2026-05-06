@@ -21,15 +21,15 @@
     --secondary-hover: 0 0% 90%;
     --tertiary: 43 100% 64%;
     --tertiary-foreground: 0 0% 10%;
-    --tertiary-hover: 43 100% 44%;
+    --tertiary-hover: 43 90% 54%;
     --quaternary: 180 20% 90%;
     --quaternary-foreground: 179 91% 22%;
     --quaternary-hover: 180 20% 85%;
     --quinary: 219 100% 94%;
     --quinary-foreground: 219 30% 44%;
-    --quinary-hover: 219 100% 74%;
+    --quinary-hover: 219 100% 84%;
     --senary: 45 96% 90%;
-    --senary-hover: 43 100% 64%;
+    --senary-hover: 45 96% 80%;
     --senary-foreground: 32 88% 33%;
     --muted: 0 0% 95%;
     --muted-foreground: 0 0% 10%;
@@ -101,7 +101,7 @@
     --quaternary-hover: 180 20% 80%;
     --quinary: 219 100% 94%;
     --quinary-foreground: 219 30% 44%;
-    --quinary-hover: 219 100% 74%;
+    --quinary-hover: 219 100% 84%;
     --senary: 43 25% 14%;
     --senary-hover: 43 20% 22%;
     --senary-foreground: 45 90% 80%;

@@ -277,12 +277,14 @@ export default function POSPage() {
 
   const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]) }
 
-  // Flatten results into selectable items (each unit is a selectable entry)
-  const flatItems = results.flatMap(p =>
-    p.units?.length > 0
-      ? p.units.map(u => ({ product: p, unit: u }))
-      : [{ product: p, unit: null as ProductUnit | null }]
-  )
+  // Synthetic base row first (uses product.unit_name); skip DB units with is_base_unit=1 to avoid duplicates.
+  const flatItems = results.flatMap(p => {
+    const nonBaseUnits = (p.units ?? []).filter(u => !u.is_base_unit)
+    return [
+      { product: p, unit: null as ProductUnit | null },
+      ...nonBaseUnits.map(u => ({ product: p, unit: u })),
+    ]
+  })
 
   const handleSelectItem = (product: ProductWithDetails, unit: ProductUnit | null) => {
     const price = resolveSalePrice(unit ?? product, cart.saleType)
@@ -621,7 +623,7 @@ export default function POSPage() {
               <Button variant="ghost"
                 onClick={() => setShowCustomerSearch(true)}
                 className="relative flex items-center gap-3 flex-1 min-h-0 p-2 rounded-xl hover:bg-transparent text-left">
-                <span className="grid place-items-center w-14 h-14 rounded-full shrink-0 bg-primary-soft text-primary">
+                <span className="grid place-items-center w-14 h-14 rounded-full shrink-0 bg-senary text-senary-foreground">
                   <User className="size-7" />
                 </span>
                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
@@ -639,7 +641,7 @@ export default function POSPage() {
                 </div>
               </Button>
               <div className="grid grid-cols-2 gap-2 shrink-0">
-                <Button variant="quaternary"
+                <Button variant="senary"
                   onClick={() => setShowCustomerInfo(true)}
                   disabled={!cart.customer}
                   className="h-9 rounded-lg text-xs gap-1">
@@ -738,7 +740,7 @@ export default function POSPage() {
 
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
-                          className="inline-flex items-center w-[80px] justify-center h-8 rounded-md text-foreground text-md font-semibold hover:bg-muted transition-colors">
+                          className="inline-flex items-center w-[80px] justify-center h-8 rounded-md bg-accent-soft text-warning-strong text-md font-semibold tabular-nums hover:bg-accent-soft transition-colors">
                           {item.unit_name}
                         </Button>
                       </TableCell>
@@ -746,7 +748,7 @@ export default function POSPage() {
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm"
                           onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                          className="inline-flex items-center gap-1 w-[80px] justify-center h-8 rounded-md bg-accent-soft text-warning-strong text-md font-semibold tabular-nums hover:bg-accent-soft transition-colors">
+                          className="inline-flex items-center w-[80px] justify-center h-8 rounded-md bg-quinary text-quinary-foreground text-md font-semibold tabular-nums hover:bg-quinary transition-colors ">
                           <span className="flex-1 text-center">{item.qty}</span>
                         </Button>
                       </TableCell>
@@ -897,6 +899,7 @@ export default function POSPage() {
             <Input
               ref={modalInputRef}
               value={query}
+              autoFocus
               onChange={e => handleSearch(e.target.value)}
               onKeyDown={handleModalKeyDown}
               placeholder="ค้นหารหัส, ชื่อยา หรือสแกนบาร์โค้ด..."
@@ -1667,15 +1670,18 @@ export default function POSPage() {
           const item = cart.items[unitModalIdx]
           const product = item?.product as ProductWithDetails | undefined
           const units = product?.units ?? []
+          const baseUnitName = product?.unit_name ?? ''
           const baseUnit = product ? {
             id: -1,
-            unit_name: product.unit_name ?? item?.unit_name ?? '',
+            unit_name: baseUnitName,
             price_retail: product.price_retail,
             price_wholesale1: product.price_wholesale1,
             price_wholesale2: product.price_wholesale2,
-            is_base_unit: true,
+            is_base_unit: 1,
           } as unknown as ProductUnit : null
-          const allUnits = baseUnit ? [baseUnit, ...units.filter(u => u.unit_name !== baseUnit.unit_name)] : units
+          const allUnits = baseUnit
+            ? [baseUnit, ...units.filter(u => !u.is_base_unit && u.unit_name !== baseUnitName)]
+            : units
           return (
             <DialogContent size="sm" onClose={() => setUnitModalIdx(null)}>
               <DialogHeader><DialogTitle className="text-lg">เลือกหน่วย — {item?.item_name}</DialogTitle></DialogHeader>
@@ -1684,12 +1690,12 @@ export default function POSPage() {
                   {allUnits.map(u => {
                     const active = item?.unit_name === u.unit_name
                     return (
-                      <Button key={u.id} variant="outline"
+                      <Button key={u.id} variant="senary"
                         onClick={() => changeCartUnit(unitModalIdx, u)}
-                        className={`w-full h-14 px-4 py-3 rounded-xl text-left transition-colors ${active ? 'bg-primary-soft text-primary font-bold' : 'bg-card hover:bg-muted'}`}>
-                        <div className="flex items-center justify-between">
-                          <span className="text-base">{u.unit_name}</span>
-                          {u.id === -1 && <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">หลัก</span>}
+                        className={`w-full h-14 px-4 py-3 rounded-xl transition-colors ${active ? 'font-bold border-senary-foreground border-2' : ''}`}>
+                        <div className="relative flex items-center w-full">
+                          <span className="w-full text-center text-xl">{u.unit_name}</span>
+                          {u.id === -1 && <Badge variant="tertiary" className="absolute right-0 rounded-lg">หลัก</Badge>}
                         </div>
                       </Button>
                     )
@@ -1697,7 +1703,7 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
+                <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -1726,11 +1732,11 @@ export default function POSPage() {
             <DialogContent size="sm" onClose={() => setPriceModalIdx(null)}>
               <DialogHeader><DialogTitle>ราคา — {item?.item_name}</DialogTitle></DialogHeader>
               <DialogBody>
-                <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
+                <div className="space-y-2 max-h-200 overflow-y-auto scrollbar-thin">
                   {/* Custom price input */}
                   <div className="w-full px-4 py-3 rounded-xl bg-primary-soft">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-m font-bold text-primary">กำหนดราคา</span>
+                      <span className="text-base font-bold text-primary">กำหนดราคา</span>
                     </div>
                     <div className="flex items-center gap-2 mb-2">
                       <Input
@@ -1744,21 +1750,21 @@ export default function POSPage() {
                         onChange={e => setCustomPriceInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') applyCustomPrice() }}
                         placeholder="0.00"
-                        className="w-full flex-1 h-10 text-right text-xl font-bold bg-card rounded-lg focus:ring-2 focus:ring-primary outline-none px-3 tabular-nums"
+                        className="w-full flex-1 h-10 text-right text-3xl font-bold bg-card rounded-lg focus:ring-2 focus:ring-primary outline-none px-3 tabular-nums"
                       />
-                      <Button onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-11 px-4">ตกลง</Button>
+                      <Button variant="default" onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-10 px-4 text-sm">ตกลง</Button>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
-                        <div className="text-foreground-subtle">ทุน</div>
+                        <div className="text-foreground-subtle text-xs">ทุน</div>
                         <div className="font-semibold text-muted-foreground tabular-nums">฿{formatCurrency(cost)}</div>
                       </div>
                       <div>
-                        <div className="text-foreground-subtle">กำไร</div>
+                        <div className="text-foreground-subtle text-xs">กำไร</div>
                         <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>฿{formatCurrency(customProfit)}</div>
                       </div>
                       <div>
-                        <div className="text-foreground-subtle">% ทุน</div>
+                        <div className="text-foreground-subtle text-xs">กำไร %</div>
                         <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</div>
                       </div>
                     </div>
@@ -1769,25 +1775,25 @@ export default function POSPage() {
                     const profit = opt.price - cost
                     const markupPct = cost > 0 ? (profit / cost) * 100 : 0
                     return (
-                      <Button key={i} variant="outline"
+                      <Button key={i} variant="quaternary"
                         onClick={() => changeCartPrice(priceModalIdx, opt.price)}
-                        className={`w-full px-4 py-3 rounded-xl text-left transition-colors ${active ? 'bg-primary-soft' : 'bg-card hover:bg-muted'}`}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-base font-bold ${active ? 'text-primary' : 'text-foreground'}`}>{opt.label}</span>
-                          <span className="text-lg font-extrabold text-primary tabular-nums">฿{formatCurrency(opt.price)}</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-sm">
-                          <div>
-                            <div className="text-foreground-subtle">ทุน</div>
-                            <div className="font-semibold text-muted-foreground tabular-nums">฿{formatCurrency(cost)}</div>
-                          </div>
-                          <div>
-                            <div className="text-foreground-subtle">กำไร</div>
-                            <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-success' : 'text-destructive'}`}>฿{formatCurrency(profit)}</div>
-                          </div>
-                          <div>
-                            <div className="text-foreground-subtle">% ทุน</div>
-                            <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</div>
+                        className={`w-full h-auto px-4 py-3 rounded-xl transition-colors ${active ? '' : ''}`}>
+                        <div className="space-y-1 w-full">
+                          <div className={`text-base font-bold text-left ${active ? 'text-primary' : 'text-foreground'}`}>{opt.label}</div>
+                          <div className="text-right text-3xl font-extrabold text-primary tabular-nums">฿ {formatCurrency(opt.price)}</div>
+                          <div className="text-left grid grid-cols-3 gap-2 text-sm pt-1">
+                            <div>
+                              <div className="text-foreground-subtle text-xs">ทุน</div>
+                              <div className="font-semibold text-muted-foreground tabular-nums">฿{formatCurrency(cost)}</div>
+                            </div>
+                            <div>
+                              <div className="text-foreground-subtle text-xs">กำไร</div>
+                              <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-success' : 'text-destructive'}`}>฿{formatCurrency(profit)}</div>
+                            </div>
+                            <div>
+                              <div className="text-foreground-subtle text-xs">กำไร %</div>
+                              <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</div>
+                            </div>
                           </div>
                         </div>
                       </Button>
@@ -1796,7 +1802,7 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
+                <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
               </DialogFooter>
             </DialogContent>
           )

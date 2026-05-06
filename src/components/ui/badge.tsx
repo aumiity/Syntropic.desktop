@@ -27,6 +27,9 @@ const badgeVariants = cva(
         quaternary: [
           "bg-quaternary text-quaternary-foreground",
         ].join(" "),
+        quinary: [
+          "bg-quinary text-quinary-foreground",
+        ].join(" "),
         senary: [
           "bg-senary text-senary-foreground",
         ].join(" "),

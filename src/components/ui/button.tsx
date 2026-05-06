@@ -37,6 +37,10 @@ const buttonVariants = cva(
           "bg-quaternary text-quaternary-foreground",
           "hover:bg-quaternary-hover [a]:hover:bg-quaternary/80",
         ].join(" "),
+        quinary: [
+          "bg-quinary text-quinary-foreground",
+          "hover:bg-quinary-hover [a]:hover:bg-quinary/80",
+        ].join(" "),
         senary: [
           "bg-senary text-senary-foreground",
           "hover:bg-senary-hover [a]:hover:bg-senary/80",

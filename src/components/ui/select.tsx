@@ -43,7 +43,7 @@ function SelectTrigger({
       data-size={size}
       className={cn(
         "flex w-fit items-center justify-between gap-1.5",
-        "rounded-lg border border-input",
+        "rounded-lg border border-border",
         "bg-transparent dark:bg-input/30",
         "py-2 pr-2 pl-2.5",
         "text-sm whitespace-nowrap",
@@ -124,7 +124,7 @@ function SelectLabel({
   return (
     <SelectPrimitive.Label
       data-slot="select-label"
-      className={cn("px-1.5 py-1 text-xs text-muted-foreground", className)}
+      className={cn("px-1.5 py-1 text-sm font-semibold text-muted-foreground", className)}
       {...props}
     />
   )
