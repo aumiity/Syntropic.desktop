@@ -600,14 +600,16 @@ export default function POSPage() {
                     <span className="text-3xl font-bold tabular-nums leading-none">
                       <span className="opacity-70 mr-1 text-2xl">฿</span>{formatCurrency(total)}
                     </span>
-                    <span className={`text-sm tabular-nums ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                      {pieces} รายการ {' '}
+                    <div className="flex items-center justify-between w-full">
+                      <span className={`text-sm tabular-nums ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                        {pieces} รายการ
+                      </span>
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant="tertiary" className="ml-2 text-xs rounded-md">ขายส่ง</Badge>
+                        <Badge variant="tertiary" className="text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
-                        <Badge variant="quaternary" className="ml-2 text-xs rounded-md">ขายปลีก</Badge>
+                        <Badge variant="quaternary" className="text-xs rounded-md">ขายปลีก</Badge>
                       )}
-                    </span>
+                    </div>
                   </div>
                 </Button>
               )
@@ -676,7 +678,7 @@ export default function POSPage() {
                 placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                 autoFocus
                 autoComplete="off"
-                className="h-9 py-2 pl-3 pr-9 text-sm rounded-lg border-0 shadow-none focus-visible:ring-0"/>
+                className="h-9 py-2 pl-3 pr-9 text-sm rounded-lg border-0 shadow-none"/>
               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
             </div>
             <Button variant="outline" size="sm" disabled={cart.items.length === 0}
@@ -692,11 +694,11 @@ export default function POSPage() {
                 <colgroup>
                   <col style={{ width: 36 }} />
                   <col />
-                  <col style={{ width: 108 }} />
-                  <col style={{ width: 108 }} />
-                  <col style={{ width: 122 }} />
-                  <col style={{ width: 108 }} />
-                  <col style={{ width: 104 }} />
+                  <col style={{ width: 100 }} />
+                  <col style={{ width: 100 }} />
+                  <col style={{ width: 120 }} />
+                  <col style={{ width: 100 }} />
+                  <col style={{ width: 120 }} />
                   <col style={{ width: 60 }} />
                 </colgroup>
                 <TableHeader className="sticky top-0 z-10 bg-input">
@@ -705,9 +707,9 @@ export default function POSPage() {
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ชื่อสินค้า</TableHead>
                     <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">หน่วย</TableHead>
                     <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">จำนวน</TableHead>
-                    <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ราคา</TableHead>
-                    <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ส่วนลด</TableHead>
-                    <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground-subtle">รวม</TableHead>
+                    <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ราคา</TableHead>
+                    <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ส่วนลด</TableHead>
+                    <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">รวม</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
@@ -733,7 +735,7 @@ export default function POSPage() {
 
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
-                          className="min-w-14 inline-flex items-center w-[80px] justify-center h-8 px-2.5 rounded-md text-foreground text-md font-semibold hover:bg-muted transition-colors">
+                          className="inline-flex items-center w-[80px] justify-center h-8 rounded-md text-foreground text-md font-semibold hover:bg-muted transition-colors">
                           {item.unit_name}
                         </Button>
                       </TableCell>
@@ -741,7 +743,7 @@ export default function POSPage() {
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm"
                           onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                          className="inline-flex items-center gap-1 min-w-14 w-[80px] h-8 px-2.5 rounded-md bg-accent-soft text-warning-strong text-md font-semibold tabular-nums hover:bg-accent-soft transition-colors">
+                          className="inline-flex items-center gap-1 w-[80px] justify-center h-8 rounded-md bg-accent-soft text-warning-strong text-md font-semibold tabular-nums hover:bg-accent-soft transition-colors">
                           <span className="flex-1 text-center">{item.qty}</span>
                         </Button>
                       </TableCell>
@@ -769,7 +771,7 @@ export default function POSPage() {
                         )}
                       </TableCell>
 
-                      <TableCell className="text-right font-semibold text-primary text-md">
+                      <TableCell className="text-right pr-4 font-semibold text-primary text-md tabular-nums">
                         {formatCurrency(item.line_total)}
                       </TableCell>
 
