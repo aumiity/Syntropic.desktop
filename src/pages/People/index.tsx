@@ -665,7 +665,7 @@ export default function PeoplePage() {
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
         <div className="px-4 pt-4 shrink-0">
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList>
+            <TabsList variant="pill">
               <TabsTrigger value="customers">
                 <Users className="w-3.5 h-3.5 mr-1.5" /> ลูกค้า
               </TabsTrigger>

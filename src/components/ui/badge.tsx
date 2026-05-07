@@ -43,6 +43,7 @@ const badgeVariants = cva(
         success: "border-transparent bg-success text-success-foreground",
         warning: "border-transparent bg-warning text-warning-foreground",
         danger: "border-transparent bg-destructive text-primary-foreground",
+        destructive2: "bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive",
       },
     },
     defaultVariants: {

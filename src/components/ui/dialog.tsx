@@ -104,21 +104,38 @@ const DialogContent = React.forwardRef<
 ))
 DialogContent.displayName = "DialogContent"
 
-function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="dialog-body"
-      className={cn("p-2 rounded-xl", className)}
-      {...props}
-    />
-  )
-}
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2 mt-2 ml-2", className)}
+      className={cn("flex flex-col gap-2 px-2", className)}
+      {...props}
+    />
+  )
+}
+
+function DialogTitle({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Title>) {
+  return (
+    <DialogPrimitive.Title
+      data-slot="dialog-title"
+      className={cn(
+        "font-heading leading-none font-bold",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-body"
+      className={cn("px-2 rounded-xl", className)}
       {...props}
     />
   )
@@ -136,7 +153,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex flex-col-reverse gap-2 mt-4",
+        "flex flex-col-reverse gap-2 px-2",
         "sm:flex-row sm:justify-end",
         className
       )}
@@ -152,21 +169,6 @@ function DialogFooter({
   )
 }
 
-function DialogTitle({
-  className,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Title>) {
-  return (
-    <DialogPrimitive.Title
-      data-slot="dialog-title"
-      className={cn(
-        "font-heading leading-none font-medium",
-        className
-      )}
-      {...props}
-    />
-  )
-}
 
 function DialogDescription({
   className,

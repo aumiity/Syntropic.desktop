@@ -516,7 +516,7 @@ export default function EditProductPage() {
         {/* Tabs */}
         <div className="px-4 pt-4 shrink-0">
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList>
+            <TabsList variant="pill">
               <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
               <TabsTrigger value="units">หน่วยนับ ({product.units?.length ?? 0})</TabsTrigger>
               <TabsTrigger value="labels">ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
@@ -540,7 +540,7 @@ export default function EditProductPage() {
                 <Input value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" />
               </FieldRow>
               <FieldRow label="รหัสสินค้า">
-                <Input value={form.code} onChange={e => setF('code', e.target.value)} placeholder="MED001" />
+                <Input value={form.code} readOnly className="bg-muted cursor-not-allowed" />
               </FieldRow>
               <FieldRow label="หมวดหมู่">
                 <SelectField value={form.category_id} onChange={v => setF('category_id', Number(v))}>

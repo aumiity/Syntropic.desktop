@@ -603,7 +603,7 @@ export default function SettingsPage() {
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
         <div className="px-4 pt-4 shrink-0">
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList>
+            <TabsList variant="pill">
               <TabsTrigger value="shop"><Store className="w-3.5 h-3.5 mr-1.5" />ข้อมูลร้าน</TabsTrigger>
               <TabsTrigger value="categories"><Tag className="w-3.5 h-3.5 mr-1.5" />หมวดหมู่</TabsTrigger>
               <TabsTrigger value="units"><Ruler className="w-3.5 h-3.5 mr-1.5" />หน่วยนับ</TabsTrigger>

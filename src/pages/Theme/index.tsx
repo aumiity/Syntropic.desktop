@@ -136,7 +136,7 @@ export default function Theme() {
       <div className="flex-1 overflow-y-auto">
         <Tabs defaultValue="components" className="w-full max-w-6xl rounded-xl border border-border bg-card overflow-hidden">
           <div className="border-b border-border bg-muted/30 px-4 py-3">
-            <TabsList className="mb-0">
+            <TabsList variant="pill" className="mb-0">
               {/* <TabsTrigger value="theme">ธีม</TabsTrigger> */}
               <TabsTrigger value="components">คอมโพเนนต์</TabsTrigger>
             </TabsList>
@@ -563,7 +563,7 @@ export default function Theme() {
               <Section title="Tabs" path="src/components/ui/tabs.tsx" full>
                 <DemoRow label="Default (Pill)">
                   <Tabs defaultValue="overview" className="w-full">
-                    <TabsList>
+                    <TabsList variant="pill">
                       <TabsTrigger value="overview">ภาพรวม</TabsTrigger>
                       <TabsTrigger value="detail">รายละเอียด</TabsTrigger>
                       <TabsTrigger value="history">ประวัติ</TabsTrigger>
@@ -588,7 +588,7 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="Line Variant">
                   <Tabs defaultValue="all" className="w-full">
-                    <TabsList variant="line">
+                    <TabsList variant="pill">
                       <TabsTrigger value="all">ทั้งหมด</TabsTrigger>
                       <TabsTrigger value="active">ใช้งาน</TabsTrigger>
                       <TabsTrigger value="expired">หมดอายุ</TabsTrigger>
@@ -612,7 +612,7 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="Vertical Orientation">
                   <Tabs defaultValue="a" orientation="vertical" className="w-full max-w-sm">
-                    <TabsList>
+                    <TabsList variant="pill">
                       <TabsTrigger value="a">ข้อมูลยา</TabsTrigger>
                       <TabsTrigger value="b">คลังสินค้า</TabsTrigger>
                       <TabsTrigger value="c">ผู้จัดจำหน่าย</TabsTrigger>

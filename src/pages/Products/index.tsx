@@ -48,7 +48,6 @@ export default function ProductsPage() {
   const [creating, setCreating] = useState(false)
   const [newProduct, setNewProduct] = useState({
     trade_name: '',
-    code: '',
     barcode: '',
     price_retail: '',
     unit_name: '',
@@ -122,7 +121,6 @@ export default function ProductsPage() {
     try {
       const created = await window.api.products.create({
         trade_name: newProduct.trade_name.trim(),
-        code: newProduct.code.trim() || null,
         barcode: newProduct.barcode.trim() || null,
         price_retail: parseFloat(newProduct.price_retail) || 0,
         unit_name: newProduct.unit_name.trim() || null,
@@ -141,7 +139,7 @@ export default function ProductsPage() {
         is_sale_control: 0,
       }) as any
       setShowCreate(false)
-      setNewProduct({ trade_name: '', code: '', barcode: '', price_retail: '', unit_name: '', category_id: 0 })
+      setNewProduct({ trade_name: '', barcode: '', price_retail: '', unit_name: '', category_id: 0 })
       toast({ title: 'เพิ่มสินค้าสำเร็จ', variant: 'success' })
       navigate(`/products/${created.id}/edit`)
     } catch (e: any) {
@@ -379,25 +377,15 @@ export default function ProductsPage() {
                 autoFocus
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">รหัสสินค้า</label>
-                <Input
-                  value={newProduct.code}
-                  onChange={e => setNewProduct(p => ({ ...p, code: e.target.value }))}
-                  placeholder="เช่น MED001"
-                  className="h-10 rounded-xl"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">บาร์โค้ด</label>
-                <Input
-                  value={newProduct.barcode}
-                  onChange={e => setNewProduct(p => ({ ...p, barcode: e.target.value }))}
-                  placeholder="8851234567890"
-                  className="h-10 rounded-xl"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">บาร์โค้ด</label>
+              <Input
+                value={newProduct.barcode}
+                onChange={e => setNewProduct(p => ({ ...p, barcode: e.target.value }))}
+                placeholder="8851234567890"
+                className="h-10 rounded-xl"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">รหัสสินค้าจะถูกสร้างอัตโนมัติ (P0001, P0002, …)</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

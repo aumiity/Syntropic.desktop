@@ -84,6 +84,12 @@ export function registerProductHandlers() {
 
   ipcMain.handle('products:create', (_e, data: any) => {
     const db = getDb()
+    // Auto-generate product code (P0001, P0002, …). Scan only auto-generated codes
+    // so legacy custom codes (e.g. MED001) don't poison the sequence.
+    const last = db.prepare(`SELECT code FROM products WHERE code GLOB 'P[0-9][0-9][0-9][0-9]*' ORDER BY code DESC LIMIT 1`).get() as any
+    let nextNum = 1
+    if (last?.code) nextNum = parseInt(last.code.slice(1)) + 1
+    const code = `P${String(nextNum).padStart(4, '0')}`
     const stmt = db.prepare(`
       INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,
         category_id, dosage_form_id, unit_id, is_stock_item,
@@ -102,7 +108,7 @@ export function registerProductHandlers() {
         @indication_note, @side_effect_note, @is_fda_report, @is_fda13_report,
         @is_sale_control, @sale_control_qty, @search_keywords, @note)
     `)
-    const result = stmt.run(data)
+    const result = stmt.run({ ...data, code })
     return db.prepare(`SELECT * FROM products WHERE id = ?`).get(result.lastInsertRowid)
   })
 

@@ -982,13 +982,16 @@ export default function POSPage() {
           className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
           style={{ width: '480px', maxWidth: 'calc(100vw - 2rem)', height: '510px', maxHeight: 'calc(100vh - 4rem)' }}
         >
-          <DialogHeader className="text-2xl px-3 pt-3 pb-0 shrink-0"><DialogTitle>เลือกลูกค้า</DialogTitle></DialogHeader>
+          <DialogHeader className="text-2xl mt-2 px-3 pt-3 pb-0 shrink-0"><DialogTitle>เลือกลูกค้า</DialogTitle></DialogHeader>
           <div className="px-5 pt-4 pb-2 space-y-3 shrink-0">
-            <Input className="h-10" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..."
-              value={customerQuery}
-              onChange={e => handleSearchCustomer(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && customerResults[0]) { cart.setCustomer(customerResults[0]); closeCustomerSearch() } }}
-            />
+            <div className="relative" style={{ width: '296px' }}>
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+              <Input className="w-full h-10 pl-4 pr-10 py-3" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..."
+                value={customerQuery}
+                onChange={e => handleSearchCustomer(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && customerResults[0]) { cart.setCustomer(customerResults[0]); closeCustomerSearch() } }}
+              />
+            </div>
             <Button variant="secondary" onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
               className="w-full h-14 justify-start px-4 py-3 rounded-xl text-foreground font-medium text-left transition-colors hover:bg-muted">
               <User className="size-10 p-1 bg-tertiary rounded-xl text-tertiary-foreground shrink-0" /> <span className="pl-2 text-sm" >ลูกค้าทั่วไป</span>
@@ -1684,7 +1687,7 @@ export default function POSPage() {
             : units
           return (
             <DialogContent size="sm" onClose={() => setUnitModalIdx(null)}>
-              <DialogHeader><DialogTitle className="text-lg">เลือกหน่วย — {item?.item_name}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle className="text-2xl">เลือกหน่วย <div className="text-sm">{item?.item_name}</div></DialogTitle></DialogHeader>
               <DialogBody>
                 <div className="space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
                   {allUnits.map(u => {
@@ -1730,7 +1733,7 @@ export default function POSPage() {
           }
           return (
             <DialogContent size="sm" onClose={() => setPriceModalIdx(null)}>
-              <DialogHeader><DialogTitle>ราคา — {item?.item_name}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle className="text-2xl">ราคา <div className="text-sm">{item?.item_name}</div></DialogTitle></DialogHeader>
               <DialogBody>
                 <div className="space-y-2 max-h-200 overflow-y-auto scrollbar-thin">
                   {/* Custom price input */}
@@ -1831,17 +1834,17 @@ export default function POSPage() {
           }
           return (
             <DialogContent size="sm" onClose={() => setQtyModalIdx(null)}>
-              <DialogHeader><DialogTitle>จำนวน — {item?.item_name}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle className="text-2xl">จำนวน <div className="text-sm">{item?.item_name}</div></DialogTitle></DialogHeader>
               <DialogBody className="space-y-4">
                 <div className="flex justify-between text-base">
-                  <span className="text-muted-foreground">คงเหลือ</span>
+                  <span className="font-bold text-muted-foreground">คงเหลือ</span>
                   <span className={`font-semibold tabular-nums ${stockQty > 0 ? 'text-foreground' : 'text-destructive'}`}>{stockQty} {item?.unit_name}</span>
                 </div>
                 <div>
-                  <Label className="block text-base font-bold text-muted-foreground mb-1">จำนวน ({item?.unit_name})</Label>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => bump(-1)}
-                      className="w-14 h-14 rounded-xl flex items-center justify-center bg-muted hover:bg-muted text-muted-foreground font-bold shrink-0">
+                  <Label className="block text-base font-bold text-muted-foreground mb-2">จำนวน ({item?.unit_name})</Label>
+                  <div className="flex items-center gap-2 rounded-xl ring-1 ring-border">
+                    <Button variant="default" size="icon" onClick={() => bump(-1)}
+                      className="ml-3 w-10 h-10 rounded-full flex items-center justify-center bg-secondary-hover hover:text-primary-foreground hover:bg-primary text-muted-foreground font-bold shrink-0">
                       <Minus className="size-5" />
                     </Button>
                     <Input
@@ -1854,26 +1857,26 @@ export default function POSPage() {
                       onChange={e => setQtyInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') applyQty(q) }}
                       placeholder="1"
-                      className="w-16 flex-1 h-14 text-center text-3xl font-bold bg-card rounded-xl focus:ring-2 focus:ring-primary outline-none px-4 tabular-nums"
+                      className="w-16 flex-1 h-14 text-center text-3xl font-bold bg-card rounded-xl focus:ring-0 focus:ring-primary outline-none px-4 tabular-nums"
                     />
-                    <Button variant="outline" size="icon" onClick={() => bump(1)}
-                      className="w-14 h-14 rounded-xl flex items-center justify-center bg-muted hover:bg-muted text-muted-foreground font-bold shrink-0">
+                    <Button variant="default" size="icon" onClick={() => bump(1)}
+                      className="mr-3 w-10 h-10 rounded-full flex items-center justify-center bg-secondary-hover hover:text-primary-foreground hover:bg-primary text-muted-foreground font-bold shrink-0">
                       <Plus className="size-5" />
                     </Button>
                   </div>
                 </div>
                 <div className="grid grid-cols-5 gap-2">
                   {[1, 5, 10, 20, 50].map(n => (
-                    <Button key={n} variant="outline" size="sm" onClick={() => setQtyInput(String(n))}
-                      className="h-10 rounded-xl bg-card hover:bg-muted text-base font-semibold text-muted-foreground tabular-nums transition-colors">
+                    <Button key={n} variant="quaternary" size="sm" onClick={() => setQtyInput(String(n))}
+                      className="h-10 rounded-xl text-base font-semibold tabular-nums transition-colors">
                       {n}
                     </Button>
                   ))}
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
-                <Button className="w-32 h-10 text-base" onClick={() => applyQty(q)}>ตกลง</Button>
+                <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
+                <Button variant="default" className="w-32 h-10 text-base" onClick={() => applyQty(q)}>ตกลง</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -1901,22 +1904,22 @@ export default function POSPage() {
             setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
           }
           return (
-            <DialogContent size="sm" onClose={() => setDiscountModalIdx(null)}>
-              <DialogHeader><DialogTitle>ส่วนลด — {item?.item_name}</DialogTitle></DialogHeader>
+            <DialogContent size="md" onClose={() => setDiscountModalIdx(null)}>
+              <DialogHeader><DialogTitle className="text-2xl">ส่วนลด <div className="text-sm">{item?.item_name}</div></DialogTitle></DialogHeader>
               <DialogBody className="space-y-4">
-                <div className="flex justify-between text-base">
-                  <span className="text-muted-foreground">ราคารวม</span>
-                  <span className="font-semibold text-foreground tabular-nums">฿{formatCurrency(totalPrice)}</span>
+                <div className="flex justify-between border-t border-b border-border">
+                  <span className="py-2 text-base font-bold text-muted-foreground">ราคารวม</span>
+                  <span className="py-2 text-2xl font-semibold text-foreground tabular-nums">฿{formatCurrency(totalPrice)}</span>
                 </div>
 
                 {/* Percent presets */}
                 <div className="grid grid-cols-5 gap-2">
                   {([
-                    { pct: 3,  base: 'bg-destructive-soft text-destructive hover:bg-destructive/15',  active: 'bg-destructive/25 text-destructive ring-2 ring-destructive/30' },
-                    { pct: 5,  base: 'bg-destructive/15 text-destructive hover:bg-destructive/25', active: 'bg-destructive/35 text-destructive ring-2 ring-destructive/40' },
-                    { pct: 10, base: 'bg-destructive/25 text-destructive hover:bg-destructive/35', active: 'bg-destructive/50 text-white ring-2 ring-destructive/50' },
-                    { pct: 15, base: 'bg-destructive/35 text-destructive hover:bg-destructive/50', active: 'bg-destructive/65 text-white ring-2 ring-destructive/60' },
-                    { pct: 20, base: 'bg-destructive/50 text-white hover:bg-destructive/65',   active: 'bg-destructive text-primary-foreground ring-2 ring-destructive/70' },
+                    { pct: 3,  base: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive', active: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive ring-2 ring-destructive' },
+                    { pct: 5,  base: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive', active: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive ring-2 ring-destructive' },
+                    { pct: 10, base: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive', active: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive ring-2 ring-destructive' },
+                    { pct: 15, base: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive', active: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive ring-2 ring-destructive' },
+                    { pct: 20, base: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive', active: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive ring-2 ring-destructive' },
                   ] as const).map(({ pct, base, active }) => {
                     const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
                     return (
@@ -1951,7 +1954,7 @@ export default function POSPage() {
                         }}
                         onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                         placeholder="0"
-                        className="w-full h-14 text-right text-3xl font-bold bg-card rounded-xl focus:ring-2 focus:ring-destructive/50 outline-none pl-4 pr-10 tabular-nums"
+                        className="w-full h-14 text-right text-3xl font-bold bg-card rounded-xl ring-border ring-1 focus:ring-2 focus:ring-destructive/50 outline-none pl-4 pr-10 tabular-nums"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-subtle text-xl font-bold pointer-events-none">%</span>
                     </div>
@@ -1974,7 +1977,7 @@ export default function POSPage() {
                       }}
                       onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                       placeholder="0.00"
-                      className="w-full h-14 text-right text-3xl font-bold bg-card rounded-xl focus:ring-2 focus:ring-destructive/50 outline-none px-4 tabular-nums"
+                      className="w-full h-14 text-right text-3xl font-bold bg-card ring-border ring-1 rounded-xl focus:ring-2 focus:ring-destructive/50 outline-none px-4 tabular-nums"
                     />
                   </div>
                 </div>
@@ -1999,13 +2002,13 @@ export default function POSPage() {
                     }}
                     onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                     placeholder={formatCurrency(totalPrice)}
-                    className="w-full h-14 text-right text-3xl font-bold bg-card rounded-xl focus:ring-2 focus:ring-primary outline-none px-4 tabular-nums"
+                    className="w-full h-14 text-right text-3xl font-bold bg-card ring-border ring-1 rounded-xl focus:ring-2 focus:ring-primary outline-none px-4 tabular-nums"
                   />
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="outline" className="w-32 h-10 text-base" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}>ล้าง</Button>
-                <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setDiscountModalIdx(null)}>ยกเลิก</Button>
+                <Button variant="destructive2" className="w-32 h-10 text-base" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
+                <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => setDiscountModalIdx(null)}>ปิด</Button>
                 <Button className="w-32 h-10 text-base" onClick={() => applyDiscount(d)}>ตกลง</Button>
               </DialogFooter>
             </DialogContent>
