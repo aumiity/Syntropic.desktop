@@ -36,6 +36,8 @@ const api = {
     }) => ipcRenderer.invoke('products:adjustLotBatch', payload),
     updateLot: (id: number, data: any) => ipcRenderer.invoke('products:updateLot', id, data),
     expireLot: (lotId: number, userId: number) => ipcRenderer.invoke('products:expireLot', lotId, userId),
+    stockStats: (filters: { q?: string; category_id?: number; drug_type_id?: number }) =>
+      ipcRenderer.invoke('products:stockStats', filters),
   },
   // Purchase
   purchase: {

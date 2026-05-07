@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 🚧 Theme refactor in progress · Products page redesigned + EditProduct save bug fixed (2026-05-06)
-## Last updated: 2026-05-06
+## Status: 100% Complete + UI Polish ✅ — 🚧 EditProduct UX/UI/logic redesign in flight (user-driven spec at `docs/Redesign EditProduct.txt`) · field-mapping audit + 100-product mock-data fixture loaded (2026-05-07)
+## Last updated: 2026-05-07
 ## App is RUNNABLE — run `npm run electron:dev` to launch
-## ⚠️ Pick up next session: see "🚧 IN PROGRESS — Theme tokenization" below — and the new "Session 2026-05-06 — POS Unit Logic Hardening + Products Redesign + EditProduct Save Fix" entry for what just changed
+## ⚠️ Pick up next session: read `docs/Redesign EditProduct.txt` (user is rearranging fields/sections there) → decide schema strip-vs-add for phantom columns → implement redesign in `src/pages/Products/EditProduct.tsx` + `electron/ipc/products.ts`. See the new "Session 2026-05-07" entry at the bottom for full context, the four open Tier-1 bugs, and the dev-db state.
 
 ---
 
@@ -743,5 +743,74 @@ All changes above are uncommitted working tree modifications.
 - VS 2026 installed but missing "Desktop development with C++" workload — cannot compile native modules from source
 - better-sqlite3 prebuilt binary obtained via prebuild-install targeting Electron 31.7.7
 - `postcss.config.js` ESM warning — harmless, can be silenced by adding `"type": "module"` to package.json
-- **EditProduct ghost columns** — `unit_name` (free-text), `drug_generic_name_id`, `has_wholesale1`, `has_wholesale2`, `default_qty` are accepted by the UI but silently discarded on save (no matching column in `products` table). Either remove the inputs or migrate the schema. CLAUDE.md's schema notes still list these as if they exist — should be reconciled.
+- **EditProduct ghost columns** — `unit_name` (free-text), `drug_generic_name_id`, `has_wholesale1`, `has_wholesale2`, `default_qty` are accepted by the UI but silently discarded on save (no matching column in `products` table). Either remove the inputs or migrate the schema. CLAUDE.md's schema notes still list these as if they exist — should be reconciled. **2026-05-07 update:** full audit + four additional label-table phantom columns documented in `docs/EditProduct-field-mapping.txt` and "Session 2026-05-07" below; resolution deferred to the in-flight redesign.
 - DevTools Autofill errors — harmless Chromium noise
+
+---
+
+## Session 2026-05-07 — EditProduct field-mapping audit, 100-product mock fixture, redesign in flight
+
+### Goal
+Two threads: (1) cross-check every field on `src/pages/Products/EditProduct.tsx` against the **actual** `electron/db/schema.ts` (not the PHP intent in CLAUDE.md), and (2) generate a realistic mock-data fixture so the redesign can be visually tested against populated rows. Mid-session the user pivoted off generating sister fixture files (customers / purchases / sales / returns) to redesigning EditProduct itself — the user is currently filling in `docs/Redesign EditProduct.txt` with the new field arrangement and will hand it back for implementation.
+
+### Field-mapping audit → `docs/EditProduct-field-mapping.txt`
+One row per form key, mapped to the real `products` / `product_units` / `product_lots` / `product_labels` columns in `schema.ts`. Confirmed the previously-known products ghost columns (`unit_name` free-text, `drug_generic_name_id`, `has_wholesale1/2`, `default_qty`) are correctly stripped at `EditProduct.tsx:218-222` and the `is_vat → has_vat` / `is_not_discount → no_discount` renames work because the bad keys are destructured out before the override runs (L239-240).
+
+Four **new** Tier-1 bugs surfaced — all in the labels flow:
+
+1. **Label save sends 4 non-existent columns**: `label_time_id`, `advice_id`, `show_barcode`, `is_default`. The label dialog renders dropdowns/toggles for all four (`EditProduct.tsx:1067, 1076, 1107, 1109`).
+   - **Add label** path: `electron/ipc/products.ts:207-212` uses an explicit INSERT column list, so these four are silently dropped — the dialog accepts input that never persists.
+   - **Edit label** path: `electron/ipc/products.ts:202-204` builds dynamic SQL via `Object.keys(rest)`, so the same payload throws `no such column: label_time_id` and aborts the entire UPDATE. Editing labels is *broken*, not just incomplete.
+2. **Label INSERT omits `is_active`** (`electron/ipc/products.ts:208-211`). New labels inherit the schema default (1) so they're active by default — but the `is_active` toggle in the dialog (`EditProduct.tsx:1108`) has no effect on first save.
+3. **`drug_generic_name_id`** is fully wired with autocomplete + auto-tick antibiotic side-effect (`EditProduct.tsx:266-273`) and renders an `ID: {n}` hint (L634-636), but the value never persists (column missing). The selected name is also lost on reload — `loadAll` sets `genericQuery('')` with a `// will be resolved by generic_name_id lookup later` TODO at L194 that was never followed up.
+4. **`unit_name`** on the general tab is edited as a free-text Input (`EditProduct.tsx:551-553`) but the `products` table has `unit_id` as an FK to `item_units` — `unit_name` only resolves via JOIN. The input value never persists.
+
+Resolution choice (deferred — part of the redesign): for each phantom field either (a) strip it in the IPC handler / hide its UI control, or (b) `ALTER TABLE` the schema to add the column. Per-field decisions belong in the user's `docs/Redesign EditProduct.txt`.
+
+### 100-product mock-data fixture → `docs/EditProduct-mock-data.sql`
+Single SQL file, idempotent against any seeded db, exercising every persistable column in all four EditProduct tables. Skips phantom columns by design (so the file still loads if columns are added later).
+
+**Coverage per table:**
+- `products` — 100 rows (`MED001`–`MED100`) across 10 therapeutic groups (pain/fever, antibiotics, antihistamines, GI, cough/cold, vitamins, topical, controlled, ORS, supplies). FK columns resolved by code/name subqueries — independent of seed auto-increment ids.
+- `product_units` — base unit per product (auto-derived from `products.unit_id`), strip variants (`แผง`, qty=10) for tablets/caps, box variants (`กล่อง`, qty=100, purchase-only) for 10 high-runners.
+- `product_lots` — 1 healthy lot per product + 10 mixed-expiry lots (expired / red / orange / yellow / green) anchored to `date('now')` so the colour bands at `EditProduct.tsx:937-941` light up.
+- `product_labels` — 30 rows on dispensable drugs, exercising `dose_qty`, `dosage_id`, `frequency_id`, `timing_id`, multilingual `indication_th/mm/zh` + `note_th/mm/zh`, `is_active`, `sort_order`. Phantom columns omitted.
+
+A "Coverage extras" UPDATE block at the bottom touches every other column at least once: `has_vat`, `no_discount`, `is_original_drug`, `is_fda_report`, `is_fda13_report`, `tmt_id`, `name_for_print`, `barcode2/3/4`, `side_effect_note`, `note`, `expiry_alert_days*`, `is_hidden`, `is_disabled`, `safety_stock` overrides.
+
+**SQLite syntax fix during initial run** — first version used `FROM (VALUES (...), (...)) AS v(col1, col2, ...)` to alias VALUES columns. SQLite 3.51 rejected the column-list aliasing on VALUES clauses (parse error near `(`). Rewrote both bulk INSERTs (products + product_labels) as `WITH v(col1, col2, ...) AS (VALUES (...), (...)) INSERT INTO target SELECT ... FROM v JOIN ...`. Pattern works against any modern SQLite.
+
+### Dev DB state after this session
+- DB path: `~/Library/Application Support/syntropic-desktop/database/syntropic.db`
+- **Backup before fixture load:** `…/syntropic.db.backup-20260507-094709` (278 KB, identical to pre-fixture state)
+- Counts (after fixture load):
+
+| table | before | after |
+|---|---|---|
+| products | 30 | 130 (100 new MED%) |
+| product_units | 0 | 174 |
+| product_lots | 30 | 140 |
+| product_labels | 0 | 30 |
+| suppliers | 0 | 3 |
+| customers | 2 | 2 (untouched) |
+| sales | 0 | 0 (untouched) |
+
+**Idempotency caveat** — `products.code` and `products.barcode` are non-UNIQUE indexes in `schema.ts` (despite CLAUDE.md saying otherwise). `INSERT OR IGNORE` on products acts as plain INSERT; re-running the file would duplicate the 100 rows. The `product_units` / `product_lots` / `product_labels` `NOT EXISTS` guards still hold. To re-run safely: `DELETE FROM products WHERE code LIKE 'MED%'` first.
+
+### Sister fixture files — paused
+The plan was to follow up with `docs/mock-customers.sql`, `docs/mock-purchases.sql`, `docs/mock-sales.sql`, `docs/mock-returns.sql` (each its own idempotent file, in dependency order). User opted to redesign EditProduct first; these are still queued for after the redesign lands.
+
+### Pickup plan for next session
+1. **Read `docs/Redesign EditProduct.txt`** — user is filling in the desired field arrangement, sections, and any logic changes. The header preview (`Product card / [Price and Cost detail] [Stock] [Product.unit/Product.type]`) suggests a card-based 3-column upper area replacing the current single-column form.
+2. **Decide schema strip-vs-add per phantom field**, per what the user wrote — this includes the labels phantom columns (`label_time_id`, `advice_id`, `show_barcode`, `is_default`), `drug_generic_name_id`, `unit_name → unit_id` swap, and possibly `default_qty` / `has_wholesale1/2` (PHP-only).
+3. **Implement the redesign** in `src/pages/Products/EditProduct.tsx`. Honour CLAUDE.md hard rules: semantic colour tokens only, project UI components (Switch over local Toggle at L59-71, etc.), Dialog Esc-closes / Enter-confirms contract, Button icon `size-N` not `h-N w-N`.
+4. **Patch IPC** in `electron/ipc/products.ts` — at minimum (a) strip the 4 phantom keys in `saveLabel` (or remove them from the UI payload), and (b) add `is_active` to the INSERT column list.
+5. **Test in browser** — `npm run electron:dev`, open a MED-prefixed product, verify save round-trips, open the labels dialog, add + edit a label end-to-end, check the lots tab colour bands against the 10 mixed-expiry lots.
+
+### Files created this session
+- `docs/EditProduct-field-mapping.txt` — full per-field mapping report with status legend
+- `docs/EditProduct-mock-data.sql` — 100-product fixture (loaded into dev db)
+- `docs/Redesign EditProduct.txt` — user-authored redesign spec (in progress as of session end)
+
+### Uncommitted changes
+The three files above are uncommitted (only `docs/`). No source code changes this session — `src/` and `electron/` working tree is unchanged from the 2026-05-06 state.

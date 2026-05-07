@@ -37,6 +37,30 @@ export function registerProductHandlers() {
     return { rows, total, page, limit }
   })
 
+  ipcMain.handle('products:stockStats', (_e, filters: { q?: string; category_id?: number; drug_type_id?: number }) => {
+    const db = getDb()
+    const { q, category_id, drug_type_id } = filters
+    const conditions: string[] = []
+    const params: any[] = []
+
+    if (q) {
+      conditions.push(`(p.trade_name LIKE ? OR p.barcode LIKE ? OR p.code LIKE ? OR p.search_keywords LIKE ?)`)
+      const lq = `%${q}%`
+      params.push(lq, lq, lq, lq)
+    }
+    if (category_id) { conditions.push(`p.category_id = ?`); params.push(category_id) }
+    if (drug_type_id) { conditions.push(`p.drug_type_id = ?`); params.push(drug_type_id) }
+
+    const where = conditions.length ? `WHERE p.is_disabled = 0 AND ${conditions.join(' AND ')}` : `WHERE p.is_disabled = 0`
+
+    const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
+
+    const out = (db.prepare(`SELECT COUNT(*) as c FROM products p ${where} AND ${stockExpr} <= 0`).get(...params) as any).c
+    const low = (db.prepare(`SELECT COUNT(*) as c FROM products p ${where} AND ${stockExpr} > 0 AND p.reorder_point > 0 AND ${stockExpr} <= p.reorder_point`).get(...params) as any).c
+
+    return { out, low }
+  })
+
   ipcMain.handle('products:get', (_e, id: number) => {
     const db = getDb()
     const product = db.prepare(`SELECT * FROM products WHERE id = ?`).get(id)

@@ -1,0 +1,162 @@
+EditProduct.tsx — Field → SQLite Schema Mapping
+=================================================
+Source of truth: electron/db/schema.ts
+Audited file:    src/pages/Products/EditProduct.tsx
+Date:            2026-05-07
+
+Status legend:
+  OK        column exists, name matches, save path correct
+  RENAMED   UI key differs from column; payload remaps it correctly
+  UI-ONLY   UI/derived field, intentionally stripped before UPDATE
+  MISSING!  no such column in SQLite — would break dynamic UPDATE
+  BUG       payload reaches a dynamic-SQL handler with a non-column key
+
+
+==========================================================
+TAB: GENERAL  →  table: products
+==========================================================
+form key                  →  products.column        status     note
+--------------------------    --------------------  ---------  -------------------------------------------------
+trade_name                →  trade_name             OK         required, validated client-side
+name_for_print            →  name_for_print         OK
+code                      →  code                   OK         coerced '' → null in payload
+barcode                   →  barcode                OK         '' → null
+barcode2                  →  barcode2               OK         '' → null
+barcode3                  →  barcode3               OK         '' → null
+barcode4                  →  barcode4               OK         '' → null
+unit_name                 →  (no column)            UI-ONLY    schema has unit_id (FK item_units); stripped L220
+category_id               →  category_id            OK         0 → null in payload
+drug_type_id              →  drug_type_id           OK         0 → null
+dosage_form_id            →  dosage_form_id         OK         0 → null
+drug_generic_name_id      →  (no column)            UI-ONLY    PHP-only; stripped L220 (autocomplete still useful for is_antibiotic auto-tick)
+strength                  →  strength               OK         schema is TEXT — free-form OK
+registration_no           →  registration_no        OK
+tmt_id                    →  tmt_id                 OK
+price_retail              →  price_retail           OK         parseFloat coerce
+price_wholesale1          →  price_wholesale1       OK
+price_wholesale2          →  price_wholesale2       OK
+cost_price                →  cost_price             OK
+has_wholesale1            →  (no column)            UI-ONLY    PHP-only flag; stripped L220
+has_wholesale2            →  (no column)            UI-ONLY    PHP-only flag; stripped L220
+is_vat                    →  has_vat                RENAMED    payload remaps: has_vat = is_vat ? 1 : 0  (L239)
+is_not_discount           →  no_discount            RENAMED    payload remaps: no_discount = is_not_discount ? 1 : 0  (L240)
+is_stock_item             →  is_stock_item          OK
+default_qty               →  (no column)            UI-ONLY    PHP-only; stripped L220
+reorder_point             →  reorder_point          OK
+safety_stock              →  safety_stock           OK
+expiry_alert_days1        →  expiry_alert_days1     OK
+expiry_alert_days2        →  expiry_alert_days2     OK
+expiry_alert_days3        →  expiry_alert_days3     OK
+is_original_drug          →  is_original_drug       OK
+is_antibiotic             →  is_antibiotic          OK
+max_dispense_qty          →  max_dispense_qty       OK         '' → null
+is_fda_report             →  is_fda_report          OK
+is_fda13_report           →  is_fda13_report        OK
+is_sale_control           →  is_sale_control        OK
+sale_control_qty          →  sale_control_qty       OK         '' → null
+indication_note           →  indication_note        OK
+side_effect_note          →  side_effect_note       OK
+search_keywords           →  search_keywords        OK
+note                      →  note                   OK
+is_hidden                 →  is_hidden              OK
+is_disabled               →  is_disabled            OK
+
+
+==========================================================
+TAB: UNITS  →  table: product_units   (handlers: addUnit/updateUnit)
+==========================================================
+unitForm key              →  product_units.column   status     note
+--------------------------    --------------------  ---------  -------------------------------------------------
+unit_id                   →  unit_id                OK         FK item_units.id
+barcode                   →  barcode                OK         '' → null
+qty_per_base              →  qty_per_base           OK
+price_retail              →  price_retail           OK
+price_wholesale1          →  price_wholesale1       OK
+price_wholesale2          →  price_wholesale2       OK
+is_base_unit              →  is_base_unit           OK
+is_for_sale               →  is_for_sale            OK
+is_for_purchase           →  is_for_purchase        OK
+(no UI for is_disabled)                              -          schema has it; not edited from this page
+
+
+==========================================================
+TAB: LABELS  →  table: product_labels  (handler: products:saveLabel)
+==========================================================
+labelForm key             →  product_labels.column  status     note
+--------------------------    --------------------  ---------  -------------------------------------------------
+label_name                →  label_name             OK
+dose_qty                  →  dose_qty               OK
+dosage_id                 →  dosage_id              OK
+frequency_id              →  frequency_id           OK
+timing_id                 →  timing_id              OK         FK label_meal_relations
+label_time_id             →  (no column)            BUG !!     UI dialog renders a dropdown for it (L1067) but column doesn't exist
+advice_id                 →  (no column)            BUG !!     UI dialog renders a dropdown for it (L1076) but column doesn't exist
+indication_th             →  indication_th          OK
+indication_mm             →  indication_mm          OK
+indication_zh             →  indication_zh          OK
+note_th                   →  note_th                OK
+note_mm                   →  note_mm                OK         (UI does not expose note_mm/note_zh editors)
+note_zh                   →  note_zh                OK         (UI does not expose note_mm/note_zh editors)
+show_barcode              →  (no column)            BUG !!     toggle in dialog (L1109); save will fail or be lost
+is_default                →  (no column)            BUG !!     toggle (L1107) + Badge "ค่าเริ่มต้น" (L818); never persists
+is_active                 →  is_active              OK on UPDATE / LOST on INSERT — see "Critical issues" below
+sort_order                →  sort_order             OK
+
+Handler details (electron/ipc/products.ts L199-214):
+  - INSERT uses an explicit column list. label_time_id, advice_id, show_barcode,
+    is_default, is_active are SILENTLY DROPPED on add.
+  - UPDATE builds dynamic SQL from Object.keys(rest). The same phantom keys
+    will throw "no such column: <name>" and the UPDATE aborts entirely.
+
+
+==========================================================
+TAB: LOTS  →  table: product_lots  (handler: products:updateLot)
+==========================================================
+lotEditForm key           →  product_lots.column    status     note
+--------------------------    --------------------  ---------  -------------------------------------------------
+lot_number                →  lot_number             OK
+expiry_date               →  expiry_date            OK         '' → null
+manufactured_date         →  manufactured_date      OK         '' → null
+qty_on_hand               →  qty_on_hand            OK         change should write stock_movements row
+cost_price                →  cost_price             OK         change should write lot_cost_logs row
+user_id                   →  (not a column)         OK         passed through for stock_movements.created_by / lot_cost_logs.created_by
+
+
+==========================================================
+CRITICAL ISSUES (need fixing)
+==========================================================
+1. Label save sends 4 non-existent columns: label_time_id, advice_id,
+   show_barcode, is_default.
+   - ADD label: silently lost (handler INSERT has an explicit column list).
+   - EDIT label: SQL error "no such column" — UPDATE aborts, edit fails.
+   Fix options: (a) add columns to schema.ts to match PHP intent, or
+                (b) strip these 4 keys in handleSaveLabel before sending.
+
+2. Label INSERT in electron/ipc/products.ts L207-212 omits is_active.
+   New labels rely on schema default (1) so they default to active — fine,
+   but the toggle in the dialog (L1108) has no effect on first save.
+   Fix: include is_active in the INSERT column list.
+
+3. drug_generic_name_id is selected in the UI (with its own autocomplete +
+   antibiotic auto-tick side effect) but the value is never persisted —
+   stripped at L220 because the column is missing from SQLite. Either add
+   the column or remove the linked-ID display ("ID: {drug_generic_name_id}"
+   at L635) so the UX doesn't suggest persistence.
+
+4. unit_name (general tab) is edited as a free-text input but cannot be
+   saved (column doesn't exist). To map a product to a base unit, the
+   schema expects products.unit_id (FK). Either expose a unit picker or
+   rely entirely on product_units rows for unit info.
+
+
+==========================================================
+NOTES / NON-ISSUES
+==========================================================
+- The strip-list at L220 (is_vat, is_not_discount, unit_name,
+  drug_generic_name_id, has_wholesale1, has_wholesale2, default_qty)
+  correctly prevents dynamic UPDATE failures for the general tab.
+- has_vat / no_discount remap is correctly done after the destructure
+  (the rename takes effect because the original is_vat / is_not_discount
+  keys were destructured out and only the remapped names land in payload).
+- Lot inline edit's user_id is consumed by the IPC handler for audit
+  rows, not written to product_lots — that's intentional.

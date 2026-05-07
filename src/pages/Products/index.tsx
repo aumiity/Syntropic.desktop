@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -62,6 +62,9 @@ export default function ProductsPage() {
   const [adjustNote, setAdjustNote] = useState('')
   const [adjusting, setAdjusting] = useState(false)
 
+  // Global stock stats (across all pages)
+  const [allStats, setAllStats] = useState({ out: 0, low: 0 })
+
   const limit = 50
   const totalPages = Math.ceil(total / limit)
 
@@ -71,7 +74,14 @@ export default function ProductsPage() {
 
   // Live search: debounce text + reactive filters
   useEffect(() => {
-    const t = setTimeout(() => load(1), 300)
+    const t = setTimeout(() => {
+      load(1)
+      window.api.products.stockStats({
+        q: q.trim() || undefined,
+        category_id: categoryId || undefined,
+        drug_type_id: drugTypeId || undefined,
+      }).then((s: any) => setAllStats(s ?? { out: 0, low: 0 }))
+    }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, categoryId, drugTypeId])
@@ -167,16 +177,6 @@ export default function ProductsPage() {
     }
   }
 
-  // Page-scoped stock health stats (from current rows)
-  const pageStats = useMemo(() => {
-    let out = 0, low = 0
-    for (const r of rows) {
-      if (r.stock_qty <= 0) out++
-      else if ((r.reorder_point ?? 0) > 0 && r.stock_qty <= (r.reorder_point ?? 0)) low++
-    }
-    return { out, low }
-  }, [rows])
-
   const renderStockCell = (qty: number, reorder: number) => {
     if (qty <= 0) {
       return (
@@ -203,7 +203,7 @@ export default function ProductsPage() {
         title="สินค้า"
       />
 
-      {/* Stat strip — page-scoped health */}
+            {/* Stat strip — global stock health */}
       <div className="grid grid-cols-3 gap-3 shrink-0">
         <StatCard
           label="สินค้าทั้งหมด"
@@ -212,14 +212,14 @@ export default function ProductsPage() {
           tint="primary"
         />
         <StatCard
-          label="ใกล้หมด (หน้านี้)"
-          value={pageStats.low.toLocaleString()}
+          label="ใกล้หมด"
+          value={allStats.low.toLocaleString()}
           icon={<AlertTriangle className="size-5" />}
           tint="warning"
         />
         <StatCard
-          label="หมดสต็อก (หน้านี้)"
-          value={pageStats.out.toLocaleString()}
+          label="หมดสต็อก"
+          value={allStats.out.toLocaleString()}
           icon={<PackageX className="size-5" />}
           tint="destructive"
         />
