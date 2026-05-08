@@ -132,11 +132,9 @@ export default function ProductsPage() {
         no_discount: 0,
         reorder_point: 0,
         safety_stock: 0,
-        is_original_drug: 0,
         is_antibiotic: 0,
         is_fda_report: 0,
         is_fda13_report: 0,
-        is_sale_control: 0,
       }) as any
       setShowCreate(false)
       setNewProduct({ trade_name: '', barcode: '', price_retail: '', unit_name: '', category_id: 0 })
@@ -262,16 +260,16 @@ export default function ProductsPage() {
 
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
-        <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground border-b border-border shrink-0 flex items-center justify-between">
+        <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
           <span>{loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}</span>
           <Button onClick={() => setShowCreate(true)} className="h-9 rounded-lg px-2 text-sm">
             <Plus className="size-4" /> เพิ่มสินค้า
           </Button>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
           <Table>
-            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted [&_th]:shadow-[0_1px_0_var(--border)]">
+            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
               <TableRow>
                 <TableHead className="w-12 text-foreground-subtle">#</TableHead>
                 <TableHead className="text-foreground-subtle">ชื่อสินค้า</TableHead>
@@ -280,7 +278,7 @@ export default function ProductsPage() {
                 <TableHead className="text-right text-foreground-subtle">ราคาขาย</TableHead>
                 <TableHead className="text-right text-foreground-subtle">กำไร</TableHead>
                 <TableHead className="text-center text-foreground-subtle">สต็อก</TableHead>
-                <TableHead className="text-center w-28 text-foreground-subtle">จัดการ</TableHead>
+                <TableHead className="text-center w-36 text-foreground-subtle">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -303,14 +301,8 @@ export default function ProductsPage() {
                     <TableCell className="text-foreground-subtle text-xs tabular-nums">{(page - 1) * limit + i + 1}</TableCell>
                     <TableCell>
                       <div className="font-semibold text-sm text-foreground">{row.trade_name}</div>
-                      {row.dosage_form_name && (
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {row.dosage_form_name}{row.strength ? ` · ${row.strength}` : ''}
-                        </div>
-                      )}
                       <div className="flex gap-1 mt-1 flex-wrap">
                         {row.is_antibiotic ? <Badge variant="warning" className="text-[10px] rounded-md px-1.5 py-0">ยาปฏิชีวนะ</Badge> : null}
-                        {row.is_sale_control ? <Badge variant="destructive" className="text-[10px] rounded-md px-1.5 py-0">ควบคุม</Badge> : null}
                         {row.is_fda13_report ? <Badge variant="senary" className="text-[10px] rounded-md px-1.5 py-0">อย.13</Badge> : null}
                       </div>
                     </TableCell>
@@ -327,18 +319,18 @@ export default function ProductsPage() {
                       {renderStockCell(row.stock_qty, row.reorder_point ?? 0)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-center gap-1">
+                      <div className="flex items-center justify-center gap-3">
                         <Button
-                          size="icon-sm"
-                          variant="ghost"
+                          size="icon-xl"
+                          variant="outline"
                           onClick={() => navigate(`/products/${row.id}/edit`)}
                           title="แก้ไข"
                         >
                           <Edit2 />
                         </Button>
                         <Button
-                          size="icon-sm"
-                          variant="ghost"
+                          size="icon-xl"
+                          variant="outline"
                           onClick={() => openAdjust(row)}
                           title="ปรับสต็อก"
                         >

@@ -95,18 +95,18 @@ export function registerProductHandlers() {
         category_id, dosage_form_id, unit_id, is_stock_item,
         price_retail, price_wholesale1, price_wholesale2, cost_price,
         has_vat, no_discount, reorder_point, safety_stock,
-        drug_type_id, strength, registration_no, tmt_id,
-        is_original_drug, is_antibiotic, max_dispense_qty,
+        drug_type_id, tmt_id,
+        is_antibiotic,
         indication_note, side_effect_note, is_fda_report, is_fda13_report,
-        is_sale_control, sale_control_qty, search_keywords, note)
+        search_keywords, note)
       VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,
         @category_id, @dosage_form_id, @unit_id, @is_stock_item,
         @price_retail, @price_wholesale1, @price_wholesale2, @cost_price,
         @has_vat, @no_discount, @reorder_point, @safety_stock,
-        @drug_type_id, @strength, @registration_no, @tmt_id,
-        @is_original_drug, @is_antibiotic, @max_dispense_qty,
+        @drug_type_id, @tmt_id,
+        @is_antibiotic,
         @indication_note, @side_effect_note, @is_fda_report, @is_fda13_report,
-        @is_sale_control, @sale_control_qty, @search_keywords, @note)
+        @search_keywords, @note)
     `)
     const result = stmt.run({ ...data, code })
     return db.prepare(`SELECT * FROM products WHERE id = ?`).get(result.lastInsertRowid)

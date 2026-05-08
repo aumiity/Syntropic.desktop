@@ -159,8 +159,6 @@ export default function EditProductPage() {
         drug_type_id: prod.drug_type_id ?? 0,
         dosage_form_id: prod.dosage_form_id ?? 0,
         drug_generic_name_id: prod.drug_generic_name_id ?? 0,
-        strength: prod.strength ?? '',
-        registration_no: prod.registration_no ?? '',
         tmt_id: prod.tmt_id ?? '',
         price_retail: prod.price_retail ?? 0,
         price_wholesale1: prod.price_wholesale1 ?? 0,
@@ -174,16 +172,9 @@ export default function EditProductPage() {
         default_qty: prod.default_qty ?? 1,
         reorder_point: prod.reorder_point ?? 0,
         safety_stock: prod.safety_stock ?? 0,
-        expiry_alert_days1: prod.expiry_alert_days1 ?? 90,
-        expiry_alert_days2: prod.expiry_alert_days2 ?? 60,
-        expiry_alert_days3: prod.expiry_alert_days3 ?? 30,
-        is_original_drug: prod.is_original_drug ?? 0,
         is_antibiotic: prod.is_antibiotic ?? 0,
-        max_dispense_qty: prod.max_dispense_qty ?? '',
         is_fda_report: prod.is_fda_report ?? 0,
         is_fda13_report: prod.is_fda13_report ?? 0,
-        is_sale_control: prod.is_sale_control ?? 0,
-        sale_control_qty: prod.sale_control_qty ?? '',
         indication_note: prod.indication_note ?? '',
         side_effect_note: prod.side_effect_note ?? '',
         search_keywords: prod.search_keywords ?? '',
@@ -229,8 +220,6 @@ export default function EditProductPage() {
         price_wholesale1: parseFloat(form.price_wholesale1) || 0,
         price_wholesale2: parseFloat(form.price_wholesale2) || 0,
         cost_price: parseFloat(form.cost_price) || 0,
-        max_dispense_qty: form.max_dispense_qty !== '' ? parseFloat(form.max_dispense_qty) : null,
-        sale_control_qty: form.sale_control_qty !== '' ? parseFloat(form.sale_control_qty) : null,
         barcode: form.barcode || null,
         barcode2: form.barcode2 || null,
         barcode3: form.barcode3 || null,
@@ -647,36 +636,14 @@ export default function EditProductPage() {
                   )}
                 </div>
               </FieldRow>
-              <FieldRow label="ความแรง (strength)">
-                <Input value={form.strength} onChange={e => setF('strength', e.target.value)} placeholder="500mg, 5%" className="w-36" />
-              </FieldRow>
-              <FieldRow label="เลขทะเบียนยา">
-                <Input value={form.registration_no} onChange={e => setF('registration_no', e.target.value)} placeholder="1A 12/55" />
-              </FieldRow>
               <FieldRow label="TMT ID">
                 <Input value={form.tmt_id} onChange={e => setF('tmt_id', e.target.value)} />
               </FieldRow>
               <FieldRow label="คุณสมบัติ">
                 <div className="flex flex-wrap gap-4">
-                  <Toggle checked={!!form.is_original_drug} onChange={v => setF('is_original_drug', v ? 1 : 0)} label="ยาต้นแบบ" />
-                  <Toggle checked={!!form.is_antibiotic} onChange={v => setF('is_antibiotic', v ? 1 : 0)} label="ยาปฏิชีวนะ" />
                   <Toggle checked={!!form.is_fda_report} onChange={v => setF('is_fda_report', v ? 1 : 0)} label="รายงาน อย." />
                   <Toggle checked={!!form.is_fda13_report} onChange={v => setF('is_fda13_report', v ? 1 : 0)} label="รายงาน อย.13" />
                 </div>
-              </FieldRow>
-              <FieldRow label="ควบคุมการจ่าย">
-                <div className="flex items-center gap-3">
-                  <Toggle checked={!!form.is_sale_control} onChange={v => setF('is_sale_control', v ? 1 : 0)} label="ควบคุม" />
-                  {!!form.is_sale_control && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">สูงสุด/ครั้ง</span>
-                      <Input type="number" value={form.sale_control_qty} onChange={e => setF('sale_control_qty', e.target.value)} className="w-24" min={0} />
-                    </div>
-                  )}
-                </div>
-              </FieldRow>
-              <FieldRow label="จ่ายสูงสุด/ครั้ง">
-                <Input type="number" value={form.max_dispense_qty} onChange={e => setF('max_dispense_qty', e.target.value)} className="w-24" min={0} />
               </FieldRow>
             </div>
 
@@ -687,16 +654,6 @@ export default function EditProductPage() {
               </FieldRow>
               <FieldRow label="สต็อกปลอดภัย">
                 <Input type="number" value={form.safety_stock} onChange={e => setF('safety_stock', e.target.value)} className="w-28" min={0} />
-              </FieldRow>
-              <FieldRow label="แจ้งเตือนหมดอายุ (วัน)">
-                <div className="flex items-center gap-2">
-                  <Input type="number" value={form.expiry_alert_days1} onChange={e => setF('expiry_alert_days1', e.target.value)} className="w-20" min={0} />
-                  <span className="text-muted-foreground">/</span>
-                  <Input type="number" value={form.expiry_alert_days2} onChange={e => setF('expiry_alert_days2', e.target.value)} className="w-20" min={0} />
-                  <span className="text-muted-foreground">/</span>
-                  <Input type="number" value={form.expiry_alert_days3} onChange={e => setF('expiry_alert_days3', e.target.value)} className="w-20" min={0} />
-                  <span className="text-xs text-muted-foreground">(เหลือง/ส้ม/แดง)</span>
-                </div>
               </FieldRow>
             </div>
 
@@ -866,7 +823,7 @@ export default function EditProductPage() {
                       <TableCell colSpan={10} className="text-center text-muted-foreground py-8">ยังไม่มีล็อต</TableCell>
                     </TableRow>
                   ) : product.lots.map(lot => {
-                    const expStatus = getExpiryStatus(lot.expiry_date, form.expiry_alert_days1, form.expiry_alert_days2, form.expiry_alert_days3)
+                    const expStatus = getExpiryStatus(lot.expiry_date)
                     const isEditing = editingLotId === lot.id
 
                     if (isEditing) {

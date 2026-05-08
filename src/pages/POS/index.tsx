@@ -695,7 +695,7 @@ export default function POSPage() {
 
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
-              <table className="w-full caption-bottom text-base table-fixed border-l-8 border-r-8 border-white">
+              <table className="w-full caption-bottom text-base table-fixed border-l-8 border-r-8 border-card">
                 <colgroup>
                   <col style={{ width: 36 }} />
                   <col />
@@ -982,9 +982,9 @@ export default function POSPage() {
           className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
           style={{ width: '480px', maxWidth: 'calc(100vw - 2rem)', height: '510px', maxHeight: 'calc(100vh - 4rem)' }}
         >
-          <DialogHeader className="text-2xl mt-2 px-3 pt-3 pb-0 shrink-0"><DialogTitle>เลือกลูกค้า</DialogTitle></DialogHeader>
+          <DialogHeader className="text-2xl mt-2 px-5 pt-3 pb-0 shrink-0"><DialogTitle>เลือกลูกค้า</DialogTitle></DialogHeader>
           <div className="px-5 pt-4 pb-2 space-y-3 shrink-0">
-            <div className="relative" style={{ width: '296px' }}>
+            <div className="relative w-full px-0.5">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
               <Input className="w-full h-10 pl-4 pr-10 py-3" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..."
                 value={customerQuery}
@@ -1125,7 +1125,7 @@ export default function POSPage() {
       {/* ── PAYMENT DIALOG ── */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent size="lg" onClose={() => setShowPayment(false)}>
-          <DialogHeader><DialogTitle>ชำระเงิน</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-2xl">ชำระเงิน</DialogTitle></DialogHeader>
           <DialogBody className="space-y-4">
             {(() => {
               const subtotal = cart.subtotal()
@@ -1156,11 +1156,11 @@ export default function POSPage() {
                   {/* Section 1 — Gross + editable discount */}
                   <div className="rounded-xl bg-background p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-lg text-muted-foreground">ราคาขายรวม</span>
-                      <span className="text-2xl font-semibold tabular-nums">฿{formatCurrency(subtotal)}</span>
+                      <span className="text-base font-semibold text-muted-foreground">ราคาขายรวม</span>
+                      <span className="text-3xl font-semibold tabular-nums">฿{formatCurrency(subtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-lg text-muted-foreground">ส่วนลดรวม</span>
+                      <span className="text-base font-semibold text-muted-foreground">ส่วนลดรวม</span>
                       <Input
                         type="number"
                         inputMode="decimal"
@@ -1170,7 +1170,7 @@ export default function POSPage() {
                         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                         placeholder="0.00"
                         disabled={cart.items.length === 0 || subtotal <= 0}
-                        className="text-right tabular-nums w-52 h-12 text-2xl font-semibold bg-destructive-soft text-destructive focus-visible:ring-destructive/30"
+                        className="text-right tabular-nums w-52 h-12 text-3xl font-semibold bg-destructive-soft text-destructive focus-visible:ring-destructive/30"
                       />
                     </div>
                   </div>
@@ -1191,17 +1191,17 @@ export default function POSPage() {
                       type="button"
                       variant="outline"
                       onClick={() => setShowBreakdown(v => !v)}
-                      className="ml-left shrink-0"
+                      className="ml-left shrink-0 text-base"
                     >
-                      {'ดูรายละเอียด'}
+                      {'รายละเอียด'}
                     </Button>
                     {showBreakdown ? (
-                      <div className="flex items-center gap-3 tabular-nums">
-                        <span><span className="text-muted-foreground">ต้นทุน</span> ฿{formatCurrency(totalCost)}</span>
-                        <span className="text-muted-foreground">•</span>
-                        <span><span className="text-muted-foreground">กำไร</span> <span className={`font-semibold ${profit >= 0 ? 'text-primary' : 'text-destructive'}`}>฿{formatCurrency(profit)}</span></span>
-                        <span className="text-muted-foreground">•</span>
-                        <span><span className="text-muted-foreground">% กำไร</span> <span className={`font-semibold ${margin >= 0 ? 'text-primary' : 'text-destructive'}`}>{margin.toFixed(2)}%</span></span>
+                      <div className="flex text-sm items-center gap-4 tabular-nums">
+                        <span><span className="text-muted-foreground font-semibold">ต้นทุน :</span> {formatCurrency(totalCost)}</span>
+                        <span className="text-muted-foreground">/</span>
+                        <span><span className="text-muted-foreground font-semibold">กำไร :</span> <span className={`font-semibold ${profit >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(profit)}</span></span>
+                        <span className="text-muted-foreground">/</span>
+                        <span><span className="text-muted-foreground font-semibold">%กำไร :</span> <span className={`font-semibold ${margin >= 0 ? 'text-primary' : 'text-destructive'}`}>{margin.toFixed(2)}%</span></span>
                       </div>
                     ) : <span />}
                   </div>

@@ -8,11 +8,10 @@ export interface Product {
   has_wholesale1: number; has_wholesale2: number
   has_vat: number; no_discount: number
   reorder_point?: number; safety_stock?: number
-  drug_type_id?: number; strength?: string; registration_no?: string
-  is_original_drug: number; is_antibiotic: number; max_dispense_qty?: number
+  drug_type_id?: number
+  is_antibiotic: number
   indication_note?: string; side_effect_note?: string
   is_fda_report: number; is_fda13_report: number
-  is_sale_control: number; sale_control_qty?: number
   search_keywords?: string; note?: string
   // Joined
   category_name?: string; drug_type_name?: string; dosage_form_name?: string; unit_name?: string
