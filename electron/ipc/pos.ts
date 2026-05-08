@@ -105,10 +105,12 @@ export function registerPosHandlers() {
     const db = getDb()
 
     const saveBill = db.transaction(() => {
-      // Generate invoice number
+      // Generate invoice number — LIKE prefix already encodes today's date.
+      // (Don't filter by sold_at: it stores 'YYYY-MM-DD HH:MM:SS' but `today`
+      // is 'YYYYMMDD', so a string-range comparison silently excludes every row.)
       const today = dayjs().format('YYYYMMDD')
-      const countRow = db.prepare(`SELECT COUNT(*) as c FROM sales WHERE sold_at >= ? AND sold_at < ?`)
-        .get(`${today} 00:00:00`, `${today} 23:59:59`) as { c: number }
+      const countRow = db.prepare(`SELECT COUNT(*) as c FROM sales WHERE invoice_no LIKE ?`)
+        .get(`RX-${today}-%`) as { c: number }
       const invoiceNo = `RX-${today}-${String(countRow.c + 1).padStart(4, '0')}`
 
       const saleResult = db.prepare(`
@@ -191,11 +193,12 @@ export function registerPosHandlers() {
   }) => {
     const db = getDb()
     const doReturn = db.transaction(() => {
-      // Generate RT-YYYYMMDD-NNN invoice number
+      // Generate RT-YYYYMMDD-NNN invoice number (see saveBill for why the
+      // sold_at date filter is omitted — format mismatch makes it always-false).
       const today = dayjs().format('YYYYMMDD')
       const countRow = db.prepare(
-        `SELECT COUNT(*) as c FROM sales WHERE invoice_no LIKE ? AND sold_at >= ? AND sold_at < ?`
-      ).get(`RT-${today}-%`, `${today} 00:00:00`, `${today} 23:59:59`) as { c: number }
+        `SELECT COUNT(*) as c FROM sales WHERE invoice_no LIKE ?`
+      ).get(`RT-${today}-%`) as { c: number }
       const invoiceNo = `RT-${today}-${String(countRow.c + 1).padStart(4, '0')}`
 
       const totalAmount = payload.items.reduce((s, i) => s + i.line_total, 0)

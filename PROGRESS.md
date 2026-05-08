@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 🚧 EditProduct UX/UI/logic redesign in flight (user-driven spec at `docs/Redesign EditProduct.txt`) · field-mapping audit + 100-product mock-data fixture loaded (2026-05-07)
-## Last updated: 2026-05-07
+## Status: 100% Complete + UI Polish ✅ — 🚧 EditProduct UX/UI/logic redesign still in flight · 2026-05-08 session: POS payment dialog redesigned (two-column layout) + two pre-existing payment bugs fixed (invoice-no UNIQUE failure + total-discount rounding drift)
+## Last updated: 2026-05-08
 ## App is RUNNABLE — run `npm run electron:dev` to launch
-## ⚠️ Pick up next session: read `docs/Redesign EditProduct.txt` (user is rearranging fields/sections there) → decide schema strip-vs-add for phantom columns → implement redesign in `src/pages/Products/EditProduct.tsx` + `electron/ipc/products.ts`. See the new "Session 2026-05-07" entry at the bottom for full context, the four open Tier-1 bugs, and the dev-db state.
+## ⚠️ Pick up next session: EditProduct redesign is still the headline thread — read `docs/Redesign EditProduct.txt` and resume from the 2026-05-07 pickup plan below. The 2026-05-08 work is scoped to POS/payment — main-process IPC changes (`electron/ipc/pos.ts`) require an Electron restart, not just HMR.
 
 ---
 
@@ -814,3 +814,48 @@ The plan was to follow up with `docs/mock-customers.sql`, `docs/mock-purchases.s
 
 ### Uncommitted changes
 The three files above are uncommitted (only `docs/`). No source code changes this session — `src/` and `electron/` working tree is unchanged from the 2026-05-06 state.
+
+---
+
+## Session 2026-05-08 — POS payment dialog redesign + invoice-no & rounding bug fixes
+
+### Goal
+User asked to add a left column to the payment dialog (customer info + transaction details list) mirroring a reference mock. Mid-session, two pre-existing bugs surfaced and were fixed: a SQLite `UNIQUE constraint failed: sales.invoice_no` thrown by the second sale of any day, and a "type 10, blur to 10.01" total-discount rounding drift.
+
+### Payment dialog redesign — `src/pages/POS/index.tsx:1126-1335`
+- **Two-column layout** (`grid grid-cols-2 gap-4`). Dialog widened from `size="lg"` → `size="full"` (max-w-5xl) and pinned to `h-[78vh]` with `grid-rows-[auto_1fr_auto]` so the body fills the modal regardless of cart length. DialogBody has `min-h-0 overflow-hidden`; left and right columns each use `min-h-0 h-full` with internal scroll.
+- **Left column:**
+  - Customer header — avatar tile, customer name (or `ลูกค้าทั่วไป` walk-in), customer code if any, **sale-type Badge** (`variant="senary"` for ขายส่ง / `"quaternary"` for ขายปลีก — mirrors the cart slot card style at L612-616 of the same file), date + time on the right.
+  - Transaction details card — scrollable list (`flex-1 min-h-0 overflow-y-auto`), each row: `item_name` + `฿line_total` on left, `qty unit_name` on right.
+- **Right column** is the existing payment controls (gross + editable discount, net total, cash input, change row, breakdown toggle, save button), wrapped in `flex flex-col gap-4 overflow-y-auto … h-full`.
+- **Quick-pay UX** — Enter on an empty cash input now auto-fills `pendingNet` (`Math.max(0, pendingNet).toFixed(2)`); Enter on a non-empty cash input submits via `handleCompleteSale`. Two-keystroke exact-change flow.
+
+### Bug fixes
+
+**1. `sales.invoice_no` UNIQUE collision on every second sale of the day** — `electron/ipc/pos.ts:108-112` (and the parallel `pos:returnItems` at L194-199).
+   - Root cause: count query filtered `sold_at >= '${today} 00:00:00'` where `today = dayjs().format('YYYYMMDD')`. But `sold_at` stores `'YYYY-MM-DD HH:MM:SS'` (via `datetime('now','localtime')`). String compare: `'2026-05-08 14:30:00' < '20260508 00:00:00'` because `'-'` (0x2D) < `'0'` (0x30) — so the date filter excludes every today-row. Count was always 0, every sale got `RX-${today}-0001`, second sale collided.
+   - Fix: drop the `sold_at` range filter; rely solely on `WHERE invoice_no LIKE 'RX-${today}-%'` (matches the working `purchase:nextGRNumber` pattern at `electron/ipc/purchase.ts:78-82`). Same fix applied to RT- prefix in `returnItems`.
+   - **Watch out:** main-process changes don't HMR — restart Electron after editing `electron/ipc/*.ts`.
+
+**2. `redistributeDiscounts` rounding drift — type 10 in total-discount, blur to 10.01** — `src/pages/POS/redistributeDiscount.ts:42-51`.
+   - Root cause: per-line discounts are rounded individually with `round2` after proportional split, but `Σ round2(xᵢ) ≠ round2(Σ xᵢ)`. e.g. 7 lines at gross 14.29 each, target 10 → each gets 1.43, sum 10.01 (over). 3 equal lines, target 10 → each 3.33, sum 9.99 (under).
+   - Fix: after rounding, compute `residual = round2(target − Σ rounded)` and add it to the line with the largest gross. Now `Σ rounded == target` exactly. Display path (`pendingTotalDiscount.toFixed(2)`) lands on the typed value.
+
+**3. Bug-check pass on the redesigned dialog** — three more issues caught and fixed:
+   - `w-82` and `w-86` (used on the change-amount and "กรุณาตรวจสอบ" spans) **don't exist in default Tailwind** (scale jumps 80 → 96). Classes were silently dropped, spans fell back to intrinsic width and didn't align. Fixed: `w-80` for the alert ("กรุณาตรวจสอบ" needs the room — `w-52` wraps it to two lines), `w-52` for the change number (matches the cash input above).
+   - **Enter on cash bypassed the disabled state.** The Save button at L1325 disables on `change < 0 || pendingNet < 0`, but Enter called `handleCompleteSale` directly, which only checked for empty cart. Fix: validation moved *into* `handleCompleteSale` (`if (saving) return; if (cart.items.length === 0) …; if (pendingNet < 0) …; if (change < 0) …`) — single source of truth for both onClick and onKeyDown=Enter.
+   - Save button now also disables on `cart.items.length === 0` (defence-in-depth; the pay button at L828 already prevents opening with an empty cart).
+
+### Memory implications
+Two non-obvious traps worth retaining for future work in this codebase:
+- **`datetime` format mismatch** — `dayjs().format('YYYYMMDD')` vs SQLite `datetime('now','localtime')` (which is `YYYY-MM-DD HH:MM:SS`). String-range filters that mix the two are silently always-false. Prefer `LIKE 'PREFIX-YYYYMMDD-%'` for daily-counter queries — matches the working `purchase:nextGRNumber`.
+- **Per-line `round2` doesn't preserve totals** — anywhere a typed total is split across N lines and each rounded to 2dp, the rounded sum drifts ±0.01 from the typed value. The reconcile-to-largest-gross trick at `redistributeDiscount.ts:45-50` is the pattern; reuse it if a similar split shows up elsewhere (e.g. VAT distribution).
+
+### Uncommitted changes
+- `src/pages/POS/index.tsx` — payment dialog two-column redesign + bug fixes
+- `src/pages/POS/redistributeDiscount.ts` — rounding-residual reconcile
+- `electron/ipc/pos.ts` — invoice-no LIKE-only filter (saveBill + returnItems)
+- `src/pages/Theme/index.tsx` — pre-existing modification carried over from before the session (untouched by today's work)
+
+### Pickup plan
+The EditProduct redesign remains the open headline — pickup is unchanged from the 2026-05-07 plan above. If POS regressions surface, sanity-check by running `npm run electron:dev`, ringing two sales in a row (verifies invoice-no fix, requires Electron restart not HMR), opening payment dialog with 3+ items and typing `10` in the total-discount field then blur (verifies rounding fix), and pressing Enter twice on an empty cash field with items in cart (verifies quick-pay Enter shortcut).

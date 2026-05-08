@@ -18,7 +18,7 @@ import {
   Search, User, Trash2, Plus, Minus,
   Banknote, AlertTriangle, ChevronDown, X, UserPlus, Info,
   RotateCcw, ChevronRight, ChevronLeft, Tag,
-  ShoppingBasket, Timer,
+  ShoppingBasket, Timer, RefreshCcw, HandCoins,
 } from 'lucide-react'
 
 interface ReturnLineItem {
@@ -517,7 +517,10 @@ export default function POSPage() {
   const change = totalPaid - pendingNet
 
   const handleCompleteSale = async () => {
+    if (saving) return
     if (cart.items.length === 0) { toast('กรุณาเพิ่มสินค้าในตะกร้า', 'error'); return }
+    if (pendingNet < 0) { toast('ยอดสุทธิติดลบ กรุณาตรวจสอบ', 'error'); return }
+    if (change < 0) { toast('รับเงินไม่พอ กรุณาตรวจสอบ', 'error'); return }
     setSaving(true)
     try {
       const result = await window.api.pos.saveBill({
@@ -686,9 +689,9 @@ export default function POSPage() {
                 className="h-9 py-2 pl-3 pr-9 text-sm rounded-lg border-0 shadow-none"/>
               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
             </div>
-            <Button variant="outline" size="sm" disabled={cart.items.length === 0}
+            <Button variant="destructive2" size="sm" disabled={cart.items.length === 0}
               onClick={() => { cart.clearCart(); refocusSearch() }}
-              className="gap-1.5 px-3 py-1.5 h-9 rounded-lg bg-destructive/20 text-destructive text-sm font-medium hover:bg-destructive hover:text-primary-foreground shrink-0">
+              className="gap-1.5 px-3 py-1.5 h-9 rounded-lg text-sm font-medium hover:bg-destructive hover:text-primary-foreground shrink-0">
               <Trash2 className="size-3.5" /> ลบสินค้าทั้งหมด
             </Button>
           </div>
@@ -862,7 +865,7 @@ export default function POSPage() {
           </div>
 
           {/* Daily summary */}
-          <div className="mt-auto rounded-2xl bg-card shadow-card p-4 shrink-0">
+          <div className="mt-auto rounded-2xl bg-card p-4 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-semibold text-foreground">สรุปยอดขายวันนี้</h3>
             </div>
@@ -1124,9 +1127,9 @@ export default function POSPage() {
 
       {/* ── PAYMENT DIALOG ── */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent size="lg" onClose={() => setShowPayment(false)}>
+        <DialogContent size="full" onClose={() => setShowPayment(false)} className="h-[78vh] grid-rows-[auto_1fr_auto]">
           <DialogHeader><DialogTitle className="text-2xl">ชำระเงิน</DialogTitle></DialogHeader>
-          <DialogBody className="space-y-4">
+          <DialogBody className="min-h-0 overflow-hidden">
             {(() => {
               const subtotal = cart.subtotal()
               const totalCost = cart.items.reduce((s, i) => s + i.qty * (i.product?.cost_price ?? 0), 0)
@@ -1152,12 +1155,70 @@ export default function POSPage() {
               }
 
               return (
-                <>
+                <div className="grid grid-cols-2 gap-4 h-full min-h-0">
+                  {/* LEFT COLUMN — customer info + transaction details */}
+                  <div className="flex flex-col gap-3 min-h-0 h-full">
+                    {/* Customer header */}
+                    <div className="flex items-center gap-3 px-1">
+                      <span className="grid place-items-center w-12 h-12 rounded-xl shrink-0 bg-primary text-primary-foreground">
+                        <User className="size-6" />
+                      </span>
+                      <div className="flex flex-col gap-1 min-w-0 flex-1">
+                        <span className="text-base font-bold truncate">
+                          {cart.customer ? cart.customer.full_name : 'ลูกค้าทั่วไป'}
+                        </span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {cart.customer?.code ? (
+                            <span className="text-sm text-muted-foreground font-mono truncate">{cart.customer.code}</span>
+                          ) : null}
+                          {cart.saleType === 'wholesale' ? (
+                            <Badge variant="senary" className="text-xs rounded-md shrink-0">ขายส่ง</Badge>
+                          ) : (
+                            <Badge variant="quaternary" className="text-xs rounded-md shrink-0">ขายปลีก</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end shrink-0 text-sm">
+                        <span className="font-semibold whitespace-nowrap">{dateStr}</span>
+                        <span className="text-muted-foreground tabular-nums">{timeStr}</span>
+                      </div>
+                    </div>
+
+                    {/* Transaction details */}
+                    <div className="rounded-xl bg-muted p-4 flex flex-col min-h-0 flex-1">
+                      <div className="text-base font-semibold mb-2 shrink-0 flex items-center justify-between">
+                        <span>รายการสินค้า</span>
+                        <span className="text-base font-semibold text-muted-foreground tabular-nums">{cart.items.length} รายการ</span>
+                      </div>
+                      <div className="overflow-y-auto scrollbar-thin -mr-2 pr-2 flex-1 min-h-0">
+                        {cart.items.length === 0 ? (
+                          <div className="text-sm text-muted-foreground py-8 text-center">ไม่มีสินค้า</div>
+                        ) : (
+                          <ul className="divide-y divide-border">
+                            {cart.items.map((item, idx) => (
+                              <li key={idx} className="flex items-start justify-between gap-3 py-2.5">
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-base font-semibold truncate">{item.item_name}</div>
+                                  <div className="text-sm text-muted-foreground tabular-nums">฿{formatCurrency(item.line_total)}</div>
+                                </div>
+                                <div className="shrink-0 text-right text-sm tabular-nums whitespace-nowrap">
+                                  {item.qty}{item.unit_name ? ` ${item.unit_name}` : ''}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RIGHT COLUMN — existing payment controls */}
+                  <div className="flex flex-col gap-4 overflow-y-auto scrollbar-thin pr-1 min-h-0 h-full">
                   {/* Section 1 — Gross + editable discount */}
-                  <div className="rounded-xl bg-background p-4 space-y-3">
+                  <div className="rounded-xl bg-muted p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-base font-semibold text-muted-foreground">ราคาขายรวม</span>
-                      <span className="text-3xl font-semibold tabular-nums">฿{formatCurrency(subtotal)}</span>
+                      <span className="text-3xl font-semibold tabular-nums pr-2.5">{formatCurrency(subtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-base font-semibold text-muted-foreground">ส่วนลดรวม</span>
@@ -1165,90 +1226,121 @@ export default function POSPage() {
                         type="number"
                         inputMode="decimal"
                         value={totalDiscountInput}
-                        onChange={e => { setTotalDiscountInput(e.target.value); applyTotalDiscount(e.target.value) }}
+                        onChange={e => {
+                          const v = e.target.value
+                          const n = parseFloat(v)
+                          if (n > 99999) return
+                          setTotalDiscountInput(v)
+                          applyTotalDiscount(v)
+                        }}
+                        max={99999}
                         onBlur={normalizeTotalDiscount}
                         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                         placeholder="0.00"
                         disabled={cart.items.length === 0 || subtotal <= 0}
-                        className="text-right tabular-nums w-52 h-12 text-3xl font-semibold bg-destructive-soft text-destructive focus-visible:ring-destructive/30"
+                        className="text-right tabular-nums w-52 h-12 text-3xl font-semibold bg-card text-destructive focus-visible:ring-destructive/30"
                       />
                     </div>
                   </div>
 
                   {/* Section 2 — Net total */}
-                  <div className={`rounded-xl px-5 py-4 ${netNegative
+                  <div className={`rounded-xl p-4 ${netNegative
                     ? 'bg-destructive-soft'
                     : 'bg-primary-soft'}`}>
                     <div className="text-base text-muted-foreground font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
-                    <div className={`text-6xl font-extrabold text-right leading-none tabular-nums ${netNegative ? 'text-destructive' : 'text-primary'}`}>
+                    <div className={`pr-2 text-6xl font-extrabold text-right leading-none tabular-nums ${netNegative ? 'text-destructive' : 'text-success'}`}>
                       {formatCurrency(net)}
                     </div>
                   </div>
 
-                  {/* Single-line breakdown + toggle */}
-                  <div className="flex items-center justify-between gap-3 text-base">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowBreakdown(v => !v)}
-                      className="ml-left shrink-0 text-base"
-                    >
-                      {'รายละเอียด'}
-                    </Button>
-                    {showBreakdown ? (
-                      <div className="flex text-sm items-center gap-4 tabular-nums">
-                        <span><span className="text-muted-foreground font-semibold">ต้นทุน :</span> {formatCurrency(totalCost)}</span>
-                        <span className="text-muted-foreground">/</span>
-                        <span><span className="text-muted-foreground font-semibold">กำไร :</span> <span className={`font-semibold ${profit >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(profit)}</span></span>
-                        <span className="text-muted-foreground">/</span>
-                        <span><span className="text-muted-foreground font-semibold">%กำไร :</span> <span className={`font-semibold ${margin >= 0 ? 'text-primary' : 'text-destructive'}`}>{margin.toFixed(2)}%</span></span>
-                      </div>
-                    ) : <span />}
-                  </div>
-
                   {/* Cash input */}
-                  <div className="space-y-2">
-                    <Label className="text-lg">
-                      <Banknote className="h-5 w-5 text-success" /> รับเงินมา
-                    </Label>
+                <div className="rounded-xl bg-muted p-4 space-y-3 h-36">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-base font-semibold text-muted-foreground flex items-center gap-1.5">
+                      <Banknote className="size-4 text-success" /> รับเงินมา
+                    </span>
                     <Input
                       type="number"
                       value={cashAmount}
                       onFocus={e => e.currentTarget.select()}
-                      onChange={e => setCashAmount(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleCompleteSale() }}
+                      onChange={e => {
+                          const v = e.target.value
+                          const n = parseFloat(v)
+                          if (n > 99999) return
+                          setCashAmount(v)
+                        }}
+                        max={99999}
+                      onKeyDown={e => {
+                        if (e.key !== 'Enter') return
+                        if (!cashAmount.trim()) {
+                          setCashAmount(Math.max(0, pendingNet).toFixed(2))
+                          return
+                        }
+                        handleCompleteSale()
+                      }}
                       placeholder="0.00"
-                      className="text-right text-4xl font-bold tabular-nums h-16"
+                      className="text-right bg-card tabular-nums w-52 h-12 text-4xl font-semibold focus-visible:ring-success/30"
                       autoFocus
                     />
                   </div>
 
                   {/* Change */}
-                  <div className={`rounded-xl px-5 py-4 ${needsCheck ? 'bg-destructive-soft' : 'bg-muted'}`}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-semibold">เงินทอน</span>
-                      {needsCheck ? (
-                        <span className="flex items-center gap-2 text-4xl font-extrabold text-destructive tracking-wider">
-                          <AlertTriangle className="h-7 w-7" />
-                          กรุณาตรวจสอบ
-                        </span>
-                      ) : (
-                        <span className="text-4xl font-extrabold tabular-nums text-success">
-                          ฿{formatCurrency(Math.max(0, change))}
-                        </span>
-                      )}
-                    </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-base font-semibold text-muted-foreground flex items-center gap-1.5"><RefreshCcw className="size-4 text-warning" /> เงินทอน</span>
+                      
+                    {needsCheck ? (
+                      <span className="flex items-center justify-end gap-2 w-80 h-12 text-4xl font-semibold text-destructive">
+                        <AlertTriangle className="size-5" />
+                        กรุณาตรวจสอบ
+                      </span>
+                    ) : (
+                      <span className="text-right tabular-nums w-52 h-12 text-4xl font-semibold text-warning pr-2.5">
+                        {formatCurrency(Math.max(0, change))}
+                      </span>
+                    )}
                   </div>
-                </>
+                </div>
+                   {/* Breakdown toggle + detail */}
+                  <div className="space-y-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowBreakdown(v => !v)}
+                      className="shrink-0 text-base"
+                    >
+                      {showBreakdown ? 'ซ่อนรายละเอียด' : 'รายละเอียด'}
+                    </Button>
+                    {showBreakdown && (
+                      <div className="rounded-xl bg-muted px-5 py-3 space-y-2 text-base tabular-nums">
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-muted-foreground font-semibold">ต้นทุน</span>
+                          <span className="font-semibold">{formatCurrency(totalCost)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-muted-foreground font-semibold">กำไร</span>
+                          <div className="flex items-center gap-4">
+                            <span className={`font-semibold ${margin >= 0 ? 'text-success' : 'text-destructive'}`}>
+                              ({margin.toFixed(2)} %)
+                            </span>
+                            <span className="text-muted-foreground/30">|</span>
+                            <span className={`font-semibold ${profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                              {formatCurrency(profit)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-auto">
+                        <Button variant="tertiary" className="flex-1 h-20 text-4xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
+                          <HandCoins className="size-10" /> {saving ? 'กำลังบันทึก...' : ' คิดเงิน'}
+                        </Button>
+                   </div>
+                  </div>
+                </div>
               )
             })()}
           </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setShowPayment(false)}>ยกเลิก</Button>
-            <Button variant="success" className="w-32 h-10 text-base" disabled={saving || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
-              {saving ? 'กำลังบันทึก...' : '✓ บันทึก'}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1662,7 +1754,7 @@ export default function POSPage() {
             <div className="text-6xl">✅</div>
             <div><div className="text-xl font-semibold">บันทึกบิลสำเร็จ</div>
               <div className="text-muted-foreground text-base mt-1">{lastInvoice}</div></div>
-            <Button autoFocus onClick={() => setShowSuccess(false)} className="w-full">เปิดบิลใหม่</Button>
+            <Button autoFocus onClick={() => setShowSuccess(false)} className="w-full h-12 text-xl">ตกลง</Button>
           </DialogBody>
         </DialogContent>
       </Dialog>

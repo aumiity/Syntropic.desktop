@@ -331,6 +331,7 @@ export default function Theme() {
                   <Button variant="outline">Outline</Button>
                   <Button variant="ghost">Ghost</Button>
                   <Button variant="destructive">Destructive</Button>
+                  <Button variant="destructive2">Destructive2</Button>
                   <Button variant="success">Success</Button>
                   <Button variant="warning">Warning</Button>
                   <Button variant="link">Link</Button>
@@ -374,6 +375,7 @@ export default function Theme() {
                   <Badge variant="success">Success</Badge>
                   <Badge variant="warning">Warning</Badge>
                   <Badge variant="destructive">Destructive</Badge>
+                  <Badge variant="destructive2">Destructive2</Badge>
                   <Badge variant="danger">Danger</Badge>
                   <Badge variant="ghost">Ghost</Badge>
                 </DemoRow>
