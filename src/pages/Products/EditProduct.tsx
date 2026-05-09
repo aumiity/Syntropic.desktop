@@ -9,7 +9,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
-import type { Product, ProductUnit, ProductLot, ProductLabel, ProductCategory, DrugType, DosageForm, ItemUnit } from '@/types'
+import type { Product, ProductUnit, ProductLot, ProductLabel, ProductCategory, DrugType, ItemUnit } from '@/types'
 import { DateInput } from '@/components/ui/date-input'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ArrowLeft, Save, Plus, Trash2, Edit2, ChevronDown, AlertTriangle, Check, X } from 'lucide-react'
@@ -87,7 +87,6 @@ export default function EditProductPage() {
   // Dropdown data
   const [categories, setCategories] = useState<ProductCategory[]>([])
   const [drugTypes, setDrugTypes] = useState<DrugType[]>([])
-  const [dosageForms, setDosageForms] = useState<DosageForm[]>([])
   const [itemUnits, setItemUnits] = useState<ItemUnit[]>([])
   const [labelFrequencies, setLabelFrequencies] = useState<any[]>([])
   const [labelDosages, setLabelDosages] = useState<any[]>([])
@@ -131,11 +130,10 @@ export default function EditProductPage() {
   const loadAll = async () => {
     setLoading(true)
     try {
-      const [p, cats, dts, dfs, units, freqs, dosages, meals, times, advices] = await Promise.all([
+      const [p, cats, dts, units, freqs, dosages, meals, times, advices] = await Promise.all([
         window.api.products.get(productId),
         window.api.settings.allCategories(),
         window.api.settings.allDrugTypes(),
-        window.api.settings.allDosageForms(),
         window.api.settings.allUnits(),
         window.api.settings.listLabelFrequencies(),
         window.api.settings.listLabelDosages(),
@@ -154,10 +152,8 @@ export default function EditProductPage() {
         barcode2: prod.barcode2 ?? '',
         barcode3: prod.barcode3 ?? '',
         barcode4: prod.barcode4 ?? '',
-        unit_name: prod.unit_name ?? '',
         category_id: prod.category_id ?? 0,
         drug_type_id: prod.drug_type_id ?? 0,
-        dosage_form_id: prod.dosage_form_id ?? 0,
         drug_generic_name_id: prod.drug_generic_name_id ?? 0,
         tmt_id: prod.tmt_id ?? '',
         price_retail: prod.price_retail ?? 0,
@@ -167,7 +163,7 @@ export default function EditProductPage() {
         has_wholesale1: prod.has_wholesale1 ?? 0,
         has_wholesale2: prod.has_wholesale2 ?? 0,
         is_vat: prod.has_vat ?? 0,
-        is_not_discount: prod.no_discount ?? 0,
+        is_drug: prod.is_drug ?? 0,
         is_stock_item: prod.is_stock_item ?? 1,
         default_qty: prod.default_qty ?? 1,
         reorder_point: prod.reorder_point ?? 0,
@@ -185,7 +181,6 @@ export default function EditProductPage() {
       setGenericQuery('') // will be resolved by generic_name_id lookup later
       setCategories(cats as ProductCategory[])
       setDrugTypes(dts as DrugType[])
-      setDosageForms(dfs as DosageForm[])
       setItemUnits(units as ItemUnit[])
       setLabelFrequencies(freqs as any[])
       setLabelDosages(dosages as any[])
@@ -207,15 +202,14 @@ export default function EditProductPage() {
       // products:update builds dynamic SQL from Object.keys(data); any non-column key
       // aborts the UPDATE with "no such column". Strip UI-only / renamed keys here.
       const {
-        is_vat, is_not_discount,
-        unit_name, drug_generic_name_id, has_wholesale1, has_wholesale2, default_qty,
+        is_vat,
+        drug_generic_name_id, has_wholesale1, has_wholesale2, default_qty,
         ...rest
       } = form
       const payload = {
         ...rest,
         category_id: form.category_id || null,
         drug_type_id: form.drug_type_id || null,
-        dosage_form_id: form.dosage_form_id || null,
         price_retail: parseFloat(form.price_retail) || 0,
         price_wholesale1: parseFloat(form.price_wholesale1) || 0,
         price_wholesale2: parseFloat(form.price_wholesale2) || 0,
@@ -226,7 +220,6 @@ export default function EditProductPage() {
         barcode4: form.barcode4 || null,
         code: form.code || null,
         has_vat: is_vat ? 1 : 0,
-        no_discount: is_not_discount ? 1 : 0,
       }
       await window.api.products.update(productId, payload)
       toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
@@ -537,9 +530,6 @@ export default function EditProductPage() {
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </SelectField>
               </FieldRow>
-              <FieldRow label="หน่วยนับหลัก">
-                <Input value={form.unit_name} onChange={e => setF('unit_name', e.target.value)} placeholder="เม็ด, ซอง, ขวด" />
-              </FieldRow>
               <FieldRow label="จำนวนเริ่มต้น">
                 <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', e.target.value)} className="w-24" min={1} />
               </FieldRow>
@@ -591,60 +581,64 @@ export default function EditProductPage() {
               <FieldRow label="ตัวเลือก">
                 <div className="flex flex-wrap gap-4">
                   <Toggle checked={!!form.is_vat} onChange={v => setF('is_vat', v ? 1 : 0)} label="มี VAT" />
-                  <Toggle checked={!!form.is_not_discount} onChange={v => setF('is_not_discount', v ? 1 : 0)} label="ไม่รับส่วนลด" />
                   <Toggle checked={!!form.is_stock_item} onChange={v => setF('is_stock_item', v ? 1 : 0)} label="นับสต็อก" />
                 </div>
               </FieldRow>
             </div>
 
             <div className="space-y-3">
-              <SectionTitle>ข้อมูลยา</SectionTitle>
-              <FieldRow label="ประเภทยา">
-                <SelectField value={form.drug_type_id} onChange={v => setF('drug_type_id', Number(v))}>
-                  <option value={0}>— ไม่ระบุ —</option>
-                  {drugTypes.map(d => <option key={d.id} value={d.id}>{d.name_th}</option>)}
-                </SelectField>
-              </FieldRow>
-              <FieldRow label="รูปแบบยา">
-                <SelectField value={form.dosage_form_id} onChange={v => setF('dosage_form_id', Number(v))}>
-                  <option value={0}>— ไม่ระบุ —</option>
-                  {dosageForms.map(d => <option key={d.id} value={d.id}>{d.name_th}</option>)}
-                </SelectField>
-              </FieldRow>
-              <FieldRow label="ชื่อสามัญ">
-                <div className="relative">
-                  <Input
-                    value={genericQuery}
-                    onChange={e => handleGenericSearch(e.target.value)}
-                    onFocus={() => setShowGenericSugg(true)}
-                    onBlur={() => setTimeout(() => setShowGenericSugg(false), 200)}
-                    placeholder="ค้นหาชื่อสามัญ..."
-                  />
-                  {form.drug_generic_name_id > 0 && !showGenericSugg && (
-                    <div className="mt-1 text-xs text-muted-foreground">ID: {form.drug_generic_name_id}</div>
-                  )}
-                  {showGenericSugg && genericSuggestions.length > 0 && (
-                    <div className="absolute left-0 top-full mt-1 z-50 w-full bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                      {genericSuggestions.map(g => (
-                        <button key={g.id} type="button" onMouseDown={() => selectGeneric(g)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2">
-                          <span className="flex-1">{g.name}</span>
-                          {g.is_antibiotic ? <Badge variant="warning" className="text-xs">ยาปฏิชีวนะ</Badge> : null}
-                        </button>
-                      ))}
+              <div className="flex items-center justify-between border-b border-border pb-1 mb-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">ข้อมูลยา</h3>
+                <Toggle
+                  checked={!!form.is_drug}
+                  onChange={v => setF('is_drug', v ? 1 : 0)}
+                  label="สินค้านี้เป็นยาตามกฎหมาย"
+                />
+              </div>
+              {!!form.is_drug && (
+                <>
+                  <FieldRow label="ประเภทยา">
+                    <SelectField value={form.drug_type_id} onChange={v => setF('drug_type_id', Number(v))}>
+                      <option value={0}>— ไม่ระบุ —</option>
+                      {drugTypes.map(d => <option key={d.id} value={d.id}>{d.name_th}</option>)}
+                    </SelectField>
+                  </FieldRow>
+                  <FieldRow label="ชื่อสามัญ">
+                    <div className="relative">
+                      <Input
+                        value={genericQuery}
+                        onChange={e => handleGenericSearch(e.target.value)}
+                        onFocus={() => setShowGenericSugg(true)}
+                        onBlur={() => setTimeout(() => setShowGenericSugg(false), 200)}
+                        placeholder="ค้นหาชื่อสามัญ..."
+                      />
+                      {form.drug_generic_name_id > 0 && !showGenericSugg && (
+                        <div className="mt-1 text-xs text-muted-foreground">ID: {form.drug_generic_name_id}</div>
+                      )}
+                      {showGenericSugg && genericSuggestions.length > 0 && (
+                        <div className="absolute left-0 top-full mt-1 z-50 w-full bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          {genericSuggestions.map(g => (
+                            <button key={g.id} type="button" onMouseDown={() => selectGeneric(g)}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2">
+                              <span className="flex-1">{g.name}</span>
+                              {g.is_antibiotic ? <Badge variant="warning" className="text-xs">ยาปฏิชีวนะ</Badge> : null}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </FieldRow>
-              <FieldRow label="TMT ID">
-                <Input value={form.tmt_id} onChange={e => setF('tmt_id', e.target.value)} />
-              </FieldRow>
-              <FieldRow label="คุณสมบัติ">
-                <div className="flex flex-wrap gap-4">
-                  <Toggle checked={!!form.is_fda_report} onChange={v => setF('is_fda_report', v ? 1 : 0)} label="รายงาน อย." />
-                  <Toggle checked={!!form.is_fda13_report} onChange={v => setF('is_fda13_report', v ? 1 : 0)} label="รายงาน อย.13" />
-                </div>
-              </FieldRow>
+                  </FieldRow>
+                  <FieldRow label="TMT ID">
+                    <Input value={form.tmt_id} onChange={e => setF('tmt_id', e.target.value)} />
+                  </FieldRow>
+                  <FieldRow label="คุณสมบัติ">
+                    <div className="flex flex-wrap gap-4">
+                      <Toggle checked={!!form.is_fda_report} onChange={v => setF('is_fda_report', v ? 1 : 0)} label="รายงาน อย." />
+                      <Toggle checked={!!form.is_fda13_report} onChange={v => setF('is_fda13_report', v ? 1 : 0)} label="รายงาน อย.13" />
+                    </div>
+                  </FieldRow>
+                </>
+              )}
             </div>
 
             <div className="space-y-3">

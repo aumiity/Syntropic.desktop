@@ -2,11 +2,12 @@ export interface Product {
   id: number
   barcode?: string; barcode2?: string; barcode3?: string; barcode4?: string
   code?: string; trade_name: string; name_for_print?: string
-  category_id?: number; dosage_form_id?: number; unit_id?: number
+  category_id?: number
   is_stock_item: number; is_disabled: number; is_hidden: number
   price_retail: number; price_wholesale1: number; price_wholesale2: number; cost_price: number
   has_wholesale1: number; has_wholesale2: number
-  has_vat: number; no_discount: number
+  has_vat: number
+  is_drug: number
   reorder_point?: number; safety_stock?: number
   drug_type_id?: number
   is_antibiotic: number
@@ -14,7 +15,7 @@ export interface Product {
   is_fda_report: number; is_fda13_report: number
   search_keywords?: string; note?: string
   // Joined
-  category_name?: string; drug_type_name?: string; dosage_form_name?: string; unit_name?: string
+  category_name?: string; drug_type_name?: string; unit_name?: string
   stock_qty?: number
   // Relations
   units?: ProductUnit[]; lots?: ProductLot[]; labels?: ProductLabel[]

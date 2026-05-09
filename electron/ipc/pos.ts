@@ -12,12 +12,12 @@ export function registerPosHandlers() {
     const kwMidSp = `%, ${query}%`
     const products = db.prepare(`
       SELECT p.*, c.name as category_name, dt.name_th as drug_type_name,
-             df.name_th as dosage_form_name, u.name as unit_name
+             u.name as unit_name
       FROM products p
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN drug_types dt ON dt.id = p.drug_type_id
-      LEFT JOIN dosage_forms df ON df.id = p.dosage_form_id
-      LEFT JOIN item_units u ON u.id = p.unit_id
+      LEFT JOIN product_units pu_base ON pu_base.product_id = p.id AND pu_base.is_base_unit = 1
+      LEFT JOIN item_units u ON u.id = pu_base.unit_id
       WHERE p.is_disabled = 0
         AND (p.trade_name LIKE ? OR p.barcode LIKE ? OR p.barcode2 LIKE ?
              OR p.barcode3 LIKE ? OR p.barcode4 LIKE ?

@@ -278,7 +278,8 @@ export function registerPurchaseHandlers() {
              pr.cancelled_at, pr.cancel_reason
       FROM purchase_receipt_items pri
       JOIN products p ON p.id = pri.product_id
-      LEFT JOIN item_units iu ON iu.id = p.unit_id
+      LEFT JOIN product_units pu_base ON pu_base.product_id = p.id AND pu_base.is_base_unit = 1
+      LEFT JOIN item_units iu ON iu.id = pu_base.unit_id
       LEFT JOIN purchase_receipts pr ON pr.invoice_no = pri.invoice_no
       LEFT JOIN suppliers s ON s.id = pr.supplier_id
       WHERE pri.invoice_no = ?

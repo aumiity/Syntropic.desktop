@@ -36,7 +36,7 @@ const api = {
     }) => ipcRenderer.invoke('products:adjustLotBatch', payload),
     updateLot: (id: number, data: any) => ipcRenderer.invoke('products:updateLot', id, data),
     expireLot: (lotId: number, userId: number) => ipcRenderer.invoke('products:expireLot', lotId, userId),
-    stockStats: (filters: { q?: string; category_id?: number; drug_type_id?: number }) =>
+    stockStats: (filters: { q?: string; category_id?: number; drug_type_id?: number; include_disabled?: boolean }) =>
       ipcRenderer.invoke('products:stockStats', filters),
   },
   // Purchase
@@ -119,6 +119,10 @@ const api = {
   // Auth (placeholder until proper login)
   auth: {
     getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
+  },
+  // Dev (only registered when isDev=true in main.ts; will reject otherwise)
+  dev: {
+    seedTestStock: () => ipcRenderer.invoke('dev:seedTestStock'),
   },
 }
 

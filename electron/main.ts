@@ -9,6 +9,7 @@ import { registerReportHandlers } from './ipc/reports'
 import { registerSettingsHandlers } from './ipc/settings'
 import { registerPrinterHandlers } from './ipc/printer'
 import { registerAuthHandlers } from './ipc/auth'
+import { registerDevHandlers } from './ipc/dev'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -67,6 +68,7 @@ registerReportHandlers()
 registerSettingsHandlers()
 registerPrinterHandlers()
 registerAuthHandlers()
+if (isDev) registerDevHandlers()
 
 // App event
 ipcMain.handle('app:getVersion', () => app.getVersion())

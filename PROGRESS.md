@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 🚧 EditProduct UX/UI/logic redesign still in flight · 2026-05-08 session: POS payment dialog redesigned (two-column layout) + two pre-existing payment bugs fixed (invoice-no UNIQUE failure + total-discount rounding drift)
-## Last updated: 2026-05-08
+## Status: 100% Complete + UI Polish ✅ — 2026-05-09→10 session: products schema cleaned (unit_id moved into product_units, dosage_form_id + no_discount dropped), Hygeia-style `is_drug` toggle gates "ข้อมูลยา" section, Products list overhauled (sortable + fixed-width columns, clickable stat cards as filters, "แสดงที่ปิดใช้งาน" recovery toggle), 1000-product test fixture via dev IPC, toast object-form bug fixed
+## Last updated: 2026-05-10
 ## App is RUNNABLE — run `npm run electron:dev` to launch
-## ⚠️ Pick up next session: EditProduct redesign is still the headline thread — read `docs/Redesign EditProduct.txt` and resume from the 2026-05-07 pickup plan below. The 2026-05-08 work is scoped to POS/payment — main-process IPC changes (`electron/ipc/pos.ts`) require an Electron restart, not just HMR.
+## ⚠️ Pick up next session: financial stat cards (cost/value/profit) deferred to Reports page with role-based access (per user). Migration in `electron/db/schema.ts` will run on next launch — backfills `product_units` base rows from old `products.unit_id` then drops the column. **Verify in dev DB**: every product has exactly one `product_units WHERE is_base_unit=1` row, POS/Purchase/Reports still show unit names. Main-process IPC changes (`electron/ipc/products.ts`, new `electron/ipc/dev.ts`) require an Electron restart, not just HMR.
 
 ---
 
@@ -859,3 +859,151 @@ Two non-obvious traps worth retaining for future work in this codebase:
 
 ### Pickup plan
 The EditProduct redesign remains the open headline — pickup is unchanged from the 2026-05-07 plan above. If POS regressions surface, sanity-check by running `npm run electron:dev`, ringing two sales in a row (verifies invoice-no fix, requires Electron restart not HMR), opening payment dialog with 3+ items and typing `10` in the total-discount field then blur (verifies rounding fix), and pressing Enter twice on an empty cash field with items in cart (verifies quick-pay Enter shortcut).
+
+---
+
+## Session 2026-05-09→10 — products schema cleanup, Hygeia-style is_drug, Products list overhaul
+
+### Goal
+Several intertwined threads landed in one long session:
+1. Audit + verify Deepseek's earlier UI removal of `dosage_form_id` / `is_not_discount` / `unit_name` fields from EditProduct, then drop the matching columns from the products table.
+2. Decide what to do about `products.unit_id` (the half-dead "main unit" column that EditProduct could no longer set) — chose to move base-unit storage entirely into `product_units` (`is_base_unit=1`) and rewrite all 5 read-side JOINs.
+3. Seed a realistic 1000-product, 10-GR test fixture for visual + perf testing.
+4. Implement Hygeia-style toggle pattern: an explicit "this product is a drug under the law" flag that gates the "ข้อมูลยา" section, with `category` reduced to a sort/filter dimension.
+5. Make the Products list table sortable, fix the column-jumping artefact when rows re-render, replace static stat cards with clickable filter shortcuts, and add a recovery path for `is_disabled=1` products (which were silently invisible).
+
+A late-session bug surfaced when the user clicked "บันทึก" in EditProduct for the first time and got a white screen — the toast hook had a long-standing API mismatch (signature accepted `string`, every call site passed `{title, variant}`); fixed at the component layer so all ~50 sites work now.
+
+### Schema changes — `electron/db/schema.ts`
+
+**Dropped columns (CREATE TABLE + idempotent ALTER block):**
+- `products.dosage_form_id` — was joined in `products:list` and `pos:searchProducts` to surface `dosage_form_name`. UI no longer references it; both JOINs removed.
+- `products.no_discount` (formerly `is_not_discount`) — UI no longer references it; no read-side consumers.
+- `products.unit_id` (formerly `unit_name`) — replaced by `product_units WHERE is_base_unit=1`. See migration below.
+
+**Added column:**
+- `products.is_drug INTEGER NOT NULL DEFAULT 0` — Hygeia-style "this product is a drug" flag. Backfill migration sets `is_drug=1` for any product that already had a `drug_type_id` so existing data lights up automatically.
+
+**Critical migration order** — the new ALTER block at the bottom of `schema.ts`:
+```sql
+INSERT OR IGNORE INTO item_units (name, multiply) VALUES ('ชิ้น', 1);  -- fallback
+INSERT INTO product_units
+  (product_id, unit_id, qty_per_base, is_base_unit, is_for_sale,
+   price_retail, price_wholesale1, price_wholesale2)
+SELECT p.id,
+       COALESCE(p.unit_id, (SELECT id FROM item_units WHERE name='ชิ้น')),
+       1, 1, 1,
+       p.price_retail, p.price_wholesale1, p.price_wholesale2
+  FROM products p
+ WHERE NOT EXISTS (SELECT 1 FROM product_units pu
+                    WHERE pu.product_id = p.id AND pu.is_base_unit = 1);
+ALTER TABLE products DROP COLUMN unit_id;
+```
+Each statement wrapped in `try { db.exec(sql) } catch {}` so it's idempotent — fresh installs swallow the "no such column: p.unit_id" error from the backfill (no products to backfill anyway), re-runs after migration silently no-op on the IGNORE / NOT EXISTS / already-dropped cases.
+
+### Read-side JOIN rewrite (5 files)
+Every `LEFT JOIN item_units u ON u.id = p.unit_id` replaced with:
+```sql
+LEFT JOIN product_units pu_base ON pu_base.product_id = p.id AND pu_base.is_base_unit = 1
+LEFT JOIN item_units u ON u.id = pu_base.unit_id
+```
+Touched: `electron/ipc/products.ts:33` (list), `electron/ipc/pos.ts:20` (search), `electron/ipc/purchase.ts:281` (history), `electron/ipc/reports.ts:150` (expiring), `electron/ipc/settings.ts:127` (`listUnits` usage_count — now uses `COUNT(DISTINCT pu.product_id)` from `product_units`, semantic shift from "products using as base" to "products using as any unit", which is more correct for the deletability check anyway).
+
+### Write-side rewrite — `products:create` transaction
+`electron/ipc/products.ts:85` now wraps the product INSERT and the base `product_units` INSERT in a single `db.transaction(...)`. Falls back to `'ชิ้น'` if the caller didn't pick a unit (shouldn't happen via the UI dropdown, but defends against legacy callers and tests).
+
+The quick-add dialog in `src/pages/Products/index.tsx` was simultaneously fixed — it had been sending `unit_name: '...'` (free text) where the prepared INSERT expected `@unit_id`, which would have thrown "Missing named parameter 'unit_id'". Replaced with a `<Select>` dropdown bound to `itemUnits` from `settings:allUnits`.
+
+### Hygeia-style is_drug toggle — `src/pages/Products/EditProduct.tsx:588-642`
+Section header "ข้อมูลยา" rebuilt as a flex row with a `<Toggle>` on the right labelled "สินค้านี้เป็นยาตามกฎหมาย". Toggle off → fields (ประเภทยา / ชื่อสามัญ / TMT ID / รายงาน อย. / รายงาน อย.13) hidden via `{!!form.is_drug && (<>…</>)}`. Toggle re-on → fields reappear with their previous values still in `form` state (we never clear, so flipping the toggle is non-destructive). `is_drug` flows through the `...rest` spread in the save payload to the dynamic-SQL `products:update`.
+
+`category` is now purely for sorting/filtering — never gates drug UI. Documented in CLAUDE.md.
+
+### 1000-product test fixture — `electron/ipc/dev.ts` (new file)
+Dev-only IPC handler `dev:seedTestStock`, registered in `main.ts` only when `isDev=true` and exposed at `window.api.dev.seedTestStock()`. Trigger from DevTools console:
+```js
+await window.api.dev.seedTestStock()
+// → { wiped: 0, products: 1000, grs: 10, lots: 1000, message: '…' }
+```
+
+**Behaviour:**
+- **Wipe-then-seed**: deletes everything matching `code GLOB 'TEST-*'` / `lot_number GLOB 'LOT-TEST-*'` / `invoice_no GLOB 'GR-TEST-*'` in FK order, then re-creates. Idempotent.
+- **Sale-aware safety**: throws if any `sale_item_lots` row references a `LOT-TEST-*` lot (would orphan FEFO trace). User gets a clear Thai error message and must void the sales first.
+- **Pre-flight**: throws if categories / item_units / suppliers tables are empty (need main seed first).
+- **Mid realism**: 20 templated names like `[ทดสอบ] Paracetamol 500mg #0042`, codes `TEST-NNNN`, barcodes `999NNNNNNNNNN`, random category/drug-type/unit/supplier from existing seeded lookups, cost 5–200 ฿, retail = cost × 1.3–2.5, ~15% antibiotic. Spread of expiry dates: 10% near-expiry (30–89 days, lights up the warning band), 90% normal (180 days–3 years). 5% of lots get `qty_on_hand=0` to exercise the "หมดสต็อก" badge.
+- **GR distribution**: products[0..99] → GR-TEST-001 (10 days ago), products[100..199] → GR-TEST-002, …, products[900..999] → GR-TEST-010 (today). Each GR creates 100 `purchase_receipt_items`, 100 `product_lots`, 100 `stock_movements` (`movement_type='receive'`).
+- All in 2 transactions (wipe + generate) — atomic, failures rollback cleanly.
+
+`electron/main.ts` line gates the registration: `if (isDev) registerDevHandlers()`. Production build still has the preload entry but `ipcRenderer.invoke('dev:seedTestStock')` will reject because no handler is registered — defence-in-depth.
+
+### Toast hook bug — white-screen on first save
+**User report**: clicking "บันทึก" in EditProduct → blank page + console error "Objects are not valid as a React child (found: object with keys {title, variant})".
+
+**Root cause**: `src/components/ui/toast.tsx` signature was `toast(message: string, type?, duration?)` but every call site (~50 across People, Products, Reports, Settings, EditProduct) used the shadcn-style `toast({ title: '...', variant: 'success' })`. The hook stored the object verbatim as `message`, then JSX rendered `<span>{t.message}</span>` — React threw at the object child and unmounted from the root upward.
+
+The pre-existing TS errors (`Argument of type '{ title: string; variant: string; }' is not assignable to parameter of type 'string'`) had been silently filtered out by my earlier typecheck-grep filters because I had assumed they were known-and-fine. The first user-facing toast invocation of the redesign session blew up in production code.
+
+**Fix** at `src/components/ui/toast.tsx` — overload the hook to accept both:
+```ts
+type ToastInput = string | { title: string; description?: string; variant?: 'success' | 'error' | 'info' | 'destructive' | 'default' }
+toast(input: ToastInput, type?: ToastType, duration?: number)
+```
+Normalised inside the hook (`variantToType`: `destructive`/`error`→error, `success`→success, else info). Toast renderer split into title (font-medium) + optional description (xs, opacity-80). All 50 call sites work without edit.
+
+**Lesson for future audits**: when filtering pre-existing TS errors during a refactor, check whether they're actually inert. Toast errors that "have always been there" can fire the moment a new code path triggers them.
+
+### Products list overhaul — `src/pages/Products/index.tsx`
+
+**Sortable columns** (server-side, respects pagination):
+- Added `sort_by` + `sort_dir` to `products:list`. Whitelisted 6 columns mapped to SQL expressions in a `SORT_MAP` object — `trade_name`, `unit_name` (via `u.name`), `cost_price`, `price_retail`, `profit` (computed `(p.price_retail - p.cost_price)`), `stock_qty` (alias from the `COALESCE SUM` subquery — SQLite supports alias in ORDER BY). Tie-break on `p.trade_name ASC` so paginated results are stable when the primary sort has duplicates (many products with `cost_price=0`).
+- Frontend has `sort` state + `toggleSort(field)` (click new column = asc; click same column = flip). `<SortableHead>` component renders the column label + `ArrowUp`/`ArrowDown`/`ArrowUpDown` icons (active = full opacity, inactive = 40%).
+- All filter/sort changes go through the same 300 ms debounce + load(1) — pagination resets to page 1 when sort flips.
+
+**Column-jump fix** — when rows re-rendered after sort, columns visibly resized because table-layout was browser-default `auto` (sizes from content). Switched to `<Table className="table-fixed">` and gave every non-`trade_name` column an explicit Tailwind width (`w-14` / `w-24` / `w-28` / `w-36`); `trade_name` keeps no width and gets the remainder. Trade-name cell now uses `truncate` + `title={trade_name}` so long names ellipsize but reveal on hover.
+
+**Clickable stat cards as filter shortcuts**:
+- `StatCard` is now a `<button>` accepting `onClick` + `isActive` props.
+- 3-card layout: `สินค้าทั้งหมด` (clears filter), `ใกล้หมด` (toggles `low`), `หมดสต็อก` (toggles `out`).
+- Active card gets a 2-px ring matching its tint (`ring-primary` / `ring-warning` / `ring-destructive`).
+- `products:list` accepts `stock_filter: 'all'|'low'|'out'`. The same `COALESCE SUM` subquery from `stockStats` is reused inline as a WHERE condition.
+
+A 4-card financial layout (cost / retail-value / profit) was prototyped mid-session then explicitly removed — user wants those gated to a Reports page with role-based access so staff don't see margins. The `success` tint added to `StatCard` was reverted along with it (no longer needed).
+
+**Recovery path for `is_disabled=1` products** — they had been silently invisible because `products:list` always added `WHERE p.is_disabled = 0`. Both `products:list` and `products:stockStats` now accept `include_disabled?: boolean` (default false). The Products toolbar gained a `<Switch size="sm">` labelled "แสดงที่ปิดใช้งาน" (right-aligned via `ml-auto`). When on, disabled rows render with `opacity-60` + a `<Badge variant="secondary">ปิดใช้งาน</Badge>` so they're clearly separable. Workflow to recover: toggle on → click Edit → toggle "ปิดการใช้งาน" off in the Status section → save.
+
+`electron/preload.ts` — `stockStats` type signature updated to include `include_disabled` so the renderer compiles.
+
+### CLAUDE.md updates
+Three rule changes documented in the divergence note + POS Unit Selection Rules section:
+1. Removed `unit_name → unit_id` rename note (column gone).
+2. Added "**Base unit lives only in `product_units`**" invariant — every product MUST have exactly one `is_base_unit=1` row, enforced by `products:create` transaction + seed loader + migration backfill. There is no fallback anymore; the previous `products.unit_id` JOIN is gone.
+3. Added "**Added `is_drug` (Hygeia-style)**" flag note — explicit toggle, `category` reduced to sort/filter only.
+4. POS Unit Selection Rules' "Why this matters" updated — the synthetic-base in the renderer still works (still keys off `product.unit_name`), only the SQL source changed. Added a hard "invariant: every product MUST have an `is_base_unit=1` row" line.
+
+### Files changed
+- `electron/db/schema.ts` — drop `dosage_form_id`/`no_discount`/`unit_id` from CREATE; add `is_drug`; new migration block with `'ชิ้น'` fallback + product_units backfill + `unit_id` DROP COLUMN
+- `electron/db/seed.ts` — products INSERT loses `dosage_form_id`/`unit_id`; new `insBaseUnit` prepared statement run after each product insert; `fallbackUnitId` lookup with insert-on-miss
+- `electron/ipc/products.ts` — `list` query rewrites JOINs, adds `sort_by`/`sort_dir`/`stock_filter`/`include_disabled` params; `create` wrapped in transaction, drops `dosage_form_id`/`no_discount`/`unit_id` from INSERT, inserts base `product_units` row; `stockStats` accepts `include_disabled`
+- `electron/ipc/pos.ts` — search query JOIN rewrite, `dosage_form_name` SELECT removed
+- `electron/ipc/purchase.ts` — receipt-items query JOIN rewrite
+- `electron/ipc/reports.ts` — expiring-lots query JOIN rewrite
+- `electron/ipc/settings.ts` — `listUnits` usage_count via `product_units`
+- `electron/ipc/dev.ts` — **new**, `dev:seedTestStock` handler
+- `electron/main.ts` — `registerDevHandlers()` gated on `isDev`
+- `electron/preload.ts` — expose `window.api.dev.seedTestStock`; `stockStats` type adds `include_disabled`
+- `src/components/ui/toast.tsx` — accept both string and `{title, description, variant}` forms
+- `src/types/index.ts` — `Product` drops `dosage_form_id`, `no_discount`, `unit_id`; adds `is_drug`; drops `dosage_form_name`
+- `src/pages/Products/index.tsx` — quick-add unit Select; sort state + `<SortableHead>`; `table-fixed` + explicit widths + `truncate` on trade_name; clickable `StatCard` + `stockFilter` state; `showDisabled` toggle + `<Switch>` + opacity/badge for disabled rows
+- `src/pages/Products/EditProduct.tsx` — `is_drug` in form init; "ข้อมูลยา" section header rebuilt as flex row with `<Toggle>` + conditional render; cleanup of redundant `dosage_form_id` from save destructure
+- `CLAUDE.md` — divergence note rewrite + POS rules + `is_drug` invariant
+
+### Pickup plan for next session
+1. **Restart Electron and verify the migration ran cleanly** — open the dev DB (path is in PROGRESS top-of-file) and confirm: (a) `products` table has no `unit_id` / `dosage_form_id` / `no_discount` columns and has `is_drug`; (b) every row in `products` has exactly one matching row in `product_units` with `is_base_unit=1`; (c) POS search, Products list, Purchase history, expiring-lots report all show unit names. If any view shows blank units, the backfill missed that product — re-run the migration manually or insert the missing base row.
+2. **Visual smoke test the Products list** — sort by every column (asc + desc), confirm columns don't jump width. Click stat cards (toggle on/off), verify the row list narrows correctly. Toggle "แสดงที่ปิดใช้งาน" with at least one disabled product to confirm the badge + opacity render.
+3. **EditProduct round-trip** — open a product, toggle `is_drug` off → save → reload → confirm fields are still in DB but section is hidden. Toggle back on → save → confirm section reappears with values intact.
+4. **Test fixture** — `await window.api.dev.seedTestStock()` from DevTools, walk through Products list (filter, sort, paginate, edit one), POS search, then re-run the seed (verifies the wipe path).
+5. **Financial Reports page** — deferred from this session per user. Plan: copy the cost_value / retail_value / profit_value SQL from the prototype IPC (already removed from `stockStats` but visible in git blame); add 4 stat cards to a new `src/pages/Reports/Inventory.tsx` (or extend an existing reports page); gate by `user.role === 'admin'` once auth is wired. Filters should mirror Products list (q / category / drug_type) so the user can answer "what's the profit on antibiotics specifically?".
+6. **Pre-existing TS noise to clean up someday** — `EditProduct.tsx` references `drug_generic_name_id`, `tmt_id`, `default_qty`, `label_time_id`, `advice_id`, `show_barcode`, `is_default` on `FullProduct` / `ProductLabel` types that don't declare them. They work at runtime (these are form-only ghost fields) but every typecheck run flags them. Either widen the types with optional fields or strip the unused form keys.
+
+### Uncommitted changes
+All of the above are uncommitted working-tree modifications.

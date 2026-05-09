@@ -88,8 +88,6 @@ export function initializeSchema(db: Database.Database) {
       trade_name TEXT NOT NULL,
       name_for_print TEXT,
       category_id INTEGER REFERENCES product_categories(id),
-      dosage_form_id INTEGER REFERENCES dosage_forms(id),
-      unit_id INTEGER REFERENCES item_units(id),
       is_stock_item INTEGER NOT NULL DEFAULT 1,
       is_disabled INTEGER NOT NULL DEFAULT 0,
       is_hidden INTEGER NOT NULL DEFAULT 0,
@@ -98,7 +96,7 @@ export function initializeSchema(db: Database.Database) {
       price_wholesale2 REAL NOT NULL DEFAULT 0,
       cost_price REAL NOT NULL DEFAULT 0,
       has_vat INTEGER NOT NULL DEFAULT 0,
-      no_discount INTEGER NOT NULL DEFAULT 0,
+      is_drug INTEGER NOT NULL DEFAULT 0,
       reorder_point REAL,
       safety_stock REAL,
       drug_type_id INTEGER REFERENCES drug_types(id),
@@ -482,6 +480,41 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE products DROP COLUMN expiry_alert_days1`,
     `ALTER TABLE products DROP COLUMN expiry_alert_days2`,
     `ALTER TABLE products DROP COLUMN expiry_alert_days3`,
+    `ALTER TABLE products DROP COLUMN no_discount`,
+    `ALTER TABLE products DROP COLUMN dosage_form_id`,
+    // is_drug: explicit "this product is a drug" flag (Hygeia-style toggle).
+    // category is now purely for sorting/filtering; this flag gates the
+    // "ข้อมูลยา" section in EditProduct.
+    `ALTER TABLE products ADD COLUMN is_drug INTEGER NOT NULL DEFAULT 0`,
+    // Backfill: anything that already had a drug_type assigned was implicitly a drug.
+    `UPDATE products SET is_drug = 1 WHERE drug_type_id IS NOT NULL AND is_drug = 0`,
+  ]) {
+    try { db.exec(sql) } catch {}
+  }
+
+  // Migration: move products.unit_id into product_units (is_base_unit=1).
+  // Order matters — backfill must complete before DROP COLUMN.
+  // Each statement wrapped in try/catch so it's idempotent and harmless on
+  // fresh installs (where p.unit_id no longer exists).
+  for (const sql of [
+    // Ensure a fallback unit exists for products whose unit_id was NULL.
+    `INSERT OR IGNORE INTO item_units (name, multiply) VALUES ('ชิ้น', 1)`,
+    // Backfill: every product without an is_base_unit=1 row gets one.
+    // - unit comes from products.unit_id, falling back to 'ชิ้น'
+    // - prices copied from products.* so display stays consistent
+    `INSERT INTO product_units
+       (product_id, unit_id, qty_per_base, is_base_unit, is_for_sale,
+        price_retail, price_wholesale1, price_wholesale2)
+     SELECT p.id,
+            COALESCE(p.unit_id, (SELECT id FROM item_units WHERE name = 'ชิ้น')),
+            1, 1, 1,
+            p.price_retail, p.price_wholesale1, p.price_wholesale2
+       FROM products p
+      WHERE NOT EXISTS (
+        SELECT 1 FROM product_units pu
+         WHERE pu.product_id = p.id AND pu.is_base_unit = 1
+      )`,
+    `ALTER TABLE products DROP COLUMN unit_id`,
   ]) {
     try { db.exec(sql) } catch {}
   }

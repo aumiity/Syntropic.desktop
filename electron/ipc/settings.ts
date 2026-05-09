@@ -122,9 +122,9 @@ export function registerSettingsHandlers() {
   // Item units
   ipcMain.handle('settings:listUnits', () => {
     return getDb().prepare(`
-      SELECT u.*, COUNT(p.id) as usage_count
+      SELECT u.*, COUNT(DISTINCT pu.product_id) as usage_count
       FROM item_units u
-      LEFT JOIN products p ON p.unit_id = u.id
+      LEFT JOIN product_units pu ON pu.unit_id = u.id
       GROUP BY u.id ORDER BY u.name
     `).all()
   })

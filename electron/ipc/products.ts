@@ -2,14 +2,22 @@ import { ipcMain } from 'electron'
 import { getDb } from '../db'
 
 export function registerProductHandlers() {
-  ipcMain.handle('products:list', (_e, filters: { q?: string; category_id?: number; drug_type_id?: number; page?: number }) => {
+  ipcMain.handle('products:list', (_e, filters: {
+    q?: string; category_id?: number; drug_type_id?: number; page?: number
+    sort_by?: string; sort_dir?: 'asc' | 'desc'
+    stock_filter?: 'all' | 'low' | 'out'
+    include_disabled?: boolean
+  }) => {
     const db = getDb()
-    const { q, category_id, drug_type_id, page = 1 } = filters
+    const { q, category_id, drug_type_id, page = 1, sort_by, sort_dir, stock_filter, include_disabled } = filters
     const limit = 50
     const offset = (page - 1) * limit
     const conditions: string[] = []
     const params: any[] = []
 
+    // Disabled filter: by default hidden; opt-in to recover/inspect.
+    if (!include_disabled) conditions.push(`p.is_disabled = 0`)
+
     if (q) {
       conditions.push(`(p.trade_name LIKE ? OR p.barcode LIKE ? OR p.code LIKE ? OR p.search_keywords LIKE ?)`)
       const lq = `%${q}%`
@@ -18,30 +26,64 @@ export function registerProductHandlers() {
     if (category_id) { conditions.push(`p.category_id = ?`); params.push(category_id) }
     if (drug_type_id) { conditions.push(`p.drug_type_id = ?`); params.push(drug_type_id) }
 
-    const where = conditions.length ? `WHERE p.is_disabled = 0 AND ${conditions.join(' AND ')}` : `WHERE p.is_disabled = 0`
+    // Stock-state filter: 'low' / 'out' narrow the result; 'all' (or missing) is a no-op.
+    // Same SUM-of-open-lots expression as stockStats, kept inline to share the WHERE.
+    if (stock_filter === 'out' || stock_filter === 'low') {
+      const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
+      if (stock_filter === 'out') {
+        conditions.push(`${stockExpr} <= 0`)
+      } else {
+        conditions.push(`${stockExpr} > 0 AND p.reorder_point > 0 AND ${stockExpr} <= p.reorder_point`)
+      }
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    // Whitelist sort columns — never interpolate user input directly into ORDER BY.
+    // Keys are the public field names exposed to the renderer; values are the SQL
+    // expression they map to (computed columns like profit are built here).
+    const SORT_MAP: Record<string, string> = {
+      trade_name: 'p.trade_name',
+      unit_name: 'u.name',
+      cost_price: 'p.cost_price',
+      price_retail: 'p.price_retail',
+      profit: '(p.price_retail - p.cost_price)',
+      stock_qty: 'stock_qty',
+    }
+    const orderCol = (sort_by && SORT_MAP[sort_by]) || 'p.trade_name'
+    const orderDir = sort_dir === 'desc' ? 'DESC' : 'ASC'
+    // Always tie-break on trade_name so paginated results are stable when the
+    // primary sort column has duplicates (e.g. many products with cost_price=0).
+    const orderBy = orderCol === 'p.trade_name'
+      ? `${orderCol} ${orderDir}`
+      : `${orderCol} ${orderDir}, p.trade_name ASC`
 
     const total = (db.prepare(`SELECT COUNT(*) as c FROM products p ${where}`).get(...params) as any).c
 
     const rows = db.prepare(`
       SELECT p.*, c.name as category_name, dt.name_th as drug_type_name,
-             df.name_th as dosage_form_name, u.name as unit_name,
+             u.name as unit_name,
              COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0) as stock_qty
       FROM products p
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN drug_types dt ON dt.id = p.drug_type_id
-      LEFT JOIN dosage_forms df ON df.id = p.dosage_form_id
-      LEFT JOIN item_units u ON u.id = p.unit_id
-      ${where} ORDER BY p.trade_name LIMIT ? OFFSET ?
+      LEFT JOIN product_units pu_base ON pu_base.product_id = p.id AND pu_base.is_base_unit = 1
+      LEFT JOIN item_units u ON u.id = pu_base.unit_id
+      ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?
     `).all(...params, limit, offset)
 
     return { rows, total, page, limit }
   })
 
-  ipcMain.handle('products:stockStats', (_e, filters: { q?: string; category_id?: number; drug_type_id?: number }) => {
+  ipcMain.handle('products:stockStats', (_e, filters: {
+    q?: string; category_id?: number; drug_type_id?: number; include_disabled?: boolean
+  }) => {
     const db = getDb()
-    const { q, category_id, drug_type_id } = filters
+    const { q, category_id, drug_type_id, include_disabled } = filters
     const conditions: string[] = []
     const params: any[] = []
+
+    if (!include_disabled) conditions.push(`p.is_disabled = 0`)
 
     if (q) {
       conditions.push(`(p.trade_name LIKE ? OR p.barcode LIKE ? OR p.code LIKE ? OR p.search_keywords LIKE ?)`)
@@ -51,12 +93,15 @@ export function registerProductHandlers() {
     if (category_id) { conditions.push(`p.category_id = ?`); params.push(category_id) }
     if (drug_type_id) { conditions.push(`p.drug_type_id = ?`); params.push(drug_type_id) }
 
-    const where = conditions.length ? `WHERE p.is_disabled = 0 AND ${conditions.join(' AND ')}` : `WHERE p.is_disabled = 0`
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
 
     const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
 
-    const out = (db.prepare(`SELECT COUNT(*) as c FROM products p ${where} AND ${stockExpr} <= 0`).get(...params) as any).c
-    const low = (db.prepare(`SELECT COUNT(*) as c FROM products p ${where} AND ${stockExpr} > 0 AND p.reorder_point > 0 AND ${stockExpr} <= p.reorder_point`).get(...params) as any).c
+    const andStock = (extra: string) => where
+      ? `${where} AND ${extra}`
+      : `WHERE ${extra}`
+    const out = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`${stockExpr} <= 0`)}`).get(...params) as any).c
+    const low = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`${stockExpr} > 0 AND p.reorder_point > 0 AND ${stockExpr} <= p.reorder_point`)}`).get(...params) as any).c
 
     return { out, low }
   })
@@ -90,26 +135,53 @@ export function registerProductHandlers() {
     let nextNum = 1
     if (last?.code) nextNum = parseInt(last.code.slice(1)) + 1
     const code = `P${String(nextNum).padStart(4, '0')}`
-    const stmt = db.prepare(`
+
+    const insProduct = db.prepare(`
       INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,
-        category_id, dosage_form_id, unit_id, is_stock_item,
+        category_id, is_stock_item,
         price_retail, price_wholesale1, price_wholesale2, cost_price,
-        has_vat, no_discount, reorder_point, safety_stock,
+        has_vat, reorder_point, safety_stock,
         drug_type_id, tmt_id,
         is_antibiotic,
         indication_note, side_effect_note, is_fda_report, is_fda13_report,
         search_keywords, note)
       VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,
-        @category_id, @dosage_form_id, @unit_id, @is_stock_item,
+        @category_id, @is_stock_item,
         @price_retail, @price_wholesale1, @price_wholesale2, @cost_price,
-        @has_vat, @no_discount, @reorder_point, @safety_stock,
+        @has_vat, @reorder_point, @safety_stock,
         @drug_type_id, @tmt_id,
         @is_antibiotic,
         @indication_note, @side_effect_note, @is_fda_report, @is_fda13_report,
         @search_keywords, @note)
     `)
-    const result = stmt.run({ ...data, code })
-    return db.prepare(`SELECT * FROM products WHERE id = ?`).get(result.lastInsertRowid)
+
+    // Every product needs exactly one product_units row with is_base_unit=1.
+    // Falls back to 'ชิ้น' if the caller didn't pick a unit (shouldn't happen via the
+    // Products UI dropdown, but defends against legacy callers).
+    const fallbackUnitId = (db.prepare(`SELECT id FROM item_units WHERE name = 'ชิ้น'`).get() as any)?.id
+                         ?? (db.prepare(`INSERT INTO item_units (name, multiply) VALUES ('ชิ้น', 1)`).run().lastInsertRowid as number)
+
+    const insBaseUnit = db.prepare(`
+      INSERT INTO product_units
+        (product_id, unit_id, qty_per_base, is_base_unit, is_for_sale,
+         price_retail, price_wholesale1, price_wholesale2)
+      VALUES (?, ?, 1, 1, 1, ?, ?, ?)
+    `)
+
+    const create = db.transaction((d: any) => {
+      const r = insProduct.run({ ...d, code })
+      insBaseUnit.run(
+        r.lastInsertRowid,
+        d.unit_id ?? fallbackUnitId,
+        d.price_retail ?? 0,
+        d.price_wholesale1 ?? 0,
+        d.price_wholesale2 ?? 0,
+      )
+      return r.lastInsertRowid
+    })
+
+    const newId = create(data)
+    return db.prepare(`SELECT * FROM products WHERE id = ?`).get(newId)
   })
 
   ipcMain.handle('products:update', (_e, id: number, data: any) => {

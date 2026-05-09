@@ -183,10 +183,17 @@ function seedMockProducts(db: Database.Database) {
 
   const insProduct = db.prepare(`
     INSERT INTO products (
-      barcode, trade_name, name_for_print, category_id, dosage_form_id, unit_id,
+      barcode, trade_name, name_for_print, category_id,
       price_retail, price_wholesale1, cost_price,
       drug_type_id, is_stock_item, search_keywords
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+  `)
+
+  const insBaseUnit = db.prepare(`
+    INSERT INTO product_units (
+      product_id, unit_id, qty_per_base, is_base_unit, is_for_sale,
+      price_retail, price_wholesale1, price_wholesale2
+    ) VALUES (?, ?, 1, 1, 1, ?, ?, 0)
   `)
 
   const insLot = db.prepare(`
@@ -235,15 +242,19 @@ function seedMockProducts(db: Database.Database) {
   expiry.setFullYear(expiry.getFullYear() + 2)
   const expiryStr = expiry.toISOString().slice(0, 10)
 
+  const fallbackUnitId = (db.prepare(`SELECT id FROM item_units WHERE name = 'ชิ้น'`).get() as any)?.id
+                       ?? (db.prepare(`INSERT INTO item_units (name, multiply) VALUES ('ชิ้น', 1)`).run().lastInsertRowid as number)
+
   for (const [i, p] of products.entries()) {
-    const [barcode, trade_name, name_for_print, category_id, dosage_form_id, unit_id,
+    const [barcode, trade_name, name_for_print, category_id, /* dosage_form_id (column dropped) */, unit_id,
            price_retail, price_wholesale1, cost_price, drug_type_id, keywords] = p
 
     const result = insProduct.run(
-      barcode, trade_name, name_for_print, category_id ?? null, dosage_form_id ?? null,
-      unit_id ?? null, price_retail, price_wholesale1, cost_price,
+      barcode, trade_name, name_for_print, category_id ?? null,
+      price_retail, price_wholesale1, cost_price,
       drug_type_id ?? null, keywords
     )
+    insBaseUnit.run(result.lastInsertRowid, unit_id ?? fallbackUnitId, price_retail, price_wholesale1)
     const productId = result.lastInsertRowid
 
     const lotNo = `LOT-MOCK-${String(i + 1).padStart(3, '0')}`
