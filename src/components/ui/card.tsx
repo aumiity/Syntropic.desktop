@@ -105,6 +105,37 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 type MetricTint = "primary" | "success" | "warning" | "destructive" | "secondary"
+type SectionTint = MetricTint
+
+function SectionCard({
+  icon: Icon, title, tint = 'primary', right, children, className,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  tint?: SectionTint
+  right?: React.ReactNode
+  children: React.ReactNode
+  className?: string
+}) {
+  const iconBox =
+    tint === 'success'     ? 'bg-success-soft text-success'
+    : tint === 'warning'   ? 'bg-warning-soft text-warning-strong'
+    : tint === 'destructive' ? 'bg-destructive-soft text-destructive'
+    : tint === 'secondary' ? 'bg-muted text-muted-foreground'
+    : 'bg-primary-soft text-primary'
+  return (
+    <div className={cn('bg-card rounded-2xl p-4 space-y-3 shadow-card', className)}>
+      <div className="flex items-center gap-2.5">
+        <span className={cn('grid place-items-center size-8 rounded-lg shrink-0', iconBox)}>
+          <Icon className="size-4" />
+        </span>
+        <h3 className="text-base font-semibold text-foreground flex-1">{title}</h3>
+        {right}
+      </div>
+      <div className="space-y-3">{children}</div>
+    </div>
+  )
+}
 
 function MetricCard({
   label,
@@ -163,5 +194,6 @@ export {
   CardDescription,
   CardContent,
   MetricCard,
+  SectionCard,
 }
-export type { MetricTint }
+export type { MetricTint, SectionTint }

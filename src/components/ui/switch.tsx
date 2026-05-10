@@ -50,4 +50,17 @@ function Switch({
   )
 }
 
-export { Switch }
+function Toggle({ checked, onChange, label }: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  label?: string
+}) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer select-none">
+      <Switch checked={checked} onCheckedChange={onChange} />
+      {label ? <span className="text-sm">{label}</span> : null}
+    </label>
+  )
+}
+
+export { Switch, Toggle }

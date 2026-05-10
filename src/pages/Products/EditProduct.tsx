@@ -4,8 +4,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import { MetricCard } from '@/components/ui/card'
+import { Switch, Toggle } from '@/components/ui/switch'
+import { MetricCard, SectionCard } from '@/components/ui/card'
+import { FormField } from '@/components/ui/label'
+import { NativeSelect } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useToast } from '@/components/ui/toast'
@@ -16,7 +18,7 @@ import { DateInput } from '@/components/ui/date-input'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
   ArrowLeft, Save, Plus, Trash2, Edit2, ChevronDown, Check, X, AlertTriangle,
-  Package, ScanBarcode, Tag, Pill, Boxes, FileText, HandCoins,
+  Package, ScanBarcode, Tag, Pill, Boxes, FileText, HandCoins, Percent,
 } from 'lucide-react'
 
 // ---- Types ----
@@ -29,73 +31,8 @@ interface FullProduct extends Product {
 interface GenericNameSuggestion { id: number; name: string; is_antibiotic: number }
 
 // ---- Helpers ----
-type SectionTint = 'primary' | 'success' | 'warning' | 'destructive' | 'secondary'
-
-function SectionCard({
-  icon: Icon, title, tint = 'primary', right, children,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  title: string
-  tint?: SectionTint
-  right?: React.ReactNode
-  children: React.ReactNode
-}) {
-  const iconBox =
-    tint === 'success'     ? 'bg-success-soft text-success'
-    : tint === 'warning'     ? 'bg-warning-soft text-warning-strong'
-    : tint === 'destructive' ? 'bg-destructive-soft text-destructive'
-    : tint === 'secondary'   ? 'bg-muted text-muted-foreground'
-    : 'bg-primary-soft text-primary'
-  return (
-    <div className="bg-card rounded-2xl p-4 space-y-3 shadow-card">
-      <div className="flex items-center gap-2.5">
-        <span className={`grid place-items-center size-8 rounded-lg shrink-0 ${iconBox}`}>
-          <Icon className="size-4" />
-        </span>
-        <h3 className="text-base font-semibold text-foreground flex-1">{title}</h3>
-        {right}
-      </div>
-      <div className="space-y-3">{children}</div>
-    </div>
-  )
-}
-
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-semibold uppercase tracking-wider text-foreground-subtle">
-        {label}{required && <span className="text-destructive ml-0.5">*</span>}
-      </label>
-      {children}
-    </div>
-  )
-}
-
-function SelectField({ value, onChange, children, className = '' }: {
-  value: number | string; onChange: (v: string) => void; children: React.ReactNode; className?: string
-}) {
-  return (
-    <div className={`relative ${className}`}>
-      <select
-        className="w-full h-10 rounded-xl bg-input px-3 pr-9 text-sm appearance-none outline-none transition-all focus:ring-[2px] focus:ring-ring"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-      >
-        {children}
-      </select>
-      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-    </div>
-  )
-}
-
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
-  return (
-    <label className="flex items-center gap-2 cursor-pointer select-none">
-      <Switch checked={checked} onCheckedChange={onChange} size="sm" />
-      {label ? <span className="text-sm">{label}</span> : null}
-    </label>
-  )
-}
+const Field = FormField
+const SelectField = NativeSelect
 
 // ========================
 // MAIN COMPONENT
@@ -110,6 +47,7 @@ export default function EditProductPage() {
   const [product, setProduct] = useState<FullProduct | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [priceWarning, setPriceWarning] = useState<string[]>([])
 
   // Dropdown data
   const [categories, setCategories] = useState<ProductCategory[]>([])
@@ -153,6 +91,7 @@ export default function EditProductPage() {
   useEffect(() => {
     loadAll()
   }, [productId])
+
 
   const loadAll = async () => {
     setLoading(true)
@@ -224,6 +163,23 @@ export default function EditProductPage() {
   // ---- Save general ----
   const handleSave = async () => {
     if (!form.trade_name?.trim()) { toast({ title: 'กรุณาระบุชื่อสินค้า', variant: 'error' }); return }
+    const cost = parseFloat(form.cost_price) || 0
+    const retail = parseFloat(form.price_retail) || 0
+    const ws1 = parseFloat(form.price_wholesale1) || 0
+    const ws2 = parseFloat(form.price_wholesale2) || 0
+    if (cost > 0) {
+      const below = [
+        retail > 0 && retail < cost ? 'ราคาปลีก' : null,
+        ws1 > 0 && ws1 < cost ? 'ราคาส่ง 1' : null,
+        ws2 > 0 && ws2 < cost ? 'ราคาส่ง 2' : null,
+      ].filter(Boolean) as string[]
+      if (below.length > 0) { setPriceWarning(below); return }
+    }
+    await doSave()
+  }
+
+  const doSave = async () => {
+    setPriceWarning([])
     setSaving(true)
     try {
       // products:update builds dynamic SQL from Object.keys(data); any non-column key
@@ -614,83 +570,137 @@ export default function EditProductPage() {
         {tab === 'general' && (
           <div className="grid grid-cols-2 gap-4 pt-4">
 
-            {/* LEFT COLUMN: ข้อมูลพื้นฐาน → ราคา → หมายเหตุ */}
+            {/* LEFT COLUMN */}
             <div className="space-y-4">
 
               <SectionCard icon={Package} title="ข้อมูลพื้นฐาน" tint="primary">
-                <Field label="ชื่อสินค้า" required>
-                  <Input value={form.trade_name} onChange={e => setF('trade_name', e.target.value)} className="h-10 rounded-xl" />
-                </Field>
-                <Field label="ชื่อสำหรับพิมพ์">
-                  <Input value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" className="h-10 rounded-xl" />
-                </Field>
                 <div className="grid grid-cols-2 gap-3">
+                  <Field label="ชื่อสินค้า" required>
+                    <Input value={form.trade_name} onChange={e => setF('trade_name', e.target.value)} className="h-10 rounded-xl" />
+                  </Field>
+                  <Field label="ชื่อสำหรับพิมพ์">
+                    <Input value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" className="h-10 rounded-xl" />
+                  </Field>
                   <Field label="รหัสสินค้า">
                     <Input value={form.code} readOnly className="h-10 rounded-xl bg-muted cursor-not-allowed" />
                   </Field>
                   <Field label="จำนวนเริ่มต้น">
                     <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', e.target.value)} className="h-10 rounded-xl" min={1} />
                   </Field>
+                  <div className="col-span-2">
+                    <Field label="หมวดหมู่">
+                      <SelectField value={form.category_id} onChange={v => setF('category_id', Number(v))}>
+                        <option value={0}>— ไม่ระบุ —</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </SelectField>
+                    </Field>
+                  </div>
+                  <div className="col-span-2">
+                    <Field label="คีย์เวิร์ดค้นหา">
+                      <Input
+                        value={form.search_keywords}
+                        onChange={e => setF('search_keywords', e.target.value)}
+                        placeholder="ชื่ออื่นๆ คั่นด้วยจุลภาค เช่น พารา,para,tylenol"
+                        className="h-10 rounded-xl"
+                      />
+                    </Field>
+                  </div>
                 </div>
-                <Field label="หมวดหมู่">
-                  <SelectField value={form.category_id} onChange={v => setF('category_id', Number(v))}>
-                    <option value={0}>— ไม่ระบุ —</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </SelectField>
-                </Field>
-                <Field label="คีย์เวิร์ดค้นหา">
-                  <Input
-                    value={form.search_keywords}
-                    onChange={e => setF('search_keywords', e.target.value)}
-                    placeholder="ชื่ออื่นๆ คั่นด้วยจุลภาค เช่น พารา,para,tylenol"
-                    className="h-10 rounded-xl"
-                  />
-                </Field>
               </SectionCard>
 
               <SectionCard icon={Tag} title="ราคาและต้นทุน" tint="success">
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="ราคาขายปลีก" required>
-                    <Input type="number" value={form.price_retail} onChange={e => setF('price_retail', e.target.value)} className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
-                  </Field>
-                  <Field label="ราคาทุน">
-                    <Input
-                      type="number"
-                      value={form.cost_price}
-                      onChange={e => setF('cost_price', e.target.value)}
-                      className="h-10 rounded-xl text-right tabular-nums"
-                      min={0}
-                      step="0.01"
-                      placeholder="คำนวณจากล็อต"
-                    />
-                  </Field>
-                </div>
 
-                <Field label="ราคาส่ง 1">
-                  <div className="flex items-center gap-3 h-10">
-                    <Toggle checked={!!form.has_wholesale1} onChange={v => setF('has_wholesale1', v ? 1 : 0)} />
-                    {!!form.has_wholesale1 ? (
-                      <Input type="number" value={form.price_wholesale1} onChange={e => setF('price_wholesale1', e.target.value)} className="h-10 rounded-xl flex-1 text-right tabular-nums" min={0} step="0.01" />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">ปิดใช้งาน</span>
-                    )}
+                  {/* col1 row1 */}
+                  <div className="col-start-1 row-start-1">
+                    <Field label="ราคาทุน">
+                      <Input type="number" value={form.cost_price} onChange={e => setF('cost_price', e.target.value)}
+                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" placeholder="คำนวณจากล็อต" />
+                    </Field>
                   </div>
-                </Field>
 
-                <Field label="ราคาส่ง 2">
-                  <div className="flex items-center gap-3 h-10">
-                    <Toggle checked={!!form.has_wholesale2} onChange={v => setF('has_wholesale2', v ? 1 : 0)} />
-                    {!!form.has_wholesale2 ? (
-                      <Input type="number" value={form.price_wholesale2} onChange={e => setF('price_wholesale2', e.target.value)} className="h-10 rounded-xl flex-1 text-right tabular-nums" min={0} step="0.01" />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">ปิดใช้งาน</span>
-                    )}
+                  {/* col1 row2 */}
+                  <div className="col-start-1 row-start-2">
+                    <Field label="ราคาขายปลีก" required>
+                      <Input type="number" value={form.price_retail} onChange={e => setF('price_retail', e.target.value)}
+                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
+                    </Field>
                   </div>
-                </Field>
 
-                <div className="flex flex-wrap gap-x-6 gap-y-2 pt-1 px-1">
-                  <Toggle checked={!!form.is_vat} onChange={v => setF('is_vat', v ? 1 : 0)} label="มี VAT" />
-                  <Toggle checked={!!form.is_stock_item} onChange={v => setF('is_stock_item', v ? 1 : 0)} label="นับสต็อก" />
+                  {/* col2 row1-2: สรุปกำไร */}
+                  <div className="col-start-2 row-start-1 row-span-2 h-full space-y-1.5">
+                    <span className="block text-sm font-semibold uppercase text-foreground">สรุปกำไร</span>
+                    {(() => {
+                      const cost = parseFloat(form.cost_price) || 0
+                      const rows = [
+                        { label: 'ปลีก', price: parseFloat(form.price_retail) || 0 },
+                        { label: 'ส่ง 1', price: parseFloat(form.price_wholesale1) || 0 },
+                        { label: 'ส่ง 2', price: parseFloat(form.price_wholesale2) || 0 },
+                      ]
+                      return (
+                        <div className="h-[calc(100%-1.75rem)] rounded-xl bg-muted/50 px-3 py-2 flex flex-col">
+                          {rows.map(r => {
+                            const profit = r.price - cost
+                            const pct = cost > 0 ? (profit / cost) * 100 : 0
+                            const pos = profit >= 0
+                            const dim = r.price <= 0 || cost <= 0
+                            return (
+                              <div key={r.label} className="flex-1 flex items-center justify-between tabular-nums">
+                                <span className={`text-sm ${dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>{r.label}</span>
+                                {dim ? (
+                                  <span className="text-sm text-foreground-subtle">—</span>
+                                ) : (
+                                  <div className="text-right">
+                                    <span className={`text-sm font-bold ${pos ? 'text-success' : 'text-destructive'}`}>
+                                      {pos ? '+' : ''}{profit.toFixed(2)}
+                                    </span>
+                                    <span className={`ml-1 text-xs ${pos ? 'text-success' : 'text-destructive'}`}>
+                                      ({pos ? '+' : ''}{pct.toFixed(0)}%)
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
+                  </div>
+
+                  {/* col1 row3: ส่ง 1 */}
+                  <div className="col-start-1 row-start-3">
+                    <Field label="ราคาส่ง 1">
+                      <Input type="number" value={form.price_wholesale1} onChange={e => setF('price_wholesale1', e.target.value)}
+                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
+                    </Field>
+                  </div>
+
+                  {/* col2 row3: ส่ง 2 */}
+                  <div className="col-start-2 row-start-3">
+                    <Field label="ราคาส่ง 2">
+                      <Input type="number" value={form.price_wholesale2} onChange={e => setF('price_wholesale2', e.target.value)}
+                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
+                    </Field>
+                  </div>
+
+                  {/* col1 row4: มี VAT */}
+                  <div className="p-2 col-start-1 row-start-4 flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                    <div>
+                      <div className="text-sm font-semibold uppercase text-foreground">มี VAT</div>
+                      <div className="text-xs text-muted-foreground">บวก 7% เมื่อออกใบกำกับภาษี</div>
+                    </div>
+                    <Switch checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
+                  </div>
+
+                  {/* col2 row4: นับสต็อก */}
+                  <div className="col-start-2 row-start-4 flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                    <div>
+                      <div className="text-sm font-semibold uppercase text-foreground">นับสต็อก</div>
+                      <div className="text-xs text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
+                    </div>
+                    <Switch checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
+                  </div>
+
                 </div>
               </SectionCard>
 
@@ -723,7 +733,7 @@ export default function EditProductPage() {
 
             </div>
 
-            {/* RIGHT COLUMN: บาร์โค้ด → สต็อก → ข้อมูลยา */}
+            {/* RIGHT COLUMN */}
             <div className="space-y-4">
 
               <SectionCard icon={ScanBarcode} title="บาร์โค้ด" tint="secondary">
@@ -767,7 +777,11 @@ export default function EditProductPage() {
                 right={
                   <Toggle
                     checked={!!form.is_drug}
-                    onChange={v => setF('is_drug', v ? 1 : 0)}
+                    onChange={v => {
+                      setF('is_drug', v ? 1 : 0)
+                      if (v) setF('is_fda_report', 1)
+                      else { setF('is_fda_report', 0); setF('is_fda13_report', 0) }
+                    }}
                     label="เป็นยาตามกฎหมาย"
                   />
                 }
@@ -813,9 +827,21 @@ export default function EditProductPage() {
                     <Field label="TMT ID">
                       <Input value={form.tmt_id} onChange={e => setF('tmt_id', e.target.value)} className="h-10 rounded-xl" />
                     </Field>
-                    <div className="flex flex-wrap gap-x-6 gap-y-2 pt-1 px-1">
-                      <Toggle checked={!!form.is_fda_report} onChange={v => setF('is_fda_report', v ? 1 : 0)} label="รายงาน อย." />
-                      <Toggle checked={!!form.is_fda13_report} onChange={v => setF('is_fda13_report', v ? 1 : 0)} label="รายงาน อย.13" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                        <div>
+                          <div className="text-sm font-semibold uppercase text-foreground">รายงาน ขย.9</div>
+                          <div className="text-xs text-muted-foreground">บัญชีการซื้อยา</div>
+                        </div>
+                        <Switch checked={!!form.is_fda_report} onCheckedChange={v => setF('is_fda_report', v ? 1 : 0)} />
+                      </div>
+                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                        <div>
+                          <div className="text-sm font-semibold uppercase text-foreground">รายงาน ข.ย.13</div>
+                          <div className="text-xs text-muted-foreground">บัญชีการขายยา ตามที่ อ.ย. กำหนด (เฉพาะร้านขายส่ง)</div>
+                        </div>
+                        <Switch checked={!!form.is_fda13_report} onCheckedChange={v => setF('is_fda13_report', v ? 1 : 0)} />
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -1105,6 +1131,30 @@ export default function EditProductPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setUnitDialog(false)}>ยกเลิก</Button>
             <Button onClick={handleSaveUnit} disabled={unitSaving}>{unitSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======================== PRICE WARNING DIALOG ======================== */}
+      <Dialog open={priceWarning.length > 0} onOpenChange={() => setPriceWarning([])}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle className="text-xl">ราคาขายผิดปกติ</DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-3">
+            <div className="flex gap-3">
+              <AlertTriangle className="size-10 text-destructive shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-base font-medium">{priceWarning.join(', ')} ต่ำกว่าราคาทุน</p>
+                <p className="text-base text-muted-foreground">ยืนยันจะบันทึกข้อมูลนี้?</p>
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="senary" onClick={() => setPriceWarning([])}>กลับไปแก้ไข</Button>
+            <Button variant="destructive" onClick={doSave} disabled={saving}>
+              {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

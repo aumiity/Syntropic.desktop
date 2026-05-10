@@ -15,7 +15,11 @@
       "Bash(npx vite *)",
       "Bash(python3 /tmp/strip_borders.py /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/POS/index.tsx)",
       "WebFetch(domain:shadcnstudio.com)",
-      "Bash(copy *)"
+      "Bash(copy *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(sqlite3 syntropic.db \"SELECT id, code, name, tax_id, phone, address, contact_name FROM suppliers WHERE is_disabled = 0 ORDER BY id;\")",
+      "Bash(Get-ChildItem -Path \"D:\\\\Syntropic.Project\\\\Syntropic.desktop\\\\src\\\\components\\\\ui\" -Filter \"*.tsx\" -File)",
+      "Bash(Select-Object -ExpandProperty Name)"
     ]
   }
 }

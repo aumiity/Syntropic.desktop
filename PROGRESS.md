@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 2026-05-10 (cont.) session: runtime font switcher in CSS settings page (Latin / Thai picker, CSS-var driven, persists to `:root` block of `src/index.css`), 12 local `@font-face` declarations added, global `.truncate` / `.line-clamp-*` line-height fix for Thai stacked-mark clipping. Earlier same-day: products schema cleaned, Hygeia-style `is_drug`, Products list overhauled, 1000-product test fixture, toast object-form bug fixed.
-## Last updated: 2026-05-10
+## Status: 100% Complete + UI Polish ✅ — 2026-05-11 session: EditProduct UI overhaul (ราคาและต้นทุน layout, profit summary, iOS-style toggles, price-below-cost warning dialog), global UI components extracted (SectionCard→card.tsx, FormField→label.tsx, NativeSelect→select.tsx, Toggle→switch.tsx), CLAUDE.md rule added prohibiting local UI helpers in page files, DB wiped + real supplier seed data (VMDRUG/DRUG CENTER/WELLEKPHARMA/FORTE/LIKHIT), seedMockProducts removed.
+## Last updated: 2026-05-11
 ## App is RUNNABLE — run `npm run electron:dev` to launch
-## ⚠️ Pick up next session: financial stat cards (cost/value/profit) deferred to Reports page with role-based access (per user). Migration in `electron/db/schema.ts` will run on next launch — backfills `product_units` base rows from old `products.unit_id` then drops the column. **Verify in dev DB**: every product has exactly one `product_units WHERE is_base_unit=1` row, POS/Purchase/Reports still show unit names. Main-process IPC changes (`electron/ipc/products.ts`, new `electron/ipc/dev.ts`) require an Electron restart, not just HMR.
+## ⚠️ Pick up next session: **ข.ย.10 / ข.ย.11 reports** — บัญชีการขายยาควบคุมพิเศษ (ข.ย.10) และยาอันตราย (ข.ย.11) ตามที่ อ.ย. กำหนด. New report pages under `/reports/`. See NEXT SESSION section below for plan.
 
 ---
 
@@ -142,7 +142,33 @@ All pages are now complete. No pending stubs.
 
 ---
 
-## NEXT SESSION — Build order (1 page per prompt, ask to continue each time)
+## NEXT SESSION — ข.ย.10 / ข.ย.11 Reports
+
+### Background
+อ.ย. กำหนดให้ร้านยาที่จำหน่ายยาควบคุมพิเศษและยาอันตรายต้องบันทึกบัญชีการขายรายวัน:
+- **ข.ย.10** — บัญชีการขายยาควบคุมพิเศษ (drug_type: SPCL_CTRL, PSYCHO_4, NARCOTIC_3)
+- **ข.ย.11** — บัญชีการขายยาอันตราย (drug_type: DANGEROUS)
+
+### Data source
+- `sales` + `sale_items` JOIN `products` WHERE `products.is_fda_report = 1` AND drug_type matches
+- Filter by date range (รายวัน/รายเดือน)
+- Columns: วันที่, เลขที่ใบเสร็จ, ชื่อยา, ชื่อสามัญ, ปริมาณ, หน่วย, ราคา, ชื่อผู้ซื้อ/เลขบัตรปชช.
+
+### Pages to build
+1. `src/pages/Reports/Kho10.tsx` — ข.ย.10 พร้อม print/export
+2. `src/pages/Reports/Kho11.tsx` — ข.ย.11 พร้อม print/export
+
+### IPC needed
+- `reports:kho10List` — query sales filtered by SPCL_CTRL/PSYCHO_4/NARCOTIC_3 drug types
+- `reports:kho11List` — query sales filtered by DANGEROUS drug type
+
+### Routes
+- `/reports/kho10`
+- `/reports/kho11`
+
+---
+
+## Build order (remaining)
 
 1. `Purchase/index.tsx` — stock receive
 2. `Products/index.tsx` — product list

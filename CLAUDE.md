@@ -318,7 +318,8 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - Sidebar: `bg-sidebar`, `text-sidebar-foreground`, `bg-sidebar-accent`, `text-sidebar-primary-foreground`
    - Opacity modifiers on semantic tokens are allowed: `bg-primary/30`, `border-warning/40`, `text-destructive/80`
 2. **Need a token that doesn't exist? Add it.** Add the variable to BOTH `:root` and `.dark` in `src/index.css`, then register it under `colors` in `tailwind.config.js`. Token names describe the *role* (`--success`, `--primary-soft`) — never the shade (`--blue-500` is forbidden).
-3. **Never write raw HTML UI elements.** Use `src/components/ui/` components exclusively:
+3. **No local UI components in page files (HARD).** Any JSX helper component defined at module scope inside `src/pages/` is forbidden — no exceptions. If it could be used in more than one place, add it to `src/components/ui/`. Available global helpers added to date: `SectionCard` (card.tsx), `FormField` (label.tsx), `NativeSelect` (select.tsx), `Toggle` (switch.tsx). Before writing a new helper in a page file, check if it already exists in `src/components/ui/` first.
+4. **Never write raw HTML UI elements.** Use `src/components/ui/` components exclusively:
    - `<button>` → `<Button variant="...">` — always, no exceptions
    - `<input>` → `<Input>`
    - `<select>` → use `Select` component or `<Input>` workaround

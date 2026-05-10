@@ -23,4 +23,19 @@ function Label({
   )
 }
 
-export { Label }
+function FormField({ label, required, children }: {
+  label: string
+  required?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-sm font-semibold uppercase text-foreground">
+        {label}{required && <span className="text-destructive ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+export { Label, FormField }

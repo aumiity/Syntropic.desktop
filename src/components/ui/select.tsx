@@ -214,8 +214,29 @@ function SelectScrollDownButton({
   )
 }
 
+function NativeSelect({ value, onChange, children, className }: {
+  value: number | string
+  onChange: (v: string) => void
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn('relative', className)}>
+      <select
+        className="w-full h-10 rounded-xl bg-input px-3 pr-9 text-sm appearance-none outline-none transition-all focus:ring-[2px] focus:ring-ring"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      >
+        {children}
+      </select>
+      <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+    </div>
+  )
+}
+
 export {
   Select,
+  NativeSelect,
   SelectContent,
   SelectGroup,
   SelectItem,
