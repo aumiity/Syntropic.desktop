@@ -4,6 +4,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { MetricCard } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useToast } from '@/components/ui/toast'
@@ -12,7 +14,10 @@ import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, ProductLabel, ProductCategory, DrugType, ItemUnit } from '@/types'
 import { DateInput } from '@/components/ui/date-input'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { ArrowLeft, Save, Plus, Trash2, Edit2, ChevronDown, AlertTriangle, Check, X } from 'lucide-react'
+import {
+  ArrowLeft, Save, Plus, Trash2, Edit2, ChevronDown, Check, X, AlertTriangle,
+  Package, ScanBarcode, Tag, Pill, Boxes, FileText, HandCoins,
+} from 'lucide-react'
 
 // ---- Types ----
 interface FullProduct extends Product {
@@ -24,17 +29,44 @@ interface FullProduct extends Product {
 interface GenericNameSuggestion { id: number; name: string; is_antibiotic: number }
 
 // ---- Helpers ----
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-1 mb-3">{children}</h3>
+type SectionTint = 'primary' | 'success' | 'warning' | 'destructive' | 'secondary'
+
+function SectionCard({
+  icon: Icon, title, tint = 'primary', right, children,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  tint?: SectionTint
+  right?: React.ReactNode
+  children: React.ReactNode
+}) {
+  const iconBox =
+    tint === 'success'     ? 'bg-success-soft text-success'
+    : tint === 'warning'     ? 'bg-warning-soft text-warning-strong'
+    : tint === 'destructive' ? 'bg-destructive-soft text-destructive'
+    : tint === 'secondary'   ? 'bg-muted text-muted-foreground'
+    : 'bg-primary-soft text-primary'
+  return (
+    <div className="bg-card rounded-2xl p-4 space-y-3 shadow-card">
+      <div className="flex items-center gap-2.5">
+        <span className={`grid place-items-center size-8 rounded-lg shrink-0 ${iconBox}`}>
+          <Icon className="size-4" />
+        </span>
+        <h3 className="text-base font-semibold text-foreground flex-1">{title}</h3>
+        {right}
+      </div>
+      <div className="space-y-3">{children}</div>
+    </div>
+  )
 }
 
-function FieldRow({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-3 gap-3 items-start">
-      <label className="text-sm font-medium pt-2 text-right">
+    <div className="space-y-1.5">
+      <label className="block text-xs font-semibold uppercase tracking-wider text-foreground-subtle">
         {label}{required && <span className="text-destructive ml-0.5">*</span>}
       </label>
-      <div className="col-span-2">{children}</div>
+      {children}
     </div>
   )
 }
@@ -45,27 +77,22 @@ function SelectField({ value, onChange, children, className = '' }: {
   return (
     <div className={`relative ${className}`}>
       <select
-        className="w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+        className="w-full h-10 rounded-xl bg-input px-3 pr-9 text-sm appearance-none outline-none transition-all focus:ring-[2px] focus:ring-ring"
         value={value}
         onChange={e => onChange(e.target.value)}
       >
         {children}
       </select>
-      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
     </div>
   )
 }
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
   return (
     <label className="flex items-center gap-2 cursor-pointer select-none">
-      <div
-        onClick={() => onChange(!checked)}
-        className={`w-9 h-5 rounded-full transition-colors relative ${checked ? 'bg-primary' : 'bg-muted-foreground/30'}`}
-      >
-        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
-      </div>
-      <span className="text-sm">{label}</span>
+      <Switch checked={checked} onCheckedChange={onChange} size="sm" />
+      {label ? <span className="text-sm">{label}</span> : null}
     </label>
   )
 }
@@ -475,6 +502,20 @@ export default function EditProductPage() {
 
   const setLF = (key: string, v: any) => setLabelForm((f: any) => ({ ...f, [key]: v }))
 
+  // ---- Derived stats for ProductInfoCard ----
+  const activeLotList = (product.lots ?? []).filter(l => !l.is_cancelled)
+  const totalStock = activeLotList.reduce((sum, l) => sum + (Number(l.qty_on_hand) || 0), 0)
+  const nearExpiryCount = activeLotList.filter(l => {
+    const status = getExpiryStatus(l.expiry_date)
+    return status === 'warning' || status === 'danger' || status === 'expired'
+  }).length
+  const baseUnit = product.units?.find(u => u.is_base_unit)?.unit_name ?? '—'
+  const categoryName = categories.find(c => c.id === product.category_id)?.name
+  const profitPct = (product.cost_price ?? 0) > 0
+    ? ((product.price_retail - product.cost_price!) / product.cost_price!) * 100
+    : 0
+  const updatedShort = (product as any).updated_at ? String((product as any).updated_at).slice(0, 10) : null
+
   return (
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
       <PageHeader
@@ -494,199 +535,294 @@ export default function EditProductPage() {
         }
       />
 
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
-        {/* Tabs */}
-        <div className="px-4 pt-4 shrink-0">
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList variant="pill">
-              <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
-              <TabsTrigger value="units">หน่วยนับ ({product.units?.length ?? 0})</TabsTrigger>
-              <TabsTrigger value="labels">ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
-              <TabsTrigger value="lots">ล็อต ({product.lots?.length ?? 0})</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 pb-8">
-
-        {/* ======================== TAB: GENERAL ======================== */}
-        {tab === 'general' && (
-          <div className="max-w-2xl space-y-6 pt-4">
-
-            <div className="space-y-3">
-              <SectionTitle>ข้อมูลพื้นฐาน</SectionTitle>
-              <FieldRow label="ชื่อสินค้า" required>
-                <Input value={form.trade_name} onChange={e => setF('trade_name', e.target.value)} />
-              </FieldRow>
-              <FieldRow label="ชื่อสำหรับพิมพ์">
-                <Input value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" />
-              </FieldRow>
-              <FieldRow label="รหัสสินค้า">
-                <Input value={form.code} readOnly className="bg-muted cursor-not-allowed" />
-              </FieldRow>
-              <FieldRow label="หมวดหมู่">
-                <SelectField value={form.category_id} onChange={v => setF('category_id', Number(v))}>
-                  <option value={0}>— ไม่ระบุ —</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </SelectField>
-              </FieldRow>
-              <FieldRow label="จำนวนเริ่มต้น">
-                <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', e.target.value)} className="w-24" min={1} />
-              </FieldRow>
-              <FieldRow label="คีย์เวิร์ดค้นหา">
-                <Input value={form.search_keywords} onChange={e => setF('search_keywords', e.target.value)} placeholder="ชื่ออื่นๆ คั่นด้วยจุลภาค เช่น พารา,para,tylenol" />
-              </FieldRow>
+      {/* 4 cards: meta + 3 stats */}
+      <div className="grid grid-cols-4 gap-3 shrink-0">
+        {/* Meta card */}
+        <div className="bg-card rounded-2xl p-5 shadow-card h-32 flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ข้อมูล</span>
+            <span className="grid place-items-center size-10 rounded-xl shrink-0 bg-primary-soft text-primary">
+              <Package className="size-5" />
+            </span>
+          </div>
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="font-mono text-base font-bold text-foreground shrink-0">{product.code ?? '—'}</span>
+              <span className="text-xs text-muted-foreground truncate">
+                {categoryName ?? 'ไม่ได้กำหนดหมวด'} · {baseUnit}
+              </span>
             </div>
-
-            <div className="space-y-3">
-              <SectionTitle>บาร์โค้ด</SectionTitle>
-              <FieldRow label="บาร์โค้ด 1">
-                <Input value={form.barcode} onChange={e => setF('barcode', e.target.value)} placeholder="8851234567890" />
-              </FieldRow>
-              <FieldRow label="บาร์โค้ด 2">
-                <Input value={form.barcode2} onChange={e => setF('barcode2', e.target.value)} />
-              </FieldRow>
-              <FieldRow label="บาร์โค้ด 3">
-                <Input value={form.barcode3} onChange={e => setF('barcode3', e.target.value)} />
-              </FieldRow>
-              <FieldRow label="บาร์โค้ด 4">
-                <Input value={form.barcode4} onChange={e => setF('barcode4', e.target.value)} />
-              </FieldRow>
-            </div>
-
-            <div className="space-y-3">
-              <SectionTitle>ราคาและต้นทุน</SectionTitle>
-              <FieldRow label="ราคาขายปลีก" required>
-                <Input type="number" value={form.price_retail} onChange={e => setF('price_retail', e.target.value)} className="w-36" min={0} step="0.01" />
-              </FieldRow>
-              <FieldRow label="ราคาส่ง 1">
-                <div className="flex items-center gap-3">
-                  <Toggle checked={!!form.has_wholesale1} onChange={v => setF('has_wholesale1', v ? 1 : 0)} label="" />
-                  {!!form.has_wholesale1 && (
-                    <Input type="number" value={form.price_wholesale1} onChange={e => setF('price_wholesale1', e.target.value)} className="w-36" min={0} step="0.01" />
-                  )}
-                </div>
-              </FieldRow>
-              <FieldRow label="ราคาส่ง 2">
-                <div className="flex items-center gap-3">
-                  <Toggle checked={!!form.has_wholesale2} onChange={v => setF('has_wholesale2', v ? 1 : 0)} label="" />
-                  {!!form.has_wholesale2 && (
-                    <Input type="number" value={form.price_wholesale2} onChange={e => setF('price_wholesale2', e.target.value)} className="w-36" min={0} step="0.01" />
-                  )}
-                </div>
-              </FieldRow>
-              <FieldRow label="ราคาทุน">
-                <Input type="number" value={form.cost_price} onChange={e => setF('cost_price', e.target.value)} className="w-36" min={0} step="0.01" placeholder="คำนวณอัตโนมัติจากล็อต" />
-              </FieldRow>
-              <FieldRow label="ตัวเลือก">
-                <div className="flex flex-wrap gap-4">
-                  <Toggle checked={!!form.is_vat} onChange={v => setF('is_vat', v ? 1 : 0)} label="มี VAT" />
-                  <Toggle checked={!!form.is_stock_item} onChange={v => setF('is_stock_item', v ? 1 : 0)} label="นับสต็อก" />
-                </div>
-              </FieldRow>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-border pb-1 mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">ข้อมูลยา</h3>
-                <Toggle
-                  checked={!!form.is_drug}
-                  onChange={v => setF('is_drug', v ? 1 : 0)}
-                  label="สินค้านี้เป็นยาตามกฎหมาย"
-                />
-              </div>
-              {!!form.is_drug && (
-                <>
-                  <FieldRow label="ประเภทยา">
-                    <SelectField value={form.drug_type_id} onChange={v => setF('drug_type_id', Number(v))}>
-                      <option value={0}>— ไม่ระบุ —</option>
-                      {drugTypes.map(d => <option key={d.id} value={d.id}>{d.name_th}</option>)}
-                    </SelectField>
-                  </FieldRow>
-                  <FieldRow label="ชื่อสามัญ">
-                    <div className="relative">
-                      <Input
-                        value={genericQuery}
-                        onChange={e => handleGenericSearch(e.target.value)}
-                        onFocus={() => setShowGenericSugg(true)}
-                        onBlur={() => setTimeout(() => setShowGenericSugg(false), 200)}
-                        placeholder="ค้นหาชื่อสามัญ..."
-                      />
-                      {form.drug_generic_name_id > 0 && !showGenericSugg && (
-                        <div className="mt-1 text-xs text-muted-foreground">ID: {form.drug_generic_name_id}</div>
-                      )}
-                      {showGenericSugg && genericSuggestions.length > 0 && (
-                        <div className="absolute left-0 top-full mt-1 z-50 w-full bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                          {genericSuggestions.map(g => (
-                            <button key={g.id} type="button" onMouseDown={() => selectGeneric(g)}
-                              className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2">
-                              <span className="flex-1">{g.name}</span>
-                              {g.is_antibiotic ? <Badge variant="warning" className="text-xs">ยาปฏิชีวนะ</Badge> : null}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </FieldRow>
-                  <FieldRow label="TMT ID">
-                    <Input value={form.tmt_id} onChange={e => setF('tmt_id', e.target.value)} />
-                  </FieldRow>
-                  <FieldRow label="คุณสมบัติ">
-                    <div className="flex flex-wrap gap-4">
-                      <Toggle checked={!!form.is_fda_report} onChange={v => setF('is_fda_report', v ? 1 : 0)} label="รายงาน อย." />
-                      <Toggle checked={!!form.is_fda13_report} onChange={v => setF('is_fda13_report', v ? 1 : 0)} label="รายงาน อย.13" />
-                    </div>
-                  </FieldRow>
-                </>
+            <div className="flex items-center gap-1 flex-wrap min-h-[18px]">
+              {!!product.is_drug && <Badge variant="warning" className="text-[10px] rounded-md px-1.5 py-0">ยา</Badge>}
+              {!!product.is_disabled && <Badge variant="destructive" className="text-[10px] rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
+              {!!product.is_hidden && <Badge variant="secondary" className="text-[10px] rounded-md px-1.5 py-0">ซ่อน</Badge>}
+              {!!product.is_fda13_report && <Badge variant="senary" className="text-[10px] rounded-md px-1.5 py-0">อย.13</Badge>}
+              {updatedShort && (
+                <span className="text-[10px] text-muted-foreground">แก้ไข {updatedShort}</span>
               )}
             </div>
+          </div>
+        </div>
 
-            <div className="space-y-3">
-              <SectionTitle>สต็อกและการแจ้งเตือน</SectionTitle>
-              <FieldRow label="จุดสั่งซื้อ">
-                <Input type="number" value={form.reorder_point} onChange={e => setF('reorder_point', e.target.value)} className="w-28" min={0} />
-              </FieldRow>
-              <FieldRow label="สต็อกปลอดภัย">
-                <Input type="number" value={form.safety_stock} onChange={e => setF('safety_stock', e.target.value)} className="w-28" min={0} />
-              </FieldRow>
-            </div>
+        <MetricCard
+          label="คงเหลือ"
+          value={totalStock.toLocaleString()}
+          sub={baseUnit}
+          icon={Boxes}
+          tint={totalStock <= 0 ? 'destructive' : 'primary'}
+        />
+        <MetricCard
+          label="ราคาทุน"
+          value={formatCurrency(product.cost_price)}
+          sub={baseUnit ? `ต่อ ${baseUnit}` : undefined}
+          icon={Tag}
+          tint="secondary"
+        />
+        <MetricCard
+          label="ราคาขาย"
+          value={formatCurrency(product.price_retail)}
+          sub={profitPct > 0 ? `+${profitPct.toFixed(0)}% กำไร` : undefined}
+          icon={HandCoins}
+          tint="success"
+        />
+      </div>
 
-            <div className="space-y-3">
-              <SectionTitle>หมายเหตุและคำบรรยาย</SectionTitle>
-              <FieldRow label="สรรพคุณ">
-                <textarea
-                  value={form.indication_note}
-                  onChange={e => setF('indication_note', e.target.value)}
-                  rows={3}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </FieldRow>
-              <FieldRow label="ผลข้างเคียง">
-                <textarea
-                  value={form.side_effect_note}
-                  onChange={e => setF('side_effect_note', e.target.value)}
-                  rows={2}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </FieldRow>
-              <FieldRow label="หมายเหตุ">
-                <textarea
-                  value={form.note}
-                  onChange={e => setF('note', e.target.value)}
-                  rows={2}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </FieldRow>
-            </div>
-
-            <div className="space-y-3">
-              <SectionTitle>สถานะ</SectionTitle>
-              <FieldRow label="การมองเห็น">
-                <div className="flex gap-4">
+      <div className="flex flex-1 flex-col min-h-0">
+        {/* Tabs + status toggles inline */}
+        <div className="shrink-0">
+          <Tabs value={tab} onValueChange={setTab}>
+            <div className="flex items-center justify-between gap-3">
+              <TabsList variant="pill">
+                <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
+                <TabsTrigger value="units">หน่วยนับ ({product.units?.length ?? 0})</TabsTrigger>
+                <TabsTrigger value="labels">ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
+                <TabsTrigger value="lots">ล็อต ({product.lots?.length ?? 0})</TabsTrigger>
+              </TabsList>
+              {tab === 'general' && (
+                <div className="flex items-center gap-5 px-2">
                   <Toggle checked={!!form.is_hidden} onChange={v => setF('is_hidden', v ? 1 : 0)} label="ซ่อนจากการค้นหา" />
                   <Toggle checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)} label="ปิดการใช้งาน" />
                 </div>
-              </FieldRow>
+              )}
+            </div>
+          </Tabs>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pb-8">
+
+        {/* ======================== TAB: GENERAL ======================== */}
+        {tab === 'general' && (
+          <div className="grid grid-cols-2 gap-4 pt-4">
+
+            {/* LEFT COLUMN: ข้อมูลพื้นฐาน → ราคา → หมายเหตุ */}
+            <div className="space-y-4">
+
+              <SectionCard icon={Package} title="ข้อมูลพื้นฐาน" tint="primary">
+                <Field label="ชื่อสินค้า" required>
+                  <Input value={form.trade_name} onChange={e => setF('trade_name', e.target.value)} className="h-10 rounded-xl" />
+                </Field>
+                <Field label="ชื่อสำหรับพิมพ์">
+                  <Input value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" className="h-10 rounded-xl" />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="รหัสสินค้า">
+                    <Input value={form.code} readOnly className="h-10 rounded-xl bg-muted cursor-not-allowed" />
+                  </Field>
+                  <Field label="จำนวนเริ่มต้น">
+                    <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', e.target.value)} className="h-10 rounded-xl" min={1} />
+                  </Field>
+                </div>
+                <Field label="หมวดหมู่">
+                  <SelectField value={form.category_id} onChange={v => setF('category_id', Number(v))}>
+                    <option value={0}>— ไม่ระบุ —</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </SelectField>
+                </Field>
+                <Field label="คีย์เวิร์ดค้นหา">
+                  <Input
+                    value={form.search_keywords}
+                    onChange={e => setF('search_keywords', e.target.value)}
+                    placeholder="ชื่ออื่นๆ คั่นด้วยจุลภาค เช่น พารา,para,tylenol"
+                    className="h-10 rounded-xl"
+                  />
+                </Field>
+              </SectionCard>
+
+              <SectionCard icon={Tag} title="ราคาและต้นทุน" tint="success">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="ราคาขายปลีก" required>
+                    <Input type="number" value={form.price_retail} onChange={e => setF('price_retail', e.target.value)} className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
+                  </Field>
+                  <Field label="ราคาทุน">
+                    <Input
+                      type="number"
+                      value={form.cost_price}
+                      onChange={e => setF('cost_price', e.target.value)}
+                      className="h-10 rounded-xl text-right tabular-nums"
+                      min={0}
+                      step="0.01"
+                      placeholder="คำนวณจากล็อต"
+                    />
+                  </Field>
+                </div>
+
+                <Field label="ราคาส่ง 1">
+                  <div className="flex items-center gap-3 h-10">
+                    <Toggle checked={!!form.has_wholesale1} onChange={v => setF('has_wholesale1', v ? 1 : 0)} />
+                    {!!form.has_wholesale1 ? (
+                      <Input type="number" value={form.price_wholesale1} onChange={e => setF('price_wholesale1', e.target.value)} className="h-10 rounded-xl flex-1 text-right tabular-nums" min={0} step="0.01" />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">ปิดใช้งาน</span>
+                    )}
+                  </div>
+                </Field>
+
+                <Field label="ราคาส่ง 2">
+                  <div className="flex items-center gap-3 h-10">
+                    <Toggle checked={!!form.has_wholesale2} onChange={v => setF('has_wholesale2', v ? 1 : 0)} />
+                    {!!form.has_wholesale2 ? (
+                      <Input type="number" value={form.price_wholesale2} onChange={e => setF('price_wholesale2', e.target.value)} className="h-10 rounded-xl flex-1 text-right tabular-nums" min={0} step="0.01" />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">ปิดใช้งาน</span>
+                    )}
+                  </div>
+                </Field>
+
+                <div className="flex flex-wrap gap-x-6 gap-y-2 pt-1 px-1">
+                  <Toggle checked={!!form.is_vat} onChange={v => setF('is_vat', v ? 1 : 0)} label="มี VAT" />
+                  <Toggle checked={!!form.is_stock_item} onChange={v => setF('is_stock_item', v ? 1 : 0)} label="นับสต็อก" />
+                </div>
+              </SectionCard>
+
+              <SectionCard icon={FileText} title="หมายเหตุและคำบรรยาย" tint="secondary">
+                <Field label="สรรพคุณ">
+                  <textarea
+                    value={form.indication_note}
+                    onChange={e => setF('indication_note', e.target.value)}
+                    rows={3}
+                    className="w-full rounded-xl bg-input px-3 py-2 text-sm resize-none outline-none transition-all focus:ring-[2px] focus:ring-ring"
+                  />
+                </Field>
+                <Field label="ผลข้างเคียง">
+                  <textarea
+                    value={form.side_effect_note}
+                    onChange={e => setF('side_effect_note', e.target.value)}
+                    rows={2}
+                    className="w-full rounded-xl bg-input px-3 py-2 text-sm resize-none outline-none transition-all focus:ring-[2px] focus:ring-ring"
+                  />
+                </Field>
+                <Field label="หมายเหตุ">
+                  <textarea
+                    value={form.note}
+                    onChange={e => setF('note', e.target.value)}
+                    rows={2}
+                    className="w-full rounded-xl bg-input px-3 py-2 text-sm resize-none outline-none transition-all focus:ring-[2px] focus:ring-ring"
+                  />
+                </Field>
+              </SectionCard>
+
+            </div>
+
+            {/* RIGHT COLUMN: บาร์โค้ด → สต็อก → ข้อมูลยา */}
+            <div className="space-y-4">
+
+              <SectionCard icon={ScanBarcode} title="บาร์โค้ด" tint="secondary">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="บาร์โค้ด 1">
+                    <Input value={form.barcode} onChange={e => setF('barcode', e.target.value)} placeholder="8851234567890" className="h-10 rounded-xl" />
+                  </Field>
+                  <Field label="บาร์โค้ด 2">
+                    <Input value={form.barcode2} onChange={e => setF('barcode2', e.target.value)} className="h-10 rounded-xl" />
+                  </Field>
+                  <Field label="บาร์โค้ด 3">
+                    <Input value={form.barcode3} onChange={e => setF('barcode3', e.target.value)} className="h-10 rounded-xl" />
+                  </Field>
+                  <Field label="บาร์โค้ด 4">
+                    <Input value={form.barcode4} onChange={e => setF('barcode4', e.target.value)} className="h-10 rounded-xl" />
+                  </Field>
+                </div>
+              </SectionCard>
+
+              <SectionCard icon={Boxes} title="สต็อกและการแจ้งเตือน" tint="warning">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="จุดสั่งซื้อ">
+                    <Input type="number" value={form.reorder_point} onChange={e => setF('reorder_point', e.target.value)} className="h-10 rounded-xl" min={0} />
+                  </Field>
+                  <Field label="สต็อกปลอดภัย">
+                    <Input type="number" value={form.safety_stock} onChange={e => setF('safety_stock', e.target.value)} className="h-10 rounded-xl" min={0} />
+                  </Field>
+                </div>
+                {nearExpiryCount > 0 && (
+                  <div className="flex items-center gap-2 rounded-xl bg-warning-soft px-3 py-2 text-xs text-warning-strong">
+                    <AlertTriangle className="size-4 shrink-0" />
+                    <span>มีล็อตใกล้หมดอายุ/หมดอายุแล้ว {nearExpiryCount} ล็อต — ดูที่แท็บล็อต</span>
+                  </div>
+                )}
+              </SectionCard>
+
+              <SectionCard
+                icon={Pill}
+                title="ข้อมูลยา"
+                tint="warning"
+                right={
+                  <Toggle
+                    checked={!!form.is_drug}
+                    onChange={v => setF('is_drug', v ? 1 : 0)}
+                    label="เป็นยาตามกฎหมาย"
+                  />
+                }
+              >
+                {!!form.is_drug ? (
+                  <>
+                    <Field label="ประเภทยา">
+                      <SelectField value={form.drug_type_id} onChange={v => setF('drug_type_id', Number(v))}>
+                        <option value={0}>— ไม่ระบุ —</option>
+                        {drugTypes.map(d => <option key={d.id} value={d.id}>{d.name_th}</option>)}
+                      </SelectField>
+                    </Field>
+                    <Field label="ชื่อสามัญ">
+                      <div className="relative">
+                        <Input
+                          value={genericQuery}
+                          onChange={e => handleGenericSearch(e.target.value)}
+                          onFocus={() => setShowGenericSugg(true)}
+                          onBlur={() => setTimeout(() => setShowGenericSugg(false), 200)}
+                          placeholder="ค้นหาชื่อสามัญ..."
+                          className="h-10 rounded-xl"
+                        />
+                        {form.drug_generic_name_id > 0 && !showGenericSugg && (
+                          <div className="mt-1 text-xs text-muted-foreground">ID: {form.drug_generic_name_id}</div>
+                        )}
+                        {showGenericSugg && genericSuggestions.length > 0 && (
+                          <div className="absolute left-0 top-full mt-1 z-50 w-full bg-popover border border-border rounded-xl shadow-card max-h-48 overflow-y-auto">
+                            {genericSuggestions.map(g => (
+                              <button
+                                key={g.id}
+                                type="button"
+                                onMouseDown={() => selectGeneric(g)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-primary-soft flex items-center gap-2"
+                              >
+                                <span className="flex-1">{g.name}</span>
+                                {g.is_antibiotic ? <Badge variant="warning" className="text-xs">ยาปฏิชีวนะ</Badge> : null}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </Field>
+                    <Field label="TMT ID">
+                      <Input value={form.tmt_id} onChange={e => setF('tmt_id', e.target.value)} className="h-10 rounded-xl" />
+                    </Field>
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 pt-1 px-1">
+                      <Toggle checked={!!form.is_fda_report} onChange={v => setF('is_fda_report', v ? 1 : 0)} label="รายงาน อย." />
+                      <Toggle checked={!!form.is_fda13_report} onChange={v => setF('is_fda13_report', v ? 1 : 0)} label="รายงาน อย.13" />
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground px-1">เปิดสวิตช์ด้านบนเพื่อกรอกข้อมูลยา</p>
+                )}
+              </SectionCard>
+
             </div>
           </div>
         )}
@@ -702,7 +838,7 @@ export default function EditProductPage() {
             </div>
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
-                <TableHeader>
+                <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-foreground-subtle">
                   <TableRow>
                     <TableHead>หน่วย</TableHead>
                     <TableHead>บาร์โค้ด</TableHead>
@@ -797,7 +933,7 @@ export default function EditProductPage() {
             </p>
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
-                <TableHeader>
+                <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-foreground-subtle">
                   <TableRow>
                     <TableHead>Lot No.</TableHead>
                     <TableHead>ใบรับ</TableHead>

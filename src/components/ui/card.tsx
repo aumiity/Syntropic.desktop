@@ -104,6 +104,56 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+type MetricTint = "primary" | "success" | "warning" | "destructive" | "secondary"
+
+function MetricCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  tint = "primary",
+  className,
+}: {
+  label: string
+  value: string
+  sub?: string
+  icon: React.ComponentType<{ className?: string }>
+  tint?: MetricTint
+  className?: string
+}) {
+  const iconBox =
+    tint === "success"     ? "bg-success-soft text-success"
+    : tint === "warning"     ? "bg-warning-soft text-warning-strong"
+    : tint === "destructive" ? "bg-destructive-soft text-destructive"
+    : tint === "secondary"   ? "bg-muted text-muted-foreground"
+    : "bg-primary-soft text-primary"
+  const valColor =
+    tint === "success"     ? "text-success"
+    : tint === "warning"     ? "text-warning-strong"
+    : tint === "destructive" ? "text-destructive"
+    : "text-foreground"
+  return (
+    <div
+      data-slot="metric-card"
+      className={cn(
+        "bg-card rounded-2xl p-5 shadow-card h-32 flex flex-col justify-between",
+        className
+      )}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wider text-foreground-subtle">{label}</span>
+        <span className={cn("grid place-items-center size-10 rounded-xl shrink-0", iconBox)}>
+          <Icon className="size-5" />
+        </span>
+      </div>
+      <div>
+        <div className={cn("text-3xl font-bold tabular-nums leading-none", valColor)}>{value}</div>
+        {sub && <div className="text-xs text-muted-foreground tabular-nums mt-1.5">{sub}</div>}
+      </div>
+    </div>
+  )
+}
+
 export {
   Card,
   CardHeader,
@@ -112,4 +162,6 @@ export {
   CardAction,
   CardDescription,
   CardContent,
+  MetricCard,
 }
+export type { MetricTint }

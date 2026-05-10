@@ -356,7 +356,7 @@ export default function ProductsPage() {
                       <div className="font-semibold text-sm text-foreground truncate" title={row.trade_name}>{row.trade_name}</div>
                       <div className="flex gap-1 mt-1 flex-wrap">
                         {isDisabled ? <Badge variant="secondary" className="text-[10px] rounded-md px-1.5 py-0">ปิดใช้งาน</Badge> : null}
-                        {row.is_antibiotic ? <Badge variant="warning" className="text-[10px] rounded-md px-1.5 py-0">ยาปฏิชีวนะ</Badge> : null}
+                        {/* {row.is_antibiotic ? <Badge variant="warning" className="text-[10px] rounded-md px-1.5 py-0">ยาปฏิชีวนะ</Badge> : null} */}
                         {row.is_fda13_report ? <Badge variant="senary" className="text-[10px] rounded-md px-1.5 py-0">อย.13</Badge> : null}
                       </div>
                     </TableCell>
