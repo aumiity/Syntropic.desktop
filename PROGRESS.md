@@ -1,6 +1,6 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 2026-05-09→10 session: products schema cleaned (unit_id moved into product_units, dosage_form_id + no_discount dropped), Hygeia-style `is_drug` toggle gates "ข้อมูลยา" section, Products list overhauled (sortable + fixed-width columns, clickable stat cards as filters, "แสดงที่ปิดใช้งาน" recovery toggle), 1000-product test fixture via dev IPC, toast object-form bug fixed
+## Status: 100% Complete + UI Polish ✅ — 2026-05-10 (cont.) session: runtime font switcher in CSS settings page (Latin / Thai picker, CSS-var driven, persists to `:root` block of `src/index.css`), 12 local `@font-face` declarations added, global `.truncate` / `.line-clamp-*` line-height fix for Thai stacked-mark clipping. Earlier same-day: products schema cleaned, Hygeia-style `is_drug`, Products list overhauled, 1000-product test fixture, toast object-form bug fixed.
 ## Last updated: 2026-05-10
 ## App is RUNNABLE — run `npm run electron:dev` to launch
 ## ⚠️ Pick up next session: financial stat cards (cost/value/profit) deferred to Reports page with role-based access (per user). Migration in `electron/db/schema.ts` will run on next launch — backfills `product_units` base rows from old `products.unit_id` then drops the column. **Verify in dev DB**: every product has exactly one `product_units WHERE is_base_unit=1` row, POS/Purchase/Reports still show unit names. Main-process IPC changes (`electron/ipc/products.ts`, new `electron/ipc/dev.ts`) require an Electron restart, not just HMR.
@@ -1007,3 +1007,56 @@ Three rule changes documented in the divergence note + POS Unit Selection Rules 
 
 ### Uncommitted changes
 All of the above are uncommitted working-tree modifications.
+
+---
+
+## Session 2026-05-10 (cont.) — Runtime font switcher + Thai stacked-mark clipping fix
+
+### Goal
+ผู้ใช้ลองหลายฟอนต์ไทยเพื่อปรับลุค (IBM Plex → Thonburi → SF Thonburi → Inter+Sarabun) เจอปัญหา rendering หลายตัว สุดท้ายตัดสินใจทำระบบสลับฟอนต์ใน CSS settings page แทนการ hardcode
+
+### Trap: Apple system Thai fonts ใช้ใน Electron ไม่ได้
+Thonburi (และ Krungthep, Silom, Ayuthaya) ของ macOS ใช้ตาราง **AAT** (`morx`/`feat`) สำหรับ Thai mark positioning ไม่มีตาราง **OpenType** (`GPOS`/`GSUB`) Chromium ignore AAT → สระ + วรรณยุกต์ตกตำแหน่ง default = ทับตัวอักษร เลือก export ใหม่ก็ไม่ช่วย เพราะข้อมูลไม่อยู่ในไฟล์ ตรวจได้ด้วย `python3 -c "from fontTools.ttLib import TTFont; f=TTFont('x.ttf'); print('GPOS' in f.keys())"` — ถ้า `False` → render ผิดบน Chromium แน่นอน. **อย่าเสียเวลาแก้** — เปลี่ยนฟอนต์
+- ✅ ใช้ได้บน Electron: Inter, Sarabun, IBM Plex Sans Thai Looped (CDN/local), SF Thonburi (มี GPOS/GSUB)
+- ❌ ใช้ไม่ได้: Thonburi (Apple), Krungthep, Silom, Ayuthaya, ฟอนต์ Apple system Thai ทั้งหมด
+
+### Universal fix: `.truncate` / `.line-clamp-*` clips Thai stacked marks (`src/index.css:182-197`)
+Tailwind's `text-{xs,sm,base}` ratio 1.33–1.5 — `overflow:hidden` ของ truncate ตัดส่วนบนของ tone mark เมื่อมี stacked marks (เช่น `ขมิ้น` = ม + ิ + ้). Fix: `.truncate, [class*="line-clamp-"] { line-height: 1.65 }` ใน `@layer utilities`. ครอบคลุม 28 จุด truncate + 52 จุด line-clamp ทั่วโปรเจกต์อัตโนมัติ — **อย่าไปใส่ leading-X รายจุด** (จุดใหม่ในอนาคตจะพังอีก). Reverted earlier surgical fix at `src/pages/Products/index.tsx:356`
+
+### Font switcher architecture (CSS vars + existing IPC pattern)
+ลอกแบบมาจาก `getThemeFontSize`/`saveThemeFontSize` เดิม — เขียนค่าลง `:root` block ของ `src/index.css` โดยใช้ `updateSelectorBlock` helper ที่มีอยู่
+- **CSS vars** (`src/index.css:81-84`): `--font-latin` + `--font-thai` (ค่า quoted เช่น `'Inter'` เพื่อ substitute ตรงเข้า `font-family` lists)
+- **`*` rule** (`src/index.css:280`): `font-family: var(--font-latin), var(--font-thai), sans-serif`
+- **Tailwind** (`tailwind.config.js`): `fontFamily.sans: ['var(--font-latin)', 'var(--font-thai)', 'sans-serif']`
+- **`@font-face` declarations** (`src/index.css:204-279`): Google Sans (4w), IBM Plex Sans Thai Looped (5w), SF Thonburi (3w) — ทั้งหมด 12 รายการ, browser โหลด lazy เมื่อใช้จริง
+- **IPC** (`electron/ipc/settings.ts`): `settings:getThemeFonts` / `saveThemeFonts` — payload `{ latin, thai }` ส่งทั้งคู่ทุกครั้ง
+- **Preload** (`electron/preload.ts:102-104`): exposed at `window.api.settings.getThemeFonts/saveThemeFonts`
+- **Picker UI** (`src/pages/CSS/index.tsx`): Section "Fonts" บนสุด, 2 columns Latin/Thai, แต่ละการ์ดแสดง sample text (`The quick brown fox · 0123` / `ขมิ้นชัน 300 มก. · กขฃคฅฆง`) ใน fontFamily ของตัวเอง. คลิก → instant preview ผ่าน `documentElement.style.setProperty()` + auto-save ผ่าน IPC. Sample ภาษาไทยจงใจมี stacked marks เพื่อให้เห็นปัญหา rendering ทันที
+
+ตัวเลือก: Latin = Inter / Google Sans / SF Thonburi · Thai = Sarabun / IBM Plex Sans Thai Looped / SF Thonburi (JetBrains Mono ตัดออกเพราะ monospace ไม่เหมาะ body text)
+
+### License caveat (สำคัญก่อน ship production)
+- **Google Sans** = proprietary Google font ไม่มี license สำหรับ third-party commercial use ตามที่ตรวจสอบได้ ผู้ใช้บอกว่าเห็นข่าวว่าใช้ได้แต่ไม่มี source ทางการของ Google ยืนยัน — ก่อน build production ควรลบ `GoogleSans-*.ttf` ออกจาก `src/assets/fonts/` และเอา 'Google Sans' ออกจาก LATIN_FONTS
+- **SF Thonburi** = ที่มาไม่ชัด (user download มาเอง) ควรตรวจสอบ license ก่อน ship
+- ✅ OFL ปลอดภัย: Inter (CDN), Sarabun (CDN), IBM Plex Sans Thai Looped (local)
+
+### Files changed
+- `src/index.css` — font vars, 12 @font-face, `*` rule, `.truncate`/`.line-clamp-*` line-height
+- `tailwind.config.js` — `fontFamily.sans` ใช้ vars
+- `index.html` — preconnect + Google Fonts link สำหรับ Inter + Sarabun (display=swap)
+- `electron/ipc/settings.ts` — handlers ใหม่ 2 ตัว
+- `electron/preload.ts` — expose 2 ตัว
+- `src/pages/CSS/index.tsx` — Section "Fonts" + `FontCard` component + state/handlers
+- `src/pages/Products/index.tsx:356` — revert leading-6 (ตอนนี้แก้ที่ root แล้ว)
+
+ไฟล์ฟอนต์ใน `src/assets/fonts/` (Google Sans, IBM Plex Thai Looped, SF Thonburi, JetBrains Mono x2) เก็บไว้ทั้งหมด ไม่ได้ลบ — เผื่ออยากใช้
+
+### Pickup plan
+1. **Restart Electron** หลังแก้ `electron/ipc/settings.ts` + `preload.ts` (main process restart, ไม่ใช่ HMR)
+2. **Test picker** — เปิด `/css` page, คลิกการ์ดทั้ง Latin + Thai, ตรวจ instant preview ทำงาน, refresh แล้วค่ายังคงอยู่ (เปิด `src/index.css` ดู `--font-latin`/`--font-thai` อัพเดตจริง)
+3. **Test stacked-mark fix** — ดูตาราง Products หา product ที่ชื่อมี ม + ิ + ้ (เช่น "ขมิ้น") สลับฟอนต์ผ่าน picker แล้วดูว่าวรรณยุกต์ไม่ถูกตัด
+4. **License cleanup ก่อน production** — ลบ Google Sans `.ttf` + เอาออกจาก `LATIN_FONTS` array ใน `src/pages/CSS/index.tsx`. ตรวจ SF Thonburi license. ถ้า user ยังต้องการ Google Sans แนะนำใช้ Plus Jakarta Sans หรือ Manrope (OFL, look ใกล้เคียง)
+5. **Default font** — `:root` ตั้ง default `--font-latin: 'Google Sans'` (ผู้ใช้ปรับเองตอน test) ถ้าจะ ship ควรเปลี่ยนเป็น `'Inter'` (license-safe)
+
+### Uncommitted changes
+All of the above + earlier session changes.

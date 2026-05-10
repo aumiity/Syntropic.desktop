@@ -108,7 +108,7 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['GoogleSans', 'sans-serif'],
+        sans: ['var(--font-latin)', 'var(--font-thai)', 'sans-serif'],
       },
       boxShadow: {
         card: 'var(--shadow-card)',

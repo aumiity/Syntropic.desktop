@@ -99,6 +99,9 @@ const api = {
       ipcRenderer.invoke('settings:saveThemeColors', payload),
     getThemeFontSize: () => ipcRenderer.invoke('settings:getThemeFontSize'),
     saveThemeFontSize: (fontSize: string) => ipcRenderer.invoke('settings:saveThemeFontSize', fontSize),
+    getThemeFonts: () => ipcRenderer.invoke('settings:getThemeFonts'),
+    saveThemeFonts: (payload: { latin: string; thai: string }) =>
+      ipcRenderer.invoke('settings:saveThemeFonts', payload),
   },
   // Printer
   printer: {

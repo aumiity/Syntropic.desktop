@@ -263,4 +263,31 @@ export function registerSettingsHandlers() {
     fs.writeFileSync(cssPath, updated, 'utf8')
     return true
   })
+
+  ipcMain.handle('settings:getThemeFonts', () => {
+    const cssPath = resolveThemeCssPath()
+    const css = fs.readFileSync(cssPath, 'utf8')
+    const rootMatch = css.match(/:root\s*\{([\s\S]*?)\n\s*\}/m)
+    const vars = rootMatch ? parseVars(rootMatch[1]) : {}
+    return {
+      latin: vars['--font-latin'] ?? "'Inter'",
+      thai: vars['--font-thai'] ?? "'Sarabun'",
+    }
+  })
+
+  ipcMain.handle('settings:saveThemeFonts', (_e, payload: { latin: string; thai: string }) => {
+    const latin = String(payload?.latin ?? '').trim()
+    const thai = String(payload?.thai ?? '').trim()
+    if (!latin || !thai) {
+      throw new Error('ต้องระบุฟอนต์ทั้ง Latin และ Thai')
+    }
+    const cssPath = resolveThemeCssPath()
+    const css = fs.readFileSync(cssPath, 'utf8')
+    const updated = updateSelectorBlock(css, ':root', {
+      '--font-latin': latin,
+      '--font-thai': thai,
+    })
+    fs.writeFileSync(cssPath, updated, 'utf8')
+    return true
+  })
 }

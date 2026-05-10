@@ -31,6 +31,23 @@ const CSS_PALETTE_FAMILIES = [
 
 const CSS_PALETTE_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'] as const
 
+// Font option values are stored quoted so they substitute directly into
+// font-family lists (e.g. `var(--font-latin), var(--font-thai), sans-serif`).
+const LATIN_FONTS: Array<{ value: string; label: string }> = [
+  { value: "'Inter'", label: 'Inter' },
+  { value: "'Google Sans'", label: 'Google Sans' },
+  { value: "'SF Thonburi'", label: 'SF Thonburi' },
+]
+
+const THAI_FONTS: Array<{ value: string; label: string }> = [
+  { value: "'Sarabun'", label: 'Sarabun' },
+  { value: "'IBM Plex Sans Thai Looped'", label: 'IBM Plex Sans Thai Looped' },
+  { value: "'SF Thonburi'", label: 'SF Thonburi' },
+]
+
+const LATIN_SAMPLE = 'The quick brown fox · 0123456789'
+const THAI_SAMPLE = 'ขมิ้นชัน 300 มก. · กขฃคฅฆง'
+
 // ─── Helpers ──────────────────────────────────────────────────────
 
 function toCssColor(value: string) {
@@ -72,6 +89,35 @@ function hexToHslTriplet(hex: string) {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
 }
 
+function FontCard({
+  label, sample, fontFamily, isActive, onClick,
+}: {
+  label: string
+  sample: string
+  fontFamily: string
+  isActive: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'w-full rounded-lg border p-3 text-left transition-all',
+        isActive
+          ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
+          : 'border-border hover:border-foreground/40 bg-card',
+      )}
+    >
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[11px] font-mono text-muted-foreground">{label}</span>
+        {isActive && <span className="text-[10px] font-semibold text-primary">● ใช้งาน</span>}
+      </div>
+      <div className="text-base text-foreground" style={{ fontFamily }}>{sample}</div>
+    </button>
+  )
+}
+
 function Section({
   title, path, children, full = false,
 }: {
@@ -106,14 +152,19 @@ export default function CSSPage() {
   const [fontSize, setFontSize] = useState('18px')
   const [isSavingFontSize, setIsSavingFontSize] = useState(false)
   const [selectedPaletteColor, setSelectedPaletteColor] = useState<SelectedPaletteColor | null>(null)
+  const [latinFont, setLatinFont] = useState<string>("'Inter'")
+  const [thaiFont, setThaiFont] = useState<string>("'Sarabun'")
 
   useEffect(() => {
     ;(async () => {
       try {
-        const [res, currentFontSize] = await Promise.all([
+        const [res, currentFontSize, fonts] = await Promise.all([
           window.api.settings.getThemeColors(),
           window.api.settings.getThemeFontSize(),
+          window.api.settings.getThemeFonts(),
         ])
+        if (fonts?.latin) setLatinFont(fonts.latin)
+        if (fonts?.thai) setThaiFont(fonts.thai)
         const rootEntries = Object.entries(res?.root ?? {}) as Array<[string, string]>
         const darkEntries = Object.entries(res?.dark ?? {}) as Array<[string, string]>
 
@@ -158,6 +209,22 @@ export default function CSSPage() {
     }
   }
 
+  // Apply a font choice instantly via CSS variables and persist to index.css.
+  // Both vars are sent on every save so the file always contains the full pair.
+  const applyFont = async (kind: 'latin' | 'thai', value: string) => {
+    const cssVar = kind === 'latin' ? '--font-latin' : '--font-thai'
+    document.documentElement.style.setProperty(cssVar, value)
+    const nextLatin = kind === 'latin' ? value : latinFont
+    const nextThai = kind === 'thai' ? value : thaiFont
+    if (kind === 'latin') setLatinFont(value)
+    else setThaiFont(value)
+    try {
+      await window.api.settings.saveThemeFonts({ latin: nextLatin, thai: nextThai })
+    } catch {
+      toast('บันทึกฟอนต์ไม่สำเร็จ', 'error')
+    }
+  }
+
   const saveFontSize = async () => {
     try {
       const value = fontSize.trim()
@@ -181,6 +248,41 @@ export default function CSSPage() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="grid grid-cols-2 gap-4">
+          {/* ── FONTS ── */}
+          <Section title="Fonts" path="--font-latin / --font-thai" full>
+            <p className="text-xs text-foreground">
+              เลือกฟอนต์ Latin และ Thai แยกกัน คลิกเพื่อเปลี่ยนทันที (auto-save ลง <code className="font-mono">src/index.css</code>)
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Latin / ตัวเลข</p>
+                {LATIN_FONTS.map(font => (
+                  <FontCard
+                    key={`latin-${font.value}`}
+                    label={font.label}
+                    sample={LATIN_SAMPLE}
+                    fontFamily={`${font.value}, sans-serif`}
+                    isActive={latinFont === font.value}
+                    onClick={() => applyFont('latin', font.value)}
+                  />
+                ))}
+              </div>
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Thai / ภาษาไทย</p>
+                {THAI_FONTS.map(font => (
+                  <FontCard
+                    key={`thai-${font.value}`}
+                    label={font.label}
+                    sample={THAI_SAMPLE}
+                    fontFamily={`${font.value}, sans-serif`}
+                    isActive={thaiFont === font.value}
+                    onClick={() => applyFont('thai', font.value)}
+                  />
+                ))}
+              </div>
+            </div>
+          </Section>
+
           {/* ── COLOR TOKENS ── */}
           <Section title="Color Tokens (from index.css)" path="src/index.css" full>
             <div className="flex items-center justify-between gap-3">

@@ -630,7 +630,7 @@ export default function POSPage() {
                   <User className="size-7" />
                 </span>
                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                  <span className="text-base font-bold leading-tight truncate flex items-center gap-1.5">
+                  <span className="text-base leading-7 font-bold leading-tight truncate flex items-center gap-1.5">
                     {cart.customer ? cart.customer.full_name : 'ลูกค้าทั่วไป'}
                   </span>
                   <span className="text-sm text-muted-foreground truncate">
