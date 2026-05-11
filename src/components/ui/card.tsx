@@ -144,6 +144,9 @@ function MetricCard({
   icon: Icon,
   tint = "primary",
   className,
+  labelClassName,
+  valueClassName,
+  subClassName,
 }: {
   label: string
   value: string
@@ -151,6 +154,9 @@ function MetricCard({
   icon: React.ComponentType<{ className?: string }>
   tint?: MetricTint
   className?: string
+  labelClassName?: string
+  valueClassName?: string
+  subClassName?: string
 }) {
   const iconBox =
     tint === "success"     ? "bg-success-soft text-success"
@@ -167,21 +173,76 @@ function MetricCard({
     <div
       data-slot="metric-card"
       className={cn(
-        "bg-card rounded-2xl p-5 shadow-card h-32 flex flex-col justify-between",
+        "bg-card rounded-2xl p-4 shadow-card h-32 overflow-hidden relative",
         className
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold uppercase text-foreground-">{label}</span>
-        <span className={cn("grid place-items-center size-10 rounded-xl shrink-0", iconBox)}>
-          <Icon className="size-5" />
-        </span>
-      </div>
-      <div>
-        <div className={cn("text-3xl font-bold tabular-nums leading-none", valColor)}>{value}</div>
-        {sub && <div className="text-sm text-muted-foreground tabular-nums mt-1.5">{sub}</div>}
+      <span className={cn("absolute top-4 right-4 grid place-items-center size-11 rounded-xl", iconBox)}>
+        <Icon className="size-7" />
+      </span>
+      <div className="pr-14 min-w-0">
+        <div className={cn("text-base font-bold text-foreground truncate", labelClassName)} title={label}>{label}</div>
+        <div className={cn("text-3xl font-bold tabular-nums leading-none truncate mt-1", valColor, valueClassName)} title={value}>{value}</div>
+        {sub && <div className={cn("font-semibold text-sm text-muted-foreground tabular-nums leading-tight truncate", subClassName)}>{sub}</div>}
       </div>
     </div>
+  )
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tint = "primary",
+  isActive,
+  onClick,
+  className,
+}: {
+  label: string
+  value: string
+  icon: React.ComponentType<{ className?: string }>
+  tint?: MetricTint
+  isActive?: boolean
+  onClick?: () => void
+  className?: string
+}) {
+  const iconBox =
+    tint === "success"     ? "bg-success-soft text-success"
+    : tint === "warning"     ? "bg-senary text-senary-foreground"
+    : tint === "destructive" ? "bg-destructive-soft text-destructive"
+    : tint === "secondary"   ? "bg-muted text-muted-foreground"
+    : "bg-primary-soft text-primary"
+  const activeRing =
+    !isActive ? "ring-0"
+    : tint === "success"     ? "ring-2 ring-success"
+    : tint === "warning"     ? "ring-2 ring-warning"
+    : tint === "destructive" ? "ring-2 ring-destructive"
+    : tint === "secondary"   ? "ring-2 ring-border-strong"
+    : "ring-2 ring-primary"
+  const interactive = onClick
+    ? "cursor-pointer hover:shadow-md transition-all text-left"
+    : ""
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      data-slot="stat-card"
+      className={cn(
+        "bg-card rounded-2xl shadow-card px-4 py-3 flex items-center gap-3 disabled:cursor-default",
+        activeRing,
+        interactive,
+        className,
+      )}
+    >
+      <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
+        <Icon className="size-7" />
+      </span>
+      <div className="flex flex-col min-w-0">
+        <span className="text-base text-foreground font-semibold truncate">{label}</span>
+        <span className="text-3xl font-bold tabular-nums leading-tight">{value}</span>
+      </div>
+    </button>
   )
 }
 
@@ -195,5 +256,6 @@ export {
   CardContent,
   MetricCard,
   SectionCard,
+  StatCard,
 }
 export type { MetricTint, SectionTint }

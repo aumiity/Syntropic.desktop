@@ -1,7 +1,7 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 2026-05-11 session: FDA report schema refactor — drug_types gets is_fda9/10/11/13 boolean flags (replaces khor_yor_report TEXT), products columns renamed is_fda_report→is_fda9 / is_fda13_report→is_fda13 with new is_fda10/is_fda11 added; Settings DrugTypesTab wired to DB; EditProduct 4 report toggles (is_fda9 auto from is_drug, is_fda10/11/13 auto from drug_type then custom per-product).
-## Last updated: 2026-05-11
+## Status: 100% Complete + UI Polish ✅ — 2026-05-12 session: Products/EditProduct UI overhaul — MetricCard/StatCard refactor to shared card.tsx (with labelClassName/valueClassName/subClassName escape hatches), absolute-icon layout pattern (`absolute top-4 right-4` + `pr-14` on text), new `segmented` Tabs variant (bg-card container, bg-tertiary active, equal-width via `inline-grid grid-flow-col auto-cols-fr`), EditProduct meta card redesign + 4-card reorder (meta → cost → profit → stock), profit card sub shows "+amt (+pct%)" with success/destructive color via subClassName, 3 tab tables match Products list style (white header bar inside card + `border-l-8 border-r-8 border-card` inset + `table-fixed` + sticky headers + status bar). Base-unit invariant now backend-enforced: addUnit forces `is_base_unit=0`, updateUnit strips `is_base_unit` and locks base-unit edits to `unit_id` only, deleteUnit throws if base, products:update mirrors price columns to base unit's `product_units` row in a transaction. `[scrollbar-gutter:stable]` on tab scroll container fixes horizontal tab-center shift between tabs.
+## Last updated: 2026-05-12
 ## App is RUNNABLE — run `npm run electron:dev` to launch
 ## ⚠️ Pick up next session: **ข.ย.10 / ข.ย.11 reports** — บัญชีการขายยาควบคุมพิเศษ (ข.ย.10) และยาอันตราย (ข.ย.11) ตามที่ อ.ย. กำหนด. New report pages under `/reports/`. See NEXT SESSION section below for updated plan.
 
@@ -427,6 +427,63 @@ Reusable range picker for filtering by date intervals.
 - `loadHistory` now accepts an optional third arg `dateOverride: { from: string; to: string }` (same pattern as the existing `filterOverride` for payment chips) so preset clicks reload immediately without stale-state issues from the memoized callback.
 - The two `DateInput` fields (`จากวันที่` / `ถึงวันที่`) replaced with a single `DateRangePicker` labelled `ช่วงวันที่`. `onChange` sets state AND calls `loadHistory(1, undefined, { from, to })` — no extra search-button press needed for date filter changes.
 - Mfd / exp / receive-date / order-date / due-date / paid-date fields elsewhere in the page still use `DateInput` — unchanged.
+
+---
+
+## Products/EditProduct UI Overhaul (2026-05-12)
+
+### card.tsx — Three exported card components share an absolute-icon layout
+- `StatCard` (was a local helper in `pages/Products/index.tsx`) moved to `src/components/ui/card.tsx`. Clickable filter card. Props: `label`, `value`, `icon` (lucide ComponentType), `tint`, `isActive`, `onClick`. Active state draws a `ring-2` in the tint family (primary/warning/destructive/success/secondary).
+- `MetricCard` redesigned for the EditProduct top row. Icon is now `absolute top-4 right-4` (out of layout flow), text container has `pr-14` so it doesn't overlap the icon, content flows from the top — value remains big (`text-3xl tabular-nums leading-none`). Added three className escape hatches: `labelClassName`, `valueClassName`, `subClassName`. Use them to override individual elements via `cn()` without touching the component (e.g. profit-color sub: `subClassName={profit >= 0 ? 'text-success font-semibold' : 'text-destructive font-semibold'}`).
+- `SectionCard` unchanged.
+- **Layout pattern memo:** when a card has a fixed `h-32` and you want headline + supporting text + an icon, prefer absolute-positioned icon over flex-row layout. Flex-row makes the icon's height (size-11 = 44px) dominate the row, pushing text content down. Absolute icon keeps text starting at the top of the content box.
+
+### tabs.tsx — New `segmented` variant (Apple-style segmented control)
+- TabsList: `bg-card rounded-xl p-1 gap-1`, `inline-grid grid-flow-col auto-cols-fr` so every trigger is forced to the width of the longest one (set on the data-attribute variant selector so it overrides the base `inline-flex` due to higher specificity).
+- TabsTrigger active: `bg-tertiary text-tertiary-foreground shadow-sm` (works in both light + dark — light tertiary is yellow `43 100% 64%`, dark tertiary is dark gray).
+- Used in `EditProduct.tsx` with lucide icons inline: `<TabsTrigger><FileText /> ข้อมูลทั่วไป</TabsTrigger>` etc. Icons auto-size to `size-4` via the existing `[&_svg:not([class*='size-'])]:size-4` rule on the trigger.
+
+### Products/index.tsx — "สินค้าทั้งหมด" stat always shows absolute total
+- `products:stockStats` IPC now returns `total_all` alongside `out` / `low`. The first two respect q/category_id/drug_type_id, but `total_all` is just `SELECT COUNT(*) FROM products [WHERE is_disabled=0]` — only the `include_disabled` toggle affects it, never the search/category filters. Reason: the headline number shouldn't shrink as the user narrows the list.
+- StatCard rendered inline (no local component definition in the page file).
+
+### EditProduct.tsx — top row + tabs + tab tables all redesigned
+- Meta card (col 1 of 4): `bg-card rounded-2xl p-4 h-32 overflow-hidden relative`. Trade name is the prominent header (`text-base font-bold truncate`), second line is `<font-mono>{code}</font-mono> · {category}`, badges row below. Icon `Package size-11` absolute top-right. Long names get truncated + `title={trade_name}` for hover.
+- 4 cards reordered: meta → ราคาทุน → ราคาขาย → คงเหลือ.
+- ราคาขาย card sub uses the new `subClassName` to color profit green/red and format `+53.00 (+74%)`.
+- Tabs use `variant="segmented"` with icons (FileText/Boxes/Pill/Package). Tabs root has `className="items-center"` so the `w-fit` TabsList sits centered horizontally on the page.
+- All three tabs (units/labels/lots) now use the **Products-list table pattern**:
+  - Outer wrapper: `bg-card rounded-2xl shadow-card overflow-hidden`
+  - Inner top: white header bar `px-5 py-2.5 text-sm font-semibold text-muted-foreground flex items-center justify-between` — title + Plus button on units/labels, info banner with Edit2 icon on lots
+  - Table wrapper: `[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card` (the 8px borders blend with the card bg, creating an inset)
+  - `<Table className="table-fixed">` with explicit `w-XX` widths on every TableHead
+  - Header sticky: `[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted`
+  - Row hover: `hover:bg-primary-soft/60 transition-colors`
+  - Action buttons in rows: `size="icon-xl" variant="outline"` (not `size="sm" variant="ghost"` anymore)
+  - Status bar at bottom: `border-t border-border px-5 py-2.5 text-xs text-muted-foreground` with count/breakdown stats
+  - Empty state: lucide icon + Thai message, `py-16` padding
+- Labels tab is a list (not a table) so it skips `table-fixed`, but follows the same wrapper/header/status-bar/inset pattern. Label rows separated by `divide-y divide-border`.
+- Units table: removed `บาร์โค้ด` column, added `ราคาส่ง 2`. Header "จำนวนต่อหน่วยหลัก" shortened to "ต่อหน่วยหลัก" (the column data already says "จำนวน" by being a number).
+
+### `[scrollbar-gutter:stable]` on tab content scroller
+- Symptom: switching between tabs caused a ~12-15px horizontal shift because some tabs' content was tall enough to show a vertical scrollbar and others weren't, so the centered tab list moved as the scrollbar appeared/disappeared.
+- Fix: `[scrollbar-gutter:stable]` reserves the scrollbar gutter even when not scrolling. Applied to the parent scroll container that wraps both the Tabs and the tab content.
+
+### Base unit invariant — now hard-enforced at IPC layer
+- **`products:addUnit`** — payload's `is_base_unit` is overwritten to 0. Only `products:create` may insert a base unit row.
+- **`products:updateUnit`** — `is_base_unit` is stripped from the payload. If the row being edited has `is_base_unit=1`, the handler only accepts `unit_id` from the rest (everything else is rejected — pricing/barcode/qty_per_base for the base unit live in the products table now).
+- **`products:deleteUnit`** — throws `"ลบหน่วยหลักไม่ได้ — ทุกสินค้าต้องมีหน่วยหลัก 1 รายการเสมอ"` if the row is the base unit. (Frontend already hides the delete button for base units; this is defense in depth for direct IPC callers.)
+- **`products:update`** — now runs inside a `db.transaction()`. After updating `products`, mirrors `price_retail`/`price_wholesale1`/`price_wholesale2` to the `product_units` row where `is_base_unit=1`, so legacy joins that read prices from `product_units` keep getting the same numbers as the products table.
+- **Frontend (EditProduct unit dialog):**
+  - Title: "เพิ่มหน่วยนับ" / "แก้ไขหน่วยนับ" / "แก้ไขหน่วยหลัก" — branched on `editingUnit?.is_base_unit`.
+  - Base-unit edit body: only the unit_id `<SelectField>` is shown, with a note "หน่วยหลักดึงราคา/บาร์โค้ดจากตัวสินค้าโดยอัตโนมัติ — แก้ไขได้ที่แท็บ ข้อมูลทั่วไป". All price/barcode/qty/sale/purchase inputs hidden.
+  - Non-base edit + add: removed the `หน่วยหลัก` Toggle entirely. Only `ใช้ขาย` / `ใช้ซื้อ` remain.
+  - `handleSaveUnit`: three branches now — base-unit edit sends only `{ unit_id }`, non-base edit sends everything except `is_base_unit`, add sends everything except `is_base_unit`.
+
+### Source of truth (consolidated)
+- **Base unit** (`product_units` row with `is_base_unit=1`): `unit_id` is editable. Pricing/barcode/qty_per_base mirror the `products` table — `products:update` syncs the mirror columns automatically.
+- **Non-base units** (alternative units like แผง, กล่อง): own their `barcode`/`price_*`/`qty_per_base`/`is_for_sale`/`is_for_purchase`. Independent of products table.
+- **POS join** (unchanged): `pos:searchProducts` still resolves the base unit's display name via `LEFT JOIN product_units pu_base ON pu_base.product_id = p.id AND pu_base.is_base_unit = 1 LEFT JOIN item_units u ON u.id = pu_base.unit_id`. Pricing read from `products.*` for the base, `product_units.*` for non-base.
 
 ---
 

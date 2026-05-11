@@ -102,8 +102,14 @@ export function registerProductHandlers() {
       : `WHERE ${extra}`
     const out = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`${stockExpr} <= 0`)}`).get(...params) as any).c
     const low = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`${stockExpr} > 0 AND p.reorder_point > 0 AND ${stockExpr} <= p.reorder_point`)}`).get(...params) as any).c
+    // Total — used by "สินค้าทั้งหมด" stat card. Respects only the "include_disabled"
+    // toggle, never the search/category/drug-type filters, so it doesn't shrink
+    // as the user narrows the list.
+    const total_all = (db.prepare(
+      `SELECT COUNT(*) as c FROM products ${include_disabled ? '' : 'WHERE is_disabled = 0'}`
+    ).get() as any).c
 
-    return { out, low }
+    return { out, low, total_all }
   })
 
   ipcMain.handle('products:get', (_e, id: number) => {
@@ -189,8 +195,23 @@ export function registerProductHandlers() {
   ipcMain.handle('products:update', (_e, id: number, data: any) => {
     const db = getDb()
     const fields = Object.keys(data).map(k => `${k} = @${k}`).join(', ')
-    db.prepare(`UPDATE products SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...data, id })
-    return db.prepare(`SELECT * FROM products WHERE id = ?`).get(id)
+
+    // Mirror base-unit pricing so legacy joins into product_units stay consistent
+    // with the products table (which is the source of truth for the base unit).
+    const mirror: any = {}
+    if ('price_retail' in data) mirror.price_retail = data.price_retail
+    if ('price_wholesale1' in data) mirror.price_wholesale1 = data.price_wholesale1
+    if ('price_wholesale2' in data) mirror.price_wholesale2 = data.price_wholesale2
+
+    return db.transaction(() => {
+      db.prepare(`UPDATE products SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...data, id })
+      if (Object.keys(mirror).length > 0) {
+        const mirrorFields = Object.keys(mirror).map(k => `${k} = @${k}`).join(', ')
+        db.prepare(`UPDATE product_units SET ${mirrorFields} WHERE product_id = @product_id AND is_base_unit = 1`)
+          .run({ ...mirror, product_id: id })
+      }
+      return db.prepare(`SELECT * FROM products WHERE id = ?`).get(id)
+    })()
   })
 
   ipcMain.handle('products:updatePrice', (_e, productId: number, data: { price_type?: 'retail' | 'wholesale1' | 'wholesale2'; new_price: number; note?: string }) => {
@@ -243,24 +264,51 @@ export function registerProductHandlers() {
   })
 
   // Product units
+  //
+  // Base unit invariant: every product has exactly one product_units row with
+  // is_base_unit=1, created in `products:create` and never changed afterwards.
+  // The base unit's pricing/barcode mirror the products table — these handlers
+  // enforce that users can't add another base unit, demote the current one, or
+  // delete it. Frontend dialogs also hide the is_base_unit toggle for clarity.
   ipcMain.handle('products:addUnit', (_e, data: any) => {
     const db = getDb()
+    // Only the create flow may insert a base unit row.
+    const safeData = { ...data, is_base_unit: 0 }
     const result = db.prepare(`
       INSERT INTO product_units (product_id, unit_id, barcode, qty_per_base, price_retail, price_wholesale1, price_wholesale2, is_base_unit, is_for_sale, is_for_purchase)
       VALUES (@product_id, @unit_id, @barcode, @qty_per_base, @price_retail, @price_wholesale1, @price_wholesale2, @is_base_unit, @is_for_sale, @is_for_purchase)
-    `).run(data)
+    `).run(safeData)
     return db.prepare(`SELECT pu.*, u.name as unit_name FROM product_units pu JOIN item_units u ON u.id = pu.unit_id WHERE pu.id = ?`).get(result.lastInsertRowid)
   })
 
   ipcMain.handle('products:updateUnit', (_e, id: number, data: any) => {
     const db = getDb()
-    const fields = Object.keys(data).map(k => `${k} = @${k}`).join(', ')
-    db.prepare(`UPDATE product_units SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...data, id })
+    // is_base_unit is set once at create and never changes.
+    const { is_base_unit: _drop, ...safeData } = data
+    const row = db.prepare(`SELECT is_base_unit FROM product_units WHERE id = ?`).get(id) as any
+    if (!row) throw new Error('ไม่พบหน่วย')
+
+    // For a base unit, only the unit_id (display name) is editable. Pricing,
+    // barcode, and qty_per_base mirror the products table or are fixed.
+    const allowed = row.is_base_unit
+      ? (() => {
+          const a: any = {}
+          if ('unit_id' in safeData) a.unit_id = safeData.unit_id
+          return a
+        })()
+      : safeData
+
+    if (Object.keys(allowed).length === 0) return true
+    const fields = Object.keys(allowed).map(k => `${k} = @${k}`).join(', ')
+    db.prepare(`UPDATE product_units SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...allowed, id })
     return true
   })
 
   ipcMain.handle('products:deleteUnit', (_e, id: number) => {
-    getDb().prepare(`DELETE FROM product_units WHERE id = ?`).run(id)
+    const db = getDb()
+    const row = db.prepare(`SELECT is_base_unit FROM product_units WHERE id = ?`).get(id) as any
+    if (row?.is_base_unit) throw new Error('ลบหน่วยหลักไม่ได้ — ทุกสินค้าต้องมีหน่วยหลัก 1 รายการเสมอ')
+    db.prepare(`DELETE FROM product_units WHERE id = ?`).run(id)
     return true
   })
 

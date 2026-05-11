@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { StatCard } from '@/components/ui/card'
 import type { Product, ProductCategory, DrugType, ItemUnit } from '@/types'
 import {
   Search, Plus, Edit2, AlertTriangle, Package, PackageX,
@@ -70,9 +71,10 @@ export default function ProductsPage() {
   const [adjustNote, setAdjustNote] = useState('')
   const [adjusting, setAdjusting] = useState(false)
 
-  // Global stock health counts (respects current text + category + drug-type filter,
-  // but NOT the stockFilter clickable card — that's the filter the cards drive)
-  const [allStats, setAllStats] = useState({ out: 0, low: 0 })
+  // Global stock health counts. `out`/`low` respect current text + category +
+  // drug-type filter (but not the stockFilter clickable card — that's the filter
+  // the cards drive). `total_all` is the absolute product count, never filtered.
+  const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0 })
 
   const limit = 50
   const totalPages = Math.ceil(total / limit)
@@ -91,7 +93,7 @@ export default function ProductsPage() {
         category_id: categoryId || undefined,
         drug_type_id: drugTypeId || undefined,
         include_disabled: showDisabled,
-      }).then((s: any) => setAllStats(s ?? { out: 0, low: 0 }))
+      }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0 }))
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,8 +233,8 @@ export default function ProductsPage() {
       <div className="grid grid-cols-3 gap-3 shrink-0">
         <StatCard
           label="สินค้าทั้งหมด"
-          value={total.toLocaleString()}
-          icon={<Boxes className="size-5" />}
+          value={allStats.total_all.toLocaleString()}
+          icon={Boxes}
           tint="primary"
           isActive={stockFilter === 'all'}
           onClick={() => toggleStockFilter('all')}
@@ -240,7 +242,7 @@ export default function ProductsPage() {
         <StatCard
           label="ใกล้หมด"
           value={allStats.low.toLocaleString()}
-          icon={<AlertTriangle className="size-5" />}
+          icon={AlertTriangle}
           tint="warning"
           isActive={stockFilter === 'low'}
           onClick={() => toggleStockFilter('low')}
@@ -248,7 +250,7 @@ export default function ProductsPage() {
         <StatCard
           label="หมดสต็อก"
           value={allStats.out.toLocaleString()}
-          icon={<PackageX className="size-5" />}
+          icon={PackageX}
           tint="destructive"
           isActive={stockFilter === 'out'}
           onClick={() => toggleStockFilter('out')}
@@ -268,7 +270,7 @@ export default function ProductsPage() {
         </div>
 
         <Select value={String(categoryId)} onValueChange={v => setCategoryId(Number(v))}>
-          <SelectTrigger className="h-10 w-48 rounded-xl bg-card text-sm">
+          <SelectTrigger className="h-10 w-48 rounded-xl bg-card text-sm border-0">
             <SelectValue placeholder="หมวดหมู่ทั้งหมด" />
           </SelectTrigger>
           <SelectContent>
@@ -280,7 +282,7 @@ export default function ProductsPage() {
         </Select>
 
         <Select value={String(drugTypeId)} onValueChange={v => setDrugTypeId(Number(v))}>
-          <SelectTrigger className="h-10 w-48 rounded-xl bg-card text-sm">
+          <SelectTrigger className="h-10 w-48 rounded-xl bg-card text-sm border-0">
             <SelectValue placeholder="ประเภทยาทั้งหมด" />
           </SelectTrigger>
           <SelectContent>
@@ -292,8 +294,8 @@ export default function ProductsPage() {
         </Select>
 
         <label className="ml-auto flex items-center gap-2 px-3 h-10 rounded-xl bg-card text-sm cursor-pointer">
-          <Switch checked={showDisabled} onCheckedChange={setShowDisabled} size="sm" />
-          <span className="text-muted-foreground">แสดงที่ปิดใช้งาน</span>
+          <span className="text-muted-foreground mr-10">แสดงที่ปิดใช้งาน</span>
+          <Switch checked={showDisabled} onCheckedChange={setShowDisabled} size="default" />
         </label>
       </div>
 
@@ -599,44 +601,3 @@ function SortableHead({
   )
 }
 
-interface StatCardProps {
-  label: string
-  value: string
-  icon: React.ReactNode
-  tint: 'primary' | 'warning' | 'destructive'
-  isActive?: boolean
-  onClick?: () => void
-}
-
-function StatCard({ label, value, icon, tint, isActive, onClick }: StatCardProps) {
-  const iconBox =
-    tint === 'primary' ? 'bg-primary-soft text-primary'
-    : tint === 'warning' ? 'bg-warning-soft text-warning-strong'
-    : 'bg-destructive-soft text-destructive'
-  // Active ring uses the same family as the tint so the highlight reads as
-  // "this filter is on" rather than a generic selection.
-  const activeRing =
-    !isActive ? 'ring-0'
-    : tint === 'primary' ? 'ring-2 ring-primary'
-    : tint === 'warning' ? 'ring-2 ring-warning'
-    : 'ring-2 ring-destructive'
-  const interactive = onClick
-    ? 'cursor-pointer hover:shadow-md transition-all text-left'
-    : ''
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={!onClick}
-      className={`bg-card rounded-2xl shadow-card px-4 py-3 flex items-center gap-3 ${activeRing} ${interactive} disabled:cursor-default`}
-    >
-      <span className={`grid place-items-center size-11 rounded-xl shrink-0 ${iconBox}`}>
-        {icon}
-      </span>
-      <div className="flex flex-col min-w-0">
-        <span className="text-xs text-muted-foreground truncate">{label}</span>
-        <span className="text-2xl font-bold tabular-nums leading-tight">{value}</span>
-      </div>
-    </button>
-  )
-}

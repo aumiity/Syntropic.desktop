@@ -275,7 +275,13 @@ export default function EditProductPage() {
   const handleSaveUnit = async () => {
     setUnitSaving(true)
     try {
-      if (editingUnit) {
+      if (editingUnit?.is_base_unit) {
+        // Base unit: only the unit_id (display name) is editable; everything else
+        // mirrors the products table or is locked by invariant.
+        await window.api.products.updateUnit(editingUnit.id, {
+          unit_id: Number(unitForm.unit_id),
+        })
+      } else if (editingUnit) {
         await window.api.products.updateUnit(editingUnit.id, {
           unit_id: Number(unitForm.unit_id),
           barcode: unitForm.barcode || null,
@@ -283,7 +289,6 @@ export default function EditProductPage() {
           price_retail: parseFloat(unitForm.price_retail) || 0,
           price_wholesale1: parseFloat(unitForm.price_wholesale1) || 0,
           price_wholesale2: parseFloat(unitForm.price_wholesale2) || 0,
-          is_base_unit: unitForm.is_base_unit ? 1 : 0,
           is_for_sale: unitForm.is_for_sale ? 1 : 0,
           is_for_purchase: unitForm.is_for_purchase ? 1 : 0,
         })
@@ -296,7 +301,6 @@ export default function EditProductPage() {
           price_retail: parseFloat(unitForm.price_retail) || 0,
           price_wholesale1: parseFloat(unitForm.price_wholesale1) || 0,
           price_wholesale2: parseFloat(unitForm.price_wholesale2) || 0,
-          is_base_unit: unitForm.is_base_unit ? 1 : 0,
           is_for_sale: unitForm.is_for_sale ? 1 : 0,
           is_for_purchase: unitForm.is_for_purchase ? 1 : 0,
         })
@@ -469,15 +473,16 @@ export default function EditProductPage() {
   }).length
   const baseUnit = product.units?.find(u => u.is_base_unit)?.unit_name ?? '—'
   const categoryName = categories.find(c => c.id === product.category_id)?.name
+  const profit = (product.price_retail ?? 0) - (product.cost_price ?? 0)
   const profitPct = (product.cost_price ?? 0) > 0
-    ? ((product.price_retail - product.cost_price!) / product.cost_price!) * 100
+    ? (profit / product.cost_price!) * 100
     : 0
   const updatedShort = (product as any).updated_at ? String((product as any).updated_at).slice(0, 10) : null
 
   return (
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
       <PageHeader
-        title={product.trade_name}
+        title='สินค้า'
         right={
           <>
             <button onClick={() => navigate('/products')} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -495,39 +500,30 @@ export default function EditProductPage() {
       {/* 4 cards: meta + 3 stats */}
       <div className="grid grid-cols-4 gap-3 shrink-0">
         {/* Meta card */}
-        <div className="bg-card rounded-2xl p-5 shadow-card h-32 flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-semibold uppercase text-foreground">ข้อมูล</span>
-            <span className="grid place-items-center size-10 rounded-xl shrink-0 bg-primary-soft text-primary">
-              <Package className="size-5" />
-            </span>
-          </div>
-          <div className="space-y-1.5 min-w-0">
-            <div className="flex items-baseline gap-2 min-w-0">
-              <span className="font-mono text-lg font-bold text-foreground shrink-0">{product.code ?? '—'}</span>
-              <span className="text-sm text-muted-foreground truncate">
-                {categoryName ?? 'ไม่ได้กำหนดหมวด'} · {baseUnit}
-              </span>
+        <div className="bg-card rounded-2xl p-4 shadow-card h-32 overflow-hidden relative">
+          <span className="absolute top-4 right-4 grid place-items-center size-11 rounded-xl bg-primary-soft text-primary">
+            <Package className="size-7" />
+          </span>
+          <div className="pr-14 min-w-0">
+            <div
+              className="text-base font-bold text-foreground leading-snug truncate"
+              title={product.trade_name}
+            >
+              {product.trade_name}
             </div>
-            <div className="flex items-center gap-1 flex-wrap min-h-[18px]">
-              {!!product.is_drug && <Badge variant="warning" className="text-xs rounded-md px-1.5 py-0">ยา</Badge>}
-              {!!product.is_disabled && <Badge variant="destructive" className="text-xs rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
-              {!!product.is_hidden && <Badge variant="secondary" className="text-xs rounded-md px-1.5 py-0">ซ่อน</Badge>}
-              {!!product.is_fda13 && <Badge variant="senary" className="text-xs rounded-md px-1.5 py-0">ข.ย.13</Badge>}
-              {updatedShort && (
-                <span className="text-xs text-muted-foreground">แก้ไข {updatedShort}</span>
-              )}
+            <div className="text-sm text-muted-foreground truncate mt-0.5">
+              <span className="font-mono">{product.code ?? '—'}</span>
+              <span className="mx-1.5">·</span>
+              <span>{categoryName ?? 'ไม่ระบุ'}</span>
+            </div>
+            <div className="flex items-center gap-1 flex-wrap min-h-[18px] mt-6">
+              {!!product.is_drug && <Badge variant="success" className="text-sm rounded-md px-1.5 py-0">ยา</Badge>}
+              {!!product.is_disabled && <Badge variant="destructive" className="text-sm rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
+              {!!product.is_hidden && <Badge variant="secondary" className="text-sm rounded-md px-1.5 py-0">ซ่อน</Badge>}
             </div>
           </div>
         </div>
 
-        <MetricCard
-          label="คงเหลือ"
-          value={totalStock.toLocaleString()}
-          sub={baseUnit}
-          icon={Boxes}
-          tint={totalStock <= 0 ? 'destructive' : 'primary'}
-        />
         <MetricCard
           label="ราคาทุน"
           value={formatCurrency(product.cost_price)}
@@ -538,26 +534,32 @@ export default function EditProductPage() {
         <MetricCard
           label="ราคาขาย"
           value={formatCurrency(product.price_retail)}
-          sub={profitPct > 0 ? `+${profitPct.toFixed(0)}% กำไร` : undefined}
+          valueClassName={'text-foreground'}
+          sub={(product.cost_price ?? 0) > 0
+            ? `${profit >= 0 ? '+' : ''}${profit.toFixed(2)} (${profit >= 0 ? '+' : ''}${profitPct.toFixed(0)}%)`
+            : undefined}
+          subClassName={profit >= 0 ? 'text-success font-semibold' : 'text-destructive font-semibold'}
           icon={HandCoins}
           tint="success"
         />
+        <MetricCard
+          label="คงเหลือ"
+          value={totalStock.toLocaleString()}
+          sub={baseUnit}
+          icon={Boxes}
+          tint={totalStock <= 0 ? 'destructive' : 'primary'}
+        />
       </div>
 
-      <div className="flex flex-1 flex-col min-h-0">
-        {/* Tabs + status toggles inline */}
-        <div className="shrink-0">
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList variant="pill">
-              <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
-              <TabsTrigger value="units">หน่วยนับ ({product.units?.length ?? 0})</TabsTrigger>
-              <TabsTrigger value="labels">ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
-              <TabsTrigger value="lots">ล็อต ({product.lots?.length ?? 0})</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        <div className="flex-1 overflow-y-auto pb-8">
+      <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]">
+        <Tabs value={tab} onValueChange={setTab} className="items-center">
+          <TabsList variant="segmented">
+            <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
+            <TabsTrigger value="units"><Boxes /> หน่วยนับ ({product.units?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="labels"><Pill /> ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="lots"><Package /> ล็อต ({product.lots?.length ?? 0})</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* ======================== TAB: GENERAL ======================== */}
         {tab === 'general' && (
@@ -900,48 +902,60 @@ export default function EditProductPage() {
         {/* ======================== TAB: UNITS ======================== */}
         {tab === 'units' && (
           <div className="pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-muted-foreground">หน่วยนับสำหรับซื้อ/ขายสินค้า</p>
-              <Button size="sm" onClick={openAddUnit}>
-                <Plus className="w-3.5 h-3.5 mr-1" /> เพิ่มหน่วย
-              </Button>
-            </div>
-            <div className="border border-border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-foreground-subtle">
-                  <TableRow>
-                    <TableHead>หน่วย</TableHead>
-                    <TableHead>บาร์โค้ด</TableHead>
-                    <TableHead className="text-right">จำนวนต่อหน่วยหลัก</TableHead>
-                    <TableHead className="text-right">ราคาปลีก</TableHead>
-                    <TableHead className="text-right">ราคาส่ง 1</TableHead>
-                    <TableHead className="text-center">ขาย</TableHead>
-                    <TableHead className="text-center">ซื้อ</TableHead>
-                    <TableHead className="text-center">หน่วยหลัก</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
+            <div className="bg-card rounded-2xl shadow-card overflow-hidden">
+              <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
+                <span>หน่วยนับสำหรับซื้อ/ขายสินค้า</span>
+                <Button onClick={openAddUnit} className="h-9 rounded-lg px-2 text-sm">
+                  <Plus className="size-4" /> เพิ่มหน่วย
+                </Button>
+              </div>
+              <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+                <Table className="table-fixed">
+                  <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
+                    <TableRow>
+                      <TableHead className="text-foreground-subtle">หน่วย</TableHead>
+                      <TableHead className="w-16 text-center text-foreground-subtle">ตัวคูณ</TableHead>
+                      <TableHead className="w-28 text-right text-foreground-subtle">ราคาปลีก</TableHead>
+                      <TableHead className="w-28 text-right text-foreground-subtle">ราคาส่ง 1</TableHead>
+                      <TableHead className="w-28 text-right text-foreground-subtle">ราคาส่ง 2</TableHead>
+                      <TableHead className="w-16 text-center text-foreground-subtle">ขาย</TableHead>
+                      <TableHead className="w-16 text-center text-foreground-subtle">ซื้อ</TableHead>
+                      <TableHead className="w-24 text-center text-foreground-subtle">หน่วยหลัก</TableHead>
+                      <TableHead className="w-32 text-center text-foreground-subtle">จัดการ</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {(product.units?.length ?? 0) === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">ยังไม่มีหน่วยนับ</TableCell>
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
+                        <Boxes className="size-10 mx-auto mb-2 opacity-30" />
+                        ยังไม่มีหน่วยนับ
+                      </TableCell>
                     </TableRow>
                   ) : product.units.map(u => (
-                    <TableRow key={u.id}>
-                      <TableCell className="font-medium">{u.unit_name ?? `Unit #${u.unit_id}`}</TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{u.barcode ?? '—'}</TableCell>
-                      <TableCell className="text-right">{u.qty_per_base}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(u.price_retail)}</TableCell>
-                      <TableCell className="text-right">{u.price_wholesale1 > 0 ? formatCurrency(u.price_wholesale1) : '—'}</TableCell>
-                      <TableCell className="text-center">{u.is_for_sale ? '✓' : '—'}</TableCell>
-                      <TableCell className="text-center">{u.is_for_purchase ? '✓' : '—'}</TableCell>
-                      <TableCell className="text-center">{u.is_base_unit ? <Badge variant="secondary" className="text-xs">หลัก</Badge> : '—'}</TableCell>
+                    <TableRow key={u.id} className="hover:bg-primary-soft/60 transition-colors">
+                      <TableCell className="font-semibold text-sm">{u.unit_name ?? `Unit #${u.unit_id}`}</TableCell>
+                      <TableCell className="text-center text-sm tabular-nums">{u.qty_per_base}</TableCell>
+                      <TableCell className="text-right text-sm font-semibold tabular-nums">{formatCurrency(u.price_retail)}</TableCell>
+                      <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{u.price_wholesale1 > 0 ? formatCurrency(u.price_wholesale1) : '—'}</TableCell>
+                      <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{u.price_wholesale2 > 0 ? formatCurrency(u.price_wholesale2) : '—'}</TableCell>
+                      <TableCell className="text-center">
+                        {u.is_for_sale ? <Check className="size-4 mx-auto text-success" /> : <span className="text-foreground-subtle">—</span>}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {u.is_for_purchase ? <Check className="size-4 mx-auto text-success" /> : <span className="text-foreground-subtle">—</span>}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {u.is_base_unit ? <Badge variant="secondary" className="text-xs rounded-md">หลัก</Badge> : <span className="text-foreground-subtle">—</span>}
+                      </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => openEditUnit(u)}><Edit2 className="w-3.5 h-3.5" /></Button>
+                        <div className="flex items-center justify-center gap-2">
+                          <Button size="icon-xl" variant="outline" onClick={() => openEditUnit(u)} title="แก้ไข">
+                            <Edit2 />
+                          </Button>
                           {!u.is_base_unit && (
-                            <Button size="sm" variant="ghost" onClick={() => handleDeleteUnit(u.id)} className="text-destructive hover:text-destructive">
-                              <Trash2 className="w-3.5 h-3.5" />
+                            <Button size="icon-xl" variant="outline" onClick={() => handleDeleteUnit(u.id)} className="text-destructive hover:text-destructive" title="ลบ">
+                              <Trash2 />
                             </Button>
                           )}
                         </div>
@@ -950,6 +964,11 @@ export default function EditProductPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
+              <div className="px-5 py-2.5 border-t border-border text-xs text-muted-foreground shrink-0 flex items-center justify-between">
+                <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{product.units?.length ?? 0}</span> หน่วย</span>
+                <span>หน่วยหลัก: <span className="font-semibold text-foreground">{baseUnit}</span></span>
+              </div>
             </div>
           </div>
         )}
@@ -957,40 +976,58 @@ export default function EditProductPage() {
         {/* ======================== TAB: LABELS ======================== */}
         {tab === 'labels' && (
           <div className="pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-muted-foreground">ฉลากยาสำหรับพิมพ์</p>
-              <Button size="sm" onClick={openAddLabel}>
-                <Plus className="w-3.5 h-3.5 mr-1" /> เพิ่มฉลาก
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {(product.labels?.length ?? 0) === 0 ? (
-                <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">ยังไม่มีฉลาก</div>
-              ) : product.labels.map(l => (
-                <div key={l.id} className="border border-border rounded-lg p-4 hover:bg-muted/20">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {l.label_name && <span className="font-medium">{l.label_name}</span>}
-                        {l.is_default ? <Badge variant="success" className="text-xs">ค่าเริ่มต้น</Badge> : null}
-                        {!l.is_active ? <Badge variant="secondary" className="text-xs">ปิดใช้งาน</Badge> : null}
-                      </div>
-                      <div className="text-sm text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
-                        {l.dosage_name && <span>ปริมาณ: {l.dosage_name}</span>}
-                        {l.frequency_name && <span>ความถี่: {l.frequency_name}</span>}
-                        {l.timing_name && <span>เวลา: {l.timing_name}</span>}
-                      </div>
-                      {l.indication_th && <p className="text-sm mt-1">{l.indication_th}</p>}
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button size="sm" variant="ghost" onClick={() => openEditLabel(l)}><Edit2 className="w-3.5 h-3.5" /></Button>
-                      <Button size="sm" variant="ghost" onClick={() => handleDeleteLabel(l.id)} className="text-destructive hover:text-destructive">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
+            <div className="bg-card rounded-2xl shadow-card overflow-hidden">
+              <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
+                <span>ฉลากยาสำหรับพิมพ์</span>
+                <Button onClick={openAddLabel} className="h-9 rounded-lg px-2 text-sm">
+                  <Plus className="size-4" /> เพิ่มฉลาก
+                </Button>
+              </div>
+              <div className="border-l-8 border-r-8 border-card">
+                {(product.labels?.length ?? 0) === 0 ? (
+                  <div className="text-center text-muted-foreground py-16">
+                    <Pill className="size-10 mx-auto mb-2 opacity-30" />
+                    ยังไม่มีฉลาก
                   </div>
-                </div>
-              ))}
+                ) : (
+                  <div className="divide-y divide-border">
+                    {product.labels.map(l => (
+                      <div key={l.id} className="px-4 py-3 hover:bg-primary-soft/30 transition-colors">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              {l.label_name && <span className="font-semibold text-sm">{l.label_name}</span>}
+                              {l.is_default ? <Badge variant="success" className="text-xs rounded-md">ค่าเริ่มต้น</Badge> : null}
+                              {!l.is_active ? <Badge variant="secondary" className="text-xs rounded-md">ปิดใช้งาน</Badge> : null}
+                            </div>
+                            <div className="text-sm text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                              {l.dosage_name && <span>ปริมาณ: {l.dosage_name}</span>}
+                              {l.frequency_name && <span>ความถี่: {l.frequency_name}</span>}
+                              {l.timing_name && <span>เวลา: {l.timing_name}</span>}
+                            </div>
+                            {l.indication_th && <p className="text-sm mt-1.5 text-foreground">{l.indication_th}</p>}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button size="icon-xl" variant="outline" onClick={() => openEditLabel(l)} title="แก้ไข">
+                              <Edit2 />
+                            </Button>
+                            <Button size="icon-xl" variant="outline" onClick={() => handleDeleteLabel(l.id)} className="text-destructive hover:text-destructive" title="ลบ">
+                              <Trash2 />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="px-5 py-2.5 border-t border-border text-xs text-muted-foreground shrink-0 flex items-center justify-between">
+                <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{product.labels?.length ?? 0}</span> ฉลาก</span>
+                <span className="flex items-center gap-3">
+                  <span>เปิดใช้งาน <span className="font-semibold text-success tabular-nums">{product.labels?.filter(l => l.is_active).length ?? 0}</span></span>
+                  <span>ปิดใช้งาน <span className="font-semibold text-foreground tabular-nums">{product.labels?.filter(l => !l.is_active).length ?? 0}</span></span>
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -998,29 +1035,34 @@ export default function EditProductPage() {
         {/* ======================== TAB: LOTS ======================== */}
         {tab === 'lots' && (
           <div className="pt-4">
-            <p className="text-sm text-muted-foreground mb-3">
-              คลิก <Edit2 className="inline w-3 h-3" /> เพื่อแก้ไขข้อมูลล็อตโดยตรง — การเปลี่ยนจำนวนคงเหลือจะบันทึกในประวัติการเคลื่อนไหวสต็อกอัตโนมัติ
-            </p>
-            <div className="border border-border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-foreground-subtle">
-                  <TableRow>
-                    <TableHead>Lot No.</TableHead>
-                    <TableHead>ใบรับ</TableHead>
-                    <TableHead>ผู้จัดจำหน่าย</TableHead>
-                    <TableHead>วันผลิต</TableHead>
-                    <TableHead>วันหมดอายุ</TableHead>
-                    <TableHead className="text-right">รับเข้า</TableHead>
-                    <TableHead className="text-right">คงเหลือ</TableHead>
-                    <TableHead className="text-right">ราคาทุน</TableHead>
-                    <TableHead className="text-center">สถานะ</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
+            <div className="bg-card rounded-2xl shadow-card overflow-hidden">
+              <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center gap-2">
+                <Edit2 className="size-4 shrink-0" />
+                <span>คลิกไอคอนแก้ไขเพื่อแก้ข้อมูลล็อตโดยตรง — การเปลี่ยนจำนวนคงเหลือจะบันทึกในประวัติการเคลื่อนไหวสต็อกอัตโนมัติ</span>
+              </div>
+              <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+                <Table className="table-fixed">
+                  <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
+                    <TableRow>
+                      <TableHead className="w-32 text-foreground-subtle">Lot No.</TableHead>
+                      <TableHead className="w-32 text-foreground-subtle">ใบรับ</TableHead>
+                      <TableHead className="text-foreground-subtle">ผู้จัดจำหน่าย</TableHead>
+                      <TableHead className="w-28 text-foreground-subtle">วันผลิต</TableHead>
+                      <TableHead className="w-28 text-foreground-subtle">วันหมดอายุ</TableHead>
+                      <TableHead className="w-20 text-right text-foreground-subtle">รับเข้า</TableHead>
+                      <TableHead className="w-20 text-right text-foreground-subtle">คงเหลือ</TableHead>
+                      <TableHead className="w-28 text-right text-foreground-subtle">ราคาทุน</TableHead>
+                      <TableHead className="w-24 text-center text-foreground-subtle">สถานะ</TableHead>
+                      <TableHead className="w-28 text-center text-foreground-subtle">จัดการ</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {(product.lots?.length ?? 0) === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center text-muted-foreground py-8">ยังไม่มีล็อต</TableCell>
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-16">
+                        <Package className="size-10 mx-auto mb-2 opacity-30" />
+                        ยังไม่มีล็อต
+                      </TableCell>
                     </TableRow>
                   ) : product.lots.map(lot => {
                     const expStatus = getExpiryStatus(lot.expiry_date)
@@ -1028,11 +1070,11 @@ export default function EditProductPage() {
 
                     if (isEditing) {
                       return (
-                        <TableRow key={lot.id} className="bg-primary-soft/50">
+                        <TableRow key={lot.id} className="bg-primary-soft/40">
                           {/* Lot No. */}
                           <TableCell>
                             <Input value={lotEditForm.lot_number} onChange={e => setLotEditForm(f => ({ ...f, lot_number: e.target.value }))}
-                              className="h-8 w-28 text-sm font-mono" />
+                              className="h-9 w-28 rounded-lg text-sm font-mono" />
                           </TableCell>
                           {/* ใบรับ — read only */}
                           <TableCell className="text-xs text-muted-foreground">{lot.invoice_no ?? '—'}</TableCell>
@@ -1042,39 +1084,37 @@ export default function EditProductPage() {
                           <TableCell>
                             <DateInput value={lotEditForm.manufactured_date}
                               onChange={v => setLotEditForm(f => ({ ...f, manufactured_date: v }))}
-                              className="h-8 w-32 text-sm" />
+                              className="h-9 w-32 rounded-lg text-sm" />
                           </TableCell>
                           {/* วันหมดอายุ */}
                           <TableCell>
                             <DateInput value={lotEditForm.expiry_date}
                               onChange={v => setLotEditForm(f => ({ ...f, expiry_date: v }))}
-                              className="h-8 w-32 text-sm" />
+                              className="h-9 w-32 rounded-lg text-sm" />
                           </TableCell>
                           {/* รับเข้า — read only */}
-                          <TableCell className="text-right text-sm">{lot.qty_received}</TableCell>
+                          <TableCell className="text-right text-sm tabular-nums">{lot.qty_received}</TableCell>
                           {/* คงเหลือ */}
                           <TableCell>
                             <Input type="number" value={lotEditForm.qty_on_hand}
                               onChange={e => setLotEditForm(f => ({ ...f, qty_on_hand: e.target.value }))}
-                              className="h-8 w-20 text-right text-sm tabular-nums" min={0} />
+                              className="h-9 w-20 rounded-lg text-right text-sm tabular-nums" min={0} />
                           </TableCell>
                           {/* ราคาทุน */}
                           <TableCell>
                             <Input type="number" value={lotEditForm.cost_price}
                               onChange={e => setLotEditForm(f => ({ ...f, cost_price: e.target.value }))}
-                              className="h-8 w-24 text-right text-sm tabular-nums" min={0} step="0.01" />
+                              className="h-9 w-24 rounded-lg text-right text-sm tabular-nums" min={0} step="0.01" />
                           </TableCell>
                           <TableCell />
                           {/* Save / Cancel */}
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button size="sm" onClick={handleSaveLot} disabled={lotSaving}
-                                className="h-7 px-2 bg-success hover:bg-success text-primary-foreground">
-                                <Check className="w-3.5 h-3.5" />
+                          <TableCell>
+                            <div className="flex items-center justify-center gap-2">
+                              <Button size="icon-xl" variant="success" onClick={handleSaveLot} disabled={lotSaving} title="บันทึก">
+                                <Check />
                               </Button>
-                              <Button size="sm" variant="outline" onClick={() => setEditingLotId(null)} disabled={lotSaving}
-                                className="h-7 px-2">
-                                <X className="w-3.5 h-3.5" />
+                              <Button size="icon-xl" variant="outline" onClick={() => setEditingLotId(null)} disabled={lotSaving} title="ยกเลิก">
+                                <X />
                               </Button>
                             </div>
                           </TableCell>
@@ -1083,58 +1123,66 @@ export default function EditProductPage() {
                     }
 
                     return (
-                      <TableRow key={lot.id}>
-                        <TableCell className="font-mono text-sm">{lot.lot_number}</TableCell>
+                      <TableRow key={lot.id} className="hover:bg-primary-soft/60 transition-colors">
+                        <TableCell className="font-mono text-sm font-semibold">{lot.lot_number}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{lot.invoice_no ?? '—'}</TableCell>
                         <TableCell className="text-sm">{(lot as any).supplier_name ?? '—'}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {(lot as any).manufactured_date ? formatExpiry((lot as any).manufactured_date) : '—'}
                         </TableCell>
-                        <TableCell className="text-sm">
+                        <TableCell className="text-sm tabular-nums">
                           <span className={
-                            expStatus === 'expired' ? 'text-destructive font-medium' :
-                            expStatus === 'danger'  ? 'text-warning-strong font-medium' :
+                            expStatus === 'expired' ? 'text-destructive font-semibold' :
+                            expStatus === 'danger'  ? 'text-warning-strong font-semibold' :
                             expStatus === 'warning' ? 'text-warning' : ''
                           }>
                             {formatExpiry(lot.expiry_date)}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right">{lot.qty_received}</TableCell>
-                        <TableCell className="text-right font-medium">{lot.qty_on_hand}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(lot.cost_price)}</TableCell>
+                        <TableCell className="text-right text-sm tabular-nums">{lot.qty_received}</TableCell>
+                        <TableCell className="text-right text-sm font-semibold tabular-nums">{lot.qty_on_hand}</TableCell>
+                        <TableCell className="text-right text-sm tabular-nums">{formatCurrency(lot.cost_price)}</TableCell>
                         <TableCell className="text-center">
                           {lot.is_cancelled
-                            ? <Badge variant="destructive" className="text-xs">ยกเลิก</Badge>
+                            ? <Badge variant="destructive" className="text-xs rounded-md">ยกเลิก</Badge>
                             : lot.is_closed
-                            ? <Badge variant="secondary" className="text-xs">ปิด</Badge>
+                            ? <Badge variant="secondary" className="text-xs rounded-md">ปิด</Badge>
                             : lot.qty_on_hand === 0
-                            ? <Badge variant="secondary" className="text-xs">หมด</Badge>
-                            : <Badge variant="success" className="text-xs">ใช้งาน</Badge>}
+                            ? <Badge variant="secondary" className="text-xs rounded-md">หมด</Badge>
+                            : <Badge variant="success" className="text-xs rounded-md">ใช้งาน</Badge>}
                         </TableCell>
-                        <TableCell className="text-right">
-                          {!lot.is_cancelled && (
-                            <Button size="sm" variant="ghost" onClick={() => startEditLot(lot)}
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
+                        <TableCell>
+                          <div className="flex items-center justify-center">
+                            {!lot.is_cancelled && (
+                              <Button size="icon-xl" variant="outline" onClick={() => startEditLot(lot)} title="แก้ไข">
+                                <Edit2 />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     )
                   })}
                 </TableBody>
               </Table>
+              </div>
+              <div className="px-5 py-2.5 border-t border-border text-xs text-muted-foreground shrink-0 flex items-center justify-between">
+                <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{product.lots?.length ?? 0}</span> ล็อต</span>
+                <span className="flex items-center gap-3">
+                  <span>ใช้งาน <span className="font-semibold text-success tabular-nums">{activeLotList.length}</span></span>
+                  <span>คงเหลือรวม <span className="font-semibold text-foreground tabular-nums">{totalStock.toLocaleString()}</span> {baseUnit}</span>
+                </span>
+              </div>
             </div>
           </div>
         )}
-        </div>
       </div>
 
       {/* ======================== UNIT DIALOG ======================== */}
       <Dialog open={unitDialog} onOpenChange={setUnitDialog}>
         <DialogContent size="md">
           <DialogHeader>
-            <DialogTitle>{editingUnit ? 'แก้ไขหน่วยนับ' : 'เพิ่มหน่วยนับ'}</DialogTitle>
+            <DialogTitle>{editingUnit?.is_base_unit ? 'แก้ไขหน่วยหลัก' : editingUnit ? 'แก้ไขหน่วยนับ' : 'เพิ่มหน่วยนับ'}</DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-3">
             <div>
@@ -1144,33 +1192,40 @@ export default function EditProductPage() {
                 {itemUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </SelectField>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">บาร์โค้ด</label>
-              <Input value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">จำนวนต่อหน่วยหลัก</label>
-              <Input type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="w-28" min={0.0001} step="0.0001" />
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">ราคาปลีก</label>
-                <Input type="number" value={unitForm.price_retail ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_retail: e.target.value }))} min={0} step="0.01" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">ราคาส่ง 1</label>
-                <Input type="number" value={unitForm.price_wholesale1 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale1: e.target.value }))} min={0} step="0.01" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">ราคาส่ง 2</label>
-                <Input type="number" value={unitForm.price_wholesale2 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale2: e.target.value }))} min={0} step="0.01" />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-4 pt-1">
-              <Toggle checked={!!unitForm.is_base_unit} onChange={v => setUnitForm((f: any) => ({ ...f, is_base_unit: v ? 1 : 0 }))} label="หน่วยหลัก" />
-              <Toggle checked={!!unitForm.is_for_sale} onChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))} label="ใช้ขาย" />
-              <Toggle checked={!!unitForm.is_for_purchase} onChange={v => setUnitForm((f: any) => ({ ...f, is_for_purchase: v ? 1 : 0 }))} label="ใช้ซื้อ" />
-            </div>
+            {editingUnit?.is_base_unit ? (
+              <p className="text-xs text-muted-foreground">
+                หน่วยหลักดึงราคา/บาร์โค้ดจากตัวสินค้าโดยอัตโนมัติ — แก้ไขได้ที่แท็บ "ข้อมูลทั่วไป"
+              </p>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-1">บาร์โค้ด</label>
+                  <Input value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">จำนวนต่อหน่วยหลัก</label>
+                  <Input type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="w-28" min={0.0001} step="0.0001" />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">ราคาปลีก</label>
+                    <Input type="number" value={unitForm.price_retail ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_retail: e.target.value }))} min={0} step="0.01" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">ราคาส่ง 1</label>
+                    <Input type="number" value={unitForm.price_wholesale1 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale1: e.target.value }))} min={0} step="0.01" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">ราคาส่ง 2</label>
+                    <Input type="number" value={unitForm.price_wholesale2 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale2: e.target.value }))} min={0} step="0.01" />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-4 pt-1">
+                  <Toggle checked={!!unitForm.is_for_sale} onChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))} label="ใช้ขาย" />
+                  <Toggle checked={!!unitForm.is_for_purchase} onChange={v => setUnitForm((f: any) => ({ ...f, is_for_purchase: v ? 1 : 0 }))} label="ใช้ซื้อ" />
+                </div>
+              </>
+            )}
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setUnitDialog(false)}>ยกเลิก</Button>

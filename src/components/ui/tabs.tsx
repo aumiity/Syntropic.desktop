@@ -32,6 +32,7 @@ const tabsListVariants = cva(
     "group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col",
     "data-[variant=line]:rounded-none",
     "data-[variant=pill]:rounded-none data-[variant=pill]:p-0 data-[variant=pill]:gap-1 data-[variant=pill]:group-data-horizontal/tabs:h-auto",
+    "data-[variant=segmented]:inline-grid data-[variant=segmented]:grid-flow-col data-[variant=segmented]:auto-cols-fr data-[variant=segmented]:rounded-xl data-[variant=segmented]:p-1 data-[variant=segmented]:gap-1 data-[variant=segmented]:group-data-horizontal/tabs:h-auto",
   ].join(" "),
   {
     variants: {
@@ -39,6 +40,7 @@ const tabsListVariants = cva(
         default: "bg-muted",
         line: "gap-1 bg-transparent",
         pill: "bg-transparent",
+        segmented: "bg-card",
       },
     },
     defaultVariants: {
@@ -92,6 +94,10 @@ function TabsTrigger({
         "group-data-[variant=pill]/tabs-list:bg-card group-data-[variant=pill]/tabs-list:border-transparent group-data-[variant=pill]/tabs-list:shadow-none",
         "group-data-[variant=pill]/tabs-list:data-[state=active]:bg-primary group-data-[variant=pill]/tabs-list:data-[state=active]:text-primary-foreground group-data-[variant=pill]/tabs-list:data-[state=active]:shadow-none",
         "dark:group-data-[variant=pill]/tabs-list:data-[state=active]:bg-primary dark:group-data-[variant=pill]/tabs-list:data-[state=active]:text-primary-foreground dark:group-data-[variant=pill]/tabs-list:data-[state=active]:border-transparent",
+        "group-data-[variant=segmented]/tabs-list:rounded-lg group-data-[variant=segmented]/tabs-list:px-4 group-data-[variant=segmented]/tabs-list:py-3 group-data-[variant=segmented]/tabs-list:h-auto",
+        "group-data-[variant=segmented]/tabs-list:bg-transparent group-data-[variant=segmented]/tabs-list:border-transparent group-data-[variant=segmented]/tabs-list:shadow-none",
+        "group-data-[variant=segmented]/tabs-list:data-[state=active]:bg-quaternary group-data-[variant=segmented]/tabs-list:data-[state=active]:text-quaternary-foreground group-data-[variant=segmented]/tabs-list:data-[state=active]:shadow-sm",
+        "dark:group-data-[variant=segmented]/tabs-list:data-[state=active]:bg-quaternary dark:group-data-[variant=segmented]/tabs-list:data-[state=active]:text-quaternary-foreground",
         "after:absolute after:bg-foreground after:opacity-0 after:transition-opacity",
         "group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-[-5px] group-data-horizontal/tabs:after:h-0.5",
         "group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-vertical/tabs:after:w-0.5",

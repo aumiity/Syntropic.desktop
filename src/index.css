@@ -56,7 +56,7 @@
     --surface-hover: 240 6% 90%;
     --border-strong: 0 0% 50%;
 
-    --primary-soft: 168 22% 91%;        /* #E3EDEB */
+    --primary-soft: 180 20% 90%;        /* #E3EDEB */
     --primary-soft-hover: 168 22% 87%;
     --primary-soft-border: 175 35% 70%;
     --primary-strong: 179 91% 12%;
@@ -157,6 +157,8 @@
 
     --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 28px -18px rgba(0, 0, 0, 0.6);
     --selection-bg: hsl(175 60% 60% / 0.4);
+    --font-latin: 'Google Sans';
+    --font-thai: 'Sarabun';
   }
 }
 

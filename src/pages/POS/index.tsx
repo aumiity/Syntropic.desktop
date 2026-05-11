@@ -600,8 +600,8 @@ export default function POSPage() {
                   }`}>
                   <div className="flex items-start justify-between w-full">
                     <span className="text-base font-semibold">รายการขาย {i + 1}</span>
-                    <span className={`grid place-items-center w-10 h-10 rounded-xl shrink-0 ${iconBox}`}>
-                      <Icon className="size-5" strokeWidth={2}/>
+                    <span className={`grid place-items-center w-11 h-11 rounded-xl shrink-0 ${iconBox}`}>
+                      <Icon className="size-7" strokeWidth={2}/>
                     </span>
                   </div>
                   <div className="flex flex-col gap-1 w-full">
@@ -626,8 +626,8 @@ export default function POSPage() {
               <Button variant="ghost"
                 onClick={() => setShowCustomerSearch(true)}
                 className="relative flex items-center gap-3 flex-1 min-h-0 p-2 rounded-xl hover:bg-transparent text-left">
-                <span className="grid place-items-center w-14 h-14 rounded-full shrink-0 bg-senary text-senary-foreground">
-                  <User className="size-7" />
+                <span className="grid place-items-center w-12 h-12 rounded-full shrink-0 bg-senary text-senary-foreground">
+                  <User className="size-8" />
                 </span>
                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                   <span className="text-base leading-7 font-bold leading-tight truncate flex items-center gap-1.5">
@@ -647,12 +647,12 @@ export default function POSPage() {
                 <Button variant="senary"
                   onClick={() => setShowCustomerInfo(true)}
                   disabled={!cart.customer}
-                  className="h-9 rounded-lg text-xs gap-1">
+                  className="h-9 rounded-lg text-sm gap-1">
                   <Info className="size-3.5" /> ดูข้อมูล
                 </Button>
                 <Button variant="tertiary"
                   onClick={() => setShowQuickAdd(true)}
-                  className="h-9 rounded-lg text-xs gap-1">
+                  className="h-9 rounded-lg text-sm gap-1">
                   <UserPlus className="size-3.5" /> เพิ่มลูกค้า
                 </Button>
               </div>

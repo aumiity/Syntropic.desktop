@@ -64,10 +64,18 @@ Customers `C0001…`, suppliers `S0001…`, GR `GR-YYYYMMDD-001…`, sales `INV-
 Products have 4 barcode fields (barcode, barcode2, barcode3, barcode4) plus `product_units.barcode`. Validate uniqueness across ALL of these before save.
 
 ### Pricing
+- **Source of truth for the base unit is the `products` table.** `products:update` runs in a transaction and mirrors `price_retail`/`price_wholesale1`/`price_wholesale2` to the `product_units` row where `is_base_unit=1`, so legacy joins that read from `product_units` keep getting the same numbers. Never write base-unit prices through `products:updateUnit` — the handler strips them (see "Base unit invariant" below).
 - Base product: `price_retail`, `price_wholesale1`, `price_wholesale2`
 - `has_wholesale1` / `has_wholesale2` flags control whether wholesale prices are active
-- ProductUnit variants override all three prices
+- Non-base ProductUnit variants (แผง, กล่อง, …) own their own `price_*` / `barcode` / `qty_per_base` / `is_for_sale` / `is_for_purchase`. These override the products table when that unit is selected in POS.
 - `cost_price` per lot; `products.cost_price` = weighted avg of open lots
+
+### Base unit invariant (HARD)
+Every product has exactly one `product_units` row with `is_base_unit=1`, created in `products:create` and never altered. Enforced at the IPC layer:
+- **`products:addUnit`** forces `is_base_unit=0` on the payload — only `products:create` can insert a base unit.
+- **`products:updateUnit`** strips `is_base_unit` from the payload. If the target row is a base unit, only `unit_id` (the display-name reference into `item_units`) is editable — pricing, barcode, qty_per_base updates are dropped.
+- **`products:deleteUnit`** throws if the target is a base unit (frontend also hides the delete button — defense in depth).
+- Frontend unit dialog branches on `editingUnit?.is_base_unit`: title "แก้ไขหน่วยหลัก", body shows only the `unit_id` select + a note pointing to the General tab. The `หน่วยหลัก` Toggle was removed entirely — `is_base_unit` cannot be toggled by users.
 
 ### Cost/profit in reports
 Record cost at sale time from lot cost_price. Profit = `line_total − (qty × lot cost_price)`.
@@ -138,6 +146,27 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
 - Pagination: `pagination.tsx`
 - Tables: `table.tsx` components.
   - **Sticky headers:** the `<Table>` wrapper renders `<div data-slot="table-container" className="… overflow-x-auto">`, which auto-promotes to a vertical scroll container too — meaning `sticky` on `<thead>` pins to *that* div, not the page-level scroll wrapper, so the header rides up with the rows. Fix: (a) on the parent, target the inner div via `[&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto` so it becomes the actual scroll element; (b) put `sticky top-0 z-10 bg-muted` on each `<th>` (NOT on `<thead>` — many renderers ignore sticky there). For a hairline that scrolls with the sticky cell, add `shadow-[0_1px_0_var(--border)]` per `<th>` (a plain `border-b` doesn't move with sticky and leaves a gap).
+- **Standard table-card layout (Products list and EditProduct tabs):**
+  - Outer wrapper: `bg-card rounded-2xl shadow-card overflow-hidden`
+  - Inner header bar: `px-5 py-2.5 text-sm font-semibold text-muted-foreground flex items-center justify-between` — left = description/count, right = Add button (`h-9 rounded-lg px-2 text-sm` with `<Plus className="size-4" />`)
+  - Table area: `[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card` (the side borders match the card bg = 8px inset effect without padding)
+  - `<Table className="table-fixed">` with explicit `w-XX` widths on every `<TableHead>` (table-fixed forces children to obey those widths)
+  - Header sticky: `[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted [&_th]:text-foreground-subtle`
+  - Row hover: `hover:bg-primary-soft/60 transition-colors`
+  - Action buttons in rows: `<Button size="icon-xl" variant="outline">` (NOT `size="sm" variant="ghost"`)
+  - Optional status bar at bottom: `border-t border-border px-5 py-2.5 text-xs text-muted-foreground` with counts/breakdown
+  - Empty state: lucide icon (`size-10 opacity-30`) + Thai message, `py-16` padding inside a `<TableCell colSpan={N}>`
+- **`[scrollbar-gutter:stable]` for tab/page scroll shifts:** if you have a horizontally centered element (like a `w-fit` segmented Tabs) inside a vertically-scrollable container, switching content between short and tall tabs makes the scrollbar appear/disappear and shifts the centered element by ~12-15px. Apply `[scrollbar-gutter:stable]` (Tailwind arbitrary value) to the scroll container — reserves the gutter even when no scrollbar is needed.
+
+### Card components (`src/components/ui/card.tsx`)
+- `SectionCard` — main grouping card for form sections. Props: `icon`, `title`, `tint`, `right` (action slot), `children`.
+- `MetricCard` — fixed-height (`h-32`) card with label, big value (`text-3xl tabular-nums leading-none`), optional sub line. Icon is **absolute** top-right (`absolute top-4 right-4`), content has `pr-14` so text doesn't overlap. Three escape-hatch props for sub-element overrides: `labelClassName`, `valueClassName`, `subClassName` — merged via `cn()`, so `subClassName="text-success font-semibold"` cleanly overrides the default muted color. Use `valueClassName` if you need to break out of the tint's `valColor`.
+- `StatCard` — like MetricCard but clickable filter shortcut. Renders a `<button>` with `ring-2 ring-{tint}` when `isActive`. Used in Products list for the 3 stock filter cards.
+
+### Tabs (`src/components/ui/tabs.tsx`)
+- Variants on `<TabsList>`: `default` (gray bar with white active), `line` (underline-only), `pill` (transparent bar with colored primary active), `segmented` (Apple-style with equal-width tabs).
+- **`segmented`**: container is `bg-card rounded-xl p-1`, triggers use `inline-grid grid-flow-col auto-cols-fr` so they all match the width of the longest one. Active state is `bg-tertiary text-tertiary-foreground shadow-sm` in both light and dark. Default for the EditProduct page.
+- Tab icons: just put a lucide `<Icon />` as the first child of `<TabsTrigger>` — auto-sized to `size-4` via the existing `[&_svg:not([class*='size-'])]:size-4` rule.
 
 ## POS Search UX Rules (mirrors PHP behaviour)
 - **Search input is always focused.** `mainInputRef` on the POS page + `modalInputRef` in the search modal. A global `click` listener refocuses whichever is active when the user clicks a non-interactive area. `refocusSearch()` is called after cart unit/price changes. Respects `showPayment/showCustomerSearch/showQuickAdd/showSuccess` — doesn't steal focus from those dialogs.
