@@ -18,7 +18,7 @@ import { DateInput } from '@/components/ui/date-input'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
   ArrowLeft, Save, Plus, Trash2, Edit2, ChevronDown, Check, X, AlertTriangle,
-  Package, ScanBarcode, Tag, Pill, Boxes, FileText, HandCoins, Percent,
+  Package, ScanBarcode, Tag, Pill, Boxes, FileText, HandCoins, Percent, EyeOff,
 } from 'lucide-react'
 
 // ---- Types ----
@@ -483,12 +483,11 @@ export default function EditProductPage() {
             <button onClick={() => navigate('/products')} className="text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
-            {tab === 'general' && (
-              <Button onClick={handleSave} disabled={saving}>
-                <Save className="w-4 h-4 mr-1.5" />
-                {saving ? 'กำลังบันทึก...' : 'บันทึก'}
-              </Button>
-            )}
+            <Button onClick={handleSave} disabled={saving || tab !== 'general'}
+              className={tab !== 'general' ? 'invisible pointer-events-none' : ''}>
+              <Save className="w-4 h-4 mr-1.5" />
+              {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+            </Button>
           </>
         }
       />
@@ -498,25 +497,25 @@ export default function EditProductPage() {
         {/* Meta card */}
         <div className="bg-card rounded-2xl p-5 shadow-card h-32 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ข้อมูล</span>
+            <span className="text-sm font-semibold uppercase text-foreground">ข้อมูล</span>
             <span className="grid place-items-center size-10 rounded-xl shrink-0 bg-primary-soft text-primary">
               <Package className="size-5" />
             </span>
           </div>
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-baseline gap-2 min-w-0">
-              <span className="font-mono text-base font-bold text-foreground shrink-0">{product.code ?? '—'}</span>
-              <span className="text-xs text-muted-foreground truncate">
+              <span className="font-mono text-lg font-bold text-foreground shrink-0">{product.code ?? '—'}</span>
+              <span className="text-sm text-muted-foreground truncate">
                 {categoryName ?? 'ไม่ได้กำหนดหมวด'} · {baseUnit}
               </span>
             </div>
             <div className="flex items-center gap-1 flex-wrap min-h-[18px]">
-              {!!product.is_drug && <Badge variant="warning" className="text-[10px] rounded-md px-1.5 py-0">ยา</Badge>}
-              {!!product.is_disabled && <Badge variant="destructive" className="text-[10px] rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
-              {!!product.is_hidden && <Badge variant="secondary" className="text-[10px] rounded-md px-1.5 py-0">ซ่อน</Badge>}
-              {!!product.is_fda13 && <Badge variant="senary" className="text-[10px] rounded-md px-1.5 py-0">ข.ย.13</Badge>}
+              {!!product.is_drug && <Badge variant="warning" className="text-xs rounded-md px-1.5 py-0">ยา</Badge>}
+              {!!product.is_disabled && <Badge variant="destructive" className="text-xs rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
+              {!!product.is_hidden && <Badge variant="secondary" className="text-xs rounded-md px-1.5 py-0">ซ่อน</Badge>}
+              {!!product.is_fda13 && <Badge variant="senary" className="text-xs rounded-md px-1.5 py-0">ข.ย.13</Badge>}
               {updatedShort && (
-                <span className="text-[10px] text-muted-foreground">แก้ไข {updatedShort}</span>
+                <span className="text-xs text-muted-foreground">แก้ไข {updatedShort}</span>
               )}
             </div>
           </div>
@@ -549,20 +548,12 @@ export default function EditProductPage() {
         {/* Tabs + status toggles inline */}
         <div className="shrink-0">
           <Tabs value={tab} onValueChange={setTab}>
-            <div className="flex items-center justify-between gap-3">
-              <TabsList variant="pill">
-                <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
-                <TabsTrigger value="units">หน่วยนับ ({product.units?.length ?? 0})</TabsTrigger>
-                <TabsTrigger value="labels">ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
-                <TabsTrigger value="lots">ล็อต ({product.lots?.length ?? 0})</TabsTrigger>
-              </TabsList>
-              {tab === 'general' && (
-                <div className="flex items-center gap-5 px-2">
-                  <Toggle checked={!!form.is_hidden} onChange={v => setF('is_hidden', v ? 1 : 0)} label="ซ่อนจากการค้นหา" />
-                  <Toggle checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)} label="ปิดการใช้งาน" />
-                </div>
-              )}
-            </div>
+            <TabsList variant="pill">
+              <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
+              <TabsTrigger value="units">หน่วยนับ ({product.units?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="labels">ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="lots">ล็อต ({product.lots?.length ?? 0})</TabsTrigger>
+            </TabsList>
           </Tabs>
         </div>
 
@@ -881,6 +872,25 @@ export default function EditProductPage() {
                 ) : (
                   <p className="text-xs text-muted-foreground px-1">เปิดสวิตช์ด้านบนเพื่อกรอกข้อมูลยา</p>
                 )}
+              </SectionCard>
+
+              <SectionCard icon={EyeOff} title="สถานะ" tint="secondary">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                    <div>
+                      <div className="text-sm font-semibold uppercase text-foreground">ซ่อน</div>
+                      <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>
+                    </div>
+                    <Switch checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                    <div>
+                      <div className="text-sm font-semibold uppercase text-foreground">ปิดใช้งาน</div>
+                      <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
+                    </div>
+                    <Switch checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
+                  </div>
+                </div>
               </SectionCard>
 
             </div>

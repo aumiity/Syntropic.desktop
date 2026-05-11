@@ -172,14 +172,14 @@ function MetricCard({
       )}
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-foreground-subtle">{label}</span>
+        <span className="text-sm font-semibold uppercase text-foreground-">{label}</span>
         <span className={cn("grid place-items-center size-10 rounded-xl shrink-0", iconBox)}>
           <Icon className="size-5" />
         </span>
       </div>
       <div>
         <div className={cn("text-3xl font-bold tabular-nums leading-none", valColor)}>{value}</div>
-        {sub && <div className="text-xs text-muted-foreground tabular-nums mt-1.5">{sub}</div>}
+        {sub && <div className="text-sm text-muted-foreground tabular-nums mt-1.5">{sub}</div>}
       </div>
     </div>
   )
