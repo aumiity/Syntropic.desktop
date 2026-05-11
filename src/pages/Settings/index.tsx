@@ -326,7 +326,7 @@ function DrugTypesTab() {
 
   const openAdd = () => { setForm({ code: '', name_th: '', is_fda9: 0, is_fda10: 0, is_fda11: 0, is_fda13: 0 }); setDialog(true) }
   const openEdit = (d: DrugType) => {
-    setForm({ id: d.id, code: d.code, name_th: d.name_th, is_fda9: (d as any).is_fda9 ?? 0, is_fda10: (d as any).is_fda10 ?? 0, is_fda11: (d as any).is_fda11 ?? 0, is_fda13: (d as any).is_fda13 ?? 0 })
+    setForm({ id: d.id, code: d.code, name_th: d.name_th, is_fda9: d.is_fda9 ?? 0, is_fda10: d.is_fda10 ?? 0, is_fda11: d.is_fda11 ?? 0, is_fda13: d.is_fda13 ?? 0 })
     setDialog(true)
   }
 
@@ -361,10 +361,10 @@ function DrugTypesTab() {
             <TableRow>
               <TableHead className="w-28">รหัส</TableHead>
               <TableHead>ชื่อประเภทยา</TableHead>
-              <TableHead className="text-center">อย.9</TableHead>
-              <TableHead className="text-center">อย.10</TableHead>
-              <TableHead className="text-center">อย.11</TableHead>
-              <TableHead className="text-center">อย.13</TableHead>
+              <TableHead className="text-center">ข.ย.9</TableHead>
+              <TableHead className="text-center">ข.ย.10</TableHead>
+              <TableHead className="text-center">ข.ย.11</TableHead>
+              <TableHead className="text-center">ข.ย.13</TableHead>
               <TableHead className="text-center w-24">สถานะ</TableHead>
               <TableHead className="w-20" />
             </TableRow>
@@ -413,13 +413,14 @@ function DrugTypesTab() {
               <Input value={form.name_th ?? ''} onChange={e => setF('name_th', e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">รายงาน อย.</label>
+              <label className="block text-sm font-medium mb-1">ค่าเริ่มต้นรายงาน อย. สำหรับสินค้าประเภทนี้</label>
+              <p className="text-xs text-muted-foreground mb-2">เลือกสินค้าเป็นประเภทยานี้ → flags ด้านล่างจะถูกตั้งอัตโนมัติ (แก้รายตัวได้ที่แก้ไขสินค้า)</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { key: 'is_fda9', label: 'รายงาน อย. 9' },
-                  { key: 'is_fda10', label: 'รายงาน อย. 10' },
-                  { key: 'is_fda11', label: 'รายงาน อย. 11' },
-                  { key: 'is_fda13', label: 'รายงาน อย. 13' },
+                  { key: 'is_fda9',  label: 'ข.ย.9 — บัญชีการซื้อยา' },
+                  { key: 'is_fda10', label: 'ข.ย.10 — ขายยาควบคุมพิเศษ' },
+                  { key: 'is_fda11', label: 'ข.ย.11 — ขายยาอันตราย' },
+                  { key: 'is_fda13', label: 'ข.ย.13 — ขายส่ง (รายปี)' },
                 ].map(({ key, label }) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer text-sm">
                     <input type="checkbox" checked={!!form[key]} onChange={e => setF(key, e.target.checked ? 1 : 0)} className="w-4 h-4 rounded" />

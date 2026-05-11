@@ -162,8 +162,7 @@ export default function ProductsPage() {
         reorder_point: 0,
         safety_stock: 0,
         is_antibiotic: 0,
-        is_fda_report: 0,
-        is_fda13_report: 0,
+        is_fda9: 0, is_fda10: 0, is_fda11: 0, is_fda13: 0,
       }) as any
       setShowCreate(false)
       setNewProduct({ trade_name: '', barcode: '', price_retail: '', unit_id: 0, category_id: 0 })
@@ -357,7 +356,7 @@ export default function ProductsPage() {
                       <div className="flex gap-1 mt-1 flex-wrap">
                         {isDisabled ? <Badge variant="secondary" className="text-[10px] rounded-md px-1.5 py-0">ปิดใช้งาน</Badge> : null}
                         {/* {row.is_antibiotic ? <Badge variant="warning" className="text-[10px] rounded-md px-1.5 py-0">ยาปฏิชีวนะ</Badge> : null} */}
-                        {row.is_fda13_report ? <Badge variant="senary" className="text-[10px] rounded-md px-1.5 py-0">อย.13</Badge> : null}
+                        {row.is_fda13 ? <Badge variant="senary" className="text-[10px] rounded-md px-1.5 py-0">ข.ย.13</Badge> : null}
                       </div>
                     </TableCell>
                     <TableCell className="text-center text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>

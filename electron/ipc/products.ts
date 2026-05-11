@@ -143,7 +143,8 @@ export function registerProductHandlers() {
         has_vat, reorder_point, safety_stock,
         drug_type_id, tmt_id,
         is_antibiotic,
-        indication_note, side_effect_note, is_fda_report, is_fda13_report,
+        indication_note, side_effect_note,
+        is_fda9, is_fda10, is_fda11, is_fda13,
         search_keywords, note)
       VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,
         @category_id, @is_stock_item,
@@ -151,7 +152,8 @@ export function registerProductHandlers() {
         @has_vat, @reorder_point, @safety_stock,
         @drug_type_id, @tmt_id,
         @is_antibiotic,
-        @indication_note, @side_effect_note, @is_fda_report, @is_fda13_report,
+        @indication_note, @side_effect_note,
+        @is_fda9, @is_fda10, @is_fda11, @is_fda13,
         @search_keywords, @note)
     `)
 

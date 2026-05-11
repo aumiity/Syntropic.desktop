@@ -54,7 +54,10 @@ export function initializeSchema(db: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       code TEXT NOT NULL UNIQUE,
       name_th TEXT NOT NULL,
-      khor_yor_report TEXT,
+      is_fda9  INTEGER NOT NULL DEFAULT 0,
+      is_fda10 INTEGER NOT NULL DEFAULT 0,
+      is_fda11 INTEGER NOT NULL DEFAULT 0,
+      is_fda13 INTEGER NOT NULL DEFAULT 0,
       is_disabled INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -104,8 +107,10 @@ export function initializeSchema(db: Database.Database) {
       is_antibiotic INTEGER NOT NULL DEFAULT 0,
       indication_note TEXT,
       side_effect_note TEXT,
-      is_fda_report INTEGER NOT NULL DEFAULT 0,
-      is_fda13_report INTEGER NOT NULL DEFAULT 0,
+      is_fda9  INTEGER NOT NULL DEFAULT 0,
+      is_fda10 INTEGER NOT NULL DEFAULT 0,
+      is_fda11 INTEGER NOT NULL DEFAULT 0,
+      is_fda13 INTEGER NOT NULL DEFAULT 0,
       search_keywords TEXT,
       note TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
@@ -515,6 +520,33 @@ export function initializeSchema(db: Database.Database) {
          WHERE pu.product_id = p.id AND pu.is_base_unit = 1
       )`,
     `ALTER TABLE products DROP COLUMN unit_id`,
+  ]) {
+    try { db.exec(sql) } catch {}
+  }
+
+  // Migration: FDA report columns — drug_types gets boolean flags, products renamed.
+  // Order matters: drug_types flags must exist before products backfill uses them.
+  for (const sql of [
+    // drug_types: add individual boolean flags (replaces khor_yor_report TEXT)
+    `ALTER TABLE drug_types ADD COLUMN is_fda9  INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE drug_types ADD COLUMN is_fda10 INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE drug_types ADD COLUMN is_fda11 INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE drug_types ADD COLUMN is_fda13 INTEGER NOT NULL DEFAULT 0`,
+    // Backfill drug_types from old khor_yor_report column
+    `UPDATE drug_types SET is_fda9=1 WHERE khor_yor_report IS NOT NULL AND is_fda9=0`,
+    `UPDATE drug_types SET is_fda10=1 WHERE khor_yor_report='ขย.10' AND is_fda10=0`,
+    `ALTER TABLE drug_types DROP COLUMN khor_yor_report`,
+    // products: rename is_fda_report → is_fda9, is_fda13_report → is_fda13
+    `ALTER TABLE products RENAME COLUMN is_fda_report TO is_fda9`,
+    `ALTER TABLE products RENAME COLUMN is_fda13_report TO is_fda13`,
+    // products: add is_fda10 and is_fda11
+    `ALTER TABLE products ADD COLUMN is_fda10 INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE products ADD COLUMN is_fda11 INTEGER NOT NULL DEFAULT 0`,
+    // Backfill: all drugs must be in ข.ย.9 (purchase report)
+    `UPDATE products SET is_fda9=1 WHERE is_drug=1 AND is_fda9=0`,
+    // Backfill is_fda10/11 from the drug_type (flags set above)
+    `UPDATE products SET is_fda10=(SELECT COALESCE(dt.is_fda10,0) FROM drug_types dt WHERE dt.id=products.drug_type_id) WHERE is_drug=1 AND drug_type_id IS NOT NULL`,
+    `UPDATE products SET is_fda11=(SELECT COALESCE(dt.is_fda11,0) FROM drug_types dt WHERE dt.id=products.drug_type_id) WHERE is_drug=1 AND drug_type_id IS NOT NULL`,
   ]) {
     try { db.exec(sql) } catch {}
   }

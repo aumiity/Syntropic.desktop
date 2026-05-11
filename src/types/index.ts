@@ -12,7 +12,7 @@ export interface Product {
   drug_type_id?: number
   is_antibiotic: number
   indication_note?: string; side_effect_note?: string
-  is_fda_report: number; is_fda13_report: number
+  is_fda9: number; is_fda10: number; is_fda11: number; is_fda13: number
   search_keywords?: string; note?: string
   // Joined
   category_name?: string; drug_type_name?: string; unit_name?: string
@@ -119,7 +119,9 @@ export interface ItemUnit {
 }
 
 export interface DrugType {
-  id: number; code: string; name_th: string; khor_yor_report?: string; is_disabled: number
+  id: number; code: string; name_th: string
+  is_fda9: number; is_fda10: number; is_fda11: number; is_fda13: number
+  is_disabled: number
 }
 
 export interface DosageForm {

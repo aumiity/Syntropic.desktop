@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 2026-05-11 session: EditProduct UI overhaul (ราคาและต้นทุน layout, profit summary, iOS-style toggles, price-below-cost warning dialog), global UI components extracted (SectionCard→card.tsx, FormField→label.tsx, NativeSelect→select.tsx, Toggle→switch.tsx), CLAUDE.md rule added prohibiting local UI helpers in page files, DB wiped + real supplier seed data (VMDRUG/DRUG CENTER/WELLEKPHARMA/FORTE/LIKHIT), seedMockProducts removed.
+## Status: 100% Complete + UI Polish ✅ — 2026-05-11 session: FDA report schema refactor — drug_types gets is_fda9/10/11/13 boolean flags (replaces khor_yor_report TEXT), products columns renamed is_fda_report→is_fda9 / is_fda13_report→is_fda13 with new is_fda10/is_fda11 added; Settings DrugTypesTab wired to DB; EditProduct 4 report toggles (is_fda9 auto from is_drug, is_fda10/11/13 auto from drug_type then custom per-product).
 ## Last updated: 2026-05-11
 ## App is RUNNABLE — run `npm run electron:dev` to launch
-## ⚠️ Pick up next session: **ข.ย.10 / ข.ย.11 reports** — บัญชีการขายยาควบคุมพิเศษ (ข.ย.10) และยาอันตราย (ข.ย.11) ตามที่ อ.ย. กำหนด. New report pages under `/reports/`. See NEXT SESSION section below for plan.
+## ⚠️ Pick up next session: **ข.ย.10 / ข.ย.11 reports** — บัญชีการขายยาควบคุมพิเศษ (ข.ย.10) และยาอันตราย (ข.ย.11) ตามที่ อ.ย. กำหนด. New report pages under `/reports/`. See NEXT SESSION section below for updated plan.
 
 ---
 
@@ -146,21 +146,46 @@ All pages are now complete. No pending stubs.
 
 ### Background
 อ.ย. กำหนดให้ร้านยาที่จำหน่ายยาควบคุมพิเศษและยาอันตรายต้องบันทึกบัญชีการขายรายวัน:
-- **ข.ย.10** — บัญชีการขายยาควบคุมพิเศษ (drug_type: SPCL_CTRL, PSYCHO_4, NARCOTIC_3)
-- **ข.ย.11** — บัญชีการขายยาอันตราย (drug_type: DANGEROUS)
+- **ข.ย.10** — บัญชีการขายยาควบคุมพิเศษ
+- **ข.ย.11** — บัญชีการขายยาอันตราย ตามที่ อ.ย. กำหนด
+
+### Data model (updated 2026-05-11)
+Per-product flags on `products` table now drive report inclusion — NOT drug_type code matching:
+- `products.is_fda10 = 1` → product appears in ข.ย.10
+- `products.is_fda11 = 1` → product appears in ข.ย.11
+
+Default values come from `drug_types.is_fda10` / `drug_types.is_fda11` when a drug type is selected in EditProduct. Pharmacist can override per-product. This means:
+- SPCL_CTRL / PSYCHO_3/4 / NARCOTIC_3 → `is_fda10=1` by default on new products
+- DANGEROUS → `is_fda11=0` by default; pharmacist ticks manually per regulation
 
 ### Data source
-- `sales` + `sale_items` JOIN `products` WHERE `products.is_fda_report = 1` AND drug_type matches
+```sql
+-- ข.ย.10
+SELECT s.sold_at, s.invoice_no, p.trade_name, p.tmt_id,
+       si.qty, si.unit_name, si.unit_price,
+       COALESCE(s.customer_name_free, c.full_name) AS buyer_name,
+       c.id_card
+FROM sale_items si
+JOIN sales s ON s.id = si.sale_id
+JOIN products p ON p.id = si.product_id
+LEFT JOIN customers c ON c.id = s.customer_id
+WHERE p.is_fda10 = 1
+  AND s.status = 'completed'
+  AND s.sold_at BETWEEN @from AND @to
+ORDER BY s.sold_at
+
+-- ข.ย.11 — identical but WHERE p.is_fda11 = 1
+```
 - Filter by date range (รายวัน/รายเดือน)
-- Columns: วันที่, เลขที่ใบเสร็จ, ชื่อยา, ชื่อสามัญ, ปริมาณ, หน่วย, ราคา, ชื่อผู้ซื้อ/เลขบัตรปชช.
+- Columns: วันที่, เลขที่ใบเสร็จ, ชื่อยา, TMT ID, ปริมาณ, หน่วย, ราคา, ชื่อผู้ซื้อ/เลขบัตรปชช.
 
 ### Pages to build
 1. `src/pages/Reports/Kho10.tsx` — ข.ย.10 พร้อม print/export
 2. `src/pages/Reports/Kho11.tsx` — ข.ย.11 พร้อม print/export
 
 ### IPC needed
-- `reports:kho10List` — query sales filtered by SPCL_CTRL/PSYCHO_4/NARCOTIC_3 drug types
-- `reports:kho11List` — query sales filtered by DANGEROUS drug type
+- `reports:kho10List({ from, to })` — query sales WHERE `p.is_fda10 = 1`
+- `reports:kho11List({ from, to })` — query sales WHERE `p.is_fda11 = 1`
 
 ### Routes
 - `/reports/kho10`
@@ -1086,3 +1111,84 @@ Tailwind's `text-{xs,sm,base}` ratio 1.33–1.5 — `overflow:hidden` ของ 
 
 ### Uncommitted changes
 All of the above + earlier session changes.
+
+---
+
+## Session 2026-05-11 — FDA report schema refactor + EditProduct/Settings wiring
+
+### Goal
+ย้าย "binding logic" ระหว่างประเภทยากับรายงาน ออกจาก EditProduct ไปไว้ที่ Settings หน้า DrugTypes แทน ให้ EditProduct เป็นการ override รายตัว, ค่า default กำหนดโดย drug_type settings
+
+### Design decisions
+| Report | หลักการ | default |
+|--------|---------|---------|
+| ข.ย.9 | ยาทุกชนิดที่ซื้อเข้า | ผูกกับ `is_drug` เสมอ (ไม่มี toggle แยก) |
+| ข.ย.10 | ยาควบคุมพิเศษที่ขาย | `drug_type.is_fda10` (SPCL_CTRL/PSYCHO/NARCOTIC = 1) |
+| ข.ย.11 | ยาอันตรายที่ถูกกำหนดให้รายงาน | `drug_type.is_fda11` (DANGEROUS = 0, ปรับรายตัวตามกฎหมาย) |
+| ข.ย.13 | ขายส่ง (เฉพาะร้านขายส่ง) | `drug_type.is_fda13` (0 ทุกประเภท, ผู้ใช้ปรับเอง) |
+
+### Schema changes — `electron/db/schema.ts`
+
+**`drug_types` table:**
+- ลบ `khor_yor_report TEXT` → แทนด้วย `is_fda9/10/11/13 INTEGER NOT NULL DEFAULT 0`
+- Migration backfill: `khor_yor_report='ขย.9'` → `is_fda9=1`; `khor_yor_report='ขย.10'` → `is_fda9=1, is_fda10=1`
+- Migration: `ALTER TABLE drug_types DROP COLUMN khor_yor_report`
+
+**`products` table:**
+- RENAME `is_fda_report` → `is_fda9`
+- RENAME `is_fda13_report` → `is_fda13`
+- ADD `is_fda10 INTEGER NOT NULL DEFAULT 0`
+- ADD `is_fda11 INTEGER NOT NULL DEFAULT 0`
+- Backfill: `is_fda9=1` สำหรับ `is_drug=1` ทุกตัว
+- Backfill `is_fda10/11` จาก drug_type JOIN
+
+Note: `sales.is_fda13_report` คงเดิม (คนละ table, คนละความหมาย)
+
+### Seed changes — `electron/db/seed.ts`
+```
+GENERAL/OTC/DANGEROUS → is_fda9=1, is_fda10=0, is_fda11=0, is_fda13=0
+SPCL_CTRL/PSYCHO_3/4/NARCOTIC_3 → is_fda9=1, is_fda10=1, is_fda11=0, is_fda13=0
+```
+DANGEROUS เจตนา `is_fda11=0` — pharmacist ปรับรายตัวตามกฎหมาย ไม่ใช่ default auto-on
+
+### IPC changes
+- `electron/ipc/settings.ts` — `saveDrugType` INSERT ใช้ `is_fda9/10/11/13` แทน `khor_yor_report`; UPDATE branch ใช้ dynamic SQL อยู่แล้ว → ทำงานอัตโนมัติ
+- `electron/ipc/products.ts` — `products:create` INSERT column list อัพเดต
+- `electron/ipc/dev.ts` — test seed INSERT อัพเดต (+2 params, ทุก test product `is_fda9/10/11/13=0`)
+
+### Types — `src/types/index.ts`
+- `Product`: `is_fda_report` / `is_fda13_report` → `is_fda9/10/11/13`
+- `DrugType`: `khor_yor_report?` → `is_fda9/10/11/13`
+
+### Settings/index.tsx — DrugTypesTab
+- `openEdit`: ไม่ต้อง `(d as any)` อีกต่อไป เพราะ `DrugType` type มี is_fda9/10/11/13 แล้ว
+- Dialog checkbox labels เปลี่ยนเป็นชื่อรายงานจริง + description "ค่าเริ่มต้นสำหรับสินค้าประเภทนี้"
+- Table header: `ขย.*` → `ข.ย.*`
+
+### EditProduct.tsx
+- **`is_drug` toggle** — auto-sync `is_fda9 = is_drug` (เดิม: auto-set is_fda_report=1 ตาม is_drug on/off แบบ hard-coded)
+- **`drug_type_id` select** — `onChange` ใหม่: เมื่อเลือก drug type → auto-fill `is_fda10/11/13` จาก drug_type defaults ใน `drugTypes` array ที่โหลดไว้แล้ว; `is_fda9` ไม่ถูก override (ผูกกับ is_drug เสมอ)
+- **Report toggles section** — เปลี่ยนจาก 2 toggles (is_fda_report, is_fda13_report) → 4 toggles:
+  - **ข.ย.9** — แสดง `<Switch disabled>` (ค่าตาม is_drug, ผู้ใช้ไม่แก้ไขได้), opacity-70
+  - **ข.ย.10** — editable switch
+  - **ข.ย.11** — editable switch
+  - **ข.ย.13** — editable switch
+- Meta card badge: `is_fda13_report` → `is_fda13`, label `อย.13` → `ข.ย.13`
+
+### Products/index.tsx
+- Quick-create payload: `is_fda_report/is_fda13_report` → `is_fda9/10/11/13` (ทุกตัว default 0)
+- Products list badge: `is_fda13_report` → `is_fda13`, label `อย.13` → `ข.ย.13`
+
+### Files changed
+- `electron/db/schema.ts` — CREATE TABLE + migration block ใหม่
+- `electron/db/seed.ts` — drugTypes array + INSERT
+- `electron/ipc/settings.ts` — saveDrugType INSERT
+- `electron/ipc/products.ts` — products:create INSERT
+- `electron/ipc/dev.ts` — insProduct INSERT + run() args
+- `src/types/index.ts` — Product + DrugType interfaces
+- `src/pages/Settings/index.tsx` — DrugTypesTab labels + openEdit typing
+- `src/pages/Products/EditProduct.tsx` — is_drug toggle, drug_type onChange, 4 report toggles, meta badge
+- `src/pages/Products/index.tsx` — quick-create payload + list badge
+
+### Uncommitted changes
+All of the above are uncommitted working-tree modifications.

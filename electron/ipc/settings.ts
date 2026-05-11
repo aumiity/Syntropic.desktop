@@ -150,7 +150,7 @@ export function registerSettingsHandlers() {
       db.prepare(`UPDATE drug_types SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run(data)
       return db.prepare(`SELECT * FROM drug_types WHERE id = ?`).get(id)
     }
-    const result = db.prepare(`INSERT INTO drug_types (code, name_th, khor_yor_report) VALUES (@code, @name_th, @khor_yor_report)`).run(data)
+    const result = db.prepare(`INSERT INTO drug_types (code, name_th, is_fda9, is_fda10, is_fda11, is_fda13) VALUES (@code, @name_th, @is_fda9, @is_fda10, @is_fda11, @is_fda13)`).run(data)
     return db.prepare(`SELECT * FROM drug_types WHERE id = ?`).get(result.lastInsertRowid)
   })
   ipcMain.handle('settings:toggleDrugType', (_e, id: number) => {

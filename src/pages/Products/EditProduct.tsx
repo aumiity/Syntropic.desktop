@@ -135,8 +135,10 @@ export default function EditProductPage() {
         reorder_point: prod.reorder_point ?? 0,
         safety_stock: prod.safety_stock ?? 0,
         is_antibiotic: prod.is_antibiotic ?? 0,
-        is_fda_report: prod.is_fda_report ?? 0,
-        is_fda13_report: prod.is_fda13_report ?? 0,
+        is_fda9:  prod.is_fda9  ?? 0,
+        is_fda10: prod.is_fda10 ?? 0,
+        is_fda11: prod.is_fda11 ?? 0,
+        is_fda13: prod.is_fda13 ?? 0,
         indication_note: prod.indication_note ?? '',
         side_effect_note: prod.side_effect_note ?? '',
         search_keywords: prod.search_keywords ?? '',
@@ -512,7 +514,7 @@ export default function EditProductPage() {
               {!!product.is_drug && <Badge variant="warning" className="text-[10px] rounded-md px-1.5 py-0">ยา</Badge>}
               {!!product.is_disabled && <Badge variant="destructive" className="text-[10px] rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
               {!!product.is_hidden && <Badge variant="secondary" className="text-[10px] rounded-md px-1.5 py-0">ซ่อน</Badge>}
-              {!!product.is_fda13_report && <Badge variant="senary" className="text-[10px] rounded-md px-1.5 py-0">อย.13</Badge>}
+              {!!product.is_fda13 && <Badge variant="senary" className="text-[10px] rounded-md px-1.5 py-0">ข.ย.13</Badge>}
               {updatedShort && (
                 <span className="text-[10px] text-muted-foreground">แก้ไข {updatedShort}</span>
               )}
@@ -779,8 +781,8 @@ export default function EditProductPage() {
                     checked={!!form.is_drug}
                     onChange={v => {
                       setF('is_drug', v ? 1 : 0)
-                      if (v) setF('is_fda_report', 1)
-                      else { setF('is_fda_report', 0); setF('is_fda13_report', 0) }
+                      // ข.ย.9 (purchase report) is always tied to is_drug — every drug must be logged
+                      setF('is_fda9', v ? 1 : 0)
                     }}
                     label="เป็นยาตามกฎหมาย"
                   />
@@ -789,7 +791,21 @@ export default function EditProductPage() {
                 {!!form.is_drug ? (
                   <>
                     <Field label="ประเภทยา">
-                      <SelectField value={form.drug_type_id} onChange={v => setF('drug_type_id', Number(v))}>
+                      <SelectField
+                        value={form.drug_type_id}
+                        onChange={v => {
+                          const id = Number(v)
+                          const dt = drugTypes.find(d => d.id === id)
+                          // Auto-fill ข.ย.10/11/13 defaults from the selected drug type
+                          setForm((f: any) => ({
+                            ...f,
+                            drug_type_id: id,
+                            is_fda10: dt?.is_fda10 ?? 0,
+                            is_fda11: dt?.is_fda11 ?? 0,
+                            is_fda13: dt?.is_fda13 ?? 0,
+                          }))
+                        }}
+                      >
                         <option value={0}>— ไม่ระบุ —</option>
                         {drugTypes.map(d => <option key={d.id} value={d.id}>{d.name_th}</option>)}
                       </SelectField>
@@ -828,19 +844,37 @@ export default function EditProductPage() {
                       <Input value={form.tmt_id} onChange={e => setF('tmt_id', e.target.value)} className="h-10 rounded-xl" />
                     </Field>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                      {/* ข.ย.9 — locked to is_drug, shown read-only */}
+                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2 opacity-70">
                         <div>
-                          <div className="text-sm font-semibold uppercase text-foreground">รายงาน ขย.9</div>
-                          <div className="text-xs text-muted-foreground">บัญชีการซื้อยา</div>
+                          <div className="text-sm font-semibold uppercase text-foreground">ข.ย.9</div>
+                          <div className="text-xs text-muted-foreground">บัญชีการซื้อยา (อัตโนมัติ)</div>
                         </div>
-                        <Switch checked={!!form.is_fda_report} onCheckedChange={v => setF('is_fda_report', v ? 1 : 0)} />
+                        <Switch checked={!!form.is_fda9} disabled />
                       </div>
+                      {/* ข.ย.10 */}
                       <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                         <div>
-                          <div className="text-sm font-semibold uppercase text-foreground">รายงาน ข.ย.13</div>
-                          <div className="text-xs text-muted-foreground">บัญชีการขายยา ตามที่ อ.ย. กำหนด (เฉพาะร้านขายส่ง)</div>
+                          <div className="text-sm font-semibold uppercase text-foreground">ข.ย.10</div>
+                          <div className="text-xs text-muted-foreground">ขายยาควบคุมพิเศษ</div>
                         </div>
-                        <Switch checked={!!form.is_fda13_report} onCheckedChange={v => setF('is_fda13_report', v ? 1 : 0)} />
+                        <Switch checked={!!form.is_fda10} onCheckedChange={v => setF('is_fda10', v ? 1 : 0)} />
+                      </div>
+                      {/* ข.ย.11 */}
+                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                        <div>
+                          <div className="text-sm font-semibold uppercase text-foreground">ข.ย.11</div>
+                          <div className="text-xs text-muted-foreground">ขายยาอันตราย (ที่ อ.ย. กำหนด)</div>
+                        </div>
+                        <Switch checked={!!form.is_fda11} onCheckedChange={v => setF('is_fda11', v ? 1 : 0)} />
+                      </div>
+                      {/* ข.ย.13 */}
+                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                        <div>
+                          <div className="text-sm font-semibold uppercase text-foreground">ข.ย.13</div>
+                          <div className="text-xs text-muted-foreground">ขายส่ง (เฉพาะร้านขายส่ง)</div>
+                        </div>
+                        <Switch checked={!!form.is_fda13} onCheckedChange={v => setF('is_fda13', v ? 1 : 0)} />
                       </div>
                     </div>
                   </>

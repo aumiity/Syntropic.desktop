@@ -41,17 +41,21 @@ export function seedDatabase(db: Database.Database) {
   const insUnit = db.prepare(`INSERT OR IGNORE INTO item_units (name, multiply) VALUES (?, ?)`)
   for (const [name, mul] of units) insUnit.run(name, mul)
 
-  // Drug types
-  const drugTypes = [
-    ['GENERAL', 'ยาสามัญประจำบ้าน', null],
-    ['DANGEROUS', 'ยาอันตราย', 'ยอ.'],
-    ['SPCL_CTRL', 'ยาควบคุมพิเศษ', 'ยค.'],
-    ['PSYCHO_4', 'วัตถุออกฤทธิ์ประเภท 4', 'วอ.4'],
-    ['NARCOTIC_3', 'ยาเสพติดประเภท 3', 'นส.3'],
-    ['OTC', 'ยาที่ไม่ต้องมีใบสั่งแพทย์', null],
+  // Drug types — [code, name_th, is_fda9, is_fda10, is_fda11, is_fda13]
+  // is_fda9=1 for all (every drug purchase must be logged in ข.ย.9)
+  // is_fda10=1 for controlled/psycho/narcotic (ข.ย.10 sale log)
+  // is_fda11=0 default even for DANGEROUS — pharmacist sets per-product per regulation
+  const drugTypes: [string, string, number, number, number, number][] = [
+    ['GENERAL',    'ยาสามัญประจำบ้าน',         1, 0, 0, 0],
+    ['OTC',        'ยาบรรจุเสร็จ ข.ย.2',        1, 0, 0, 0],
+    ['DANGEROUS',  'ยาอันตราย',                  1, 0, 0, 0],
+    ['SPCL_CTRL',  'ยาควบคุมพิเศษ',             1, 1, 0, 0],
+    ['PSYCHO_3',   'วัตถุออกฤทธิ์ประเภท 3',     1, 1, 0, 0],
+    ['PSYCHO_4',   'วัตถุออกฤทธิ์ประเภท 4',     1, 1, 0, 0],
+    ['NARCOTIC_3', 'ยาเสพติดประเภท 3',           1, 1, 0, 0],
   ]
-  const insDrugType = db.prepare(`INSERT OR IGNORE INTO drug_types (code, name_th, khor_yor_report) VALUES (?, ?, ?)`)
-  for (const [code, name, report] of drugTypes) insDrugType.run(code, name, report)
+  const insDrugType = db.prepare(`INSERT OR IGNORE INTO drug_types (code, name_th, is_fda9, is_fda10, is_fda11, is_fda13) VALUES (?, ?, ?, ?, ?, ?)`)
+  for (const [code, name, fda9, fda10, fda11, fda13] of drugTypes) insDrugType.run(code, name, fda9, fda10, fda11, fda13)
 
   // Dosage forms
   const dosageForms = [

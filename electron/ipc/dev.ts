@@ -76,9 +76,9 @@ export function registerDevHandlers() {
         category_id, drug_type_id, is_stock_item,
         price_retail, price_wholesale1, price_wholesale2, cost_price,
         has_vat, reorder_point, safety_stock,
-        is_antibiotic, is_fda_report, is_fda13_report,
+        is_antibiotic, is_fda9, is_fda10, is_fda11, is_fda13,
         search_keywords, note
-      ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     const insBaseUnit = db.prepare(`
       INSERT INTO product_units
@@ -142,7 +142,7 @@ export function registerDevHandlers() {
           rand(10, 100), // reorder_point
           rand(5, 50),   // safety_stock
           Math.random() < 0.15 ? 1 : 0, // is_antibiotic ~15%
-          0, 0,
+          0, 0, 0, 0, // is_fda9/10/11/13 (all off for test data)
           template.split(' ')[0].toLowerCase(),
           'auto-generated test data',
         )
