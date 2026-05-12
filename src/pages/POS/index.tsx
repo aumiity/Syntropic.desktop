@@ -898,6 +898,7 @@ export default function POSPage() {
           className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
           style={{ width: '1000px', maxWidth: 'calc(100vw - 2rem)', height: '800px', maxHeight: 'calc(100vh - 4rem)' }}
         >
+          <DialogTitle className="sr-only">ค้นหาสินค้า</DialogTitle>
           {/* Search input */}
           <div className="flex items-center gap-2 px-4 py-3 shrink-0">
             <Search className="h-5 w-5 text-primary shrink-0" />
@@ -1752,6 +1753,7 @@ export default function POSPage() {
       {/* ── SUCCESS DIALOG ── */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
         <DialogContent size="sm" onClose={() => setShowSuccess(false)}>
+          <DialogTitle className="sr-only">บันทึกบิลสำเร็จ</DialogTitle>
           <DialogBody className="text-center py-8 space-y-4">
             <div className="text-6xl">✅</div>
             <div><div className="text-xl font-semibold">บันทึกบิลสำเร็จ</div>

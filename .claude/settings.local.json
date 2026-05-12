@@ -19,7 +19,10 @@
       "PowerShell(Stop-Process *)",
       "Bash(sqlite3 syntropic.db \"SELECT id, code, name, tax_id, phone, address, contact_name FROM suppliers WHERE is_disabled = 0 ORDER BY id;\")",
       "Bash(Get-ChildItem -Path \"D:\\\\Syntropic.Project\\\\Syntropic.desktop\\\\src\\\\components\\\\ui\" -Filter \"*.tsx\" -File)",
-      "Bash(Select-Object -ExpandProperty Name)"
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
