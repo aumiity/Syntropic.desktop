@@ -16,45 +16,52 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-2", className)}
+      className={cn("p-3", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row gap-2",
+        months: "flex flex-col sm:flex-row gap-4",
         month: "flex flex-col gap-3",
-        caption: "flex justify-center pt-1 relative items-center w-full",
-        caption_label: "text-sm font-medium",
+        caption: "flex justify-center pt-1 pb-1 relative items-center w-full",
+        caption_label: "text-sm font-semibold text-foreground tracking-tight",
         nav: "flex items-center gap-1",
         nav_button: cn(
-          buttonVariants({ variant: "outline" }),
-          "size-7 bg-transparent p-0 opacity-60 hover:opacity-100"
+          buttonVariants({ variant: "ghost", size: "icon" }),
+          "absolute opacity-60 hover:opacity-100 hover:bg-primary-soft hover:text-primary"
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-x-1",
+        table: "w-full border-collapse",
         head_row: "flex",
         head_cell:
-          "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
-        row: "flex w-full mt-1",
+          "text-foreground-subtle w-9 font-semibold text-[0.7rem] uppercase tracking-wider",
+        row: "flex w-full mt-1.5",
         cell: cn(
           "relative p-0 text-center text-sm focus-within:relative focus-within:z-20",
-          "[&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-lg",
-          "[&:has([aria-selected].day-range-start)]:rounded-l-lg first:[&:has([aria-selected])]:rounded-l-lg last:[&:has([aria-selected])]:rounded-r-lg"
+          // Range bar — only when in range mode (.day-range-* classes exist)
+          "[&:has(.day-range-middle)]:bg-primary-soft",
+          "[&:has(.day-range-start)]:bg-primary-soft [&:has(.day-range-start)]:rounded-l-full",
+          "[&:has(.day-range-end)]:bg-primary-soft [&:has(.day-range-end)]:rounded-r-full",
+          // Wrap pill at week edges so the bar looks continuous-but-bounded
+          "first:[&:has(.day-range-middle)]:rounded-l-full",
+          "last:[&:has(.day-range-middle)]:rounded-r-full"
         ),
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "size-8 p-0 font-normal aria-selected:opacity-100"
+          "size-9 p-0 font-normal aria-selected:opacity-100 rounded-full tabular-nums",
+          "hover:bg-primary-soft hover:text-primary"
         ),
         day_range_start:
-          "day-range-start aria-selected:bg-primary aria-selected:text-primary-foreground",
+          "day-range-start !bg-primary !text-primary-foreground hover:!bg-primary-hover focus:!bg-primary",
         day_range_end:
-          "day-range-end aria-selected:bg-primary aria-selected:text-primary-foreground",
+          "day-range-end !bg-primary !text-primary-foreground hover:!bg-primary-hover focus:!bg-primary",
         day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
+          "!bg-primary !text-primary-foreground hover:!bg-primary-hover hover:!text-primary-foreground focus:!bg-primary focus:!text-primary-foreground",
+        day_today:
+          "font-bold ring-2 ring-primary/40 ring-inset text-primary",
         day_outside:
-          "day-outside text-muted-foreground aria-selected:text-muted-foreground",
-        day_disabled: "text-muted-foreground opacity-50",
+          "day-outside text-foreground-subtle aria-selected:text-foreground-subtle",
+        day_disabled: "text-foreground-subtle opacity-40",
         day_range_middle:
-          "aria-selected:bg-accent aria-selected:text-accent-foreground",
+          "day-range-middle !bg-transparent !text-foreground hover:!bg-primary-soft-hover",
         day_hidden: "invisible",
         ...classNames,
       }}

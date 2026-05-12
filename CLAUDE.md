@@ -137,6 +137,43 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
 7. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`, `tabular-nums`) are encouraged — only **color literals** are banned.
 8. **Icon sizing inside `<Button>` — use `size-N`, never `h-N w-N`.** `button.tsx` has `[&_svg:not([class*='size-'])]:size-4`, which silently snaps any descendant svg without `size-` in its className to 16px. `h-7 w-7` does not contain `size-`, so the rule still matches and — being more specific — overrides your value. Always write `<Icon className="size-7" />`, including arbitrary values (`size-[22px]`, not `h-[22px] w-[22px]`). Doesn't apply to icons in `<Input>`/`<Label>`/`<DialogTitle>`/plain `<div>`/raw `<button>` (not the Button component), or to the Button element's own outer dimensions.
 
+### Color palette & variants — USE THE FULL RANGE (HARD)
+
+We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don't default to those three everywhere — the app should feel colorful and varied.** Pick variants by *role*, not "what's the most neutral option."
+
+**`<Button>` variants** (`button.tsx`):
+- `default` — primary teal · main CTA, save, confirm
+- `secondary` — white/gray · cancel, dismiss
+- `tertiary` — yellow `#F5C24A` · accent CTA, attention
+- `quaternary` — light teal soft · subtle brand emphasis
+- `quinary` — light blue · info-style action (e.g. "ปรับสต็อก")
+- `senary` — soft amber/yellow · warm secondary (e.g. "แก้ไข")
+- `outline` — muted bg with border · neutral icon buttons
+- `ghost` — transparent · tertiary minor actions
+- `destructive` — solid red · delete, void
+- `destructive2` — soft red tint · destructive secondary
+- `success` — green · positive confirm (e.g. "เพิ่มสต็อก")
+- `warning` — gold solid · cautionary action
+- `link` — text-only
+
+**`<Badge>` variants** (`badge.tsx`): same names as Button + `danger` (solid destructive). Use for tags, statuses, FDA labels (`ข.ย.13`), tier markers.
+
+**Semantic color tokens** (`index.css` — defined in both `:root` and `.dark`):
+- Brand: `primary`, `primary-soft`, `primary-soft-hover`, `primary-soft-border`, `primary-strong`, `primary-hover`, `primary-foreground`
+- Accent (yellow): `tertiary`, `accent`, `accent-soft`
+- Neutrals: `background`, `card`, `muted`, `muted-hover`, `popover`, `secondary`
+- Decorative surfaces: `quaternary` (light teal), `quinary` (light blue), `senary` (warm amber)
+- Status: `success`/`success-soft`, `warning`/`warning-soft`/`warning-strong`, `destructive`/`destructive-soft`/`destructive-strong`
+- Text: `foreground`, `muted-foreground`, `foreground-subtle`
+- Sidebar: `sidebar`, `sidebar-accent`, `sidebar-primary`, `sidebar-ring`
+
+**When writing new UI — guidelines:**
+1. **Differentiate actions by tint.** "Edit" `senary`, "Adjust stock" `quinary`, "Delete" `destructive`, primary save `default`, secondary toggle `tertiary`. Example: `Products/index.tsx` row actions use `senary` + `quinary` for visual distinction.
+2. **Decorative chips/status badges** → reach for `tertiary`/`quaternary`/`quinary`/`senary` before falling back to `secondary` or grey.
+3. **Section accents / soft backgrounds** → `bg-primary-soft`, `bg-quinary`, `bg-senary` (NOT `bg-muted` for everything).
+4. **Hover states** → use the matching `-hover` token (`primary-hover`, `quaternary-hover`, etc.) — already wired into the Button variants.
+5. **Missing role?** Add a new variant to `buttonVariants`/`badgeVariants` AND a matching token to `:root` + `.dark` in `index.css`. Never hardcode hex or Tailwind palette literals.
+
 ### Other conventions
 - Thai UI language throughout
 - Inter + Sarabun fonts (Noto Sans Thai fallback); base font-size 15px

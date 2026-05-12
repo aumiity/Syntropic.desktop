@@ -122,6 +122,8 @@ function SectionCard({
     : tint === 'warning'   ? 'bg-warning-soft text-warning-strong'
     : tint === 'destructive' ? 'bg-destructive-soft text-destructive'
     : tint === 'secondary' ? 'bg-muted text-muted-foreground'
+    : tint === "senary"   ? "bg-senary text-senary-foreground"
+    : tint === "quinary"   ? "bg-quinary text-quinary-foreground"
     : 'bg-primary-soft text-primary'
   return (
     <div className={cn('bg-card rounded-2xl p-4 space-y-3 shadow-card', className)}>
@@ -164,6 +166,7 @@ function MetricCard({
     : tint === "destructive" ? "bg-destructive-soft text-destructive"
     : tint === "secondary"   ? "bg-muted text-muted-foreground"
     : tint === "senary"   ? "bg-senary text-senary-foreground"
+    : tint === "quinary"   ? "bg-quinary text-quinary-foreground"
     : "bg-primary-soft text-primary"
   const valColor =
     tint === "success"     ? "text-success"
@@ -213,6 +216,7 @@ function StatCard({
     : tint === "destructive" ? "bg-destructive-soft text-destructive"
     : tint === "secondary"   ? "bg-muted text-muted-foreground"
     : tint === "senary"   ? "bg-senary text-senary-foreground"
+    : tint === "quinary"   ? "bg-quinary text-quinary-foreground"
     : "bg-primary-soft text-primary"
   const activeRing =
     !isActive ? "ring-0"
@@ -221,6 +225,7 @@ function StatCard({
     : tint === "destructive" ? "ring-2 ring-destructive"
     : tint === "secondary"   ? "ring-2 ring-border-strong"
     : tint === "senary"   ? "ring-2 ring-senary-foreground"
+    : tint === "quinary"   ? "ring-2 ring-quinary-foreground"
     : "ring-2 ring-primary"
   const interactive = onClick
     ? "cursor-pointer hover:shadow-md transition-all text-left"

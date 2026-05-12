@@ -121,33 +121,38 @@ export function DateRangePicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
+        <Button
           type="button"
+          variant="outline"
           className={cn(
-            'flex items-center gap-2 w-full h-8 rounded-md border border-input bg-background px-2.5 text-sm text-left',
-            'focus:outline-none focus:ring-2 focus:ring-ring',
+            'h-10 w-full justify-start gap-2 rounded-xl bg-card border-0 px-3 text-sm font-normal hover:bg-muted',
             !from && !to ? 'text-foreground-subtle' : 'text-foreground',
             className,
           )}
         >
-          <CalendarDays className="w-3.5 h-3.5 text-foreground-subtle shrink-0" />
-          <span className="truncate flex-1">{display}</span>
-        </button>
+          <CalendarDays className="size-4 text-primary shrink-0" />
+          <span className="truncate flex-1 text-left">{display}</span>
+        </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align={align}>
+      <PopoverContent className="w-auto p-0 rounded-2xl shadow-lg overflow-hidden" align={align}>
         <div className="flex">
-          <div className="flex flex-col gap-0.5 p-2 border-r border-border min-w-[120px]">
-            {PRESETS.map(p => (
-              <Button
-                key={p.label}
-                variant="ghost"
-                size="sm"
-                className="justify-start h-7 px-2 text-xs font-normal"
-                onClick={() => apply(p.range())}
-              >
-                {p.label}
-              </Button>
-            ))}
+          <div className="flex flex-col p-3 border-r border-border bg-muted/30 min-w-[140px]">
+            <span className="px-2 pb-1.5 text-[0.7rem] font-semibold text-muted-foreground uppercase">
+              ช่วงเวลา
+            </span>
+            <div className="flex flex-col gap-0.5">
+              {PRESETS.map(p => (
+                <Button
+                  key={p.label}
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start h-8 px-3 text-sm font-normal hover:bg-primary-soft hover:text-primary"
+                  onClick={() => apply(p.range())}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
           </div>
           <Calendar
             mode="range"

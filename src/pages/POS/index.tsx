@@ -713,13 +713,13 @@ export default function POSPage() {
                 </colgroup>
                 <TableHeader className="sticky top-0 z-10 bg-muted">
                   <TableRow className="hover:bg-muted">
-                    <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">#</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ชื่อสินค้า</TableHead>
-                    <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">หน่วย</TableHead>
-                    <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">จำนวน</TableHead>
-                    <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ราคา</TableHead>
-                    <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">ส่วนลด</TableHead>
-                    <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground-subtle">รวม</TableHead>
+                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">#</TableHead>
+                    <TableHead className="text-sm font-semibold text-foreground-subtle">ชื่อสินค้า</TableHead>
+                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">หน่วย</TableHead>
+                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">จำนวน</TableHead>
+                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">ราคา</TableHead>
+                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">ส่วนลด</TableHead>
+                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">รวม</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
@@ -800,17 +800,17 @@ export default function POSPage() {
             {cart.items.length > 0 && (
               <div className="px-4 h-9 shrink-0 flex items-center gap-6 bg-muted">
                 <div>
-                  <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle">จำนวน <span className="text-sm font-medium tabular-nums text-foreground">{cart.items.length}</span> รายการ</div>
+                  <div className="text-sm font-semibold text-foreground-subtle">จำนวน <span className="text-sm font-medium tabular-nums text-foreground">{cart.items.length}</span> รายการ</div>
                 </div>
                 <div className="flex-1" />
                 {cart.totalDiscount() > 0 && (
                   <div className="text-right">
-                    <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle">ส่วนลดรวม
+                    <div className="text-sm font-semibold text-foreground-subtle">ส่วนลดรวม
                     <span className="text-sm font-bold text-destructive"> ฿{formatCurrency(cart.totalDiscount())}</span></div>
                   </div>
                 )}
                 <div className="text-right">
-                  <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle">ราคารวม <span className="text-sm font-bold tabular-nums text-foreground">฿{formatCurrency(cart.subtotal())}</span></div>
+                  <div className="text-sm font-semibold text-foreground-subtle">ราคารวม <span className="text-sm font-bold tabular-nums text-foreground">฿{formatCurrency(cart.subtotal())}</span></div>
                 </div>
               </div>
             )}
@@ -873,15 +873,15 @@ export default function POSPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle mb-1">บิลล่าสุด</div>
+                <div className="text-sm font-semibold text-foreground-subtle mb-1">บิลล่าสุด</div>
                 <div className="text-base font-medium tabular-nums">{dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}</div>
               </div>
               <div>
-                <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle mb-1">จำนวนบิล</div>
+                <div className="text-sm font-semibold text-foreground-subtle mb-1">จำนวนบิล</div>
                 <div className="text-base font-medium tabular-nums">{dailyStats.bills} บิล</div>
               </div>
               <div className="col-span-2">
-                <div className="text-sm uppercase tracking-wider font-semibold text-foreground-subtle mb-1">ยอดรวมของวัน</div>
+                <div className="text-sm font-semibold text-foreground-subtle mb-1">ยอดรวมของวัน</div>
                 <div className="text-xl font-semibold tabular-nums text-primary">฿ {formatCurrency(dailyStats.total)}</div>
               </div>
             </div>
@@ -1881,7 +1881,7 @@ export default function POSPage() {
                     return (
                       <Button key={i} variant="quaternary"
                         onClick={() => changeCartPrice(priceModalIdx, opt.price)}
-                        className={`w-full h-auto px-4 py-3 rounded-xl transition-colors ${active ? '' : ''}`}>
+                        className={`w-full h-auto px-4 py-3 rounded-xl transition-colors ${active ? 'ring-2 ring-inset ring-primary' : ''}`}>
                         <div className="space-y-1 w-full">
                           <div className={`text-base font-bold text-left ${active ? 'text-primary' : 'text-foreground'}`}>{opt.label}</div>
                           <div className="text-right text-3xl font-extrabold text-primary tabular-nums">฿ {formatCurrency(opt.price)}</div>

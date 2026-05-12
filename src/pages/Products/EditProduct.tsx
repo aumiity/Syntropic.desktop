@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Switch, Toggle } from '@/components/ui/switch'
 import { MetricCard, SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
-import { NativeSelect } from '@/components/ui/select'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useToast } from '@/components/ui/toast'
@@ -32,7 +32,6 @@ interface GenericNameSuggestion { id: number; name: string; is_antibiotic: numbe
 
 // ---- Helpers ----
 const Field = FormField
-const SelectField = NativeSelect
 
 // ========================
 // MAIN COMPONENT
@@ -512,6 +511,10 @@ export default function EditProductPage() {
             </div>
             <div className="flex items-center gap-1 flex-wrap min-h-[18px] mt-6">
               {!!product.is_drug && <Badge variant="success" className="text-sm rounded-md px-1.5 py-0">ยา</Badge>}
+              {!!product.is_fda9 && <Badge variant="quaternary" className="text-sm rounded-md px-1.5 py-0">ข.ย.9</Badge>}
+              {!!product.is_fda10 && <Badge variant="senary" className="text-sm rounded-md px-1.5 py-0">ข.ย.10</Badge>}
+              {!!product.is_fda11 && <Badge variant="destructive2" className="text-sm rounded-md px-1.5 py-0">ข.ย.11</Badge>}
+              {!!product.is_fda13 && <Badge variant="quinary" className="text-sm rounded-md px-1.5 py-0">ข.ย.13</Badge>}
               {!!product.is_disabled && <Badge variant="destructive" className="text-sm rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
               {!!product.is_hidden && <Badge variant="secondary" className="text-sm rounded-md px-1.5 py-0">ซ่อน</Badge>}
             </div>
@@ -541,7 +544,7 @@ export default function EditProductPage() {
           value={totalStock.toLocaleString()}
           sub={baseUnit}
           icon={Boxes}
-          tint={totalStock <= 0 ? 'destructive' : 'primary'}
+          tint={totalStock <= 0 ? 'destructive' : 'quinary'}
         />
       </div>
 
@@ -564,39 +567,56 @@ export default function EditProductPage() {
 
               <SectionCard icon={Package} title="ข้อมูลพื้นฐาน" tint="primary">
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="ชื่อสินค้า" required>
-                    <Input value={form.trade_name} onChange={e => setF('trade_name', e.target.value)} className="h-10 rounded-xl" />
-                  </Field>
-                  <Field label="ชื่อสำหรับพิมพ์">
-                    <Input value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" className="h-10 rounded-xl" />
-                  </Field>
+                  {/* Row 1: รหัสสินค้า | คีย์เวิร์ดค้นหา */}
                   <Field label="รหัสสินค้า">
                     <Input value={form.code} readOnly className="h-10 rounded-xl bg-muted cursor-not-allowed" />
                   </Field>
-                  <Field label="หน่วยหลัก">
-                    <SelectField value={form.unit_id ?? 0} onChange={v => setF('unit_id', Number(v) || null)}>
-                      <option value={0}>— เลือกหน่วย —</option>
-                      {itemUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                    </SelectField>
+                  <Field label="คีย์เวิร์ดค้นหา">
+                    <Input
+                      value={form.search_keywords}
+                      onChange={e => setF('search_keywords', e.target.value)}
+                      placeholder="ชื่ออื่นๆ คั่นด้วยจุลภาค เช่น พารา,para,tylenol"
+                      className="h-10 rounded-xl"
+                    />
                   </Field>
+
+                  {/* Row 2: ชื่อสินค้า* (full width) */}
                   <div className="col-span-2">
-                    <Field label="หมวดหมู่">
-                      <SelectField value={form.category_id} onChange={v => setF('category_id', Number(v))}>
-                        <option value={0}>— ไม่ระบุ —</option>
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </SelectField>
+                    <Field label="ชื่อสินค้า" required>
+                      <Input value={form.trade_name} onChange={e => setF('trade_name', e.target.value)} className="h-10 rounded-xl" />
                     </Field>
                   </div>
+
+                  {/* Row 3: ชื่อสำหรับพิมพ์ (full width) */}
                   <div className="col-span-2">
-                    <Field label="คีย์เวิร์ดค้นหา">
-                      <Input
-                        value={form.search_keywords}
-                        onChange={e => setF('search_keywords', e.target.value)}
-                        placeholder="ชื่ออื่นๆ คั่นด้วยจุลภาค เช่น พารา,para,tylenol"
-                        className="h-10 rounded-xl"
-                      />
+                    <Field label="ชื่อสำหรับพิมพ์">
+                      <Input value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" className="h-10 rounded-xl" />
                     </Field>
                   </div>
+
+                  {/* Row 4: หมวดหมู่ | หน่วยหลัก */}
+                  <Field label="หมวดหมู่">
+                    <Select value={String(form.category_id ?? 0)} onValueChange={v => setF('category_id', Number(v))}>
+                      <SelectTrigger className="h-10 w-full rounded-xl">
+                        <SelectValue placeholder="— ไม่ระบุ —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">— ไม่ระบุ —</SelectItem>
+                        {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="หน่วยหลัก">
+                    <Select value={String(form.unit_id ?? 0)} onValueChange={v => setF('unit_id', Number(v) || null)}>
+                      <SelectTrigger className="h-10 w-full rounded-xl bg-muted">
+                        <SelectValue placeholder="— เลือกหน่วย —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">— เลือกหน่วย —</SelectItem>
+                        {itemUnits.map(u => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Field>
                 </div>
               </SectionCard>
 
@@ -621,39 +641,69 @@ export default function EditProductPage() {
 
                   {/* col2 row1-2: สรุปกำไร */}
                   <div className="col-start-2 row-start-1 row-span-2 h-full space-y-1.5">
-                    <span className="block text-sm font-semibold uppercase text-foreground">สรุปกำไร</span>
+                    <span className="block text-sm font-semibold text-foreground">สรุปกำไร</span>
                     {(() => {
                       const cost = parseFloat(form.cost_price) || 0
-                      const rows = [
-                        { label: 'ราคาขายปลีก', price: parseFloat(form.price_retail) || 0 },
-                        { label: 'ราคาส่ง 1', price: parseFloat(form.price_wholesale1) || 0 },
-                        { label: 'ราคาส่ง 2', price: parseFloat(form.price_wholesale2) || 0 },
-                      ]
+                      const calc = (price: number) => {
+                        const profit = price - cost
+                        const pct = cost > 0 ? (profit / cost) * 100 : 0
+                        return { profit, pct, pos: profit >= 0, dim: price <= 0 || cost <= 0 }
+                      }
+                      const retail = calc(parseFloat(form.price_retail) || 0)
+                      const ws1 = calc(parseFloat(form.price_wholesale1) || 0)
+                      const ws2 = calc(parseFloat(form.price_wholesale2) || 0)
                       return (
                         <div className="h-[calc(100%-1.75rem)] rounded-xl bg-muted/50 px-3 py-2 flex flex-col">
-                          {rows.map(r => {
-                            const profit = r.price - cost
-                            const pct = cost > 0 ? (profit / cost) * 100 : 0
-                            const pos = profit >= 0
-                            const dim = r.price <= 0 || cost <= 0
-                            return (
-                              <div key={r.label} className="flex-1 flex items-center justify-between tabular-nums">
-                                <span className={`text-sm ${dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>{r.label}</span>
-                                {dim ? (
-                                  <span className="text-sm text-foreground-subtle">—</span>
-                                ) : (
-                                  <div className="text-right">
-                                    <span className={`text-sm font-bold ${pos ? 'text-success' : 'text-destructive'}`}>
-                                      {pos ? '+' : ''}{profit.toFixed(2)}
-                                    </span>
-                                    <span className={`ml-1 text-xs ${pos ? 'text-success' : 'text-destructive'}`}>
-                                      ({pos ? '+' : ''}{pct.toFixed(0)}%)
-                                    </span>
-                                  </div>
-                                )}
+                          {/* ราคาขายปลีก */}
+                          <div className="flex-1 flex items-center justify-between tabular-nums">
+                            <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>ราคาขายปลีก</span>
+                            {retail.dim ? (
+                              <span className="text-sm text-foreground-subtle">—</span>
+                            ) : (
+                              <div className="text-right">
+                                <span className={`text-sm font-bold ${retail.pos ? 'text-success' : 'text-destructive'}`}>
+                                  {retail.pos ? '+' : ''}{retail.profit.toFixed(2)}
+                                </span>
+                                <span className={`ml-1 text-sm font-bold ${retail.pos ? 'text-success' : 'text-destructive'}`}>
+                                  ({retail.pos ? '+' : ''}{retail.pct.toFixed(0)}%)
+                                </span>
                               </div>
-                            )
-                          })}
+                            )}
+                          </div>
+
+                          {/* ราคาส่ง 1 */}
+                          <div className="flex-1 flex items-center justify-between tabular-nums">
+                            <span className={`text-sm ${ws1.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>ราคาส่ง 1</span>
+                            {ws1.dim ? (
+                              <span className="text-sm text-foreground-subtle">—</span>
+                            ) : (
+                              <div className="text-right">
+                                <span className={`text-sm font-bold ${ws1.pos ? 'text-success' : 'text-destructive'}`}>
+                                  {ws1.pos ? '+' : ''}{ws1.profit.toFixed(2)}
+                                </span>
+                                <span className={`ml-1 text-sm font-bold ${ws1.pos ? 'text-success' : 'text-destructive'}`}>
+                                  ({ws1.pos ? '+' : ''}{ws1.pct.toFixed(0)}%)
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* ราคาส่ง 2 */}
+                          <div className="flex-1 flex items-center justify-between tabular-nums">
+                            <span className={`text-sm ${ws2.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>ราคาส่ง 2</span>
+                            {ws2.dim ? (
+                              <span className="text-sm text-foreground-subtle">—</span>
+                            ) : (
+                              <div className="text-right">
+                                <span className={`text-sm font-bold ${ws2.pos ? 'text-success' : 'text-destructive'}`}>
+                                  {ws2.pos ? '+' : ''}{ws2.profit.toFixed(2)}
+                                </span>
+                                <span className={`ml-1 text-sm font-bold ${ws2.pos ? 'text-success' : 'text-destructive'}`}>
+                                  ({ws2.pos ? '+' : ''}{ws2.pct.toFixed(0)}%)
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )
                     })()}
@@ -678,7 +728,7 @@ export default function EditProductPage() {
                   {/* col1 row4: มี VAT */}
                   <div className="p-2 col-start-1 row-start-4 flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                     <div>
-                      <div className="text-sm font-semibold uppercase text-foreground">มี VAT</div>
+                      <div className="text-sm font-semibold text-foreground">มี VAT</div>
                       <div className="text-sm text-muted-foreground">บวก 7% เมื่อออกใบกำกับภาษี</div>
                     </div>
                     <Switch size="lg" checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
@@ -687,7 +737,7 @@ export default function EditProductPage() {
                   {/* col2 row4: นับสต็อก */}
                   <div className="col-start-2 row-start-4 flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                     <div>
-                      <div className="text-sm font-semibold uppercase text-foreground">นับสต็อก</div>
+                      <div className="text-sm font-semibold text-foreground">นับสต็อก</div>
                       <div className="text-sm text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
                     </div>
                     <Switch size="lg" checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
@@ -782,9 +832,9 @@ export default function EditProductPage() {
                 {!!form.is_drug ? (
                   <>
                     <Field label="ประเภทยา">
-                      <SelectField
-                        value={form.drug_type_id}
-                        onChange={v => {
+                      <Select
+                        value={String(form.drug_type_id ?? 0)}
+                        onValueChange={v => {
                           const id = Number(v)
                           const dt = drugTypes.find(d => d.id === id)
                           // Auto-fill ข.ย.10/11/13 defaults from the selected drug type
@@ -797,9 +847,14 @@ export default function EditProductPage() {
                           }))
                         }}
                       >
-                        <option value={0}>— ไม่ระบุ —</option>
-                        {drugTypes.map(d => <option key={d.id} value={d.id}>{d.name_th}</option>)}
-                      </SelectField>
+                        <SelectTrigger className="h-10 w-full rounded-xl">
+                          <SelectValue placeholder="— ไม่ระบุ —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">— ไม่ระบุ —</SelectItem>
+                          {drugTypes.map(d => <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </Field>
                     <Field label="ชื่อสามัญ">
                       <div className="relative">
@@ -836,34 +891,34 @@ export default function EditProductPage() {
                     </Field>
                     <div className="grid grid-cols-2 gap-3">
                       {/* ข.ย.9 — locked to is_drug, shown read-only */}
-                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2 opacity-70">
+                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                         <div>
-                          <div className="text-sm font-semibold uppercase text-foreground">ข.ย.9</div>
-                          <div className="text-xs text-muted-foreground">บัญชีการซื้อยา (อัตโนมัติ)</div>
+                          <div className="text-sm font-semibold text-foreground">ข.ย.9</div>
+                          <div className="text-sm text-muted-foreground">บัญชีการซื้อยา (อัตโนมัติ)</div>
                         </div>
                         <Switch size="lg" checked={!!form.is_fda9} disabled />
                       </div>
                       {/* ข.ย.10 */}
                       <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                         <div>
-                          <div className="text-sm font-semibold uppercase text-foreground">ข.ย.10</div>
-                          <div className="text-xs text-muted-foreground">ขายยาควบคุมพิเศษ</div>
+                          <div className="text-sm font-semibold text-foreground">ข.ย.10</div>
+                          <div className="text-sm text-muted-foreground">ขายยาควบคุมพิเศษ</div>
                         </div>
                         <Switch size="lg" checked={!!form.is_fda10} onCheckedChange={v => setF('is_fda10', v ? 1 : 0)} />
                       </div>
                       {/* ข.ย.11 */}
                       <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                         <div>
-                          <div className="text-sm font-semibold uppercase text-foreground">ข.ย.11</div>
-                          <div className="text-xs text-muted-foreground">ขายยาอันตราย (ที่ อ.ย. กำหนด)</div>
+                          <div className="text-sm font-semibold text-foreground">ข.ย.11</div>
+                          <div className="text-sm text-muted-foreground">ขายยาอันตราย (ที่ อ.ย. กำหนด)</div>
                         </div>
                         <Switch size="lg" checked={!!form.is_fda11} onCheckedChange={v => setF('is_fda11', v ? 1 : 0)} />
                       </div>
                       {/* ข.ย.13 */}
                       <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                         <div>
-                          <div className="text-sm font-semibold uppercase text-foreground">ข.ย.13</div>
-                          <div className="text-xs text-muted-foreground">ขายส่ง (เฉพาะร้านขายส่ง)</div>
+                          <div className="text-sm font-semibold text-foreground">ข.ย.13</div>
+                          <div className="text-sm text-muted-foreground">ขายส่ง (เฉพาะร้านขายส่ง)</div>
                         </div>
                         <Switch size="lg" checked={!!form.is_fda13} onCheckedChange={v => setF('is_fda13', v ? 1 : 0)} />
                       </div>
@@ -878,14 +933,14 @@ export default function EditProductPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                     <div>
-                      <div className="text-sm font-semibold uppercase text-foreground">ซ่อน</div>
+                      <div className="text-sm font-semibold text-foreground">ซ่อน</div>
                       <div className="text-sm text-muted-foreground">ซ่อนจากการค้นหา</div>
                     </div>
                     <Switch size="lg" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
                   </div>
                   <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                     <div>
-                      <div className="text-sm font-semibold uppercase text-foreground">ปิดใช้งาน</div>
+                      <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
                       <div className="text-sm text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
                     </div>
                     <Switch size="lg" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
@@ -932,8 +987,8 @@ export default function EditProductPage() {
                     <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
                     <TableCell className="text-center"><Check className="size-4 mx-auto text-success" /></TableCell>
                     <TableCell className="text-center"><Check className="size-4 mx-auto text-success" /></TableCell>
-                    <TableCell className="text-center"><Badge variant="secondary" className="text-xs rounded-md">หลัก</Badge></TableCell>
-                    <TableCell className="text-center text-xs text-muted-foreground">แก้ไขที่แท็บข้อมูลทั่วไป</TableCell>
+                    <TableCell className="text-center"><Badge variant="senary" className="text-sm rounded-md">หลัก</Badge></TableCell>
+                    <TableCell className="text-center text-sm text-muted-foreground">แก้ไขที่แท็บข้อมูลทั่วไป</TableCell>
                   </TableRow>
                   {product.units?.map(u => (
                     <TableRow key={u.id} className="hover:bg-primary-soft/60 transition-colors">
@@ -966,7 +1021,7 @@ export default function EditProductPage() {
                 </TableBody>
               </Table>
               </div>
-              <div className="px-5 py-2.5 border-t border-border text-xs text-muted-foreground shrink-0 flex items-center justify-between">
+              <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between">
                 <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{(product.units?.length ?? 0) + 1}</span> หน่วย</span>
                 <span>หน่วยหลัก: <span className="font-semibold text-foreground">{baseUnit}</span></span>
               </div>
@@ -1022,7 +1077,7 @@ export default function EditProductPage() {
                   </div>
                 )}
               </div>
-              <div className="px-5 py-2.5 border-t border-border text-xs text-muted-foreground shrink-0 flex items-center justify-between">
+              <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between">
                 <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{product.labels?.length ?? 0}</span> ฉลาก</span>
                 <span className="flex items-center gap-3">
                   <span>เปิดใช้งาน <span className="font-semibold text-success tabular-nums">{product.labels?.filter(l => l.is_active).length ?? 0}</span></span>
@@ -1167,7 +1222,7 @@ export default function EditProductPage() {
                 </TableBody>
               </Table>
               </div>
-              <div className="px-5 py-2.5 border-t border-border text-xs text-muted-foreground shrink-0 flex items-center justify-between">
+              <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between">
                 <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{product.lots?.length ?? 0}</span> ล็อต</span>
                 <span className="flex items-center gap-3">
                   <span>ใช้งาน <span className="font-semibold text-success tabular-nums">{activeLotList.length}</span></span>
@@ -1188,10 +1243,15 @@ export default function EditProductPage() {
           <DialogBody className="space-y-3">
             <div>
               <label className="block text-sm font-medium mb-1">หน่วยนับ <span className="text-destructive">*</span></label>
-              <SelectField value={unitForm.unit_id ?? 0} onChange={v => setUnitForm((f: any) => ({ ...f, unit_id: Number(v) }))}>
-                <option value={0}>— เลือกหน่วย —</option>
-                {itemUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </SelectField>
+              <Select value={String(unitForm.unit_id ?? 0)} onValueChange={v => setUnitForm((f: any) => ({ ...f, unit_id: Number(v) }))}>
+                <SelectTrigger className="h-10 w-full rounded-xl">
+                  <SelectValue placeholder="— เลือกหน่วย —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">— เลือกหน่วย —</SelectItem>
+                  {itemUnits.map(u => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">บาร์โค้ด</label>
@@ -1272,40 +1332,65 @@ export default function EditProductPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">ปริมาณยา</label>
-                <SelectField value={labelForm.dosage_id ?? 0} onChange={v => setLF('dosage_id', v)}>
-                  <option value={0}>— เลือก —</option>
-                  {labelDosages.map((d: any) => <option key={d.id} value={d.id}>{d.name_th}</option>)}
-                </SelectField>
+                <Select value={String(labelForm.dosage_id ?? 0)} onValueChange={v => setLF('dosage_id', v)}>
+                  <SelectTrigger className="h-10 w-full rounded-xl">
+                    <SelectValue placeholder="— เลือก —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">— เลือก —</SelectItem>
+                    {labelDosages.map((d: any) => <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">ความถี่</label>
-                <SelectField value={labelForm.frequency_id ?? 0} onChange={v => setLF('frequency_id', v)}>
-                  <option value={0}>— เลือก —</option>
-                  {labelFrequencies.map((f: any) => <option key={f.id} value={f.id}>{f.name_th}</option>)}
-                </SelectField>
+                <Select value={String(labelForm.frequency_id ?? 0)} onValueChange={v => setLF('frequency_id', v)}>
+                  <SelectTrigger className="h-10 w-full rounded-xl">
+                    <SelectValue placeholder="— เลือก —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">— เลือก —</SelectItem>
+                    {labelFrequencies.map((f: any) => <SelectItem key={f.id} value={String(f.id)}>{f.name_th}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">เวลาเทียบมื้ออาหาร</label>
-                <SelectField value={labelForm.timing_id ?? 0} onChange={v => setLF('timing_id', v)}>
-                  <option value={0}>— เลือก —</option>
-                  {labelMealRelations.map((m: any) => <option key={m.id} value={m.id}>{m.name_th}</option>)}
-                </SelectField>
+                <Select value={String(labelForm.timing_id ?? 0)} onValueChange={v => setLF('timing_id', v)}>
+                  <SelectTrigger className="h-10 w-full rounded-xl">
+                    <SelectValue placeholder="— เลือก —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">— เลือก —</SelectItem>
+                    {labelMealRelations.map((m: any) => <SelectItem key={m.id} value={String(m.id)}>{m.name_th}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">เวลาที่รับประทาน</label>
-                <SelectField value={labelForm.label_time_id ?? 0} onChange={v => setLF('label_time_id', v)}>
-                  <option value={0}>— เลือก —</option>
-                  {labelTimes.map((t: any) => <option key={t.id} value={t.id}>{t.name_th}</option>)}
-                </SelectField>
+                <Select value={String(labelForm.label_time_id ?? 0)} onValueChange={v => setLF('label_time_id', v)}>
+                  <SelectTrigger className="h-10 w-full rounded-xl">
+                    <SelectValue placeholder="— เลือก —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">— เลือก —</SelectItem>
+                    {labelTimes.map((t: any) => <SelectItem key={t.id} value={String(t.id)}>{t.name_th}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">คำแนะนำ</label>
-              <SelectField value={labelForm.advice_id ?? 0} onChange={v => setLF('advice_id', v)}>
-                <option value={0}>— เลือก —</option>
-                {labelAdvices.map((a: any) => <option key={a.id} value={a.id}>{a.name_th}</option>)}
-              </SelectField>
+              <Select value={String(labelForm.advice_id ?? 0)} onValueChange={v => setLF('advice_id', v)}>
+                <SelectTrigger className="h-10 w-full rounded-xl">
+                  <SelectValue placeholder="— เลือก —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">— เลือก —</SelectItem>
+                  {labelAdvices.map((a: any) => <SelectItem key={a.id} value={String(a.id)}>{a.name_th}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>

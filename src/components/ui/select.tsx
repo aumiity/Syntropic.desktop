@@ -43,8 +43,8 @@ function SelectTrigger({
       data-size={size}
       className={cn(
         "flex w-fit items-center justify-between gap-1.5",
-        "rounded-lg border border-border",
-        "bg-transparent dark:bg-input/30",
+        "rounded-lg",
+        "bg-muted dark:bg-input/30",
         "py-2 pr-2 pl-2.5",
         "text-sm whitespace-nowrap",
         "transition-colors outline-none select-none",
@@ -142,8 +142,8 @@ function SelectItem({
         "relative flex w-full cursor-default items-center gap-1.5",
         "rounded-md py-2 pr-8 pl-1.5",
         "text-sm outline-hidden select-none",
-        "focus:bg-accent focus:text-accent-foreground",
-        "not-data-[variant=destructive]:focus:**:text-accent-foreground",
+        "focus:bg-quaternary focus:text-quaternary-foreground",
+        "not-data-[variant=destructive]:focus:**:text-quaternary-foreground",
         "data-disabled:pointer-events-none data-disabled:opacity-50",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         "*:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
@@ -214,16 +214,20 @@ function SelectScrollDownButton({
   )
 }
 
-function NativeSelect({ value, onChange, children, className }: {
+function NativeSelect({ value, onChange, children, className, selectClassName }: {
   value: number | string
   onChange: (v: string) => void
   children: React.ReactNode
   className?: string
+  selectClassName?: string
 }) {
   return (
     <div className={cn('relative', className)}>
       <select
-        className="w-full h-10 rounded-xl bg-input px-3 pr-9 text-sm appearance-none outline-none transition-all focus:ring-[2px] focus:ring-ring"
+        className={cn(
+          'w-full h-10 rounded-xl bg-input px-3 pr-9 text-sm appearance-none outline-none transition-all focus:ring-[2px] focus:ring-ring',
+          selectClassName,
+        )}
         value={value}
         onChange={e => onChange(e.target.value)}
       >

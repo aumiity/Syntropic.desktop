@@ -1,6 +1,7 @@
 import * as React from "react"
 import { CalendarDays } from "lucide-react"
 import { Input } from "./input"
+import { Button } from "./button"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { Calendar } from "./calendar"
 
@@ -65,7 +66,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
           inputMode="numeric"
           placeholder={placeholder}
           value={text}
-          className={`pr-7 ${className ?? ''}`}
+          className={`pr-9 ${className ?? ''}`}
           onChange={e => {
             const formatted = autoFormat(e.target.value)
             setText(formatted)
@@ -77,15 +78,17 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
         />
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <button
+            <Button
               type="button"
               tabIndex={-1}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-foreground-subtle hover:text-muted-foreground hover:bg-muted transition-colors"
+              variant="ghost"
+              size="icon-sm"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-foreground-subtle hover:text-primary hover:bg-primary-soft"
             >
-              <CalendarDays className="w-3.5 h-3.5" />
-            </button>
+              <CalendarDays className="size-4" />
+            </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
+          <PopoverContent className="w-auto p-0 rounded-2xl shadow-lg" align="end">
             <Calendar
               mode="single"
               selected={selectedDate}

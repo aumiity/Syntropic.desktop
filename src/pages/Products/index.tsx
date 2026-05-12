@@ -377,7 +377,7 @@ export default function ProductsPage() {
                       <div className="flex items-center justify-center gap-3">
                         <Button
                           size="icon-xl"
-                          variant="outline"
+                          variant="senary"
                           onClick={() => navigate(`/products/${row.id}/edit`)}
                           title="แก้ไข"
                         >
@@ -385,7 +385,7 @@ export default function ProductsPage() {
                         </Button>
                         <Button
                           size="icon-xl"
-                          variant="outline"
+                          variant="quaternary"
                           onClick={() => openAdjust(row)}
                           title="ปรับสต็อก"
                         >
