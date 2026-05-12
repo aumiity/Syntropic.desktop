@@ -533,19 +533,37 @@ export function initializeSchema(db: Database.Database) {
   // mirrored prices into it. That created two sources of truth and the inevitable
   // drift bugs. Now: products owns its base unit (unit_id, price_*), and
   // product_units holds only non-base variants.
-  for (const sql of [
-    // 1. Add products.unit_id (no-op if already present from CREATE TABLE).
-    `ALTER TABLE products ADD COLUMN unit_id INTEGER REFERENCES item_units(id)`,
-    // 2. Backfill products.unit_id from the base row in product_units.
-    `UPDATE products
-        SET unit_id = (SELECT pu.unit_id FROM product_units pu
-                        WHERE pu.product_id = products.id AND pu.is_base_unit = 1)
-      WHERE unit_id IS NULL`,
-    // 3. Drop the base rows — prices already live on products.
-    `DELETE FROM product_units WHERE is_base_unit = 1`,
-    // 4. Drop the now-meaningless column.
-    `ALTER TABLE product_units DROP COLUMN is_base_unit`,
-  ]) {
-    try { db.exec(sql) } catch {}
-  }
+  //
+  // Step 1 (ADD COLUMN) and step 4 (DROP COLUMN) must run outside a transaction
+  // (SQLite limitation) and are independently idempotent — try/catch absorbs the
+  // "duplicate / missing column" errors on re-runs.
+  //
+  // Steps 2+3 (backfill + delete base rows) MUST be atomic: if backfill fails
+  // mid-way and we still delete base rows, products are stranded with unit_id=NULL
+  // and no recovery path. Wrap them in a transaction and add a sanity gate.
+  try { db.exec(`ALTER TABLE products ADD COLUMN unit_id INTEGER REFERENCES item_units(id)`) } catch {}
+
+  try {
+    db.transaction(() => {
+      db.exec(`
+        UPDATE products
+           SET unit_id = (SELECT pu.unit_id FROM product_units pu
+                           WHERE pu.product_id = products.id AND pu.is_base_unit = 1)
+         WHERE unit_id IS NULL
+      `)
+      // Gate: refuse to delete base rows if any product would be left orphaned.
+      // (Products that were already orphaned before this migration are excluded
+      // from the check via the EXISTS clause — they wouldn't be helped by aborting.)
+      const orphans = db.prepare(`
+        SELECT COUNT(*) AS c FROM products p
+         WHERE p.unit_id IS NULL
+           AND EXISTS (SELECT 1 FROM product_units pu
+                        WHERE pu.product_id = p.id AND pu.is_base_unit = 1)
+      `).get() as { c: number }
+      if (orphans.c > 0) throw new Error(`Migration aborted: ${orphans.c} products would lose their base unit`)
+      db.exec(`DELETE FROM product_units WHERE is_base_unit = 1`)
+    })()
+  } catch {}
+
+  try { db.exec(`ALTER TABLE product_units DROP COLUMN is_base_unit`) } catch {}
 }

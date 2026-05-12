@@ -132,7 +132,6 @@ export default function EditProductPage() {
         is_vat: prod.has_vat ?? 0,
         is_drug: prod.is_drug ?? 0,
         is_stock_item: prod.is_stock_item ?? 1,
-        default_qty: prod.default_qty ?? 1,
         reorder_point: prod.reorder_point ?? 0,
         safety_stock: prod.safety_stock ?? 0,
         is_antibiotic: prod.is_antibiotic ?? 0,
@@ -189,7 +188,7 @@ export default function EditProductPage() {
       // aborts the UPDATE with "no such column". Strip UI-only / renamed keys here.
       const {
         is_vat,
-        drug_generic_name_id, has_wholesale1, has_wholesale2, default_qty,
+        drug_generic_name_id, has_wholesale1, has_wholesale2,
         ...rest
       } = form
       const payload = {
@@ -206,6 +205,8 @@ export default function EditProductPage() {
         barcode4: form.barcode4 || null,
         code: form.code || null,
         has_vat: is_vat ? 1 : 0,
+        // 0 = "— เลือกหน่วย —" placeholder; coerce to null so the FK doesn't reject the save
+        unit_id: form.unit_id || null,
       }
       await window.api.products.update(productId, payload)
       toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
@@ -522,7 +523,7 @@ export default function EditProductPage() {
           value={formatCurrency(product.cost_price)}
           sub={baseUnit ? `ต่อ ${baseUnit}` : undefined}
           icon={Tag}
-          tint="secondary"
+          tint="senary"
         />
         <MetricCard
           label="ราคาขาย"
@@ -602,18 +603,18 @@ export default function EditProductPage() {
               <SectionCard icon={Tag} title="ราคาและต้นทุน" tint="success">
                 <div className="grid grid-cols-2 gap-3">
 
-                  {/* col1 row1 */}
+                  {/* col1 row1: ราคาขายปลีก */}
                   <div className="col-start-1 row-start-1">
-                    <Field label="ราคาทุน">
-                      <Input type="number" value={form.cost_price} onChange={e => setF('cost_price', e.target.value)}
-                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" placeholder="คำนวณจากล็อต" />
+                    <Field label="ราคาขายปลีก" required>
+                      <Input type="number" value={form.price_retail} onChange={e => setF('price_retail', e.target.value)}
+                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
                     </Field>
                   </div>
 
-                  {/* col1 row2 */}
+                  {/* col1 row2: ราคาส่ง 1 */}
                   <div className="col-start-1 row-start-2">
-                    <Field label="ราคาขายปลีก" required>
-                      <Input type="number" value={form.price_retail} onChange={e => setF('price_retail', e.target.value)}
+                    <Field label="ราคาส่ง 1">
+                      <Input type="number" value={form.price_wholesale1} onChange={e => setF('price_wholesale1', e.target.value)}
                         className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
                     </Field>
                   </div>
@@ -624,9 +625,9 @@ export default function EditProductPage() {
                     {(() => {
                       const cost = parseFloat(form.cost_price) || 0
                       const rows = [
-                        { label: 'ปลีก', price: parseFloat(form.price_retail) || 0 },
-                        { label: 'ส่ง 1', price: parseFloat(form.price_wholesale1) || 0 },
-                        { label: 'ส่ง 2', price: parseFloat(form.price_wholesale2) || 0 },
+                        { label: 'ราคาขายปลีก', price: parseFloat(form.price_retail) || 0 },
+                        { label: 'ราคาส่ง 1', price: parseFloat(form.price_wholesale1) || 0 },
+                        { label: 'ราคาส่ง 2', price: parseFloat(form.price_wholesale2) || 0 },
                       ]
                       return (
                         <div className="h-[calc(100%-1.75rem)] rounded-xl bg-muted/50 px-3 py-2 flex flex-col">
@@ -658,19 +659,19 @@ export default function EditProductPage() {
                     })()}
                   </div>
 
-                  {/* col1 row3: ส่ง 1 */}
+                  {/* col1 row3: ส่ง 2 */}
                   <div className="col-start-1 row-start-3">
-                    <Field label="ราคาส่ง 1">
-                      <Input type="number" value={form.price_wholesale1} onChange={e => setF('price_wholesale1', e.target.value)}
+                    <Field label="ราคาส่ง 2">
+                      <Input type="number" value={form.price_wholesale2} onChange={e => setF('price_wholesale2', e.target.value)}
                         className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
                     </Field>
                   </div>
 
-                  {/* col2 row3: ส่ง 2 */}
+                  {/* col2 row3: ราคาทุน */}
                   <div className="col-start-2 row-start-3">
-                    <Field label="ราคาส่ง 2">
-                      <Input type="number" value={form.price_wholesale2} onChange={e => setF('price_wholesale2', e.target.value)}
-                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
+                    <Field label="ราคาทุน">
+                      <Input type="number" value={form.cost_price} onChange={e => setF('cost_price', e.target.value)}
+                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" placeholder="คำนวณจากล็อต" />
                     </Field>
                   </div>
 
@@ -678,7 +679,7 @@ export default function EditProductPage() {
                   <div className="p-2 col-start-1 row-start-4 flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                     <div>
                       <div className="text-sm font-semibold uppercase text-foreground">มี VAT</div>
-                      <div className="text-xs text-muted-foreground">บวก 7% เมื่อออกใบกำกับภาษี</div>
+                      <div className="text-sm text-muted-foreground">บวก 7% เมื่อออกใบกำกับภาษี</div>
                     </div>
                     <Switch size="lg" checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
                   </div>
@@ -687,7 +688,7 @@ export default function EditProductPage() {
                   <div className="col-start-2 row-start-4 flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                     <div>
                       <div className="text-sm font-semibold uppercase text-foreground">นับสต็อก</div>
-                      <div className="text-xs text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
+                      <div className="text-sm text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
                     </div>
                     <Switch size="lg" checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
                   </div>
@@ -869,7 +870,7 @@ export default function EditProductPage() {
                     </div>
                   </>
                 ) : (
-                  <p className="text-xs text-muted-foreground px-1">เปิดสวิตช์ด้านบนเพื่อกรอกข้อมูลยา</p>
+                  <p className="text-sm text-muted-foreground px-1">เปิดสวิตช์ด้านบนเพื่อกรอกข้อมูลยา</p>
                 )}
               </SectionCard>
 
@@ -878,14 +879,14 @@ export default function EditProductPage() {
                   <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                     <div>
                       <div className="text-sm font-semibold uppercase text-foreground">ซ่อน</div>
-                      <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>
+                      <div className="text-sm text-muted-foreground">ซ่อนจากการค้นหา</div>
                     </div>
                     <Switch size="lg" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
                   </div>
                   <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                     <div>
                       <div className="text-sm font-semibold uppercase text-foreground">ปิดใช้งาน</div>
-                      <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
+                      <div className="text-sm text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
                     </div>
                     <Switch size="lg" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
                   </div>

@@ -163,6 +163,7 @@ function MetricCard({
     : tint === "warning"     ? "bg-warning-soft text-warning-strong"
     : tint === "destructive" ? "bg-destructive-soft text-destructive"
     : tint === "secondary"   ? "bg-muted text-muted-foreground"
+    : tint === "senary"   ? "bg-senary text-senary-foreground"
     : "bg-primary-soft text-primary"
   const valColor =
     tint === "success"     ? "text-success"
@@ -211,6 +212,7 @@ function StatCard({
     : tint === "warning"     ? "bg-senary text-senary-foreground"
     : tint === "destructive" ? "bg-destructive-soft text-destructive"
     : tint === "secondary"   ? "bg-muted text-muted-foreground"
+    : tint === "senary"   ? "bg-senary text-senary-foreground"
     : "bg-primary-soft text-primary"
   const activeRing =
     !isActive ? "ring-0"
@@ -218,6 +220,7 @@ function StatCard({
     : tint === "warning"     ? "ring-2 ring-warning"
     : tint === "destructive" ? "ring-2 ring-destructive"
     : tint === "secondary"   ? "ring-2 ring-border-strong"
+    : tint === "senary"   ? "ring-2 ring-senary-foreground"
     : "ring-2 ring-primary"
   const interactive = onClick
     ? "cursor-pointer hover:shadow-md transition-all text-left"

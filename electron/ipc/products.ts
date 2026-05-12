@@ -113,7 +113,12 @@ export function registerProductHandlers() {
 
   ipcMain.handle('products:get', (_e, id: number) => {
     const db = getDb()
-    const product = db.prepare(`SELECT * FROM products WHERE id = ?`).get(id)
+    const product = db.prepare(`
+      SELECT p.*, u.name as unit_name
+      FROM products p
+      LEFT JOIN item_units u ON u.id = p.unit_id
+      WHERE p.id = ?
+    `).get(id)
     if (!product) return null
     const units = db.prepare(`
       SELECT pu.*, u.name as unit_name FROM product_units pu
