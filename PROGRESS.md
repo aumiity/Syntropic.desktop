@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: 100% Complete + UI Polish ✅ — 2026-05-12 session: Products/EditProduct UI overhaul — MetricCard/StatCard refactor to shared card.tsx (with labelClassName/valueClassName/subClassName escape hatches), absolute-icon layout pattern (`absolute top-4 right-4` + `pr-14` on text), new `segmented` Tabs variant (bg-card container, bg-tertiary active, equal-width via `inline-grid grid-flow-col auto-cols-fr`), EditProduct meta card redesign + 4-card reorder (meta → cost → profit → stock), profit card sub shows "+amt (+pct%)" with success/destructive color via subClassName, 3 tab tables match Products list style (white header bar inside card + `border-l-8 border-r-8 border-card` inset + `table-fixed` + sticky headers + status bar). Base-unit invariant now backend-enforced: addUnit forces `is_base_unit=0`, updateUnit strips `is_base_unit` and locks base-unit edits to `unit_id` only, deleteUnit throws if base, products:update mirrors price columns to base unit's `product_units` row in a transaction. `[scrollbar-gutter:stable]` on tab scroll container fixes horizontal tab-center shift between tabs.
+## Status: ✅ Runnable — base unit storage refactored to `products.unit_id` (single source of truth, no more `is_base_unit` in `product_units`). UI verified end-to-end (9/9 scenarios).
 ## Last updated: 2026-05-12
-## App is RUNNABLE — run `npm run electron:dev` to launch
-## ⚠️ Pick up next session: **ข.ย.10 / ข.ย.11 reports** — บัญชีการขายยาควบคุมพิเศษ (ข.ย.10) และยาอันตราย (ข.ย.11) ตามที่ อ.ย. กำหนด. New report pages under `/reports/`. See NEXT SESSION section below for updated plan.
+## Run: `npm run electron:dev`
+## ⚠️ Next session: **ข.ย.10 / ข.ย.11 reports** — new report pages under `/reports/`. See NEXT SESSION section below.
 
 ---
 
@@ -1247,5 +1247,36 @@ DANGEROUS เจตนา `is_fda11=0` — pharmacist ปรับรายต�
 - `src/pages/Products/EditProduct.tsx` — is_drug toggle, drug_type onChange, 4 report toggles, meta badge
 - `src/pages/Products/index.tsx` — quick-create payload + list badge
 
-### Uncommitted changes
-All of the above are uncommitted working-tree modifications.
+---
+
+## Session 2026-05-12 — Base unit storage refactor: audit + hardening
+
+### Goal
+ย้าย base unit ออกจาก `product_units` (เดิม `is_base_unit=1` mirroring prices) → ฝัง `products.unit_id` เป็น single source of truth. ตรวจสอบ refactor + แก้ issue ที่ค้าง.
+
+### Static audit findings (6 issues, all resolved)
+1. **Migration steps 2+3 not atomic** — backfill + DELETE were independent `try/catch`. Mid-failure could strand products with `unit_id=NULL`. Fix: wrap in `db.transaction()` with orphan gate (`schema.ts:546-566`).
+2. **`products:get` missing unit_name join** — inconsistent with `products:list` / `pos:searchProducts`. Fix: `LEFT JOIN item_units u ON u.id = p.unit_id` (`products.ts:116-121`).
+3. **`doSave` could send `unit_id=0`** — placeholder value violates FK. Fix: coerce `0 → null` in payload (`EditProduct.tsx:208-209`).
+4. **Dead `default_qty` read** — column doesn't exist; stripped before save but cluttered loadAll. Fix: removed.
+5. **CLAUDE.md self-contradiction** — line 36 still listed `unit_id` as "Dropped from products" while line 38 made it the source of truth. Fix: bullet removed.
+6. **(Retracted)** `drug_generic_name_id` is actually used in UI (autocomplete display) — kept.
+
+### UI verification — 9/9 scenarios passed
+Schema sanity, product list, EditProduct General + Units tabs, POS search modal, cart unit dialog, price dialog, Purchase GR, expiry report. Base row always at top with "หลัก" badge; price dialog correctly hides wholesale rows when value=0; `unit_id` round-trips through save/reload.
+
+### Toggle/Switch sizing pass
+- `src/components/ui/switch.tsx` — `Toggle` gained `size?: "sm" | "default" | "lg"` prop, passes through to inner `Switch`.
+- `src/pages/Products/EditProduct.tsx` — 13 Switch/Toggle instances bumped to `size="lg"` (VAT, stock, is_drug, ข.ย.9/10/11/13, is_hidden, is_disabled, unit dialog is_for_sale/is_for_purchase, label dialog is_default/is_active/show_barcode).
+
+### Files changed
+- `electron/db/schema.ts` — migration transaction + orphan gate
+- `electron/ipc/products.ts` — `products:get` JOIN
+- `src/pages/Products/EditProduct.tsx` — `unit_id` coerce, drop `default_qty`, switches → `size="lg"`
+- `src/components/ui/switch.tsx` — `Toggle.size` prop
+- `src/components/ui/card.tsx` — `senary` tint support (MetricCard + StatCard)
+- `src/components/ui/tabs.tsx` — segmented active uses `senary`
+- `CLAUDE.md` — stale bullet removed
+
+### Commit
+`832ef90` — refactor: harden base unit storage and polish EditProduct UI (pushed to `origin/main`)
