@@ -16,8 +16,7 @@ export function registerPosHandlers() {
       FROM products p
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN drug_types dt ON dt.id = p.drug_type_id
-      LEFT JOIN product_units pu_base ON pu_base.product_id = p.id AND pu_base.is_base_unit = 1
-      LEFT JOIN item_units u ON u.id = pu_base.unit_id
+      LEFT JOIN item_units u ON u.id = p.unit_id
       WHERE p.is_disabled = 0
         AND (p.trade_name LIKE ? OR p.barcode LIKE ? OR p.barcode2 LIKE ?
              OR p.barcode3 LIKE ? OR p.barcode4 LIKE ?
@@ -43,9 +42,8 @@ export function registerPosHandlers() {
       prod.units = db.prepare(`
         SELECT pu.*, u.name as unit_name FROM product_units pu
         JOIN item_units u ON u.id = pu.unit_id
-        WHERE pu.product_id = ? AND pu.is_disabled = 0
-          AND (pu.is_for_sale = 1 OR pu.is_base_unit = 1)
-        ORDER BY pu.is_base_unit DESC, pu.qty_per_base ASC
+        WHERE pu.product_id = ? AND pu.is_disabled = 0 AND pu.is_for_sale = 1
+        ORDER BY pu.qty_per_base ASC
       `).all(prod.id)
     }
 

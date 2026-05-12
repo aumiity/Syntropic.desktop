@@ -27,7 +27,6 @@ interface ProductUnitOption {
   id: number
   unit_name: string
   qty_per_base: number
-  is_base_unit: number | boolean
   price_retail?: number
 }
 
@@ -474,7 +473,6 @@ export default function PurchasePage() {
       id: -1,
       unit_name: baseName,
       qty_per_base: 1,
-      is_base_unit: true,
       price_retail: p.price_retail ?? 0,
     }
     const allUnits: ProductUnitOption[] = [
@@ -501,7 +499,7 @@ export default function PurchasePage() {
     const baseName = p.unit_name || 'ชิ้น'
     const incoming = p.units ?? []
     const baseUnit: ProductUnitOption = {
-      id: -1, unit_name: baseName, qty_per_base: 1, is_base_unit: true,
+      id: -1, unit_name: baseName, qty_per_base: 1,
       price_retail: p.price_retail ?? 0,
     }
     const allUnits: ProductUnitOption[] = [
@@ -1983,7 +1981,7 @@ export default function PurchasePage() {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm">{u.unit_name}</span>
-                      {u.is_base_unit && <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">หลัก</span>}
+                      {u.id === -1 && <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">หลัก</span>}
                     </div>
                   </button>
                 )

@@ -277,14 +277,11 @@ export default function POSPage() {
 
   const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]) }
 
-  // Synthetic base row first (uses product.unit_name); skip DB units with is_base_unit=1 to avoid duplicates.
-  const flatItems = results.flatMap(p => {
-    const nonBaseUnits = (p.units ?? []).filter(u => !u.is_base_unit)
-    return [
-      { product: p, unit: null as ProductUnit | null },
-      ...nonBaseUnits.map(u => ({ product: p, unit: u })),
-    ]
-  })
+  // Base row first (unit=null → uses product.unit_name + product prices), then non-base variants.
+  const flatItems = results.flatMap(p => [
+    { product: p, unit: null as ProductUnit | null },
+    ...(p.units ?? []).map(u => ({ product: p, unit: u })),
+  ])
 
   const handleSelectItem = (product: ProductWithDetails, unit: ProductUnit | null) => {
     const price = resolveSalePrice(unit ?? product, cart.saleType)
@@ -542,8 +539,13 @@ export default function POSPage() {
   }
 
   const changeCartUnit = (idx: number, unit: ProductUnit) => {
+    const isBase = unit.id === -1
     const price = resolveSalePrice(unit, cart.saleType)
-    cart.updateItem(idx, { unit_name: unit.unit_name, unit_price: price, selectedUnit: unit })
+    cart.updateItem(idx, {
+      unit_name: unit.unit_name,
+      unit_price: price,
+      selectedUnit: isBase ? undefined : unit,
+    })
     setUnitModalIdx(null)
     refocusSearch()
   }
@@ -1766,17 +1768,17 @@ export default function POSPage() {
           const product = item?.product as ProductWithDetails | undefined
           const units = product?.units ?? []
           const baseUnitName = product?.unit_name ?? ''
+          // Synthetic base row (id=-1) so the list always shows the base unit on top.
+          // changeCartUnit detects id=-1 and clears selectedUnit so the cart pulls
+          // pricing from product.* (single source of truth for the base unit).
           const baseUnit = product ? {
             id: -1,
             unit_name: baseUnitName,
             price_retail: product.price_retail,
             price_wholesale1: product.price_wholesale1,
             price_wholesale2: product.price_wholesale2,
-            is_base_unit: 1,
           } as unknown as ProductUnit : null
-          const allUnits = baseUnit
-            ? [baseUnit, ...units.filter(u => !u.is_base_unit && u.unit_name !== baseUnitName)]
-            : units
+          const allUnits = baseUnit ? [baseUnit, ...units] : units
           return (
             <DialogContent size="sm" onClose={() => setUnitModalIdx(null)}>
               <DialogHeader><DialogTitle className="text-2xl">เลือกหน่วย <div className="text-sm">{item?.item_name}</div></DialogTitle></DialogHeader>
@@ -1811,10 +1813,15 @@ export default function POSPage() {
           const item = cart.items[priceModalIdx]
           const product = item?.product as ProductWithDetails | undefined
           const cost = product?.cost_price ?? 0
+          // No selectedUnit → cart is on the base unit; pull prices from product (source of truth).
+          const useUnit = !!item.selectedUnit
+          const retail = useUnit ? item.selectedUnit!.price_retail : product?.price_retail ?? 0
+          const wholesale1 = useUnit ? item.selectedUnit!.price_wholesale1 : product?.price_wholesale1 ?? 0
+          const wholesale2 = useUnit ? item.selectedUnit!.price_wholesale2 : product?.price_wholesale2 ?? 0
           const priceOptions = product ? [
-            { label: 'ราคาปลีก', price: item.selectedUnit ? item.selectedUnit.price_retail : product.price_retail },
-            ...(product.has_wholesale1 || product.price_wholesale1 > 0 ? [{ label: 'ราคาส่ง 1', price: item.selectedUnit ? item.selectedUnit.price_wholesale1 : product.price_wholesale1 }] : []),
-            ...(product.has_wholesale2 || product.price_wholesale2 > 0 ? [{ label: 'ราคาส่ง 2', price: item.selectedUnit ? item.selectedUnit.price_wholesale2 : product.price_wholesale2 }] : []),
+            { label: 'ราคาปลีก', price: retail },
+            ...((wholesale1 ?? 0) > 0 ? [{ label: 'ราคาส่ง 1', price: wholesale1 }] : []),
+            ...((wholesale2 ?? 0) > 0 ? [{ label: 'ราคาส่ง 2', price: wholesale2 }] : []),
           ] : []
           const customPrice = parseFloat(customPriceInput) || 0
           const customProfit = customPrice - cost

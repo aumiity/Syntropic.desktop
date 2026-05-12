@@ -67,8 +67,7 @@ export function registerProductHandlers() {
       FROM products p
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN drug_types dt ON dt.id = p.drug_type_id
-      LEFT JOIN product_units pu_base ON pu_base.product_id = p.id AND pu_base.is_base_unit = 1
-      LEFT JOIN item_units u ON u.id = pu_base.unit_id
+      LEFT JOIN item_units u ON u.id = p.unit_id
       ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?
     `).all(...params, limit, offset)
 
@@ -119,7 +118,7 @@ export function registerProductHandlers() {
     const units = db.prepare(`
       SELECT pu.*, u.name as unit_name FROM product_units pu
       JOIN item_units u ON u.id = pu.unit_id
-      WHERE pu.product_id = ? ORDER BY pu.is_base_unit DESC, pu.qty_per_base ASC
+      WHERE pu.product_id = ? ORDER BY pu.qty_per_base ASC
     `).all(id)
     const lots = db.prepare(`SELECT * FROM product_lots WHERE product_id = ? ORDER BY created_at DESC`).all(id)
     const labels = db.prepare(`
@@ -142,10 +141,15 @@ export function registerProductHandlers() {
     if (last?.code) nextNum = parseInt(last.code.slice(1)) + 1
     const code = `P${String(nextNum).padStart(4, '0')}`
 
+    // Fallback unit if caller didn't pick one (shouldn't happen via the UI, but defends against legacy callers).
+    const fallbackUnitId = (db.prepare(`SELECT id FROM item_units WHERE name = 'ชิ้น'`).get() as any)?.id
+                         ?? (db.prepare(`INSERT INTO item_units (name, multiply) VALUES ('ชิ้น', 1)`).run().lastInsertRowid as number)
+
     const insProduct = db.prepare(`
       INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,
         category_id, is_stock_item,
         price_retail, price_wholesale1, price_wholesale2, cost_price,
+        unit_id,
         has_vat, reorder_point, safety_stock,
         drug_type_id, tmt_id,
         is_antibiotic,
@@ -155,6 +159,7 @@ export function registerProductHandlers() {
       VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,
         @category_id, @is_stock_item,
         @price_retail, @price_wholesale1, @price_wholesale2, @cost_price,
+        @unit_id,
         @has_vat, @reorder_point, @safety_stock,
         @drug_type_id, @tmt_id,
         @is_antibiotic,
@@ -163,55 +168,15 @@ export function registerProductHandlers() {
         @search_keywords, @note)
     `)
 
-    // Every product needs exactly one product_units row with is_base_unit=1.
-    // Falls back to 'ชิ้น' if the caller didn't pick a unit (shouldn't happen via the
-    // Products UI dropdown, but defends against legacy callers).
-    const fallbackUnitId = (db.prepare(`SELECT id FROM item_units WHERE name = 'ชิ้น'`).get() as any)?.id
-                         ?? (db.prepare(`INSERT INTO item_units (name, multiply) VALUES ('ชิ้น', 1)`).run().lastInsertRowid as number)
-
-    const insBaseUnit = db.prepare(`
-      INSERT INTO product_units
-        (product_id, unit_id, qty_per_base, is_base_unit, is_for_sale,
-         price_retail, price_wholesale1, price_wholesale2)
-      VALUES (?, ?, 1, 1, 1, ?, ?, ?)
-    `)
-
-    const create = db.transaction((d: any) => {
-      const r = insProduct.run({ ...d, code })
-      insBaseUnit.run(
-        r.lastInsertRowid,
-        d.unit_id ?? fallbackUnitId,
-        d.price_retail ?? 0,
-        d.price_wholesale1 ?? 0,
-        d.price_wholesale2 ?? 0,
-      )
-      return r.lastInsertRowid
-    })
-
-    const newId = create(data)
-    return db.prepare(`SELECT * FROM products WHERE id = ?`).get(newId)
+    const r = insProduct.run({ ...data, code, unit_id: data.unit_id ?? fallbackUnitId })
+    return db.prepare(`SELECT * FROM products WHERE id = ?`).get(r.lastInsertRowid)
   })
 
   ipcMain.handle('products:update', (_e, id: number, data: any) => {
     const db = getDb()
     const fields = Object.keys(data).map(k => `${k} = @${k}`).join(', ')
-
-    // Mirror base-unit pricing so legacy joins into product_units stay consistent
-    // with the products table (which is the source of truth for the base unit).
-    const mirror: any = {}
-    if ('price_retail' in data) mirror.price_retail = data.price_retail
-    if ('price_wholesale1' in data) mirror.price_wholesale1 = data.price_wholesale1
-    if ('price_wholesale2' in data) mirror.price_wholesale2 = data.price_wholesale2
-
-    return db.transaction(() => {
-      db.prepare(`UPDATE products SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...data, id })
-      if (Object.keys(mirror).length > 0) {
-        const mirrorFields = Object.keys(mirror).map(k => `${k} = @${k}`).join(', ')
-        db.prepare(`UPDATE product_units SET ${mirrorFields} WHERE product_id = @product_id AND is_base_unit = 1`)
-          .run({ ...mirror, product_id: id })
-      }
-      return db.prepare(`SELECT * FROM products WHERE id = ?`).get(id)
-    })()
+    db.prepare(`UPDATE products SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...data, id })
+    return db.prepare(`SELECT * FROM products WHERE id = ?`).get(id)
   })
 
   ipcMain.handle('products:updatePrice', (_e, productId: number, data: { price_type?: 'retail' | 'wholesale1' | 'wholesale2'; new_price: number; note?: string }) => {
@@ -263,52 +228,27 @@ export function registerProductHandlers() {
     return adjust()
   })
 
-  // Product units
-  //
-  // Base unit invariant: every product has exactly one product_units row with
-  // is_base_unit=1, created in `products:create` and never changed afterwards.
-  // The base unit's pricing/barcode mirror the products table — these handlers
-  // enforce that users can't add another base unit, demote the current one, or
-  // delete it. Frontend dialogs also hide the is_base_unit toggle for clarity.
+  // Product units — non-base variants only (แผง, กล่อง, …).
+  // The base unit lives on products.unit_id (single source of truth).
   ipcMain.handle('products:addUnit', (_e, data: any) => {
     const db = getDb()
-    // Only the create flow may insert a base unit row.
-    const safeData = { ...data, is_base_unit: 0 }
     const result = db.prepare(`
-      INSERT INTO product_units (product_id, unit_id, barcode, qty_per_base, price_retail, price_wholesale1, price_wholesale2, is_base_unit, is_for_sale, is_for_purchase)
-      VALUES (@product_id, @unit_id, @barcode, @qty_per_base, @price_retail, @price_wholesale1, @price_wholesale2, @is_base_unit, @is_for_sale, @is_for_purchase)
-    `).run(safeData)
+      INSERT INTO product_units (product_id, unit_id, barcode, qty_per_base, price_retail, price_wholesale1, price_wholesale2, is_for_sale, is_for_purchase)
+      VALUES (@product_id, @unit_id, @barcode, @qty_per_base, @price_retail, @price_wholesale1, @price_wholesale2, @is_for_sale, @is_for_purchase)
+    `).run(data)
     return db.prepare(`SELECT pu.*, u.name as unit_name FROM product_units pu JOIN item_units u ON u.id = pu.unit_id WHERE pu.id = ?`).get(result.lastInsertRowid)
   })
 
   ipcMain.handle('products:updateUnit', (_e, id: number, data: any) => {
     const db = getDb()
-    // is_base_unit is set once at create and never changes.
-    const { is_base_unit: _drop, ...safeData } = data
-    const row = db.prepare(`SELECT is_base_unit FROM product_units WHERE id = ?`).get(id) as any
-    if (!row) throw new Error('ไม่พบหน่วย')
-
-    // For a base unit, only the unit_id (display name) is editable. Pricing,
-    // barcode, and qty_per_base mirror the products table or are fixed.
-    const allowed = row.is_base_unit
-      ? (() => {
-          const a: any = {}
-          if ('unit_id' in safeData) a.unit_id = safeData.unit_id
-          return a
-        })()
-      : safeData
-
-    if (Object.keys(allowed).length === 0) return true
-    const fields = Object.keys(allowed).map(k => `${k} = @${k}`).join(', ')
-    db.prepare(`UPDATE product_units SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...allowed, id })
+    if (Object.keys(data).length === 0) return true
+    const fields = Object.keys(data).map(k => `${k} = @${k}`).join(', ')
+    db.prepare(`UPDATE product_units SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...data, id })
     return true
   })
 
   ipcMain.handle('products:deleteUnit', (_e, id: number) => {
-    const db = getDb()
-    const row = db.prepare(`SELECT is_base_unit FROM product_units WHERE id = ?`).get(id) as any
-    if (row?.is_base_unit) throw new Error('ลบหน่วยหลักไม่ได้ — ทุกสินค้าต้องมีหน่วยหลัก 1 รายการเสมอ')
-    db.prepare(`DELETE FROM product_units WHERE id = ?`).run(id)
+    getDb().prepare(`DELETE FROM product_units WHERE id = ?`).run(id)
     return true
   })
 

@@ -75,16 +75,11 @@ export function registerDevHandlers() {
         barcode, code, trade_name, name_for_print,
         category_id, drug_type_id, is_stock_item,
         price_retail, price_wholesale1, price_wholesale2, cost_price,
+        unit_id,
         has_vat, reorder_point, safety_stock,
         is_antibiotic, is_fda9, is_fda10, is_fda11, is_fda13,
         search_keywords, note
-      ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-    const insBaseUnit = db.prepare(`
-      INSERT INTO product_units
-        (product_id, unit_id, qty_per_base, is_base_unit, is_for_sale,
-         price_retail, price_wholesale1, price_wholesale2)
-      VALUES (?, ?, 1, 1, 1, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     const insReceipt = db.prepare(`
       INSERT INTO purchase_receipts
@@ -138,6 +133,7 @@ export function registerDevHandlers() {
           barcode, code, trade_name, template,
           pick(cats), pick(drugTypes),
           retail, ws1, 0, cost,
+          pick(units).id, // unit_id (base unit, lives directly on products)
           0, // has_vat
           rand(10, 100), // reorder_point
           rand(5, 50),   // safety_stock
@@ -150,8 +146,6 @@ export function registerDevHandlers() {
         productIds.push(productId)
         productCosts.push(cost)
         productPrices.push(retail)
-
-        insBaseUnit.run(productId, pick(units).id, retail, ws1, 0)
       }
 
       // 2b. 10 GRs × 100 line items each

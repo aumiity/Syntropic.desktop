@@ -35,7 +35,7 @@ The runtime SQLite schema lives in `electron/db/schema.ts` — **always read it 
 - **Renamed:** `products.is_vat` → `has_vat`
 - **Dropped from `products`:** `dosage_form_id`, `no_discount` (formerly `is_not_discount`), `unit_id` (formerly `unit_name`)
 - **Added `products.is_drug`** (Hygeia-style): explicit "this product is a drug under the law" flag, gates the "ข้อมูลยา" section in EditProduct. `category` is purely for sorting/filtering. Migration backfills `is_drug=1` for products with a `drug_type_id`.
-- **Base unit lives only in `product_units`:** every product has exactly one `is_base_unit=1` row. `unit_name` for product list / POS / purchase / reports resolves via `LEFT JOIN product_units pu_base ON pu_base.product_id = p.id AND pu_base.is_base_unit = 1 LEFT JOIN item_units u ON u.id = pu_base.unit_id`. `products:create` inserts the base row in the same transaction; migration backfills existing rows.
+- **Base unit lives directly on `products`:** `products.unit_id` (FK → `item_units`) is the single source of truth for the base unit. `product_units` holds **only non-base variants** (แผง, กล่อง, …). `unit_name` for product list / POS / purchase / reports resolves via `LEFT JOIN item_units u ON u.id = p.unit_id`. There is no `is_base_unit` flag and no synthetic base row in `product_units`.
 - **PHP-only, not in SQLite:** `default_qty`, `has_wholesale1`, `has_wholesale2`, `drug_generic_name_id`, `old_item_key`
 
 `products:update` (and similar generic update handlers) builds dynamic SQL from `Object.keys(data)`. Any payload key that isn't a real column throws `no such column: X` and aborts the entire UPDATE. **Allow-list your save payload — never spread `...form` blindly.**
@@ -64,18 +64,18 @@ Customers `C0001…`, suppliers `S0001…`, GR `GR-YYYYMMDD-001…`, sales `INV-
 Products have 4 barcode fields (barcode, barcode2, barcode3, barcode4) plus `product_units.barcode`. Validate uniqueness across ALL of these before save.
 
 ### Pricing
-- **Source of truth for the base unit is the `products` table.** `products:update` runs in a transaction and mirrors `price_retail`/`price_wholesale1`/`price_wholesale2` to the `product_units` row where `is_base_unit=1`, so legacy joins that read from `product_units` keep getting the same numbers. Never write base-unit prices through `products:updateUnit` — the handler strips them (see "Base unit invariant" below).
-- Base product: `price_retail`, `price_wholesale1`, `price_wholesale2`
-- `has_wholesale1` / `has_wholesale2` flags control whether wholesale prices are active
+- **Base unit prices live on `products`** — `price_retail`, `price_wholesale1`, `price_wholesale2`. Single source of truth, no mirroring.
+- `has_wholesale1` / `has_wholesale2` flags (PHP-only, not in SQLite) historically gated whether wholesale prices were active. The desktop app shows a wholesale row in the price dialog only when its value is `> 0`.
 - Non-base ProductUnit variants (แผง, กล่อง, …) own their own `price_*` / `barcode` / `qty_per_base` / `is_for_sale` / `is_for_purchase`. These override the products table when that unit is selected in POS.
 - `cost_price` per lot; `products.cost_price` = weighted avg of open lots
 
-### Base unit invariant (HARD)
-Every product has exactly one `product_units` row with `is_base_unit=1`, created in `products:create` and never altered. Enforced at the IPC layer:
-- **`products:addUnit`** forces `is_base_unit=0` on the payload — only `products:create` can insert a base unit.
-- **`products:updateUnit`** strips `is_base_unit` from the payload. If the target row is a base unit, only `unit_id` (the display-name reference into `item_units`) is editable — pricing, barcode, qty_per_base updates are dropped.
-- **`products:deleteUnit`** throws if the target is a base unit (frontend also hides the delete button — defense in depth).
-- Frontend unit dialog branches on `editingUnit?.is_base_unit`: title "แก้ไขหน่วยหลัก", body shows only the `unit_id` select + a note pointing to the General tab. The `หน่วยหลัก` Toggle was removed entirely — `is_base_unit` cannot be toggled by users.
+### Base unit storage (HARD)
+The base unit is `products.unit_id` — a plain FK column. `product_units` holds **only non-base variants**. There is no `is_base_unit` flag anywhere.
+- **`products:create`** writes `unit_id` directly to the products row. Falls back to `'ชิ้น'` if the caller omits it.
+- **`products:addUnit` / `updateUnit` / `deleteUnit`** all operate on non-base variants only. No special-case guards.
+- **EditProduct units tab** renders a synthetic base row at the top (sourced from `product.unit_name` + `product.price_*`) followed by `product.units`. The base row has no edit/delete buttons — base unit pricing and unit selection are edited on the General tab (`unit_id` selector + the price inputs).
+- **POS unit dialog** synthesizes a base entry with `id: -1` for display, then appends `product.units`. `changeCartUnit` detects `id === -1` and clears `selectedUnit` (so the cart pulls base prices from `product.*`). For non-base units, `selectedUnit` is set and the cart uses its `price_*`.
+- **POS search modal** `flatItems` emits `{ product, unit: null }` first (base row) then one entry per non-base unit. `handleSelectItem(p, null)` sets `selectedUnit: undefined`.
 
 ### Cost/profit in reports
 Record cost at sale time from lot cost_price. Profit = `line_total − (qty × lot cost_price)`.
@@ -179,10 +179,11 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
 The base ("หลัก") unit must always be the first option in BOTH the cart unit dialog and the search modal. Selection state must NEVER influence ordering.
 
 - **Synthesize the base unit from `product.unit_name` only.** Do NOT fall back to `item.unit_name` — that's the currently-selected unit and would put the selected unit at top with the "หลัก" badge. Use `product?.unit_name ?? ''`.
-- **Unit dialog (`POS/index.tsx`)** — `allUnits = [syntheticBase, ...units.filter(u => !u.is_base_unit && u.unit_name !== baseUnitName)]`. Filter on BOTH `!u.is_base_unit` (drops the DB's base product_unit row) AND name (drops same-name collisions) to avoid rendering two "main" entries.
-- **Search modal `flatItems`** — emit `{ product, unit: null }` first, then `(product.units ?? []).filter(u => !u.is_base_unit)`. The display fallback `it.unit?.unit_name ?? it.product.unit_name ?? '-'` then resolves correctly per row (base row → product.unit_name; non-base → unit.unit_name). `handleSelectItem(p, null)` sets `selectedUnit: undefined`, which the cart treats as the synthetic base — keeping price/name sourced from `product.*`, consistent with the unit dialog.
-- **Where `product.unit_name` comes from:** `pos:searchProducts` SELECTs `u.name as unit_name` via `LEFT JOIN product_units pu_base ON pu_base.product_id = p.id AND pu_base.is_base_unit = 1 LEFT JOIN item_units u ON u.id = pu_base.unit_id`. The `products` table itself no longer stores a unit reference — the base unit lives only in `product_units`.
-- **Invariant: every product MUST have an `is_base_unit=1` row.** Enforced by `products:create` (inserts product + base unit in one transaction), the seed loader, and the schema migration (backfill before DROP COLUMN). If you bypass these — direct INSERT into `products`, raw SQL via DB tools — you'll create an orphan whose `unit_name` resolves to NULL. There is no fallback.
+- **Unit dialog (`POS/index.tsx`)** — `allUnits = [syntheticBase, ...product.units]`. The synthetic base row has `id: -1`; `product.units` contains only non-base variants (the API never returns base rows).
+- **Search modal `flatItems`** — emit `{ product, unit: null }` first, then one entry per `product.units`. The display fallback `it.unit?.unit_name ?? it.product.unit_name ?? '-'` resolves correctly per row. `handleSelectItem(p, null)` sets `selectedUnit: undefined`, which the cart treats as the base — pulling price/name from `product.*`.
+- **`changeCartUnit` clears `selectedUnit` for the base.** Detects `unit.id === -1` and writes `selectedUnit: undefined` so the cart always reads base prices from `product.*` (single source of truth). For non-base units, `selectedUnit` is set and `unit.price_*` is used.
+- **Where `product.unit_name` comes from:** `pos:searchProducts` SELECTs `u.name as unit_name` via `LEFT JOIN item_units u ON u.id = p.unit_id`. The base unit lives directly on `products.unit_id`.
+- **Invariant: every product SHOULD have `products.unit_id` set.** Enforced by `products:create` (writes `unit_id` directly, falls back to `'ชิ้น'` if missing). Bypass via raw SQL → `unit_name` resolves to NULL (no fallback in the queries).
 
 ## Known Issues
 - `postcss.config.js` ESM warning — harmless

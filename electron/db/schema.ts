@@ -98,6 +98,7 @@ export function initializeSchema(db: Database.Database) {
       price_wholesale1 REAL NOT NULL DEFAULT 0,
       price_wholesale2 REAL NOT NULL DEFAULT 0,
       cost_price REAL NOT NULL DEFAULT 0,
+      unit_id INTEGER REFERENCES item_units(id),
       has_vat INTEGER NOT NULL DEFAULT 0,
       is_drug INTEGER NOT NULL DEFAULT 0,
       reorder_point REAL,
@@ -117,7 +118,8 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
-    -- Product Unit Variants
+    -- Product Unit Variants (non-base units only — แผง, กล่อง, ...)
+    -- The base unit lives directly on the products table (products.unit_id).
     CREATE TABLE IF NOT EXISTS product_units (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -127,7 +129,6 @@ export function initializeSchema(db: Database.Database) {
       price_retail REAL NOT NULL DEFAULT 0,
       price_wholesale1 REAL NOT NULL DEFAULT 0,
       price_wholesale2 REAL NOT NULL DEFAULT 0,
-      is_base_unit INTEGER NOT NULL DEFAULT 0,
       is_for_sale INTEGER NOT NULL DEFAULT 1,
       is_for_purchase INTEGER NOT NULL DEFAULT 0,
       is_disabled INTEGER NOT NULL DEFAULT 0,
@@ -497,32 +498,8 @@ export function initializeSchema(db: Database.Database) {
     try { db.exec(sql) } catch {}
   }
 
-  // Migration: move products.unit_id into product_units (is_base_unit=1).
-  // Order matters — backfill must complete before DROP COLUMN.
-  // Each statement wrapped in try/catch so it's idempotent and harmless on
-  // fresh installs (where p.unit_id no longer exists).
-  for (const sql of [
-    // Ensure a fallback unit exists for products whose unit_id was NULL.
-    `INSERT OR IGNORE INTO item_units (name, multiply) VALUES ('ชิ้น', 1)`,
-    // Backfill: every product without an is_base_unit=1 row gets one.
-    // - unit comes from products.unit_id, falling back to 'ชิ้น'
-    // - prices copied from products.* so display stays consistent
-    `INSERT INTO product_units
-       (product_id, unit_id, qty_per_base, is_base_unit, is_for_sale,
-        price_retail, price_wholesale1, price_wholesale2)
-     SELECT p.id,
-            COALESCE(p.unit_id, (SELECT id FROM item_units WHERE name = 'ชิ้น')),
-            1, 1, 1,
-            p.price_retail, p.price_wholesale1, p.price_wholesale2
-       FROM products p
-      WHERE NOT EXISTS (
-        SELECT 1 FROM product_units pu
-         WHERE pu.product_id = p.id AND pu.is_base_unit = 1
-      )`,
-    `ALTER TABLE products DROP COLUMN unit_id`,
-  ]) {
-    try { db.exec(sql) } catch {}
-  }
+  // Ensure a fallback unit exists.
+  try { db.exec(`INSERT OR IGNORE INTO item_units (name, multiply) VALUES ('ชิ้น', 1)`) } catch {}
 
   // Migration: FDA report columns — drug_types gets boolean flags, products renamed.
   // Order matters: drug_types flags must exist before products backfill uses them.
@@ -547,6 +524,27 @@ export function initializeSchema(db: Database.Database) {
     // Backfill is_fda10/11 from the drug_type (flags set above)
     `UPDATE products SET is_fda10=(SELECT COALESCE(dt.is_fda10,0) FROM drug_types dt WHERE dt.id=products.drug_type_id) WHERE is_drug=1 AND drug_type_id IS NOT NULL`,
     `UPDATE products SET is_fda11=(SELECT COALESCE(dt.is_fda11,0) FROM drug_types dt WHERE dt.id=products.drug_type_id) WHERE is_drug=1 AND drug_type_id IS NOT NULL`,
+  ]) {
+    try { db.exec(sql) } catch {}
+  }
+
+  // Migration: move base unit data BACK into products.
+  // Previous design kept base unit as a product_units row with is_base_unit=1 and
+  // mirrored prices into it. That created two sources of truth and the inevitable
+  // drift bugs. Now: products owns its base unit (unit_id, price_*), and
+  // product_units holds only non-base variants.
+  for (const sql of [
+    // 1. Add products.unit_id (no-op if already present from CREATE TABLE).
+    `ALTER TABLE products ADD COLUMN unit_id INTEGER REFERENCES item_units(id)`,
+    // 2. Backfill products.unit_id from the base row in product_units.
+    `UPDATE products
+        SET unit_id = (SELECT pu.unit_id FROM product_units pu
+                        WHERE pu.product_id = products.id AND pu.is_base_unit = 1)
+      WHERE unit_id IS NULL`,
+    // 3. Drop the base rows — prices already live on products.
+    `DELETE FROM product_units WHERE is_base_unit = 1`,
+    // 4. Drop the now-meaningless column.
+    `ALTER TABLE product_units DROP COLUMN is_base_unit`,
   ]) {
     try { db.exec(sql) } catch {}
   }

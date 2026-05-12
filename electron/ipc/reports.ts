@@ -147,8 +147,7 @@ export function registerReportHandlers() {
         CAST(julianday(date(pl.expiry_date)) - julianday(date('now')) AS INTEGER) AS days_remaining
       FROM product_lots pl
       JOIN products p ON p.id = pl.product_id
-      LEFT JOIN product_units pu_base ON pu_base.product_id = p.id AND pu_base.is_base_unit = 1
-      LEFT JOIN item_units u ON u.id = pu_base.unit_id
+      LEFT JOIN item_units u ON u.id = p.unit_id
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN suppliers s ON s.id = pl.supplier_id
       ${where}

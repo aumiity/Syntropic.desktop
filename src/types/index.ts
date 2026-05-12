@@ -6,6 +6,7 @@ export interface Product {
   is_stock_item: number; is_disabled: number; is_hidden: number
   price_retail: number; price_wholesale1: number; price_wholesale2: number; cost_price: number
   has_wholesale1: number; has_wholesale2: number
+  unit_id?: number
   has_vat: number
   is_drug: number
   reorder_point?: number; safety_stock?: number
@@ -21,11 +22,12 @@ export interface Product {
   units?: ProductUnit[]; lots?: ProductLot[]; labels?: ProductLabel[]
 }
 
+// Non-base unit variants only (แผง, กล่อง, …). Base unit lives on Product.
 export interface ProductUnit {
   id: number; product_id: number; unit_id: number
   barcode?: string; qty_per_base: number
   price_retail: number; price_wholesale1: number; price_wholesale2: number
-  is_base_unit: number; is_for_sale: number; is_for_purchase: number; is_disabled: number
+  is_for_sale: number; is_for_purchase: number; is_disabled: number
   unit_name?: string
 }
 

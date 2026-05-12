@@ -119,6 +119,7 @@ export default function EditProductPage() {
         barcode3: prod.barcode3 ?? '',
         barcode4: prod.barcode4 ?? '',
         category_id: prod.category_id ?? 0,
+        unit_id: prod.unit_id ?? 0,
         drug_type_id: prod.drug_type_id ?? 0,
         drug_generic_name_id: prod.drug_generic_name_id ?? 0,
         tmt_id: prod.tmt_id ?? '',
@@ -249,7 +250,6 @@ export default function EditProductPage() {
       price_retail: form.price_retail ?? 0,
       price_wholesale1: 0,
       price_wholesale2: 0,
-      is_base_unit: 0,
       is_for_sale: 1,
       is_for_purchase: 0,
     })
@@ -265,7 +265,6 @@ export default function EditProductPage() {
       price_retail: u.price_retail,
       price_wholesale1: u.price_wholesale1,
       price_wholesale2: u.price_wholesale2,
-      is_base_unit: u.is_base_unit,
       is_for_sale: u.is_for_sale,
       is_for_purchase: u.is_for_purchase,
     })
@@ -275,13 +274,7 @@ export default function EditProductPage() {
   const handleSaveUnit = async () => {
     setUnitSaving(true)
     try {
-      if (editingUnit?.is_base_unit) {
-        // Base unit: only the unit_id (display name) is editable; everything else
-        // mirrors the products table or is locked by invariant.
-        await window.api.products.updateUnit(editingUnit.id, {
-          unit_id: Number(unitForm.unit_id),
-        })
-      } else if (editingUnit) {
+      if (editingUnit) {
         await window.api.products.updateUnit(editingUnit.id, {
           unit_id: Number(unitForm.unit_id),
           barcode: unitForm.barcode || null,
@@ -471,7 +464,7 @@ export default function EditProductPage() {
     const status = getExpiryStatus(l.expiry_date)
     return status === 'warning' || status === 'danger' || status === 'expired'
   }).length
-  const baseUnit = product.units?.find(u => u.is_base_unit)?.unit_name ?? '—'
+  const baseUnit = product.unit_name ?? itemUnits.find(u => u.id === product.unit_id)?.name ?? '—'
   const categoryName = categories.find(c => c.id === product.category_id)?.name
   const profit = (product.price_retail ?? 0) - (product.cost_price ?? 0)
   const profitPct = (product.cost_price ?? 0) > 0
@@ -555,7 +548,7 @@ export default function EditProductPage() {
         <Tabs value={tab} onValueChange={setTab} className="items-center">
           <TabsList variant="segmented">
             <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
-            <TabsTrigger value="units"><Boxes /> หน่วยนับ ({product.units?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="units"><Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})</TabsTrigger>
             <TabsTrigger value="labels"><Pill /> ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="lots"><Package /> ล็อต ({product.lots?.length ?? 0})</TabsTrigger>
           </TabsList>
@@ -579,8 +572,11 @@ export default function EditProductPage() {
                   <Field label="รหัสสินค้า">
                     <Input value={form.code} readOnly className="h-10 rounded-xl bg-muted cursor-not-allowed" />
                   </Field>
-                  <Field label="จำนวนเริ่มต้น">
-                    <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', e.target.value)} className="h-10 rounded-xl" min={1} />
+                  <Field label="หน่วยหลัก">
+                    <SelectField value={form.unit_id ?? 0} onChange={v => setF('unit_id', Number(v) || null)}>
+                      <option value={0}>— เลือกหน่วย —</option>
+                      {itemUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </SelectField>
                   </Field>
                   <div className="col-span-2">
                     <Field label="หมวดหมู่">
@@ -684,7 +680,7 @@ export default function EditProductPage() {
                       <div className="text-sm font-semibold uppercase text-foreground">มี VAT</div>
                       <div className="text-xs text-muted-foreground">บวก 7% เมื่อออกใบกำกับภาษี</div>
                     </div>
-                    <Switch checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
+                    <Switch size="lg" checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
                   </div>
 
                   {/* col2 row4: นับสต็อก */}
@@ -693,7 +689,7 @@ export default function EditProductPage() {
                       <div className="text-sm font-semibold uppercase text-foreground">นับสต็อก</div>
                       <div className="text-xs text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
                     </div>
-                    <Switch checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
+                    <Switch size="lg" checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
                   </div>
 
                 </div>
@@ -771,6 +767,7 @@ export default function EditProductPage() {
                 tint="warning"
                 right={
                   <Toggle
+                    size="lg"
                     checked={!!form.is_drug}
                     onChange={v => {
                       setF('is_drug', v ? 1 : 0)
@@ -843,7 +840,7 @@ export default function EditProductPage() {
                           <div className="text-sm font-semibold uppercase text-foreground">ข.ย.9</div>
                           <div className="text-xs text-muted-foreground">บัญชีการซื้อยา (อัตโนมัติ)</div>
                         </div>
-                        <Switch checked={!!form.is_fda9} disabled />
+                        <Switch size="lg" checked={!!form.is_fda9} disabled />
                       </div>
                       {/* ข.ย.10 */}
                       <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
@@ -851,7 +848,7 @@ export default function EditProductPage() {
                           <div className="text-sm font-semibold uppercase text-foreground">ข.ย.10</div>
                           <div className="text-xs text-muted-foreground">ขายยาควบคุมพิเศษ</div>
                         </div>
-                        <Switch checked={!!form.is_fda10} onCheckedChange={v => setF('is_fda10', v ? 1 : 0)} />
+                        <Switch size="lg" checked={!!form.is_fda10} onCheckedChange={v => setF('is_fda10', v ? 1 : 0)} />
                       </div>
                       {/* ข.ย.11 */}
                       <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
@@ -859,7 +856,7 @@ export default function EditProductPage() {
                           <div className="text-sm font-semibold uppercase text-foreground">ข.ย.11</div>
                           <div className="text-xs text-muted-foreground">ขายยาอันตราย (ที่ อ.ย. กำหนด)</div>
                         </div>
-                        <Switch checked={!!form.is_fda11} onCheckedChange={v => setF('is_fda11', v ? 1 : 0)} />
+                        <Switch size="lg" checked={!!form.is_fda11} onCheckedChange={v => setF('is_fda11', v ? 1 : 0)} />
                       </div>
                       {/* ข.ย.13 */}
                       <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
@@ -867,7 +864,7 @@ export default function EditProductPage() {
                           <div className="text-sm font-semibold uppercase text-foreground">ข.ย.13</div>
                           <div className="text-xs text-muted-foreground">ขายส่ง (เฉพาะร้านขายส่ง)</div>
                         </div>
-                        <Switch checked={!!form.is_fda13} onCheckedChange={v => setF('is_fda13', v ? 1 : 0)} />
+                        <Switch size="lg" checked={!!form.is_fda13} onCheckedChange={v => setF('is_fda13', v ? 1 : 0)} />
                       </div>
                     </div>
                   </>
@@ -883,14 +880,14 @@ export default function EditProductPage() {
                       <div className="text-sm font-semibold uppercase text-foreground">ซ่อน</div>
                       <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>
                     </div>
-                    <Switch checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
+                    <Switch size="lg" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
                   </div>
                   <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
                     <div>
                       <div className="text-sm font-semibold uppercase text-foreground">ปิดใช้งาน</div>
                       <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
                     </div>
-                    <Switch checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
+                    <Switch size="lg" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
                   </div>
                 </div>
               </SectionCard>
@@ -910,29 +907,34 @@ export default function EditProductPage() {
                 </Button>
               </div>
               <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-                <Table className="table-fixed">
+                <Table>
                   <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
                     <TableRow>
                       <TableHead className="text-foreground-subtle">หน่วย</TableHead>
-                      <TableHead className="w-16 text-center text-foreground-subtle">ตัวคูณ</TableHead>
-                      <TableHead className="w-28 text-right text-foreground-subtle">ราคาปลีก</TableHead>
-                      <TableHead className="w-28 text-right text-foreground-subtle">ราคาส่ง 1</TableHead>
-                      <TableHead className="w-28 text-right text-foreground-subtle">ราคาส่ง 2</TableHead>
-                      <TableHead className="w-16 text-center text-foreground-subtle">ขาย</TableHead>
-                      <TableHead className="w-16 text-center text-foreground-subtle">ซื้อ</TableHead>
-                      <TableHead className="w-24 text-center text-foreground-subtle">หน่วยหลัก</TableHead>
-                      <TableHead className="w-32 text-center text-foreground-subtle">จัดการ</TableHead>
+                      <TableHead className="text-center text-foreground-subtle">ตัวคูณ</TableHead>
+                      <TableHead className="text-right text-foreground-subtle">ราคาปลีก</TableHead>
+                      <TableHead className="text-right text-foreground-subtle">ราคาส่ง 1</TableHead>
+                      <TableHead className="text-right text-foreground-subtle">ราคาส่ง 2</TableHead>
+                      <TableHead className="text-center text-foreground-subtle">ขาย</TableHead>
+                      <TableHead className="text-center text-foreground-subtle">ซื้อ</TableHead>
+                      <TableHead className="text-center text-foreground-subtle">หน่วยหลัก</TableHead>
+                      <TableHead className="text-center text-foreground-subtle">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                 <TableBody>
-                  {(product.units?.length ?? 0) === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
-                        <Boxes className="size-10 mx-auto mb-2 opacity-30" />
-                        ยังไม่มีหน่วยนับ
-                      </TableCell>
-                    </TableRow>
-                  ) : product.units.map(u => (
+                  {/* Base unit row — sourced from the products table. Edited via General tab. */}
+                  <TableRow className="bg-primary-soft/30">
+                    <TableCell className="font-semibold text-sm">{baseUnit}</TableCell>
+                    <TableCell className="text-center text-sm tabular-nums">1</TableCell>
+                    <TableCell className="text-right text-sm font-semibold tabular-nums">{formatCurrency(product.price_retail ?? 0)}</TableCell>
+                    <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{(product.price_wholesale1 ?? 0) > 0 ? formatCurrency(product.price_wholesale1) : '—'}</TableCell>
+                    <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
+                    <TableCell className="text-center"><Check className="size-4 mx-auto text-success" /></TableCell>
+                    <TableCell className="text-center"><Check className="size-4 mx-auto text-success" /></TableCell>
+                    <TableCell className="text-center"><Badge variant="secondary" className="text-xs rounded-md">หลัก</Badge></TableCell>
+                    <TableCell className="text-center text-xs text-muted-foreground">แก้ไขที่แท็บข้อมูลทั่วไป</TableCell>
+                  </TableRow>
+                  {product.units?.map(u => (
                     <TableRow key={u.id} className="hover:bg-primary-soft/60 transition-colors">
                       <TableCell className="font-semibold text-sm">{u.unit_name ?? `Unit #${u.unit_id}`}</TableCell>
                       <TableCell className="text-center text-sm tabular-nums">{u.qty_per_base}</TableCell>
@@ -946,18 +948,16 @@ export default function EditProductPage() {
                         {u.is_for_purchase ? <Check className="size-4 mx-auto text-success" /> : <span className="text-foreground-subtle">—</span>}
                       </TableCell>
                       <TableCell className="text-center">
-                        {u.is_base_unit ? <Badge variant="secondary" className="text-xs rounded-md">หลัก</Badge> : <span className="text-foreground-subtle">—</span>}
+                        <span className="text-foreground-subtle">—</span>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
                           <Button size="icon-xl" variant="outline" onClick={() => openEditUnit(u)} title="แก้ไข">
                             <Edit2 />
                           </Button>
-                          {!u.is_base_unit && (
-                            <Button size="icon-xl" variant="outline" onClick={() => handleDeleteUnit(u.id)} className="text-destructive hover:text-destructive" title="ลบ">
-                              <Trash2 />
-                            </Button>
-                          )}
+                          <Button size="icon-xl" variant="outline" onClick={() => handleDeleteUnit(u.id)} className="text-destructive hover:text-destructive" title="ลบ">
+                            <Trash2 />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -966,7 +966,7 @@ export default function EditProductPage() {
               </Table>
               </div>
               <div className="px-5 py-2.5 border-t border-border text-xs text-muted-foreground shrink-0 flex items-center justify-between">
-                <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{product.units?.length ?? 0}</span> หน่วย</span>
+                <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{(product.units?.length ?? 0) + 1}</span> หน่วย</span>
                 <span>หน่วยหลัก: <span className="font-semibold text-foreground">{baseUnit}</span></span>
               </div>
             </div>
@@ -1182,7 +1182,7 @@ export default function EditProductPage() {
       <Dialog open={unitDialog} onOpenChange={setUnitDialog}>
         <DialogContent size="md">
           <DialogHeader>
-            <DialogTitle>{editingUnit?.is_base_unit ? 'แก้ไขหน่วยหลัก' : editingUnit ? 'แก้ไขหน่วยนับ' : 'เพิ่มหน่วยนับ'}</DialogTitle>
+            <DialogTitle>{editingUnit ? 'แก้ไขหน่วยนับ' : 'เพิ่มหน่วยนับ'}</DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-3">
             <div>
@@ -1192,40 +1192,32 @@ export default function EditProductPage() {
                 {itemUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </SelectField>
             </div>
-            {editingUnit?.is_base_unit ? (
-              <p className="text-xs text-muted-foreground">
-                หน่วยหลักดึงราคา/บาร์โค้ดจากตัวสินค้าโดยอัตโนมัติ — แก้ไขได้ที่แท็บ "ข้อมูลทั่วไป"
-              </p>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-1">บาร์โค้ด</label>
-                  <Input value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">จำนวนต่อหน่วยหลัก</label>
-                  <Input type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="w-28" min={0.0001} step="0.0001" />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">ราคาปลีก</label>
-                    <Input type="number" value={unitForm.price_retail ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_retail: e.target.value }))} min={0} step="0.01" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">ราคาส่ง 1</label>
-                    <Input type="number" value={unitForm.price_wholesale1 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale1: e.target.value }))} min={0} step="0.01" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">ราคาส่ง 2</label>
-                    <Input type="number" value={unitForm.price_wholesale2 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale2: e.target.value }))} min={0} step="0.01" />
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-4 pt-1">
-                  <Toggle checked={!!unitForm.is_for_sale} onChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))} label="ใช้ขาย" />
-                  <Toggle checked={!!unitForm.is_for_purchase} onChange={v => setUnitForm((f: any) => ({ ...f, is_for_purchase: v ? 1 : 0 }))} label="ใช้ซื้อ" />
-                </div>
-              </>
-            )}
+            <div>
+              <label className="block text-sm font-medium mb-1">บาร์โค้ด</label>
+              <Input value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">จำนวนต่อหน่วยหลัก</label>
+              <Input type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="w-28" min={0.0001} step="0.0001" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">ราคาปลีก</label>
+                <Input type="number" value={unitForm.price_retail ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_retail: e.target.value }))} min={0} step="0.01" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">ราคาส่ง 1</label>
+                <Input type="number" value={unitForm.price_wholesale1 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale1: e.target.value }))} min={0} step="0.01" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">ราคาส่ง 2</label>
+                <Input type="number" value={unitForm.price_wholesale2 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale2: e.target.value }))} min={0} step="0.01" />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-4 pt-1">
+              <Toggle size="lg" checked={!!unitForm.is_for_sale} onChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))} label="ใช้ขาย" />
+              <Toggle size="lg" checked={!!unitForm.is_for_purchase} onChange={v => setUnitForm((f: any) => ({ ...f, is_for_purchase: v ? 1 : 0 }))} label="ใช้ซื้อ" />
+            </div>
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setUnitDialog(false)}>ยกเลิก</Button>
@@ -1340,9 +1332,9 @@ export default function EditProductPage() {
             </div>
 
             <div className="flex flex-wrap gap-4 pt-1">
-              <Toggle checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" />
-              <Toggle checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" />
-              <Toggle checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" />
+              <Toggle size="lg" checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" />
+              <Toggle size="lg" checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" />
+              <Toggle size="lg" checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" />
             </div>
           </DialogBody>
           <DialogFooter>
