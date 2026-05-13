@@ -1,7 +1,7 @@
 # Syntropic Desktop - Build Progress
 
-## Status: ✅ Runnable — base unit storage refactored to `products.unit_id` (single source of truth, no more `is_base_unit` in `product_units`). UI verified end-to-end (9/9 scenarios).
-## Last updated: 2026-05-12
+## Status: ✅ Runnable — product create flow moved from modal → full EditProduct page with required-field validation + dirty guard.
+## Last updated: 2026-05-13
 ## Run: `npm run electron:dev`
 ## ⚠️ Next session: **ข.ย.10 / ข.ย.11 reports** — new report pages under `/reports/`. See NEXT SESSION section below.
 
@@ -1280,3 +1280,56 @@ Schema sanity, product list, EditProduct General + Units tabs, POS search modal,
 
 ### Commit
 `832ef90` — refactor: harden base unit storage and polish EditProduct UI (pushed to `origin/main`)
+
+---
+
+## Session 2026-05-13 — Product create: modal → EditProduct page (with validation + dirty guard)
+
+### Goal
+Replace the cramped 5-field "เพิ่มสินค้า" modal on the Products list with the full EditProduct form, so users can enter complete info in one place. Add required-field validation (with `*` markers + red ring + alert) and a dirty guard so accidental back-clicks don't lose work.
+
+### Design decisions
+- **Reuse EditProduct, don't fork a new page.** General-tab form has ~30 fields, autocomplete, FDA flags, etc. A separate `AddProduct.tsx` would duplicate all of that and need to be kept in sync forever. Single component, dual mode (`isNew = id === undefined`).
+- **Route:** `products/new` (no `:id` param). Same `EditProduct` component handles both `products/new` and `products/:id/edit`.
+- **MetricCards in create mode:** stay in place but `opacity-50` + values rendered as `—`. Hiding would shift layout; user explicitly wanted no shift.
+- **Other 3 tabs (หน่วยนับ / ฉลากยา / ล็อต):** `disabled={isNew}` with `title` tooltip "บันทึกสินค้าก่อนเพื่อจัดการ..." — they need a product_id to attach to, so save-first-then-manage is the only correct flow.
+- **No cancel button → back arrow is cancel.** Dirty-guard alert is the safety net.
+
+### Required fields validation
+3-field minimum for save (both modes):
+| Field | Reason |
+|---|---|
+| `trade_name` | Used everywhere for display |
+| `unit_id` | Base unit FK; without it `unit_name` resolves to NULL in every list/POS/report query |
+| `price_retail` | Can't sell without a price |
+
+Behavior:
+- `*` ดาวแดง บน label — `FormField` already supports `required` prop. Added to "หน่วยหลัก" (previously only trade_name + price_retail had the marker but no actual check).
+- `errors: Set<string>` — keys of missing fields.
+- On save: `validate()` → if non-empty, toast list + scroll/focus first missing field via `document.querySelector('[data-field="..."]')`. Save button stays clickable (doesn't disable).
+- `aria-invalid={errors.has(key)}` on Input/SelectTrigger — they already have red border + ring destructive styling under that attribute.
+- `setF()` removes the key from `errors` immediately on edit (no wait until next save).
+
+### Dirty guard
+- `isDirty` flag — set true by every `setF` call. Initial form load (`loadAll`) writes form via `setForm()` directly so it doesn't mark dirty.
+- Back arrow → if dirty, open styled `<Dialog>` ("ยังไม่ได้บันทึก" / [กลับไปแก้ไข] · [ออกจากหน้านี้]); else navigate immediately. Started with `window.confirm()` but switched to the app's Dialog component to match the rest of the UI.
+- `beforeunload` listener for refresh/close — Chromium forces a native dialog there; unavoidable.
+- Applied to **both** create and edit modes. Edit previously had no guard; now it protects unsaved edits the same way.
+
+### Backend tweak
+`products:create` INSERT didn't include `is_drug` — the toggle in the form would be silently lost on create. Added `is_drug` to both the column list and VALUES clause in `electron/ipc/products.ts`.
+
+`is_hidden` / `is_disabled` are stripped from the create payload in the renderer (`doSave`) — they're not part of the INSERT (schema defaults to 0) and including them would risk superfluous-binding errors.
+
+### Default unit pre-select
+On create mode, `loadAll` finds the `ชิ้น` row in the loaded `itemUnits` list and pre-selects it as `form.unit_id`. Users can save immediately without picking a unit.
+
+### Files changed
+- `src/App.tsx` — new route `products/new` → `EditProduct`
+- `src/pages/Products/index.tsx` — removed `showCreate` state, `newProduct` state, `creating`, `handleCreate`, and the entire create dialog. Button "เพิ่มสินค้า" now `navigate('/products/new')`. Dropped unused `itemUnits` state + `ItemUnit` import (only adjust-stock dialog remains, doesn't need units).
+- `src/pages/Products/EditProduct.tsx` — `isNew` mode throughout: `loadAll` branch (skip `products.get`, init defaults, pre-select ชิ้น), `setF` flags dirty + clears errors, `validate()` + `REQUIRED_FIELDS` constant, `goBack` + `<Dialog>` leave-confirm, `beforeunload` listener, conditional PageHeader title/button text, MetricCards opacity, tabs disabled, `aria-invalid` + `data-field` on 3 required inputs, `required` prop added to "หน่วยหลัก", create branch in `doSave` calls `products.create` + `navigate(replace:true)` to edit URL.
+- `electron/ipc/products.ts` — `products:create` INSERT now includes `is_drug` column.
+
+### Verification
+- `npx tsc --noEmit` — 19 errors, same as baseline before this session (no new TS errors introduced).
+- Not user-tested in Electron yet — pending manual run-through.

@@ -38,6 +38,7 @@ export default function App() {
               <Route index element={<POS />} />
               <Route path="purchase" element={<Purchase />} />
               <Route path="products" element={<Products />} />
+              <Route path="products/new" element={<EditProduct />} />
               <Route path="products/:id/edit" element={<EditProduct />} />
               <Route path="people" element={<People />} />
               <Route path="reports" element={<ReportsLayout />}>

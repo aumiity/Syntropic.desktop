@@ -57,6 +57,15 @@ Used in `saveBill`. Deduct from lots ordered by `expiry_date ASC`. Create `sale_
 - On save: insert `product_lots`, update `products.cost_price` (weighted avg across open lots), log `stock_movements` (`receive`)
 - History grouped by `invoice_no`
 
+### Lot direct edit (EditProduct → Lots tab, `products:updateLot`)
+Backend admin edit for lots — qty_on_hand, cost_price, lot_number, expiry/manufactured dates. Distinct from POS-side stock adjust (`products:adjustStock` from Products list).
+
+- **No reason/note prompt — by design.** The note is hardcoded `'แก้ไขโดยตรง'` (stock_movements) and `'แก้ไขราคาทุนผ่านหน้าล็อต'` (lot_cost_logs). This is an admin-level edit performed directly by the operator; reasons for stock movements that need accountability (sale, void, return) are captured in the POS flow that owns them. Do NOT add a reason field here.
+- **`is_cancelled` lots are blocked.** UI hides the edit button; backend also throws — guard against direct IPC.
+- **`is_closed` auto-toggles when qty crosses 0.** `qty → 0` closes the lot (`is_closed=1, closed_at=now`); `qty 0 → >0` on a closed lot reopens it (`is_closed=0, closed_at=NULL`). Without this the stock movement is logged but the lot stays invisible to FEFO/availability queries (which all filter `is_closed=0`).
+- **`products.cost_price` is recomputed** (weighted avg of open lots, by `qty_received`) whenever `cost_price` or `qty_on_hand` changes — qty changes affect the avg because they toggle `is_closed`, which gates inclusion. Same query shape as the receive and GR-cancel flows.
+- **Front-end never coerces blank → 0.** `parseFloat('') || 0` would silently wipe stock or zero out cost on an accidentally cleared field. Validate explicitly: blank, NaN, or negative → toast error and abort.
+
 ### Running codes
 Customers `C0001…`, suppliers `S0001…`, GR `GR-YYYYMMDD-001…`, sales `INV-YYYYMMDD-001…`.
 

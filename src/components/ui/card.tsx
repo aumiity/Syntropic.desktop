@@ -243,13 +243,13 @@ function StatCard({
         className,
       )}
     >
-      <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
-        <Icon className="size-7" />
-      </span>
-      <div className="flex flex-col min-w-0">
+      <div className="flex flex-col min-w-0 flex-1 text-left">
         <span className="text-base text-foreground font-semibold truncate">{label}</span>
         <span className="text-3xl font-bold tabular-nums leading-tight">{value}</span>
       </div>
+      <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
+        <Icon className="size-7" />
+      </span>
     </button>
   )
 }

@@ -36,10 +36,19 @@ const Field = FormField
 // ========================
 // MAIN COMPONENT
 // ========================
+// Required field keys for create + edit save validation
+const REQUIRED_FIELDS = ['trade_name', 'unit_id', 'price_retail'] as const
+const REQUIRED_LABEL: Record<string, string> = {
+  trade_name: 'ชื่อสินค้า',
+  unit_id: 'หน่วยหลัก',
+  price_retail: 'ราคาขายปลีก',
+}
+
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
+  const isNew = id === undefined
   const productId = Number(id)
 
   const [tab, setTab] = useState('general')
@@ -47,6 +56,9 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [priceWarning, setPriceWarning] = useState<string[]>([])
+  const [errors, setErrors] = useState<Set<string>>(new Set())
+  const [isDirty, setIsDirty] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
 
   // Dropdown data
   const [categories, setCategories] = useState<ProductCategory[]>([])
@@ -86,6 +98,8 @@ export default function EditProductPage() {
     qty_on_hand: string; cost_price: string
   }>({ lot_number: '', expiry_date: '', manufactured_date: '', qty_on_hand: '', cost_price: '' })
   const [lotSaving, setLotSaving] = useState(false)
+  // Lot edit confirm modal — extra step to prevent accidental saves
+  const [confirmLot, setConfirmLot] = useState<ProductLot | null>(null)
 
   useEffect(() => {
     loadAll()
@@ -96,7 +110,7 @@ export default function EditProductPage() {
     setLoading(true)
     try {
       const [p, cats, dts, units, freqs, dosages, meals, times, advices] = await Promise.all([
-        window.api.products.get(productId),
+        isNew ? Promise.resolve(null) : window.api.products.get(productId),
         window.api.settings.allCategories(),
         window.api.settings.allDrugTypes(),
         window.api.settings.allUnits(),
@@ -106,6 +120,38 @@ export default function EditProductPage() {
         window.api.settings.listLabelTimes(),
         window.api.settings.listLabelAdvices(),
       ])
+      setCategories(cats as ProductCategory[])
+      setDrugTypes(dts as DrugType[])
+      setItemUnits(units as ItemUnit[])
+      setLabelFrequencies(freqs as any[])
+      setLabelDosages(dosages as any[])
+      setLabelMealRelations(meals as any[])
+      setLabelTimes(times as any[])
+      setLabelAdvices(advices as any[])
+
+      if (isNew) {
+        // Pre-select "ชิ้น" as the default base unit so users can save immediately.
+        const defaultUnit = (units as ItemUnit[]).find(u => u.name === 'ชิ้น')
+        setProduct({ id: 0, trade_name: '', units: [], lots: [], labels: [] } as unknown as FullProduct)
+        setForm({
+          trade_name: '', name_for_print: '', code: '',
+          barcode: '', barcode2: '', barcode3: '', barcode4: '',
+          category_id: 0,
+          unit_id: defaultUnit?.id ?? 0,
+          drug_type_id: 0, drug_generic_name_id: 0, tmt_id: '',
+          price_retail: '', price_wholesale1: '', price_wholesale2: '', cost_price: '',
+          has_wholesale1: 0, has_wholesale2: 0,
+          is_vat: 0, is_drug: 0, is_stock_item: 1,
+          reorder_point: 0, safety_stock: 0,
+          is_antibiotic: 0,
+          is_fda9: 0, is_fda10: 0, is_fda11: 0, is_fda13: 0,
+          indication_note: '', side_effect_note: '', search_keywords: '', note: '',
+          is_hidden: 0, is_disabled: 0,
+        })
+        setGenericQuery('')
+        return
+      }
+
       if (!p) { navigate('/products'); return }
       const prod = p as FullProduct
       setProduct(prod)
@@ -146,24 +192,64 @@ export default function EditProductPage() {
         is_disabled: prod.is_disabled ?? 0,
       })
       setGenericQuery('') // will be resolved by generic_name_id lookup later
-      setCategories(cats as ProductCategory[])
-      setDrugTypes(dts as DrugType[])
-      setItemUnits(units as ItemUnit[])
-      setLabelFrequencies(freqs as any[])
-      setLabelDosages(dosages as any[])
-      setLabelMealRelations(meals as any[])
-      setLabelTimes(times as any[])
-      setLabelAdvices(advices as any[])
     } finally {
       setLoading(false)
     }
   }
 
-  const setF = (key: string, value: any) => setForm((f: any) => ({ ...f, [key]: value }))
+  const setF = (key: string, value: any) => {
+    setForm((f: any) => ({ ...f, [key]: value }))
+    setIsDirty(true)
+    setErrors(prev => {
+      if (!prev.has(key)) return prev
+      const next = new Set(prev)
+      next.delete(key)
+      return next
+    })
+  }
+
+  // Returns set of required field keys that are empty/invalid.
+  // A "0" or empty string for price_retail counts as missing (a sellable product
+  // must have a price). unit_id of 0 means "— เลือกหน่วย —" placeholder.
+  const validate = (): Set<string> => {
+    const missing = new Set<string>()
+    if (!form.trade_name?.trim()) missing.add('trade_name')
+    if (!form.unit_id || Number(form.unit_id) <= 0) missing.add('unit_id')
+    const retail = parseFloat(form.price_retail)
+    if (!form.price_retail || Number.isNaN(retail) || retail <= 0) missing.add('price_retail')
+    return missing
+  }
+
+  // Browser-close / refresh guard. In-app navigation is intercepted at each
+  // entry point (back arrow, post-save redirect handles itself).
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
+
+  const goBack = () => {
+    if (isDirty) { setShowLeaveConfirm(true); return }
+    navigate('/products')
+  }
 
   // ---- Save general ----
   const handleSave = async () => {
-    if (!form.trade_name?.trim()) { toast({ title: 'กรุณาระบุชื่อสินค้า', variant: 'error' }); return }
+    const missing = validate()
+    if (missing.size > 0) {
+      setErrors(missing)
+      const labels = REQUIRED_FIELDS.filter(k => missing.has(k)).map(k => REQUIRED_LABEL[k])
+      toast({ title: 'กรุณากรอกข้อมูลที่จำเป็น', description: labels.join(', '), variant: 'error' })
+      // Scroll to first missing field
+      const first = REQUIRED_FIELDS.find(k => missing.has(k))
+      if (first) {
+        const el = document.querySelector(`[data-field="${first}"]`) as HTMLElement | null
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        ;(el?.querySelector('input, button') as HTMLElement | null)?.focus()
+      }
+      return
+    }
     const cost = parseFloat(form.cost_price) || 0
     const retail = parseFloat(form.price_retail) || 0
     const ws1 = parseFloat(form.price_wholesale1) || 0
@@ -183,8 +269,8 @@ export default function EditProductPage() {
     setPriceWarning([])
     setSaving(true)
     try {
-      // products:update builds dynamic SQL from Object.keys(data); any non-column key
-      // aborts the UPDATE with "no such column". Strip UI-only / renamed keys here.
+      // products:update / products:create build dynamic SQL from Object.keys(data); any
+      // non-column key aborts with "no such column". Strip UI-only / renamed keys here.
       const {
         is_vat,
         drug_generic_name_id, has_wholesale1, has_wholesale2,
@@ -207,7 +293,20 @@ export default function EditProductPage() {
         // 0 = "— เลือกหน่วย —" placeholder; coerce to null so the FK doesn't reject the save
         unit_id: form.unit_id || null,
       }
+      if (isNew) {
+        // products.code is auto-generated by the backend — don't send our empty value.
+        // is_hidden / is_disabled are not part of the products:create INSERT (they
+        // default to 0 in schema); strip to avoid superfluous bindings.
+        const { code, is_hidden, is_disabled, ...createPayload } = payload as any
+        void code; void is_hidden; void is_disabled
+        const created = await window.api.products.create(createPayload) as any
+        setIsDirty(false)
+        toast({ title: 'เพิ่มสินค้าสำเร็จ', variant: 'success' })
+        navigate(`/products/${created.id}/edit`, { replace: true })
+        return
+      }
       await window.api.products.update(productId, payload)
+      setIsDirty(false)
       toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
       // Refresh product
       const updated = await window.api.products.get(productId) as FullProduct
@@ -427,7 +526,66 @@ export default function EditProductPage() {
     })
   }
 
-  const handleSaveLot = async () => {
+  // "Check" button on the lot row — validates and opens the confirm modal.
+  // If nothing actually changed, just exit edit mode (no modal, no IPC call).
+  const handleSaveLot = () => {
+    if (!editingLotId) return
+
+    // Validate qty/cost explicitly — never silently coerce blank/NaN to 0.
+    // `parseFloat('') || 0` would turn an accidentally cleared field into an
+    // adjust_out that wipes stock to zero (or sets cost to 0), with no undo.
+    if (lotEditForm.qty_on_hand.trim() === '' || Number.isNaN(parseFloat(lotEditForm.qty_on_hand)) || parseFloat(lotEditForm.qty_on_hand) < 0) {
+      toast({ title: 'กรุณาระบุจำนวนคงเหลือที่ถูกต้อง', variant: 'error' })
+      return
+    }
+    if (lotEditForm.cost_price.trim() === '' || Number.isNaN(parseFloat(lotEditForm.cost_price)) || parseFloat(lotEditForm.cost_price) < 0) {
+      toast({ title: 'กรุณาระบุราคาทุนที่ถูกต้อง', variant: 'error' })
+      return
+    }
+
+    const lot = product?.lots?.find(l => l.id === editingLotId)
+    if (!lot) return
+
+    if (getLotEditChanges(lot).length === 0) {
+      setEditingLotId(null)
+      return
+    }
+    setConfirmLot(lot)
+  }
+
+  // Diff for the confirm modal — only includes fields whose value actually changed.
+  const getLotEditChanges = (lot: ProductLot) => {
+    const changes: { label: string; before: string; after: string }[] = []
+    if ((lot.lot_number ?? '') !== lotEditForm.lot_number) {
+      changes.push({ label: 'Lot No.', before: lot.lot_number || '—', after: lotEditForm.lot_number || '—' })
+    }
+    if ((lot.expiry_date ?? '') !== lotEditForm.expiry_date) {
+      changes.push({
+        label: 'วันหมดอายุ',
+        before: lot.expiry_date ? formatExpiry(lot.expiry_date) : '—',
+        after: lotEditForm.expiry_date ? formatExpiry(lotEditForm.expiry_date) : '—',
+      })
+    }
+    const oldMfg = (lot as any).manufactured_date ?? ''
+    if (oldMfg !== lotEditForm.manufactured_date) {
+      changes.push({
+        label: 'วันผลิต',
+        before: oldMfg ? formatExpiry(oldMfg) : '—',
+        after: lotEditForm.manufactured_date ? formatExpiry(lotEditForm.manufactured_date) : '—',
+      })
+    }
+    const newQty = parseFloat(lotEditForm.qty_on_hand)
+    if (Number(lot.qty_on_hand) !== newQty) {
+      changes.push({ label: 'จำนวนคงเหลือ', before: String(lot.qty_on_hand), after: String(newQty) })
+    }
+    const newCost = parseFloat(lotEditForm.cost_price)
+    if (Number(lot.cost_price) !== newCost) {
+      changes.push({ label: 'ราคาทุน', before: formatCurrency(lot.cost_price), after: formatCurrency(newCost) })
+    }
+    return changes
+  }
+
+  const confirmSaveLot = async () => {
     if (!editingLotId) return
     setLotSaving(true)
     try {
@@ -435,16 +593,17 @@ export default function EditProductPage() {
         lot_number: lotEditForm.lot_number || undefined,
         expiry_date: lotEditForm.expiry_date || null,
         manufactured_date: lotEditForm.manufactured_date || null,
-        qty_on_hand: parseFloat(lotEditForm.qty_on_hand) || 0,
-        cost_price: parseFloat(lotEditForm.cost_price) || 0,
+        qty_on_hand: parseFloat(lotEditForm.qty_on_hand),
+        cost_price: parseFloat(lotEditForm.cost_price),
         user_id: getCurrentUserId(),
       })
-      toast('บันทึกล็อตสำเร็จ', 'success')
+      toast({ title: 'บันทึกล็อตสำเร็จ', variant: 'success' })
+      setConfirmLot(null)
       setEditingLotId(null)
       const updated = await window.api.products.get(productId) as FullProduct
       setProduct(updated)
     } catch (e: any) {
-      toast(e?.message ?? 'บันทึกไม่สำเร็จ', 'error')
+      toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     } finally {
       setLotSaving(false)
     }
@@ -475,76 +634,80 @@ export default function EditProductPage() {
   return (
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
       <PageHeader
-        title='สินค้า'
+        title={isNew ? 'เพิ่มสินค้าใหม่' : 'สินค้า'}
         right={
           <>
-            <button onClick={() => navigate('/products')} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={goBack} className="text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <Button onClick={handleSave} disabled={saving || tab !== 'general'}
               className={tab !== 'general' ? 'invisible pointer-events-none' : ''}>
               <Save className="w-4 h-4 mr-1.5" />
-              {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+              {saving ? 'กำลังบันทึก...' : isNew ? 'เพิ่มสินค้า' : 'บันทึก'}
             </Button>
           </>
         }
       />
 
-      {/* 4 cards: meta + 3 stats */}
+      {/* 4 cards: meta + 3 stats. In create mode, MetricCards stay in place
+          but are grayed out — values aren't meaningful until the product exists. */}
       <div className="grid grid-cols-4 gap-3 shrink-0">
         {/* Meta card */}
         <div className="bg-card rounded-2xl p-4 shadow-card h-32 overflow-hidden relative">
-          <span className="absolute top-4 right-4 grid place-items-center size-11 rounded-xl bg-primary-soft text-primary">
+          <span className={`absolute top-4 right-4 grid place-items-center size-11 rounded-xl bg-primary-soft text-primary ${isNew ? 'opacity-50' : ''}`}>
             <Package className="size-7" />
           </span>
           <div className="pr-14 min-w-0">
             <div
               className="text-base font-bold text-foreground leading-snug truncate"
-              title={product.trade_name}
+              title={isNew ? 'สินค้าใหม่' : product.trade_name}
             >
-              {product.trade_name}
+              {isNew ? (form.trade_name?.trim() || 'สินค้าใหม่') : product.trade_name}
             </div>
             <div className="text-sm text-muted-foreground truncate mt-0.5">
-              <span className="font-mono">{product.code ?? '—'}</span>
+              <span className="font-mono">{isNew ? '—' : (product.code ?? '—')}</span>
               <span className="mx-1.5">·</span>
-              <span>{categoryName ?? 'ไม่ระบุ'}</span>
+              <span>{isNew ? 'รอบันทึก' : (categoryName ?? 'ไม่ระบุ')}</span>
             </div>
             <div className="flex items-center gap-1 flex-wrap min-h-[18px] mt-6">
-              {!!product.is_drug && <Badge variant="success" className="text-sm rounded-md px-1.5 py-0">ยา</Badge>}
-              {!!product.is_fda9 && <Badge variant="quaternary" className="text-sm rounded-md px-1.5 py-0">ข.ย.9</Badge>}
-              {!!product.is_fda10 && <Badge variant="senary" className="text-sm rounded-md px-1.5 py-0">ข.ย.10</Badge>}
-              {!!product.is_fda11 && <Badge variant="destructive2" className="text-sm rounded-md px-1.5 py-0">ข.ย.11</Badge>}
-              {!!product.is_fda13 && <Badge variant="quinary" className="text-sm rounded-md px-1.5 py-0">ข.ย.13</Badge>}
-              {!!product.is_disabled && <Badge variant="destructive" className="text-sm rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
-              {!!product.is_hidden && <Badge variant="secondary" className="text-sm rounded-md px-1.5 py-0">ซ่อน</Badge>}
+              {!isNew && !!product.is_drug && <Badge variant="success" className="text-sm rounded-md px-1.5 py-0">ยา</Badge>}
+              {!isNew && !!product.is_fda9 && <Badge variant="quaternary" className="text-sm rounded-md px-1.5 py-0">ข.ย.9</Badge>}
+              {!isNew && !!product.is_fda10 && <Badge variant="senary" className="text-sm rounded-md px-1.5 py-0">ข.ย.10</Badge>}
+              {!isNew && !!product.is_fda11 && <Badge variant="destructive2" className="text-sm rounded-md px-1.5 py-0">ข.ย.11</Badge>}
+              {!isNew && !!product.is_fda13 && <Badge variant="quinary" className="text-sm rounded-md px-1.5 py-0">ข.ย.13</Badge>}
+              {!isNew && !!product.is_disabled && <Badge variant="destructive" className="text-sm rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
+              {!isNew && !!product.is_hidden && <Badge variant="secondary" className="text-sm rounded-md px-1.5 py-0">ซ่อน</Badge>}
             </div>
           </div>
         </div>
 
         <MetricCard
           label="ราคาทุน"
-          value={formatCurrency(product.cost_price)}
-          sub={baseUnit ? `ต่อ ${baseUnit}` : undefined}
+          value={isNew ? '—' : formatCurrency(product.cost_price)}
+          sub={isNew ? undefined : (baseUnit ? `ต่อ ${baseUnit}` : undefined)}
           icon={Tag}
           tint="senary"
+          className={isNew ? 'opacity-50' : ''}
         />
         <MetricCard
           label="ราคาขาย"
-          value={formatCurrency(product.price_retail)}
+          value={isNew ? '—' : formatCurrency(product.price_retail)}
           valueClassName={'text-foreground'}
-          sub={(product.cost_price ?? 0) > 0
+          sub={!isNew && (product.cost_price ?? 0) > 0
             ? `${profit >= 0 ? '+' : ''}${profit.toFixed(2)} (${profit >= 0 ? '+' : ''}${profitPct.toFixed(0)}%)`
             : undefined}
           subClassName={profit >= 0 ? 'text-success font-semibold' : 'text-destructive font-semibold'}
           icon={HandCoins}
           tint="success"
+          className={isNew ? 'opacity-50' : ''}
         />
         <MetricCard
           label="คงเหลือ"
-          value={totalStock.toLocaleString()}
-          sub={baseUnit}
+          value={isNew ? '—' : totalStock.toLocaleString()}
+          sub={isNew ? undefined : baseUnit}
           icon={Boxes}
-          tint={totalStock <= 0 ? 'destructive' : 'quinary'}
+          tint={isNew ? 'quinary' : (totalStock <= 0 ? 'destructive' : 'quinary')}
+          className={isNew ? 'opacity-50' : ''}
         />
       </div>
 
@@ -552,9 +715,15 @@ export default function EditProductPage() {
         <Tabs value={tab} onValueChange={setTab} className="items-center">
           <TabsList variant="segmented">
             <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
-            <TabsTrigger value="units"><Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})</TabsTrigger>
-            <TabsTrigger value="labels"><Pill /> ฉลากยา ({product.labels?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="lots"><Package /> ล็อต ({product.lots?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
+              <Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})
+            </TabsTrigger>
+            <TabsTrigger value="labels" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการฉลากยา' : undefined}>
+              <Pill /> ฉลากยา ({product.labels?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="lots" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการล็อต' : undefined}>
+              <Package /> ล็อต ({product.lots?.length ?? 0})
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -569,7 +738,8 @@ export default function EditProductPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {/* Row 1: รหัสสินค้า | คีย์เวิร์ดค้นหา */}
                   <Field label="รหัสสินค้า">
-                    <Input value={form.code} readOnly className="h-10 rounded-xl bg-muted cursor-not-allowed" />
+                    <Input value={form.code} readOnly className="h-10 rounded-xl bg-muted cursor-not-allowed"
+                            placeholder="สร้างอัตโนมัติ" />
                   </Field>
                   <Field label="คีย์เวิร์ดค้นหา">
                     <Input
@@ -581,9 +751,14 @@ export default function EditProductPage() {
                   </Field>
 
                   {/* Row 2: ชื่อสินค้า* (full width) */}
-                  <div className="col-span-2">
+                  <div className="col-span-2" data-field="trade_name">
                     <Field label="ชื่อสินค้า" required>
-                      <Input value={form.trade_name} onChange={e => setF('trade_name', e.target.value)} className="h-10 rounded-xl" />
+                      <Input
+                        value={form.trade_name}
+                        onChange={e => setF('trade_name', e.target.value)}
+                        aria-invalid={errors.has('trade_name')}
+                        className="h-10 rounded-xl"
+                      />
                     </Field>
                   </div>
 
@@ -606,17 +781,19 @@ export default function EditProductPage() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="หน่วยหลัก">
-                    <Select value={String(form.unit_id ?? 0)} onValueChange={v => setF('unit_id', Number(v) || null)}>
-                      <SelectTrigger className="h-10 w-full rounded-xl bg-muted">
-                        <SelectValue placeholder="— เลือกหน่วย —" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">— เลือกหน่วย —</SelectItem>
-                        {itemUnits.map(u => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </Field>
+                  <div data-field="unit_id">
+                    <Field label="หน่วยหลัก" required>
+                      <Select value={String(form.unit_id ?? 0)} onValueChange={v => setF('unit_id', Number(v) || null)}>
+                        <SelectTrigger aria-invalid={errors.has('unit_id')} className="h-10 w-full rounded-xl bg-muted">
+                          <SelectValue placeholder="— เลือกหน่วย —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">— เลือกหน่วย —</SelectItem>
+                          {itemUnits.map(u => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </div>
                 </div>
               </SectionCard>
 
@@ -624,10 +801,15 @@ export default function EditProductPage() {
                 <div className="grid grid-cols-2 gap-3">
 
                   {/* col1 row1: ราคาขายปลีก */}
-                  <div className="col-start-1 row-start-1">
+                  <div className="col-start-1 row-start-1" data-field="price_retail">
                     <Field label="ราคาขายปลีก" required>
-                      <Input type="number" value={form.price_retail} onChange={e => setF('price_retail', e.target.value)}
-                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
+                      <Input
+                        type="number"
+                        value={form.price_retail}
+                        onChange={e => setF('price_retail', e.target.value)}
+                        aria-invalid={errors.has('price_retail')}
+                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01"
+                      />
                     </Field>
                   </div>
 
@@ -781,7 +963,7 @@ export default function EditProductPage() {
               <SectionCard icon={ScanBarcode} title="บาร์โค้ด" tint="secondary">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="บาร์โค้ด 1">
-                    <Input value={form.barcode} onChange={e => setF('barcode', e.target.value)} placeholder="8851234567890" className="h-10 rounded-xl" />
+                    <Input value={form.barcode} onChange={e => setF('barcode', e.target.value)} placeholder="ตัวเลข 13 หลัก" className="h-10 rounded-xl" />
                   </Field>
                   <Field label="บาร์โค้ด 2">
                     <Input value={form.barcode2} onChange={e => setF('barcode2', e.target.value)} className="h-10 rounded-xl" />
@@ -1100,22 +1282,20 @@ export default function EditProductPage() {
                 <Table className="table-fixed">
                   <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
                     <TableRow>
-                      <TableHead className="w-32 text-foreground-subtle">Lot No.</TableHead>
-                      <TableHead className="w-32 text-foreground-subtle">ใบรับ</TableHead>
+                      <TableHead className="w-36 text-foreground-subtle">Lot No.</TableHead>
                       <TableHead className="text-foreground-subtle">ผู้จัดจำหน่าย</TableHead>
-                      <TableHead className="w-28 text-foreground-subtle">วันผลิต</TableHead>
-                      <TableHead className="w-28 text-foreground-subtle">วันหมดอายุ</TableHead>
-                      <TableHead className="w-20 text-right text-foreground-subtle">รับเข้า</TableHead>
-                      <TableHead className="w-20 text-right text-foreground-subtle">คงเหลือ</TableHead>
-                      <TableHead className="w-28 text-right text-foreground-subtle">ราคาทุน</TableHead>
+                      <TableHead className="w-40 text-foreground-subtle">วันหมดอายุ</TableHead>
+                      <TableHead className="w-24 text-right text-foreground-subtle">รับเข้า</TableHead>
+                      <TableHead className="w-28 text-right text-foreground-subtle">คงเหลือ</TableHead>
+                      <TableHead className="w-32 text-right text-foreground-subtle">ราคาทุน</TableHead>
                       <TableHead className="w-24 text-center text-foreground-subtle">สถานะ</TableHead>
-                      <TableHead className="w-28 text-center text-foreground-subtle">จัดการ</TableHead>
+                      <TableHead className="w-32 text-center text-foreground-subtle">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                 <TableBody>
                   {(product.lots?.length ?? 0) === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center text-muted-foreground py-16">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
                         <Package className="size-10 mx-auto mb-2 opacity-30" />
                         ยังไม่มีล็อต
                       </TableCell>
@@ -1130,23 +1310,15 @@ export default function EditProductPage() {
                           {/* Lot No. */}
                           <TableCell>
                             <Input value={lotEditForm.lot_number} onChange={e => setLotEditForm(f => ({ ...f, lot_number: e.target.value }))}
-                              className="h-9 w-28 rounded-lg text-sm font-mono" />
+                              className="h-9 w-full rounded-lg text-sm font-mono bg-card" />
                           </TableCell>
-                          {/* ใบรับ — read only */}
-                          <TableCell className="text-xs text-muted-foreground">{lot.invoice_no ?? '—'}</TableCell>
                           {/* ผู้จัดจำหน่าย — read only */}
                           <TableCell className="text-sm">{(lot as any).supplier_name ?? '—'}</TableCell>
-                          {/* วันผลิต */}
-                          <TableCell>
-                            <DateInput value={lotEditForm.manufactured_date}
-                              onChange={v => setLotEditForm(f => ({ ...f, manufactured_date: v }))}
-                              className="h-9 w-32 rounded-lg text-sm" />
-                          </TableCell>
                           {/* วันหมดอายุ */}
                           <TableCell>
                             <DateInput value={lotEditForm.expiry_date}
                               onChange={v => setLotEditForm(f => ({ ...f, expiry_date: v }))}
-                              className="h-9 w-32 rounded-lg text-sm" />
+                              className="h-9 w-full rounded-lg text-sm bg-card" />
                           </TableCell>
                           {/* รับเข้า — read only */}
                           <TableCell className="text-right text-sm tabular-nums">{lot.qty_received}</TableCell>
@@ -1154,13 +1326,13 @@ export default function EditProductPage() {
                           <TableCell>
                             <Input type="number" value={lotEditForm.qty_on_hand}
                               onChange={e => setLotEditForm(f => ({ ...f, qty_on_hand: e.target.value }))}
-                              className="h-9 w-20 rounded-lg text-right text-sm tabular-nums" min={0} />
+                              className="h-9 w-full rounded-lg text-right text-sm tabular-nums bg-card" min={0} />
                           </TableCell>
                           {/* ราคาทุน */}
                           <TableCell>
                             <Input type="number" value={lotEditForm.cost_price}
                               onChange={e => setLotEditForm(f => ({ ...f, cost_price: e.target.value }))}
-                              className="h-9 w-24 rounded-lg text-right text-sm tabular-nums" min={0} step="0.01" />
+                              className="h-9 w-full rounded-lg text-right text-sm tabular-nums bg-card" min={0} step="0.01" />
                           </TableCell>
                           <TableCell />
                           {/* Save / Cancel */}
@@ -1169,7 +1341,7 @@ export default function EditProductPage() {
                               <Button size="icon-xl" variant="success" onClick={handleSaveLot} disabled={lotSaving} title="บันทึก">
                                 <Check />
                               </Button>
-                              <Button size="icon-xl" variant="outline" onClick={() => setEditingLotId(null)} disabled={lotSaving} title="ยกเลิก">
+                              <Button size="icon-xl" variant="destructive" onClick={() => setEditingLotId(null)} disabled={lotSaving} title="ยกเลิก">
                                 <X />
                               </Button>
                             </div>
@@ -1181,11 +1353,7 @@ export default function EditProductPage() {
                     return (
                       <TableRow key={lot.id} className="hover:bg-primary-soft/60 transition-colors">
                         <TableCell className="font-mono text-sm font-semibold">{lot.lot_number}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{lot.invoice_no ?? '—'}</TableCell>
                         <TableCell className="text-sm">{(lot as any).supplier_name ?? '—'}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {(lot as any).manufactured_date ? formatExpiry((lot as any).manufactured_date) : '—'}
-                        </TableCell>
                         <TableCell className="text-sm tabular-nums">
                           <span className={
                             expStatus === 'expired' ? 'text-destructive font-semibold' :
@@ -1210,7 +1378,7 @@ export default function EditProductPage() {
                         <TableCell>
                           <div className="flex items-center justify-center">
                             {!lot.is_cancelled && (
-                              <Button size="icon-xl" variant="outline" onClick={() => startEditLot(lot)} title="แก้ไข">
+                              <Button size="icon-xl" variant="senary" onClick={() => startEditLot(lot)} title="แก้ไข">
                                 <Edit2 />
                               </Button>
                             )}
@@ -1306,6 +1474,30 @@ export default function EditProductPage() {
             <Button variant="senary" onClick={() => setPriceWarning([])}>กลับไปแก้ไข</Button>
             <Button variant="destructive" onClick={doSave} disabled={saving}>
               {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======================== LEAVE CONFIRM DIALOG ======================== */}
+      <Dialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle className="text-xl">ยังไม่ได้บันทึก</DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-3">
+            <div className="flex gap-3">
+              <AlertTriangle className="size-10 text-warning-strong shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-base font-medium">มีข้อมูลที่กรอกไว้แต่ยังไม่ได้บันทึก</p>
+                <p className="text-base text-muted-foreground">หากออกตอนนี้ ข้อมูลทั้งหมดจะหายไป</p>
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button className="text-sm" variant="senary" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
+            <Button className="text-sm" variant="destructive" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); navigate('/products') }}>
+              ออกจากหน้านี้
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1426,6 +1618,44 @@ export default function EditProductPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setLabelDialog(false)}>ยกเลิก</Button>
             <Button onClick={handleSaveLabel} disabled={labelSaving}>{labelSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm lot edit — shows diff (before → after) for each changed field */}
+      <Dialog open={!!confirmLot} onOpenChange={open => { if (!open && !lotSaving) setConfirmLot(null) }}>
+        <DialogContent size="sm" onClose={() => { if (!lotSaving) setConfirmLot(null) }}>
+          <DialogHeader>
+            <DialogTitle className="text-xl">ยืนยันการแก้ไขล็อต</DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-3">
+            {confirmLot && (
+              <>
+                <div className="bg-muted rounded-xl px-4 py-3">
+                  <div className="text-xs text-muted-foreground">ล็อต</div>
+                  <div className="font-mono font-semibold text-sm">{confirmLot.lot_number}</div>
+                </div>
+                <div className="space-y-2">
+                  {getLotEditChanges(confirmLot).map((c, i) => (
+                    <div key={i} className="flex items-baseline gap-2 text-sm">
+                      <span className="w-28 shrink-0 text-muted-foreground">{c.label}</span>
+                      <span className="text-foreground-subtle tabular-nums line-through">{c.before}</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-semibold tabular-nums">{c.after}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  การแก้ไขจะถูกบันทึกในประวัติการเคลื่อนไหวสต็อกและไม่สามารถย้อนกลับได้ทันที
+                </p>
+              </>
+            )}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="destructive2" className="flex-1 h-10 rounded-xl" onClick={() => setConfirmLot(null)} disabled={lotSaving}>ยกเลิก</Button>
+            <Button onClick={confirmSaveLot} disabled={lotSaving} autoFocus className="flex-1 h-10 rounded-xl">
+              {lotSaving ? 'กำลังบันทึก...' : 'ยืนยันการแก้ไข'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

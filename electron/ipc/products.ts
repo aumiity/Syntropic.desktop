@@ -157,7 +157,7 @@ export function registerProductHandlers() {
         unit_id,
         has_vat, reorder_point, safety_stock,
         drug_type_id, tmt_id,
-        is_antibiotic,
+        is_drug, is_antibiotic,
         indication_note, side_effect_note,
         is_fda9, is_fda10, is_fda11, is_fda13,
         search_keywords, note)
@@ -167,7 +167,7 @@ export function registerProductHandlers() {
         @unit_id,
         @has_vat, @reorder_point, @safety_stock,
         @drug_type_id, @tmt_id,
-        @is_antibiotic,
+        @is_drug, @is_antibiotic,
         @indication_note, @side_effect_note,
         @is_fda9, @is_fda10, @is_fda11, @is_fda13,
         @search_keywords, @note)
@@ -398,6 +398,9 @@ export function registerProductHandlers() {
       const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(id) as any
       if (!lot) throw new Error('ไม่พบล็อต')
 
+      // Block edits on cancelled lots (UI hides the button, but guard against direct IPC)
+      if (lot.is_cancelled) throw new Error('ไม่สามารถแก้ไขล็อตที่ถูกยกเลิกได้')
+
       // Pre-flight: lot_number rename collision
       if (data.lot_number !== undefined && data.lot_number !== lot.lot_number) {
         const dup = db.prepare(`
@@ -413,9 +416,12 @@ export function registerProductHandlers() {
         throw new Error('จำนวนคงเหลือต้องไม่ติดลบ')
       }
 
+      const qtyChanged = data.qty_on_hand !== undefined && data.qty_on_hand !== lot.qty_on_hand
+      const costChanged = data.cost_price !== undefined && Number(data.cost_price) !== Number(lot.cost_price)
+
       // Log qty change as stock movement
-      if (data.qty_on_hand !== undefined && data.qty_on_hand !== lot.qty_on_hand) {
-        const delta = data.qty_on_hand - lot.qty_on_hand
+      if (qtyChanged) {
+        const delta = data.qty_on_hand! - lot.qty_on_hand
         const movType = delta > 0 ? 'adjust_in' : 'adjust_out'
         db.prepare(`
           INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
@@ -424,7 +430,7 @@ export function registerProductHandlers() {
       }
 
       // Log cost_price change to lot_cost_logs (regulatory-significant for retroactive profit)
-      if (data.cost_price !== undefined && Number(data.cost_price) !== Number(lot.cost_price)) {
+      if (costChanged) {
         db.prepare(`
           INSERT INTO lot_cost_logs (lot_id, product_id, old_cost, new_cost, note, created_by)
           VALUES (?, ?, ?, ?, 'แก้ไขราคาทุนผ่านหน้าล็อต', ?)
@@ -437,9 +443,39 @@ export function registerProductHandlers() {
       for (const key of updatable) {
         if (key in data) { fields.push(`${key} = @${key}`); vals[key] = (data as any)[key] }
       }
+
+      // Auto-toggle is_closed/closed_at when qty crosses the 0 boundary
+      // - qty → 0: close the lot so it drops out of FEFO / stock queries (filter is_closed = 0)
+      // - qty 0 → >0 on a previously-closed lot: reopen so the stock is visible again
+      if (data.qty_on_hand !== undefined) {
+        if (data.qty_on_hand <= 0) {
+          fields.push(`is_closed = 1`, `closed_at = datetime('now','localtime')`)
+        } else if (lot.is_closed) {
+          fields.push(`is_closed = 0`, `closed_at = NULL`)
+        }
+      }
+
       if (fields.length === 0) return lot
 
       db.prepare(`UPDATE product_lots SET ${fields.join(', ')}, updated_at = datetime('now','localtime') WHERE id = @id`).run(vals)
+
+      // Recompute products.cost_price (weighted avg of open lots by qty_received).
+      // A lot's contribution to that avg changes whenever its cost_price changes OR
+      // it transitions in/out of is_closed (qty crossing 0). Recompute on both.
+      if (qtyChanged || costChanged) {
+        const agg = db.prepare(`
+          SELECT
+            COALESCE(SUM(qty_received * cost_price), 0) as cost_sum,
+            COALESCE(SUM(qty_received), 0) as qty_sum
+          FROM product_lots
+          WHERE product_id = ? AND qty_received > 0 AND is_closed = 0
+        `).get(lot.product_id) as any
+        if (agg.qty_sum > 0) {
+          db.prepare(`UPDATE products SET cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+            .run(agg.cost_sum / agg.qty_sum, lot.product_id)
+        }
+      }
+
       return db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(id)
     })()
   })

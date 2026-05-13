@@ -13,7 +13,7 @@ import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatCard } from '@/components/ui/card'
-import type { Product, ProductCategory, DrugType, ItemUnit } from '@/types'
+import type { Product, ProductCategory, DrugType } from '@/types'
 import {
   Search, Plus, Edit2, AlertTriangle, Package, PackageX,
   Boxes, ArrowUpCircle, ArrowDownCircle,
@@ -51,18 +51,6 @@ export default function ProductsPage() {
   // Dropdown data
   const [categories, setCategories] = useState<ProductCategory[]>([])
   const [drugTypes, setDrugTypes] = useState<DrugType[]>([])
-  const [itemUnits, setItemUnits] = useState<ItemUnit[]>([])
-
-  // Create product dialog
-  const [showCreate, setShowCreate] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [newProduct, setNewProduct] = useState({
-    trade_name: '',
-    barcode: '',
-    price_retail: '',
-    unit_id: 0,
-    category_id: 0,
-  })
 
   // Adjust stock dialog
   const [adjustProduct, setAdjustProduct] = useState<ProductRow | null>(null)
@@ -100,14 +88,12 @@ export default function ProductsPage() {
   }, [q, categoryId, drugTypeId, stockFilter, showDisabled, sort])
 
   const loadDropdowns = async () => {
-    const [cats, dts, units] = await Promise.all([
+    const [cats, dts] = await Promise.all([
       window.api.settings.allCategories(),
       window.api.settings.allDrugTypes(),
-      window.api.settings.allUnits(),
     ])
     setCategories(cats as ProductCategory[])
     setDrugTypes(dts as DrugType[])
-    setItemUnits(units as ItemUnit[])
   }
 
   const load = useCallback(async (p = page) => {
@@ -141,40 +127,6 @@ export default function ProductsPage() {
   // Click "สินค้าทั้งหมด" → always clear back to 'all'.
   const toggleStockFilter = (next: 'all' | 'low' | 'out') => {
     setStockFilter(curr => (next === 'all' ? 'all' : curr === next ? 'all' : next))
-  }
-
-  // --- Create product ---
-  const handleCreate = async () => {
-    if (!newProduct.trade_name.trim()) {
-      toast({ title: 'กรุณาระบุชื่อสินค้า', variant: 'error' })
-      return
-    }
-    setCreating(true)
-    try {
-      const created = await window.api.products.create({
-        trade_name: newProduct.trade_name.trim(),
-        barcode: newProduct.barcode.trim() || null,
-        price_retail: parseFloat(newProduct.price_retail) || 0,
-        unit_id: newProduct.unit_id || null,
-        category_id: newProduct.category_id || null,
-        is_stock_item: 1,
-        price_wholesale1: 0,
-        price_wholesale2: 0,
-        has_vat: 0,
-        reorder_point: 0,
-        safety_stock: 0,
-        is_antibiotic: 0,
-        is_fda9: 0, is_fda10: 0, is_fda11: 0, is_fda13: 0,
-      }) as any
-      setShowCreate(false)
-      setNewProduct({ trade_name: '', barcode: '', price_retail: '', unit_id: 0, category_id: 0 })
-      toast({ title: 'เพิ่มสินค้าสำเร็จ', variant: 'success' })
-      navigate(`/products/${created.id}/edit`)
-    } catch (e: any) {
-      toast({ title: 'เพิ่มสินค้าไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-    } finally {
-      setCreating(false)
-    }
   }
 
   // --- Adjust stock ---
@@ -303,7 +255,7 @@ export default function ProductsPage() {
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
         <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
           <span>{loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}</span>
-          <Button onClick={() => setShowCreate(true)} className="h-9 rounded-lg px-2 text-sm">
+          <Button onClick={() => navigate('/products/new')} className="h-9 rounded-lg px-2 text-sm">
             <Plus className="size-4" /> เพิ่มสินค้า
           </Button>
         </div>
@@ -406,92 +358,6 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
-
-      {/* Create product dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent size="md" onClose={() => setShowCreate(false)}>
-          <DialogHeader>
-            <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">ชื่อสินค้า <span className="text-destructive">*</span></label>
-              <Input
-                value={newProduct.trade_name}
-                onChange={e => setNewProduct(p => ({ ...p, trade_name: e.target.value }))}
-                placeholder="เช่น Paracetamol 500mg"
-                className="h-10 rounded-xl"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">บาร์โค้ด</label>
-              <Input
-                value={newProduct.barcode}
-                onChange={e => setNewProduct(p => ({ ...p, barcode: e.target.value }))}
-                placeholder="8851234567890"
-                className="h-10 rounded-xl"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">รหัสสินค้าจะถูกสร้างอัตโนมัติ (P0001, P0002, …)</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">ราคาขายปลีก</label>
-                <Input
-                  type="number"
-                  value={newProduct.price_retail}
-                  onChange={e => setNewProduct(p => ({ ...p, price_retail: e.target.value }))}
-                  placeholder="0.00"
-                  min={0}
-                  step="0.01"
-                  className="h-10 rounded-xl"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">หน่วยนับ</label>
-                <Select
-                  value={String(newProduct.unit_id)}
-                  onValueChange={v => setNewProduct(p => ({ ...p, unit_id: Number(v) }))}
-                >
-                  <SelectTrigger className="h-10 w-full rounded-xl">
-                    <SelectValue placeholder="— เลือกหน่วย —" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">— ไม่ระบุ (ใช้ "ชิ้น") —</SelectItem>
-                    {itemUnits.map(u => (
-                      <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">หมวดหมู่</label>
-              <Select
-                value={String(newProduct.category_id)}
-                onValueChange={v => setNewProduct(p => ({ ...p, category_id: Number(v) }))}
-              >
-                <SelectTrigger className="h-10 w-full rounded-xl">
-                  <SelectValue placeholder="— ไม่ระบุ —" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">— ไม่ระบุ —</SelectItem>
-                  {categories.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-xs text-muted-foreground">สามารถเพิ่มข้อมูลอื่นๆ ได้ในหน้าแก้ไขสินค้า</p>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" className="h-10 rounded-xl px-5" onClick={() => setShowCreate(false)}>ยกเลิก</Button>
-            <Button onClick={handleCreate} disabled={creating} className="h-10 rounded-xl px-5">
-              {creating ? 'กำลังบันทึก...' : 'เพิ่มสินค้า'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Adjust stock dialog */}
       <Dialog open={!!adjustProduct} onOpenChange={open => { if (!open) setAdjustProduct(null) }}>

@@ -22,7 +22,9 @@
       "Bash(Select-Object -ExpandProperty Name)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git -C /Users/anya/Documents/GitHub/Syntropic.desktop stash)",
+      "Bash(git -C /Users/anya/Documents/GitHub/Syntropic.desktop stash pop)"
     ]
   }
 }

@@ -47,7 +47,7 @@ export function Sidebar() {
   const isDark = theme === 'dark'
 
   return (
-    <aside className="flex flex-col w-56 h-screen bg-sidebar shrink-0  border-r border-sidebar-border">
+    <aside className="flex flex-col w-48 h-screen bg-sidebar shrink-0  border-r border-sidebar-border">
       {/* Logo */}
       <div className="flex items-center mt-4 h-20 bg-sidebar justify-center">
         <div className="text-sidebar-accent-foreground font-extrabold text-6xl leading-none">R<span className="text-sidebar-accent font-extrabold text-4xl leading-none">x</span></div>

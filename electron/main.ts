@@ -19,8 +19,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    minWidth: 1280,
-    minHeight: 780,
+    minWidth: 1366,
+    minHeight: 800,
     title: 'Syntropic RX',
     backgroundColor: '#065f46',
     frame: false,
