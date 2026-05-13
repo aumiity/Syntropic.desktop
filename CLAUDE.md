@@ -145,6 +145,7 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - When adding a new modal, wire Enter on the primary input or via `onKeyDown` on the dialog body — call the same handler the OK button calls.
 7. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`, `tabular-nums`) are encouraged — only **color literals** are banned.
 8. **Icon sizing inside `<Button>` — use `size-N`, never `h-N w-N`.** `button.tsx` has `[&_svg:not([class*='size-'])]:size-4`, which silently snaps any descendant svg without `size-` in its className to 16px. `h-7 w-7` does not contain `size-`, so the rule still matches and — being more specific — overrides your value. Always write `<Icon className="size-7" />`, including arbitrary values (`size-[22px]`, not `h-[22px] w-[22px]`). Doesn't apply to icons in `<Input>`/`<Label>`/`<DialogTitle>`/plain `<div>`/raw `<button>` (not the Button component), or to the Button element's own outer dimensions.
+9. **Minimum text size is `text-sm` (HARD).** Don't use `text-xs` or arbitrary smaller values (`text-[10px]`, `text-[11px]`, `text-[13px]`) in new code. `text-sm` is the smallest allowed; scale up (`text-base`, `text-lg`, `text-xl`, …) from there. Applies to all new features and any UI you touch — existing legacy `text-xs` can be cleaned up opportunistically but is not a blocker.
 
 ### Color palette & variants — USE THE FULL RANGE (HARD)
 

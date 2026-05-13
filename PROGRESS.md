@@ -1,7 +1,7 @@
 # Syntropic Desktop - Build Progress
 
-## Status: ✅ Runnable — product create flow moved from modal → full EditProduct page with required-field validation + dirty guard.
-## Last updated: 2026-05-13
+## Status: ✅ Runnable — Products-list adjust-stock rewritten with proper lot semantics (FEFO decrease / new-lot or merge-existing increase).
+## Last updated: 2026-05-14
 ## Run: `npm run electron:dev`
 ## ⚠️ Next session: **ข.ย.10 / ข.ย.11 reports** — new report pages under `/reports/`. See NEXT SESSION section below.
 
@@ -1333,3 +1333,59 @@ On create mode, `loadAll` finds the `ชิ้น` row in the loaded `itemUnits`
 ### Verification
 - `npx tsc --noEmit` — 19 errors, same as baseline before this session (no new TS errors introduced).
 - Not user-tested in Electron yet — pending manual run-through.
+
+---
+
+## Session 2026-05-14 — Adjust-stock rewrite: kill ADJ phantom lot, proper FEFO + lot-aware increase
+
+### Goal
+The old "ปรับสต็อก" button on the Products list used a synthetic `ADJ` lot per product to absorb every adjustment. That broke FEFO (real lots' qty never moved, so closest-to-expiry stock didn't get touched on shortage), let qty go arbitrarily negative, and lost cost provenance — free/promotional stock never had its zero cost reflected in the weighted-avg `products.cost_price`. Rebuild the flow with proper per-lot accounting.
+
+### Design decisions
+Three operator-picked modes, driven by delta direction:
+
+| Mode | When | Backend behavior |
+|---|---|---|
+| **decrease** | target < current | Auto-FEFO. Sort open lots by `expiry_date ASC NULLS LAST, id ASC` and deduct in order, spanning multiple lots if needed. Auto-close lots whose qty hits 0. |
+| **increase_new_lot** | target > current, separate source / different expiry | Create a brand-new `product_lot`. Operator supplies lot_number (auto-generated `ADJ-YYYYMMDD-NNN` if blank), expiry, cost (default 0 for freebies). |
+| **increase_existing_lot** | target > current, supplier bundled freebies with an existing batch | Add qty into a chosen lot. `qty_received` grows; `cost_price` is recomputed as weighted-avg within the lot. Same total contribution to `products.cost_price` as creating a new lot — the math is `(old_qty × old_cost + added_qty × added_cost) / new_qty`. |
+
+All three paths recompute `products.cost_price` at the end, validate `userId`/`note`/`qty > 0`, and write `stock_movements` rows. The existing-lot merge path also writes `lot_cost_logs` when cost moves materially.
+
+### Why not just guard the ADJ approach
+Adding `qty >= 0` checks would stop the negative spiral but not fix the underlying issues: real lots' FEFO order is still ignored on decrease, and ADJ has no expiry/cost so free stock still gets lost in reporting. The rewrite was cheaper than the half-fix.
+
+### Frontend modal design
+`Products/index.tsx` adjust-stock dialog rewritten:
+- **Fixed height `h-[860px] max-h-[92vh]`** + `grid-rows-[auto_1fr_auto]` so header/body/footer rows are stable. Body uses `flex flex-col overflow-y-auto`; the note section has `mt-auto` to stay pinned at the bottom regardless of which conditional section is showing.
+- **Top:** product info + per-lot breakdown (lot_number / expiry / qty) — shows the operator the current FEFO order before they pick a target.
+- **Target input** unchanged in semantics; delta badge moved to left, input to right.
+- **Decrease:** red-bordered FEFO preview lists each lot that will be hit, with `qty_before → qty_after` and `−deducted` count.
+- **Increase:** two-button mode picker (`สร้างล็อตใหม่` / `เพิ่มเข้าล็อตเดิม`). New-lot form has lot_number + DateInput expiry + cost. Existing-lot form has a `font-mono` dropdown showing only lot_number; the lot's expiry/qty/cost render in a `bg-card` box to the right of the dropdown. Cost-input and merged-lot cost preview live in the same `grid-cols-[180px_1fr]` row so widths match the dropdown row above.
+- Note section preserved (quick reasons + free text). Enter submits.
+
+### Backend
+`electron/ipc/products.ts` — `products:adjustStock` handler completely rewritten:
+- Dispatches on `data.mode` (`decrease` / `increase_new_lot` / `increase_existing_lot`).
+- Local `recomputeAvgCost(pid)` helper runs at end of every branch.
+- Auto-generated lot numbers use `ADJ-YYYYMMDD-NNN` (NNN unique per product per day) — same pattern as GR but with `ADJ-` prefix.
+- `increase_existing_lot` reopens closed lots (`is_closed = 0, closed_at = NULL`) when qty crosses back above 0.
+
+### New project-wide rule: minimum text size = `text-sm` (HARD)
+Operator pushback during this session: `text-xs` and arbitrary smaller values (`text-[10px]`, `text-[11px]`) are harsh on the Thai/Inter/Sarabun stack and break rhythm. Codified:
+- `CLAUDE.md` theming rule #9 — banned `text-xs` and smaller arbitrary values in new code; existing legacy can be cleaned up opportunistically but is not a blocker.
+- Memory: `feedback_text_size.md`.
+
+### Files changed
+- `electron/ipc/products.ts` — `products:adjustStock` rewritten (lines ~214 onward); ~200 LOC delta.
+- `src/pages/Products/index.tsx` — modal rewritten; new state (`productLots`, `lotsLoading`, `increaseMode`, `newLotNumber`, `newLotExpiry`, `newLotCost`, `targetLotId`, `addedCost`), `useMemo` derivations (`fefoPreview`, `mergedLotPreview`, `mergeCandidates`, `selectedTargetLot`, `openLotsSummary`), `openAdjust` loads lots via `products.getLots`, `handleAdjust` builds mode-specific payload. Imports gained `useMemo`, `DateInput`, `ProductLot`, `Layers`/`FolderInput`/`Info` icons.
+- `CLAUDE.md` — added rule #9 (`text-sm` minimum).
+- `memory/feedback_text_size.md` — new memory entry; index updated in `MEMORY.md`.
+
+### Verification
+- `npx tsc --noEmit` filtered to changed files — zero new errors. (Pre-existing 19 baseline errors elsewhere unchanged.)
+- Not Electron-tested by Claude. Verify manually:
+  1. **Decrease across multiple lots** — set target below `Lot A.qty` and confirm FEFO splits to Lot B.
+  2. **Increase, new lot, cost = 0** — verify new `ADJ-...-001` lot appears in EditProduct → ล็อต tab; `products.cost_price` weighted-avg drops appropriately.
+  3. **Increase, existing lot, cost = 0** — verify chosen lot's `qty_received` grows, `cost_price` is the new weighted average, and `lot_cost_logs` got a row.
+  4. **Modal layout** — switch between modes; verify height stays at 860px and the note section stays pinned at the bottom.

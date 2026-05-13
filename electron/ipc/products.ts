@@ -211,26 +211,217 @@ export function registerProductHandlers() {
     `).all(productId, limit)
   })
 
-  ipcMain.handle('products:adjustStock', (_e, productId: number, data: { qty: number; type: 'in' | 'out'; note: string; userId: number }) => {
+  // Stock adjustment from Products list. Three modes — operator picks one
+  // based on the situation:
+  //
+  //   decrease            → auto-FEFO. Deduct from real lots ordered by
+  //                         expiry_date ASC. Preserves cost provenance.
+  //                         Used when stock count finds shortage.
+  //
+  //   increase_new_lot    → create a brand-new product_lot. Operator supplies
+  //                         lot_number (auto-generated if blank), optional
+  //                         expiry, cost (default 0 for freebies). The right
+  //                         pick when extra stock came from somewhere with
+  //                         different expiry/source than existing lots.
+  //
+  //   increase_existing_lot → add qty into an existing lot. Operator picks the
+  //                           target lot and supplies the cost of the *added*
+  //                           units (often 0). The lot's qty_received grows
+  //                           and cost_price is recomputed as a weighted avg
+  //                           within the lot — same total contribution to
+  //                           products.cost_price as creating a new lot. Use
+  //                           when supplier bundles freebies with an existing
+  //                           receive (same batch/expiry).
+  ipcMain.handle('products:adjustStock', (_e, productId: number, data: {
+    mode: 'decrease' | 'increase_new_lot' | 'increase_existing_lot'
+    qty: number
+    note: string
+    userId: number
+    lot_number?: string
+    expiry_date?: string | null
+    manufactured_date?: string | null
+    cost_price?: number
+    target_lot_id?: number
+    added_cost_price?: number
+  }) => {
+    if (!data.userId) throw new Error('ไม่พบผู้ใช้งาน')
+    if (!data.note || !data.note.trim()) throw new Error('กรุณาระบุหมายเหตุ')
+    if (!data.qty || data.qty <= 0) throw new Error('จำนวนต้องมากกว่า 0')
+
     const db = getDb()
-    const adjust = db.transaction(() => {
-      // Find or create adjustment lot
-      let lot = db.prepare(`SELECT * FROM product_lots WHERE product_id = ? AND lot_number = 'ADJ'`).get(productId) as any
-      if (!lot) {
-        db.prepare(`INSERT INTO product_lots (product_id, lot_number, qty_received, qty_on_hand) VALUES (?, 'ADJ', 0, 0)`).run(productId)
-        lot = db.prepare(`SELECT * FROM product_lots WHERE product_id = ? AND lot_number = 'ADJ'`).get(productId) as any
+
+    const recomputeAvgCost = (pid: number) => {
+      const agg = db.prepare(`
+        SELECT
+          COALESCE(SUM(qty_received * cost_price), 0) as cost_sum,
+          COALESCE(SUM(qty_received), 0) as qty_sum
+        FROM product_lots
+        WHERE product_id = ? AND qty_received > 0 AND is_closed = 0
+      `).get(pid) as any
+      if (agg.qty_sum > 0) {
+        db.prepare(`UPDATE products SET cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+          .run(agg.cost_sum / agg.qty_sum, pid)
       }
-      const change = data.type === 'in' ? data.qty : -data.qty
-      const qtyBefore = lot.qty_on_hand
-      db.prepare(`UPDATE product_lots SET qty_on_hand = qty_on_hand + ? WHERE id = ?`).run(change, lot.id)
-      db.prepare(`INSERT INTO stock_movements (product_id, lot_id, movement_type, qty_change, qty_before, qty_after, note, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-        productId, lot.id, data.type === 'in' ? 'adjust_in' : 'adjust_out',
-        change, qtyBefore, qtyBefore + change, data.note, data.userId
-      )
-      return true
-    })
-    return adjust()
+    }
+
+    return db.transaction(() => {
+      if (data.mode === 'decrease') {
+        const lots = db.prepare(`
+          SELECT * FROM product_lots
+          WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0 AND is_cancelled = 0
+          ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC, id ASC
+        `).all(productId) as any[]
+
+        const totalAvail = lots.reduce((s, l) => s + Number(l.qty_on_hand), 0)
+        if (data.qty > totalAvail) {
+          throw new Error(`จำนวนที่ต้องการลด (${data.qty}) มากกว่าสต็อกที่มี (${totalAvail})`)
+        }
+
+        let remaining = data.qty
+        const affected: any[] = []
+        for (const lot of lots) {
+          if (remaining <= 0) break
+          const deduct = Math.min(remaining, Number(lot.qty_on_hand))
+          const qtyBefore = Number(lot.qty_on_hand)
+          const qtyAfter = qtyBefore - deduct
+
+          const setParts = ['qty_on_hand = qty_on_hand - ?']
+          const setVals: any[] = [deduct]
+          if (qtyAfter <= 0) {
+            setParts.push(`is_closed = 1`, `closed_at = datetime('now','localtime')`)
+          }
+          setParts.push(`updated_at = datetime('now','localtime')`)
+          db.prepare(`UPDATE product_lots SET ${setParts.join(', ')} WHERE id = ?`).run(...setVals, lot.id)
+
+          db.prepare(`
+            INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
+            VALUES (?, ?, 'adjust_out', 'adjust', ?, ?, ?, ?, ?, ?)
+          `).run(productId, lot.id, -deduct, qtyBefore, qtyAfter, lot.cost_price, data.note, data.userId)
+
+          affected.push({
+            lot_id: lot.id,
+            lot_number: lot.lot_number,
+            qty_deducted: deduct,
+            qty_before: qtyBefore,
+            qty_after: qtyAfter,
+          })
+          remaining -= deduct
+        }
+
+        recomputeAvgCost(productId)
+        return { success: true, mode: 'decrease', affected_lots: affected }
+      }
+
+      if (data.mode === 'increase_new_lot') {
+        const cost = Number(data.cost_price ?? 0)
+        if (cost < 0) throw new Error('ต้นทุนต้องไม่ติดลบ')
+
+        let lotNumber = (data.lot_number ?? '').trim()
+        if (!lotNumber) {
+          // Auto-generate ADJ-YYYYMMDD-NNN — unique per product per day
+          const today = (db.prepare(`SELECT date('now','localtime') AS d`).get() as { d: string }).d
+          const prefix = `ADJ-${today.replace(/-/g, '')}-`
+          const last = db.prepare(`
+            SELECT lot_number FROM product_lots
+            WHERE product_id = ? AND lot_number LIKE ?
+            ORDER BY lot_number DESC LIMIT 1
+          `).get(productId, `${prefix}%`) as any
+          const nextSeq = last
+            ? String(Number(String(last.lot_number).slice(prefix.length)) + 1).padStart(3, '0')
+            : '001'
+          lotNumber = `${prefix}${nextSeq}`
+        } else {
+          const dup = db.prepare(`
+            SELECT id FROM product_lots WHERE product_id = ? AND lot_number = ? LIMIT 1
+          `).get(productId, lotNumber) as any
+          if (dup) throw new Error(`มีล็อตหมายเลข "${lotNumber}" อยู่แล้วในสินค้านี้`)
+        }
+
+        const insertResult = db.prepare(`
+          INSERT INTO product_lots (product_id, lot_number, expiry_date, manufactured_date, qty_received, qty_on_hand, cost_price, note)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          productId,
+          lotNumber,
+          data.expiry_date || null,
+          data.manufactured_date || null,
+          data.qty,
+          data.qty,
+          cost,
+          data.note,
+        )
+        const newLotId = Number(insertResult.lastInsertRowid)
+
+        db.prepare(`
+          INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
+          VALUES (?, ?, 'adjust_in', 'adjust', ?, 0, ?, ?, ?, ?)
+        `).run(productId, newLotId, data.qty, data.qty, cost, data.note, data.userId)
+
+        recomputeAvgCost(productId)
+        return { success: true, mode: 'increase_new_lot', lot_id: newLotId, lot_number: lotNumber, cost_price: cost }
+      }
+
+      if (data.mode === 'increase_existing_lot') {
+        if (!data.target_lot_id) throw new Error('กรุณาเลือกล็อตปลายทาง')
+        const addedCost = Number(data.added_cost_price ?? 0)
+        if (addedCost < 0) throw new Error('ต้นทุนต้องไม่ติดลบ')
+
+        const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ? AND product_id = ?`)
+          .get(data.target_lot_id, productId) as any
+        if (!lot) throw new Error('ไม่พบล็อตปลายทาง')
+        if (lot.is_cancelled) throw new Error('ล็อตนี้ถูกยกเลิกแล้ว')
+
+        const qtyBefore = Number(lot.qty_on_hand)
+        const qtyAfter = qtyBefore + data.qty
+        const oldQtyReceived = Number(lot.qty_received)
+        const newQtyReceived = oldQtyReceived + data.qty
+        const oldCost = Number(lot.cost_price)
+
+        // Weighted avg within the lot: ((old_qty × old_cost) + (added_qty × added_cost)) / new_qty
+        // This keeps the lot's total cost contribution (qty_received × cost_price) consistent
+        // with summing the two events separately — products.cost_price ends up identical
+        // whether the operator picked new-lot or existing-lot mode.
+        const newLotCost = newQtyReceived > 0
+          ? (oldQtyReceived * oldCost + data.qty * addedCost) / newQtyReceived
+          : addedCost
+
+        const setParts = [
+          'qty_received = ?',
+          'qty_on_hand = qty_on_hand + ?',
+          'cost_price = ?',
+          `updated_at = datetime('now','localtime')`,
+        ]
+        const setVals: any[] = [newQtyReceived, data.qty, newLotCost]
+        if (lot.is_closed) {
+          setParts.push('is_closed = 0', 'closed_at = NULL')
+        }
+        db.prepare(`UPDATE product_lots SET ${setParts.join(', ')} WHERE id = ?`)
+          .run(...setVals, data.target_lot_id)
+
+        db.prepare(`
+          INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
+          VALUES (?, ?, 'adjust_in', 'adjust', ?, ?, ?, ?, ?, ?)
+        `).run(productId, data.target_lot_id, data.qty, qtyBefore, qtyAfter, addedCost, data.note, data.userId)
+
+        if (Math.abs(newLotCost - oldCost) > 0.0001) {
+          db.prepare(`
+            INSERT INTO lot_cost_logs (lot_id, product_id, old_cost, new_cost, note, created_by)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(data.target_lot_id, productId, oldCost, newLotCost, `เพิ่มสต็อกเข้าล็อตเดิม: ${data.note}`, data.userId)
+        }
+
+        recomputeAvgCost(productId)
+        return {
+          success: true,
+          mode: 'increase_existing_lot',
+          lot_id: data.target_lot_id,
+          lot_number: lot.lot_number,
+          new_lot_cost: newLotCost,
+        }
+      }
+
+      throw new Error('โหมดปรับสต็อกไม่ถูกต้อง')
+    })()
   })
 
   // Product units — non-base variants only (แผง, กล่อง, …).

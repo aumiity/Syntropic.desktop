@@ -1378,7 +1378,7 @@ export default function EditProductPage() {
                         <TableCell>
                           <div className="flex items-center justify-center">
                             {!lot.is_cancelled && (
-                              <Button size="icon-xl" variant="senary" onClick={() => startEditLot(lot)} title="แก้ไข">
+                              <Button size="icon-xl" variant="outline" onClick={() => startEditLot(lot)} title="แก้ไข">
                                 <Edit2 />
                               </Button>
                             )}
