@@ -821,9 +821,9 @@ export default function POSPage() {
         {/* Right column */}
         <div className="w-80 flex flex-col gap-2.5 min-w-0">
           {/* Total card */}
-          <div className="h-32 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0">
+          <div className="h-40 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0">
             <div className="text-right text-md font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
-            <div className="mt-3 text-right font-bold tabular-nums leading-[1.05] tracking-tight text-right" style={{ fontSize: '46px', letterSpacing: '-1.5px' }}>
+            <div className="mt-6 text-right font-bold tabular-nums leading-[1.05] tracking-tight text-right" style={{ fontSize: '66px', letterSpacing: '-1.5px' }}>
               {formatCurrency(cart.totalAmount())}
             </div>
           </div>
@@ -839,29 +839,29 @@ export default function POSPage() {
             }}
             className="w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-tertiary-hover  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3">
               <HandCoins className="size-9" strokeWidth={2.2} />
-              <span className="text-3xl font-bold leading-none">ชำระเงิน</span>
+              <span className="text-4xl font-bold leading-none">ชำระเงิน</span>
           </Button>
 
           {/* Quick actions (vertical stack) */}
           <div className="flex flex-col gap-1.5 flex-1 min-h-0">
             <Button variant="outline" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-sm font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium">
               <Banknote className="size-6 text-foreground-subtle" /> เปิดลิ้นชัก
             </Button>
             <Button variant="outline" disabled
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-sm font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium">
               <Tag className="size-6 text-foreground-subtle" /> พิมพ์ฉลาก
             </Button>
             <Button variant="outline" onClick={() => setShowAdjust(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card hover:bg-warning-soft hover:text-warning-strong text-sm font-medium text-foreground">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card hover:bg-warning-soft hover:text-warning-strong text-xl font-medium text-foreground">
               <Minus className="size-6 text-foreground-subtle" /> ตัดสต็อก
             </Button>
             <Button variant="outline" onClick={() => setShowReturn(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-sm font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium">
               <RotateCcw className="size-6 text-foreground-subtle" /> รับคืนสินค้า
             </Button>
             <Button variant="outline" disabled={cart.items.length === 0} onClick={() => { cart.clearCart(); refocusSearch() }}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted hover:text-destructive text-sm font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted hover:text-destructive text-xl font-medium">
               <Trash2 className="size-6 text-foreground-subtle" /> ยกเลิกบิล
             </Button>
           </div>

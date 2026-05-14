@@ -24,7 +24,10 @@
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
       "Bash(git -C /Users/anya/Documents/GitHub/Syntropic.desktop stash)",
-      "Bash(git -C /Users/anya/Documents/GitHub/Syntropic.desktop stash pop)"
+      "Bash(git -C /Users/anya/Documents/GitHub/Syntropic.desktop stash pop)",
+      "Bash(awk 'NR>=950 && NR<=1085' /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/Purchase/index.tsx)",
+      "Bash(awk -F: '$2 ~ /Sell-price|Bill adjust/ || NR > 0')",
+      "Bash(awk *)"
     ]
   }
 }

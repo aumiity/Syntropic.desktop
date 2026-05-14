@@ -161,7 +161,7 @@ We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don
 - `outline` — muted bg with border · neutral icon buttons
 - `ghost` — transparent · tertiary minor actions
 - `destructive` — solid red · delete, void
-- `destructive2` — soft red tint · destructive secondary
+- `destructive2` — soft red tint · destructive secondary · **also the default for "ยกเลิก" / "ปิด" buttons in dialog footers** (NOT `outline` — outline-on-popover blends in and is hard to spot)
 - `success` — green · positive confirm (e.g. "เพิ่มสต็อก")
 - `warning` — gold solid · cautionary action
 - `link` — text-only
@@ -195,13 +195,18 @@ We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don
   - **Sticky headers:** the `<Table>` wrapper renders `<div data-slot="table-container" className="… overflow-x-auto">`, which auto-promotes to a vertical scroll container too — meaning `sticky` on `<thead>` pins to *that* div, not the page-level scroll wrapper, so the header rides up with the rows. Fix: (a) on the parent, target the inner div via `[&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto` so it becomes the actual scroll element; (b) put `sticky top-0 z-10 bg-muted` on each `<th>` (NOT on `<thead>` — many renderers ignore sticky there). For a hairline that scrolls with the sticky cell, add `shadow-[0_1px_0_var(--border)]` per `<th>` (a plain `border-b` doesn't move with sticky and leaves a gap).
 - **Standard table-card layout (Products list and EditProduct tabs):**
   - Outer wrapper: `bg-card rounded-2xl shadow-card overflow-hidden`
+  - **Background zones (HARD — don't mix up):** The card has four horizontal bands and the bg color is what tells them apart:
+    1. **Section header bar** (description/count + Add button row): `bg-card` — **white, NO border**. This is the "title strip" sitting above the column headers. It flows into the muted column-header row below — the muted band itself is the visual separator, so don't add `border-b`.
+    2. **Column header row** (`<thead>` with col names): `bg-muted text-foreground-subtle` — the **only** muted band. Sticky.
+    3. **Body rows** (`<tbody>`): `bg-card` (default) — **white**.
+    4. **Status / total bar** at the bottom of the card: `bg-card border-t border-border` — **white WITH a top separator line**. Use this for "+ เพิ่มแถว / count / total" footers and pagination footers. NOT `bg-muted`. The `border-t border-border` is what visually divides it from the body — without it the strip disappears into the rows. This is the ONLY band that gets a border.
+    Rule of thumb: only the column-header band is muted. The bottom status bar gets a top border. Top/title bar gets NO border (the muted column-header below it does the separation work).
   - Inner header bar: `px-5 py-2.5 text-sm font-semibold text-muted-foreground flex items-center justify-between` — left = description/count, right = Add button (`h-9 rounded-lg px-2 text-sm` with `<Plus className="size-4" />`)
   - Table area: `[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card` (the side borders match the card bg = 8px inset effect without padding)
   - `<Table className="table-fixed">` with explicit `w-XX` widths on every `<TableHead>` (table-fixed forces children to obey those widths)
   - Header sticky: `[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted [&_th]:text-foreground-subtle`
   - Row hover: `hover:bg-primary-soft/60 transition-colors`
   - Action buttons in rows: `<Button size="icon-xl" variant="outline">` (NOT `size="sm" variant="ghost"`)
-  - Optional status bar at bottom: `border-t border-border px-5 py-2.5 text-xs text-muted-foreground` with counts/breakdown
   - Empty state: lucide icon (`size-10 opacity-30`) + Thai message, `py-16` padding inside a `<TableCell colSpan={N}>`
 - **`[scrollbar-gutter:stable]` for tab/page scroll shifts:** if you have a horizontally centered element (like a `w-fit` segmented Tabs) inside a vertically-scrollable container, switching content between short and tall tabs makes the scrollbar appear/disappear and shifts the centered element by ~12-15px. Apply `[scrollbar-gutter:stable]` (Tailwind arbitrary value) to the scroll container — reserves the gutter even when no scrollbar is needed.
 
