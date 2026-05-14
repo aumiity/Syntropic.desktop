@@ -45,7 +45,7 @@ interface DateInputProps extends Omit<InputProps, 'value' | 'onChange' | 'type'>
 }
 
 export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, onChange, placeholder = 'dd/mm/yyyy', className, ...props }, ref) => {
+  ({ value, onChange, placeholder = '', className, ...props }, ref) => {
     const [text, setText] = React.useState(() => isoToDisplay(value))
     const [open, setOpen] = React.useState(false)
 

@@ -3,7 +3,7 @@ import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, StatCard } from '@/components/ui/card'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DateInput } from '@/components/ui/date-input'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
@@ -18,7 +18,8 @@ import { cn, formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@
 import type { Supplier, ProductLot } from '@/types'
 import {
   Search, Plus, Trash2, Package, ChevronDown, X,
-  Building2, Banknote, CreditCard, FileText, CalendarDays, ClipboardPaste, AlertTriangle,
+  Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle,
+  PackagePlus, History,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -245,6 +246,17 @@ export default function PurchasePage() {
     loadHistory()
   }, [])
 
+  // Auto-refilter when supplier dropdown changes.
+  // Effect (not inline onValueChange) so the closure has the up-to-date
+  // histSupplierId — otherwise we'd send the previous render's value to the API.
+  // Skip the initial mount; loadHistory() above already populates the list.
+  const supplierEffectMounted = useRef(false)
+  useEffect(() => {
+    if (!supplierEffectMounted.current) { supplierEffectMounted.current = true; return }
+    loadHistory(1, undefined, undefined, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [histSupplierId])
+
   const loadNextGR = async () => {
     const no = await window.api.purchase.nextGRNumber()
     setInvoiceNo(no as string)
@@ -259,6 +271,7 @@ export default function PurchasePage() {
     page = 1,
     filterOverride?: 'all' | 'cash' | 'credit' | 'cancelled',
     dateOverride?: { from: string; to: string },
+    clearIfMissing = false,
   ) => {
     const filter = filterOverride ?? histPaymentFilter
     const dFrom = dateOverride?.from ?? histDateFrom
@@ -278,10 +291,17 @@ export default function PurchasePage() {
       setHistTotal(res.total)
       setHistPage(page)
       if (res.summary) setHistSummary(res.summary)
+      // Drop the open detail when the user-applied filter excludes it,
+      // so the right pane never shows an invoice that's not in the list.
+      if (clearIfMissing && selectedInvoice && !res.rows.some((r: HistoryRow) => r.invoice_no === selectedInvoice)) {
+        setSelectedInvoice(null)
+        setReceiptItems([])
+        setReceiptInvoice('')
+      }
     } finally {
       setLoadingHist(false)
     }
-  }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter])
+  }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, selectedInvoice])
 
   const openEditBill = () => {
     if (!receiptInvoice || receiptItems.length === 0) return
@@ -868,8 +888,8 @@ export default function PurchasePage() {
         className="flex-1 min-h-0"
       >
         <TabsList variant="segmented" className="w-fit">
-          <TabsTrigger value="receive" className="px-8">รับสินค้า</TabsTrigger>
-          <TabsTrigger value="history" className="px-8">ประวัติการรับสินค้า</TabsTrigger>
+          <TabsTrigger value="receive" className="px-8"><PackagePlus />รับสินค้า</TabsTrigger>
+          <TabsTrigger value="history" className="px-8"><History />ประวัติการรับสินค้า</TabsTrigger>
         </TabsList>
 
         {/* ── Tab: รับสินค้า ── */}
@@ -910,12 +930,12 @@ export default function PurchasePage() {
                         <div>
                           <label className="block text-sm font-semibold text-muted-foreground mb-1.5">เลขที่ใบกำกับสินค้า <span className="text-destructive">*</span></label>
                           <div className="relative">
-                            <FileText className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground-subtle pointer-events-none" />
+                            <FileText className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground-subtle pointer-events-none" />
                             <Input
                               value={supplierInvoiceNo}
                               onChange={e => setSupplierInvoiceNo(e.target.value)}
                               placeholder="PO-123456"
-                              className="pl-8 h-10 text-sm"
+                              className="h-10 text-sm"
                             />
                           </div>
                         </div>
@@ -923,14 +943,11 @@ export default function PurchasePage() {
                         {/* Order date (bill date) */}
                         <div>
                           <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันที่สั่งซื้อตามบิล</label>
-                          <div className="relative">
-                            <CalendarDays className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground-subtle pointer-events-none" />
-                            <DateInput
-                              value={orderDate}
-                              onChange={setOrderDate}
-                              className="pl-8 h-10 text-sm"
-                            />
-                          </div>
+                          <DateInput
+                            value={orderDate}
+                            onChange={setOrderDate}
+                            className="h-10 text-sm"
+                          />
                         </div>
                       </div>
                     </div>
@@ -1067,6 +1084,7 @@ export default function PurchasePage() {
                                       onChange={e => updateLineMath(i, 'qty', stripCommas(e.target.value))}
                                       onFocus={() => { setActiveRow(i); setFocusedCell(`${i}-1`) }}
                                       onBlur={() => setFocusedCell(null)}
+                                      placeholder="0"
                                       className="h-8 text-sm text-center tabular-nums"
                                     />
                                   </td>
@@ -1085,6 +1103,7 @@ export default function PurchasePage() {
                                         const n = parseFloat(row.cost_price)
                                         if (isFinite(n)) updateLineMath(i, 'cost_price', n.toFixed(2))
                                       }}
+                                      placeholder="0.00"
                                       className="h-8 text-sm text-right tabular-nums"
                                     />
                                   </td>
@@ -1120,6 +1139,7 @@ export default function PurchasePage() {
                                           const n = parseFloat(row.discount)
                                           if (isFinite(n)) updateLineMath(i, 'discount', n.toFixed(2))
                                         }}
+                                        placeholder="0.00"
                                         className="h-8 text-sm text-right tabular-nums"
                                       />
                                     </td>
@@ -1140,6 +1160,7 @@ export default function PurchasePage() {
                                         if (isFinite(n)) updateLineMath(i, 'total', n.toFixed(2))
                                       }}
                                       onKeyDown={e => handleQtyKeyDown(i, e)}
+                                      placeholder="0.00"
                                       className="h-8 text-sm text-right tabular-nums"
                                     />
                                   </td>
@@ -1205,19 +1226,7 @@ export default function PurchasePage() {
                   </div>{/* end left */}
 
                   {/* ── Right sidebar ── */}
-                  <div className="w-64 shrink-0 overflow-y-auto scrollbar-thin space-y-3 pr-1">
-
-                    {/* Hero total card */}
-                    <div className="rounded-2xl bg-primary text-primary-foreground p-4 shadow-card">
-                      <div className="text-sm font-semibold opacity-80">ยอดรวมทั้งหมด</div>
-                      <div className="text-3xl font-bold tabular-nums leading-none mt-1.5 truncate">
-                        <span className="opacity-70 mr-1 text-xl">฿</span>{formatCurrency(totalCost)}
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm opacity-80 tabular-nums">{validRows.length} รายการ</span>
-                        <Badge variant="quaternary" className="text-sm rounded-md">{rows.length - validRows.length > 0 ? `${rows.length - validRows.length} รอกรอก` : 'ครบ'}</Badge>
-                      </div>
-                    </div>
+                  <div className="w-64 shrink-0 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] space-y-3 pr-1">
 
                     {/* GR summary */}
                     <div className="bg-card rounded-2xl shadow-card p-4 space-y-2.5">
@@ -1240,7 +1249,7 @@ export default function PurchasePage() {
                       <div className="flex gap-2">
                         <Button
                           type="button"
-                          variant={paymentType === 'cash' ? 'default' : 'secondary'}
+                          variant={paymentType === 'cash' ? 'default' : 'outline'}
                           onClick={() => setPaymentType('cash')}
                           className="flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5"
                         >
@@ -1248,7 +1257,7 @@ export default function PurchasePage() {
                         </Button>
                         <Button
                           type="button"
-                          variant={paymentType === 'credit' ? 'warning' : 'secondary'}
+                          variant={paymentType === 'credit' ? 'tertiary' : 'outline'}
                           onClick={() => setPaymentType('credit')}
                           className="flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5"
                         >
@@ -1334,7 +1343,7 @@ export default function PurchasePage() {
                       <Button
                         variant="destructive2"
                         onClick={resetForm}
-                        className="w-full h-9 rounded-xl text-sm font-medium"
+                        className="w-full h-12 rounded-xl text-sm font-medium"
                       >
                         ล้างฟอร์ม
                       </Button>
@@ -1353,39 +1362,24 @@ export default function PurchasePage() {
 
                 {/* ── Summary bar ── */}
                 <div className="grid grid-cols-3 gap-3 shrink-0">
-                  <div className="bg-card rounded-2xl shadow-card px-4 py-3 flex items-center gap-3">
-                    <span className="grid place-items-center size-10 rounded-xl bg-muted text-muted-foreground shrink-0">
-                      <FileText className="size-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="text-sm text-foreground-subtle">รับสินค้าทั้งหมด</div>
-                      <div className="text-2xl font-bold text-foreground leading-tight tabular-nums">
-                        {histSummary.count} <span className="text-sm font-normal text-foreground-subtle">ใบ</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-card rounded-2xl shadow-card px-4 py-3 flex items-center gap-3">
-                    <span className="grid place-items-center size-10 rounded-xl bg-primary-soft text-primary shrink-0">
-                      <Banknote className="size-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="text-sm text-foreground-subtle">มูลค่ารวม</div>
-                      <div className="text-2xl font-bold text-primary leading-tight tabular-nums truncate">
-                        ฿{formatCurrency(histSummary.total_cost)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-card rounded-2xl shadow-card px-4 py-3 flex items-center gap-3">
-                    <span className={`grid place-items-center size-10 rounded-xl shrink-0 ${histSummary.unpaid_cost > 0 ? 'bg-destructive-soft text-destructive' : 'bg-muted text-foreground-subtle'}`}>
-                      <CreditCard className="size-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="text-sm text-foreground-subtle">ค้างชำระ</div>
-                      <div className={`text-2xl font-bold leading-tight tabular-nums truncate ${histSummary.unpaid_cost > 0 ? 'text-destructive' : 'text-foreground-subtle'}`}>
-                        ฿{formatCurrency(histSummary.unpaid_cost)}
-                      </div>
-                    </div>
-                  </div>
+                  <StatCard
+                    label="รับสินค้าทั้งหมด"
+                    value={histSummary.count.toLocaleString()}
+                    icon={FileText}
+                    tint="secondary"
+                  />
+                  <StatCard
+                    label="มูลค่ารวม"
+                    value={`฿${formatCurrency(histSummary.total_cost)}`}
+                    icon={Banknote}
+                    tint="primary"
+                  />
+                  <StatCard
+                    label="ค้างชำระ"
+                    value={`฿${formatCurrency(histSummary.unpaid_cost)}`}
+                    icon={CreditCard}
+                    tint={histSummary.unpaid_cost > 0 ? 'destructive' : 'senary'}
+                  />
                 </div>
 
                 {/* ── Split pane ── */}
@@ -1402,12 +1396,12 @@ export default function PurchasePage() {
                           <Input
                             value={histQ}
                             onChange={e => setHistQ(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && loadHistory(1)}
+                            onKeyDown={e => e.key === 'Enter' && loadHistory(1, undefined, undefined, true)}
                             placeholder="ค้นหาเลขที่ใบรับ..."
                             className="pl-8 h-8 text-sm"
                           />
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => loadHistory(1)} className="h-8 px-3 text-sm shrink-0">
+                        <Button size="sm" variant="outline" onClick={() => loadHistory(1, undefined, undefined, true)} className="h-8 px-3 text-sm shrink-0">
                           <Search className="size-3.5" />
                         </Button>
                       </div>
@@ -1435,7 +1429,7 @@ export default function PurchasePage() {
                           onChange={(from, to) => {
                             setHistDateFrom(from)
                             setHistDateTo(to)
-                            loadHistory(1, undefined, { from, to })
+                            loadHistory(1, undefined, { from, to }, true)
                           }}
                         />
                       </div>
@@ -1443,17 +1437,17 @@ export default function PurchasePage() {
                       <div className="flex gap-1.5 flex-wrap">
                         {(['all', 'cash', 'credit', 'cancelled'] as const).map(v => {
                           const active = histPaymentFilter === v
-                          const activeVariant: 'default' | 'quaternary' | 'warning' | 'destructive' =
+                          const activeVariant: 'default' | 'quaternary' | 'senary' | 'destructive' =
                             v === 'all' ? 'default'
                             : v === 'cash' ? 'quaternary'
-                            : v === 'credit' ? 'warning'
+                            : v === 'credit' ? 'senary'
                             : 'destructive'
                           return (
                             <Button
                               key={v}
                               size="sm"
                               variant={active ? activeVariant : 'outline'}
-                              onClick={() => { setHistPaymentFilter(v); loadHistory(1, v) }}
+                              onClick={() => { setHistPaymentFilter(v); loadHistory(1, v, undefined, true) }}
                               className="rounded-full px-3 h-7 text-sm font-medium"
                             >
                               {v === 'all' ? 'ทั้งหมด' : v === 'cash' ? 'เงินสด' : v === 'credit' ? 'เครดิต' : 'ยกเลิกแล้ว'}
@@ -1511,7 +1505,7 @@ export default function PurchasePage() {
                                     ? <Badge variant="success" className="text-sm px-1.5 py-0">ชำระแล้ว</Badge>
                                     : isOverdue
                                       ? <Badge variant="destructive" className="text-sm px-1.5 py-0">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                                      : <Badge variant="warning" className="text-sm px-1.5 py-0">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                                      : <Badge variant="senary" className="text-sm px-1.5 py-0">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
                                   : <Badge variant="quaternary" className="text-sm px-1.5 py-0">เงินสด</Badge>
                               }
                             </div>
@@ -1561,11 +1555,11 @@ export default function PurchasePage() {
                           {/* Header */}
                           <div className="px-5 py-4 shrink-0 bg-card">
                             <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="text-sm text-foreground-subtle uppercase tracking-wide">เลขที่ใบรับ</div>
-                                <div className={`font-bold text-base ${isCancelled ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{receiptInvoice}</div>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="min-w-0">
+                                  <div className="text-sm text-foreground-subtle uppercase tracking-wide">เลขที่ใบรับ</div>
+                                  <div className={`font-bold text-base ${isCancelled ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{receiptInvoice}</div>
+                                </div>
                                 {isCancelled
                                   ? <Badge variant="destructive" className="text-sm">ยกเลิกแล้ว</Badge>
                                   : h && (
@@ -1574,31 +1568,31 @@ export default function PurchasePage() {
                                         ? <Badge variant="success" className="text-sm">ชำระแล้ว</Badge>
                                         : isOverdue
                                           ? <Badge variant="destructive" className="text-sm">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                                          : <Badge variant="warning" className="text-sm">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                                          : <Badge variant="senary" className="text-sm">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
                                       : <Badge variant="quaternary" className="text-sm">เงินสด</Badge>
                                   )}
-                                {!isCancelled && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      variant="senary"
-                                      onClick={openEditBill}
-                                      className="h-8 px-3 rounded-lg text-sm font-semibold"
-                                    >
-                                      แก้ไขบิล
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive2"
-                                      onClick={() => { setCancelReason(''); setCancelBlockers([]); setShowCancelModal(true) }}
-                                      className="h-8 px-3 rounded-lg text-sm font-semibold gap-1"
-                                    >
-                                      <X className="size-3" />
-                                      ยกเลิกบิล
-                                    </Button>
-                                  </>
-                                )}
                               </div>
+                              {!isCancelled && (
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={openEditBill}
+                                    className="h-8 px-3 rounded-lg text-sm font-semibold"
+                                  >
+                                    แก้ไขบิล
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive2"
+                                    onClick={() => { setCancelReason(''); setCancelBlockers([]); setShowCancelModal(true) }}
+                                    className="h-8 px-3 rounded-lg text-sm font-semibold gap-1"
+                                  >
+                                    <X className="size-3" />
+                                    ยกเลิกบิล
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                             <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-3">
                               <div>
@@ -1713,14 +1707,14 @@ export default function PurchasePage() {
       <Dialog open={showEditModal} onOpenChange={(o) => { if (!editSaving) setShowEditModal(o) }}>
         <DialogContent size="lg">
           <DialogHeader>
-            <DialogTitle>แก้ไขรายละเอียดบิล</DialogTitle>
-            <div className="text-sm text-muted-foreground">{receiptInvoice}</div>
+            <DialogTitle className="text-xl">แก้ไขรายละเอียดบิล</DialogTitle>
+            <div className="text-sm text-muted-foreground mt-0.5">{receiptInvoice}</div>
           </DialogHeader>
-          <DialogBody className="space-y-3">
+          <DialogBody className="space-y-4">
               <div>
-                <label className="text-sm font-semibold text-muted-foreground mb-1 block">ผู้จำหน่าย <span className="text-destructive">*</span></label>
+                <label className="block text-base font-medium mb-1">ผู้จำหน่าย <span className="text-destructive">*</span></label>
                 <Select value={String(editSupplierId)} onValueChange={v => setEditSupplierId(Number(v))}>
-                  <SelectTrigger className="h-9 text-sm">
+                  <SelectTrigger className="h-10 rounded-xl text-sm">
                     <SelectValue placeholder="— เลือกผู้จำหน่าย —" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1733,52 +1727,52 @@ export default function PurchasePage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-muted-foreground mb-1 block">เลขที่ใบกำกับสินค้า <span className="text-destructive">*</span></label>
+                <label className="block text-base font-medium mb-1">เลขที่ใบกำกับสินค้า <span className="text-destructive">*</span></label>
                 <Input
                   value={editSupplierInvoiceNo}
                   onChange={e => setEditSupplierInvoiceNo(e.target.value)}
-                  className="h-9 text-sm"
+                  className="h-10 rounded-xl text-sm"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-semibold text-muted-foreground mb-1 block">วันที่สั่งซื้อตามบิล</label>
-                  <DateInput value={editOrderDate} onChange={setEditOrderDate} className="w-full h-9 text-sm" />
+                  <label className="block text-base font-medium mb-1">วันที่สั่งซื้อตามบิล</label>
+                  <DateInput value={editOrderDate} onChange={setEditOrderDate} className="w-full h-10 rounded-xl text-sm" />
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-muted-foreground mb-1 block">วันที่รับสินค้า <span className="text-destructive">*</span></label>
-                  <DateInput value={editReceiveDate} onChange={setEditReceiveDate} className="w-full h-9 text-sm" />
+                  <label className="block text-base font-medium mb-1">วันที่รับสินค้า <span className="text-destructive">*</span></label>
+                  <DateInput value={editReceiveDate} onChange={setEditReceiveDate} className="w-full h-10 rounded-xl text-sm" />
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-muted-foreground mb-1 block">ประเภทการชำระเงิน</label>
+                <label className="block text-base font-medium mb-2">ประเภทการชำระเงิน</label>
                 <div className="flex gap-2">
                   <Button
                     type="button"
                     variant={editPaymentType === 'cash' ? 'default' : 'secondary'}
                     onClick={() => setEditPaymentType('cash')}
-                    className="flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5"
+                    className="flex-1 h-10 rounded-xl text-sm font-semibold gap-1.5"
                   >
-                    <Banknote className="size-3.5" /> เงินสด
+                    <Banknote className="size-4" /> เงินสด
                   </Button>
                   <Button
                     type="button"
                     variant={editPaymentType === 'credit' ? 'warning' : 'secondary'}
                     onClick={() => setEditPaymentType('credit')}
-                    className="flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5"
+                    className="flex-1 h-10 rounded-xl text-sm font-semibold gap-1.5"
                   >
-                    <CreditCard className="size-3.5" /> เครดิต
+                    <CreditCard className="size-4" /> เครดิต
                   </Button>
                 </div>
               </div>
 
               {editPaymentType === 'credit' && (
-                <div className="rounded-xl bg-muted p-3 space-y-2.5">
+                <div className="rounded-xl bg-muted p-3 space-y-3">
                   <div>
-                    <label className="text-sm font-semibold text-muted-foreground mb-1 block">วันครบกำหนดชำระ <span className="text-destructive">*</span></label>
-                    <DateInput value={editDueDate} onChange={setEditDueDate} className="w-full h-9 text-sm" />
+                    <label className="block text-base font-medium mb-1">วันครบกำหนดชำระ <span className="text-destructive">*</span></label>
+                    <DateInput value={editDueDate} onChange={setEditDueDate} className="w-full h-10 rounded-xl text-sm" />
                   </div>
                   <div className="flex items-center gap-2 pt-0.5">
                     <Checkbox
@@ -1786,20 +1780,20 @@ export default function PurchasePage() {
                       checked={editIsPaid}
                       onCheckedChange={(v) => setEditIsPaid(!!v)}
                     />
-                    <label htmlFor="edit-is-paid" className="text-sm font-semibold text-muted-foreground cursor-pointer">ชำระแล้ว</label>
+                    <label htmlFor="edit-is-paid" className="text-base font-medium cursor-pointer">ชำระแล้ว</label>
                   </div>
                   {editIsPaid && (
                     <div>
-                      <label className="text-sm font-semibold text-muted-foreground mb-1 block">วันที่ชำระ</label>
-                      <DateInput value={editPaidDate} onChange={setEditPaidDate} className="w-full h-9 text-sm" />
+                      <label className="block text-base font-medium mb-1">วันที่ชำระ</label>
+                      <DateInput value={editPaidDate} onChange={setEditPaidDate} className="w-full h-10 rounded-xl text-sm" />
                     </div>
                   )}
                 </div>
               )}
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" onClick={() => setShowEditModal(false)} disabled={editSaving}>ปิด</Button>
-            <Button onClick={handleSaveEdit} disabled={editSaving}>
+            <Button variant="destructive2" className="h-10 rounded-xl px-5 text-sm" onClick={() => setShowEditModal(false)} disabled={editSaving}>ยกเลิก</Button>
+            <Button onClick={handleSaveEdit} disabled={editSaving} className="h-10 rounded-xl px-5 text-sm">
               {editSaving ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
           </DialogFooter>
@@ -1811,32 +1805,32 @@ export default function PurchasePage() {
         <DialogContent size="md">
           <DialogHeader>
             <div className="flex items-start gap-3">
-              <span className="grid place-items-center size-9 rounded-full bg-destructive-soft text-destructive shrink-0">
-                <AlertTriangle className="size-4" />
+              <span className="grid place-items-center size-10 rounded-xl bg-destructive-soft text-destructive shrink-0">
+                <AlertTriangle className="size-5" />
               </span>
               <div className="min-w-0">
-                <DialogTitle>ยกเลิกบิลรับสินค้า</DialogTitle>
+                <DialogTitle className="text-xl">ยกเลิกบิลรับสินค้า</DialogTitle>
                 <div className="text-sm text-muted-foreground mt-0.5">{receiptInvoice}</div>
               </div>
             </div>
           </DialogHeader>
-          <DialogBody className="space-y-3">
-              <div className="text-sm text-muted-foreground leading-relaxed">
+          <DialogBody className="space-y-4">
+              <div className="rounded-xl bg-destructive-soft/40 border border-destructive-soft p-3 text-sm text-destructive leading-relaxed">
                 การยกเลิกจะคืนสต็อกที่รับเข้ามาของบิลนี้ออกจากคลัง และไม่สามารถย้อนกลับได้ หากสินค้าบางส่วนถูกขายไปแล้ว ระบบจะไม่อนุญาตให้ยกเลิก
               </div>
               <div>
-                <label className="text-sm font-semibold text-muted-foreground mb-1 block">เหตุผล <span className="text-destructive">*</span></label>
+                <label className="block text-base font-medium mb-1">เหตุผล <span className="text-destructive">*</span></label>
                 <Textarea
                   value={cancelReason}
                   onChange={e => setCancelReason(e.target.value)}
                   rows={3}
                   placeholder="ระบุเหตุผลในการยกเลิก..."
-                  className="text-sm"
+                  className="rounded-xl text-sm"
                   autoFocus
                 />
               </div>
               {cancelBlockers.length > 0 && (
-                <div className="rounded-xl bg-destructive-soft p-2.5">
+                <div className="rounded-xl bg-destructive-soft p-3">
                   <div className="text-sm font-semibold text-destructive mb-1.5">สินค้าต่อไปนี้ถูกขายไปแล้ว ไม่สามารถยกเลิกบิลได้:</div>
                   <ul className="text-sm text-destructive space-y-0.5 list-disc pl-4">
                     {cancelBlockers.map((b, i) => (
@@ -1851,9 +1845,10 @@ export default function PurchasePage() {
               )}
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" onClick={() => setShowCancelModal(false)} disabled={cancelling}>ปิด</Button>
+            <Button variant="destructive2" className="h-10 rounded-xl px-5 text-sm" onClick={() => setShowCancelModal(false)} disabled={cancelling}>ยกเลิก</Button>
             <Button
               variant="destructive"
+              className="h-10 rounded-xl px-5 text-sm"
               onClick={handleCancelBill}
               disabled={cancelling || !cancelReason.trim()}
             >
@@ -1867,7 +1862,7 @@ export default function PurchasePage() {
       <Dialog open={showSupplierModal} onOpenChange={(o) => { if (!o) closeSupplierModal() }}>
         <DialogContent size="md">
           <DialogHeader>
-            <DialogTitle>เลือกผู้จัดจำหน่าย</DialogTitle>
+            <DialogTitle className="text-xl">เลือกผู้จัดจำหน่าย</DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-3">
             <div className="relative">

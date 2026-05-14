@@ -1130,7 +1130,7 @@ export default function POSPage() {
 
       {/* ── PAYMENT DIALOG ── */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent size="full" onClose={() => setShowPayment(false)} className="h-[78vh] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="full" onClose={() => setShowPayment(false)} className="h-[880px] grid-rows-[auto_1fr_auto]">
           <DialogHeader><DialogTitle className="text-2xl">ชำระเงิน</DialogTitle></DialogHeader>
           <DialogBody className="min-h-0 overflow-hidden">
             {(() => {
@@ -1164,7 +1164,7 @@ export default function POSPage() {
                     {/* Customer header */}
                     <div className="flex items-center gap-3 px-1">
                       <span className="grid place-items-center w-12 h-12 rounded-xl shrink-0 bg-primary text-primary-foreground">
-                        <User className="size-6" />
+                        <User className="size-8" />
                       </span>
                       <div className="flex flex-col gap-1 min-w-0 flex-1">
                         <span className="text-base font-bold truncate">
@@ -1177,7 +1177,7 @@ export default function POSPage() {
                           {cart.saleType === 'wholesale' ? (
                             <Badge variant="senary" className="text-xs rounded-md shrink-0">ขายส่ง</Badge>
                           ) : (
-                            <Badge variant="quaternary" className="text-xs rounded-md shrink-0">ขายปลีก</Badge>
+                            <Badge variant="quaternary" className="text-sm rounded-md shrink-0">ขายปลีก</Badge>
                           )}
                         </div>
                       </div>
@@ -1220,11 +1220,11 @@ export default function POSPage() {
                   {/* Section 1 — Gross + editable discount */}
                   <div className="rounded-xl bg-muted p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-base font-semibold text-muted-foreground">ราคาขายรวม</span>
+                      <span className="text-xl font-semibold text-muted-foreground">ราคาขายรวม</span>
                       <span className="text-3xl font-semibold tabular-nums pr-2.5">{formatCurrency(subtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-base font-semibold text-muted-foreground">ส่วนลดรวม</span>
+                      <span className="text-xl font-semibold text-muted-foreground">ส่วนลดรวม</span>
                       <Input
                         type="number"
                         inputMode="decimal"
@@ -1250,7 +1250,7 @@ export default function POSPage() {
                   <div className={`rounded-xl p-4 ${netNegative
                     ? 'bg-destructive-soft'
                     : 'bg-primary-soft'}`}>
-                    <div className="text-base text-muted-foreground font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
+                    <div className="text-xl text-muted-foreground font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
                     <div className={`pr-2 text-6xl font-extrabold text-right leading-none tabular-nums ${netNegative ? 'text-destructive' : 'text-success'}`}>
                       {formatCurrency(net)}
                     </div>
@@ -1259,8 +1259,8 @@ export default function POSPage() {
                   {/* Cash input */}
                 <div className="rounded-xl bg-muted p-4 space-y-3 h-36">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-base font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <Banknote className="size-4 text-success" /> รับเงินมา
+                    <span className="text-xl font-semibold text-muted-foreground flex items-center gap-1.5">
+                      <Banknote className="size-7 text-success" /> รับเงินมา
                     </span>
                     <Input
                       type="number"
@@ -1289,11 +1289,11 @@ export default function POSPage() {
 
                   {/* Change */}
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-base font-semibold text-muted-foreground flex items-center gap-1.5"><RefreshCcw className="size-4 text-warning" /> เงินทอน</span>
+                    <span className="text-xl font-semibold text-muted-foreground flex items-center gap-1.5"><RefreshCcw className="size-7 text-warning" /> เงินทอน</span>
                       
                     {needsCheck ? (
                       <span className="flex items-center justify-end gap-2 w-80 h-12 text-4xl font-semibold text-destructive">
-                        <AlertTriangle className="size-5" />
+                        <AlertTriangle className="size-7" />
                         กรุณาตรวจสอบ
                       </span>
                     ) : (
@@ -1336,7 +1336,7 @@ export default function POSPage() {
                   </div>
                   <div className="flex gap-2 mt-auto">
                         <Button variant="tertiary" className="flex-1 h-20 text-4xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
-                          <HandCoins className="size-10" /> {saving ? 'กำลังบันทึก...' : ' คิดเงิน'}
+                          <HandCoins className="size-10" /> {saving ? 'กำลังบันทึก...' : ' ชำระเงิน'}
                         </Button>
                    </div>
                   </div>
@@ -1752,7 +1752,11 @@ export default function POSPage() {
 
       {/* ── SUCCESS DIALOG ── */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent size="sm" onClose={() => setShowSuccess(false)}>
+        <DialogContent
+          size="sm"
+          onClose={() => setShowSuccess(false)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); setShowSuccess(false) } }}
+        >
           <DialogTitle className="sr-only">บันทึกบิลสำเร็จ</DialogTitle>
           <DialogBody className="text-center py-8 space-y-4">
             <div className="text-6xl">✅</div>
