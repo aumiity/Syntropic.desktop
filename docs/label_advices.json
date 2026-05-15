@@ -1,0 +1,472 @@
+[
+  {
+    "id": 1,
+    "name_th": "กลืนทั้งเม็ด ห้ามเคี้ยว หรือ บดยา",
+    "name_en": "Swallow whole. Do not chew or crush.",
+    "name_mm": "တစ်လုံးလုံးမြိုချပါ။ မဝါးရ သို့မဟုတ် မကြိတ်ရ။",
+    "name_zh": "整粒吞服。切勿咀嚼或压碎。",
+    "sort_order": 1,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 2,
+    "name_th": "เขย่าขวดก่อนใช้",
+    "name_en": "Shake well before use.",
+    "name_mm": "အသုံးမပြုမီ ပုလင်းကို သေချာစွာလှုပ်ပါ။",
+    "name_zh": "用前摇匀。",
+    "sort_order": 2,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 3,
+    "name_th": "เคี้ยวเม็ดยาให้ละเอียดก่อนกลืน",
+    "name_en": "Chew thoroughly before swallowing.",
+    "name_mm": "မမြိုချမီ ညက်အောင်ဝါးပါ။",
+    "name_zh": "吞咽前请充分咀嚼。",
+    "sort_order": 3,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 4,
+    "name_th": "งดทานอาหารเผ็ด อาหารมัน",
+    "name_en": "Avoid spicy and fatty foods.",
+    "name_mm": "အစပ်နှင့် အဆီအဆိမ့်များကို ရှောင်ပါ။",
+    "name_zh": "忌辛辣、油腻食物。",
+    "sort_order": 4,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 5,
+    "name_th": "เฉพาะเวลามีอาการปวด",
+    "name_en": "Only when having pain.",
+    "name_mm": "နာကျင်သည့်အခါမှသာ သောက်ရန်။",
+    "name_zh": "仅在疼痛时服用。",
+    "sort_order": 5,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 6,
+    "name_th": "ใช้ยาต่อเนื่องกันอย่างน้อย 5-7 วัน",
+    "name_en": "Use continuously for at least 5-7 days.",
+    "name_mm": "အနည်းဆုံး ၅ ရက်မှ ၇ ရက်အထိ ဆက်တိုက်သုံးပါ။",
+    "name_zh": "连续使用至少5-7天。",
+    "sort_order": 6,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 7,
+    "name_th": "ใช้ยาต่อเนื่องจนหมด หรืออย่างน้อย 5 วัน",
+    "name_en": "Use continuously until finished or for at least 5 days.",
+    "name_mm": "ဆေးကုန်သည်အထိ သို့မဟုတ် အနည်းဆုံး ၅ ရက် ဆက်တိုက်သုံးပါ။",
+    "name_zh": "连续使用直至用完，或至少使用5天。",
+    "sort_order": 7,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 8,
+    "name_th": "ใช้ยาตามแพทย์สั่ง และไปพบแพทย์ตามนัด",
+    "name_en": "Use as directed by the doctor and follow up as scheduled.",
+    "name_mm": "ဆရာဝန်ညွှန်ကြားသည့်အတိုင်း သုံးစွဲပြီး ချိန်းဆိုထားသည့်အတိုင်း ပြန်ပြပါ။",
+    "name_zh": "遵医嘱使用并按时复诊。",
+    "sort_order": 8,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 9,
+    "name_th": "ทานต่อเนื่องจนหาย",
+    "name_en": "Take continuously until recovered.",
+    "name_mm": "ရောဂါပျောက်ကင်းသည်အထိ ဆက်တိုက်သောက်ပါ။",
+    "name_zh": "连续服用至痊愈。",
+    "sort_order": 9,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 10,
+    "name_th": "ทานตามที่แพทย์สั่ง",
+    "name_en": "Take as directed by the doctor.",
+    "name_mm": "ဆရာဝန်ညွှန်ကြားသည့်အတိုင်း သောက်ပါ။",
+    "name_zh": "遵医嘱服用。",
+    "sort_order": 10,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 11,
+    "name_th": "ทานติดต่อกันอย่างน้อย 1 เดือน",
+    "name_en": "Take continuously for at least 1 month.",
+    "name_mm": "အနည်းဆုံး ၁ လ ဆက်တိုက်သောက်ပါ။",
+    "name_zh": "连续服用至少1个月。",
+    "sort_order": 11,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 12,
+    "name_th": "ทานติดต่อกันอย่างน้อย 3 วัน",
+    "name_en": "Take continuously for at least 3 days.",
+    "name_mm": "အနည်းဆုံး ၃ ရက် ဆက်တိုက်သောက်ပါ။",
+    "name_zh": "连续服用至少3天。",
+    "sort_order": 12,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 13,
+    "name_th": "ทานติดต่อกันอย่างน้อย 4 วัน",
+    "name_en": "Take continuously for at least 4 days.",
+    "name_mm": "အနည်းဆုံး ၄ ရက် ဆက်တိုက်သောက်ပါ။",
+    "name_zh": "连续服用至少4天。",
+    "sort_order": 13,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 14,
+    "name_th": "ทานติดต่อกันอย่างน้อย 5 วัน",
+    "name_en": "Take continuously for at least 5 days.",
+    "name_mm": "အနည်းဆုံး ၅ ရက် ဆက်တိုက်သောက်ပါ။",
+    "name_zh": "连续服用至少5天。",
+    "sort_order": 14,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 15,
+    "name_th": "ทานติดต่อกันอย่างน้อย 7-14 วัน",
+    "name_en": "Take continuously for at least 7-14 days.",
+    "name_mm": "အနည်းဆုံး ၇ ရက်မှ ၁၄ ရက်အထိ ဆက်တိုက်သောက်ပါ။",
+    "name_zh": "连续服用至少7-14天。",
+    "sort_order": 15,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 16,
+    "name_th": "ทานเมื่อจำเป็นเท่านั้น",
+    "name_en": "Take only when necessary.",
+    "name_mm": "လိုအပ်မှသာ သောက်ပါ။",
+    "name_zh": "仅在必要时服用。",
+    "sort_order": 16,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 17,
+    "name_th": "ทานยาห่างจากยาอื่น 1 ชั่วโมง",
+    "name_en": "Take 1 hour apart from other medications.",
+    "name_mm": "အခြားဆေးများနှင့် ၁ နာရီ ခြား၍ သောက်ပါ။",
+    "name_zh": "与其他药物间隔1小时服用。",
+    "sort_order": 17,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 18,
+    "name_th": "ทานยาห่างจากยาอื่น 2 ชั่วโมง",
+    "name_en": "Take 2 hours apart from other medications.",
+    "name_mm": "အခြားဆေးများနှင့် ၂ နာရီ ခြား၍ သောက်ပါ။",
+    "name_zh": "与其他药物间隔2小时服用。",
+    "sort_order": 18,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 19,
+    "name_th": "ทายาต่อเนื่องกันอย่างน้อย 7-10 วัน",
+    "name_en": "Apply continuously for at least 7-10 days.",
+    "name_mm": "အနည်းဆုံး ၇ ရက်မှ ၁၀ ရက်အထိ ဆက်တိုက်လိမ်းပါ။",
+    "name_zh": "连续涂抹至少7-10天。",
+    "sort_order": 19,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 20,
+    "name_th": "ใน 1 วันไม่ทานเกิน 6 เม็ด",
+    "name_en": "Do not take more than 6 tablets a day.",
+    "name_mm": "၁ ရက်လျှင် ၆ လုံးထက် ပိုမသောက်ရ။",
+    "name_zh": "每日服用不超过6粒。",
+    "sort_order": 20,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 21,
+    "name_th": "ผสมแล้วอยู่ได้ 24 ชั่วโมง",
+    "name_en": "Good for 24 hours after mixing.",
+    "name_mm": "ဖျော်ပြီးပါက ၂၄ နာရီအတွင်း သုံးနိုင်ပါသည်။",
+    "name_zh": "混合后保质期为24小时。",
+    "sort_order": 21,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 22,
+    "name_th": "ไม่ควรใช้ในผู้ที่มีปัญหาของหลอดเลือด",
+    "name_en": "Not recommended for patients with blood vessel problems.",
+    "name_mm": "သွေးကြောပြဿနာရှိသူများ မသုံးစွဲသင့်ပါ။",
+    "name_zh": "血管疾病患者不宜使用。",
+    "sort_order": 22,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 23,
+    "name_th": "ไม่ควรใช้ในผู้ที่มีหลอดเลือดอุดตัน",
+    "name_en": "Not recommended for patients with thrombosis/blood clots.",
+    "name_mm": "သွေးကြောပိတ်ဆို့မှုရှိသူများ မသုံးစွဲသင့်ပါ။",
+    "name_zh": "血栓形成患者不宜使用。",
+    "sort_order": 23,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 24,
+    "name_th": "ไม่ควรใช้ยาต่อเนื่องเกิน 5-7 วัน",
+    "name_en": "Do not use continuously for more than 5-7 days.",
+    "name_mm": "၅ ရက်မှ ၇ ရက်ထက်ပို၍ ဆက်တိုက်မသုံးစွဲသင့်ပါ။",
+    "name_zh": "不宜连续使用超过5-7天。",
+    "sort_order": 24,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 25,
+    "name_th": "ไม่ควรใช้ยานี้ ในผู้ที่เป็นโรคหัวใจ",
+    "name_en": "Not recommended for patients with heart disease.",
+    "name_mm": "နှလုံးရောဂါရှိသူများ ဤဆေးကို မသုံးစွဲသင့်ပါ။",
+    "name_zh": "心脏病患者不宜使用此药。",
+    "sort_order": 25,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 26,
+    "name_th": "ไม่ควรใช้ยานี้ หากมีไข้สูงมาก",
+    "name_en": "Do not use this medication if you have a very high fever.",
+    "name_mm": "အဖျားအရမ်းကြီးနေပါက ဤဆေးကို မသုံးစွဲသင့်ပါ။",
+    "name_zh": "高烧时不宜使用此药。",
+    "sort_order": 26,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 27,
+    "name_th": "ไม่ควรใช้ยานี้ในผู้ที่ทานยาละลายลิ่มเลือด",
+    "name_en": "Not recommended for patients taking blood thinners.",
+    "name_mm": "သွေးကျဲဆေးသောက်နေသူများ ဤဆေးကို မသုံးစွဲသင့်ပါ။",
+    "name_zh": "服用血液稀释剂的患者不宜使用此药。",
+    "sort_order": 27,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 28,
+    "name_th": "ไม่ควรทานเกินวันละ 6 เม็ด และใช้ยาไม่เกิน 5 วัน",
+    "name_en": "Do not exceed 6 tablets per day and do not use for more than 5 days.",
+    "name_mm": "တစ်နေ့လျှင် ၆ လုံးထက် ပိုမသောက်ရ၊ ၅ ရက်ထက် ပိုမသုံးရ။",
+    "name_zh": "每日不超过6粒，且使用不超过5天。",
+    "sort_order": 28,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 29,
+    "name_th": "ไม่ควรทานเกินวันละ 8 เม็ด และใช้ยาไม่เกิน 5 วัน",
+    "name_en": "Do not exceed 8 tablets per day and do not use for more than 5 days.",
+    "name_mm": "တစ်နေ့လျှင် ၈ လုံးထက် ပိုမသောက်ရ၊ ၅ ရက်ထက် ပိုမသုံးရ။",
+    "name_zh": "每日不超过8粒，且使用不超过5天。",
+    "sort_order": 29,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 30,
+    "name_th": "ยานี้อาจทำให้คลื่นไส้อาเจียน เวียนศรีษะ",
+    "name_en": "This medication may cause nausea, vomiting, and dizziness.",
+    "name_mm": "ဤဆေးသည် ပျို့အန်ခြင်း၊ ခေါင်းမူးခြင်းကို ဖြစ်စေနိုင်သည်။",
+    "name_zh": "本药可能引起恶心、呕吐和头晕。",
+    "sort_order": 30,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 31,
+    "name_th": "ยานี้อาจทำให้ง่วงซึม",
+    "name_en": "This medication may cause drowsiness.",
+    "name_mm": "ဤဆေးသည် အိပ်ချင်မူးယစ်ခြင်းကို ဖြစ်စေနိုင်သည်။",
+    "name_zh": "本药可能引起嗜睡。",
+    "sort_order": 31,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 32,
+    "name_th": "ยานี้อาจทำให้ปัสสาวะเป็นสีเหลือง",
+    "name_en": "This medication may turn urine yellow.",
+    "name_mm": "ဤဆေးသည် ဆီးအရောင် ဝါစေနိုင်သည်။",
+    "name_zh": "本药可能使尿液变黄。",
+    "sort_order": 32,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 33,
+    "name_th": "ยานี้อาจทำให้อุจาระเป็นสีดำ",
+    "name_en": "This medication may turn stool black.",
+    "name_mm": "ဤဆေးသည် ဝမ်းအရောင် မည်းစေနိုင်သည်။",
+    "name_zh": "本药可能使粪便变黑。",
+    "sort_order": 33,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 34,
+    "name_th": "ยานี้อาจระคายเคืองกระเพาะอาหาร",
+    "name_en": "This medication may irritate the stomach.",
+    "name_mm": "ဤဆေးသည် အစာအိမ်ကို ယားယံစေနိုင်သည်။",
+    "name_zh": "本药可能刺激胃。",
+    "sort_order": 34,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 35,
+    "name_th": "หลีกเลี่ยงการดื่มแอลกอฮอล์",
+    "name_en": "Avoid drinking alcohol.",
+    "name_mm": "အရက်သောက်ခြင်းကို ရှောင်ပါ။",
+    "name_zh": "避免饮酒。",
+    "sort_order": 35,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 36,
+    "name_th": "หากใช้ติดต่อกันเกิน 3 วัน แล้วไม่ดีขึ้น/รุนแรงขึ้น หยุดใช้และพบแพทย์",
+    "name_en": "If symptoms do not improve or worsen after 3 days, stop use and consult a doctor.",
+    "name_mm": "၃ ရက်ဆက်တိုက် သုံးပြီးနောက် မသက်သာပါက/ပိုဆိုးလာပါက ရပ်ပြီး ဆရာဝန်နှင့် ပြပါ။",
+    "name_zh": "若连续使用3天后未见好转或加重，请停药并就医。",
+    "sort_order": 36,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 37,
+    "name_th": "หากใช้ยานี้แล้วมีผื่น / ปาก, ตา, หน้าบวม ให้หยุดยาทันทีและพบแพทย์",
+    "name_en": "If rash or swelling of the mouth, eyes, or face occurs, stop immediately and consult a doctor.",
+    "name_mm": "အင်ပြင်ထွက်ခြင်း၊ နှုတ်ခမ်း၊ မျက်လုံး၊ မျက်နှာ ရောင်ရမ်းခြင်း ဖြစ်ပါက ချက်ချင်းရပ်ပြီး ဆရာဝန်နှင့် ပြပါ။",
+    "name_zh": "如出现皮疹/口、眼、面部肿胀，请立即停药并就医。",
+    "sort_order": 37,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 38,
+    "name_th": "ห้ามใช้ในสตรีมีครรภ์ และสตรีให้นมบุตร",
+    "name_en": "Do not use in pregnant and breastfeeding women.",
+    "name_mm": "ကိုယ်ဝန်ဆောင်နှင့် နို့တိုက်မိခင်များ မသုံးစွဲရ။",
+    "name_zh": "孕妇及哺乳期妇女禁用。",
+    "sort_order": 38,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 39,
+    "name_th": "ห้ามทานเกิน 6เม็ด/วันหรือ 10เม็ด/สัปดาห์",
+    "name_en": "Do not exceed 6 tablets/day or 10 tablets/week.",
+    "name_mm": "၁ ရက်လျှင် ၆ လုံး သို့မဟုတ် ၁ ပတ်လျှင် ၁၀ လုံးထက် ပိုမသောက်ရ။",
+    "name_zh": "每日勿超过6粒，或每周勿超过10粒。",
+    "sort_order": 39,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 40,
+    "name_th": "ห้ามทานพร้อมกับยาตัวอื่น ห่างกันอย่างน้อย 1 ชม.",
+    "name_en": "Do not take with other medications; space out by at least 1 hour.",
+    "name_mm": "အခြားဆေးများနှင့် အတူမသောက်ရ၊ အနည်းဆုံး ၁ နာရီ ခြားပါ။",
+    "name_zh": "勿与其他药物同服，至少间隔1小时。",
+    "sort_order": 40,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 41,
+    "name_th": "ห้ามทานพร้อมนม ธาตุเหล็ก หรือยาลดกรด",
+    "name_en": "Do not take with milk, iron, or antacids.",
+    "name_mm": "နွားနို့၊ သံဓာတ် သို့မဟုတ် အစာအိမ်လေနာပျောက်ဆေးတို့နှင့် အတူမသောက်ရ။",
+    "name_zh": "勿与牛奶、铁剂或抗酸剂同服。",
+    "sort_order": 41,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 42,
+    "name_th": "ห้ามทานยาติดต่อกันเกิน 3 วัน",
+    "name_en": "Do not take continuously for more than 3 days.",
+    "name_mm": "၃ ရက်ထက်ပို၍ ဆက်တိုက်မသောက်ရ။",
+    "name_zh": "勿连续服用超过3天。",
+    "sort_order": 42,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 43,
+    "name_th": "ห้ามทานยาติดต่อกันเกิน 4 วัน",
+    "name_en": "Do not take continuously for more than 4 days.",
+    "name_mm": "၄ ရက်ထက်ပို၍ ဆက်တိုက်မသောက်ရ။",
+    "name_zh": "勿连续服用超过4天。",
+    "sort_order": 43,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 44,
+    "name_th": "ห้ามทานยาติดต่อกันเกิน 5 วัน",
+    "name_en": "Do not take continuously for more than 5 days.",
+    "name_mm": "၅ ရက်ထက်ပို၍ ဆက်တိုက်မသောက်ရ။",
+    "name_zh": "勿连续服用超过5天。",
+    "sort_order": 44,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 45,
+    "name_th": "ห้ามทานยาติดต่อกันเกิน 6 วัน",
+    "name_en": "Do not take continuously for more than 6 days.",
+    "name_mm": "၆ ရက်ထက်ပို၍ ဆက်တိုက်မသောက်ရ။",
+    "name_zh": "勿连续服用超过6天。",
+    "sort_order": 45,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 46,
+    "name_th": "ห้ามทานยาติดต่อกันเกิน 7 วัน",
+    "name_en": "Do not take continuously for more than 7 days.",
+    "name_mm": "၇ ရက်ထက်ပို၍ ဆက်တိုက်မသောက်ရ။",
+    "name_zh": "勿连续服用超过7天。",
+    "sort_order": 46,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 47,
+    "name_th": "ห้ามรับประทานพร้อมน้ำผลไม้",
+    "name_en": "Do not take with fruit juice.",
+    "name_mm": "သစ်သီးဖျော်ရည်နှင့် အတူမသောက်ရ။",
+    "name_zh": "勿与果汁同服。",
+    "sort_order": 47,
+    "created_at": null,
+    "updated_at": null
+  }
+]

@@ -1,0 +1,582 @@
+[
+  {
+    "id": 1,
+    "name_th": "กลางวัน",
+    "name_en": "Noon",
+    "name_mm": "နေ့လယ်",
+    "name_zh": "中午",
+    "sort_order": 1,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 2,
+    "name_th": "กลางวัน-ก่อนนอน",
+    "name_en": "Noon and bedtime",
+    "name_mm": "နေ့လယ်နှင့် အိပ်ရာဝင်ချိန်",
+    "name_zh": "中午和睡前",
+    "sort_order": 2,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 3,
+    "name_th": "กลางวัน-เย็น",
+    "name_en": "Noon and evening",
+    "name_mm": "နေ့လယ်နှင့် ညနေ",
+    "name_zh": "中午和晚上",
+    "sort_order": 3,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 4,
+    "name_th": "กลางวัน-เย็น-ก่อนนอน",
+    "name_en": "Noon, evening, and bedtime",
+    "name_mm": "နေ့လယ်၊ ညနေနှင့် အိပ်ရာဝင်ချိန်",
+    "name_zh": "中午、晚上和睡前",
+    "sort_order": 4,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 5,
+    "name_th": "ก่อนนอน",
+    "name_en": "Bedtime",
+    "name_mm": "အိပ်ရာဝင်ချိန်",
+    "name_zh": "睡前",
+    "sort_order": 5,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 6,
+    "name_th": "ก่อนนอน (เวลานอนไม่หลับ)",
+    "name_en": "Bedtime (when having trouble sleeping)",
+    "name_mm": "အိပ်မပျော်သည့်အခါ အိပ်ရာဝင်ချိန်",
+    "name_zh": "睡前（失眠时）",
+    "sort_order": 6,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 7,
+    "name_th": "เช้า",
+    "name_en": "Morning",
+    "name_mm": "နံနက်",
+    "name_zh": "早上",
+    "sort_order": 7,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 8,
+    "name_th": "เช้า-กลางวัน",
+    "name_en": "Morning and noon",
+    "name_mm": "နံနက်နှင့် နေ့လယ်",
+    "name_zh": "早上和中午",
+    "sort_order": 8,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 9,
+    "name_th": "เช้า-กลางวัน-ก่อนนอน",
+    "name_en": "Morning, noon, and bedtime",
+    "name_mm": "နံနက်၊ နေ့လယ်နှင့် အိပ်ရာဝင်ချိန်",
+    "name_zh": "早上、中午和睡前",
+    "sort_order": 9,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 10,
+    "name_th": "เช้า-กลางวัน-เย็น",
+    "name_en": "Morning, noon, and evening",
+    "name_mm": "နံနက်၊ နေ့လယ်နှင့် ညနေ",
+    "name_zh": "早上、中午和晚上",
+    "sort_order": 10,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 11,
+    "name_th": "เช้า-กลางวัน-เย็น-ก่อนนอน",
+    "name_en": "Morning, noon, evening",
+    "name_mm": " and bedtime",
+    "name_zh": "နံနက်၊ နေ့လယ်၊ ညနေနှင့် အိပ်ရာဝင်ချိန်",
+    "sort_order": 11,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 12,
+    "name_th": "เช้า-ก่อนนอน",
+    "name_en": "Morning and bedtime",
+    "name_mm": "နံနက်နှင့် အိပ်ရာဝင်ချိန်",
+    "name_zh": "早上和睡前",
+    "sort_order": 12,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 13,
+    "name_th": "เช้า-เย็น",
+    "name_en": "Morning and evening",
+    "name_mm": "နံနက်နှင့် ညနေ",
+    "name_zh": "早上和晚上",
+    "sort_order": 13,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 14,
+    "name_th": "เช้า-เย็น-ก่อนนอน",
+    "name_en": "Morning, evening, and bedtime",
+    "name_mm": "နံနက်၊ ညနေနှင့် အိပ်ရာဝင်ချိန်",
+    "name_zh": "早上、晚上和睡前",
+    "sort_order": 14,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 15,
+    "name_th": "เดือนละ 1 ครั้ง",
+    "name_en": "Once a month",
+    "name_mm": "တစ်လ ၁ ကြိမ်",
+    "name_zh": "每月1次",
+    "sort_order": 15,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 16,
+    "name_th": "ทาน 3-4 ครั้ง เมื่อมีอาการ",
+    "name_en": "Take 3-4 times when symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက ၃-၄ ကြိမ် သောက်ပါ။",
+    "name_zh": "出现症状时服3-4次",
+    "sort_order": 16,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 17,
+    "name_th": "ทานเวลาเดิมของทุกวัน",
+    "name_en": "Take at the same time every day",
+    "name_mm": "နေ့စဉ် အချိန်မှန် သောက်ပါ။",
+    "name_zh": "每天同一时间服用",
+    "sort_order": 17,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 18,
+    "name_th": "ทุก 1 ชั่วโมง",
+    "name_en": "Every 1 hour",
+    "name_mm": "၁ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "每1小时",
+    "sort_order": 18,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 19,
+    "name_th": "ทุก 1 ชั่วโมง เมื่อมีอาการ",
+    "name_en": "Every 1 hour when symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက ၁ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "出现症状时每1小时1次",
+    "sort_order": 19,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 20,
+    "name_th": "ทุก 1 เดือน",
+    "name_en": "Every 1 month",
+    "name_mm": "၁ လလျှင် ၁ ကြိမ်",
+    "name_zh": "每1个月",
+    "sort_order": 20,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 21,
+    "name_th": "ทุก 1 สัปดาห์",
+    "name_en": "Every 1 week",
+    "name_mm": "၁ ပတ်လျှင် ၁ ကြိမ်",
+    "name_zh": "每1周",
+    "sort_order": 21,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 22,
+    "name_th": "ทุก 12 ชั่วโมง",
+    "name_en": "Every 12 hours",
+    "name_mm": "၁၂ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "每12小时",
+    "sort_order": 22,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 23,
+    "name_th": "ทุก 2 ชั่วโมง",
+    "name_en": "Every 2 hours",
+    "name_mm": "၂ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "每2小时",
+    "sort_order": 23,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 24,
+    "name_th": "ทุก 2 ชั่วโมง เมื่อมีอาการ",
+    "name_en": "Every 2 hours when symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက ၂ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "出现症状时每2小时1次",
+    "sort_order": 24,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 25,
+    "name_th": "ทุก 2 สัปดาห์",
+    "name_en": "Every 2 weeks",
+    "name_mm": "၂ ပတ်လျှင် ၁ ကြိမ်",
+    "name_zh": "每2周",
+    "sort_order": 25,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 26,
+    "name_th": "ทุก 2-3 ชั่วโมง",
+    "name_en": "Every 2-3 hours",
+    "name_mm": "၂ နာရီမှ ၃ နာရီခြား ၁ ကြိမ်",
+    "name_zh": "每2-3小时",
+    "sort_order": 26,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 27,
+    "name_th": "ทุก 3 ชั่วโมง",
+    "name_en": "Every 3 hours",
+    "name_mm": "၃ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "每3小时",
+    "sort_order": 27,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 28,
+    "name_th": "ทุก 3 ชั่วโมง เมื่อมีอาการ",
+    "name_en": "Every 3 hours when symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက ၃ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "出现症状时每3小时1次",
+    "sort_order": 28,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 29,
+    "name_th": "ทุก 3 สัปดาห์",
+    "name_en": "Every 3 weeks",
+    "name_mm": "၃ ပတ်လျှင် ၁ ကြိမ်",
+    "name_zh": "每3周",
+    "sort_order": 29,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 30,
+    "name_th": "ทุก 30 นาที",
+    "name_en": "Every 30 minutes",
+    "name_mm": "မိနစ် ၃၀ လျှင် ၁ ကြိမ်",
+    "name_zh": "每30分钟",
+    "sort_order": 30,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 31,
+    "name_th": "ทุก 4 ชั่วโมง",
+    "name_en": "Every 4 hours",
+    "name_mm": "၄ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "每4小时",
+    "sort_order": 31,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 32,
+    "name_th": "ทุก 4 ชั่วโมง เมื่อมีอาการ",
+    "name_en": "Every 4 hours when symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက ၄ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "出现症状时每4小时1次",
+    "sort_order": 32,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 33,
+    "name_th": "ทุก 4 สัปดาห์",
+    "name_en": "Every 4 weeks",
+    "name_mm": "၄ ပတ်လျှင် ၁ ကြိမ်",
+    "name_zh": "每4周",
+    "sort_order": 33,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 34,
+    "name_th": "ทุก 4-6 ชั่วโมง เมื่อมีอาการ",
+    "name_en": "Every 4-6 hours when symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက ၄ နာရီမှ ၆ နာရီခြား ၁ ကြိမ်",
+    "name_zh": "出现症状时每4-6小时1次",
+    "sort_order": 34,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 35,
+    "name_th": "ทุก 48 ชั่วโมง",
+    "name_en": "Every 48 hours",
+    "name_mm": "၄၈ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "每48小时",
+    "sort_order": 35,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 36,
+    "name_th": "ทุก 5 ชั่วโมง เมื่อมีอาการ",
+    "name_en": "Every 5 hours when symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက ၅ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "出现症状时每5小时1次",
+    "sort_order": 36,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 37,
+    "name_th": "ทุก 5 สัปดาห์",
+    "name_en": "Every 5 weeks",
+    "name_mm": "၅ ပတ်လျှင် ၁ ကြိမ်",
+    "name_zh": "每5周",
+    "sort_order": 37,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 38,
+    "name_th": "ทุก 6 ชั่วโมง",
+    "name_en": "Every 6 hours",
+    "name_mm": "၆ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "每6小时",
+    "sort_order": 38,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 39,
+    "name_th": "ทุก 6 ชั่วโมง เมื่อมีอาการไอ",
+    "name_en": "Every 6 hours when coughing",
+    "name_mm": "ချောင်းဆိုးပါက ၆ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "咳嗽时每6小时1次",
+    "sort_order": 39,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 40,
+    "name_th": "ทุก 6 ชั่วโมง เวลาท้องเสีย",
+    "name_en": "Every 6 hours when having diarrhea",
+    "name_mm": "ဝမ်းလျှောပါက ၆ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "腹泻时每6小时1次",
+    "sort_order": 40,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 41,
+    "name_th": "ทุก 6 ชั่วโมง เวลาปวดท้อง",
+    "name_en": "Every 6 hours when having stomachache",
+    "name_mm": "ဗိုက်နာပါက ၆ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "胃痛时每6小时1次",
+    "sort_order": 41,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 42,
+    "name_th": "ทุก 6 ชั่วโมง เวลามีอาการ",
+    "name_en": "Every 6 hours when symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက ၆ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "出现症状时每6小时1次",
+    "sort_order": 42,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 43,
+    "name_th": "ทุก 6 สัปดาห์",
+    "name_en": "Every 6 weeks",
+    "name_mm": "၆ ပတ်လျှင် ၁ ကြိမ်",
+    "name_zh": "每6周",
+    "sort_order": 43,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 44,
+    "name_th": "ทุก 7 ชั่วโมง เมื่อมีอาการ",
+    "name_en": "Every 7 hours when symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက ၇ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "出现症状时每7小时1次",
+    "sort_order": 44,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 45,
+    "name_th": "ทุก 7 สัปดาห์",
+    "name_en": "Every 7 weeks",
+    "name_mm": "၇ ပတ်လျှင် ၁ ကြိမ်",
+    "name_zh": "每7周",
+    "sort_order": 45,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 46,
+    "name_th": "ทุก 8 ชั่วโมง",
+    "name_en": "Every 8 hours",
+    "name_mm": "၈ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "每8小时",
+    "sort_order": 46,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 47,
+    "name_th": "ทุก 8 ชั่วโมง เมื่อมีอาการ",
+    "name_en": "Every 8 hours when symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက ၈ နာရီလျှင် ၁ ကြိမ်",
+    "name_zh": "出现症状时每8小时1次",
+    "sort_order": 47,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 48,
+    "name_th": "ทุก 8 สัปดาห์",
+    "name_en": "Every 8 weeks",
+    "name_mm": "၈ ပတ်လျှင် ၁ ကြိမ်",
+    "name_zh": "每8周",
+    "sort_order": 48,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 49,
+    "name_th": "เย็น",
+    "name_en": "Evening",
+    "name_mm": "ညနေ",
+    "name_zh": "晚上",
+    "sort_order": 49,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 50,
+    "name_th": "เย็น-ก่อนนอน",
+    "name_en": "Evening and bedtime",
+    "name_mm": "ညနေနှင့် အိပ်ရာဝင်ချိန်",
+    "name_zh": "晚上和睡前",
+    "sort_order": 50,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 51,
+    "name_th": "รับประทานครั้งเดียว",
+    "name_en": "Take once",
+    "name_mm": "တစ်ကြိမ်တည်း သောက်ရန်",
+    "name_zh": "仅服一次",
+    "sort_order": 51,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 52,
+    "name_th": "วันละ 1 ครั้ง",
+    "name_en": "Once a day",
+    "name_mm": "တစ်နေ့ ၁ ကြိမ်",
+    "name_zh": "每日1次",
+    "sort_order": 52,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 53,
+    "name_th": "วันละ 5 ครั้ง ทุก 4 ชั่วโมง",
+    "name_en": "5 times a day every 4 hours",
+    "name_mm": "တစ်နေ့ ၅ ကြိမ်၊ ၄ နာရီခြား ၁ ကြိမ်",
+    "name_zh": "每日5次,每4小时1次",
+    "sort_order": 53,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 54,
+    "name_th": "วันละ 8-12 เม็ด",
+    "name_en": "8-12 tablets a day",
+    "name_mm": "တစ်နေ့လျှင် ၈ လုံးမှ ၁၂ လုံးအထိ",
+    "name_zh": "每日8-12粒",
+    "sort_order": 54,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 55,
+    "name_th": "วันเว้นวัน",
+    "name_en": "Every other day",
+    "name_mm": "တစ်ရက်ခြား",
+    "name_zh": "隔日1次",
+    "sort_order": 55,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 56,
+    "name_th": "เวลามีอาการ",
+    "name_en": "When symptoms occur",
+    "name_mm": "ရောဂါလက္ခဏာပြပါက",
+    "name_zh": "出现症状时",
+    "sort_order": 56,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 57,
+    "name_th": "สัปดาห์ละ 1 ครั้ง",
+    "name_en": "Once a week",
+    "name_mm": "တစ်ပတ် ၁ ကြိမ်",
+    "name_zh": "每周1次",
+    "sort_order": 57,
+    "created_at": null,
+    "updated_at": null
+  },
+  {
+    "id": 58,
+    "name_th": "สัปดาห์ละ 1 ครั้ง จนหายดี",
+    "name_en": "Once a week until recovered",
+    "name_mm": "ရောဂါပျောက်ကင်းသည်အထိ တစ်ပတ် ၁ ကြိမ်",
+    "name_zh": "每周1次至痊愈",
+    "sort_order": 58,
+    "created_at": null,
+    "updated_at": null
+  }
+]

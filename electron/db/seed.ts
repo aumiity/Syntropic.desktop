@@ -1,4 +1,10 @@
 import type Database from 'better-sqlite3'
+import DRUG_GENERIC_NAMES from './seed-data/drug-generic-names'
+import LABEL_FREQUENCIES from './seed-data/label-frequencies'
+import LABEL_MEAL_RELATIONS from './seed-data/label-meal-relations'
+import LABEL_ADVICES from './seed-data/label-advices'
+import LABEL_DOSAGES from './seed-data/label-dosages'
+import LABEL_TIMES from './seed-data/label-times'
 
 export function seedDatabase(db: Database.Database) {
   // Idempotent staff test user — added to every install so audit trail has a non-admin actor
@@ -6,6 +12,34 @@ export function seedDatabase(db: Database.Database) {
   db.prepare(`INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`).run(
     'Staff Test', 'staff@syntropic.local', 'staff', 'staff'
   )
+
+  // Label lookups + drug generic names — sourced from docs/*.json via
+  // scripts/gen-seed-data.mjs (see electron/db/seed-data/*.ts). Columns are
+  // already mapped to our schema by the generator; advices/dosages/times have
+  // a `code` synthesized from the source id (the export had none, schema needs
+  // it NOT NULL UNIQUE).
+  //
+  // MUST run BEFORE the "fresh DB" guard below: this block is fully idempotent
+  // (INSERT OR IGNORE in a transaction), so it runs on every launch and back-
+  // fills existing databases with new/expanded reference data. Putting it after
+  // the guard means an already-seeded DB never receives later data additions.
+  const seedTuples = (
+    sql: string,
+    rows: [string, string, string, string, string, number][]
+  ) => {
+    const stmt = db.prepare(sql)
+    db.transaction(() => { for (const r of rows) stmt.run(...r) })()
+  }
+
+  seedTuples(`INSERT OR IGNORE INTO label_frequencies (code, name_th, name_en, name_mm, name_zh, sort_order) VALUES (?, ?, ?, ?, ?, ?)`, LABEL_FREQUENCIES)
+  seedTuples(`INSERT OR IGNORE INTO label_dosages (code, name_th, name_en, name_mm, name_zh, sort_order) VALUES (?, ?, ?, ?, ?, ?)`, LABEL_DOSAGES)
+  seedTuples(`INSERT OR IGNORE INTO label_meal_relations (code, name_th, name_en, name_mm, name_zh, sort_order) VALUES (?, ?, ?, ?, ?, ?)`, LABEL_MEAL_RELATIONS)
+  seedTuples(`INSERT OR IGNORE INTO label_times (code, name_th, name_en, name_mm, name_zh, sort_order) VALUES (?, ?, ?, ?, ?, ?)`, LABEL_TIMES)
+  seedTuples(`INSERT OR IGNORE INTO label_advices (code, name_th, name_en, name_mm, name_zh, sort_order) VALUES (?, ?, ?, ?, ?, ?)`, LABEL_ADVICES)
+
+  // Drug generic names (~1400). is_disabled defaults 0; all source rows were active.
+  const insGeneric = db.prepare(`INSERT OR IGNORE INTO drug_generic_names (name) VALUES (?)`)
+  db.transaction(() => { for (const n of DRUG_GENERIC_NAMES) insGeneric.run(n) })()
 
   // Only seed the rest if tables are empty
   const userCount = (db.prepare(`SELECT COUNT(*) as c FROM users WHERE email = 'admin@syntropic.local'`).get() as { c: number }).c
@@ -67,68 +101,6 @@ export function seedDatabase(db: Database.Database) {
   ]
   const insDosageForm = db.prepare(`INSERT OR IGNORE INTO dosage_forms (name_th, name_en) VALUES (?, ?)`)
   for (const [th, en] of dosageForms) insDosageForm.run(th, en)
-
-  // Label frequencies
-  const frequencies = [
-    ['OD', 'วันละ 1 ครั้ง', 'Once daily', '', '', 1],
-    ['BD', 'วันละ 2 ครั้ง', 'Twice daily', '', '', 2],
-    ['TDS', 'วันละ 3 ครั้ง', 'Three times daily', '', '', 3],
-    ['QDS', 'วันละ 4 ครั้ง', 'Four times daily', '', '', 4],
-    ['Q6H', 'ทุก 6 ชั่วโมง', 'Every 6 hours', '', '', 5],
-    ['Q8H', 'ทุก 8 ชั่วโมง', 'Every 8 hours', '', '', 6],
-    ['Q12H', 'ทุก 12 ชั่วโมง', 'Every 12 hours', '', '', 7],
-    ['PRN', 'เมื่อมีอาการ', 'When required', '', '', 8],
-    ['STAT', 'ทันที', 'Immediately', '', '', 9],
-    ['HS', 'ก่อนนอน', 'At bedtime', '', '', 10],
-    ['AM', 'ตอนเช้า', 'In the morning', '', '', 11],
-    ['PM', 'ตอนเย็น', 'In the evening', '', '', 12],
-  ]
-  const insFreq = db.prepare(`INSERT OR IGNORE INTO label_frequencies (code, name_th, name_en, name_mm, name_zh, sort_order) VALUES (?, ?, ?, ?, ?, ?)`)
-  for (const f of frequencies) insFreq.run(...f)
-
-  // Label dosages
-  const dosages = [
-    ['HALF', '½ เม็ด', '½ tablet', '', '', 1],
-    ['ONE', '1 เม็ด', '1 tablet', '', '', 2],
-    ['ONE_HALF', '1½ เม็ด', '1½ tablets', '', '', 3],
-    ['TWO', '2 เม็ด', '2 tablets', '', '', 4],
-    ['THREE', '3 เม็ด', '3 tablets', '', '', 5],
-    ['FOUR', '4 เม็ด', '4 tablets', '', '', 6],
-    ['5ML', '5 มล.', '5 ml', '', '', 7],
-    ['10ML', '10 มล.', '10 ml', '', '', 8],
-    ['15ML', '15 มล.', '15 ml', '', '', 9],
-    ['1PUFF', '1 พ่น', '1 puff', '', '', 10],
-    ['2PUFFS', '2 พ่น', '2 puffs', '', '', 11],
-    ['APPLY', 'ทาบางๆ', 'Apply thinly', '', '', 12],
-  ]
-  const insDosage = db.prepare(`INSERT OR IGNORE INTO label_dosages (code, name_th, name_en, name_mm, name_zh, sort_order) VALUES (?, ?, ?, ?, ?, ?)`)
-  for (const d of dosages) insDosage.run(...d)
-
-  // Label meal relations
-  const mealRelations = [
-    ['BEFORE', 'ก่อนอาหาร', 'Before meal', '', '', 1],
-    ['AFTER', 'หลังอาหาร', 'After meal', '', '', 2],
-    ['WITH', 'พร้อมอาหาร', 'With meal', '', '', 3],
-    ['BETWEEN', 'ระหว่างมื้ออาหาร', 'Between meals', '', '', 4],
-    ['EMPTY', 'ขณะท้องว่าง', 'On empty stomach', '', '', 5],
-    ['ANY', 'เมื่อใดก็ได้', 'Anytime', '', '', 6],
-  ]
-  const insMeal = db.prepare(`INSERT OR IGNORE INTO label_meal_relations (code, name_th, name_en, name_mm, name_zh, sort_order) VALUES (?, ?, ?, ?, ?, ?)`)
-  for (const m of mealRelations) insMeal.run(...m)
-
-  // Label advices
-  const advices = [
-    ['NO_DRIVE', 'ห้ามขับรถ', 'Do not drive', '', '', 1],
-    ['NO_ALCOHOL', 'ห้ามดื่มแอลกอฮอล์', 'No alcohol', '', '', 2],
-    ['PLENTY_WATER', 'ดื่มน้ำมากๆ', 'Drink plenty of water', '', '', 3],
-    ['FULL_COURSE', 'รับประทานให้ครบ', 'Complete full course', '', '', 4],
-    ['REFRIGERATE', 'เก็บในตู้เย็น', 'Keep refrigerated', '', '', 5],
-    ['SHAKE_WELL', 'เขย่าก่อนใช้', 'Shake well before use', '', '', 6],
-    ['EXTERNAL_ONLY', 'ใช้ภายนอกเท่านั้น', 'External use only', '', '', 7],
-    ['KEEP_DARK', 'เก็บในที่มืด', 'Keep away from light', '', '', 8],
-  ]
-  const insAdvice = db.prepare(`INSERT OR IGNORE INTO label_advices (code, name_th, name_en, name_mm, name_zh, sort_order) VALUES (?, ?, ?, ?, ?, ?)`)
-  for (const a of advices) insAdvice.run(...a)
 
   // Default label settings
   db.prepare(`INSERT OR IGNORE INTO label_settings DEFAULT VALUES`).run()

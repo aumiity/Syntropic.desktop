@@ -39,7 +39,14 @@
       "Bash(uniq -c -f1)",
       "Bash(echo \"EXIT: $?\")",
       "Bash(npm run *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "PowerShell(npm install *)",
+      "Bash(node -e 'const d=require\\('\\\\''./__TRACKED_VAR__.json'\\\\''\\); const a=Array.isArray\\(d\\)?d:\\(d.data||Object.values\\(d\\)[0]\\); console.log\\('\\\\''count:'\\\\'',a.length\\); console.log\\('\\\\''keys:'\\\\'',JSON.stringify\\(Object.keys\\(a[0]\\)\\)\\); console.log\\('\\\\''sample[0]:'\\\\'',JSON.stringify\\(a[0]\\)\\); console.log\\('\\\\''sample[1]:'\\\\'',JSON.stringify\\(a[1]\\)\\);')",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.build?.files||p.build||'NO build.files',null,2\\)\\); console.log\\('main:',p.main\\)\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('scripts:',JSON.stringify\\(p.scripts,null,2\\)\\)\")",
+      "Bash(ls -la *.config.* vite.config.*)",
+      "Bash(node -e ' *)",
+      "Bash(node scripts/gen-seed-data.mjs)"
     ]
   }
 }

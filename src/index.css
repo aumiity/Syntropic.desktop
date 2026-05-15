@@ -84,7 +84,7 @@
 
     /* Font stack — switchable via CSS Theme page. Quoted family names so the
        var substitutes directly into font-family lists. */
-    --font-latin: 'IBM Plex Sans Thai';
+    --font-latin: 'Inter';
     --font-thai: 'IBM Plex Sans Thai';
   }
 

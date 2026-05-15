@@ -429,8 +429,8 @@ export function registerProductHandlers() {
   ipcMain.handle('products:addUnit', (_e, data: any) => {
     const db = getDb()
     const result = db.prepare(`
-      INSERT INTO product_units (product_id, unit_id, barcode, qty_per_base, price_retail, price_wholesale1, price_wholesale2, is_for_sale, is_for_purchase)
-      VALUES (@product_id, @unit_id, @barcode, @qty_per_base, @price_retail, @price_wholesale1, @price_wholesale2, @is_for_sale, @is_for_purchase)
+      INSERT INTO product_units (product_id, unit_id, barcode, qty_per_base, price_retail, price_wholesale1, price_wholesale2, is_for_sale, is_for_purchase, is_disabled)
+      VALUES (@product_id, @unit_id, @barcode, @qty_per_base, @price_retail, @price_wholesale1, @price_wholesale2, @is_for_sale, @is_for_purchase, @is_disabled)
     `).run(data)
     return db.prepare(`SELECT pu.*, u.name as unit_name FROM product_units pu JOIN item_units u ON u.id = pu.unit_id WHERE pu.id = ?`).get(result.lastInsertRowid)
   })

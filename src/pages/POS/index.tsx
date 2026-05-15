@@ -600,8 +600,8 @@ export default function POSPage() {
                       ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
                       : 'bg-card text-foreground hover:bg-surface-hover'
                   }`}>
-                  <span className={`absolute top-3 right-3 grid place-items-center w-9 h-9 rounded-xl shrink-0 ${iconBox}`}>
-                    <Icon className="size-5" strokeWidth={2}/>
+                  <span className={`absolute top-3 right-3 grid place-items-center w-11 h-11 rounded-xl shrink-0 ${iconBox}`}>
+                    <Icon className="size-7" strokeWidth={2}/>
                   </span>
                   <span className="text-sm font-semibold leading-none pr-12">รายการขาย {i + 1}</span>
                   <div className="flex flex-col gap-1 w-full min-w-0 mt-auto">

@@ -14,6 +14,9 @@ out/
 *.db-shm
 *.db-wal
 
+# Large source SQL dump (206MB — exceeds GitHub 100MB limit, keep local only)
+electron/db/Hygeia.sql
+
 # Logs
 *.log
 npm-debug.log*
