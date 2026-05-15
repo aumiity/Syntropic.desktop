@@ -24,14 +24,14 @@ const badgeVariants = cva(
         tertiary: [
           "bg-tertiary text-tertiary-foreground",
         ].join(" "),
-        quaternary: [
-          "bg-quaternary text-quaternary-foreground",
+        "brand-soft": [
+          "bg-brand-soft text-brand-soft-foreground",
         ].join(" "),
-        quinary: [
-          "bg-quinary text-quinary-foreground",
+        "info-soft": [
+          "bg-info-soft text-info-soft-foreground",
         ].join(" "),
-        senary: [
-          "bg-senary text-senary-foreground",
+        warm: [
+          "bg-warm text-warm-foreground",
         ].join(" "),
         destructive:
           "bg-destructive text-white dark:bg-destructive-hover dark:text-white",

@@ -155,33 +155,35 @@ We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don
 - `default` — primary teal · main CTA, save, confirm
 - `secondary` — white/gray · cancel, dismiss
 - `tertiary` — yellow `#F5C24A` · accent CTA, attention
-- `quaternary` — light teal soft · subtle brand emphasis
-- `quinary` — light blue · info-style action (e.g. "ปรับสต็อก")
-- `senary` — soft amber/yellow · warm secondary (e.g. "แก้ไข")
+- `brand-soft` — light teal soft · subtle brand emphasis (was `quaternary`)
+- `info-soft` — light blue · info-style action, e.g. "ปรับสต็อก" (was `quinary`)
+- `warm` — soft amber/yellow · warm secondary, e.g. "แก้ไข" (was `senary`)
 - `outline` — muted bg with border · neutral icon buttons
 - `ghost` — transparent · tertiary minor actions
 - `destructive` — solid red · delete, void
 - `destructive2` — soft red tint · destructive secondary · **also the default for "ยกเลิก" / "ปิด" buttons in dialog footers** (NOT `outline` — outline-on-popover blends in and is hard to spot)
 - `success` — green · positive confirm (e.g. "เพิ่มสต็อก")
-- `warning` — gold solid · cautionary action
 - `link` — text-only
 
-**`<Badge>` variants** (`badge.tsx`): same names as Button + `danger` (solid destructive). Use for tags, statuses, FDA labels (`ข.ย.13`), tier markers.
+> **No more ordinal names.** `quaternary/quinary/senary` were renamed by *role* → `brand-soft/info-soft/warm`. The Button `warning` variant was removed (unused); use `warm` for caution-ish CTAs or `Badge variant="warning"` for status. Token values are unchanged.
+
+**`<Badge>` variants** (`badge.tsx`): same names as Button, **plus** `warning` (status) and `danger` (solid destructive) — both Badge-only. Use for tags, statuses, FDA labels (`ข.ย.13`), tier markers.
 
 **Semantic color tokens** (`index.css` — defined in both `:root` and `.dark`):
 - Brand: `primary`, `primary-soft`, `primary-soft-hover`, `primary-soft-border`, `primary-strong`, `primary-hover`, `primary-foreground`
 - Accent (yellow): `tertiary`, `accent`, `accent-soft`
 - Neutrals: `background`, `card`, `muted`, `muted-hover`, `popover`, `secondary`
-- Decorative surfaces: `quaternary` (light teal), `quinary` (light blue), `senary` (warm amber)
+- Decorative surfaces: `brand-soft` (light teal), `info-soft` (light blue), `warm` (warm amber) — each with `-foreground` / `-hover`
+- Radius: `--radius-card` (→ `rounded-card`, the single source of truth for card/panel corners) and `--radius-control` (→ `rounded-control`, buttons/inputs). Change card roundness app-wide by editing `--radius-card` in `index.css` only.
 - Status: `success`/`success-soft`, `warning`/`warning-soft`/`warning-strong`, `destructive`/`destructive-soft`/`destructive-strong`
 - Text: `foreground`, `muted-foreground`, `foreground-subtle`
 - Sidebar: `sidebar`, `sidebar-accent`, `sidebar-primary`, `sidebar-ring`
 
 **When writing new UI — guidelines:**
-1. **Differentiate actions by tint.** "Edit" `senary`, "Adjust stock" `quinary`, "Delete" `destructive`, primary save `default`, secondary toggle `tertiary`. Example: `Products/index.tsx` row actions use `senary` + `quinary` for visual distinction.
-2. **Decorative chips/status badges** → reach for `tertiary`/`quaternary`/`quinary`/`senary` before falling back to `secondary` or grey.
-3. **Section accents / soft backgrounds** → `bg-primary-soft`, `bg-quinary`, `bg-senary` (NOT `bg-muted` for everything).
-4. **Hover states** → use the matching `-hover` token (`primary-hover`, `quaternary-hover`, etc.) — already wired into the Button variants.
+1. **Differentiate actions by tint.** "Edit" `warm`, "Adjust stock" `info-soft`, "Delete" `destructive`, primary save `default`, secondary toggle `tertiary`. Example: `Products/index.tsx` row actions use `warm` + `info-soft` for visual distinction.
+2. **Decorative chips/status badges** → reach for `tertiary`/`brand-soft`/`info-soft`/`warm` before falling back to `secondary` or grey.
+3. **Section accents / soft backgrounds** → `bg-primary-soft`, `bg-info-soft`, `bg-warm` (NOT `bg-muted` for everything).
+4. **Hover states** → use the matching `-hover` token (`primary-hover`, `brand-soft-hover`, etc.) — already wired into the Button variants.
 5. **Missing role?** Add a new variant to `buttonVariants`/`badgeVariants` AND a matching token to `:root` + `.dark` in `index.css`. Never hardcode hex or Tailwind palette literals.
 
 ### Other conventions
@@ -194,7 +196,7 @@ We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don
 - Tables: `table.tsx` components.
   - **Sticky headers:** the `<Table>` wrapper renders `<div data-slot="table-container" className="… overflow-x-auto">`, which auto-promotes to a vertical scroll container too — meaning `sticky` on `<thead>` pins to *that* div, not the page-level scroll wrapper, so the header rides up with the rows. Fix: (a) on the parent, target the inner div via `[&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto` so it becomes the actual scroll element; (b) put `sticky top-0 z-10 bg-muted` on each `<th>` (NOT on `<thead>` — many renderers ignore sticky there). For a hairline that scrolls with the sticky cell, add `shadow-[0_1px_0_var(--border)]` per `<th>` (a plain `border-b` doesn't move with sticky and leaves a gap).
 - **Standard table-card layout (Products list and EditProduct tabs):**
-  - Outer wrapper: `bg-card rounded-2xl shadow-card overflow-hidden`
+  - Outer wrapper: `bg-card rounded-card shadow-card overflow-hidden` (`rounded-card` = the `--radius-card` token; never hardcode `rounded-2xl`/`rounded-xl` on cards)
   - **Background zones (HARD — don't mix up):** The card has four horizontal bands and the bg color is what tells them apart:
     1. **Section header bar** (description/count + Add button row): `bg-card` — **white, NO border**. This is the "title strip" sitting above the column headers. It flows into the muted column-header row below — the muted band itself is the visual separator, so don't add `border-b`.
     2. **Column header row** (`<thead>` with col names): `bg-muted text-foreground-subtle` — the **only** muted band. Sticky.

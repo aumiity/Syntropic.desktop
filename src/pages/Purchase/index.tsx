@@ -912,7 +912,7 @@ export default function PurchasePage() {
                           </label>
                           <Button
                             type="button"
-                            variant={supplierId ? 'quaternary' : 'outline'}
+                            variant={supplierId ? 'brand-soft' : 'outline'}
                             onClick={() => setShowSupplierModal(true)}
                             className="w-full h-10 justify-between px-3 rounded-lg text-sm"
                           >
@@ -957,13 +957,13 @@ export default function PurchasePage() {
                       <div className="px-5 py-2.5 flex items-center justify-between bg-card gap-3 shrink-0">
                         <span className="text-sm font-semibold text-foreground-subtle">รายการสินค้า</span>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="quaternary" onClick={() => { addRow(); focusCell(rows.length, 0) }} className="h-9 rounded-lg text-sm gap-1.5">
+                          <Button size="sm" variant="brand-soft" onClick={() => { addRow(); focusCell(rows.length, 0) }} className="h-9 rounded-lg text-sm gap-1.5">
                             <Plus className="size-3.5" /> เพิ่มแถว
                           </Button>
-                          <Button size="sm" variant="quinary" onClick={() => setShowImport(true)} className="h-9 rounded-lg text-sm gap-1.5">
+                          <Button size="sm" variant="info-soft" onClick={() => setShowImport(true)} className="h-9 rounded-lg text-sm gap-1.5">
                             <ClipboardPaste className="size-3.5" /> นำเข้าข้อมูล
                           </Button>
-                          <Button size="sm" variant="senary" onClick={openBillAdjust} className="h-9 rounded-lg text-sm gap-1.5">
+                          <Button size="sm" variant="warm" onClick={openBillAdjust} className="h-9 rounded-lg text-sm gap-1.5">
                             ปรับยอดท้ายบิล
                           </Button>
                           <label className="inline-flex items-center gap-2 h-9 px-3 rounded-lg cursor-pointer select-none text-sm font-medium transition-colors bg-muted text-muted-foreground hover:bg-muted-hover">
@@ -1214,7 +1214,7 @@ export default function PurchasePage() {
                           </div>
                         )}
                         <div className="bg-card border-t border-border px-5 py-2 flex items-center justify-between gap-3">
-                          <Badge variant="quaternary" className="text-sm rounded-md tabular-nums">{validRows.length}/{rows.length} รายการ</Badge>
+                          <Badge variant="brand-soft" className="text-sm rounded-md tabular-nums">{validRows.length}/{rows.length} รายการ</Badge>
                           <div className="flex items-center gap-6">
                             <span className="text-sm font-semibold text-foreground-subtle">มูลค่ารวมทั้งหมด</span>
                             <span className="font-extrabold text-primary text-base tabular-nums w-32 text-right">฿{formatCurrency(totalCost)}</span>
@@ -1274,7 +1274,7 @@ export default function PurchasePage() {
                                 <Button
                                   key={d}
                                   type="button"
-                                  variant="senary"
+                                  variant="warm"
                                   onClick={() => {
                                     const dt = new Date()
                                     dt.setDate(dt.getDate() + d)
@@ -1297,7 +1297,7 @@ export default function PurchasePage() {
                               <div className="flex gap-1">
                                 <Button
                                   type="button"
-                                  variant="quaternary"
+                                  variant="brand-soft"
                                   onClick={() => setPaidDate(today)}
                                   className="flex-1 h-8 rounded-lg text-sm font-semibold"
                                 >
@@ -1305,7 +1305,7 @@ export default function PurchasePage() {
                                 </Button>
                                 <Button
                                   type="button"
-                                  variant="senary"
+                                  variant="warm"
                                   onClick={() => dueDate && setPaidDate(dueDate)}
                                   disabled={!dueDate}
                                   className="flex-1 h-8 rounded-lg text-sm font-semibold"
@@ -1378,7 +1378,7 @@ export default function PurchasePage() {
                     label="ค้างชำระ"
                     value={`฿${formatCurrency(histSummary.unpaid_cost)}`}
                     icon={CreditCard}
-                    tint={histSummary.unpaid_cost > 0 ? 'destructive' : 'senary'}
+                    tint={histSummary.unpaid_cost > 0 ? 'destructive' : 'warm'}
                   />
                 </div>
 
@@ -1437,10 +1437,10 @@ export default function PurchasePage() {
                       <div className="flex gap-1.5 flex-wrap">
                         {(['all', 'cash', 'credit', 'cancelled'] as const).map(v => {
                           const active = histPaymentFilter === v
-                          const activeVariant: 'default' | 'quaternary' | 'senary' | 'destructive' =
+                          const activeVariant: 'default' | 'brand-soft' | 'warm' | 'destructive' =
                             v === 'all' ? 'default'
-                            : v === 'cash' ? 'quaternary'
-                            : v === 'credit' ? 'senary'
+                            : v === 'cash' ? 'brand-soft'
+                            : v === 'credit' ? 'warm'
                             : 'destructive'
                           return (
                             <Button
@@ -1505,8 +1505,8 @@ export default function PurchasePage() {
                                     ? <Badge variant="success" className="text-sm px-1.5 py-0">ชำระแล้ว</Badge>
                                     : isOverdue
                                       ? <Badge variant="destructive" className="text-sm px-1.5 py-0">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                                      : <Badge variant="senary" className="text-sm px-1.5 py-0">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                                  : <Badge variant="quaternary" className="text-sm px-1.5 py-0">เงินสด</Badge>
+                                      : <Badge variant="warm" className="text-sm px-1.5 py-0">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                                  : <Badge variant="brand-soft" className="text-sm px-1.5 py-0">เงินสด</Badge>
                               }
                             </div>
                           </Button>
@@ -1568,8 +1568,8 @@ export default function PurchasePage() {
                                         ? <Badge variant="success" className="text-sm">ชำระแล้ว</Badge>
                                         : isOverdue
                                           ? <Badge variant="destructive" className="text-sm">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                                          : <Badge variant="senary" className="text-sm">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                                      : <Badge variant="quaternary" className="text-sm">เงินสด</Badge>
+                                          : <Badge variant="warm" className="text-sm">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                                      : <Badge variant="brand-soft" className="text-sm">เงินสด</Badge>
                                   )}
                               </div>
                               {!isCancelled && (
@@ -1759,7 +1759,7 @@ export default function PurchasePage() {
                   </Button>
                   <Button
                     type="button"
-                    variant={editPaymentType === 'credit' ? 'warning' : 'secondary'}
+                    variant={editPaymentType === 'credit' ? 'warm' : 'secondary'}
                     onClick={() => setEditPaymentType('credit')}
                     className="flex-1 h-10 rounded-xl text-sm font-semibold gap-1.5"
                   >
@@ -1931,9 +1931,9 @@ export default function PurchasePage() {
                     return (
                       <Button
                         key={u.id}
-                        variant="senary"
+                        variant="warm"
                         onClick={() => changeRowUnit(unitModalIdx, u)}
-                        className={`w-full h-14 px-4 py-3 rounded-xl transition-colors ${active ? 'font-bold border-senary-foreground border-2' : ''}`}
+                        className={`w-full h-14 px-4 py-3 rounded-xl transition-colors ${active ? 'font-bold border-warm-foreground border-2' : ''}`}
                       >
                         <div className="relative flex items-center w-full">
                           <span className="w-full text-center text-xl">{u.unit_name}</span>
@@ -2163,7 +2163,7 @@ export default function PurchasePage() {
                           <Button
                             key={p}
                             type="button"
-                            variant={active ? (isDisc ? 'default' : 'warning') : 'outline'}
+                            variant={active ? (isDisc ? 'default' : 'warm') : 'outline'}
                             size="sm"
                             onClick={() => {
                               const newPct = active ? '' : p

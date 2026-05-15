@@ -33,17 +33,17 @@ const buttonVariants = cva(
           "bg-tertiary text-tertiary-foreground",
           "hover:bg-tertiary-hover [a]:hover:bg-tertiary/80",
         ].join(" "),
-        quaternary: [
-          "bg-quaternary text-quaternary-foreground",
-          "hover:bg-quaternary-hover [a]:hover:bg-quaternary/80",
+        "brand-soft": [
+          "bg-brand-soft text-brand-soft-foreground",
+          "hover:bg-brand-soft-hover [a]:hover:bg-brand-soft/80",
         ].join(" "),
-        quinary: [
-          "bg-quinary text-quinary-foreground",
-          "hover:bg-quinary-hover [a]:hover:bg-quinary/80",
+        "info-soft": [
+          "bg-info-soft text-info-soft-foreground",
+          "hover:bg-info-soft-hover [a]:hover:bg-info-soft/80",
         ].join(" "),
-        senary: [
-          "bg-senary text-senary-foreground",
-          "hover:bg-senary-hover [a]:hover:bg-senary/80",
+        warm: [
+          "bg-warm text-warm-foreground",
+          "hover:bg-warm-hover [a]:hover:bg-warm/80",
         ].join(" "),
         outline: [
           "border-transparent bg-muted",
@@ -63,7 +63,6 @@ const buttonVariants = cva(
         ].join(" "),
         link: "text-primary underline-offset-4 hover:underline",
         success: "bg-success text-success-foreground hover:bg-success-hover",
-        warning: "bg-warning text-warning-foreground hover:bg-warning-hover",
         destructive2: "bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive",
       },
       size: {

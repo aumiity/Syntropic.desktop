@@ -10,7 +10,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         type={type}
         data-slot="input"
         className={cn(
-          "h-8 w-full min-w-0",
+          "h-10 w-full min-w-0",
           "rounded-lg bg-input",
           "px-2.5 py-1",
           "text-sm outline-none transition-all",

@@ -37,12 +37,21 @@ const LATIN_FONTS: Array<{ value: string; label: string }> = [
   { value: "'Inter'", label: 'Inter' },
   { value: "'Google Sans'", label: 'Google Sans' },
   { value: "'SF Thonburi'", label: 'SF Thonburi' },
+  { value: "'IBM Plex Sans Thai'", label: 'IBM Plex Sans Thai' },
+  { value: "'Noto Sans Thai'", label: 'Noto Sans Thai' },
+  { value: "'Bai Jamjuree'", label: 'Bai Jamjuree' },
+  { value: "'Anuphan'", label: 'Anuphan' },
 ]
 
 const THAI_FONTS: Array<{ value: string; label: string }> = [
   { value: "'Sarabun'", label: 'Sarabun' },
+  { value: "'IBM Plex Sans Thai'", label: 'IBM Plex Sans Thai' },
   { value: "'IBM Plex Sans Thai Looped'", label: 'IBM Plex Sans Thai Looped' },
+  { value: "'Noto Sans Thai'", label: 'Noto Sans Thai' },
+  { value: "'Noto Sans Thai Looped'", label: 'Noto Sans Thai Looped' },
   { value: "'SF Thonburi'", label: 'SF Thonburi' },
+  { value: "'Bai Jamjuree'", label: 'Bai Jamjuree' },
+  { value: "'Anuphan'", label: 'Anuphan' },
 ]
 
 const LATIN_SAMPLE = 'The quick brown fox · 0123456789'

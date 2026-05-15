@@ -12,12 +12,12 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-4 overflow-hidden rounded-xl",
+        "group/card flex flex-col gap-4 overflow-hidden rounded-card",
         "bg-card py-4 text-sm text-card-foreground",
-        "ring-1 ring-foreground/10",
+        "shadow-card",
         "has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0",
         "data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0",
-        "*:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "*:[img:first-child]:rounded-t-card *:[img:last-child]:rounded-b-card",
         className
       )}
       {...props}
@@ -30,7 +30,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-        "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl",
+        "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-card",
         "px-4 group-data-[size=sm]/card:px-3",
         "has-data-[slot=card-action]:grid-cols-[1fr_auto]",
         "has-data-[slot=card-description]:grid-rows-[auto_auto]",
@@ -94,7 +94,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-footer"
       className={cn(
-        "flex items-center rounded-b-xl",
+        "flex items-center rounded-b-card",
         "border-t bg-muted/50",
         "p-4 group-data-[size=sm]/card:p-3",
         className
@@ -104,7 +104,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-type MetricTint = "primary" | "success" | "warning" | "destructive" | "secondary"
+type MetricTint = "primary" | "success" | "warning" | "destructive" | "secondary" | "warm" | "info-soft"
 type SectionTint = MetricTint
 
 function SectionCard({
@@ -122,11 +122,11 @@ function SectionCard({
     : tint === 'warning'   ? 'bg-warning-soft text-warning-strong'
     : tint === 'destructive' ? 'bg-destructive-soft text-destructive'
     : tint === 'secondary' ? 'bg-muted text-muted-foreground'
-    : tint === "senary"   ? "bg-senary text-senary-foreground"
-    : tint === "quinary"   ? "bg-quinary text-quinary-foreground"
+    : tint === "warm"   ? "bg-warm text-warm-foreground"
+    : tint === "info-soft"   ? "bg-info-soft text-info-soft-foreground"
     : 'bg-primary-soft text-primary'
   return (
-    <div className={cn('bg-card rounded-2xl p-4 space-y-3 shadow-card', className)}>
+    <div className={cn('bg-card rounded-card p-4 space-y-3 shadow-card', className)}>
       <div className="flex items-center gap-2.5">
         <span className={cn('grid place-items-center size-8 rounded-lg shrink-0', iconBox)}>
           <Icon className="size-4" />
@@ -165,8 +165,8 @@ function MetricCard({
     : tint === "warning"     ? "bg-warning-soft text-warning-strong"
     : tint === "destructive" ? "bg-destructive-soft text-destructive"
     : tint === "secondary"   ? "bg-muted text-muted-foreground"
-    : tint === "senary"   ? "bg-senary text-senary-foreground"
-    : tint === "quinary"   ? "bg-quinary text-quinary-foreground"
+    : tint === "warm"   ? "bg-warm text-warm-foreground"
+    : tint === "info-soft"   ? "bg-info-soft text-info-soft-foreground"
     : "bg-primary-soft text-primary"
   const valColor =
     tint === "success"     ? "text-success"
@@ -177,7 +177,7 @@ function MetricCard({
     <div
       data-slot="metric-card"
       className={cn(
-        "bg-card rounded-2xl p-4 shadow-card h-32 overflow-hidden relative",
+        "bg-card rounded-card p-4 shadow-card h-32 overflow-hidden relative",
         className
       )}
     >
@@ -212,11 +212,11 @@ function StatCard({
 }) {
   const iconBox =
     tint === "success"     ? "bg-success-soft text-success"
-    : tint === "warning"     ? "bg-senary text-senary-foreground"
+    : tint === "warning"     ? "bg-warm text-warm-foreground"
     : tint === "destructive" ? "bg-destructive-soft text-destructive"
     : tint === "secondary"   ? "bg-muted text-muted-foreground"
-    : tint === "senary"   ? "bg-senary text-senary-foreground"
-    : tint === "quinary"   ? "bg-quinary text-quinary-foreground"
+    : tint === "warm"   ? "bg-warm text-warm-foreground"
+    : tint === "info-soft"   ? "bg-info-soft text-info-soft-foreground"
     : "bg-primary-soft text-primary"
   const activeRing =
     !isActive ? "ring-0"
@@ -224,8 +224,8 @@ function StatCard({
     : tint === "warning"     ? "ring-2 ring-warning"
     : tint === "destructive" ? "ring-2 ring-destructive"
     : tint === "secondary"   ? "ring-2 ring-border-strong"
-    : tint === "senary"   ? "ring-2 ring-senary-foreground"
-    : tint === "quinary"   ? "ring-2 ring-quinary-foreground"
+    : tint === "warm"   ? "ring-2 ring-warm-foreground"
+    : tint === "info-soft"   ? "ring-2 ring-info-soft-foreground"
     : "ring-2 ring-primary"
   const interactive = onClick
     ? "cursor-pointer hover:shadow-md transition-all text-left"
@@ -237,7 +237,7 @@ function StatCard({
       disabled={!onClick}
       data-slot="stat-card"
       className={cn(
-        "bg-card rounded-2xl shadow-card px-4 py-3 flex items-center gap-3 disabled:cursor-default",
+        "bg-card rounded-card shadow-card px-4 py-3 flex items-center gap-3 disabled:cursor-default",
         activeRing,
         interactive,
         className,

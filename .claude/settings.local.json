@@ -27,7 +27,18 @@
       "Bash(git -C /Users/anya/Documents/GitHub/Syntropic.desktop stash pop)",
       "Bash(awk 'NR>=950 && NR<=1085' /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/Purchase/index.tsx)",
       "Bash(awk -F: '$2 ~ /Sell-price|Bill adjust/ || NR > 0')",
-      "Bash(awk *)"
+      "Bash(awk *)",
+      "Bash(curl -sSL -o BaiJamjuree-Regular.ttf  \"https://github.com/google/fonts/raw/main/ofl/baijamjuree/BaiJamjuree-Regular.ttf\")",
+      "Bash(curl -sSL -o BaiJamjuree-Medium.ttf   \"https://github.com/google/fonts/raw/main/ofl/baijamjuree/BaiJamjuree-Medium.ttf\")",
+      "Bash(curl -sSL -o BaiJamjuree-SemiBold.ttf \"https://github.com/google/fonts/raw/main/ofl/baijamjuree/BaiJamjuree-SemiBold.ttf\")",
+      "Bash(curl -sSL -o BaiJamjuree-Bold.ttf     \"https://github.com/google/fonts/raw/main/ofl/baijamjuree/BaiJamjuree-Bold.ttf\")",
+      "Bash(curl -sSL -o Anuphan-Regular.ttf  \"https://github.com/google/fonts/raw/main/ofl/anuphan/Anuphan%5Bwght%5D.ttf\")",
+      "Bash(curl -sSL \"https://api.github.com/repos/google/fonts/contents/ofl/ibmplexsansthai\")",
+      "Bash(curl -sSL \"https://api.github.com/repos/google/fonts/contents/ofl/notosansthailooped\")",
+      "Bash(sort -t: -k2)",
+      "Bash(uniq -c -f1)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(npm run *)"
     ]
   }
 }

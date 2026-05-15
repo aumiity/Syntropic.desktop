@@ -478,7 +478,7 @@ export default function ProductsPage() {
                       <div className="flex gap-1 mt-1 flex-wrap">
                         {isDisabled ? <Badge variant="secondary" className="text-[10px] rounded-md px-1.5 py-0">ปิดใช้งาน</Badge> : null}
                         {/* {row.is_antibiotic ? <Badge variant="warning" className="text-[10px] rounded-md px-1.5 py-0">ยาปฏิชีวนะ</Badge> : null} */}
-                        {row.is_fda13 ? <Badge variant="senary" className="text-[10px] rounded-md px-1.5 py-0">ข.ย.13</Badge> : null}
+                        {row.is_fda13 ? <Badge variant="warm" className="text-[10px] rounded-md px-1.5 py-0">ข.ย.13</Badge> : null}
                       </div>
                     </TableCell>
                     <TableCell className="text-center text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
@@ -786,7 +786,7 @@ export default function ProductsPage() {
                     key={r}
                     type="button"
                     size="sm"
-                    variant={adjustNote === r ? 'quinary' : 'outline'}
+                    variant={adjustNote === r ? 'info-soft' : 'outline'}
                     className="h-9 rounded-lg text-sm"
                     onClick={() => setAdjustNote(r)}
                   >

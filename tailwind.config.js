@@ -38,24 +38,24 @@ export default {
           foreground: 'hsl(var(--tertiary-foreground))',
           hover: 'hsl(var(--tertiary-hover))',
         },
-        quaternary: {
-          DEFAULT: 'hsl(var(--quaternary))',
-          foreground: 'hsl(var(--quaternary-foreground))',
-          hover: 'hsl(var(--quaternary-hover))',
+        'brand-soft': {
+          DEFAULT: 'hsl(var(--brand-soft))',
+          foreground: 'hsl(var(--brand-soft-foreground))',
+          hover: 'hsl(var(--brand-soft-hover))',
         },
-        quinary: {
-          DEFAULT: 'hsl(var(--quinary))',
-          foreground: 'hsl(var(--quinary-foreground))',
-          hover: 'hsl(var(--quinary-hover))',
+        'info-soft': {
+          DEFAULT: 'hsl(var(--info-soft))',
+          foreground: 'hsl(var(--info-soft-foreground))',
+          hover: 'hsl(var(--info-soft-hover))',
         },
         info: {
           DEFAULT: 'hsl(var(--info))',
           foreground: 'hsl(var(--info-foreground))',
         },
-        senary: {
-          DEFAULT: 'hsl(var(--senary))',
-          hover: 'hsl(var(--senary-hover))',
-          foreground: 'hsl(var(--senary-foreground))',
+        warm: {
+          DEFAULT: 'hsl(var(--warm))',
+          hover: 'hsl(var(--warm-hover))',
+          foreground: 'hsl(var(--warm-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -110,6 +110,8 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        card: 'var(--radius-card)',
+        control: 'var(--radius-control)',
       },
       fontFamily: {
         sans: ['var(--font-latin)', 'var(--font-thai)', 'sans-serif'],

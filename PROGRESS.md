@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: ✅ Runnable — Products-list adjust-stock rewritten with proper lot semantics (FEFO decrease / new-lot or merge-existing increase).
-## Last updated: 2026-05-14
+## Status: ✅ Runnable — Design-system consolidation phase 1: card radius tokenized, ordinal color tokens renamed by role, Theme page is now the standard showcase.
+## Last updated: 2026-05-15
 ## Run: `npm run electron:dev`
-## ⚠️ Next session: **ข.ย.10 / ข.ย.11 reports** — new report pages under `/reports/`. See NEXT SESSION section below.
+## ⚠️ Next session: **UI consistency sweep (phase 2)** — propagate the standard to all pages. See Session 2026-05-15 → "Next" below.
 
 ---
 
@@ -1389,3 +1389,27 @@ Operator pushback during this session: `text-xs` and arbitrary smaller values (`
   2. **Increase, new lot, cost = 0** — verify new `ADJ-...-001` lot appears in EditProduct → ล็อต tab; `products.cost_price` weighted-avg drops appropriately.
   3. **Increase, existing lot, cost = 0** — verify chosen lot's `qty_received` grows, `cost_price` is the new weighted average, and `lot_cost_logs` got a row.
   4. **Modal layout** — switch between modes; verify height stays at 860px and the note section stays pinned at the bottom.
+
+---
+
+## Session 2026-05-15 — Design-system consolidation (phase 1: foundation + showcase)
+
+Operator: app UI felt scattered; wants uniform look editable from one place (colors, radius, borders, card structure). Decisions made this session: card = `rounded-2xl` **via token**; ordinal color tokens **renamed by role** (values unchanged); unused Button variants **cut**; **showcase-first** — bring the Theme page to standard before touching other pages.
+
+### Done
+- **Radius tokenized.** Added `--radius-card: 1rem` + `--radius-control: 0.5rem` to `:root` + `.dark` (`index.css`); registered `rounded-card` / `rounded-control` in `tailwind.config.js`. Card roundness is now a one-file edit.
+- **Card components unified.** `Card` / `SectionCard` / `MetricCard` / `StatCard` → `rounded-card` + `shadow-card` (dropped `Card`'s odd `rounded-xl`+ring). Fixed `MetricTint`/`SectionTint` type to match impl.
+- **Ordinal tokens renamed by role** (pure rename, values unchanged — dark-mode-safe): `quaternary→brand-soft`, `quinary→info-soft`, `senary→warm`. Applied across `index.css`, `tailwind.config.js`, `button.tsx`, `badge.tsx`, `card.tsx`, `tabs.tsx`, `select.tsx`, `pages/{Products,Products/EditProduct,POS,Purchase,Theme}`. Residual ordinal tokens = 0.
+- **Button `warning` variant removed** (0 real uses; Purchase had 2 ternary uses → switched to `warm`). `Badge variant="warning"` kept (status). 
+- **Theme page (`/theme` → "คอมโพเนนต์") is now the standard showcase**: Section frame → `rounded-card`+`shadow-card`; all `text-xs`/`text-[11px]`/`text-[9px]` → `text-sm`; removed `bg-neutral-900` literal; added showcase sections for **SectionCard / MetricCard / StatCard**, **Standard Table-Card Layout**, and **Modal Layout** (2-col form + scrolling body).
+- **CLAUDE.md** updated: new variant names, Button-vs-Badge `warning` note, `--radius-card`/`rounded-card` standard, guideline examples re-pointed to `warm`/`info-soft`.
+
+### Verification
+- `npx tsc -p tsconfig.json --noEmit` — no NEW errors. Pre-existing baseline unchanged (EditProduct field props, `dialog.tsx` `icon-m`, `themeStore.ts` line 57).
+- Dev server boots clean (Vite + Electron). **Not visually verified by Claude** — operator to eyeball `/theme`, esp. dark-mode `brand-soft`/`warm`.
+
+### Next (phase 2 — consistency sweep, after operator reviews the showcase)
+1. Replace raw `<button>`/`<input>` with `Button`/`Input` — POS (2), EditProduct (1), Settings (input).
+2. Kill duplicated page-local helpers → shared components: `SummaryCard`→`MetricCard`, `NumInput`→`Input`, `FieldGroup`→`FormField`, `SectionTitle`; relocate `SortableHead`/`DaysCell`/`ExpiryDateCell` into `components/ui`.
+3. Remaining `text-xs` sweep (~115 across non-demo pages) → `text-sm`.
+4. Ad-hoc card wrappers (`rounded-lg/xl/2xl` mix in Purchase/POS/Products/Reports) → `rounded-card shadow-card`.

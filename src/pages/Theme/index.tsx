@@ -20,6 +20,7 @@ import { Switch } from '@/components/ui/switch'
 import {
   Card, CardHeader, CardTitle, CardDescription,
   CardContent, CardFooter, CardAction,
+  SectionCard, MetricCard, StatCard,
 } from '@/components/ui/card'
 import {
   Table, TableHeader, TableBody, TableRow,
@@ -41,6 +42,7 @@ import { Calendar } from '@/components/ui/calendar'
 import {
   Search, Plus, Edit, Trash2, Info,
   AlertTriangle, CheckCircle, Package, ChevronRight,
+  TrendingUp, FileText, Boxes, AlertCircle,
 } from 'lucide-react'
 
 const MODE_CARDS: { mode: ThemeMode; label: string }[] = [
@@ -61,12 +63,12 @@ function Section({
 }) {
   return (
     <div className={cn(
-      'rounded-xl border border-border bg-card overflow-hidden',
+      'rounded-card bg-card shadow-card overflow-hidden',
       full && 'col-span-full',
     )}>
-      <div className="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-3 gap-4">
-        <span className="font-semibold text-sm text-foreground">{title}</span>
-        <code className="text-[11px] font-mono text-muted-foreground bg-muted border border-border/60 px-2 py-0.5 rounded-md shrink-0">
+      <div className="flex items-center justify-between bg-muted px-5 py-3 gap-4">
+        <span className="font-semibold text-sm text-foreground-subtle">{title}</span>
+        <code className="text-sm font-mono text-muted-foreground bg-card border border-border px-2 py-0.5 rounded-md shrink-0">
           {path}
         </code>
       </div>
@@ -79,7 +81,7 @@ function DemoRow({ label, children }: { label?: string; children: React.ReactNod
   return (
     <div className="flex flex-col gap-2">
       {label && (
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <span className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
           {label}
         </span>
       )}
@@ -128,6 +130,9 @@ export default function Theme() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmDestrOpen, setConfirmDestrOpen] = useState(false)
   const [confirmReasonOpen, setConfirmReasonOpen] = useState(false)
+  const [formModalOpen, setFormModalOpen] = useState(false)
+  const [scrollModalOpen, setScrollModalOpen] = useState(false)
+  const [statFilter, setStatFilter] = useState<'all' | 'low' | 'out'>('all')
 
   return (
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
@@ -149,7 +154,7 @@ export default function Theme() {
               {/* ── Section 1 — Mode ────────────────────────── */}
               <section>
                 <h2 className="text-sm font-semibold text-foreground mb-1">โหมด</h2>
-                <p className="text-xs text-muted-foreground mb-4">เลือกลักษณะการแสดงผลของแอป</p>
+                <p className="text-sm text-muted-foreground mb-4">เลือกลักษณะการแสดงผลของแอป</p>
                 <div className="flex gap-4">
                   {MODE_CARDS.map(({ mode: m, label }) => {
                     const active = mode === m
@@ -168,12 +173,12 @@ export default function Theme() {
                           'w-full h-14 rounded-lg overflow-hidden border',
                           active ? 'border-primary-soft-border' : 'border-border',
                         )}>
-                          {m === 'light' && <div className="w-full h-full bg-white" />}
-                          {m === 'dark' && <div className="w-full h-full bg-neutral-900" />}
+                          {m === 'light' && <div className="w-full h-full" style={{ background: '#ffffff' }} />}
+                          {m === 'dark' && <div className="w-full h-full" style={{ background: '#171717' }} />}
                           {m === 'auto' && (
                             <div className="w-full h-full flex">
-                              <div className="w-1/2 h-full bg-white" />
-                              <div className="w-1/2 h-full bg-neutral-900" />
+                              <div className="w-1/2 h-full" style={{ background: '#ffffff' }} />
+                              <div className="w-1/2 h-full" style={{ background: '#171717' }} />
                             </div>
                           )}
                         </div>
@@ -192,7 +197,7 @@ export default function Theme() {
                     คืนค่าเริ่มต้น
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mb-4">เลือกสีหลักของแอปพลิเคชัน</p>
+                <p className="text-sm text-muted-foreground mb-4">เลือกสีหลักของแอปพลิเคชัน</p>
                 <div className="flex flex-wrap gap-3">
                   {ACCENT_PRESETS.map(p => (
                     <button
@@ -212,7 +217,7 @@ export default function Theme() {
                     title="กำหนดเอง"
                     onClick={() => setAccent('custom')}
                     className={cn(
-                      'w-10 h-10 rounded-full border-2 border-dashed border-border transition-all text-xs text-muted-foreground flex items-center justify-center',
+                      'w-10 h-10 rounded-full border-2 border-dashed border-border transition-all text-sm text-muted-foreground flex items-center justify-center',
                       accentKey === 'custom'
                         ? 'ring-2 ring-offset-2 ring-primary scale-110'
                         : 'hover:scale-110',
@@ -225,7 +230,7 @@ export default function Theme() {
                   <div className="mt-4 max-h-56 overflow-y-auto space-y-1">
                     {TAILWIND_FAMILIES.map(family => (
                       <div key={family.key} className="flex items-center gap-1">
-                        <span className="w-12 shrink-0 text-[11px] text-muted-foreground">{family.label}</span>
+                        <span className="w-12 shrink-0 text-sm text-muted-foreground">{family.label}</span>
                         {SHADES.map(shade => {
                           const colorKey = `${family.key}:${shade}`
                           const selected = customColorKey === colorKey
@@ -252,7 +257,7 @@ export default function Theme() {
               {/* ── Section 3 — Highlight ───────────────────── */}
               <section>
                 <h2 className="text-sm font-semibold text-foreground mb-1">สีไฮไลต์</h2>
-                <p className="text-xs text-muted-foreground mb-4">สีที่ใช้เมื่อเลือกข้อความ</p>
+                <p className="text-sm text-muted-foreground mb-4">สีที่ใช้เมื่อเลือกข้อความ</p>
                 <div className="flex flex-wrap gap-3">
                   {HIGHLIGHT_PRESETS.map(p => (
                     <button
@@ -269,7 +274,7 @@ export default function Theme() {
                       )}
                     >
                       {!p.color && (
-                        <span className="text-foreground-subtle text-[9px] font-bold">A</span>
+                        <span className="text-foreground-subtle text-sm font-bold">A</span>
                       )}
                     </button>
                   ))}
@@ -279,12 +284,12 @@ export default function Theme() {
               {/* ── Section 4 — Live Preview ────────────────── */}
               <section>
                 <h2 className="text-sm font-semibold text-foreground mb-1">ตัวอย่างสด</h2>
-                <p className="text-xs text-muted-foreground mb-4">แสดงผลด้วยสีธีมปัจจุบัน — เปลี่ยนค่าด้านบนเพื่อดูการเปลี่ยนแปลง</p>
+                <p className="text-sm text-muted-foreground mb-4">แสดงผลด้วยสีธีมปัจจุบัน — เปลี่ยนค่าด้านบนเพื่อดูการเปลี่ยนแปลง</p>
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex gap-6">
                       {/* Fake sidebar */}
-                      <div className="w-40 shrink-0 rounded-lg bg-sidebar text-sidebar-foreground p-3 space-y-2 text-xs">
+                      <div className="w-40 shrink-0 rounded-lg bg-sidebar text-sidebar-foreground p-3 space-y-2 text-sm">
                         <div className="font-semibold mb-3 text-sidebar-foreground">เมนู</div>
                         <div className="px-2 py-1.5 rounded bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                           รายการหลัก
@@ -325,15 +330,14 @@ export default function Theme() {
                   <Button variant="default">Default</Button>
                   <Button variant="secondary">Secondary</Button>
                   <Button variant="tertiary">Tertiary</Button>
-                  <Button variant="quaternary">Quaternary</Button>
-                  <Button variant="quinary">Quinary</Button>
-                  <Button variant="senary">Senary</Button>
+                  <Button variant="brand-soft">Brand-soft</Button>
+                  <Button variant="info-soft">Info-soft</Button>
+                  <Button variant="warm">Warm</Button>
                   <Button variant="outline">Outline</Button>
                   <Button variant="ghost">Ghost</Button>
                   <Button variant="destructive">Destructive</Button>
                   <Button variant="destructive2">Destructive2</Button>
                   <Button variant="success">Success</Button>
-                  <Button variant="warning">Warning</Button>
                   <Button variant="link">Link</Button>
                 </DemoRow>
                 <DemoRow label="Sizes">
@@ -368,9 +372,9 @@ export default function Theme() {
                   <Badge variant="default">Default</Badge>
                   <Badge variant="secondary">Secondary</Badge>
                   <Badge variant="tertiary">Tertiary</Badge>
-                  <Badge variant="quaternary">Quaternary</Badge>
-                  <Badge variant="quinary">Quinary</Badge>
-                  <Badge variant="senary">Senary</Badge>
+                  <Badge variant="brand-soft">Brand-soft</Badge>
+                  <Badge variant="info-soft">Info-soft</Badge>
+                  <Badge variant="warm">Warm</Badge>
                   <Badge variant="outline">Outline</Badge>
                   <Badge variant="success">Success</Badge>
                   <Badge variant="warning">Warning</Badge>
@@ -424,7 +428,7 @@ export default function Theme() {
                     value={inputVal}
                     onChange={e => setInputVal(e.target.value)}
                   />
-                  {inputVal && <span className="text-xs text-muted-foreground">ค่า: {inputVal}</span>}
+                  {inputVal && <span className="text-sm text-muted-foreground">ค่า: {inputVal}</span>}
                 </DemoRow>
                 <DemoRow label="Types">
                   <Input className="max-w-[140px]" type="number" placeholder="0.00" />
@@ -686,7 +690,7 @@ export default function Theme() {
                         <Package className="size-8 text-primary" />
                         <div>
                           <p className="font-semibold text-foreground">1,284</p>
-                          <p className="text-xs text-muted-foreground">รายการสินค้าทั้งหมด</p>
+                          <p className="text-sm text-muted-foreground">รายการสินค้าทั้งหมด</p>
                         </div>
                       </div>
                     </CardContent>
@@ -705,6 +709,185 @@ export default function Theme() {
                     </CardContent>
                   </Card>
                 </div>
+              </Section>
+
+              {/* ── DASHBOARD CARDS ── */}
+              <Section title="SectionCard · MetricCard · StatCard" path="src/components/ui/card.tsx" full>
+                <DemoRow label="SectionCard (form grouping)">
+                  <div className="grid grid-cols-2 gap-4 w-full">
+                    <SectionCard
+                      icon={Package}
+                      title="ข้อมูลสินค้า"
+                      tint="primary"
+                      right={<Button size="sm" variant="warm"><Edit /> แก้ไข</Button>}
+                    >
+                      <p className="text-sm text-muted-foreground">
+                        ใช้จัดกลุ่มฟอร์มในหน้า EditProduct / Settings — มี icon, title, slot ขวา
+                      </p>
+                    </SectionCard>
+                    <SectionCard icon={AlertTriangle} title="แจ้งเตือนสต็อก" tint="warning">
+                      <p className="text-sm text-muted-foreground">tint=&quot;warning&quot;</p>
+                    </SectionCard>
+                  </div>
+                </DemoRow>
+                <DemoRow label="MetricCard (read-only KPI)">
+                  <div className="grid grid-cols-3 gap-4 w-full">
+                    <MetricCard label="ยอดขายวันนี้" value="฿12,480" sub="+8% จากเมื่อวาน" icon={TrendingUp} tint="success" />
+                    <MetricCard label="บิลทั้งหมด" value="142" sub="วันนี้" icon={FileText} tint="primary" />
+                    <MetricCard label="สต็อกใกล้หมด" value="7" sub="ต่ำกว่าขั้นต่ำ" icon={AlertTriangle} tint="warning" />
+                  </div>
+                </DemoRow>
+                <DemoRow label="StatCard (clickable filter — active = ring)">
+                  <div className="grid grid-cols-3 gap-4 w-full">
+                    <StatCard label="ทั้งหมด" value="1,284" icon={Boxes} tint="primary"
+                      isActive={statFilter === 'all'} onClick={() => setStatFilter('all')} />
+                    <StatCard label="ใกล้หมด" value="7" icon={AlertTriangle} tint="warning"
+                      isActive={statFilter === 'low'} onClick={() => setStatFilter('low')} />
+                    <StatCard label="หมดสต็อก" value="3" icon={AlertCircle} tint="destructive"
+                      isActive={statFilter === 'out'} onClick={() => setStatFilter('out')} />
+                  </div>
+                </DemoRow>
+              </Section>
+
+              {/* ── STANDARD TABLE-CARD ── */}
+              <Section title="Standard Table-Card Layout" path="CLAUDE.md → UI Conventions" full>
+                <p className="text-sm text-muted-foreground">
+                  รูปแบบมาตรฐานของ Products list / EditProduct tabs — 4 แถบ:
+                  หัวข้อ (ขาว ไม่มีเส้น) · column header (muted, sticky) · เนื้อหา (ขาว) · แถบสรุป (ขาว + เส้นบน)
+                </p>
+                <div className="bg-card rounded-card shadow-card overflow-hidden">
+                  <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground flex items-center justify-between">
+                    <span>สินค้าทั้งหมด {PRODUCTS.length} รายการ</span>
+                    <Button size="sm" className="h-9 rounded-lg px-2"><Plus className="size-4" /> เพิ่มสินค้า</Button>
+                  </div>
+                  <Table className="table-fixed">
+                    <TableHeader className="[&_th]:bg-muted [&_th]:text-foreground-subtle">
+                      <TableRow>
+                        <TableHead className="w-64">ชื่อสินค้า</TableHead>
+                        <TableHead className="w-40">หมวดหมู่</TableHead>
+                        <TableHead className="w-32 text-right">ราคา (฿)</TableHead>
+                        <TableHead className="w-24 text-right">สต็อก</TableHead>
+                        <TableHead className="w-28">สถานะ</TableHead>
+                        <TableHead className="w-28">จัดการ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {PRODUCTS.map(row => (
+                        <TableRow key={row.id} className="hover:bg-primary-soft/60 transition-colors">
+                          <TableCell className="font-medium">{row.name}</TableCell>
+                          <TableCell><Badge variant="outline">{row.cat}</Badge></TableCell>
+                          <TableCell className="text-right font-mono">{row.price}</TableCell>
+                          <TableCell className="text-right tabular-nums">{row.stock.toLocaleString()}</TableCell>
+                          <TableCell><Badge variant={row.status}>{STATUS_LABEL[row.status]}</Badge></TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button size="icon-xl" variant="warm"><Edit /></Button>
+                              <Button size="icon-xl" variant="info-soft"><Trash2 /></Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="px-5 py-3 bg-card border-t border-border flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">แสดง {PRODUCTS.length} จาก {PRODUCTS.length} รายการ</span>
+                    <span className="font-semibold tabular-nums">รวมมูลค่า ฿ 57,450</span>
+                  </div>
+                </div>
+              </Section>
+
+              {/* ── MODAL LAYOUT ── */}
+              <Section title="Modal Layout (form + scrolling body)" path="src/components/ui/dialog.tsx" full>
+                <DemoRow label="Patterns">
+                  <Button variant="outline" onClick={() => setFormModalOpen(true)}>ฟอร์ม 2 คอลัมน์</Button>
+                  <Button variant="outline" onClick={() => setScrollModalOpen(true)}>เนื้อหายาว (body เลื่อน)</Button>
+                </DemoRow>
+                <p className="text-sm text-muted-foreground">
+                  ทุก modal: คลิกนอกไม่ปิด · Esc ปิด · Enter = ปุ่มหลัก · บังคับโครงสร้าง
+                  DialogHeader / DialogBody / DialogFooter · ปุ่ม &quot;ยกเลิก/ปิด&quot; ใช้ variant=&quot;destructive2&quot;
+                </p>
+
+                <Dialog open={formModalOpen} onOpenChange={setFormModalOpen}>
+                  <DialogContent size="lg" onClose={() => setFormModalOpen(false)}>
+                    <DialogHeader>
+                      <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
+                      <DialogDescription>ฟอร์มจัดวางแบบ 2 คอลัมน์ภายใน DialogBody</DialogDescription>
+                    </DialogHeader>
+                    <DialogBody>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label>ชื่อสินค้า <span className="text-destructive">*</span></Label>
+                          <Input placeholder="ระบุชื่อสินค้า..." />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>บาร์โค้ด</Label>
+                          <Input placeholder="สแกนหรือพิมพ์..." />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>หมวดหมู่</Label>
+                          <Select>
+                            <SelectTrigger className="w-full"><SelectValue placeholder="เลือก..." /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">ยาต้านเชื้อ</SelectItem>
+                              <SelectItem value="2">ยาแก้ปวด</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>หน่วยนับ</Label>
+                          <Select>
+                            <SelectTrigger className="w-full"><SelectValue placeholder="เลือก..." /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">เม็ด</SelectItem>
+                              <SelectItem value="2">แผง</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>ราคาขาย</Label>
+                          <Input type="number" placeholder="0.00" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>ราคาทุน</Label>
+                          <Input type="number" placeholder="0.00" />
+                        </div>
+                        <div className="col-span-2 space-y-1.5">
+                          <Label>หมายเหตุ</Label>
+                          <Textarea placeholder="ระบุหมายเหตุ (ถ้ามี)..." />
+                        </div>
+                        <div className="col-span-2 flex items-center gap-3">
+                          <Switch defaultChecked />
+                          <Label>เปิดขายสินค้านี้</Label>
+                        </div>
+                      </div>
+                    </DialogBody>
+                    <DialogFooter>
+                      <Button variant="destructive2" onClick={() => setFormModalOpen(false)}>ยกเลิก</Button>
+                      <Button onClick={() => { setFormModalOpen(false); toast('บันทึกสำเร็จ', 'success') }}>บันทึก</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={scrollModalOpen} onOpenChange={setScrollModalOpen}>
+                  <DialogContent size="md" onClose={() => setScrollModalOpen(false)}>
+                    <DialogHeader>
+                      <DialogTitle>เงื่อนไขการใช้งาน</DialogTitle>
+                      <DialogDescription>body เลื่อนภายใน — header / footer คงที่</DialogDescription>
+                    </DialogHeader>
+                    <DialogBody className="max-h-[50vh] overflow-y-auto space-y-3">
+                      {Array.from({ length: 14 }).map((_, i) => (
+                        <p key={i} className="text-sm text-muted-foreground">
+                          {i + 1}. ตัวอย่างเนื้อหายาวสำหรับทดสอบการเลื่อนภายใน body
+                          โดยที่ส่วนหัวและส่วนท้ายของ modal ยังคงอยู่กับที่เสมอ
+                        </p>
+                      ))}
+                    </DialogBody>
+                    <DialogFooter>
+                      <Button variant="destructive2" onClick={() => setScrollModalOpen(false)}>ปิด</Button>
+                      <Button onClick={() => setScrollModalOpen(false)}>รับทราบ</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </Section>
 
               {/* ── TABLE ── */}
@@ -793,7 +976,7 @@ export default function Theme() {
                     </DialogContent>
                   </Dialog>
                 </DemoRow>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Available sizes: <code className="font-mono">sm md lg xl 2xl full</code>
                 </p>
               </Section>
@@ -896,10 +1079,10 @@ export default function Theme() {
                 <DemoRow label="Interactive (10 pages)">
                   <Pagination page={page} totalPages={10} onPageChange={setPage} />
                 </DemoRow>
-                <p className="text-xs text-muted-foreground font-mono">
+                <p className="text-sm text-muted-foreground font-mono">
                   page = {page} / totalPages = 10
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Note: component renders <code className="font-mono">null</code> when <code className="font-mono">totalPages {'<='} 1</code>
                 </p>
               </Section>
@@ -926,7 +1109,7 @@ export default function Theme() {
                     <Info /> Info
                   </Button>
                 </DemoRow>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   ใช้ <code className="font-mono bg-muted px-1 rounded">useToast()</code> hook แล้วเรียก{' '}
                   <code className="font-mono bg-muted px-1 rounded">toast(message, type?, duration?)</code>.
                   Toast จะแสดงที่มุมขวาล่างของหน้าจอ
@@ -944,11 +1127,11 @@ export default function Theme() {
                       className="max-w-xs"
                     />
                     {dateVal && (
-                      <p className="text-xs text-muted-foreground font-mono">ISO: {dateVal}</p>
+                      <p className="text-sm text-muted-foreground font-mono">ISO: {dateVal}</p>
                     )}
                   </div>
                 </DemoRow>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   รับ / ส่งค่าเป็น ISO <code className="font-mono">yyyy-mm-dd</code>.
                   แสดงผลเป็น <code className="font-mono">dd/mm/yyyy</code>. มี calendar picker ในตัว.
                 </p>
@@ -966,13 +1149,13 @@ export default function Theme() {
                       className="max-w-xs"
                     />
                     {(rangeFrom || rangeTo) && (
-                      <p className="text-xs text-muted-foreground font-mono">
+                      <p className="text-sm text-muted-foreground font-mono">
                         {rangeFrom || '—'} → {rangeTo || '—'}
                       </p>
                     )}
                   </div>
                 </DemoRow>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   มี preset วันนี้ / เมื่อวาน / 7 วัน / 30 วัน / เดือนนี้ / เดือนที่แล้ว / ปีนี้ / ทั้งหมด
                 </p>
               </Section>
@@ -981,7 +1164,7 @@ export default function Theme() {
               <Section title="Calendar" path="src/components/ui/calendar.tsx" full>
                 <div className="grid grid-cols-2 gap-8 items-start">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                    <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                       Single Mode
                     </p>
                     <Calendar
@@ -990,13 +1173,13 @@ export default function Theme() {
                       onSelect={setCalDate}
                     />
                     {calDate && (
-                      <p className="text-xs text-muted-foreground mt-2 font-mono">
+                      <p className="text-sm text-muted-foreground mt-2 font-mono">
                         Selected: {calDate.toLocaleDateString('th-TH', { dateStyle: 'medium' })}
                       </p>
                     )}
                   </div>
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                    <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                       Range Mode — linked to DateRangePicker above
                     </p>
                     <Calendar
@@ -1011,7 +1194,7 @@ export default function Theme() {
                         }
                       numberOfMonths={1}
                     />
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-sm text-muted-foreground mt-2">
                       เลือกช่วงวันผ่าน DateRangePicker ด้านบนเพื่อดูผล
                     </p>
                   </div>

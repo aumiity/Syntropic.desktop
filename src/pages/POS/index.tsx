@@ -613,9 +613,9 @@ export default function POSPage() {
                         {pieces} รายการ
                       </span>
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant="senary" className="text-xs rounded-md">ขายส่ง</Badge>
+                        <Badge variant="warm" className="text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
-                        <Badge variant="quaternary" className="text-xs rounded-md">ขายปลีก</Badge>
+                        <Badge variant="brand-soft" className="text-xs rounded-md">ขายปลีก</Badge>
                       )}
                     </div>
                   </div>
@@ -626,7 +626,7 @@ export default function POSPage() {
               <Button variant="ghost"
                 onClick={() => setShowCustomerSearch(true)}
                 className="relative flex items-center gap-2 flex-1 min-h-0 p-1 rounded-xl hover:bg-transparent text-left">
-                <span className="grid place-items-center w-10 h-10 rounded-full shrink-0 bg-senary text-senary-foreground">
+                <span className="grid place-items-center w-10 h-10 rounded-full shrink-0 bg-warm text-warm-foreground">
                   <User className="size-6" />
                 </span>
                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
@@ -645,7 +645,7 @@ export default function POSPage() {
                 </div>
               </Button>
               <div className="grid grid-cols-2 gap-1.5 shrink-0">
-                <Button variant="senary"
+                <Button variant="warm"
                   onClick={() => setShowCustomerInfo(true)}
                   disabled={!cart.customer}
                   className="h-8 rounded-lg text-xs gap-1">
@@ -752,7 +752,7 @@ export default function POSPage() {
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm"
                           onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                          className="inline-flex items-center w-[80px] justify-center h-8 rounded-md bg-quinary text-quinary-foreground text-md font-semibold tabular-nums hover:bg-quinary transition-colors ">
+                          className="inline-flex items-center w-[80px] justify-center h-8 rounded-md bg-info-soft text-info-soft-foreground text-md font-semibold tabular-nums hover:bg-info-soft transition-colors ">
                           <span className="flex-1 text-center">{item.qty}</span>
                         </Button>
                       </TableCell>
@@ -1001,7 +1001,7 @@ export default function POSPage() {
             <Button variant="secondary" onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
               className="w-full h-14 justify-start px-4 py-3 rounded-xl text-foreground font-medium text-left transition-colors hover:bg-muted">
               <User className="size-10 p-1 bg-tertiary rounded-xl text-tertiary-foreground shrink-0" /> <span className="pl-2 text-sm" >ลูกค้าทั่วไป</span>
-              <Badge variant="senary" className="ml-auto text-xs rounded-md">ค่าเริ่มต้น</Badge>
+              <Badge variant="warm" className="ml-auto text-xs rounded-md">ค่าเริ่มต้น</Badge>
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto scrollbar-thin px-5 pb-2">
@@ -1175,9 +1175,9 @@ export default function POSPage() {
                             <span className="text-sm text-muted-foreground font-mono truncate">{cart.customer.code}</span>
                           ) : null}
                           {cart.saleType === 'wholesale' ? (
-                            <Badge variant="senary" className="text-xs rounded-md shrink-0">ขายส่ง</Badge>
+                            <Badge variant="warm" className="text-xs rounded-md shrink-0">ขายส่ง</Badge>
                           ) : (
-                            <Badge variant="quaternary" className="text-sm rounded-md shrink-0">ขายปลีก</Badge>
+                            <Badge variant="brand-soft" className="text-sm rounded-md shrink-0">ขายปลีก</Badge>
                           )}
                         </div>
                       </div>
@@ -1793,9 +1793,9 @@ export default function POSPage() {
                   {allUnits.map(u => {
                     const active = item?.unit_name === u.unit_name
                     return (
-                      <Button key={u.id} variant="senary"
+                      <Button key={u.id} variant="warm"
                         onClick={() => changeCartUnit(unitModalIdx, u)}
-                        className={`w-full h-14 px-4 py-3 rounded-xl transition-colors ${active ? 'font-bold border-senary-foreground border-2' : ''}`}>
+                        className={`w-full h-14 px-4 py-3 rounded-xl transition-colors ${active ? 'font-bold border-warm-foreground border-2' : ''}`}>
                         <div className="relative flex items-center w-full">
                           <span className="w-full text-center text-xl">{u.unit_name}</span>
                           {u.id === -1 && <Badge variant="tertiary" className="absolute right-0 rounded-lg">หลัก</Badge>}
@@ -1883,7 +1883,7 @@ export default function POSPage() {
                     const profit = opt.price - cost
                     const markupPct = cost > 0 ? (profit / cost) * 100 : 0
                     return (
-                      <Button key={i} variant="quaternary"
+                      <Button key={i} variant="brand-soft"
                         onClick={() => changeCartPrice(priceModalIdx, opt.price)}
                         className={`w-full h-auto px-4 py-3 rounded-xl transition-colors ${active ? 'ring-2 ring-inset ring-primary' : ''}`}>
                         <div className="space-y-1 w-full">
@@ -1972,7 +1972,7 @@ export default function POSPage() {
                 </div>
                 <div className="grid grid-cols-5 gap-2">
                   {[1, 5, 10, 20, 50].map(n => (
-                    <Button key={n} variant="quaternary" size="sm" onClick={() => setQtyInput(String(n))}
+                    <Button key={n} variant="brand-soft" size="sm" onClick={() => setQtyInput(String(n))}
                       className="h-10 rounded-xl text-base font-semibold tabular-nums transition-colors">
                       {n}
                     </Button>

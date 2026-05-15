@@ -20,17 +20,17 @@
     --tertiary: 43 100% 64%;
     --tertiary-foreground: 0 0% 10%;
     --tertiary-hover: 43 90% 54%;
-    --quaternary: 180 20% 90%;
-    --quaternary-foreground: 179 91% 22%;
-    --quaternary-hover: 180 20% 85%;
-    --quinary: 219 100% 94%;
-    --quinary-foreground: 219 30% 44%;
-    --quinary-hover: 219 100% 84%;
+    --brand-soft: 180 20% 90%;
+    --brand-soft-foreground: 179 91% 22%;
+    --brand-soft-hover: 180 20% 85%;
+    --info-soft: 219 100% 94%;
+    --info-soft-foreground: 219 30% 44%;
+    --info-soft-hover: 219 100% 84%;
     --info: 221 83% 53%;                /* iOS-blue ≈ blue-600 #2563EB */
     --info-foreground: 0 0% 100%;
-    --senary: 45 96% 90%;
-    --senary-hover: 45 96% 80%;
-    --senary-foreground: 32 88% 33%;
+    --warm: 45 96% 90%;
+    --warm-hover: 45 96% 80%;
+    --warm-foreground: 32 88% 33%;
     --muted: 0 0% 95%;
     --muted-foreground: 0 0% 10%;
     --muted-hover: 0 0% 88%;
@@ -44,6 +44,8 @@
     --input: 0 0% 95%;
     --ring: 175 35% 75%;
     --radius: 0.5rem;
+    --radius-card: 1rem;       /* card / panel corner — single source of truth */
+    --radius-control: 0.5rem;  /* button / input / select corner */
     --sidebar: 0 0% 100%;
     --sidebar-foreground: 0 0% 32%;
     --sidebar-border: 0 0% 90%;
@@ -82,8 +84,8 @@
 
     /* Font stack — switchable via CSS Theme page. Quoted family names so the
        var substitutes directly into font-family lists. */
-    --font-latin: 'Google Sans';
-    --font-thai: 'Sarabun';
+    --font-latin: 'IBM Plex Sans Thai';
+    --font-thai: 'IBM Plex Sans Thai';
   }
 
   .dark {
@@ -101,17 +103,17 @@
     --tertiary: 0 0% 15%;
     --tertiary-foreground: 0 0% 100%;
     --tertiary-hover: 0 0% 22%;
-    --quaternary: 180 20% 95%;
-    --quaternary-foreground: 179 91% 22%;
-    --quaternary-hover: 180 20% 80%;
-    --quinary: 219 100% 94%;
-    --quinary-foreground: 219 30% 44%;
-    --quinary-hover: 219 100% 84%;
+    --brand-soft: 180 20% 95%;
+    --brand-soft-foreground: 179 91% 22%;
+    --brand-soft-hover: 180 20% 80%;
+    --info-soft: 219 100% 94%;
+    --info-soft-foreground: 219 30% 44%;
+    --info-soft-hover: 219 100% 84%;
     --info: 221 83% 60%;                /* lighter blue for dark mode */
     --info-foreground: 0 0% 100%;
-    --senary: 43 25% 14%;
-    --senary-hover: 43 20% 22%;
-    --senary-foreground: 45 90% 80%;
+    --warm: 43 25% 14%;
+    --warm-hover: 43 20% 22%;
+    --warm-foreground: 45 90% 80%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 6% 10%;
     --muted-hover: 240 4% 25%;
@@ -134,6 +136,8 @@
     --primary-hover: 173 58% 35%;
     --destructive-hover: 3 100% 39%;
     --radius: 0.5rem;
+    --radius-card: 1rem;
+    --radius-control: 0.5rem;
 
     /* Extended semantic tokens (dark) */
     --foreground-subtle: 215 16% 47%;
@@ -279,6 +283,88 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   font-family: 'SF Thonburi';
   src: url('./assets/fonts/SF Thonburi Bold.ttf') format('truetype');
   font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Bai Jamjuree';
+  src: url('./assets/fonts/BaiJamjuree-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Bai Jamjuree';
+  src: url('./assets/fonts/BaiJamjuree-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Bai Jamjuree';
+  src: url('./assets/fonts/BaiJamjuree-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Bai Jamjuree';
+  src: url('./assets/fonts/BaiJamjuree-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Anuphan ships as a single variable font covering weights 100–700 */
+@font-face {
+  font-family: 'Anuphan';
+  src: url('./assets/fonts/Anuphan-Regular.ttf') format('truetype-variations');
+  font-weight: 100 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  src: url('./assets/fonts/IBMPlexSansThai-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  src: url('./assets/fonts/IBMPlexSansThai-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  src: url('./assets/fonts/IBMPlexSansThai-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  src: url('./assets/fonts/IBMPlexSansThai-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  src: url('./assets/fonts/IBMPlexSansThai-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Noto Sans Thai — variable font (weights 100–900, widths 62.5–100) */
+@font-face {
+  font-family: 'Noto Sans Thai';
+  src: url('./assets/fonts/NotoSansThai-Variable.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-stretch: 62.5% 100%;
+  font-style: normal;
+}
+
+/* Noto Sans Thai Looped — variable font (weights 100–900, widths 62.5–100) */
+@font-face {
+  font-family: 'Noto Sans Thai Looped';
+  src: url('./assets/fonts/NotoSansThaiLooped-Variable.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-stretch: 62.5% 100%;
   font-style: normal;
 }
 

@@ -671,10 +671,10 @@ export default function EditProductPage() {
             </div>
             <div className="flex items-center gap-1 flex-wrap min-h-[18px] mt-6">
               {!isNew && !!product.is_drug && <Badge variant="success" className="text-sm rounded-md px-1.5 py-0">ยา</Badge>}
-              {!isNew && !!product.is_fda9 && <Badge variant="quaternary" className="text-sm rounded-md px-1.5 py-0">ข.ย.9</Badge>}
-              {!isNew && !!product.is_fda10 && <Badge variant="senary" className="text-sm rounded-md px-1.5 py-0">ข.ย.10</Badge>}
+              {!isNew && !!product.is_fda9 && <Badge variant="brand-soft" className="text-sm rounded-md px-1.5 py-0">ข.ย.9</Badge>}
+              {!isNew && !!product.is_fda10 && <Badge variant="warm" className="text-sm rounded-md px-1.5 py-0">ข.ย.10</Badge>}
               {!isNew && !!product.is_fda11 && <Badge variant="destructive2" className="text-sm rounded-md px-1.5 py-0">ข.ย.11</Badge>}
-              {!isNew && !!product.is_fda13 && <Badge variant="quinary" className="text-sm rounded-md px-1.5 py-0">ข.ย.13</Badge>}
+              {!isNew && !!product.is_fda13 && <Badge variant="info-soft" className="text-sm rounded-md px-1.5 py-0">ข.ย.13</Badge>}
               {!isNew && !!product.is_disabled && <Badge variant="destructive" className="text-sm rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
               {!isNew && !!product.is_hidden && <Badge variant="secondary" className="text-sm rounded-md px-1.5 py-0">ซ่อน</Badge>}
             </div>
@@ -686,7 +686,7 @@ export default function EditProductPage() {
           value={isNew ? '—' : formatCurrency(product.cost_price)}
           sub={isNew ? undefined : (baseUnit ? `ต่อ ${baseUnit}` : undefined)}
           icon={Tag}
-          tint="senary"
+          tint="warm"
           className={isNew ? 'opacity-50' : ''}
         />
         <MetricCard
@@ -706,7 +706,7 @@ export default function EditProductPage() {
           value={isNew ? '—' : totalStock.toLocaleString()}
           sub={isNew ? undefined : baseUnit}
           icon={Boxes}
-          tint={isNew ? 'quinary' : (totalStock <= 0 ? 'destructive' : 'quinary')}
+          tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive' : 'info-soft')}
           className={isNew ? 'opacity-50' : ''}
         />
       </div>
@@ -1169,7 +1169,7 @@ export default function EditProductPage() {
                     <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
                     <TableCell className="text-center"><Check className="size-4 mx-auto text-success" /></TableCell>
                     <TableCell className="text-center"><Check className="size-4 mx-auto text-success" /></TableCell>
-                    <TableCell className="text-center"><Badge variant="senary" className="text-sm rounded-md">หลัก</Badge></TableCell>
+                    <TableCell className="text-center"><Badge variant="warm" className="text-sm rounded-md">หลัก</Badge></TableCell>
                     <TableCell className="text-center text-sm text-muted-foreground">แก้ไขที่แท็บข้อมูลทั่วไป</TableCell>
                   </TableRow>
                   {product.units?.map(u => (
@@ -1471,7 +1471,7 @@ export default function EditProductPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="senary" onClick={() => setPriceWarning([])}>กลับไปแก้ไข</Button>
+            <Button variant="warm" onClick={() => setPriceWarning([])}>กลับไปแก้ไข</Button>
             <Button variant="destructive" onClick={doSave} disabled={saving}>
               {saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
@@ -1495,7 +1495,7 @@ export default function EditProductPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button className="text-sm" variant="senary" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
+            <Button className="text-sm" variant="warm" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
             <Button className="text-sm" variant="destructive" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); navigate('/products') }}>
               ออกจากหน้านี้
             </Button>
