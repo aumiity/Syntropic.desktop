@@ -331,6 +331,7 @@ export default function Theme() {
                   <Button variant="secondary">Secondary</Button>
                   <Button variant="tertiary">Tertiary</Button>
                   <Button variant="brand-soft">Brand-soft</Button>
+                  <Button variant="primary-soft">Primary-soft</Button>
                   <Button variant="info-soft">Info-soft</Button>
                   <Button variant="warm">Warm</Button>
                   <Button variant="outline">Outline</Button>
@@ -748,7 +749,14 @@ export default function Theme() {
                   <div className="grid grid-cols-3 gap-4 w-full">
                     <MetricCard label="ยอดขายวันนี้" value="฿12,480" sub="+8% จากเมื่อวาน" icon={TrendingUp} tint="success" />
                     <MetricCard label="บิลทั้งหมด" value="142" sub="วันนี้" icon={FileText} tint="primary" />
-                    <MetricCard label="สต็อกใกล้หมด" value="7" sub="ต่ำกว่าขั้นต่ำ" icon={AlertTriangle} tint="warning" />
+                    <MetricCard
+                      label="คงเหลือ"
+                      value="48"
+                      sub="ชิ้น"
+                      icon={Boxes}
+                      tint="info-soft"
+                      badge={<Badge variant="warning"><AlertTriangle className="size-3" /> ใกล้หมดอายุ 2 ล็อต</Badge>}
+                    />
                   </div>
                 </DemoRow>
                 <DemoRow label="StatCard (clickable filter — active = ring)">
@@ -767,12 +775,14 @@ export default function Theme() {
               <Section title="Standard Table-Card Layout" path="CLAUDE.md → UI Conventions" full>
                 <p className="text-sm text-muted-foreground">
                   รูปแบบมาตรฐานของ Products list / EditProduct tabs — 4 แถบ:
-                  หัวข้อ (ขาว ไม่มีเส้น) · column header (muted, sticky) · เนื้อหา (ขาว เลื่อนได้) · แถบสรุป (ขาว + เส้นบน)
+                  หัวข้อ (ขาว ไม่มีเส้น, <code className="font-mono">h-12</code>) · column header (muted, sticky)
+                  · เนื้อหา (ขาว เลื่อนได้) · แถบสรุป (ขาว + เส้นบน, <code className="font-mono">h-12</code>)
+                  — ปุ่มในแถบบน/ล่าง ใช้ <code className="font-mono">h-9</code> (Button <code className="font-mono">size="lg"</code>)
                 </p>
                 <div className="bg-card rounded-card shadow-card overflow-hidden">
-                  <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground flex items-center justify-between">
+                  <div className="h-12 px-5 text-sm font-semibold text-muted-foreground flex items-center justify-between">
                     <span>สินค้าทั้งหมด {PRODUCTS.length * 3} รายการ</span>
-                    <Button size="sm" className="h-9 rounded-lg px-2"><Plus className="size-4" /> เพิ่มสินค้า</Button>
+                    <Button size="lg" className="px-2"><Plus className="size-4" /> เพิ่มสินค้า</Button>
                   </div>
                   <Table className="table-fixed" containerClassName="max-h-[260px]">
                     <TableHeader>
@@ -803,7 +813,7 @@ export default function Theme() {
                       ))}
                     </TableBody>
                   </Table>
-                  <div className="px-5 py-3 bg-card border-t border-border flex items-center justify-between text-sm">
+                  <div className="h-12 px-5 bg-card border-t border-border flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">แสดง {PRODUCTS.length * 3} จาก {PRODUCTS.length * 3} รายการ</span>
                     <span className="font-semibold tabular-nums">รวมมูลค่า ฿ 172,350</span>
                   </div>

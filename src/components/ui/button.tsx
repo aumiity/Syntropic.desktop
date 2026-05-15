@@ -37,6 +37,10 @@ const buttonVariants = cva(
           "bg-brand-soft text-brand-soft-foreground",
           "hover:bg-brand-soft-hover [a]:hover:bg-brand-soft/80",
         ].join(" "),
+        "primary-soft": [
+          "bg-primary-soft text-primary",
+          "hover:bg-primary-soft-hover [a]:hover:bg-primary-soft/80",
+        ].join(" "),
         "info-soft": [
           "bg-info-soft text-info-soft-foreground",
           "hover:bg-info-soft-hover [a]:hover:bg-info-soft/80",

@@ -143,6 +143,7 @@ function MetricCard({
   label,
   value,
   sub,
+  badge,
   icon: Icon,
   tint = "primary",
   className,
@@ -153,6 +154,7 @@ function MetricCard({
   label: string
   value: string
   sub?: string
+  badge?: React.ReactNode
   icon: React.ComponentType<{ className?: string }>
   tint?: MetricTint
   className?: string
@@ -188,6 +190,7 @@ function MetricCard({
         <div className={cn("text-base font-bold text-foreground truncate", labelClassName)} title={label}>{label}</div>
         <div className={cn("text-3xl font-bold tabular-nums leading-none truncate mt-1", valColor, valueClassName)} title={value}>{value}</div>
         {sub && <div className={cn("font-semibold text-sm text-muted-foreground tabular-nums leading-tight truncate", subClassName)}>{sub}</div>}
+        {badge && <div className="mt-1.5">{badge}</div>}
       </div>
     </div>
   )

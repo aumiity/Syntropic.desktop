@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Switch, Toggle } from '@/components/ui/switch'
 import { MetricCard, SectionCard } from '@/components/ui/card'
@@ -637,14 +638,23 @@ export default function EditProductPage() {
         title={isNew ? 'เพิ่มสินค้าใหม่' : 'สินค้า'}
         right={
           <>
-            <button onClick={goBack} className="text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <Button onClick={handleSave} disabled={saving || tab !== 'general'}
-              className={tab !== 'general' ? 'invisible pointer-events-none' : ''}>
-              <Save className="w-4 h-4 mr-1.5" />
-              {saving ? 'กำลังบันทึก...' : isNew ? 'เพิ่มสินค้า' : 'บันทึก'}
-            </Button>
+            {tab === 'general' ? (
+              <>
+                <Button variant="primary-soft" onClick={goBack}>
+                  <ArrowLeft className="w-4 h-4 mr-1.5" />
+                  ย้อนกลับ
+                </Button>
+                <Button onClick={handleSave} disabled={saving}>
+                  <Save className="w-4 h-4 mr-1.5" />
+                  {saving ? 'กำลังบันทึก...' : isNew ? 'เพิ่มสินค้า' : 'บันทึก'}
+                </Button>
+              </>
+            ) : (
+              <Button variant="primary-soft" onClick={goBack}>
+                <ArrowLeft className="w-4 h-4 mr-1.5" />
+                ย้อนกลับ
+              </Button>
+            )}
           </>
         }
       />
@@ -653,7 +663,7 @@ export default function EditProductPage() {
           but are grayed out — values aren't meaningful until the product exists. */}
       <div className="grid grid-cols-4 gap-3 shrink-0">
         {/* Meta card */}
-        <div className="bg-card rounded-2xl p-4 shadow-card h-32 overflow-hidden relative">
+        <div className="bg-card rounded-card p-4 shadow-card h-32 overflow-hidden relative flex flex-col">
           <span className={`absolute top-4 right-4 grid place-items-center size-11 rounded-xl bg-primary-soft text-primary ${isNew ? 'opacity-50' : ''}`}>
             <Package className="size-7" />
           </span>
@@ -669,15 +679,17 @@ export default function EditProductPage() {
               <span className="mx-1.5">·</span>
               <span>{isNew ? 'รอบันทึก' : (categoryName ?? 'ไม่ระบุ')}</span>
             </div>
-            <div className="flex items-center gap-1 flex-wrap min-h-[18px] mt-6">
-              {!isNew && !!product.is_drug && <Badge variant="success" className="text-sm rounded-md px-1.5 py-0">ยา</Badge>}
-              {!isNew && !!product.is_fda9 && <Badge variant="brand-soft" className="text-sm rounded-md px-1.5 py-0">ข.ย.9</Badge>}
-              {!isNew && !!product.is_fda10 && <Badge variant="warm" className="text-sm rounded-md px-1.5 py-0">ข.ย.10</Badge>}
-              {!isNew && !!product.is_fda11 && <Badge variant="destructive2" className="text-sm rounded-md px-1.5 py-0">ข.ย.11</Badge>}
-              {!isNew && !!product.is_fda13 && <Badge variant="info-soft" className="text-sm rounded-md px-1.5 py-0">ข.ย.13</Badge>}
-              {!isNew && !!product.is_disabled && <Badge variant="destructive" className="text-sm rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
-              {!isNew && !!product.is_hidden && <Badge variant="secondary" className="text-sm rounded-md px-1.5 py-0">ซ่อน</Badge>}
+          </div>
+          <div className="flex items-center justify-between gap-2 flex-wrap min-h-[18px] mt-auto">
+            <div className="flex items-center gap-1 flex-wrap">
+              {!isNew && !!product.is_drug && <Badge variant="success" className="text-xs rounded-md px-1.5 py-0">ยา</Badge>}
+              {!isNew && !!product.is_fda9 && <Badge variant="brand-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.9</Badge>}
+              {!isNew && !!product.is_fda10 && <Badge variant="warm" className="text-xs rounded-md px-1.5 py-0">ข.ย.10</Badge>}
+              {!isNew && !!product.is_fda11 && <Badge variant="destructive2" className="text-xs rounded-md px-1.5 py-0">ข.ย.11</Badge>}
+              {!isNew && !!product.is_fda13 && <Badge variant="info-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.13</Badge>}
+              {!isNew && !!product.is_hidden && <Badge variant="secondary" className="text-xs rounded-md px-1.5 py-0">ซ่อน</Badge>}
             </div>
+            {!isNew && !!product.is_disabled && <Badge variant="destructive" className="text-xs rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
           </div>
         </div>
 
@@ -705,6 +717,9 @@ export default function EditProductPage() {
           label="คงเหลือ"
           value={isNew ? '—' : totalStock.toLocaleString()}
           sub={isNew ? undefined : baseUnit}
+          badge={!isNew && nearExpiryCount > 0
+            ? <Badge variant="warning"><AlertTriangle className="size-3" /> ใกล้หมดอายุ {nearExpiryCount} ล็อต</Badge>
+            : undefined}
           icon={Boxes}
           tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive' : 'info-soft')}
           className={isNew ? 'opacity-50' : ''}
@@ -738,7 +753,7 @@ export default function EditProductPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {/* Row 1: รหัสสินค้า | คีย์เวิร์ดค้นหา */}
                   <Field label="รหัสสินค้า">
-                    <Input value={form.code} readOnly className="h-10 rounded-xl bg-muted cursor-not-allowed"
+                    <Input value={form.code} readOnly className="bg-muted cursor-not-allowed"
                             placeholder="สร้างอัตโนมัติ" />
                   </Field>
                   <Field label="คีย์เวิร์ดค้นหา">
@@ -746,7 +761,6 @@ export default function EditProductPage() {
                       value={form.search_keywords}
                       onChange={e => setF('search_keywords', e.target.value)}
                       placeholder="ชื่ออื่นๆ คั่นด้วยจุลภาค เช่น พารา,para,tylenol"
-                      className="h-10 rounded-xl"
                     />
                   </Field>
 
@@ -757,7 +771,6 @@ export default function EditProductPage() {
                         value={form.trade_name}
                         onChange={e => setF('trade_name', e.target.value)}
                         aria-invalid={errors.has('trade_name')}
-                        className="h-10 rounded-xl"
                       />
                     </Field>
                   </div>
@@ -765,14 +778,14 @@ export default function EditProductPage() {
                   {/* Row 3: ชื่อสำหรับพิมพ์ (full width) */}
                   <div className="col-span-2">
                     <Field label="ชื่อสำหรับพิมพ์">
-                      <Input value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" className="h-10 rounded-xl" />
+                      <Input value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" />
                     </Field>
                   </div>
 
                   {/* Row 4: หมวดหมู่ | หน่วยหลัก */}
                   <Field label="หมวดหมู่">
                     <Select value={String(form.category_id ?? 0)} onValueChange={v => setF('category_id', Number(v))}>
-                      <SelectTrigger className="h-10 w-full rounded-xl">
+                      <SelectTrigger className="h-10 w-full">
                         <SelectValue placeholder="— ไม่ระบุ —" />
                       </SelectTrigger>
                       <SelectContent>
@@ -784,7 +797,7 @@ export default function EditProductPage() {
                   <div data-field="unit_id">
                     <Field label="หน่วยหลัก" required>
                       <Select value={String(form.unit_id ?? 0)} onValueChange={v => setF('unit_id', Number(v) || null)}>
-                        <SelectTrigger aria-invalid={errors.has('unit_id')} className="h-10 w-full rounded-xl bg-muted">
+                        <SelectTrigger aria-invalid={errors.has('unit_id')} className="h-10 w-full">
                           <SelectValue placeholder="— เลือกหน่วย —" />
                         </SelectTrigger>
                         <SelectContent>
@@ -808,7 +821,7 @@ export default function EditProductPage() {
                         value={form.price_retail}
                         onChange={e => setF('price_retail', e.target.value)}
                         aria-invalid={errors.has('price_retail')}
-                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01"
+                        className="text-right tabular-nums" min={0} step="0.01"
                       />
                     </Field>
                   </div>
@@ -817,7 +830,7 @@ export default function EditProductPage() {
                   <div className="col-start-1 row-start-2">
                     <Field label="ราคาส่ง 1">
                       <Input type="number" value={form.price_wholesale1} onChange={e => setF('price_wholesale1', e.target.value)}
-                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
+                        className="text-right tabular-nums" min={0} step="0.01" />
                     </Field>
                   </div>
 
@@ -835,7 +848,7 @@ export default function EditProductPage() {
                       const ws1 = calc(parseFloat(form.price_wholesale1) || 0)
                       const ws2 = calc(parseFloat(form.price_wholesale2) || 0)
                       return (
-                        <div className="h-[calc(100%-1.75rem)] rounded-xl bg-muted/50 px-3 py-2 flex flex-col">
+                        <div className="h-[calc(100%-1.75rem)] rounded-lg bg-muted/50 px-3 py-2 flex flex-col">
                           {/* ราคาขายปลีก */}
                           <div className="flex-1 flex items-center justify-between tabular-nums">
                             <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>ราคาขายปลีก</span>
@@ -895,7 +908,7 @@ export default function EditProductPage() {
                   <div className="col-start-1 row-start-3">
                     <Field label="ราคาส่ง 2">
                       <Input type="number" value={form.price_wholesale2} onChange={e => setF('price_wholesale2', e.target.value)}
-                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" />
+                        className="text-right tabular-nums" min={0} step="0.01" />
                     </Field>
                   </div>
 
@@ -903,12 +916,12 @@ export default function EditProductPage() {
                   <div className="col-start-2 row-start-3">
                     <Field label="ราคาทุน">
                       <Input type="number" value={form.cost_price} onChange={e => setF('cost_price', e.target.value)}
-                        className="h-10 rounded-xl text-right tabular-nums" min={0} step="0.01" placeholder="คำนวณจากล็อต" />
+                        className="text-right tabular-nums" min={0} step="0.01" placeholder="คำนวณจากล็อต" />
                     </Field>
                   </div>
 
                   {/* col1 row4: มี VAT */}
-                  <div className="p-2 col-start-1 row-start-4 flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                  <div className="p-2 col-start-1 row-start-4 flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
                     <div>
                       <div className="text-sm font-semibold text-foreground">มี VAT</div>
                       <div className="text-sm text-muted-foreground">บวก 7% เมื่อออกใบกำกับภาษี</div>
@@ -917,7 +930,7 @@ export default function EditProductPage() {
                   </div>
 
                   {/* col2 row4: นับสต็อก */}
-                  <div className="col-start-2 row-start-4 flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                  <div className="col-start-2 row-start-4 flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
                     <div>
                       <div className="text-sm font-semibold text-foreground">นับสต็อก</div>
                       <div className="text-sm text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
@@ -930,27 +943,24 @@ export default function EditProductPage() {
 
               <SectionCard icon={FileText} title="หมายเหตุและคำบรรยาย" tint="secondary">
                 <Field label="สรรพคุณ">
-                  <textarea
+                  <Textarea
                     value={form.indication_note}
                     onChange={e => setF('indication_note', e.target.value)}
                     rows={3}
-                    className="w-full rounded-xl bg-input px-3 py-2 text-sm resize-none outline-none transition-all focus:ring-[2px] focus:ring-ring"
                   />
                 </Field>
                 <Field label="ผลข้างเคียง">
-                  <textarea
+                  <Textarea
                     value={form.side_effect_note}
                     onChange={e => setF('side_effect_note', e.target.value)}
                     rows={2}
-                    className="w-full rounded-xl bg-input px-3 py-2 text-sm resize-none outline-none transition-all focus:ring-[2px] focus:ring-ring"
                   />
                 </Field>
                 <Field label="หมายเหตุ">
-                  <textarea
+                  <Textarea
                     value={form.note}
                     onChange={e => setF('note', e.target.value)}
                     rows={2}
-                    className="w-full rounded-xl bg-input px-3 py-2 text-sm resize-none outline-none transition-all focus:ring-[2px] focus:ring-ring"
                   />
                 </Field>
               </SectionCard>
@@ -963,16 +973,16 @@ export default function EditProductPage() {
               <SectionCard icon={ScanBarcode} title="บาร์โค้ด" tint="secondary">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="บาร์โค้ด 1">
-                    <Input value={form.barcode} onChange={e => setF('barcode', e.target.value)} placeholder="ตัวเลข 13 หลัก" className="h-10 rounded-xl" />
+                    <Input value={form.barcode} onChange={e => setF('barcode', e.target.value)} placeholder="ตัวเลข 13 หลัก" />
                   </Field>
                   <Field label="บาร์โค้ด 2">
-                    <Input value={form.barcode2} onChange={e => setF('barcode2', e.target.value)} className="h-10 rounded-xl" />
+                    <Input value={form.barcode2} onChange={e => setF('barcode2', e.target.value)} />
                   </Field>
                   <Field label="บาร์โค้ด 3">
-                    <Input value={form.barcode3} onChange={e => setF('barcode3', e.target.value)} className="h-10 rounded-xl" />
+                    <Input value={form.barcode3} onChange={e => setF('barcode3', e.target.value)} />
                   </Field>
                   <Field label="บาร์โค้ด 4">
-                    <Input value={form.barcode4} onChange={e => setF('barcode4', e.target.value)} className="h-10 rounded-xl" />
+                    <Input value={form.barcode4} onChange={e => setF('barcode4', e.target.value)} />
                   </Field>
                 </div>
               </SectionCard>
@@ -980,18 +990,12 @@ export default function EditProductPage() {
               <SectionCard icon={Boxes} title="สต็อกและการแจ้งเตือน" tint="warning">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="จุดสั่งซื้อ">
-                    <Input type="number" value={form.reorder_point} onChange={e => setF('reorder_point', e.target.value)} className="h-10 rounded-xl" min={0} />
+                    <Input type="number" value={form.reorder_point} onChange={e => setF('reorder_point', e.target.value)} min={0} />
                   </Field>
                   <Field label="สต็อกปลอดภัย">
-                    <Input type="number" value={form.safety_stock} onChange={e => setF('safety_stock', e.target.value)} className="h-10 rounded-xl" min={0} />
+                    <Input type="number" value={form.safety_stock} onChange={e => setF('safety_stock', e.target.value)} min={0} />
                   </Field>
                 </div>
-                {nearExpiryCount > 0 && (
-                  <div className="flex items-center gap-2 rounded-xl bg-warning-soft px-3 py-2 text-xs text-warning-strong">
-                    <AlertTriangle className="size-4 shrink-0" />
-                    <span>มีล็อตใกล้หมดอายุ/หมดอายุแล้ว {nearExpiryCount} ล็อต — ดูที่แท็บล็อต</span>
-                  </div>
-                )}
               </SectionCard>
 
               <SectionCard
@@ -1029,7 +1033,7 @@ export default function EditProductPage() {
                           }))
                         }}
                       >
-                        <SelectTrigger className="h-10 w-full rounded-xl">
+                        <SelectTrigger className="h-10 w-full">
                           <SelectValue placeholder="— ไม่ระบุ —" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1046,34 +1050,34 @@ export default function EditProductPage() {
                           onFocus={() => setShowGenericSugg(true)}
                           onBlur={() => setTimeout(() => setShowGenericSugg(false), 200)}
                           placeholder="ค้นหาชื่อสามัญ..."
-                          className="h-10 rounded-xl"
                         />
                         {form.drug_generic_name_id > 0 && !showGenericSugg && (
-                          <div className="mt-1 text-xs text-muted-foreground">ID: {form.drug_generic_name_id}</div>
+                          <div className="mt-1 text-sm text-muted-foreground">ID: {form.drug_generic_name_id}</div>
                         )}
                         {showGenericSugg && genericSuggestions.length > 0 && (
-                          <div className="absolute left-0 top-full mt-1 z-50 w-full bg-popover border border-border rounded-xl shadow-card max-h-48 overflow-y-auto">
+                          <div className="absolute left-0 top-full mt-1 z-50 w-full bg-popover border border-border rounded-card shadow-card max-h-48 overflow-y-auto p-1">
                             {genericSuggestions.map(g => (
-                              <button
+                              <Button
                                 key={g.id}
                                 type="button"
+                                variant="ghost"
                                 onMouseDown={() => selectGeneric(g)}
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-primary-soft flex items-center gap-2"
+                                className="w-full h-auto justify-start px-3 py-2"
                               >
-                                <span className="flex-1">{g.name}</span>
-                                {g.is_antibiotic ? <Badge variant="warning" className="text-xs">ยาปฏิชีวนะ</Badge> : null}
-                              </button>
+                                <span className="flex-1 text-left">{g.name}</span>
+                                {g.is_antibiotic ? <Badge variant="warning">ยาปฏิชีวนะ</Badge> : null}
+                              </Button>
                             ))}
                           </div>
                         )}
                       </div>
                     </Field>
                     <Field label="TMT ID">
-                      <Input value={form.tmt_id} onChange={e => setF('tmt_id', e.target.value)} className="h-10 rounded-xl" />
+                      <Input value={form.tmt_id} onChange={e => setF('tmt_id', e.target.value)} />
                     </Field>
                     <div className="grid grid-cols-2 gap-3">
                       {/* ข.ย.9 — locked to is_drug, shown read-only */}
-                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                      <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
                         <div>
                           <div className="text-sm font-semibold text-foreground">ข.ย.9</div>
                           <div className="text-sm text-muted-foreground">บัญชีการซื้อยา (อัตโนมัติ)</div>
@@ -1081,7 +1085,7 @@ export default function EditProductPage() {
                         <Switch size="lg" checked={!!form.is_fda9} disabled />
                       </div>
                       {/* ข.ย.10 */}
-                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                      <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
                         <div>
                           <div className="text-sm font-semibold text-foreground">ข.ย.10</div>
                           <div className="text-sm text-muted-foreground">ขายยาควบคุมพิเศษ</div>
@@ -1089,7 +1093,7 @@ export default function EditProductPage() {
                         <Switch size="lg" checked={!!form.is_fda10} onCheckedChange={v => setF('is_fda10', v ? 1 : 0)} />
                       </div>
                       {/* ข.ย.11 */}
-                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                      <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
                         <div>
                           <div className="text-sm font-semibold text-foreground">ข.ย.11</div>
                           <div className="text-sm text-muted-foreground">ขายยาอันตราย (ที่ อ.ย. กำหนด)</div>
@@ -1097,7 +1101,7 @@ export default function EditProductPage() {
                         <Switch size="lg" checked={!!form.is_fda11} onCheckedChange={v => setF('is_fda11', v ? 1 : 0)} />
                       </div>
                       {/* ข.ย.13 */}
-                      <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                      <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
                         <div>
                           <div className="text-sm font-semibold text-foreground">ข.ย.13</div>
                           <div className="text-sm text-muted-foreground">ขายส่ง (เฉพาะร้านขายส่ง)</div>
@@ -1113,14 +1117,14 @@ export default function EditProductPage() {
 
               <SectionCard icon={EyeOff} title="สถานะ" tint="secondary">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                  <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
                     <div>
                       <div className="text-sm font-semibold text-foreground">ซ่อน</div>
                       <div className="text-sm text-muted-foreground">ซ่อนจากการค้นหา</div>
                     </div>
                     <Switch size="lg" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
                   </div>
-                  <div className="flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+                  <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
                     <div>
                       <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
                       <div className="text-sm text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
@@ -1137,31 +1141,31 @@ export default function EditProductPage() {
         {/* ======================== TAB: UNITS ======================== */}
         {tab === 'units' && (
           <div className="pt-4">
-            <div className="bg-card rounded-2xl shadow-card overflow-hidden">
-              <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
-                <span>หน่วยนับสำหรับซื้อ/ขายสินค้า</span>
+            <div className="bg-card rounded-card shadow-card overflow-hidden">
+              <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between h-12">
+                <span>หน่วยนับสำหรับซื้อ/ขายสินค้า · <span className="text-foreground tabular-nums">{(product.units?.length ?? 0) + 1}</span> หน่วย</span>
                 <Button onClick={openAddUnit} className="h-9 rounded-lg px-2 text-sm">
                   <Plus className="size-4" /> เพิ่มหน่วย
                 </Button>
               </div>
               <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
                 <Table>
-                  <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
+                  <TableHeader>
                     <TableRow>
-                      <TableHead className="text-foreground-subtle">หน่วย</TableHead>
-                      <TableHead className="text-center text-foreground-subtle">ตัวคูณ</TableHead>
-                      <TableHead className="text-right text-foreground-subtle">ราคาปลีก</TableHead>
-                      <TableHead className="text-right text-foreground-subtle">ราคาส่ง 1</TableHead>
-                      <TableHead className="text-right text-foreground-subtle">ราคาส่ง 2</TableHead>
-                      <TableHead className="text-center text-foreground-subtle">ขาย</TableHead>
-                      <TableHead className="text-center text-foreground-subtle">ซื้อ</TableHead>
-                      <TableHead className="text-center text-foreground-subtle">หน่วยหลัก</TableHead>
-                      <TableHead className="text-center text-foreground-subtle">จัดการ</TableHead>
+                      <TableHead>หน่วย</TableHead>
+                      <TableHead className="text-center">ตัวคูณ</TableHead>
+                      <TableHead className="text-right">ราคาปลีก</TableHead>
+                      <TableHead className="text-right">ราคาส่ง 1</TableHead>
+                      <TableHead className="text-right">ราคาส่ง 2</TableHead>
+                      <TableHead className="text-center">ขาย</TableHead>
+                      <TableHead className="text-center">ซื้อ</TableHead>
+                      <TableHead className="text-center">หน่วยหลัก</TableHead>
+                      <TableHead className="text-center">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                 <TableBody>
                   {/* Base unit row — sourced from the products table. Edited via General tab. */}
-                  <TableRow className="bg-primary-soft/30">
+                  <TableRow className="bg-primary-soft/30 h-10">
                     <TableCell className="font-semibold text-sm">{baseUnit}</TableCell>
                     <TableCell className="text-center text-sm tabular-nums">1</TableCell>
                     <TableCell className="text-right text-sm font-semibold tabular-nums">{formatCurrency(product.price_retail ?? 0)}</TableCell>
@@ -1169,7 +1173,7 @@ export default function EditProductPage() {
                     <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
                     <TableCell className="text-center"><Check className="size-4 mx-auto text-success" /></TableCell>
                     <TableCell className="text-center"><Check className="size-4 mx-auto text-success" /></TableCell>
-                    <TableCell className="text-center"><Badge variant="warm" className="text-sm rounded-md">หลัก</Badge></TableCell>
+                    <TableCell className="text-center"><Badge variant="warm" className="text-xs rounded-md">หลัก</Badge></TableCell>
                     <TableCell className="text-center text-sm text-muted-foreground">แก้ไขที่แท็บข้อมูลทั่วไป</TableCell>
                   </TableRow>
                   {product.units?.map(u => (
@@ -1214,9 +1218,9 @@ export default function EditProductPage() {
         {/* ======================== TAB: LABELS ======================== */}
         {tab === 'labels' && (
           <div className="pt-4">
-            <div className="bg-card rounded-2xl shadow-card overflow-hidden">
+            <div className="bg-card rounded-card shadow-card overflow-hidden">
               <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
-                <span>ฉลากยาสำหรับพิมพ์</span>
+                <span>ฉลากยาสำหรับพิมพ์ · <span className="text-foreground tabular-nums">{product.labels?.length ?? 0}</span> ฉลาก</span>
                 <Button onClick={openAddLabel} className="h-9 rounded-lg px-2 text-sm">
                   <Plus className="size-4" /> เพิ่มฉลาก
                 </Button>
@@ -1273,23 +1277,23 @@ export default function EditProductPage() {
         {/* ======================== TAB: LOTS ======================== */}
         {tab === 'lots' && (
           <div className="pt-4">
-            <div className="bg-card rounded-2xl shadow-card overflow-hidden">
-              <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center gap-2">
+            <div className="bg-card rounded-card shadow-card overflow-hidden">
+              <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center gap-2 h-12">
                 <Edit2 className="size-4 shrink-0" />
                 <span>คลิกไอคอนแก้ไขเพื่อแก้ข้อมูลล็อตโดยตรง — การเปลี่ยนจำนวนคงเหลือจะบันทึกในประวัติการเคลื่อนไหวสต็อกอัตโนมัติ</span>
               </div>
               <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-                <Table className="table-fixed">
-                  <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableHead className="w-36 text-foreground-subtle">Lot No.</TableHead>
-                      <TableHead className="text-foreground-subtle">ผู้จัดจำหน่าย</TableHead>
-                      <TableHead className="w-40 text-foreground-subtle">วันหมดอายุ</TableHead>
-                      <TableHead className="w-24 text-right text-foreground-subtle">รับเข้า</TableHead>
-                      <TableHead className="w-28 text-right text-foreground-subtle">คงเหลือ</TableHead>
-                      <TableHead className="w-32 text-right text-foreground-subtle">ราคาทุน</TableHead>
-                      <TableHead className="w-24 text-center text-foreground-subtle">สถานะ</TableHead>
-                      <TableHead className="w-32 text-center text-foreground-subtle">จัดการ</TableHead>
+                      <TableHead className="min-w-36">Lot No.</TableHead>
+                      <TableHead className="min-w-32">ผู้จัดจำหน่าย</TableHead>
+                      <TableHead className="min-w-40">วันหมดอายุ</TableHead>
+                      <TableHead className="min-w-24 text-right">รับเข้า</TableHead>
+                      <TableHead className="min-w-28 text-right">คงเหลือ</TableHead>
+                      <TableHead className="min-w-32 text-right">ราคาทุน</TableHead>
+                      <TableHead className="min-w-24 text-center">สถานะ</TableHead>
+                      <TableHead className="min-w-32 text-center">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                 <TableBody>
@@ -1310,7 +1314,7 @@ export default function EditProductPage() {
                           {/* Lot No. */}
                           <TableCell>
                             <Input value={lotEditForm.lot_number} onChange={e => setLotEditForm(f => ({ ...f, lot_number: e.target.value }))}
-                              className="h-9 w-full rounded-lg text-sm font-mono bg-card" />
+                              className="h-8 w-full rounded-lg text-sm font-mono bg-card" />
                           </TableCell>
                           {/* ผู้จัดจำหน่าย — read only */}
                           <TableCell className="text-sm">{(lot as any).supplier_name ?? '—'}</TableCell>
@@ -1318,7 +1322,7 @@ export default function EditProductPage() {
                           <TableCell>
                             <DateInput value={lotEditForm.expiry_date}
                               onChange={v => setLotEditForm(f => ({ ...f, expiry_date: v }))}
-                              className="h-9 w-full rounded-lg text-sm bg-card" />
+                              className="h-8 w-full rounded-lg text-sm [&_input]:bg-card" />
                           </TableCell>
                           {/* รับเข้า — read only */}
                           <TableCell className="text-right text-sm tabular-nums">{lot.qty_received}</TableCell>
@@ -1326,22 +1330,22 @@ export default function EditProductPage() {
                           <TableCell>
                             <Input type="number" value={lotEditForm.qty_on_hand}
                               onChange={e => setLotEditForm(f => ({ ...f, qty_on_hand: e.target.value }))}
-                              className="h-9 w-full rounded-lg text-right text-sm tabular-nums bg-card" min={0} />
+                              className="h-8 w-full rounded-lg text-right text-sm tabular-nums bg-card" min={0} />
                           </TableCell>
                           {/* ราคาทุน */}
                           <TableCell>
                             <Input type="number" value={lotEditForm.cost_price}
                               onChange={e => setLotEditForm(f => ({ ...f, cost_price: e.target.value }))}
-                              className="h-9 w-full rounded-lg text-right text-sm tabular-nums bg-card" min={0} step="0.01" />
+                              className="h-8 w-full rounded-lg text-right text-sm tabular-nums bg-card" min={0} step="0.01" />
                           </TableCell>
                           <TableCell />
                           {/* Save / Cancel */}
                           <TableCell>
                             <div className="flex items-center justify-center gap-2">
-                              <Button size="icon-xl" variant="success" onClick={handleSaveLot} disabled={lotSaving} title="บันทึก">
+                              <Button className="w-16" size="icon-lg" variant="success" onClick={handleSaveLot} disabled={lotSaving} title="บันทึก">
                                 <Check />
                               </Button>
-                              <Button size="icon-xl" variant="destructive" onClick={() => setEditingLotId(null)} disabled={lotSaving} title="ยกเลิก">
+                              <Button className="w-16" size="icon-lg" variant="destructive" onClick={() => setEditingLotId(null)} disabled={lotSaving} title="ยกเลิก">
                                 <X />
                               </Button>
                             </div>
@@ -1378,7 +1382,7 @@ export default function EditProductPage() {
                         <TableCell>
                           <div className="flex items-center justify-center">
                             {!lot.is_cancelled && (
-                              <Button size="icon-xl" variant="outline" onClick={() => startEditLot(lot)} title="แก้ไข">
+                              <Button className="w-16" size="icon-lg" variant="warm" onClick={() => startEditLot(lot)} title="แก้ไข">
                                 <Edit2 />
                               </Button>
                             )}
@@ -1390,7 +1394,7 @@ export default function EditProductPage() {
                 </TableBody>
               </Table>
               </div>
-              <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between">
+              <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between h-12">
                 <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{product.lots?.length ?? 0}</span> ล็อต</span>
                 <span className="flex items-center gap-3">
                   <span>ใช้งาน <span className="font-semibold text-success tabular-nums">{activeLotList.length}</span></span>
@@ -1409,10 +1413,9 @@ export default function EditProductPage() {
             <DialogTitle>{editingUnit ? 'แก้ไขหน่วยนับ' : 'เพิ่มหน่วยนับ'}</DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">หน่วยนับ <span className="text-destructive">*</span></label>
+            <Field label="หน่วยนับ" required>
               <Select value={String(unitForm.unit_id ?? 0)} onValueChange={v => setUnitForm((f: any) => ({ ...f, unit_id: Number(v) }))}>
-                <SelectTrigger className="h-10 w-full rounded-xl">
+                <SelectTrigger className="h-10 w-full">
                   <SelectValue placeholder="— เลือกหน่วย —" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1420,28 +1423,23 @@ export default function EditProductPage() {
                   {itemUnits.map(u => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">บาร์โค้ด</label>
+            </Field>
+            <Field label="บาร์โค้ด">
               <Input value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">จำนวนต่อหน่วยหลัก</label>
+            </Field>
+            <Field label="จำนวนต่อหน่วยหลัก">
               <Input type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="w-28" min={0.0001} step="0.0001" />
-            </div>
+            </Field>
             <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">ราคาปลีก</label>
+              <Field label="ราคาปลีก">
                 <Input type="number" value={unitForm.price_retail ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_retail: e.target.value }))} min={0} step="0.01" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">ราคาส่ง 1</label>
+              </Field>
+              <Field label="ราคาส่ง 1">
                 <Input type="number" value={unitForm.price_wholesale1 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale1: e.target.value }))} min={0} step="0.01" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">ราคาส่ง 2</label>
+              </Field>
+              <Field label="ราคาส่ง 2">
                 <Input type="number" value={unitForm.price_wholesale2 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale2: e.target.value }))} min={0} step="0.01" />
-              </div>
+              </Field>
             </div>
             <div className="flex flex-wrap gap-4 pt-1">
               <Toggle size="lg" checked={!!unitForm.is_for_sale} onChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))} label="ใช้ขาย" />
@@ -1449,8 +1447,8 @@ export default function EditProductPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUnitDialog(false)}>ยกเลิก</Button>
-            <Button onClick={handleSaveUnit} disabled={unitSaving}>{unitSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
+            <Button variant="destructive2" size="xl" onClick={() => setUnitDialog(false)}>ยกเลิก</Button>
+            <Button size="xl" onClick={handleSaveUnit} disabled={unitSaving}>{unitSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1471,8 +1469,8 @@ export default function EditProductPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="warm" onClick={() => setPriceWarning([])}>กลับไปแก้ไข</Button>
-            <Button variant="destructive" onClick={doSave} disabled={saving}>
+            <Button variant="destructive2" size="xl" onClick={() => setPriceWarning([])}>กลับไปแก้ไข</Button>
+            <Button variant="destructive" size="xl" onClick={doSave} disabled={saving}>
               {saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
           </DialogFooter>
@@ -1495,8 +1493,8 @@ export default function EditProductPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button className="text-sm" variant="warm" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
-            <Button className="text-sm" variant="destructive" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); navigate('/products') }}>
+            <Button variant="destructive2" size="xl" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
+            <Button variant="destructive" size="xl" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); navigate('/products') }}>
               ออกจากหน้านี้
             </Button>
           </DialogFooter>
@@ -1511,21 +1509,18 @@ export default function EditProductPage() {
           </DialogHeader>
           <DialogBody className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">ชื่อฉลาก</label>
+              <Field label="ชื่อฉลาก">
                 <Input value={labelForm.label_name ?? ''} onChange={e => setLF('label_name', e.target.value)} placeholder="เช่น วิธีรับประทานมาตรฐาน" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">ลำดับ</label>
+              </Field>
+              <Field label="ลำดับ">
                 <Input type="number" value={labelForm.sort_order ?? 0} onChange={e => setLF('sort_order', e.target.value)} className="w-24" min={0} />
-              </div>
+              </Field>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">ปริมาณยา</label>
+              <Field label="ปริมาณยา">
                 <Select value={String(labelForm.dosage_id ?? 0)} onValueChange={v => setLF('dosage_id', v)}>
-                  <SelectTrigger className="h-10 w-full rounded-xl">
+                  <SelectTrigger className="h-10 w-full">
                     <SelectValue placeholder="— เลือก —" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1533,11 +1528,10 @@ export default function EditProductPage() {
                     {labelDosages.map((d: any) => <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">ความถี่</label>
+              </Field>
+              <Field label="ความถี่">
                 <Select value={String(labelForm.frequency_id ?? 0)} onValueChange={v => setLF('frequency_id', v)}>
-                  <SelectTrigger className="h-10 w-full rounded-xl">
+                  <SelectTrigger className="h-10 w-full">
                     <SelectValue placeholder="— เลือก —" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1545,11 +1539,10 @@ export default function EditProductPage() {
                     {labelFrequencies.map((f: any) => <SelectItem key={f.id} value={String(f.id)}>{f.name_th}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">เวลาเทียบมื้ออาหาร</label>
+              </Field>
+              <Field label="เวลาเทียบมื้ออาหาร">
                 <Select value={String(labelForm.timing_id ?? 0)} onValueChange={v => setLF('timing_id', v)}>
-                  <SelectTrigger className="h-10 w-full rounded-xl">
+                  <SelectTrigger className="h-10 w-full">
                     <SelectValue placeholder="— เลือก —" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1557,11 +1550,10 @@ export default function EditProductPage() {
                     {labelMealRelations.map((m: any) => <SelectItem key={m.id} value={String(m.id)}>{m.name_th}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">เวลาที่รับประทาน</label>
+              </Field>
+              <Field label="เวลาที่รับประทาน">
                 <Select value={String(labelForm.label_time_id ?? 0)} onValueChange={v => setLF('label_time_id', v)}>
-                  <SelectTrigger className="h-10 w-full rounded-xl">
+                  <SelectTrigger className="h-10 w-full">
                     <SelectValue placeholder="— เลือก —" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1569,13 +1561,12 @@ export default function EditProductPage() {
                     {labelTimes.map((t: any) => <SelectItem key={t.id} value={String(t.id)}>{t.name_th}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
+              </Field>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">คำแนะนำ</label>
+            <Field label="คำแนะนำ">
               <Select value={String(labelForm.advice_id ?? 0)} onValueChange={v => setLF('advice_id', v)}>
-                <SelectTrigger className="h-10 w-full rounded-xl">
+                <SelectTrigger className="h-10 w-full">
                   <SelectValue placeholder="— เลือก —" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1583,31 +1574,23 @@ export default function EditProductPage() {
                   {labelAdvices.map((a: any) => <SelectItem key={a.id} value={String(a.id)}>{a.name_th}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">สรรพคุณ (ไทย)</label>
-              <textarea value={labelForm.indication_th ?? ''} onChange={e => setLF('indication_th', e.target.value)} rows={2}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring" />
-            </div>
+            <Field label="สรรพคุณ (ไทย)">
+              <Textarea value={labelForm.indication_th ?? ''} onChange={e => setLF('indication_th', e.target.value)} rows={2} />
+            </Field>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">สรรพคุณ (ภาษาพม่า)</label>
-                <textarea value={labelForm.indication_mm ?? ''} onChange={e => setLF('indication_mm', e.target.value)} rows={2}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">สรรพคุณ (ภาษาจีน)</label>
-                <textarea value={labelForm.indication_zh ?? ''} onChange={e => setLF('indication_zh', e.target.value)} rows={2}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring" />
-              </div>
+              <Field label="สรรพคุณ (ภาษาพม่า)">
+                <Textarea value={labelForm.indication_mm ?? ''} onChange={e => setLF('indication_mm', e.target.value)} rows={2} />
+              </Field>
+              <Field label="สรรพคุณ (ภาษาจีน)">
+                <Textarea value={labelForm.indication_zh ?? ''} onChange={e => setLF('indication_zh', e.target.value)} rows={2} />
+              </Field>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">หมายเหตุ (ไทย)</label>
-              <textarea value={labelForm.note_th ?? ''} onChange={e => setLF('note_th', e.target.value)} rows={2}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring" />
-            </div>
+            <Field label="หมายเหตุ (ไทย)">
+              <Textarea value={labelForm.note_th ?? ''} onChange={e => setLF('note_th', e.target.value)} rows={2} />
+            </Field>
 
             <div className="flex flex-wrap gap-4 pt-1">
               <Toggle size="lg" checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" />
@@ -1616,8 +1599,8 @@ export default function EditProductPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLabelDialog(false)}>ยกเลิก</Button>
-            <Button onClick={handleSaveLabel} disabled={labelSaving}>{labelSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
+            <Button variant="destructive2" size="xl" onClick={() => setLabelDialog(false)}>ยกเลิก</Button>
+            <Button size="xl" onClick={handleSaveLabel} disabled={labelSaving}>{labelSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1631,8 +1614,8 @@ export default function EditProductPage() {
           <DialogBody className="space-y-3">
             {confirmLot && (
               <>
-                <div className="bg-muted rounded-xl px-4 py-3">
-                  <div className="text-xs text-muted-foreground">ล็อต</div>
+                <div className="bg-muted rounded-card px-4 py-3">
+                  <div className="text-sm text-muted-foreground">ล็อต</div>
                   <div className="font-mono font-semibold text-sm">{confirmLot.lot_number}</div>
                 </div>
                 <div className="space-y-2">
@@ -1645,15 +1628,15 @@ export default function EditProductPage() {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   การแก้ไขจะถูกบันทึกในประวัติการเคลื่อนไหวสต็อกและไม่สามารถย้อนกลับได้ทันที
                 </p>
               </>
             )}
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" className="flex-1 h-10 rounded-xl" onClick={() => setConfirmLot(null)} disabled={lotSaving}>ยกเลิก</Button>
-            <Button onClick={confirmSaveLot} disabled={lotSaving} autoFocus className="flex-1 h-10 rounded-xl">
+            <Button variant="destructive2" size="xl" onClick={() => setConfirmLot(null)} disabled={lotSaving}>ยกเลิก</Button>
+            <Button size="xl" onClick={confirmSaveLot} disabled={lotSaving} autoFocus>
               {lotSaving ? 'กำลังบันทึก...' : 'ยืนยันการแก้ไข'}
             </Button>
           </DialogFooter>

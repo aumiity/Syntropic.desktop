@@ -11,6 +11,7 @@ interface AppearanceStore {
   customAccentHsl: string
   customColorKey: string
   highlightKey: string
+  isSidebarCollapsed: boolean
 
   setMode: (mode: ThemeMode) => void
   setAccent: (key: string) => void
@@ -19,6 +20,8 @@ interface AppearanceStore {
   setHighlight: (key: string) => void
   resetAccent: () => void
   applyTheme: () => void
+  toggleSidebar: () => void
+  setSidebarCollapsed: (v: boolean) => void
 
   // legacy compat used by other components
   theme: 'light' | 'dark'
@@ -54,6 +57,7 @@ export const useThemeStore = create<AppearanceStore>()(
       customAccentHsl: '',
       customColorKey: '',
       highlightKey: '',
+      isSidebarCollapsed: false,
       theme: '',
 
       applyTheme() {
@@ -137,6 +141,13 @@ export const useThemeStore = create<AppearanceStore>()(
       setTheme(t) { get().setMode(t) },
       toggleTheme() {
         get().setMode(get().theme === 'dark' ? 'light' : 'dark')
+      },
+
+      toggleSidebar() {
+        set({ isSidebarCollapsed: !get().isSidebarCollapsed })
+      },
+      setSidebarCollapsed(v) {
+        set({ isSidebarCollapsed: v })
       },
     }),
     {

@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { ToastProvider } from './components/ui/toast'
+import { TooltipProvider } from './components/ui/tooltip'
 import { useUserStore } from './stores/userStore'
 
 const POS = lazy(() => import('./pages/POS'))
@@ -31,6 +32,7 @@ export default function App() {
 
   return (
     <ToastProvider>
+     <TooltipProvider>
       <HashRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -53,6 +55,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </HashRouter>
+     </TooltipProvider>
     </ToastProvider>
   )
 }
