@@ -118,6 +118,32 @@ Each product can have multiple label templates combining dose_qty, frequency, me
 
 ## UI Conventions
 
+### Showcase is the source of truth (HARD)
+`/theme` (`src/pages/Theme/index.tsx`) is the canonical reference for every UI primitive — Button, Badge, Input, Select, Switch, Tabs, Dialog, Table, Popover, Pagination, Calendar, DateInput, DateRangePicker, Cards (Section/Metric/Stat), Standard Table-Card Layout, Modal Layout. Before adding or restyling UI:
+
+1. **Open `/theme` first.** Find the section that matches what you're building. Match it — that IS the design system. Don't reinvent.
+2. **Changing a primitive's default? Update its showcase demo in the same change.** The showcase must always reflect current truth.
+3. **Page-level overrides that fight defaults are smells.** If you keep writing `className="[&_th]:bg-muted ..."` for Tables, that styling belongs in `table.tsx` — push it to the primitive, remove the override. Many existing pages carry legacy overrides; clean opportunistically.
+4. **No matching pattern in the showcase?** Either use the closest adjacent pattern (90% of cases) or add the new pattern to the showcase **first**, then propagate. No ad-hoc decorations / custom radii / one-off hover states in feature pages.
+
+Current canonical defaults baked into primitives — **no override needed for these**:
+- **`Tabs`** — default variant = segmented (equal-width grid, sliding `primary` pill via `framer-motion` `layoutId` per-`TabsList` `useId()`). `pill` for sub-nav, `line` for tight underline. All variants use `primary` as the active color. Three variants only — `segmented` was renamed to `default`.
+- **`Select`** — popper position with `sideOffset={6}`, chevron rotates 180° when open (via `group-data-[state=open]:rotate-180`), panel width = trigger width, items have inset highlight (panel `p-2`), check icon on the right when selected (`pr-9` on items).
+- **`Table`** — `TableHead` is `sticky top-0 z-10 bg-muted text-foreground-subtle shadow-[0_1px_0_var(--border)]`. `TableRow` hover `bg-primary-soft/60`, selected `bg-primary-soft`. `TableCell` `py-1 px-2`. `<Table containerClassName="max-h-[NNNpx]">` makes the body scroll while the header stays.
+- **`Dialog`** — `DialogTitle` `text-xl` aligned with the X close button (`min-h-8 flex items-center`). Footer "ตกลง/บันทึก" and "ยกเลิก/ปิด" buttons commonly `size="xl"`. Cancel/Close = `variant="destructive2"`. `Switch` inside modals = `size="lg"`.
+- **`DateInput` / `DateRangePicker`** — `h-10` wrapper default, `bg-input rounded-lg`, calendar icon absolute on the right (`right-2.5`). **`className` targets the wrapper** (sizes the whole component); the inner Input/Button is `h-full w-full`. Don't pass `className="h-X"` to the Input — it'll desync the calendar button position.
+- **Card radius** — every floating panel-card uses `rounded-card` (`--radius-card`, 1rem). Every control / control-panel (Button, Input, SelectContent, PopoverContent) uses `rounded-lg` / `rounded-control` (`--radius`, 0.5rem). Don't mix `rounded-xl` / `rounded-2xl` literals; reach for the tokens.
+
+### Tailwind syntax trap (HARD)
+Project is on **Tailwind v3.4.4**, not v4. Arbitrary values for CSS variables must use **bracketed syntax**:
+- ✅ `w-[var(--radix-select-trigger-width)]`
+- ❌ `w-(--radix-select-trigger-width)` ← v4 shorthand, **silently dropped** in v3 (no error, just no CSS emitted)
+
+Same trap for `min-w-`, `max-w-`, `h-`, `min-h-`, `max-h-`, `bg-`, `text-`, `origin-`, etc. with CSS vars. shadcn CLI generated several primitives with v4 syntax — when touching `src/components/ui/*`, audit for this pattern. If a class "isn't doing anything", check whether it's v4 shorthand first.
+
+### Dependency installation
+`npm install` rebuilds native modules and breaks the `better-sqlite3` prebuilt binary. To add a library, use `npm install <pkg> --ignore-scripts` and verify `node_modules/better-sqlite3/build/Release/better_sqlite3.node` still exists. `framer-motion` was added this way for Tabs animation.
+
 ### Theming rules (HARD — do not break)
 The app must be re-themable by editing one file (`src/index.css`). To keep that guarantee:
 
@@ -145,7 +171,10 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - When adding a new modal, wire Enter on the primary input or via `onKeyDown` on the dialog body — call the same handler the OK button calls.
 7. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`, `tabular-nums`) are encouraged — only **color literals** are banned.
 8. **Icon sizing inside `<Button>` — use `size-N`, never `h-N w-N`.** `button.tsx` has `[&_svg:not([class*='size-'])]:size-4`, which silently snaps any descendant svg without `size-` in its className to 16px. `h-7 w-7` does not contain `size-`, so the rule still matches and — being more specific — overrides your value. Always write `<Icon className="size-7" />`, including arbitrary values (`size-[22px]`, not `h-[22px] w-[22px]`). Doesn't apply to icons in `<Input>`/`<Label>`/`<DialogTitle>`/plain `<div>`/raw `<button>` (not the Button component), or to the Button element's own outer dimensions.
-9. **Minimum text size is `text-sm` (HARD).** Don't use `text-xs` or arbitrary smaller values (`text-[10px]`, `text-[11px]`, `text-[13px]`) in new code. `text-sm` is the smallest allowed; scale up (`text-base`, `text-lg`, `text-xl`, …) from there. Applies to all new features and any UI you touch — existing legacy `text-xs` can be cleaned up opportunistically but is not a blocker.
+9. **Minimum text size is `text-sm` (HARD), with one carve-out.** Don't use `text-xs` or arbitrary smaller values (`text-[10px]`, `text-[11px]`, `text-[13px]`) in new code. `text-sm` is the smallest allowed; scale up (`text-base`, `text-lg`, `text-xl`, …) from there.
+   - **Allowed inside `<Badge>` only** — badges may use `text-xs` for visual density (chips/status tags).
+   - **Anywhere else, ask the user first before using `text-xs`.** This includes table cells, helper text, labels, captions — every case needs explicit per-use approval. Do not apply `text-xs` outside Badge without confirmation, even if it "looks better."
+   - Applies to all new features and any UI you touch — existing legacy `text-xs` can be cleaned up opportunistically but is not a blocker.
 
 ### Color palette & variants — USE THE FULL RANGE (HARD)
 

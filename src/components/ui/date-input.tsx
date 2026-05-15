@@ -1,5 +1,6 @@
 import * as React from "react"
 import { CalendarDays } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Input } from "./input"
 import { Button } from "./button"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
@@ -59,14 +60,14 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
     const selectedDate = isoToDate(value)
 
     return (
-      <div className="relative">
+      <div className={cn("relative h-10", className)}>
         <Input
           ref={ref}
           type="text"
           inputMode="numeric"
           placeholder={placeholder}
           value={text}
-          className={`pr-9 ${className ?? ''}`}
+          className="h-full w-full pr-9"
           onChange={e => {
             const formatted = autoFormat(e.target.value)
             setText(formatted)

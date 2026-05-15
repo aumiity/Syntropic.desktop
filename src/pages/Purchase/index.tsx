@@ -887,7 +887,7 @@ export default function PurchasePage() {
         onValueChange={(v) => setActiveTab(v as 'receive' | 'history')}
         className="flex-1 min-h-0"
       >
-        <TabsList variant="segmented" className="w-fit">
+        <TabsList className="w-fit">
           <TabsTrigger value="receive" className="px-8"><PackagePlus />รับสินค้า</TabsTrigger>
           <TabsTrigger value="history" className="px-8"><History />ประวัติการรับสินค้า</TabsTrigger>
         </TabsList>
@@ -2148,7 +2148,7 @@ export default function PurchasePage() {
                 <DialogBody className="p-0">
                   {/* Tabs */}
                   <Tabs value={billAdjustTab} onValueChange={(v) => setBillAdjustTab(v as 'discount' | 'surcharge')}>
-                    <TabsList variant="segmented" className="w-full">
+                    <TabsList className="w-full">
                       <TabsTrigger value="discount">ส่วนลด</TabsTrigger>
                       <TabsTrigger value="surcharge">ส่วนเพิ่ม</TabsTrigger>
                     </TabsList>

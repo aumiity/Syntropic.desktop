@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card'
 import {
   Table, TableHeader, TableBody, TableRow,
-  TableHead, TableCell, TableCaption,
+  TableHead, TableCell,
 } from '@/components/ui/table'
 import {
   Dialog, DialogTrigger, DialogContent, DialogHeader,
@@ -567,9 +567,9 @@ export default function Theme() {
 
               {/* ── TABS ── */}
               <Section title="Tabs" path="src/components/ui/tabs.tsx" full>
-                <DemoRow label="Default (Pill)">
+                <DemoRow label="Default — equal-width grid, primary active">
                   <Tabs defaultValue="overview" className="w-full">
-                    <TabsList variant="pill">
+                    <TabsList>
                       <TabsTrigger value="overview">ภาพรวม</TabsTrigger>
                       <TabsTrigger value="detail">รายละเอียด</TabsTrigger>
                       <TabsTrigger value="history">ประวัติ</TabsTrigger>
@@ -577,66 +577,80 @@ export default function Theme() {
                     </TabsList>
                     <TabsContent value="overview">
                       <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        เนื้อหาแท็บ <strong className="text-foreground">ภาพรวม</strong> — สรุปข้อมูลทั่วไป
+                        เนื้อหาแท็บ <strong className="text-foreground">ภาพรวม</strong> — ใช้สำหรับ navigation หลักของหน้า (ไม่ต้องระบุ variant)
                       </div>
                     </TabsContent>
                     <TabsContent value="detail">
                       <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        เนื้อหาแท็บ <strong className="text-foreground">รายละเอียด</strong> — ข้อมูลเพิ่มเติม
+                        เนื้อหาแท็บ <strong className="text-foreground">รายละเอียด</strong>
                       </div>
                     </TabsContent>
                     <TabsContent value="history">
                       <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        เนื้อหาแท็บ <strong className="text-foreground">ประวัติ</strong> — บันทึกการเปลี่ยนแปลง
+                        เนื้อหาแท็บ <strong className="text-foreground">ประวัติ</strong>
                       </div>
                     </TabsContent>
                   </Tabs>
                 </DemoRow>
-                <DemoRow label="Line Variant">
-                  <Tabs defaultValue="all" className="w-full">
+                <DemoRow label="Pill — transparent track, larger padding">
+                  <Tabs defaultValue="now" className="w-full">
                     <TabsList variant="pill">
-                      <TabsTrigger value="all">ทั้งหมด</TabsTrigger>
-                      <TabsTrigger value="active">ใช้งาน</TabsTrigger>
-                      <TabsTrigger value="expired">หมดอายุ</TabsTrigger>
+                      <TabsTrigger value="now">วันนี้</TabsTrigger>
+                      <TabsTrigger value="week">สัปดาห์นี้</TabsTrigger>
+                      <TabsTrigger value="month">เดือนนี้</TabsTrigger>
+                      <TabsTrigger value="year">ปีนี้</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="all">
-                      <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        แสดงทั้งหมด
-                      </div>
+                    <TabsContent value="now">
+                      <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">ข้อมูลวันนี้</div>
                     </TabsContent>
-                    <TabsContent value="active">
-                      <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        เฉพาะที่ใช้งานอยู่
-                      </div>
+                    <TabsContent value="week">
+                      <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">ข้อมูลสัปดาห์นี้</div>
                     </TabsContent>
-                    <TabsContent value="expired">
-                      <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        สินค้าหมดอายุ
-                      </div>
+                    <TabsContent value="month">
+                      <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">ข้อมูลเดือนนี้</div>
+                    </TabsContent>
+                    <TabsContent value="year">
+                      <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">ข้อมูลปีนี้</div>
                     </TabsContent>
                   </Tabs>
                 </DemoRow>
-                <DemoRow label="Vertical Orientation">
-                  <Tabs defaultValue="a" orientation="vertical" className="w-full max-w-sm">
+                <DemoRow label="Line — underline indicator">
+                  <Tabs defaultValue="info" className="w-full">
+                    <TabsList variant="line">
+                      <TabsTrigger value="info">ข้อมูลทั่วไป</TabsTrigger>
+                      <TabsTrigger value="units">หน่วยนับ</TabsTrigger>
+                      <TabsTrigger value="labels">ฉลากยา</TabsTrigger>
+                      <TabsTrigger value="lots">ล็อต</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="info">
+                      <div className="mt-3 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">ฟิลด์ข้อมูลทั่วไปของสินค้า</div>
+                    </TabsContent>
+                    <TabsContent value="units">
+                      <div className="mt-3 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">รายการหน่วยนับและราคา</div>
+                    </TabsContent>
+                    <TabsContent value="labels">
+                      <div className="mt-3 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">ฉลากยาแบบกำหนดเอง</div>
+                    </TabsContent>
+                    <TabsContent value="lots">
+                      <div className="mt-3 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">รายการล็อตและวันหมดอายุ</div>
+                    </TabsContent>
+                  </Tabs>
+                </DemoRow>
+                <DemoRow label="Vertical orientation (any variant)">
+                  <Tabs defaultValue="a" orientation="vertical" className="w-full max-w-md">
                     <TabsList variant="pill">
                       <TabsTrigger value="a">ข้อมูลยา</TabsTrigger>
                       <TabsTrigger value="b">คลังสินค้า</TabsTrigger>
                       <TabsTrigger value="c">ผู้จัดจำหน่าย</TabsTrigger>
                     </TabsList>
                     <TabsContent value="a">
-                      <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        ข้อมูลยา
-                      </div>
+                      <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">ข้อมูลยา</div>
                     </TabsContent>
                     <TabsContent value="b">
-                      <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        คลังสินค้า
-                      </div>
+                      <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">คลังสินค้า</div>
                     </TabsContent>
                     <TabsContent value="c">
-                      <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        ผู้จัดจำหน่าย
-                      </div>
+                      <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">ผู้จัดจำหน่าย</div>
                     </TabsContent>
                   </Tabs>
                 </DemoRow>
@@ -753,36 +767,36 @@ export default function Theme() {
               <Section title="Standard Table-Card Layout" path="CLAUDE.md → UI Conventions" full>
                 <p className="text-sm text-muted-foreground">
                   รูปแบบมาตรฐานของ Products list / EditProduct tabs — 4 แถบ:
-                  หัวข้อ (ขาว ไม่มีเส้น) · column header (muted, sticky) · เนื้อหา (ขาว) · แถบสรุป (ขาว + เส้นบน)
+                  หัวข้อ (ขาว ไม่มีเส้น) · column header (muted, sticky) · เนื้อหา (ขาว เลื่อนได้) · แถบสรุป (ขาว + เส้นบน)
                 </p>
                 <div className="bg-card rounded-card shadow-card overflow-hidden">
                   <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground flex items-center justify-between">
-                    <span>สินค้าทั้งหมด {PRODUCTS.length} รายการ</span>
+                    <span>สินค้าทั้งหมด {PRODUCTS.length * 3} รายการ</span>
                     <Button size="sm" className="h-9 rounded-lg px-2"><Plus className="size-4" /> เพิ่มสินค้า</Button>
                   </div>
-                  <Table className="table-fixed">
-                    <TableHeader className="[&_th]:bg-muted [&_th]:text-foreground-subtle">
+                  <Table className="table-fixed" containerClassName="max-h-[260px]">
+                    <TableHeader>
                       <TableRow>
                         <TableHead className="w-64">ชื่อสินค้า</TableHead>
                         <TableHead className="w-40">หมวดหมู่</TableHead>
                         <TableHead className="w-32 text-right">ราคา (฿)</TableHead>
                         <TableHead className="w-24 text-right">สต็อก</TableHead>
                         <TableHead className="w-28">สถานะ</TableHead>
-                        <TableHead className="w-28">จัดการ</TableHead>
+                        <TableHead className="w-40 text-center">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {PRODUCTS.map(row => (
-                        <TableRow key={row.id} className="hover:bg-primary-soft/60 transition-colors">
+                      {[...PRODUCTS, ...PRODUCTS, ...PRODUCTS].map((row, i) => (
+                        <TableRow key={`${row.id}-${i}`}>
                           <TableCell className="font-medium">{row.name}</TableCell>
                           <TableCell><Badge variant="outline">{row.cat}</Badge></TableCell>
                           <TableCell className="text-right font-mono">{row.price}</TableCell>
                           <TableCell className="text-right tabular-nums">{row.stock.toLocaleString()}</TableCell>
                           <TableCell><Badge variant={row.status}>{STATUS_LABEL[row.status]}</Badge></TableCell>
                           <TableCell>
-                            <div className="flex gap-1">
-                              <Button size="icon-xl" variant="warm"><Edit /></Button>
-                              <Button size="icon-xl" variant="info-soft"><Trash2 /></Button>
+                            <div className="flex gap-1.5 justify-center">
+                              <Button className="w-16" size="icon-lg" variant="warm"><Edit /></Button>
+                              <Button className="w-16" size="icon-lg" variant="destructive2"><Trash2 /></Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -790,8 +804,8 @@ export default function Theme() {
                     </TableBody>
                   </Table>
                   <div className="px-5 py-3 bg-card border-t border-border flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">แสดง {PRODUCTS.length} จาก {PRODUCTS.length} รายการ</span>
-                    <span className="font-semibold tabular-nums">รวมมูลค่า ฿ 57,450</span>
+                    <span className="text-muted-foreground">แสดง {PRODUCTS.length * 3} จาก {PRODUCTS.length * 3} รายการ</span>
+                    <span className="font-semibold tabular-nums">รวมมูลค่า ฿ 172,350</span>
                   </div>
                 </div>
               </Section>
@@ -856,14 +870,14 @@ export default function Theme() {
                           <Textarea placeholder="ระบุหมายเหตุ (ถ้ามี)..." />
                         </div>
                         <div className="col-span-2 flex items-center gap-3">
-                          <Switch defaultChecked />
+                          <Switch size="lg" defaultChecked />
                           <Label>เปิดขายสินค้านี้</Label>
                         </div>
                       </div>
                     </DialogBody>
                     <DialogFooter>
-                      <Button variant="destructive2" onClick={() => setFormModalOpen(false)}>ยกเลิก</Button>
-                      <Button onClick={() => { setFormModalOpen(false); toast('บันทึกสำเร็จ', 'success') }}>บันทึก</Button>
+                      <Button size="xl" variant="destructive2" onClick={() => setFormModalOpen(false)}>ยกเลิก</Button>
+                      <Button size="xl" onClick={() => { setFormModalOpen(false); toast('บันทึกสำเร็จ', 'success') }}>บันทึก</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -883,49 +897,11 @@ export default function Theme() {
                       ))}
                     </DialogBody>
                     <DialogFooter>
-                      <Button variant="destructive2" onClick={() => setScrollModalOpen(false)}>ปิด</Button>
-                      <Button onClick={() => setScrollModalOpen(false)}>รับทราบ</Button>
+                      <Button size="xl" variant="destructive2" onClick={() => setScrollModalOpen(false)}>ปิด</Button>
+                      <Button size="xl" onClick={() => setScrollModalOpen(false)}>รับทราบ</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
-              </Section>
-
-              {/* ── TABLE ── */}
-              <Section title="Table" path="src/components/ui/table.tsx" full>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ชื่อสินค้า</TableHead>
-                      <TableHead>หมวดหมู่</TableHead>
-                      <TableHead className="text-right">ราคาขาย (฿)</TableHead>
-                      <TableHead className="text-right">สต็อก</TableHead>
-                      <TableHead>สถานะ</TableHead>
-                      <TableHead className="w-20">จัดการ</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {PRODUCTS.map(row => (
-                      <TableRow key={row.id}>
-                        <TableCell className="font-medium">{row.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{row.cat}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">{row.price}</TableCell>
-                        <TableCell className="text-right">{row.stock.toLocaleString()}</TableCell>
-                        <TableCell>
-                          <Badge variant={row.status}>{STATUS_LABEL[row.status]}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon-sm"><Edit /></Button>
-                            <Button variant="ghost" size="icon-sm"><Trash2 /></Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                  <TableCaption>ตัวอย่างตารางสินค้า 4 รายการ</TableCaption>
-                </Table>
               </Section>
 
               {/* ── DIALOG ── */}

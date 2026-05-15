@@ -38,7 +38,8 @@
       "Bash(sort -t: -k2)",
       "Bash(uniq -c -f1)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npm install *)"
     ]
   }
 }

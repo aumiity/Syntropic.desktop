@@ -125,13 +125,15 @@ export function DateRangePicker({
           type="button"
           variant="outline"
           className={cn(
-            'h-10 w-full justify-start gap-2 rounded-xl bg-card border-0 px-3 text-sm font-normal hover:bg-muted',
+            'relative h-10 w-full justify-start font-normal',
+            'rounded-lg bg-input px-2.5 pr-9 text-sm',
+            'hover:bg-muted-hover',
             !from && !to ? 'text-foreground-subtle' : 'text-foreground',
             className,
           )}
         >
-          <CalendarDays className="size-4 text-primary shrink-0" />
           <span className="truncate flex-1 text-left">{display}</span>
+          <CalendarDays className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-foreground-subtle pointer-events-none" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 rounded-2xl shadow-lg overflow-hidden" align={align}>

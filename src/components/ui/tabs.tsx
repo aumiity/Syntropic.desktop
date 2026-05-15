@@ -3,6 +3,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Tabs as TabsPrimitive } from "radix-ui"
+import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 
@@ -32,15 +33,14 @@ const tabsListVariants = cva(
     "group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col",
     "data-[variant=line]:rounded-none",
     "data-[variant=pill]:rounded-none data-[variant=pill]:p-0 data-[variant=pill]:gap-1 data-[variant=pill]:group-data-horizontal/tabs:h-auto",
-    "data-[variant=segmented]:inline-grid data-[variant=segmented]:grid-flow-col data-[variant=segmented]:auto-cols-fr data-[variant=segmented]:rounded-xl data-[variant=segmented]:p-1 data-[variant=segmented]:gap-1 data-[variant=segmented]:group-data-horizontal/tabs:h-auto",
+    "data-[variant=default]:inline-grid data-[variant=default]:grid-flow-col data-[variant=default]:auto-cols-fr data-[variant=default]:rounded-xl data-[variant=default]:p-1 data-[variant=default]:gap-1 data-[variant=default]:group-data-horizontal/tabs:h-auto",
   ].join(" "),
   {
     variants: {
       variant: {
-        default: "bg-muted",
+        default: "bg-card shadow-card",
         line: "gap-1 bg-transparent",
         pill: "bg-transparent",
-        segmented: "bg-card",
       },
     },
     defaultVariants: {
@@ -49,28 +49,59 @@ const tabsListVariants = cva(
   }
 )
 
+type TabsListVariant = NonNullable<VariantProps<typeof tabsListVariants>["variant"]>
+
+const TabsListCtx = React.createContext<{ pillId: string; showPill: boolean }>({
+  pillId: "",
+  showPill: false,
+})
+
 function TabsList({
   className,
   variant = "default",
+  children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List> &
   VariantProps<typeof tabsListVariants>) {
+  const pillId = React.useId()
+  const showPill: boolean = variant === "default" || variant === "pill"
+
   return (
-    <TabsPrimitive.List
-      data-slot="tabs-list"
-      data-variant={variant}
-      className={cn(tabsListVariants({ variant }), className)}
-      {...props}
-    />
+    <TabsListCtx.Provider value={{ pillId, showPill }}>
+      <TabsPrimitive.List
+        data-slot="tabs-list"
+        data-variant={variant}
+        className={cn(tabsListVariants({ variant }), "relative", className)}
+        {...props}
+      >
+        {children}
+      </TabsPrimitive.List>
+    </TabsListCtx.Provider>
   )
 }
 
 function TabsTrigger({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  const { pillId, showPill } = React.useContext(TabsListCtx)
+  const ref = React.useRef<HTMLButtonElement>(null)
+  const [isActive, setIsActive] = React.useState(false)
+
+  React.useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const update = () => setIsActive(el.getAttribute("data-state") === "active")
+    update()
+    const mo = new MutationObserver(update)
+    mo.observe(el, { attributes: true, attributeFilter: ["data-state"] })
+    return () => mo.disconnect()
+  }, [])
+
   return (
     <TabsPrimitive.Trigger
+      ref={ref}
       data-slot="tabs-trigger"
       className={cn(
         "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center",
@@ -78,27 +109,22 @@ function TabsTrigger({
         "px-1.5 py-0.5",
         "text-sm font-medium whitespace-nowrap",
         "text-foreground/60 dark:text-muted-foreground",
-        "transition-all",
+        "transition-colors",
         "group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start",
         "hover:text-foreground dark:hover:text-foreground",
         "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring",
         "disabled:pointer-events-none disabled:opacity-50",
         "has-data-[icon=inline-end]:pr-1 has-data-[icon=inline-start]:pl-1",
-        "group-data-[variant=default]/tabs-list:data-[state=active]:shadow-sm",
-        "group-data-[variant=line]/tabs-list:data-[state=active]:shadow-none",
-        "group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent",
-        "dark:group-data-[variant=line]/tabs-list:data-[state=active]:border-transparent dark:group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent",
-        "data-[state=active]:bg-background data-[state=active]:text-foreground",
-        "dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 dark:data-[state=active]:text-foreground",
+        // DEFAULT — equal-width grid, white text when active (pill bg via framer)
+        "group-data-[variant=default]/tabs-list:rounded-lg group-data-[variant=default]/tabs-list:px-4 group-data-[variant=default]/tabs-list:py-3 group-data-[variant=default]/tabs-list:h-auto",
+        "group-data-[variant=default]/tabs-list:data-[state=active]:text-primary-foreground",
+        // PILL — white card inactive, white text when active (pill bg via framer)
         "group-data-[variant=pill]/tabs-list:rounded-lg group-data-[variant=pill]/tabs-list:px-4 group-data-[variant=pill]/tabs-list:py-1.5 group-data-[variant=pill]/tabs-list:h-auto",
         "group-data-[variant=pill]/tabs-list:bg-card group-data-[variant=pill]/tabs-list:border-transparent group-data-[variant=pill]/tabs-list:shadow-none",
-        "group-data-[variant=pill]/tabs-list:data-[state=active]:bg-primary group-data-[variant=pill]/tabs-list:data-[state=active]:text-primary-foreground group-data-[variant=pill]/tabs-list:data-[state=active]:shadow-none",
-        "dark:group-data-[variant=pill]/tabs-list:data-[state=active]:bg-primary dark:group-data-[variant=pill]/tabs-list:data-[state=active]:text-primary-foreground dark:group-data-[variant=pill]/tabs-list:data-[state=active]:border-transparent",
-        "group-data-[variant=segmented]/tabs-list:rounded-lg group-data-[variant=segmented]/tabs-list:px-4 group-data-[variant=segmented]/tabs-list:py-3 group-data-[variant=segmented]/tabs-list:h-auto",
-        "group-data-[variant=segmented]/tabs-list:bg-transparent group-data-[variant=segmented]/tabs-list:border-transparent group-data-[variant=segmented]/tabs-list:shadow-none",
-        "group-data-[variant=segmented]/tabs-list:data-[state=active]:bg-warm group-data-[variant=segmented]/tabs-list:data-[state=active]:text-warm-foreground group-data-[variant=segmented]/tabs-list:data-[state=active]:shadow-sm",
-        "dark:group-data-[variant=segmented]/tabs-list:data-[state=active]:bg-warm dark:group-data-[variant=segmented]/tabs-list:data-[state=active]:text-warm-foreground",
-        "after:absolute after:bg-foreground after:opacity-0 after:transition-opacity",
+        "group-data-[variant=pill]/tabs-list:data-[state=active]:text-primary-foreground",
+        // LINE — transparent, primary text + underline (no sliding pill)
+        "group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:text-primary group-data-[variant=line]/tabs-list:data-[state=active]:shadow-none",
+        "after:absolute after:bg-primary after:opacity-0 after:transition-opacity",
         "group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-[-5px] group-data-horizontal/tabs:after:h-0.5",
         "group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-vertical/tabs:after:w-0.5",
         "group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-100",
@@ -106,7 +132,19 @@ function TabsTrigger({
         className
       )}
       {...props}
-    />
+    >
+      {showPill && isActive && (
+        <motion.div
+          layoutId={pillId}
+          aria-hidden
+          className="absolute inset-0 rounded-lg bg-primary shadow-sm"
+          transition={{ type: "spring", bounce: 0.18, duration: 0.45 }}
+        />
+      )}
+      <span className="relative z-10 inline-flex items-center gap-1.5">
+        {children}
+      </span>
+    </TabsPrimitive.Trigger>
   )
 }
 
@@ -124,3 +162,4 @@ function TabsContent({
 }
 
 export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }
+export type { TabsListVariant }

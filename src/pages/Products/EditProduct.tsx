@@ -713,7 +713,7 @@ export default function EditProductPage() {
 
       <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]">
         <Tabs value={tab} onValueChange={setTab} className="items-center">
-          <TabsList variant="segmented">
+          <TabsList>
             <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
             <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
               <Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})

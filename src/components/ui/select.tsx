@@ -2,7 +2,7 @@ import * as React from "react"
 import { Select as SelectPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
-import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronUpIcon, CheckIcon } from "lucide-react"
 
 function Select({
   ...props
@@ -17,7 +17,7 @@ function SelectGroup({
   return (
     <SelectPrimitive.Group
       data-slot="select-group"
-      className={cn("scroll-my-1 p-1", className)}
+      className={cn("scroll-my-1", className)}
       {...props}
     />
   )
@@ -42,8 +42,8 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-fit items-center justify-between gap-1.5",
-        "rounded-lg",
+        "group flex w-fit items-center justify-between gap-1.5",
+        "rounded-control",
         "bg-muted dark:bg-input/30",
         "py-2 pr-2 pl-2.5",
         "text-sm whitespace-nowrap",
@@ -52,7 +52,6 @@ function SelectTrigger({
         "disabled:cursor-not-allowed disabled:opacity-50",
         "aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20",
         "data-placeholder:text-muted-foreground",
-        "data-[size=sm]:rounded-lg",
         "dark:hover:bg-input/50",
         "dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
         "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5",
@@ -63,7 +62,7 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
+        <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground transition-transform duration-150 group-data-[state=open]:rotate-180" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   )
@@ -72,41 +71,41 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
-  position = "item-aligned",
-  align = "center",
+  position = "popper",
+  align = "start",
+  sideOffset = 6,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         data-slot="select-content"
-        data-align-trigger={position === "item-aligned"}
         className={cn(
-          "relative z-50 max-h-(--radix-select-content-available-height) min-w-36",
-          "origin-(--radix-select-content-transform-origin)",
+          "relative z-50 max-h-[var(--radix-select-content-available-height)] w-[var(--radix-select-trigger-width)]",
+          "origin-[var(--radix-select-content-transform-origin)]",
           "overflow-x-hidden overflow-y-auto",
           "rounded-lg bg-popover text-popover-foreground",
-          "shadow-md ring-1 ring-foreground/10",
+          "shadow-card ring-1 ring-foreground/10",
+          "p-2",
           "duration-100",
-          "data-[align-trigger=true]:animate-none",
           "data-[side=bottom]:slide-in-from-top-2",
           "data-[side=left]:slide-in-from-right-2",
           "data-[side=right]:slide-in-from-left-2",
           "data-[side=top]:slide-in-from-bottom-2",
           "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
           "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          position === "popper" && "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
           className
         )}
         position={position}
         align={align}
+        sideOffset={sideOffset}
         {...props}
       >
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           data-position={position}
           className={cn(
-            "data-[position=popper]:h-(--radix-select-trigger-height) data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)",
+            "data-[position=popper]:w-full",
           )}
         >
           {children}
@@ -140,7 +139,7 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5",
-        "rounded-md py-2 pr-8 pl-1.5",
+        "rounded-control py-2.5 pl-3 pr-9",
         "text-sm outline-hidden select-none",
         "focus:bg-brand-soft focus:text-brand-soft-foreground",
         "not-data-[variant=destructive]:focus:**:text-brand-soft-foreground",
@@ -151,12 +150,12 @@ function SelectItem({
       )}
       {...props}
     >
-      <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center">
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      <span className="pointer-events-none absolute right-3 flex size-4 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
           <CheckIcon className="pointer-events-none" />
         </SelectPrimitive.ItemIndicator>
       </span>
-      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
   )
 }
@@ -168,7 +167,7 @@ function SelectSeparator({
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
-      className={cn("pointer-events-none -mx-1 my-1 h-px bg-border", className)}
+      className={cn("pointer-events-none -mx-2 my-1 h-px bg-border", className)}
       {...props}
     />
   )

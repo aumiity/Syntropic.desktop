@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
@@ -16,17 +16,18 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { StatCard } from '@/components/ui/card'
 import type { Product, ProductCategory, DrugType, ProductLot } from '@/types'
 import {
-  Search, Plus, Edit, AlertTriangle, Package, PackageX,
+  Search, Plus, Edit2, AlertTriangle, Package, PackageX,
   Boxes, ArrowUpCircle, ArrowDownCircle, Minus,
+  ArrowUp, ArrowDown, ArrowUpDown,
   Layers, FolderInput, Info,
 } from 'lucide-react'
 
 const QUICK_REASONS = [
+  'นับสต็อกประจำเดือน',
   'ปรับยอดให้ตรงระบบ',
   'สินค้าหมดอายุ',
   'สินค้าเสียหาย',
   'สินค้าสูญหาย',
-  'ของแถม',
 ]
 
 type SortField = 'trade_name' | 'unit_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
@@ -327,13 +328,13 @@ export default function ProductsPage() {
       return (
         <Badge variant="destructive" className="rounded-lg gap-1.5">
           <span className="size-1.5 rounded-full bg-white/90" />
-          หมด
+          หมดสต็อก
         </Badge>
       )
     }
     if (reorder > 0 && qty <= reorder) {
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning-soft px-2 py-0.5 text-sm font-semibold text-warning-strong">
+        <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning-strong">
           <AlertTriangle className="size-3" />
           {qty.toLocaleString()}
         </span>
@@ -384,12 +385,12 @@ export default function ProductsPage() {
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
-            className="h-10 pl-9 rounded-lg text-sm bg-card"
+            className="h-10 pl-9 rounded-xl text-sm bg-card"
           />
         </div>
 
         <Select value={String(categoryId)} onValueChange={v => setCategoryId(Number(v))}>
-          <SelectTrigger className="h-10 w-48 rounded-lg bg-card text-sm border-0">
+          <SelectTrigger className="h-10 w-48 rounded-xl bg-card text-sm border-0">
             <SelectValue placeholder="หมวดหมู่ทั้งหมด" />
           </SelectTrigger>
           <SelectContent>
@@ -401,7 +402,7 @@ export default function ProductsPage() {
         </Select>
 
         <Select value={String(drugTypeId)} onValueChange={v => setDrugTypeId(Number(v))}>
-          <SelectTrigger className="h-10 w-48 rounded-lg bg-card text-sm border-0">
+          <SelectTrigger className="h-10 w-48 rounded-xl bg-card text-sm border-0">
             <SelectValue placeholder="ประเภทยาทั้งหมด" />
           </SelectTrigger>
           <SelectContent>
@@ -412,15 +413,15 @@ export default function ProductsPage() {
           </SelectContent>
         </Select>
 
-        <label className="ml-auto flex items-center gap-2 px-3 h-10 rounded-lg bg-card text-sm cursor-pointer">
+        <label className="ml-auto flex items-center gap-2 px-3 h-10 rounded-xl bg-card text-sm cursor-pointer">
           <span className="text-muted-foreground mr-10">แสดงที่ปิดใช้งาน</span>
           <Switch checked={showDisabled} onCheckedChange={setShowDisabled} size="default" />
         </label>
       </div>
 
       {/* List card */}
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
+        <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
           <span>{loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}</span>
           <Button onClick={() => navigate('/products/new')} className="h-9 rounded-lg px-2 text-sm">
             <Plus className="size-4" /> เพิ่มสินค้า
@@ -428,17 +429,29 @@ export default function ProductsPage() {
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table>
-            <TableHeader>
+          <Table className="table-fixed">
+            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
               <TableRow>
-                <TableHead className="min-w-14">#</TableHead>
-                <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[280px]">ชื่อสินค้า</SortableTableHead>
-                <SortableTableHead field="unit_name" align="center" sort={sort} onToggle={toggleSort} className="hidden 2xl:table-cell min-w-16">หน่วย</SortableTableHead>
-                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-28">ต้นทุน</SortableTableHead>
-                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-28">ราคาขาย</SortableTableHead>
-                <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="hidden md:table-cell min-w-36">กำไร</SortableTableHead>
-                <SortableTableHead field="stock_qty" align="center" sort={sort} onToggle={toggleSort} className="min-w-28">สต็อก</SortableTableHead>
-                <TableHead className="text-center min-w-36">จัดการ</TableHead>
+                <TableHead className="w-14 text-foreground-subtle">#</TableHead>
+                <TableHead className="text-foreground-subtle">
+                  <SortableHead field="trade_name" sort={sort} onToggle={toggleSort}>ชื่อสินค้า</SortableHead>
+                </TableHead>
+                <TableHead className="w-24 text-center text-foreground-subtle">
+                  <SortableHead field="unit_name" align="center" sort={sort} onToggle={toggleSort}>หน่วย</SortableHead>
+                </TableHead>
+                <TableHead className="w-28 text-right text-foreground-subtle">
+                  <SortableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort}>ต้นทุน</SortableHead>
+                </TableHead>
+                <TableHead className="w-28 text-right text-foreground-subtle">
+                  <SortableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort}>ราคาขาย</SortableHead>
+                </TableHead>
+                <TableHead className="w-36 text-right text-foreground-subtle">
+                  <SortableHead field="profit" align="right" sort={sort} onToggle={toggleSort}>กำไร</SortableHead>
+                </TableHead>
+                <TableHead className="w-28 text-center text-foreground-subtle">
+                  <SortableHead field="stock_qty" align="center" sort={sort} onToggle={toggleSort}>สต็อก</SortableHead>
+                </TableHead>
+                <TableHead className="text-center w-36 text-foreground-subtle">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -458,18 +471,22 @@ export default function ProductsPage() {
                 const pct = (row.cost_price ?? 0) > 0 ? (profit / row.cost_price!) * 100 : 0
                 const isDisabled = !!row.is_disabled
                 return (
-                  <TableRow key={row.id} className={isDisabled ? 'opacity-60' : ''}>
-                    <TableCell className="text-foreground-subtle text-sm tabular-nums">{(page - 1) * limit + i + 1}</TableCell>
+                  <TableRow key={row.id} className={`hover:bg-primary-soft/60 transition-colors ${isDisabled ? 'opacity-60' : ''}`}>
+                    <TableCell className="text-foreground-subtle text-xs tabular-nums">{(page - 1) * limit + i + 1}</TableCell>
                     <TableCell>
                       <div className="font-semibold text-sm text-foreground truncate" title={row.trade_name}>{row.trade_name}</div>
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {isDisabled ? <Badge variant="secondary" className="text-[10px] rounded-md px-1.5 py-0">ปิดใช้งาน</Badge> : null}
+                        {/* {row.is_antibiotic ? <Badge variant="warning" className="text-[10px] rounded-md px-1.5 py-0">ยาปฏิชีวนะ</Badge> : null} */}
+                        {row.is_fda13 ? <Badge variant="warm" className="text-[10px] rounded-md px-1.5 py-0">ข.ย.13</Badge> : null}
+                      </div>
                     </TableCell>
-                    <TableCell className="hidden 2xl:table-cell text-center text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
+                    <TableCell className="text-center text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
                     <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
                     <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">{formatCurrency(row.price_retail)}</TableCell>
-                    <TableCell className="hidden md:table-cell text-right text-sm font-medium tabular-nums">
+                    <TableCell className="text-right text-sm font-medium tabular-nums">
                       <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
                         {formatCurrency(profit)}
-                        {/* text-xs: user-approved exception to the text-sm minimum rule */}
                         <span className="ml-1 text-xs opacity-70">({pct.toFixed(0)}%)</span>
                       </span>
                     </TableCell>
@@ -477,20 +494,19 @@ export default function ProductsPage() {
                       {renderStockCell(row.stock_qty, row.reorder_point ?? 0)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1.5 justify-center">
+                      <div className="flex items-center justify-center gap-3">
                         <Button
-                          className="w-16"
-                          size="icon-lg"
-                          variant="warm"
+                          size="icon-xl"
+                          variant="outline"
                           onClick={() => navigate(`/products/${row.id}/edit`)}
                           title="แก้ไข"
                         >
-                          <Edit />
+                          <Edit2 />
                         </Button>
                         <Button
-                          className="w-16"
-                          size="icon-lg"
-                          variant="info-soft"
+                          size="icon-xl"
+                          variant="outline"
+                          className="text-primary"
                           onClick={() => openAdjust(row)}
                           title="ปรับสต็อก"
                         >
@@ -506,7 +522,7 @@ export default function ProductsPage() {
         </div>
 
         {totalPages > 1 && (
-          <div className="px-4 h-12 border-t border-border flex items-center justify-center shrink-0">
+          <div className="px-4 py-3 border-t border-border flex justify-center shrink-0">
             <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} />
           </div>
         )}
@@ -520,7 +536,7 @@ export default function ProductsPage() {
         <DialogContent
           size="2xl"
           onClose={() => setAdjustProduct(null)}
-          className="h-[800px] grid-rows-[auto_1fr_auto]"
+          className="h-[860px] max-h-[92vh] grid-rows-[auto_1fr_auto]"
         >
           <DialogHeader>
             <DialogTitle className="text-xl">ปรับสต็อก</DialogTitle>
@@ -528,7 +544,7 @@ export default function ProductsPage() {
           <DialogBody className="flex flex-col overflow-y-auto min-h-0 scrollbar-thin">
             <div className="space-y-4">
             {adjustProduct && (
-              <div className="bg-muted rounded-card px-4 py-3">
+              <div className="bg-muted rounded-xl px-4 py-3">
                 <div className="font-semibold text-base truncate">{adjustProduct.trade_name}</div>
                 <div className="flex gap-2 text-sm text-muted-foreground mt-1">
                   สต็อกปัจจุบัน :{' '}
@@ -536,6 +552,19 @@ export default function ProductsPage() {
                   {adjustProduct.unit_name ?? 'ชิ้น'} | จำนวน
                   <span className="tabular-nums font-semibold">{openLotsSummary.length}</span> ล็อต
                 </div>
+                {!lotsLoading && openLotsSummary.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border-strong/40 space-y-1">
+                    {openLotsSummary.map(l => (
+                      <div key={l.id} className="flex items-center justify-between text-sm">
+                        <span className="font-mono text-foreground-subtle truncate">{l.lot_number}</span>
+                        <span className="flex items-center gap-3 text-muted-foreground shrink-0">
+                          <span>หมดอายุ {formatExp(l.expiry_date)}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {lotsLoading && <div className="mt-2 text-sm text-muted-foreground">กำลังโหลดล็อต...</div>}
               </div>
             )}
 
@@ -569,7 +598,7 @@ export default function ProductsPage() {
                   onChange={e => setAdjustTarget(e.target.value)}
                   placeholder="0"
                   min={0}
-                  className="h-10 rounded-lg text-lg font-semibold tabular-nums flex-1 basis-0 text-right"
+                  className="h-10 rounded-xl text-lg font-semibold tabular-nums flex-1 basis-0 text-right"
                   autoFocus
                 />
               </div>
@@ -577,7 +606,7 @@ export default function ProductsPage() {
 
             {/* DECREASE — FEFO preview */}
             {adjustDelta !== null && adjustDelta < 0 && (
-              <div className="rounded-card border border-destructive-soft bg-destructive-soft p-3 space-y-2">
+              <div className="rounded-xl border border-destructive-soft bg-destructive-soft/40 p-3 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
                   <Info className="size-4" />
                   ระบบจะหักด้วย FEFO (ล็อตใกล้หมดอายุก่อน)
@@ -585,24 +614,14 @@ export default function ProductsPage() {
                 {fefoPreview.length > 0 ? (
                   <div className="space-y-1.5">
                     {fefoPreview.map(({ lot, deduct, qtyAfter }) => (
-                      <div key={lot.id} className="flex items-center justify-between text-sm bg-destructive-soft rounded-lg px-3 py-2">
+                      <div key={lot.id} className="flex items-center justify-between text-sm bg-card rounded-lg px-3 py-2">
                         <span className="flex items-center gap-2 min-w-0">
                           <span className="font-mono font-semibold text-foreground truncate">{lot.lot_number}</span>
                           <span className="text-muted-foreground shrink-0">exp {formatExp(lot.expiry_date)}</span>
                         </span>
-                        <span className="flex items-center gap-4 shrink-0 tabular-nums">
-                          <span>
-                            <span className="text-muted-foreground">เดิม</span>{' '}
-                            <span className="font-semibold text-foreground">{lot.qty_on_hand.toLocaleString()}</span>
-                          </span>
-                          <span className="text-destructive">
-                            <span className="opacity-70">ลด</span>{' '}
-                            <span className="font-bold">−{deduct.toLocaleString()}</span>
-                          </span>
-                          <span>
-                            <span className="text-muted-foreground">คงเหลือ</span>{' '}
-                            <span className="font-semibold text-foreground">{qtyAfter.toLocaleString()}</span>
-                          </span>
+                        <span className="flex items-center gap-2 shrink-0 tabular-nums">
+                          <span className="text-muted-foreground">{lot.qty_on_hand.toLocaleString()} → {qtyAfter.toLocaleString()}</span>
+                          <span className="font-bold text-destructive">−{deduct.toLocaleString()}</span>
                         </span>
                       </div>
                     ))}
@@ -623,7 +642,7 @@ export default function ProductsPage() {
                       type="button"
                       variant={increaseMode === 'new' ? 'success' : 'outline'}
                       onClick={() => setIncreaseMode('new')}
-                      className="h-14 flex-col gap-0.5 items-start px-3 py-1.5"
+                      className="h-14 rounded-xl flex-col gap-0.5 items-start px-3 py-1.5"
                     >
                       <span className="flex items-center gap-1.5 text-sm font-semibold">
                         <Layers className="size-4" /> สร้างล็อตใหม่
@@ -635,7 +654,7 @@ export default function ProductsPage() {
                       variant={increaseMode === 'existing' ? 'success' : 'outline'}
                       onClick={() => setIncreaseMode('existing')}
                       disabled={mergeCandidates.length === 0}
-                      className="h-14 flex-col gap-0.5 items-start px-3 py-1.5"
+                      className="h-14 rounded-xl flex-col gap-0.5 items-start px-3 py-1.5"
                     >
                       <span className="flex items-center gap-1.5 text-sm font-semibold">
                         <FolderInput className="size-4" /> เพิ่มเข้าล็อตเดิม
@@ -646,7 +665,7 @@ export default function ProductsPage() {
                 </div>
 
                 {increaseMode === 'new' && (
-                  <div className="rounded-card border border-success-soft bg-success-soft/30 p-3 space-y-3">
+                  <div className="rounded-xl border border-success-soft bg-success-soft/30 p-3 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium mb-1 text-muted-foreground">หมายเลขล็อต</label>
@@ -665,7 +684,7 @@ export default function ProductsPage() {
                     <div>
                       <label className="block text-sm font-medium mb-1 text-muted-foreground">
                         ต้นทุน/หน่วย <span className="text-destructive">*</span>
-                        <span className="ml-1 opacity-70">(ฟรี = 0)</span>
+                        <span className="ml-1 opacity-70">(ของฟรี = 0)</span>
                       </label>
                       <Input
                         type="number"
@@ -680,7 +699,7 @@ export default function ProductsPage() {
                 )}
 
                 {increaseMode === 'existing' && (
-                  <div className="rounded-card border border-success-soft bg-success-soft/30 p-3 space-y-3">
+                  <div className="rounded-xl border border-success-soft bg-success-soft/30 p-3 space-y-3">
                     {/* Lot picker — dropdown shows only lot_number; details live beside */}
                     <div>
                       <label className="block text-sm font-medium mb-1 text-muted-foreground">
@@ -702,12 +721,12 @@ export default function ProductsPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <div className="h-10 px-3 flex items-center gap-3 bg-muted rounded-lg text-sm text-muted-foreground flex-wrap">
+                        <div className="h-10 px-3 flex items-center gap-3 bg-card rounded-lg text-sm text-muted-foreground flex-wrap">
                           {selectedTargetLot ? (
                             <>
-                              <span><span className="font-medium">หมดอายุ :</span> {formatExp(selectedTargetLot.expiry_date)}</span>
-                              <span className="tabular-nums"><span className="font-medium">คงเหลือ :</span> {selectedTargetLot.qty_on_hand.toLocaleString()}</span>
-                              <span className="tabular-nums"><span className="font-medium">ต้นทุน :</span> {formatCurrency(selectedTargetLot.cost_price)}</span>
+                              <span><span className="font-medium">หมดอายุ</span> {formatExp(selectedTargetLot.expiry_date)}</span>
+                              <span className="tabular-nums"><span className="font-medium">คงเหลือ</span> {selectedTargetLot.qty_on_hand.toLocaleString()}</span>
+                              <span className="tabular-nums"><span className="font-medium">ต้นทุน</span> {formatCurrency(selectedTargetLot.cost_price)}</span>
                             </>
                           ) : (
                             <span className="text-muted-foreground/60">—</span>
@@ -719,10 +738,9 @@ export default function ProductsPage() {
                     {/* Cost input + new-avg preview on the same row */}
                     <div className="grid grid-cols-[240px_1fr] gap-3">
                       <div>
-                        <label className="flex items-center gap-1 text-sm font-medium mb-1 text-muted-foreground h-5">
-                          <span>ต้นทุน/หน่วย</span>
-                          <span className="text-destructive">*</span>
-                          <span className="opacity-70">(ฟรี = 0)</span>
+                        <label className="block text-sm font-medium mb-1 text-muted-foreground">
+                          ต้นทุน/หน่วย <span className="text-destructive">*</span>
+                          <span className="ml-1 opacity-70">(ฟรี = 0)</span>
                         </label>
                         <Input
                           type="number"
@@ -734,11 +752,12 @@ export default function ProductsPage() {
                         />
                       </div>
                       <div>
-                        <label className="flex items-center gap-1.5 text-sm font-medium mb-1 text-muted-foreground h-5">
-                          <Info className="size-3.5" />
-                          <span>ต้นทุนเฉลี่ยใหม่</span>
+                        <label className="block text-sm font-medium mb-1 text-muted-foreground">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Info className="size-3.5" /> ต้นทุนเฉลี่ยใหม่ของล็อต
+                          </span>
                         </label>
-                        <div className="h-10 px-3 flex items-center bg-muted rounded-lg text-sm tabular-nums">
+                        <div className="h-10 px-3 flex items-center bg-card rounded-lg text-sm tabular-nums">
                           {mergedLotPreview ? (
                             <span>
                               <span className="text-muted-foreground">{formatCurrency(mergedLotPreview.lot.cost_price)}</span>
@@ -757,9 +776,8 @@ export default function ProductsPage() {
             )}
             </div>
 
-            {/* Note section — pinned to bottom via mt-auto so modal height stays
-                fixed at the tallest mode (increase + existing lot). White space
-                appears in shorter modes; that's intentional. */}
+            {/* Note section — pinned to bottom of the body via mt-auto so the
+                modal layout is stable when conditional sections above appear/disappear. */}
             <div className="mt-auto pt-4">
               <label className="block text-base font-medium mb-2">หมายเหตุ <span className="text-destructive">*</span></label>
               <div className="flex flex-wrap gap-2 mb-2">
@@ -767,8 +785,9 @@ export default function ProductsPage() {
                   <Button
                     key={r}
                     type="button"
-                    size="lg"
+                    size="sm"
                     variant={adjustNote === r ? 'info-soft' : 'outline'}
+                    className="h-9 rounded-lg text-sm"
                     onClick={() => setAdjustNote(r)}
                   >
                     {r}
@@ -779,18 +798,18 @@ export default function ProductsPage() {
                 value={adjustNote}
                 onChange={e => setAdjustNote(e.target.value)}
                 placeholder="เหตุผลการปรับสต็อก หรือเลือกจากปุ่มด้านบน"
-                className="h-10 rounded-lg"
+                className="h-10 rounded-xl"
                 onKeyDown={e => { if (e.key === 'Enter') handleAdjust() }}
               />
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setAdjustProduct(null)}>ยกเลิก</Button>
+            <Button variant="destructive2" className="h-10 rounded-xl px-5 text-sm" onClick={() => setAdjustProduct(null)}>ยกเลิก</Button>
             <Button
               onClick={handleAdjust}
               disabled={adjusting || adjustDelta === null || adjustDelta === 0 || lotsLoading}
               variant={adjustDelta !== null && adjustDelta < 0 ? 'destructive' : 'success'}
-              size="xl"
+              className="h-10 rounded-xl px-5 text-sm"
             >
               {adjusting ? 'กำลังบันทึก...' : 'ยืนยัน'}
             </Button>
@@ -798,6 +817,33 @@ export default function ProductsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+function SortableHead({
+  field, align = 'left', children, sort, onToggle,
+}: {
+  field: SortField
+  align?: 'left' | 'center' | 'right'
+  children: React.ReactNode
+  sort: SortState
+  onToggle: (field: SortField) => void
+}) {
+  const isActive = sort.by === field
+  const Icon = !isActive ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown
+  const justify =
+    align === 'right'  ? 'justify-end'
+    : align === 'center' ? 'justify-center'
+    : 'justify-start'
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(field)}
+      className={`w-full inline-flex items-center gap-1 hover:text-foreground transition-colors ${justify} ${isActive ? 'text-foreground' : ''}`}
+    >
+      <span>{children}</span>
+      <Icon className={`size-3 ${isActive ? 'opacity-100' : 'opacity-40'}`} />
+    </button>
   )
 }
 
