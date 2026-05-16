@@ -1,9 +1,9 @@
 # Syntropic Desktop - Build Progress
 
-## Status: ✅ Runnable — Design-system consolidation phase 1: card radius tokenized, ordinal color tokens renamed by role, Theme page is now the standard showcase.
-## Last updated: 2026-05-15
+## Status: ✅ Runnable — Cost-price model overhaul: 3-cost model (weighted-avg / last-paid / FEFO-lot) applied across POS, Purchase, EditProduct.
+## Last updated: 2026-05-17
 ## Run: `npm run electron:dev`
-## ⚠️ Next session: **UI consistency sweep (phase 2)** — propagate the standard to all pages. See Session 2026-05-15 → "Next" below.
+## ⚠️ Next session: **Reports page cost audit** — last page left in the cost-sourcing sweep. See Session 2026-05-16→17 → "Next" below.
 
 ---
 
@@ -1413,3 +1413,67 @@ Operator: app UI felt scattered; wants uniform look editable from one place (col
 2. Kill duplicated page-local helpers → shared components: `SummaryCard`→`MetricCard`, `NumInput`→`Input`, `FieldGroup`→`FormField`, `SectionTitle`; relocate `SortableHead`/`DaysCell`/`ExpiryDateCell` into `components/ui`.
 3. Remaining `text-xs` sweep (~115 across non-demo pages) → `text-sm`.
 4. Ad-hoc card wrappers (`rounded-lg/xl/2xl` mix in Purchase/POS/Products/Reports) → `rounded-card shadow-card`.
+
+---
+
+## Session 2026-05-16→17 — Cost-price model overhaul (weighted-avg vs last-paid vs FEFO-lot)
+
+Operator audited *where every cost figure on screen comes from*, page by page. Root problems found: (1) `purchase.ts` on receive overwrote `products.cost_price` with the **last-in** lot cost, not a weighted avg — so the displayed cost jumped on receive then "snapped back" to the real avg on the next lot-edit/adjust/GR-cancel (which *do* recompute). (2) POS profit used `products.cost_price` (avg) **and** had a unit bug: `qty (selected unit) × cost (per base unit)` → margin off by `qty_per_base` for แผง/กล่อง. (3) EditProduct let the operator hand-type `cost_price`, clobbering the auto-managed avg.
+
+**Decided 3-cost model (the canonical reference for all future cost work):**
+| Cost | Meaning | Used for |
+|---|---|---|
+| `products.cost_price` | weighted avg of open lots, **auto-managed by every stock flow, never hand-edited** | inventory valuation + report/COGS profit |
+| `products.last_cost_price` (**NEW column**) | last cost we actually **PAID** (free goods cost=0 do NOT overwrite it) | pricing reference (set sell price off replacement cost) |
+| FEFO front-lot cost | cost of the specific lot about to be dispensed | true margin of *this* sale at POS |
+
+### Done
+- **`schema.ts`** — added `products.last_cost_price REAL NOT NULL DEFAULT 0` (CREATE + idempotent migration). Backfill = newest lot with `cost_price > 0`, else `0` (free-only / never-received → 0).
+- **`purchase.ts` receive** — `price_retail` updated as before; `last_cost_price` set **only when `item.cost_price > 0`** (a freebie no longer wipes the real prior cost — the scalar self-tracks "last non-zero paid"); `cost_price` is NOT set inline anymore — recomputed as the weighted avg of open lots **after** the item loop (same query shape as lot-edit / GR-cancel). Cost is now consistent on every path.
+- **`types/index.ts`** — `Product.last_cost_price`.
+- **POS payment dialog** (`POS/index.tsx`) — `totalCost` is now a **FEFO simulation** mirroring `saveBill` (lot remaining tracked across the whole cart, oversold remainder → avg) **+ fixed unit conversion** (`baseQty = qty × qty_per_base`). Preview profit now == reports profit.
+- **POS price modal** — margin reference switched from avg → **FEFO front lot cost** (`product.lots[0]`, fallback `last_cost_price` → `cost_price`), `× qty_per_base`.
+- **Purchase price modal** — "ทุนเก่า" baseline (`prevCost`) switched from avg → `last_cost_price`, **no fallback** (genuine 0 from free goods stays 0, not hidden behind the avg).
+- **`products:create`** — INSERT now includes `last_cost_price`; a new product (no lots) seeds **both** `cost_price` and `last_cost_price` from the entered value.
+- **EditProduct** — General-tab "ราคาทุน (ล่าสุด)" field loads/edits `last_cost_price`, **editable always (Hygeia-style)**; on save it writes `last_cost_price` only and **`cost_price` is stripped from the payload** (never clobbers the avg); new product seeds both. "ราคาทุน" MetricCard shows last cost with a `เฉลี่ย ฿X` sub-line; profit/% glance now vs last cost.
+
+### Verification
+- `npx tsc --noEmit -p tsconfig.json` — **no NEW errors**. Same 8 pre-existing baseline (dialog.tsx `icon-m`, EditProduct `FullProduct`/`ProductLabel` props, `themeStore.ts` line 61).
+- **Not run / click-tested by Claude** — operator to dev-run and eyeball: receive a lot → cost stays put (avg, not jumpy); free-goods receive doesn't zero "ทุนเก่า"; POS profit for a กล่อง item is sane; EditProduct cost edit doesn't move the avg.
+
+### Known follow-ups (display-only, NOT done — flagged to operator)
+- **GR-cancel** and **`products:updateLot`** recompute `cost_price` (avg) but do **not** refresh `last_cost_price` → it can go stale after cancelling the GR that set it, or editing a lot's cost. Decide whether to refresh.
+
+### Next — Reports page cost audit (last page in the sweep)
+1. Trace every cost/profit/valuation figure in `Reports/*` + `reports.ts`: confirm COGS uses **FEFO lot cost** via `sale_item_lots → product_lots` (it does at `reports.ts:39,70`), inventory valuation uses lot cost (`reports.ts:141`), purchase report uses `purchase_receipt_items.cost_price`.
+2. Hunt the **same unit-conversion class of bug** (selected-unit qty × per-base cost) anywhere reports compute line cost.
+3. Then decide the GR-cancel / lot-edit `last_cost_price` refresh question above.
+
+---
+
+## Session 2026-05-17 — Design-system sweep (phase 2): People page refine
+
+Continuing phase 2 consistency sweep page-by-page. This session = `People/index.tsx` brought fully onto the showcase/table-card standard, plus one backend fix surfaced during the audit.
+
+### Done — `src/pages/People/index.tsx` (UI only, all 3 tabs: ลูกค้า / ผู้จำหน่าย / พนักงาน)
+- **Standard table-card layout** adopted (matches `Products/index.tsx` canonical): removed outer `rounded-2xl` card-in-card; Tabs sit on background (`default` variant); each tab = toolbar → `bg-card rounded-card shadow-card` card with `h-12` header bar (count left + `h-9` Add button right), table area `border-l-8 border-r-8 border-card`, `h-12 border-t` footer pagination bar.
+- **Primitives per convention**: raw `<select>`/`<textarea>`/`<label>` → `Select` / `Textarea` / `Label`; row actions `size="sm" variant="ghost"` → `className="w-16" size="icon-lg"` split by role (`warm` แก้ไข / `destructive2` ลบ); `Edit2`→`Edit` icon; Button-icon `w-N h-N` → `size-N`.
+- **Token/text rules**: `rounded-2xl`/`rounded` literals → `rounded-card`/`rounded-lg`; all `text-xs` outside Badge → `text-sm`; redundant Badge `text-xs` overrides dropped; empty states → lucide icon `size-10 opacity-30` + `py-16`.
+- **Realtime search**: debounced 300ms `useEffect([q])` (mirrors Products); search button + Enter handler removed (Customers + Suppliers tabs).
+- **All 3 modals → showcase Modal Layout**: `DialogContent` `onClose` wired (X button now closes); fields `<div className="space-y-1.5"><Label>…</Label><control/></div>` (dropped `FormField` — its uppercase-bold doesn't match the showcase); `DialogDescription` added to every header; Select `className="w-full"` (no h-10/rounded override); Switch in modals `size="lg"` + inline `<Label>`; Enter→primary-OK wired via `submitOnEnter` (Textarea exempted); footer already `destructive2`+`size="xl"`.
+
+### Done — backend fix (surfaced during People audit)
+- **Customer running code unified.** Two divergent generators (`people:saveCustomer` used `WHERE code LIKE 'C%' ORDER BY id DESC`; POS `pos:addCustomer` used `ORDER BY id DESC` *unfiltered* → could collide on `C0001`). Replaced both with a single shared helper `electron/ipc/codes.ts` → `nextCustomerCode(db)` using `MAX(CAST(SUBSTR(code,2) AS INTEGER))+1` (immune to out-of-order import / hand-edited codes; C0000 walk-in keeps suffix 0 so first real customer = C0001).
+- Confirmed (no change needed): customer/supplier/staff delete is **soft** (`is_hidden`/`is_disabled`), not a hard DELETE — preserves FK history.
+
+### Open question flagged to operator (NOT actioned)
+- **C0000 "ลูกค้าทั่วไป" is a real selectable row** (`is_hidden=0`) but POS walk-in default is a hardcoded string with `customer_id = NULL` — same label, two buckets. Recommended: seed C0000 with `is_hidden=1` and treat `customer_id IS NULL` as the only walk-in path. Operator edited the C0000 name but the `is_hidden` decision is still pending.
+
+### Verification
+- `npx tsc --noEmit -p tsconfig.json` — **no NEW errors** in `People/index.tsx`, `codes.ts`, `people.ts`, `pos.ts`. Same pre-existing baseline (dialog.tsx `icon-m`, EditProduct props, `themeStore.ts` line 61).
+- **Not click-tested by Claude** — operator to dev-run and eyeball People (all 3 tabs + modals), and verify new-customer code = next C-number with no collision from POS quick-add.
+
+### Next — remaining phase-2 pages, then detail-fix round
+1. **`Reports/*`** — bring onto table-card / showcase standard (overlaps with the Reports cost audit queued in the previous session — do together).
+2. **`Settings/index.tsx`** — same sweep (raw `<input>` flagged in phase-2 plan; tab/card/modal standardization).
+3. **Detail-fix round (after all pages swept):** re-run each page fresh from the top, eyeball-by-eyeball, and fix the fine-grained issues that only show at runtime (spacing, alignment, edge-state polish) — a dedicated pass, not folded into the structural sweep.
