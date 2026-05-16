@@ -5,6 +5,7 @@ import LABEL_MEAL_RELATIONS from './seed-data/label-meal-relations'
 import LABEL_ADVICES from './seed-data/label-advices'
 import LABEL_DOSAGES from './seed-data/label-dosages'
 import LABEL_TIMES from './seed-data/label-times'
+import PRODUCTS from './seed-data/products'
 
 export function seedDatabase(db: Database.Database) {
   // Idempotent staff test user — added to every install so audit trail has a non-admin actor
@@ -67,10 +68,16 @@ export function seedDatabase(db: Database.Database) {
   const insCategory = db.prepare(`INSERT OR IGNORE INTO product_categories (code, name, sort_order) VALUES (?, ?, ?)`)
   for (const [code, name, sort] of categories) insCategory.run(code, name, sort)
 
-  // Item units
+  // Item units — superset of what's referenced by seeded products (32 names from
+  // the Hygeia Item export) plus a handful of common ones we want available
+  // even on a minimal install. INSERT OR IGNORE = safe to re-run.
   const units = [
     ['เม็ด', 1], ['กล่อง', 1], ['แผง', 1], ['ขวด', 1], ['หลอด', 1], ['ซอง', 1],
     ['ชิ้น', 1], ['อัน', 1], ['ถุง', 1], ['แคปซูล', 1],
+    ['ห่อ', 1], ['กระปุก', 1], ['กระป๋อง', 1], ['แพ็ค', 1], ['แพค', 1], ['ม้วน', 1],
+    ['ตลับ', 1], ['ก้อน', 1], ['ด้าม', 1], ['ชุด', 1], ['เครื่อง', 1], ['แผ่น', 1],
+    ['ใบ', 1], ['ตัว', 1], ['คู่', 1], ['ขีด', 1], ['เมตร', 1], ['เส้น', 1],
+    ['ผืน', 1], ['ถ้วย', 1], ['แกลลอน', 1], ['AMP', 1],
   ]
   const insUnit = db.prepare(`INSERT OR IGNORE INTO item_units (name, multiply) VALUES (?, ?)`)
   for (const [name, mul] of units) insUnit.run(name, mul)
@@ -118,4 +125,45 @@ export function seedDatabase(db: Database.Database) {
     ['S0005', 'LIKHIT'],
   ]
   for (const [code, name] of suppliers) insSupplier.run(code, name)
+
+  // Products — seeded from Hygeia Item export (docs/Item.xlsx → docs/Item.json
+  // → seed-data/products.ts via scripts/gen-seed-data.mjs). Temporary dev seed
+  // to test name-matching against real product data; remove the import + this
+  // block before compiling a production build.
+  //
+  // Why inside the fresh-DB guard: products is mutable user data, not reference
+  // data. Re-seeding on every launch would clobber edits.
+  const unitRows = db.prepare(`SELECT id, name FROM item_units`).all() as { id: number, name: string }[]
+  const unitMap = new Map(unitRows.map((r) => [r.name, r.id]))
+  const fallbackUnitId = unitMap.get('ชิ้น')!
+  const insProduct = db.prepare(`
+    INSERT INTO products (
+      code, trade_name, name_for_print, search_keywords,
+      barcode, barcode2, barcode3, barcode4,
+      unit_id, cost_price, price_retail, price_wholesale1, price_wholesale2,
+      is_disabled, is_hidden, is_stock_item, has_vat, is_drug,
+      tmt_id, note, reorder_point
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  const nz = (v: string) => (v ? v : null)
+  db.transaction(() => {
+    for (const p of PRODUCTS) {
+      const [
+        code, trade_name, name_for_print, search_keywords,
+        barcode, barcode2, barcode3, barcode4,
+        unit_name, cost_price, price_retail, price_wholesale1, price_wholesale2,
+        is_disabled, is_hidden, is_stock_item, has_vat, is_drug,
+        tmt_id, note, reorder_point,
+      ] = p
+      insProduct.run(
+        nz(code), trade_name, nz(name_for_print), nz(search_keywords),
+        nz(barcode), nz(barcode2), nz(barcode3), nz(barcode4),
+        unitMap.get(unit_name) ?? fallbackUnitId,
+        cost_price, price_retail, price_wholesale1, price_wholesale2,
+        is_disabled, is_hidden, is_stock_item, has_vat, is_drug,
+        nz(tmt_id), nz(note),
+        reorder_point > 0 ? reorder_point : null,
+      )
+    }
+  })()
 }
