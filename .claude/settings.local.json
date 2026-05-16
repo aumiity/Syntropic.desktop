@@ -53,7 +53,14 @@
       "Bash(python3 *)",
       "Bash(npx --no-install tsc --noEmit --project tsconfig.node.json)",
       "Bash(npx --no-install tsc --noEmit)",
-      "Bash(node scripts/gen-products.mjs)"
+      "Bash(node scripts/gen-products.mjs)",
+      "PowerShell(npx tsc --noEmit -p tsconfig.json)",
+      "Bash(node -e \"try{require.resolve\\('xlsx'\\);console.log\\('xlsx node ok'\\)}catch\\(e\\){console.log\\('no xlsx'\\)}\")",
+      "Bash(node -e \"try{require.resolve\\('exceljs'\\);console.log\\('exceljs ok'\\)}catch\\(e\\){console.log\\('no exceljs'\\)}\")",
+      "PowerShell(Test-Path *)",
+      "Bash(sed -i \"s#/tmp/person_xlsx#C:/Users/ANYA/AppData/Local/Temp/person_xlsx#\" /tmp/parse_person.mjs)",
+      "Bash(node /tmp/parse_person.mjs)",
+      "Bash(node *)"
     ]
   }
 }

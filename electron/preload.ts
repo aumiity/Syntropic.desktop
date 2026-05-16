@@ -119,6 +119,22 @@ const api = {
   app: {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),
   },
+  // Invoice Matcher
+  matcher: {
+    matchLines: (supplierId: number, lines: string[]) =>
+      ipcRenderer.invoke('matcher:matchLines', supplierId, lines),
+    saveAliases: (
+      rows: Array<{
+        supplierId: number; supplierText: string; productId: number
+        confidence?: number; confirmedBy?: number
+      }>,
+    ) => ipcRenderer.invoke('matcher:saveAliases', rows),
+    listAliases: (supplierId: number) =>
+      ipcRenderer.invoke('matcher:listAliases', supplierId),
+    exportCSV: (
+      rows: Array<{ barcode: string; qty: number | string; expiry: string; lineTotal: number | string }>,
+    ) => ipcRenderer.invoke('matcher:exportCSV', rows),
+  },
   // Auth (placeholder until proper login)
   auth: {
     getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),

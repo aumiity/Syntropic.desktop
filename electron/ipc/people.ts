@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
+import { nextCustomerCode } from './codes'
 
 export function registerPeopleHandlers() {
   // --- CUSTOMERS ---
@@ -34,11 +35,7 @@ export function registerPeopleHandlers() {
       db.prepare(`UPDATE customers SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run(data)
       return db.prepare(`SELECT * FROM customers WHERE id = ?`).get(id)
     }
-    // Auto generate code
-    const last = db.prepare(`SELECT code FROM customers WHERE code LIKE 'C%' ORDER BY id DESC LIMIT 1`).get() as any
-    let nextNum = 1
-    if (last?.code) nextNum = parseInt(last.code.slice(1)) + 1
-    const code = `C${String(nextNum).padStart(4, '0')}`
+    const code = nextCustomerCode(db)
     const result = db.prepare(`
       INSERT INTO customers (code, full_name, id_card, hn, dob, phone, address,
         hc_uc, hc_gov, hc_sso, food_allergy, other_allergy, chronic_diseases,

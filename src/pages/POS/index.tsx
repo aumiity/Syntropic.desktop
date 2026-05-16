@@ -560,7 +560,7 @@ export default function POSPage() {
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
-    <div className="flex flex-col h-full px-6 pt-6 pb-3 gap-2">
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-2">
 
       {/* ── HEADER ── */}
       <div className="flex items-end justify-between shrink-0 px-1 mb-2">
@@ -606,7 +606,7 @@ export default function POSPage() {
                   <span className="text-sm font-semibold leading-none pr-12">รายการขาย {i + 1}</span>
                   <div className="flex flex-col gap-1 w-full min-w-0 mt-auto">
                     <span className="text-2xl font-bold tabular-nums leading-none truncate">
-                      <span className="opacity-70 mr-1 text-xl">฿</span>{formatCurrency(total)}
+                      {formatCurrency(total)}
                     </span>
                     <div className="flex items-center justify-between w-full">
                       <span className={`text-sm tabular-nums leading-none ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
@@ -805,11 +805,11 @@ export default function POSPage() {
                 {cart.totalDiscount() > 0 && (
                   <div className="text-right">
                     <div className="text-sm font-semibold text-foreground-subtle">ส่วนลดรวม
-                    <span className="text-sm font-bold text-destructive"> ฿{formatCurrency(cart.totalDiscount())}</span></div>
+                    <span className="text-sm font-bold text-destructive"> {formatCurrency(cart.totalDiscount())}</span></div>
                   </div>
                 )}
                 <div className="text-right">
-                  <div className="text-sm font-semibold text-foreground-subtle">ราคารวม <span className="text-sm font-bold tabular-nums text-foreground">฿{formatCurrency(cart.subtotal())}</span></div>
+                  <div className="text-sm font-semibold text-foreground-subtle">ราคารวม <span className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(cart.subtotal())}</span></div>
                 </div>
               </div>
             )}
@@ -882,7 +882,7 @@ export default function POSPage() {
               </div>
               <div className="col-span-2">
                 <div className="text-xs font-semibold text-foreground-subtle mb-0.5">ยอดรวมของวัน</div>
-                <div className="text-lg font-semibold tabular-nums text-primary">฿ {formatCurrency(dailyStats.total)}</div>
+                <div className="text-lg font-semibold tabular-nums text-primary"> {formatCurrency(dailyStats.total)}</div>
               </div>
             </div>
           </div>
@@ -965,7 +965,7 @@ export default function POSPage() {
                       </div>
                     </div>
                     <div className="text-center text-base text-muted-foreground truncate">{unitName}</div>
-                    <div className="text-right font-bold text-primary text-base tabular-nums">฿{formatCurrency(price)}</div>
+                    <div className="text-right font-bold text-primary text-base tabular-nums">{formatCurrency(price)}</div>
                     <div className={`text-right text-base font-semibold tabular-nums ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock}</div>
                   </div>
                 )
@@ -1135,7 +1135,31 @@ export default function POSPage() {
           <DialogBody className="min-h-0 overflow-hidden">
             {(() => {
               const subtotal = cart.subtotal()
-              const totalCost = cart.items.reduce((s, i) => s + i.qty * (i.product?.cost_price ?? 0), 0)
+              // True COGS preview via FEFO simulation — mirrors saveBill so
+              // the profit shown here equals the profit reports record.
+              // lotRemaining is tracked across the whole cart so multiple
+              // lines of the same product don't reuse the same lot qty.
+              // Quantities are converted to the base unit because
+              // lot.qty_on_hand / lot.cost_price are per base unit.
+              const lotRemaining = new Map<number, number>()
+              const totalCost = cart.items.reduce((sum, i) => {
+                const factor = i.selectedUnit?.qty_per_base ?? 1
+                let baseQty = i.qty * factor
+                let lineCost = 0
+                for (const lot of i.product?.lots ?? []) {
+                  if (baseQty <= 0) break
+                  if (!lotRemaining.has(lot.id)) lotRemaining.set(lot.id, lot.qty_on_hand)
+                  const avail = lotRemaining.get(lot.id)!
+                  if (avail <= 0) continue
+                  const take = Math.min(avail, baseQty)
+                  lineCost += take * lot.cost_price
+                  lotRemaining.set(lot.id, avail - take)
+                  baseQty -= take
+                }
+                // Oversold remainder → value at weighted-avg cost.
+                if (baseQty > 0) lineCost += baseQty * (i.product?.cost_price ?? 0)
+                return sum + lineCost
+              }, 0)
               const net = pendingNet
               const profit = net - totalCost
               const margin = net > 0 ? (profit / net) * 100 : 0
@@ -1202,7 +1226,7 @@ export default function POSPage() {
                               <li key={idx} className="flex items-start justify-between gap-3 py-2.5">
                                 <div className="min-w-0 flex-1">
                                   <div className="text-base font-semibold truncate">{item.item_name}</div>
-                                  <div className="text-sm text-muted-foreground tabular-nums">฿{formatCurrency(item.line_total)}</div>
+                                  <div className="text-sm text-muted-foreground tabular-nums">{formatCurrency(item.line_total)}</div>
                                 </div>
                                 <div className="shrink-0 text-right text-sm tabular-nums whitespace-nowrap">
                                   {item.qty}{item.unit_name ? ` ${item.unit_name}` : ''}
@@ -1423,7 +1447,7 @@ export default function POSPage() {
                               <div className="flex justify-between items-center">
                                 <span className="font-mono font-medium">{lot.lot_number || '—'}</span>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold tabular-nums">฿{formatCurrency(lot.cost_price)}</span>
+                                  <span className="text-sm font-bold tabular-nums">{formatCurrency(lot.cost_price)}</span>
                                   <Badge variant="outline" className="text-sm px-1.5">คงเหลือ {lot.qty_on_hand}</Badge>
                                 </div>
                               </div>
@@ -1495,7 +1519,7 @@ export default function POSPage() {
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-sm text-muted-foreground tabular-nums">×{item.qty}</div>
-                      <div className="text-sm font-bold tabular-nums text-warning-strong">฿{formatCurrency(item.line_total)}</div>
+                      <div className="text-sm font-bold tabular-nums text-warning-strong">{formatCurrency(item.line_total)}</div>
                     </div>
                     <Button variant="ghost" size="icon"
                       onClick={() => setAdjustList(list => list.filter((_, i) => i !== idx))}
@@ -1511,7 +1535,7 @@ export default function POSPage() {
                   <div className="flex items-center justify-between px-2 py-2 rounded-lg bg-warning-soft">
                     <span className="text-sm font-semibold text-warning-strong">มูลค่าทุนรวม</span>
                     <span className="text-lg font-extrabold tabular-nums text-warning-strong">
-                      ฿{formatCurrency(adjustList.reduce((s, i) => s + i.line_total, 0))}
+                      {formatCurrency(adjustList.reduce((s, i) => s + i.line_total, 0))}
                     </span>
                   </div>
                 )}
@@ -1629,7 +1653,7 @@ export default function POSPage() {
                               <div className="flex justify-between items-center">
                                 <span className="font-mono font-medium">{lot.lot_number || '—'}</span>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold tabular-nums">฿{formatCurrency(lot.sell_price)}</span>
+                                  <span className="text-sm font-bold tabular-nums">{formatCurrency(lot.sell_price)}</span>
                                   <Badge variant="outline" className="text-sm px-1.5">คงเหลือ {lot.qty_on_hand}</Badge>
                                 </div>
                               </div>
@@ -1701,7 +1725,7 @@ export default function POSPage() {
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-sm text-muted-foreground tabular-nums">×{item.qty}</div>
-                      <div className="text-sm font-bold tabular-nums text-warning-strong">฿{formatCurrency(item.line_total)}</div>
+                      <div className="text-sm font-bold tabular-nums text-warning-strong">{formatCurrency(item.line_total)}</div>
                     </div>
                     <Button variant="ghost" size="icon"
                       onClick={() => setReturnList(list => list.filter((_, i) => i !== idx))}
@@ -1717,7 +1741,7 @@ export default function POSPage() {
                   <div className="flex items-center justify-between px-2 py-2 rounded-lg bg-warning-soft">
                     <span className="text-sm font-semibold text-warning-strong">ยอดคืนรวม</span>
                     <span className="text-lg font-extrabold tabular-nums text-warning-strong">
-                      ฿{formatCurrency(returnList.reduce((s, i) => s + i.line_total, 0))}
+                      {formatCurrency(returnList.reduce((s, i) => s + i.line_total, 0))}
                     </span>
                   </div>
                 )}
@@ -1787,7 +1811,10 @@ export default function POSPage() {
           const allUnits = baseUnit ? [baseUnit, ...units] : units
           return (
             <DialogContent size="sm" onClose={() => setUnitModalIdx(null)}>
-              <DialogHeader><DialogTitle className="text-2xl">เลือกหน่วย <div className="text-sm">{item?.item_name}</div></DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">เลือกหน่วย</DialogTitle>
+                <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
+              </DialogHeader>
               <DialogBody>
                 <div className="space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
                   {allUnits.map(u => {
@@ -1818,7 +1845,16 @@ export default function POSPage() {
         {priceModalIdx !== null && (() => {
           const item = cart.items[priceModalIdx]
           const product = item?.product as ProductWithDetails | undefined
-          const cost = product?.cost_price ?? 0
+          // Margin at POS is judged against the cost of the lot about to be
+          // dispensed (FEFO front lot) — that's the true cost of THIS sale.
+          // Fall back to last cost paid, then weighted avg, if no open lot.
+          // All per base unit, scaled to the selected unit.
+          const factor = item?.selectedUnit?.qty_per_base ?? 1
+          const fefoLot = product?.lots?.[0]
+          const baseCost = fefoLot
+            ? fefoLot.cost_price
+            : (product?.last_cost_price || product?.cost_price || 0)
+          const cost = baseCost * factor
           // No selectedUnit → cart is on the base unit; pull prices from product (source of truth).
           const useUnit = !!item.selectedUnit
           const retail = useUnit ? item.selectedUnit!.price_retail : product?.price_retail ?? 0
@@ -1838,7 +1874,10 @@ export default function POSPage() {
           }
           return (
             <DialogContent size="sm" onClose={() => setPriceModalIdx(null)}>
-              <DialogHeader><DialogTitle className="text-2xl">ราคา <div className="text-sm">{item?.item_name}</div></DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">ราคา</DialogTitle>
+                <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
+              </DialogHeader>
               <DialogBody>
                 <div className="space-y-2 max-h-200 overflow-y-auto scrollbar-thin">
                   {/* Custom price input */}
@@ -1865,11 +1904,11 @@ export default function POSPage() {
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
                         <div className="text-foreground-subtle text-xs">ทุน</div>
-                        <div className="font-semibold text-muted-foreground tabular-nums">฿{formatCurrency(cost)}</div>
+                        <div className="font-semibold text-muted-foreground tabular-nums">{formatCurrency(cost)}</div>
                       </div>
                       <div>
                         <div className="text-foreground-subtle text-xs">กำไร</div>
-                        <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>฿{formatCurrency(customProfit)}</div>
+                        <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(customProfit)}</div>
                       </div>
                       <div>
                         <div className="text-foreground-subtle text-xs">กำไร %</div>
@@ -1888,15 +1927,15 @@ export default function POSPage() {
                         className={`w-full h-auto px-4 py-3 rounded-xl transition-colors ${active ? 'ring-2 ring-inset ring-primary' : ''}`}>
                         <div className="space-y-1 w-full">
                           <div className={`text-base font-bold text-left ${active ? 'text-primary' : 'text-foreground'}`}>{opt.label}</div>
-                          <div className="text-right text-3xl font-extrabold text-primary tabular-nums">฿ {formatCurrency(opt.price)}</div>
+                          <div className="text-right text-3xl font-extrabold text-primary tabular-nums"> {formatCurrency(opt.price)}</div>
                           <div className="text-left grid grid-cols-3 gap-2 text-sm pt-1">
                             <div>
                               <div className="text-foreground-subtle text-xs">ทุน</div>
-                              <div className="font-semibold text-muted-foreground tabular-nums">฿{formatCurrency(cost)}</div>
+                              <div className="font-semibold text-muted-foreground tabular-nums">{formatCurrency(cost)}</div>
                             </div>
                             <div>
                               <div className="text-foreground-subtle text-xs">กำไร</div>
-                              <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-success' : 'text-destructive'}`}>฿{formatCurrency(profit)}</div>
+                              <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(profit)}</div>
                             </div>
                             <div>
                               <div className="text-foreground-subtle text-xs">กำไร %</div>
@@ -1939,7 +1978,10 @@ export default function POSPage() {
           }
           return (
             <DialogContent size="sm" onClose={() => setQtyModalIdx(null)}>
-              <DialogHeader><DialogTitle className="text-2xl">จำนวน <div className="text-sm">{item?.item_name}</div></DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">จำนวน</DialogTitle>
+                <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
+              </DialogHeader>
               <DialogBody className="space-y-4">
                 <div className="flex justify-between text-base">
                   <span className="font-bold text-muted-foreground">คงเหลือ</span>
@@ -2010,11 +2052,14 @@ export default function POSPage() {
           }
           return (
             <DialogContent size="md" onClose={() => setDiscountModalIdx(null)}>
-              <DialogHeader><DialogTitle className="text-2xl">ส่วนลด <div className="text-sm">{item?.item_name}</div></DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">ส่วนลด</DialogTitle>
+                <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
+              </DialogHeader>
               <DialogBody className="space-y-4">
                 <div className="flex justify-between border-t border-b border-border">
                   <span className="py-2 text-base font-bold text-muted-foreground">ราคารวม</span>
-                  <span className="py-2 text-2xl font-semibold text-foreground tabular-nums">฿{formatCurrency(totalPrice)}</span>
+                  <span className="py-2 text-2xl font-semibold text-foreground tabular-nums">{formatCurrency(totalPrice)}</span>
                 </div>
 
                 {/* Percent presets */}

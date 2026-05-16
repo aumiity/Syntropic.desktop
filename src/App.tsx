@@ -7,6 +7,7 @@ import { useUserStore } from './stores/userStore'
 
 const POS = lazy(() => import('./pages/POS'))
 const Purchase = lazy(() => import('./pages/Purchase'))
+const PurchaseIntake = lazy(() => import('./pages/PurchaseIntake'))
 const Products = lazy(() => import('./pages/Products'))
 const EditProduct = lazy(() => import('./pages/Products/EditProduct'))
 const People = lazy(() => import('./pages/People'))
@@ -39,6 +40,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index element={<POS />} />
               <Route path="purchase" element={<Purchase />} />
+              <Route path="purchase-intake" element={<PurchaseIntake />} />
               <Route path="products" element={<Products />} />
               <Route path="products/new" element={<EditProduct />} />
               <Route path="products/:id/edit" element={<EditProduct />} />

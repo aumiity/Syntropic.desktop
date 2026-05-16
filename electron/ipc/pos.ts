@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
+import { nextCustomerCode } from './codes'
 import dayjs from 'dayjs'
 
 export function registerPosHandlers() {
@@ -65,10 +66,7 @@ export function registerPosHandlers() {
   // Quick-add customer
   ipcMain.handle('pos:addCustomer', (_e, data: { full_name: string; phone?: string }) => {
     const db = getDb()
-    const last = db.prepare(`SELECT code FROM customers ORDER BY id DESC LIMIT 1`).get() as any
-    let nextNum = 1
-    if (last?.code?.startsWith('C')) nextNum = parseInt(last.code.slice(1)) + 1
-    const code = `C${String(nextNum).padStart(4, '0')}`
+    const code = nextCustomerCode(db)
     const result = db.prepare(`INSERT INTO customers (code, full_name, phone) VALUES (?, ?, ?)`).run(code, data.full_name, data.phone ?? '')
     return db.prepare(`SELECT * FROM customers WHERE id = ?`).get(result.lastInsertRowid)
   })

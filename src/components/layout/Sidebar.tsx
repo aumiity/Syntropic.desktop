@@ -3,7 +3,7 @@ import { NavLink, useResolvedPath, useMatch } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   ShoppingCart, Pill, PackagePlus, Users, BarChart2, Settings,
-  Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen,
+  Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen, ScanLine,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -18,6 +18,7 @@ const mainNavItems = [
 ]
 
 const bottomNavItems = [
+  { to: '/purchase-intake', label: 'จับคู่ใบส่งของ', icon: ScanLine },
   { to: '/css', label: 'CSS', icon: Braces },
   { to: '/theme', label: 'Appearance', icon: Palette },
 ]

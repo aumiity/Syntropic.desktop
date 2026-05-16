@@ -1,0 +1,110 @@
+IT-0000139	"88570220006222*8851881555408"	no-letters (numeric/symbol only)
+IT-0000474	"D2"	too-short-code
+IT-0000475	"D5"	too-short-code
+IT-0001676	"TDS"	too-short-code
+R1566	"31"	no-letters (numeric/symbol only)
+R1589	"54"	no-letters (numeric/symbol only)
+IT-0000257	"257"	no-letters (numeric/symbol only)
+IT-0000284	"284"	no-letters (numeric/symbol only)
+IT-0000348	"348"	no-letters (numeric/symbol only)
+IT-0000398	"398"	no-letters (numeric/symbol only)
+IT-0000401	"401"	no-letters (numeric/symbol only)
+IT-0000551	"551"	no-letters (numeric/symbol only)
+IT-0000781	"N/A"	too-short-code
+IT-0000812	"NA"	too-short-code
+IT-0000813	"NA"	too-short-code
+IT-0000814	"NA"	too-short-code
+IT-0000815	"NA"	too-short-code
+IT-0000816	"NA"	too-short-code
+IT-0000817	"NA"	too-short-code
+IT-0000818	"NA"	too-short-code
+IT-0000819	"NA"	too-short-code
+IT-0000820	"NA"	too-short-code
+IT-0000821	"NA"	too-short-code
+IT-0000888	"N/A"	too-short-code
+IT-0000934	"934"	no-letters (numeric/symbol only)
+IT-0000957	"957"	no-letters (numeric/symbol only)
+IT-0001059	"2177"	no-letters (numeric/symbol only)
+IT-0001061	"2176"	no-letters (numeric/symbol only)
+IT-0001062	"1068"	no-letters (numeric/symbol only)
+IT-0001063	"1063"	no-letters (numeric/symbol only)
+IT-0001064	"1064"	no-letters (numeric/symbol only)
+IT-0001065	"1065"	no-letters (numeric/symbol only)
+IT-0001066	"1066"	no-letters (numeric/symbol only)
+IT-0001067	"1067"	no-letters (numeric/symbol only)
+IT-0001205	"N/A"	too-short-code
+IT-0001265	"N/A"	too-short-code
+IT-0001266	"N/A"	too-short-code
+IT-0001267	"N/A"	too-short-code
+IT-0001268	"N/A"	too-short-code
+IT-0001269	"N/A"	too-short-code
+IT-0001270	"N/A"	too-short-code
+IT-0001271	"N/A"	too-short-code
+IT-0001272	"N/A"	too-short-code
+IT-0001273	"N/A"	too-short-code
+IT-0001274	"N/A"	too-short-code
+IT-0001275	"N/A"	too-short-code
+IT-0001276	"N/A"	too-short-code
+IT-0001300	"N/A"	too-short-code
+IT-0001301	"N/A"	too-short-code
+IT-0001343	"N/A"	too-short-code
+IT-0001344	"N/A"	too-short-code
+IT-0001345	"N/A"	too-short-code
+IT-0001346	"N/A"	too-short-code
+IT-0001347	"N/A"	too-short-code
+IT-0001348	"N/A"	too-short-code
+IT-0001364	"PDL"	too-short-code
+IT-0001420	"1420"	no-letters (numeric/symbol only)
+IT-0001523	"N/A"	too-short-code
+IT-0001574	"1574"	no-letters (numeric/symbol only)
+IT-0001576	"1576"	no-letters (numeric/symbol only)
+IT-0001580	"1580"	no-letters (numeric/symbol only)
+IT-0001581	"1581"	no-letters (numeric/symbol only)
+IT-0001632	"N/A"	too-short-code
+IT-0001633	"N/A"	too-short-code
+IT-0001634	"N/A"	too-short-code
+IT-0001635	"N/A"	too-short-code
+IT-0001636	"N/A"	too-short-code
+IT-0001637	"N/A"	too-short-code
+IT-0001638	"N/A"	too-short-code
+IT-0001697	"NA"	too-short-code
+IT-0001700	"NA"	too-short-code
+IT-0001752	"1752"	no-letters (numeric/symbol only)
+IT-0001887	"xx"	too-short-code
+IT-0001917	"1917"	no-letters (numeric/symbol only)
+IT-0003982	"3982"	no-letters (numeric/symbol only)
+R1622	"87"	no-letters (numeric/symbol only)
+R1669	"115"	no-letters (numeric/symbol only)
+R1687	"133"	no-letters (numeric/symbol only)
+R1721	"167"	no-letters (numeric/symbol only)
+R1735	"181"	no-letters (numeric/symbol only)
+R1738	"184"	no-letters (numeric/symbol only)
+R1748	"194"	no-letters (numeric/symbol only)
+R1764	"210"	no-letters (numeric/symbol only)
+R1803	"249"	no-letters (numeric/symbol only)
+R1804	"250"	no-letters (numeric/symbol only)
+R1805	"251"	no-letters (numeric/symbol only)
+R1810	"256"	no-letters (numeric/symbol only)
+R1812	"258"	no-letters (numeric/symbol only)
+R1818	"264"	no-letters (numeric/symbol only)
+R1942	"388"	no-letters (numeric/symbol only)
+R2009	"455"	no-letters (numeric/symbol only)
+R2024	"470"	no-letters (numeric/symbol only)
+R2025	"471"	no-letters (numeric/symbol only)
+R2026	"472"	no-letters (numeric/symbol only)
+R2030	"476"	no-letters (numeric/symbol only)
+R2045	"491"	no-letters (numeric/symbol only)
+R2047	"493"	no-letters (numeric/symbol only)
+R2058	"504"	no-letters (numeric/symbol only)
+R2077	"523"	no-letters (numeric/symbol only)
+R2082	"528"	no-letters (numeric/symbol only)
+R2118	"564"	no-letters (numeric/symbol only)
+R2119	"565"	no-letters (numeric/symbol only)
+R2130	"576"	no-letters (numeric/symbol only)
+R2139	"585"	no-letters (numeric/symbol only)
+R2147	"593"	no-letters (numeric/symbol only)
+R2156	"602"	no-letters (numeric/symbol only)
+R2179	"625"	no-letters (numeric/symbol only)
+R2324	"770"	no-letters (numeric/symbol only)
+R2926	"1372"	no-letters (numeric/symbol only)
+R3981	"2426"	no-letters (numeric/symbol only)

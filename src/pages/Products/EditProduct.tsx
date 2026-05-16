@@ -172,7 +172,10 @@ export default function EditProductPage() {
         price_retail: prod.price_retail ?? 0,
         price_wholesale1: prod.price_wholesale1 ?? 0,
         price_wholesale2: prod.price_wholesale2 ?? 0,
-        cost_price: prod.cost_price ?? 0,
+        // The editable cost field is the *pricing reference* = last cost paid
+        // (last_cost_price), NOT the weighted-avg cost_price (which stays
+        // auto-managed by stock flows and drives reports/valuation).
+        cost_price: prod.last_cost_price ?? 0,
         has_wholesale1: prod.has_wholesale1 ?? 0,
         has_wholesale2: prod.has_wholesale2 ?? 0,
         is_vat: prod.has_vat ?? 0,
@@ -272,11 +275,17 @@ export default function EditProductPage() {
     try {
       // products:update / products:create build dynamic SQL from Object.keys(data); any
       // non-column key aborts with "no such column". Strip UI-only / renamed keys here.
+      // cost_price is pulled out of `rest`: the edited value is the pricing
+      // reference and must land in last_cost_price, NEVER overwrite the
+      // auto-managed weighted-avg cost_price column.
       const {
         is_vat,
         drug_generic_name_id, has_wholesale1, has_wholesale2,
+        cost_price: _editedCost,
         ...rest
       } = form
+      void _editedCost
+      const lastCost = parseFloat(form.cost_price) || 0
       const payload = {
         ...rest,
         category_id: form.category_id || null,
@@ -284,7 +293,7 @@ export default function EditProductPage() {
         price_retail: parseFloat(form.price_retail) || 0,
         price_wholesale1: parseFloat(form.price_wholesale1) || 0,
         price_wholesale2: parseFloat(form.price_wholesale2) || 0,
-        cost_price: parseFloat(form.cost_price) || 0,
+        last_cost_price: lastCost,
         barcode: form.barcode || null,
         barcode2: form.barcode2 || null,
         barcode3: form.barcode3 || null,
@@ -300,7 +309,9 @@ export default function EditProductPage() {
         // default to 0 in schema); strip to avoid superfluous bindings.
         const { code, is_hidden, is_disabled, ...createPayload } = payload as any
         void code; void is_hidden; void is_disabled
-        const created = await window.api.products.create(createPayload) as any
+        // No lots yet → seed the weighted-avg cost_price from the entered
+        // value too (recomputed automatically once stock is received).
+        const created = await window.api.products.create({ ...createPayload, cost_price: lastCost }) as any
         setIsDirty(false)
         toast({ title: 'เพิ่มสินค้าสำเร็จ', variant: 'success' })
         navigate(`/products/${created.id}/edit`, { replace: true })
@@ -630,10 +641,11 @@ export default function EditProductPage() {
   }).length
   const baseUnit = product.unit_name ?? itemUnits.find(u => u.id === product.unit_id)?.name ?? '—'
   const categoryName = categories.find(c => c.id === product.category_id)?.name
-  const profit = (product.price_retail ?? 0) - (product.cost_price ?? 0)
-  const profitPct = (product.cost_price ?? 0) > 0
-    ? (profit / product.cost_price!) * 100
-    : 0
+  // Pricing glance → margin vs last cost paid (last_cost_price), not the
+  // weighted avg. Avoids underpricing when cost has risen.
+  const refCost = product.last_cost_price ?? 0
+  const profit = (product.price_retail ?? 0) - refCost
+  const profitPct = refCost > 0 ? (profit / refCost) * 100 : 0
   const updatedShort = (product as any).updated_at ? String((product as any).updated_at).slice(0, 10) : null
 
   return (
@@ -698,9 +710,12 @@ export default function EditProductPage() {
         </div>
 
         <MetricCard
-          label="ราคาทุน"
-          value={isNew ? '—' : formatCurrency(product.cost_price)}
-          sub={isNew ? undefined : (baseUnit ? `ต่อ ${baseUnit}` : undefined)}
+          label="ราคาทุน (ล่าสุด)"
+          value={isNew ? '—' : formatCurrency(product.last_cost_price)}
+          sub={isNew
+            ? undefined
+            : [baseUnit ? `ต่อ ${baseUnit}` : null, `เฉลี่ย ${formatCurrency(product.cost_price)}`]
+                .filter(Boolean).join(' · ')}
           icon={Coins}
           tint="warm"
           className={isNew ? 'opacity-50' : ''}
@@ -709,7 +724,7 @@ export default function EditProductPage() {
           label="ราคาขาย"
           value={isNew ? '—' : formatCurrency(product.price_retail)}
           valueClassName={'text-foreground'}
-          sub={!isNew && (product.cost_price ?? 0) > 0
+          sub={!isNew && refCost > 0
             ? `${profit >= 0 ? '+' : ''}${profit.toFixed(2)} (${profit >= 0 ? '+' : ''}${profitPct.toFixed(0)}%)`
             : undefined}
           subClassName={profit >= 0 ? 'text-success font-semibold' : 'text-destructive font-semibold'}
@@ -918,9 +933,9 @@ export default function EditProductPage() {
 
                   {/* col2 row3: ราคาทุน */}
                   <div className="col-start-2 row-start-3">
-                    <Field label="ราคาทุน">
+                    <Field label="ราคาทุน (ล่าสุด)">
                       <Input type="number" value={form.cost_price} onChange={e => setF('cost_price', e.target.value)}
-                        className="text-right tabular-nums" min={0} step="0.01" placeholder="คำนวณจากล็อต" />
+                        className="text-right tabular-nums" min={0} step="0.01" placeholder="ทุนล่าสุดที่ซื้อ — ใช้อ้างอิงตั้งราคา" />
                     </Field>
                   </div>
 

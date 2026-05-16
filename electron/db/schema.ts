@@ -98,6 +98,7 @@ export function initializeSchema(db: Database.Database) {
       price_wholesale1 REAL NOT NULL DEFAULT 0,
       price_wholesale2 REAL NOT NULL DEFAULT 0,
       cost_price REAL NOT NULL DEFAULT 0,
+      last_cost_price REAL NOT NULL DEFAULT 0,
       unit_id INTEGER REFERENCES item_units(id),
       has_vat INTEGER NOT NULL DEFAULT 0,
       is_drug INTEGER NOT NULL DEFAULT 0,
@@ -454,6 +455,24 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_pri_invoice ON purchase_receipt_items(invoice_no);
     CREATE INDEX IF NOT EXISTS idx_pri_lot ON purchase_receipt_items(lot_id);
 
+    -- Supplier product alias (Invoice Matcher).
+    -- (supplier_id, normalized supplier_text) -> product_id. Grows from
+    -- human-confirmed first-time matches; after that, instant exact lookup.
+    -- supplier_text is stored normalized (trim, collapse whitespace, uppercase)
+    -- so "PARA 500" and " para  500 " collide on the same key.
+    CREATE TABLE IF NOT EXISTS supplier_product_alias (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+      supplier_text TEXT NOT NULL,
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      confidence REAL NOT NULL DEFAULT 1.0,
+      confirmed_by INTEGER REFERENCES users(id),
+      confirmed_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      UNIQUE(supplier_id, supplier_text)
+    );
+    CREATE INDEX IF NOT EXISTS idx_alias_lookup ON supplier_product_alias(supplier_id, supplier_text);
+
     -- Indexes
     CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
     CREATE INDEX IF NOT EXISTS idx_products_barcode2 ON products(barcode2);
@@ -524,6 +543,29 @@ export function initializeSchema(db: Database.Database) {
     // Backfill is_fda10/11 from the drug_type (flags set above)
     `UPDATE products SET is_fda10=(SELECT COALESCE(dt.is_fda10,0) FROM drug_types dt WHERE dt.id=products.drug_type_id) WHERE is_drug=1 AND drug_type_id IS NOT NULL`,
     `UPDATE products SET is_fda11=(SELECT COALESCE(dt.is_fda11,0) FROM drug_types dt WHERE dt.id=products.drug_type_id) WHERE is_drug=1 AND drug_type_id IS NOT NULL`,
+  ]) {
+    try { db.exec(sql) } catch {}
+  }
+
+  // Migration: split product cost into two roles.
+  //   products.cost_price      = weighted-average cost of open lots (recomputed
+  //                              by every stock flow — the canonical valuation).
+  //   products.last_cost_price = the last cost we actually PAID (display-only:
+  //                              "ต้นทุนล่าสุด" reference, prev-cost hint when
+  //                              receiving). Never used for profit/COGS —
+  //                              reports use the actual lot cost.
+  // Backfill from the newest lot whose cost > 0 (free goods don't count as a
+  // "cost paid"). Stays 0 for products never paid for (new, or only ever
+  // received free) — matches the runtime rule in purchase.ts which skips the
+  // last_cost_price write when receiving at cost 0.
+  for (const sql of [
+    `ALTER TABLE products ADD COLUMN last_cost_price REAL NOT NULL DEFAULT 0`,
+    `UPDATE products SET last_cost_price = COALESCE((
+        SELECT pl.cost_price FROM product_lots pl
+        WHERE pl.product_id = products.id AND pl.cost_price > 0
+        ORDER BY pl.created_at DESC, pl.id DESC LIMIT 1
+      ), 0)
+      WHERE last_cost_price = 0`,
   ]) {
     try { db.exec(sql) } catch {}
   }

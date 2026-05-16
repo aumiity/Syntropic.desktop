@@ -153,7 +153,7 @@ export function registerProductHandlers() {
     const insProduct = db.prepare(`
       INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,
         category_id, is_stock_item,
-        price_retail, price_wholesale1, price_wholesale2, cost_price,
+        price_retail, price_wholesale1, price_wholesale2, cost_price, last_cost_price,
         unit_id,
         has_vat, reorder_point, safety_stock,
         drug_type_id, tmt_id,
@@ -163,7 +163,7 @@ export function registerProductHandlers() {
         search_keywords, note)
       VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,
         @category_id, @is_stock_item,
-        @price_retail, @price_wholesale1, @price_wholesale2, @cost_price,
+        @price_retail, @price_wholesale1, @price_wholesale2, @cost_price, @last_cost_price,
         @unit_id,
         @has_vat, @reorder_point, @safety_stock,
         @drug_type_id, @tmt_id,
@@ -173,7 +173,15 @@ export function registerProductHandlers() {
         @search_keywords, @note)
     `)
 
-    const r = insProduct.run({ ...data, code, unit_id: data.unit_id ?? fallbackUnitId })
+    // New product has no lots yet: seed both costs from the entered value.
+    // cost_price (weighted avg) will be recomputed once lots exist;
+    // last_cost_price is the pricing reference until the first paid receive.
+    const r = insProduct.run({
+      ...data, code,
+      unit_id: data.unit_id ?? fallbackUnitId,
+      cost_price: data.cost_price ?? 0,
+      last_cost_price: data.last_cost_price ?? data.cost_price ?? 0,
+    })
     return db.prepare(`SELECT * FROM products WHERE id = ?`).get(r.lastInsertRowid)
   })
 

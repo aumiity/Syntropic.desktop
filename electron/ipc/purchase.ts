@@ -186,8 +186,36 @@ export function registerPurchaseHandlers() {
           item.cost_price, `รับสินค้า: ${payload.invoice_no}`, payload.userId, payload.receive_date
         )
 
-        db.prepare(`UPDATE products SET price_retail = ?, cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
-          .run(item.sell_price, item.cost_price, item.product_id)
+        db.prepare(`UPDATE products SET price_retail = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+          .run(item.sell_price, item.product_id)
+
+        // last_cost_price = the last cost we actually PAID (display-only).
+        // Skip when receiving free goods (cost 0) so a freebie doesn't wipe
+        // the real prior cost — the scalar naturally tracks the latest
+        // non-zero cost. Stays 0 only for products never paid for (new, or
+        // only ever received free). cost_price is NOT touched here — it's
+        // recomputed as a weighted average below.
+        if (item.cost_price > 0) {
+          db.prepare(`UPDATE products SET last_cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+            .run(item.cost_price, item.product_id)
+        }
+      }
+
+      // Recompute products.cost_price as the weighted average of open lots
+      // (by qty_received) — identical shape to the lot-edit / GR-cancel flows.
+      const affectedIds = Array.from(new Set(payload.items.map(i => i.product_id)))
+      for (const pid of affectedIds) {
+        const agg = db.prepare(`
+          SELECT
+            COALESCE(SUM(qty_received * cost_price), 0) as cost_sum,
+            COALESCE(SUM(qty_received), 0) as qty_sum
+          FROM product_lots
+          WHERE product_id = ? AND qty_received > 0 AND is_closed = 0
+        `).get(pid) as any
+        if (agg.qty_sum > 0) {
+          db.prepare(`UPDATE products SET cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+            .run(agg.cost_sum / agg.qty_sum, pid)
+        }
       }
       return { success: true, invoice_no: payload.invoice_no }
     })

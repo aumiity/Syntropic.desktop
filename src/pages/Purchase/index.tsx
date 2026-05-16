@@ -15,6 +15,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Pagination } from '@/components/ui/pagination'
 import { cn, formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib/utils'
+import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, ProductLot } from '@/types'
 import {
   Search, Plus, Trash2, Package, ChevronDown, X,
@@ -631,7 +632,11 @@ export default function PurchasePage() {
         window.api.products.get(row.product_id) as Promise<any>,
       ])
       setPriceHistory(logs ?? [])
-      if (product?.cost_price != null) setPrevCost(Number(product.cost_price))
+      // "ทุนเก่า" baseline = the last cost we actually paid (last-in), so it's
+      // an apples-to-apples comparison with the new lot cost being keyed.
+      // No fallback to the weighted-avg cost_price: a genuine 0 (free goods
+      // last time) must stay 0 — overriding it would hide that it was free.
+      if (product != null) setPrevCost(Number(product.last_cost_price ?? 0))
     } catch { /* swallow — history is best-effort */ }
   }
 
@@ -871,15 +876,10 @@ export default function PurchasePage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full px-6 pt-6 pb-3 gap-2">
+    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-2">
 
       {/* ── HEADER ── */}
-      <div className="flex items-end justify-between shrink-0 px-1 mb-2">
-        <h1 className="text-3xl font-bold leading-none tracking-tight">การซื้อสินค้า</h1>
-        <div className="text-sm font-semibold text-foreground">
-          เลขที่ใบรับ <span className="tabular-nums text-primary font-bold ml-1">{invoiceNo || '—'}</span>
-        </div>
-      </div>
+      <PageHeader title="การซื้อสินค้า" />
 
       {/* ── Tabs ── */}
       <Tabs
@@ -1197,18 +1197,18 @@ export default function PurchasePage() {
                           <div className="bg-card px-5 py-1 space-y-0.5">
                             <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
                               <span>ราคารวม</span>
-                              <span className="tabular-nums w-32 text-right">฿{formatCurrency(adjustSubtotal)}</span>
+                              <span className="tabular-nums w-32 text-right">{formatCurrency(adjustSubtotal)}</span>
                             </div>
                             {adjustDiscountAmt > 0 && (
                               <div className="flex items-center justify-end gap-6 text-sm text-primary">
                                 <span>ส่วนลด</span>
-                                <span className="tabular-nums w-32 text-right">−฿{formatCurrency(adjustDiscountAmt)}</span>
+                                <span className="tabular-nums w-32 text-right">−{formatCurrency(adjustDiscountAmt)}</span>
                               </div>
                             )}
                             {adjustSurchargeAmt > 0 && (
                               <div className="flex items-center justify-end gap-6 text-sm text-warning-strong">
                                 <span>ส่วนเพิ่ม</span>
-                                <span className="tabular-nums w-32 text-right">+฿{formatCurrency(adjustSurchargeAmt)}</span>
+                                <span className="tabular-nums w-32 text-right">+{formatCurrency(adjustSurchargeAmt)}</span>
                               </div>
                             )}
                           </div>
@@ -1217,7 +1217,7 @@ export default function PurchasePage() {
                           <Badge variant="brand-soft" className="text-sm rounded-md tabular-nums">{validRows.length}/{rows.length} รายการ</Badge>
                           <div className="flex items-center gap-6">
                             <span className="text-sm font-semibold text-foreground-subtle">มูลค่ารวมทั้งหมด</span>
-                            <span className="font-extrabold text-primary text-base tabular-nums w-32 text-right">฿{formatCurrency(totalCost)}</span>
+                            <span className="font-extrabold text-primary text-base tabular-nums w-32 text-right">{formatCurrency(totalCost)}</span>
                           </div>
                         </div>
                       </div>
@@ -1231,6 +1231,10 @@ export default function PurchasePage() {
                     {/* GR summary */}
                     <div className="bg-card rounded-2xl shadow-card p-4 space-y-2.5">
                       <div className="text-sm font-bold text-foreground-subtle uppercase tracking-wide">สรุปใบรับสินค้า</div>
+                      <div>
+                        <div className="text-sm text-foreground-subtle mb-0.5">เลขที่ใบรับ</div>
+                        <div className="text-sm font-bold text-primary tabular-nums">{invoiceNo || '—'}</div>
+                      </div>
                       <div>
                         <div className="text-sm text-foreground-subtle mb-0.5">ผู้จัดจำหน่าย</div>
                         <div className="text-sm font-semibold text-foreground truncate">
@@ -1370,13 +1374,13 @@ export default function PurchasePage() {
                   />
                   <StatCard
                     label="มูลค่ารวม"
-                    value={`฿${formatCurrency(histSummary.total_cost)}`}
+                    value={`${formatCurrency(histSummary.total_cost)}`}
                     icon={Banknote}
                     tint="primary"
                   />
                   <StatCard
                     label="ค้างชำระ"
-                    value={`฿${formatCurrency(histSummary.unpaid_cost)}`}
+                    value={`${formatCurrency(histSummary.unpaid_cost)}`}
                     icon={CreditCard}
                     tint={histSummary.unpaid_cost > 0 ? 'destructive' : 'warm'}
                   />
@@ -1491,7 +1495,7 @@ export default function PurchasePage() {
                                 <div className="text-sm text-foreground-subtle truncate mt-0.5">{h.supplier_name ?? '—'}</div>
                               </div>
                               <div className="text-right shrink-0">
-                                <div className={`text-sm font-bold tabular-nums ${isCancelled ? 'text-foreground-subtle line-through' : 'text-foreground'}`}>฿{formatCurrency(h.total_cost)}</div>
+                                <div className={`text-sm font-bold tabular-nums ${isCancelled ? 'text-foreground-subtle line-through' : 'text-foreground'}`}>{formatCurrency(h.total_cost)}</div>
                                 <div className="text-sm text-foreground-subtle mt-0.5">{formatDate(h.created_at)}</div>
                               </div>
                             </div>
@@ -1649,9 +1653,9 @@ export default function PurchasePage() {
                                         </div>
                                       </TableCell>
                                       <TableCell className="text-sm text-muted-foreground">{item.unit_name || '—'}</TableCell>
-                                      <TableCell className="text-right tabular-nums">฿{formatCurrency(item.cost_price)}</TableCell>
+                                      <TableCell className="text-right tabular-nums">{formatCurrency(item.cost_price)}</TableCell>
                                       <TableCell className="text-right tabular-nums">{item.qty_received}</TableCell>
-                                      <TableCell className="text-right font-semibold tabular-nums">฿{formatCurrency(item.cost_price * item.qty_received)}</TableCell>
+                                      <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(item.cost_price * item.qty_received)}</TableCell>
                                     </TableRow>
                                   )
                                 })}
@@ -1660,18 +1664,18 @@ export default function PurchasePage() {
                                 <tfoot>
                                   <tr className="bg-muted/40">
                                     <td colSpan={4} className="px-4 py-1.5 text-right text-sm text-muted-foreground">ราคารวมก่อนปรับ</td>
-                                    <td className="px-4 py-1.5 text-right text-sm tabular-nums text-muted-foreground">฿{formatCurrency(rawTotal)}</td>
+                                    <td className="px-4 py-1.5 text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(rawTotal)}</td>
                                   </tr>
                                   {discountAmt > 0 && (
                                     <tr className="bg-muted/40">
                                       <td colSpan={4} className="px-4 py-1 text-right text-sm text-primary">ส่วนลดรวม</td>
-                                      <td className="px-4 py-1 text-right text-sm tabular-nums text-primary">−฿{formatCurrency(discountAmt)}</td>
+                                      <td className="px-4 py-1 text-right text-sm tabular-nums text-primary">−{formatCurrency(discountAmt)}</td>
                                     </tr>
                                   )}
                                   {surchargeAmt > 0 && (
                                     <tr className="bg-muted/40">
                                       <td colSpan={4} className="px-4 py-1 text-right text-sm text-warning-strong">ส่วนเพิ่ม</td>
-                                      <td className="px-4 py-1 text-right text-sm tabular-nums text-warning-strong">+฿{formatCurrency(surchargeAmt)}</td>
+                                      <td className="px-4 py-1 text-right text-sm tabular-nums text-warning-strong">+{formatCurrency(surchargeAmt)}</td>
                                     </tr>
                                   )}
                                 </tfoot>
@@ -1683,7 +1687,7 @@ export default function PurchasePage() {
                           <div className="shrink-0 bg-card border-t border-border px-5 py-3 flex justify-between items-center">
                             <div className="text-sm text-muted-foreground">{receiptItems.length} รายการ</div>
                             <div className="font-extrabold text-primary tabular-nums text-lg">
-                              ฿{formatCurrency(rawTotal - discountAmt + surchargeAmt)}
+                              {formatCurrency(rawTotal - discountAmt + surchargeAmt)}
                             </div>
                           </div>
                         </>
@@ -1920,7 +1924,8 @@ export default function PurchasePage() {
           return (
             <DialogContent size="sm" onClose={() => setUnitModalIdx(null)}>
               <DialogHeader>
-                <DialogTitle className="text-2xl">เลือกหน่วย <div className="text-sm">{row.trade_name || '-'}</div></DialogTitle>
+                <DialogTitle className="text-2xl">เลือกหน่วย</DialogTitle>
+                <div className="text-base font-semibold text-foreground">{row.trade_name || '-'}</div>
               </DialogHeader>
               <DialogBody>
                 <div className="space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
@@ -1972,7 +1977,8 @@ export default function PurchasePage() {
           return (
             <DialogContent size="lg" onClose={closePriceModal}>
               <DialogHeader>
-                <DialogTitle className="text-2xl">ราคาขาย <div className="text-sm">{row.trade_name || '-'}</div></DialogTitle>
+                <DialogTitle className="text-2xl">ราคาขาย</DialogTitle>
+                <div className="text-base font-semibold text-foreground">{row.trade_name || '-'}</div>
               </DialogHeader>
               <DialogBody>
                 <div className="space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin px-1">
@@ -2184,7 +2190,7 @@ export default function PurchasePage() {
                       <div className="space-y-1">
                         <label className="text-sm text-muted-foreground">จำนวนเงิน (บาท)</label>
                         <div className="relative">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-foreground-subtle">฿</span>
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-foreground-subtle"></span>
                           <Input
                             autoFocus
                             type="number"
@@ -2230,24 +2236,24 @@ export default function PurchasePage() {
                     <div className="rounded-xl bg-muted px-4 py-3 space-y-1.5 text-sm">
                       <div className="flex justify-between text-muted-foreground">
                         <span>ยอดรวมเดิม</span>
-                        <span className="tabular-nums">฿{formatCurrency(adjustModalSum)}</span>
+                        <span className="tabular-nums">{formatCurrency(adjustModalSum)}</span>
                       </div>
                       {previewDisc > 0 && (
                         <div className="flex justify-between text-primary">
                           <span>ส่วนลด</span>
-                          <span className="tabular-nums">−฿{formatCurrency(previewDisc)}</span>
+                          <span className="tabular-nums">−{formatCurrency(previewDisc)}</span>
                         </div>
                       )}
                       {previewSur > 0 && (
                         <div className="flex justify-between text-warning-strong">
                           <span>ส่วนเพิ่ม</span>
-                          <span className="tabular-nums">+฿{formatCurrency(previewSur)}</span>
+                          <span className="tabular-nums">+{formatCurrency(previewSur)}</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between font-semibold text-foreground pt-1.5 mt-1">
                         <span>ยอดสุทธิ</span>
                         <div className="relative w-36">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-foreground-subtle">฿</span>
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-foreground-subtle"></span>
                           <Input
                             type="number"
                             min={0}

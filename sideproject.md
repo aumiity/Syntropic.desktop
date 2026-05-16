@@ -90,6 +90,67 @@ These came from the user explicitly — preserve exactly:
 
 ---
 
+## ✅ Status (updated 2026-05-16)
+
+Jobs 1–6 **all implemented**:
+- **Job 1** — `supplier_product_alias` table + `idx_alias_lookup` added to the main CREATE block in `electron/db/schema.ts` (before the Indexes section).
+- **Job 2** — `electron/services/matcher.ts`: `matchLines(db, supplierId, lines)` with 3 tiers (alias / token-set F1 / trigram-Dice fuzzy), `normalize()`, plus CSV helpers `formatLot` (DDMMYY), `formatDate` (DD/MM/YYYY), `buildCsv`. NOTE: iterate `Set` with `.forEach` only — the electron tsconfig target rejects `for…of` over Set.
+- **Job 3** — `electron/ipc/matcher.ts` (`matchLines`, `saveAliases` upsert, `listAliases`, `exportCSV` via save dialog + UTF-8 BOM buffer). Registered in `electron/main.ts`, exposed in `electron/preload.ts` → `window.api.matcher`.
+- **Job 4+5** — `src/pages/PurchaseIntake/index.tsx`: left input column (supplier Select + Textarea + จับคู่ button, 600ms debounced auto-match) / right table-card (confidence tint + Badge, per-row product override search via `pos.searchProducts`, validates then saves aliases then exports CSV).
+- **Job 6** — route `/purchase-intake` in `App.tsx`; sidebar item "จับคู่ใบส่งของ" (`ScanLine` icon) after การซื้อ.
+
+Both typechecks pass for the new files (`tsc -p tsconfig.node.json` clean; renderer errors are all pre-existing in EditProduct/dialog/themeStore, none in the new files). **Not yet runtime-tested in `npm run electron:dev`** — that's the first thing to do next session.
+
+### Open decisions — RESOLVED (user, 2026-05-16)
+1. Auto-confirm threshold = **0.95** (`AUTO_CONFIRM_THRESHOLD` in matcher.ts).
+2. Barcode fallback = **yes, barcode → barcode2 → 3 → 4** (`resolveBarcode`).
+3. Empty supplier_text rows = **skip silently** (handled in `matchLines`).
+4. qty = whatever the user types; every CSV field is quoted (qty included).
+
+### Customers seeded (2026-05-16)
+- `docs/Person.xlsx` (Hygeia Person export, 171 rows) → parsed (inline-string xlsx, no sharedStrings) and **mapped** into `docs/Person.json` (now the canonical post-mapping source, mirrors how `Item.json` is post-mapping).
+- Dropped 2 Hygeia system rows (negative `PersonKey`); kept **169** real customers. Codes assigned `C0001…C0169` (C0000 = reserved walk-in `ลูกค้าทั่วไป`, seeded separately).
+- Field map: `FullName`→full_name, `Cid`→id_card (digits only), `MobilePhone`||`Phone`→phone, `Address`+`Address2`+`ZipCode`→address. **No DOB** (BirthDate column was 100% empty in the export).
+- `scripts/gen-customers.mjs` (self-contained, per-table convention) → `electron/db/seed-data/customers.ts` (169 tuples). Wired into `seed.ts` fresh-DB block with the same "temporary dev seed, remove before prod" guard as products.
+- `docs/Person.xlsx` kept (raw original) in case the field mapping needs revisiting — unlike Item.xlsx which was deleted. Delete it before prod if not needed.
+
+### Follow-ups / not done
+- `matcher:listAliases` has no UI yet (debug/mgmt screen) — IPC exists, page TBD.
+- Later phases (AI vision, embeddings, LLM rerank, batch bootstrap) untouched — as planned.
+
+---
+
+## ✅ Status (updated 2026-05-17)
+
+### Runtime test — DONE, end-to-end works
+Ran `npm run electron:dev`. Paste → match → export full loop works. CSV is produced via the save dialog.
+
+### Sidebar nav moved
+`จับคู่ใบส่งของ` was moved **out of `mainNavItems`** and into `bottomNavItems` as the first entry (above the `CSS`/`Braces` item) in `src/components/layout/Sidebar.tsx`. Rationale (user): it's an auxiliary test feature that may be removed before prod, so it doesn't belong in the main nav. `ScanLine` import still used — no unused import. Main nav is now: การขาย → การซื้อ → สินค้า → บุคคล → รายงาน → ตั้งค่า.
+
+### CSV correctness — VERIFIED CORRECT (the "bug" was Excel, not us)
+User opened the exported CSV in Excel and saw barcode as `8.40165E+11` (scientific) and dates as `22/2/2028` (0 stripped), thought it was a bug. Hex-dumped the actual saved file (`Desktop/intake-20260516-235115.csv`) — **the raw bytes are 100% correct per spec**:
+- BOM `EF BB BF` present
+- Barcode full + intact: `"840164526349"` (Excel only *displays* it as scientific)
+- ล็อต `"220228"` — leading-zero-safe DDMMYY
+- วันผลิต / วันหมดอายุ both `"22/02/2028"` — zero-padded DD/MM/YYYY, same value (by design)
+- ราคารวม `"185"`, CRLF line endings, every cell wrapped in `"`
+
+Conclusion: **no code change needed.** Excel mangles long numbers + dates only on display (double-click open); it does not alter the file. `electron/services/matcher.ts` `buildCsv`/`formatLot`/`formatDate` and the BOM write in `electron/ipc/matcher.ts` are all correct as-is.
+
+### KEY DECISION — Power Automate reads CSV as text, NOT via Excel
+The real constraint surfaced: user's Power Automate flow was reading the file **as an Excel file**, which is why values were coerced. **Decision (user): user will modify the Power Automate script to consume the CSV as plain text instead** — so we do NOT write `.xlsx` and do NOT add an xlsx library (which would have risked `npm install` breaking better-sqlite3). Our CSV stays exactly as-is.
+
+PA-side requirement when user resumes: the flow must NOT use an Excel connector ("List rows present in a table" etc.). It must read file content as text → split on CRLF → split each line on `,` → strip the surrounding `"` from each cell. (Data never contains literal quotes, so naive `"`-strip is safe; `""`-unescaping is a non-issue for this dataset but harmless to handle.)
+
+### ▶ NEXT SESSION — resume here
+User is editing the Power Automate script to read CSV-as-text. When they return:
+1. They test PA with the existing CSV. If values land in Hygeia correctly → this whole export path is **done**, no Syntropic code change.
+2. If PA still mangles values, revisit — but the fallback is a PA-side fix, not an xlsx writer, unless the user explicitly changes the decision.
+3. Then remaining open work is the later phases (AI vision input, etc.) and the optional `listAliases` mgmt UI.
+
+---
+
 ## Next jobs (in order)
 
 ### Job 1 — `supplier_product_alias` table

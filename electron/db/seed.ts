@@ -6,6 +6,7 @@ import LABEL_ADVICES from './seed-data/label-advices'
 import LABEL_DOSAGES from './seed-data/label-dosages'
 import LABEL_TIMES from './seed-data/label-times'
 import PRODUCTS from './seed-data/products'
+import CUSTOMERS from './seed-data/customers'
 
 export function seedDatabase(db: Database.Database) {
   // Idempotent staff test user — added to every install so audit trail has a non-admin actor
@@ -164,6 +165,23 @@ export function seedDatabase(db: Database.Database) {
         nz(tmt_id), nz(note),
         reorder_point > 0 ? reorder_point : null,
       )
+    }
+  })()
+
+  // Customers — seeded from Hygeia Person export (docs/Person.xlsx →
+  // docs/Person.json → seed-data/customers.ts via scripts/gen-customers.mjs).
+  // Temporary dev seed to test against real customer data; remove the import +
+  // this block before compiling a production build. Same fresh-DB-guard
+  // rationale as products: customers is mutable user data, not reference data.
+  // C0000 ('ลูกค้าทั่วไป') is seeded above; these run C0001…
+  const insCustomer = db.prepare(
+    `INSERT OR IGNORE INTO customers (code, full_name, id_card, phone, address)
+     VALUES (?, ?, ?, ?, ?)`,
+  )
+  const cz = (v: string) => (v ? v : null)
+  db.transaction(() => {
+    for (const [code, full_name, id_card, phone, address] of CUSTOMERS) {
+      insCustomer.run(code, full_name, cz(id_card), cz(phone), cz(address))
     }
   })()
 }

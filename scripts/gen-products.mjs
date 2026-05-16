@@ -20,8 +20,22 @@ const s = (v) => (v == null ? '' : String(v))
 const n = (v) => Number(v) || 0
 const i = (v) => (v ? 1 : 0)
 
+// Drop unusable junk products: names that are blank, numeric-only, code/barcode
+// dumps, or "N/A"/"NA"/"xx" placeholders. Real short codes (D2, D5, TDS, PDL)
+// have letters and are intentionally kept.
+const isJunkName = (name) => {
+  const t = s(name).trim()
+  if (!t) return true
+  if (/^[0-9.\-\/ ]+$/.test(t)) return true // numeric/symbol only
+  if (/^[0-9*]+$/.test(t)) return true // barcode-as-name
+  if (/^(n\/a|na|xx)$/i.test(t)) return true // placeholders
+  return false
+}
+
 const rows = JSON.parse(readFileSync(srcFile, 'utf-8'))
-const tuples = rows.map((r) => [
+const kept = rows.filter((r) => !isJunkName(r.trade_name))
+const dropped = rows.length - kept.length
+const tuples = kept.map((r) => [
   s(r.code), s(r.trade_name), s(r.name_for_print), s(r.search_keywords),
   s(r.barcode), s(r.barcode2), s(r.barcode3), s(r.barcode4),
   s(r.unit_name),
@@ -44,4 +58,4 @@ const body =
   `export default PRODUCTS\n`
 
 writeFileSync(outFile, body)
-console.log(`products.ts: ${tuples.length} rows`)
+console.log(`products.ts: ${tuples.length} rows (dropped ${dropped} junk-named)`)

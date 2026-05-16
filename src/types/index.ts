@@ -4,7 +4,7 @@ export interface Product {
   code?: string; trade_name: string; name_for_print?: string
   category_id?: number
   is_stock_item: number; is_disabled: number; is_hidden: number
-  price_retail: number; price_wholesale1: number; price_wholesale2: number; cost_price: number
+  price_retail: number; price_wholesale1: number; price_wholesale2: number; cost_price: number; last_cost_price: number
   has_wholesale1: number; has_wholesale2: number
   unit_id?: number
   has_vat: number
