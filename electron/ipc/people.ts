@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
-import { nextCustomerCode } from './codes'
+import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes'
 
 export function registerPeopleHandlers() {
   // --- CUSTOMERS ---
@@ -10,6 +10,9 @@ export function registerPeopleHandlers() {
     const limit = 50; const offset = (page - 1) * limit
     const conds: string[] = []
     const params: any[] = []
+    // C0000 (walk-in) is a reserved system row, never a real customer — keep
+    // it out of the People list (walk-in invariant, CLAUDE.md).
+    conds.push(`code != '${WALKIN_CUSTOMER_CODE}'`)
     if (!includeDisabled) conds.push(`is_disabled = 0`)
     if (q) {
       conds.push(`(full_name LIKE ? OR phone LIKE ? OR code LIKE ?)`)
@@ -35,6 +38,8 @@ export function registerPeopleHandlers() {
   ipcMain.handle('people:saveCustomer', (_e, data: any) => {
     const db = getDb()
     if (data.id) {
+      if (data.id === walkInCustomerId(db))
+        throw new Error('ไม่สามารถแก้ไขลูกค้าทั่วไป (ลูกค้าระบบสงวนไว้)')
       const { id, ...rest } = data
       delete rest.allergies
       const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
@@ -54,7 +59,10 @@ export function registerPeopleHandlers() {
   })
 
   ipcMain.handle('people:setCustomerStatus', (_e, payload: { id: number; disabled: boolean }) => {
-    getDb().prepare(`UPDATE customers SET is_disabled = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+    const db = getDb()
+    if (payload.id === walkInCustomerId(db))
+      throw new Error('ไม่สามารถปิด/ลบลูกค้าทั่วไป (ลูกค้าระบบสงวนไว้)')
+    db.prepare(`UPDATE customers SET is_disabled = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
       .run(payload.disabled ? 1 : 0, payload.id)
     return true
   })

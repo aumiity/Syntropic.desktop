@@ -73,15 +73,15 @@ export function seedDatabase(db: Database.Database) {
   // the Hygeia Item export) plus a handful of common ones we want available
   // even on a minimal install. INSERT OR IGNORE = safe to re-run.
   const units = [
-    ['เม็ด', 1], ['กล่อง', 1], ['แผง', 1], ['ขวด', 1], ['หลอด', 1], ['ซอง', 1],
-    ['ชิ้น', 1], ['อัน', 1], ['ถุง', 1], ['แคปซูล', 1],
-    ['ห่อ', 1], ['กระปุก', 1], ['กระป๋อง', 1], ['แพ็ค', 1], ['แพค', 1], ['ม้วน', 1],
-    ['ตลับ', 1], ['ก้อน', 1], ['ด้าม', 1], ['ชุด', 1], ['เครื่อง', 1], ['แผ่น', 1],
-    ['ใบ', 1], ['ตัว', 1], ['คู่', 1], ['ขีด', 1], ['เมตร', 1], ['เส้น', 1],
-    ['ผืน', 1], ['ถ้วย', 1], ['แกลลอน', 1], ['AMP', 1],
+    'เม็ด', 'กล่อง', 'แผง', 'ขวด', 'หลอด', 'ซอง',
+    'ชิ้น', 'อัน', 'ถุง', 'แคปซูล',
+    'ห่อ', 'กระปุก', 'กระป๋อง', 'แพ็ค', 'แพค', 'ม้วน',
+    'ตลับ', 'ก้อน', 'ด้าม', 'ชุด', 'เครื่อง', 'แผ่น',
+    'ใบ', 'ตัว', 'คู่', 'ขีด', 'เมตร', 'เส้น',
+    'ผืน', 'ถ้วย', 'แกลลอน', 'AMP',
   ]
-  const insUnit = db.prepare(`INSERT OR IGNORE INTO item_units (name, multiply) VALUES (?, ?)`)
-  for (const [name, mul] of units) insUnit.run(name, mul)
+  const insUnit = db.prepare(`INSERT OR IGNORE INTO item_units (name) VALUES (?)`)
+  for (const name of units) insUnit.run(name)
 
   // Drug types — [code, name_th, is_fda9, is_fda10, is_fda11, is_fda13]
   // is_fda9=1 for all (every drug purchase must be logged in ข.ย.9)
@@ -113,8 +113,18 @@ export function seedDatabase(db: Database.Database) {
   // Default label settings
   db.prepare(`INSERT OR IGNORE INTO label_settings DEFAULT VALUES`).run()
 
-  // General customer (catch-all)
+  // General customer (catch-all). Walk-in is modelled as this real row, never
+  // a NULL customer_id — see the walk-in invariant in CLAUDE.md.
   db.prepare(`INSERT OR IGNORE INTO customers (code, full_name) VALUES (?, ?)`).run('C0000', 'ลูกค้าทั่วไป')
+
+  // Backfill: legacy sales written before the C0000-everywhere change stored
+  // walk-in as customer_id = NULL. Re-point them at C0000 so report
+  // joins/group-by are uniform. Idempotent + cheap (no-op once clean); runs
+  // every launch because it must heal pre-existing DBs, not just fresh ones.
+  db.prepare(`
+    UPDATE sales SET customer_id = (SELECT id FROM customers WHERE code = 'C0000')
+    WHERE customer_id IS NULL
+  `).run()
 
   // Suppliers
   const insSupplier = db.prepare(`INSERT OR IGNORE INTO suppliers (code, name) VALUES (?, ?)`)

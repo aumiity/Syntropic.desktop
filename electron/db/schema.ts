@@ -45,7 +45,6 @@ export function initializeSchema(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS item_units (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
-      multiply INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -510,8 +509,12 @@ export function initializeSchema(db: Database.Database) {
     try { db.exec(sql) } catch {}
   }
 
+  // Migration: drop the vestigial item_units.multiply column. Never read by any
+  // business logic — per-product conversion lives in product_units.qty_per_base.
+  try { db.exec(`ALTER TABLE item_units DROP COLUMN multiply`) } catch {}
+
   // Ensure a fallback unit exists.
-  try { db.exec(`INSERT OR IGNORE INTO item_units (name, multiply) VALUES ('ชิ้น', 1)`) } catch {}
+  try { db.exec(`INSERT OR IGNORE INTO item_units (name) VALUES ('ชิ้น')`) } catch {}
 
   // Migration: FDA report columns — drug_types gets boolean flags, products renamed.
   // Order matters: drug_types flags must exist before products backfill uses them.

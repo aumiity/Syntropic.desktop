@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -9,19 +9,17 @@ import { FormField } from '@/components/ui/label'
 import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
 import type { ProductCategory } from '@/types'
-import { Plus, Edit, Tag, ArrowUpDown, Check } from 'lucide-react'
+import { Plus, Edit, Tag, ArrowUpDown, Check, X } from 'lucide-react'
 
 export function CategoriesTab() {
   const { toast } = useToast()
   const [rows, setRows] = useState<ProductCategory[]>([])
   const [reorderMode, setReorderMode] = useState(false)
+  // Order before entering reorder mode — restored if the user cancels.
+  const [snapshot, setSnapshot] = useState<ProductCategory[]>([])
   const [dialog, setDialog] = useState(false)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
-
-  // onDragEnd closes over a stale `rows`; read the latest order via ref instead.
-  const rowsRef = useRef(rows)
-  useEffect(() => { rowsRef.current = rows }, [rows])
 
   const load = async () => {
     const data = await window.api.settings.listCategories() as ProductCategory[]
@@ -50,20 +48,29 @@ export function CategoriesTab() {
     } finally { setSaving(false) }
   }
 
-  // Persist the dropped order. Renumbered 1..n server-side in a transaction.
-  const persistOrder = async () => {
-    try {
-      await window.api.settings.reorderCategories(rowsRef.current.map(r => r.id))
-    } catch (e: any) {
-      toast({ title: 'จัดลำดับไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-      load()
-    }
+  // Drags only mutate local `rows`. Nothing is persisted until the user
+  // explicitly confirms — so "ยกเลิก" can cleanly restore the snapshot.
+  const enterReorder = () => {
+    setSnapshot(rows)
+    setReorderMode(true)
   }
 
-  const exitReorder = async () => {
+  const cancelReorder = () => {
+    setRows(snapshot)
     setReorderMode(false)
-    await load()
-    toast({ title: 'บันทึกลำดับแล้ว', variant: 'success' })
+    toast({ title: 'ยกเลิกการจัดลำดับ — คืนลำดับเดิม' })
+  }
+
+  const saveReorder = async () => {
+    try {
+      // Renumbered 1..n server-side in one transaction.
+      await window.api.settings.reorderCategories(rows.map(r => r.id))
+      setReorderMode(false)
+      await load()
+      toast({ title: 'บันทึกลำดับแล้ว', variant: 'success' })
+    } catch (e: any) {
+      toast({ title: 'จัดลำดับไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
   }
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
@@ -75,12 +82,17 @@ export function CategoriesTab() {
           <span>หมวดหมู่สินค้าและยา · {rows.length.toLocaleString()} รายการ</span>
           <div className="flex items-center gap-2">
             {reorderMode ? (
-              <Button size="lg" className="px-2" variant="success" onClick={exitReorder}>
-                <Check className="size-4" /> เสร็จสิ้น
-              </Button>
+              <>
+                <Button size="lg" className="px-2" variant="destructive2" onClick={cancelReorder}>
+                  <X className="size-4" /> ยกเลิก
+                </Button>
+                <Button size="lg" className="px-2" variant="success" onClick={saveReorder}>
+                  <Check className="size-4" /> เสร็จสิ้น
+                </Button>
+              </>
             ) : (
               <>
-                <Button size="lg" className="px-2" variant="info-soft" onClick={() => setReorderMode(true)} disabled={rows.length < 2}>
+                <Button size="lg" className="px-2" variant="info-soft" onClick={enterReorder} disabled={rows.length < 2}>
                   <ArrowUpDown className="size-4" /> จัดลำดับ
                 </Button>
                 <Button size="lg" className="px-2" onClick={openAdd}>
@@ -109,7 +121,7 @@ export function CategoriesTab() {
             {reorderMode ? (
               <SortableTableBody values={rows} onReorder={setRows}>
                 {rows.map(c => (
-                  <SortableRow key={c.id} value={c} onDragEnd={persistOrder} className={c.is_disabled ? 'opacity-60' : ''}>
+                  <SortableRow key={c.id} value={c} className={c.is_disabled ? 'opacity-60' : ''}>
                     <TableCell className="font-mono text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
                     <TableCell className="font-semibold text-sm text-foreground">{c.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.description ?? '—'}</TableCell>
@@ -172,6 +184,7 @@ export function CategoriesTab() {
             {form.id ? (
               <Toggle
                 framed
+                size="lg"
                 variant="destructive"
                 label="พักการใช้งานหมวดหมู่นี้"
                 checked={!!form.is_disabled}

@@ -21,8 +21,8 @@ export function UnitsTab() {
   }
   useEffect(() => { load() }, [])
 
-  const openAdd = () => { setForm({ name: '', multiply: 1 }); setDialog(true) }
-  const openEdit = (u: ItemUnit) => { setForm({ id: u.id, name: u.name, multiply: u.multiply }); setDialog(true) }
+  const openAdd = () => { setForm({ name: '' }); setDialog(true) }
+  const openEdit = (u: ItemUnit) => { setForm({ id: u.id, name: u.name }); setDialog(true) }
 
   const handleSave = async () => {
     if (!form.name?.trim()) { toast({ title: 'กรุณาระบุชื่อหน่วย', variant: 'error' }); return }
@@ -52,8 +52,7 @@ export function UnitsTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[200px]">ชื่อหน่วย</TableHead>
-                <TableHead className="text-right min-w-32">ตัวคูณ</TableHead>
+                <TableHead className="min-w-[240px]">ชื่อหน่วย</TableHead>
                 <TableHead className="text-right min-w-40">ใช้งานใน</TableHead>
                 <TableHead className="text-center min-w-24">จัดการ</TableHead>
               </TableRow>
@@ -61,7 +60,7 @@ export function UnitsTab() {
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-16">
                     <Ruler className="size-10 mx-auto mb-2 opacity-30" />
                     ยังไม่มีหน่วยนับ
                   </TableCell>
@@ -69,7 +68,6 @@ export function UnitsTab() {
               ) : rows.map(u => (
                 <TableRow key={u.id}>
                   <TableCell className="font-semibold text-sm text-foreground">{u.name}</TableCell>
-                  <TableCell className="text-right text-sm tabular-nums">{u.multiply}</TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground tabular-nums">{(u.usage_count ?? 0).toLocaleString()} สินค้า</TableCell>
                   <TableCell>
                     <div className="flex justify-center">
@@ -92,9 +90,10 @@ export function UnitsTab() {
             <FormField label="ชื่อหน่วย" required>
               <Input value={form.name ?? ''} onChange={e => setF('name', e.target.value)} placeholder="เช่น เม็ด, ซอง, ขวด" autoFocus />
             </FormField>
-            <FormField label="ตัวคูณ (กรณีเป็นหน่วยใหญ่)">
-              <Input type="number" value={form.multiply ?? 1} onChange={e => setF('multiply', Number(e.target.value))} className="w-32" min={1} />
-            </FormField>
+            <p className="text-sm text-muted-foreground">
+              หน่วยนี้เป็นเพียง “ชื่อหน่วย” กลางที่ใช้ร่วมทุกสินค้า — การแปลงจำนวน (เช่น 1 กล่อง = กี่เม็ด)
+              ตั้งรายสินค้าที่ช่อง “ขนาดบรรจุ” ในหน้าแก้ไขสินค้า → แท็บหน่วยนับ
+            </p>
           </DialogBody>
           <DialogFooter>
             <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>

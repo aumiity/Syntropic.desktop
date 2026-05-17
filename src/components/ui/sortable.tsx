@@ -25,7 +25,7 @@ function SortableTableBody<T>({
       axis="y"
       values={values}
       onReorder={onReorder}
-      className={cn('[&_tr:last-child]:border-0', className)}
+      className={cn('select-none [&_tr:last-child]:border-0', className)}
     >
       {children}
     </Reorder.Group>
@@ -54,7 +54,7 @@ function SortableRow<T>({
       dragListener={false}
       dragControls={controls}
       onDragEnd={onDragEnd}
-      className={cn('border-b bg-card transition-colors hover:bg-primary-soft/60', className)}
+      className={cn('border-b bg-card transition-colors select-none hover:bg-primary-soft/60', className)}
     >
       <TableCell className="text-center">
         <span

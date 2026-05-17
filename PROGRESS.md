@@ -997,7 +997,7 @@ A late-session bug surfaced when the user clicked "บันทึก" in EditPr
 
 **Critical migration order** — the new ALTER block at the bottom of `schema.ts`:
 ```sql
-INSERT OR IGNORE INTO item_units (name, multiply) VALUES ('ชิ้น', 1);  -- fallback
+INSERT OR IGNORE INTO item_units (name) VALUES ('ชิ้น');  -- fallback
 INSERT INTO product_units
   (product_id, unit_id, qty_per_base, is_base_unit, is_for_sale,
    price_retail, price_wholesale1, price_wholesale2)

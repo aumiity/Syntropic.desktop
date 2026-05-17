@@ -1,6 +1,30 @@
 import type { getDb } from '../db'
 
 /**
+ * The reserved walk-in ("ลูกค้าทั่วไป") customer code. Seeded once in
+ * seed.ts and guarded everywhere — never editable/deletable/listable.
+ */
+export const WALKIN_CUSTOMER_CODE = 'C0000'
+
+/**
+ * Resolve the walk-in customer row id.
+ *
+ * Walk-in is modelled as a real row (C0000), NOT a NULL customer_id — see
+ * the walk-in invariant in CLAUDE.md. Every sale-insert path funnels its
+ * `customer_id ?? walkInCustomerId(db)` through here so `sales.customer_id`
+ * is never NULL, keeping report joins/group-by uniform.
+ *
+ * Throws if C0000 is missing — seed.ts guarantees it on every launch, so a
+ * miss means the DB is corrupt and we must fail loudly rather than write NULL.
+ */
+export function walkInCustomerId(db: ReturnType<typeof getDb>): number {
+  const row = db.prepare(`SELECT id FROM customers WHERE code = ?`)
+    .get(WALKIN_CUSTOMER_CODE) as { id: number } | undefined
+  if (!row) throw new Error(`ไม่พบลูกค้าทั่วไป (${WALKIN_CUSTOMER_CODE}) — ฐานข้อมูลผิดปกติ`)
+  return row.id
+}
+
+/**
  * Next running customer code: C0001, C0002, …
  *
  * Uses MAX of the numeric suffix across existing `C%` codes (+1) — NOT

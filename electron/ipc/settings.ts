@@ -139,7 +139,7 @@ export function registerSettingsHandlers() {
       db.prepare(`UPDATE item_units SET name = ? WHERE id = ?`).run(data.name, data.id)
       return db.prepare(`SELECT * FROM item_units WHERE id = ?`).get(data.id)
     }
-    const result = db.prepare(`INSERT INTO item_units (name, multiply) VALUES (?, ?)`).run(data.name, data.multiply ?? 1)
+    const result = db.prepare(`INSERT INTO item_units (name) VALUES (?)`).run(data.name)
     return db.prepare(`SELECT * FROM item_units WHERE id = ?`).get(result.lastInsertRowid)
   })
 

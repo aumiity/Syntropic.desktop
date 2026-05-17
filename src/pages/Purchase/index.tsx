@@ -147,6 +147,8 @@ export default function PurchasePage() {
   // Suppliers
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [showSupplierModal, setShowSupplierModal] = useState(false)
+  // 'receive' → sets supplierId/supplierName on the GR form; 'filter' → sets histSupplierId on the history filter
+  const [supplierPickTarget, setSupplierPickTarget] = useState<'receive' | 'filter'>('receive')
   const [supplierQuery, setSupplierQuery] = useState('')
   const [supplierHighlight, setSupplierHighlight] = useState(0)
 
@@ -232,6 +234,8 @@ export default function PurchasePage() {
   const [adjustModalSum, setAdjustModalSum] = useState(0)
   // Controlled value for the editable ยอดสุทธิ input in the modal
   const [billNetInput, setBillNetInput] = useState('')
+  // Which adjust-modal input is focused — shows raw value while editing, comma-formatted when blurred
+  const [adjFocus, setAdjFocus] = useState<'baht' | 'pct' | 'net' | null>(null)
   // Last committed values — restored into drafts on next open
   const [appliedDiscount, setAppliedDiscount] = useState({ baht: '', pct: '' })
   const [appliedSurcharge, setAppliedSurcharge] = useState({ baht: '', pct: '' })
@@ -718,10 +722,21 @@ export default function PurchasePage() {
   const closeSupplierModal = () => { setShowSupplierModal(false); setSupplierQuery('') }
 
   const selectSupplier = (s: Supplier) => {
-    setSupplierId(s.id)
-    setSupplierName(s.name)
+    if (supplierPickTarget === 'filter') {
+      setHistSupplierId(s.id)
+    } else {
+      setSupplierId(s.id)
+      setSupplierName(s.name)
+    }
     closeSupplierModal()
   }
+
+  // Filter mode only: "ทุกผู้จัดจำหน่าย" clears the history filter
+  const clearSupplierFilter = () => { setHistSupplierId(0); closeSupplierModal() }
+
+  // Which id is shown as active in the modal depends on what opened it
+  const activeSupplierId = supplierPickTarget === 'filter' ? histSupplierId : supplierId
+  const histSupplierName = suppliers.find(s => s.id === histSupplierId)?.name ?? ''
 
   useEffect(() => { setSupplierHighlight(0) }, [supplierQuery])
 
@@ -913,7 +928,7 @@ export default function PurchasePage() {
                           <Button
                             type="button"
                             variant={supplierId ? 'brand-soft' : 'outline'}
-                            onClick={() => setShowSupplierModal(true)}
+                            onClick={() => { setSupplierPickTarget('receive'); setShowSupplierModal(true) }}
                             className="w-full h-10 justify-between px-3 rounded-lg text-sm"
                           >
                             <span className="flex items-center gap-2 min-w-0">
@@ -977,37 +992,39 @@ export default function PurchasePage() {
                         </div>
                       </div>
 
-                      <div className="flex-1 min-h-0 overflow-auto scrollbar-thin">
-                        <table className="w-full table-fixed text-sm border-l-8 border-r-8 border-card">
-                          <thead>
-                            <tr className="text-sm font-semibold text-foreground-subtle [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
-                              <th className="px-3 py-2 text-left w-10">#</th>
-                              <th className="px-3 py-2 text-left" style={{ minWidth: 220 }}>ชื่อสินค้า</th>
-                              <th className="px-3 py-2 text-center w-24">Lot</th>
-                              {showMfg && <th className="px-3 py-2 text-center w-36">วันผลิต</th>}
-                              <th className="px-3 py-2 text-center w-36">วันหมดอายุ</th>
-                              <th className="px-3 py-2 text-center w-20">หน่วย</th>
-                              <th className="px-3 py-2 text-center w-20">จำนวน</th>
-                              <th className="px-3 py-2 text-center w-28">ทุน</th>
-                              <th className="px-3 py-2 text-center w-28">ราคาขาย</th>
-                              {showDiscount && <th className="px-3 py-2 text-center w-24">ส่วนลด</th>}
-                              <th className="px-3 py-2 text-center w-28">รวม</th>
-                              <th className="w-8" />
-                            </tr>
-                          </thead>
-                          <tbody>
+                      <Table
+                        containerClassName="flex-1 min-h-0 overflow-auto scrollbar-thin"
+                        className="table-fixed border-l-8 border-r-8 border-card"
+                      >
+                        <TableHeader>
+                          <TableRow className="border-0 hover:bg-transparent">
+                            <TableHead className="px-3 text-center w-8">#</TableHead>
+                            <TableHead className="px-3">ชื่อสินค้า</TableHead>
+                            <TableHead className="px-3 text-center w-[8%]">Lot</TableHead>
+                            {showMfg && <TableHead className="px-3 text-center w-[13%]">วันผลิต</TableHead>}
+                            <TableHead className="px-3 text-center w-[13%]">วันหมดอายุ</TableHead>
+                            <TableHead className="px-3 text-center w-[6%]">หน่วย</TableHead>
+                            <TableHead className="px-3 text-center w-[6%]">จำนวน</TableHead>
+                            <TableHead className="px-3 text-center w-[10%]">ทุน</TableHead>
+                            <TableHead className="px-3 text-center w-[10%]">ราคาขาย</TableHead>
+                            {showDiscount && <TableHead className="px-3 text-center w-[8%]">ส่วนลด</TableHead>}
+                            <TableHead className="px-3 text-center w-[11%]">รวม</TableHead>
+                            <TableHead className="w-8" />
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {rows.map((row, i) => {
                               const isPartial = rowIsPartial(row)
                               const isValid = rowIsValid(row)
                               const rowBg = isPartial ? 'bg-warning-soft/60' : isValid ? 'bg-success-soft/50' : 'bg-card'
                               return (
-                                <tr key={i} className={`transition-colors ${rowBg}`}>
+                                <TableRow key={i} className={`border-0 hover:bg-transparent ${rowBg}`}>
 
                                   {/* # */}
-                                  <td className="px-3 py-1.5 text-sm text-foreground-subtle tabular-nums text-center">{i + 1}</td>
+                                  <TableCell className="px-3 py-1.5 text-sm text-foreground-subtle tabular-nums text-center">{i + 1}</TableCell>
 
                                   {/* Product search */}
-                                  <td className="px-2 py-1.5 relative">
+                                  <TableCell className="px-2 py-1.5 relative">
                                     <Input
                                       data-cell={`${i}-0`}
                                       value={searchQueries[i] ?? ''}
@@ -1041,27 +1058,27 @@ export default function PurchasePage() {
                                         ))}
                                       </div>
                                     )}
-                                  </td>
+                                  </TableCell>
 
                                   {/* Lot */}
-                                  <td className="px-2 py-1.5">
+                                  <TableCell className="px-2 py-1.5">
                                     <Input data-cell={`${i}-2`} value={row.lot_number} onChange={e => updateRow(i, 'lot_number', e.target.value)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
-                                  </td>
+                                  </TableCell>
 
                                   {/* วันผลิต (optional) */}
                                   {showMfg && (
-                                    <td className="px-2 py-1.5">
+                                    <TableCell className="px-2 py-1.5">
                                       <DateInput data-cell={`${i}-3`} value={row.manufactured_date} onChange={v => updateRow(i, 'manufactured_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
-                                    </td>
+                                    </TableCell>
                                   )}
 
                                   {/* วันหมดอายุ */}
-                                  <td className="px-2 py-1.5">
+                                  <TableCell className="px-2 py-1.5">
                                     <DateInput data-cell={`${i}-4`} value={row.expiry_date} onChange={v => updateRow(i, 'expiry_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
-                                  </td>
+                                  </TableCell>
 
                                   {/* หน่วย — opens swap modal */}
-                                  <td className="px-2 py-1.5">
+                                  <TableCell className="px-2 py-1.5">
                                     <Button
                                       type="button"
                                       variant="outline"
@@ -1072,10 +1089,10 @@ export default function PurchasePage() {
                                     >
                                       <span className="truncate">{row.unit_name || ''}</span>
                                     </Button>
-                                  </td>
+                                  </TableCell>
 
                                   {/* จำนวน */}
-                                  <td className="px-2 py-1.5">
+                                  <TableCell className="px-2 py-1.5">
                                     <Input
                                       data-cell={`${i}-1`}
                                       type="text"
@@ -1087,10 +1104,10 @@ export default function PurchasePage() {
                                       placeholder="0"
                                       className="h-8 text-sm text-center tabular-nums"
                                     />
-                                  </td>
+                                  </TableCell>
 
                                   {/* ทุน */}
-                                  <td className="px-2 py-1.5">
+                                  <TableCell className="px-2 py-1.5">
                                     <Input
                                       data-cell={`${i}-5`}
                                       type="text"
@@ -1106,10 +1123,10 @@ export default function PurchasePage() {
                                       placeholder="0.00"
                                       className="h-8 text-sm text-right tabular-nums"
                                     />
-                                  </td>
+                                  </TableCell>
 
                                   {/* ราคาขาย — opens quick-edit modal */}
-                                  <td className="px-2 py-1.5">
+                                  <TableCell className="px-2 py-1.5">
                                     <Button
                                       type="button"
                                       variant="outline"
@@ -1122,11 +1139,11 @@ export default function PurchasePage() {
                                         {row.product_id ? `${formatCurrency(row.default_sell_price || 0)}` : ''}
                                       </span>
                                     </Button>
-                                  </td>
+                                  </TableCell>
 
                                   {/* ส่วนลด (optional) */}
                                   {showDiscount && (
-                                    <td className="px-2 py-1.5">
+                                    <TableCell className="px-2 py-1.5">
                                       <Input
                                         data-cell={`${i}-5b`}
                                         type="text"
@@ -1142,11 +1159,11 @@ export default function PurchasePage() {
                                         placeholder="0.00"
                                         className="h-8 text-sm text-right tabular-nums"
                                       />
-                                    </td>
+                                    </TableCell>
                                   )}
 
                                   {/* รวม */}
-                                  <td className="px-2 py-1.5">
+                                  <TableCell className="px-2 py-1.5">
                                     <Input
                                       data-cell={`${i}-6`}
                                       type="text"
@@ -1163,10 +1180,10 @@ export default function PurchasePage() {
                                       placeholder="0.00"
                                       className="h-8 text-sm text-right tabular-nums"
                                     />
-                                  </td>
+                                  </TableCell>
 
                                   {/* ลบ */}
-                                  <td className="px-1 py-1.5">
+                                  <TableCell className="px-1 py-1.5">
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -1176,13 +1193,12 @@ export default function PurchasePage() {
                                     >
                                       <Trash2 className="size-3.5" />
                                     </Button>
-                                  </td>
-                                </tr>
+                                  </TableCell>
+                                </TableRow>
                               )
                             })}
-                          </tbody>
-                        </table>
-                      </div>
+                        </TableBody>
+                      </Table>
 
                       {/* ── Footer bar — always pinned at bottom of card ── */}
                       <div className="shrink-0">
@@ -1402,28 +1418,28 @@ export default function PurchasePage() {
                             onChange={e => setHistQ(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && loadHistory(1, undefined, undefined, true)}
                             placeholder="ค้นหาเลขที่ใบรับ..."
-                            className="pl-8 h-8 text-sm"
+                            className="pl-8 h-9 text-sm"
                           />
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => loadHistory(1, undefined, undefined, true)} className="h-8 px-3 text-sm shrink-0">
+                        <Button size="sm" variant="outline" onClick={() => loadHistory(1, undefined, undefined, true)} className="h-9 px-3 text-sm shrink-0">
                           <Search className="size-3.5" />
                         </Button>
                       </div>
                       <div className="flex gap-2">
-                        <Select
-                          value={String(histSupplierId)}
-                          onValueChange={v => setHistSupplierId(Number(v))}
+                        <Button
+                          type="button"
+                          variant={histSupplierId ? 'brand-soft' : 'outline'}
+                          onClick={() => { setSupplierPickTarget('filter'); setShowSupplierModal(true) }}
+                          className="w-full h-9 justify-between px-3 rounded-lg text-sm"
                         >
-                          <SelectTrigger size="sm" className="w-full h-8 text-sm">
-                            <SelectValue placeholder="ทุกผู้จัดจำหน่าย" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="0">ทุกผู้จัดจำหน่าย</SelectItem>
-                            {suppliers.map(s => (
-                              <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <span className="flex items-center gap-2 min-w-0">
+                            <Building2 className="size-4 shrink-0 opacity-70" />
+                            <span className={`truncate font-medium ${histSupplierId ? '' : 'text-foreground-subtle'}`}>
+                              {histSupplierName || 'ทุกผู้จัดจำหน่าย'}
+                            </span>
+                          </span>
+                          <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                        </Button>
                       </div>
                       <div className="space-y-0.5">
                         <label className="text-sm text-foreground-subtle px-0.5">ช่วงวันที่</label>
@@ -1619,8 +1635,8 @@ export default function PurchasePage() {
                           </div>
 
                           {/* Items table */}
-                          <div className="flex-1 overflow-y-auto">
-                            <Table>
+                          <div className="flex-1 min-h-0">
+                            <Table containerClassName="h-full overflow-auto scrollbar-thin" className="border-l-8 border-r-8 border-card">
                               <TableHeader>
                                 <TableRow className="bg-muted">
                                   <TableHead>สินค้า</TableHead>
@@ -1637,7 +1653,7 @@ export default function PurchasePage() {
                                     <TableRow key={item.id}>
                                       <TableCell>
                                         <div className="font-medium text-sm">{item.trade_name}</div>
-                                        <div className="flex items-center gap-2 mt-0.5">
+                                        <div className="flex flex-col items-start gap-0.5 mt-0.5">
                                           {item.lot_number && (
                                             <span className="text-sm text-foreground-subtle">Lot. {item.lot_number}</span>
                                           )}
@@ -1796,8 +1812,8 @@ export default function PurchasePage() {
               )}
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" className="h-10 rounded-xl px-5 text-sm" onClick={() => setShowEditModal(false)} disabled={editSaving}>ยกเลิก</Button>
-            <Button onClick={handleSaveEdit} disabled={editSaving} className="h-10 rounded-xl px-5 text-sm">
+            <Button variant="destructive2" size="xl" onClick={() => setShowEditModal(false)} disabled={editSaving}>ยกเลิก</Button>
+            <Button size="xl" onClick={handleSaveEdit} disabled={editSaving}>
               {editSaving ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
           </DialogFooter>
@@ -1849,10 +1865,10 @@ export default function PurchasePage() {
               )}
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" className="h-10 rounded-xl px-5 text-sm" onClick={() => setShowCancelModal(false)} disabled={cancelling}>ยกเลิก</Button>
+            <Button variant="destructive2" size="xl" onClick={() => setShowCancelModal(false)} disabled={cancelling}>ยกเลิก</Button>
             <Button
               variant="destructive"
-              className="h-10 rounded-xl px-5 text-sm"
+              size="xl"
               onClick={handleCancelBill}
               disabled={cancelling || !cancelReason.trim()}
             >
@@ -1886,6 +1902,21 @@ export default function PurchasePage() {
               />
             </div>
             <div className="h-72 overflow-y-auto space-y-1">
+              {supplierPickTarget === 'filter' && !supplierQuery.trim() && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={clearSupplierFilter}
+                  className={`w-full h-auto min-h-[3.75rem] justify-start gap-3 px-3 py-2.5 rounded-xl text-left ${
+                    histSupplierId === 0 ? 'bg-primary-soft text-primary hover:bg-primary-soft' : ''
+                  }`}
+                >
+                  <Building2 className={`size-4 shrink-0 ${histSupplierId === 0 ? 'text-primary' : 'text-foreground-subtle'}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold truncate">ทุกผู้จัดจำหน่าย</div>
+                  </div>
+                </Button>
+              )}
               {filteredSuppliers.length === 0 ? (
                 <div className="text-sm text-center text-foreground-subtle py-6">ไม่พบผู้จัดจำหน่าย</div>
               ) : filteredSuppliers.map((s, si) => (
@@ -1895,14 +1926,14 @@ export default function PurchasePage() {
                   variant="ghost"
                   onClick={() => selectSupplier(s)}
                   className={`w-full h-auto justify-start gap-3 px-3 py-2.5 rounded-xl text-left ${
-                    s.id === supplierId
+                    s.id === activeSupplierId
                       ? 'bg-primary-soft text-primary hover:bg-primary-soft'
                       : si === supplierHighlight
-                      ? 'bg-muted'
+                      ? 'bg-card'
                       : ''
                   }`}
                 >
-                  <Building2 className={`size-4 shrink-0 ${s.id === supplierId ? 'text-primary' : 'text-foreground-subtle'}`} />
+                  <Building2 className={`size-4 shrink-0 ${s.id === activeSupplierId ? 'text-primary' : 'text-foreground-subtle'}`} />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold truncate">{s.name}</div>
                     {s.code && <div className="text-sm text-foreground-subtle">{s.code}</div>}
@@ -1912,7 +1943,7 @@ export default function PurchasePage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" onClick={closeSupplierModal}>ปิด</Button>
+            <Button variant="destructive2" size="xl" onClick={closeSupplierModal}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1950,7 +1981,7 @@ export default function PurchasePage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
+                <Button variant="tertiary" size="xl" className="w-32" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -2108,7 +2139,7 @@ export default function PurchasePage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="tertiary" className="w-32 h-10 text-base" onClick={closePriceModal}>ปิด</Button>
+                <Button variant="tertiary" size="xl" className="w-32" onClick={closePriceModal}>ปิด</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -2149,14 +2180,14 @@ export default function PurchasePage() {
             return (
               <>
                 <DialogHeader>
-                  <DialogTitle>ปรับยอดท้ายบิล</DialogTitle>
+                  <DialogTitle className="text-xl">ปรับยอดท้ายบิล</DialogTitle>
                 </DialogHeader>
                 <DialogBody className="p-0">
                   {/* Tabs */}
                   <Tabs value={billAdjustTab} onValueChange={(v) => setBillAdjustTab(v as 'discount' | 'surcharge')}>
-                    <TabsList className="w-full">
-                      <TabsTrigger value="discount">ส่วนลด</TabsTrigger>
-                      <TabsTrigger value="surcharge">ส่วนเพิ่ม</TabsTrigger>
+                    <TabsList className="w-full bg-muted">
+                      <TabsTrigger className="font-semibold" value="discount">ส่วนลด</TabsTrigger>
+                      <TabsTrigger className="font-semibold" value="surcharge">ส่วนเพิ่ม</TabsTrigger>
                     </TabsList>
                   </Tabs>
 
@@ -2169,7 +2200,7 @@ export default function PurchasePage() {
                           <Button
                             key={p}
                             type="button"
-                            variant={active ? (isDisc ? 'default' : 'warm') : 'outline'}
+                            variant={active ? (isDisc ? 'default' : 'default') : 'outline'}
                             size="sm"
                             onClick={() => {
                               const newPct = active ? '' : p
@@ -2188,41 +2219,45 @@ export default function PurchasePage() {
                     {/* Inputs: baht + percent side by side */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-sm text-muted-foreground">จำนวนเงิน (บาท)</label>
+                        <label className="text-sm font-semibold text-muted-foreground">จำนวนเงิน (บาท)</label>
                         <div className="relative">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-foreground-subtle"></span>
                           <Input
                             autoFocus
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={isDisc ? billDiscountBaht : billSurchargeBaht}
+                            type="text"
+                            inputMode="decimal"
+                            value={adjFocus === 'baht'
+                              ? (isDisc ? billDiscountBaht : billSurchargeBaht)
+                              : formatNum(isDisc ? billDiscountBaht : billSurchargeBaht, true)}
                             onChange={e => {
-                              const newBaht = e.target.value
+                              const newBaht = stripCommas(e.target.value)
                               if (isDisc) { setBillDiscountBaht(newBaht); setBillDiscountPct(bahtToPct(newBaht)); setBillNetInput(calcNet(newBaht, billSurchargeBaht)) }
                               else { setBillSurchargeBaht(newBaht); setBillSurchargePct(bahtToPct(newBaht)); setBillNetInput(calcNet(billDiscountBaht, newBaht)) }
                             }}
+                            onFocus={() => setAdjFocus('baht')}
+                            onBlur={() => setAdjFocus(null)}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyBillAdjust() } }}
                             placeholder="0.00"
-                            className="h-10 text-sm text-right pl-6"
+                            className="h-10 text-sm text-right"
                           />
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-sm text-muted-foreground">เปอร์เซ็นต์ (%)</label>
+                        <label className="text-sm font-semibold text-muted-foreground">เปอร์เซ็นต์ (%)</label>
                         <div className="relative">
                           <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            step="0.01"
-                            value={isDisc ? billDiscountPct : billSurchargePct}
+                            type="text"
+                            inputMode="decimal"
+                            value={adjFocus === 'pct'
+                              ? (isDisc ? billDiscountPct : billSurchargePct)
+                              : formatNum(isDisc ? billDiscountPct : billSurchargePct)}
                             onChange={e => {
-                              const newPct = e.target.value
+                              const newPct = stripCommas(e.target.value)
                               const newBaht = pctToBaht(newPct)
                               if (isDisc) { setBillDiscountPct(newPct); setBillDiscountBaht(newBaht); setBillNetInput(calcNet(newBaht, billSurchargeBaht)) }
                               else { setBillSurchargePct(newPct); setBillSurchargeBaht(newBaht); setBillNetInput(calcNet(billDiscountBaht, newBaht)) }
                             }}
+                            onFocus={() => setAdjFocus('pct')}
+                            onBlur={() => setAdjFocus(null)}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyBillAdjust() } }}
                             placeholder="0.00"
                             className="h-10 text-sm text-right pr-7"
@@ -2233,36 +2268,31 @@ export default function PurchasePage() {
                     </div>
 
                     {/* Total preview */}
-                    <div className="rounded-xl bg-muted px-4 py-3 space-y-1.5 text-sm">
+                    <div className="rounded-lg bg-primary-soft/50 px-4 py-3 space-y-1.5 text-sm">
                       <div className="flex justify-between text-muted-foreground">
                         <span>ยอดรวมเดิม</span>
-                        <span className="tabular-nums">{formatCurrency(adjustModalSum)}</span>
+                        <span className="pr-2.5 tabular-nums">{formatCurrency(adjustModalSum)}</span>
                       </div>
-                      {previewDisc > 0 && (
-                        <div className="flex justify-between text-primary">
-                          <span>ส่วนลด</span>
-                          <span className="tabular-nums">−{formatCurrency(previewDisc)}</span>
-                        </div>
-                      )}
-                      {previewSur > 0 && (
-                        <div className="flex justify-between text-warning-strong">
-                          <span>ส่วนเพิ่ม</span>
-                          <span className="tabular-nums">+{formatCurrency(previewSur)}</span>
-                        </div>
-                      )}
+                      <div className="flex justify-between text-primary">
+                        <span>ส่วนลด</span>
+                        <span className="pr-2.5 tabular-nums">{previewDisc > 0 ? '−' : ''}{formatCurrency(previewDisc)}</span>
+                      </div>
+                      <div className="flex justify-between text-warning-strong">
+                        <span>ส่วนเพิ่ม</span>
+                        <span className="pr-2.5 tabular-nums">{previewSur > 0 ? '+' : ''}{formatCurrency(previewSur)}</span>
+                      </div>
                       <div className="flex items-center justify-between font-semibold text-foreground pt-1.5 mt-1">
                         <span>ยอดสุทธิ</span>
                         <div className="relative w-36">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-foreground-subtle"></span>
                           <Input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={billNetInput}
-                            onChange={e => handleNetChange(e.target.value)}
-                            onBlur={() => setBillNetInput(calcNet(billDiscountBaht, billSurchargeBaht))}
+                            type="text"
+                            inputMode="decimal"
+                            value={adjFocus === 'net' ? billNetInput : formatNum(billNetInput, true)}
+                            onChange={e => handleNetChange(stripCommas(e.target.value))}
+                            onFocus={() => setAdjFocus('net')}
+                            onBlur={() => { setAdjFocus(null); setBillNetInput(calcNet(billDiscountBaht, billSurchargeBaht)) }}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyBillAdjust() } }}
-                            className="h-9 text-sm font-semibold text-right pl-6 bg-card"
+                            className="h-9 text-sm font-semibold text-right bg-card"
                           />
                         </div>
                       </div>
@@ -2270,8 +2300,8 @@ export default function PurchasePage() {
                   </div>
                 </DialogBody>
                 <DialogFooter>
-                  <Button variant="destructive2" className="flex-1" onClick={closeBillAdjust}>ยกเลิก</Button>
-                  <Button className="flex-1" onClick={applyBillAdjust}>ตกลง</Button>
+                  <Button variant="destructive2" size="xl" className="flex-1" onClick={closeBillAdjust}>ยกเลิก</Button>
+                  <Button size="xl" className="flex-1" onClick={applyBillAdjust}>ตกลง</Button>
                 </DialogFooter>
               </>
             )
@@ -2352,8 +2382,8 @@ export default function PurchasePage() {
             />
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" disabled={importing} onClick={() => { setShowImport(false); setImportText('') }}>ยกเลิก</Button>
-            <Button disabled={importing || !importText.trim() || !importColumns.includes('key')} onClick={handleImport}>
+            <Button variant="destructive2" size="xl" disabled={importing} onClick={() => { setShowImport(false); setImportText('') }}>ยกเลิก</Button>
+            <Button size="xl" disabled={importing || !importText.trim() || !importColumns.includes('key')} onClick={handleImport}>
               {importing ? 'กำลังนำเข้า…' : 'นำเข้า'}
             </Button>
           </DialogFooter>
@@ -2373,7 +2403,7 @@ export default function PurchasePage() {
               <div className="text-lg font-semibold">บันทึกสำเร็จ</div>
               <div className="text-muted-foreground text-sm mt-1">{savedInvoice}</div>
             </div>
-            <Button onClick={() => setShowSuccess(false)} className="w-full">
+            <Button size="xl" onClick={() => setShowSuccess(false)} className="w-full">
               เสร็จสิ้น
             </Button>
           </DialogBody>

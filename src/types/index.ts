@@ -117,7 +117,7 @@ export interface ProductCategory {
 }
 
 export interface ItemUnit {
-  id: number; name: string; multiply: number; usage_count?: number
+  id: number; name: string; usage_count?: number
 }
 
 export interface DrugType {

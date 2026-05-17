@@ -140,7 +140,7 @@ function SelectItem({
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5",
         "rounded-control py-2.5 pl-3 pr-9",
-        "text-sm outline-hidden select-none",
+        "text-sm outline-none select-none",
         "focus:bg-brand-soft focus:text-brand-soft-foreground",
         "not-data-[variant=destructive]:focus:**:text-brand-soft-foreground",
         "data-disabled:pointer-events-none data-disabled:opacity-50",

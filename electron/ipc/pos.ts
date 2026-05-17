@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
-import { nextCustomerCode } from './codes'
+import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes'
 import dayjs from 'dayjs'
 
 export function registerPosHandlers() {
@@ -57,6 +57,7 @@ export function registerPosHandlers() {
     return getDb().prepare(`
       SELECT * FROM customers
       WHERE is_disabled = 0
+        AND code != '${WALKIN_CUSTOMER_CODE}'
         AND (full_name LIKE ? OR phone LIKE ? OR code LIKE ?)
       ORDER BY full_name
       LIMIT 20
@@ -100,6 +101,10 @@ export function registerPosHandlers() {
   }) => {
     const db = getDb()
 
+    // Walk-in (null from the renderer) is persisted as the C0000 row, never
+    // NULL — see walk-in invariant in CLAUDE.md.
+    const customerId = payload.customer_id ?? walkInCustomerId(db)
+
     const saveBill = db.transaction(() => {
       // Generate invoice number — LIKE prefix already encodes today's date.
       // (Don't filter by sold_at: it stores 'YYYY-MM-DD HH:MM:SS' but `today`
@@ -116,7 +121,7 @@ export function registerPosHandlers() {
           symptom_note, age_range, note, status)
         VALUES (?, ?, ?, ?, ?, datetime('now','localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed')
       `).run(
-        invoiceNo, payload.sale_type, payload.customer_id, payload.customer_name_free,
+        invoiceNo, payload.sale_type, customerId, payload.customer_name_free,
         payload.sold_by, payload.subtotal, payload.total_discount, payload.total_amount,
         payload.cash_amount, payload.card_amount, payload.transfer_amount, payload.change_amount,
         payload.symptom_note ?? '', payload.age_range ?? '', payload.note ?? ''
@@ -188,6 +193,8 @@ export function registerPosHandlers() {
     created_by: number
   }) => {
     const db = getDb()
+    // Walk-in (null) → C0000 row, never NULL (walk-in invariant).
+    const customerId = payload.customer_id ?? walkInCustomerId(db)
     const doReturn = db.transaction(() => {
       // Generate RT-YYYYMMDD-NNN invoice number (see saveBill for why the
       // sold_at date filter is omitted — format mismatch makes it always-false).
@@ -209,7 +216,7 @@ export function registerPosHandlers() {
           ?, 0, 0, ?,
           0, 0, 0, 0,
           ?, 'completed')
-      `).run(invoiceNo, payload.customer_id ?? null, payload.created_by,
+      `).run(invoiceNo, customerId, payload.created_by,
         -totalAmount, -totalAmount, payload.reason)
       const saleId = saleResult.lastInsertRowid
 

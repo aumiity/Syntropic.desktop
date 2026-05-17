@@ -148,7 +148,7 @@ export function registerProductHandlers() {
 
     // Fallback unit if caller didn't pick one (shouldn't happen via the UI, but defends against legacy callers).
     const fallbackUnitId = (db.prepare(`SELECT id FROM item_units WHERE name = 'ชิ้น'`).get() as any)?.id
-                         ?? (db.prepare(`INSERT INTO item_units (name, multiply) VALUES ('ชิ้น', 1)`).run().lastInsertRowid as number)
+                         ?? (db.prepare(`INSERT INTO item_units (name) VALUES ('ชิ้น')`).run().lastInsertRowid as number)
 
     const insProduct = db.prepare(`
       INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,
