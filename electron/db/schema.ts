@@ -174,20 +174,13 @@ export function initializeSchema(db: Database.Database) {
       code TEXT NOT NULL UNIQUE,
       full_name TEXT NOT NULL,
       id_card TEXT,
-      hn TEXT,
       dob TEXT,
       phone TEXT,
       address TEXT,
-      hc_uc INTEGER NOT NULL DEFAULT 0,
-      hc_gov INTEGER NOT NULL DEFAULT 0,
-      hc_sso INTEGER NOT NULL DEFAULT 0,
       food_allergy TEXT,
-      other_allergy TEXT,
       chronic_diseases TEXT,
       is_alert INTEGER NOT NULL DEFAULT 0,
       alert_note TEXT,
-      warning_note TEXT,
-      is_hidden INTEGER NOT NULL DEFAULT 0,
       is_disabled INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -213,7 +206,6 @@ export function initializeSchema(db: Database.Database) {
       tax_id TEXT,
       phone TEXT,
       address TEXT,
-      contact_name TEXT,
       is_disabled INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -616,6 +608,22 @@ export function initializeSchema(db: Database.Database) {
   for (const sql of [
     `ALTER TABLE customers ADD COLUMN is_disabled INTEGER NOT NULL DEFAULT 0`,
     `UPDATE customers SET is_disabled = 1 WHERE is_hidden = 1 AND is_disabled = 0`,
+  ]) {
+    try { db.exec(sql) } catch {}
+  }
+
+  // Drop unused columns — UI no longer reads/writes these. Try/catch absorbs
+  // "no such column" on re-run. Order matters: customers.is_hidden drop runs
+  // AFTER the is_hidden→is_disabled backfill above.
+  for (const sql of [
+    `ALTER TABLE customers DROP COLUMN hn`,
+    `ALTER TABLE customers DROP COLUMN hc_uc`,
+    `ALTER TABLE customers DROP COLUMN hc_gov`,
+    `ALTER TABLE customers DROP COLUMN hc_sso`,
+    `ALTER TABLE customers DROP COLUMN other_allergy`,
+    `ALTER TABLE customers DROP COLUMN warning_note`,
+    `ALTER TABLE customers DROP COLUMN is_hidden`,
+    `ALTER TABLE suppliers DROP COLUMN contact_name`,
   ]) {
     try { db.exec(sql) } catch {}
   }

@@ -1,9 +1,12 @@
 # Syntropic Desktop - Build Progress
 
-## Status: ✅ Runnable — Cost-price model overhaul: 3-cost model (weighted-avg / last-paid / FEFO-lot) applied across POS, Purchase, EditProduct.
+## Status: ✅ Runnable — `EditProduct.tsx` 2,155-line monolith split into per-tab files under `src/pages/Products/EditProduct/` (parent + 5 tabs + shared). Pure refactor, no behavior change. Type-clean (same pre-existing baseline). **Not click-tested yet — verify each tab end-to-end before relying on it.**
 ## Last updated: 2026-05-17
 ## Run: `npm run electron:dev`
-## ⚠️ Next session: **Reports page cost audit** — last page left in the cost-sourcing sweep. See Session 2026-05-16→17 → "Next" below.
+## ⚠️ Next session:
+##   1. **Click-test the EditProduct split** — exercise all 5 tabs (general/units/labels/lots/history) + new product flow. See Session 2026-05-17 (EditProduct split) below.
+##   2. **Reports page cost audit** — last page in the cost-sourcing sweep (still pending from 2026-05-16→17).
+##   3. **Phase-2 sweep** — `Reports/*` then `Settings/index.tsx` onto the table-card standard.
 
 ---
 
@@ -1477,3 +1480,62 @@ Continuing phase 2 consistency sweep page-by-page. This session = `People/index.
 1. **`Reports/*`** — bring onto table-card / showcase standard (overlaps with the Reports cost audit queued in the previous session — do together).
 2. **`Settings/index.tsx`** — same sweep (raw `<input>` flagged in phase-2 plan; tab/card/modal standardization).
 3. **Detail-fix round (after all pages swept):** re-run each page fresh from the top, eyeball-by-eyeball, and fix the fine-grained issues that only show at runtime (spacing, alignment, edge-state polish) — a dedicated pass, not folded into the structural sweep.
+
+---
+
+## Session 2026-05-17 — `EditProduct.tsx` split into per-tab files
+
+Operator noticed Reports already splits each tab into its own file but `EditProduct.tsx` was still a single **2,155-line / 117KB** monolith with 5 tabs (general, units, labels, lots, history) sharing the file. Asked: should we do the same here? Decision: yes — pure structural refactor, no behavior change, one tab at a time to keep risk low.
+
+### Strategy
+Order chosen by coupling, least → most: **History → Lots → Labels → Units → General**. History is read-only with self-contained state (movements + filters + sale/GR detail dialogs) — safest first move. General last because it owns the form and feeds save logic.
+
+Parent (`index.tsx`) keeps the cross-cutting bits: `form` + `setF` + `validate` + `handleSave`/`doSave`, `product` + `loadAll`, `tab` state, lookups (`categories`/`drugTypes`/`itemUnits`/label-*), PageHeader, 4 MetricCards, Tabs nav, and the 3 cross-cutting dialogs (PriceWarning, LeaveConfirm, AdjustStockDialog).
+
+Each extracted tab owns its own dialog state, form draft, in-tab handlers, and the dialog markup. Mutation IPCs inside a tab call back through `onRefresh()` (prop), which re-fetches `product` in the parent — preserves the single source of truth.
+
+### Done
+- **Folder layout** — `src/pages/Products/EditProduct.tsx` → `src/pages/Products/EditProduct/` via `git mv` (rename preserves history). Vite/lazy import (`./pages/Products/EditProduct` in `App.tsx`) resolves to the folder's `index.tsx` automatically — no route change needed.
+- **`shared.ts`** — extracted types/constants used by multiple files: `FullProduct`, `StockMovement`, `MovementSortKey`, `MOVEMENT_META`, `GenericNameSuggestion`, `REQUIRED_FIELDS`, `REQUIRED_LABEL`.
+- **`HistoryTab.tsx`** — owns `movements`/`movementsLoading`/filters/sort/date-range state, lazy-load effect (`active` prop gates the first fetch), `reloadMovements`/`filteredMovements`/`toggleMovementSort`/`openMovementDetail`. SaleDetail + PurchaseReceipt detail dialogs moved into the tab (they're history-only).
+- **`LotsTab.tsx`** — owns lot inline-edit state (`editingLotId`/`lotEditForm`/`lotSaving`/`confirmLot`) + handlers (`startEditLot`/`handleSaveLot`/`getLotEditChanges`/`confirmSaveLot`) + confirm dialog. Recomputes `activeLotList`/`totalStock` locally for the footer; parent also computes them for the MetricCards (cheap, no shared state needed).
+- **`LabelsTab.tsx`** — owns `labelDialog`/`editingLabel`/`labelForm`/`labelSaving` + add/edit/delete + the giant label dialog (multi-language indication/notes, 5 lookup selects). Receives the 5 label lookups via props.
+- **`UnitsTab.tsx`** — owns `unitDialog`/`editingUnit`/`unitForm`/`unitSaving` + add/edit/delete + the unit dialog (qty_per_base math, profit/per-piece calc). Synthetic base row at top rendered from `product.unit_name` + `product.price_*` with "แก้ไขที่แท็บข้อมูลทั่วไป" hint. Takes `defaultPriceRetail={form.price_retail}` so "add new unit" still seeds the price from the General tab's current value (preserving the cross-tab coupling).
+- **`GeneralTab.tsx`** — owns generic-name autocomplete state (`genericQuery`/`genericSuggestions`/`showGenericSugg`/`genericTimer` ref) + `handleGenericSearch`/`selectGeneric`. Receives `form`/`setF`/`setForm`/`errors`/lookups. `setForm` (not just `setF`) is passed because the drug-type select does a compound multi-field update.
+- **Parent `index.tsx`** — added `refreshProduct()` helper (re-fetches product after a tab mutation). Cleaned unused imports after each extraction.
+
+### Final shape
+```
+src/pages/Products/EditProduct/
+├── index.tsx       557  (parent: form state, save, tab routing, 4 metric cards)
+├── shared.ts        58  (types/constants)
+├── GeneralTab.tsx  458
+├── HistoryTab.tsx  323
+├── LotsTab.tsx     301
+├── LabelsTab.tsx   300
+└── UnitsTab.tsx    362
+```
+Before: 2,155 LOC in one file. After: 7 files, largest 557. Total grew by ~200 LOC (per-file imports + prop interfaces) — fair trade.
+
+### Files changed
+- `src/pages/Products/EditProduct.tsx` → **moved** to `src/pages/Products/EditProduct/index.tsx` (git tracks as rename) and slimmed by removing each tab's state/handlers/JSX as they were extracted.
+- **New:** `src/pages/Products/EditProduct/shared.ts`, `HistoryTab.tsx`, `LotsTab.tsx`, `LabelsTab.tsx`, `UnitsTab.tsx`, `GeneralTab.tsx`.
+
+### Verification
+- `npx tsc --noEmit -p tsconfig.json` — **no new errors**. Same pre-existing baseline (dialog.tsx `icon-m`, `themeStore.ts` line 61, `FullProduct.drug_generic_name_id` / `tmt_id` in `loadAll`, `ProductLabel.label_time_id`/`advice_id`/`show_barcode`/`is_default` — all pre-existed in the type defs and were untouched).
+- **NOT click-tested by Claude.** Operator MUST exercise each tab end-to-end before relying on the refactor:
+  1. **General** — create new product, required-field validation, generic-name autocomplete (auto-tick antibiotic), drug-type select → ข.ย.10/11/13 auto-fill, save → redirect to edit URL, leave-confirm if dirty.
+  2. **Units** — synthetic base row at top, add/edit/delete non-base, qty_per_base math + profit preview in dialog.
+  3. **Labels** — add/edit/delete, all 5 dropdowns (dosage / frequency / timing / label_time / advice), multi-language indication.
+  4. **Lots** — inline edit, validation blocks blank/NaN, confirm dialog shows diff, `is_cancelled` lots have no edit button, qty crossing 0 closes/reopens lot.
+  5. **History** — filter chips, date range, sort by created_at + lot_number, "ดูข้อมูล" opens SaleDetail or PurchaseReceipt dialog.
+  6. **Cross-tab** — save in General → switch to Units → confirm price_retail still default for new unit; save Lots/Units/Labels mutation → parent product refreshes (MetricCard counts update).
+
+### Why this matters for next time
+Adding a feature or hunting a bug in EditProduct is now a single-file edit. Pre-refactor, any change meant scrolling through 2k lines with state for all 5 tabs in scope. Same goes for HMR: changing a tab no longer re-parses the whole monolith.
+
+### Architectural rules baked in
+1. Tabs are **owners of their dialog state**, not the parent — keeps each tab self-contained.
+2. Mutation refresh is via the **`onRefresh` callback prop** — parent stays the single source of truth for `product`.
+3. **Form state lives in the parent** because the save button (PageHeader) and the cross-cutting price-warning dialog both need it; only the General tab reads/writes it via `setF`/`setForm`.
+4. **Cross-tab couplings stay explicit** as named props (e.g. `defaultPriceRetail` to UnitsTab) — no module-level singletons, no context.

@@ -251,7 +251,7 @@ export function registerDevHandlers() {
       .map(r => r.id) as number[]
     if (suppliers.length === 0) throw new Error('ไม่มี suppliers')
 
-    const allCustomers = db.prepare(`SELECT id, code FROM customers WHERE is_hidden = 0`)
+    const allCustomers = db.prepare(`SELECT id, code FROM customers WHERE is_disabled = 0`)
       .all() as Array<{ id: number; code: string }>
     const walkIn = allCustomers.find(c => c.code === 'C0000')
     if (!walkIn) throw new Error('ไม่มีลูกค้าทั่วไป (C0000)')

@@ -10,7 +10,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Pagination } from '@/components/ui/pagination'
 import { useToast } from '@/components/ui/toast'
-import { Switch, Toggle } from '@/components/ui/switch'
+import { Toggle } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import type { Customer, Supplier, User, DrugAllergy } from '@/types'
 import { Search, Plus, Edit, AlertTriangle, Users, Building2, UserCog } from 'lucide-react'
@@ -71,7 +71,7 @@ function CustomersTab() {
     setForm({
       full_name: '', id_card: '', dob: '', phone: '', address: '',
       food_allergy: '', chronic_diseases: '',
-      is_alert: 0, alert_note: '', warning_note: '',
+      is_alert: 0, alert_note: '',
       is_disabled: 0,
     })
     setDialog(true)
@@ -91,7 +91,6 @@ function CustomersTab() {
       chronic_diseases: data.chronic_diseases ?? '',
       is_alert: data.is_alert ?? 0,
       alert_note: data.alert_note ?? '',
-      warning_note: data.warning_note ?? '',
       is_disabled: data.is_disabled ?? 0,
     })
     setDialog(true)
@@ -119,7 +118,7 @@ function CustomersTab() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input value={q} onChange={e => setQ(e.target.value)}
-            placeholder="ค้นหาชื่อ, โทร, รหัส, HN..." className="h-10 pl-9 rounded-lg bg-card" />
+            placeholder="ค้นหาชื่อ, โทร, รหัส..." className="h-10 pl-9 rounded-lg bg-card" />
         </div>
         <Toggle framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่พักใช้งาน" />
       </div>
@@ -197,9 +196,13 @@ function CustomersTab() {
           </DialogHeader>
           <DialogBody className="space-y-4" onKeyDown={submitOnEnter(handleSave)}>
             <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-1.5">
+              <div className="space-y-1.5">
                 <Label>ชื่อ-นามสกุล <span className="text-destructive">*</span></Label>
                 <Input value={form.full_name ?? ''} onChange={e => setF('full_name', e.target.value)} autoFocus />
+              </div>
+              <div className="space-y-1.5">
+                <Label>โทรศัพท์</Label>
+                <Input value={form.phone ?? ''} onChange={e => setF('phone', e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label>เลขบัตรประชาชน</Label>
@@ -209,13 +212,9 @@ function CustomersTab() {
                 <Label>วันเกิด</Label>
                 <Input type="date" value={form.dob ?? ''} onChange={e => setF('dob', e.target.value)} />
               </div>
-              <div className="space-y-1.5">
-                <Label>โทรศัพท์</Label>
-                <Input value={form.phone ?? ''} onChange={e => setF('phone', e.target.value)} />
-              </div>
               <div className="col-span-2 space-y-1.5">
                 <Label>ที่อยู่</Label>
-                <Input value={form.address ?? ''} onChange={e => setF('address', e.target.value)} />
+                <Textarea value={form.address ?? ''} onChange={e => setF('address', e.target.value)} rows={3} className="resize-none" />
               </div>
             </div>
 
@@ -231,20 +230,13 @@ function CustomersTab() {
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Switch size="lg" checked={!!form.is_alert} onCheckedChange={v => setF('is_alert', v ? 1 : 0)} />
-                <Label>แสดงการแจ้งเตือนเมื่อใช้งาน</Label>
-              </div>
+              <Toggle framed size="lg" variant="destructive"
+                checked={!!form.is_alert} onChange={v => setF('is_alert', v ? 1 : 0)}
+                label="แสดงการแจ้งเตือนเมื่อใช้งาน" />
               {!!form.is_alert && (
-                <div className="space-y-3 pl-4 border-l-2 border-destructive/30">
-                  <div className="space-y-1.5">
-                    <Label>ข้อความแจ้งเตือน</Label>
-                    <Input value={form.alert_note ?? ''} onChange={e => setF('alert_note', e.target.value)} placeholder="แสดงระหว่างขาย" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>หมายเหตุเพิ่มเติม</Label>
-                    <Input value={form.warning_note ?? ''} onChange={e => setF('warning_note', e.target.value)} />
-                  </div>
+                <div className="space-y-1.5 pl-4 border-l-2 border-destructive/30">
+                  <Label>ข้อความแจ้งเตือน</Label>
+                  <Input value={form.alert_note ?? ''} onChange={e => setF('alert_note', e.target.value)} placeholder="แสดงระหว่างขาย" />
                 </div>
               )}
             </div>
@@ -318,13 +310,13 @@ function SuppliersTab() {
 
   const openAdd = () => {
     setEditing(null)
-    setForm({ name: '', tax_id: '', phone: '', address: '', contact_name: '', is_disabled: 0 })
+    setForm({ name: '', tax_id: '', phone: '', address: '', is_disabled: 0 })
     setDialog(true)
   }
 
   const openEdit = (s: Supplier) => {
     setEditing(s)
-    setForm({ id: s.id, name: s.name, tax_id: s.tax_id ?? '', phone: s.phone ?? '', address: s.address ?? '', contact_name: s.contact_name ?? '', is_disabled: s.is_disabled ?? 0 })
+    setForm({ id: s.id, name: s.name, tax_id: s.tax_id ?? '', phone: s.phone ?? '', address: s.address ?? '', is_disabled: s.is_disabled ?? 0 })
     setDialog(true)
   }
 
@@ -420,10 +412,6 @@ function SuppliersTab() {
             <div className="space-y-1.5">
               <Label>ชื่อบริษัท / ร้านค้า <span className="text-destructive">*</span></Label>
               <Input value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
-            </div>
-            <div className="space-y-1.5">
-              <Label>ผู้ติดต่อ</Label>
-              <Input value={form.contact_name ?? ''} onChange={e => setF('contact_name', e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

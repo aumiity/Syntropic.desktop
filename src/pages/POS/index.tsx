@@ -992,7 +992,7 @@ export default function POSPage() {
           <div className="px-5 pt-4 pb-2 space-y-3 shrink-0">
             <div className="relative w-full px-0.5">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-              <Input className="w-full h-10 pl-4 pr-10 py-3" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส, HN..."
+              <Input className="w-full h-10 pl-4 pr-10 py-3" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส..."
                 value={customerQuery}
                 onChange={e => handleSearchCustomer(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && customerResults[0]) { cart.setCustomer(customerResults[0]); closeCustomerSearch() } }}
@@ -1067,12 +1067,6 @@ export default function POSPage() {
                     <div>
                       <div className="text-sm text-foreground-subtle">หมายเหตุ / ประวัติแพ้ยา</div>
                       <div className="text-destructive whitespace-pre-line bg-destructive-soft rounded-lg px-3 py-2 text-base">{cart.customer.alert_note}</div>
-                    </div>
-                  ) : null}
-                  {cart.customer.warning_note ? (
-                    <div>
-                      <div className="text-sm text-foreground-subtle">คำเตือน</div>
-                      <div className="text-warning-strong whitespace-pre-line bg-warning-soft rounded-lg px-3 py-2 text-base">{cart.customer.warning_note}</div>
                     </div>
                   ) : null}
                 </>

@@ -57,10 +57,10 @@ export function registerPosHandlers() {
     return getDb().prepare(`
       SELECT * FROM customers
       WHERE is_disabled = 0
-        AND (full_name LIKE ? OR phone LIKE ? OR code LIKE ? OR hn LIKE ?)
+        AND (full_name LIKE ? OR phone LIKE ? OR code LIKE ?)
       ORDER BY full_name
       LIMIT 20
-    `).all(q, q, q, q)
+    `).all(q, q, q)
   })
 
   // Quick-add customer

@@ -56,10 +56,9 @@ export interface ProductLabel {
 
 export interface Customer {
   id: number; code: string; full_name: string
-  id_card?: string; hn?: string; dob?: string; phone?: string; address?: string
-  hc_uc: number; hc_gov: number; hc_sso: number
-  food_allergy?: string; other_allergy?: string; chronic_diseases?: string
-  is_alert: number; alert_note?: string; warning_note?: string; is_hidden: number
+  id_card?: string; dob?: string; phone?: string; address?: string
+  food_allergy?: string; chronic_diseases?: string
+  is_alert: number; alert_note?: string
   is_disabled: number
   allergies?: DrugAllergy[]
 }
@@ -73,7 +72,7 @@ export interface DrugAllergy {
 
 export interface Supplier {
   id: number; code: string; name: string
-  tax_id?: string; phone?: string; address?: string; contact_name?: string
+  tax_id?: string; phone?: string; address?: string
   is_disabled: number
 }
 

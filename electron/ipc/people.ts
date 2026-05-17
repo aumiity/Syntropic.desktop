@@ -12,8 +12,8 @@ export function registerPeopleHandlers() {
     const params: any[] = []
     if (!includeDisabled) conds.push(`is_disabled = 0`)
     if (q) {
-      conds.push(`(full_name LIKE ? OR phone LIKE ? OR code LIKE ? OR hn LIKE ?)`)
-      params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
+      conds.push(`(full_name LIKE ? OR phone LIKE ? OR code LIKE ?)`)
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`)
     }
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : ''
     const rows = db.prepare(`SELECT * FROM customers ${where} ORDER BY code LIMIT ? OFFSET ?`).all(...params, limit, offset)
@@ -43,12 +43,12 @@ export function registerPeopleHandlers() {
     }
     const code = nextCustomerCode(db)
     const result = db.prepare(`
-      INSERT INTO customers (code, full_name, id_card, hn, dob, phone, address,
-        hc_uc, hc_gov, hc_sso, food_allergy, other_allergy, chronic_diseases,
-        is_alert, alert_note, warning_note)
-      VALUES (@code, @full_name, @id_card, @hn, @dob, @phone, @address,
-        @hc_uc, @hc_gov, @hc_sso, @food_allergy, @other_allergy, @chronic_diseases,
-        @is_alert, @alert_note, @warning_note)
+      INSERT INTO customers (code, full_name, id_card, dob, phone, address,
+        food_allergy, chronic_diseases,
+        is_alert, alert_note, is_disabled)
+      VALUES (@code, @full_name, @id_card, @dob, @phone, @address,
+        @food_allergy, @chronic_diseases,
+        @is_alert, @alert_note, @is_disabled)
     `).run({ code, ...data })
     return db.prepare(`SELECT * FROM customers WHERE id = ?`).get(result.lastInsertRowid)
   })
@@ -90,8 +90,8 @@ export function registerPeopleHandlers() {
     if (last?.code) nextNum = parseInt(last.code.slice(1)) + 1
     const code = `S${String(nextNum).padStart(4, '0')}`
     const result = db.prepare(`
-      INSERT INTO suppliers (code, name, tax_id, phone, address, contact_name)
-      VALUES (@code, @name, @tax_id, @phone, @address, @contact_name)
+      INSERT INTO suppliers (code, name, tax_id, phone, address)
+      VALUES (@code, @name, @tax_id, @phone, @address)
     `).run({ code, ...data })
     return db.prepare(`SELECT * FROM suppliers WHERE id = ?`).get(result.lastInsertRowid)
   })

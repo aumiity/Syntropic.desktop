@@ -54,10 +54,14 @@ function Switch({
   )
 }
 
-// Toggle = Switch + label. The switch sits on the LEFT, label on the right.
-// `framed` wraps it in a h-10 bg-card rounded-lg pill so it matches sibling
-// search inputs / control bars (same height, same surface, same radius).
-function Toggle({ checked, onChange, label, size, variant, framed, className }: {
+// Toggle = label + Switch. Label sits on the LEFT, switch on the RIGHT
+// (iOS/macOS settings convention: setting name first, control after).
+// `framed` wraps it in a h-10 rounded-lg pill with a thin border so it reads
+// as a control on both tinted page backgrounds AND inside white dialogs
+// (where a borderless white pill would be invisible). When variant=destructive
+// the pill picks up a soft red bg/border to signal a destructive state-change
+// (พักการใช้งาน, ปิดบัญชี).
+function Toggle({ checked, onChange, label, size, variant = "default", framed, className }: {
   checked: boolean
   onChange: (v: boolean) => void
   label?: string
@@ -69,11 +73,13 @@ function Toggle({ checked, onChange, label, size, variant, framed, className }: 
   return (
     <label className={cn(
       "flex items-center gap-2 cursor-pointer select-none",
-      framed && "h-10 px-3 rounded-lg bg-card",
+      framed && "h-10 px-3 rounded-lg border",
+      framed && variant === "default" && "bg-card border-border",
+      framed && variant === "destructive" && "bg-destructive-soft border-destructive/30 text-destructive",
       className,
     )}>
-      <Switch checked={checked} onCheckedChange={onChange} size={size} variant={variant} />
       {label ? <span className="text-sm">{label}</span> : null}
+      <Switch checked={checked} onCheckedChange={onChange} size={size} variant={variant} />
     </label>
   )
 }

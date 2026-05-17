@@ -578,7 +578,7 @@ export default function Theme() {
                     <Label>Destructive</Label>
                   </div>
                 </DemoRow>
-                <DemoRow label="Toggle (switch + label) — switch on left, label on right">
+                <DemoRow label="Toggle (label + switch) — label on left, switch on right (iOS settings style)">
                   <Toggle size="lg" checked={switchOn} onChange={setSwitchOn} label="พื้นฐาน" />
                 </DemoRow>
                 <DemoRow label="Toggle framed — pill for toolbars next to search inputs (h-10, bg-card, rounded-lg)">
