@@ -22,6 +22,7 @@ import { LotsTab } from './LotsTab'
 import { LabelsTab } from './LabelsTab'
 import { UnitsTab } from './UnitsTab'
 import { GeneralTab } from './GeneralTab'
+import { PriceTab } from './PriceTab'
 import {
   type FullProduct,
   REQUIRED_FIELDS,
@@ -207,12 +208,18 @@ export default function EditProductPage() {
       setErrors(missing)
       const labels = REQUIRED_FIELDS.filter(k => missing.has(k)).map(k => REQUIRED_LABEL[k])
       toast({ title: 'กรุณากรอกข้อมูลที่จำเป็น', description: labels.join(', '), variant: 'error' })
-      // Scroll to first missing field
+      // Scroll to first missing field. price_retail now lives on the "ราคา"
+      // tab — switch there first so the highlighted field is actually visible,
+      // then defer the scroll/focus until the tab content has rendered.
       const first = REQUIRED_FIELDS.find(k => missing.has(k))
       if (first) {
-        const el = document.querySelector(`[data-field="${first}"]`) as HTMLElement | null
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        ;(el?.querySelector('input, button') as HTMLElement | null)?.focus()
+        const targetTab = first === 'price_retail' ? 'price' : 'general'
+        setTab(targetTab)
+        setTimeout(() => {
+          const el = document.querySelector(`[data-field="${first}"]`) as HTMLElement | null
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          ;(el?.querySelector('input, button') as HTMLElement | null)?.focus()
+        }, 60)
       }
       return
     }
@@ -279,6 +286,16 @@ export default function EditProductPage() {
         navigate(`/products/${created.id}/edit`, { replace: true })
         return
       }
+      // Audit price changes BEFORE the generic update. products:update does a
+      // raw UPDATE with no logging; products:updatePrice writes a price_logs
+      // row and self-dedupes (reads current DB value, skips when unchanged) —
+      // so it must run while the column still holds the old price.
+      const priceNote = 'แก้ไขจากหน้าสินค้า'
+      await Promise.all([
+        window.api.products.updatePrice(productId, { price_type: 'retail', new_price: payload.price_retail, note: priceNote }),
+        window.api.products.updatePrice(productId, { price_type: 'wholesale1', new_price: payload.price_wholesale1, note: priceNote }),
+        window.api.products.updatePrice(productId, { price_type: 'wholesale2', new_price: payload.price_wholesale2, note: priceNote }),
+      ])
       await window.api.products.update(productId, payload)
       setIsDirty(false)
       toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
@@ -319,7 +336,7 @@ export default function EditProductPage() {
         title={isNew ? 'เพิ่มสินค้าใหม่' : 'สินค้า'}
         right={
           <>
-            {tab === 'general' ? (
+            {tab === 'general' || tab === 'price' ? (
               <>
                 <Button variant="primary-soft" onClick={goBack}>
                   <ArrowLeft className="w-4 h-4 mr-1.5" />
@@ -415,6 +432,7 @@ export default function EditProductPage() {
         <Tabs value={tab} onValueChange={setTab} className="items-center">
           <TabsList>
             <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
+            <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
             <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
               <Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})
             </TabsTrigger>
@@ -440,6 +458,20 @@ export default function EditProductPage() {
             categories={categories}
             drugTypes={drugTypes}
             itemUnits={itemUnits}
+          />
+        )}
+
+        {/* ======================== TAB: PRICE ======================== */}
+        {tab === 'price' && (
+          <PriceTab
+            form={form}
+            setF={setF}
+            errors={errors}
+            productId={productId}
+            isNew={isNew}
+            avgCost={product.cost_price ?? 0}
+            baseUnit={baseUnit}
+            reloadToken={(product as any).updated_at ?? ''}
           />
         )}
 

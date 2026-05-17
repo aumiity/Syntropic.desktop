@@ -113,10 +113,15 @@ export function registerSettingsHandlers() {
     const result = db.prepare(`INSERT INTO product_categories (code, name, description, sort_order) VALUES (@code, @name, @description, @sort_order)`).run(data)
     return db.prepare(`SELECT * FROM product_categories WHERE id = ?`).get(result.lastInsertRowid)
   })
-  ipcMain.handle('settings:toggleCategory', (_e, id: number) => {
+  // Drag-and-drop reorder: renumber sort_order to 1..n by the given id order,
+  // in one transaction so listCategories (ORDER BY sort_order, id) is stable.
+  ipcMain.handle('settings:reorderCategories', (_e, ids: number[]) => {
     const db = getDb()
-    db.prepare(`UPDATE product_categories SET is_disabled = 1 - is_disabled WHERE id = ?`).run(id)
-    return db.prepare(`SELECT * FROM product_categories WHERE id = ?`).get(id)
+    const upd = db.prepare(`UPDATE product_categories SET sort_order = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+    db.transaction((order: number[]) => {
+      order.forEach((id, i) => upd.run(i + 1, id))
+    })(ids)
+    return db.prepare(`SELECT * FROM product_categories ORDER BY sort_order, id`).all()
   })
 
   // Item units
@@ -152,11 +157,6 @@ export function registerSettingsHandlers() {
     }
     const result = db.prepare(`INSERT INTO drug_types (code, name_th, is_fda9, is_fda10, is_fda11, is_fda13) VALUES (@code, @name_th, @is_fda9, @is_fda10, @is_fda11, @is_fda13)`).run(data)
     return db.prepare(`SELECT * FROM drug_types WHERE id = ?`).get(result.lastInsertRowid)
-  })
-  ipcMain.handle('settings:toggleDrugType', (_e, id: number) => {
-    const db = getDb()
-    db.prepare(`UPDATE drug_types SET is_disabled = 1 - is_disabled WHERE id = ?`).run(id)
-    return db.prepare(`SELECT * FROM drug_types WHERE id = ?`).get(id)
   })
 
   // Dosage forms

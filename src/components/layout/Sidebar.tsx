@@ -1,5 +1,6 @@
 import React from 'react'
 import { NavLink, useResolvedPath, useMatch } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
   ShoppingCart, Pill, PackagePlus, Users, BarChart2, Settings,
@@ -36,17 +37,25 @@ function NavItem({ to, label, icon: Icon, exact, collapsed }: NavItemProps) {
   const isActive = !!useMatch({ path: resolved.pathname, end: !!exact })
 
   const className = cn(
-    'flex items-center h-11 w-full px-6 gap-3 rounded-xl transition-colors',
+    'relative flex items-center h-11 w-full px-6 gap-3 rounded-xl transition-colors',
     isActive
-      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+      ? 'text-sidebar-accent-foreground'
       : 'text-sidebar-primary-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground'
   )
 
   const link = (
     <NavLink to={to} end={exact} className={className}>
-      <Icon className="h-5 w-5 shrink-0" />
+      {isActive && (
+        <motion.div
+          layoutId="sidebar-active"
+          aria-hidden
+          className="absolute inset-0 rounded-xl bg-sidebar-accent"
+          transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+        />
+      )}
+      <Icon className="relative z-10 h-5 w-5 shrink-0" />
       {!collapsed && (
-        <span className="text-sm font-bold leading-none whitespace-nowrap">{label}</span>
+        <span className="relative z-10 text-sm font-bold leading-none whitespace-nowrap">{label}</span>
       )}
     </NavLink>
   )

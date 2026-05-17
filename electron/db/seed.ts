@@ -148,16 +148,20 @@ export function seedDatabase(db: Database.Database) {
   `)
   const nz = (v: string) => (v ? v : null)
   db.transaction(() => {
+    // Running P#### codes — same sequence/format as products:create, so
+    // seeded and user-created products share one continuous code space.
+    let codeSeq = 0
     for (const p of PRODUCTS) {
       const [
-        code, trade_name, name_for_print, search_keywords,
+        trade_name, name_for_print, search_keywords,
         barcode, barcode2, barcode3, barcode4,
         unit_name, cost_price, price_retail, price_wholesale1, price_wholesale2,
         is_disabled, is_hidden, is_stock_item, has_vat, is_drug,
         tmt_id, note, reorder_point,
       ] = p
+      const code = `P${String(++codeSeq).padStart(4, '0')}`
       insProduct.run(
-        nz(code), trade_name, nz(name_for_print), nz(search_keywords),
+        code, trade_name, nz(name_for_print), nz(search_keywords),
         nz(barcode), nz(barcode2), nz(barcode3), nz(barcode4),
         unitMap.get(unit_name) ?? fallbackUnitId,
         cost_price, price_retail, price_wholesale1, price_wholesale2,

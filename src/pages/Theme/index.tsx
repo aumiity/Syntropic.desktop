@@ -26,6 +26,7 @@ import {
   Table, TableHeader, TableBody, TableRow,
   TableHead, TableCell,
 } from '@/components/ui/table'
+import { SortableTableBody, SortableRow } from '@/components/ui/sortable'
 import {
   Dialog, DialogTrigger, DialogContent, DialogHeader,
   DialogTitle, DialogDescription, DialogBody, DialogFooter,
@@ -136,6 +137,7 @@ export default function Theme() {
   const [seedConfirmOpen, setSeedConfirmOpen] = useState(false)
   const [seedRunning, setSeedRunning] = useState(false)
   const [seedResult, setSeedResult] = useState<string | null>(null)
+  const [sortRows, setSortRows] = useState(PRODUCTS)
 
   return (
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
@@ -808,15 +810,15 @@ export default function Theme() {
                     <span>สินค้าทั้งหมด {PRODUCTS.length * 3} รายการ</span>
                     <Button size="lg" className="px-2"><Plus className="size-4" /> เพิ่มสินค้า</Button>
                   </div>
-                  <Table className="table-fixed" containerClassName="max-h-[260px]">
+                  <Table containerClassName="max-h-[260px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-64">ชื่อสินค้า</TableHead>
-                        <TableHead className="w-40">หมวดหมู่</TableHead>
-                        <TableHead className="w-32 text-right">ราคา (฿)</TableHead>
-                        <TableHead className="w-24 text-right">สต็อก</TableHead>
-                        <TableHead className="w-28">สถานะ</TableHead>
-                        <TableHead className="w-40 text-center">จัดการ</TableHead>
+                        <TableHead className="min-w-[220px]">ชื่อสินค้า</TableHead>
+                        <TableHead className="min-w-40">หมวดหมู่</TableHead>
+                        <TableHead className="min-w-32 text-right">ราคา (฿)</TableHead>
+                        <TableHead className="min-w-24 text-right">สต็อก</TableHead>
+                        <TableHead className="min-w-28">สถานะ</TableHead>
+                        <TableHead className="min-w-[148px] text-center">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -841,6 +843,37 @@ export default function Theme() {
                     <span className="text-muted-foreground">แสดง {PRODUCTS.length * 3} จาก {PRODUCTS.length * 3} รายการ</span>
                     <span className="font-semibold tabular-nums">รวมมูลค่า ฿ 172,350</span>
                   </div>
+                </div>
+              </Section>
+
+              {/* ── SORTABLE (DRAG REORDER) ── */}
+              <Section title="Sortable Table (drag-to-reorder)" path="src/components/ui/sortable.tsx" full>
+                <p className="text-sm text-muted-foreground">
+                  ลากจัดลำดับด้วย <code className="font-mono">SortableTableBody</code> + <code className="font-mono">SortableRow</code>.
+                  คอลัมน์แรกเป็น grip handle (ลากได้เฉพาะที่ handle — กันลากพลาด) state เป็นของ caller
+                  (<code className="font-mono">values</code>/<code className="font-mono">onReorder</code>) ส่วนการเซฟลำดับให้ทำใน
+                  <code className="font-mono">onDragEnd</code>. ใช้คู่กับปุ่มสลับโหมด "จัดลำดับ" ในแถบหัวตาราง
+                </p>
+                <div className="bg-card rounded-card shadow-card overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-center min-w-16">ลาก</TableHead>
+                        <TableHead className="min-w-[220px]">ชื่อสินค้า</TableHead>
+                        <TableHead className="min-w-40">หมวดหมู่</TableHead>
+                        <TableHead className="min-w-28">สถานะ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <SortableTableBody values={sortRows} onReorder={setSortRows}>
+                      {sortRows.map(row => (
+                        <SortableRow key={row.id} value={row}>
+                          <TableCell className="font-medium">{row.name}</TableCell>
+                          <TableCell><Badge variant="outline">{row.cat}</Badge></TableCell>
+                          <TableCell><Badge variant={row.status}>{STATUS_LABEL[row.status]}</Badge></TableCell>
+                        </SortableRow>
+                      ))}
+                    </SortableTableBody>
+                  </Table>
                 </div>
               </Section>
 

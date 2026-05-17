@@ -9,7 +9,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import {
-  Package, ScanBarcode, Tag, Pill, Boxes, FileText, EyeOff,
+  Package, ScanBarcode, Pill, Boxes, FileText, EyeOff,
 } from 'lucide-react'
 import type { ProductCategory, DrugType, ItemUnit } from '@/types'
 import type { GenericNameSuggestion } from './shared'
@@ -122,137 +122,6 @@ export function GeneralTab({
                 </Select>
               </Field>
             </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard icon={Tag} title="ราคาและต้นทุน" tint="success">
-          <div className="grid grid-cols-2 gap-3">
-
-            {/* col1 row1: ราคาขายปลีก */}
-            <div className="col-start-1 row-start-1" data-field="price_retail">
-              <Field label="ราคาขายปลีก" required>
-                <Input
-                  type="number"
-                  value={form.price_retail}
-                  onChange={e => setF('price_retail', e.target.value)}
-                  aria-invalid={errors.has('price_retail')}
-                  className="text-right tabular-nums" min={0} step="0.01"
-                />
-              </Field>
-            </div>
-
-            {/* col1 row2: ราคาส่ง 1 */}
-            <div className="col-start-1 row-start-2">
-              <Field label="ราคาส่ง 1">
-                <Input type="number" value={form.price_wholesale1} onChange={e => setF('price_wholesale1', e.target.value)}
-                  className="text-right tabular-nums" min={0} step="0.01" />
-              </Field>
-            </div>
-
-            {/* col2 row1-2: สรุปกำไร */}
-            <div className="col-start-2 row-start-1 row-span-2 h-full space-y-1.5">
-              <span className="block text-sm font-semibold text-foreground">สรุปกำไร</span>
-              {(() => {
-                const cost = parseFloat(form.cost_price) || 0
-                const calc = (price: number) => {
-                  const profit = price - cost
-                  const pct = cost > 0 ? (profit / cost) * 100 : 0
-                  return { profit, pct, pos: profit >= 0, dim: price <= 0 || cost <= 0 }
-                }
-                const retail = calc(parseFloat(form.price_retail) || 0)
-                const ws1 = calc(parseFloat(form.price_wholesale1) || 0)
-                const ws2 = calc(parseFloat(form.price_wholesale2) || 0)
-                return (
-                  <div className="h-[calc(100%-1.75rem)] rounded-lg bg-muted/50 px-3 py-2 flex flex-col">
-                    {/* ราคาขายปลีก */}
-                    <div className="flex-1 flex items-center justify-between tabular-nums">
-                      <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>ราคาขายปลีก</span>
-                      {retail.dim ? (
-                        <span className="text-sm text-foreground-subtle">—</span>
-                      ) : (
-                        <div className="text-right">
-                          <span className={`text-sm font-bold ${retail.pos ? 'text-success' : 'text-destructive'}`}>
-                            {retail.pos ? '+' : ''}{retail.profit.toFixed(2)}
-                          </span>
-                          <span className={`ml-1 text-sm font-bold ${retail.pos ? 'text-success' : 'text-destructive'}`}>
-                            ({retail.pos ? '+' : ''}{retail.pct.toFixed(0)}%)
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ราคาส่ง 1 */}
-                    <div className="flex-1 flex items-center justify-between tabular-nums">
-                      <span className={`text-sm ${ws1.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>ราคาส่ง 1</span>
-                      {ws1.dim ? (
-                        <span className="text-sm text-foreground-subtle">—</span>
-                      ) : (
-                        <div className="text-right">
-                          <span className={`text-sm font-bold ${ws1.pos ? 'text-success' : 'text-destructive'}`}>
-                            {ws1.pos ? '+' : ''}{ws1.profit.toFixed(2)}
-                          </span>
-                          <span className={`ml-1 text-sm font-bold ${ws1.pos ? 'text-success' : 'text-destructive'}`}>
-                            ({ws1.pos ? '+' : ''}{ws1.pct.toFixed(0)}%)
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ราคาส่ง 2 */}
-                    <div className="flex-1 flex items-center justify-between tabular-nums">
-                      <span className={`text-sm ${ws2.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>ราคาส่ง 2</span>
-                      {ws2.dim ? (
-                        <span className="text-sm text-foreground-subtle">—</span>
-                      ) : (
-                        <div className="text-right">
-                          <span className={`text-sm font-bold ${ws2.pos ? 'text-success' : 'text-destructive'}`}>
-                            {ws2.pos ? '+' : ''}{ws2.profit.toFixed(2)}
-                          </span>
-                          <span className={`ml-1 text-sm font-bold ${ws2.pos ? 'text-success' : 'text-destructive'}`}>
-                            ({ws2.pos ? '+' : ''}{ws2.pct.toFixed(0)}%)
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })()}
-            </div>
-
-            {/* col1 row3: ส่ง 2 */}
-            <div className="col-start-1 row-start-3">
-              <Field label="ราคาส่ง 2">
-                <Input type="number" value={form.price_wholesale2} onChange={e => setF('price_wholesale2', e.target.value)}
-                  className="text-right tabular-nums" min={0} step="0.01" />
-              </Field>
-            </div>
-
-            {/* col2 row3: ราคาทุน */}
-            <div className="col-start-2 row-start-3">
-              <Field label="ราคาทุน (ล่าสุด)">
-                <Input type="number" value={form.cost_price} onChange={e => setF('cost_price', e.target.value)}
-                  className="text-right tabular-nums" min={0} step="0.01" placeholder="ทุนล่าสุดที่ซื้อ — ใช้อ้างอิงตั้งราคา" />
-              </Field>
-            </div>
-
-            {/* col1 row4: มี VAT */}
-            <div className="p-2 col-start-1 row-start-4 flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
-              <div>
-                <div className="text-sm font-semibold text-foreground">มี VAT</div>
-                <div className="text-xs text-muted-foreground">บวก 7% เมื่อออกใบกำกับภาษี</div>
-              </div>
-              <Switch size="lg" checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
-            </div>
-
-            {/* col2 row4: นับสต็อก */}
-            <div className="col-start-2 row-start-4 flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
-              <div>
-                <div className="text-sm font-semibold text-foreground">นับสต็อก</div>
-                <div className="text-xs text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
-              </div>
-              <Switch size="lg" checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
-            </div>
-
           </div>
         </SectionCard>
 
@@ -370,9 +239,6 @@ export function GeneralTab({
                     onBlur={() => setTimeout(() => setShowGenericSugg(false), 200)}
                     placeholder="ค้นหาชื่อสามัญ..."
                   />
-                  {form.drug_generic_name_id > 0 && !showGenericSugg && (
-                    <div className="mt-1 text-sm text-muted-foreground">ID: {form.drug_generic_name_id}</div>
-                  )}
                   {showGenericSugg && genericSuggestions.length > 0 && (
                     <div className="absolute left-0 top-full mt-1 z-50 w-full bg-popover border border-border rounded-card shadow-card max-h-48 overflow-y-auto p-1">
                       {genericSuggestions.map(g => (
@@ -435,19 +301,19 @@ export function GeneralTab({
 
         <SectionCard icon={EyeOff} title="สถานะ" tint="secondary">
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
+            <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_hidden ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
               <div>
                 <div className="text-sm font-semibold text-foreground">ซ่อน</div>
                 <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>
               </div>
-              <Switch size="lg" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
+              <Switch size="lg" variant="destructive" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
             </div>
-            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
+            <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_disabled ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
               <div>
                 <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
                 <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
               </div>
-              <Switch size="lg" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
+              <Switch size="lg" variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
             </div>
           </div>
         </SectionCard>

@@ -302,10 +302,28 @@ export function registerDevHandlers() {
     // ---- Phase 2: Generate 90 days ----
     const today = dayjs()
     const DAYS = 90
+    const numDays = DAYS + 1 // loop runs d = DAYS..0 inclusive
 
-    // Sellable subset (~200 active SKUs) — concentrates volume, mimics real shop
+    // Exact totals spread evenly across the window (per-day rates ignored by
+    // design — see seed spec). distribute() guarantees the array sums to
+    // `total`; the remainder is scattered onto random days so the spread is
+    // even but not perfectly flat.
+    const distribute = (total: number, n: number): number[] => {
+      const base = Math.floor(total / n)
+      const arr = Array.from({ length: n }, () => base)
+      let rem = total - base * n
+      const idxs = Array.from({ length: n }, (_, i) => i).sort(() => Math.random() - 0.5)
+      for (let k = 0; k < rem; k++) arr[idxs[k]]++
+      return arr
+    }
+    const TOTAL_GR = 500
+    const TOTAL_SALES = 3000
+    const grPerDayArr = distribute(TOTAL_GR, numDays)
+    const salesPerDayArr = distribute(TOTAL_SALES, numDays)
+
+    // Active SKU subset (~1000) — random draw from seeded sellable products
     const inventory = [...products].sort(() => Math.random() - 0.5)
-      .slice(0, Math.min(200, products.length))
+      .slice(0, Math.min(1000, products.length))
 
     const grSeqByDate = new Map<string, number>()
     const saleSeqByDate = new Map<string, number>()
@@ -370,13 +388,56 @@ export function registerDevHandlers() {
     const result = db.transaction(() => {
       let grCount = 0, lotCount = 0, saleCount = 0, saleItemCount = 0
 
+      // ---- Day 0: opening-stock GR ----
+      // One bootstrap receipt on the oldest day that stocks EVERY inventory
+      // SKU, so sales have stock to draw from from day one (no ramp). Counted
+      // as seq 1 of that day; the regular day-loop GRs continue from seq 2.
+      {
+        const openDay = today.subtract(DAYS, 'day')
+        const openDate = openDay.format('YYYY-MM-DD')
+        const openYmd = openDay.format('YYYYMMDD')
+        const openSeq = 1
+        grSeqByDate.set(openYmd, openSeq)
+        const grNo = `GR-${openYmd}-${String(openSeq).padStart(4, '0')}`
+        const supplierId = pick(suppliers)
+        const dtStr = `${openDate} 08:00:00`
+
+        insReceipt.run(grNo, supplierId, `INV-MOCK-${grNo}`, openDate,
+          'cash', null, 1, openDate, dtStr)
+
+        for (const product of inventory) {
+          const cost = Math.max(0.5, +(product.cost_price * randF(0.85, 1.15)).toFixed(2))
+          const qty = rand(200, 800)
+          const expiry = openDay.add(rand(6, 24) * 30, 'day').format('YYYY-MM-DD')
+          const mfg = openDay.subtract(rand(30, 360), 'day').format('YYYY-MM-DD')
+          const lotNo = `DEV-OPEN-${product.id}`
+
+          const lotRes = insLot.run(
+            product.id, supplierId, lotNo, mfg, expiry,
+            cost, product.price_retail, qty, qty,
+            grNo, `INV-MOCK-${grNo}`, openDate,
+            'cash', null, 1, openDate,
+            dtStr, dtStr,
+          )
+          const lotId = Number(lotRes.lastInsertRowid)
+          lotCount++
+
+          insReceiptItem.run(grNo, product.id, lotId, lotNo, mfg, expiry,
+            cost, product.price_retail, qty, dtStr)
+          insMove.run(product.id, lotId, 'receive', 'stock_receive', null,
+            qty, 0, qty, cost, `รับสินค้า: ${grNo} [DEV-SEED]`, users[0], dtStr)
+        }
+        grCount++
+      }
+
       for (let d = DAYS; d >= 0; d--) {
         const day = today.subtract(d, 'day')
         const dateStr = day.format('YYYY-MM-DD')
         const yymmdd = day.format('YYYYMMDD')
+        const dayIdx = DAYS - d
 
-        // ---- GRs (3-8/day) ----
-        const grPerDay = rand(3, 8)
+        // ---- GRs (even spread → ~500 total) ----
+        const grPerDay = grPerDayArr[dayIdx]
         for (let g = 0; g < grPerDay; g++) {
           const seq = (grSeqByDate.get(yymmdd) ?? 0) + 1
           grSeqByDate.set(yymmdd, seq)
@@ -394,9 +455,7 @@ export function registerDevHandlers() {
           insReceipt.run(grNo, supplierId, `INV-MOCK-${grNo}`, dateStr,
             paymentType, dueDate, isPaid, isPaid ? dateStr : null, dtStr)
 
-          const lineCount = weighted<number>([
-            [rand(5, 15), 60], [rand(16, 30), 30], [rand(31, 50), 10],
-          ])
+          const lineCount = rand(5, 25)
           const lineProducts = [...inventory].sort(() => Math.random() - 0.5).slice(0, lineCount)
 
           for (const product of lineProducts) {
@@ -427,8 +486,8 @@ export function registerDevHandlers() {
           grCount++
         }
 
-        // ---- Sales (20-50/day) ----
-        const salesPerDay = rand(20, 50)
+        // ---- Sales (even spread → ~3000 total) ----
+        const salesPerDay = salesPerDayArr[dayIdx]
         for (let s = 0; s < salesPerDay; s++) {
           const seq = (saleSeqByDate.get(yymmdd) ?? 0) + 1
           saleSeqByDate.set(yymmdd, seq)
@@ -446,7 +505,7 @@ export function registerDevHandlers() {
           const userId = pick(users)
 
           const itemCount = weighted<number>([
-            [1, 30], [2, 30], [3, 20], [rand(4, 6), 15], [rand(7, 10), 5],
+            [1, 30], [2, 30], [3, 20], [rand(4, 6), 15], [rand(7, 12), 5],
           ])
 
           // Pick `itemCount` distinct products that currently have stock
@@ -574,7 +633,7 @@ export function registerDevHandlers() {
     return {
       wiped,
       ...result,
-      message: `✓ ลบของเก่า ${wiped.grs} GR / ${wiped.sales} sales / ${wiped.lots} lots — สร้างใหม่ ${result.grCount} GR (${result.lotCount} lots), ${result.saleCount} sales (${result.saleItemCount} items)`,
+      message: `✓ ลบของเก่า ${wiped.grs} GR / ${wiped.sales} sales / ${wiped.lots} lots — สร้างใหม่ ${result.grCount} GR (รวม GR เปิดสต็อก 1 ใบ, ${result.lotCount} lots), ${result.saleCount} sales (${result.saleItemCount} items)`,
     }
   })
 }
