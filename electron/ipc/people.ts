@@ -4,12 +4,18 @@ import { nextCustomerCode } from './codes'
 
 export function registerPeopleHandlers() {
   // --- CUSTOMERS ---
-  ipcMain.handle('people:listCustomers', (_e, filters: { q?: string; page?: number }) => {
+  ipcMain.handle('people:listCustomers', (_e, filters: { q?: string; page?: number; includeDisabled?: boolean }) => {
     const db = getDb()
-    const { q, page = 1 } = filters
+    const { q, page = 1, includeDisabled = false } = filters ?? {}
     const limit = 50; const offset = (page - 1) * limit
-    const where = q ? `WHERE is_hidden = 0 AND (full_name LIKE ? OR phone LIKE ? OR code LIKE ? OR hn LIKE ?)` : `WHERE is_hidden = 0`
-    const params = q ? [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`] : []
+    const conds: string[] = []
+    const params: any[] = []
+    if (!includeDisabled) conds.push(`is_disabled = 0`)
+    if (q) {
+      conds.push(`(full_name LIKE ? OR phone LIKE ? OR code LIKE ? OR hn LIKE ?)`)
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
+    }
+    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : ''
     const rows = db.prepare(`SELECT * FROM customers ${where} ORDER BY code LIMIT ? OFFSET ?`).all(...params, limit, offset)
     const total = (db.prepare(`SELECT COUNT(*) as c FROM customers ${where}`).get(...params) as any).c
     return { rows, total, page, limit }
@@ -47,18 +53,25 @@ export function registerPeopleHandlers() {
     return db.prepare(`SELECT * FROM customers WHERE id = ?`).get(result.lastInsertRowid)
   })
 
-  ipcMain.handle('people:deleteCustomer', (_e, id: number) => {
-    getDb().prepare(`UPDATE customers SET is_hidden = 1 WHERE id = ?`).run(id)
+  ipcMain.handle('people:setCustomerStatus', (_e, payload: { id: number; disabled: boolean }) => {
+    getDb().prepare(`UPDATE customers SET is_disabled = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+      .run(payload.disabled ? 1 : 0, payload.id)
     return true
   })
 
   // --- SUPPLIERS ---
-  ipcMain.handle('people:listSuppliers', (_e, filters: { q?: string; page?: number }) => {
+  ipcMain.handle('people:listSuppliers', (_e, filters: { q?: string; page?: number; includeDisabled?: boolean }) => {
     const db = getDb()
-    const { q, page = 1 } = filters
+    const { q, page = 1, includeDisabled = false } = filters ?? {}
     const limit = 50; const offset = (page - 1) * limit
-    const where = q ? `WHERE (name LIKE ? OR code LIKE ? OR phone LIKE ?)` : ``
-    const params = q ? [`%${q}%`, `%${q}%`, `%${q}%`] : []
+    const conds: string[] = []
+    const params: any[] = []
+    if (!includeDisabled) conds.push(`is_disabled = 0`)
+    if (q) {
+      conds.push(`(name LIKE ? OR code LIKE ? OR phone LIKE ?)`)
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`)
+    }
+    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : ''
     const rows = db.prepare(`SELECT * FROM suppliers ${where} ORDER BY name LIMIT ? OFFSET ?`).all(...params, limit, offset)
     const total = (db.prepare(`SELECT COUNT(*) as c FROM suppliers ${where}`).get(...params) as any).c
     return { rows, total, page, limit }
@@ -83,14 +96,17 @@ export function registerPeopleHandlers() {
     return db.prepare(`SELECT * FROM suppliers WHERE id = ?`).get(result.lastInsertRowid)
   })
 
-  ipcMain.handle('people:deleteSupplier', (_e, id: number) => {
-    getDb().prepare(`UPDATE suppliers SET is_disabled = 1 WHERE id = ?`).run(id)
+  ipcMain.handle('people:setSupplierStatus', (_e, payload: { id: number; disabled: boolean }) => {
+    getDb().prepare(`UPDATE suppliers SET is_disabled = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+      .run(payload.disabled ? 1 : 0, payload.id)
     return true
   })
 
   // --- STAFF ---
-  ipcMain.handle('people:listStaff', () => {
-    return getDb().prepare(`SELECT id, name, email, role, is_disabled, created_at FROM users ORDER BY name`).all()
+  ipcMain.handle('people:listStaff', (_e, filters?: { includeDisabled?: boolean }) => {
+    const { includeDisabled = false } = filters ?? {}
+    const where = includeDisabled ? '' : `WHERE is_disabled = 0`
+    return getDb().prepare(`SELECT id, name, email, role, is_disabled, created_at FROM users ${where} ORDER BY name`).all()
   })
 
   ipcMain.handle('people:saveStaff', (_e, data: any) => {
@@ -105,12 +121,13 @@ export function registerPeopleHandlers() {
     return db.prepare(`SELECT id, name, email, role, is_disabled FROM users WHERE id = ?`).get(result.lastInsertRowid)
   })
 
-  ipcMain.handle('people:deleteStaff', (_e, id: number) => {
-    getDb().prepare(`UPDATE users SET is_disabled = 1 WHERE id = ?`).run(id)
+  ipcMain.handle('people:setStaffStatus', (_e, payload: { id: number; disabled: boolean }) => {
+    getDb().prepare(`UPDATE users SET is_disabled = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+      .run(payload.disabled ? 1 : 0, payload.id)
     return true
   })
 
-  // All suppliers (for dropdowns)
+  // All suppliers (for dropdowns) — always filters disabled.
   ipcMain.handle('people:allSuppliers', () => {
     return getDb().prepare(`SELECT id, code, name FROM suppliers WHERE is_disabled = 0 ORDER BY name`).all()
   })

@@ -18,6 +18,9 @@ const api = {
     update: (id: number, data: any) => ipcRenderer.invoke('products:update', id, data),
     updatePrice: (id: number, data: { price_type?: 'retail' | 'wholesale1' | 'wholesale2'; new_price: number; note?: string }) => ipcRenderer.invoke('products:updatePrice', id, data),
     priceHistory: (id: number, limit?: number) => ipcRenderer.invoke('products:priceHistory', id, limit),
+    stockMovements: (productId: number, opts?: {
+      limit?: number; movement_types?: string[]; date_from?: string; date_to?: string
+    }) => ipcRenderer.invoke('products:stockMovements', productId, opts),
     adjustStock: (productId: number, data: any) => ipcRenderer.invoke('products:adjustStock', productId, data),
     addUnit: (data: any) => ipcRenderer.invoke('products:addUnit', data),
     updateUnit: (id: number, data: any) => ipcRenderer.invoke('products:updateUnit', id, data),
@@ -54,19 +57,20 @@ const api = {
     listCustomers: (filters: any) => ipcRenderer.invoke('people:listCustomers', filters),
     getCustomer: (id: number) => ipcRenderer.invoke('people:getCustomer', id),
     saveCustomer: (data: any) => ipcRenderer.invoke('people:saveCustomer', data),
-    deleteCustomer: (id: number) => ipcRenderer.invoke('people:deleteCustomer', id),
+    setCustomerStatus: (id: number, disabled: boolean) => ipcRenderer.invoke('people:setCustomerStatus', { id, disabled }),
     listSuppliers: (filters: any) => ipcRenderer.invoke('people:listSuppliers', filters),
     saveSupplier: (data: any) => ipcRenderer.invoke('people:saveSupplier', data),
-    deleteSupplier: (id: number) => ipcRenderer.invoke('people:deleteSupplier', id),
-    listStaff: () => ipcRenderer.invoke('people:listStaff'),
+    setSupplierStatus: (id: number, disabled: boolean) => ipcRenderer.invoke('people:setSupplierStatus', { id, disabled }),
+    listStaff: (filters?: any) => ipcRenderer.invoke('people:listStaff', filters),
     saveStaff: (data: any) => ipcRenderer.invoke('people:saveStaff', data),
-    deleteStaff: (id: number) => ipcRenderer.invoke('people:deleteStaff', id),
+    setStaffStatus: (id: number, disabled: boolean) => ipcRenderer.invoke('people:setStaffStatus', { id, disabled }),
     allSuppliers: () => ipcRenderer.invoke('people:allSuppliers'),
   },
   // Reports
   reports: {
     salesList: (filters: any) => ipcRenderer.invoke('reports:salesList', filters),
     getSale: (id: number) => ipcRenderer.invoke('reports:getSale', id),
+    getSaleByInvoice: (invoiceNo: string) => ipcRenderer.invoke('reports:getSaleByInvoice', invoiceNo),
     voidSale: (id: number, reason: string) => ipcRenderer.invoke('reports:voidSale', id, reason),
     purchaseList: (filters: any) => ipcRenderer.invoke('reports:purchaseList', filters),
     expiringLots: (filters: any) => ipcRenderer.invoke('reports:expiringLots', filters),
@@ -142,6 +146,7 @@ const api = {
   // Dev (only registered when isDev=true in main.ts; will reject otherwise)
   dev: {
     seedTestStock: () => ipcRenderer.invoke('dev:seedTestStock'),
+    seedSalesHistory: () => ipcRenderer.invoke('dev:seedSalesHistory'),
   },
 }
 

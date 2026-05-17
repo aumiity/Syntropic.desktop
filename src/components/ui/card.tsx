@@ -142,10 +142,12 @@ function SectionCard({
 function MetricCard({
   label,
   value,
+  unit,
   sub,
   badge,
   icon: Icon,
   tint = "primary",
+  onClick,
   className,
   labelClassName,
   valueClassName,
@@ -153,10 +155,12 @@ function MetricCard({
 }: {
   label: string
   value: string
+  unit?: string
   sub?: string
   badge?: React.ReactNode
   icon: React.ComponentType<{ className?: string }>
   tint?: MetricTint
+  onClick?: () => void
   className?: string
   labelClassName?: string
   valueClassName?: string
@@ -175,6 +179,49 @@ function MetricCard({
     : tint === "warning"     ? "text-warning-strong"
     : tint === "destructive" ? "text-destructive"
     : "text-foreground"
+  const accentColor =
+    tint === "success"     ? "text-success"
+    : tint === "warning"     ? "text-warning-strong"
+    : tint === "destructive" ? "text-destructive"
+    : tint === "secondary"   ? "text-muted-foreground"
+    : tint === "warm"        ? "text-warm-foreground"
+    : tint === "info-soft"   ? "text-info-soft-foreground"
+    : "text-primary"
+
+  const inner = (
+    <>
+      <span className={cn("absolute top-4 right-4 grid place-items-center size-11 rounded-xl", iconBox)}>
+        <Icon className="size-7" />
+      </span>
+      <div className="pr-14 min-w-0">
+        <div className={cn("text-base font-bold text-foreground truncate", labelClassName)} title={label}>{label}</div>
+        <div className="flex items-baseline gap-1.5 mt-1 min-w-0">
+          <span className={cn("text-3xl font-bold tabular-nums leading-none truncate", valColor, valueClassName)} title={value}>{value}</span>
+          {unit && <span className="text-sm font-semibold text-muted-foreground truncate" title={unit}>{unit}</span>}
+        </div>
+        {sub && <div className={cn("font-semibold text-sm tabular-nums leading-tight truncate", accentColor, subClassName)}>{sub}</div>}
+        {badge && <div className="mt-1.5">{badge}</div>}
+      </div>
+    </>
+  )
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        data-slot="metric-card"
+        className={cn(
+          "bg-card rounded-card p-4 shadow-card h-32 overflow-hidden relative text-left",
+          "cursor-pointer hover:shadow-md transition-all",
+          className
+        )}
+      >
+        {inner}
+      </button>
+    )
+  }
+
   return (
     <div
       data-slot="metric-card"
@@ -183,15 +230,7 @@ function MetricCard({
         className
       )}
     >
-      <span className={cn("absolute top-4 right-4 grid place-items-center size-11 rounded-xl", iconBox)}>
-        <Icon className="size-7" />
-      </span>
-      <div className="pr-14 min-w-0">
-        <div className={cn("text-base font-bold text-foreground truncate", labelClassName)} title={label}>{label}</div>
-        <div className={cn("text-3xl font-bold tabular-nums leading-none truncate mt-1", valColor, valueClassName)} title={value}>{value}</div>
-        {sub && <div className={cn("font-semibold text-sm text-muted-foreground tabular-nums leading-tight truncate", subClassName)}>{sub}</div>}
-        {badge && <div className="mt-1.5">{badge}</div>}
-      </div>
+      {inner}
     </div>
   )
 }

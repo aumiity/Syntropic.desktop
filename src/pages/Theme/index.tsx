@@ -16,7 +16,7 @@ import {
   SelectItem, SelectGroup, SelectLabel,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Switch } from '@/components/ui/switch'
+import { Switch, Toggle } from '@/components/ui/switch'
 import {
   Card, CardHeader, CardTitle, CardDescription,
   CardContent, CardFooter, CardAction,
@@ -42,7 +42,7 @@ import { Calendar } from '@/components/ui/calendar'
 import {
   Search, Plus, Edit, Trash2, Info,
   AlertTriangle, CheckCircle, Package, ChevronRight,
-  TrendingUp, FileText, Boxes, AlertCircle,
+  TrendingUp, FileText, Boxes, AlertCircle, Coins,
 } from 'lucide-react'
 
 const MODE_CARDS: { mode: ThemeMode; label: string }[] = [
@@ -133,6 +133,9 @@ export default function Theme() {
   const [formModalOpen, setFormModalOpen] = useState(false)
   const [scrollModalOpen, setScrollModalOpen] = useState(false)
   const [statFilter, setStatFilter] = useState<'all' | 'low' | 'out'>('all')
+  const [seedConfirmOpen, setSeedConfirmOpen] = useState(false)
+  const [seedRunning, setSeedRunning] = useState(false)
+  const [seedResult, setSeedResult] = useState<string | null>(null)
 
   return (
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
@@ -144,6 +147,7 @@ export default function Theme() {
             <TabsList variant="pill" className="mb-0">
               {/* <TabsTrigger value="theme">ธีม</TabsTrigger> */}
               <TabsTrigger value="components">คอมโพเนนต์</TabsTrigger>
+              <TabsTrigger value="dev">เครื่องมือ Dev</TabsTrigger>
             </TabsList>
           </div>
 
@@ -564,6 +568,25 @@ export default function Theme() {
                     <Label className="opacity-50">Disabled on</Label>
                   </div>
                 </DemoRow>
+                <DemoRow label="Variants — default (primary) vs destructive (red when on)">
+                  <div className="flex items-center gap-2">
+                    <Switch size="lg" defaultChecked />
+                    <Label>Default</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch size="lg" variant="destructive" defaultChecked />
+                    <Label>Destructive</Label>
+                  </div>
+                </DemoRow>
+                <DemoRow label="Toggle (switch + label) — switch on left, label on right">
+                  <Toggle size="lg" checked={switchOn} onChange={setSwitchOn} label="พื้นฐาน" />
+                </DemoRow>
+                <DemoRow label="Toggle framed — pill for toolbars next to search inputs (h-10, bg-card, rounded-lg)">
+                  <Toggle framed size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่พักใช้งาน" />
+                </DemoRow>
+                <DemoRow label="Toggle framed + destructive — for state-changing toggles inside modals (พักใช้งาน, ปิดบัญชี)">
+                  <Toggle framed variant="destructive" size="lg" checked={switchOn} onChange={setSwitchOn} label="พักการใช้งาน" />
+                </DemoRow>
               </Section>
 
               {/* ── TABS ── */}
@@ -745,14 +768,15 @@ export default function Theme() {
                     </SectionCard>
                   </div>
                 </DemoRow>
-                <DemoRow label="MetricCard (read-only KPI)">
+                <DemoRow label="MetricCard (read-only KPI · `unit` inline · sub auto-tints to icon color)">
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    <MetricCard label="ยอดขายวันนี้" value="฿12,480" sub="+8% จากเมื่อวาน" icon={TrendingUp} tint="success" />
-                    <MetricCard label="บิลทั้งหมด" value="142" sub="วันนี้" icon={FileText} tint="primary" />
+                    <MetricCard label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="warm" />
+                    <MetricCard label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success" />
                     <MetricCard
                       label="คงเหลือ"
                       value="48"
-                      sub="ชิ้น"
+                      unit="ชิ้น"
+                      sub="คลิกเพื่อปรับสต็อก"
                       icon={Boxes}
                       tint="info-soft"
                       badge={<Badge variant="warning"><AlertTriangle className="size-3" /> ใกล้หมดอายุ 2 ล็อต</Badge>}
@@ -1190,8 +1214,73 @@ export default function Theme() {
             </div>
           </TabsContent>
 
+          {/* ── Dev Tools Tab ──────────────────────────────── */}
+          <TabsContent value="dev" className="m-0 p-6">
+            <div className="max-w-3xl space-y-6">
+              <SectionCard
+                icon={Boxes}
+                title="Seed ข้อมูลขาย/รับของย้อนหลัง"
+                tint="info-soft"
+              >
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>สร้างข้อมูลทดสอบย้อน 90 วัน — ใช้ products / suppliers / customers ที่ seed แล้ว ผ่าน business logic เดียวกับ POS / GR จริง</p>
+                    <ul className="list-disc list-inside space-y-0.5 pl-2">
+                      <li>~500 ใบรับสินค้า (GR) — 3-8 ใบ/วัน, 5-50 รายการ/ใบ</li>
+                      <li>~3,000 ใบขาย (RC) — 20-50 ใบ/วัน, 1-10 รายการ/ใบ, FEFO ถูกต้อง</li>
+                      <li>~200 SKU active (สุ่มจากที่ seed) — กระจาย supplier, payment, discount, customer</li>
+                    </ul>
+                    <p className="pt-2">
+                      <span className="font-semibold text-foreground">Idempotent</span> — รันซ้ำได้, ลบ seed เดิม (โดย note marker <code className="bg-muted px-1 rounded">[DEV-SEED]</code>) แล้วสร้างใหม่. ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="default"
+                      size="lg"
+                      onClick={() => setSeedConfirmOpen(true)}
+                      disabled={seedRunning}
+                    >
+                      {seedRunning ? 'กำลัง seed... (อาจใช้เวลา 10-60 วินาที)' : 'เริ่ม Seed'}
+                    </Button>
+                  </div>
+
+                  {seedResult && (
+                    <div className="rounded-lg bg-success-soft border border-success/30 px-4 py-3 text-sm">
+                      <div className="font-semibold text-success mb-1">เสร็จแล้ว</div>
+                      <div className="text-foreground whitespace-pre-wrap">{seedResult}</div>
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
+            </div>
+          </TabsContent>
+
         </Tabs>
       </div>
+
+      <ConfirmDialog
+        open={seedConfirmOpen}
+        onOpenChange={setSeedConfirmOpen}
+        title="Seed ข้อมูลทดสอบ?"
+        description="จะลบ seed dev เดิม (ถ้ามี) แล้วสร้าง ~500 GR และ ~3000 sales ย้อน 90 วัน. ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ"
+        confirmLabel="เริ่ม Seed"
+        variant="default"
+        onConfirm={async () => {
+          setSeedRunning(true)
+          setSeedResult(null)
+          try {
+            const res = await window.api.dev.seedSalesHistory()
+            setSeedResult(res.message)
+            toast({ title: 'Seed สำเร็จ', description: res.message, variant: 'success' })
+          } catch (e: any) {
+            toast({ title: 'Seed ล้มเหลว', description: e?.message ?? String(e), variant: 'destructive' })
+          } finally {
+            setSeedRunning(false)
+          }
+        }}
+      />
     </div>
   )
 }

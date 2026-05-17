@@ -67,7 +67,9 @@ Backend admin edit for lots — qty_on_hand, cost_price, lot_number, expiry/manu
 - **Front-end never coerces blank → 0.** `parseFloat('') || 0` would silently wipe stock or zero out cost on an accidentally cleared field. Validate explicitly: blank, NaN, or negative → toast error and abort.
 
 ### Running codes
-Customers `C0001…`, suppliers `S0001…`, GR `GR-YYYYMMDD-001…`, sales `INV-YYYYMMDD-001…`.
+Customers `C0001…`, suppliers `S0001…`, products `P0001…`, GR `GR-YYYYMMDD-0001…`, sales (receipts) `RC-YYYYMMDD-0001…`, returns `RT-YYYYMMDD-0001…`. C0000 is reserved for "ลูกค้าทั่วไป" (walk-in).
+
+`INV-` is reserved for the future unpaid-invoice flow (issue invoice → collect payment later) and is **not** currently in use. Don't repurpose the prefix for completed sales — those are `RC-`.
 
 ### Barcode uniqueness
 Products have 4 barcode fields (barcode, barcode2, barcode3, barcode4) plus `product_units.barcode`. Validate uniqueness across ALL of these before save.

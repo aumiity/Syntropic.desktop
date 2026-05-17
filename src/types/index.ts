@@ -60,6 +60,7 @@ export interface Customer {
   hc_uc: number; hc_gov: number; hc_sso: number
   food_allergy?: string; other_allergy?: string; chronic_diseases?: string
   is_alert: number; alert_note?: string; warning_note?: string; is_hidden: number
+  is_disabled: number
   allergies?: DrugAllergy[]
 }
 

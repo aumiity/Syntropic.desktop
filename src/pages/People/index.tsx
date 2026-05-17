@@ -5,16 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Pagination } from '@/components/ui/pagination'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { Switch, Toggle } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import type { Customer, Supplier, User, DrugAllergy } from '@/types'
-import { Search, Plus, Edit, Trash2, AlertTriangle, Users, Building2, UserCog } from 'lucide-react'
+import { Search, Plus, Edit, AlertTriangle, Users, Building2, UserCog } from 'lucide-react'
 
 const SEVERITY_LABELS: Record<string, string> = {
   mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต'
@@ -41,6 +40,7 @@ function CustomersTab() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
+  const [showDisabled, setShowDisabled] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const [dialog, setDialog] = useState(false)
@@ -48,33 +48,31 @@ function CustomersTab() {
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
 
-  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null)
-
   const limit = 50
   const totalPages = Math.ceil(total / limit)
 
   const load = useCallback(async (p = 1) => {
     setLoading(true)
     try {
-      const res = await window.api.people.listCustomers({ q: q.trim() || undefined, page: p }) as any
+      const res = await window.api.people.listCustomers({ q: q.trim() || undefined, page: p, includeDisabled: showDisabled }) as any
       setRows(res.rows); setTotal(res.total); setPage(p)
     } finally { setLoading(false) }
-  }, [q])
+  }, [q, showDisabled])
 
   // Realtime search — debounce text input (also covers initial mount, q='').
   useEffect(() => {
     const t = setTimeout(() => load(1), 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q])
+  }, [q, showDisabled])
 
   const openAdd = () => {
     setEditing(null)
     setForm({
-      full_name: '', id_card: '', hn: '', dob: '', phone: '', address: '',
-      hc_uc: 0, hc_gov: 0, hc_sso: 0,
-      food_allergy: '', other_allergy: '', chronic_diseases: '',
+      full_name: '', id_card: '', dob: '', phone: '', address: '',
+      food_allergy: '', chronic_diseases: '',
       is_alert: 0, alert_note: '', warning_note: '',
+      is_disabled: 0,
     })
     setDialog(true)
   }
@@ -86,19 +84,15 @@ function CustomersTab() {
       id: data.id,
       full_name: data.full_name ?? '',
       id_card: data.id_card ?? '',
-      hn: data.hn ?? '',
       dob: data.dob ?? '',
       phone: data.phone ?? '',
       address: data.address ?? '',
-      hc_uc: data.hc_uc ?? 0,
-      hc_gov: data.hc_gov ?? 0,
-      hc_sso: data.hc_sso ?? 0,
       food_allergy: data.food_allergy ?? '',
-      other_allergy: data.other_allergy ?? '',
       chronic_diseases: data.chronic_diseases ?? '',
       is_alert: data.is_alert ?? 0,
       alert_note: data.alert_note ?? '',
       warning_note: data.warning_note ?? '',
+      is_disabled: data.is_disabled ?? 0,
     })
     setDialog(true)
   }
@@ -116,29 +110,18 @@ function CustomersTab() {
     } finally { setSaving(false) }
   }
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return
-    try {
-      await window.api.people.deleteCustomer(deleteTarget.id)
-      toast({ title: 'ลบลูกค้าสำเร็จ', variant: 'success' })
-      setDeleteTarget(null)
-      load(page)
-    } catch (e: any) {
-      toast({ title: 'ลบไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-    }
-  }
-
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
   return (
     <div className="flex flex-col h-full gap-3">
       {/* Toolbar */}
       <div className="flex gap-2 items-center shrink-0">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input value={q} onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาชื่อ, โทร, รหัส, HN..." className="h-10 pl-9 rounded-lg bg-card" />
         </div>
+        <Toggle framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่พักใช้งาน" />
       </div>
 
       {/* List card */}
@@ -151,51 +134,46 @@ function CustomersTab() {
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-24">รหัส</TableHead>
-                <TableHead>ชื่อ-นามสกุล</TableHead>
-                <TableHead>โทรศัพท์</TableHead>
-                <TableHead>HN</TableHead>
-                <TableHead className="text-center">สิทธิ์</TableHead>
-                <TableHead className="text-center w-24">แจ้งเตือน</TableHead>
-                <TableHead className="text-center w-28">จัดการ</TableHead>
+                <TableHead className="w-[12%]">รหัส</TableHead>
+                <TableHead className="w-[35%]">ชื่อ-นามสกุล</TableHead>
+                <TableHead className="w-[18%]">โทรศัพท์</TableHead>
+                <TableHead className="text-center w-[10%]">แจ้งเตือน</TableHead>
+                <TableHead className="text-center w-[10%]">สถานะ</TableHead>
+                <TableHead className="text-center w-[13%]">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
                     <Users className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูลลูกค้า
                   </TableCell>
                 </TableRow>
               ) : rows.map(c => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-mono text-sm text-muted-foreground">{c.code}</TableCell>
-                  <TableCell>
-                    <div className="font-medium text-sm text-foreground">{c.full_name}</div>
-                    {c.chronic_diseases && <div className="text-sm text-muted-foreground truncate max-w-[200px]">{c.chronic_diseases}</div>}
+                  <TableCell className="font-mono text-sm text-muted-foreground truncate">{c.code}</TableCell>
+                  <TableCell className="min-w-0">
+                    <div className="font-medium text-sm text-foreground truncate">{c.full_name}</div>
+                    {c.chronic_diseases && <div className="text-sm text-muted-foreground truncate">{c.chronic_diseases}</div>}
                   </TableCell>
-                  <TableCell className="text-sm">{c.phone ?? '—'}</TableCell>
-                  <TableCell className="text-sm font-mono">{c.hn ?? '—'}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex gap-1 justify-center flex-wrap">
-                      {c.hc_uc ? <Badge variant="secondary">บัตรทอง</Badge> : null}
-                      {c.hc_gov ? <Badge variant="secondary">ข้าราชการ</Badge> : null}
-                      {c.hc_sso ? <Badge variant="secondary">ประกันสังคม</Badge> : null}
-                    </div>
-                  </TableCell>
+                  <TableCell className="text-sm truncate">{c.phone ?? '—'}</TableCell>
                   <TableCell className="text-center">
                     {c.is_alert ? <AlertTriangle className="size-4 text-destructive mx-auto" /> : null}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {c.is_disabled
+                      ? <Badge variant="secondary">พักใช้งาน</Badge>
+                      : <Badge variant="success">ใช้งาน</Badge>}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
                       <Button className="w-16" size="icon-lg" variant="warm" onClick={() => openEdit(c)} title="แก้ไข"><Edit /></Button>
-                      <Button className="w-16" size="icon-lg" variant="destructive2" onClick={() => setDeleteTarget(c)} title="ลบ"><Trash2 /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -216,7 +194,6 @@ function CustomersTab() {
         <DialogContent size="xl" onClose={() => setDialog(false)}>
           <DialogHeader>
             <DialogTitle>{editing ? `แก้ไข: ${editing.full_name}` : 'เพิ่มลูกค้าใหม่'}</DialogTitle>
-            <DialogDescription>ข้อมูลลูกค้า สิทธิ์การรักษา และประวัติการแพ้ยา</DialogDescription>
           </DialogHeader>
           <DialogBody className="space-y-4" onKeyDown={submitOnEnter(handleSave)}>
             <div className="grid grid-cols-2 gap-4">
@@ -227,10 +204,6 @@ function CustomersTab() {
               <div className="space-y-1.5">
                 <Label>เลขบัตรประชาชน</Label>
                 <Input value={form.id_card ?? ''} onChange={e => setF('id_card', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>HN</Label>
-                <Input value={form.hn ?? ''} onChange={e => setF('hn', e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label>วันเกิด</Label>
@@ -246,25 +219,12 @@ function CustomersTab() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>สิทธิ์การรักษา</Label>
-              <div className="flex gap-4">
-                <Toggle size="lg" checked={!!form.hc_uc} onChange={v => setF('hc_uc', v ? 1 : 0)} label="บัตรทอง (UC)" />
-                <Toggle size="lg" checked={!!form.hc_gov} onChange={v => setF('hc_gov', v ? 1 : 0)} label="ข้าราชการ" />
-                <Toggle size="lg" checked={!!form.hc_sso} onChange={v => setF('hc_sso', v ? 1 : 0)} label="ประกันสังคม" />
-              </div>
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>แพ้อาหาร</Label>
-                <Input value={form.food_allergy ?? ''} onChange={e => setF('food_allergy', e.target.value)} placeholder="ระบุชื่ออาหาร" />
+                <Label>แพ้ยา</Label>
+                <Input value={form.food_allergy ?? ''} onChange={e => setF('food_allergy', e.target.value)} placeholder="ระบุชื่อยา" />
               </div>
               <div className="space-y-1.5">
-                <Label>แพ้สิ่งอื่นๆ</Label>
-                <Input value={form.other_allergy ?? ''} onChange={e => setF('other_allergy', e.target.value)} />
-              </div>
-              <div className="col-span-2 space-y-1.5">
                 <Label>โรคประจำตัว</Label>
                 <Input value={form.chronic_diseases ?? ''} onChange={e => setF('chronic_diseases', e.target.value)} />
               </div>
@@ -308,21 +268,16 @@ function CustomersTab() {
             )}
           </DialogBody>
           <DialogFooter>
+            {editing && (
+              <Toggle framed variant="destructive" size="lg" className="mr-auto"
+                checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
+                label="พักการใช้งาน" />
+            )}
             <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onOpenChange={open => { if (!open) setDeleteTarget(null) }}
-        title="ลบลูกค้า"
-        description={`ต้องการลบ "${deleteTarget?.full_name}" ออกจากระบบ?`}
-        confirmLabel="ลบ"
-        variant="destructive"
-        onConfirm={handleDelete}
-      />
     </div>
   )
 }
@@ -336,11 +291,12 @@ function SuppliersTab() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
+  const [showDisabled, setShowDisabled] = useState(false)
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
+  const [editing, setEditing] = useState<Supplier | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<Supplier | null>(null)
 
   const limit = 50
   const totalPages = Math.ceil(total / limit)
@@ -348,25 +304,27 @@ function SuppliersTab() {
   const load = useCallback(async (p = 1) => {
     setLoading(true)
     try {
-      const res = await window.api.people.listSuppliers({ q: q.trim() || undefined, page: p }) as any
+      const res = await window.api.people.listSuppliers({ q: q.trim() || undefined, page: p, includeDisabled: showDisabled }) as any
       setRows(res.rows); setTotal(res.total); setPage(p)
     } finally { setLoading(false) }
-  }, [q])
+  }, [q, showDisabled])
 
   // Realtime search — debounce text input (also covers initial mount, q='').
   useEffect(() => {
     const t = setTimeout(() => load(1), 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q])
+  }, [q, showDisabled])
 
   const openAdd = () => {
-    setForm({ name: '', tax_id: '', phone: '', address: '', contact_name: '' })
+    setEditing(null)
+    setForm({ name: '', tax_id: '', phone: '', address: '', contact_name: '', is_disabled: 0 })
     setDialog(true)
   }
 
   const openEdit = (s: Supplier) => {
-    setForm({ id: s.id, name: s.name, tax_id: s.tax_id ?? '', phone: s.phone ?? '', address: s.address ?? '', contact_name: s.contact_name ?? '' })
+    setEditing(s)
+    setForm({ id: s.id, name: s.name, tax_id: s.tax_id ?? '', phone: s.phone ?? '', address: s.address ?? '', contact_name: s.contact_name ?? '', is_disabled: s.is_disabled ?? 0 })
     setDialog(true)
   }
 
@@ -383,28 +341,17 @@ function SuppliersTab() {
     } finally { setSaving(false) }
   }
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return
-    try {
-      await window.api.people.deleteSupplier(deleteTarget.id)
-      toast({ title: 'ปิดใช้งานผู้จำหน่ายสำเร็จ', variant: 'success' })
-      setDeleteTarget(null)
-      load(page)
-    } catch (e: any) {
-      toast({ title: 'ดำเนินการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-    }
-  }
-
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
   return (
     <div className="flex flex-col h-full gap-3">
       <div className="flex gap-2 items-center shrink-0">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input value={q} onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาชื่อ, รหัส, โทร..." className="h-10 pl-9 rounded-lg bg-card" />
         </div>
+        <Toggle framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่พักใช้งาน" />
       </div>
 
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
@@ -416,44 +363,39 @@ function SuppliersTab() {
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-24">รหัส</TableHead>
-                <TableHead>ชื่อบริษัท</TableHead>
-                <TableHead>ผู้ติดต่อ</TableHead>
-                <TableHead>โทรศัพท์</TableHead>
-                <TableHead>เลขผู้เสียภาษี</TableHead>
-                <TableHead className="text-center w-24">สถานะ</TableHead>
-                <TableHead className="text-center w-28">จัดการ</TableHead>
+                <TableHead className="text-left w-[12%]">รหัส</TableHead>
+                <TableHead className="text-left w-[45%]">ชื่อบริษัท</TableHead>
+                <TableHead className="text-left w-[20%]">โทรศัพท์</TableHead>
+                <TableHead className="text-center w-[10%]">สถานะ</TableHead>
+                <TableHead className="text-center w-[13%]">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
                     <Building2 className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูลผู้จำหน่าย
                   </TableCell>
                 </TableRow>
               ) : rows.map(s => (
                 <TableRow key={s.id}>
-                  <TableCell className="font-mono text-sm text-muted-foreground">{s.code}</TableCell>
-                  <TableCell className="font-medium text-sm">{s.name}</TableCell>
-                  <TableCell className="text-sm">{s.contact_name ?? '—'}</TableCell>
-                  <TableCell className="text-sm">{s.phone ?? '—'}</TableCell>
-                  <TableCell className="font-mono text-sm text-muted-foreground">{s.tax_id ?? '—'}</TableCell>
+                  <TableCell className="font-mono text-sm text-muted-foreground truncate">{s.code}</TableCell>
+                  <TableCell className="font-medium text-sm truncate">{s.name}</TableCell>
+                  <TableCell className="text-sm truncate">{s.phone ?? '—'}</TableCell>
                   <TableCell className="text-center">
                     {s.is_disabled
-                      ? <Badge variant="secondary">ปิดใช้งาน</Badge>
+                      ? <Badge variant="secondary">พักใช้งาน</Badge>
                       : <Badge variant="success">ใช้งาน</Badge>}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
                       <Button className="w-16" size="icon-lg" variant="warm" onClick={() => openEdit(s)} title="แก้ไข"><Edit /></Button>
-                      <Button className="w-16" size="icon-lg" variant="destructive2" onClick={() => setDeleteTarget(s)} title="ปิดใช้งาน"><Trash2 /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -473,7 +415,6 @@ function SuppliersTab() {
         <DialogContent size="md" onClose={() => setDialog(false)}>
           <DialogHeader>
             <DialogTitle>{form.id ? 'แก้ไขผู้จำหน่าย' : 'เพิ่มผู้จำหน่าย'}</DialogTitle>
-            <DialogDescription>ข้อมูลบริษัท / ร้านค้าผู้จัดจำหน่าย</DialogDescription>
           </DialogHeader>
           <DialogBody className="space-y-3" onKeyDown={submitOnEnter(handleSave)}>
             <div className="space-y-1.5">
@@ -500,21 +441,16 @@ function SuppliersTab() {
             </div>
           </DialogBody>
           <DialogFooter>
+            {editing && (
+              <Toggle framed variant="destructive" size="lg" className="mr-auto"
+                checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
+                label="พักการใช้งาน" />
+            )}
             <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onOpenChange={open => { if (!open) setDeleteTarget(null) }}
-        title="ปิดใช้งานผู้จำหน่าย"
-        description={`ต้องการปิดใช้งาน "${deleteTarget?.name}"?`}
-        confirmLabel="ปิดใช้งาน"
-        variant="destructive"
-        onConfirm={handleDelete}
-      />
     </div>
   )
 }
@@ -525,29 +461,33 @@ function SuppliersTab() {
 function StaffTab() {
   const { toast } = useToast()
   const [rows, setRows] = useState<User[]>([])
+  const [q, setQ] = useState('')
+  const [showDisabled, setShowDisabled] = useState(false)
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
+  const [editing, setEditing] = useState<User | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
 
   const load = async () => {
     setLoading(true)
     try {
-      const data = await window.api.people.listStaff() as User[]
+      const data = await window.api.people.listStaff({ includeDisabled: showDisabled }) as User[]
       setRows(data)
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [showDisabled])
 
   const openAdd = () => {
-    setForm({ name: '', email: '', password: '', role: 'staff' })
+    setEditing(null)
+    setForm({ name: '', email: '', password: '', role: 'staff', is_disabled: 0 })
     setDialog(true)
   }
 
   const openEdit = (u: User) => {
-    setForm({ id: u.id, name: u.name, email: u.email, password: '', role: u.role ?? 'staff' })
+    setEditing(u)
+    setForm({ id: u.id, name: u.name, email: u.email, password: '', role: u.role ?? 'staff', is_disabled: u.is_disabled ?? 0 })
     setDialog(true)
   }
 
@@ -556,7 +496,7 @@ function StaffTab() {
     if (!form.id && !form.password?.trim()) { toast({ title: 'กรุณาระบุรหัสผ่าน', variant: 'error' }); return }
     setSaving(true)
     try {
-      const payload: any = { name: form.name, email: form.email, role: form.role }
+      const payload: any = { name: form.name, email: form.email, role: form.role, is_disabled: form.is_disabled ?? 0 }
       if (form.id) payload.id = form.id
       if (form.password?.trim()) payload.password = form.password
       await window.api.people.saveStaff(payload)
@@ -568,69 +508,73 @@ function StaffTab() {
     } finally { setSaving(false) }
   }
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return
-    try {
-      await window.api.people.deleteStaff(deleteTarget.id)
-      toast({ title: 'ปิดใช้งานพนักงานสำเร็จ', variant: 'success' })
-      setDeleteTarget(null)
-      load()
-    } catch (e: any) {
-      toast({ title: 'ดำเนินการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-    }
-  }
-
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
   const ROLES: Record<string, string> = { admin: 'ผู้ดูแลระบบ', pharmacist: 'เภสัชกร', staff: 'พนักงาน' }
 
+  // Client-side search — staff list is small, no need for round-trip per keystroke.
+  const filtered = q.trim()
+    ? rows.filter(u => {
+        const needle = q.trim().toLowerCase()
+        return u.name.toLowerCase().includes(needle) || u.email.toLowerCase().includes(needle)
+      })
+    : rows
+
   return (
     <div className="flex flex-col h-full gap-3">
+      <div className="flex gap-2 items-center shrink-0">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <Input value={q} onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อ, อีเมล..." className="h-10 pl-9 rounded-lg bg-card" />
+        </div>
+        <Toggle framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่พักใช้งาน" />
+      </div>
+
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
-          <span>{loading ? 'กำลังโหลด...' : `พบ ${rows.length.toLocaleString()} รายการ`}</span>
+          <span>{loading ? 'กำลังโหลด...' : `พบ ${filtered.length.toLocaleString()} รายการ`}</span>
           <Button onClick={openAdd} className="h-9 rounded-lg px-2 text-sm">
             <Plus className="size-4" /> เพิ่มพนักงาน
           </Button>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>ชื่อ</TableHead>
-                <TableHead>อีเมล</TableHead>
-                <TableHead className="text-center">ตำแหน่ง</TableHead>
-                <TableHead className="text-center">สถานะ</TableHead>
-                <TableHead className="text-center w-28">จัดการ</TableHead>
+                <TableHead className="w-[30%]">ชื่อ</TableHead>
+                <TableHead className="w-[35%]">อีเมล</TableHead>
+                <TableHead className="text-center w-[15%]">ตำแหน่ง</TableHead>
+                <TableHead className="text-center w-[10%]">สถานะ</TableHead>
+                <TableHead className="text-center w-[13%]">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
-              ) : rows.length === 0 ? (
+              ) : filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
                     <UserCog className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูลพนักงาน
                   </TableCell>
                 </TableRow>
-              ) : rows.map(u => (
+              ) : filtered.map(u => (
                 <TableRow key={u.id}>
-                  <TableCell className="font-medium text-sm">{u.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
+                  <TableCell className="font-medium text-sm truncate">{u.name}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground truncate">{u.email}</TableCell>
                   <TableCell className="text-center">
                     <Badge variant="secondary">{ROLES[u.role] ?? u.role}</Badge>
                   </TableCell>
                   <TableCell className="text-center">
                     {u.is_disabled
-                      ? <Badge variant="secondary">ปิดใช้งาน</Badge>
+                      ? <Badge variant="secondary">พักใช้งาน</Badge>
                       : <Badge variant="success">ใช้งาน</Badge>}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
                       <Button className="w-16" size="icon-lg" variant="warm" onClick={() => openEdit(u)} title="แก้ไข"><Edit /></Button>
-                      <Button className="w-16" size="icon-lg" variant="destructive2" onClick={() => setDeleteTarget(u)} title="ปิดใช้งาน"><Trash2 /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -644,7 +588,6 @@ function StaffTab() {
         <DialogContent size="sm" onClose={() => setDialog(false)}>
           <DialogHeader>
             <DialogTitle>{form.id ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน'}</DialogTitle>
-            <DialogDescription>บัญชีผู้ใช้และสิทธิ์การเข้าใช้งานระบบ</DialogDescription>
           </DialogHeader>
           <DialogBody className="space-y-3" onKeyDown={submitOnEnter(handleSave)}>
             <div className="space-y-1.5">
@@ -678,21 +621,16 @@ function StaffTab() {
             </div>
           </DialogBody>
           <DialogFooter>
+            {editing && (
+              <Toggle framed variant="destructive" size="lg" className="mr-auto"
+                checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
+                label="พักการใช้งาน" />
+            )}
             <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onOpenChange={open => { if (!open) setDeleteTarget(null) }}
-        title="ปิดใช้งานพนักงาน"
-        description={`ต้องการปิดใช้งานบัญชี "${deleteTarget?.name}"?`}
-        confirmLabel="ปิดใช้งาน"
-        variant="destructive"
-        onConfirm={handleDelete}
-      />
     </div>
   )
 }

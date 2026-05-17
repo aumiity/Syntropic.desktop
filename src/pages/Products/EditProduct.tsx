@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -6,20 +6,27 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Switch, Toggle } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import { MetricCard, SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { SaleDetailDialog } from '@/components/dialogs/SaleDetailDialog'
+import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialog'
+import { AdjustStockDialog } from '@/components/dialogs/AdjustStockDialog'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
-import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
+import { formatCurrency, formatExpiry, getExpiryStatus, formatDateTime, cn } from '@/lib/utils'
 import type { Product, ProductUnit, ProductLot, ProductLabel, ProductCategory, DrugType, ItemUnit } from '@/types'
 import { DateInput } from '@/components/ui/date-input'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
   ArrowLeft, Save, Plus, Trash2, Edit, ChevronDown, Check, X, AlertTriangle,
   Package, ScanBarcode, Tag, Pill, Boxes, FileText, Coins, Percent, EyeOff, Info,
+  History, ArrowDownToLine, ArrowUpFromLine, RotateCcw, SlidersHorizontal, ExternalLink, StickyNote,
 } from 'lucide-react'
 
 // ---- Types ----
@@ -27,6 +34,44 @@ interface FullProduct extends Product {
   units: ProductUnit[]
   lots: ProductLot[]
   labels: ProductLabel[]
+}
+
+interface StockMovement {
+  id: number
+  movement_type: string
+  ref_type: string | null
+  ref_id: number | null
+  qty_change: number
+  qty_before: number
+  qty_after: number
+  unit_cost: number
+  note: string | null
+  created_at: string
+  lot_id: number | null
+  lot_number: string | null
+  expiry_date: string | null
+  gr_invoice_no: string | null
+  sale_invoice_no: string | null
+  created_by: number | null
+  created_by_name: string | null
+}
+
+type MovementSortKey = 'created_at' | 'lot_number'
+
+// Movement type → Thai label, icon, badge variant. Keep in sync with the
+// movement_type values written by ipc/products.ts, ipc/purchase.ts, ipc/pos.ts.
+const MOVEMENT_META: Record<string, {
+  label: string
+  variant: 'success' | 'destructive' | 'info-soft' | 'warm' | 'secondary' | 'tertiary'
+  icon: typeof ArrowDownToLine
+}> = {
+  receive:      { label: 'รับเข้า',     variant: 'success',    icon: ArrowDownToLine },
+  sale:         { label: 'ขาย',         variant: 'destructive', icon: ArrowUpFromLine },
+  sale_return:  { label: 'คืนสินค้า',  variant: 'tertiary',   icon: RotateCcw },
+  adjust_in:    { label: 'ปรับเพิ่ม',  variant: 'info-soft',  icon: SlidersHorizontal },
+  adjust_out:   { label: 'ปรับลด',     variant: 'warm',       icon: SlidersHorizontal },
+  lot_edit:     { label: 'แก้ไขล็อต',  variant: 'warm',       icon: Edit },
+  gr_cancel:    { label: 'ยกเลิกรับ',  variant: 'destructive', icon: X },
 }
 
 interface GenericNameSuggestion { id: number; name: string; is_antibiotic: number }
@@ -60,6 +105,7 @@ export default function EditProductPage() {
   const [errors, setErrors] = useState<Set<string>>(new Set())
   const [isDirty, setIsDirty] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+  const [adjustOpen, setAdjustOpen] = useState(false)
 
   // Dropdown data
   const [categories, setCategories] = useState<ProductCategory[]>([])
@@ -102,9 +148,104 @@ export default function EditProductPage() {
   // Lot edit confirm modal — extra step to prevent accidental saves
   const [confirmLot, setConfirmLot] = useState<ProductLot | null>(null)
 
+  // Stock movement history (loaded on demand when "ความเคลื่อนไหว" tab opens)
+  const [movements, setMovements] = useState<StockMovement[] | null>(null)
+  const [movementsLoading, setMovementsLoading] = useState(false)
+  const [movementTypeFilter, setMovementTypeFilter] = useState<Set<string>>(new Set())
+  const [movementSort, setMovementSort] = useState<{ by: MovementSortKey; dir: 'asc' | 'desc' }>({
+    by: 'created_at', dir: 'desc',
+  })
+  const [movementDateFrom, setMovementDateFrom] = useState('')
+  const [movementDateTo, setMovementDateTo] = useState('')
+  // In-place detail dialogs — clicking "ดูรายละเอียด" on a sale/sale_return
+  // opens SaleDetailDialog; receive/gr_cancel opens PurchaseReceiptDialog.
+  // Both modals load their own data so we just pass invoice_no.
+  const [saleDetailInvoice, setSaleDetailInvoice] = useState<string | null>(null)
+  const [saleDetailOpen, setSaleDetailOpen] = useState(false)
+  const [grDetailInvoice, setGrDetailInvoice] = useState<string | null>(null)
+  const [grDetailOpen, setGrDetailOpen] = useState(false)
+
   useEffect(() => {
     loadAll()
   }, [productId])
+
+  // Load stock movements lazily on first open of "ความเคลื่อนไหว" tab.
+  // Re-load if user comes back after editing lots — easier than tracking
+  // mutations one by one. `movements === null` is the "not loaded yet" marker.
+  useEffect(() => {
+    if (tab !== 'history' || isNew || !productId) return
+    if (movements !== null) return
+    setMovementsLoading(true)
+    window.api.products.stockMovements(productId, { limit: 500 })
+      .then((rows: any) => setMovements(rows as StockMovement[]))
+      .catch(err => {
+        console.error('[stockMovements] failed:', err)
+        toast({ title: 'โหลดประวัติไม่สำเร็จ', description: err?.message ?? String(err), variant: 'destructive' })
+        setMovements([])
+      })
+      .finally(() => setMovementsLoading(false))
+  }, [tab, productId, isNew, movements])
+
+  const reloadMovements = () => {
+    if (!productId) return
+    setMovementsLoading(true)
+    window.api.products.stockMovements(productId, { limit: 500 })
+      .then((rows: any) => setMovements(rows as StockMovement[]))
+      .catch(err => {
+        console.error('[stockMovements] failed:', err)
+        toast({ title: 'โหลดประวัติไม่สำเร็จ', description: err?.message ?? String(err), variant: 'destructive' })
+        setMovements([])
+      })
+      .finally(() => setMovementsLoading(false))
+  }
+
+  // NOTE: hooks must run on every render — keep this above the `if (loading)`
+  // and `if (!product)` early returns below. (React enforces stable hook order.)
+  const filteredMovements = useMemo(() => {
+    const filtered = (movements ?? []).filter(m => {
+      if (movementTypeFilter.size > 0 && !movementTypeFilter.has(m.movement_type)) return false
+      if (movementDateFrom || movementDateTo) {
+        // stock_movements.created_at format = 'YYYY-MM-DD HH:MM:SS' so the
+        // first 10 chars are the date — lexical compare matches calendar order
+        const day = m.created_at.slice(0, 10)
+        if (movementDateFrom && day < movementDateFrom) return false
+        if (movementDateTo && day > movementDateTo) return false
+      }
+      return true
+    })
+    const mul = movementSort.dir === 'asc' ? 1 : -1
+    return [...filtered].sort((a, b) => {
+      if (movementSort.by === 'lot_number') {
+        // Nulls sort last regardless of direction so they don't bury active lots
+        const an = a.lot_number, bn = b.lot_number
+        if (an === bn) return 0
+        if (an == null) return 1
+        if (bn == null) return -1
+        return mul * an.localeCompare(bn)
+      }
+      // Stable tiebreaker on id keeps movements within the same second in
+      // the order they were inserted (newest id wins for desc, oldest for asc)
+      const cmp = a.created_at.localeCompare(b.created_at)
+      if (cmp !== 0) return mul * cmp
+      return mul * (a.id - b.id)
+    })
+  }, [movements, movementTypeFilter, movementSort, movementDateFrom, movementDateTo])
+
+  const toggleMovementSort = (by: MovementSortKey) => {
+    setMovementSort(prev => prev.by === by
+      ? { by, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      : { by, dir: 'desc' })
+  }
+
+  const openMovementDetail = (m: StockMovement) => {
+    if (m.sale_invoice_no) {
+      setSaleDetailInvoice(m.sale_invoice_no)
+      setSaleDetailOpen(true)
+    } else if (m.gr_invoice_no) {
+      setGrDetailInvoice(m.gr_invoice_no)
+      setGrDetailOpen(true)
+    }
+  }
 
 
   const loadAll = async () => {
@@ -425,13 +566,17 @@ export default function EditProductPage() {
   }
 
   const handleDeleteUnit = async (unitId: number) => {
+    setUnitSaving(true)
     try {
       await window.api.products.deleteUnit(unitId)
       toast({ title: 'ลบหน่วยสำเร็จ', variant: 'success' })
+      setUnitDialog(false)
       const updated = await window.api.products.get(productId) as FullProduct
       setProduct(updated)
     } catch (e: any) {
       toast({ title: 'ลบไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally {
+      setUnitSaving(false)
     }
   }
 
@@ -712,10 +857,8 @@ export default function EditProductPage() {
         <MetricCard
           label="ราคาทุน (ล่าสุด)"
           value={isNew ? '—' : formatCurrency(product.last_cost_price)}
-          sub={isNew
-            ? undefined
-            : [baseUnit ? `ต่อ ${baseUnit}` : null, `เฉลี่ย ${formatCurrency(product.cost_price)}`]
-                .filter(Boolean).join(' · ')}
+          unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
+          sub={isNew ? undefined : `เฉลี่ย ${formatCurrency(product.cost_price)}`}
           icon={Coins}
           tint="warm"
           className={isNew ? 'opacity-50' : ''}
@@ -724,10 +867,11 @@ export default function EditProductPage() {
           label="ราคาขาย"
           value={isNew ? '—' : formatCurrency(product.price_retail)}
           valueClassName={'text-foreground'}
+          unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
           sub={!isNew && refCost > 0
-            ? `${profit >= 0 ? '+' : ''}${profit.toFixed(2)} (${profit >= 0 ? '+' : ''}${profitPct.toFixed(0)}%)`
+            ? `กำไร ${profit >= 0 ? '+' : ''}${profit.toFixed(2)} (${profit >= 0 ? '+' : ''}${profitPct.toFixed(0)}%)`
             : undefined}
-          subClassName={profit >= 0 ? 'text-success font-semibold' : 'text-destructive font-semibold'}
+          subClassName={profit < 0 ? 'text-destructive' : undefined}
           icon={Tag}
           tint="success"
           className={isNew ? 'opacity-50' : ''}
@@ -735,12 +879,14 @@ export default function EditProductPage() {
         <MetricCard
           label="คงเหลือ"
           value={isNew ? '—' : totalStock.toLocaleString()}
-          sub={isNew ? undefined : baseUnit}
+          unit={isNew ? undefined : (baseUnit !== '—' ? baseUnit : undefined)}
+          sub={isNew ? undefined : 'คลิกเพื่อปรับสต็อก'}
           badge={!isNew && nearExpiryCount > 0
             ? <Badge variant="warning"><AlertTriangle className="size-3" /> ใกล้หมดอายุ {nearExpiryCount} ล็อต</Badge>
             : undefined}
           icon={Boxes}
           tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive' : 'info-soft')}
+          onClick={isNew ? undefined : () => setAdjustOpen(true)}
           className={isNew ? 'opacity-50' : ''}
         />
       </div>
@@ -757,6 +903,9 @@ export default function EditProductPage() {
             </TabsTrigger>
             <TabsTrigger value="lots" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการล็อต' : undefined}>
               <Package /> ล็อต ({product.lots?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="history" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อดูประวัติ' : undefined}>
+              <History /> ความเคลื่อนไหว
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -1181,7 +1330,7 @@ export default function EditProductPage() {
                       <TableHead className="text-right">ราคาส่ง 2</TableHead>
                       <TableHead className="text-center">ขาย</TableHead>
                       <TableHead className="text-center">ซื้อ</TableHead>
-                      <TableHead className="text-center">หน่วยหลัก</TableHead>
+                      <TableHead className="text-center">สถานะ</TableHead>
                       <TableHead className="text-center">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1193,9 +1342,13 @@ export default function EditProductPage() {
                     <TableCell className="text-right text-sm font-semibold tabular-nums">{formatCurrency(product.price_retail ?? 0)}</TableCell>
                     <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{(product.price_wholesale1 ?? 0) > 0 ? formatCurrency(product.price_wholesale1) : '—'}</TableCell>
                     <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
-                    <TableCell className="text-center"><Check className="size-4 mx-auto text-success" /></TableCell>
-                    <TableCell className="text-center"><Check className="size-4 mx-auto text-success" /></TableCell>
-                    <TableCell className="text-center"><Badge variant="warm" className="text-xs rounded-md">หลัก</Badge></TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex justify-center"><Checkbox checked tabIndex={-1} className="pointer-events-none" /></div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex justify-center"><Checkbox checked tabIndex={-1} className="pointer-events-none" /></div>
+                    </TableCell>
+                    <TableCell className="text-center"><Badge variant="tertiary" className="text-xs rounded-md">หลัก</Badge></TableCell>
                     <TableCell className="text-center text-sm text-muted-foreground">แก้ไขที่แท็บข้อมูลทั่วไป</TableCell>
                   </TableRow>
                   {product.units?.map(u => (
@@ -1206,23 +1359,20 @@ export default function EditProductPage() {
                       <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{u.price_wholesale1 > 0 ? formatCurrency(u.price_wholesale1) : '—'}</TableCell>
                       <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{u.price_wholesale2 > 0 ? formatCurrency(u.price_wholesale2) : '—'}</TableCell>
                       <TableCell className="text-center">
-                        {u.is_for_sale ? <Check className="size-4 mx-auto text-success" /> : <span className="text-foreground-subtle">—</span>}
+                        <div className="flex justify-center"><Checkbox checked={!!u.is_for_sale} tabIndex={-1} className="pointer-events-none" /></div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {u.is_for_purchase ? <Check className="size-4 mx-auto text-success" /> : <span className="text-foreground-subtle">—</span>}
+                        <div className="flex justify-center"><Checkbox checked={!!u.is_for_purchase} tabIndex={-1} className="pointer-events-none" /></div>
                       </TableCell>
                       <TableCell className="text-center">
                         {u.is_disabled
-                          ? <Badge variant="danger" className="text-xs rounded-md">ปิดอยู่</Badge>
-                          : <span className="text-foreground-subtle">—</span>}
+                          ? <Badge variant="secondary" className="text-xs rounded-md">ซ่อน</Badge>
+                          : <Badge variant="success" className="text-xs rounded-md">ปกติ</Badge>}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1.5 justify-center">
+                        <div className="flex justify-center">
                           <Button className="w-16" size="icon-lg" variant="warm" onClick={() => openEditUnit(u)} title="แก้ไข">
                             <Edit />
-                          </Button>
-                          <Button className="w-16" size="icon-lg" variant="destructive2" onClick={() => handleDeleteUnit(u.id)} title="ลบ">
-                            <Trash2 />
                           </Button>
                         </div>
                       </TableCell>
@@ -1310,14 +1460,14 @@ export default function EditProductPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="min-w-36">Lot No.</TableHead>
+                      <TableHead className="min-w-32">Lot No.</TableHead>
                       <TableHead className="min-w-32">ผู้จัดจำหน่าย</TableHead>
-                      <TableHead className="min-w-40">วันหมดอายุ</TableHead>
-                      <TableHead className="min-w-24 text-right">รับเข้า</TableHead>
-                      <TableHead className="min-w-28 text-right">คงเหลือ</TableHead>
-                      <TableHead className="min-w-32 text-right">ราคาทุน</TableHead>
-                      <TableHead className="min-w-24 text-center">สถานะ</TableHead>
-                      <TableHead className="min-w-32 text-center">จัดการ</TableHead>
+                      <TableHead className="min-w-24">วันหมดอายุ</TableHead>
+                      <TableHead className="min-w-20 text-right">รับเข้า</TableHead>
+                      <TableHead className="min-w-20 text-right">คงเหลือ</TableHead>
+                      <TableHead className="min-w-20 text-right">ราคาทุน</TableHead>
+                      <TableHead className="min-w-20 text-center">สถานะ</TableHead>
+                      <TableHead className="min-w-20 text-center">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                 <TableBody>
@@ -1428,7 +1578,233 @@ export default function EditProductPage() {
             </div>
           </div>
         )}
+
+        {/* ======================== TAB: HISTORY ======================== */}
+        {tab === 'history' && (
+          <div className="pt-4">
+            <div className="bg-card rounded-card shadow-card overflow-hidden">
+              {/* Date range bar */}
+              <div className="h-12 px-5 flex items-center gap-2 shrink-0">
+                <span className="text-sm font-semibold text-muted-foreground shrink-0">ช่วงวันที่:</span>
+                <DateRangePicker
+                  from={movementDateFrom}
+                  to={movementDateTo}
+                  onChange={(f, t) => { setMovementDateFrom(f); setMovementDateTo(t) }}
+                  className="h-9 w-72"
+                />
+                {(movementDateFrom || movementDateTo) && (
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    className="px-3 shrink-0"
+                    onClick={() => { setMovementDateFrom(''); setMovementDateTo('') }}
+                  >
+                    ล้างวันที่
+                  </Button>
+                )}
+              </div>
+              {/* Filter bar: chips on the left, bulk actions on the right */}
+              <div className="h-12 px-5 flex items-center gap-2 shrink-0">
+                <span className="text-sm font-semibold text-muted-foreground shrink-0">ตัวกรอง:</span>
+                <div className="flex flex-wrap items-center gap-1.5 flex-1">
+                  {Object.entries(MOVEMENT_META).map(([type, meta]) => {
+                    const active = movementTypeFilter.has(type)
+                    return (
+                      <Button
+                        key={type}
+                        size="lg"
+                        variant={active ? meta.variant : 'outline'}
+                        className="px-3"
+                        onClick={() => {
+                          setMovementTypeFilter(prev => {
+                            const next = new Set(prev)
+                            if (next.has(type)) next.delete(type)
+                            else next.add(type)
+                            return next
+                          })
+                        }}
+                      >
+                        {meta.label}
+                      </Button>
+                    )
+                  })}
+                </div>
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  className="px-3 shrink-0"
+                  onClick={() => setMovementTypeFilter(new Set())}
+                  disabled={movementTypeFilter.size === 0}
+                >
+                  ล้างตัวกรอง
+                </Button>
+              </div>
+
+              {/* Table — min-w-X on each column matches the lots tab pattern:
+                  columns size to content with a floor; container scrolls
+                  horizontally only below the cumulative min-width. */}
+              <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <SortableTableHead className="min-w-32" field="created_at" sort={movementSort} onToggle={toggleMovementSort}>
+                        วันเวลา
+                      </SortableTableHead>
+                      <TableHead className="min-w-28 text-center">ประเภท</TableHead>
+                      <SortableTableHead className="min-w-40 text-center" field="lot_number" align="center" sort={movementSort} onToggle={toggleMovementSort}>
+                        Lot
+                      </SortableTableHead>
+                      <TableHead className="min-w-28 text-right">เปลี่ยนแปลง</TableHead>
+                      <TableHead className="min-w-28 text-right">คงเหลือ</TableHead>
+                      <TableHead className="min-w-40 text-center">ดูข้อมูล</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {movementsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                          กำลังโหลด...
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredMovements.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
+                          <History className="size-10 mx-auto mb-2 opacity-30" />
+                          {movements && movements.length > 0
+                            ? 'ไม่มีรายการตามตัวกรอง'
+                            : 'ยังไม่มีความเคลื่อนไหวสต็อค'}
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredMovements.map(m => {
+                      const meta = MOVEMENT_META[m.movement_type] ?? {
+                        label: m.movement_type,
+                        variant: 'secondary' as const,
+                        icon: Info,
+                      }
+                      const Icon = meta.icon
+                      const isPositive = m.qty_change > 0
+                      const hasDetail = Boolean(m.sale_invoice_no || m.gr_invoice_no)
+                      return (
+                        <TableRow key={m.id} className="hover:bg-primary-soft/60 transition-colors">
+                          <TableCell className="text-sm tabular-nums">{formatDateTime(m.created_at)}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant={meta.variant} className="rounded-md gap-1">
+                              <Icon className="size-3" /> {meta.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm font-mono truncate text-center" title={m.lot_number ?? undefined}>{m.lot_number ?? '—'}</TableCell>
+                          <TableCell className={cn(
+                            'text-right text-sm font-semibold tabular-nums',
+                            isPositive ? 'text-success' : 'text-destructive',
+                          )}>
+                            {isPositive ? '+' : ''}{m.qty_change.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right text-sm tabular-nums">
+                            <span className="text-muted-foreground">{m.qty_before.toLocaleString()}</span>
+                            <span className="text-muted-foreground mx-1">→</span>
+                            <span className="font-semibold text-foreground">{m.qty_after.toLocaleString()}</span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {m.note ? (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      className="w-16"
+                                      size="icon-lg"
+                                      variant="outline"
+                                      title="ดูหมายเหตุ"
+                                    >
+                                      <StickyNote />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="center" className="w-80 max-w-[90vw]">
+                                    <div className="text-sm whitespace-pre-wrap break-words">{m.note}</div>
+                                  </PopoverContent>
+                                </Popover>
+                              ) : (
+                                <span className="w-16 text-center text-muted-foreground text-sm">—</span>
+                              )}
+                              {hasDetail ? (
+                                <Button
+                                  className="w-16"
+                                  size="icon-lg"
+                                  variant="info-soft"
+                                  onClick={() => openMovementDetail(m)}
+                                  title={`ดู ${m.sale_invoice_no ?? m.gr_invoice_no}`}
+                                >
+                                  <ExternalLink />
+                                </Button>
+                              ) : (
+                                <span className="w-16 text-center text-muted-foreground text-sm">—</span>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Bottom strip */}
+              <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between h-12">
+                <span>
+                  ทั้งหมด{' '}
+                  <span className="font-semibold text-foreground tabular-nums">
+                    {filteredMovements.length}
+                  </span>
+                  {movements && movementTypeFilter.size > 0 ? <> / {movements.length}</> : null}
+                  {' '}รายการ
+                  {movements && movements.length >= 500 && (
+                    <span className="ml-2 text-warning-strong">(แสดงล่าสุด 500 รายการ)</span>
+                  )}
+                </span>
+                <Button size="lg" variant="outline" onClick={reloadMovements} disabled={movementsLoading} className="px-3">
+                  <RotateCcw className="size-4" /> รีเฟรช
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* ======================== HISTORY DETAIL DIALOGS ======================== */}
+      <SaleDetailDialog
+        open={saleDetailOpen}
+        onOpenChange={(o) => {
+          setSaleDetailOpen(o)
+          if (!o) {
+            setSaleDetailInvoice(null)
+            // Lot qty may have changed if a void happened inside the dialog
+            reloadMovements()
+          }
+        }}
+        invoiceNo={saleDetailInvoice}
+      />
+      <PurchaseReceiptDialog
+        open={grDetailOpen}
+        onOpenChange={(o) => {
+          setGrDetailOpen(o)
+          if (!o) setGrDetailInvoice(null)
+        }}
+        invoiceNo={grDetailInvoice}
+      />
+
+      {/* ======================== ADJUST STOCK DIALOG ======================== */}
+      <AdjustStockDialog
+        target={adjustOpen && !isNew && product ? {
+          id: productId,
+          trade_name: product.trade_name,
+          stock_qty: totalStock,
+          unit_name: baseUnit,
+        } : null}
+        onClose={() => setAdjustOpen(false)}
+        onSaved={async () => {
+          const updated = await window.api.products.get(productId) as FullProduct
+          setProduct(updated)
+        }}
+      />
 
       {/* ======================== UNIT DIALOG ======================== */}
       <Dialog open={unitDialog} onOpenChange={setUnitDialog}>
@@ -1568,6 +1944,17 @@ export default function EditProductPage() {
             })()}
           </DialogBody>
           <DialogFooter>
+            {editingUnit && (
+              <Button
+                variant="destructive"
+                size="xl"
+                className="mr-auto"
+                onClick={() => handleDeleteUnit(editingUnit.id)}
+                disabled={unitSaving}
+              >
+                <Trash2 /> ลบหน่วย
+              </Button>
+            )}
             <Button variant="destructive2" size="xl" onClick={() => setUnitDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSaveUnit} disabled={unitSaving}>{unitSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>

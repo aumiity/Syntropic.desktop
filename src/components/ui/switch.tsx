@@ -8,14 +8,17 @@ import { cn } from "@/lib/utils"
 function Switch({
   className,
   size = "default",
+  variant = "default",
   ...props
 }: React.ComponentProps<typeof SwitchPrimitive.Root> & {
   size?: "sm" | "default" | "lg"
+  variant?: "default" | "destructive"
 }) {
   return (
     <SwitchPrimitive.Root
       data-slot="switch"
       data-size={size}
+      data-variant={variant}
       className={cn(
         "peer group/switch relative inline-flex shrink-0 items-center overflow-hidden rounded-full outline-none",
         "transition-[background-color,box-shadow] duration-[250ms] ease-out motion-reduce:transition-none",
@@ -23,7 +26,8 @@ function Switch({
         "data-[size=default]:h-[20px] data-[size=default]:w-[44px]",
         "data-[size=lg]:h-[24px] data-[size=lg]:w-[54px]",
         "bg-foreground/20 dark:bg-foreground/20",
-        "data-[state=checked]:bg-primary",
+        "data-[variant=default]:data-[state=checked]:bg-primary",
+        "data-[variant=destructive]:data-[state=checked]:bg-destructive",
         "focus-visible:ring-3 focus-visible:ring-ring/50",
         "aria-invalid:ring-3 aria-invalid:ring-destructive/20",
         "data-disabled:cursor-not-allowed data-disabled:opacity-50",
@@ -50,15 +54,25 @@ function Switch({
   )
 }
 
-function Toggle({ checked, onChange, label, size }: {
+// Toggle = Switch + label. The switch sits on the LEFT, label on the right.
+// `framed` wraps it in a h-10 bg-card rounded-lg pill so it matches sibling
+// search inputs / control bars (same height, same surface, same radius).
+function Toggle({ checked, onChange, label, size, variant, framed, className }: {
   checked: boolean
   onChange: (v: boolean) => void
   label?: string
   size?: "sm" | "default" | "lg"
+  variant?: "default" | "destructive"
+  framed?: boolean
+  className?: string
 }) {
   return (
-    <label className="flex items-center gap-2 cursor-pointer select-none">
-      <Switch checked={checked} onCheckedChange={onChange} size={size} />
+    <label className={cn(
+      "flex items-center gap-2 cursor-pointer select-none",
+      framed && "h-10 px-3 rounded-lg bg-card",
+      className,
+    )}>
+      <Switch checked={checked} onCheckedChange={onChange} size={size} variant={variant} />
       {label ? <span className="text-sm">{label}</span> : null}
     </label>
   )

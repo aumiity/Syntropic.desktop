@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from '@/components/ui/table'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency } from '@/lib/utils'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { Search, PackageX, AlertTriangle } from 'lucide-react'
+import type { ReportsOutletContext } from './index'
+import { Search, PackageX, Package, Boxes, TrendingDown, CalendarX } from 'lucide-react'
 
 type FilterType = 'expired' | 30 | 60 | 90 | 'all'
 
@@ -37,44 +40,37 @@ const FILTER_OPTIONS: { label: string; value: FilterType }[] = [
   { label: 'ทั้งหมด',     value: 'all' },
 ]
 
-function DaysCell({ days }: { days: number | null }) {
-  if (days === null) return <span className="text-muted-foreground">—</span>
-  if (days < 0)
-    return <span className="text-destructive font-semibold">หมดอายุ {Math.abs(days)} วัน</span>
-  if (days === 0)
-    return <span className="text-destructive font-semibold">หมดวันนี้</span>
-  if (days <= 30)
-    return <span className="text-destructive font-medium">{days} วัน</span>
-  if (days <= 60)
-    return <span className="text-warning-strong font-medium">{days} วัน</span>
-  if (days <= 90)
-    return <span className="text-warning">{days} วัน</span>
+// Plain render functions (NOT components — keeps page file free of local JSX components)
+function renderDays(days: number | null) {
+  if (days === null) return <span className="text-foreground-subtle">—</span>
+  if (days < 0) return <span className="text-destructive font-semibold">หมดอายุ {Math.abs(days)} วัน</span>
+  if (days === 0) return <span className="text-destructive font-semibold">หมดวันนี้</span>
+  if (days <= 30) return <span className="text-destructive font-medium">{days} วัน</span>
+  if (days <= 60) return <span className="text-warning-strong font-medium">{days} วัน</span>
+  if (days <= 90) return <span className="text-warning">{days} วัน</span>
   return <span className="text-muted-foreground">{days} วัน</span>
 }
 
-function ExpiryDateCell({ date, days }: { date: string | null; days: number | null }) {
-  if (!date) return <span className="text-muted-foreground">—</span>
-  const d = new Date(date)
-  const formatted = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+function renderExpiryDate(date: string | null, days: number | null) {
+  if (!date) return <span className="text-foreground-subtle">—</span>
+  const formatted = new Date(date).toLocaleDateString('th-TH', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  })
   const isExpired = (days ?? 1) < 0
-  return (
-    <span className={isExpired ? 'text-destructive font-medium' : ''}>
-      {formatted}
-    </span>
-  )
+  return <span className={isExpired ? 'text-destructive font-medium' : 'text-sm'}>{formatted}</span>
 }
 
 export default function ReportsExpiryPage() {
   const { toast } = useToast()
+  const { setSummary } = useOutletContext<ReportsOutletContext>()
 
   const [filter, setFilter] = useState<FilterType>(90)
-  const [categoryId, setCategoryId] = useState<number | ''>('')
+  const [categoryId, setCategoryId] = useState<string>('0')
   const [q, setQ] = useState('')
   const [rows, setRows] = useState<ExpiringLot[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Modal confirm state — stores the lot pending confirmation
   const [confirmingLot, setConfirmingLot] = useState<ExpiringLot | null>(null)
   const [expiring, setExpiring] = useState(false)
 
@@ -83,7 +79,7 @@ export default function ReportsExpiryPage() {
     try {
       const data = await (window.api.reports as any).expiringLots({
         filter,
-        category_id: categoryId || undefined,
+        category_id: categoryId !== '0' ? Number(categoryId) : undefined,
         q: q.trim() || undefined,
       }) as ExpiringLot[]
       setRows(data)
@@ -98,9 +94,11 @@ export default function ReportsExpiryPage() {
     window.api.settings.allCategories().then((c: any) => setCategories(c))
   }, [])
 
-  useEffect(() => { load() }, [filter, categoryId])
-
-  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); load() }
+  // Debounced auto-load on filter/category/search change
+  useEffect(() => {
+    const t = setTimeout(() => { load() }, 300)
+    return () => clearTimeout(t)
+  }, [load])
 
   const handleExpire = async () => {
     const lot = confirmingLot
@@ -119,145 +117,144 @@ export default function ReportsExpiryPage() {
     }
   }
 
-  // Summary stats
   const totalLots = rows.length
   const totalQty = rows.reduce((s, r) => s + r.qty_on_hand, 0)
   const totalCost = rows.reduce((s, r) => s + r.total_cost, 0)
   const expiredCount = rows.filter(r => (r.days_remaining ?? 1) < 0).length
 
+  useEffect(() => {
+    setSummary([
+      { label: 'จำนวนล็อต', value: totalLots.toLocaleString(), icon: Package, tint: 'primary' },
+      { label: 'คงเหลือรวม', value: totalQty.toLocaleString(), icon: Boxes, tint: 'info-soft' },
+      { label: 'มูลค่าทุน', value: formatCurrency(totalCost), icon: TrendingDown, tint: 'warm' },
+      {
+        label: 'หมดอายุแล้ว',
+        value: `${expiredCount} ล็อต`,
+        icon: CalendarX,
+        tint: expiredCount > 0 ? 'destructive' : 'success',
+      },
+    ])
+  }, [totalLots, totalQty, totalCost, expiredCount, setSummary])
+
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
-      <PageHeader
-        title="รายงานวันหมดอายุ"
-        right={
-          expiredCount > 0 ? (
-            <div className="flex items-center gap-2 bg-destructive-soft border border-destructive/30 rounded-lg px-3 py-2 text-sm text-destructive">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>หมดอายุแล้ว <span className="font-bold">{expiredCount}</span> ล็อต</span>
-            </div>
-          ) : null
-        }
-      />
-
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden">
-
-      {/* Filter bar */}
-      <div className="px-4 py-3 border-b border-border shrink-0">
-        <div className="flex flex-wrap gap-2 items-center">
-          {/* Preset filter chips */}
-          <div className="flex gap-1">
-            {FILTER_OPTIONS.map(opt => (
-              <Button key={String(opt.value)} size="sm" variant="outline"
-                onClick={() => setFilter(opt.value)}
-                className={`h-8 px-3 text-xs transition-colors ${
-                  filter === opt.value
-                    ? 'bg-primary text-primary-foreground border-primary hover:bg-primary'
-                    : 'border-border'
-                }`}>
-                {opt.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="w-px h-5 bg-border mx-1" />
-
-          {/* Category */}
-          <div className="relative">
-            <select
-              value={categoryId}
-              onChange={e => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-              className="h-8 rounded-md border border-input bg-background px-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+    <>
+      {/* Toolbar */}
+      <div className="flex flex-wrap gap-2 items-center shrink-0">
+        {/* Preset filter chips */}
+        <div className="flex gap-1">
+          {FILTER_OPTIONS.map(opt => (
+            <Button
+              key={String(opt.value)}
+              size="lg"
+              variant={filter === opt.value ? 'default' : 'outline'}
+              onClick={() => setFilter(opt.value)}
             >
-              <option value="">ทุกหมวดหมู่</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
+              {opt.label}
+            </Button>
+          ))}
+        </div>
 
-          {/* Search */}
-          <form onSubmit={handleSearch} className="flex gap-1.5 flex-1 min-w-[200px]">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input value={q} onChange={e => setQ(e.target.value)}
-                placeholder="ชื่อสินค้า, Lot No..." className="pl-8 h-8 text-sm" />
-            </div>
-            <Button type="submit" size="sm" variant="outline" className="h-8">ค้นหา</Button>
-          </form>
+        <Select value={categoryId} onValueChange={setCategoryId}>
+          <SelectTrigger className="h-10 w-44 rounded-lg bg-card text-sm border-0">
+            <SelectValue placeholder="ทุกหมวดหมู่" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">ทุกหมวดหมู่</SelectItem>
+            {categories.map(c => (
+              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ชื่อสินค้า, Lot No..."
+            className="h-10 pl-9 rounded-lg text-sm bg-card"
+          />
         </div>
       </div>
 
-      {/* Summary row */}
-      {rows.length > 0 && (
-        <div className="px-6 py-2.5 border-b border-border bg-muted/20 shrink-0 flex gap-6 text-sm">
-          <span className="text-muted-foreground">
-            พบ <span className="font-semibold text-foreground">{totalLots}</span> ล็อต
-          </span>
-          <span className="text-muted-foreground">
-            รวมคงเหลือ <span className="font-semibold text-foreground tabular-nums">{totalQty.toLocaleString()}</span> หน่วย
-          </span>
-          <span className="text-muted-foreground">
-            มูลค่าทุน <span className="font-semibold text-destructive tabular-nums">฿{formatCurrency(totalCost)}</span>
-          </span>
+      {/* List card */}
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
+        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center">
+          <span>{loading ? 'กำลังโหลด...' : `พบ ${totalLots.toLocaleString()} ล็อต`}</span>
         </div>
-      )}
 
-      {/* Table */}
-      <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">กำลังโหลด...</div>
-        ) : rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3 text-muted-foreground">
-            <PackageX className="w-12 h-12 opacity-30" />
-            <p className="text-sm">ไม่พบล็อตตามเงื่อนไขที่เลือก</p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader className="sticky top-0 z-10 bg-muted">
-              <TableRow className="hover:bg-muted">
-                <TableHead className="text-xs font-bold text-muted-foreground">ชื่อสินค้า</TableHead>
-                <TableHead className="text-xs font-bold text-muted-foreground">ล็อต</TableHead>
-                <TableHead className="text-xs font-bold text-muted-foreground">วันหมดอายุ</TableHead>
-                <TableHead className="text-xs font-bold text-muted-foreground">วันคงเหลือ</TableHead>
-                <TableHead className="text-right text-xs font-bold text-muted-foreground">คงเหลือ</TableHead>
-                <TableHead className="text-right text-xs font-bold text-muted-foreground">ทุนรวม</TableHead>
-                <TableHead className="text-xs font-bold text-muted-foreground">หน่วย</TableHead>
-                <TableHead className="text-xs font-bold text-muted-foreground">ผู้จัดจำหน่าย</TableHead>
-                <TableHead className="text-center text-xs font-bold text-muted-foreground">ตัดออก</TableHead>
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+          <Table className="table-fixed">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[240px]">ชื่อสินค้า</TableHead>
+                <TableHead className="w-32">ล็อต</TableHead>
+                <TableHead className="w-32">วันหมดอายุ</TableHead>
+                <TableHead className="w-36">วันคงเหลือ</TableHead>
+                <TableHead className="text-right w-24">คงเหลือ</TableHead>
+                <TableHead className="text-right w-28">ทุนรวม</TableHead>
+                <TableHead className="w-20">หน่วย</TableHead>
+                <TableHead className="w-40">ผู้จัดจำหน่าย</TableHead>
+                <TableHead className="text-center w-28">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map(lot => {
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                </TableRow>
+              ) : rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
+                    <PackageX className="size-10 mx-auto mb-2 opacity-30" />
+                    ไม่พบล็อตตามเงื่อนไขที่เลือก
+                  </TableCell>
+                </TableRow>
+              ) : rows.map(lot => {
                 const isExpired = (lot.days_remaining ?? 1) < 0
                 return (
-                  <TableRow key={lot.lot_id}
-                    className={`hover:bg-surface-hover ${isExpired ? 'bg-destructive-soft/30' : ''}`}>
-                    <TableCell className="font-medium text-sm">{lot.trade_name}</TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{lot.lot_number || '—'}</TableCell>
+                  <TableRow key={lot.lot_id} className={isExpired ? 'bg-destructive-soft/30' : ''}>
+                    <TableCell className="text-sm font-medium truncate" title={lot.trade_name}>
+                      {lot.trade_name}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm text-muted-foreground">
+                      {lot.lot_number || <span className="text-foreground-subtle">—</span>}
+                    </TableCell>
                     <TableCell className="text-sm">
-                      <ExpiryDateCell date={lot.expiry_date} days={lot.days_remaining} />
+                      {renderExpiryDate(lot.expiry_date, lot.days_remaining)}
                     </TableCell>
                     <TableCell className="text-sm tabular-nums">
-                      <DaysCell days={lot.days_remaining} />
+                      {renderDays(lot.days_remaining)}
                     </TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{lot.qty_on_hand}</TableCell>
-                    <TableCell className="text-right tabular-nums text-sm">
-                      ฿{formatCurrency(lot.total_cost)}
+                    <TableCell className="text-right text-sm font-semibold tabular-nums">
+                      {lot.qty_on_hand.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{lot.unit_name || '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{lot.supplier_name || '—'}</TableCell>
-                    <TableCell className="text-center">
-                      <Button size="sm" variant="outline"
-                        onClick={() => setConfirmingLot(lot)}
-                        className="h-7 px-2 text-xs border-destructive/40 text-destructive hover:bg-destructive-soft hover:border-destructive/60">
-                        ตัดออก
-                      </Button>
+                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                      {formatCurrency(lot.total_cost)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {lot.unit_name || <span className="text-foreground-subtle">—</span>}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground truncate" title={lot.supplier_name ?? ''}>
+                      {lot.supplier_name || <span className="text-foreground-subtle">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-center">
+                        <Button
+                          size="default"
+                          variant="destructive2"
+                          onClick={() => setConfirmingLot(lot)}
+                        >
+                          ตัดออก
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )
               })}
             </TableBody>
           </Table>
-        )}
-      </div>
+        </div>
       </div>
 
       <ConfirmDialog
@@ -274,6 +271,6 @@ export default function ReportsExpiryPage() {
         cancelLabel="ยกเลิก"
         onConfirm={handleExpire}
       />
-    </div>
+    </>
   )
 }

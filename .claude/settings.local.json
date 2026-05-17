@@ -60,7 +60,14 @@
       "PowerShell(Test-Path *)",
       "Bash(sed -i \"s#/tmp/person_xlsx#C:/Users/ANYA/AppData/Local/Temp/person_xlsx#\" /tmp/parse_person.mjs)",
       "Bash(node /tmp/parse_person.mjs)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(grep -nE \"\\(invoice_no|GR-|INV-|nextGR|saveBill\\).{0,80}\" /Users/anya/Documents/GitHub/Syntropic.desktop/electron/ipc/purchase.ts /Users/anya/Documents/GitHub/Syntropic.desktop/electron/ipc/pos.ts)",
+      "Bash(grep -iE \"format|YYYY|prefix|\\\\\\\\\\\\$\\\\\\\\{|\\\\`\")",
+      "Bash(grep -nA1 \"dev:\" /Users/anya/Documents/GitHub/Syntropic.desktop/src/types/index.ts)",
+      "Bash(xargs ls -la)",
+      "Bash(grep -n \"openMovementDetail\\\\|navigate\\(\\\\`/reports\\\\|SaleDetailDialog\\\\|PurchaseReceiptDialog\" /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/Products/EditProduct.tsx)",
+      "Bash(grep -n \"เปลี่ยนแปลง\\\\|Lot$\\\\|m.lot_number ??\\\\|m.qty_change.toLocale\\\\|qty_change\\\\|lot_number\" /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/Products/EditProduct.tsx)",
+      "Bash(grep -n \"</Dialog>\\\\|^    </div>$\\\\|^  \\)$\\\\|^}$\" /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/Products/index.tsx)"
     ]
   }
 }

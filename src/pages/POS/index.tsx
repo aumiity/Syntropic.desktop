@@ -1042,7 +1042,6 @@ export default function POSPage() {
                       </CardTitle>
                       <CardDescription className="flex gap-3 text-sm">
                         <span><span className="text-foreground-subtle">รหัส:</span> <span className="text-muted-foreground font-mono">{cart.customer.code || '-'}</span></span>
-                        <span><span className="text-foreground-subtle">HN:</span> <span className="text-muted-foreground">{cart.customer.hn || '-'}</span></span>
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-base">
@@ -1052,26 +1051,10 @@ export default function POSPage() {
                       <span className="text-foreground whitespace-pre-line">{cart.customer.address || '-'}</span>
                     </CardContent>
                   </Card>
-                  {(cart.customer.hc_uc || cart.customer.hc_gov || cart.customer.hc_sso) ? (
-                    <div>
-                      <div className="text-sm text-foreground-subtle">สิทธิการรักษา</div>
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {cart.customer.hc_uc ? <Badge variant="outline" className="text-sm bg-primary-soft text-primary px-2 py-0.5 rounded-md">บัตรทอง</Badge> : null}
-                        {cart.customer.hc_gov ? <Badge variant="outline" className="text-sm bg-primary-soft text-primary px-2 py-0.5 rounded-md">ข้าราชการ</Badge> : null}
-                        {cart.customer.hc_sso ? <Badge variant="outline" className="text-sm bg-warning-soft text-warning-strong px-2 py-0.5 rounded-md">ประกันสังคม</Badge> : null}
-                      </div>
-                    </div>
-                  ) : null}
                   {cart.customer.food_allergy ? (
                     <div>
-                      <div className="text-sm text-foreground-subtle">แพ้อาหาร</div>
+                      <div className="text-sm text-foreground-subtle">แพ้ยา</div>
                       <div className="text-foreground whitespace-pre-line">{cart.customer.food_allergy}</div>
-                    </div>
-                  ) : null}
-                  {cart.customer.other_allergy ? (
-                    <div>
-                      <div className="text-sm text-foreground-subtle">แพ้อื่นๆ</div>
-                      <div className="text-foreground whitespace-pre-line">{cart.customer.other_allergy}</div>
                     </div>
                   ) : null}
                   {cart.customer.chronic_diseases ? (

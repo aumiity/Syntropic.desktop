@@ -219,6 +219,49 @@ export function registerProductHandlers() {
     `).all(productId, limit)
   })
 
+  // Stock movement audit log for a single product. Returns rows from
+  // stock_movements joined with lot + user info for display. Ordered newest
+  // first. movement_type values: receive, sale, sale_return, adjust_in,
+  // adjust_out, lot_edit, gr_cancel. Note often contains a referencing
+  // invoice/GR number (frontend extracts for navigation).
+  ipcMain.handle('products:stockMovements', (_e, productId: number, opts?: {
+    limit?: number
+    movement_types?: string[]
+    date_from?: string
+    date_to?: string
+  }) => {
+    const limit = opts?.limit ?? 200
+    const conditions: string[] = ['sm.product_id = ?']
+    const params: any[] = [productId]
+    if (opts?.movement_types && opts.movement_types.length > 0) {
+      conditions.push(`sm.movement_type IN (${opts.movement_types.map(() => '?').join(',')})`)
+      params.push(...opts.movement_types)
+    }
+    if (opts?.date_from) { conditions.push(`date(sm.created_at) >= ?`); params.push(opts.date_from) }
+    if (opts?.date_to)   { conditions.push(`date(sm.created_at) <= ?`); params.push(opts.date_to)   }
+
+    // pl.invoice_no = the GR (purchase_receipt) the lot belongs to → used for
+    // navigating receive/gr_cancel movements to the purchase detail page.
+    // s.invoice_no = the sale the movement references → only meaningful when
+    // ref_type='sale' (covers both 'sale' and 'sale_return' movement_types).
+    return getDb().prepare(`
+      SELECT sm.id, sm.movement_type, sm.ref_type, sm.ref_id,
+             sm.qty_change, sm.qty_before, sm.qty_after, sm.unit_cost,
+             sm.note, sm.created_at,
+             sm.lot_id, pl.lot_number, pl.expiry_date,
+             pl.invoice_no AS gr_invoice_no,
+             s.invoice_no AS sale_invoice_no,
+             sm.created_by, u.name AS created_by_name
+      FROM stock_movements sm
+      LEFT JOIN product_lots pl ON pl.id = sm.lot_id
+      LEFT JOIN sales s ON sm.ref_type = 'sale' AND s.id = sm.ref_id
+      LEFT JOIN users u ON u.id = sm.created_by
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY sm.created_at DESC, sm.id DESC
+      LIMIT ?
+    `).all(...params, limit)
+  })
+
   // Stock adjustment from Products list. Three modes — operator picks one
   // based on the situation:
   //

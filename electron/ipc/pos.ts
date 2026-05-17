@@ -56,7 +56,7 @@ export function registerPosHandlers() {
     const q = `%${query}%`
     return getDb().prepare(`
       SELECT * FROM customers
-      WHERE is_hidden = 0
+      WHERE is_disabled = 0
         AND (full_name LIKE ? OR phone LIKE ? OR code LIKE ? OR hn LIKE ?)
       ORDER BY full_name
       LIMIT 20
@@ -106,8 +106,8 @@ export function registerPosHandlers() {
       // is 'YYYYMMDD', so a string-range comparison silently excludes every row.)
       const today = dayjs().format('YYYYMMDD')
       const countRow = db.prepare(`SELECT COUNT(*) as c FROM sales WHERE invoice_no LIKE ?`)
-        .get(`RX-${today}-%`) as { c: number }
-      const invoiceNo = `RX-${today}-${String(countRow.c + 1).padStart(4, '0')}`
+        .get(`RC-${today}-%`) as { c: number }
+      const invoiceNo = `RC-${today}-${String(countRow.c + 1).padStart(4, '0')}`
 
       const saleResult = db.prepare(`
         INSERT INTO sales (invoice_no, sale_type, customer_id, customer_name_free,

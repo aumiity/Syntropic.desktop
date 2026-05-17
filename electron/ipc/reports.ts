@@ -54,6 +54,31 @@ export function registerReportHandlers() {
     return { rows, summary, total, page, limit }
   })
 
+  // Deeplink hook for "ดูรายละเอียด" buttons elsewhere in the app (e.g.,
+  // EditProduct → ความเคลื่อนไหว tab). Returns the same shape as reports:getSale
+  // — the renderer doesn't care which key it queried by.
+  ipcMain.handle('reports:getSaleByInvoice', (_e, invoiceNo: string) => {
+    const db = getDb()
+    const sale = db.prepare(`
+      SELECT s.*, c.full_name as customer_name, u.name as sold_by_name
+      FROM sales s
+      LEFT JOIN customers c ON c.id = s.customer_id
+      LEFT JOIN users u ON u.id = s.sold_by
+      WHERE s.invoice_no = ?
+    `).get(invoiceNo) as any
+    if (!sale) return null
+    const items = db.prepare(`
+      SELECT si.*,
+        COALESCE((
+          SELECT SUM(sil.qty * pl.cost_price) FROM sale_item_lots sil
+          JOIN product_lots pl ON pl.id = sil.lot_id
+          WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0
+        ), 0) as item_cost
+      FROM sale_items si WHERE si.sale_id = ?
+    `).all(sale.id)
+    return { ...sale, items }
+  })
+
   ipcMain.handle('reports:getSale', (_e, id: number) => {
     const db = getDb()
     const sale = db.prepare(`

@@ -188,6 +188,7 @@ export function initializeSchema(db: Database.Database) {
       alert_note TEXT,
       warning_note TEXT,
       is_hidden INTEGER NOT NULL DEFAULT 0,
+      is_disabled INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
@@ -608,4 +609,14 @@ export function initializeSchema(db: Database.Database) {
   } catch {}
 
   try { db.exec(`ALTER TABLE product_units DROP COLUMN is_base_unit`) } catch {}
+
+  // Customers: add is_disabled (mirror suppliers/users soft-disable). Existing
+  // is_hidden was the de-facto soft-delete flag; backfill so previously "deleted"
+  // customers carry over as disabled under the new flag.
+  for (const sql of [
+    `ALTER TABLE customers ADD COLUMN is_disabled INTEGER NOT NULL DEFAULT 0`,
+    `UPDATE customers SET is_disabled = 1 WHERE is_hidden = 1 AND is_disabled = 0`,
+  ]) {
+    try { db.exec(sql) } catch {}
+  }
 }
