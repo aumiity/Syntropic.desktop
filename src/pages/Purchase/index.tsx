@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Pagination } from '@/components/ui/pagination'
+import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { cn, formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, ProductLot } from '@/types'
@@ -165,6 +165,7 @@ export default function PurchasePage() {
   const [history, setHistory] = useState<HistoryRow[]>([])
   const [histTotal, setHistTotal] = useState(0)
   const [histPage, setHistPage] = useState(1)
+  const [histPageSize, setHistPageSize] = useState<PageSize>(50)
   const [histQ, setHistQ] = useState('')
   const [histSupplierId, setHistSupplierId] = useState<number>(0)
   const [histDateFrom, setHistDateFrom] = useState('')
@@ -263,6 +264,13 @@ export default function PurchasePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [histSupplierId])
 
+  const pageSizeEffectMounted = useRef(false)
+  useEffect(() => {
+    if (!pageSizeEffectMounted.current) { pageSizeEffectMounted.current = true; return }
+    loadHistory(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [histPageSize])
+
   const loadNextGR = async () => {
     const no = await window.api.purchase.nextGRNumber()
     setInvoiceNo(no as string)
@@ -292,6 +300,7 @@ export default function PurchasePage() {
         payment_type: (filter === 'cash' || filter === 'credit') ? filter : undefined,
         status: filter === 'cancelled' ? 'cancelled' : 'all',
         page,
+        limit: histPageSize,
       }) as any
       setHistory(res.rows)
       setHistTotal(res.total)
@@ -307,7 +316,7 @@ export default function PurchasePage() {
     } finally {
       setLoadingHist(false)
     }
-  }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, selectedInvoice])
+  }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, histPageSize, selectedInvoice])
 
   const openEditBill = () => {
     if (!receiptInvoice || receiptItems.length === 0) return
@@ -882,7 +891,7 @@ export default function PurchasePage() {
     }
   }
 
-  const histTotalPages = Math.ceil(histTotal / 20)
+  const histTotalPages = histPageSize === 'all' ? 1 : Math.ceil(histTotal / histPageSize)
 
   const rowIsValid = (r: ReceiptRow) =>
     r.product_id > 0 && r.lot_number.trim() !== '' && r.expiry_date !== '' && parseFloat(r.qty) > 0 && parseFloat(r.total) > 0
@@ -1536,11 +1545,15 @@ export default function PurchasePage() {
                     </div>
 
                     {/* Pagination */}
-                    {histTotalPages > 1 && (
-                      <div className="py-2.5 flex justify-center bg-card border-t border-border shrink-0">
-                        <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} />
-                      </div>
-                    )}
+                    <div className="px-4 h-12 flex items-center bg-card border-t border-border shrink-0">
+                      <Pagination
+                        page={histPage}
+                        totalPages={histTotalPages}
+                        onPageChange={p => loadHistory(p)}
+                        pageSize={histPageSize}
+                        onPageSizeChange={setHistPageSize}
+                      />
+                    </div>
                   </div>
 
                   {/* Right 60% — detail panel */}

@@ -127,6 +127,7 @@ export default function Theme() {
   const [rangeFrom, setRangeFrom] = useState('')
   const [rangeTo, setRangeTo] = useState('')
   const [page, setPage] = useState(3)
+  const [pageSize, setPageSize] = useState<import('@/components/ui/pagination').PageSize>(50)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmDestrOpen, setConfirmDestrOpen] = useState(false)
@@ -579,6 +580,10 @@ export default function Theme() {
                     <Switch size="lg" variant="destructive" defaultChecked />
                     <Label>Destructive</Label>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Switch size="lg" variant="warning" defaultChecked />
+                    <Label>Warning</Label>
+                  </div>
                 </DemoRow>
                 <DemoRow label="Toggle (label + switch) — label on left, switch on right (iOS settings style)">
                   <Toggle size="lg" checked={switchOn} onChange={setSwitchOn} label="พื้นฐาน" />
@@ -588,6 +593,9 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="Toggle framed + destructive — for state-changing toggles inside modals (พักใช้งาน, ปิดบัญชี)">
                   <Toggle framed variant="destructive" size="lg" checked={switchOn} onChange={setSwitchOn} label="พักการใช้งาน" />
+                </DemoRow>
+                <DemoRow label="Toggle framed + warning — yellow tint for attention-grabbing but non-destructive (เปิดการแจ้งเตือน)">
+                  <Toggle framed variant="warning" size="lg" checked={switchOn} onChange={setSwitchOn} label="เปิดการแจ้งเตือน" />
                 </DemoRow>
               </Section>
 
@@ -1125,8 +1133,31 @@ export default function Theme() {
                 <p className="text-sm text-muted-foreground font-mono">
                   page = {page} / totalPages = 10
                 </p>
+                <DemoRow label="Few pages (≤7, no ellipsis)">
+                  <Pagination page={2} totalPages={5} onPageChange={() => {}} />
+                </DemoRow>
+                <DemoRow label="At first page">
+                  <Pagination page={1} totalPages={20} onPageChange={() => {}} />
+                </DemoRow>
+                <DemoRow label="Middle page">
+                  <Pagination page={10} totalPages={20} onPageChange={() => {}} />
+                </DemoRow>
+                <DemoRow label="At last page">
+                  <Pagination page={20} totalPages={20} onPageChange={() => {}} />
+                </DemoRow>
+                <DemoRow label="With page-size selector (full-width footer)">
+                  <div className="w-full px-4 h-12 border-t border-border bg-card flex items-center">
+                    <Pagination
+                      page={page}
+                      totalPages={10}
+                      onPageChange={setPage}
+                      pageSize={pageSize}
+                      onPageSizeChange={setPageSize}
+                    />
+                  </div>
+                </DemoRow>
                 <p className="text-sm text-muted-foreground">
-                  Note: component renders <code className="font-mono">null</code> when <code className="font-mono">totalPages {'<='} 1</code>
+                  Note: page-nav-only mode renders <code className="font-mono">null</code> when <code className="font-mono">totalPages {'<='} 1</code>. Pass both <code className="font-mono">pageSize</code> and <code className="font-mono">onPageSizeChange</code> to show the selector (default options <code className="font-mono">[50, 100, 250, 500, &apos;all&apos;]</code>) — layout becomes full-width <code className="font-mono">justify-between</code>: selector on the left, page nav on the right. Pages collapse to ellipsis (first, last, current ±1) when <code className="font-mono">totalPages {'>'} 7</code>.
                 </p>
               </Section>
 

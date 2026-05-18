@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
-import { Pagination } from '@/components/ui/pagination'
+import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { formatCurrency } from '@/lib/utils'
@@ -51,8 +51,8 @@ export default function ProductsPage() {
   // the cards drive). `total_all` is the absolute product count, never filtered.
   const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0 })
 
-  const limit = 50
-  const totalPages = Math.ceil(total / limit)
+  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   useEffect(() => {
     loadDropdowns()
@@ -72,7 +72,7 @@ export default function ProductsPage() {
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, categoryId, drugTypeId, stockFilter, showDisabled, sort])
+  }, [q, categoryId, drugTypeId, stockFilter, showDisabled, sort, pageSize])
 
   const loadDropdowns = async () => {
     const [cats, dts] = await Promise.all([
@@ -91,6 +91,7 @@ export default function ProductsPage() {
         category_id: categoryId || undefined,
         drug_type_id: drugTypeId || undefined,
         page: p,
+        limit: pageSize,
         sort_by: sort.by,
         sort_dir: sort.dir,
         stock_filter: stockFilter,
@@ -102,7 +103,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false)
     }
-  }, [q, categoryId, drugTypeId, page, sort, stockFilter, showDisabled])
+  }, [q, categoryId, drugTypeId, page, pageSize, sort, stockFilter, showDisabled])
 
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
@@ -253,7 +254,7 @@ export default function ProductsPage() {
                 const isDisabled = !!row.is_disabled
                 return (
                   <TableRow key={row.id} className={isDisabled ? 'opacity-60' : ''}>
-                    <TableCell className="text-foreground-subtle text-sm tabular-nums">{(page - 1) * limit + i + 1}</TableCell>
+                    <TableCell className="text-foreground-subtle text-sm tabular-nums">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
                     <TableCell className="max-w-0">
                       <div className="font-semibold text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
                     </TableCell>
@@ -290,11 +291,15 @@ export default function ProductsPage() {
           </Table>
         </div>
 
-        {totalPages > 1 && (
-          <div className="px-4 h-12 border-t border-border flex items-center justify-center shrink-0">
-            <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} />
-          </div>
-        )}
+        <div className="px-4 h-12 border-t border-border flex items-center shrink-0">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={p => load(p)}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
       </div>
 
     </div>

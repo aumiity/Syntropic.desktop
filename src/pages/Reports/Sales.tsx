@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
-import { Pagination } from '@/components/ui/pagination'
+import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
@@ -67,8 +67,8 @@ export default function ReportsSalesPage() {
 
   const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
 
-  const limit = 30
-  const totalPages = Math.ceil(total / limit)
+  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   const load = useCallback(async (p = 1) => {
     setLoading(true)
@@ -80,6 +80,7 @@ export default function ReportsSalesPage() {
         sort_by: sort.by,
         sort_dir: sort.dir.toUpperCase(),
         page: p,
+        limit: pageSize,
       }) as any
       setRows(res.rows)
       setSummary(res.summary ?? EMPTY_SUMMARY)
@@ -88,7 +89,7 @@ export default function ReportsSalesPage() {
     } finally {
       setLoading(false)
     }
-  }, [q, dateFrom, dateTo, sort])
+  }, [q, dateFrom, dateTo, sort, pageSize])
 
   useEffect(() => {
     const t = setTimeout(() => { load(1) }, 300)
@@ -246,11 +247,15 @@ export default function ReportsSalesPage() {
           </Table>
         </div>
 
-        {totalPages > 1 && (
-          <div className="px-4 h-12 border-t border-border flex items-center justify-center shrink-0">
-            <Pagination page={page} totalPages={totalPages} onPageChange={load} />
-          </div>
-        )}
+        <div className="px-4 h-12 border-t border-border flex items-center shrink-0">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={load}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
       </div>
 
       <SaleDetailDialog

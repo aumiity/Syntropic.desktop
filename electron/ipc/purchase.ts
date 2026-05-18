@@ -224,12 +224,12 @@ export function registerPurchaseHandlers() {
 
   ipcMain.handle('purchase:history', (_e, filters: {
     q?: string; supplier_id?: number; date_from?: string; date_to?: string;
-    page?: number; payment_type?: string; status?: 'completed' | 'cancelled' | 'all'
+    page?: number; limit?: number | 'all'; payment_type?: string; status?: 'completed' | 'cancelled' | 'all'
   }) => {
     const db = getDb()
-    const { q, supplier_id, date_from, date_to, payment_type, page = 1, status = 'all' } = filters
-    const limit = 20
-    const offset = (page - 1) * limit
+    const { q, supplier_id, date_from, date_to, payment_type, page = 1, limit: limitOpt, status = 'all' } = filters
+    const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 20)
+    const offset = limit ? (page - 1) * limit : 0
     const conditions: string[] = []
     const params: any[] = []
 
@@ -260,6 +260,8 @@ export function registerPurchaseHandlers() {
 
     const rowWhere = rowConditions.length ? `WHERE ${rowConditions.join(' AND ')}` : ``
 
+    const limitClause = limit ? `LIMIT ? OFFSET ?` : ''
+    const limitParams = limit ? [limit, offset] : []
     const rows = db.prepare(`
       SELECT pr.invoice_no,
              pr.created_at,
@@ -273,8 +275,8 @@ export function registerPurchaseHandlers() {
       LEFT JOIN suppliers s ON s.id = pr.supplier_id
       ${rowWhere}
       ORDER BY pr.created_at DESC, pr.invoice_no DESC
-      LIMIT ? OFFSET ?
-    `).all(...rowParams, limit, offset)
+      ${limitClause}
+    `).all(...rowParams, ...limitParams)
 
     const total = (db.prepare(`
       SELECT COUNT(DISTINCT pr.invoice_no) as c
@@ -283,7 +285,7 @@ export function registerPurchaseHandlers() {
     `).get(...rowParams) as any).c
 
     return {
-      rows, total, page, limit,
+      rows, total, page, limit: limit ?? total,
       summary: { count: summary.count, total_cost: summary.total_cost, unpaid_cost: summary.unpaid_cost }
     }
   })

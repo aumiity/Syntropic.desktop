@@ -4,14 +4,15 @@ import { getDb } from '../db'
 export function registerProductHandlers() {
   ipcMain.handle('products:list', (_e, filters: {
     q?: string; category_id?: number; drug_type_id?: number; page?: number
+    limit?: number | 'all'
     sort_by?: string; sort_dir?: 'asc' | 'desc'
     stock_filter?: 'all' | 'low' | 'out'
     include_disabled?: boolean
   }) => {
     const db = getDb()
-    const { q, category_id, drug_type_id, page = 1, sort_by, sort_dir, stock_filter, include_disabled } = filters
-    const limit = 50
-    const offset = (page - 1) * limit
+    const { q, category_id, drug_type_id, page = 1, limit: limitOpt, sort_by, sort_dir, stock_filter, include_disabled } = filters
+    const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 50)
+    const offset = limit ? (page - 1) * limit : 0
     const conditions: string[] = []
     const params: any[] = []
 
@@ -60,6 +61,8 @@ export function registerProductHandlers() {
 
     const total = (db.prepare(`SELECT COUNT(*) as c FROM products p ${where}`).get(...params) as any).c
 
+    const limitClause = limit ? `LIMIT ? OFFSET ?` : ''
+    const limitParams = limit ? [limit, offset] : []
     const rows = db.prepare(`
       SELECT p.*, c.name as category_name, dt.name_th as drug_type_name,
              u.name as unit_name,
@@ -68,10 +71,10 @@ export function registerProductHandlers() {
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN drug_types dt ON dt.id = p.drug_type_id
       LEFT JOIN item_units u ON u.id = p.unit_id
-      ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?
-    `).all(...params, limit, offset)
+      ${where} ORDER BY ${orderBy} ${limitClause}
+    `).all(...params, ...limitParams)
 
-    return { rows, total, page, limit }
+    return { rows, total, page, limit: limit ?? total }
   })
 
   ipcMain.handle('products:stockStats', (_e, filters: {

@@ -5,10 +5,12 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:salesList', (_e, filters: {
     q?: string; date_from?: string; date_to?: string
     sort_by?: string; sort_dir?: string; page?: number
+    limit?: number | 'all'
   }) => {
     const db = getDb()
-    const { q, date_from, date_to, sort_by = 'sold_at', sort_dir = 'DESC', page = 1 } = filters
-    const limit = 30; const offset = (page - 1) * limit
+    const { q, date_from, date_to, sort_by = 'sold_at', sort_dir = 'DESC', page = 1, limit: limitOpt } = filters
+    const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 30)
+    const offset = limit ? (page - 1) * limit : 0
     const conditions = [`s.status != 'voided'`]
     const params: any[] = []
 
@@ -21,14 +23,16 @@ export function registerReportHandlers() {
     const sortCol = validSorts.includes(sort_by) ? `s.${sort_by}` : 's.sold_at'
     const sortDirection = sort_dir === 'ASC' ? 'ASC' : 'DESC'
 
+    const limitClause = limit ? `LIMIT ? OFFSET ?` : ''
+    const limitParams = limit ? [limit, offset] : []
     const rows = db.prepare(`
       SELECT s.*, c.full_name as customer_name
       FROM sales s
       LEFT JOIN customers c ON c.id = s.customer_id
       ${where}
       ORDER BY ${sortCol} ${sortDirection}
-      LIMIT ? OFFSET ?
-    `).all(...params, limit, offset)
+      ${limitClause}
+    `).all(...params, ...limitParams)
 
     const summary = db.prepare(`
       SELECT
@@ -51,7 +55,7 @@ export function registerReportHandlers() {
     summary.total_profit = summary.total_amount - summary.total_cost
 
     const total = (db.prepare(`SELECT COUNT(*) as c FROM sales s LEFT JOIN customers c ON c.id = s.customer_id ${where}`).get(...params) as any).c
-    return { rows, summary, total, page, limit }
+    return { rows, summary, total, page, limit: limit ?? total }
   })
 
   // Deeplink hook for "ดูรายละเอียด" buttons elsewhere in the app (e.g.,
@@ -182,10 +186,12 @@ export function registerReportHandlers() {
 
   ipcMain.handle('reports:purchaseList', (_e, filters: {
     q?: string; supplier_id?: number; date_from?: string; date_to?: string; page?: number
+    limit?: number | 'all'
   }) => {
     const db = getDb()
-    const { q, supplier_id, date_from, date_to, page = 1 } = filters
-    const limit = 30; const offset = (page - 1) * limit
+    const { q, supplier_id, date_from, date_to, page = 1, limit: limitOpt } = filters
+    const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 30)
+    const offset = limit ? (page - 1) * limit : 0
     const conditions: string[] = []
     const params: any[] = []
 
@@ -197,6 +203,8 @@ export function registerReportHandlers() {
     conditions.push(`pl.invoice_no IS NOT NULL`)
     const where = `WHERE ${conditions.join(' AND ')}`
 
+    const limitClause = limit ? `LIMIT ? OFFSET ?` : ''
+    const limitParams = limit ? [limit, offset] : []
     const rows = db.prepare(`
       SELECT pl.invoice_no, MAX(pl.created_at) as receive_date, pl.supplier_id,
              s.name as supplier_name, pl.payment_type, MAX(pl.is_paid) as is_paid, pl.due_date,
@@ -206,10 +214,10 @@ export function registerReportHandlers() {
       ${where}
       GROUP BY pl.invoice_no
       ORDER BY receive_date DESC
-      LIMIT ? OFFSET ?
-    `).all(...params, limit, offset)
+      ${limitClause}
+    `).all(...params, ...limitParams)
 
     const total = (db.prepare(`SELECT COUNT(DISTINCT pl.invoice_no) as c FROM product_lots pl ${where}`).get(...params) as any).c
-    return { rows, total, page, limit }
+    return { rows, total, page, limit: limit ?? total }
   })
 }

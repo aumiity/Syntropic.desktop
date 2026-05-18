@@ -3,12 +3,13 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Pagination } from '@/components/ui/pagination'
+import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { useToast } from '@/components/ui/toast'
 import { Toggle } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -48,23 +49,23 @@ function CustomersTab() {
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
 
-  const limit = 50
-  const totalPages = Math.ceil(total / limit)
+  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   const load = useCallback(async (p = 1) => {
     setLoading(true)
     try {
-      const res = await window.api.people.listCustomers({ q: q.trim() || undefined, page: p, includeDisabled: showDisabled }) as any
+      const res = await window.api.people.listCustomers({ q: q.trim() || undefined, page: p, limit: pageSize, includeDisabled: showDisabled }) as any
       setRows(res.rows); setTotal(res.total); setPage(p)
     } finally { setLoading(false) }
-  }, [q, showDisabled])
+  }, [q, pageSize, showDisabled])
 
   // Realtime search — debounce text input (also covers initial mount, q='').
   useEffect(() => {
     const t = setTimeout(() => load(1), 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, showDisabled])
+  }, [q, pageSize, showDisabled])
 
   const openAdd = () => {
     setEditing(null)
@@ -180,11 +181,15 @@ function CustomersTab() {
           </Table>
         </div>
 
-        {totalPages > 1 && (
-          <div className="px-4 h-12 border-t border-border flex items-center justify-center shrink-0">
-            <Pagination page={page} totalPages={totalPages} onPageChange={load} />
-          </div>
-        )}
+        <div className="px-4 h-12 border-t border-border flex items-center shrink-0">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={load}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
       </div>
 
       {/* Customer dialog */}
@@ -209,7 +214,7 @@ function CustomersTab() {
               </div>
               <div className="space-y-1.5">
                 <Label>วันเกิด</Label>
-                <Input type="date" value={form.dob ?? ''} onChange={e => setF('dob', e.target.value)} />
+                <DateInput value={form.dob ?? ''} onChange={iso => setF('dob', iso)} />
               </div>
               <div className="col-span-2 space-y-1.5">
                 <Label>ที่อยู่</Label>
@@ -222,16 +227,10 @@ function CustomersTab() {
               <Input value={form.chronic_diseases ?? ''} onChange={e => setF('chronic_diseases', e.target.value)} />
             </div>
 
-            <div className="space-y-3">
-              <Toggle framed size="lg" variant="destructive"
-                checked={!!form.is_alert} onChange={v => setF('is_alert', v ? 1 : 0)}
-                label="แสดงการแจ้งเตือนเมื่อใช้งาน" />
-              {!!form.is_alert && (
-                <div className="space-y-1.5 pl-4 border-l-2 border-destructive/30">
-                  <Label>ข้อความแจ้งเตือน</Label>
-                  <Input value={form.alert_note ?? ''} onChange={e => setF('alert_note', e.target.value)} placeholder="แสดงระหว่างขาย" />
-                </div>
-              )}
+            <div className="space-y-1.5">
+              <Label>ข้อความแจ้งเตือน</Label>
+              <Input value={form.alert_note ?? ''} onChange={e => setF('alert_note', e.target.value)}
+                disabled={!form.is_alert} placeholder="เช่น แพ้ยา, แพ้อาหาร, ลดราคาพิเศษ" />
             </div>
 
             {/* Drug allergies (readonly) */}
@@ -251,13 +250,19 @@ function CustomersTab() {
                 </div>
               </div>
             )}
+
+            <div className="flex gap-3">
+              <Toggle framed size="lg" variant="warning" className="flex-1 justify-between"
+                checked={!!form.is_alert} onChange={v => setF('is_alert', v ? 1 : 0)}
+                label="เปิดการแจ้งเตือน" />
+              {editing && (
+                <Toggle framed size="lg" variant="destructive" className="flex-1 justify-between"
+                  checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
+                  label="พักการใช้งาน" />
+              )}
+            </div>
           </DialogBody>
           <DialogFooter>
-            {editing && (
-              <Toggle framed variant="destructive" size="lg" className="mr-auto"
-                checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
-                label="พักการใช้งาน" />
-            )}
             <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
@@ -283,23 +288,23 @@ function SuppliersTab() {
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
 
-  const limit = 50
-  const totalPages = Math.ceil(total / limit)
+  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   const load = useCallback(async (p = 1) => {
     setLoading(true)
     try {
-      const res = await window.api.people.listSuppliers({ q: q.trim() || undefined, page: p, includeDisabled: showDisabled }) as any
+      const res = await window.api.people.listSuppliers({ q: q.trim() || undefined, page: p, limit: pageSize, includeDisabled: showDisabled }) as any
       setRows(res.rows); setTotal(res.total); setPage(p)
     } finally { setLoading(false) }
-  }, [q, showDisabled])
+  }, [q, pageSize, showDisabled])
 
   // Realtime search — debounce text input (also covers initial mount, q='').
   useEffect(() => {
     const t = setTimeout(() => load(1), 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, showDisabled])
+  }, [q, pageSize, showDisabled])
 
   const openAdd = () => {
     setEditing(null)
@@ -389,11 +394,15 @@ function SuppliersTab() {
           </Table>
         </div>
 
-        {totalPages > 1 && (
-          <div className="px-4 h-12 border-t border-border flex items-center justify-center shrink-0">
-            <Pagination page={page} totalPages={totalPages} onPageChange={load} />
-          </div>
-        )}
+        <div className="px-4 h-12 border-t border-border flex items-center shrink-0">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={load}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
       </div>
 
       <Dialog open={dialog} onOpenChange={setDialog}>

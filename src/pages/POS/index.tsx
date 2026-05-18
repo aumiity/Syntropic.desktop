@@ -9,18 +9,26 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { SectionCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatCurrency, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
 import dayjs from 'dayjs'
-import type { Product, ProductUnit, ProductLot, Customer } from '@/types'
+import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy } from '@/types'
 import { redistributeDiscounts } from './redistributeDiscount'
 import {
   Search, User, Trash2, Plus, Minus,
   Banknote, AlertTriangle, ChevronDown, X, UserPlus, Info,
   RotateCcw, ChevronRight, ChevronLeft, Tag,
   ShoppingBasket, Timer, RefreshCcw, HandCoins,
+  Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
 } from 'lucide-react'
+
+const SEVERITY_LABELS: Record<string, string> = {
+  mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต',
+}
+const SEVERITY_VARIANTS: Record<string, any> = {
+  mild: 'secondary', moderate: 'warning', severe: 'danger', life_threatening: 'destructive',
+}
 
 const stripCommas = (v: string) => v.replace(/,/g, '')
 const formatNumWithCommas = (raw: string, forceTwoDecimals = false): string => {
@@ -99,7 +107,11 @@ export default function POSPage() {
   const [showCustomerSearch, setShowCustomerSearch] = useState(false)
   const [customerQuery, setCustomerQuery] = useState('')
   const [customerResults, setCustomerResults] = useState<Customer[]>([])
+  const [customerHighlightIdx, setCustomerHighlightIdx] = useState(-1)
+  const customerInputRef = useRef<HTMLInputElement>(null)
+  const activeCustomerRowRef = useRef<HTMLDivElement>(null)
   const [showCustomerInfo, setShowCustomerInfo] = useState(false)
+  const [customerDetails, setCustomerDetails] = useState<(Customer & { allergies?: DrugAllergy[] }) | null>(null)
 
   // Quick add customer
   const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -137,6 +149,8 @@ export default function POSPage() {
   const [returnReason, setReturnReason] = useState('')
   const [returnSaving, setReturnSaving] = useState(false)
   const returnInputRef = useRef<HTMLInputElement>(null)
+  const returnQtyRef = useRef<HTMLInputElement>(null)
+  const returnLotRefs = useRef<(HTMLButtonElement | null)[]>([])
 
   // Adjust stock dialog (System A — multi-item, mirrors return modal)
   const [showAdjust, setShowAdjust] = useState(false)
@@ -144,12 +158,12 @@ export default function POSPage() {
   const [adjustResults, setAdjustResults] = useState<ProductWithDetails[]>([])
   const [adjustSearching, setAdjustSearching] = useState(false)
   const [adjustSelected, setAdjustSelected] = useState<ProductWithDetails | null>(null)
-  const [adjustSelectedLotId, setAdjustSelectedLotId] = useState<number | null>(null)
   const [adjustQtyInput, setAdjustQtyInput] = useState('1')
   const [adjustList, setAdjustList] = useState<AdjustLineItem[]>([])
   const [adjustReason, setAdjustReason] = useState('')
   const [adjustSaving, setAdjustSaving] = useState(false)
   const adjustInputRef = useRef<HTMLInputElement>(null)
+  const adjustQtyRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadDailyStats()
@@ -176,6 +190,17 @@ export default function POSPage() {
   }, [showCustomerSearch])
 
   useEffect(() => {
+    if (showCustomerInfo && cart.customer?.id) {
+      let cancelled = false
+      window.api.people.getCustomer(cart.customer.id).then((d: any) => {
+        if (!cancelled) setCustomerDetails(d)
+      })
+      return () => { cancelled = true }
+    }
+    if (!showCustomerInfo) setCustomerDetails(null)
+  }, [showCustomerInfo, cart.customer?.id])
+
+  useEffect(() => {
     if (showReturn) setTimeout(() => returnInputRef.current?.focus(), 50)
   }, [showReturn])
 
@@ -196,6 +221,12 @@ export default function POSPage() {
   useEffect(() => {
     activeRowRef.current?.scrollIntoView({ block: 'nearest' })
   }, [highlightIdx])
+
+  useEffect(() => { setCustomerHighlightIdx(-1) }, [customerQuery])
+
+  useEffect(() => {
+    if (customerHighlightIdx >= 0) activeCustomerRowRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [customerHighlightIdx])
 
   // Global ESC handler for all modals (closes the top-most one)
   useEffect(() => {
@@ -332,14 +363,13 @@ export default function POSPage() {
   const closeAdjust = () => {
     setShowAdjust(false)
     setAdjustQuery(''); setAdjustResults([]); setAdjustSelected(null)
-    setAdjustSelectedLotId(null); setAdjustQtyInput('1')
+    setAdjustQtyInput('1')
     setAdjustList([]); setAdjustReason('')
   }
 
   const handleAdjustSearch = useCallback(async (q: string) => {
     setAdjustQuery(q)
     setAdjustSelected(null)
-    setAdjustSelectedLotId(null)
     if (!q.trim()) { setAdjustResults([]); return }
     setAdjustSearching(true)
     try {
@@ -355,49 +385,67 @@ export default function POSPage() {
     setAdjustQuery(product.trade_name)
     setAdjustResults([])
     setAdjustQtyInput('1')
-    // Default to FEFO lot (already first in lots array from pos:searchProducts)
-    setAdjustSelectedLotId(product.lots?.[0]?.id ?? null)
-    setTimeout(() => adjustInputRef.current?.blur(), 0)
+    setTimeout(() => {
+      adjustQtyRef.current?.focus()
+      adjustQtyRef.current?.select()
+    }, 50)
   }
 
+  // Quick adjust: FEFO across lots. If user wants per-lot edit, use EditProduct → Lots.
   const handleAddAdjustItem = () => {
-    if (!adjustSelected || !adjustSelectedLotId) return
+    if (!adjustSelected) return
     const qty = parseFloat(adjustQtyInput)
     if (!qty || qty <= 0) { toast('กรุณาระบุจำนวน', 'error'); return }
-    const lot = adjustSelected.lots?.find(l => l.id === adjustSelectedLotId)
-    if (!lot) { toast('ไม่พบล็อต', 'error'); return }
 
-    const existingIdx = adjustList.findIndex(i => i.product_id === adjustSelected.id && i.lot_id === adjustSelectedLotId)
-    const alreadyQueued = existingIdx >= 0 ? adjustList[existingIdx].qty : 0
-    if (qty + alreadyQueued > lot.qty_on_hand) {
-      toast(`จำนวนรวม (${qty + alreadyQueued}) เกินคงเหลือในล็อต (${lot.qty_on_hand})`, 'error')
+    const lots = (adjustSelected.lots ?? []).slice().sort((a, b) => {
+      const ad = a.expiry_date ?? '9999-12-31'
+      const bd = b.expiry_date ?? '9999-12-31'
+      return ad.localeCompare(bd)
+    })
+    if (lots.length === 0) { toast('ไม่พบล็อตที่มีสต็อก', 'error'); return }
+
+    let remaining = qty
+    const merged = [...adjustList]
+    for (const lot of lots) {
+      if (remaining <= 0) break
+      const queued = merged
+        .filter(i => i.product_id === adjustSelected.id && i.lot_id === lot.id)
+        .reduce((s, i) => s + i.qty, 0)
+      const available = lot.qty_on_hand - queued
+      if (available <= 0) continue
+      const take = Math.min(remaining, available)
+      const idx = merged.findIndex(i => i.product_id === adjustSelected.id && i.lot_id === lot.id)
+      if (idx >= 0) {
+        const newQty = merged[idx].qty + take
+        merged[idx] = { ...merged[idx], qty: newQty, line_total: newQty * lot.cost_price }
+      } else {
+        merged.push({
+          product_id: adjustSelected.id,
+          lot_id: lot.id,
+          product_name: adjustSelected.trade_name,
+          unit_name: adjustSelected.unit_name ?? 'ชิ้น',
+          lot_number: lot.lot_number || '',
+          expiry_date: lot.expiry_date ?? null,
+          qty: take,
+          cost_price: lot.cost_price,
+          line_total: take * lot.cost_price,
+        })
+      }
+      remaining -= take
+    }
+
+    if (remaining > 0) {
+      const totalAvail = lots.reduce((s, l) => s + l.qty_on_hand, 0)
+      toast(`จำนวนเกินสต็อกคงเหลือ (มีทั้งหมด ${totalAvail} ${adjustSelected.unit_name ?? ''})`, 'error')
       return
     }
 
-    if (existingIdx >= 0) {
-      const merged = adjustList[existingIdx].qty + qty
-      setAdjustList(list => list.map((it, i) => i === existingIdx
-        ? { ...it, qty: merged, line_total: merged * lot.cost_price }
-        : it))
-    } else {
-      setAdjustList(list => [...list, {
-        product_id: adjustSelected.id,
-        lot_id: adjustSelectedLotId,
-        product_name: adjustSelected.trade_name,
-        unit_name: adjustSelected.unit_name ?? 'ชิ้น',
-        lot_number: lot.lot_number || '',
-        expiry_date: lot.expiry_date ?? null,
-        qty,
-        cost_price: lot.cost_price,
-        line_total: qty * lot.cost_price,
-      }])
-    }
+    setAdjustList(merged)
 
     // Reset for next item — back to search
     setAdjustSelected(null)
     setAdjustQuery('')
     setAdjustResults([])
-    setAdjustSelectedLotId(null)
     setAdjustQtyInput('1')
     setTimeout(() => adjustInputRef.current?.focus(), 50)
   }
@@ -443,7 +491,12 @@ export default function POSPage() {
     setReturnQtyInput('1')
     const lots = await (window.api.products as any).getLots(product.id) as ProductLot[]
     setReturnProductLots(lots)
-    if (lots.length === 1) setReturnSelectedLotId(lots[0].id)
+    if (lots.length > 0) setReturnSelectedLotId(lots[0].id)
+    returnLotRefs.current = []
+    setTimeout(() => {
+      returnInputRef.current?.blur()
+      returnLotRefs.current[0]?.focus()
+    }, 50)
   }
 
   const handleAddReturnItem = () => {
@@ -638,22 +691,23 @@ export default function POSPage() {
               <Button variant="ghost"
                 onClick={() => setShowCustomerSearch(true)}
                 className="relative flex items-center gap-2 flex-1 min-h-0 p-1 rounded-xl hover:bg-transparent text-left">
-                <span className="grid place-items-center w-10 h-10 rounded-full shrink-0 bg-warm text-warm-foreground">
+                <span className="relative grid place-items-center w-10 h-10 rounded-full shrink-0 bg-warm text-warm-foreground">
                   <User className="size-6" />
+                  {cart.customer?.is_alert && cart.customer.alert_note ? (
+                    <span
+                      title={cart.customer.alert_note}
+                      className="absolute -top-1 -right-1 grid place-items-center size-4 rounded-full bg-destructive text-destructive-foreground ring-2 ring-card">
+                      <AlertTriangle className="size-2.5" />
+                    </span>
+                  ) : null}
                 </span>
                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                  <span className="text-sm font-bold leading-tight truncate flex items-center gap-1.5">
+                  <span className="text-sm font-bold leading-tight truncate">
                     {cart.customer ? cart.customer.full_name : 'ลูกค้าทั่วไป'}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate">
+                  <span className="text-sm text-muted-foreground truncate">
                     {cart.customer?.phone || 'แตะเพื่อเลือกลูกค้า'}
                   </span>
-                  {cart.customer?.is_alert && cart.customer.alert_note ? (
-                    <Badge variant="destructive" className="text-xs rounded-md max-w-full">
-                      <AlertTriangle className="size-3 shrink-0" />
-                      <span className="truncate">{cart.customer.alert_note}</span>
-                    </Badge>
-                  ) : null}
                 </div>
               </Button>
               <div className="grid grid-cols-2 gap-1.5 shrink-0">
@@ -719,7 +773,7 @@ export default function POSPage() {
                   <col style={{ width: '10%' }} />
                   <col style={{ width: '12%' }} />
                   <col style={{ width: '10%' }} />
-                  <col style={{ width: '13%' }} />
+                  <col style={{ width: '12%' }} />
                   <col style={{ width: 60 }} />
                 </colgroup>
                 <TableHeader className="sticky top-0 z-10 bg-muted">
@@ -730,7 +784,7 @@ export default function POSPage() {
                     <TableHead className="text-center text-sm  text-foreground-subtle">จำนวน</TableHead>
                     <TableHead className="text-center text-sm  text-foreground-subtle">ราคา</TableHead>
                     <TableHead className="text-center text-sm  text-foreground-subtle">ส่วนลด</TableHead>
-                    <TableHead className="text-center text-sm  text-foreground-subtle">รวม</TableHead>
+                    <TableHead className="text-right text-sm  text-foreground-subtle">รวม</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
@@ -792,7 +846,7 @@ export default function POSPage() {
                         )}
                       </TableCell>
 
-                      <TableCell className="text-right pr-4 font-semibold text-primary text-md tabular-nums truncate">
+                      <TableCell className="text-right pr-2 font-semibold text-primary text-md tabular-nums truncate">
                         {formatCurrency(item.line_total)}
                       </TableCell>
 
@@ -866,7 +920,7 @@ export default function POSPage() {
             </Button>
             <Button variant="outline" onClick={() => setShowAdjust(true)}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card hover:bg-warning-soft hover:text-warning-strong text-xl font-medium text-foreground">
-              <Minus className="size-6 text-foreground-subtle" /> ตัดสต็อก
+              <PackageMinus className="size-6 text-foreground-subtle" /> ตัดสต็อก
             </Button>
             <Button variant="outline" onClick={() => setShowReturn(true)}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium">
@@ -993,49 +1047,129 @@ export default function POSPage() {
       </Dialog>
 
       {/* ── CUSTOMER SEARCH DIALOG ── */}
-      <Dialog open={showCustomerSearch} onOpenChange={(v) => { if (!v) { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) } }}>
+      <Dialog open={showCustomerSearch} onOpenChange={(v) => { if (!v) closeCustomerSearch() }}>
         <DialogContent
-          showCloseButton={true}
-          onClose={() => { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}
+          showCloseButton={false}
+          onClose={closeCustomerSearch}
           className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
-          style={{ width: '480px', maxWidth: 'calc(100vw - 2rem)', height: '510px', maxHeight: 'calc(100vh - 4rem)' }}
+          style={{ width: '560px', maxWidth: 'calc(100vw - 2rem)', height: '620px', maxHeight: 'calc(100vh - 4rem)' }}
         >
-          <DialogHeader className="text-2xl mt-2 px-5 pt-3 pb-0 shrink-0"><DialogTitle>เลือกลูกค้า</DialogTitle></DialogHeader>
-          <div className="px-5 pt-4 pb-2 space-y-3 shrink-0">
-            <div className="relative w-full px-0.5">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-              <Input className="w-full h-10 pl-4 pr-10 py-3" autoFocus placeholder="ชื่อ, เบอร์โทร, รหัส..."
-                value={customerQuery}
-                onChange={e => handleSearchCustomer(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && customerResults[0]) { cart.setCustomer(customerResults[0]); closeCustomerSearch() } }}
-              />
-            </div>
-            <Button variant="secondary" onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
-              className="w-full h-14 justify-start px-4 py-3 rounded-xl text-foreground font-medium text-left transition-colors hover:bg-muted">
-              <User className="size-10 p-1 bg-tertiary rounded-xl text-tertiary-foreground shrink-0" /> <span className="pl-2 text-sm" >ลูกค้าทั่วไป</span>
-              <Badge variant="warm" className="ml-auto text-xs rounded-md">ค่าเริ่มต้น</Badge>
-            </Button>
+          <DialogTitle className="sr-only">เลือกลูกค้า</DialogTitle>
+
+          {/* Search input row */}
+          <div className="flex items-center gap-2 px-4 py-3 shrink-0">
+            <Search className="size-5 text-primary shrink-0" />
+            <Input
+              ref={customerInputRef}
+              value={customerQuery}
+              autoFocus
+              onChange={e => handleSearchCustomer(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'ArrowDown') { e.preventDefault(); setCustomerHighlightIdx(i => Math.min(i + 1, customerResults.length - 1)) }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); setCustomerHighlightIdx(i => Math.max(i - 1, -1)) }
+                else if (e.key === 'Enter') {
+                  e.preventDefault()
+                  const idx = customerHighlightIdx < 0 ? 0 : customerHighlightIdx
+                  const sel = customerResults[idx]
+                  if (sel) { cart.setCustomer(sel); closeCustomerSearch() }
+                }
+              }}
+              placeholder="ค้นหา ชื่อ, เบอร์โทร, รหัส..."
+              className="flex-1 text-lg outline-none bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 h-auto px-0"
+              autoComplete="off"
+            />
+            {customerQuery && (
+              <Button variant="outline" size="icon-xs" onClick={() => { setCustomerQuery(''); setCustomerResults([]); customerInputRef.current?.focus() }}
+                className="rounded-full text-foreground-subtle"><X className="size-3" strokeWidth={3} /></Button>
+            )}
+            <Button variant="outline" size="sm" onClick={closeCustomerSearch} className="h-7">Esc</Button>
           </div>
-          <div className="flex-1 overflow-y-auto scrollbar-thin px-5 pb-2">
-            <div className="space-y-1">
-              {customerResults.map(c => (
-                <Button key={c.id} variant="secondary" onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
-                  className="w-full px-4 py-7 h-12 justify-start flex items-center rounded-xl hover:bg-muted text-left transition-colors">
-                  <User className="size-10 p-1 bg-primary rounded-xl text-primary-foreground shrink-0" />
-                  <div>
-                    <div className="pl-2 font-medium text-sm text-foreground flex items-center gap-1">
-                      {c.is_alert > 0}{c.full_name}
+
+          {/* Walk-in shortcut */}
+          <div className="px-4 pb-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
+              className="group w-full flex items-center gap-3 rounded-card bg-tertiary/15 hover:bg-tertiary/25 ring-1 ring-tertiary/40 px-3 py-2.5 text-left transition-colors">
+              <span className="grid place-items-center size-11 rounded-xl bg-tertiary text-tertiary-foreground shrink-0">
+                <Users className="size-6" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-base font-semibold text-foreground">ลูกค้าทั่วไป</div>
+                <div className="text-sm text-muted-foreground">ขายโดยไม่ระบุลูกค้า</div>
+              </div>
+              <Badge variant="warm" className="rounded-md shrink-0">ค่าเริ่มต้น</Badge>
+              <ChevronRight className="size-4 text-muted-foreground shrink-0 group-hover:text-foreground transition-colors" />
+            </button>
+          </div>
+
+          {/* Section label */}
+          <div className="px-5 pb-1.5 text-sm font-semibold text-muted-foreground shrink-0">
+            {customerQuery ? `ผลการค้นหา (${customerResults.length})` : 'ลูกค้าทั้งหมด'}
+          </div>
+
+          {/* Results — scrolls internally */}
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-2" tabIndex={-1}>
+            {!customerQuery && customerResults.length === 0 ? (
+              <div className="py-12 text-center text-foreground-subtle">
+                <Search className="size-10 mx-auto mb-2 opacity-40" />
+                <p className="text-base">พิมพ์เพื่อค้นหาลูกค้า</p>
+              </div>
+            ) : customerQuery && customerResults.length === 0 ? (
+              <div className="py-12 text-center text-foreground-subtle">
+                <UserPlus className="size-10 mx-auto mb-2 opacity-40" />
+                <p className="text-base">ไม่พบลูกค้า "{customerQuery}"</p>
+                <p className="text-sm mt-1">ลองเพิ่มลูกค้าใหม่จากปุ่ม "เพิ่มลูกค้า"</p>
+              </div>
+            ) : (
+              <div className="space-y-1 pb-2">
+                {customerResults.map((c, i) => {
+                  const active = i === customerHighlightIdx
+                  const hasAlert = !!(c.is_alert && c.alert_note)
+                  return (
+                    <div
+                      key={c.id}
+                      ref={active ? activeCustomerRowRef : undefined}
+                      onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
+                      className={`group flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft/60'}`}
+                    >
+                      <span className={`relative grid place-items-center size-11 rounded-xl shrink-0 ${hasAlert ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'}`}>
+                        <User className="size-6" />
+                        {hasAlert ? (
+                          <span className="absolute -top-1 -right-1 grid place-items-center size-4 rounded-full bg-destructive text-destructive-foreground ring-2 ring-card">
+                            <AlertTriangle className="size-2.5" />
+                          </span>
+                        ) : null}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base font-semibold text-foreground truncate">{c.full_name}</span>
+                          {hasAlert ? (
+                            <Badge variant="destructive" className="gap-1 shrink-0">
+                              <AlertTriangle className="size-3" /> แจ้งเตือน
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="font-mono">{c.code}</span>
+                          {c.phone ? <><span className="text-foreground-subtle">·</span><Phone className="size-3 shrink-0" /><span className="truncate">{c.phone}</span></> : null}
+                        </div>
+                      </div>
+                      <ChevronRight className={`size-4 shrink-0 transition-colors ${active ? 'text-primary' : 'text-foreground-subtle group-hover:text-foreground'}`} />
                     </div>
-                    <div className="pl-2 text-xs text-secondary-foreground/60">{c.code}{c.phone ? ` · ${c.phone}` : ''}</div>
-                  </div>
-                </Button>
-              ))}
-              {customerQuery && customerResults.length === 0 && <div className="text-base text-center text-muted-foreground py-4">ไม่พบลูกค้า</div>}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
-          <DialogFooter className="px-5 pb-5 pt-2 shrink-0">
-            <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]) }}>ปิด</Button>
-          </DialogFooter>
+
+          {/* Footer hint */}
+          <div className="flex items-center justify-between gap-3 px-4 py-2 bg-muted text-sm text-muted-foreground shrink-0">
+            <span>
+              <kbd className="font-mono">↑↓</kbd> เลื่อน · <kbd className="font-mono">Enter</kbd> เลือก · <kbd className="font-mono">Esc</kbd> ปิด
+            </span>
+            <span>พบ {customerResults.length} รายการ</span>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1043,44 +1177,106 @@ export default function POSPage() {
       <Dialog open={showCustomerInfo} onOpenChange={setShowCustomerInfo}>
         <DialogContent size="md" onClose={() => setShowCustomerInfo(false)}>
           <DialogHeader><DialogTitle>ข้อมูลลูกค้า</DialogTitle></DialogHeader>
-          <DialogBody>
-            <div className="space-y-3 max-h-[70vh] overflow-y-auto scrollbar-thin">
-              {cart.customer && (
+          <DialogBody className="space-y-4 max-h-[70vh] overflow-y-auto scrollbar-thin">
+            {(() => {
+              const c = customerDetails ?? cart.customer
+              if (!c) return null
+              const hasAlert = !!(c.is_alert && c.alert_note)
+              const allergies = customerDetails?.allergies ?? []
+              const dobText = c.dob ? dayjs(c.dob).format('DD/MM/YYYY') : ''
+              return (
                 <>
-                  <Card size="sm">
-                    <CardHeader>
-                      <CardTitle className="text-xl font-bold text-foreground flex items-center gap-1.5">
-                        {cart.customer.full_name}
-                      </CardTitle>
-                      <CardDescription className="flex gap-3 text-sm">
-                        <span><span className="text-foreground-subtle">รหัส:</span> <span className="text-muted-foreground font-mono">{cart.customer.code || '-'}</span></span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-base">
-                      <span className="text-foreground-subtle">เบอร์โทร</span>
-                      <span className="text-foreground">{cart.customer.phone || '-'}</span>
-                      <span className="text-foreground-subtle">ที่อยู่</span>
-                      <span className="text-foreground whitespace-pre-line">{cart.customer.address || '-'}</span>
-                    </CardContent>
-                  </Card>
-                  {cart.customer.chronic_diseases ? (
-                    <div>
-                      <div className="text-sm text-foreground-subtle">โรคประจำตัว</div>
-                      <div className="text-foreground whitespace-pre-line">{cart.customer.chronic_diseases}</div>
+                  {/* Hero */}
+                  <div className={`flex items-center gap-4 rounded-card p-4 ${hasAlert ? 'bg-destructive-soft' : 'bg-primary-soft/50'}`}>
+                    <span className={`grid place-items-center size-16 rounded-full shrink-0 ${hasAlert ? 'bg-destructive text-destructive-foreground' : 'bg-warm text-warm-foreground'}`}>
+                      <User className="size-9" />
+                    </span>
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="text-xl font-bold leading-tight truncate">{c.full_name}</div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant="secondary" className="font-mono">{c.code || '-'}</Badge>
+                        {hasAlert ? (
+                          <Badge variant="destructive" className="gap-1">
+                            <AlertTriangle className="size-3" /> มีการแจ้งเตือน
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Alert banner */}
+                  {hasAlert ? (
+                    <div className="flex items-start gap-3 rounded-card border border-destructive/30 bg-destructive-soft px-4 py-3">
+                      <AlertTriangle className="size-5 shrink-0 mt-0.5 text-destructive" />
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="text-sm font-semibold text-destructive">หมายเหตุแจ้งเตือน</div>
+                        <div className="text-base text-foreground whitespace-pre-line break-words">{c.alert_note}</div>
+                      </div>
                     </div>
                   ) : null}
-                  {cart.customer.alert_note ? (
-                    <div>
-                      <div className="text-sm text-foreground-subtle">หมายเหตุ / ประวัติแพ้ยา</div>
-                      <div className="text-destructive whitespace-pre-line bg-destructive-soft rounded-lg px-3 py-2 text-base">{cart.customer.alert_note}</div>
+
+                  {/* Contact */}
+                  <SectionCard icon={Contact} title="ข้อมูลติดต่อ" tint="info-soft">
+                    <div className="space-y-2.5">
+                      {[
+                        { Icon: Phone, label: 'เบอร์โทร', value: c.phone || '-', mono: false },
+                        { Icon: CreditCard, label: 'เลขบัตรประชาชน', value: c.id_card || '-', mono: true },
+                        { Icon: Cake, label: 'วันเกิด', value: dobText || '-', mono: false },
+                        { Icon: MapPin, label: 'ที่อยู่', value: c.address || '-', mono: false, wrap: true },
+                      ].map(({ Icon, label, value, mono, wrap }) => (
+                        <div key={label} className="flex items-start gap-3">
+                          <span className="grid place-items-center size-9 rounded-lg bg-muted text-muted-foreground shrink-0">
+                            <Icon className="size-4" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm text-muted-foreground">{label}</div>
+                            <div className={`text-base text-foreground ${mono ? 'font-mono' : ''} ${wrap ? 'whitespace-pre-line break-words' : 'truncate'}`}>
+                              {value}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  </SectionCard>
+
+                  {/* Medical */}
+                  {(c.chronic_diseases || allergies.length > 0) ? (
+                    <SectionCard icon={HeartPulse} title="ข้อมูลทางการแพทย์" tint="warm">
+                      {c.chronic_diseases ? (
+                        <div className="space-y-1">
+                          <div className="text-sm font-semibold text-muted-foreground">โรคประจำตัว</div>
+                          <div className="text-base text-foreground whitespace-pre-line break-words">{c.chronic_diseases}</div>
+                        </div>
+                      ) : null}
+                      {allergies.length > 0 ? (
+                        <div className="space-y-2">
+                          <div className="text-sm font-semibold text-muted-foreground">ประวัติแพ้ยา ({allergies.length})</div>
+                          <div className="space-y-1.5">
+                            {allergies.map(a => (
+                              <div key={a.id} className="flex items-start gap-2.5 rounded-lg bg-muted px-3 py-2">
+                                <Pill className="size-4 mt-1 shrink-0 text-muted-foreground" />
+                                <div className="min-w-0 flex-1 space-y-0.5">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-base font-medium text-foreground">{a.generic_name ?? a.drug_name_free ?? '—'}</span>
+                                    <Badge variant={SEVERITY_VARIANTS[a.severity ?? 'moderate'] ?? 'secondary'}>
+                                      {SEVERITY_LABELS[a.severity ?? 'moderate']}
+                                    </Badge>
+                                  </div>
+                                  {a.reaction ? <div className="text-sm text-muted-foreground">อาการ: {a.reaction}</div> : null}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </SectionCard>
                   ) : null}
                 </>
-              )}
-            </div>
+              )
+            })()}
           </DialogBody>
           <DialogFooter>
-            <Button autoFocus variant="secondary" className="w-32 h-10 text-base" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
+            <Button autoFocus variant="destructive2" size="xl" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1356,22 +1552,25 @@ export default function POSPage() {
 
       {/* ── ADJUST STOCK DIALOG (System A — multi-item) ── */}
       <Dialog open={showAdjust} onOpenChange={(v) => { if (!v) closeAdjust() }}>
-        <DialogContent size="2xl" onClose={closeAdjust}>
+        <DialogContent size="4xl" onClose={closeAdjust}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-warning-strong">
-              <Minus className="size-4" /> ตัดสต็อก
+            <DialogTitle className="flex items-center gap-2.5">
+              <span className="grid place-items-center size-9 rounded-lg bg-warning-soft text-warning-strong">
+                <PackageMinus className="size-5" />
+              </span>
+              ตัดสต็อก
             </DialogTitle>
           </DialogHeader>
 
-          <DialogBody className="flex gap-0 p-0 overflow-hidden rounded-xl" style={{ height: '460px' }}>
+          <DialogBody className="flex gap-0 p-0 overflow-hidden rounded-xl" style={{ height: '520px' }}>
             {/* Left column — search + product results / lot picker */}
-            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+            <div className="flex flex-col basis-1/2 min-w-0 overflow-hidden">
               <div className="p-3 shrink-0">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     ref={adjustInputRef}
-                    placeholder="สแกนหรือค้นหาชื่อ/บาร์โค้ด..."
+                    placeholder="สแกนหรือค้นหาชื่อ / บาร์โค้ด / รหัสสินค้า..."
                     value={adjustQuery}
                     onChange={e => handleAdjustSearch(e.target.value)}
                     className="h-10 pl-9"
@@ -1380,157 +1579,169 @@ export default function POSPage() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto scrollbar-thin">
-                {!adjustSelected ? (
-                  adjustSearching ? (
-                    <div className="py-10 text-center text-muted-foreground text-base">กำลังค้นหา...</div>
+              {!adjustSelected ? (
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+                  {adjustSearching ? (
+                    <div className="py-10 text-center text-muted-foreground text-sm">กำลังค้นหา...</div>
                   ) : adjustQuery && adjustResults.length === 0 ? (
-                    <div className="py-10 text-center text-muted-foreground text-base">ไม่พบสินค้า "{adjustQuery}"</div>
+                    <div className="py-10 text-center text-muted-foreground text-sm">ไม่พบสินค้า "{adjustQuery}"</div>
                   ) : !adjustQuery ? (
-                    <div className="h-full flex flex-col items-center justify-center text-foreground-subtle gap-2">
-                      <Search className="h-8 w-8 opacity-30" />
-                      <p className="text-base">พิมพ์ชื่อ, บาร์โค้ด หรือรหัสสินค้า</p>
+                    <div className="h-full flex flex-col items-center justify-center text-foreground-subtle gap-2 px-6 text-center">
+                      <Search className="size-10 opacity-30" />
+                      <p className="text-sm">พิมพ์ชื่อ, บาร์โค้ด หรือรหัสสินค้า</p>
                     </div>
                   ) : (
-                    adjustResults.map(p => (
-                      <div key={p.id} onClick={() => handleAdjustSelectProduct(p)}
-                        className="px-4 py-2.5 cursor-pointer last:border-0 hover:bg-surface-hover flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="font-semibold text-base truncate">{p.trade_name}</div>
-                          <div className="text-sm text-muted-foreground">{p.unit_name} · {p.barcode || p.code || '—'}</div>
+                    <div className="px-2 pb-2 space-y-1">
+                      {adjustResults.map(p => (
+                        <div key={p.id} onClick={() => handleAdjustSelectProduct(p)}
+                          className="group flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer transition-colors hover:bg-primary-soft/60">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-sm truncate">{p.trade_name}</div>
+                            <div className="text-sm text-muted-foreground truncate">{p.unit_name} · {p.barcode || p.code || '—'}</div>
+                          </div>
+                          <ChevronRight className="size-4 text-foreground-subtle group-hover:text-foreground shrink-0 transition-colors" />
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                      </div>
-                    ))
-                  )
-                ) : (
-                  <div className="p-3 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="font-semibold text-base">{adjustSelected.trade_name}</div>
-                        <div className="text-sm text-muted-foreground">{adjustSelected.unit_name}</div>
-                      </div>
-                      <button
-                        onClick={() => { setAdjustSelected(null); setAdjustQuery(''); setAdjustSelectedLotId(null); setTimeout(() => adjustInputRef.current?.focus(), 50) }}
-                        className="text-sm text-primary flex items-center gap-0.5 shrink-0 hover:underline mt-0.5"
-                      >
-                        <ChevronLeft className="h-3 w-3" /> เปลี่ยน
-                      </button>
+                      ))}
                     </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex-1 min-h-0 flex flex-col px-3 pb-3 gap-2.5 overflow-hidden">
+                  {/* Selected product hero */}
+                  <div className="flex items-center gap-2.5 rounded-lg bg-primary-soft px-2.5 py-1.5 shrink-0">
+                    <span className="grid place-items-center size-9 rounded-lg bg-primary text-primary-foreground shrink-0">
+                      <PackageMinus className="size-5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm text-foreground truncate leading-tight">{adjustSelected.trade_name}</div>
+                      <div className="text-sm text-muted-foreground truncate leading-tight">หน่วย: {adjustSelected.unit_name ?? '—'}</div>
+                    </div>
+                    <Button variant="secondary" size="sm"
+                      onClick={() => { setAdjustSelected(null); setAdjustQuery(''); setTimeout(() => adjustInputRef.current?.focus(), 50) }}
+                      className="h-7 gap-1 shrink-0">
+                      <ChevronLeft className="size-3.5" /> เปลี่ยน
+                    </Button>
+                  </div>
 
-                    <div>
-                      <div className="text-sm font-semibold text-foreground-subtle mb-1.5">เลือก Lot (ค่าเริ่มต้น = FEFO)</div>
-                      {(adjustSelected.lots?.length ?? 0) === 0 ? (
-                        <div className="text-base text-muted-foreground py-1">ไม่พบ Lot ที่มีสต็อก</div>
-                      ) : (
-                        <div className="space-y-1.5 max-h-48 overflow-y-auto scrollbar-thin">
-                          {adjustSelected.lots.map(lot => (
-                            <button key={lot.id} onClick={() => setAdjustSelectedLotId(lot.id)}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-base transition-colors ${adjustSelectedLotId === lot.id ? 'bg-primary-soft text-primary' : 'bg-background hover:bg-muted'}`}>
-                              <div className="flex justify-between items-center">
-                                <span className="font-mono font-medium">{lot.lot_number || '—'}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold tabular-nums">{formatCurrency(lot.cost_price)}</span>
-                                  <Badge variant="outline" className="text-sm px-1.5">คงเหลือ {lot.qty_on_hand}</Badge>
-                                </div>
-                              </div>
-                              <div className="text-sm text-muted-foreground mt-0.5">
-                                หมดอายุ: {lot.expiry_date ? dayjs(lot.expiry_date).format('DD/MM/YYYY') : '—'}
-                                {lot.supplier_name ? ` · ${lot.supplier_name}` : ''}
-                              </div>
-                            </button>
-                          ))}
+                  {/* FEFO info — tells user the lot picking is automated */}
+                  {(() => {
+                    const totalStock = (adjustSelected.lots ?? []).reduce((s, l) => s + l.qty_on_hand, 0)
+                    const noStock = totalStock <= 0
+                    return (
+                      <div className={`shrink-0 rounded-lg px-3 py-2.5 ${noStock ? 'bg-destructive-soft' : 'bg-info-soft/50'}`}>
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                            <Info className="size-4 text-info-soft-foreground" />
+                            ตัดอัตโนมัติแบบ FEFO
+                          </div>
+                          <Badge variant={noStock ? 'destructive' : 'secondary'}>คงเหลือ {totalStock} {adjustSelected.unit_name ?? ''}</Badge>
                         </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-foreground-subtle block">จำนวนที่ตัด ({adjustSelected.unit_name})</Label>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon"
-                          onClick={() => setAdjustQtyInput(v => String(Math.max(1, (parseFloat(v) || 1) - 1)))}
-                          className="h-12 w-12 shrink-0 rounded-xl">
-                          <Minus className="size-5" />
-                        </Button>
-                        <Input
-                          type="number"
-                          value={adjustQtyInput}
-                          onChange={e => setAdjustQtyInput(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') handleAddAdjustItem() }}
-                          className="h-12 text-center text-3xl font-bold tabular-nums"
-                          min="1" step="1"
-                        />
-                        <Button variant="outline" size="icon"
-                          onClick={() => setAdjustQtyInput(v => String((parseFloat(v) || 0) + 1))}
-                          className="h-12 w-12 shrink-0 rounded-xl">
-                          <Plus className="size-5" />
-                        </Button>
+                        <div className="text-sm text-muted-foreground space-y-0.5">
+                          <div>ระบบจะตัดจากล็อตที่ใกล้หมดอายุก่อน</div>
+                          <div>หากต้องการเลือกล็อต ให้ใช้ <span className="text-foreground font-medium">แก้ไขสินค้า → ล็อต</span></div>
+                        </div>
                       </div>
-                      <Button
-                        onClick={handleAddAdjustItem}
-                        disabled={!adjustSelectedLotId || !adjustQtyInput || parseFloat(adjustQtyInput) <= 0}
-                        className="w-full h-10 gap-1.5"
-                      >
-                        <Plus className="size-4" /> เพิ่มในรายการตัด
+                    )
+                  })()}
+
+                  {/* Spacer to push qty section to the bottom */}
+                  <div className="flex-1 min-h-0" />
+
+                  {/* Qty section — pinned at bottom */}
+                  <div className="space-y-2 shrink-0">
+                    <Label className="text-sm font-semibold text-foreground block">จำนวนที่ตัด ({adjustSelected.unit_name})</Label>
+                    <div className="flex items-center gap-2 rounded-xl ring-1 ring-border">
+                      <Button variant="default" size="icon"
+                        onClick={() => setAdjustQtyInput(v => String(Math.max(1, (parseFloat(v) || 1) - 1)))}
+                        className="ml-2 w-9 h-9 rounded-full bg-secondary-hover hover:bg-primary hover:text-primary-foreground text-muted-foreground shrink-0">
+                        <Minus className="size-4" />
+                      </Button>
+                      <Input
+                        ref={adjustQtyRef}
+                        type="number"
+                        value={adjustQtyInput}
+                        min={1}
+                        style={{ MozAppearance: 'textfield' }}
+                        onFocus={e => e.currentTarget.select()}
+                        onChange={e => setAdjustQtyInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleAddAdjustItem() }}
+                        placeholder="1"
+                        className="w-16 flex-1 h-12 text-center text-3xl font-bold bg-card rounded-xl border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 outline-none px-2 tabular-nums"
+                      />
+                      <Button variant="default" size="icon"
+                        onClick={() => setAdjustQtyInput(v => String((parseFloat(v) || 0) + 1))}
+                        className="mr-2 w-9 h-9 rounded-full bg-secondary-hover hover:bg-primary hover:text-primary-foreground text-muted-foreground shrink-0">
+                        <Plus className="size-4" />
                       </Button>
                     </div>
+                    <Button
+                      variant="info-soft"
+                      onClick={handleAddAdjustItem}
+                      disabled={!adjustQtyInput || parseFloat(adjustQtyInput) <= 0 || (adjustSelected.lots?.length ?? 0) === 0}
+                      className="w-full h-10 gap-1.5"
+                    >
+                      <Plus className="size-4" /> เพิ่มในรายการตัด
+                    </Button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Right column — adjust list + total + reason */}
-            <div className="flex flex-col w-72 shrink-0 overflow-hidden">
-              <div className="px-3 py-2.5 shrink-0 flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground-subtle">รายการที่จะตัด</span>
+            <div className="flex flex-col basis-1/2 shrink-0 overflow-hidden bg-muted/40 border-l border-border">
+              <div className="px-3 py-2.5 shrink-0 flex items-center justify-between bg-card border-b border-border">
+                <span className="text-sm font-semibold text-foreground">รายการที่จะตัด</span>
                 {adjustList.length > 0 && (
-                  <Badge variant="outline" className="bg-warning-soft text-warning-strong text-sm">{adjustList.length} รายการ</Badge>
+                  <Badge variant="warning">{adjustList.length} รายการ</Badge>
                 )}
               </div>
 
               <div className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-1.5">
                 {adjustList.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
-                    <Minus className="h-7 w-7 opacity-25" />
-                    <p className="text-base">ยังไม่มีรายการ</p>
+                  <div className="h-full flex flex-col items-center justify-center text-foreground-subtle gap-2 px-6 text-center">
+                    <PackageMinus className="size-10 opacity-30" />
+                    <p className="text-sm">ยังไม่มีรายการที่จะตัด</p>
                   </div>
                 ) : adjustList.map((item, idx) => (
-                  <div key={idx} className="bg-background rounded-lg px-2.5 py-2 flex items-center gap-1.5">
+                  <div key={idx} className="bg-card rounded-lg px-3 py-2 flex items-center gap-2 shadow-card">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate">{item.product_name}</div>
-                      <div className="text-sm text-muted-foreground font-mono">{item.lot_number || '—'}</div>
+                      <div className="font-semibold text-sm truncate text-foreground">{item.product_name}</div>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <span className="font-mono truncate">{item.lot_number || '—'}</span>
+                        <span className="text-foreground-subtle">·</span>
+                        <span className="tabular-nums">×{item.qty}</span>
+                      </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-sm text-muted-foreground tabular-nums">×{item.qty}</div>
-                      <div className="text-sm font-bold tabular-nums text-warning-strong">{formatCurrency(item.line_total)}</div>
-                    </div>
-                    <Button variant="ghost" size="icon"
+                    <div className="text-sm font-bold tabular-nums text-warning-strong shrink-0">{formatCurrency(item.line_total)}</div>
+                    <Button variant="ghost" size="icon-sm"
                       onClick={() => setAdjustList(list => list.filter((_, i) => i !== idx))}
-                      className="w-6 h-6 shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive/10">
-                      <Trash2 className="size-3" />
+                      className="shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive-soft">
+                      <Trash2 className="size-3.5" />
                     </Button>
                   </div>
                 ))}
               </div>
 
-              <div className="p-3 shrink-0 space-y-2">
+              <div className="p-3 shrink-0 space-y-2.5 bg-card border-t border-border">
                 {adjustList.length > 0 && (
-                  <div className="flex items-center justify-between px-2 py-2 rounded-lg bg-warning-soft">
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-warning-soft">
                     <span className="text-sm font-semibold text-warning-strong">มูลค่าทุนรวม</span>
                     <span className="text-lg font-extrabold tabular-nums text-warning-strong">
                       {formatCurrency(adjustList.reduce((s, i) => s + i.line_total, 0))}
                     </span>
                   </div>
                 )}
-                <div>
-                  <Label className="text-sm font-semibold text-foreground-subtle mb-1 block">
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold text-foreground block">
                     สาเหตุการตัด <span className="text-destructive">*</span>
                   </Label>
-                  <div className="flex flex-wrap gap-1 mb-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     {['ใช้ภายใน', 'เสียหาย/แตกหัก', 'สูญหาย'].map(reason => (
-                      <Button key={reason} variant="outline" size="sm"
+                      <Button key={reason}
+                        variant={adjustReason === reason ? 'tertiary' : 'secondary'}
+                        size="sm"
                         onClick={() => setAdjustReason(r => r === reason ? '' : reason)}
-                        className={`h-6 px-2 text-sm rounded-md ${adjustReason === reason ? 'bg-primary-soft text-primary' : ''}`}>
+                        className="h-8 rounded-full">
                         {reason}
                       </Button>
                     ))}
@@ -1539,7 +1750,7 @@ export default function POSPage() {
                     placeholder="ระบุสาเหตุ..."
                     value={adjustReason}
                     onChange={e => setAdjustReason(e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-9 text-sm"
                   />
                 </div>
               </div>
@@ -1547,13 +1758,14 @@ export default function POSPage() {
           </DialogBody>
 
           <DialogFooter>
-            <Button variant="secondary" className="w-32 h-10 text-base" onClick={closeAdjust}>ยกเลิก</Button>
+            <Button variant="destructive2" size="xl" onClick={closeAdjust}>ยกเลิก</Button>
             <Button
+              size="xl"
               onClick={handleConfirmAdjust}
               disabled={adjustList.length === 0 || !adjustReason.trim() || adjustSaving}
-              className="w-32 h-10 text-base bg-warning hover:bg-warning-hover text-white font-semibold gap-1.5"
+              className="gap-1.5"
             >
-              <Minus className="size-4" />
+              <PackageMinus className="size-5" />
               {adjustSaving ? 'กำลังบันทึก...' : `ยืนยันตัดสต็อก${adjustList.length > 0 ? ` ${adjustList.length} รายการ` : ''}`}
             </Button>
           </DialogFooter>
@@ -1562,22 +1774,25 @@ export default function POSPage() {
 
       {/* ── RETURN ITEMS DIALOG ── */}
       <Dialog open={showReturn} onOpenChange={(v) => { if (!v) closeReturn() }}>
-        <DialogContent size="2xl" onClose={closeReturn}>
+        <DialogContent size="4xl" onClose={closeReturn}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-warning-strong">
-              <RotateCcw className="size-4" /> คืนสินค้า
+            <DialogTitle className="flex items-center gap-2.5">
+              <span className="grid place-items-center size-9 rounded-lg bg-info-soft text-info-soft-foreground">
+                <RotateCcw className="size-5" />
+              </span>
+              รับคืนสินค้า
             </DialogTitle>
           </DialogHeader>
 
-          <DialogBody className="flex gap-0 p-0 overflow-hidden rounded-xl" style={{ height: '460px' }}>
+          <DialogBody className="flex gap-0 p-0 overflow-hidden rounded-xl" style={{ height: '520px' }}>
             {/* Left column — search + product results / lot picker */}
-            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+            <div className="flex flex-col basis-1/2 min-w-0 overflow-hidden">
               <div className="p-3 shrink-0">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     ref={returnInputRef}
-                    placeholder="สแกนหรือค้นหาชื่อ/บาร์โค้ด..."
+                    placeholder="สแกนหรือค้นหาชื่อ / บาร์โค้ด / รหัสสินค้า..."
                     value={returnQuery}
                     onChange={e => handleReturnSearch(e.target.value)}
                     className="h-10 pl-9"
@@ -1586,157 +1801,204 @@ export default function POSPage() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto scrollbar-thin">
-                {!returnSelectedProduct ? (
-                  returnSearching ? (
-                    <div className="py-10 text-center text-muted-foreground text-base">กำลังค้นหา...</div>
+              {!returnSelectedProduct ? (
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+                  {returnSearching ? (
+                    <div className="py-10 text-center text-muted-foreground text-sm">กำลังค้นหา...</div>
                   ) : returnQuery && returnResults.length === 0 ? (
-                    <div className="py-10 text-center text-muted-foreground text-base">ไม่พบสินค้า "{returnQuery}"</div>
+                    <div className="py-10 text-center text-muted-foreground text-sm">ไม่พบสินค้า "{returnQuery}"</div>
                   ) : !returnQuery ? (
-                    <div className="h-full flex flex-col items-center justify-center text-foreground-subtle gap-2">
-                      <Search className="h-8 w-8 opacity-30" />
-                      <p className="text-base">พิมพ์ชื่อ, บาร์โค้ด หรือรหัสสินค้า</p>
+                    <div className="h-full flex flex-col items-center justify-center text-foreground-subtle gap-2 px-6 text-center">
+                      <Search className="size-10 opacity-30" />
+                      <p className="text-sm">พิมพ์ชื่อ, บาร์โค้ด หรือรหัสสินค้า</p>
                     </div>
                   ) : (
-                    returnResults.map(p => (
-                      <div key={p.id} onClick={() => handleReturnSelectProduct(p)}
-                        className="px-4 py-2.5 cursor-pointer last:border-0 hover:bg-surface-hover flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="font-semibold text-base truncate">{p.trade_name}</div>
-                          <div className="text-sm text-muted-foreground">{p.unit_name} · {p.barcode || p.code || '—'}</div>
+                    <div className="px-2 pb-2 space-y-1">
+                      {returnResults.map(p => (
+                        <div key={p.id} onClick={() => handleReturnSelectProduct(p)}
+                          className="group flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer transition-colors hover:bg-primary-soft/60">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-sm truncate">{p.trade_name}</div>
+                            <div className="text-sm text-muted-foreground truncate">{p.unit_name} · {p.barcode || p.code || '—'}</div>
+                          </div>
+                          <ChevronRight className="size-4 text-foreground-subtle group-hover:text-foreground shrink-0 transition-colors" />
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                      </div>
-                    ))
-                  )
-                ) : (
-                  <div className="p-3 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="font-semibold text-base">{returnSelectedProduct.trade_name}</div>
-                        <div className="text-sm text-muted-foreground">{returnSelectedProduct.unit_name}</div>
-                      </div>
-                      <button
-                        onClick={() => { setReturnSelectedProduct(null); setReturnQuery(''); setReturnProductLots([]); setReturnSelectedLotId(null); setTimeout(() => returnInputRef.current?.focus(), 50) }}
-                        className="text-sm text-primary flex items-center gap-0.5 shrink-0 hover:underline mt-0.5"
-                      >
-                        <ChevronLeft className="h-3 w-3" /> เปลี่ยน
-                      </button>
+                      ))}
                     </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex-1 min-h-0 flex flex-col px-3 pb-3 gap-2.5 overflow-hidden">
+                  {/* Selected product hero */}
+                  <div className="flex items-center gap-2.5 rounded-lg bg-primary-soft px-2.5 py-1.5 shrink-0">
+                    <span className="grid place-items-center size-9 rounded-lg bg-primary text-primary-foreground shrink-0">
+                      <RotateCcw className="size-5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm text-foreground truncate leading-tight">{returnSelectedProduct.trade_name}</div>
+                      <div className="text-sm text-muted-foreground truncate leading-tight">หน่วย: {returnSelectedProduct.unit_name ?? '—'}</div>
+                    </div>
+                    <Button variant="secondary" size="sm"
+                      onClick={() => { setReturnSelectedProduct(null); setReturnQuery(''); setReturnProductLots([]); setReturnSelectedLotId(null); setTimeout(() => returnInputRef.current?.focus(), 50) }}
+                      className="h-7 gap-1 shrink-0">
+                      <ChevronLeft className="size-3.5" /> เปลี่ยน
+                    </Button>
+                  </div>
 
-                    <div>
-                      <div className="text-sm font-semibold text-foreground-subtle mb-1.5">เลือก Lot</div>
-                      {returnProductLots.length === 0 ? (
-                        <div className="text-base text-muted-foreground py-1">ไม่พบ Lot สำหรับสินค้านี้</div>
-                      ) : (
-                        <div className="space-y-1.5 max-h-48 overflow-y-auto scrollbar-thin">
-                          {returnProductLots.map(lot => (
-                            <button key={lot.id} onClick={() => setReturnSelectedLotId(lot.id)}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-base transition-colors ${returnSelectedLotId === lot.id ? 'bg-primary-soft text-primary' : 'bg-background hover:bg-muted'}`}>
-                              <div className="flex justify-between items-center">
-                                <span className="font-mono font-medium">{lot.lot_number || '—'}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold tabular-nums">{formatCurrency(lot.sell_price)}</span>
-                                  <Badge variant="outline" className="text-sm px-1.5">คงเหลือ {lot.qty_on_hand}</Badge>
-                                </div>
+                  {/* Lot picker — flexible, only this scrolls */}
+                  <div className="flex-1 min-h-0 flex flex-col">
+                    <div className="flex items-center justify-between mb-1.5 shrink-0">
+                      <div className="text-sm font-semibold text-foreground">เลือกล็อต</div>
+                      <span className="text-sm text-muted-foreground">↑↓ เลื่อน</span>
+                    </div>
+                    {returnProductLots.length === 0 ? (
+                      <div className="text-sm text-muted-foreground py-3 text-center bg-muted rounded-lg shrink-0">ไม่พบล็อตสำหรับสินค้านี้</div>
+                    ) : (
+                      <div className="flex-1 min-h-0 space-y-1.5 overflow-y-auto scrollbar-thin pr-0.5">
+                        {returnProductLots.map((lot, idx) => {
+                          const selected = returnSelectedLotId === lot.id
+                          return (
+                            <button
+                              key={lot.id}
+                              ref={el => { returnLotRefs.current[idx] = el }}
+                              onClick={() => setReturnSelectedLotId(lot.id)}
+                              onFocus={() => setReturnSelectedLotId(lot.id)}
+                              onKeyDown={e => {
+                                if (e.key === 'ArrowDown') { e.preventDefault(); returnLotRefs.current[idx + 1]?.focus() }
+                                else if (e.key === 'ArrowUp') { e.preventDefault(); returnLotRefs.current[idx - 1]?.focus() }
+                                else if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  returnQtyRef.current?.focus()
+                                  returnQtyRef.current?.select()
+                                }
+                              }}
+                              className={`w-full text-left px-3 py-1.5 rounded-lg transition-colors focus:outline-none ${selected ? 'bg-primary-soft ring-2 ring-inset ring-primary' : 'bg-muted hover:bg-primary-soft/60'}`}
+                            >
+                              <div className="flex justify-between items-center gap-2">
+                                <span className={`font-mono font-semibold text-sm truncate ${selected ? 'text-primary' : 'text-foreground'}`}>{lot.lot_number || '—'}</span>
+                                <span className="text-sm font-bold tabular-nums text-foreground shrink-0">{formatCurrency(lot.sell_price)}</span>
                               </div>
-                              <div className="text-sm text-muted-foreground mt-0.5">
-                                หมดอายุ: {lot.expiry_date ? dayjs(lot.expiry_date).format('DD/MM/YYYY') : '—'}
-                                {lot.supplier_name ? ` · ${lot.supplier_name}` : ''}
+                              <div className="flex items-center justify-between gap-2 mt-0.5">
+                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 truncate">
+                                  <ClockAlert className="size-3.5 shrink-0" />
+                                  <span className="truncate">
+                                    {lot.expiry_date ? dayjs(lot.expiry_date).format('DD/MM/YYYY') : '—'}
+                                    {lot.supplier_name ? ` · ${lot.supplier_name}` : ''}
+                                  </span>
+                                </div>
+                                <Badge variant={selected ? 'default' : 'secondary'} className="shrink-0">คงเหลือ {lot.qty_on_hand}</Badge>
                               </div>
                             </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-foreground-subtle block">จำนวนที่คืน ({returnSelectedProduct.unit_name})</Label>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon"
-                          onClick={() => setReturnQtyInput(v => String(Math.max(1, (parseFloat(v) || 1) - 1)))}
-                          className="h-12 w-12 shrink-0 rounded-xl">
-                          <Minus className="size-5" />
-                        </Button>
-                        <Input
-                          type="number"
-                          value={returnQtyInput}
-                          onChange={e => setReturnQtyInput(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') handleAddReturnItem() }}
-                          className="h-12 text-center text-3xl font-bold tabular-nums"
-                          min="1" step="1"
-                        />
-                        <Button variant="outline" size="icon"
-                          onClick={() => setReturnQtyInput(v => String((parseFloat(v) || 0) + 1))}
-                          className="h-12 w-12 shrink-0 rounded-xl">
-                          <Plus className="size-5" />
-                        </Button>
+                          )
+                        })}
                       </div>
-                      <Button
-                        onClick={handleAddReturnItem}
-                        disabled={!returnSelectedLotId || !returnQtyInput || parseFloat(returnQtyInput) <= 0}
-                        className="w-full h-10 gap-1.5"
-                      >
-                        <Plus className="size-4" /> เพิ่มในรายการคืน
+                    )}
+                  </div>
+
+                  {/* Qty section — pinned at bottom */}
+                  <div className="space-y-2 shrink-0">
+                    <Label className="text-sm font-semibold text-foreground block">จำนวนที่คืน ({returnSelectedProduct.unit_name})</Label>
+                    <div className="flex items-center gap-2 rounded-xl ring-1 ring-border">
+                      <Button variant="default" size="icon"
+                        onClick={() => setReturnQtyInput(v => String(Math.max(1, (parseFloat(v) || 1) - 1)))}
+                        className="ml-2 w-9 h-9 rounded-full bg-secondary-hover hover:bg-primary hover:text-primary-foreground text-muted-foreground shrink-0">
+                        <Minus className="size-4" />
+                      </Button>
+                      <Input
+                        ref={returnQtyRef}
+                        type="number"
+                        value={returnQtyInput}
+                        min={1}
+                        style={{ MozAppearance: 'textfield' }}
+                        onFocus={e => e.currentTarget.select()}
+                        onChange={e => setReturnQtyInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleAddReturnItem() }}
+                        placeholder="1"
+                        className="w-16 flex-1 h-12 text-center text-3xl font-bold bg-card rounded-xl border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 outline-none px-2 tabular-nums"
+                      />
+                      <Button variant="default" size="icon"
+                        onClick={() => setReturnQtyInput(v => String((parseFloat(v) || 0) + 1))}
+                        className="mr-2 w-9 h-9 rounded-full bg-secondary-hover hover:bg-primary hover:text-primary-foreground text-muted-foreground shrink-0">
+                        <Plus className="size-4" />
                       </Button>
                     </div>
+                    <Button
+                      variant="info-soft"
+                      onClick={handleAddReturnItem}
+                      disabled={!returnSelectedLotId || !returnQtyInput || parseFloat(returnQtyInput) <= 0}
+                      className="w-full h-10 gap-1.5"
+                    >
+                      <Plus className="size-4" /> เพิ่มในรายการคืน
+                    </Button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Right column — return list + total + reason */}
-            <div className="flex flex-col w-72 shrink-0 overflow-hidden">
-              <div className="px-3 py-2.5 shrink-0 flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground-subtle">รายการที่จะคืน</span>
+            <div className="flex flex-col basis-1/2 shrink-0 overflow-hidden bg-muted/40 border-l border-border">
+              <div className="px-3 py-2.5 shrink-0 flex items-center justify-between bg-card border-b border-border">
+                <span className="text-sm font-semibold text-foreground">รายการที่จะคืน</span>
                 {returnList.length > 0 && (
-                  <Badge variant="outline" className="bg-warning-soft text-warning-strong text-sm">{returnList.length} รายการ</Badge>
+                  <Badge variant="warning">{returnList.length} รายการ</Badge>
                 )}
               </div>
 
               <div className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-1.5">
                 {returnList.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
-                    <RotateCcw className="h-7 w-7 opacity-25" />
-                    <p className="text-base">ยังไม่มีรายการ</p>
+                  <div className="h-full flex flex-col items-center justify-center text-foreground-subtle gap-2 px-6 text-center">
+                    <RotateCcw className="size-10 opacity-30" />
+                    <p className="text-sm">ยังไม่มีรายการที่จะคืน</p>
                   </div>
                 ) : returnList.map((item, idx) => (
-                  <div key={idx} className="bg-background rounded-lg px-2.5 py-2 flex items-center gap-1.5">
+                  <div key={idx} className="bg-card rounded-lg px-3 py-2 flex items-center gap-2 shadow-card">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate">{item.product_name}</div>
-                      <div className="text-sm text-muted-foreground font-mono">{item.lot_number || '—'}</div>
+                      <div className="font-semibold text-sm truncate text-foreground">{item.product_name}</div>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <span className="font-mono truncate">{item.lot_number || '—'}</span>
+                        <span className="text-foreground-subtle">·</span>
+                        <span className="tabular-nums">×{item.qty}</span>
+                      </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-sm text-muted-foreground tabular-nums">×{item.qty}</div>
-                      <div className="text-sm font-bold tabular-nums text-warning-strong">{formatCurrency(item.line_total)}</div>
-                    </div>
-                    <Button variant="ghost" size="icon"
+                    <div className="text-sm font-bold tabular-nums text-warning-strong shrink-0">{formatCurrency(item.line_total)}</div>
+                    <Button variant="ghost" size="icon-sm"
                       onClick={() => setReturnList(list => list.filter((_, i) => i !== idx))}
-                      className="w-6 h-6 shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive/10">
-                      <Trash2 className="size-3" />
+                      className="shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive-soft">
+                      <Trash2 className="size-3.5" />
                     </Button>
                   </div>
                 ))}
               </div>
 
-              <div className="p-3 shrink-0 space-y-2">
+              <div className="p-3 shrink-0 space-y-2.5 bg-card border-t border-border">
                 {returnList.length > 0 && (
-                  <div className="flex items-center justify-between px-2 py-2 rounded-lg bg-warning-soft">
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-warning-soft">
                     <span className="text-sm font-semibold text-warning-strong">ยอดคืนรวม</span>
                     <span className="text-lg font-extrabold tabular-nums text-warning-strong">
                       {formatCurrency(returnList.reduce((s, i) => s + i.line_total, 0))}
                     </span>
                   </div>
                 )}
-                <div>
-                  <Label className="text-sm font-semibold text-foreground-subtle mb-1 block">
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold text-foreground block">
                     สาเหตุการคืน <span className="text-destructive">*</span>
                   </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['ลูกค้าเปลี่ยนใจ', 'สินค้าเสียหาย', 'หมดอายุ'].map(reason => (
+                      <Button key={reason}
+                        variant={returnReason === reason ? 'tertiary' : 'secondary'}
+                        size="sm"
+                        onClick={() => setReturnReason(r => r === reason ? '' : reason)}
+                        className="h-8 rounded-full">
+                        {reason}
+                      </Button>
+                    ))}
+                  </div>
                   <Input
                     placeholder="ระบุสาเหตุ..."
                     value={returnReason}
                     onChange={e => setReturnReason(e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-9 text-sm"
                   />
                 </div>
               </div>
@@ -1744,13 +2006,14 @@ export default function POSPage() {
           </DialogBody>
 
           <DialogFooter>
-            <Button variant="secondary" className="w-32 h-10 text-base" onClick={closeReturn}>ยกเลิก</Button>
+            <Button variant="destructive2" size="xl" onClick={closeReturn}>ยกเลิก</Button>
             <Button
+              size="xl"
               onClick={handleConfirmReturn}
               disabled={returnList.length === 0 || !returnReason.trim() || returnSaving}
-              className="w-32 h-10 text-base bg-warning hover:bg-warning-hover text-white font-semibold gap-1.5"
+              className="gap-1.5"
             >
-              <RotateCcw className="size-4" />
+              <RotateCcw className="size-5" />
               {returnSaving ? 'กำลังบันทึก...' : `ยืนยันคืน${returnList.length > 0 ? ` ${returnList.length} รายการ` : ''}`}
             </Button>
           </DialogFooter>
@@ -1807,13 +2070,13 @@ export default function POSPage() {
                     return (
                       <Button key={u.id} variant="warm"
                         onClick={() => changeCartUnit(unitModalIdx, u)}
-                        className={`w-full min-h-20 h-auto px-5 py-4 rounded-xl transition-colors ${active ? 'font-bold border-warm-foreground border-2' : ''}`}>
+                        className={`w-full min-h-16 h-auto px-5 py-4 rounded-xl transition-colors ${active ? 'font-bold border-warm-foreground border-2' : ''}`}>
                         <div className="flex items-center w-full gap-3">
                           <span className="flex-1 text-left text-2xl">{u.unit_name}</span>
                           {isBase ? (
                             <Badge variant="tertiary" className="rounded-lg">หลัก</Badge>
                           ) : (
-                            <div className="flex flex-col items-end gap-1 text-base font-normal leading-normal tabular-nums">
+                            <div className="flex flex-col items-end gap-1 text-sm font-normal leading-normal tabular-nums">
                               <span>บรรจุ {u.qty_per_base} {baseUnitName}</span>
                               <span className="text-muted-foreground">คิดเป็น {formatCurrency(perBase)} / {baseUnitName}</span>
                             </div>

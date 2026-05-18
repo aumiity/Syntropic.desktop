@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table'
-import { Pagination } from '@/components/ui/pagination'
+import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialog'
@@ -46,8 +46,8 @@ export default function ReportsPurchasesPage() {
   const [receiptInvoice, setReceiptInvoice] = useState<string | null>(null)
   const [receiptOpen, setReceiptOpen] = useState(false)
 
-  const limit = 30
-  const totalPages = Math.ceil(total / limit)
+  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   useEffect(() => {
     window.api.people.allSuppliers().then((s: any) => setSuppliers(s as Supplier[]))
@@ -62,6 +62,7 @@ export default function ReportsPurchasesPage() {
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
         page: p,
+        limit: pageSize,
       }) as any
       setRows(res.rows)
       setTotal(res.total)
@@ -69,7 +70,7 @@ export default function ReportsPurchasesPage() {
     } finally {
       setLoading(false)
     }
-  }, [q, supplierId, dateFrom, dateTo])
+  }, [q, supplierId, dateFrom, dateTo, pageSize])
 
   // Debounced auto-load on filter change (matches Sales pattern)
   useEffect(() => {
@@ -203,11 +204,15 @@ export default function ReportsPurchasesPage() {
           </Table>
         </div>
 
-        {totalPages > 1 && (
-          <div className="px-4 h-12 border-t border-border flex items-center justify-center shrink-0">
-            <Pagination page={page} totalPages={totalPages} onPageChange={load} />
-          </div>
-        )}
+        <div className="px-4 h-12 border-t border-border flex items-center shrink-0">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={load}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
       </div>
 
       <PurchaseReceiptDialog

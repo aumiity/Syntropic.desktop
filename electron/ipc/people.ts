@@ -4,10 +4,11 @@ import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './code
 
 export function registerPeopleHandlers() {
   // --- CUSTOMERS ---
-  ipcMain.handle('people:listCustomers', (_e, filters: { q?: string; page?: number; includeDisabled?: boolean }) => {
+  ipcMain.handle('people:listCustomers', (_e, filters: { q?: string; page?: number; limit?: number | 'all'; includeDisabled?: boolean }) => {
     const db = getDb()
-    const { q, page = 1, includeDisabled = false } = filters ?? {}
-    const limit = 50; const offset = (page - 1) * limit
+    const { q, page = 1, limit: limitOpt, includeDisabled = false } = filters ?? {}
+    const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 50)
+    const offset = limit ? (page - 1) * limit : 0
     const conds: string[] = []
     const params: any[] = []
     // C0000 (walk-in) is a reserved system row, never a real customer — keep
@@ -19,9 +20,11 @@ export function registerPeopleHandlers() {
       params.push(`%${q}%`, `%${q}%`, `%${q}%`)
     }
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : ''
-    const rows = db.prepare(`SELECT * FROM customers ${where} ORDER BY code LIMIT ? OFFSET ?`).all(...params, limit, offset)
+    const limitClause = limit ? `LIMIT ? OFFSET ?` : ''
+    const limitParams = limit ? [limit, offset] : []
+    const rows = db.prepare(`SELECT * FROM customers ${where} ORDER BY code ${limitClause}`).all(...params, ...limitParams)
     const total = (db.prepare(`SELECT COUNT(*) as c FROM customers ${where}`).get(...params) as any).c
-    return { rows, total, page, limit }
+    return { rows, total, page, limit: limit ?? total }
   })
 
   ipcMain.handle('people:getCustomer', (_e, id: number) => {
@@ -68,10 +71,11 @@ export function registerPeopleHandlers() {
   })
 
   // --- SUPPLIERS ---
-  ipcMain.handle('people:listSuppliers', (_e, filters: { q?: string; page?: number; includeDisabled?: boolean }) => {
+  ipcMain.handle('people:listSuppliers', (_e, filters: { q?: string; page?: number; limit?: number | 'all'; includeDisabled?: boolean }) => {
     const db = getDb()
-    const { q, page = 1, includeDisabled = false } = filters ?? {}
-    const limit = 50; const offset = (page - 1) * limit
+    const { q, page = 1, limit: limitOpt, includeDisabled = false } = filters ?? {}
+    const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 50)
+    const offset = limit ? (page - 1) * limit : 0
     const conds: string[] = []
     const params: any[] = []
     if (!includeDisabled) conds.push(`is_disabled = 0`)
@@ -80,9 +84,11 @@ export function registerPeopleHandlers() {
       params.push(`%${q}%`, `%${q}%`, `%${q}%`)
     }
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : ''
-    const rows = db.prepare(`SELECT * FROM suppliers ${where} ORDER BY name LIMIT ? OFFSET ?`).all(...params, limit, offset)
+    const limitClause = limit ? `LIMIT ? OFFSET ?` : ''
+    const limitParams = limit ? [limit, offset] : []
+    const rows = db.prepare(`SELECT * FROM suppliers ${where} ORDER BY name ${limitClause}`).all(...params, ...limitParams)
     const total = (db.prepare(`SELECT COUNT(*) as c FROM suppliers ${where}`).get(...params) as any).c
-    return { rows, total, page, limit }
+    return { rows, total, page, limit: limit ?? total }
   })
 
   ipcMain.handle('people:saveSupplier', (_e, data: any) => {
