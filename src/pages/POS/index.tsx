@@ -21,6 +21,16 @@ import {
   ShoppingBasket, Timer, RefreshCcw, HandCoins,
 } from 'lucide-react'
 
+const stripCommas = (v: string) => v.replace(/,/g, '')
+const formatNumWithCommas = (raw: string, forceTwoDecimals = false): string => {
+  if (raw === '' || raw == null) return ''
+  const n = parseFloat(raw)
+  if (!isFinite(n)) return raw
+  return forceTwoDecimals
+    ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : n.toLocaleString('en-US', { maximumFractionDigits: 4 })
+}
+
 interface ReturnLineItem {
   product_id: number
   lot_id: number
@@ -108,6 +118,7 @@ export default function POSPage() {
   const [discountModalIdx, setDiscountModalIdx] = useState<number | null>(null)
   const [discountInput, setDiscountInput] = useState<string>('')
   const [discountPctInput, setDiscountPctInput] = useState<string>('')
+  const [discountFocus, setDiscountFocus] = useState<'pct' | 'baht' | 'final' | null>(null)
   const [finalPriceInput, setFinalPriceInput] = useState<string>('')
   const [qtyModalIdx, setQtyModalIdx] = useState<number | null>(null)
   const [qtyInput, setQtyInput] = useState<string>('')
@@ -702,23 +713,23 @@ export default function POSPage() {
               <table className="w-full caption-bottom text-base table-fixed border-l-8 border-r-8 border-card">
                 <colgroup>
                   <col style={{ width: 36 }} />
-                  <col />
-                  <col style={{ width: 100 }} />
-                  <col style={{ width: 100 }} />
-                  <col style={{ width: 120 }} />
-                  <col style={{ width: 100 }} />
-                  <col style={{ width: 120 }} />
+                  <col style={{ width: '35%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '13%' }} />
                   <col style={{ width: 60 }} />
                 </colgroup>
                 <TableHeader className="sticky top-0 z-10 bg-muted">
                   <TableRow className="hover:bg-muted">
-                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">#</TableHead>
-                    <TableHead className="text-sm font-semibold text-foreground-subtle">ชื่อสินค้า</TableHead>
-                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">หน่วย</TableHead>
-                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">จำนวน</TableHead>
-                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">ราคา</TableHead>
-                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">ส่วนลด</TableHead>
-                    <TableHead className="text-center text-sm font-semibold text-foreground-subtle">รวม</TableHead>
+                    <TableHead className="text-center text-sm  text-foreground-subtle">#</TableHead>
+                    <TableHead className="text-sm  text-foreground-subtle">ชื่อสินค้า</TableHead>
+                    <TableHead className="text-center text-sm  text-foreground-subtle">หน่วย</TableHead>
+                    <TableHead className="text-center text-sm  text-foreground-subtle">จำนวน</TableHead>
+                    <TableHead className="text-center text-sm  text-foreground-subtle">ราคา</TableHead>
+                    <TableHead className="text-center text-sm  text-foreground-subtle">ส่วนลด</TableHead>
+                    <TableHead className="text-center text-sm  text-foreground-subtle">รวม</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
@@ -744,23 +755,23 @@ export default function POSPage() {
 
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
-                          className="inline-flex items-center w-[80px] justify-center h-8 rounded-md bg-accent-soft text-warning-strong text-md font-semibold tabular-nums hover:bg-accent-soft transition-colors">
-                          {item.unit_name}
+                          className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-accent-soft text-warning-strong text-md font-semibold tabular-nums hover:bg-accent-soft transition-colors">
+                          <span className="truncate">{item.unit_name}</span>
                         </Button>
                       </TableCell>
 
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm"
                           onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                          className="inline-flex items-center w-[80px] justify-center h-8 rounded-md bg-info-soft text-info-soft-foreground text-md font-semibold tabular-nums hover:bg-info-soft transition-colors ">
+                          className="flex items-center w-full justify-center h-8 rounded-md bg-info-soft text-info-soft-foreground text-md font-semibold tabular-nums hover:bg-info-soft transition-colors ">
                           <span className="flex-1 text-center">{item.qty}</span>
                         </Button>
                       </TableCell>
 
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
-                          className="inline-flex items-center justify-end w-[100px] h-8 pl-2.5 pr-1 rounded-md bg-primary-soft text-primary text-md font-semibold tabular-nums hover:bg-primary-soft transition-colors">
-                          <span className="text-right">{formatCurrency(item.unit_price)}</span>
+                          className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 overflow-hidden rounded-md bg-primary-soft text-primary text-md font-semibold tabular-nums hover:bg-primary-soft transition-colors">
+                          <span className="text-right truncate">{formatCurrency(item.unit_price)}</span>
                         </Button>
                       </TableCell>
 
@@ -768,19 +779,19 @@ export default function POSPage() {
                         {item.discount ? (
                           <Button variant="outline" size="sm"
                             onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
-                            className="inline-flex items-center justify-end w-[80px] h-8 pl-2.5 pr-1 rounded-md bg-destructive-soft text-destructive text-md font-semibold tabular-nums hover:bg-destructive/20 transition-colors">
+                            className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md bg-destructive-soft text-destructive text-md font-semibold tabular-nums hover:bg-destructive/20 transition-colors">
                             <span className="leading-none">{formatCurrency(item.discount)}</span>
                           </Button>
                         ) : (
                           <Button variant="outline" size="sm"
                             onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
-                            className="inline-flex items-center justify-end w-[80px] h-8 pl-2.5 pr-1 rounded-md bg-card text-destructive text-md font-medium tabular-nums bg-destructive-soft hover:bg-destructive-soft hover:text-destructive transition-colors">
+                            className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md bg-card text-destructive text-md font-medium tabular-nums bg-destructive-soft hover:bg-destructive-soft hover:text-destructive transition-colors">
                             <span className="text-right">0</span>
                           </Button>
                         )}
                       </TableCell>
 
-                      <TableCell className="text-right pr-4 font-semibold text-primary text-md tabular-nums">
+                      <TableCell className="text-right pr-4 font-semibold text-primary text-md tabular-nums truncate">
                         {formatCurrency(item.line_total)}
                       </TableCell>
 
@@ -1796,13 +1807,22 @@ export default function POSPage() {
                 <div className="space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
                   {allUnits.map(u => {
                     const active = item?.unit_name === u.unit_name
+                    const isBase = u.id === -1
+                    const perBase = u.qty_per_base > 0 ? (u.price_retail ?? 0) / u.qty_per_base : 0
                     return (
                       <Button key={u.id} variant="warm"
                         onClick={() => changeCartUnit(unitModalIdx, u)}
-                        className={`w-full h-14 px-4 py-3 rounded-xl transition-colors ${active ? 'font-bold border-warm-foreground border-2' : ''}`}>
-                        <div className="relative flex items-center w-full">
-                          <span className="w-full text-center text-xl">{u.unit_name}</span>
-                          {u.id === -1 && <Badge variant="tertiary" className="absolute right-0 rounded-lg">หลัก</Badge>}
+                        className={`w-full min-h-20 h-auto px-5 py-4 rounded-xl transition-colors ${active ? 'font-bold border-warm-foreground border-2' : ''}`}>
+                        <div className="flex items-center w-full gap-3">
+                          <span className="flex-1 text-left text-2xl">{u.unit_name}</span>
+                          {isBase ? (
+                            <Badge variant="tertiary" className="rounded-lg">หลัก</Badge>
+                          ) : (
+                            <div className="flex flex-col items-end gap-1 text-base font-normal leading-normal tabular-nums">
+                              <span>บรรจุ {u.qty_per_base} {baseUnitName}</span>
+                              <span className="text-muted-foreground">คิดเป็น {formatCurrency(perBase)} / {baseUnitName}</span>
+                            </div>
+                          )}
                         </div>
                       </Button>
                     )
@@ -2064,15 +2084,15 @@ export default function POSPage() {
                     <Label className="block text-base font-bold text-muted-foreground mb-1">ส่วนลด (%)</Label>
                     <div className="relative">
                       <Input
-                        type="number"
-                        value={discountPctInput}
-                        min={0}
-                        max={100}
-                        style={{ MozAppearance: 'textfield' }}
-                        onFocus={e => e.currentTarget.select()}
+                        type="text"
+                        inputMode="decimal"
+                        value={discountFocus === 'pct' ? discountPctInput : formatNumWithCommas(discountPctInput)}
+                        onFocus={e => { setDiscountFocus('pct'); e.currentTarget.select() }}
+                        onBlur={() => setDiscountFocus(null)}
                         onChange={e => {
-                          setDiscountPctInput(e.target.value)
-                          const pct = parseFloat(e.target.value)
+                          const v = stripCommas(e.target.value)
+                          setDiscountPctInput(v)
+                          const pct = parseFloat(v)
                           if (!isNaN(pct)) {
                             const disc = parseFloat((totalPrice * pct / 100).toFixed(2))
                             setDiscountInput(String(disc))
@@ -2090,15 +2110,16 @@ export default function POSPage() {
                   <div>
                     <Label className="block text-base font-bold text-muted-foreground mb-1">ส่วนลด (บาท)</Label>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       autoFocus
-                      value={discountInput}
-                      min={0}
-                      style={{ MozAppearance: 'textfield' }}
-                      onFocus={e => e.currentTarget.select()}
+                      value={discountFocus === 'baht' ? discountInput : formatNumWithCommas(discountInput, true)}
+                      onFocus={e => { setDiscountFocus('baht'); e.currentTarget.select() }}
+                      onBlur={() => setDiscountFocus(null)}
                       onChange={e => {
-                        setDiscountInput(e.target.value)
-                        const disc = parseFloat(e.target.value) || 0
+                        const v = stripCommas(e.target.value)
+                        setDiscountInput(v)
+                        const disc = parseFloat(v) || 0
                         if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
                         setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
                       }}
@@ -2113,14 +2134,15 @@ export default function POSPage() {
                 <div>
                   <Label className="block text-base font-bold text-muted-foreground mb-1">ราคาสุดท้าย (บาท)</Label>
                   <Input
-                    type="number"
-                    value={finalPriceInput}
-                    min={0}
-                    style={{ MozAppearance: 'textfield' }}
-                    onFocus={e => e.currentTarget.select()}
+                    type="text"
+                    inputMode="decimal"
+                    value={discountFocus === 'final' ? finalPriceInput : formatNumWithCommas(finalPriceInput, true)}
+                    onFocus={e => { setDiscountFocus('final'); e.currentTarget.select() }}
+                    onBlur={() => setDiscountFocus(null)}
                     onChange={e => {
-                      setFinalPriceInput(e.target.value)
-                      const fp = parseFloat(e.target.value)
+                      const v = stripCommas(e.target.value)
+                      setFinalPriceInput(v)
+                      const fp = parseFloat(v)
                       if (!isNaN(fp)) {
                         const disc = Math.max(0, parseFloat((totalPrice - fp).toFixed(2)))
                         setDiscountInput(String(disc))

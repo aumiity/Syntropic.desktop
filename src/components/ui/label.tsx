@@ -24,7 +24,7 @@ function Label({
 }
 
 function FormField({ label, required, children }: {
-  label: string
+  label: React.ReactNode
   required?: boolean
   children: React.ReactNode
 }) {

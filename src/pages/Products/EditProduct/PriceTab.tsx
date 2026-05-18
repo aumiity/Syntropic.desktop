@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PriceInput } from '@/components/ui/price-input'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { SectionCard } from '@/components/ui/card'
@@ -80,20 +81,13 @@ export function PriceTab({
   const ws1 = calc(parseFloat(form.price_wholesale1) || 0)
   const ws2 = calc(parseFloat(form.price_wholesale2) || 0)
 
-  const per = (u: string) => <span className="font-normal text-muted-foreground">/ {u}</span>
+  const unitSuffix = (u: string) => <span className="font-normal normal-case text-muted-foreground"> ({u})</span>
 
   const profitText = (d: ReturnType<typeof calc>) => d.dim ? (
     <span className="text-sm text-foreground-subtle">—</span>
   ) : (
     <span className={`text-sm font-bold tabular-nums ${d.pos ? 'text-success' : 'text-destructive'}`}>
-      {d.pos ? '+' : ''}{d.profit.toFixed(2)}
-    </span>
-  )
-  const pctText = (d: ReturnType<typeof calc>) => d.dim ? (
-    <span className="text-sm text-foreground-subtle">—</span>
-  ) : (
-    <span className={`text-sm font-bold tabular-nums ${d.pos ? 'text-success' : 'text-destructive'}`}>
-      {d.pos ? '+' : ''}{d.pct.toFixed(0)}%
+      {d.pos ? '+' : ''}{d.profit.toFixed(2)} ({d.pos ? '+' : ''}{d.pct.toFixed(0)}%)
     </span>
   )
 
@@ -105,86 +99,59 @@ export function PriceTab({
         <div className="space-y-3">
 
           {/* ราคาทุน (ล่าสุด) — editable pricing reference (last_cost_price) */}
-          <Field label="ราคาทุน (ล่าสุด)">
-            <Input
-              type="number"
+          <Field label={<>ราคาทุนล่าสุด{unitSuffix(baseUnit)}</>}>
+            <PriceInput
               value={form.cost_price}
-              onChange={e => setF('cost_price', e.target.value)}
-              className="text-right tabular-nums"
-              min={0}
-              step="0.01"
+              onChange={v => setF('cost_price', v)}
               placeholder="ทุนล่าสุดที่ซื้อ — ใช้อ้างอิงตั้งราคา"
             />
           </Field>
 
           {/* ราคาทุนเฉลี่ย (ถ่วงน้ำหนัก) — อ่านอย่างเดียว, อ้างอิงเฉยๆ */}
           <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">ราคาทุนเฉลี่ย (ทุกล็อต)</span>
+            <span className="text-sm text-muted-foreground">ราคาทุนเฉลี่ย ({baseUnit})</span>
             {avgCost > 0
-              ? <span className="text-sm font-bold text-warm-foreground tabular-nums">{formatCurrency(avgCost)} {per(baseUnit)}</span>
+              ? <span className="text-sm font-bold text-warm-foreground tabular-nums">{formatCurrency(avgCost)}</span>
               : <span className="text-sm text-foreground-subtle">—</span>}
           </div>
 
-          {/* ราคาขายปลีก + กล่องสรุป 2 บรรทัด (กำไร / กำไร %) */}
+          {/* ราคาขายปลีก + กล่องกำไร */}
           <div data-field="price_retail">
-            <Field label="ราคาขายปลีก" required>
-              <Input
-                type="number"
+            <Field label={<>ราคาขายปลีก{unitSuffix(baseUnit)}</>} required>
+              <PriceInput
                 value={form.price_retail}
-                onChange={e => setF('price_retail', e.target.value)}
+                onChange={v => setF('price_retail', v)}
                 aria-invalid={errors.has('price_retail')}
-                className="text-right tabular-nums"
-                min={0}
-                step="0.01"
               />
             </Field>
           </div>
-          <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-1.5 tabular-nums">
+          <div className="rounded-lg bg-success-soft/50 px-3 py-2 tabular-nums">
             <div className="flex items-center justify-between">
-              <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร</span>
+              <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร ({baseUnit})</span>
               {profitText(retail)}
-            </div>
-            <div className="flex items-center justify-between">
-              <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร %</span>
-              {pctText(retail)}
             </div>
           </div>
 
-          {/* ราคาส่ง 1 | ราคาส่ง 2 — ซ้าย/ขวา + กล่องสรุป 2 บรรทัดใต้แต่ละช่อง */}
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="ราคาส่ง 1">
-              <Input
-                type="number"
-                value={form.price_wholesale1}
-                onChange={e => setF('price_wholesale1', e.target.value)}
-                className="text-right tabular-nums"
-                min={0}
-                step="0.01"
-              />
-            </Field>
-            <Field label="ราคาส่ง 2">
-              <Input
-                type="number"
-                value={form.price_wholesale2}
-                onChange={e => setF('price_wholesale2', e.target.value)}
-                className="text-right tabular-nums"
-                min={0}
-                step="0.01"
-              />
-            </Field>
-            {[ws1, ws2].map((d, i) => (
-              <div key={i} className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-1.5 tabular-nums">
+          {/* ราคาส่ง 1 + ราคาส่ง 2 — stack แนวตั้ง, แต่ละชุด input + กล่องกำไร */}
+          {([
+            { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: form.price_wholesale1, d: ws1 },
+            { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },
+          ] as const).map(({ label, key, value, d }) => (
+            <div key={key} className="space-y-3">
+              <Field label={<>{label}{unitSuffix(baseUnit)}</>}>
+                <PriceInput
+                  value={value}
+                  onChange={v => setF(key, v)}
+                />
+              </Field>
+              <div className="rounded-lg bg-success-soft/50 px-3 py-2 tabular-nums">
                 <div className="flex items-center justify-between">
-                  <span className={`text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร</span>
+                  <span className={`text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร ({baseUnit})</span>
                   {profitText(d)}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร %</span>
-                  {pctText(d)}
-                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
 
           {/* มี VAT | นับสต็อก */}
           <div className="grid grid-cols-2 gap-3">

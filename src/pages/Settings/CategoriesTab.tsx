@@ -76,8 +76,8 @@ export function CategoriesTab() {
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
   return (
-    <div className="pt-4">
-      <div className="bg-card rounded-card shadow-card overflow-hidden">
+    <div className="pt-4 h-full flex flex-col min-h-0">
+      <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
           <span>หมวดหมู่สินค้าและยา · {rows.length.toLocaleString()} รายการ</span>
           <div className="flex items-center gap-2">
@@ -103,7 +103,7 @@ export function CategoriesTab() {
           </div>
         </div>
 
-        <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
           <Table>
             <TableHeader>
               <TableRow>

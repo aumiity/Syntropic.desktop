@@ -15,17 +15,17 @@ export default function SettingsPage() {
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
       <PageHeader title="ตั้งค่า" />
 
-      <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]">
-        <Tabs value={tab} onValueChange={setTab} className="items-center">
-          <TabsList>
-            <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
-            <TabsTrigger value="categories"><Tag /> หมวดหมู่</TabsTrigger>
-            <TabsTrigger value="units"><Ruler /> หน่วยนับ</TabsTrigger>
-            <TabsTrigger value="drugtypes"><Pill /> ประเภทยา</TabsTrigger>
-            <TabsTrigger value="labels"><Printer /> การพิมพ์ฉลาก</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <Tabs value={tab} onValueChange={setTab} className="items-center shrink-0">
+        <TabsList>
+          <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
+          <TabsTrigger value="categories"><Tag /> หมวดหมู่</TabsTrigger>
+          <TabsTrigger value="units"><Ruler /> หน่วยนับ</TabsTrigger>
+          <TabsTrigger value="drugtypes"><Pill /> ประเภทยา</TabsTrigger>
+          <TabsTrigger value="labels"><Printer /> การพิมพ์ฉลาก</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
+      <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]">
         {tab === 'shop' && <ShopTab />}
         {tab === 'categories' && <CategoriesTab />}
         {tab === 'units' && <UnitsTab />}

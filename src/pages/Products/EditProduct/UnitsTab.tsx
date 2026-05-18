@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PriceInput } from '@/components/ui/price-input'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,6 +15,7 @@ import {
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { formatCurrency } from '@/lib/utils'
 import { Plus, Trash2, Edit } from 'lucide-react'
@@ -40,6 +42,7 @@ export function UnitsTab({
   const [editingUnit, setEditingUnit] = useState<ProductUnit | null>(null)
   const [unitForm, setUnitForm] = useState<any>({})
   const [unitSaving, setUnitSaving] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   const openAddUnit = () => {
     setEditingUnit(null)
@@ -117,6 +120,7 @@ export function UnitsTab({
     try {
       await window.api.products.deleteUnit(unitId)
       toast({ title: 'ลบหน่วยสำเร็จ', variant: 'success' })
+      setDeleteConfirmOpen(false)
       setUnitDialog(false)
       await onRefresh()
     } catch (e: any) {
@@ -224,7 +228,7 @@ export function UnitsTab({
               const retail = calc(parseFloat(String(unitForm.price_retail)) || 0)
               const ws1 = calc(parseFloat(String(unitForm.price_wholesale1)) || 0)
               const ws2 = calc(parseFloat(String(unitForm.price_wholesale2)) || 0)
-              const per = (u: string) => <span className="font-normal text-muted-foreground">ต่อ {u}</span>
+              const unitSuffix = (u: string) => <span className="font-normal normal-case text-muted-foreground"> ({u})</span>
               return (
                 <div className="grid grid-cols-2 gap-5 items-start">
                   {/* ── ซ้าย: ข้อมูลหน่วย + ตัวเลือก ── */}
@@ -275,55 +279,55 @@ export function UnitsTab({
 
                   {/* ── ขวา: ราคา + รายละเอียด ── */}
                   <div className="space-y-3">
-                    {/* ราคาทุนปกติ (อ้างอิง) */}
-                    <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">ราคาทุนปกติ (อ้างอิง)</span>
-                      <span className="text-sm font-bold text-warm-foreground tabular-nums">
-                        {formatCurrency(baseCost)} {per(baseUnit)}
-                      </span>
+                    {/* ราคาทุน — รวมหน่วยฐาน + หน่วยใหม่ ในกรอบเดียว */}
+                    <div className="rounded-lg bg-warm/50 px-3 py-2 space-y-1 tabular-nums">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">ราคาทุน ({baseUnit})</span>
+                        <span className="text-sm font-bold text-warm-foreground">{formatCurrency(baseCost)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">ราคาทุน ({newUnit})</span>
+                        <span className="text-sm font-bold text-warm-foreground">{formatCurrency(unitCost)}</span>
+                      </div>
                     </div>
 
                     {/* ราคาปลีก + รายละเอียด */}
-                    <Field label="ราคาปลีก">
-                      <Input type="number" value={unitForm.price_retail ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_retail: e.target.value }))} className="text-right tabular-nums" min={0} step="0.01" />
+                    <Field label={<>ราคาปลีก{unitSuffix(newUnit)}</>}>
+                      <PriceInput value={unitForm.price_retail} onChange={v => setUnitForm((f: any) => ({ ...f, price_retail: v }))} />
                     </Field>
                     <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-2 tabular-nums">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">ราคาทุน</span>
-                        <span className="text-sm font-bold text-foreground">{formatCurrency(unitCost)} {per(newUnit)}</span>
+                        <span className="text-sm text-muted-foreground">คิดเป็น ({baseUnit})</span>
+                        <span className="text-sm font-bold text-foreground">{formatCurrency(retail.perPiece)}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">คิดเป็น</span>
-                        <span className="text-sm font-bold text-foreground">{formatCurrency(retail.perPiece)} {per(baseUnit)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร</span>
+                        <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร ({newUnit})</span>
                         {retail.dim ? (
                           <span className="text-sm text-foreground-subtle">—</span>
                         ) : (
                           <span className={`text-sm font-bold ${retail.pos ? 'text-success' : 'text-destructive'}`}>
-                            {retail.pos ? '+' : ''}{retail.profit.toFixed(2)} ({retail.pos ? '+' : ''}{retail.pct.toFixed(0)}%) {per(newUnit)}
+                            {retail.pos ? '+' : ''}{retail.profit.toFixed(2)} ({retail.pos ? '+' : ''}{retail.pct.toFixed(0)}%)
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* ราคาส่ง 1 | ราคาส่ง 2 + รายละเอียดด้านล่าง */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field label="ราคาส่ง 1">
-                        <Input type="number" value={unitForm.price_wholesale1 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale1: e.target.value }))} className="text-right tabular-nums" min={0} step="0.01" />
-                      </Field>
-                      <Field label="ราคาส่ง 2">
-                        <Input type="number" value={unitForm.price_wholesale2 ?? 0} onChange={e => setUnitForm((f: any) => ({ ...f, price_wholesale2: e.target.value }))} className="text-right tabular-nums" min={0} step="0.01" />
-                      </Field>
-                      {[ws1, ws2].map((d, i) => (
-                        <div key={i} className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-1.5 tabular-nums">
+                    {/* ราคาส่ง 1 + รายละเอียด */}
+                    {([
+                      { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: unitForm.price_wholesale1, d: ws1 },
+                      { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: unitForm.price_wholesale2, d: ws2 },
+                    ] as const).map(({ label, key, value, d }) => (
+                      <div key={key} className="space-y-3">
+                        <Field label={<>{label}{unitSuffix(newUnit)}</>}>
+                          <PriceInput value={value} onChange={v => setUnitForm((f: any) => ({ ...f, [key]: v }))} />
+                        </Field>
+                        <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-2 tabular-nums">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">คิดเป็น</span>
-                            <span className="text-sm font-bold text-foreground">{formatCurrency(d.perPiece)} {per(baseUnit)}</span>
+                            <span className="text-sm text-muted-foreground">คิดเป็น ({baseUnit})</span>
+                            <span className="text-sm font-bold text-foreground">{formatCurrency(d.perPiece)}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className={`text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร</span>
+                            <span className={`text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร ({newUnit})</span>
                             {d.dim ? (
                               <span className="text-sm text-foreground-subtle">—</span>
                             ) : (
@@ -333,8 +337,8 @@ export function UnitsTab({
                             )}
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )
@@ -346,7 +350,7 @@ export function UnitsTab({
                 variant="destructive"
                 size="xl"
                 className="mr-auto"
-                onClick={() => handleDeleteUnit(editingUnit.id)}
+                onClick={() => setDeleteConfirmOpen(true)}
                 disabled={unitSaving}
               >
                 <Trash2 /> ลบหน่วย
@@ -357,6 +361,22 @@ export function UnitsTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ======================== DELETE CONFIRM ======================== */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={(v) => { if (!v && !unitSaving) setDeleteConfirmOpen(false) }}
+        variant="destructive"
+        title="ลบหน่วยนับ"
+        description={
+          editingUnit
+            ? `ลบหน่วย "${editingUnit.unit_name ?? `Unit #${editingUnit.unit_id}`}" (ขนาดบรรจุ ${editingUnit.qty_per_base}) ออกจากสินค้านี้? ประวัติการขายเก่ายังคงแสดงชื่อหน่วยถูกต้อง — หากต้องการซ่อนชั่วคราว ให้ใช้ "ปิดการใช้งานหน่วยนี้" แทน`
+            : ''
+        }
+        confirmLabel={unitSaving ? 'กำลังลบ...' : 'ยืนยันลบ'}
+        cancelLabel="ยกเลิก"
+        onConfirm={() => { if (editingUnit) handleDeleteUnit(editingUnit.id) }}
+      />
     </div>
   )
 }

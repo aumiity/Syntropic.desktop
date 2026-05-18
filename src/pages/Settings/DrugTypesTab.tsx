@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Checkbox } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/label'
 import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
@@ -56,8 +57,8 @@ export function DrugTypesTab() {
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
   return (
-    <div className="pt-4">
-      <div className="bg-card rounded-card shadow-card overflow-hidden">
+    <div className="pt-4 h-full flex flex-col min-h-0">
+      <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
           <span>ประเภทยาตามกฎหมาย · {rows.length.toLocaleString()} รายการ</span>
           <Button size="lg" className="px-2" onClick={openAdd}>
@@ -65,7 +66,7 @@ export function DrugTypesTab() {
           </Button>
         </div>
 
-        <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -92,8 +93,10 @@ export function DrugTypesTab() {
                   <TableCell className="font-mono text-sm font-semibold">{d.code}</TableCell>
                   <TableCell className="text-sm text-foreground">{d.name_th}</TableCell>
                   {FDA_FLAGS.map(({ key }) => (
-                    <TableCell key={key} className="text-center text-sm">
-                      {(d as any)[key] ? '✓' : <span className="text-muted-foreground">—</span>}
+                    <TableCell key={key} className="text-center">
+                      <div className="flex justify-center">
+                        <Checkbox checked={!!(d as any)[key]} tabIndex={-1} className="pointer-events-none" />
+                      </div>
                     </TableCell>
                   ))}
                   <TableCell className="text-center">
