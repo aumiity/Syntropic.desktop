@@ -57,7 +57,7 @@ export interface ProductLabel {
 export interface Customer {
   id: number; code: string; full_name: string
   id_card?: string; dob?: string; phone?: string; address?: string
-  food_allergy?: string; chronic_diseases?: string
+  chronic_diseases?: string
   is_alert: number; alert_note?: string
   is_disabled: number
   allergies?: DrugAllergy[]

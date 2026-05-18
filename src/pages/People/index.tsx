@@ -70,7 +70,7 @@ function CustomersTab() {
     setEditing(null)
     setForm({
       full_name: '', id_card: '', dob: '', phone: '', address: '',
-      food_allergy: '', chronic_diseases: '',
+      chronic_diseases: '',
       is_alert: 0, alert_note: '',
       is_disabled: 0,
     })
@@ -87,7 +87,6 @@ function CustomersTab() {
       dob: data.dob ?? '',
       phone: data.phone ?? '',
       address: data.address ?? '',
-      food_allergy: data.food_allergy ?? '',
       chronic_diseases: data.chronic_diseases ?? '',
       is_alert: data.is_alert ?? 0,
       alert_note: data.alert_note ?? '',
@@ -218,15 +217,9 @@ function CustomersTab() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>แพ้ยา</Label>
-                <Input value={form.food_allergy ?? ''} onChange={e => setF('food_allergy', e.target.value)} placeholder="ระบุชื่อยา" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>โรคประจำตัว</Label>
-                <Input value={form.chronic_diseases ?? ''} onChange={e => setF('chronic_diseases', e.target.value)} />
-              </div>
+            <div className="space-y-1.5">
+              <Label>โรคประจำตัว</Label>
+              <Input value={form.chronic_diseases ?? ''} onChange={e => setF('chronic_diseases', e.target.value)} />
             </div>
 
             <div className="space-y-3">

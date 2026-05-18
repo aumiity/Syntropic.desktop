@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PriceInput } from '@/components/ui/price-input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DateInput } from '@/components/ui/date-input'
 import { useToast } from '@/components/ui/toast'
@@ -370,13 +371,10 @@ export function AdjustStockDialog({
                         ต้นทุน/หน่วย <span className="text-destructive">*</span>
                         <span className="ml-1 opacity-70">(ฟรี = 0)</span>
                       </label>
-                      <Input
-                        type="number"
+                      <PriceInput
                         value={newLotCost}
-                        onChange={e => setNewLotCost(e.target.value)}
-                        min={0}
-                        step="0.01"
-                        className="h-10 rounded-lg text-sm tabular-nums"
+                        onChange={setNewLotCost}
+                        className="h-10 rounded-lg text-sm"
                       />
                     </div>
                   </div>
@@ -427,13 +425,10 @@ export function AdjustStockDialog({
                           <span className="text-destructive">*</span>
                           <span className="opacity-70">(ฟรี = 0)</span>
                         </label>
-                        <Input
-                          type="number"
+                        <PriceInput
                           value={addedCost}
-                          onChange={e => setAddedCost(e.target.value)}
-                          min={0}
-                          step="0.01"
-                          className="h-10 rounded-lg text-sm tabular-nums"
+                          onChange={setAddedCost}
+                          className="h-10 rounded-lg text-sm"
                         />
                       </div>
                       <div>

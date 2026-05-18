@@ -4,6 +4,7 @@ import { getCurrentUserId } from '@/stores/userStore'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PriceInput } from '@/components/ui/price-input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
@@ -1062,12 +1063,6 @@ export default function POSPage() {
                       <span className="text-foreground whitespace-pre-line">{cart.customer.address || '-'}</span>
                     </CardContent>
                   </Card>
-                  {cart.customer.food_allergy ? (
-                    <div>
-                      <div className="text-sm text-foreground-subtle">แพ้ยา</div>
-                      <div className="text-foreground whitespace-pre-line">{cart.customer.food_allergy}</div>
-                    </div>
-                  ) : null}
                   {cart.customer.chronic_diseases ? (
                     <div>
                       <div className="text-sm text-foreground-subtle">โรคประจำตัว</div>
@@ -1883,18 +1878,13 @@ export default function POSPage() {
                       <span className="text-base font-bold text-primary">กำหนดราคา</span>
                     </div>
                     <div className="flex items-center gap-2 mb-2">
-                      <Input
-                        type="number"
+                      <PriceInput
                         autoFocus
                         value={customPriceInput}
-                        min={0}
-                        step="0.01"
-                        style={{ MozAppearance: 'textfield' }}
+                        onChange={setCustomPriceInput}
                         onFocus={e => e.currentTarget.select()}
-                        onChange={e => setCustomPriceInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') applyCustomPrice() }}
-                        placeholder="0.00"
-                        className="w-full flex-1 h-10 text-right text-3xl font-bold bg-card rounded-lg focus:ring-2 focus:ring-primary outline-none px-3 tabular-nums"
+                        className="w-full flex-1 h-10 text-3xl font-bold bg-card rounded-lg focus:ring-2 focus:ring-primary outline-none px-3"
                       />
                       <Button variant="default" onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-10 px-4 text-sm">ตกลง</Button>
                     </div>

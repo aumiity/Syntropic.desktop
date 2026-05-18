@@ -3,6 +3,7 @@ import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PriceInput } from '@/components/ui/price-input'
 import { Card, CardContent, StatCard } from '@/components/ui/card'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DateInput } from '@/components/ui/date-input'
@@ -2019,20 +2020,15 @@ export default function PurchasePage() {
                       <span className="text-base font-bold text-primary">กำหนดราคา (ต่อ {row.unit_name || 'ชิ้น'})</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
+                      <PriceInput
                         autoFocus
                         value={priceDraft}
-                        min={0}
-                        step="0.01"
-                        style={{ MozAppearance: 'textfield' }}
+                        onChange={setPriceDraft}
                         onFocus={e => e.currentTarget.select()}
-                        onChange={e => setPriceDraft(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter' && priceDraft && !priceSaving) { e.preventDefault(); savePriceModal() } }}
-                        placeholder="0.00"
-                        className="w-full flex-1 h-10 text-right text-3xl font-bold bg-card rounded-lg focus:ring-2 focus:ring-primary outline-none px-3 tabular-nums"
+                        onKeyDown={e => { if (e.key === 'Enter' && customPrice > 0 && !priceSaving) { e.preventDefault(); savePriceModal() } }}
+                        className="w-full flex-1 h-10 text-3xl font-bold bg-card rounded-lg focus:ring-2 focus:ring-primary outline-none px-3"
                       />
-                      <Button variant="default" onClick={savePriceModal} disabled={priceSaving || !priceDraft} className="h-10 px-4 text-sm">
+                      <Button variant="default" onClick={savePriceModal} disabled={priceSaving || customPrice <= 0} className="h-10 px-4 text-sm">
                         {priceSaving ? 'กำลังบันทึก…' : 'ตกลง'}
                       </Button>
                     </div>

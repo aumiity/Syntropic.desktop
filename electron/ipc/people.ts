@@ -49,10 +49,10 @@ export function registerPeopleHandlers() {
     const code = nextCustomerCode(db)
     const result = db.prepare(`
       INSERT INTO customers (code, full_name, id_card, dob, phone, address,
-        food_allergy, chronic_diseases,
+        chronic_diseases,
         is_alert, alert_note, is_disabled)
       VALUES (@code, @full_name, @id_card, @dob, @phone, @address,
-        @food_allergy, @chronic_diseases,
+        @chronic_diseases,
         @is_alert, @alert_note, @is_disabled)
     `).run({ code, ...data })
     return db.prepare(`SELECT * FROM customers WHERE id = ?`).get(result.lastInsertRowid)
