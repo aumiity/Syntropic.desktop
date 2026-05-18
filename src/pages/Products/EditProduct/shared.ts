@@ -30,7 +30,7 @@ export interface StockMovement {
   created_by_name: string | null
 }
 
-export type MovementSortKey = 'created_at' | 'lot_number'
+export type MovementSortKey = 'created_at'
 
 // Movement type → Thai label, icon, badge variant. Keep in sync with the
 // movement_type values written by ipc/products.ts, ipc/purchase.ts, ipc/pos.ts.

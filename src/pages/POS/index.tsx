@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { formatCurrency, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
 import dayjs from 'dayjs'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy } from '@/types'
@@ -863,7 +864,7 @@ export default function POSPage() {
             </div>
 
             {cart.items.length > 0 && (
-              <div className="px-4 h-9 shrink-0 flex items-center gap-6 bg-muted">
+              <div className="px-5 h-12 shrink-0 flex items-center gap-6 bg-card border-t border-border">
                 <div>
                   <div className="text-sm font-semibold text-foreground-subtle">จำนวน <span className="text-sm font-medium tabular-nums text-foreground">{cart.items.length}</span> รายการ</div>
                 </div>
@@ -2038,62 +2039,32 @@ export default function POSPage() {
       </Dialog>
 
       {/* ── UNIT DIALOG ── */}
-      <Dialog open={unitModalIdx !== null} onOpenChange={(v) => { if (!v) setUnitModalIdx(null) }}>
-        {unitModalIdx !== null && (() => {
-          const item = cart.items[unitModalIdx]
-          const product = item?.product as ProductWithDetails | undefined
-          const units = product?.units ?? []
-          const baseUnitName = product?.unit_name ?? ''
-          // Synthetic base row (id=-1) so the list always shows the base unit on top.
-          // changeCartUnit detects id=-1 and clears selectedUnit so the cart pulls
-          // pricing from product.* (single source of truth for the base unit).
-          const baseUnit = product ? {
-            id: -1,
-            unit_name: baseUnitName,
-            price_retail: product.price_retail,
-            price_wholesale1: product.price_wholesale1,
-            price_wholesale2: product.price_wholesale2,
-          } as unknown as ProductUnit : null
-          const allUnits = baseUnit ? [baseUnit, ...units] : units
-          return (
-            <DialogContent size="sm" onClose={() => setUnitModalIdx(null)}>
-              <DialogHeader>
-                <DialogTitle className="text-2xl">เลือกหน่วย</DialogTitle>
-                <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
-              </DialogHeader>
-              <DialogBody>
-                <div className="space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
-                  {allUnits.map(u => {
-                    const active = item?.unit_name === u.unit_name
-                    const isBase = u.id === -1
-                    const perBase = u.qty_per_base > 0 ? (u.price_retail ?? 0) / u.qty_per_base : 0
-                    return (
-                      <Button key={u.id} variant="warm"
-                        onClick={() => changeCartUnit(unitModalIdx, u)}
-                        className={`w-full min-h-16 h-auto px-5 py-4 rounded-xl transition-colors ${active ? 'font-bold border-warm-foreground border-2' : ''}`}>
-                        <div className="flex items-center w-full gap-3">
-                          <span className="flex-1 text-left text-2xl">{u.unit_name}</span>
-                          {isBase ? (
-                            <Badge variant="tertiary" className="rounded-lg">หลัก</Badge>
-                          ) : (
-                            <div className="flex flex-col items-end gap-1 text-sm font-normal leading-normal tabular-nums">
-                              <span>บรรจุ {u.qty_per_base} {baseUnitName}</span>
-                              <span className="text-muted-foreground">คิดเป็น {formatCurrency(perBase)} / {baseUnitName}</span>
-                            </div>
-                          )}
-                        </div>
-                      </Button>
-                    )
-                  })}
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
-              </DialogFooter>
-            </DialogContent>
-          )
-        })()}
-      </Dialog>
+      {unitModalIdx !== null && (() => {
+        const item = cart.items[unitModalIdx]
+        const product = item?.product as ProductWithDetails | undefined
+        if (!product) return null
+        // Synthetic base row (id=-1) so the list always shows the base unit on top.
+        // changeCartUnit detects id=-1 and clears selectedUnit so the cart pulls
+        // pricing from product.* (single source of truth for the base unit).
+        const baseUnit = {
+          id: -1,
+          unit_name: product.unit_name ?? '',
+          price_retail: product.price_retail,
+          price_wholesale1: product.price_wholesale1,
+          price_wholesale2: product.price_wholesale2,
+        } as unknown as ProductUnit
+        const allUnits = [baseUnit, ...(product.units ?? [])]
+        return (
+          <UnitPickerDialog
+            open
+            onClose={() => setUnitModalIdx(null)}
+            productName={item?.item_name}
+            units={allUnits}
+            activeUnitName={item?.unit_name}
+            onSelect={(u) => changeCartUnit(unitModalIdx, u)}
+          />
+        )
+      })()}
 
       {/* ── PRICE DIALOG ── */}
       <Dialog open={priceModalIdx !== null} onOpenChange={(v) => { if (!v) setPriceModalIdx(null) }}>

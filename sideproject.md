@@ -42,10 +42,9 @@ User runs a pharmacy. Day-to-day reality:
 ## What's done so far
 
 ### Hygeia products seeded
-- `docs/Item.xlsx` (Hygeia export, 2,430 rows) — user placed this; converted via openpyxl (Python).
-- `docs/Item.json` (1 MB) — canonical source for the seed pipeline now.
-- `scripts/gen-products.mjs` — self-contained generator: `docs/Item.json → electron/db/seed-data/products.ts`.
-- `electron/db/seed-data/products.ts` (402 KB) — auto-generated tuple array, bundled into `main.js`.
+- `docs/Item.xlsx` (Hygeia export, 2,430 rows) — **canonical source** for the seed pipeline (raw Hygeia columns, read directly).
+- `scripts/gen-products.py` — self-contained generator (openpyxl): `docs/Item.xlsx → electron/db/seed-data/products.ts`. Replaced the old `gen-products.mjs` (which read a lossy intermediate `docs/Item.json`). Re-run: `python scripts/gen-products.py`.
+- `electron/db/seed-data/products.ts` — auto-generated tuple array (1,525 rows), bundled into `main.js`.
 - `electron/db/seed.ts` — imports `PRODUCTS`, inserts in the fresh-DB block.
 - 32 `item_units` added in seed.ts (superset of everything Hygeia uses: ห่อ, กระปุก, กระป๋อง, ม้วน, ตลับ, ก้อน, AMP, แกลลอน, etc.).
 - 5 suppliers seeded: VMDRUG, DRUG CENTER, WELLEKPHARMA, FORTE, LIKHIT.
@@ -58,7 +57,7 @@ User runs a pharmacy. Day-to-day reality:
 | OtherName | search_keywords | generic name → matcher uses this |
 | BarCode, BarCode2/3/4 | barcode, barcode2/3/4 | |
 | SaleUnitName | unit_id | resolved via item_units; falls back to 'ชิ้น' if unknown |
-| MovAvgPrice (else UnitPrice) | cost_price | weighted-avg preferred |
+| round(MovAvgPrice,4) else UnitPrice | cost_price | weighted-avg preferred; fallback when MovAvg 0/blank |
 | SalePrice | price_retail | |
 | Wholesale1/2 | price_wholesale1/2 | |
 | IsDisabled / IsHidden / IsStockItem | is_disabled / is_hidden / is_stock_item | |
@@ -66,17 +65,19 @@ User runs a pharmacy. Day-to-day reality:
 | IsTax | has_vat | |
 | Note | note | |
 | TMTID | tmt_id | |
-| DrugACPCKey != null/0 | is_drug = 1 | ~420 rows marked as drugs |
-| ItemTypeKey, VendorKey, Wholesale3-5, ItemScore, Manufacturer*, etc. | (dropped) | |
+| ReorderPoint | reorder_point | seed: `> 0 ? value : null` |
+| QtyReq | safety_stock | seed: `> 0 ? value : null` |
+| DrugACPCKey != null | is_drug = 1 | ~420 across export; 297 in the 1,525 seeded (non-disabled) set |
+| ItemTypeKey, VendorKey, Wholesale3-6, ItemScore, Manufacturer*, BarCode5/6 (empty), etc. | (dropped) | |
 
 ### Per-table seed convention
-Going forward, when seeding a new table from external data: create `scripts/gen-<table>.mjs` self-contained alongside `gen-products.mjs`. Don't merge them into one mega-script.
+Going forward, when seeding a new table from external data: create a self-contained `scripts/gen-<table>.{py,mjs}` per table (e.g. `gen-products.py`, `gen-customers.mjs`). Don't merge them into one mega-script. Read the authoritative source (xlsx) directly — no lossy intermediate JSON.
 
 ### Cleanups done
-- `docs/Item.xlsx` — deleted (Item.json is now canonical)
+- `docs/Item.json` — superseded; `docs/Item.xlsx` is now read directly (kept for reference, not in the pipeline)
 - `docs/Item.units.json` — deleted (debug file)
 - `docs/DrugGenericName.json`, `docs/label_*.json` — deleted (already baked into seed-data/*.ts; no plan to regen)
-- Old `scripts/gen-seed-data.mjs` — deleted (split into per-table; only `gen-products.mjs` remains)
+- Old `scripts/gen-seed-data.mjs` — deleted (split into per-table: `gen-products.py` + `gen-customers.mjs`)
 
 ---
 
@@ -108,7 +109,7 @@ Both typechecks pass for the new files (`tsc -p tsconfig.node.json` clean; rende
 4. qty = whatever the user types; every CSV field is quoted (qty included).
 
 ### Customers seeded (2026-05-16)
-- `docs/Person.xlsx` (Hygeia Person export, 171 rows) → parsed (inline-string xlsx, no sharedStrings) and **mapped** into `docs/Person.json` (now the canonical post-mapping source, mirrors how `Item.json` is post-mapping).
+- `docs/Person.xlsx` (Hygeia Person export, 171 rows) → parsed (inline-string xlsx, no sharedStrings) and **mapped** into `docs/Person.json` (the post-mapping source for the customers generator). NOTE: products has since moved to reading `Item.xlsx` directly via `gen-products.py`; the customers pipeline still uses the `Person.json` intermediate.
 - Dropped 2 Hygeia system rows (negative `PersonKey`); kept **169** real customers. Codes assigned `C0001…C0169` (C0000 = reserved walk-in `ลูกค้าทั่วไป`, seeded separately).
 - Field map: `FullName`→full_name, `Cid`→id_card (digits only), `MobilePhone`||`Phone`→phone, `Address`+`Address2`+`ZipCode`→address. **No DOB** (BirthDate column was 100% empty in the export).
 - `scripts/gen-customers.mjs` (self-contained, per-table convention) → `electron/db/seed-data/customers.ts` (169 tuples). Wired into `seed.ts` fresh-DB block with the same "temporary dev seed, remove before prod" guard as products.

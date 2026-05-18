@@ -1030,22 +1030,8 @@ Section header "ข้อมูลยา" rebuilt as a flex row with a `<Toggle>
 
 `category` is now purely for sorting/filtering — never gates drug UI. Documented in CLAUDE.md.
 
-### 1000-product test fixture — `electron/ipc/dev.ts` (new file)
-Dev-only IPC handler `dev:seedTestStock`, registered in `main.ts` only when `isDev=true` and exposed at `window.api.dev.seedTestStock()`. Trigger from DevTools console:
-```js
-await window.api.dev.seedTestStock()
-// → { wiped: 0, products: 1000, grs: 10, lots: 1000, message: '…' }
-```
-
-**Behaviour:**
-- **Wipe-then-seed**: deletes everything matching `code GLOB 'TEST-*'` / `lot_number GLOB 'LOT-TEST-*'` / `invoice_no GLOB 'GR-TEST-*'` in FK order, then re-creates. Idempotent.
-- **Sale-aware safety**: throws if any `sale_item_lots` row references a `LOT-TEST-*` lot (would orphan FEFO trace). User gets a clear Thai error message and must void the sales first.
-- **Pre-flight**: throws if categories / item_units / suppliers tables are empty (need main seed first).
-- **Mid realism**: 20 templated names like `[ทดสอบ] Paracetamol 500mg #0042`, codes `TEST-NNNN`, barcodes `999NNNNNNNNNN`, random category/drug-type/unit/supplier from existing seeded lookups, cost 5–200 ฿, retail = cost × 1.3–2.5, ~15% antibiotic. Spread of expiry dates: 10% near-expiry (30–89 days, lights up the warning band), 90% normal (180 days–3 years). 5% of lots get `qty_on_hand=0` to exercise the "หมดสต็อก" badge.
-- **GR distribution**: products[0..99] → GR-TEST-001 (10 days ago), products[100..199] → GR-TEST-002, …, products[900..999] → GR-TEST-010 (today). Each GR creates 100 `purchase_receipt_items`, 100 `product_lots`, 100 `stock_movements` (`movement_type='receive'`).
-- All in 2 transactions (wipe + generate) — atomic, failures rollback cleanly.
-
-`electron/main.ts` line gates the registration: `if (isDev) registerDevHandlers()`. Production build still has the preload entry but `ipcRenderer.invoke('dev:seedTestStock')` will reject because no handler is registered — defence-in-depth.
+### Dev test fixture — `electron/ipc/dev.ts` (new file)
+Dev-only IPC handler for seeding test stock, gated in `main.ts` to `isDev=true`. (The original `dev:seedTestStock` 1000-synthetic-product handler was later removed; only `dev:seedSalesHistory` — backdated GR/sales over a real-product window — remains.)
 
 ### Toast hook bug — white-screen on first save
 **User report**: clicking "บันทึก" in EditProduct → blank page + console error "Objects are not valid as a React child (found: object with keys {title, variant})".
@@ -1099,9 +1085,9 @@ Three rule changes documented in the divergence note + POS Unit Selection Rules 
 - `electron/ipc/purchase.ts` — receipt-items query JOIN rewrite
 - `electron/ipc/reports.ts` — expiring-lots query JOIN rewrite
 - `electron/ipc/settings.ts` — `listUnits` usage_count via `product_units`
-- `electron/ipc/dev.ts` — **new**, `dev:seedTestStock` handler
+- `electron/ipc/dev.ts` — **new**, dev seed handler
 - `electron/main.ts` — `registerDevHandlers()` gated on `isDev`
-- `electron/preload.ts` — expose `window.api.dev.seedTestStock`; `stockStats` type adds `include_disabled`
+- `electron/preload.ts` — expose `window.api.dev`; `stockStats` type adds `include_disabled`
 - `src/components/ui/toast.tsx` — accept both string and `{title, description, variant}` forms
 - `src/types/index.ts` — `Product` drops `dosage_form_id`, `no_discount`, `unit_id`; adds `is_drug`; drops `dosage_form_name`
 - `src/pages/Products/index.tsx` — quick-add unit Select; sort state + `<SortableHead>`; `table-fixed` + explicit widths + `truncate` on trade_name; clickable `StatCard` + `stockFilter` state; `showDisabled` toggle + `<Switch>` + opacity/badge for disabled rows
@@ -1112,7 +1098,7 @@ Three rule changes documented in the divergence note + POS Unit Selection Rules 
 1. **Restart Electron and verify the migration ran cleanly** — open the dev DB (path is in PROGRESS top-of-file) and confirm: (a) `products` table has no `unit_id` / `dosage_form_id` / `no_discount` columns and has `is_drug`; (b) every row in `products` has exactly one matching row in `product_units` with `is_base_unit=1`; (c) POS search, Products list, Purchase history, expiring-lots report all show unit names. If any view shows blank units, the backfill missed that product — re-run the migration manually or insert the missing base row.
 2. **Visual smoke test the Products list** — sort by every column (asc + desc), confirm columns don't jump width. Click stat cards (toggle on/off), verify the row list narrows correctly. Toggle "แสดงที่ปิดใช้งาน" with at least one disabled product to confirm the badge + opacity render.
 3. **EditProduct round-trip** — open a product, toggle `is_drug` off → save → reload → confirm fields are still in DB but section is hidden. Toggle back on → save → confirm section reappears with values intact.
-4. **Test fixture** — `await window.api.dev.seedTestStock()` from DevTools, walk through Products list (filter, sort, paginate, edit one), POS search, then re-run the seed (verifies the wipe path).
+4. **Test fixture** — run the dev seed from the /theme → "เครื่องมือ Dev" tab, walk through Products list (filter, sort, paginate, edit one), POS search, then re-run the seed (verifies the wipe path).
 5. **Financial Reports page** — deferred from this session per user. Plan: copy the cost_value / retail_value / profit_value SQL from the prototype IPC (already removed from `stockStats` but visible in git blame); add 4 stat cards to a new `src/pages/Reports/Inventory.tsx` (or extend an existing reports page); gate by `user.role === 'admin'` once auth is wired. Filters should mirror Products list (q / category / drug_type) so the user can answer "what's the profit on antibiotics specifically?".
 6. **Pre-existing TS noise to clean up someday** — `EditProduct.tsx` references `drug_generic_name_id`, `tmt_id`, `default_qty`, `label_time_id`, `advice_id`, `show_barcode`, `is_default` on `FullProduct` / `ProductLabel` types that don't declare them. They work at runtime (these are form-only ghost fields) but every typecheck run flags them. Either widen the types with optional fields or strip the unused form keys.
 

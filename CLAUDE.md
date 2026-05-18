@@ -197,8 +197,8 @@ We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don
 - `tertiary` — yellow `#F5C24A` · accent CTA, attention
 - `brand-soft` — light teal soft · subtle brand emphasis (was `quaternary`)
 - `info-soft` — light blue · info-style action, e.g. "ปรับสต็อก" (was `quinary`)
-- `warm` — soft amber/yellow · warm secondary, e.g. "แก้ไข" (was `senary`)
-- `outline` — muted bg with border · neutral icon buttons
+- `warm` — soft amber/yellow · warm secondary (was `senary`)
+- `outline` — muted bg with border · neutral icon buttons · **the standard for row "แก้ไข" (edit) action buttons**
 - `ghost` — transparent · tertiary minor actions
 - `destructive` — solid red · delete, void
 - `destructive2` — soft red tint · destructive secondary · **also the default for "ยกเลิก" / "ปิด" buttons in dialog footers** (NOT `outline` — outline-on-popover blends in and is hard to spot)
@@ -220,7 +220,7 @@ We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don
 - Sidebar: `sidebar`, `sidebar-accent`, `sidebar-primary`, `sidebar-ring`
 
 **When writing new UI — guidelines:**
-1. **Differentiate actions by tint.** "Edit" `warm`, "Adjust stock" `info-soft`, "Delete" `destructive`, primary save `default`, secondary toggle `tertiary`. Example: `Products/index.tsx` row actions use `warm` + `info-soft` for visual distinction.
+1. **Differentiate actions by tint.** "Edit" `outline`, "Adjust stock" `info-soft`, "Delete" `destructive`, primary save `default`, secondary toggle `tertiary`. Example: `Products/index.tsx` row actions use `outline` + `info-soft` for visual distinction.
 2. **Decorative chips/status badges** → reach for `tertiary`/`brand-soft`/`info-soft`/`warm` before falling back to `secondary` or grey.
 3. **Section accents / soft backgrounds** → `bg-primary-soft`, `bg-info-soft`, `bg-warm` (NOT `bg-muted` for everything).
 4. **Hover states** → use the matching `-hover` token (`primary-hover`, `brand-soft-hover`, etc.) — already wired into the Button variants.
@@ -249,7 +249,7 @@ We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don
   - **EXCEPTION — spreadsheet-style data-entry grids use `table-fixed` + `w-[%]` (by design).** A grid whose cells are editable `<Input>`/`<DateInput>`/`<Button>` with keyboard cell navigation (Excel-like) is NOT a display table — elastic columns are the wrong UX there (numeric/date columns yank wide, slack lands on the wrong column, and `max-w-` on a `<th>/<td>` is silently ignored by every browser in both `table-auto` and `table-fixed`). For these grids: `<Table className="table-fixed …">` + each `<TableHead className="w-[N%]">` (percentages, not px → still fully responsive, scales with the window; the flexible column just gets the largest %). Clamp the *visible control* with `min-w-/max-w-` on the inner `<Input>` (works — it's not a table cell), e.g. `w-full min-w-16 max-w-20 mx-auto`. Canonical: the receive-items grid in `Purchase/index.tsx`. Do NOT "fix" these to elastic `min-w-` — that fight has been had; this is deliberate.
   - Header sticky: `[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted [&_th]:text-foreground-subtle`
   - Row hover: `hover:bg-primary-soft/60 transition-colors`
-  - **Action buttons in rows = the long (wide-rectangle) style (HARD).** Use `<Button className="w-16" size="icon-lg" variant="...">` — a wide rectangle, NOT a square icon button (`size="icon-xl"`/`icon-lg"` with no width) and NOT `size="sm" variant="ghost"`. One button → `w-16`; multiple in a cell → each `w-16` in a `flex gap-1.5 justify-center`. Differentiate by role-tint (edit = `warm`, toggle-on/disable = `destructive2`, toggle-off/enable = `info-soft`, delete = `destructive`, confirm = `success`). Canonical: `Products/index.tsx` + `EditProduct/LotsTab.tsx`.
+  - **Action buttons in rows = the long (wide-rectangle) style (HARD).** Use `<Button className="w-16" size="icon-lg" variant="...">` — a wide rectangle, NOT a square icon button (`size="icon-xl"`/`icon-lg"` with no width) and NOT `size="sm" variant="ghost"`. One button → `w-16`; multiple in a cell → each `w-16` in a `flex gap-1.5 justify-center`. Differentiate by role-tint (edit = `outline`, toggle-on/disable = `destructive2`, toggle-off/enable = `info-soft`, delete = `destructive`, confirm = `success`). Canonical: `Products/index.tsx` + `EditProduct/LotsTab.tsx`.
   - Empty state: lucide icon (`size-10 opacity-30`) + Thai message, `py-16` padding inside a `<TableCell colSpan={N}>`
 - **`[scrollbar-gutter:stable]` for tab/page scroll shifts:** if you have a horizontally centered element (like a `w-fit` segmented Tabs) inside a vertically-scrollable container, switching content between short and tall tabs makes the scrollbar appear/disappear and shifts the centered element by ~12-15px. Apply `[scrollbar-gutter:stable]` (Tailwind arbitrary value) to the scroll container — reserves the gutter even when no scrollbar is needed.
 

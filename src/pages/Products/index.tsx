@@ -276,7 +276,7 @@ export default function ProductsPage() {
                         <Button
                           className="w-16"
                           size="icon-lg"
-                          variant="warm"
+                          variant="outline"
                           onClick={() => navigate(`/products/${row.id}/edit`)}
                           title="แก้ไข"
                         >

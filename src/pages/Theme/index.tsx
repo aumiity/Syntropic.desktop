@@ -43,8 +43,9 @@ import { Calendar } from '@/components/ui/calendar'
 import {
   Search, Plus, Edit, Trash2, Info,
   AlertTriangle, CheckCircle, Package, ChevronRight,
-  TrendingUp, FileText, Boxes, AlertCircle, Coins,
+  TrendingUp, FileText, Boxes, AlertCircle, Coins, Building2,
 } from 'lucide-react'
+import { Combobox } from '@/components/ui/combobox'
 
 const MODE_CARDS: { mode: ThemeMode; label: string }[] = [
   { mode: 'light', label: 'สว่าง' },
@@ -129,6 +130,14 @@ export default function Theme() {
   const [page, setPage] = useState(3)
   const [pageSize, setPageSize] = useState<import('@/components/ui/pagination').PageSize>(50)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const comboItems = [
+    { id: 1, name: 'บริษัท ฟาร์มาซี จำกัด', code: 'S0001' },
+    { id: 2, name: 'องค์การเภสัชกรรม', code: 'S0002' },
+    { id: 3, name: 'ดีทแฮล์ม เคลเลอร์ โลจิสติกส์', code: 'S0003' },
+    { id: 4, name: 'ซิลลิค ฟาร์มา', code: 'S0004' },
+  ]
+  const [comboVal, setComboVal] = useState<(typeof comboItems)[number] | null>(null)
+  const [comboFilterVal, setComboFilterVal] = useState<(typeof comboItems)[number] | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmDestrOpen, setConfirmDestrOpen] = useState(false)
   const [confirmReasonOpen, setConfirmReasonOpen] = useState(false)
@@ -1125,6 +1134,43 @@ export default function Theme() {
                 </DemoRow>
               </Section>
 
+              {/* ── COMBOBOX ── */}
+              <Section title="Combobox" path="src/components/ui/combobox.tsx">
+                <DemoRow label="Searchable select (click → search inside)">
+                  <div className="w-72">
+                    <Combobox
+                      items={comboItems}
+                      value={comboVal}
+                      onChange={setComboVal}
+                      getKey={(s) => s.id}
+                      getLabel={(s) => s.name}
+                      getSublabel={(s) => s.code}
+                      icon={Building2}
+                      placeholder="— เลือกผู้จำหน่าย —"
+                      searchPlaceholder="ชื่อหรือรหัส..."
+                      emptyText="ไม่พบรายการ"
+                    />
+                  </div>
+                </DemoRow>
+                <DemoRow label="With empty/all row (filter mode, h-9)">
+                  <div className="w-72">
+                    <Combobox
+                      items={comboItems}
+                      value={comboFilterVal}
+                      onChange={setComboFilterVal}
+                      getKey={(s) => s.id}
+                      getLabel={(s) => s.name}
+                      getSublabel={(s) => s.code}
+                      icon={Building2}
+                      emptyLabel="ทุกผู้จัดจำหน่าย"
+                      searchPlaceholder="ชื่อหรือรหัส..."
+                      emptyText="ไม่พบรายการ"
+                      triggerClassName="h-9"
+                    />
+                  </div>
+                </DemoRow>
+              </Section>
+
               {/* ── PAGINATION ── */}
               <Section title="Pagination" path="src/components/ui/pagination.tsx">
                 <DemoRow label="Interactive (10 pages)">
@@ -1291,8 +1337,9 @@ export default function Theme() {
                     <p>สร้างข้อมูลทดสอบย้อน 90 วัน — ใช้ products / suppliers / customers ที่ seed แล้ว ผ่าน business logic เดียวกับ POS / GR จริง</p>
                     <ul className="list-disc list-inside space-y-0.5 pl-2">
                       <li>~500 ใบรับสินค้า (GR) — 3-8 ใบ/วัน, 5-50 รายการ/ใบ</li>
-                      <li>~3,000 ใบขาย (RC) — 20-50 ใบ/วัน, 1-10 รายการ/ใบ, FEFO ถูกต้อง</li>
-                      <li>~200 SKU active (สุ่มจากที่ seed) — กระจาย supplier, payment, discount, customer</li>
+                      <li>มี Lot ทุกสินค้า — สินค้าละ ไม่เกิน 3 Lot</li>
+                      <li>~9,000 ใบขาย (RC) — 90-100 ใบ/วัน, 1-10 รายการ/ใบ, FEFO ถูกต้อง</li>
+                      <li>ทุก SKU active — กระจาย supplier, payment, discount, customer</li>
                     </ul>
                     <p className="pt-2">
                       <span className="font-semibold text-foreground">Idempotent</span> — รันซ้ำได้, ลบ seed เดิม (โดย note marker <code className="bg-muted px-1 rounded">[DEV-SEED]</code>) แล้วสร้างใหม่. ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ
@@ -1328,7 +1375,7 @@ export default function Theme() {
         open={seedConfirmOpen}
         onOpenChange={setSeedConfirmOpen}
         title="Seed ข้อมูลทดสอบ?"
-        description="จะลบ seed dev เดิม (ถ้ามี) แล้วสร้าง ~500 GR และ ~3000 sales ย้อน 90 วัน. ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ"
+        description="จะลบ seed dev เดิม (ถ้ามี) แล้วสร้าง ~500 GR และ ~9000 sales ย้อน 90 วัน. ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ"
         confirmLabel="เริ่ม Seed"
         variant="default"
         onConfirm={async () => {

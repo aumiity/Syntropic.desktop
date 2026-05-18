@@ -137,8 +137,8 @@ export function seedDatabase(db: Database.Database) {
   ]
   for (const [code, name] of suppliers) insSupplier.run(code, name)
 
-  // Products — seeded from Hygeia Item export (docs/Item.xlsx → docs/Item.json
-  // → seed-data/products.ts via scripts/gen-seed-data.mjs). Temporary dev seed
+  // Products — seeded from Hygeia Item export (docs/Item.xlsx →
+  // seed-data/products.ts via scripts/gen-products.py). Temporary dev seed
   // to test name-matching against real product data; remove the import + this
   // block before compiling a production build.
   //
@@ -153,8 +153,8 @@ export function seedDatabase(db: Database.Database) {
       barcode, barcode2, barcode3, barcode4,
       unit_id, cost_price, price_retail, price_wholesale1, price_wholesale2,
       is_disabled, is_hidden, is_stock_item, has_vat, is_drug,
-      tmt_id, note, reorder_point
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      tmt_id, note, reorder_point, safety_stock
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   const nz = (v: string) => (v ? v : null)
   db.transaction(() => {
@@ -167,7 +167,7 @@ export function seedDatabase(db: Database.Database) {
         barcode, barcode2, barcode3, barcode4,
         unit_name, cost_price, price_retail, price_wholesale1, price_wholesale2,
         is_disabled, is_hidden, is_stock_item, has_vat, is_drug,
-        tmt_id, note, reorder_point,
+        tmt_id, note, reorder_point, safety_stock,
       ] = p
       const code = `P${String(++codeSeq).padStart(4, '0')}`
       insProduct.run(
@@ -178,6 +178,7 @@ export function seedDatabase(db: Database.Database) {
         is_disabled, is_hidden, is_stock_item, has_vat, is_drug,
         nz(tmt_id), nz(note),
         reorder_point > 0 ? reorder_point : null,
+        safety_stock > 0 ? safety_stock : null,
       )
     }
   })()

@@ -428,8 +428,8 @@ export default function EditProductPage() {
         />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]">
-        <Tabs value={tab} onValueChange={setTab} className="items-center">
+      <div className="flex-1 min-h-0 flex flex-col pb-4 [scrollbar-gutter:stable]">
+        <Tabs value={tab} onValueChange={setTab} className="items-center shrink-0">
           <TabsList>
             <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
             <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
@@ -448,76 +448,82 @@ export default function EditProductPage() {
           </TabsList>
         </Tabs>
 
-        {/* ======================== TAB: GENERAL ======================== */}
-        {tab === 'general' && (
-          <GeneralTab
-            form={form}
-            setF={setF}
-            setForm={setForm}
-            errors={errors}
-            categories={categories}
-            drugTypes={drugTypes}
-            itemUnits={itemUnits}
-          />
-        )}
+        {/* Lots / History own their internal table scroll (sticky header,
+            body scrolls) so they must fill the remaining height instead of
+            sitting inside the page-level overflow wrapper. The form tabs
+            below still scroll as a whole page. */}
+        {tab === 'lots' ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <LotsTab
+              product={product}
+              productId={productId}
+              baseUnit={baseUnit}
+              onRefresh={refreshProduct}
+            />
+          </div>
+        ) : tab === 'history' ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <HistoryTab
+              productId={productId}
+              isNew={isNew}
+              active={tab === 'history'}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto pb-8">
+            {/* ======================== TAB: GENERAL ======================== */}
+            {tab === 'general' && (
+              <GeneralTab
+                form={form}
+                setF={setF}
+                setForm={setForm}
+                errors={errors}
+                categories={categories}
+                drugTypes={drugTypes}
+                itemUnits={itemUnits}
+              />
+            )}
 
-        {/* ======================== TAB: PRICE ======================== */}
-        {tab === 'price' && (
-          <PriceTab
-            form={form}
-            setF={setF}
-            errors={errors}
-            productId={productId}
-            isNew={isNew}
-            avgCost={product.cost_price ?? 0}
-            baseUnit={baseUnit}
-            reloadToken={(product as any).updated_at ?? ''}
-          />
-        )}
+            {/* ======================== TAB: PRICE ======================== */}
+            {tab === 'price' && (
+              <PriceTab
+                form={form}
+                setF={setF}
+                errors={errors}
+                productId={productId}
+                isNew={isNew}
+                avgCost={product.cost_price ?? 0}
+                baseUnit={baseUnit}
+                reloadToken={(product as any).updated_at ?? ''}
+              />
+            )}
 
-        {/* ======================== TAB: UNITS ======================== */}
-        {tab === 'units' && (
-          <UnitsTab
-            product={product}
-            productId={productId}
-            itemUnits={itemUnits}
-            baseUnit={baseUnit}
-            defaultPriceRetail={form.price_retail}
-            onRefresh={refreshProduct}
-          />
-        )}
+            {/* ======================== TAB: UNITS ======================== */}
+            {tab === 'units' && (
+              <UnitsTab
+                product={product}
+                productId={productId}
+                itemUnits={itemUnits}
+                baseUnit={baseUnit}
+                defaultPriceRetail={form.price_retail}
+                onRefresh={refreshProduct}
+              />
+            )}
 
-        {/* ======================== TAB: LABELS ======================== */}
-        {tab === 'labels' && (
-          <LabelsTab
-            product={product}
-            productId={productId}
-            labelFrequencies={labelFrequencies}
-            labelDosages={labelDosages}
-            labelMealRelations={labelMealRelations}
-            labelTimes={labelTimes}
-            labelAdvices={labelAdvices}
-            onRefresh={refreshProduct}
-          />
-        )}
-
-        {/* ======================== TAB: LOTS ======================== */}
-        {tab === 'lots' && (
-          <LotsTab
-            product={product}
-            productId={productId}
-            baseUnit={baseUnit}
-            onRefresh={refreshProduct}
-          />
-        )}
-
-        {/* ======================== TAB: HISTORY ======================== */}
-        {tab === 'history' && (
-          <HistoryTab
-            productId={productId}
-            isNew={isNew}
-            active={tab === 'history'}
-          />
+            {/* ======================== TAB: LABELS ======================== */}
+            {tab === 'labels' && (
+              <LabelsTab
+                product={product}
+                productId={productId}
+                labelFrequencies={labelFrequencies}
+                labelDosages={labelDosages}
+                labelMealRelations={labelMealRelations}
+                labelTimes={labelTimes}
+                labelAdvices={labelAdvices}
+                onRefresh={refreshProduct}
+              />
+            )}
+          </div>
         )}
       </div>
 

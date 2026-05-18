@@ -106,7 +106,7 @@ export function DrugTypesTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-center">
-                      <Button className="w-16" size="icon-lg" variant="warm" onClick={() => openEdit(d)} title="แก้ไข">
+                      <Button className="w-16" size="icon-lg" variant="outline" onClick={() => openEdit(d)} title="แก้ไข">
                         <Edit />
                       </Button>
                     </div>

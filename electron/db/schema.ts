@@ -74,7 +74,7 @@ export function initializeSchema(db: Database.Database) {
     -- Drug Generic Names
     CREATE TABLE IF NOT EXISTS drug_generic_names (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE,
       is_disabled INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
@@ -561,6 +561,33 @@ export function initializeSchema(db: Database.Database) {
         ORDER BY pl.created_at DESC, pl.id DESC LIMIT 1
       ), 0)
       WHERE last_cost_price = 0`,
+  ]) {
+    try { db.exec(sql) } catch {}
+  }
+
+  // Migration: de-dupe drug_generic_names + enforce UNIQUE(name).
+  // The table shipped with no UNIQUE on `name`, so seed.ts's
+  // `INSERT OR IGNORE ... (name)` never actually ignored anything — every
+  // launch re-inserted all ~4253 rows (that seed block runs before the
+  // userCount guard, i.e. every boot). DBs that booted N times carry N copies.
+  //
+  // Order matters: repoint FK refs to the survivor (MIN id per name) BEFORE
+  // deleting dups, then create the UNIQUE index (which would itself throw if
+  // dups still existed — try/catch + the prior delete make this idempotent).
+  for (const sql of [
+    // 1. Repoint drug_allergies at the surviving row for its generic name.
+    `UPDATE drug_allergies SET generic_name_id = (
+        SELECT MIN(d2.id) FROM drug_generic_names d2
+        WHERE d2.name = (SELECT d1.name FROM drug_generic_names d1
+                         WHERE d1.id = drug_allergies.generic_name_id)
+      ) WHERE generic_name_id IS NOT NULL`,
+    // 2. Delete every row that isn't the MIN id for its name.
+    `DELETE FROM drug_generic_names WHERE id NOT IN (
+        SELECT MIN(id) FROM drug_generic_names GROUP BY name
+      )`,
+    // 3. Block future dups — now INSERT OR IGNORE works as intended.
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_drug_generic_names_name
+        ON drug_generic_names(name)`,
   ]) {
     try { db.exec(sql) } catch {}
   }

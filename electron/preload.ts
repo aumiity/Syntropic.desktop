@@ -144,7 +144,6 @@ const api = {
   },
   // Dev (only registered when isDev=true in main.ts; will reject otherwise)
   dev: {
-    seedTestStock: () => ipcRenderer.invoke('dev:seedTestStock'),
     seedSalesHistory: () => ipcRenderer.invoke('dev:seedSalesHistory'),
   },
 }

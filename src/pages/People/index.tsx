@@ -120,7 +120,7 @@ function CustomersTab() {
           <Input value={q} onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาชื่อ, โทร, รหัส..." className="h-10 pl-9 rounded-lg bg-card" />
         </div>
-        <Toggle framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่พักใช้งาน" />
+        <Toggle className="border-0" framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
       </div>
 
       {/* List card */}
@@ -172,7 +172,7 @@ function CustomersTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
-                      <Button className="w-16" size="icon-lg" variant="warm" onClick={() => openEdit(c)} title="แก้ไข"><Edit /></Button>
+                      <Button className="w-16" size="icon-lg" variant="outline" onClick={() => openEdit(c)} title="แก้ไข"><Edit /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -341,7 +341,7 @@ function SuppliersTab() {
           <Input value={q} onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาชื่อ, รหัส, โทร..." className="h-10 pl-9 rounded-lg bg-card" />
         </div>
-        <Toggle framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่พักใช้งาน" />
+        <Toggle className="border-0" framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
       </div>
 
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
@@ -385,7 +385,7 @@ function SuppliersTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
-                      <Button className="w-16" size="icon-lg" variant="warm" onClick={() => openEdit(s)} title="แก้ไข"><Edit /></Button>
+                      <Button className="w-16" size="icon-lg" variant="outline" onClick={() => openEdit(s)} title="แก้ไข"><Edit /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -518,7 +518,7 @@ function StaffTab() {
           <Input value={q} onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาชื่อ, อีเมล..." className="h-10 pl-9 rounded-lg bg-card" />
         </div>
-        <Toggle framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่พักใช้งาน" />
+        <Toggle className="border-0" framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
       </div>
 
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
@@ -564,7 +564,7 @@ function StaffTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
-                      <Button className="w-16" size="icon-lg" variant="warm" onClick={() => openEdit(u)} title="แก้ไข"><Edit /></Button>
+                      <Button className="w-16" size="icon-lg" variant="outline" onClick={() => openEdit(u)} title="แก้ไข"><Edit /></Button>
                     </div>
                   </TableCell>
                 </TableRow>

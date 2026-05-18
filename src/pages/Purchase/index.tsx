@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Card, CardContent, StatCard } from '@/components/ui/card'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
 import { DateInput } from '@/components/ui/date-input'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
@@ -19,7 +21,7 @@ import { cn, formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, ProductLot } from '@/types'
 import {
-  Search, Plus, Trash2, Package, ChevronDown, X,
+  Search, Plus, Trash2, Package, X,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle,
   PackagePlus, History,
 } from 'lucide-react'
@@ -147,11 +149,6 @@ export default function PurchasePage() {
 
   // Suppliers
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [showSupplierModal, setShowSupplierModal] = useState(false)
-  // 'receive' → sets supplierId/supplierName on the GR form; 'filter' → sets histSupplierId on the history filter
-  const [supplierPickTarget, setSupplierPickTarget] = useState<'receive' | 'filter'>('receive')
-  const [supplierQuery, setSupplierQuery] = useState('')
-  const [supplierHighlight, setSupplierHighlight] = useState(0)
 
   // Product search per row
   const [searchQueries, setSearchQueries] = useState<string[]>([''])
@@ -721,44 +718,12 @@ export default function PurchasePage() {
     }
   }
 
-  // ── Supplier modal ────────────────────────────────────────────────────────
+  // ── Supplier selection (Combobox) ─────────────────────────────────────────
 
-  const filteredSuppliers = supplierQuery.trim()
-    ? suppliers.filter(s =>
-        s.name.toLowerCase().includes(supplierQuery.toLowerCase()) ||
-        s.code?.toLowerCase().includes(supplierQuery.toLowerCase()))
-    : suppliers
-
-  const closeSupplierModal = () => { setShowSupplierModal(false); setSupplierQuery('') }
-
-  const selectSupplier = (s: Supplier) => {
-    if (supplierPickTarget === 'filter') {
-      setHistSupplierId(s.id)
-    } else {
-      setSupplierId(s.id)
-      setSupplierName(s.name)
-    }
-    closeSupplierModal()
-  }
-
-  // Filter mode only: "ทุกผู้จัดจำหน่าย" clears the history filter
-  const clearSupplierFilter = () => { setHistSupplierId(0); closeSupplierModal() }
-
-  // Which id is shown as active in the modal depends on what opened it
-  const activeSupplierId = supplierPickTarget === 'filter' ? histSupplierId : supplierId
-  const histSupplierName = suppliers.find(s => s.id === histSupplierId)?.name ?? ''
-
-  useEffect(() => { setSupplierHighlight(0) }, [supplierQuery])
-
-  useEffect(() => {
-    if (!showSupplierModal) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSupplierHighlight(h => Math.min(h + 1, filteredSuppliers.length - 1)) }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); setSupplierHighlight(h => Math.max(h - 1, 0)) }
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [showSupplierModal, filteredSuppliers.length])
+  // Currently-selected supplier objects, derived from the id state the rest of
+  // the page reads. The Combobox itself owns search/highlight/keyboard.
+  const receiveSupplier = suppliers.find(s => s.id === supplierId) ?? null
+  const histSupplier = suppliers.find(s => s.id === histSupplierId) ?? null
 
   // ── Totals ────────────────────────────────────────────────────────────────
 
@@ -935,20 +900,18 @@ export default function PurchasePage() {
                           <label className="block text-sm font-semibold text-muted-foreground mb-1.5">
                             ผู้จำหน่าย <span className="text-destructive">*</span>
                           </label>
-                          <Button
-                            type="button"
-                            variant={supplierId ? 'brand-soft' : 'outline'}
-                            onClick={() => { setSupplierPickTarget('receive'); setShowSupplierModal(true) }}
-                            className="w-full h-10 justify-between px-3 rounded-lg text-sm"
-                          >
-                            <span className="flex items-center gap-2 min-w-0">
-                              <Building2 className="size-4 shrink-0 opacity-70" />
-                              <span className={`truncate font-medium ${supplierId ? '' : 'text-foreground-subtle'}`}>
-                                {supplierName || '— เลือกผู้จำหน่าย —'}
-                              </span>
-                            </span>
-                            <ChevronDown className="size-3.5 shrink-0 opacity-60" />
-                          </Button>
+                          <Combobox
+                            items={suppliers}
+                            value={receiveSupplier}
+                            onChange={(s) => { setSupplierId(s?.id ?? 0); setSupplierName(s?.name ?? '') }}
+                            getKey={(s) => s.id}
+                            getLabel={(s) => s.name}
+                            getSublabel={(s) => s.code}
+                            icon={Building2}
+                            placeholder="— เลือกผู้จำหน่าย —"
+                            searchPlaceholder="ชื่อหรือรหัสผู้จัดจำหน่าย..."
+                            emptyText="ไม่พบผู้จัดจำหน่าย"
+                          />
                         </div>
 
                         {/* Supplier invoice no */}
@@ -1436,20 +1399,19 @@ export default function PurchasePage() {
                         </Button>
                       </div>
                       <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant={histSupplierId ? 'brand-soft' : 'outline'}
-                          onClick={() => { setSupplierPickTarget('filter'); setShowSupplierModal(true) }}
-                          className="w-full h-9 justify-between px-3 rounded-lg text-sm"
-                        >
-                          <span className="flex items-center gap-2 min-w-0">
-                            <Building2 className="size-4 shrink-0 opacity-70" />
-                            <span className={`truncate font-medium ${histSupplierId ? '' : 'text-foreground-subtle'}`}>
-                              {histSupplierName || 'ทุกผู้จัดจำหน่าย'}
-                            </span>
-                          </span>
-                          <ChevronDown className="size-3.5 shrink-0 opacity-60" />
-                        </Button>
+                        <Combobox
+                          items={suppliers}
+                          value={histSupplier}
+                          onChange={(s) => setHistSupplierId(s?.id ?? 0)}
+                          getKey={(s) => s.id}
+                          getLabel={(s) => s.name}
+                          getSublabel={(s) => s.code}
+                          icon={Building2}
+                          emptyLabel="ทุกผู้จัดจำหน่าย"
+                          searchPlaceholder="ชื่อหรือรหัสผู้จัดจำหน่าย..."
+                          emptyText="ไม่พบผู้จัดจำหน่าย"
+                          triggerClassName="h-9"
+                        />
                       </div>
                       <div className="space-y-0.5">
                         <label className="text-sm text-foreground-subtle px-0.5">ช่วงวันที่</label>
@@ -1892,115 +1854,17 @@ export default function PurchasePage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Supplier modal ── */}
-      <Dialog open={showSupplierModal} onOpenChange={(o) => { if (!o) closeSupplierModal() }}>
-        <DialogContent size="md">
-          <DialogHeader>
-            <DialogTitle className="text-xl">เลือกผู้จัดจำหน่าย</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-foreground-subtle" />
-              <Input
-                autoFocus
-                value={supplierQuery}
-                onChange={e => setSupplierQuery(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && filteredSuppliers[supplierHighlight]) {
-                    e.preventDefault()
-                    selectSupplier(filteredSuppliers[supplierHighlight])
-                  }
-                }}
-                placeholder="ชื่อหรือรหัสผู้จัดจำหน่าย..."
-                className="pl-9 h-10"
-              />
-            </div>
-            <div className="h-72 overflow-y-auto space-y-1">
-              {supplierPickTarget === 'filter' && !supplierQuery.trim() && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={clearSupplierFilter}
-                  className={`w-full h-auto min-h-[3.75rem] justify-start gap-3 px-3 py-2.5 rounded-xl text-left ${
-                    histSupplierId === 0 ? 'bg-primary-soft text-primary hover:bg-primary-soft' : ''
-                  }`}
-                >
-                  <Building2 className={`size-4 shrink-0 ${histSupplierId === 0 ? 'text-primary' : 'text-foreground-subtle'}`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold truncate">ทุกผู้จัดจำหน่าย</div>
-                  </div>
-                </Button>
-              )}
-              {filteredSuppliers.length === 0 ? (
-                <div className="text-sm text-center text-foreground-subtle py-6">ไม่พบผู้จัดจำหน่าย</div>
-              ) : filteredSuppliers.map((s, si) => (
-                <Button
-                  key={s.id}
-                  type="button"
-                  variant="ghost"
-                  onClick={() => selectSupplier(s)}
-                  className={`w-full h-auto justify-start gap-3 px-3 py-2.5 rounded-xl text-left ${
-                    s.id === activeSupplierId
-                      ? 'bg-primary-soft text-primary hover:bg-primary-soft'
-                      : si === supplierHighlight
-                      ? 'bg-card'
-                      : ''
-                  }`}
-                >
-                  <Building2 className={`size-4 shrink-0 ${s.id === activeSupplierId ? 'text-primary' : 'text-foreground-subtle'}`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold truncate">{s.name}</div>
-                    {s.code && <div className="text-sm text-foreground-subtle">{s.code}</div>}
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={closeSupplierModal}>ปิด</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Unit swap modal — same as POS ── */}
-      <Dialog open={unitModalIdx !== null} onOpenChange={(o) => { if (!o) setUnitModalIdx(null) }}>
-        {unitModalIdx !== null && rows[unitModalIdx] && (() => {
-          const row = rows[unitModalIdx]
-          return (
-            <DialogContent size="sm" onClose={() => setUnitModalIdx(null)}>
-              <DialogHeader>
-                <DialogTitle className="text-2xl">เลือกหน่วย</DialogTitle>
-                <div className="text-base font-semibold text-foreground">{row.trade_name || '-'}</div>
-              </DialogHeader>
-              <DialogBody>
-                <div className="space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
-                  {row.units.length === 0 ? (
-                    <div className="text-sm text-center text-foreground-subtle py-6">ไม่มีหน่วยให้เลือก</div>
-                  ) : row.units.map(u => {
-                    const active = row.unit_name === u.unit_name
-                    return (
-                      <Button
-                        key={u.id}
-                        variant="warm"
-                        onClick={() => changeRowUnit(unitModalIdx, u)}
-                        className={`w-full h-14 px-4 py-3 rounded-xl transition-colors ${active ? 'font-bold border-warm-foreground border-2' : ''}`}
-                      >
-                        <div className="relative flex items-center w-full">
-                          <span className="w-full text-center text-xl">{u.unit_name}</span>
-                          {u.id === -1 && <Badge variant="tertiary" className="absolute right-0 rounded-lg">หลัก</Badge>}
-                        </div>
-                      </Button>
-                    )
-                  })}
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <Button variant="tertiary" size="xl" className="w-32" onClick={() => setUnitModalIdx(null)}>ปิด</Button>
-              </DialogFooter>
-            </DialogContent>
-          )
-        })()}
-      </Dialog>
+      {/* ── Unit swap modal — shared with POS (UnitPickerDialog) ── */}
+      {unitModalIdx !== null && rows[unitModalIdx] && (
+        <UnitPickerDialog
+          open
+          onClose={() => setUnitModalIdx(null)}
+          productName={rows[unitModalIdx].trade_name || '-'}
+          units={rows[unitModalIdx].units}
+          activeUnitName={rows[unitModalIdx].unit_name}
+          onSelect={(u) => changeRowUnit(unitModalIdx, u)}
+        />
+      )}
 
       {/* ── Sell-price quick-edit modal — same as POS ── */}
       <Dialog open={priceModalIdx !== null} onOpenChange={(o) => { if (!o && !priceSaving) closePriceModal() }}>

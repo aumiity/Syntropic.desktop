@@ -82,14 +82,6 @@ export function HistoryTab({ productId, isNew, active }: Props) {
     })
     const mul = movementSort.dir === 'asc' ? 1 : -1
     return [...filtered].sort((a, b) => {
-      if (movementSort.by === 'lot_number') {
-        // Nulls sort last regardless of direction so they don't bury active lots
-        const an = a.lot_number, bn = b.lot_number
-        if (an === bn) return 0
-        if (an == null) return 1
-        if (bn == null) return -1
-        return mul * an.localeCompare(bn)
-      }
       const cmp = a.created_at.localeCompare(b.created_at)
       if (cmp !== 0) return mul * cmp
       return mul * (a.id - b.id)
@@ -113,8 +105,8 @@ export function HistoryTab({ productId, isNew, active }: Props) {
   }
 
   return (
-    <div className="pt-4">
-      <div className="bg-card rounded-card shadow-card overflow-hidden">
+    <div className="pt-4 flex-1 min-h-0 flex flex-col">
+      <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
         {/* Date range bar */}
         <div className="h-12 px-5 flex items-center gap-2 shrink-0">
           <span className="text-sm font-semibold text-muted-foreground shrink-0">ช่วงวันที่:</span>
@@ -175,7 +167,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
         {/* Table — min-w-X on each column matches the lots tab pattern:
             columns size to content with a floor; container scrolls
             horizontally only below the cumulative min-width. */}
-        <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -183,9 +175,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                   วันเวลา
                 </SortableTableHead>
                 <TableHead className="min-w-28 text-center">ประเภท</TableHead>
-                <SortableTableHead className="min-w-40 text-center" field="lot_number" align="center" sort={movementSort} onToggle={toggleMovementSort}>
-                  Lot
-                </SortableTableHead>
+                <TableHead className="min-w-40 text-center">Lot</TableHead>
                 <TableHead className="min-w-28 text-right">เปลี่ยนแปลง</TableHead>
                 <TableHead className="min-w-28 text-right">คงเหลือ</TableHead>
                 <TableHead className="min-w-40 text-center">ดูข้อมูล</TableHead>

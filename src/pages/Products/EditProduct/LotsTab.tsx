@@ -137,13 +137,13 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
   }
 
   return (
-    <div className="pt-4">
-      <div className="bg-card rounded-card shadow-card overflow-hidden">
+    <div className="pt-4 flex-1 min-h-0 flex flex-col">
+      <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center gap-2 h-12">
           <Edit className="size-4 shrink-0" />
           <span>คลิกไอคอนแก้ไขเพื่อแก้ข้อมูลล็อตโดยตรง — การเปลี่ยนจำนวนคงเหลือจะบันทึกในประวัติการเคลื่อนไหวสต็อกอัตโนมัติ</span>
         </div>
-        <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -196,7 +196,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                     <TableCell>
                       <div className="flex items-center justify-center">
                         {!lot.is_cancelled && (
-                          <Button className="w-16" size="icon-lg" variant="warm" onClick={() => startEditLot(lot)} title="แก้ไข">
+                          <Button className="w-16" size="icon-lg" variant="outline" onClick={() => startEditLot(lot)} title="แก้ไข">
                             <Edit />
                           </Button>
                         )}
