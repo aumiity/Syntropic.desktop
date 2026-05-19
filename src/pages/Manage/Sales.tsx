@@ -14,15 +14,17 @@ import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDeta
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import type { Sale } from '@/types'
 import type { ManageOutletContext } from './index'
-import { Search, TrendingUp, TrendingDown, Receipt, ShoppingBag, Ban, Wallet, Percent } from 'lucide-react'
+import { Search, Receipt, Ban, ShoppingCart, Boxes, Undo2 } from 'lucide-react'
 
+// Money lives in the table rows; the summary slot now carries only the count
+// cards, which double as the status filter. rx (ใบสั่งยา) bills have no
+// dedicated card — they're counted only in "จำนวนบิล" (all).
 interface SaleSummary {
-  total_subtotal: number
-  total_discount: number
-  total_amount: number
-  total_cost: number
-  total_profit: number
-  sale_count: number
+  count_all: number
+  count_retail: number
+  count_wholesale: number
+  count_return: number
+  count_voided: number
 }
 
 interface SaleRow extends Sale {
@@ -30,9 +32,10 @@ interface SaleRow extends Sale {
 }
 
 const EMPTY_SUMMARY: SaleSummary = {
-  total_subtotal: 0, total_discount: 0, total_amount: 0,
-  total_cost: 0, total_profit: 0, sale_count: 0,
+  count_all: 0, count_retail: 0, count_wholesale: 0, count_return: 0, count_voided: 0,
 }
+
+type StatusFilter = 'all' | 'retail' | 'wholesale' | 'return' | 'voided'
 
 const SALE_TYPE_LABELS: Record<string, string> = {
   retail: 'ปลีก', wholesale: 'ส่ง', rx: 'ใบสั่งยา', return: 'คืนสินค้า',
@@ -41,7 +44,7 @@ const SALE_TYPE_VARIANTS: Record<string, any> = {
   retail: 'secondary', wholesale: 'default', rx: 'success', return: 'warning',
 }
 
-type SortField = 'invoice_no' | 'sold_at' | 'subtotal' | 'total_amount'
+type SortField = 'invoice_no' | 'sold_at' | 'total_amount'
 type SortDir = 'asc' | 'desc'
 interface SortState { by: SortField; dir: SortDir }
 
@@ -53,6 +56,7 @@ export default function ManageSalesPage() {
   const [q, setQ] = useState('')
   const [dateFrom, setDateFrom] = useState(today)
   const [dateTo, setDateTo] = useState(today)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sort, setSort] = useState<SortState>({ by: 'sold_at', dir: 'desc' })
 
   const [rows, setRows] = useState<SaleRow[]>([])
@@ -79,6 +83,7 @@ export default function ManageSalesPage() {
         date_to: dateTo || undefined,
         sort_by: sort.by,
         sort_dir: sort.dir.toUpperCase(),
+        status_filter: statusFilter,
         page: p,
         limit: pageSize,
       }) as any
@@ -89,7 +94,7 @@ export default function ManageSalesPage() {
     } finally {
       setLoading(false)
     }
-  }, [q, dateFrom, dateTo, sort, pageSize])
+  }, [q, dateFrom, dateTo, statusFilter, sort, pageSize])
 
   useEffect(() => {
     const t = setTimeout(() => { load(1) }, 300)
@@ -122,27 +127,22 @@ export default function ManageSalesPage() {
     }
   }
 
-  const profitPct = summary.total_amount > 0
-    ? `${((summary.total_profit / summary.total_amount) * 100).toFixed(1)}%`
-    : undefined
-
-  // Push summary cards to the Reports layout slot
+  // The four count cards double as the status filter — clicking one narrows
+  // the table; the numbers themselves stay fixed to the q/date set.
   useEffect(() => {
     setSlotSummary([
-      { label: 'จำนวนบิล', value: summary.sale_count.toLocaleString(), icon: Receipt, tint: 'primary' },
-      { label: 'ยอดก่อนลด', value: formatCurrency(summary.total_subtotal), icon: ShoppingBag, tint: 'info-soft' },
-      { label: 'ส่วนลดรวม', value: formatCurrency(summary.total_discount), icon: Percent, tint: 'warning' },
-      { label: 'ยอดสุทธิ', value: formatCurrency(summary.total_amount), icon: Wallet, tint: 'primary' },
-      { label: 'ต้นทุนรวม', value: formatCurrency(summary.total_cost), icon: TrendingDown, tint: 'warm' },
-      {
-        label: 'กำไรสุทธิ',
-        value: formatCurrency(summary.total_profit),
-        sub: profitPct,
-        icon: TrendingUp,
-        tint: summary.total_profit >= 0 ? 'success' : 'destructive',
-      },
+      { label: 'จำนวนบิล', value: summary.count_all.toLocaleString(), icon: Receipt, tint: 'primary',
+        onClick: () => setStatusFilter('all'), isActive: statusFilter === 'all' },
+      { label: 'ขายปลีก', value: summary.count_retail.toLocaleString(), icon: ShoppingCart, tint: 'success',
+        onClick: () => setStatusFilter('retail'), isActive: statusFilter === 'retail' },
+      { label: 'ขายส่ง', value: summary.count_wholesale.toLocaleString(), icon: Boxes, tint: 'info-soft',
+        onClick: () => setStatusFilter('wholesale'), isActive: statusFilter === 'wholesale' },
+      { label: 'รับคืนสินค้า', value: summary.count_return.toLocaleString(), icon: Undo2, tint: 'warm',
+        onClick: () => setStatusFilter('return'), isActive: statusFilter === 'return' },
+      { label: 'ยกเลิก', value: summary.count_voided.toLocaleString(), icon: Ban, tint: 'destructive',
+        onClick: () => setStatusFilter('voided'), isActive: statusFilter === 'voided' },
     ])
-  }, [summary, profitPct, setSlotSummary])
+  }, [summary, statusFilter, setSlotSummary])
 
   return (
     <>
@@ -161,7 +161,7 @@ export default function ManageSalesPage() {
           from={dateFrom}
           to={dateTo}
           onChange={(f, t) => { setDateFrom(f); setDateTo(t) }}
-          className="h-10 w-72"
+          className="h-10 w-72 bg-card hover:bg-surface-hover"
         />
       </div>
 
@@ -175,12 +175,10 @@ export default function ManageSalesPage() {
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
+                <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="w-36">วันที่/เวลา</SortableTableHead>
                 <SortableTableHead field="invoice_no" sort={sort} onToggle={toggleSort} className="w-36">เลขบิล</SortableTableHead>
-                <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="w-44">วันที่/เวลา</SortableTableHead>
                 <TableHead className="w-48">ลูกค้า</TableHead>
                 <TableHead className="text-center w-24">ประเภท</TableHead>
-                <SortableTableHead field="subtotal" align="right" sort={sort} onToggle={toggleSort} className="w-32">ยอดก่อนลด</SortableTableHead>
-                <TableHead className="text-right w-28">ส่วนลด</TableHead>
                 <SortableTableHead field="total_amount" align="right" sort={sort} onToggle={toggleSort} className="w-32">ยอดสุทธิ</SortableTableHead>
                 <TableHead className="text-center w-24">สถานะ</TableHead>
                 <TableHead className="text-center w-40">จัดการ</TableHead>
@@ -189,19 +187,19 @@ export default function ManageSalesPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-16">
                     <Receipt className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูล
                   </TableCell>
                 </TableRow>
               ) : rows.map(s => (
                 <TableRow key={s.id} className={s.status === 'voided' ? 'opacity-60' : ''}>
-                  <TableCell className="font-mono text-sm">{s.invoice_no}</TableCell>
                   <TableCell className="text-sm whitespace-nowrap">{formatDateTime(s.sold_at)}</TableCell>
+                  <TableCell className="font-mono text-sm">{s.invoice_no}</TableCell>
                   <TableCell className="text-sm truncate" title={s.customer_name ?? s.customer_name_free ?? ''}>
                     {s.customer_name ?? s.customer_name_free ?? <span className="text-foreground-subtle">—</span>}
                   </TableCell>
@@ -209,12 +207,6 @@ export default function ManageSalesPage() {
                     <Badge variant={SALE_TYPE_VARIANTS[s.sale_type] ?? 'secondary'}>
                       {SALE_TYPE_LABELS[s.sale_type] ?? s.sale_type}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
-                    {formatCurrency(s.subtotal)}
-                  </TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-warning-strong">
-                    {s.total_discount > 0 ? `-${formatCurrency(s.total_discount)}` : <span className="text-foreground-subtle">—</span>}
                   </TableCell>
                   <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">
                     {formatCurrency(s.total_amount)}

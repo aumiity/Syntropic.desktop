@@ -6,6 +6,7 @@
 ## ⚠️ Next session:
 ##   1. **Click-test Phase 1–4** — /manage 4 tabs (sales w/ void; purchases w/ payment cards + receipt + edit + cancel GR; low-stock w/ search+shortfall+ไปหน้ารับสินค้า; expiry); `/purchase` pure receive flow; **/reports** (date range → 6 finance cards + payment-mix + daily trend; เจ้าหนี้การค้า aging buckets + outstanding list). Old /reports bookmarks now hit the real page (redirects removed).
 ##   2. **Phase 5** — รายงาน อย. (greenfield, blocked: needs the exact อย. forms/columns from the operator).
+##   3. **When real login lands: delete the ⚠️ DEV-ONLY role toggle in `Reports/Finance.tsx`** (2 marked spots — see "Reports/Finance — 7-day access gate" 2026-05-19).
 ## (Carried over, lower priority: click-test EditProduct split [2026-05-17]; cost-audit Manage/Sales+Expiry; table-card sweep of Settings/index.tsx.)
 
 ---
@@ -80,6 +81,13 @@ Gotchas: `Purchase/index.tsx` shares `suppliers`, `today`, toast, refocus helper
 ### 🚧 Phase 5 — รายงาน อย. (placeholder shipped; build blocked on spec)
 **Placeholder DONE (2026-05-19):** `src/pages/Reports/FdaReports.tsx` — an "อยู่ระหว่างพัฒนา" under-construction stub (Construction icon + warning Badge + the 3 planned sub-areas as muted chips), registered as the 3rd Reports tab `รายงาน อย.` (`/reports/fda`, icon `ShieldCheck`) + `resolveTab` + `App.tsx` route. Clears the summary slot. Keeps the feature visible so it isn't forgotten.
 **Still TODO (the real work):** Controlled-drug registers (บ.ย.*), temperature logs, future regulatory exports. Build when the operator provides the exact อย. forms/columns required. New IPCs + likely new tables (e.g. temperature_logs). Replace the stub body with the real reports.
+
+### 🔒 Reports/Finance — 7-day access gate + DEV role toggle (2026-05-19)
+**`src/pages/Reports/Finance.tsx`:**
+- **Default range changed** month-start→today ➜ **7 วันล่าสุด** (`daysAgoIso(FREE_RANGE_DAYS-1)`→today; `FREE_RANGE_DAYS=7`, inclusive — matches the DateRangePicker "7 วันล่าสุด" preset). *(Supersedes the "default = month-start→today" note in Phase 4.)*
+- **Owner-only history gate.** Non-admin selecting a range > 7 inclusive days → `handleRangeChange` clamps back to 7 days (anchored on the chosen end date) + error toast "ดูข้อมูลย้อนหลังได้สูงสุด 7 วัน — ช่วงที่กว้างกว่านี้ต้องใช้สิทธิ์เจ้าของร้าน". `isOwner = userStore.current?.role === 'admin'` ("เจ้าของร้าน" maps to role `admin` — no separate `owner` role exists; roles are admin/pharmacist/staff). **Client-side only** (chosen UX) — the `reports:financeSummary` / `salesPurchaseTrend` IPCs still accept any range; harden backend later if direct-IPC abuse matters. Single-point change if a real `owner` role lands: the `isOwner` line.
+- **⚠️ DEV-ONLY role toggle button** added to the toolbar (renderer-only hack). `auth:getCurrentUser` (electron/ipc/auth.ts) has no real login yet — it hardcodes the seeded `staff@syntropic.local` (role `staff`), so the default user is always blocked at 7 days. Button flips `userStore.current.role` staff↔admin in-place (persisted via zustand-persist, survives reload; does NOT touch backend/auth.ts/audit trail). **Marked `⚠️ DEV ONLY` in 2 spots to delete when real login lands:** (1) the `devUser/devSetCurrent/devToggleRole` block under `isOwner`, (2) the `{/* ⚠️ DEV ONLY ... */}` button in the toolbar. The 7-day gate logic stays after removal.
+- `npx tsc --noEmit` clean for Finance.tsx. **Not click-tested yet.**
 
 ---
 

@@ -4,8 +4,10 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { useToast } from '@/components/ui/toast'
+import { useUserStore } from '@/stores/userStore'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { ReportsOutletContext } from './index'
 import {
@@ -47,9 +49,19 @@ const EMPTY: FinanceSummary = {
   payable_total: 0, payable_count: 0,
 }
 
-function monthStart(): string {
+// Default window = 7 วันล่าสุด (รวมวันนี้). ตรงกับ preset "7 วันล่าสุด" ใน DateRangePicker.
+const FREE_RANGE_DAYS = 7
+
+function daysAgoIso(n: number): string {
   const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+  d.setDate(d.getDate() - n)
+  return d.toISOString().slice(0, 10)
+}
+
+// จำนวนวันแบบนับรวมหัวท้าย (inclusive) ของช่วง ISO yyyy-mm-dd
+function inclusiveDayCount(from: string, to: string): number {
+  const ms = new Date(to).getTime() - new Date(from).getTime()
+  return Math.round(ms / 86_400_000) + 1
 }
 
 // Plain render helper (NOT a component — keeps page free of local JSX components)
@@ -65,9 +77,19 @@ function payRow(label: string, value: number, muted = false) {
 export default function ReportsFinancePage() {
   const { toast } = useToast()
   const { setSummary } = useOutletContext<ReportsOutletContext>()
+  const isOwner = useUserStore(s => s.current?.role === 'admin')
+
+  // ⚠️ DEV ONLY — สลับ role ไว้ทดสอบสิทธิ์ ก่อนระบบ login จริงจะมา.
+  // ลบทั้งบล็อกนี้ + ปุ่มในแถบ toolbar ทิ้งเมื่อทำ login เสร็จ.
+  const devUser = useUserStore(s => s.current)
+  const devSetCurrent = useUserStore(s => s.setCurrent)
+  const devToggleRole = () => {
+    const base = devUser ?? { id: 0, name: 'Dev', email: 'dev@local', role: 'staff' }
+    devSetCurrent({ ...base, role: base.role === 'admin' ? 'staff' : 'admin' })
+  }
 
   const today = new Date().toISOString().slice(0, 10)
-  const [dateFrom, setDateFrom] = useState(monthStart())
+  const [dateFrom, setDateFrom] = useState(daysAgoIso(FREE_RANGE_DAYS - 1))
   const [dateTo, setDateTo] = useState(today)
 
   const [sum, setSum] = useState<FinanceSummary>(EMPTY)
@@ -89,6 +111,21 @@ export default function ReportsFinancePage() {
       setLoading(false)
     }
   }, [dateFrom, dateTo])
+
+  // เฉพาะ admin (เจ้าของร้าน) เท่านั้นที่ดูย้อนหลังเกิน 7 วันได้.
+  // ผู้ใช้อื่นเลือกช่วงกว้างกว่านั้น → เด้งกลับเป็น 7 วัน (อิงวันสิ้นสุดที่เลือก) + แจ้งเตือน.
+  const handleRangeChange = useCallback((f: string, t: string) => {
+    if (!isOwner && f && t && inclusiveDayCount(f, t) > FREE_RANGE_DAYS) {
+      const clampedFrom = new Date(t)
+      clampedFrom.setDate(clampedFrom.getDate() - (FREE_RANGE_DAYS - 1))
+      setDateFrom(clampedFrom.toISOString().slice(0, 10))
+      setDateTo(t)
+      toast(`ดูข้อมูลย้อนหลังได้สูงสุด ${FREE_RANGE_DAYS} วัน — ช่วงที่กว้างกว่านี้ต้องใช้สิทธิ์เจ้าของร้าน`, 'error')
+      return
+    }
+    setDateFrom(f)
+    setDateTo(t)
+  }, [isOwner, toast])
 
   useEffect(() => {
     const t = setTimeout(() => { load() }, 250)
@@ -129,12 +166,23 @@ export default function ReportsFinancePage() {
         <DateRangePicker
           from={dateFrom}
           to={dateTo}
-          onChange={(f, t) => { setDateFrom(f); setDateTo(t) }}
+          onChange={handleRangeChange}
           className="h-10 w-72"
         />
         <span className="text-sm text-muted-foreground">
           {loading ? 'กำลังโหลด...' : `${formatDate(dateFrom)} – ${formatDate(dateTo)}`}
         </span>
+
+        {/* ⚠️ DEV ONLY — ปุ่มทดสอบสลับสิทธิ์ ลบทิ้งเมื่อมีระบบ login จริง */}
+        <Button
+          variant={isOwner ? 'success' : 'warm'}
+          size="lg"
+          onClick={devToggleRole}
+          className="ml-auto"
+          title="ปุ่มทดสอบ — ลบเมื่อทำ login เสร็จ"
+        >
+          DEV: สลับเป็น {isOwner ? 'staff (พนักงาน)' : 'admin (เจ้าของร้าน)'}
+        </Button>
       </div>
 
       {/* Payment mix */}

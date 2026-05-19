@@ -4,7 +4,6 @@ import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { StatCard } from '@/components/ui/card'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { DateInput } from '@/components/ui/date-input'
@@ -91,11 +90,6 @@ export default function ManagePurchasesPage() {
   const [editPaidDate, setEditPaidDate] = useState('')
   const [editSaving, setEditSaving] = useState(false)
 
-  // This tab has no MetricCard-style finance summary — it uses interactive
-  // status-filter StatCards in the body instead. Clear the shared slot so a
-  // sibling tab's cards don't bleed through.
-  useEffect(() => { setSlotSummary(null) }, [setSlotSummary])
-
   const loadSuppliers = async () => {
     const data = await window.api.people.allSuppliers()
     setSuppliers(data as Supplier[])
@@ -137,6 +131,26 @@ export default function ManagePurchasesPage() {
       setLoadingHist(false)
     }
   }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, histPageSize, selectedInvoice])
+
+  // Status-filter StatCards live in the shared summary slot (top, above the
+  // Tabs) — same as the other tabs, so the table-card sits flush at the top.
+  // Must sit after loadHistory: it's a const useCallback, not hoisted.
+  useEffect(() => {
+    setSlotSummary(([
+      { v: 'all',       label: 'ทั้งหมด',     count: histSummary.count,           icon: FileText,      tint: 'secondary' },
+      { v: 'cash',      label: 'เงินสด',       count: histSummary.cash_count,      icon: Banknote,      tint: 'primary' },
+      { v: 'credit',    label: 'เครดิตทั้งหมด', count: histSummary.credit_count,    icon: CreditCard,    tint: 'warm' },
+      { v: 'unpaid',    label: 'ค้างชำระ',     count: histSummary.unpaid_count,    icon: AlertTriangle, tint: 'warning' },
+      { v: 'cancelled', label: 'ยกเลิก',       count: histSummary.cancelled_count, icon: Ban,           tint: 'destructive' },
+    ] as const).map(c => ({
+      label: c.label,
+      value: c.count.toLocaleString(),
+      icon: c.icon,
+      tint: c.tint,
+      onClick: () => { setHistPaymentFilter(c.v); loadHistory(1, c.v, undefined, true) },
+      isActive: histPaymentFilter === c.v,
+    })))
+  }, [histSummary, histPaymentFilter, loadHistory, setSlotSummary])
 
   useEffect(() => {
     loadSuppliers()
@@ -271,27 +285,6 @@ export default function ManagePurchasesPage() {
 
   return (
     <>
-      {/* ── Status filter cards (counts only — no finance figures) ── */}
-      <div className="grid grid-cols-5 gap-3 shrink-0 p-1">
-        {([
-          { v: 'all',       label: 'ทั้งหมด',     count: histSummary.count,           icon: FileText,       tint: 'secondary' },
-          { v: 'cash',      label: 'เงินสด',       count: histSummary.cash_count,      icon: Banknote,       tint: 'primary' },
-          { v: 'credit',    label: 'เครดิตทั้งหมด', count: histSummary.credit_count,    icon: CreditCard,     tint: 'warm' },
-          { v: 'unpaid',    label: 'ค้างชำระ',     count: histSummary.unpaid_count,    icon: AlertTriangle,  tint: 'warning' },
-          { v: 'cancelled', label: 'ยกเลิก',       count: histSummary.cancelled_count, icon: Ban,            tint: 'destructive' },
-        ] as const).map(c => (
-          <StatCard
-            key={c.v}
-            label={c.label}
-            value={c.count.toLocaleString()}
-            icon={c.icon}
-            tint={c.tint}
-            isActive={histPaymentFilter === c.v}
-            onClick={() => { setHistPaymentFilter(c.v); loadHistory(1, c.v, undefined, true) }}
-          />
-        ))}
-      </div>
-
       {/* ── Full-width history table-card ── */}
       <div className="flex flex-1 flex-col bg-card rounded-card shadow-card overflow-hidden min-h-0">
 

@@ -6,19 +6,34 @@ export function registerReportHandlers() {
     q?: string; date_from?: string; date_to?: string
     sort_by?: string; sort_dir?: string; page?: number
     limit?: number | 'all'
+    status_filter?: 'all' | 'retail' | 'wholesale' | 'return' | 'voided'
   }) => {
     const db = getDb()
-    const { q, date_from, date_to, sort_by = 'sold_at', sort_dir = 'DESC', page = 1, limit: limitOpt } = filters
+    const { q, date_from, date_to, sort_by = 'sold_at', sort_dir = 'DESC', page = 1, limit: limitOpt, status_filter = 'all' } = filters
     const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 30)
     const offset = limit ? (page - 1) * limit : 0
-    const conditions = [`s.status != 'voided'`]
+
+    // q/date scope the whole card row; the status filter only narrows the
+    // rows/total — the four count cards always reflect the full q/date set
+    // so clicking one card never moves the others' numbers.
+    const baseConditions: string[] = []
     const params: any[] = []
 
-    if (q) { conditions.push(`(s.invoice_no LIKE ? OR c.full_name LIKE ? OR s.customer_name_free LIKE ?)`); const lq = `%${q}%`; params.push(lq, lq, lq) }
-    if (date_from) { conditions.push(`date(s.sold_at) >= ?`); params.push(date_from) }
-    if (date_to) { conditions.push(`date(s.sold_at) <= ?`); params.push(date_to) }
+    if (q) { baseConditions.push(`(s.invoice_no LIKE ? OR c.full_name LIKE ? OR s.customer_name_free LIKE ?)`); const lq = `%${q}%`; params.push(lq, lq, lq) }
+    if (date_from) { baseConditions.push(`date(s.sold_at) >= ?`); params.push(date_from) }
+    if (date_to) { baseConditions.push(`date(s.sold_at) <= ?`); params.push(date_to) }
 
-    const where = `WHERE ${conditions.join(' AND ')}`
+    // Status slice has no bind params — safe to AND on as a literal fragment.
+    const statusCond =
+      status_filter === 'retail' ? `s.status != 'voided' AND s.sale_type = 'retail'`
+      : status_filter === 'wholesale' ? `s.status != 'voided' AND s.sale_type = 'wholesale'`
+      : status_filter === 'return' ? `s.status != 'voided' AND s.sale_type = 'return'`
+      : status_filter === 'voided' ? `s.status = 'voided'`
+      : null // 'all' (includes rx + voided — rx has no dedicated card)
+
+    const rowConditions = statusCond ? [...baseConditions, statusCond] : baseConditions
+    const where = rowConditions.length ? `WHERE ${rowConditions.join(' AND ')}` : ''
+    const baseWhere = baseConditions.length ? `WHERE ${baseConditions.join(' AND ')}` : ''
     const validSorts = ['sold_at', 'invoice_no', 'subtotal', 'total_discount', 'total_amount']
     const sortCol = validSorts.includes(sort_by) ? `s.${sort_by}` : 's.sold_at'
     const sortDirection = sort_dir === 'ASC' ? 'ASC' : 'DESC'
@@ -53,6 +68,23 @@ export function registerReportHandlers() {
     `).get(...params) as any
 
     summary.total_profit = summary.total_amount - summary.total_cost
+
+    // Card counts — partition over the q/date set only (ignores status_filter).
+    // retail + wholesale + rx + return = non-voided; + voided = all. rx has no
+    // dedicated card (lives only inside count_all), so the visible cards don't
+    // sum to count_all by design; a voided row counts as voided only.
+    const counts = db.prepare(`
+      SELECT
+        COUNT(*) as count_all,
+        SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'retail' THEN 1 ELSE 0 END) as count_retail,
+        SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'wholesale' THEN 1 ELSE 0 END) as count_wholesale,
+        SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'return' THEN 1 ELSE 0 END) as count_return,
+        SUM(CASE WHEN s.status = 'voided' THEN 1 ELSE 0 END) as count_voided
+      FROM sales s
+      LEFT JOIN customers c ON c.id = s.customer_id
+      ${baseWhere}
+    `).get(...params) as any
+    Object.assign(summary, counts)
 
     const total = (db.prepare(`SELECT COUNT(*) as c FROM sales s LEFT JOIN customers c ON c.id = s.customer_id ${where}`).get(...params) as any).c
     return { rows, summary, total, page, limit: limit ?? total }
