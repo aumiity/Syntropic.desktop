@@ -2,21 +2,24 @@ import React, { useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { Receipt, CalendarClock } from 'lucide-react'
+import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
+import { Receipt, CalendarClock, PackagePlus, PackageX } from 'lucide-react'
 
-// Phase 1: ประวัติการขาย + ใกล้หมดอายุ.
-// Phase 2 adds ประวัติการซื้อ (extracted from Purchase/index.tsx);
-// Phase 3 adds ต่ำกว่าจุดสั่งซื้อ. See PROGRESS.md.
+// Phase 1: ประวัติการขาย + ใกล้หมดอายุ. Phase 2: + ประวัติการซื้อ.
+// Phase 3: + ต่ำกว่าจุดสั่งซื้อ. See PROGRESS.md.
 const TABS = [
-  { value: 'sales',  to: '/manage',        label: 'ประวัติการขาย', icon: Receipt },
-  { value: 'expiry', to: '/manage/expiry', label: 'ใกล้หมดอายุ',   icon: CalendarClock },
+  { value: 'sales',     to: '/manage',           label: 'ประวัติการขาย', icon: Receipt },
+  { value: 'purchases', to: '/manage/purchases', label: 'ประวัติการซื้อ', icon: PackagePlus },
+  { value: 'low-stock', to: '/manage/low-stock', label: 'ต่ำกว่าจุดสั่งซื้อ', icon: PackageX },
+  { value: 'expiry',    to: '/manage/expiry',    label: 'ใกล้หมดอายุ',   icon: CalendarClock },
 ] as const
 
 type TabValue = typeof TABS[number]['value']
 
 function resolveTab(pathname: string): TabValue {
   if (pathname.startsWith('/manage/expiry')) return 'expiry'
+  if (pathname.startsWith('/manage/purchases')) return 'purchases'
+  if (pathname.startsWith('/manage/low-stock')) return 'low-stock'
   return 'sales'
 }
 
@@ -26,6 +29,10 @@ export interface ManageSummaryCard {
   sub?: string
   icon: React.ComponentType<{ className?: string }>
   tint: MetricTint
+  // When set, the card renders as a clickable StatCard filter shortcut
+  // (active = ring) instead of a passive MetricCard.
+  onClick?: () => void
+  isActive?: boolean
 }
 
 export interface ManageOutletContext {
@@ -54,7 +61,9 @@ export default function ManageLayout() {
 
       {summary && summary.length > 0 && (
         <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>
-          {summary.map((c, i) => <MetricCard key={i} {...c} />)}
+          {summary.map((c, i) => c.onClick
+            ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
+            : <MetricCard key={i} {...c} />)}
         </div>
       )}
 

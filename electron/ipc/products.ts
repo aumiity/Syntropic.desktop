@@ -114,6 +114,53 @@ export function registerProductHandlers() {
     return { out, low, total_all }
   })
 
+  // Reorder worklist: products at/below their reorder point. Flat (no pagination,
+  // like reports:expiringLots) — it's an actionable purchasing list, sorted by
+  // the biggest gap first. Only products with reorder_point > 0 qualify.
+  ipcMain.handle('products:lowStock', (_e, filters: {
+    q?: string; category_id?: number; include_disabled?: boolean
+  }) => {
+    const db = getDb()
+    const { q, category_id, include_disabled } = filters
+    const conditions: string[] = []
+    const params: any[] = []
+
+    if (!include_disabled) conditions.push(`p.is_disabled = 0`)
+    if (q) {
+      conditions.push(`(p.trade_name LIKE ? OR p.barcode LIKE ? OR p.code LIKE ? OR p.search_keywords LIKE ?)`)
+      const lq = `%${q}%`
+      params.push(lq, lq, lq, lq)
+    }
+    if (category_id) { conditions.push(`p.category_id = ?`); params.push(category_id) }
+
+    // Same SUM-of-open-lots expression as products:list / stockStats.
+    const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
+    conditions.push(`p.reorder_point > 0`)
+    conditions.push(`${stockExpr} <= p.reorder_point`)
+    const where = `WHERE ${conditions.join(' AND ')}`
+
+    const rows = db.prepare(`
+      SELECT p.id as product_id, p.code, p.trade_name,
+             p.reorder_point, p.safety_stock,
+             u.name as unit_name, c.name as category_name,
+             ${stockExpr} as stock_qty,
+             (p.reorder_point - ${stockExpr}) as shortfall,
+             (SELECT s.name FROM product_lots pl
+                JOIN suppliers s ON s.id = pl.supplier_id
+                WHERE pl.product_id = p.id AND pl.supplier_id IS NOT NULL
+                ORDER BY pl.created_at DESC LIMIT 1) as last_supplier_name
+      FROM products p
+      LEFT JOIN product_categories c ON c.id = p.category_id
+      LEFT JOIN item_units u ON u.id = p.unit_id
+      ${where}
+      ORDER BY shortfall DESC, p.trade_name ASC
+    `).all(...params) as any[]
+
+    const out_count = rows.filter(r => r.stock_qty <= 0).length
+    const total_shortfall = rows.reduce((s, r) => s + Math.max(0, r.shortfall), 0)
+    return { rows, count: rows.length, out_count, total_shortfall }
+  })
+
   ipcMain.handle('products:get', (_e, id: number) => {
     const db = getDb()
     const product = db.prepare(`

@@ -13,6 +13,7 @@ const api = {
   // Products
   products: {
     list: (filters: any) => ipcRenderer.invoke('products:list', filters),
+    lowStock: (filters: any) => ipcRenderer.invoke('products:lowStock', filters),
     get: (id: number) => ipcRenderer.invoke('products:get', id),
     create: (data: any) => ipcRenderer.invoke('products:create', data),
     update: (id: number, data: any) => ipcRenderer.invoke('products:update', id, data),
@@ -72,8 +73,10 @@ const api = {
     getSale: (id: number) => ipcRenderer.invoke('reports:getSale', id),
     getSaleByInvoice: (invoiceNo: string) => ipcRenderer.invoke('reports:getSaleByInvoice', invoiceNo),
     voidSale: (id: number, reason: string) => ipcRenderer.invoke('reports:voidSale', id, reason),
-    purchaseList: (filters: any) => ipcRenderer.invoke('reports:purchaseList', filters),
     expiringLots: (filters: any) => ipcRenderer.invoke('reports:expiringLots', filters),
+    financeSummary: (filters: any) => ipcRenderer.invoke('reports:financeSummary', filters),
+    salesPurchaseTrend: (filters: any) => ipcRenderer.invoke('reports:salesPurchaseTrend', filters),
+    accountsPayable: () => ipcRenderer.invoke('reports:accountsPayable'),
   },
   // Settings
   settings: {

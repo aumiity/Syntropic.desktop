@@ -1,13 +1,12 @@
 # Syntropic Desktop - Build Progress
 
-## Status: ✅ Runnable — **Manage/Reports restructure Phase 1 done.** New `/manage` section ("ประวัติ & สต็อก") created; Sales + Expiry relocated there; redundant `Reports/Purchases.tsx` deleted; old `/reports*` links redirect to `/manage`. Type-clean. **Not click-tested yet.**
+## Status: ✅ Runnable — **Manage/Reports restructure Phase 1–4 done; Phase 5 placeholder shipped.** `/manage` has 4 tabs (ประวัติการขาย / ประวัติการซื้อ / ต่ำกว่าจุดสั่งซื้อ / ใกล้หมดอายุ); `/purchase` is receive-form-only; **`/reports` rebuilt as finance dashboard** (ภาพรวมการเงิน + เจ้าหนี้การค้า, 3 new aggregate IPCs) + a 3rd **รายงาน อย.** tab that's an under-construction stub; "รายงาน" back in Sidebar. Type-clean. **Phase 1–4 not click-tested yet.** Phase 5 real build still blocked on อย. spec.
 ## Last updated: 2026-05-19
 ## Run: `npm run electron:dev`
-## ⚠️ Next session — Manage/Reports restructure (see "Session 2026-05-19" below for the FULL plan):
-##   1. **Click-test Phase 1** — sidebar "ประวัติ & สต็อก" → /manage; both tabs (ประวัติการขาย w/ void, ใกล้หมดอายุ); old /reports URL redirects.
-##   2. **Phase 2 (the big one)** — extract the ประวัติการซื้อ tab out of `Purchase/index.tsx` (2,265-LOC monolith) into `/manage`; `/purchase` becomes receive-form-only (no Tabs). Separate PR. Detailed steps below.
-##   3. **Phase 3** — new "ต่ำกว่าจุดสั่งซื้อ" tab in /manage (query `reorder_point`).
-##   4. **Phase 4–5** — rebuild `/reports` as finance dashboard, then อย. compliance reports (greenfield).
+## ⚠️ Next session:
+##   1. **Click-test Phase 1–4** — /manage 4 tabs (sales w/ void; purchases w/ payment cards + receipt + edit + cancel GR; low-stock w/ search+shortfall+ไปหน้ารับสินค้า; expiry); `/purchase` pure receive flow; **/reports** (date range → 6 finance cards + payment-mix + daily trend; เจ้าหนี้การค้า aging buckets + outstanding list). Old /reports bookmarks now hit the real page (redirects removed).
+##   2. **Phase 5** — รายงาน อย. (greenfield, blocked: needs the exact อย. forms/columns from the operator).
+##   3. **When real login lands: delete the ⚠️ DEV-ONLY role toggle in `Reports/Finance.tsx`** (2 marked spots — see "Reports/Finance — 7-day access gate" 2026-05-19).
 ## (Carried over, lower priority: click-test EditProduct split [2026-05-17]; cost-audit Manage/Sales+Expiry; table-card sweep of Settings/index.tsx.)
 ## 🔧 TODO (independent, can do anytime): **Fix POS "ยกเลิกบิล" button** — see "Session 2026-05-19b" below. Self-contained, no schema/IPC change.
 ## 🆕 FEATURE (planned & approved, NOT started): **ระบบชุดสินค้า (Product Bundle / Kit)** — see "Session 2026-05-19c" below. Full self-contained design; implement **Phase 1**. Touches schema + IPC + UI. Read that whole section before coding.
@@ -156,11 +155,11 @@ Sidebar
 ├── ประวัติ & สต็อก /manage        ← NEW operational workbench (this restructure)
 │   ├── ประวัติการขาย      /manage           (Sales — keeps void) ✅ Phase 1
 │   ├── ใกล้หมดอายุ         /manage/expiry    (Expiry)            ✅ Phase 1
-│   ├── ประวัติการซื้อ      /manage/purchases (from Purchase tab) ⬜ Phase 2
-│   └── ต่ำกว่าจุดสั่งซื้อ   /manage/low-stock (new)              ⬜ Phase 3
+│   ├── ประวัติการซื้อ      /manage/purchases (from Purchase tab) ✅ Phase 2
+│   └── ต่ำกว่าจุดสั่งซื้อ   /manage/low-stock (new)              ✅ Phase 3
 ├── รายงาน         /reports       ← Phase 4+: REBUILT as analytics/compliance
-│   ├── การเงิน            finance dashboard          ⬜ Phase 4
-│   └── รายงาน อย.         controlled-drug reg / temp ⬜ Phase 5 (needs อย. spec)
+│   ├── การเงิน            finance dashboard          ✅ Phase 4
+│   └── รายงาน อย.         controlled-drug reg / temp 🚧 Phase 5 (placeholder; needs อย. spec)
 └── ตั้งค่า         /settings      unchanged
 ```
 Operator decisions locked: (a) `/purchase` becomes receive-form-only after Phase 2 (history NOT duplicated, NOT linked-back — fully relocated). (b) Menu label = **"ประวัติ & สต็อก"** (icon `ClipboardList`). (c) Reports section is retired now, rebuilt greenfield in Phase 4–5.
@@ -174,7 +173,11 @@ Operator decisions locked: (a) `/purchase` becomes receive-form-only after Phase
 - `npx tsc --noEmit` clean for changed files.
 - **Untouched on purpose:** `Purchase/index.tsx` still has its own history tab (its relocation is Phase 2 — Phase 1 didn't break it, just didn't move it yet). The `reports:purchaseList` IPC (`electron/ipc/reports.ts:187`) is now **dead code** — leave it; Phase 2 will decide reuse vs. delete.
 
-### ⬜ Phase 2 — extract ประวัติการซื้อ from Purchase/index.tsx (BIGGEST RISK — separate PR)
+### ✅ Phase 2 — DONE (2026-05-19) — extracted ประวัติการซื้อ from Purchase/index.tsx
+**Outcome:** `src/pages/Manage/Purchases.tsx` created (owns its history list, receipt dialog, edit-bill modal, cancel-GR modal — copied state/handlers, nothing shared via context). `Purchase/index.tsx` gutted **2,260 → 1,537 LOC** (−736): Tabs scaffold/`activeTab`/history TabsContent/3 dialogs removed; receive content reparented into a plain `<div className="flex-1 min-h-0 flex flex-col">`; receive flow (invoiceNo, rows, suppliers, unit/price/bill-adjust/import/success modals) byte-for-byte untouched; dead imports pruned. Tab registered in `Manage/index.tsx` TABS (`purchases`, icon `PackagePlus`) + `resolveTab` + `App.tsx` route `/manage/purchases`. New tab uses `purchase:history`; dead `reports:purchaseList` deleted from `reports.ts` + `preload.ts` (no type decl existed; zero refs remain). Status-filter cards kept as **in-body interactive `StatCard`s** (not the layout's passive MetricCard slot — slot is cleared via `setSlotSummary(null)`). `npx tsc --noEmit` clean (only 4 pre-existing unrelated errors in dialog.tsx/EditProduct/themeStore). **Not click-tested yet** — verify both `/purchase` (pure receive) and `/manage/purchases` (filters, payment cards, view receipt, edit bill, cancel GR + blocker list).
+
+<details><summary>Original plan (for reference)</summary>
+
 `src/pages/Purchase/index.tsx` is a 2,265-LOC monolith. The history tab is deeply coupled. **Use the EditProduct-split precedent (Session 2026-05-17): the extracted view OWNS its own modal/dialog state, parent passes nothing it doesn't need.**
 Steps:
 1. **Create `src/pages/Manage/Purchases.tsx`** consuming `ManageOutletContext` (mirror `Manage/Sales.tsx` shape: toolbar → summary cards via `setSummary` → table-card → pagination). Add the `purchases` entry back to `TABS` in `Manage/index.tsx` (`/manage/purchases`, icon `PackagePlus`) and a `resolveTab` branch.
@@ -184,14 +187,36 @@ Steps:
 5. tsc clean; click-test BOTH: `/purchase` (pure receive flow end-to-end) and `/manage/purchases` (filters, payment cards, view receipt, edit bill, cancel GR + blocker list).
 Gotchas: `Purchase/index.tsx` shares `suppliers`, `today`, toast, refocus helpers between receive & history — the extracted file needs its own copies (don't try to share via context; copy, like EditProduct tabs did). The receive-items grid is the deliberate `table-fixed`+`w-[%]` exception (CLAUDE.md) — don't touch it.
 
-### ⬜ Phase 3 — "ต่ำกว่าจุดสั่งซื้อ" tab
+</details>
+
+### ✅ Phase 3 — DONE (2026-05-19) — "ต่ำกว่าจุดสั่งซื้อ" tab
+**Outcome:** new thin IPC `products:lowStock` (`electron/ipc/products.ts`, after `stockStats`) — flat array (no pagination, like `reports:expiringLots`), products where `reorder_point > 0 AND open-lot-sum <= reorder_point`, `ORDER BY shortfall DESC, trade_name`; returns `{ rows, count, out_count, total_shortfall }`; each row has `stock_qty`, `shortfall`, `last_supplier_name` (correlated subquery: most recent lot's supplier). `q` + `category_id` + `include_disabled` filters reuse the products:list WHERE shape. Preload binding added (`products.lowStock`). New page `src/pages/Manage/LowStock.tsx` mirrors `Manage/Expiry.tsx` (category Select + debounced search toolbar + "ไปหน้ารับสินค้า" → `navigate('/purchase')`; 3 summary cards via `setSummary`: ต้องสั่งซื้อ / หมดสต็อก / ขาดรวม; `table-fixed` list, out-of-stock rows tinted `bg-destructive-soft/30`). Registered: `Manage/index.tsx` TABS (`low-stock`, icon `PackageX`, between purchases & expiry) + `resolveTab` + `App.tsx` route `/manage/low-stock`. `npx tsc --noEmit` clean (only the 4 pre-existing unrelated errors). **Not click-tested yet.**
+
+<details><summary>Original plan (for reference)</summary>
+
 `products.reorder_point` + `safety_stock` exist (`electron/db/schema.ts:104-105`). Logic already lives as the `low`/`out` filter in `Products/index.tsx` (`stockFilter`, `allStats`, `renderStockCell` at :120, IPC returns `reorder_point`). Phase 3 = a dedicated actionable list tab in `/manage` (products where `reorder_point > 0 AND stock_qty <= reorder_point`, sortable by shortfall) — likely a thin new IPC or reuse the products-list query with a forced filter. Add `low-stock` to `Manage` TABS.
 
-### ⬜ Phase 4 — Reports rebuilt = finance dashboard
+</details>
+
+### ✅ Phase 4 — DONE (2026-05-19) — Reports rebuilt = finance dashboard
+**Outcome:** 3 new aggregate IPCs in `electron/ipc/reports.ts` (after `expiringLots`, sharing two SQL fragments `SALE_COST_SUB` / `PURCHASE_NET_SUB`): `reports:financeSummary` (sales subtotal/discount/net/cost/profit + payment mix cash/card/transfer + credit count; purchase total/cash/credit; **current** accounts payable total/count — payable is never date-bound), `reports:salesPurchaseTrend` (per-day sales_net/cost/profit + purchase_total, merged in JS over the date union), `reports:accountsPayable` (outstanding credit GRs ordered by due date, with aging buckets not_due / 1–30 / 31–60 / 60+). Sale cost = Σ(sold-lot qty × lot cost) same shape as `salesList`; purchase bill net = Σ(receipt-item qty × cost) − header discount + surcharge from `purchase_receipts` (authoritative GR header — verified `purchase:save` writes it, `purchase:cancel` sets `status='cancelled'`, `purchase:updateHeader` updates is_paid/payment_type, so all filters stay accurate). Preload bindings added. New `src/pages/Reports/` (layout clones the Manage Tabs+summary-slot pattern): `index.tsx` (`ReportsLayout`, tabs ภาพรวมการเงิน `/reports` + เจ้าหนี้การค้า `/reports/payables`), `Finance.tsx` (DateRangePicker default = month-start→today, 6 MetricCards, 2 payment-mix `SectionCard`s, daily-trend `table-fixed`), `Payables.tsx` (5 aging MetricCards + outstanding-GR table, overdue rows tinted, footer total). `App.tsx`: redirects replaced with real nested routes (removed unused `Navigate` import). `Sidebar.tsx`: "รายงาน" re-added (icon `LineChart`). `npx tsc --noEmit` clean (only the 4 pre-existing unrelated errors). **No chart lib** — trend is a table (framer-motion is the only viz dep; charts deferred). **Not click-tested yet.**
+
+<details><summary>Original plan (for reference)</summary>
+
 `/reports` route currently only redirects to `/manage`. Rebuild as analytics: sales vs purchase totals over time (trend), profit, payment mix (cash/credit), **accounts payable** (outstanding credit GRs + due-date aging) and AR. Aggregate IPCs (GROUP BY day/supplier) — `reports.ts` has the join shapes to crib from. Re-add "รายงาน" to Sidebar + its own layout (clone the Manage Tabs+summary pattern). Remove the temporary `reports*`→`/manage` redirects in `App.tsx` when the real routes land.
 
-### ⬜ Phase 5 — รายงาน อย. (greenfield, blocked on spec)
-Controlled-drug registers (บ.ย.*), temperature logs, future regulatory exports. Build when the operator provides the exact อย. forms/columns required. New IPCs + likely new tables (e.g. temperature_logs).
+</details>
+
+### 🚧 Phase 5 — รายงาน อย. (placeholder shipped; build blocked on spec)
+**Placeholder DONE (2026-05-19):** `src/pages/Reports/FdaReports.tsx` — an "อยู่ระหว่างพัฒนา" under-construction stub (Construction icon + warning Badge + the 3 planned sub-areas as muted chips), registered as the 3rd Reports tab `รายงาน อย.` (`/reports/fda`, icon `ShieldCheck`) + `resolveTab` + `App.tsx` route. Clears the summary slot. Keeps the feature visible so it isn't forgotten.
+**Still TODO (the real work):** Controlled-drug registers (บ.ย.*), temperature logs, future regulatory exports. Build when the operator provides the exact อย. forms/columns required. New IPCs + likely new tables (e.g. temperature_logs). Replace the stub body with the real reports.
+
+### 🔒 Reports/Finance — 7-day access gate + DEV role toggle (2026-05-19)
+**`src/pages/Reports/Finance.tsx`:**
+- **Default range changed** month-start→today ➜ **7 วันล่าสุด** (`daysAgoIso(FREE_RANGE_DAYS-1)`→today; `FREE_RANGE_DAYS=7`, inclusive — matches the DateRangePicker "7 วันล่าสุด" preset). *(Supersedes the "default = month-start→today" note in Phase 4.)*
+- **Owner-only history gate.** Non-admin selecting a range > 7 inclusive days → `handleRangeChange` clamps back to 7 days (anchored on the chosen end date) + error toast "ดูข้อมูลย้อนหลังได้สูงสุด 7 วัน — ช่วงที่กว้างกว่านี้ต้องใช้สิทธิ์เจ้าของร้าน". `isOwner = userStore.current?.role === 'admin'` ("เจ้าของร้าน" maps to role `admin` — no separate `owner` role exists; roles are admin/pharmacist/staff). **Client-side only** (chosen UX) — the `reports:financeSummary` / `salesPurchaseTrend` IPCs still accept any range; harden backend later if direct-IPC abuse matters. Single-point change if a real `owner` role lands: the `isOwner` line.
+- **⚠️ DEV-ONLY role toggle button** added to the toolbar (renderer-only hack). `auth:getCurrentUser` (electron/ipc/auth.ts) has no real login yet — it hardcodes the seeded `staff@syntropic.local` (role `staff`), so the default user is always blocked at 7 days. Button flips `userStore.current.role` staff↔admin in-place (persisted via zustand-persist, survives reload; does NOT touch backend/auth.ts/audit trail). **Marked `⚠️ DEV ONLY` in 2 spots to delete when real login lands:** (1) the `devUser/devSetCurrent/devToggleRole` block under `isOwner`, (2) the `{/* ⚠️ DEV ONLY ... */}` button in the toolbar. The 7-day gate logic stays after removal.
+- `npx tsc --noEmit` clean for Finance.tsx. **Not click-tested yet.**
 
 ---
 
