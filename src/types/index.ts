@@ -11,6 +11,10 @@ export interface Product {
   is_drug: number
   reorder_point?: number; safety_stock?: number
   drug_type_id?: number
+  // PHP-only, NOT a SQLite column — lives in EditProduct form state only for the
+  // generic-name autocomplete; doSave strips it before products:update.
+  drug_generic_name_id?: number
+  tmt_id?: string  // real column (schema.ts), UI hidden for now but loaded/saved
   is_antibiotic: number
   indication_note?: string; side_effect_note?: string
   is_fda9: number; is_fda10: number; is_fda11: number; is_fda13: number

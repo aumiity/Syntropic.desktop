@@ -9,6 +9,135 @@
 ##   3. **Phase 3** — new "ต่ำกว่าจุดสั่งซื้อ" tab in /manage (query `reorder_point`).
 ##   4. **Phase 4–5** — rebuild `/reports` as finance dashboard, then อย. compliance reports (greenfield).
 ## (Carried over, lower priority: click-test EditProduct split [2026-05-17]; cost-audit Manage/Sales+Expiry; table-card sweep of Settings/index.tsx.)
+## 🔧 TODO (independent, can do anytime): **Fix POS "ยกเลิกบิล" button** — see "Session 2026-05-19b" below. Self-contained, no schema/IPC change.
+## 🆕 FEATURE (planned & approved, NOT started): **ระบบชุดสินค้า (Product Bundle / Kit)** — see "Session 2026-05-19c" below. Full self-contained design; implement **Phase 1**. Touches schema + IPC + UI. Read that whole section before coding.
+
+---
+
+## Session 2026-05-19c — ระบบชุดสินค้า (Product Bundle / Kit) — TODO, NOT started
+
+> **Self-contained.** A future session can implement Phase 1 from this section alone — no prior chat context needed. Plan was researched against the live code (saveBill/FEFO, returnItems, voidSale, product model) and approved by the operator. Read `CLAUDE.md` first (UI conventions + the `products:update` Object.keys allow-list trap are load-bearing here).
+
+### Goal
+Sell a "ชุดสินค้า" (e.g. *ชุดยาแก้ปวด = Ibuprofen ×1 + Norgesic ×1*) as ONE item with its own barcode / retail+wholesale price / unit / dispensing label, but on sale it must **deduct each component's stock correctly (FEFO)** and support void + return **exactly like a single product**. "Just make it a new standalone product" was rejected — component stock wouldn't move. So: a **true composite/BOM bundle**.
+
+### Why this is low-risk (the key insight)
+`sale_item_lots` has its **own `product_id` column** (independent of `sale_items.product_id`), and `reports:voidSale` (`electron/ipc/reports.ts:~109`) already loops `sale_item_lots` restoring each lot by **that row's** `product_id`. So if the sale writes **1 `sale_items` row (the bundle) + N `sale_item_lots` rows (one per component lot, each tagged with the COMPONENT's product_id)**, then:
+- **void works with ZERO code change** (it restores every component lot already)
+- profit in reports (`line_total − Σ component-lot cost`) is correct automatically
+
+### Decisions (locked with operator — do NOT re-litigate)
+- **Price:** manual on the bundle row (`products.price_retail/wholesale1/2`). **Cost:** auto = `Σ(component.cost_price × qty_per_bundle)` — display/report only.
+- **Stock on hand:** derived = `MIN( floor(component_open_stock ÷ qty_per_bundle) )`. **Overselling stays allowed** exactly like single products (short component → `sale_item_lots.lot_id = NULL`, no block).
+- **Return:** whole bundle only (no per-component partial return).
+- **No nested bundles:** a component must be a product with `is_bundle = 0` (validate when adding a component).
+- v1 bundle is sold in its **base unit only** (no non-base `product_units` for the bundle yet — see Out of scope).
+
+### Data model
+1. **`products.is_bundle`** — add to `electron/db/schema.ts`: (a) in the `CREATE TABLE products` body next to `is_stock_item` (~schema.ts:93); (b) in the `migrations` safe-try/catch array (~schema.ts:483–504): `ALTER TABLE products ADD COLUMN is_bundle INTEGER NOT NULL DEFAULT 0`.
+2. **New table `product_bundle_items`** — add a `CREATE TABLE IF NOT EXISTS` in the schema body after `product_units`:
+   ```sql
+   CREATE TABLE IF NOT EXISTS product_bundle_items (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     bundle_id            INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+     component_product_id INTEGER NOT NULL REFERENCES products(id),
+     qty_per_bundle       REAL NOT NULL DEFAULT 1,   -- # of component (in component's BASE unit) per 1 bundle
+     sort_order           INTEGER NOT NULL DEFAULT 0,
+     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+     updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+     UNIQUE(bundle_id, component_product_id)
+   );
+   ```
+3. Bundle product row = `is_bundle=1`, `is_stock_item=0` (no lots of its own). Reuses all existing product fields incl. `product_labels` (the bundle's own dispensing label — existing label system works as-is).
+
+### Backend — `electron/ipc/products.ts`
+- [ ] `products:create` + EditProduct doSave allow-list: add `is_bundle` (it IS a real column — safe vs the Object.keys trap).
+- [ ] New IPC (do NOT route through generic `products:update`): `products:getBundleItems(bundleId)` (components + joined `trade_name`/`unit_name`/`cost_price`/derived stock); `products:saveBundleItems(bundleId, items[])` (delete+re-insert in ONE transaction by `sort_order`, then `recomputeBundleCost`).
+- [ ] `recomputeBundleCost(bundleId)` helper: `UPDATE products SET cost_price = Σ(c.cost_price × bi.qty_per_bundle)` from `product_bundle_items` join `products`.
+- [ ] Hook into existing `recomputeAvgCost(pid)` (~products.ts:307): after a component's avg cost recomputes, find bundles containing it and `recomputeBundleCost` them (cost propagation).
+- [ ] `products:list` / `products:get`: add `is_bundle`; derived stock for bundles:
+  ```sql
+  CASE WHEN p.is_bundle = 1 THEN (
+    SELECT COALESCE(MIN(CAST(
+      (SELECT COALESCE(SUM(qty_on_hand),0) FROM product_lots
+       WHERE product_id = bi.component_product_id AND is_closed = 0) / bi.qty_per_bundle
+    AS INTEGER)), 0)
+    FROM product_bundle_items bi WHERE bi.bundle_id = p.id
+  ) ELSE <existing open-lot sum> END AS stock_qty
+  ```
+
+### Backend — `electron/ipc/pos.ts`
+- [ ] `pos:searchProducts` (~pos.ts:8): add `p.is_bundle` + derived stock; attach `bundle_items` (component + qty + cost) to rows where `is_bundle=1` (same pattern as it attaches `units`/`lots`).
+- [ ] `pos:saveBill` (~pos.ts:131–164): inside `for (item of payload.items)`:
+  - Insert the `sale_items` row as today — **1 row = the bundle** (`product_id`=bundle id, `unit_price`=bundle price, `line_total`=bundle price). Receipt/reports see one line. ✓
+  - **Refactor the existing FEFO block (pos.ts:139–158) into a helper** `deductFefo(db, productId, qty, saleItemId, saleId, invoiceNo, soldBy)` and call it for single products (unchanged behaviour).
+  - If `item.product_id` has `is_bundle=1`: do NOT FEFO the bundle id. Instead loop its `product_bundle_items`; for each component call `deductFefo(db, comp.component_product_id, comp.qty_per_bundle * item.qty, saleItemId, …)`. The helper writes `sale_item_lots`/`stock_movements` with the **component's** product_id and the bundle's `saleItemId`. Oversold component → `sale_item_lots (lot_id NULL, product_id=component, remaining)` (same as existing oversold branch pos.ts:161).
+- [ ] `reports:voidSale` — **NO CHANGE** (already restores per `sale_item_lots.product_id`). Just verify in testing.
+
+### Frontend
+- [ ] `src/types/index.ts`: `Product` += `is_bundle: number`, `bundle_items?: ProductBundleItem[]`; new `ProductBundleItem { id; bundle_id; component_product_id; qty_per_bundle; sort_order; component_name?; component_unit_name?; component_cost?; component_stock? }`.
+- [ ] `src/pages/Products/EditProduct/GeneralTab.tsx`: add Switch "เป็นชุดสินค้า (ประกอบจากหลายสินค้า)" → `is_bundle` (use the `Toggle` helper, label LEFT / switch RIGHT per memory). When on: `cost_price` field read-only (show auto value); force `is_stock_item=0`.
+- [ ] `src/pages/Products/EditProduct/index.tsx`: when `is_bundle=1` show a new "ชุดสินค้า" tab and **hide the Lots tab**; add `is_bundle` to doSave allow-list payload.
+- [ ] **New** `src/pages/Products/EditProduct/BundleItemsTab.tsx` — Standard table-card layout (CLAUDE.md): search/add component (filter `is_bundle=0`), columns = name / base unit / `qty_per_bundle` Input / cost-each / on-hand / wide-rectangle delete button (`w-16` `destructive`); footer bar = auto total cost + save → `products:saveBundleItems`; after mutation call `onRefresh()` (parent stays single source of truth — same pattern as the other extracted tabs documented in the 2026-05-17 EditProduct split below). No module-scope helper components (HARD rule).
+- [ ] `src/pages/Products/index.tsx`: `Badge variant="tertiary"` "ชุด" on `is_bundle=1` rows; stock column uses derived qty (low/out filters then work for bundles too).
+- [ ] `src/pages/POS/index.tsx`: cart structure unchanged (bundle is a normal CartItem). **Payment-modal cost preview (~index.tsx:1326)**: if `item.product.is_bundle`, loop `bundle_items` and FEFO-cost the components (mirror the new saveBill logic) else profit preview is wrong. Cart row: small sub-text `text-xs text-muted-foreground` "ประกอบด้วย: Ibuprofen ×1, Norgesic ×1".
+
+### Phase 2 (separate, after Phase 1 verified)
+- Whole-bundle **return** launched from Sales detail (sale-linked): read the bundle `sale_item`'s `sale_item_lots` and restore each component lot — reuse the `voidSale` restore loop scoped to one `sale_item`; emit one `RT-` bill, `sale_type='return'`, negative qty per component. The existing POS return modal (manual product+lot pick) does NOT support bundles in v1 — show toast "คืนชุดสินค้าให้ทำผ่านหน้าบิล/รายงานขาย".
+- `src/components/dialogs/SaleDetailDialog.tsx`: bundle line = 1 row + expandable component breakdown from `sale_item_lots` grouped by `product_id`; "คืนชุดนี้" button.
+- Bundle dispensing label: the existing `product_labels` on the bundle row already prints — just test; merging component labels is a later extension.
+
+### Out of scope / risks (tell operator, don't silently absorb)
+- **Pre-existing latent bug found during research (NOT this feature's job):** `pos:saveBill` (pos.ts:145) deducts `item.qty` straight from base-unit lots **without multiplying by `qty_per_base`** — selling a single product in a non-base unit (e.g. 1 "แผง" = 10 base) under-deducts. Flag separately. Bundle v1 sells base-unit-only so it's unaffected; but if you build `deductFefo`, do NOT "fix" qty_per_base inside it without operator sign-off (scope creep + affects all single-product sales).
+- Non-base unit for the bundle itself ("แพ็ค 3 ชุด"): later — needs `qty_per_bundle × qty_per_base` nesting.
+- **FDA controlled-drug reporting through bundles:** if a component is controlled (`is_fda10/13`, `drug_type_id`), the ขย.10/13 reports should "see through" the bundle to components — legal/pharmacy decision, Phase 2+. Phase 1 reports the bundle by its own flags only. Raise with operator.
+
+### Verification (after Phase 1)
+`npm run electron:dev`, then end-to-end:
+1. Create bundle: new product → toggle "เป็นชุดสินค้า" → ชุดสินค้า tab add Ibuprofen ×1 + Norgesic ×1 → set price/barcode → save → `cost_price` == auto Σ.
+2. Products list: "ชุด" badge + stock == min(component capacities).
+3. Sell in POS: scan bundle barcode → 1 cart line @ bundle price → pay → DB: `sale_items` 1 row (product_id=bundle); `sale_item_lots` ≥2 rows (component product_ids, correct FEFO lots); both components' `product_lots.qty_on_hand` down correctly; `stock_movements` 'sale' per component.
+4. Oversell: starve Ibuprofen → still sells; `sale_item_lots` has `lot_id NULL` row for Ibuprofen.
+5. Profit (Manage/Sales) = bundle price − Σ component-lot cost.
+6. Void the bundle bill → both components restored; `stock_movements` 'sale_return' per component; `sales.status='voided'`.
+7. Receive a new Ibuprofen lot at a different cost → `recomputeAvgCost` → bundle `cost_price` updates.
+8. `npx tsc --noEmit` — must stay green (baseline is clean as of 2026-05-19; see that session below).
+
+### Files to touch
+`electron/db/schema.ts` · `electron/ipc/products.ts` · `electron/ipc/pos.ts` · `electron/preload.ts` · `src/types/index.ts` · `src/pages/Products/EditProduct/{index,GeneralTab}.tsx` + new `BundleItemsTab.tsx` · `src/pages/Products/index.tsx` · `src/pages/POS/index.tsx` · (Phase 2) `src/components/dialogs/SaleDetailDialog.tsx`.
+
+---
+
+## Session 2026-05-19b — Fix POS "ยกเลิกบิล" button (TODO, not started)
+
+### Problem
+`src/pages/POS/index.tsx:930` — the "ยกเลิกบิล" button only does `cart.clearCart()` (wipes the unsaved cart, one click, no confirm). Misleading name: operator expects it to **void an already-sold bill**. The real void already works correctly in `Manage/Sales.tsx` (`reports.voidSale`). Decision (with operator): POS button must let you **look up a completed bill by invoice no and void the WHOLE bill**. NOT per-item — whole bill only.
+
+### No new logic — reuse everything
+| Reuse | Role |
+|---|---|
+| `window.api.reports.getSaleByInvoice(inv)` | fetch bill by invoice no |
+| `window.api.reports.voidSale(id, reason)` | the proven void (restores all lots, `status='voided'`, stock_movements) |
+| `SaleDetailDialog` (`src/components/dialogs/SaleDetailDialog.tsx`) | shows bill items + `onVoidRequest` + voided badge — already complete |
+| `ConfirmDialog` (`requireReason`) | confirm + reason box — copy the exact pattern from `Manage/Sales.tsx` |
+
+### Steps (all in `src/pages/POS/index.tsx`)
+- [ ] Import `SaleDetailDialog`, `ConfirmDialog` (ConfirmDialog not yet imported in POS).
+- [ ] New state: `showVoidLookup`, `voidQuery`, `voidDetailInvoice`, `voidDetailOpen`, `voidTarget`.
+- [ ] Button @ line ~930: `onClick` → `setShowVoidLookup(true)`; **remove** `disabled={cart.items.length === 0}` (voiding a past bill is unrelated to the cart); keep label "ยกเลิกบิล" (now accurate).
+- [ ] New small lookup `Dialog`: `Input` for invoice no, auto-focus, scan-friendly, **Enter = lookup** → `getSaleByInvoice`:
+      - found & not voided → open `SaleDetailDialog`
+      - not found / already voided → `toast` error
+- [ ] `SaleDetailDialog` `onVoidRequest` → set `voidTarget` + close detail → open `ConfirmDialog`.
+- [ ] `ConfirmDialog` confirm → `reports.voidSale(id, reason)` → success toast → **refresh "สรุปยอดขายวันนี้"** (voided bill must drop out of daily totals) → close all modals.
+- [ ] POS focus rules: add the 3 new modals to the focus-guard list (~line 176 / 249) so global click-refocus doesn't steal focus; Esc closes (mirror `showReturn` pattern @ line 244).
+
+### Conventions to honor
+- Modal contract: outside-click never closes (Dialog enforces), Esc closes, Enter on invoice input = lookup.
+- `components/ui` only (`Button`/`Input`/`Dialog`), semantic color tokens, full `DialogHeader/Title/Body/Footer`.
+
+### Decided UX
+Invoice-number **input/scan box** (operator has the receipt in hand — fastest), NOT a today's-bills list (that duplicates Manage › ขาย and makes the modal too big).
 
 ---
 

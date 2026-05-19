@@ -58,7 +58,7 @@ export const useThemeStore = create<AppearanceStore>()(
       customColorKey: '',
       highlightKey: '',
       isSidebarCollapsed: false,
-      theme: '',
+      theme: 'light',
 
       applyTheme() {
         const { mode, accentKey, customAccentHsl, highlightKey } = get()
