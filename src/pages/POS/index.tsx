@@ -12,6 +12,8 @@ import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/compon
 import { SectionCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
+import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { formatCurrency, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
 import dayjs from 'dayjs'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy } from '@/types'
@@ -166,6 +168,17 @@ export default function POSPage() {
   const adjustInputRef = useRef<HTMLInputElement>(null)
   const adjustQtyRef = useRef<HTMLInputElement>(null)
 
+  // Void-bill lookup — look up a completed bill by invoice no and void the WHOLE bill.
+  // Reuses reports.getSaleByInvoice + SaleDetailDialog + reports.voidSale (the proven
+  // void path that restores all lots). Whole bill only — never per-item here.
+  const [showVoidLookup, setShowVoidLookup] = useState(false)
+  const [voidQuery, setVoidQuery] = useState('')
+  const [voidLooking, setVoidLooking] = useState(false)
+  const [voidDetailInvoice, setVoidDetailInvoice] = useState<string | null>(null)
+  const [voidDetailOpen, setVoidDetailOpen] = useState(false)
+  const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
+  const voidLookupRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     loadDailyStats()
     const tick = setInterval(() => setNow(new Date()), 1000)
@@ -173,7 +186,8 @@ export default function POSPage() {
   }, [])
 
   const anyModalOpen = searchOpen || showPayment || showCustomerSearch || showQuickAdd || showSuccess || showCustomerInfo ||
-    showReturn || showAdjust || unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null
+    showReturn || showAdjust || showVoidLookup || voidDetailOpen || !!voidTarget ||
+    unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null
 
   // Refs so focus callbacks always see current modal state without stale closures
   const anyModalOpenRef = useRef(anyModalOpen)
@@ -208,6 +222,10 @@ export default function POSPage() {
   useEffect(() => {
     if (showAdjust) setTimeout(() => adjustInputRef.current?.focus(), 50)
   }, [showAdjust])
+
+  useEffect(() => {
+    if (showVoidLookup) setTimeout(() => voidLookupRef.current?.focus(), 50)
+  }, [showVoidLookup])
 
   // Refocus main input whenever all modals close
   const prevAnyModalOpen = useRef(false)
@@ -299,6 +317,43 @@ export default function POSPage() {
   const loadDailyStats = async () => {
     const stats = await window.api.pos.getDailyStats() as any
     setDailyStats({ bills: stats?.bills ?? 0, total: stats?.total ?? 0, latest: stats?.latest ?? '' })
+  }
+
+  const doVoidLookup = async () => {
+    const inv = voidQuery.trim()
+    if (!inv) return
+    setVoidLooking(true)
+    try {
+      const sale = await window.api.reports.getSaleByInvoice(inv) as any
+      if (!sale) {
+        toast({ title: 'ไม่พบบิล', description: `ไม่พบบิลเลขที่ ${inv}`, variant: 'error' })
+        return
+      }
+      if (sale.status === 'voided') {
+        toast({ title: 'บิลนี้ถูกยกเลิกไปแล้ว', description: inv, variant: 'error' })
+        return
+      }
+      setVoidDetailInvoice(sale.invoice_no)
+      setShowVoidLookup(false)
+      setVoidQuery('')
+      setVoidDetailOpen(true)
+    } finally {
+      setVoidLooking(false)
+    }
+  }
+
+  const handleVoidBill = async (reason: string) => {
+    if (!voidTarget) return
+    try {
+      await window.api.reports.voidSale(voidTarget.id, reason)
+      toast({ title: 'ยกเลิกบิลสำเร็จ', variant: 'success' })
+      setVoidTarget(null)
+      setVoidDetailOpen(false)
+      loadDailyStats() // voided bill must drop out of today's totals
+    } catch (e: any) {
+      toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+      setVoidTarget(null)
+    }
   }
 
   const handleSearch = useCallback(async (q: string) => {
@@ -590,7 +645,7 @@ export default function POSPage() {
         sale_type: cart.saleType, customer_id: cart.customer?.id ?? null, customer_name_free: cart.customerNameFree,
         items: cart.items.map((i, idx) => {
           const d = pendingEffectiveDiscounts[idx]
-          return { product_id: i.product_id, item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, unit_price: i.unit_price, discount: d, line_total: i.qty * i.unit_price - d, item_note: i.item_note }
+          return { product_id: i.product_id, item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, qty_per_base: i.selectedUnit?.qty_per_base ?? 1, unit_price: i.unit_price, discount: d, line_total: i.qty * i.unit_price - d, item_note: i.item_note }
         }),
         subtotal: cart.subtotal(), total_discount: pendingTotalDiscount, total_amount: pendingNet,
         cash_amount: parseFloat(cashAmount) || 0, card_amount: parseFloat(cardAmount) || 0, transfer_amount: parseFloat(transferAmount) || 0,
@@ -927,7 +982,7 @@ export default function POSPage() {
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium">
               <RotateCcw className="size-6 text-foreground-subtle" /> รับคืนสินค้า
             </Button>
-            <Button variant="outline" disabled={cart.items.length === 0} onClick={() => { cart.clearCart(); refocusSearch() }}
+            <Button variant="outline" onClick={() => setShowVoidLookup(true)}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted hover:text-destructive text-xl font-medium">
               <Trash2 className="size-6 text-foreground-subtle" /> ยกเลิกบิล
             </Button>
@@ -2389,6 +2444,59 @@ export default function POSPage() {
           )
         })()}
       </Dialog>
+
+      {/* ── VOID BILL: invoice-no lookup → detail → confirm ── */}
+      <Dialog open={showVoidLookup} onOpenChange={(v) => { if (!v) { setShowVoidLookup(false); setVoidQuery('') } }}>
+        <DialogContent size="md" onClose={() => { setShowVoidLookup(false); setVoidQuery('') }}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2.5">
+              <span className="grid place-items-center size-9 rounded-lg bg-destructive-soft text-destructive">
+                <Trash2 className="size-5" />
+              </span>
+              ยกเลิกบิล
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-2">
+            <Label>เลขที่ใบเสร็จ</Label>
+            <Input
+              ref={voidLookupRef}
+              value={voidQuery}
+              onChange={e => setVoidQuery(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); doVoidLookup() } }}
+              placeholder="สแกนหรือพิมพ์เลขที่ใบเสร็จ เช่น RC-20260519-0001"
+            />
+            <p className="text-sm text-muted-foreground">ค้นหาบิลที่ขายแล้วเพื่อยกเลิกทั้งบิล — สต็อกจะถูกคืนกลับอัตโนมัติ</p>
+          </DialogBody>
+          <DialogFooter>
+            <Button size="xl" variant="destructive2" onClick={() => { setShowVoidLookup(false); setVoidQuery('') }}>ยกเลิก</Button>
+            <Button size="xl" onClick={doVoidLookup} disabled={voidLooking || !voidQuery.trim()}>
+              {voidLooking ? 'กำลังค้นหา...' : 'ค้นหาบิล'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <SaleDetailDialog
+        open={voidDetailOpen}
+        onOpenChange={setVoidDetailOpen}
+        invoiceNo={voidDetailInvoice}
+        onVoidRequest={(sale: SaleDetail) => {
+          setVoidTarget({ id: sale.id, invoice_no: sale.invoice_no })
+          setVoidDetailOpen(false)
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!voidTarget}
+        onOpenChange={open => { if (!open) setVoidTarget(null) }}
+        title="ยกเลิกบิล"
+        description={`ต้องการยกเลิกบิล ${voidTarget?.invoice_no}? สต็อกจะถูกคืนกลับอัตโนมัติ`}
+        confirmLabel="ยกเลิกบิล"
+        variant="destructive"
+        requireReason
+        reasonLabel="เหตุผลการยกเลิก"
+        onConfirm={reason => handleVoidBill(reason ?? '')}
+      />
     </div>
   )
 }

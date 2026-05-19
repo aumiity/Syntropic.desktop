@@ -82,6 +82,10 @@ export function registerPosHandlers() {
       item_name: string
       unit_name: string
       qty: number
+      // Conversion factor of the SOLD unit → base unit. 1 for base-unit sales.
+      // sale_items.qty stays in the sold unit (receipt unchanged); FEFO/lots
+      // deduct qty * qty_per_base in base units.
+      qty_per_base?: number
       unit_price: number
       discount: number
       line_total: number
@@ -142,7 +146,8 @@ export function registerPosHandlers() {
           ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC
         `).all(item.product_id) as any[]
 
-        let remaining = item.qty
+        // Lots are stored in BASE units; item.qty is in the sold unit.
+        let remaining = item.qty * (item.qty_per_base ?? 1)
         for (const lot of lots) {
           if (remaining <= 0) break
           const deduct = Math.min(lot.qty_on_hand, remaining)

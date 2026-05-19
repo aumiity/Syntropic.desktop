@@ -8,7 +8,7 @@
 ##   2. **Phase 5** — รายงาน อย. (greenfield, blocked: needs the exact อย. forms/columns from the operator).
 ##   3. **When real login lands: delete the ⚠️ DEV-ONLY role toggle in `Reports/Finance.tsx`** (2 marked spots — see "Reports/Finance — 7-day access gate" 2026-05-19).
 ## (Carried over, lower priority: click-test EditProduct split [2026-05-17]; cost-audit Manage/Sales+Expiry; table-card sweep of Settings/index.tsx.)
-## 🔧 TODO (independent, can do anytime): **Fix POS "ยกเลิกบิล" button** — see "Session 2026-05-19b" below. Self-contained, no schema/IPC change.
+## ✅ DONE 2026-05-19: **POS "ยกเลิกบิล" button fixed** (Session 2026-05-19b) — invoice-lookup → SaleDetailDialog → ConfirmDialog → voidSale. tsc clean, **click-test pending**.
 ## 🆕 FEATURE (planned & approved, NOT started): **ระบบชุดสินค้า (Product Bundle / Kit)** — see "Session 2026-05-19c" below. Full self-contained design; implement **Phase 1**. Touches schema + IPC + UI. Read that whole section before coding.
 
 ---
@@ -107,7 +107,13 @@ Sell a "ชุดสินค้า" (e.g. *ชุดยาแก้ปวด = 
 
 ---
 
-## Session 2026-05-19b — Fix POS "ยกเลิกบิล" button (TODO, not started)
+## Session 2026-05-19b — Fix POS "ยกเลิกบิล" button — ✅ DONE 2026-05-19
+
+**Implemented** in `src/pages/POS/index.tsx` exactly per the plan below. tsc clean. Not click-tested yet.
+- Imports `SaleDetailDialog`/`type SaleDetail` + `ConfirmDialog`. New state `showVoidLookup`/`voidQuery`/`voidLooking`/`voidDetailInvoice`/`voidDetailOpen`/`voidTarget` + `voidLookupRef` (auto-focus effect mirrors `showReturn`).
+- "ยกเลิกบิล" button: removed `disabled` + `cart.clearCart()`, now `onClick → setShowVoidLookup(true)`. **Cart-clear is NOT lost** — the dedicated "ลบรายการทั้งหมด" button (cart toolbar, `destructive2`, disabled when empty) already does that.
+- `doVoidLookup()` (Enter or "ค้นหาบิล" btn) → `getSaleByInvoice`: not found / already voided → toast error; else open `SaleDetailDialog`. `onVoidRequest` → set `voidTarget` + close detail → `ConfirmDialog` (`requireReason`) → `handleVoidBill` → `voidSale` → success toast → `loadDailyStats()` (drops voided bill from today's totals) → close all.
+- Focus guard: `anyModalOpen` now includes `showVoidLookup || voidDetailOpen || !!voidTarget`. Esc handled by Radix `Dialog` `onOpenChange` (the new dialogs use the shared `Dialog`, not the POS custom-modal path — no global-Esc-handler entry needed; matches how `Manage/Sales.tsx` does it).
 
 ### Problem
 `src/pages/POS/index.tsx:930` — the "ยกเลิกบิล" button only does `cart.clearCart()` (wipes the unsaved cart, one click, no confirm). Misleading name: operator expects it to **void an already-sold bill**. The real void already works correctly in `Manage/Sales.tsx` (`reports.voidSale`). Decision (with operator): POS button must let you **look up a completed bill by invoice no and void the WHOLE bill**. NOT per-item — whole bill only.
