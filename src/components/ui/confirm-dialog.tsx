@@ -15,12 +15,15 @@ interface ConfirmDialogProps {
   onConfirm: (reason?: string) => void
   requireReason?: boolean
   reasonLabel?: string
+  // One-tap quick fills for the reason field (e.g. common void reasons).
+  reasonPresets?: string[]
 }
 
 export function ConfirmDialog({
   open, onOpenChange, title, description,
   confirmLabel = 'ยืนยัน', cancelLabel = 'ยกเลิก',
   variant = 'default', onConfirm, requireReason, reasonLabel = 'เหตุผล',
+  reasonPresets,
 }: ConfirmDialogProps) {
   const [reason, setReason] = useState('')
 
@@ -53,8 +56,25 @@ export function ConfirmDialog({
                 autoFocus
                 value={reason}
                 onChange={e => setReason(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleConfirm() }}
                 placeholder="ระบุเหตุผล..."
               />
+              {reasonPresets && reasonPresets.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {reasonPresets.map(p => (
+                    <Button
+                      key={p}
+                      type="button"
+                      size="default"
+                      variant={reason === p ? 'tertiary' : 'secondary'}
+                      onClick={() => setReason(r => (r === p ? '' : p))}
+                      className="rounded-full px-4"
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </DialogBody>

@@ -138,49 +138,45 @@ export default function ManageExpiryPage() {
 
   return (
     <>
-      {/* Toolbar */}
-      <div className="flex flex-wrap gap-2 items-center shrink-0">
-        {/* Preset filter chips */}
-        <div className="flex gap-1">
-          {FILTER_OPTIONS.map(opt => (
-            <Button
-              key={String(opt.value)}
-              size="lg"
-              variant={filter === opt.value ? 'default' : 'outline'}
-              onClick={() => setFilter(opt.value)}
-            >
-              {opt.label}
-            </Button>
-          ))}
-        </div>
-
-        <Select value={categoryId} onValueChange={setCategoryId}>
-          <SelectTrigger className="h-10 w-44 rounded-lg bg-card text-sm border-0">
-            <SelectValue placeholder="ทุกหมวดหมู่" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">ทุกหมวดหมู่</SelectItem>
-            {categories.map(c => (
-              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <Input
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="ชื่อสินค้า, Lot No..."
-            className="h-10 pl-9 rounded-lg text-sm bg-card"
-          />
-        </div>
-      </div>
-
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center">
-          <span>{loading ? 'กำลังโหลด...' : `พบ ${totalLots.toLocaleString()} ล็อต`}</span>
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="ชื่อสินค้า, Lot No..."
+              className="h-9 pl-9 rounded-lg text-sm bg-input"
+            />
+          </div>
+
+          {/* Preset filter chips */}
+          <div className="flex gap-1 shrink-0">
+            {FILTER_OPTIONS.map(opt => (
+              <Button
+                key={String(opt.value)}
+                size="lg"
+                className="px-2"
+                variant={filter === opt.value ? 'default' : 'outline'}
+                onClick={() => setFilter(opt.value)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+
+          <Select value={categoryId} onValueChange={setCategoryId}>
+            <SelectTrigger className="h-9 w-44 shrink-0">
+              <SelectValue placeholder="ทุกหมวดหมู่" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">ทุกหมวดหมู่</SelectItem>
+              {categories.map(c => (
+                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -254,6 +250,12 @@ export default function ManageExpiryPage() {
               })}
             </TableBody>
           </Table>
+        </div>
+
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
+          <span className="text-muted-foreground">
+            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{totalLots.toLocaleString()}</span> ล็อต</>}
+          </span>
         </div>
       </div>
 

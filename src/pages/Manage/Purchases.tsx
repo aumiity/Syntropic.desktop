@@ -288,22 +288,22 @@ export default function ManagePurchasesPage() {
       {/* ── Full-width history table-card ── */}
       <div className="flex flex-1 flex-col bg-card rounded-card shadow-card overflow-hidden min-h-0">
 
-        {/* Filter strip */}
-        <div className="flex flex-wrap items-center gap-2 px-4 py-3 shrink-0">
-          <div className="relative w-60">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-foreground-subtle" />
+        {/* Filter strip — search left, filters right (showcase top bar) */}
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
               value={histQ}
               onChange={e => setHistQ(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && loadHistory(1, undefined, undefined, true)}
               placeholder="ค้นหาเลขที่ใบรับ..."
-              className="pl-8 h-9 text-sm"
+              className="h-9 pl-9 rounded-lg text-sm bg-input"
             />
           </div>
-          <Button size="sm" variant="outline" onClick={() => loadHistory(1, undefined, undefined, true)} className="h-9 px-3 text-sm shrink-0">
-            <Search className="size-3.5" />
+          <Button size="lg" variant="outline" onClick={() => loadHistory(1, undefined, undefined, true)} className="px-2 shrink-0" title="ค้นหา">
+            <Search className="size-4" />
           </Button>
-          <div className="w-60">
+          <div className="w-60 shrink-0">
             <Combobox
               items={suppliers}
               value={histSupplier}
@@ -317,7 +317,7 @@ export default function ManagePurchasesPage() {
               emptyText="ไม่พบผู้จัดจำหน่าย"
             />
           </div>
-          <div className="w-72">
+          <div className="w-72 shrink-0">
             <DateRangePicker
               from={histDateFrom}
               to={histDateTo}
@@ -394,14 +394,27 @@ export default function ManagePurchasesPage() {
         </div>
 
         {/* Status / pagination footer */}
-        <div className="px-4 h-12 flex items-center bg-card border-t border-border shrink-0">
-          <Pagination
-            page={histPage}
-            totalPages={histTotalPages}
-            onPageChange={p => loadHistory(p)}
-            pageSize={histPageSize}
-            onPageSizeChange={setHistPageSize}
-          />
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
+          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+            <span>แสดง</span>
+            <Select value={String(histPageSize)} onValueChange={v => setHistPageSize(v === 'all' ? 'all' : Number(v))}>
+              <SelectTrigger className="h-9 min-w-20">
+                <SelectValue>{histPageSize === 'all' ? 'ทั้งหมด' : String(histPageSize)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="min-w-28">
+                {[50, 100, 250, 500, 'all'].map(opt => (
+                  <SelectItem key={String(opt)} value={String(opt)}>{opt === 'all' ? 'ทั้งหมด' : String(opt)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>รายการ</span>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} className="w-auto justify-center" />
+          </div>
+          <span className="text-muted-foreground shrink-0">
+            {loadingHist ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{histTotal.toLocaleString()}</span> รายการ</>}
+          </span>
         </div>
       </div>
 

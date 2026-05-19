@@ -1,15 +1,46 @@
 # Syntropic Desktop - Build Progress
 
 ## Status: ✅ Runnable — **Manage/Reports restructure Phase 1–4 done; Phase 5 placeholder shipped.** `/manage` has 4 tabs (ประวัติการขาย / ประวัติการซื้อ / ต่ำกว่าจุดสั่งซื้อ / ใกล้หมดอายุ); `/purchase` is receive-form-only; **`/reports` rebuilt as finance dashboard** (ภาพรวมการเงิน + เจ้าหนี้การค้า, 3 new aggregate IPCs) + a 3rd **รายงาน อย.** tab that's an under-construction stub; "รายงาน" back in Sidebar. Type-clean. **Phase 1–4 not click-tested yet.** Phase 5 real build still blocked on อย. spec.
-## Last updated: 2026-05-19
+## Last updated: 2026-05-20
 ## Run: `npm run electron:dev`
 ## ⚠️ Next session:
 ##   1. **Click-test Phase 1–4** — /manage 4 tabs (sales w/ void; purchases w/ payment cards + receipt + edit + cancel GR; low-stock w/ search+shortfall+ไปหน้ารับสินค้า; expiry); `/purchase` pure receive flow; **/reports** (date range → 6 finance cards + payment-mix + daily trend; เจ้าหนี้การค้า aging buckets + outstanding list). Old /reports bookmarks now hit the real page (redirects removed).
 ##   2. **Phase 5** — รายงาน อย. (greenfield, blocked: needs the exact อย. forms/columns from the operator).
 ##   3. **When real login lands: delete the ⚠️ DEV-ONLY role toggle in `Reports/Finance.tsx`** (2 marked spots — see "Reports/Finance — 7-day access gate" 2026-05-19).
-## (Carried over, lower priority: click-test EditProduct split [2026-05-17]; cost-audit Manage/Sales+Expiry; table-card sweep of Settings/index.tsx.)
+## (Carried over, lower priority: click-test EditProduct split [2026-05-17]; cost-audit Manage/Sales+Expiry; table-card sweep of Settings/index.tsx — **now has a concrete target: copy the top/bottom-bar pattern from Session 2026-05-20**.)
+## ✅ DONE 2026-05-20: **Table-card top/bottom bar sweep + `Toggle framed="input"`** (Session 2026-05-20) — all group A+B list/report tables now match the showcase: toolbar folded into the card top bar, bottom bar = page-size·pagination·count. New borderless `framed="input"` Toggle mode that blends with the search Input. tsc clean, **click-test pending**.
 ## ✅ DONE 2026-05-19: **POS "ยกเลิกบิล" button fixed** (Session 2026-05-19b) — invoice-lookup → SaleDetailDialog → ConfirmDialog → voidSale. tsc clean, **click-test pending**.
 ## 🆕 FEATURE (planned & approved, NOT started): **ระบบชุดสินค้า (Product Bundle / Kit)** — see "Session 2026-05-19c" below. Full self-contained design; implement **Phase 1**. Touches schema + IPC + UI. Read that whole section before coding.
+
+---
+
+## Session 2026-05-20 — Table-card top/bottom bar sweep + `Toggle framed="input"` — ✅ DONE 2026-05-20 (tsc clean, NOT click-tested)
+
+> Self-contained. Goal: make every list/report table-card match the canonical showcase pattern — the toolbar that used to float **above** the card is folded **into** the card's top bar; the footer becomes a 3-zone bottom bar. **StatCard / MetricCard / SectionCard were explicitly NOT moved** (operator constraint — only "the line directly above the table" was in scope).
+
+### Canonical pattern (now in `src/pages/Theme/index.tsx` → "Standard Table-Card Layout")
+- **Top bar** (white, NO border): `className="px-2 h-14 shrink-0 flex items-center gap-3"` — search `<Input className="h-9 pl-9 rounded-lg text-sm bg-input">` wrapped in `relative flex-1 min-w-0` (left), then Select filters / `Toggle framed="input"` / action `<Button size="lg" className="px-2 shrink-0">` (right). **`px-2`** is deliberate: 8px ≈ the table's `border-l-8 border-r-8 border-card` inset, so the search edge lines up with the table content.
+- **Bottom bar** (white, top border): `className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0"` — page-size Select (left, `flex items-center gap-2 text-muted-foreground shrink-0`), `<Pagination className="w-auto justify-center">` in a `flex-1 flex justify-center` wrapper (center), `พบ N รายการ` (right, `shrink-0`). **No pagination on a page → bottom bar is just the count, right-aligned (`justify-end`)** — never add a pager where the data isn't paged.
+- Controls inside both bars are `h-9`. Bottom bar stayed `px-5 h-12` (only the top bar is `px-2 h-14`) — see Open question.
+
+### Files changed (all tsc-clean)
+- **Group A — toolbar folded into card + bottom bar rebuilt:** `Products/index.tsx`, `People/index.tsx` (×3 tabs: customers/suppliers/staff — **staff has no pagination → count-only bottom bar**), `Manage/Sales.tsx`, `Manage/LowStock.tsx` (no pagination), `Manage/Expiry.tsx` (no pagination; preset filter chips kept, moved into top bar right of search).
+- **Group A exception — `Reports/Finance.tsx`:** its DateRangePicker is a **page-level** filter (also drives the payment-mix SectionCards above the table), so per operator decision the toolbar was **left in place**; only added a count-only bottom bar to the daily-trend card and dropped the count from its top strip.
+- **Group B — already in-card, just re-laid-out:** `Manage/Purchases.tsx` (search/Combobox/DateRangePicker strip → showcase top bar; footer → 3-zone), `Products/EditProduct/HistoryTab.tsx` (its 2 filter bars standardized to `h-14 px-2`; bottom strip reordered → refresh button left, count right).
+- **Groups C/D untouched** (Settings tabs / EditProduct LotsTab·PriceTab·UnitsTab have no above-table toolbar; POS/Purchase-receive-grid/PurchaseIntake are not standard list cards).
+
+### New primitive mode — `src/components/ui/switch.tsx`
+- `Toggle` prop widened: `framed?: boolean | "input"`.
+- `framed="input"` = borderless `h-9 px-3 rounded-lg bg-input` pill that visually merges with the search `<Input>` beside it in a top bar (no `bg-card`/border so the row reads as one continuous control strip, not a popped-out chip). Plain `framed` (the old `h-10 bg-card border` pill for dialogs / tinted page bg) is **unchanged** — all existing `framed` call sites (Settings tabs, People dialogs) keep working.
+- Adopted by: People ×3 (`framed border-0` → `framed="input"`), `Products/index.tsx` (was a raw `<label>`+`<Switch>` — converted to `<Toggle framed="input">`, import switched `Switch`→`Toggle`).
+
+### Showcase kept as source of truth
+Standard Table-Card top bar demo now includes the `Toggle framed="input"`; Switch section has a dedicated `framed="input"` DemoRow (shown next to a real search Input so the blend is visible) and the plain-`framed` label was clarified ("for dialogs / tinted bg"). Section description text updated for `h-14 px-2` + the framed switch.
+
+### ⚠️ Next session
+1. **Click-test the swept pages** in-app — especially: People **staff** tab (count-only bottom bar, no pager), `Reports/Finance` new bottom bar, `Manage/Purchases` footer (page-size + pager + count all wired to `histPageSize`/`histPage`/`histTotal`), `HistoryTab` two top bars + reordered bottom. Verify the `framed="input"` switch lines up flush with the search box at various widths.
+2. **Open question for operator:** top bar is `px-2`, bottom bar still `px-5 h-12` — asymmetric by current decision. If they want them symmetric, change bottom bar to `px-2` in the showcase **and** every file above (one sweep).
+3. Then resume the carried-over **Settings/index.tsx table-card sweep** using exactly this pattern.
 
 ---
 

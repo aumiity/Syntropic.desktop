@@ -196,7 +196,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                     <TableCell>
                       <div className="flex items-center justify-center">
                         {!lot.is_cancelled && (
-                          <Button className="w-16" size="icon-lg" variant="outline" onClick={() => startEditLot(lot)} title="แก้ไข">
+                          <Button size="icon-lg" variant="outline" onClick={() => startEditLot(lot)} title="แก้ไข">
                             <Edit />
                           </Button>
                         )}

@@ -191,7 +191,7 @@ export function UnitsTab({
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-center">
-                      <Button className="w-16" size="icon-lg" variant="outline" onClick={() => openEditUnit(u)} title="แก้ไข">
+                      <Button size="icon-lg" variant="outline" onClick={() => openEditUnit(u)} title="แก้ไข">
                         <Edit />
                       </Button>
                     </div>

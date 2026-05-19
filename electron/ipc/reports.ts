@@ -76,10 +76,10 @@ export function registerReportHandlers() {
     const counts = db.prepare(`
       SELECT
         COUNT(*) as count_all,
-        SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'retail' THEN 1 ELSE 0 END) as count_retail,
-        SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'wholesale' THEN 1 ELSE 0 END) as count_wholesale,
-        SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'return' THEN 1 ELSE 0 END) as count_return,
-        SUM(CASE WHEN s.status = 'voided' THEN 1 ELSE 0 END) as count_voided
+        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'retail' THEN 1 ELSE 0 END), 0) as count_retail,
+        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'wholesale' THEN 1 ELSE 0 END), 0) as count_wholesale,
+        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'return' THEN 1 ELSE 0 END), 0) as count_return,
+        COALESCE(SUM(CASE WHEN s.status = 'voided' THEN 1 ELSE 0 END), 0) as count_voided
       FROM sales s
       LEFT JOIN customers c ON c.id = s.customer_id
       ${baseWhere}

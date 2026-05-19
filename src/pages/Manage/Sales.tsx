@@ -7,6 +7,7 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
@@ -14,7 +15,7 @@ import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDeta
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import type { Sale } from '@/types'
 import type { ManageOutletContext } from './index'
-import { Search, Receipt, Ban, ShoppingCart, Boxes, Undo2 } from 'lucide-react'
+import { Search, Receipt, Ban, ShoppingCart, Boxes, Undo2, Info } from 'lucide-react'
 
 // Money lives in the table rows; the summary slot now carries only the count
 // cards, which double as the status filter. rx (ใบสั่งยา) bills have no
@@ -146,29 +147,24 @@ export default function ManageSalesPage() {
 
   return (
     <>
-      {/* Toolbar */}
-      <div className="flex flex-wrap gap-2 items-center shrink-0">
-        <div className="relative flex-1 min-w-[260px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <Input
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
-            className="h-10 pl-9 rounded-lg text-sm bg-card"
-          />
-        </div>
-        <DateRangePicker
-          from={dateFrom}
-          to={dateTo}
-          onChange={(f, t) => { setDateFrom(f); setDateTo(t) }}
-          className="h-10 w-72 bg-card hover:bg-surface-hover"
-        />
-      </div>
-
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center">
-          <span>{loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}</span>
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
+              className="h-9 pl-9 rounded-lg text-sm bg-input"
+            />
+          </div>
+          <DateRangePicker
+            from={dateFrom}
+            to={dateTo}
+            onChange={(f, t) => { setDateFrom(f); setDateTo(t) }}
+            className="h-9 w-72 shrink-0 bg-input hover:bg-surface-hover"
+          />
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -217,20 +213,15 @@ export default function ManageSalesPage() {
                       : <Badge variant="success">สำเร็จ</Badge>}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1 justify-center">
-                      <Button size="default" variant="info-soft" onClick={() => openDetail(s)}>
-                        ดูรายการ
+                    <div className="flex justify-center">
+                      <Button
+                        size="icon-lg"
+                        variant="warm"
+                        onClick={() => openDetail(s)}
+                        title="ดูรายการ"
+                      >
+                        <Info />
                       </Button>
-                      {s.status !== 'voided' && (
-                        <Button
-                          size="icon-lg"
-                          variant="destructive2"
-                          onClick={() => setVoidTarget(s)}
-                          title="ยกเลิกบิล"
-                        >
-                          <Ban />
-                        </Button>
-                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -239,14 +230,27 @@ export default function ManageSalesPage() {
           </Table>
         </div>
 
-        <div className="px-4 h-12 border-t border-border flex items-center shrink-0">
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={load}
-            pageSize={pageSize}
-            onPageSizeChange={setPageSize}
-          />
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
+          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+            <span>แสดง</span>
+            <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
+              <SelectTrigger className="h-9 min-w-20">
+                <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="min-w-28">
+                {[50, 100, 250, 500, 'all'].map(opt => (
+                  <SelectItem key={String(opt)} value={String(opt)}>{opt === 'all' ? 'ทั้งหมด' : String(opt)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>รายการ</span>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
+          </div>
+          <span className="text-muted-foreground shrink-0">
+            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+          </span>
         </div>
       </div>
 
@@ -269,6 +273,7 @@ export default function ManageSalesPage() {
         variant="destructive"
         requireReason
         reasonLabel="เหตุผลการยกเลิก"
+        reasonPresets={['คีย์รายการผิด', 'ราคาผิด', 'ลูกค้ายกเลิก', 'ลูกค้าคืนสินค้า', 'บิลซ้ำ']}
         onConfirm={reason => handleVoid(reason ?? '')}
       />
     </>

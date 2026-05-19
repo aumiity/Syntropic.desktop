@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
+import { Toggle } from '@/components/ui/switch'
 import { formatCurrency } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatCard } from '@/components/ui/card'
@@ -171,53 +171,46 @@ export default function ProductsPage() {
         />
       </div>
 
-      {/* Toolbar — search + filters */}
-      <div className="flex flex-wrap gap-2 items-center shrink-0">
-        <div className="relative flex-1 min-w-[260px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <Input
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
-            className="h-10 pl-9 rounded-lg text-sm bg-card"
-          />
-        </div>
-
-        <Select value={String(categoryId)} onValueChange={v => setCategoryId(Number(v))}>
-          <SelectTrigger className="h-10 w-48 rounded-lg bg-card text-sm border-0">
-            <SelectValue placeholder="หมวดหมู่ทั้งหมด" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">หมวดหมู่ทั้งหมด</SelectItem>
-            {categories.map(c => (
-              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={String(drugTypeId)} onValueChange={v => setDrugTypeId(Number(v))}>
-          <SelectTrigger className="h-10 w-48 rounded-lg bg-card text-sm border-0">
-            <SelectValue placeholder="ประเภทยาทั้งหมด" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">ประเภทยาทั้งหมด</SelectItem>
-            {drugTypes.map(d => (
-              <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <label className="ml-auto flex items-center gap-2 px-3 h-10 rounded-lg bg-card text-sm cursor-pointer">
-          <span className="text-muted-foreground mr-10">แสดงที่ปิดใช้งาน</span>
-          <Switch checked={showDisabled} onCheckedChange={setShowDisabled} size="default" />
-        </label>
-      </div>
-
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
-          <span>{loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}</span>
-          <Button onClick={() => navigate('/products/new')} className="h-9 rounded-lg px-2 text-sm">
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
+              className="h-9 pl-9 rounded-lg text-sm bg-input"
+            />
+          </div>
+
+          <Select value={String(categoryId)} onValueChange={v => setCategoryId(Number(v))}>
+            <SelectTrigger className="h-9 w-44 shrink-0">
+              <SelectValue placeholder="หมวดหมู่ทั้งหมด" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">หมวดหมู่ทั้งหมด</SelectItem>
+              {categories.map(c => (
+                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={String(drugTypeId)} onValueChange={v => setDrugTypeId(Number(v))}>
+            <SelectTrigger className="h-9 w-44 shrink-0">
+              <SelectValue placeholder="ประเภทยาทั้งหมด" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">ประเภทยาทั้งหมด</SelectItem>
+              {drugTypes.map(d => (
+                <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Toggle className="shrink-0 text-muted-foreground" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
+
+          <Button onClick={() => navigate('/products/new')} size="lg" className="px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มสินค้า
           </Button>
         </div>
@@ -274,7 +267,6 @@ export default function ProductsPage() {
                     <TableCell>
                       <div className="flex justify-center">
                         <Button
-                          className="w-16"
                           size="icon-lg"
                           variant="outline"
                           onClick={() => navigate(`/products/${row.id}/edit`)}
@@ -291,14 +283,29 @@ export default function ProductsPage() {
           </Table>
         </div>
 
-        <div className="px-4 h-12 border-t border-border flex items-center shrink-0">
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={p => load(p)}
-            pageSize={pageSize}
-            onPageSizeChange={setPageSize}
-          />
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
+          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+            <span>แสดง</span>
+            <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
+              <SelectTrigger className="h-9 min-w-20">
+                <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="min-w-28">
+                {[50, 100, 250, 500, 'all'].map(opt => (
+                  <SelectItem key={String(opt)} value={String(opt)}>
+                    {opt === 'all' ? 'ทั้งหมด' : String(opt)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>รายการ</span>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto justify-center" />
+          </div>
+          <span className="text-muted-foreground shrink-0">
+            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+          </span>
         </div>
       </div>
 

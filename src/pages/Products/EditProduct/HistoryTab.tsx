@@ -6,12 +6,13 @@ import {
 } from '@/components/ui/table'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
-import { SaleDetailDialog } from '@/components/dialogs/SaleDetailDialog'
+import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { formatDateTime, cn } from '@/lib/utils'
 import {
-  History, RotateCcw, ExternalLink, Info,
+  History, RotateCcw, Info, StickyNote,
 } from 'lucide-react'
 import { MOVEMENT_META, type StockMovement, type MovementSortKey } from './shared'
 
@@ -39,6 +40,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
   const [saleDetailOpen, setSaleDetailOpen] = useState(false)
   const [grDetailInvoice, setGrDetailInvoice] = useState<string | null>(null)
   const [grDetailOpen, setGrDetailOpen] = useState(false)
+  const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
 
   // Lazy load on first activation. `movements === null` is the "not loaded yet" marker.
   useEffect(() => {
@@ -94,6 +96,21 @@ export function HistoryTab({ productId, isNew, active }: Props) {
       : { by, dir: 'desc' })
   }
 
+  const handleVoidBill = async (reason: string) => {
+    if (!voidTarget) return
+    try {
+      await window.api.reports.voidSale(voidTarget.id, reason)
+      toast({ title: 'ยกเลิกบิลสำเร็จ', variant: 'success' })
+      setVoidTarget(null)
+      setSaleDetailOpen(false)
+      setSaleDetailInvoice(null)
+      reloadMovements()
+    } catch (e: any) {
+      toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? String(e), variant: 'destructive' })
+      setVoidTarget(null)
+    }
+  }
+
   const openMovementDetail = (m: StockMovement) => {
     if (m.sale_invoice_no) {
       setSaleDetailInvoice(m.sale_invoice_no)
@@ -108,7 +125,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
     <div className="pt-4 flex-1 min-h-0 flex flex-col">
       <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
         {/* Date range bar */}
-        <div className="h-12 px-5 flex items-center gap-2 shrink-0">
+        <div className="h-14 px-2 flex items-center gap-3 shrink-0">
           <span className="text-sm font-semibold text-muted-foreground shrink-0">ช่วงวันที่:</span>
           <DateRangePicker
             from={movementDateFrom}
@@ -128,7 +145,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           )}
         </div>
         {/* Filter bar: chips on the left, bulk actions on the right */}
-        <div className="h-12 px-5 flex items-center gap-2 shrink-0">
+        <div className="h-14 px-2 flex items-center gap-3 shrink-0">
           <span className="text-sm font-semibold text-muted-foreground shrink-0">ตัวกรอง:</span>
           <div className="flex flex-wrap items-center gap-1.5 flex-1">
             {Object.entries(MOVEMENT_META).map(([type, meta]) => {
@@ -232,12 +249,11 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button
-                                className="w-16"
                                 size="icon-lg"
-                                variant="outline"
+                                variant="warm"
                                 title="ดูหมายเหตุ"
                               >
-                                <Info />
+                                <StickyNote />
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent align="center" className="w-80 max-w-[90vw]">
@@ -245,20 +261,23 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                             </PopoverContent>
                           </Popover>
                         ) : (
-                          <span className="w-16 text-center text-muted-foreground text-sm">—</span>
+                          <Button size="icon-lg" variant="outline" disabled title="ไม่มีหมายเหตุ">
+                            <StickyNote />
+                          </Button>
                         )}
                         {hasDetail ? (
                           <Button
-                            className="w-16"
                             size="icon-lg"
                             variant="primary-soft"
                             onClick={() => openMovementDetail(m)}
                             title={`ดู ${m.sale_invoice_no ?? m.gr_invoice_no}`}
                           >
-                            <ExternalLink />
+                            <Info />
                           </Button>
                         ) : (
-                          <span className="w-16 text-center text-muted-foreground text-sm">—</span>
+                          <Button size="icon-lg" variant="outline" disabled title="ไม่มีบิล/เอกสาร">
+                            <Info />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
@@ -269,10 +288,13 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           </Table>
         </div>
 
-        {/* Bottom strip */}
-        <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between h-12">
-          <span>
-            ทั้งหมด{' '}
+        {/* Bottom strip — action left, count right (showcase) */}
+        <div className="px-5 h-12 bg-card border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between gap-3">
+          <Button size="lg" variant="outline" onClick={reloadMovements} disabled={movementsLoading} className="px-3 shrink-0">
+            <RotateCcw className="size-4" /> รีเฟรช
+          </Button>
+          <span className="shrink-0">
+            พบ{' '}
             <span className="font-semibold text-foreground tabular-nums">
               {filteredMovements.length}
             </span>
@@ -282,9 +304,6 @@ export function HistoryTab({ productId, isNew, active }: Props) {
               <span className="ml-2 text-warning-strong">(แสดงล่าสุด 500 รายการ)</span>
             )}
           </span>
-          <Button size="lg" variant="outline" onClick={reloadMovements} disabled={movementsLoading} className="px-3">
-            <RotateCcw className="size-4" /> รีเฟรช
-          </Button>
         </div>
       </div>
 
@@ -299,6 +318,22 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           }
         }}
         invoiceNo={saleDetailInvoice}
+        onVoidRequest={(sale: SaleDetail) => {
+          setVoidTarget({ id: sale.id, invoice_no: sale.invoice_no })
+          setSaleDetailOpen(false)
+        }}
+      />
+      <ConfirmDialog
+        open={!!voidTarget}
+        onOpenChange={open => { if (!open) setVoidTarget(null) }}
+        title="ยกเลิกบิล"
+        description={`ต้องการยกเลิกบิล ${voidTarget?.invoice_no}? สต็อกจะถูกคืนกลับอัตโนมัติ`}
+        confirmLabel="ยกเลิกบิล"
+        variant="destructive"
+        requireReason
+        reasonLabel="เหตุผลการยกเลิก"
+        reasonPresets={['คีย์รายการผิด', 'ราคาผิด', 'ลูกค้ายกเลิก', 'ลูกค้าคืนสินค้า', 'บิลซ้ำ']}
+        onConfirm={reason => handleVoidBill(reason ?? '')}
       />
       <PurchaseReceiptDialog
         open={grDetailOpen}

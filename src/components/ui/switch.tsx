@@ -65,24 +65,33 @@ function Switch({
 // (พักการใช้งาน, ปิดบัญชี) and variant=warning the yellow tint (เปิดการแจ้งเตือน),
 // signalling the active destructive/attention state. The switch itself already
 // turns red/yellow when on via the Switch variant.
+//
+// `framed="input"` is the top-bar variant: a borderless h-9 bg-input pill that
+// blends with the search Input next to it in the table-card top bar (reads as
+// one continuous control row, not a popped-out chip). Use whenever a Toggle
+// lives in a top bar beside a search field.
 function Toggle({ checked, onChange, label, size, variant = "default", framed, className }: {
   checked: boolean
   onChange: (v: boolean) => void
   label?: string
   size?: "sm" | "default" | "lg"
   variant?: "default" | "destructive" | "warning"
-  framed?: boolean
+  framed?: boolean | "input"
   className?: string
 }) {
+  const frameInput = framed === "input"
   return (
     <label className={cn(
       "flex items-center gap-2 cursor-pointer select-none",
-      framed && "h-10 px-3 rounded-lg border transition-colors",
+      // top-bar input-blended frame (matches the search Input)
+      frameInput && "h-9 px-3 rounded-lg bg-input transition-colors",
+      // standard pill frame (border + bg-card)
+      framed && !frameInput && "h-10 px-3 rounded-lg border transition-colors",
       // plain neutral frame for every variant while off
-      framed && (variant === "default" || !checked) && "bg-card border-border",
+      framed && !frameInput && (variant === "default" || !checked) && "bg-card border-border",
       // colored frame/tint only once switched on
-      framed && variant === "destructive" && checked && "bg-destructive-soft border-destructive/30 text-destructive",
-      framed && variant === "warning" && checked && "bg-warning-soft border-warning/40 text-warning-strong",
+      framed && !frameInput && variant === "destructive" && checked && "bg-destructive-soft border-destructive/30 text-destructive",
+      framed && !frameInput && variant === "warning" && checked && "bg-warning-soft border-warning/40 text-warning-strong",
       className,
     )}>
       {label ? <span className="text-sm">{label}</span> : null}

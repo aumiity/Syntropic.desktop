@@ -210,7 +210,7 @@ export default function ReportsFinancePage() {
       {/* Daily trend */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center">
-          <span>แนวโน้มรายวัน — {trend.length.toLocaleString()} วัน</span>
+          <span>แนวโน้มรายวัน</span>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -249,6 +249,12 @@ export default function ReportsFinancePage() {
               ))}
             </TableBody>
           </Table>
+        </div>
+
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
+          <span className="text-muted-foreground">
+            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{trend.length.toLocaleString()}</span> วัน</>}
+          </span>
         </div>
       </div>
     </>

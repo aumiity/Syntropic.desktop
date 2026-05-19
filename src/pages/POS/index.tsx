@@ -786,7 +786,7 @@ export default function POSPage() {
           <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden border-0">
 
           {/* Sale type + search + clear-all header */}
-          <div className="flex items-center gap-2 px-3.5 py-2.5 shrink-0 border-0">
+          <div className="flex items-center gap-2 px-1.5 h-14 shrink-0 border-0">
             <Button
               type="button"
               variant={cart.saleType === 'retail' ? 'default' : 'secondary'}

@@ -50,7 +50,7 @@ export function SaleDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="2xl">
+      <DialogContent size="4xl">
         {loading || !detail ? (
           <>
             <DialogHeader><DialogTitle>กำลังโหลด...</DialogTitle></DialogHeader>
@@ -58,7 +58,7 @@ export function SaleDetailDialog({
           </>
         ) : (
           <>
-            <DialogHeader>
+            <DialogHeader className="border-b border-border pb-3">
               <DialogTitle className="flex items-center gap-3">
                 <span>{detail.invoice_no}</span>
                 {detail.status === 'voided'
@@ -72,9 +72,23 @@ export function SaleDetailDialog({
                 <div><span className="text-muted-foreground">พนักงาน:</span> <span className="font-medium">{detail.sold_by_name ?? '—'}</span></div>
                 <div><span className="text-muted-foreground">ลูกค้า:</span> <span className="font-medium">{detail.customer_name ?? detail.customer_name_free ?? 'ลูกค้าทั่วไป'}</span></div>
                 <div><span className="text-muted-foreground">ประเภทการขาย:</span> <span className="font-medium">{SALE_TYPE_LABELS[detail.sale_type] ?? detail.sale_type}</span></div>
-                {detail.cash_amount > 0 && <div><span className="text-muted-foreground">เงินสด:</span> <span className="font-medium">{formatCurrency(detail.cash_amount)}</span></div>}
-                {detail.card_amount > 0 && <div><span className="text-muted-foreground">บัตร:</span> <span className="font-medium">{formatCurrency(detail.card_amount)}</span></div>}
-                {detail.transfer_amount > 0 && <div><span className="text-muted-foreground">โอน:</span> <span className="font-medium">{formatCurrency(detail.transfer_amount)}</span></div>}
+                <div className="col-span-2 flex items-center gap-2">
+                  <span className="text-muted-foreground">การชำระเงิน:</span>
+                  {(() => {
+                    const methods = [
+                      detail.cash_amount > 0 && { label: 'เงินสด', variant: 'success' as const },
+                      detail.card_amount > 0 && { label: 'บัตร', variant: 'info-soft' as const },
+                      detail.transfer_amount > 0 && { label: 'โอน', variant: 'warm' as const },
+                    ].filter(Boolean) as { label: string; variant: 'success' | 'info-soft' | 'warm' }[]
+                    return methods.length > 0
+                      ? methods.map(m => (
+                          <Badge key={m.label} variant={m.variant}>
+                            {m.label}
+                          </Badge>
+                        ))
+                      : <span className="font-medium">—</span>
+                  })()}
+                </div>
                 {detail.change_amount > 0 && <div><span className="text-muted-foreground">เงินทอน:</span> <span className="font-medium">{formatCurrency(detail.change_amount)}</span></div>}
                 {detail.void_reason && (
                   <div className="col-span-2 text-destructive"><span className="font-medium">เหตุผลยกเลิก:</span> {detail.void_reason}</div>
@@ -82,8 +96,13 @@ export function SaleDetailDialog({
               </div>
 
               <div className="border border-border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
+                {/* ~10 rows visible: header h-10 (40) + 10×~33 + sticky tfoot (~72) */}
+                <Table containerClassName="max-h-[450px]" className="border-separate border-spacing-0">
+                  {/* Divider rides with the sticky header — works because the
+                      <Table> is border-separate (collapse model strands cell
+                      borders behind sticking cells). Same pattern as the
+                      pinned tfoot's border-t below. */}
+                  <TableHeader className="[&_th]:border-b [&_th]:border-border">
                     <TableRow>
                       <TableHead>รายการ</TableHead>
                       <TableHead className="text-center">หน่วย</TableHead>
@@ -119,16 +138,20 @@ export function SaleDetailDialog({
                       )
                     })}
                   </TableBody>
+                  {/* Pinned totals: each <td> is sticky (per-cell, not <tr> —
+                      sticky on <tr>/<tfoot> is flaky in Chromium). Upper row
+                      sits at bottom-9 (≈ height of the lower row); opaque
+                      bg-muted so scrolling rows don't bleed through. */}
                   <tfoot>
-                    <tr className="border-t border-border bg-muted/30">
+                    <tr className="[&>td]:sticky [&>td]:bottom-9 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
                       <td colSpan={4} className="px-4 py-2" />
-                      <td className="px-4 py-2 text-right text-sm font-medium text-muted-foreground">ส่วนลด</td>
+                      <td className="px-4 py-2 text-right text-sm font-medium text-muted-foreground">รวมส่วนลด</td>
                       <td className="px-4 py-2 text-right text-sm font-medium text-warning-strong">
                         {detail.total_discount > 0 ? `-${formatCurrency(detail.total_discount)}` : '—'}
                       </td>
                       <td colSpan={2} />
                     </tr>
-                    <tr className="border-t border-border bg-muted/30">
+                    <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted">
                       <td colSpan={4} className="px-4 py-2" />
                       <td className="px-4 py-2 text-right text-sm font-bold">ยอดสุทธิ</td>
                       <td className="px-4 py-2 text-right font-bold text-primary">{formatCurrency(detail.total_amount)}</td>
@@ -145,11 +168,11 @@ export function SaleDetailDialog({
             </DialogBody>
             <DialogFooter>
               {onVoidRequest && detail.status !== 'voided' && (
-                <Button variant="destructive" onClick={() => onVoidRequest(detail)}>
-                  <Ban className="w-4 h-4 mr-1.5" /> ยกเลิกบิล
+                <Button size="xl" variant="destructive" onClick={() => onVoidRequest(detail)}>
+                  <Ban className="size-4 mr-1.5" /> ยกเลิกบิล
                 </Button>
               )}
-              <Button variant="destructive2" onClick={() => onOpenChange(false)}>ปิด</Button>
+              <Button size="xl" variant="destructive2" onClick={() => onOpenChange(false)}>ปิด</Button>
             </DialogFooter>
           </>
         )}

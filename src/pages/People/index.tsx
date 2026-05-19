@@ -113,21 +113,16 @@ function CustomersTab() {
 
   return (
     <div className="flex flex-col h-full gap-3">
-      {/* Toolbar */}
-      <div className="flex gap-2 items-center shrink-0">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <Input value={q} onChange={e => setQ(e.target.value)}
-            placeholder="ค้นหาชื่อ, โทร, รหัส..." className="h-10 pl-9 rounded-lg bg-card" />
-        </div>
-        <Toggle className="border-0" framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
-      </div>
-
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
-          <span>{loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}</span>
-          <Button onClick={openAdd} className="h-9 rounded-lg px-2 text-sm">
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input value={q} onChange={e => setQ(e.target.value)}
+              placeholder="ค้นหาชื่อ, โทร, รหัส..." className="h-9 pl-9 rounded-lg bg-input text-sm" />
+          </div>
+          <Toggle className="shrink-0" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
+          <Button onClick={openAdd} size="lg" className="px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มลูกค้า
           </Button>
         </div>
@@ -172,7 +167,7 @@ function CustomersTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
-                      <Button className="w-16" size="icon-lg" variant="outline" onClick={() => openEdit(c)} title="แก้ไข"><Edit /></Button>
+                      <Button size="icon-lg" variant="outline" onClick={() => openEdit(c)} title="แก้ไข"><Edit /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -181,14 +176,27 @@ function CustomersTab() {
           </Table>
         </div>
 
-        <div className="px-4 h-12 border-t border-border flex items-center shrink-0">
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={load}
-            pageSize={pageSize}
-            onPageSizeChange={setPageSize}
-          />
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
+          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+            <span>แสดง</span>
+            <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
+              <SelectTrigger className="h-9 min-w-20">
+                <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="min-w-28">
+                {[50, 100, 250, 500, 'all'].map(opt => (
+                  <SelectItem key={String(opt)} value={String(opt)}>{opt === 'all' ? 'ทั้งหมด' : String(opt)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>รายการ</span>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
+          </div>
+          <span className="text-muted-foreground shrink-0">
+            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+          </span>
         </div>
       </div>
 
@@ -335,19 +343,15 @@ function SuppliersTab() {
 
   return (
     <div className="flex flex-col h-full gap-3">
-      <div className="flex gap-2 items-center shrink-0">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <Input value={q} onChange={e => setQ(e.target.value)}
-            placeholder="ค้นหาชื่อ, รหัส, โทร..." className="h-10 pl-9 rounded-lg bg-card" />
-        </div>
-        <Toggle className="border-0" framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
-      </div>
-
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
-          <span>{loading ? 'กำลังโหลด...' : `พบ ${total.toLocaleString()} รายการ`}</span>
-          <Button onClick={openAdd} className="h-9 rounded-lg px-2 text-sm">
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input value={q} onChange={e => setQ(e.target.value)}
+              placeholder="ค้นหาชื่อ, รหัส, โทร..." className="h-9 pl-9 rounded-lg bg-input text-sm" />
+          </div>
+          <Toggle className="shrink-0" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
+          <Button onClick={openAdd} size="lg" className="px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มผู้จำหน่าย
           </Button>
         </div>
@@ -385,7 +389,7 @@ function SuppliersTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
-                      <Button className="w-16" size="icon-lg" variant="outline" onClick={() => openEdit(s)} title="แก้ไข"><Edit /></Button>
+                      <Button size="icon-lg" variant="outline" onClick={() => openEdit(s)} title="แก้ไข"><Edit /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -394,14 +398,27 @@ function SuppliersTab() {
           </Table>
         </div>
 
-        <div className="px-4 h-12 border-t border-border flex items-center shrink-0">
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={load}
-            pageSize={pageSize}
-            onPageSizeChange={setPageSize}
-          />
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
+          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+            <span>แสดง</span>
+            <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
+              <SelectTrigger className="h-9 min-w-20">
+                <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="min-w-28">
+                {[50, 100, 250, 500, 'all'].map(opt => (
+                  <SelectItem key={String(opt)} value={String(opt)}>{opt === 'all' ? 'ทั้งหมด' : String(opt)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>รายการ</span>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
+          </div>
+          <span className="text-muted-foreground shrink-0">
+            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+          </span>
         </div>
       </div>
 
@@ -513,19 +530,15 @@ function StaffTab() {
 
   return (
     <div className="flex flex-col h-full gap-3">
-      <div className="flex gap-2 items-center shrink-0">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <Input value={q} onChange={e => setQ(e.target.value)}
-            placeholder="ค้นหาชื่อ, อีเมล..." className="h-10 pl-9 rounded-lg bg-card" />
-        </div>
-        <Toggle className="border-0" framed size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
-      </div>
-
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
-          <span>{loading ? 'กำลังโหลด...' : `พบ ${filtered.length.toLocaleString()} รายการ`}</span>
-          <Button onClick={openAdd} className="h-9 rounded-lg px-2 text-sm">
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input value={q} onChange={e => setQ(e.target.value)}
+              placeholder="ค้นหาชื่อ, อีเมล..." className="h-9 pl-9 rounded-lg bg-input text-sm" />
+          </div>
+          <Toggle className="shrink-0" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
+          <Button onClick={openAdd} size="lg" className="px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มพนักงาน
           </Button>
         </div>
@@ -565,13 +578,19 @@ function StaffTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
-                      <Button className="w-16" size="icon-lg" variant="outline" onClick={() => openEdit(u)} title="แก้ไข"><Edit /></Button>
+                      <Button size="icon-lg" variant="outline" onClick={() => openEdit(u)} title="แก้ไข"><Edit /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+        </div>
+
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
+          <span className="text-muted-foreground">
+            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{filtered.length.toLocaleString()}</span> รายการ</>}
+          </span>
         </div>
       </div>
 

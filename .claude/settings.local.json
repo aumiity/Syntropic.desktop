@@ -72,7 +72,8 @@
       "Bash(echo \"exit: $?\")",
       "Bash(npm view *)",
       "Bash(echo \"--- total errors: $\\(npx tsc --noEmit -p tsconfig.json 2>&1)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(grep -n \"^## Session\\\\|^## ✅ DONE\\\\|^# \\\\|^## 🆕\\\\|^---$\" PROGRESS.md)"
     ]
   }
 }

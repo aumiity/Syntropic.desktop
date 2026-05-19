@@ -138,7 +138,7 @@ function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-body"
-      className={cn("px-2 rounded-xl", className)}
+      className={cn("px-2 rounded-xl min-w-0", className)}
       {...props}
     />
   )

@@ -235,7 +235,7 @@ export function PriceTab({
                       {h.note ? (
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button className="w-16" size="icon-lg" variant="outline" title="ดูหมายเหตุ">
+                            <Button size="icon-lg" variant="warm" title="ดูหมายเหตุ">
                               <StickyNote />
                             </Button>
                           </PopoverTrigger>

@@ -80,39 +80,34 @@ export default function ManageLowStockPage() {
 
   return (
     <>
-      {/* Toolbar */}
-      <div className="flex flex-wrap gap-2 items-center shrink-0">
-        <Select value={categoryId} onValueChange={setCategoryId}>
-          <SelectTrigger className="h-10 w-44 rounded-lg bg-card text-sm border-0">
-            <SelectValue placeholder="ทุกหมวดหมู่" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">ทุกหมวดหมู่</SelectItem>
-            {categories.map(c => (
-              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <Input
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="ชื่อสินค้า, รหัส, บาร์โค้ด..."
-            className="h-10 pl-9 rounded-lg text-sm bg-card"
-          />
-        </div>
-
-        <Button size="lg" variant="info-soft" onClick={() => navigate('/purchase')}>
-          <PackagePlus className="size-4" /> ไปหน้ารับสินค้า
-        </Button>
-      </div>
-
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center">
-          <span>{loading ? 'กำลังโหลด...' : `พบ ${rows.length.toLocaleString()} รายการที่ต้องสั่งซื้อ`}</span>
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="ชื่อสินค้า, รหัส, บาร์โค้ด..."
+              className="h-9 pl-9 rounded-lg text-sm bg-input"
+            />
+          </div>
+
+          <Select value={categoryId} onValueChange={setCategoryId}>
+            <SelectTrigger className="h-9 w-44 shrink-0">
+              <SelectValue placeholder="ทุกหมวดหมู่" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">ทุกหมวดหมู่</SelectItem>
+              {categories.map(c => (
+                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button size="lg" variant="info-soft" className="px-2 shrink-0" onClick={() => navigate('/purchase')}>
+            <PackagePlus className="size-4" /> ไปหน้ารับสินค้า
+          </Button>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -177,6 +172,12 @@ export default function ManageLowStockPage() {
               })}
             </TableBody>
           </Table>
+        </div>
+
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
+          <span className="text-muted-foreground">
+            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{rows.length.toLocaleString()}</span> รายการที่ต้องสั่งซื้อ</>}
+          </span>
         </div>
       </div>
     </>

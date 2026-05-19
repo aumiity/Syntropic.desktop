@@ -79,7 +79,6 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
         "sticky top-0 z-10",
         "h-10 px-2 text-left align-middle",
         "bg-muted text-foreground-subtle",
-        "shadow-[0_1px_0_var(--border)]",
         "font-medium whitespace-nowrap",
         "[&:has([role=checkbox])]:pr-0",
         className

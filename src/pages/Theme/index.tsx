@@ -41,7 +41,7 @@ import { DateInput } from '@/components/ui/date-input'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Calendar } from '@/components/ui/calendar'
 import {
-  Search, Plus, Edit, Trash2, Info,
+  Search, Plus, Edit, Trash2, Info, ExternalLink,
   AlertTriangle, CheckCircle, Package, ChevronRight,
   TrendingUp, FileText, Boxes, AlertCircle, Coins, Building2,
 } from 'lucide-react'
@@ -131,6 +131,7 @@ export default function Theme() {
   const [rangeTo, setRangeTo] = useState('')
   const [page, setPage] = useState(3)
   const [pageSize, setPageSize] = useState<import('@/components/ui/pagination').PageSize>(50)
+  const [tableQ, setTableQ] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const comboItems = [
     { id: 1, name: 'บริษัท ฟาร์มาซี จำกัด', code: 'S0001' },
@@ -626,8 +627,17 @@ export default function Theme() {
                 <DemoRow label="Toggle (label + switch) — label on left, switch on right (iOS settings style)">
                   <Toggle size="lg" checked={switchOn} onChange={setSwitchOn} label="พื้นฐาน" />
                 </DemoRow>
-                <DemoRow label="Toggle framed — pill for toolbars next to search inputs (h-10, bg-card, rounded-lg)">
+                <DemoRow label="Toggle framed — pill for dialogs / tinted bg (h-10, bg-card, border, rounded-lg)">
                   <Toggle framed size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่พักใช้งาน" />
+                </DemoRow>
+                <DemoRow label='Toggle framed="input" — top-bar variant: borderless h-9 bg-input, blends with the search Input beside it'>
+                  <div className="flex items-center gap-3 w-80 rounded-card bg-card p-2">
+                    <div className="relative flex-1 min-w-0">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                      <Input placeholder="ค้นหา..." className="h-9 pl-9 rounded-lg text-sm bg-input" />
+                    </div>
+                    <Toggle framed="input" size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่ปิดใช้งาน" className="shrink-0 text-muted-foreground" />
+                  </div>
                 </DemoRow>
                 <DemoRow label="Toggle framed + destructive — กรอบธรรมดาเมื่อปิด, สวิช + กรอบแดงเมื่อเปิด (พักใช้งาน, ปิดบัญชี)">
                   <Toggle framed variant="destructive" size="lg" checked={switchOn} onChange={setSwitchOn} label="พักการใช้งาน" />
@@ -847,14 +857,33 @@ export default function Theme() {
               <Section title="Standard Table-Card Layout" path="CLAUDE.md → UI Conventions" full>
                 <p className="text-sm text-muted-foreground">
                   รูปแบบมาตรฐานของ Products list / EditProduct tabs — 4 แถบ:
-                  หัวข้อ (ขาว ไม่มีเส้น, <code className="font-mono">h-12</code>) · column header (muted, sticky)
-                  · เนื้อหา (ขาว เลื่อนได้) · แถบสรุป (ขาว + เส้นบน, <code className="font-mono">h-12</code>)
-                  — ปุ่มในแถบบน/ล่าง ใช้ <code className="font-mono">h-9</code> (Button <code className="font-mono">size="lg"</code>)
+                  แถบบน (ขาว ไม่มีเส้น, <code className="font-mono">h-14 px-2</code> — px-2 ให้ขอบ search ตรงกับ inset 8px ของตาราง) = ช่องค้นหา (ซ้าย) + Select filter / สวิช <code className="font-mono">framed="input"</code> (กรอบ bg-input กลมกลืนกับ search) / ปุ่ม action (ขวา)
+                  · column header (muted, sticky) · เนื้อหา (ขาว เลื่อนได้)
+                  · แถบล่าง (ขาว + เส้นบน, <code className="font-mono">h-12 px-5</code>) = page-size selector (ซ้าย) · pagination (กลาง) · จำนวนที่พบ (ขวา)
+                  — controls ในแถบบน/ล่าง ใช้ <code className="font-mono">h-9</code> (Button <code className="font-mono">size="lg"</code>)
                 </p>
                 <div className="bg-card rounded-card shadow-card overflow-hidden">
-                  <div className="h-12 px-5 text-sm font-semibold text-muted-foreground flex items-center justify-between">
-                    <span>สินค้าทั้งหมด {PRODUCTS.length * 3} รายการ</span>
-                    <Button size="lg" className="px-2"><Plus className="size-4" /> เพิ่มสินค้า</Button>
+                  <div className="h-14 px-2 flex items-center gap-3">
+                    <div className="relative flex-1 min-w-0">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        value={tableQ}
+                        onChange={e => setTableQ(e.target.value)}
+                        placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
+                        className="h-9 pl-9 rounded-lg text-sm bg-input"
+                      />
+                    </div>
+                    <Select defaultValue="all">
+                      <SelectTrigger className="h-9 flex-1 min-w-0"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
+                        <SelectItem value="1">ยาต้านเชื้อ</SelectItem>
+                        <SelectItem value="2">ยาแก้ปวด</SelectItem>
+                        <SelectItem value="3">วิตามิน</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Toggle framed="input" size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่ปิดใช้งาน" className="shrink-0 text-muted-foreground" />
+                    <Button size="lg" className="px-2 shrink-0"><Plus className="size-4" /> เพิ่มสินค้า</Button>
                   </div>
                   <Table containerClassName="max-h-[260px]">
                     <TableHeader>
@@ -876,17 +905,42 @@ export default function Theme() {
                           <TableCell className="text-right tabular-nums">{row.stock.toLocaleString()}</TableCell>
                           <TableCell><Badge variant={row.status}>{STATUS_LABEL[row.status]}</Badge></TableCell>
                           <TableCell>
-                            <div className="flex justify-center">
-                              <Button className="w-16" size="icon-lg" variant="outline"><Edit /></Button>
+                            {/* Row actions = square icon buttons (no w-16).
+                                edit=outline · info=warm · external-link=primary-soft */}
+                            <div className="flex gap-1.5 justify-center">
+                              <Button size="icon-lg" variant="outline" title="แก้ไข"><Edit /></Button>
+                              <Button size="icon-lg" variant="warm" title="ดูรายละเอียด"><Info /></Button>
+                              <Button size="icon-lg" variant="primary-soft" title="เปิดดู"><ExternalLink /></Button>
                             </div>
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                  <div className="h-12 px-5 bg-card border-t border-border flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">แสดง {PRODUCTS.length * 3} จาก {PRODUCTS.length * 3} รายการ</span>
-                    <span className="font-semibold tabular-nums">รวมมูลค่า ฿ 172,350</span>
+                  <div className="h-12 px-5 bg-card border-t border-border flex items-center justify-between gap-3 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                      <span>แสดง</span>
+                      <Select
+                        value={String(pageSize)}
+                        onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}
+                      >
+                        <SelectTrigger className="h-9 min-w-20">
+                          <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="min-w-28">
+                          {[50, 100, 250, 500, 'all'].map(opt => (
+                            <SelectItem key={String(opt)} value={String(opt)}>
+                              {opt === 'all' ? 'ทั้งหมด' : String(opt)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span>รายการ</span>
+                    </div>
+                    <div className="flex-1 flex justify-center">
+                      <Pagination page={page} totalPages={10} onPageChange={setPage} className="w-auto justify-center" />
+                    </div>
+                    <span className="text-muted-foreground shrink-0">พบ <span className="font-semibold text-foreground tabular-nums">{PRODUCTS.length * 3}</span> รายการ</span>
                   </div>
                 </div>
               </Section>
