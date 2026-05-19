@@ -42,6 +42,6 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react-day-picker'],
+    include: ['react-day-picker', 'lucide-react', 'framer-motion'],
   },
 })

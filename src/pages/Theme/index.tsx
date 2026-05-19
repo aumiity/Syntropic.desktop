@@ -29,7 +29,7 @@ import {
 import { SortableTableBody, SortableRow } from '@/components/ui/sortable'
 import {
   Dialog, DialogTrigger, DialogContent, DialogHeader,
-  DialogTitle, DialogDescription, DialogBody, DialogFooter,
+  DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
@@ -46,6 +46,8 @@ import {
   TrendingUp, FileText, Boxes, AlertCircle, Coins, Building2,
 } from 'lucide-react'
 import { Combobox } from '@/components/ui/combobox'
+import { PriceInput } from '@/components/ui/price-input'
+import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 
 const MODE_CARDS: { mode: ThemeMode; label: string }[] = [
   { mode: 'light', label: 'สว่าง' },
@@ -148,6 +150,14 @@ export default function Theme() {
   const [seedRunning, setSeedRunning] = useState(false)
   const [seedResult, setSeedResult] = useState<string | null>(null)
   const [sortRows, setSortRows] = useState(PRODUCTS)
+  const [priceVal, setPriceVal] = useState<string>('120.00')
+  const [unitPickerOpen, setUnitPickerOpen] = useState(false)
+  const pickerUnits = [
+    { id: -1, unit_name: 'เม็ด', qty_per_base: 1, price_retail: 2.5 },
+    { id: 11, unit_name: 'แผง', qty_per_base: 10, price_retail: 24 },
+    { id: 12, unit_name: 'กล่อง', qty_per_base: 100, price_retail: 220 },
+  ]
+  const [pickerUnit, setPickerUnit] = useState('เม็ด')
 
   return (
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
@@ -457,6 +467,25 @@ export default function Theme() {
                 </DemoRow>
               </Section>
 
+              {/* ── PRICE INPUT ── */}
+              <Section title="PriceInput" path="src/components/ui/price-input.tsx">
+                <DemoRow label="Currency (decimals=2) — ชิดขวา, tabular-nums, ว่าง→0 เมื่อ blur">
+                  <PriceInput
+                    className="max-w-[160px]"
+                    value={priceVal}
+                    onChange={setPriceVal}
+                  />
+                  <span className="text-sm text-muted-foreground">ค่า: {priceVal || '(ว่าง)'}</span>
+                </DemoRow>
+                <DemoRow label="จำนวนเต็ม (decimals=0) · ทศนิยม 3 ตำแหน่ง">
+                  <PriceInput className="max-w-[160px]" decimals={0} value={undefined} onChange={() => {}} />
+                  <PriceInput className="max-w-[160px]" decimals={3} value={undefined} onChange={() => {}} />
+                </DemoRow>
+                <DemoRow label="Disabled">
+                  <PriceInput className="max-w-[160px]" value={99} onChange={() => {}} disabled />
+                </DemoRow>
+              </Section>
+
               {/* ── TEXTAREA ── */}
               <Section title="Textarea" path="src/components/ui/textarea.tsx">
                 <DemoRow label="Default">
@@ -600,10 +629,10 @@ export default function Theme() {
                 <DemoRow label="Toggle framed — pill for toolbars next to search inputs (h-10, bg-card, rounded-lg)">
                   <Toggle framed size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่พักใช้งาน" />
                 </DemoRow>
-                <DemoRow label="Toggle framed + destructive — for state-changing toggles inside modals (พักใช้งาน, ปิดบัญชี)">
+                <DemoRow label="Toggle framed + destructive — กรอบธรรมดาเมื่อปิด, สวิช + กรอบแดงเมื่อเปิด (พักใช้งาน, ปิดบัญชี)">
                   <Toggle framed variant="destructive" size="lg" checked={switchOn} onChange={setSwitchOn} label="พักการใช้งาน" />
                 </DemoRow>
-                <DemoRow label="Toggle framed + warning — yellow tint for attention-grabbing but non-destructive (เปิดการแจ้งเตือน)">
+                <DemoRow label="Toggle framed + warning — กรอบธรรมดาเมื่อปิด, สวิช + กรอบเหลืองเมื่อเปิด (เปิดการแจ้งเตือน)">
                   <Toggle framed variant="warning" size="lg" checked={switchOn} onChange={setSwitchOn} label="เปิดการแจ้งเตือน" />
                 </DemoRow>
               </Section>
@@ -847,9 +876,8 @@ export default function Theme() {
                           <TableCell className="text-right tabular-nums">{row.stock.toLocaleString()}</TableCell>
                           <TableCell><Badge variant={row.status}>{STATUS_LABEL[row.status]}</Badge></TableCell>
                           <TableCell>
-                            <div className="flex gap-1.5 justify-center">
-                              <Button className="w-16" size="icon-lg" variant="warm"><Edit /></Button>
-                              <Button className="w-16" size="icon-lg" variant="destructive2"><Trash2 /></Button>
+                            <div className="flex justify-center">
+                              <Button className="w-16" size="icon-lg" variant="outline"><Edit /></Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -909,7 +937,6 @@ export default function Theme() {
                   <DialogContent size="lg" onClose={() => setFormModalOpen(false)}>
                     <DialogHeader>
                       <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
-                      <DialogDescription>ฟอร์มจัดวางแบบ 2 คอลัมน์ภายใน DialogBody</DialogDescription>
                     </DialogHeader>
                     <DialogBody>
                       <div className="grid grid-cols-2 gap-4">
@@ -970,7 +997,6 @@ export default function Theme() {
                   <DialogContent size="md" onClose={() => setScrollModalOpen(false)}>
                     <DialogHeader>
                       <DialogTitle>เงื่อนไขการใช้งาน</DialogTitle>
-                      <DialogDescription>body เลื่อนภายใน — header / footer คงที่</DialogDescription>
                     </DialogHeader>
                     <DialogBody className="max-h-[50vh] overflow-y-auto space-y-3">
                       {Array.from({ length: 14 }).map((_, i) => (
@@ -998,9 +1024,6 @@ export default function Theme() {
                     <DialogContent size="md" onClose={() => setDialogOpen(false)}>
                       <DialogHeader>
                         <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
-                        <DialogDescription>
-                          กรอกข้อมูลสินค้าที่ต้องการเพิ่มเข้าระบบ
-                        </DialogDescription>
                       </DialogHeader>
                       <DialogBody className="space-y-3">
                         <div className="space-y-1.5">
@@ -1026,10 +1049,10 @@ export default function Theme() {
                         </div>
                       </DialogBody>
                       <DialogFooter>
-                        <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                        <Button size="xl" variant="destructive2" onClick={() => setDialogOpen(false)}>
                           ยกเลิก
                         </Button>
-                        <Button onClick={() => { setDialogOpen(false); toast('บันทึกสำเร็จ', 'success') }}>
+                        <Button size="xl" onClick={() => { setDialogOpen(false); toast('บันทึกสำเร็จ', 'success') }}>
                           บันทึก
                         </Button>
                       </DialogFooter>
@@ -1084,6 +1107,22 @@ export default function Theme() {
                     setConfirmReasonOpen(false)
                     toast(`ยกเลิกแล้ว: ${reason}`, 'info')
                   }}
+                />
+              </Section>
+
+              {/* ── UNIT PICKER DIALOG ── */}
+              <Section title="UnitPickerDialog" path="src/components/ui/unit-picker-dialog.tsx">
+                <DemoRow label="เลือกหน่วย (POS / Purchase) — แถวฐาน id=-1 อยู่บนสุด badge 'หลัก'">
+                  <Button variant="outline" onClick={() => setUnitPickerOpen(true)}>เปิดตัวเลือกหน่วย</Button>
+                  <span className="text-sm text-muted-foreground">หน่วยที่เลือก: {pickerUnit}</span>
+                </DemoRow>
+                <UnitPickerDialog
+                  open={unitPickerOpen}
+                  onClose={() => setUnitPickerOpen(false)}
+                  productName="พาราเซตามอล 500 มก."
+                  units={pickerUnits}
+                  activeUnitName={pickerUnit}
+                  onSelect={(u) => { setPickerUnit(u.unit_name ?? ''); setUnitPickerOpen(false) }}
                 />
               </Section>
 
@@ -1152,7 +1191,7 @@ export default function Theme() {
                     />
                   </div>
                 </DemoRow>
-                <DemoRow label="With empty/all row (filter mode, h-9)">
+                <DemoRow label="With empty/all row (filter mode) — h-10 เท่ากับ Input / DateInput / DateRangePicker">
                   <div className="w-72">
                     <Combobox
                       items={comboItems}
@@ -1165,7 +1204,6 @@ export default function Theme() {
                       emptyLabel="ทุกผู้จัดจำหน่าย"
                       searchPlaceholder="ชื่อหรือรหัส..."
                       emptyText="ไม่พบรายการ"
-                      triggerClassName="h-9"
                     />
                   </div>
                 </DemoRow>

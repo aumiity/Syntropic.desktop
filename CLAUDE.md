@@ -182,10 +182,11 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - When adding a new modal, wire Enter on the primary input or via `onKeyDown` on the dialog body — call the same handler the OK button calls.
 7. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`, `tabular-nums`) are encouraged — only **color literals** are banned.
 8. **Icon sizing inside `<Button>` — use `size-N`, never `h-N w-N`.** `button.tsx` has `[&_svg:not([class*='size-'])]:size-4`, which silently snaps any descendant svg without `size-` in its className to 16px. `h-7 w-7` does not contain `size-`, so the rule still matches and — being more specific — overrides your value. Always write `<Icon className="size-7" />`, including arbitrary values (`size-[22px]`, not `h-[22px] w-[22px]`). Doesn't apply to icons in `<Input>`/`<Label>`/`<DialogTitle>`/plain `<div>`/raw `<button>` (not the Button component), or to the Button element's own outer dimensions.
-9. **Minimum text size is `text-sm` (HARD), with one carve-out.** Don't use `text-xs` or arbitrary smaller values (`text-[10px]`, `text-[11px]`, `text-[13px]`) in new code. `text-sm` is the smallest allowed; scale up (`text-base`, `text-lg`, `text-xl`, …) from there.
-   - **Allowed inside `<Badge>` only** — badges may use `text-xs` for visual density (chips/status tags).
-   - **Anywhere else, ask the user first before using `text-xs`.** This includes table cells, helper text, labels, captions — every case needs explicit per-use approval. Do not apply `text-xs` outside Badge without confirmation, even if it "looks better."
-   - Applies to all new features and any UI you touch — existing legacy `text-xs` can be cleaned up opportunistically but is not a blocker.
+9. **ขนาดตัวอักษร — ลำดับชั้นตามบทบาท (ไม่ใช่ห้าม `text-xs` อีกต่อไป).** ใช้ขนาดตามบทบาทของข้อความ ไม่ใช่ตาม "อันไหนดูดี":
+   - **หัวข้อ / title → `text-base` ขึ้นไป** (`text-base`, `text-lg`, `text-xl`, …)
+   - **เนื้อหาหลัก (body, ค่าในตาราง, label, ปุ่ม) → `text-sm`** — ขนาดมาตรฐานของเนื้อหา
+   - **`text-xs` = ข้อความที่ *รองจากเนื้อหา*** — อนุญาตให้ใช้ได้กับ: คำอธิบายย่อย/helper text, caption, status bar แสดงสถานะ, meta/timestamp, chip & status ใน `<Badge>`. อย่าใช้ `text-xs` กับเนื้อหาหลักหรือหัวข้อ.
+   - ห้ามใช้เล็กกว่า `text-xs` (เช่น `text-[10px]`, `text-[11px]`, `text-[13px]`) — `text-xs` คือเล็กสุด.
 
 ### Color palette & variants — USE THE FULL RANGE (HARD)
 

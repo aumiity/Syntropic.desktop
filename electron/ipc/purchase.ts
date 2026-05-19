@@ -240,21 +240,29 @@ export function registerPurchaseHandlers() {
 
     const baseWhere = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ``
 
-    // Summary uses base filters only (no payment_type / status chip), excludes cancelled
+    // Summary uses base filters only (no payment_type / status chip). These are
+    // receipt COUNTS per status — no finance figures (kept to a restricted
+    // finance page). The cash/credit/unpaid counts exclude cancelled so each
+    // card's number matches the rows shown when its filter is clicked.
+    const NOT_CANCELLED = `COALESCE(pr.status,'completed') != 'cancelled'`
     const summary = (db.prepare(`
       SELECT
         COUNT(DISTINCT pr.invoice_no) as count,
-        COALESCE(SUM(CASE WHEN pr.status = 'completed' THEN pri.qty * pri.cost_price ELSE 0 END), 0) as total_cost,
-        COALESCE(SUM(CASE WHEN pr.status = 'completed' AND pr.payment_type = 'credit' AND pr.is_paid = 0
-                         THEN pri.qty * pri.cost_price ELSE 0 END), 0) as unpaid_cost
+        COUNT(DISTINCT CASE WHEN ${NOT_CANCELLED} AND pr.payment_type = 'cash'   THEN pr.invoice_no END) as cash_count,
+        COUNT(DISTINCT CASE WHEN ${NOT_CANCELLED} AND pr.payment_type = 'credit' THEN pr.invoice_no END) as credit_count,
+        COUNT(DISTINCT CASE WHEN ${NOT_CANCELLED} AND pr.payment_type = 'credit' AND pr.is_paid = 0 THEN pr.invoice_no END) as unpaid_count,
+        COUNT(DISTINCT CASE WHEN pr.status = 'cancelled' THEN pr.invoice_no END) as cancelled_count
       FROM purchase_receipts pr
-      LEFT JOIN purchase_receipt_items pri ON pri.invoice_no = pr.invoice_no
       ${baseWhere}
     `).get(...params) as any)
 
     const rowConditions = [...conditions]
     const rowParams = [...params]
-    if (payment_type) { rowConditions.push(`pr.payment_type = ?`); rowParams.push(payment_type) }
+    if (payment_type === 'unpaid') {
+      rowConditions.push(`pr.payment_type = 'credit'`, `pr.is_paid = 0`, NOT_CANCELLED)
+    } else if (payment_type === 'cash' || payment_type === 'credit') {
+      rowConditions.push(`pr.payment_type = ?`, NOT_CANCELLED); rowParams.push(payment_type)
+    }
     if (status === 'completed') { rowConditions.push(`COALESCE(pr.status,'completed') = 'completed'`) }
     else if (status === 'cancelled') { rowConditions.push(`pr.status = 'cancelled'`) }
 
@@ -286,7 +294,13 @@ export function registerPurchaseHandlers() {
 
     return {
       rows, total, page, limit: limit ?? total,
-      summary: { count: summary.count, total_cost: summary.total_cost, unpaid_cost: summary.unpaid_cost }
+      summary: {
+        count: summary.count,
+        cash_count: summary.cash_count,
+        credit_count: summary.credit_count,
+        unpaid_count: summary.unpaid_count,
+        cancelled_count: summary.cancelled_count,
+      }
     }
   })
 

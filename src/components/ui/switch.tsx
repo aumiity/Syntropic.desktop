@@ -59,10 +59,12 @@ function Switch({
 // (iOS/macOS settings convention: setting name first, control after).
 // `framed` wraps it in a h-10 rounded-lg pill with a thin border so it reads
 // as a control on both tinted page backgrounds AND inside white dialogs
-// (where a borderless white pill would be invisible). When variant=destructive
-// the pill picks up a soft red bg/border to signal a destructive state-change
-// (พักการใช้งาน, ปิดบัญชี); variant=warning picks up a yellow tint for
-// attention-grabbing but non-destructive toggles (เปิดการแจ้งเตือน).
+// (where a borderless white pill would be invisible). The pill stays a plain
+// neutral frame (bg-card border-border) while OFF for every variant — only
+// when switched ON does variant=destructive pick up the soft red bg/border
+// (พักการใช้งาน, ปิดบัญชี) and variant=warning the yellow tint (เปิดการแจ้งเตือน),
+// signalling the active destructive/attention state. The switch itself already
+// turns red/yellow when on via the Switch variant.
 function Toggle({ checked, onChange, label, size, variant = "default", framed, className }: {
   checked: boolean
   onChange: (v: boolean) => void
@@ -75,10 +77,12 @@ function Toggle({ checked, onChange, label, size, variant = "default", framed, c
   return (
     <label className={cn(
       "flex items-center gap-2 cursor-pointer select-none",
-      framed && "h-10 px-3 rounded-lg border",
-      framed && variant === "default" && "bg-card border-border",
-      framed && variant === "destructive" && "bg-destructive-soft border-destructive/30 text-destructive",
-      framed && variant === "warning" && "bg-warning-soft border-warning/40 text-warning-strong",
+      framed && "h-10 px-3 rounded-lg border transition-colors",
+      // plain neutral frame for every variant while off
+      framed && (variant === "default" || !checked) && "bg-card border-border",
+      // colored frame/tint only once switched on
+      framed && variant === "destructive" && checked && "bg-destructive-soft border-destructive/30 text-destructive",
+      framed && variant === "warning" && checked && "bg-warning-soft border-warning/40 text-warning-strong",
       className,
     )}>
       {label ? <span className="text-sm">{label}</span> : null}

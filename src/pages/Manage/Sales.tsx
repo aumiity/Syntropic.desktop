@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/toast'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import type { Sale } from '@/types'
-import type { ReportsOutletContext } from './index'
+import type { ManageOutletContext } from './index'
 import { Search, TrendingUp, TrendingDown, Receipt, ShoppingBag, Ban, Wallet, Percent } from 'lucide-react'
 
 interface SaleSummary {
@@ -45,9 +45,9 @@ type SortField = 'invoice_no' | 'sold_at' | 'subtotal' | 'total_amount'
 type SortDir = 'asc' | 'desc'
 interface SortState { by: SortField; dir: SortDir }
 
-export default function ReportsSalesPage() {
+export default function ManageSalesPage() {
   const { toast } = useToast()
-  const { setSummary: setSlotSummary } = useOutletContext<ReportsOutletContext>()
+  const { setSummary: setSlotSummary } = useOutletContext<ManageOutletContext>()
   const today = new Date().toISOString().slice(0, 10)
 
   const [q, setQ] = useState('')

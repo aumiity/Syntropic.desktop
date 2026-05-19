@@ -1,12 +1,68 @@
 # Syntropic Desktop - Build Progress
 
-## Status: ✅ Runnable — `EditProduct.tsx` 2,155-line monolith split into per-tab files under `src/pages/Products/EditProduct/` (parent + 5 tabs + shared). Pure refactor, no behavior change. Type-clean (same pre-existing baseline). **Not click-tested yet — verify each tab end-to-end before relying on it.**
-## Last updated: 2026-05-17
+## Status: ✅ Runnable — **Manage/Reports restructure Phase 1 done.** New `/manage` section ("ประวัติ & สต็อก") created; Sales + Expiry relocated there; redundant `Reports/Purchases.tsx` deleted; old `/reports*` links redirect to `/manage`. Type-clean. **Not click-tested yet.**
+## Last updated: 2026-05-19
 ## Run: `npm run electron:dev`
-## ⚠️ Next session:
-##   1. **Click-test the EditProduct split** — exercise all 5 tabs (general/units/labels/lots/history) + new product flow. See Session 2026-05-17 (EditProduct split) below.
-##   2. **Reports page cost audit** — last page in the cost-sourcing sweep (still pending from 2026-05-16→17).
-##   3. **Phase-2 sweep** — `Reports/*` then `Settings/index.tsx` onto the table-card standard.
+## ⚠️ Next session — Manage/Reports restructure (see "Session 2026-05-19" below for the FULL plan):
+##   1. **Click-test Phase 1** — sidebar "ประวัติ & สต็อก" → /manage; both tabs (ประวัติการขาย w/ void, ใกล้หมดอายุ); old /reports URL redirects.
+##   2. **Phase 2 (the big one)** — extract the ประวัติการซื้อ tab out of `Purchase/index.tsx` (2,265-LOC monolith) into `/manage`; `/purchase` becomes receive-form-only (no Tabs). Separate PR. Detailed steps below.
+##   3. **Phase 3** — new "ต่ำกว่าจุดสั่งซื้อ" tab in /manage (query `reorder_point`).
+##   4. **Phase 4–5** — rebuild `/reports` as finance dashboard, then อย. compliance reports (greenfield).
+## (Carried over, lower priority: click-test EditProduct split [2026-05-17]; cost-audit Manage/Sales+Expiry; table-card sweep of Settings/index.tsx.)
+
+---
+
+## Session 2026-05-19 — Manage / Reports restructure
+
+### Why
+`Reports/Purchases.tsx` was a strict, weaker subset of the `Purchase/index.tsx` "ประวัติการรับสินค้า" tab (same group-by-invoice list + filters, but read-only, fewer filters, no edit/cancel). Root cause: the Reports section mixed **two user jobs** — operational document/stock management vs. analytics/compliance. Fix = split by user role into two top-level sections.
+
+### Target information architecture (decided with operator)
+```
+Sidebar
+├── การขาย        /              POS (unchanged)
+├── การซื้อ        /purchase      ← Phase 2: receive-FORM only (no Tabs, history removed)
+├── สินค้า         /products      unchanged
+├── บุคคล          /people        unchanged
+├── ประวัติ & สต็อก /manage        ← NEW operational workbench (this restructure)
+│   ├── ประวัติการขาย      /manage           (Sales — keeps void) ✅ Phase 1
+│   ├── ใกล้หมดอายุ         /manage/expiry    (Expiry)            ✅ Phase 1
+│   ├── ประวัติการซื้อ      /manage/purchases (from Purchase tab) ⬜ Phase 2
+│   └── ต่ำกว่าจุดสั่งซื้อ   /manage/low-stock (new)              ⬜ Phase 3
+├── รายงาน         /reports       ← Phase 4+: REBUILT as analytics/compliance
+│   ├── การเงิน            finance dashboard          ⬜ Phase 4
+│   └── รายงาน อย.         controlled-drug reg / temp ⬜ Phase 5 (needs อย. spec)
+└── ตั้งค่า         /settings      unchanged
+```
+Operator decisions locked: (a) `/purchase` becomes receive-form-only after Phase 2 (history NOT duplicated, NOT linked-back — fully relocated). (b) Menu label = **"ประวัติ & สต็อก"** (icon `ClipboardList`). (c) Reports section is retired now, rebuilt greenfield in Phase 4–5.
+
+### ✅ Phase 1 — DONE this session
+- `git mv src/pages/Reports → src/pages/Manage`; **deleted** `Manage/Purchases.tsx` (the redundant page — the whole reason this started).
+- `Manage/index.tsx`: `ReportsLayout`→`ManageLayout`, `ReportsOutletContext`→`ManageOutletContext`, `ReportSummaryCard`→`ManageSummaryCard`. TABS now just `sales` (`/manage`) + `expiry` (`/manage/expiry`); `resolveTab` simplified; PageHeader title `"ประวัติ & สต็อก"`. **The Tabs + MetricCard-summary-slot-via-outlet-context pattern is intact and is the template Phase 2/3 tabs plug into.**
+- `Manage/Sales.tsx` + `Manage/Expiry.tsx`: updated context import/type names; component fns renamed `Manage*Page`. No logic change — Sales still owns voidSale.
+- `App.tsx`: lazy imports `Manage*`; route `/manage` (index=Sales, expiry=Expiry); `Navigate` redirect for `reports` and `reports/*` → `/manage` (no 404 on old bookmarks).
+- `Sidebar.tsx`: `BarChart2`→`ClipboardList`; `/reports`/"รายงาน" entry → `/manage`/"ประวัติ & สต็อก".
+- `npx tsc --noEmit` clean for changed files.
+- **Untouched on purpose:** `Purchase/index.tsx` still has its own history tab (its relocation is Phase 2 — Phase 1 didn't break it, just didn't move it yet). The `reports:purchaseList` IPC (`electron/ipc/reports.ts:187`) is now **dead code** — leave it; Phase 2 will decide reuse vs. delete.
+
+### ⬜ Phase 2 — extract ประวัติการซื้อ from Purchase/index.tsx (BIGGEST RISK — separate PR)
+`src/pages/Purchase/index.tsx` is a 2,265-LOC monolith. The history tab is deeply coupled. **Use the EditProduct-split precedent (Session 2026-05-17): the extracted view OWNS its own modal/dialog state, parent passes nothing it doesn't need.**
+Steps:
+1. **Create `src/pages/Manage/Purchases.tsx`** consuming `ManageOutletContext` (mirror `Manage/Sales.tsx` shape: toolbar → summary cards via `setSummary` → table-card → pagination). Add the `purchases` entry back to `TABS` in `Manage/index.tsx` (`/manage/purchases`, icon `PackagePlus`) and a `resolveTab` branch.
+2. **Move from `Purchase/index.tsx` into it** (state + JSX + handlers, by name): `history`/`histTotal`/`histPage`/`histPageSize`/`histQ`/`histSupplierId`/`histDateFrom`/`histDateTo`/`histPaymentFilter`/`histSummary`/`loadingHist`; the payment-status filter cards (all/cash/credit/unpaid/cancelled — currently the `histSummary` chips ~line 1359); the **edit-bill modal** (`showEditModal`+`edit*` state, ~line 1681) and **cancel-GR modal** (`showCancelModal`/`cancelReason`/`cancelBlockers`, ~line 175); receipt dialog (`selectedInvoice`/`receiptItems`/`receiptInvoice`). Backend: keep `purchase:history` / cancel / edit / `purchase:getReceipt` IPCs — only the renderer moves.
+3. **Gut `Purchase/index.tsx` down to the receive form**: delete `<Tabs>/<TabsList>/<TabsContent>` wrappers (imports too — line 18), `activeTab` state (line 193), and the entire `value="history"` TabsContent (~lines 1350–1676). The `value="receive"` content becomes the page body directly. Verify the receive form's own state (invoiceNo, rows, suppliers, unit/price modals, success dialog) is untouched.
+4. **Decide `reports:purchaseList` vs `purchase:history`**: the new tab should use `purchase:history` (richer — has payment-status summary + cancel/edit support). Then **delete** the now-unused `reports:purchaseList` handler (`electron/ipc/reports.ts:187-222`) + its `preload.ts:75` binding + the `window.api.reports.purchaseList` type. Grep first.
+5. tsc clean; click-test BOTH: `/purchase` (pure receive flow end-to-end) and `/manage/purchases` (filters, payment cards, view receipt, edit bill, cancel GR + blocker list).
+Gotchas: `Purchase/index.tsx` shares `suppliers`, `today`, toast, refocus helpers between receive & history — the extracted file needs its own copies (don't try to share via context; copy, like EditProduct tabs did). The receive-items grid is the deliberate `table-fixed`+`w-[%]` exception (CLAUDE.md) — don't touch it.
+
+### ⬜ Phase 3 — "ต่ำกว่าจุดสั่งซื้อ" tab
+`products.reorder_point` + `safety_stock` exist (`electron/db/schema.ts:104-105`). Logic already lives as the `low`/`out` filter in `Products/index.tsx` (`stockFilter`, `allStats`, `renderStockCell` at :120, IPC returns `reorder_point`). Phase 3 = a dedicated actionable list tab in `/manage` (products where `reorder_point > 0 AND stock_qty <= reorder_point`, sortable by shortfall) — likely a thin new IPC or reuse the products-list query with a forced filter. Add `low-stock` to `Manage` TABS.
+
+### ⬜ Phase 4 — Reports rebuilt = finance dashboard
+`/reports` route currently only redirects to `/manage`. Rebuild as analytics: sales vs purchase totals over time (trend), profit, payment mix (cash/credit), **accounts payable** (outstanding credit GRs + due-date aging) and AR. Aggregate IPCs (GROUP BY day/supplier) — `reports.ts` has the join shapes to crib from. Re-add "รายงาน" to Sidebar + its own layout (clone the Manage Tabs+summary pattern). Remove the temporary `reports*`→`/manage` redirects in `App.tsx` when the real routes land.
+
+### ⬜ Phase 5 — รายงาน อย. (greenfield, blocked on spec)
+Controlled-drug registers (บ.ย.*), temperature logs, future regulatory exports. Build when the operator provides the exact อย. forms/columns required. New IPCs + likely new tables (e.g. temperature_logs).
 
 ---
 

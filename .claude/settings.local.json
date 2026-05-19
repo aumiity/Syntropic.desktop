@@ -69,7 +69,8 @@
       "Bash(grep -n \"เปลี่ยนแปลง\\\\|Lot$\\\\|m.lot_number ??\\\\|m.qty_change.toLocale\\\\|qty_change\\\\|lot_number\" /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/Products/EditProduct.tsx)",
       "Bash(grep -n \"</Dialog>\\\\|^    </div>$\\\\|^  \\)$\\\\|^}$\" /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/Products/index.tsx)",
       "Bash(npx --no-install grep -V)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(npm view *)"
     ]
   }
 }

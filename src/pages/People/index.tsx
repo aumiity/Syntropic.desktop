@@ -429,13 +429,14 @@ function SuppliersTab() {
               <Label>ที่อยู่</Label>
               <Textarea value={form.address ?? ''} onChange={e => setF('address', e.target.value)} rows={3} className="resize-none" />
             </div>
-          </DialogBody>
-          <DialogFooter>
+
             {editing && (
-              <Toggle framed variant="destructive" size="lg" className="mr-auto"
+              <Toggle framed variant="destructive" size="lg" className="w-full justify-between"
                 checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
                 label="พักการใช้งาน" />
             )}
+          </DialogBody>
+          <DialogFooter>
             <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
@@ -575,47 +576,50 @@ function StaffTab() {
       </div>
 
       <Dialog open={dialog} onOpenChange={setDialog}>
-        <DialogContent size="sm" onClose={() => setDialog(false)}>
+        <DialogContent size="md" onClose={() => setDialog(false)}>
           <DialogHeader>
             <DialogTitle>{form.id ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน'}</DialogTitle>
           </DialogHeader>
-          <DialogBody className="space-y-3" onKeyDown={submitOnEnter(handleSave)}>
-            <div className="space-y-1.5">
-              <Label>ชื่อ <span className="text-destructive">*</span></Label>
-              <Input value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
+          <DialogBody className="space-y-4" onKeyDown={submitOnEnter(handleSave)}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>ชื่อ <span className="text-destructive">*</span></Label>
+                <Input value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
+              </div>
+              <div className="space-y-1.5">
+                <Label>อีเมล</Label>
+                <Input type="email" value={form.email ?? ''} onChange={e => setF('email', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>
+                  รหัสผ่าน{form.id
+                    ? <span className="ml-1 font-normal text-muted-foreground">(เว้นว่างถ้าไม่เปลี่ยน)</span>
+                    : <span className="text-destructive ml-0.5">*</span>}
+                </Label>
+                <Input type="password" value={form.password ?? ''} onChange={e => setF('password', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>ตำแหน่ง</Label>
+                <Select value={form.role ?? 'staff'} onValueChange={v => setF('role', v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
+                    <SelectItem value="pharmacist">เภสัชกร</SelectItem>
+                    <SelectItem value="staff">พนักงาน</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>อีเมล</Label>
-              <Input type="email" value={form.email ?? ''} onChange={e => setF('email', e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>
-                รหัสผ่าน{form.id
-                  ? <span className="ml-1 font-normal text-muted-foreground">(เว้นว่างถ้าไม่เปลี่ยน)</span>
-                  : <span className="text-destructive ml-0.5">*</span>}
-              </Label>
-              <Input type="password" value={form.password ?? ''} onChange={e => setF('password', e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>ตำแหน่ง</Label>
-              <Select value={form.role ?? 'staff'} onValueChange={v => setF('role', v)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
-                  <SelectItem value="pharmacist">เภสัชกร</SelectItem>
-                  <SelectItem value="staff">พนักงาน</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </DialogBody>
-          <DialogFooter>
+
             {editing && (
-              <Toggle framed variant="destructive" size="lg" className="mr-auto"
+              <Toggle framed variant="destructive" size="lg" className="w-full justify-between"
                 checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
                 label="พักการใช้งาน" />
             )}
+          </DialogBody>
+          <DialogFooter>
             <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>

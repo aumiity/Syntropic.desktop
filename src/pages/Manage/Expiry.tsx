@@ -10,7 +10,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency } from '@/lib/utils'
-import type { ReportsOutletContext } from './index'
+import type { ManageOutletContext } from './index'
 import { Search, PackageX, Package, Boxes, TrendingDown, CalendarX } from 'lucide-react'
 
 type FilterType = 'expired' | 30 | 60 | 90 | 'all'
@@ -60,9 +60,9 @@ function renderExpiryDate(date: string | null, days: number | null) {
   return <span className={isExpired ? 'text-destructive font-medium' : 'text-sm'}>{formatted}</span>
 }
 
-export default function ReportsExpiryPage() {
+export default function ManageExpiryPage() {
   const { toast } = useToast()
-  const { setSummary } = useOutletContext<ReportsOutletContext>()
+  const { setSummary } = useOutletContext<ManageOutletContext>()
 
   const [filter, setFilter] = useState<FilterType>(90)
   const [categoryId, setCategoryId] = useState<string>('0')

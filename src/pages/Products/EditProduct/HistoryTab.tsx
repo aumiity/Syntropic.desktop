@@ -11,7 +11,7 @@ import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialo
 import { useToast } from '@/components/ui/toast'
 import { formatDateTime, cn } from '@/lib/utils'
 import {
-  History, RotateCcw, ExternalLink, StickyNote, Info,
+  History, RotateCcw, ExternalLink, Info,
 } from 'lucide-react'
 import { MOVEMENT_META, type StockMovement, type MovementSortKey } from './shared'
 
@@ -237,7 +237,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                                 variant="outline"
                                 title="ดูหมายเหตุ"
                               >
-                                <StickyNote />
+                                <Info />
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent align="center" className="w-80 max-w-[90vw]">
@@ -251,7 +251,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                           <Button
                             className="w-16"
                             size="icon-lg"
-                            variant="info-soft"
+                            variant="primary-soft"
                             onClick={() => openMovementDetail(m)}
                             title={`ดู ${m.sale_invoice_no ?? m.gr_invoice_no}`}
                           >

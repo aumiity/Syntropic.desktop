@@ -3,7 +3,7 @@ import { NavLink, useResolvedPath, useMatch } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
-  ShoppingCart, Pill, PackagePlus, Users, BarChart2, Settings,
+  ShoppingCart, Pill, PackagePlus, Users, ClipboardList, Settings,
   Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen, ScanLine,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
@@ -14,7 +14,7 @@ const mainNavItems = [
   { to: '/purchase', label: 'การซื้อ', icon: PackagePlus },
   { to: '/products', label: 'สินค้า', icon: Pill },
   { to: '/people', label: 'บุคคล', icon: Users },
-  { to: '/reports', label: 'รายงาน', icon: BarChart2 },
+  { to: '/manage', label: 'ประวัติ & สต็อก', icon: ClipboardList },
   { to: '/settings', label: 'ตั้งค่า', icon: Settings },
 ]
 
