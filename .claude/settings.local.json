@@ -70,7 +70,8 @@
       "Bash(grep -n \"</Dialog>\\\\|^    </div>$\\\\|^  \\)$\\\\|^}$\" /Users/anya/Documents/GitHub/Syntropic.desktop/src/pages/Products/index.tsx)",
       "Bash(npx --no-install grep -V)",
       "Bash(echo \"exit: $?\")",
-      "Bash(npm view *)"
+      "Bash(npm view *)",
+      "Bash(git checkout *)"
     ]
   }
 }

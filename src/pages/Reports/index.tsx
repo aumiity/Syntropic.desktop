@@ -3,27 +3,25 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { Receipt, CalendarClock, PackagePlus, PackageX } from 'lucide-react'
+import { LineChart, Wallet, ShieldCheck } from 'lucide-react'
 
-// Phase 1: ประวัติการขาย + ใกล้หมดอายุ. Phase 2: + ประวัติการซื้อ.
-// Phase 3: + ต่ำกว่าจุดสั่งซื้อ. See PROGRESS.md.
+// Phase 4: finance dashboard (ภาพรวมการเงิน + เจ้าหนี้การค้า).
+// Phase 5: รายงาน อย. — placeholder tab (under construction). See PROGRESS.md.
 const TABS = [
-  { value: 'sales',     to: '/manage',           label: 'ประวัติการขาย', icon: Receipt },
-  { value: 'purchases', to: '/manage/purchases', label: 'ประวัติการซื้อ', icon: PackagePlus },
-  { value: 'low-stock', to: '/manage/low-stock', label: 'ต่ำกว่าจุดสั่งซื้อ', icon: PackageX },
-  { value: 'expiry',    to: '/manage/expiry',    label: 'ใกล้หมดอายุ',   icon: CalendarClock },
+  { value: 'finance',  to: '/reports',          label: 'ภาพรวมการเงิน', icon: LineChart },
+  { value: 'payables', to: '/reports/payables', label: 'เจ้าหนี้การค้า', icon: Wallet },
+  { value: 'fda',      to: '/reports/fda',      label: 'รายงาน อย.',    icon: ShieldCheck },
 ] as const
 
 type TabValue = typeof TABS[number]['value']
 
 function resolveTab(pathname: string): TabValue {
-  if (pathname.startsWith('/manage/expiry')) return 'expiry'
-  if (pathname.startsWith('/manage/purchases')) return 'purchases'
-  if (pathname.startsWith('/manage/low-stock')) return 'low-stock'
-  return 'sales'
+  if (pathname.startsWith('/reports/payables')) return 'payables'
+  if (pathname.startsWith('/reports/fda')) return 'fda'
+  return 'finance'
 }
 
-export interface ManageSummaryCard {
+export interface ReportsSummaryCard {
   label: string
   value: string
   sub?: string
@@ -31,8 +29,8 @@ export interface ManageSummaryCard {
   tint: MetricTint
 }
 
-export interface ManageOutletContext {
-  setSummary: (cards: ManageSummaryCard[] | null) => void
+export interface ReportsOutletContext {
+  setSummary: (cards: ReportsSummaryCard[] | null) => void
 }
 
 // Tailwind needs literal class strings to be discoverable in source.
@@ -43,17 +41,17 @@ const COLS_BY_COUNT: Record<number, string> = {
   6: 'xl:grid-cols-6',
 }
 
-export default function ManageLayout() {
+export default function ReportsLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const current = resolveTab(location.pathname)
-  const [summary, setSummary] = useState<ManageSummaryCard[] | null>(null)
+  const [summary, setSummary] = useState<ReportsSummaryCard[] | null>(null)
 
-  const ctx = useMemo<ManageOutletContext>(() => ({ setSummary }), [])
+  const ctx = useMemo<ReportsOutletContext>(() => ({ setSummary }), [])
 
   return (
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
-      <PageHeader title="ประวัติ & สต็อก" />
+      <PageHeader title="รายงาน" />
 
       {summary && summary.length > 0 && (
         <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>

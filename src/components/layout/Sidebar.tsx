@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
   ShoppingCart, Pill, PackagePlus, Users, ClipboardList, Settings,
-  Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen, ScanLine,
+  Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen, ScanLine, LineChart,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -15,6 +15,7 @@ const mainNavItems = [
   { to: '/products', label: 'สินค้า', icon: Pill },
   { to: '/people', label: 'บุคคล', icon: Users },
   { to: '/manage', label: 'ประวัติ & สต็อก', icon: ClipboardList },
+  { to: '/reports', label: 'รายงาน', icon: LineChart },
   { to: '/settings', label: 'ตั้งค่า', icon: Settings },
 ]
 
