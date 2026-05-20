@@ -8,7 +8,7 @@ import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Toggle } from '@/components/ui/switch'
 import { formatCurrency } from '@/lib/utils'
-import type { Product, ProductCategory, DrugType } from '@/types'
+import type { Product, ProductCategory } from '@/types'
 import type { ProductsOutletContext } from './index'
 import {
   Search, Plus, Edit, AlertTriangle, Package, PackageX, Boxes, Ban,
@@ -37,14 +37,12 @@ export default function ProductsList() {
   // Filters
   const [q, setQ] = useState('')
   const [categoryId, setCategoryId] = useState<number>(0)
-  const [drugTypeId, setDrugTypeId] = useState<number>(0)
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out' | 'disabled'>('all')
   const [showDisabled, setShowDisabled] = useState(false)
   const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
 
   // Dropdown data
   const [categories, setCategories] = useState<ProductCategory[]>([])
-  const [drugTypes, setDrugTypes] = useState<DrugType[]>([])
 
   // Global stock health counts. Excludes bundles via is_bundle=0 so the
   // headline "หมดสต็อก" / "ใกล้หมด" / "สินค้าทั้งหมด" / "ปิดการใช้งาน" never inflate.
@@ -65,22 +63,17 @@ export default function ProductsList() {
       window.api.products.stockStats({
         q: q.trim() || undefined,
         category_id: categoryId || undefined,
-        drug_type_id: drugTypeId || undefined,
         include_disabled: showDisabled,
         is_bundle: 0,
       }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0, disabled: 0 }))
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, categoryId, drugTypeId, stockFilter, showDisabled, sort, pageSize])
+  }, [q, categoryId, stockFilter, showDisabled, sort, pageSize])
 
   const loadDropdowns = async () => {
-    const [cats, dts] = await Promise.all([
-      window.api.settings.allCategories(),
-      window.api.settings.allDrugTypes(),
-    ])
+    const cats = await window.api.settings.allCategories()
     setCategories(cats as ProductCategory[])
-    setDrugTypes(dts as DrugType[])
   }
 
   const load = useCallback(async (p = page) => {
@@ -89,7 +82,6 @@ export default function ProductsList() {
       const res = await window.api.products.list({
         q: q.trim() || undefined,
         category_id: categoryId || undefined,
-        drug_type_id: drugTypeId || undefined,
         page: p,
         limit: pageSize,
         sort_by: sort.by,
@@ -104,7 +96,7 @@ export default function ProductsList() {
     } finally {
       setLoading(false)
     }
-  }, [q, categoryId, drugTypeId, page, pageSize, sort, stockFilter, showDisabled])
+  }, [q, categoryId, page, pageSize, sort, stockFilter, showDisabled])
 
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
@@ -122,7 +114,7 @@ export default function ProductsList() {
     setSummary([
       { label: 'สินค้าทั้งหมด', value: allStats.total_all.toLocaleString(), icon: Boxes, tint: 'primary',
         onClick: () => toggleStockFilter('all'), isActive: stockFilter === 'all' },
-      { label: 'ใกล้หมด', value: allStats.low.toLocaleString(), icon: AlertTriangle, tint: 'warning',
+      { label: 'ต่ำกว่าจุดสั่งซื้อ', value: allStats.low.toLocaleString(), icon: AlertTriangle, tint: 'warning',
         onClick: () => toggleStockFilter('low'), isActive: stockFilter === 'low' },
       { label: 'หมดสต็อก', value: allStats.out.toLocaleString(), icon: PackageX, tint: 'destructive',
         onClick: () => toggleStockFilter('out'), isActive: stockFilter === 'out' },
@@ -178,18 +170,6 @@ export default function ProductsList() {
             </SelectContent>
           </Select>
 
-          <Select value={String(drugTypeId)} onValueChange={v => setDrugTypeId(Number(v))}>
-            <SelectTrigger className="h-10 w-44 shrink-0">
-              <SelectValue placeholder="ประเภทยาทั้งหมด" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">ประเภทยาทั้งหมด</SelectItem>
-              {drugTypes.map(d => (
-                <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           <Toggle className="shrink-0 text-muted-foreground" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
 
           <Button onClick={() => navigate('/products/new')} size="lg" className="h-10 px-2 shrink-0">
@@ -204,10 +184,10 @@ export default function ProductsList() {
                 <TableHead className="min-w-14">#</TableHead>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[280px]">ชื่อสินค้า</SortableTableHead>
                 <SortableTableHead field="unit_name" align="center" sort={sort} onToggle={toggleSort} className="hidden 2xl:table-cell min-w-16">หน่วย</SortableTableHead>
-                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-28">ต้นทุน</SortableTableHead>
-                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-28">ราคาขาย</SortableTableHead>
-                <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="hidden md:table-cell min-w-36">กำไร</SortableTableHead>
-                <SortableTableHead field="stock_qty" align="center" sort={sort} onToggle={toggleSort} className="min-w-28">สต็อก</SortableTableHead>
+                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-20">ต้นทุน</SortableTableHead>
+                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-20">ราคาขาย</SortableTableHead>
+                <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="hidden md:table-cell min-w-20">กำไร</SortableTableHead>
+                <SortableTableHead field="stock_qty" align="center" sort={sort} onToggle={toggleSort} className="min-w-20">สต็อก</SortableTableHead>
                 <TableHead className="text-center min-w-16">จัดการ</TableHead>
               </TableRow>
             </TableHeader>

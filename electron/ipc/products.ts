@@ -135,12 +135,12 @@ export function registerProductHandlers() {
       : `WHERE ${extra}`
     const out = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`(${STOCK_EXPR}) <= 0`)}`).get(...params) as any).c
     const low = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`(${STOCK_EXPR}) > 0 AND p.reorder_point > 0 AND (${STOCK_EXPR}) <= p.reorder_point`)}`).get(...params) as any).c
-    // Total — used by "สินค้าทั้งหมด" stat card. Respects "include_disabled" and
-    // "is_bundle" (so the count matches what the user actually sees in the list),
-    // but ignores the search/category/drug-type filters.
+    // Total — used by "สินค้าทั้งหมด" stat card. Always counts every product
+    // (enabled + disabled); only "is_bundle" applies so bundles don't inflate
+    // the count. Ignores search/category/drug-type and the include_disabled
+    // toggle — "ทั้งหมด" must literally mean all.
     const totalCond: string[] = []
     const totalParams: any[] = []
-    if (!include_disabled) totalCond.push('is_disabled = 0')
     if (is_bundle === 0 || is_bundle === 1) { totalCond.push('is_bundle = ?'); totalParams.push(is_bundle) }
     const totalWhere = totalCond.length ? `WHERE ${totalCond.join(' AND ')}` : ''
     const total_all = (db.prepare(

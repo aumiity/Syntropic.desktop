@@ -54,6 +54,12 @@ export default function ReportsLayout() {
       <div className="no-print contents">
         <PageHeader title="รายงาน" />
 
+        {summary && summary.length > 0 && (
+          <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>
+            {summary.map((c, i) => <MetricCard key={i} {...c} />)}
+          </div>
+        )}
+
         <Tabs
           value={current}
           onValueChange={(v) => {
@@ -70,12 +76,6 @@ export default function ReportsLayout() {
             ))}
           </TabsList>
         </Tabs>
-
-        {summary && summary.length > 0 && (
-          <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>
-            {summary.map((c, i) => <MetricCard key={i} {...c} />)}
-          </div>
-        )}
       </div>
 
       <Outlet context={ctx} />

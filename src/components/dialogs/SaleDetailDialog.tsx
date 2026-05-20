@@ -3,11 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { useToast } from '@/components/ui/toast'
-import { useUserStore } from '@/stores/userStore'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
-import { Ban, ChevronDown, ChevronRight, Undo2, Boxes } from 'lucide-react'
+import { Ban, ChevronDown, ChevronRight, Boxes } from 'lucide-react'
 import type { Sale, SaleItem } from '@/types'
 
 // One sale_item_lots row exposed to the renderer. Joined fields come from
@@ -52,29 +49,17 @@ function profitColor(profit: number) {
 // just supplies `invoiceNo` and `open`. Pass `onVoidRequest` to let users
 // trigger a void from inside the modal; omit it to disable the button (e.g.,
 // when the host page has no void flow).
-//
-// Phase 2 additions:
-// - Bundle rows show an expand chevron revealing component_lots underneath.
-// - Bundle rows have a "คืนชุดนี้" button (per-row) that calls pos:returnBundle
-//   via ConfirmDialog (requires reason). Disabled when sale is voided or
-//   item is already cancelled.
 export function SaleDetailDialog({
-  open, onOpenChange, invoiceNo, onVoidRequest, onChanged,
+  open, onOpenChange, invoiceNo, onVoidRequest,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   invoiceNo: string | null
   onVoidRequest?: (sale: SaleDetail) => void
-  // Optional callback fired after a bundle return successfully completes —
-  // lets the host page (Manage/Sales, POS) refresh its own list.
-  onChanged?: () => void
 }) {
-  const { toast } = useToast()
-  const currentUser = useUserStore(s => s.current)
   const [detail, setDetail] = useState<SaleDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
-  const [returnTarget, setReturnTarget] = useState<BundleSaleItem | null>(null)
 
   const fetchDetail = (inv: string) => {
     setLoading(true)
@@ -99,45 +84,7 @@ export function SaleDetailDialog({
     })
   }
 
-  const handleReturnConfirm = async (reason?: string) => {
-    if (!returnTarget || !invoiceNo) return
-    try {
-      const r = await window.api.pos.returnBundle({
-        sale_item_id: returnTarget.id,
-        reason: reason ?? '',
-        created_by: currentUser?.id ?? 0,
-      }) as any
-      toast({
-        title: 'คืนชุดสินค้าสำเร็จ',
-        description: `บิลคืน: ${r?.invoice_no ?? ''}`,
-        variant: 'success',
-      })
-      setReturnTarget(null)
-      // Refetch so the bundle row shows line-through and the buttons hide.
-      fetchDetail(invoiceNo)
-      onChanged?.()
-    } catch (e: any) {
-      toast({ title: 'คืนชุดสินค้าไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-      setReturnTarget(null)
-    }
-  }
-
-  const canReturn = (item: BundleSaleItem): boolean => {
-    if (!onVoidRequest) return false  // host page doesn't expose mutation actions
-    if (detail?.status === 'voided') return false
-    // RT- bills (sale_type='return') already represent a return — clicking
-    // "คืนชุด" on the negative bundle line inside one would re-process it
-    // through pos:returnBundle and actually deduct stock instead of restoring.
-    // The backend now rejects this too (qty<=0 check), but hide the button
-    // from the operator entirely so they never see an option that throws.
-    if (detail?.sale_type === 'return') return false
-    if (item.qty <= 0) return false
-    if (item.is_cancelled === 1) return false
-    return item.is_bundle === 1
-  }
-
   return (
-    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="4xl">
         {loading || !detail ? (
@@ -178,6 +125,7 @@ export function SaleDetailDialog({
                       : <span className="font-medium">—</span>
                   })()}
                 </div>
+                {detail.cash_amount > 0 && <div><span className="text-muted-foreground">รับเงินมา:</span> <span className="font-medium">{formatCurrency(detail.cash_amount)}</span></div>}
                 {detail.change_amount > 0 && <div><span className="text-muted-foreground">เงินทอน:</span> <span className="font-medium">{formatCurrency(detail.change_amount)}</span></div>}
                 {detail.void_reason && (
                   <div className="col-span-2 text-destructive"><span className="font-medium">เหตุผลยกเลิก:</span> {detail.void_reason}</div>
@@ -186,7 +134,7 @@ export function SaleDetailDialog({
 
               <div className="border border-border rounded-lg overflow-hidden">
                 {/* ~10 rows visible: header h-10 (40) + 10×~33 + sticky tfoot (~72) */}
-                <Table containerClassName="max-h-[450px]" className="border-separate border-spacing-0">
+                <Table containerClassName="max-h-[450px]" className="border-separate border-spacing-0 table-fixed">
                   {/* Divider rides with the sticky header — works because the
                       <Table> is border-separate (collapse model strands cell
                       borders behind sticking cells). Same pattern as the
@@ -194,15 +142,14 @@ export function SaleDetailDialog({
                   <TableHeader className="[&_th]:border-b [&_th]:border-border">
                     <TableRow>
                       <TableHead className="text-center w-8">#</TableHead>
-                      <TableHead>รายการ</TableHead>
-                      <TableHead className="text-center">หน่วย</TableHead>
-                      <TableHead className="text-right">จำนวน</TableHead>
-                      <TableHead className="text-right">ราคา/หน่วย</TableHead>
-                      <TableHead className="text-right">ส่วนลด</TableHead>
-                      <TableHead className="text-right">รวม</TableHead>
-                      <TableHead className="text-right">ต้นทุน</TableHead>
-                      <TableHead className="text-right">กำไร</TableHead>
-                      <TableHead className="text-center w-24">จัดการ</TableHead>
+                      <TableHead className="w-64">รายการ</TableHead>
+                      <TableHead className="text-center w-12">หน่วย</TableHead>
+                      <TableHead className="text-center w-12">จำนวน</TableHead>
+                      <TableHead className="text-right w-20">ราคา</TableHead>
+                      <TableHead className="text-right w-20">ส่วนลด</TableHead>
+                      <TableHead className="text-right w-20">รวม</TableHead>
+                      <TableHead className="text-right w-20">ต้นทุน</TableHead>
+                      <TableHead className="text-right w-20">กำไร</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -237,7 +184,7 @@ export function SaleDetailDialog({
                               </div>
                             </TableCell>
                             <TableCell className="text-center text-sm">{item.unit_name}</TableCell>
-                            <TableCell className="text-right text-sm">{item.qty}</TableCell>
+                            <TableCell className="text-center text-sm">{item.qty}</TableCell>
                             <TableCell className="text-right text-sm">{formatCurrency(item.unit_price)}</TableCell>
                             <TableCell className="text-right text-sm text-warning-strong">
                               {item.discount > 0 ? formatCurrency(item.discount) : '—'}
@@ -247,23 +194,10 @@ export function SaleDetailDialog({
                             <TableCell className={`text-right text-sm font-medium ${profitColor(profit)}`}>
                               {formatCurrency(profit)}
                             </TableCell>
-                            <TableCell className="text-center">
-                              {canReturn(item) ? (
-                                <Button
-                                  size="sm"
-                                  variant="warm"
-                                  onClick={() => setReturnTarget(item)}
-                                  title="คืนชุดนี้"
-                                  className="h-8 px-2 gap-1"
-                                >
-                                  <Undo2 className="size-3.5" /> คืนชุด
-                                </Button>
-                              ) : null}
-                            </TableCell>
                           </TableRow>
                           {isBundle && isExpanded && item.component_lots && item.component_lots.length > 0 && (
                             <TableRow key={`${item.id}-components`} className="bg-muted/20">
-                              <TableCell colSpan={10} className="py-2">
+                              <TableCell colSpan={9} className="py-2">
                                 <div className="pl-8 pr-2">
                                   <div className="text-xs text-muted-foreground mb-1.5 font-semibold">ส่วนประกอบ (FEFO):</div>
                                   <table className="w-full text-sm">
@@ -317,11 +251,11 @@ export function SaleDetailDialog({
                   <tfoot>
                     <tr className="[&>td]:sticky [&>td]:bottom-9 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-b [&>td]:border-border">
                       <td colSpan={5} className="px-4 py-2" />
-                      <td className="px-4 py-2 text-right text-sm font-medium text-muted-foreground">รวมส่วนลด</td>
+                      <td className="px-4 py-2 text-right text-sm font-medium text-muted-foreground">ส่วนลด</td>
                       <td className="px-4 py-2 text-right text-sm font-medium text-warning-strong">
                         {detail.total_discount > 0 ? `-${formatCurrency(detail.total_discount)}` : '—'}
                       </td>
-                      <td colSpan={3} />
+                      <td colSpan={2} />
                     </tr>
                     <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted">
                       <td colSpan={5} className="px-4 py-2" />
@@ -333,7 +267,6 @@ export function SaleDetailDialog({
                       <td className={`px-4 py-2 text-right font-bold ${profitColor(detail.items.reduce((s, i) => s + (i.line_total - (i.item_cost ?? 0)), 0))}`}>
                         {formatCurrency(detail.items.reduce((s, i) => s + (i.line_total - (i.item_cost ?? 0)), 0))}
                       </td>
-                      <td />
                     </tr>
                   </tfoot>
                 </Table>
@@ -351,21 +284,5 @@ export function SaleDetailDialog({
         )}
       </DialogContent>
     </Dialog>
-
-    <ConfirmDialog
-      open={!!returnTarget}
-      onOpenChange={o => { if (!o) setReturnTarget(null) }}
-      title="คืนชุดสินค้า"
-      description={returnTarget
-        ? `คืนชุด "${returnTarget.item_name}" จากบิล ${invoiceNo}? ส่วนประกอบทั้งหมดจะถูกคืนกลับสต็อกที่ล็อตเดิมโดยอัตโนมัติ และจะออกบิลคืน (RT-) ให้ใหม่`
-        : ''}
-      confirmLabel="คืนชุด"
-      variant="destructive"
-      requireReason
-      reasonLabel="เหตุผลการคืน"
-      reasonPresets={['ลูกค้าคืนสินค้า', 'คีย์ผิด', 'สินค้าชำรุด']}
-      onConfirm={handleReturnConfirm}
-    />
-    </>
   )
 }

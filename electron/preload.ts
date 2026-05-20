@@ -9,8 +9,6 @@ const api = {
     saveBill: (payload: any) => ipcRenderer.invoke('pos:saveBill', payload),
     getDailyStats: () => ipcRenderer.invoke('pos:getDailyStats'),
     returnItems: (payload: any) => ipcRenderer.invoke('pos:returnItems', payload),
-    returnBundle: (payload: { sale_item_id: number; reason: string; created_by: number; customer_id?: number | null }) =>
-      ipcRenderer.invoke('pos:returnBundle', payload),
   },
   // Products
   products: {

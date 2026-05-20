@@ -59,6 +59,14 @@ export default function ManageLayout() {
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
       <PageHeader title="ประวัติ & สต็อก" />
 
+      {summary && summary.length > 0 && (
+        <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>
+          {summary.map((c, i) => c.onClick
+            ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
+            : <MetricCard key={i} {...c} />)}
+        </div>
+      )}
+
       <Tabs
         value={current}
         onValueChange={(v) => {
@@ -75,14 +83,6 @@ export default function ManageLayout() {
           ))}
         </TabsList>
       </Tabs>
-
-      {summary && summary.length > 0 && (
-        <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>
-          {summary.map((c, i) => c.onClick
-            ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
-            : <MetricCard key={i} {...c} />)}
-        </div>
-      )}
 
       <Outlet context={ctx} />
     </div>

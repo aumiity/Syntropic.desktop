@@ -178,9 +178,9 @@ export function registerReportHandlers() {
       // for bundle voids. The JOIN is still needed for the sale_id filter.
       //
       // si.is_cancelled = 0 is what skips sale_items that have ALREADY been
-      // returned via pos:returnBundle — that handler marks sale_items.is_cancelled=1
-      // but leaves sale_item_lots untouched, so aggregate cost calculations stay
-      // correct. We rely on the higher-level si flag here to avoid double-restore.
+      // returned (per-item return flow). The flag lives on sale_items while
+      // sale_item_lots stays intact, so aggregate cost stays correct and we
+      // avoid double-restore on void.
       const saleItemLots = db.prepare(`
         SELECT sil.* FROM sale_item_lots sil
         JOIN sale_items si ON si.id = sil.sale_item_id
