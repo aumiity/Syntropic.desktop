@@ -658,7 +658,7 @@ export default function PeoplePage() {
     <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
       <PageHeader title="บุคคล" />
 
-      <Tabs value={tab} onValueChange={setTab} className="shrink-0">
+      <Tabs value={tab} onValueChange={setTab} className="shrink-0 items-center">
         <TabsList>
           <TabsTrigger value="customers">
             <Users className="size-4 mr-1.5" /> ลูกค้า

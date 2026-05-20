@@ -363,6 +363,25 @@ export default function EditProductPage() {
         }
       />
 
+      <Tabs value={tab} onValueChange={setTab} className="shrink-0 items-center">
+        <TabsList>
+          <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
+          <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
+          <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
+            <Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})
+          </TabsTrigger>
+          <TabsTrigger value="labels" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการฉลากยา' : undefined}>
+            <Pill /> ฉลากยา ({product.labels?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="lots" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการล็อต' : undefined}>
+            <Package /> ล็อต ({product.lots?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="history" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อดูประวัติ' : undefined}>
+            <History /> ความเคลื่อนไหว
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* 4 cards: meta + 3 stats. In create mode, MetricCards stay in place
           but are grayed out — values aren't meaningful until the product exists. */}
       <div className="grid grid-cols-4 gap-3 shrink-0">
@@ -435,25 +454,6 @@ export default function EditProductPage() {
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col pb-4 [scrollbar-gutter:stable]">
-        <Tabs value={tab} onValueChange={setTab} className="items-center shrink-0">
-          <TabsList>
-            <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
-            <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
-            <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
-              <Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})
-            </TabsTrigger>
-            <TabsTrigger value="labels" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการฉลากยา' : undefined}>
-              <Pill /> ฉลากยา ({product.labels?.length ?? 0})
-            </TabsTrigger>
-            <TabsTrigger value="lots" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการล็อต' : undefined}>
-              <Package /> ล็อต ({product.lots?.length ?? 0})
-            </TabsTrigger>
-            <TabsTrigger value="history" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อดูประวัติ' : undefined}>
-              <History /> ความเคลื่อนไหว
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
         {/* Lots / History own their internal table scroll (sticky header,
             body scrolls) so they must fill the remaining height instead of
             sitting inside the page-level overflow wrapper. The form tabs

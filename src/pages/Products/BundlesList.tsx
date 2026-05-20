@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -9,7 +9,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Toggle } from '@/components/ui/switch'
 import { formatCurrency } from '@/lib/utils'
 import type { Product } from '@/types'
-import { Search, Plus, Edit, Boxes } from 'lucide-react'
+import type { ProductsOutletContext } from './index'
+import { Search, Plus, Edit, Boxes, PackageCheck, PackageX } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'stock_qty'
 type SortDir = 'asc' | 'desc'
@@ -22,6 +23,7 @@ interface BundleRow extends Product {
 
 export default function BundlesList() {
   const navigate = useNavigate()
+  const { setSummary } = useOutletContext<ProductsOutletContext>()
 
   const [rows, setRows] = useState<BundleRow[]>([])
   const [total, setTotal] = useState(0)
@@ -30,7 +32,12 @@ export default function BundlesList() {
 
   const [q, setQ] = useState('')
   const [showDisabled, setShowDisabled] = useState(false)
+  const [stockFilter, setStockFilter] = useState<'all' | 'in' | 'out'>('all')
   const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
+
+  // Global bundle stats (total / assemblable / not-assemblable). Same shape as
+  // products:stockStats with is_bundle=1; "ประกอบได้" = total_all - out.
+  const [allStats, setAllStats] = useState({ out: 0, total_all: 0 })
 
   const [pageSize, setPageSize] = useState<PageSize>(50)
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
@@ -44,6 +51,7 @@ export default function BundlesList() {
         limit: pageSize,
         sort_by: sort.by,
         sort_dir: sort.dir,
+        stock_filter: stockFilter,
         include_disabled: showDisabled,
         is_bundle: 1,
       }) as any
@@ -53,19 +61,43 @@ export default function BundlesList() {
     } finally {
       setLoading(false)
     }
-  }, [q, page, pageSize, sort, showDisabled])
+  }, [q, page, pageSize, sort, stockFilter, showDisabled])
 
   useEffect(() => {
-    const t = setTimeout(() => load(1), 300)
+    const t = setTimeout(() => {
+      load(1)
+      window.api.products.stockStats({
+        q: q.trim() || undefined,
+        include_disabled: showDisabled,
+        is_bundle: 1,
+      }).then((s: any) => setAllStats(s ?? { out: 0, total_all: 0 }))
+    }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, showDisabled, sort, pageSize])
+  }, [q, showDisabled, stockFilter, sort, pageSize])
 
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
       ? { by: field, dir: s.dir === 'asc' ? 'desc' : 'asc' }
       : { by: field, dir: 'asc' })
   }
+
+  const toggleStockFilter = (next: 'all' | 'in' | 'out') => {
+    setStockFilter(curr => (next === 'all' ? 'all' : curr === next ? 'all' : next))
+  }
+
+  // Push the 3 clickable stat cards up to ProductsLayout. "ประกอบได้" =
+  // total_all − out (bundles whose components are all in stock).
+  useEffect(() => {
+    setSummary([
+      { label: 'ชุดสินค้าทั้งหมด', value: allStats.total_all.toLocaleString(), icon: Boxes, tint: 'primary',
+        onClick: () => toggleStockFilter('all'), isActive: stockFilter === 'all' },
+      { label: 'ประกอบได้', value: Math.max(0, allStats.total_all - allStats.out).toLocaleString(), icon: PackageCheck, tint: 'success',
+        onClick: () => toggleStockFilter('in'), isActive: stockFilter === 'in' },
+      { label: 'ประกอบไม่ได้', value: allStats.out.toLocaleString(), icon: PackageX, tint: 'destructive',
+        onClick: () => toggleStockFilter('out'), isActive: stockFilter === 'out' },
+    ])
+  }, [allStats, stockFilter, setSummary])
 
   const handleCreate = async () => {
     // Quick-create: name + barcode are filled in EditBundle. Create a minimal

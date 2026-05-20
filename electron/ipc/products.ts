@@ -25,7 +25,7 @@ export function registerProductHandlers() {
     q?: string; category_id?: number; drug_type_id?: number; page?: number
     limit?: number | 'all'
     sort_by?: string; sort_dir?: 'asc' | 'desc'
-    stock_filter?: 'all' | 'low' | 'out'
+    stock_filter?: 'all' | 'low' | 'out' | 'in' | 'disabled'
     include_disabled?: boolean
     is_bundle?: 0 | 1
   }) => {
@@ -36,8 +36,13 @@ export function registerProductHandlers() {
     const conditions: string[] = []
     const params: any[] = []
 
-    // Disabled filter: by default hidden; opt-in to recover/inspect.
-    if (!include_disabled) conditions.push(`p.is_disabled = 0`)
+    // Disabled-only mode ('disabled') forces is_disabled=1 and skips other stock
+    // filters. Otherwise hide disabled unless include_disabled is true.
+    if (stock_filter === 'disabled') {
+      conditions.push(`p.is_disabled = 1`)
+    } else if (!include_disabled) {
+      conditions.push(`p.is_disabled = 0`)
+    }
 
     if (q) {
       conditions.push(`(p.trade_name LIKE ? OR p.barcode LIKE ? OR p.code LIKE ? OR p.search_keywords LIKE ?)`)
@@ -49,11 +54,13 @@ export function registerProductHandlers() {
     // Bundle filter: ProductsList passes 0, BundlesList passes 1; undefined = no filter.
     if (is_bundle === 0 || is_bundle === 1) { conditions.push(`p.is_bundle = ?`); params.push(is_bundle) }
 
-    // Stock-state filter: 'low' / 'out' narrow the result; 'all' (or missing) is a no-op.
-    // Uses STOCK_EXPR so bundles evaluate against their derived capacity.
-    if (stock_filter === 'out' || stock_filter === 'low') {
+    // Stock-state filter: 'low' / 'out' / 'in' narrow the result; 'all' / 'disabled' / missing are a no-op here.
+    // Uses STOCK_EXPR so bundles evaluate against their derived capacity ('in' = ประกอบได้).
+    if (stock_filter === 'out' || stock_filter === 'low' || stock_filter === 'in') {
       if (stock_filter === 'out') {
         conditions.push(`(${STOCK_EXPR}) <= 0`)
+      } else if (stock_filter === 'in') {
+        conditions.push(`(${STOCK_EXPR}) > 0`)
       } else {
         conditions.push(`(${STOCK_EXPR}) > 0 AND p.reorder_point > 0 AND (${STOCK_EXPR}) <= p.reorder_point`)
       }
@@ -140,7 +147,17 @@ export function registerProductHandlers() {
       `SELECT COUNT(*) as c FROM products ${totalWhere}`
     ).get(...totalParams) as any).c
 
-    return { out, low, total_all }
+    // Disabled — global count of disabled products (force is_disabled=1, respects
+    // is_bundle only). Mirrors total_all's "ignore search filters" semantics so
+    // the "ปิดการใช้งาน" card always shows the total disabled count.
+    const disabledCond: string[] = ['is_disabled = 1']
+    const disabledParams: any[] = []
+    if (is_bundle === 0 || is_bundle === 1) { disabledCond.push('is_bundle = ?'); disabledParams.push(is_bundle) }
+    const disabled = (db.prepare(
+      `SELECT COUNT(*) as c FROM products WHERE ${disabledCond.join(' AND ')}`
+    ).get(...disabledParams) as any).c
+
+    return { out, low, total_all, disabled }
   })
 
   // Reorder worklist: products at/below their reorder point. Flat (no pagination,

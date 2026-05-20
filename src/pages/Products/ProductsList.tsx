@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -8,10 +8,10 @@ import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Toggle } from '@/components/ui/switch'
 import { formatCurrency } from '@/lib/utils'
-import { StatCard } from '@/components/ui/card'
 import type { Product, ProductCategory, DrugType } from '@/types'
+import type { ProductsOutletContext } from './index'
 import {
-  Search, Plus, Edit, AlertTriangle, Package, PackageX, Boxes,
+  Search, Plus, Edit, AlertTriangle, Package, PackageX, Boxes, Ban,
 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'unit_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
@@ -27,6 +27,7 @@ interface ProductRow extends Product {
 
 export default function ProductsList() {
   const navigate = useNavigate()
+  const { setSummary } = useOutletContext<ProductsOutletContext>()
 
   const [rows, setRows] = useState<ProductRow[]>([])
   const [total, setTotal] = useState(0)
@@ -37,7 +38,7 @@ export default function ProductsList() {
   const [q, setQ] = useState('')
   const [categoryId, setCategoryId] = useState<number>(0)
   const [drugTypeId, setDrugTypeId] = useState<number>(0)
-  const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out'>('all')
+  const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out' | 'disabled'>('all')
   const [showDisabled, setShowDisabled] = useState(false)
   const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
 
@@ -46,8 +47,8 @@ export default function ProductsList() {
   const [drugTypes, setDrugTypes] = useState<DrugType[]>([])
 
   // Global stock health counts. Excludes bundles via is_bundle=0 so the
-  // headline "หมดสต็อก" / "ใกล้หมด" / "สินค้าทั้งหมด" never inflate.
-  const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0 })
+  // headline "หมดสต็อก" / "ใกล้หมด" / "สินค้าทั้งหมด" / "ปิดการใช้งาน" never inflate.
+  const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0, disabled: 0 })
 
   const [pageSize, setPageSize] = useState<PageSize>(50)
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
@@ -67,7 +68,7 @@ export default function ProductsList() {
         drug_type_id: drugTypeId || undefined,
         include_disabled: showDisabled,
         is_bundle: 0,
-      }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0 }))
+      }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0, disabled: 0 }))
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -111,9 +112,24 @@ export default function ProductsList() {
       : { by: field, dir: 'asc' })
   }
 
-  const toggleStockFilter = (next: 'all' | 'low' | 'out') => {
+  const toggleStockFilter = (next: 'all' | 'low' | 'out' | 'disabled') => {
     setStockFilter(curr => (next === 'all' ? 'all' : curr === next ? 'all' : next))
   }
+
+  // Push the 4 clickable stat cards up to ProductsLayout. They double as
+  // filter shortcuts — clicking one narrows the table to that subset.
+  useEffect(() => {
+    setSummary([
+      { label: 'สินค้าทั้งหมด', value: allStats.total_all.toLocaleString(), icon: Boxes, tint: 'primary',
+        onClick: () => toggleStockFilter('all'), isActive: stockFilter === 'all' },
+      { label: 'ใกล้หมด', value: allStats.low.toLocaleString(), icon: AlertTriangle, tint: 'warning',
+        onClick: () => toggleStockFilter('low'), isActive: stockFilter === 'low' },
+      { label: 'หมดสต็อก', value: allStats.out.toLocaleString(), icon: PackageX, tint: 'destructive',
+        onClick: () => toggleStockFilter('out'), isActive: stockFilter === 'out' },
+      { label: 'ปิดการใช้งาน', value: allStats.disabled.toLocaleString(), icon: Ban, tint: 'secondary',
+        onClick: () => toggleStockFilter('disabled'), isActive: stockFilter === 'disabled' },
+    ])
+  }, [allStats, stockFilter, setSummary])
 
   const renderStockCell = (qty: number, reorder: number) => {
     if (qty <= 0) {
@@ -136,35 +152,7 @@ export default function ProductsList() {
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 gap-3">
-      {/* Stat strip — clickable filter shortcuts */}
-      <div className="grid grid-cols-3 gap-3 shrink-0">
-        <StatCard
-          label="สินค้าทั้งหมด"
-          value={allStats.total_all.toLocaleString()}
-          icon={Boxes}
-          tint="primary"
-          isActive={stockFilter === 'all'}
-          onClick={() => toggleStockFilter('all')}
-        />
-        <StatCard
-          label="ใกล้หมด"
-          value={allStats.low.toLocaleString()}
-          icon={AlertTriangle}
-          tint="warning"
-          isActive={stockFilter === 'low'}
-          onClick={() => toggleStockFilter('low')}
-        />
-        <StatCard
-          label="หมดสต็อก"
-          value={allStats.out.toLocaleString()}
-          icon={PackageX}
-          tint="destructive"
-          isActive={stockFilter === 'out'}
-          onClick={() => toggleStockFilter('out')}
-        />
-      </div>
-
+    <div className="flex flex-col flex-1 min-h-0">
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
