@@ -6,11 +6,12 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { FormField } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
 import type { ItemUnit } from '@/types'
-import { Plus, Edit, Ruler } from 'lucide-react'
+import { Plus, Edit, Ruler, Search } from 'lucide-react'
 
 export function UnitsTab() {
   const { toast } = useToast()
   const [rows, setRows] = useState<ItemUnit[]>([])
+  const [q, setQ] = useState('')
   const [dialog, setDialog] = useState(false)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
@@ -38,12 +39,25 @@ export function UnitsTab() {
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
+  // Client-side filter — unit list is small, no IPC round-trip needed.
+  const filtered = q.trim()
+    ? rows.filter(u => u.name.toLowerCase().includes(q.trim().toLowerCase()))
+    : rows
+
   return (
     <div className="pt-4 h-full flex flex-col min-h-0">
       <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
-          <span>หน่วยนับสินค้า (เม็ด, ซอง, ขวด ...) · {rows.length.toLocaleString()} รายการ</span>
-          <Button size="lg" className="px-2" onClick={openAdd}>
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="ค้นหาชื่อหน่วย..."
+              className="h-10 pl-9 rounded-lg text-sm bg-input"
+            />
+          </div>
+          <Button size="lg" className="h-10 px-2 shrink-0" onClick={openAdd}>
             <Plus className="size-4" /> เพิ่มหน่วย
           </Button>
         </div>
@@ -58,14 +72,14 @@ export function UnitsTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.length === 0 ? (
+              {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center text-muted-foreground py-16">
                     <Ruler className="size-10 mx-auto mb-2 opacity-30" />
-                    ยังไม่มีหน่วยนับ
+                    {q.trim() ? 'ไม่พบข้อมูล' : 'ยังไม่มีหน่วยนับ'}
                   </TableCell>
                 </TableRow>
-              ) : rows.map(u => (
+              ) : filtered.map(u => (
                 <TableRow key={u.id}>
                   <TableCell className="font-semibold text-sm text-foreground">{u.name}</TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground tabular-nums">{(u.usage_count ?? 0).toLocaleString()} สินค้า</TableCell>
@@ -80,6 +94,12 @@ export function UnitsTab() {
               ))}
             </TableBody>
           </Table>
+        </div>
+
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
+          <span className="text-muted-foreground">
+            แสดง <span className="font-semibold text-foreground tabular-nums">{filtered.length.toLocaleString()}</span> รายการ
+          </span>
         </div>
       </div>
 

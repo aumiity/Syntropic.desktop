@@ -9,11 +9,12 @@ import { FormField } from '@/components/ui/label'
 import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
 import type { ProductCategory } from '@/types'
-import { Plus, Edit, Tag, ArrowUpDown, Check, X } from 'lucide-react'
+import { Plus, Edit, Tag, ArrowUpDown, Check, X, Search } from 'lucide-react'
 
 export function CategoriesTab() {
   const { toast } = useToast()
   const [rows, setRows] = useState<ProductCategory[]>([])
+  const [q, setQ] = useState('')
   const [reorderMode, setReorderMode] = useState(false)
   // Order before entering reorder mode — restored if the user cancels.
   const [snapshot, setSnapshot] = useState<ProductCategory[]>([])
@@ -75,32 +76,53 @@ export function CategoriesTab() {
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
+  // Client-side filter — categories list is small, no IPC needed.
+  // Filtering during reorder would scramble the visible order, so search is
+  // hidden while reordering (see top bar below).
+  const filtered = q.trim()
+    ? rows.filter(c => {
+        const needle = q.trim().toLowerCase()
+        return c.name.toLowerCase().includes(needle)
+          || (c.code ?? '').toLowerCase().includes(needle)
+          || (c.description ?? '').toLowerCase().includes(needle)
+      })
+    : rows
+
   return (
     <div className="pt-4 h-full flex flex-col min-h-0">
       <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
-          <span>หมวดหมู่สินค้าและยา · {rows.length.toLocaleString()} รายการ</span>
-          <div className="flex items-center gap-2">
-            {reorderMode ? (
-              <>
-                <Button size="lg" className="px-2" variant="destructive2" onClick={cancelReorder}>
-                  <X className="size-4" /> ยกเลิก
-                </Button>
-                <Button size="lg" className="px-2" variant="success" onClick={saveReorder}>
-                  <Check className="size-4" /> เสร็จสิ้น
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button size="lg" className="px-2" variant="info-soft" onClick={enterReorder} disabled={rows.length < 2}>
-                  <ArrowUpDown className="size-4" /> จัดลำดับ
-                </Button>
-                <Button size="lg" className="px-2" onClick={openAdd}>
-                  <Plus className="size-4" /> เพิ่มหมวดหมู่
-                </Button>
-              </>
-            )}
-          </div>
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          {reorderMode ? (
+            <>
+              <div className="flex-1 min-w-0 pl-2 text-sm text-muted-foreground">
+                กำลังจัดลำดับ — ลากแถวเพื่อเรียงใหม่
+              </div>
+              <Button size="lg" className="h-10 px-2 shrink-0" variant="destructive2" onClick={cancelReorder}>
+                <X className="size-4" /> ยกเลิก
+              </Button>
+              <Button size="lg" className="h-10 px-2 shrink-0" variant="success" onClick={saveReorder}>
+                <Check className="size-4" /> เสร็จสิ้น
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={q}
+                  onChange={e => setQ(e.target.value)}
+                  placeholder="ค้นหารหัส, ชื่อหมวดหมู่, คำอธิบาย..."
+                  className="h-10 pl-9 rounded-lg text-sm bg-input"
+                />
+              </div>
+              <Button size="lg" className="h-10 px-2 shrink-0" variant="info-soft" onClick={enterReorder} disabled={rows.length < 2}>
+                <ArrowUpDown className="size-4" /> จัดลำดับ
+              </Button>
+              <Button size="lg" className="h-10 px-2 shrink-0" onClick={openAdd}>
+                <Plus className="size-4" /> เพิ่มหมวดหมู่
+              </Button>
+            </>
+          )}
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -135,14 +157,14 @@ export function CategoriesTab() {
               </SortableTableBody>
             ) : (
               <TableBody>
-                {rows.length === 0 ? (
+                {filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
                       <Tag className="size-10 mx-auto mb-2 opacity-30" />
-                      ยังไม่มีหมวดหมู่
+                      {q.trim() ? 'ไม่พบข้อมูล' : 'ยังไม่มีหมวดหมู่'}
                     </TableCell>
                   </TableRow>
-                ) : rows.map((c, i) => (
+                ) : filtered.map((c, i) => (
                   <TableRow key={c.id} className={c.is_disabled ? 'opacity-60' : ''}>
                     <TableCell className="text-center text-sm tabular-nums text-muted-foreground">{i + 1}</TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
@@ -165,6 +187,12 @@ export function CategoriesTab() {
               </TableBody>
             )}
           </Table>
+        </div>
+
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
+          <span className="text-muted-foreground">
+            แสดง <span className="font-semibold text-foreground tabular-nums">{(reorderMode ? rows : filtered).length.toLocaleString()}</span> รายการ
+          </span>
         </div>
       </div>
 

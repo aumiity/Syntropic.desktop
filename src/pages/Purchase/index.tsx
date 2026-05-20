@@ -655,7 +655,7 @@ export default function PurchasePage() {
 
                         {/* Supplier selector */}
                         <div>
-                          <label className="block text-base font-semibold text-foreground-subtle mb-1.5">
+                          <label className="block text-base font-semibold text-muted-foreground mb-1.5">
                             ผู้จำหน่าย <span className="text-destructive">*</span>
                           </label>
                           <Combobox
@@ -674,7 +674,7 @@ export default function PurchasePage() {
 
                         {/* Supplier invoice no */}
                         <div>
-                          <label className="block text-base font-semibold text-foreground-subtle mb-1.5">เลขที่ใบกำกับสินค้า <span className="text-destructive">*</span></label>
+                          <label className="block text-base font-semibold text-muted-foreground mb-1.5">เลขที่ใบกำกับสินค้า <span className="text-destructive">*</span></label>
                           <div className="relative">
                             <FileText className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground-subtle pointer-events-none" />
                             <Input
@@ -688,7 +688,7 @@ export default function PurchasePage() {
 
                         {/* Order date (bill date) */}
                         <div>
-                          <label className="block text-base font-semibold text-foreground-subtle mb-1.5">วันที่สั่งซื้อตามบิล</label>
+                          <label className="block text-base font-semibold text-muted-foreground mb-1.5">วันที่สั่งซื้อตามบิล</label>
                           <DateInput
                             value={orderDate}
                             onChange={setOrderDate}
@@ -701,25 +701,25 @@ export default function PurchasePage() {
                     {/* Line items */}
                     <div className="bg-card rounded-2xl shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
                       <div className="px-2 h-14 flex items-center justify-between bg-card gap-2 shrink-0">
-                        <span className="pl-2 text-base font-semibold text-foreground-subtle">รายการสินค้า</span>
+                        <span className="pl-2 text-base font-semibold text-muted-foreground">รายการสินค้า</span>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="brand-soft" onClick={() => { addRow(); focusCell(rows.length, 0) }} className="h-9 rounded-lg text-sm gap-1.5">
-                            <Plus className="size-3.5" /> เพิ่มแถว
-                          </Button>
+                          <label className="inline-flex items-center gap-2 h-9 px-3 rounded-lg cursor-pointer select-none text-sm font-normal transition-colors bg-muted text-muted-foreground hover:bg-muted-hover">
+                            <span>วันผลิต</span>
+                            <Switch size="default" checked={showMfg} onCheckedChange={setShowMfg} />
+                          </label>
+                          <label className="inline-flex items-center gap-2 h-9 px-3 rounded-lg cursor-pointer select-none text-sm font-normal transition-colors bg-muted text-muted-foreground hover:bg-muted-hover">
+                            <span>ส่วนลด</span>
+                            <Switch size="default" checked={showDiscount} onCheckedChange={setShowDiscount} />
+                          </label>
                           <Button size="sm" variant="info-soft" onClick={() => setShowImport(true)} className="h-9 rounded-lg text-sm gap-1.5">
                             <ClipboardPaste className="size-3.5" /> นำเข้าข้อมูล
                           </Button>
                           <Button size="sm" variant="warm" onClick={openBillAdjust} className="h-9 rounded-lg text-sm gap-1.5">
                             ปรับยอดท้ายบิล
                           </Button>
-                          <label className="inline-flex items-center gap-2 h-9 px-3 rounded-lg cursor-pointer select-none text-sm font-medium transition-colors bg-muted text-muted-foreground hover:bg-muted-hover">
-                            <Switch size="lg" checked={showMfg} onCheckedChange={setShowMfg} />
-                            <span>วันผลิต</span>
-                          </label>
-                          <label className="inline-flex items-center gap-2 h-9 px-3 rounded-lg cursor-pointer select-none text-sm font-medium transition-colors bg-muted text-muted-foreground hover:bg-muted-hover">
-                            <Switch size="lg" checked={showDiscount} onCheckedChange={setShowDiscount} />
-                            <span>ส่วนลด</span>
-                          </label>
+                          <Button size="sm" variant="default" onClick={() => { addRow(); focusCell(rows.length, 0) }} className="h-9 rounded-lg text-sm gap-1.5">
+                            <Plus className="size-3.5" /> เพิ่มแถว
+                          </Button>
                         </div>
                       </div>
 

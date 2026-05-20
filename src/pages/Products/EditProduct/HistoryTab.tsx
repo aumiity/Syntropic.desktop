@@ -131,13 +131,13 @@ export function HistoryTab({ productId, isNew, active }: Props) {
             from={movementDateFrom}
             to={movementDateTo}
             onChange={(f, t) => { setMovementDateFrom(f); setMovementDateTo(t) }}
-            className="h-9 w-60 shrink-0"
+            className="w-60 shrink-0"
           />
           {(movementDateFrom || movementDateTo) && (
             <Button
               size="lg"
               variant="ghost"
-              className="px-3 shrink-0"
+              className="h-10 px-3 shrink-0"
               onClick={() => { setMovementDateFrom(''); setMovementDateTo('') }}
             >
               ล้างวันที่
@@ -151,7 +151,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                   key={type}
                   size="lg"
                   variant={active ? meta.variant : 'outline'}
-                  className="px-3"
+                  className="h-10 px-3"
                   onClick={() => {
                     setMovementTypeFilter(prev => {
                       const next = new Set(prev)

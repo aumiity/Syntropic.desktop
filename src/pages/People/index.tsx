@@ -119,10 +119,10 @@ function CustomersTab() {
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input value={q} onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหาชื่อ, โทร, รหัส..." className="h-9 pl-9 rounded-lg bg-input text-sm" />
+              placeholder="ค้นหาชื่อ, โทร, รหัส..." className="h-10 pl-9 rounded-lg bg-input text-sm" />
           </div>
           <Toggle className="shrink-0" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
-          <Button onClick={openAdd} size="lg" className="px-2 shrink-0">
+          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มลูกค้า
           </Button>
         </div>
@@ -348,10 +348,10 @@ function SuppliersTab() {
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input value={q} onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหาชื่อ, รหัส, โทร..." className="h-9 pl-9 rounded-lg bg-input text-sm" />
+              placeholder="ค้นหาชื่อ, รหัส, โทร..." className="h-10 pl-9 rounded-lg bg-input text-sm" />
           </div>
           <Toggle className="shrink-0" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
-          <Button onClick={openAdd} size="lg" className="px-2 shrink-0">
+          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มผู้จำหน่าย
           </Button>
         </div>
@@ -535,10 +535,10 @@ function StaffTab() {
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input value={q} onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหาชื่อ, อีเมล..." className="h-9 pl-9 rounded-lg bg-input text-sm" />
+              placeholder="ค้นหาชื่อ, อีเมล..." className="h-10 pl-9 rounded-lg bg-input text-sm" />
           </div>
           <Toggle className="shrink-0" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
-          <Button onClick={openAdd} size="lg" className="px-2 shrink-0">
+          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มพนักงาน
           </Button>
         </div>

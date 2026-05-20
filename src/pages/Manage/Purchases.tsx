@@ -18,7 +18,7 @@ import { formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib
 import type { Supplier, ProductLot } from '@/types'
 import type { ManageOutletContext } from './index'
 import {
-  Search, X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban,
+  Search, X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Info,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -169,6 +169,15 @@ export default function ManagePurchasesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [histSupplierId])
 
+  // Debounced realtime search on histQ change (skip initial mount).
+  const qEffectMounted = useRef(false)
+  useEffect(() => {
+    if (!qEffectMounted.current) { qEffectMounted.current = true; return }
+    const t = setTimeout(() => loadHistory(1, undefined, undefined, true), 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [histQ])
+
   const pageSizeEffectMounted = useRef(false)
   useEffect(() => {
     if (!pageSizeEffectMounted.current) { pageSizeEffectMounted.current = true; return }
@@ -295,14 +304,10 @@ export default function ManagePurchasesPage() {
             <Input
               value={histQ}
               onChange={e => setHistQ(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && loadHistory(1, undefined, undefined, true)}
               placeholder="ค้นหาเลขที่ใบรับ..."
-              className="h-9 pl-9 rounded-lg text-sm bg-input"
+              className="h-10 pl-9 rounded-lg text-sm bg-input"
             />
           </div>
-          <Button size="lg" variant="outline" onClick={() => loadHistory(1, undefined, undefined, true)} className="px-2 shrink-0" title="ค้นหา">
-            <Search className="size-4" />
-          </Button>
           <div className="w-60 shrink-0">
             <Combobox
               items={suppliers}
@@ -317,7 +322,7 @@ export default function ManagePurchasesPage() {
               emptyText="ไม่พบผู้จัดจำหน่าย"
             />
           </div>
-          <div className="w-72 shrink-0">
+          <div className="w-60 shrink-0">
             <DateRangePicker
               from={histDateFrom}
               to={histDateTo}
@@ -335,22 +340,23 @@ export default function ManagePurchasesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="min-w-28">วันที่</TableHead>
                 <TableHead className="min-w-[150px]">เลขที่ใบรับ</TableHead>
                 <TableHead className="min-w-[200px]">ผู้จัดจำหน่าย</TableHead>
-                <TableHead className="min-w-28">วันที่</TableHead>
                 <TableHead className="min-w-20 text-right">รายการ</TableHead>
                 <TableHead className="min-w-28 text-right">ยอดรวม</TableHead>
                 <TableHead className="min-w-[130px]">สถานะ</TableHead>
+                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loadingHist ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-foreground-subtle py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={7} className="text-center text-foreground-subtle py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : history.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-foreground-subtle py-16">
+                  <TableCell colSpan={7} className="text-center text-foreground-subtle py-16">
                     <FileText className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูล
                   </TableCell>
@@ -362,29 +368,40 @@ export default function ManagePurchasesPage() {
                 return (
                   <TableRow
                     key={h.invoice_no}
-                    onClick={() => openReceipt(h.invoice_no)}
-                    className={`cursor-pointer ${isSelected ? 'bg-primary-soft' : ''} ${isCancelled ? 'opacity-70' : ''}`}
+                    className={`${isSelected ? 'bg-primary-soft' : ''} ${isCancelled ? 'opacity-70' : ''}`}
                   >
-                    <TableCell className={`font-semibold ${isCancelled ? 'text-muted-foreground line-through' : isSelected ? 'text-primary' : 'text-foreground'}`}>
+                    <TableCell className="whitespace-nowrap">{formatDate(h.created_at)}</TableCell>
+                    <TableCell className={`font-mono ${isCancelled ? 'text-muted-foreground line-through' : isSelected ? 'text-primary' : ''}`}>
                       {h.invoice_no}
                     </TableCell>
-                    <TableCell className="text-foreground-subtle truncate">{h.supplier_name ?? '—'}</TableCell>
-                    <TableCell className="text-foreground-subtle tabular-nums">{formatDate(h.created_at)}</TableCell>
-                    <TableCell className="text-right tabular-nums text-foreground-subtle">{h.item_count}</TableCell>
-                    <TableCell className={`text-right font-bold tabular-nums ${isCancelled ? 'text-foreground-subtle line-through' : 'text-foreground'}`}>
+                    <TableCell className="truncate">{h.supplier_name ?? '—'}</TableCell>
+                    <TableCell className="text-right tabular-nums">{h.item_count}</TableCell>
+                    <TableCell className={`text-right font-semibold tabular-nums ${isCancelled ? 'text-foreground-subtle line-through' : ''}`}>
                       {formatCurrency(h.total_cost)}
                     </TableCell>
                     <TableCell>
                       {isCancelled
-                        ? <Badge variant="destructive" className="text-sm px-1.5 py-0">ยกเลิก</Badge>
+                        ? <Badge variant="destructive">ยกเลิก</Badge>
                         : h.payment_type === 'credit'
                           ? h.is_paid
-                            ? <Badge variant="success" className="text-sm px-1.5 py-0">ชำระแล้ว</Badge>
+                            ? <Badge variant="success">ชำระแล้ว</Badge>
                             : isOverdue
-                              ? <Badge variant="destructive" className="text-sm px-1.5 py-0">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                              : <Badge variant="warm" className="text-sm px-1.5 py-0">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                          : <Badge variant="brand-soft" className="text-sm px-1.5 py-0">เงินสด</Badge>
+                              ? <Badge variant="destructive">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                              : <Badge variant="warm">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                          : <Badge variant="brand-soft">เงินสด</Badge>
                       }
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-center">
+                        <Button
+                          size="icon-lg"
+                          variant="warm"
+                          onClick={() => openReceipt(h.invoice_no)}
+                          title="ดูรายการ"
+                        >
+                          <Info />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )

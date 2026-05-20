@@ -4,13 +4,70 @@
 ## Last updated: 2026-05-20
 ## Run: `npm run electron:dev`
 ## ⚠️ Next session:
-##   1. **Click-test Phase 1–4** — /manage 4 tabs (sales w/ void; purchases w/ payment cards + receipt + edit + cancel GR; low-stock w/ search+shortfall+ไปหน้ารับสินค้า; expiry); `/purchase` pure receive flow; **/reports** (date range → 6 finance cards + payment-mix + daily trend; เจ้าหนี้การค้า aging buckets + outstanding list). Old /reports bookmarks now hit the real page (redirects removed).
+##   1. **Click-test Phase 1–4** — /manage 4 tabs (sales w/ void; purchases w/ payment cards + receipt + edit + cancel GR; low-stock w/ search+shortfall+ไปหน้ารับสินค้า; expiry); `/purchase` pure receive flow; **/reports** (date range → 6 finance cards + payment-mix + daily trend; เจ้าหนี้การค้า aging buckets + outstanding list). Old /reports bookmarks now hit the real page (redirects removed). **Also click-test the topbar `h-10` sweep from Session 2026-05-20b** — every list page filter strip + showcase + Toggle `framed="input"`.
 ##   2. **Phase 5** — รายงาน อย. (greenfield, blocked: needs the exact อย. forms/columns from the operator).
 ##   3. **When real login lands: delete the ⚠️ DEV-ONLY role toggle in `Reports/Finance.tsx`** (2 marked spots — see "Reports/Finance — 7-day access gate" 2026-05-19).
 ## (Carried over, lower priority: click-test EditProduct split [2026-05-17]; cost-audit Manage/Sales+Expiry; table-card sweep of Settings/index.tsx — **now has a concrete target: copy the top/bottom-bar pattern from Session 2026-05-20**.)
+## ✅ DONE 2026-05-20b: **Topbar control-height standardization (`h-14` strip → `h-10` controls)** (Session 2026-05-20b) — every filter-strip control bumped to `h-10` to match the baked defaults of DateInput/DateRangePicker/Combobox; `Toggle framed="input"` primitive raised h-9 → h-10; new HARD rule added to CLAUDE.md + showcase. Also tightened `Manage/Purchases.tsx` to showcase styling (action column, column order, Badge defaults, font weights). tsc clean, **click-test pending**.
 ## ✅ DONE 2026-05-20: **Table-card top/bottom bar sweep + `Toggle framed="input"`** (Session 2026-05-20) — all group A+B list/report tables now match the showcase: toolbar folded into the card top bar, bottom bar = page-size·pagination·count. New borderless `framed="input"` Toggle mode that blends with the search Input. tsc clean, **click-test pending**.
 ## ✅ DONE 2026-05-19: **POS "ยกเลิกบิล" button fixed** (Session 2026-05-19b) — invoice-lookup → SaleDetailDialog → ConfirmDialog → voidSale. tsc clean, **click-test pending**.
 ## 🆕 FEATURE (planned & approved, NOT started): **ระบบชุดสินค้า (Product Bundle / Kit)** — see "Session 2026-05-19c" below. Full self-contained design; implement **Phase 1**. Touches schema + IPC + UI. Read that whole section before coding.
+
+---
+
+## Session 2026-05-20b — Topbar control-height standardization (`h-10`) + Purchases.tsx showcase alignment — ✅ DONE 2026-05-20 (tsc clean, NOT click-tested)
+
+> Self-contained follow-up to Session 2026-05-20. The previous sweep folded the toolbar into the card top bar but left every control at `h-9`, which silently fought the `h-10` defaults of `DateInput` / `DateRangePicker` / `Combobox`. Spotted because `Manage/Sales.tsx` was forcing `DateRangePicker` to `h-9` to match the `h-9` search Input — fixing that one tangle unraveled the full inconsistency across the codebase. Resolved by bumping the **entire topbar control row to `h-10`**, then committing the rule to CLAUDE.md + showcase so it doesn't regress.
+
+### What changed
+
+**New HARD rule (CLAUDE.md → Standard table-card layout)**
+- **Filter strip / topbar = `h-14 px-2`; every control inside = `h-10`.** Applies to Input, Select/SelectTrigger, Combobox, DateInput, DateRangePicker, `Toggle framed="input"`, Button. Most primitives default to `h-10` already — only Input / SelectTrigger / Button still need an explicit `h-10` className (Button `size="lg"` is still `h-9`, so override is required until a new size lands; doc'd inline). **The h-12 footer / inner header bar (pagination, page-size, count) keeps `h-9` controls** — separate rule, unchanged.
+
+**Primitive change — `src/components/ui/switch.tsx`**
+- `Toggle framed="input"` baked-in height: `h-9` → **`h-10`** (line 87) + leading comment updated to reference the CLAUDE.md rule. All call sites (`Products/index.tsx`, `People/index.tsx` ×3, showcase) inherit automatically.
+
+**Showcase — `src/pages/Theme/index.tsx`**
+- "Standard Table-Card Layout" demo: search Input + SelectTrigger + Add Button all bumped to `h-10`; description text rewritten to state the rule explicitly (topbar `h-10` vs footer `h-9`).
+- "Toggle framed='input'" DemoRow: label + paired search Input updated to `h-10`.
+
+**Files re-aligned to `h-10` in topbar (Input / SelectTrigger / Button / DateRangePicker)**
+- `src/pages/Settings/UnitsTab.tsx` · `DrugTypesTab.tsx` · `CategoriesTab.tsx` (incl. reorder-mode "ยกเลิก" + "เสร็จสิ้น" buttons)
+- `src/pages/Products/index.tsx` (Input + 2 SelectTriggers + Add button)
+- `src/pages/Products/EditProduct/HistoryTab.tsx` (DateRangePicker — removed `h-9` override → uses default `h-10`; "ล้างวันที่" Button + movement-type filter chip Buttons get `h-10`)
+- `src/pages/People/index.tsx` (3 sub-tabs: customers / suppliers / staff — Input + Add buttons)
+- `src/pages/Manage/Sales.tsx` (Input bumped; DateRangePicker `h-9` override removed)
+- `src/pages/Manage/Purchases.tsx` (Input bumped; Combobox + DateRangePicker now use default `h-10`)
+- `src/pages/Manage/Expiry.tsx` (Input + preset filter chip Buttons + SelectTrigger)
+- `src/pages/Manage/LowStock.tsx` (Input + SelectTrigger + "ไปหน้ารับสินค้า" Button)
+
+**Verification:** `grep -rn "h-9 pl-9\|h-9 w-44\|h-9 w-60\|h-9 flex-1 min-w-0" src/pages` → no remaining stray `h-9` in any topbar control. Footer pagination Selects (`h-9 min-w-20`) intentionally left alone.
+
+### Bonus — `Manage/Purchases.tsx` brought into full showcase compliance
+While inspecting the topbar, the rest of the table was audited too. Changes:
+- **Row interaction:** removed the full-row `onClick` + `cursor-pointer`; added a "จัดการ" column with a square `<Button size="icon-lg" variant="warm">` containing an `Info` icon (matches `Manage/Sales.tsx` canonical pattern).
+- **Column order:** วันที่ → เลขที่ใบรับ → ผู้จัดจำหน่าย → รายการ → ยอดรวม → สถานะ → จัดการ (was: เลขที่ใบรับ → ผู้จัดจำหน่าย → วันที่ → … ).
+- **Cell styling — matched showcase defaults:**
+  - Removed `text-foreground-subtle` from value cells (วันที่ / ผู้จัดจำหน่าย / รายการ) → use default foreground.
+  - Removed every `<Badge ... className="text-sm px-1.5 py-0">` override → plain `<Badge variant="...">` with default sizing.
+  - เลขใบรับ: `font-semibold` → `font-mono` (matches the invoice column in `Sales.tsx`).
+  - ยอดรวม: `font-bold` → `font-semibold`.
+  - วันที่: added `whitespace-nowrap`.
+  - Updated all `colSpan={6}` → `colSpan={7}` after adding the action column.
+
+### Why the `h-10` direction (not `h-9`)?
+The CSS-in-component defaults of `DateInput`, `DateRangePicker`, and `Combobox` are all `h-10`. Overriding them to `h-9` to match other controls had two costs: (a) the calendar-button position desyncs inside `DateInput` when its inner Input is forced shorter than the wrapper (already documented in CLAUDE.md primitives section); (b) every page picked up "manual h-9 override on DateRangePicker" as boilerplate. Bumping the other three (Input / Select / Button) to `h-10` is the cheaper direction and matches the primitive contract — only Button still needs an explicit override, which the new rule documents.
+
+### Out of scope (NOT done)
+- **Adding a Button `size` that is `h-10` with `lg`'s padding** — would let topbar Buttons drop the `className="h-10"` override entirely. Worth doing in a primitive sweep but didn't want to scope-creep this session.
+- **`px-2` vs `px-5` symmetry between top and bottom bars** — still the open question from Session 2026-05-20.
+- **`Reports/Finance.tsx`** — its toolbar is page-level, intentionally left out of the previous sweep; controls there weren't touched.
+- **POS / Purchase-receive grid** — not list cards, skipped.
+
+### ⚠️ Next session
+1. **Click-test every page touched:** open each list page in the app and eyeball the topbar — search Input, filter Selects, filter chips, Toggle, and Add button should all sit at the same baseline (`h-10`). `DateRangePicker` should match its neighbors without forcing it.
+2. The h-12 footer pagination strip should look unchanged.
+3. Then resume the carried-over Session 2026-05-20 follow-ups (Phase 1–4 click-test, Settings/index.tsx sweep, `px-2`/`px-5` symmetry question).
 
 ---
 
@@ -21,7 +78,7 @@
 ### Canonical pattern (now in `src/pages/Theme/index.tsx` → "Standard Table-Card Layout")
 - **Top bar** (white, NO border): `className="px-2 h-14 shrink-0 flex items-center gap-3"` — search `<Input className="h-9 pl-9 rounded-lg text-sm bg-input">` wrapped in `relative flex-1 min-w-0` (left), then Select filters / `Toggle framed="input"` / action `<Button size="lg" className="px-2 shrink-0">` (right). **`px-2`** is deliberate: 8px ≈ the table's `border-l-8 border-r-8 border-card` inset, so the search edge lines up with the table content.
 - **Bottom bar** (white, top border): `className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0"` — page-size Select (left, `flex items-center gap-2 text-muted-foreground shrink-0`), `<Pagination className="w-auto justify-center">` in a `flex-1 flex justify-center` wrapper (center), `พบ N รายการ` (right, `shrink-0`). **No pagination on a page → bottom bar is just the count, right-aligned (`justify-end`)** — never add a pager where the data isn't paged.
-- Controls inside both bars are `h-9`. Bottom bar stayed `px-5 h-12` (only the top bar is `px-2 h-14`) — see Open question.
+- Controls inside both bars are `h-9`. Bottom bar stayed `px-5 h-12` (only the top bar is `px-2 h-14`) — see Open question. **(superseded 2026-05-20b: top-bar controls are now `h-10` to match DateInput/DateRangePicker/Combobox defaults; bottom bar still `h-9`.)**
 
 ### Files changed (all tsc-clean)
 - **Group A — toolbar folded into card + bottom bar rebuilt:** `Products/index.tsx`, `People/index.tsx` (×3 tabs: customers/suppliers/staff — **staff has no pagination → count-only bottom bar**), `Manage/Sales.tsx`, `Manage/LowStock.tsx` (no pagination), `Manage/Expiry.tsx` (no pagination; preset filter chips kept, moved into top bar right of search).
@@ -259,8 +316,15 @@ Gotchas: `Purchase/index.tsx` shares `suppliers`, `today`, toast, refocus helper
 
 ## HOW TO START DEV
 
+Project is worked on from **both Windows and Mac** — paths differ. Pick the right one.
+
 ```bash
+# Windows
 cd D:\Syntropic.Project\Syntropic.desktop
+npm run electron:dev
+
+# Mac
+cd /Users/CYUT/Documents/GitHub/Syntropic.desktop
 npm run electron:dev
 ```
 
@@ -274,278 +338,17 @@ npm run electron:dev
 
 ---
 
-## DONE ✅
 
-### Config & Tooling
-- `package.json` — Electron 31, React 18, Vite 5, TS, better-sqlite3 v12, Tailwind, Zustand, react-router-dom v6
-- `vite.config.ts` — vite-plugin-electron setup (main + preload bundles to dist-electron/)
-- `tsconfig.json` + `tsconfig.node.json`
-- `tailwind.config.js` + `postcss.config.js`
-- `index.html` — Noto Sans Thai + Sarabun Google Fonts
-
-### Electron Main Process
-- `electron/main.ts` — BrowserWindow (1400×900), dev=localhost:5173 / prod=dist/index.html, registers all IPC handlers
-- `electron/preload.ts` — Full contextBridge API exposing `window.api` with namespaces: pos, products, purchase, people, reports, settings, printer, app
-
-### Database Layer (electron/db/)
-- `index.ts` — Opens SQLite at userData/database/syntropic.db, WAL mode, runs schema + seed on first launch
-- `schema.ts` — 25+ tables: users, settings, product_categories, item_units, drug_types, dosage_forms, drug_generic_names, products, product_units, product_lots, customers, drug_allergies, suppliers, sales, sale_items, sale_item_lots, stock_movements, label_frequencies, label_dosages, label_times, label_meal_relations, label_advices, product_labels, label_settings
-- `seed.ts` — Seeds all lookup tables on first run (categories, units, drug types, dosage forms, label data, default admin user C0000 general customer)
-
-### IPC Handlers (electron/ipc/)
-- `pos.ts` — searchProducts (with lots+units), searchCustomers, addCustomer, saveBill (FEFO algorithm), getDailyStats
-- `products.ts` — list (paginated, filterable), get, create, update, adjustStock, addUnit/updateUnit/deleteUnit, saveLabel/deleteLabel, searchGenericNames, getLots
-- `purchase.ts` — nextGRNumber, save (weighted avg cost price, updates product prices), history (grouped by invoice), getReceipt
-- `people.ts` — CRUD for customers (with allergies), suppliers, staff/users; allSuppliers dropdown
-- `reports.ts` — salesList (with cost+profit calc), getSale (with item costs), voidSale (reverses stock via sale_item_lots), purchaseList
-- `settings.ts` — shop settings, categories, item units, drug types, dosage forms, all label lookup tables, label print settings; dropdown helpers (allUnits, allCategories, allDrugTypes, allDosageForms)
-- `printer.ts` — printReceipt (ESC/POS to TCP printer), openCashDrawer (ESC/POS pulse)
-
-### React Frontend — Core
-- `src/main.tsx` — Entry, applies saved theme before render
-- `src/index.css` — Tailwind base + full CSS variable system (light + dark themes)
-- `src/App.tsx` — HashRouter + lazy-loaded Routes for all 8 pages + ToastProvider
-- `src/types/index.ts` — All TS types: Product, ProductUnit, ProductLot, ProductLabel, Customer, DrugAllergy, Supplier, User, Sale, SaleItem, CartItem, Setting, ProductCategory, ItemUnit, DrugType, DosageForm, LabelFrequency, etc.
-- `src/lib/utils.ts` — cn(), formatCurrency(), formatDate(), formatDateTime(), getExpiryStatus(), formatExpiry()
-- `src/stores/themeStore.ts` — Zustand + localStorage persist, toggleTheme()
-- `src/stores/cartStore.ts` — Zustand cart: items[], customer, saleType, addItem (merges duplicates), updateItem, removeItem, clearCart, subtotal/totalDiscount/totalAmount computed
-
-### UI Components (src/components/ui/)
-- `button.tsx` — variants: default, destructive, outline, secondary, ghost, link, success, warning; sizes: default, sm, lg, xl, icon, icon-sm
-- `input.tsx`
-- `textarea.tsx`
-- `label.tsx`
-- `badge.tsx` — variants: default, secondary, destructive, outline, success, warning, danger
-- `card.tsx` — Card, CardHeader, CardTitle, CardContent, CardFooter
-- `dialog.tsx` — custom modal (no Radix), size variants: sm/md/lg/xl/2xl/full, DialogContent/Header/Title/Body/Footer
-- `select.tsx` — native select with chevron icon
-- `tabs.tsx` — custom tabs (context-based), Tabs/TabsList/TabsTrigger/TabsContent
-- `table.tsx` — Table/TableHeader/TableBody/TableRow/TableHead/TableCell
-- `switch.tsx`
-- `checkbox.tsx`
-- `toast.tsx` — ToastProvider context + useToast() hook, success/error/info variants
-- `confirm-dialog.tsx` — reusable confirm with optional reason input field
-- `pagination.tsx` — prev/next with "หน้า X / Y" display
-
-### Layout (src/components/layout/)
-- `Sidebar.tsx` — 72px icon sidebar, NavLink active states, 6 nav items, theme toggle at bottom
-- `Layout.tsx` — flex row: Sidebar + `<Outlet />`
-
-### Pages — Implemented
-- `src/pages/POS/index.tsx` ✅ FULL
-- `src/pages/Settings/index.tsx` ✅ FULL
-  - Tab ข้อมูลร้าน: shop name, address, phone, license no, tax ID, LINE ID
-  - Tab หมวดหมู่: list with code/sort_order, CRUD dialog, toggle enable/disable
-  - Tab หน่วยนับ: list with usage count, CRUD dialog
-  - Tab ประเภทยา: list with อย.9/10/11/13 flags, CRUD dialog with checkboxes, toggle
-  - Tab การพิมพ์ฉลาก: paper size, padding, font family, font sizes + bold per row, line/section spacing, live label preview
-- `src/pages/Reports/Sales.tsx` ✅ FULL
-  - Date range + text search filters, sortable columns
-  - 6 summary cards: bill count, subtotal, discount, net total, cost, profit (with %)
-  - Table with sale type badges, void badge, profit colouring
-  - Detail modal: header info + items with cost/profit per line + totals footer
-  - Void with require-reason ConfirmDialog, restores stock automatically
-- `src/pages/Reports/Purchases.tsx` ✅ FULL
-  - Date range + supplier + text search filters
-  - Summary strip: total receipts, page value, overdue credit count
-  - Table with payment type badges (cash/credit/paid), due dates
-  - Receipt detail modal with full line items + total
-- `src/pages/People/index.tsx` ✅ FULL
-  - Tab ลูกค้า: search, paginated table with health coverage badges + alert icon, full CRUD dialog (id_card, HN, DOB, phone, address, UC/Gov/SSO toggles, allergies, alert flags), read-only drug allergy list
-  - Tab ผู้จัดจำหน่าย: search, paginated table, full CRUD dialog (name, contact, phone, tax_id, address)
-  - Tab พนักงาน: table with roles, CRUD dialog (name, email, password, role), soft-delete (is_disabled)
-- `src/pages/Products/EditProduct.tsx` ✅ FULL
-  - Tab 1 ข้อมูลทั่วไป: all product fields (barcodes x4, prices, drug type, dosage form, generic name autocomplete, strength, registration, flags, stock alerts, notes, status)
-  - Tab 2 หน่วยนับ: CRUD table of product_units with unit dropdown, barcode, qty_per_base, prices, sale/purchase/base flags
-  - Tab 3 ฉลากยา: card list of product_labels + add/edit dialog (dosage, frequency, meal timing, time, advice, multilingual indication/notes)
-  - Tab 4 ล็อต: read-only lot history with expiry colour coding
-- `src/pages/Products/index.tsx` ✅ FULL
-  - Search by name/barcode/code, filter by category + drug type
-  - Table: trade name, dosage form, code, category, drug type, price, stock qty with low/out badges
-  - Drug flags: antibiotic, sale control, FDA13
-  - Quick-create product dialog → redirects to EditProduct
-  - Adjust stock dialog (in/out) with note, updates via IPC
-  - Pagination (50 per page)
-- `src/pages/Purchase/index.tsx` ✅ FULL
-  - GR# auto-generated (GR-YYYYMMDD-NNNN)
-  - Supplier dropdown, supplier invoice no, วันที่สั่งซื้อตามบิล (bill order date) in header
-  - วันที่รับสินค้า moved to สรุปใบรับสินค้า sidebar as compact editable field
-  - Payment type: cash / credit (with due date + paid tracking)
-  - วันครบกำหนด quick-pick buttons: 15 / 30 / 60 / 90 วัน (sets date from today)
-  - ชำระแล้ว quick-fill buttons: วันนี้ / วันครบกำหนด (fills paid date)
-  - Multi-row item entry with live product search + lot/expiry/cost/sell/qty fields
-  - Active row highlight: emerald-100 bg + left border accent (matches POS UX)
-  - Running total per row + grand total footer
-  - หมายเหตุ textarea in sidebar, saved to `purchase_receipts` table (invoice_no PK + note)
-  - Save with validation → success dialog → form reset
-  - History table with filters (search, supplier, date range) + pagination
-  - Receipt detail modal
-  - Banner top-right: live date/time clock (Thai locale, ticking every second, matches POS)
-
----
-
-## PENDING 🔧
-
-### Pages — Stubs only (show "กำลังพัฒนา"), need full implementation:
-
-All pages are now complete. No pending stubs.
-
----
-
-## NEXT SESSION — ข.ย.10 / ข.ย.11 Reports
-
-### Background
-อ.ย. กำหนดให้ร้านยาที่จำหน่ายยาควบคุมพิเศษและยาอันตรายต้องบันทึกบัญชีการขายรายวัน:
-- **ข.ย.10** — บัญชีการขายยาควบคุมพิเศษ
-- **ข.ย.11** — บัญชีการขายยาอันตราย ตามที่ อ.ย. กำหนด
-
-### Data model (updated 2026-05-11)
-Per-product flags on `products` table now drive report inclusion — NOT drug_type code matching:
-- `products.is_fda10 = 1` → product appears in ข.ย.10
-- `products.is_fda11 = 1` → product appears in ข.ย.11
-
-Default values come from `drug_types.is_fda10` / `drug_types.is_fda11` when a drug type is selected in EditProduct. Pharmacist can override per-product. This means:
-- SPCL_CTRL / PSYCHO_3/4 / NARCOTIC_3 → `is_fda10=1` by default on new products
-- DANGEROUS → `is_fda11=0` by default; pharmacist ticks manually per regulation
-
-### Data source
-```sql
--- ข.ย.10
-SELECT s.sold_at, s.invoice_no, p.trade_name, p.tmt_id,
-       si.qty, si.unit_name, si.unit_price,
-       COALESCE(s.customer_name_free, c.full_name) AS buyer_name,
-       c.id_card
-FROM sale_items si
-JOIN sales s ON s.id = si.sale_id
-JOIN products p ON p.id = si.product_id
-LEFT JOIN customers c ON c.id = s.customer_id
-WHERE p.is_fda10 = 1
-  AND s.status = 'completed'
-  AND s.sold_at BETWEEN @from AND @to
-ORDER BY s.sold_at
-
--- ข.ย.11 — identical but WHERE p.is_fda11 = 1
-```
-- Filter by date range (รายวัน/รายเดือน)
-- Columns: วันที่, เลขที่ใบเสร็จ, ชื่อยา, TMT ID, ปริมาณ, หน่วย, ราคา, ชื่อผู้ซื้อ/เลขบัตรปชช.
-
-### Pages to build
-1. `src/pages/Reports/Kho10.tsx` — ข.ย.10 พร้อม print/export
-2. `src/pages/Reports/Kho11.tsx` — ข.ย.11 พร้อม print/export
-
-### IPC needed
-- `reports:kho10List({ from, to })` — query sales WHERE `p.is_fda10 = 1`
-- `reports:kho11List({ from, to })` — query sales WHERE `p.is_fda11 = 1`
-
-### Routes
-- `/reports/kho10`
-- `/reports/kho11`
-
----
-
-## Build order (remaining)
-
-1. `Purchase/index.tsx` — stock receive
-2. `Products/index.tsx` — product list
-3. `Products/EditProduct.tsx` — product edit (large, may need 2 prompts)
-4. `People/index.tsx` — people management
-5. `Reports/Sales.tsx` — sales report
-6. `Reports/Purchases.tsx` — purchase report
-7. `Settings/index.tsx` — settings
-
----
-
-## PHP Source Reference
-Original project: `D:\Syntropic.Project\Syntropic.php`
-Stack: Laravel + Blade + SQLite + Tailwind
-Full schema + business logic analysis in conversation history.
-
-## UI Polish (2026-04-21)
-- `src/index.css` — theme updated to emerald green (primary emerald-600, sidebar emerald-700) matching PHP version; background changed to gray-100 equivalent; Inter + Sarabun Google Fonts; base font-size 15px
-- `tailwind.config.js` — `fontFamily.sans: ['Inter', 'Sarabun', 'sans-serif']`
-- `src/components/layout/Sidebar.tsx` — widened to w-20, rounded-xl nav items (w-16 h-16), PHP-style "Rx / Syntropic" text logo, emerald-200/hover-emerald-600 colors
-- `src/pages/POS/index.tsx` — gradient header banner (from-emerald-600 to-sky-600) with shop name + live date/time clock matching PHP POS header
-- `src/components/ui/card.tsx` — rounded-lg → rounded-xl (matches PHP)
-- `src/components/ui/table.tsx` — TableHeader gets bg-muted/60 (matches PHP's bg-slate-100 thead); header height h-12 → h-10
-
-## Frameless Window + Custom Title Bar (2026-04-21)
-- `electron/main.ts` — `frame: false`; IPC handlers `window:minimize/maximize/close/isMaximized`
-- `electron/preload.ts` — added `window` namespace on `window.api`
-- `src/components/layout/TitleBar.tsx` (new) — 36px drag bar (`WebkitAppRegion: 'drag'`) with "SYNTROPIC RX" title, Min/Max/Close buttons (`WebkitAppRegion: 'no-drag'`), red hover on close
-- `src/components/layout/Layout.tsx` — stacks TitleBar + (Sidebar + Outlet)
-
-## POS Search UX (2026-04-21, matches PHP behaviour)
-- **Always-focused main input** — `mainInputRef` with `autoFocus`; global `click` listener on document refocuses it when user clicks any non-interactive area (skips `input, button, select, textarea, a, [role=button]`). `refocusSearch()` is also called after `changeCartUnit` / `changeCartPrice`.
-- **Auto-opens modal** — typing in main input opens the fixed-size modal and transfers focus to `modalInputRef`; both inputs share the same `query` state.
-- **Fixed-size modal** — `width: 600px, height: 480px` via inline style; header/column-header/footer are `shrink-0`, list is `flex-1 overflow-y-auto` so empty space stays empty and overflow scrolls internally.
-- **Column layout** — grid `1fr 80px 100px 70px`: ชื่อสินค้า / หน่วย / ราคาขาย / คงเหลือ. Active row `bg-emerald-100`, hover `hover:bg-emerald-50`.
-- **Keyboard nav** — ArrowUp/Down/Enter/Escape with `preventDefault()`. `activeRowRef` + useEffect on `[highlightIdx]` calls `scrollIntoView({ block: 'nearest' })` to keep the highlight visible inside the list container only.
-- **Highlight persistence fix** — `setHighlightIdx(0)` lives in a dedicated `useEffect` keyed on `[query]` so it resets ONLY when the query text actually changes. Removed `onMouseEnter={() => setHighlightIdx(i)}` on rows — it was firing on rows passing under the stationary cursor during `scrollIntoView`, resetting the highlight.
-- **Unit / price popovers in cart rows** — inline `Popover` component (no Radix); click a cart row's unit/price chevron to switch between product_units or retail/wholesale1/wholesale2 tiers.
-- **Quick-add customer** — `UserPlus` button next to the customer selector; dialog captures name/phone/alert_note and assigns to cart.
-- **Sale types** — retail / wholesale only (Rx removed per product decision).
-
-## POS Cart Row Touch UX (2026-04-22)
-- `src/index.css` — global rule strips number-input spinner arrows (WebKit + Firefox)
-- `src/pages/POS/index.tsx` — cart row redesigned for touchscreen pharmacy use:
-  - **Larger qty +/- buttons** — `w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-slate-600` with `h-4 w-4` icons (was `w-7 h-7`); qty input gets `style={{ MozAppearance: 'textfield' }}`
-  - **Unit Popover → Modal** — `unitModalIdx` state; centred overlay (`fixed inset-0 z-50 bg-black/40`), panel `bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm`. Lists each `product_units` row, highlights current selection, calls `changeCartUnit` on click
-  - **Price Popover → Modal with cost/profit** — `priceModalIdx` state; same overlay pattern. Each price option (ราคาปลีก / ราคาส่ง 1 / ราคาส่ง 2) shows price + cost (`product.cost_price`) + profit (₿ + %, green when positive). Selected option highlighted emerald. Calls `changeCartPrice` on click
-  - **Discount input → Modal** — `discountModalIdx` + `discountInput` state; row now shows a button with current discount or `—`. Modal shows unit price, large no-spinner number input (autoFocus, Enter applies), live "ราคาหลังหักส่วนลด". Buttons: ล้าง (zero) / ยกเลิก / ตกลง
-  - **Focus management** — `refocusSearch` and the global non-interactive-click handler now skip refocusing while any of the three new modals are open (mirrors how `showPayment`/`showCustomerSearch` are already gated)
-  - Removed `openUnitPopover` / `openPricePopover` state. Inline `Popover` helper component left in place (unused) per scoping constraint
-
-## POS Wholesale Price Fallback (2026-04-23)
-- `src/stores/cartStore.ts` — `setSaleType` now falls back to retail price when wholesale is selected but the item (or its selected unit) has no `price_wholesale1` (0/null). Previously toggling to wholesale would zero out prices for items without a wholesale rate.
-- `src/pages/POS/index.tsx`:
-  - `handleSelectItem` — same wholesale → retail fallback when adding an item while in wholesale mode
-  - `changeCartUnit` — same fallback when switching units on an existing cart row in wholesale mode
-  - Search result list price display — always shows retail price regardless of `cart.saleType` (wholesale pricing is applied only when added to cart, not in the search list)
-
-## POS Customer Info Button (2026-04-22)
-- `src/pages/POS/index.tsx` — added "ข้อมูล" (Info) button next to the customer selector, mirroring PHP `btn-customer-info`
-  - Disabled (slate-300, cursor-not-allowed) when no customer selected; enabled (slate-500, hover:bg-slate-50) when one is
-  - 52×52 white rounded-xl with `Info` icon (lucide-react) + "ข้อมูล" text label
-  - Opens `showCustomerInfo` Dialog (size sm) showing: full_name (with red AlertTriangle if `is_alert`), code + HN, phone, address, health coverage badges (บัตรทอง/ข้าราชการ/ประกันสังคม — only if any flag set), food_allergy / other_allergy / chronic_diseases (only if filled), alert_note (red box) and warning_note (amber box)
-  - `refocusSearch` + global non-interactive-click handler updated to gate on `showCustomerInfo` so the search input doesn't steal focus while the modal is open
 
 ## Database Location
-`C:\Users\ANYA\AppData\Roaming\syntropic-desktop\database\syntropic.db`
+
+Electron stores SQLite under `userData/database/syntropic.db`. Path differs per OS:
+
+- **Windows:** `C:\Users\ANYA\AppData\Roaming\syntropic-desktop\database\syntropic.db`
+- **Mac:** `/Users/CYUT/Library/Application Support/syntropic-desktop/database/syntropic.db`
+
 Use DB Browser for SQLite to inspect or import data from PHP version.
 
-## shadcn/ui Install + Compatibility Patch (2026-04-23)
-- `shadcn` v4 CLI + `tw-animate-css` + `@fontsource-variable/geist` added to `package.json`; CLI regenerated all 13 primitives in `src/components/ui/` (badge, button, card, checkbox, dialog, input, label, pagination, select, switch, table, tabs, textarea).
-- **CSS rollback** — shadcn overwrote `src/index.css` with Tailwind v4 syntax (`@import "shadcn/tailwind.css"`, `oklch()` color values, `@theme` directives). The project is still on Tailwind **v3.4.4** and `tailwind.config.js` consumes variables via `hsl(var(--primary))`, so the v4 `oklch()` values produced invalid CSS (`hsl(oklch(...))`) and nothing rendered. Reverted `src/index.css` to the HSL-based v3 version.
-- **Custom API preserved on shadcn primitives**:
-  - `src/components/ui/button.tsx` — added `success` and `warning` variants + `xl` size back to the CVA config
-  - `src/components/ui/badge.tsx` — added `success`, `warning`, `danger` variants back
-  - `src/components/ui/dialog.tsx` — added `size` prop (`sm | md | lg | xl | 2xl | full`) via a `dialogSizeMap`, wired `onClose` through to the built-in X button, re-exported `DialogBody`
-  - `src/components/ui/pagination.tsx` — replaced shadcn's composed-parts API with a simple `<Pagination page totalPages onPageChange />` wrapper (shadcn `Button` + lucide chevrons), matching what every consumer page already calls it with
-- Pre-existing type errors left alone: toast call sites use `toast({ title, description, variant })` but the hook signature is `toast(message, type)`; `FullProduct` / `ProductLabel` / `ProductLot` types missing several fields; `adjustStock` called with 4 args when API expects 1. None of these were caused by the shadcn install.
-
-## POS Cart Table → shadcn Table (2026-04-23)
-- `src/pages/POS/index.tsx` — replaced the hand-rolled grid-div cart table with shadcn `Table / TableHeader / TableBody / TableRow / TableHead / TableCell`
-- Column widths locked via `<colgroup>` (36 / flex / 110 / 110 / 100 / 110 / 110 / 60 px) instead of `gridTemplateColumns` inline style
-- `TableHeader` gets `sticky top-0 z-10 bg-slate-100` so the header pins while rows scroll — same UX as before
-- All interactive pill buttons preserved: slate unit selector, yellow qty, emerald price, red discount, trash icon
-- Empty-state (shopping-bag SVG + "ยังไม่มีรายการสั่งซื้อ") and summary footer (รายการ count / ราคารวม / ส่วนลด) untouched
-
-## POS shadcn/ui Pass (2026-04-24)
-Incremental migration of POS page from hand-rolled primitives to shadcn components, plus several UX/style fixes.
-
-- **Sticky cart header fix** — `src/pages/POS/index.tsx` cart table now uses a raw `<table>` (still with shadcn `TableHeader`/`Body`/etc). The shadcn `Table` wrapper adds an `overflow-x-auto` div that became the sticky ancestor, so the `sticky top-0` thead was pinned to that inner div — not the outer `overflow-y-auto` scroll container — and rode up with the rows. Keeping the thead + cells under a plain `<table>` lets sticky attach to the right scroll container.
-- **Raw → shadcn primitive swaps in POS**:
-  - 7 raw `<input>` → `Input` (main search, modal search, custom price, qty, discount %, discount ฿, final price)
-  - 4 raw `<label>` → `Label`
-  - 3 right-panel action buttons → `Button` (รับชำระเงิน payment, เปิดลิ้นชัก cash drawer, ยกเลิกบิล clear cart). Colorful cart-row pill buttons (unit/qty/price/discount chips) left as raw `<button>` — they're styled toggle-chips, not standard buttons.
-- **`src/components/ui/input.tsx` — removed `md:text-sm`** from the base className. The shadcn default shrinks font-size at `md+` breakpoints (to avoid iOS zoom on focus), but this is a desktop-only Electron app and the responsive override was silently winning over any `text-2xl`/`text-3xl` className consumers passed. Base now stays at `text-base` at all widths; page-level overrides land.
-- **Modal title sizes** — unit / price / discount modal headers were `text-sm` (and price had an invalid `text-m` that rendered as default). All three bumped to `text-lg` to match the qty modal.
-- **Label sizes** — the four Labels in qty + discount modals bumped from `text-xs` to `text-sm` for a less cramped feel.
-- **Discount modal layout** — restructured: % preset buttons (3/5/10/15/20) as a standalone top row, then ส่วนลด (%) + ส่วนลด (บาท) inputs side-by-side in a `grid-cols-2` (both `h-14 text-2xl` for alignment), then ราคาสุดท้าย below. The % input keeps its trailing `%` glyph and two-way sync with baht/final-price is preserved.
-- **`Card` on customer info** — the identity + contact block in the customer info modal now uses shadcn `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent`. Name as the title, `รหัส` and `HN` in the description, `เบอร์โทร` and `ที่อยู่` in a compact 2-column label→value grid. Coverage badges, allergies, and warning notes below remain flat (red/amber boxes for warnings keep their semantic styling).
-- **Customer modals → hand-rolled shell** — converted the 3 customer dialogs (`showCustomerSearch`, `showCustomerInfo`, `showQuickAdd`) from shadcn `Dialog`/`DialogContent` to the same `fixed inset-0 z-50 flex items-center justify-center bg-black/40` shell used by the unit/qty/price/discount modals (`bg-white rounded-2xl shadow-2xl border border-slate-200`, header with X button + border-b, body, footer with border-t). Customer info body gets `max-h-[70vh] overflow-y-auto` since it can grow tall. Payment and success modals still use shadcn `Dialog`.
-- **Unified Esc handler** — the global ESC `useEffect` in POS now also closes the 3 newly hand-rolled customer modals (previously Radix handled Esc for them). Close cascade: qty → discount → price → unit → quickAdd → customerInfo → customerSearch → searchOpen.
-- **`popover` component installed** — `src/components/ui/popover.tsx` added via `npx shadcn@latest add popover`. Not yet wired to any feature. The dead inline `Popover` helper at the top of POS/index.tsx (declared but never rendered) was removed.
 
 ## POS Payment Modal Overhaul + Discount Redistribution (2026-04-24)
 Rebuilt the payment dialog to match the PHP reference screen (two-section layout with editable total discount that redistributes across cart lines). Pure redistribution logic extracted for testability.
@@ -568,37 +371,6 @@ Rebuilt the payment dialog to match the PHP reference screen (two-section layout
   - Modal-open handler now seeds `totalDiscountInput`, `cashAmount`, and `showBreakdown=false` in one go.
 - **`src/pages/POS/redistributeDiscount.ts` + cart store line_total downstream effects** — `sale_items.line_total` can now persist negative in the DB when a bill is saved with a discount ≥ subtotal; Reports/Sales.tsx just renders whatever's there (`formatCurrency` handles negatives). Save button block on `net < 0` is the primary guard, so this only happens if someone types exactly `net = 0` (not negative) with partial line overshoots, which `redistributeDiscounts` already balances.
 
-## Purchase Page UX Polish (2026-04-25)
-
-- **Active row highlight** — `activeRow` state tracks which row has focus; focused row gets `bg-emerald-100` + `border-l-2 border-emerald-400` left accent (same pattern as POS search modal highlight). All 7 inputs per row set `activeRow` on `onFocus`. Unfocused rows retain `hover:bg-emerald-50/40`; partial rows keep amber tint with transparent left border.
-- **Live clock in banner** — `now` state with `setInterval` 1 s tick; top-right of the gradient banner now shows วันที่ + เวลา in Thai locale (matches POS header, replaces static เลขที่ใบรับ).
-- **วันที่สั่งซื้อตามบิล** — new `orderDate` state (defaults today) replaces วันที่รับสินค้า in the header field grid; represents the date printed on the supplier's bill.
-- **วันที่รับสินค้า moved to sidebar** — compact date input added to สรุปใบรับสินค้า card under ผู้จัดจำหน่าย; still bound to `receiveDate` and saved as `receive_date` in the IPC payload.
-- **วันครบกำหนด quick buttons** — four amber pills (15ว / 30ว / 60ว / 90ว) appear below the due date input when เครดิต is selected; each sets `dueDate` to today + N days.
-- **ชำระแล้ว quick buttons** — วันนี้ (emerald) and วันครบกำหนด (amber, disabled when no due date) appear below the paid date input; วันครบกำหนด copies `dueDate` into `paidDate`.
-- **หมายเหตุ section** — textarea card in sidebar between การชำระเงิน and save button; bound to `grNote` state. Saved via new `purchase_receipts` table (`invoice_no TEXT PRIMARY KEY, note TEXT, created_at`). IPC `purchase:save` now accepts optional `note` and does `INSERT OR REPLACE INTO purchase_receipts` inside the existing transaction. Schema added `CREATE TABLE IF NOT EXISTS purchase_receipts` — non-breaking for existing DBs. `grNote` reset on both save success and ล้างฟอร์ม.
-
-## Purchase Page — Two-Row Table + Import Overhaul (2026-04-26)
-
-### Line Items Table Redesigned (two-row layout per product)
-- Each product entry now spans two `<tr>` wrapped in `<React.Fragment key={i}>`.
-- **Row 1 (main):** # · ชื่อสินค้า · หน่วย · จำนวน · ราคาทุน · ราคาขาย · ส่วนลด · รวม · ×  — 9 columns total (was 12).
-- **Row 2 (sub-row):** `colSpan={9}`, `bg-slate-50/50`, no border-top. Contains three compact inline fields — Lot No. input, วันผลิต DateInput, วันหมดอายุ DateInput — each with a tiny `text-[10px]` label above, indented `pl-10` to align under the product name column. Expiry color-coding (red/orange/yellow border) preserved.
-- Active row highlight (`border-l-emerald-400 bg-emerald-100`) and partial row tint (`bg-amber-50/60`) applied to both rows in the pair; `border-l-2` indicator only on row 1.
-- Removed Lot No. / วันผลิต / วันหมดอายุ column headers from `<thead>`.
-- `<tfoot>` colSpan values updated: 12→9 (duplicates alert row), 10→7 (adjust subtotal rows + totals footer row).
-
-### Import Modal — Custom Column Mapping
-- Added `IMPORT_FIELD_OPTIONS` constant with 8 mappable field types: `Barcode/ชื่อ`, `จำนวน`, `Lot No.`, `วันผลิต`, `วันหมดอายุ`, `ราคารวม`, `ราคาทุน/หน่วย`, `— ข้าม —`.
-- `importColumns` state (default `['key','qty','lot','mfg','exp','total']`) drives a row of compact dropdowns in the modal — one per column position, with `+` / `−` buttons to add/remove slots.
-- Parser switched from fixed positional destructuring to mapping-based extraction (`colIdx` map + `pick(field)` helper). Minimum-6-cells guard removed; shorter rows parse correctly.
-- New `ราคาทุน/หน่วย` field type supported; falls back to `total ÷ qty` when absent.
-- Validation: import blocked (toast + greyed button + inline red badge) when no column is mapped to `Barcode/ชื่อ`.
-
-### Import — Unmatched Rows Land in Table
-- Previously: products not found in DB were blocked (toast error or resolve modal).
-- Now: unmatched rows are added as empty rows with the supplier key text pre-filled in the product search input. They appear as partial (amber dot) so the user can immediately see which need manual product selection.
-- Toast reports both counts: "นำเข้า N รายการ (พบ M · ไม่พบ K — กรุณาเลือกสินค้าด้วยตนเอง)".
 
 ## Purchase — Receive Ledger Refactor + Cancel + Edit Bill (2026-04-26)
 
@@ -645,40 +417,6 @@ The "edit bill" feature (supplier, supplier invoice no, order date, receive date
 - New `order_date TEXT` column on `product_lots` and `purchase_receipts` (วันที่สั่งซื้อตามบิล — the supplier's bill date, distinct from receive date). The receive form already had this field but was discarding it; it's now persisted on save and read back in the detail panel.
 - Detail panel now shows BOTH วันที่สั่งซื้อตามบิล and วันที่รับสินค้า in a 2×2 grid (with ผู้จำหน่าย and เลขที่ใบกำกับสินค้า).
 
-## Date Pickers — Shadcn Calendar + Range Picker (2026-04-26)
-
-Replaced the custom hidden-native `<input type="date">` calendar trigger with a shadcn-style Popover+Calendar, and added a range picker with presets for the GR history filter.
-
-### Dependency
-- `react-day-picker@^8` installed via `npm install react-day-picker --ignore-scripts` so the prebuilt `better-sqlite3` native binary stays intact. `date-fns` and `@radix-ui/react-popover` were already installed.
-
-### `src/components/ui/calendar.tsx` (new)
-- Shadcn Calendar wrapper around `react-day-picker` v8. Themed via `buttonVariants({ variant: 'ghost' })` for day cells and `outline` for nav arrows so it picks up the project's emerald primary automatically.
-- Standard shadcn classNames (head_cell, day_selected, day_today, day_outside, day_range_*) — works for both `mode="single"` and `mode="range"`.
-
-### `src/components/ui/date-input.tsx` (rewritten internals)
-- **Public API unchanged** — same `<DateInput value={iso} onChange={(iso) => ...} />` shape, all callers work as before.
-- Typeable `dd/mm/yyyy` input preserved (auto-formatting via `autoFormat`, `displayToIso`, `isoToDisplay` helpers). Copy/paste workflow for mfd/exp on the GR receive form intact.
-- The calendar icon button now opens a shadcn `Popover` with `Calendar` (mode="single") instead of triggering a hidden native `<input type="date">`. Picking a day writes the ISO out and closes the popover.
-- The hidden native input was removed entirely.
-
-### `src/components/ui/date-range-picker.tsx` (new)
-Reusable range picker for filtering by date intervals.
-- **Trigger:** button styled to match `Input` (h-8, border-input, rounded-md), shows `dd/mm/yyyy – dd/mm/yyyy` or single date if same day, or the placeholder when empty.
-- **Popover layout:** preset rail on the left + 2-month `Calendar` (`mode="range"`, `numberOfMonths={2}`) on the right.
-- **8 presets (Thai):** วันนี้, เมื่อวาน, 7 วันล่าสุด, 30 วันล่าสุด, เดือนนี้, เดือนที่แล้ว, ปีนี้, ทั้งหมด (the last clears the range).
-- **Behaviour:**
-  - Preset click → fires onChange, closes popover immediately.
-  - First click in calendar → writes start ISO so the trigger label updates to a single date, popover stays open.
-  - Second click in calendar (range complete) → fires onChange, closes popover.
-- **API:** `<DateRangePicker from={iso} to={iso} onChange={(from, to) => ...} />` — both empty strings when cleared.
-
-### Wired into ประวัติการรับสินค้า filter ([src/pages/Purchase/index.tsx](src/pages/Purchase/index.tsx))
-- `loadHistory` now accepts an optional third arg `dateOverride: { from: string; to: string }` (same pattern as the existing `filterOverride` for payment chips) so preset clicks reload immediately without stale-state issues from the memoized callback.
-- The two `DateInput` fields (`จากวันที่` / `ถึงวันที่`) replaced with a single `DateRangePicker` labelled `ช่วงวันที่`. `onChange` sets state AND calls `loadHistory(1, undefined, { from, to })` — no extra search-button press needed for date filter changes.
-- Mfd / exp / receive-date / order-date / due-date / paid-date fields elsewhere in the page still use `DateInput` — unchanged.
-
----
 
 ## Products/EditProduct UI Overhaul (2026-05-12)
 
@@ -737,105 +475,6 @@ Reusable range picker for filtering by date intervals.
 
 ---
 
-## 🚧 IN PROGRESS — Theme tokenization (start here next session)
-
-### Goal
-Make the entire app re-themable by editing **only** `src/index.css`. Remove all Tailwind palette literals (`bg-blue-500`, `text-slate-600`, `border-amber-200`, etc.) and replace with semantic CSS-variable-backed classes (`bg-primary`, `text-foreground`, `bg-warning-soft`, etc.).
-
-### Why
-User wants easy brand-color switching. Originally emerald green; today changed to blue `#0485F7`. Going forward, theme swaps should be one-file edits. Hard rules now codified in [CLAUDE.md](CLAUDE.md) under "UI Conventions → Theming rules (HARD)".
-
-### What's already done (this session, 2026-04-30)
-1. **Theme color** — emerald → blue `#0485F7` (HSL `208 97% 49%`). Both `:root` and `.dark` blocks updated in [src/index.css](src/index.css). All `emerald-*` literals across [POS](src/pages/POS/index.tsx), [Purchase](src/pages/Purchase/index.tsx), [UIComponents](src/pages/UIComponents/index.tsx), [Sidebar](src/components/layout/Sidebar.tsx), [TitleBar](src/components/layout/TitleBar.tsx) renamed to `blue-*` (1 stale `'emerald'` color-name string remains in UIComponents palette picker — intentionally left).
-2. **Switch component** ported to HeroUI visual style ([src/components/ui/switch.tsx](src/components/ui/switch.tsx)) — pill-shaped thumb, margin-based slide, added `lg` size variant.
-3. **17 new semantic tokens** added to [src/index.css](src/index.css) (light + dark) and registered in [tailwind.config.js](tailwind.config.js):
-   - `--foreground-subtle`, `--surface-hover`, `--border-strong`
-   - `--primary-soft`, `--primary-soft-hover`, `--primary-soft-border`, `--primary-strong`
-   - `--success` + `-foreground` + `-hover` + `-soft`
-   - `--warning` + `-foreground` + `-hover` + `-soft` + `-strong`
-   - `--destructive-soft`, `--destructive-strong`
-4. **CLAUDE.md updated** with "Theming rules (HARD — do not break)" subsection: no palette literals, add tokens when missing, no inline UI primitives, layout utilities still allowed.
-5. **Pilot conversion** done on [Sidebar.tsx](src/components/layout/Sidebar.tsx) (1 line) — verified pattern works.
-
-### Remaining files (in suggested order — easiest → hardest)
-**Decisions already locked in:** include `src/components/ui/*`, file-by-file (not batch), collapse `slate-500/600` → single `--muted-foreground`.
-
-| Order | File | Lit count | Notes |
-|------:|------|----------:|-------|
-| 1 | [src/components/layout/TitleBar.tsx](src/components/layout/TitleBar.tsx) | 4 | Sidebar context — use `--sidebar-*` tokens like the Sidebar pilot |
-| 2 | [src/components/ui/badge.tsx](src/components/ui/badge.tsx) | 4 | `success`/`warning`/`danger` variants → use new `bg-success`/`bg-warning`/`bg-destructive` |
-| 3 | [src/components/ui/button.tsx](src/components/ui/button.tsx) | 3 | Same pattern as badge variants |
-| 4 | [src/components/ui/toast.tsx](src/components/ui/toast.tsx) | 3 | Same pattern |
-| 5 | [src/components/ui/date-input.tsx](src/components/ui/date-input.tsx) | 1 | quick |
-| 6 | [src/components/ui/date-range-picker.tsx](src/components/ui/date-range-picker.tsx) | 3 | quick |
-| 7 | [src/pages/Reports/Sales.tsx](src/pages/Reports/Sales.tsx) | 17 | mostly status colors |
-| 8 | [src/pages/Reports/Purchases.tsx](src/pages/Reports/Purchases.tsx) | 1 | trivial |
-| 9 | [src/pages/Products/index.tsx](src/pages/Products/index.tsx) | 1 | trivial |
-| 10 | [src/pages/Products/EditProduct.tsx](src/pages/Products/EditProduct.tsx) | 2 | trivial |
-| 11 | [src/pages/UIComponents/index.tsx](src/pages/UIComponents/index.tsx) | 4 | demo page |
-| 12 | [src/pages/POS/index.tsx](src/pages/POS/index.tsx) | 136 | the search-result row hover/highlight is the tricky part — see CLAUDE.md POS rules |
-| 13 | [src/pages/Purchase/index.tsx](src/pages/Purchase/index.tsx) | 270 | biggest — many soft/strong brand bg + amber warning + green profit chips |
-
-**Total remaining: ~449 literal occurrences across 13 files.**
-
-### Mapping cheat sheet (use this when converting)
-| Tailwind literal | Semantic token |
-|---|---|
-| `bg-blue-50` / `bg-blue-100` | `bg-primary-soft` / `bg-primary-soft-hover` |
-| `border-blue-200` / `border-blue-300` | `border-primary-soft-border` |
-| `text-blue-600` / `text-blue-700` / `text-blue-800` | `text-primary` / `text-primary-strong` |
-| `bg-blue-500` / `bg-blue-600` | `bg-primary` / `bg-primary-hover` |
-| `text-slate-700` / `text-slate-800` / `text-slate-900` | `text-foreground` |
-| `text-slate-500` / `text-slate-600` | `text-muted-foreground` (collapsed) |
-| `text-slate-400` / placeholder | `text-foreground-subtle` |
-| `bg-slate-50` | `bg-surface-hover` |
-| `bg-slate-100` | `bg-muted` |
-| `border-slate-200` / `border-slate-100` | `border-border` |
-| `border-slate-300` | `border-border-strong` |
-| `bg-green-600` / `bg-green-700` | `bg-success` / `bg-success-hover` |
-| `bg-green-50` / `bg-green-100` | `bg-success-soft` |
-| `text-green-600` / `text-green-700` | `text-success` |
-| `bg-amber-50` / `bg-yellow-50` | `bg-warning-soft` |
-| `bg-amber-500` / `bg-yellow-500` | `bg-warning` |
-| `bg-amber-600` / `bg-yellow-600` | `bg-warning-hover` |
-| `text-amber-700` / `text-amber-800` | `text-warning-strong` |
-| `bg-red-50` / `bg-red-100` | `bg-destructive-soft` |
-| `bg-red-500` / `bg-red-600` | `bg-destructive` |
-| `text-red-600` / `text-red-700` | `text-destructive` |
-| `bg-white` (cards) | `bg-card` |
-| `text-white` | `text-primary-foreground` (on brand bg) or `text-sidebar-accent-foreground` (on sidebar) |
-
-### Sidebar context exception
-Anything that lives on the dark sidebar surface uses `--sidebar-*` token family, NOT `--primary-*`. See completed Sidebar.tsx for pattern: `text-blue-300` → `text-sidebar-primary-foreground`, `hover:bg-blue-600` → `hover:bg-sidebar-accent`, `hover:text-white` → `hover:text-sidebar-accent-foreground`.
-
-### Verification command (after each file)
-```bash
-# from project root, should drop monotonically toward 0:
-grep -rE "(bg|text|border|ring|from|to|via|fill|stroke|shadow|outline|divide)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]" src/ | wc -l
-```
-Last reading: **450** (before any conversion). After Sidebar pilot: **449** (only the 1 `'emerald'` palette-name string remains as a non-class literal).
-
-### Not started — uncommitted git state
-Today's session left everything as **uncommitted working changes**. Files modified:
-```
-M src/components/ui/button.tsx          (still has 3 lits — to be converted)
-M src/components/ui/switch.tsx          (HeroUI port — done)
-M src/index.css                         (blue brand + 17 new tokens — done)
-M src/pages/POS/index.tsx               (emerald→blue done; 136 lits remain)
-M src/pages/Purchase/index.tsx          (emerald→blue done; 270 lits remain)
-M src/components/layout/Sidebar.tsx     (1 lit converted — pilot done)
-M src/components/layout/TitleBar.tsx    (emerald→blue done; 4 lits remain)
-M src/pages/UIComponents/index.tsx      (emerald→blue done; 4 lits remain)
-M tailwind.config.js                    (new tokens registered — done)
-M CLAUDE.md                             (theming rules added — done)
-M PROGRESS.md                           (this entry — done)
-```
-Suggested commit at any natural break: `style: tokenize colors — sidebar+titlebar+ui` etc.
-
-### Open question for next session
-Should `src/components/ui/button.tsx`'s `secondary` variant `border-gray-300 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/60` collapse to `border-border hover:bg-surface-hover`? Loses the dark-mode-specific shade tweaks. User said "collapse" — leaning yes, but worth a 5-second eyeball after conversion.
-
----
 
 ## Session 2026-05-01 — Return Items System
 

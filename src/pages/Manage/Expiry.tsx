@@ -147,7 +147,7 @@ export default function ManageExpiryPage() {
               value={q}
               onChange={e => setQ(e.target.value)}
               placeholder="ชื่อสินค้า, Lot No..."
-              className="h-9 pl-9 rounded-lg text-sm bg-input"
+              className="h-10 pl-9 rounded-lg text-sm bg-input"
             />
           </div>
 
@@ -157,7 +157,7 @@ export default function ManageExpiryPage() {
               <Button
                 key={String(opt.value)}
                 size="lg"
-                className="px-2"
+                className="h-10 px-2"
                 variant={filter === opt.value ? 'default' : 'outline'}
                 onClick={() => setFilter(opt.value)}
               >
@@ -167,7 +167,7 @@ export default function ManageExpiryPage() {
           </div>
 
           <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger className="h-9 w-44 shrink-0">
+            <SelectTrigger className="h-10 w-44 shrink-0">
               <SelectValue placeholder="ทุกหมวดหมู่" />
             </SelectTrigger>
             <SelectContent>

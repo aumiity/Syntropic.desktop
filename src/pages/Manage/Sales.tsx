@@ -157,14 +157,14 @@ export default function ManageSalesPage() {
               value={q}
               onChange={e => setQ(e.target.value)}
               placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
-              className="h-9 pl-9 rounded-lg text-sm bg-input"
+              className="h-10 pl-9 rounded-lg text-sm bg-input"
             />
           </div>
           <DateRangePicker
             from={dateFrom}
             to={dateTo}
             onChange={(f, t) => { setDateFrom(f); setDateTo(t) }}
-            className="h-9 w-60 shrink-0 bg-input hover:bg-surface-hover"
+            className="w-60 shrink-0 bg-input hover:bg-surface-hover"
           />
         </div>
 

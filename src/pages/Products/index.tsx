@@ -180,12 +180,12 @@ export default function ProductsPage() {
               value={q}
               onChange={e => setQ(e.target.value)}
               placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
-              className="h-9 pl-9 rounded-lg text-sm bg-input"
+              className="h-10 pl-9 rounded-lg text-sm bg-input"
             />
           </div>
 
           <Select value={String(categoryId)} onValueChange={v => setCategoryId(Number(v))}>
-            <SelectTrigger className="h-9 w-44 shrink-0">
+            <SelectTrigger className="h-10 w-44 shrink-0">
               <SelectValue placeholder="หมวดหมู่ทั้งหมด" />
             </SelectTrigger>
             <SelectContent>
@@ -197,7 +197,7 @@ export default function ProductsPage() {
           </Select>
 
           <Select value={String(drugTypeId)} onValueChange={v => setDrugTypeId(Number(v))}>
-            <SelectTrigger className="h-9 w-44 shrink-0">
+            <SelectTrigger className="h-10 w-44 shrink-0">
               <SelectValue placeholder="ประเภทยาทั้งหมด" />
             </SelectTrigger>
             <SelectContent>
@@ -210,7 +210,7 @@ export default function ProductsPage() {
 
           <Toggle className="shrink-0 text-muted-foreground" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
 
-          <Button onClick={() => navigate('/products/new')} size="lg" className="px-2 shrink-0">
+          <Button onClick={() => navigate('/products/new')} size="lg" className="h-10 px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มสินค้า
           </Button>
         </div>

@@ -630,11 +630,11 @@ export default function Theme() {
                 <DemoRow label="Toggle framed — pill for dialogs / tinted bg (h-10, bg-card, border, rounded-lg)">
                   <Toggle framed size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่พักใช้งาน" />
                 </DemoRow>
-                <DemoRow label='Toggle framed="input" — top-bar variant: borderless h-9 bg-input, blends with the search Input beside it'>
+                <DemoRow label='Toggle framed="input" — top-bar variant: borderless h-10 bg-input, blends with the search Input beside it'>
                   <div className="flex items-center gap-3 w-80 rounded-card bg-card p-2">
                     <div className="relative flex-1 min-w-0">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                      <Input placeholder="ค้นหา..." className="h-9 pl-9 rounded-lg text-sm bg-input" />
+                      <Input placeholder="ค้นหา..." className="h-10 pl-9 rounded-lg text-sm bg-input" />
                     </div>
                     <Toggle framed="input" size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่ปิดใช้งาน" className="shrink-0 text-muted-foreground" />
                   </div>
@@ -860,7 +860,8 @@ export default function Theme() {
                   แถบบน (ขาว ไม่มีเส้น, <code className="font-mono">h-14 px-2</code> — px-2 ให้ขอบ search ตรงกับ inset 8px ของตาราง) = ช่องค้นหา (ซ้าย) + Select filter / สวิช <code className="font-mono">framed="input"</code> (กรอบ bg-input กลมกลืนกับ search) / ปุ่ม action (ขวา)
                   · column header (muted, sticky) · เนื้อหา (ขาว เลื่อนได้)
                   · แถบล่าง (ขาว + เส้นบน, <code className="font-mono">h-12 px-5</code>) = page-size selector (ซ้าย) · pagination (กลาง) · จำนวนที่พบ (ขวา)
-                  — controls ในแถบบน/ล่าง ใช้ <code className="font-mono">h-9</code> (Button <code className="font-mono">size="lg"</code>)
+                  — <strong>controls ในแถบบน <code className="font-mono">h-14</code> ใช้ <code className="font-mono">h-10</code></strong> (Input/Select/Combobox/DateInput/DateRangePicker/Toggle <code className="font-mono">framed="input"</code> + Button <code className="font-mono">size="lg" className="h-10"</code>) — ตรงกับ default ของ DateInput/DateRangePicker/Combobox.
+                  ส่วน controls ในแถบล่าง <code className="font-mono">h-12</code> ใช้ <code className="font-mono">h-9</code> (Button <code className="font-mono">size="lg"</code>)
                 </p>
                 <div className="bg-card rounded-card shadow-card overflow-hidden">
                   <div className="h-14 px-2 flex items-center gap-3">
@@ -870,11 +871,11 @@ export default function Theme() {
                         value={tableQ}
                         onChange={e => setTableQ(e.target.value)}
                         placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
-                        className="h-9 pl-9 rounded-lg text-sm bg-input"
+                        className="h-10 pl-9 rounded-lg text-sm bg-input"
                       />
                     </div>
                     <Select defaultValue="all">
-                      <SelectTrigger className="h-9 flex-1 min-w-0"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-10 flex-1 min-w-0"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
                         <SelectItem value="1">ยาต้านเชื้อ</SelectItem>
@@ -883,7 +884,7 @@ export default function Theme() {
                       </SelectContent>
                     </Select>
                     <Toggle framed="input" size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่ปิดใช้งาน" className="shrink-0 text-muted-foreground" />
-                    <Button size="lg" className="px-2 shrink-0"><Plus className="size-4" /> เพิ่มสินค้า</Button>
+                    <Button size="lg" className="h-10 px-2 shrink-0"><Plus className="size-4" /> เพิ่มสินค้า</Button>
                   </div>
                   <Table containerClassName="max-h-[260px]">
                     <TableHeader>

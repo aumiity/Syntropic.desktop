@@ -89,12 +89,12 @@ export default function ManageLowStockPage() {
               value={q}
               onChange={e => setQ(e.target.value)}
               placeholder="ชื่อสินค้า, รหัส, บาร์โค้ด..."
-              className="h-9 pl-9 rounded-lg text-sm bg-input"
+              className="h-10 pl-9 rounded-lg text-sm bg-input"
             />
           </div>
 
           <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger className="h-9 w-44 shrink-0">
+            <SelectTrigger className="h-10 w-44 shrink-0">
               <SelectValue placeholder="ทุกหมวดหมู่" />
             </SelectTrigger>
             <SelectContent>
@@ -105,7 +105,7 @@ export default function ManageLowStockPage() {
             </SelectContent>
           </Select>
 
-          <Button size="lg" variant="info-soft" className="px-2 shrink-0" onClick={() => navigate('/purchase')}>
+          <Button size="lg" variant="info-soft" className="h-10 px-2 shrink-0" onClick={() => navigate('/purchase')}>
             <PackagePlus className="size-4" /> ไปหน้ารับสินค้า
           </Button>
         </div>
