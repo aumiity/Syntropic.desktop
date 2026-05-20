@@ -46,7 +46,7 @@ const SALE_TYPE_VARIANTS: Record<string, any> = {
   retail: 'secondary', wholesale: 'default', rx: 'success', return: 'warning',
 }
 
-type SortField = 'invoice_no' | 'sold_at' | 'total_amount' | 'item_kinds'
+type SortField = 'invoice_no' | 'sold_at' | 'total_amount'
 type SortDir = 'asc' | 'desc'
 interface SortState { by: SortField; dir: SortDir }
 
@@ -176,7 +176,7 @@ export default function ManageSalesPage() {
                 <SortableTableHead field="invoice_no" sort={sort} onToggle={toggleSort} className="w-40">เลขบิล</SortableTableHead>
                 <TableHead className="w-48">ลูกค้า</TableHead>
                 <TableHead className="text-center w-24">ประเภท</TableHead>
-                <SortableTableHead field="item_kinds" align="center" sort={sort} onToggle={toggleSort} className="w-24">รายการ</SortableTableHead>
+                <TableHead className="text-center w-24">รายการ</TableHead>
                 <SortableTableHead field="total_amount" align="right" sort={sort} onToggle={toggleSort} className="w-32">ยอดสุทธิ</SortableTableHead>
                 <TableHead className="text-center w-24">สถานะ</TableHead>
                 <TableHead className="text-center w-16">จัดการ</TableHead>

@@ -76,7 +76,9 @@
       "Bash(grep -n \"^## Session\\\\|^## ✅ DONE\\\\|^# \\\\|^## 🆕\\\\|^---$\" PROGRESS.md)",
       "Bash(xargs ls -lh)",
       "Bash(echo \"EXIT=$?\")",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(git -C /Users/CYUT/Documents/GitHub/Syntropic.desktop remote -v)",
+      "Bash(git *)"
     ]
   }
 }

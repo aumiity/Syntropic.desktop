@@ -224,10 +224,19 @@ export function registerPurchaseHandlers() {
 
   ipcMain.handle('purchase:history', (_e, filters: {
     q?: string; supplier_id?: number; date_from?: string; date_to?: string;
-    page?: number; limit?: number | 'all'; payment_type?: string; status?: 'completed' | 'cancelled' | 'all'
+    page?: number; limit?: number | 'all'; payment_type?: string; status?: 'completed' | 'cancelled' | 'all';
+    sort_by?: 'created_at' | 'invoice_no' | 'total_cost'; sort_dir?: 'ASC' | 'DESC'
   }) => {
     const db = getDb()
-    const { q, supplier_id, date_from, date_to, payment_type, page = 1, limit: limitOpt, status = 'all' } = filters
+    const { q, supplier_id, date_from, date_to, payment_type, page = 1, limit: limitOpt, status = 'all', sort_by, sort_dir } = filters
+    // Whitelist sort fields to keep ORDER BY injection-proof.
+    const SORT_COLS: Record<string, string> = {
+      created_at: 'pr.created_at',
+      invoice_no: 'pr.invoice_no',
+      total_cost: 'total_cost',
+    }
+    const sortCol = sort_by && SORT_COLS[sort_by] ? SORT_COLS[sort_by] : 'pr.created_at'
+    const sortDir = sort_dir === 'ASC' ? 'ASC' : 'DESC'
     const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 20)
     const offset = limit ? (page - 1) * limit : 0
     const conditions: string[] = []
@@ -282,7 +291,7 @@ export function registerPurchaseHandlers() {
       FROM purchase_receipts pr
       LEFT JOIN suppliers s ON s.id = pr.supplier_id
       ${rowWhere}
-      ORDER BY pr.created_at DESC, pr.invoice_no DESC
+      ORDER BY ${sortCol} ${sortDir}, pr.invoice_no DESC
       ${limitClause}
     `).all(...rowParams, ...limitParams)
 

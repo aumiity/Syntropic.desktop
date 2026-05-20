@@ -11,7 +11,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Textarea } from '@/components/ui/textarea'
 import { formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib/utils'
@@ -46,6 +46,10 @@ interface ReceiptDetail extends ProductLot {
   cancel_reason?: string
 }
 
+type SortField = 'created_at' | 'invoice_no' | 'total_cost'
+type SortDir = 'asc' | 'desc'
+interface SortState { by: SortField; dir: SortDir }
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ManagePurchasesPage() {
@@ -65,6 +69,7 @@ export default function ManagePurchasesPage() {
   const [histDateTo, setHistDateTo] = useState('')
   const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'unpaid' | 'cancelled'>('all')
   const [histSummary, setHistSummary] = useState({ count: 0, cash_count: 0, credit_count: 0, unpaid_count: 0, cancelled_count: 0 })
+  const [histSort, setHistSort] = useState<SortState>({ by: 'created_at', dir: 'desc' })
   const [loadingHist, setLoadingHist] = useState(false)
 
   // Receipt detail dialog
@@ -113,6 +118,8 @@ export default function ManagePurchasesPage() {
         date_to: dTo || undefined,
         payment_type: (filter === 'cash' || filter === 'credit' || filter === 'unpaid') ? filter : undefined,
         status: filter === 'cancelled' ? 'cancelled' : 'all',
+        sort_by: histSort.by,
+        sort_dir: histSort.dir.toUpperCase(),
         page,
         limit: histPageSize,
       }) as any
@@ -130,7 +137,7 @@ export default function ManagePurchasesPage() {
     } finally {
       setLoadingHist(false)
     }
-  }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, histPageSize, selectedInvoice])
+  }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, histPageSize, histSort, selectedInvoice])
 
   // Status-filter StatCards live in the shared summary slot (top, above the
   // Tabs) — same as the other tabs, so the table-card sits flush at the top.
@@ -184,6 +191,19 @@ export default function ManagePurchasesPage() {
     loadHistory(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [histPageSize])
+
+  const sortEffectMounted = useRef(false)
+  useEffect(() => {
+    if (!sortEffectMounted.current) { sortEffectMounted.current = true; return }
+    loadHistory(histPage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [histSort])
+
+  const toggleHistSort = (field: SortField) => {
+    setHistSort(s => s.by === field
+      ? { by: field, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+      : { by: field, dir: 'desc' })
+  }
 
   const openReceipt = async (invoice_no: string) => {
     try {
@@ -308,7 +328,7 @@ export default function ManagePurchasesPage() {
               className="h-10 pl-9 rounded-lg text-sm bg-input"
             />
           </div>
-          <div className="w-60 shrink-0">
+          <div className="w-80 shrink-0">
             <Combobox
               items={suppliers}
               value={histSupplier}
@@ -340,12 +360,12 @@ export default function ManagePurchasesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-28">วันที่</TableHead>
-                <TableHead className="min-w-[150px]">เลขที่ใบรับ</TableHead>
+                <SortableTableHead field="created_at" sort={histSort} onToggle={toggleHistSort} className="min-w-28">วันที่</SortableTableHead>
+                <SortableTableHead field="invoice_no" sort={histSort} onToggle={toggleHistSort} className="min-w-[150px]">เลขที่ใบรับ</SortableTableHead>
                 <TableHead className="min-w-[200px]">ผู้จัดจำหน่าย</TableHead>
                 <TableHead className="min-w-20 text-right">รายการ</TableHead>
-                <TableHead className="min-w-28 text-right">ยอดรวม</TableHead>
-                <TableHead className="min-w-[130px]">สถานะ</TableHead>
+                <SortableTableHead field="total_cost" align="right" sort={histSort} onToggle={toggleHistSort} className="min-w-28">ยอดรวม</SortableTableHead>
+                <TableHead className="min-w-[130px] text-center">สถานะ</TableHead>
                 <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
@@ -379,15 +399,15 @@ export default function ManagePurchasesPage() {
                     <TableCell className={`text-right font-semibold tabular-nums ${isCancelled ? 'text-foreground-subtle line-through' : ''}`}>
                       {formatCurrency(h.total_cost)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       {isCancelled
                         ? <Badge variant="destructive">ยกเลิก</Badge>
                         : h.payment_type === 'credit'
                           ? h.is_paid
                             ? <Badge variant="success">ชำระแล้ว</Badge>
                             : isOverdue
-                              ? <Badge variant="destructive">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                              : <Badge variant="warm">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
+                              ? <Badge variant="destructive"><AlertTriangle className="size-3" />{h.due_date ? formatDate(h.due_date) : ''}</Badge>
+                              : <Badge variant="warm"><CreditCard className="size-3" />{h.due_date ? formatDate(h.due_date) : ''}</Badge>
                           : <Badge variant="brand-soft">เงินสด</Badge>
                       }
                     </TableCell>
