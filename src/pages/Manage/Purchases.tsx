@@ -360,11 +360,11 @@ export default function ManagePurchasesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <SortableTableHead field="created_at" sort={histSort} onToggle={toggleHistSort} className="min-w-28">วันที่</SortableTableHead>
+                <SortableTableHead field="created_at" sort={histSort} onToggle={toggleHistSort} className="min-w-24">วันที่</SortableTableHead>
                 <SortableTableHead field="invoice_no" sort={histSort} onToggle={toggleHistSort} className="min-w-[150px]">เลขที่ใบรับ</SortableTableHead>
-                <TableHead className="min-w-[200px]">ผู้จัดจำหน่าย</TableHead>
+                <TableHead className="min-w-56">ผู้จัดจำหน่าย</TableHead>
                 <TableHead className="min-w-20 text-right">รายการ</TableHead>
-                <SortableTableHead field="total_cost" align="right" sort={histSort} onToggle={toggleHistSort} className="min-w-28">ยอดรวม</SortableTableHead>
+                <SortableTableHead field="total_cost" align="right" sort={histSort} onToggle={toggleHistSort} className="min-w-32">ยอดรวม</SortableTableHead>
                 <TableHead className="min-w-[130px] text-center">สถานะ</TableHead>
                 <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>

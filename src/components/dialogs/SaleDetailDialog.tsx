@@ -145,7 +145,7 @@ export function SaleDetailDialog({
                       sits at bottom-9 (≈ height of the lower row); opaque
                       bg-muted so scrolling rows don't bleed through. */}
                   <tfoot>
-                    <tr className="[&>td]:sticky [&>td]:bottom-9 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
+                    <tr className="[&>td]:sticky [&>td]:bottom-9 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-b [&>td]:border-border">
                       <td colSpan={5} className="px-4 py-2" />
                       <td className="px-4 py-2 text-right text-sm font-medium text-muted-foreground">รวมส่วนลด</td>
                       <td className="px-4 py-2 text-right text-sm font-medium text-warning-strong">
