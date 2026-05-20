@@ -109,13 +109,35 @@ export function registerReportHandlers() {
     if (!sale) return null
     const items = db.prepare(`
       SELECT si.*,
+        p.is_bundle,
         COALESCE((
           SELECT SUM(sil.qty * pl.cost_price) FROM sale_item_lots sil
           JOIN product_lots pl ON pl.id = sil.lot_id
           WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0
         ), 0) as item_cost
-      FROM sale_items si WHERE si.sale_id = ?
-    `).all(sale.id)
+      FROM sale_items si
+      LEFT JOIN products p ON p.id = si.product_id
+      WHERE si.sale_id = ?
+    `).all(sale.id) as any[]
+    // For bundle items, attach the component breakdown (sale_item_lots grouped
+    // by product_id with joined component name + lot info). Used by
+    // SaleDetailDialog to render the expandable list under each bundle row.
+    for (const it of items) {
+      if (it.is_bundle === 1) {
+        it.component_lots = db.prepare(`
+          SELECT sil.id, sil.lot_id, sil.product_id, sil.qty, sil.is_cancelled,
+                 c.trade_name as component_name,
+                 u.name as component_unit_name,
+                 pl.lot_number, pl.expiry_date, pl.cost_price
+          FROM sale_item_lots sil
+          LEFT JOIN products c ON c.id = sil.product_id
+          LEFT JOIN item_units u ON u.id = c.unit_id
+          LEFT JOIN product_lots pl ON pl.id = sil.lot_id
+          WHERE sil.sale_item_id = ?
+          ORDER BY c.trade_name, pl.expiry_date
+        `).all(it.id)
+      }
+    }
     return { ...sale, items }
   })
 

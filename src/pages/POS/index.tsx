@@ -540,6 +540,17 @@ export default function POSPage() {
   }, [])
 
   const handleReturnSelectProduct = async (product: ProductWithDetails) => {
+    // Bundles can't be returned through the manual product-pick flow — there
+    // are no own lots and selecting components individually loses the
+    // "whole bundle" semantics + the original lot trace. Direct the operator
+    // to the sale-detail page (Manage/Sales → bill → "คืนชุดนี้").
+    if ((product as any).is_bundle === 1) {
+      toast({
+        title: 'คืนชุดสินค้าให้ทำผ่านหน้าบิล',
+        description: 'เปิด ประวัติ & สต็อก → ประวัติการขาย → คลิกบิล → ปุ่ม "คืนชุดนี้"',
+      })
+      return
+    }
     setReturnSelectedProduct(product)
     setReturnQuery(product.trade_name)
     setReturnResults([])

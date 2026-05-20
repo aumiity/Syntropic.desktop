@@ -335,6 +335,138 @@ export function registerPosHandlers() {
     return doReturn()
   })
 
+  // Whole-bundle return — Phase 2. Returns a single bundle sale_item from a
+  // completed sale: restores each component's lot, marks the original
+  // sale_item_lots is_cancelled=1 (so a later void doesn't double-restore),
+  // marks the original sale_items.is_cancelled=1 (UI shows line-through), and
+  // emits an RT- sales row with one negative sale_items + N negative
+  // sale_item_lots mirroring the original.
+  //
+  // Restores to the EXACT SAME LOTS the components came from (sale_item_lots
+  // is the authoritative trace) — preserves cost provenance vs. FEFO-restoring
+  // to whatever's currently first.
+  //
+  // Oversold rows (lot_id IS NULL) are SKIPPED for stock restore — there's
+  // nothing to restore to. They still get a negative sale_item_lots row so
+  // the return-bill total reconciles. Operator note: this is a known
+  // limitation also present in voidSale.
+  ipcMain.handle('pos:returnBundle', (_e, payload: {
+    sale_item_id: number
+    reason: string
+    created_by: number
+    customer_id?: number | null
+  }) => {
+    if (!payload.reason || !payload.reason.trim()) throw new Error('กรุณาระบุเหตุผลการคืน')
+    if (!payload.created_by) throw new Error('ไม่พบผู้ใช้งาน')
+
+    const db = getDb()
+    const doReturn = db.transaction(() => {
+      // Validate target sale_item is a not-yet-cancelled bundle from a
+      // not-yet-voided sale.
+      const si = db.prepare(`
+        SELECT si.*, s.invoice_no as orig_invoice, s.customer_id as orig_customer, s.status as sale_status,
+               p.is_bundle, p.trade_name
+        FROM sale_items si
+        JOIN sales s ON s.id = si.sale_id
+        JOIN products p ON p.id = si.product_id
+        WHERE si.id = ?
+      `).get(payload.sale_item_id) as any
+      if (!si) throw new Error('ไม่พบรายการขาย')
+      if (si.is_bundle !== 1) throw new Error('รายการนี้ไม่ใช่ชุดสินค้า')
+      if (si.is_cancelled === 1) throw new Error('รายการนี้ถูกคืนแล้ว')
+      if (si.sale_status === 'voided') throw new Error('บิลนี้ถูกยกเลิกแล้ว — ไม่ต้องคืนชุด')
+
+      // The original deductions — these are the ground truth for what to
+      // restore. Already-cancelled rows are skipped (defensive — should be
+      // empty if the is_cancelled checks above held).
+      const origLots = db.prepare(`
+        SELECT * FROM sale_item_lots
+        WHERE sale_item_id = ? AND is_cancelled = 0
+      `).all(payload.sale_item_id) as any[]
+
+      // Generate RT-YYYYMMDD-NNN invoice (same pattern as returnItems).
+      const today = dayjs().format('YYYYMMDD')
+      const countRow = db.prepare(
+        `SELECT COUNT(*) as c FROM sales WHERE invoice_no LIKE ?`
+      ).get(`RT-${today}-%`) as { c: number }
+      const invoiceNo = `RT-${today}-${String(countRow.c + 1).padStart(4, '0')}`
+
+      const customerId = payload.customer_id ?? si.orig_customer ?? walkInCustomerId(db)
+      const negTotal = -Math.abs(si.line_total)
+
+      // Negative sales row — same shape as returnItems for daily-stats consistency.
+      const saleResult = db.prepare(`
+        INSERT INTO sales (invoice_no, sale_type, customer_id, sold_by, sold_at,
+          subtotal, total_discount, total_vat, total_amount,
+          cash_amount, card_amount, transfer_amount, change_amount,
+          note, status)
+        VALUES (?, 'return', ?, ?, datetime('now','localtime'),
+          ?, 0, 0, ?,
+          0, 0, 0, 0,
+          ?, 'completed')
+      `).run(invoiceNo, customerId, payload.created_by,
+        negTotal, negTotal, `คืนชุด ${si.trade_name} จากบิล ${si.orig_invoice}: ${payload.reason}`)
+      const saleId = saleResult.lastInsertRowid
+
+      // Negative sale_items — ONE row for the bundle (mirrors the original).
+      const itemResult = db.prepare(`
+        INSERT INTO sale_items (sale_id, product_id, item_name, unit_name, qty, unit_price, discount, line_total, item_note)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(saleId, si.product_id, `คืน: ${si.item_name}`, si.unit_name,
+        -si.qty, si.unit_price, -si.discount, -si.line_total,
+        `คืนจาก ${si.orig_invoice}: ${payload.reason}`)
+      const newSaleItemId = itemResult.lastInsertRowid
+
+      // For each original lot row: restore stock, write negative sale_item_lots
+      // mirroring it (component product_id, original lot_id), mark the original
+      // as cancelled, and log a sale_return movement.
+      for (const sil of origLots) {
+        // Mirror the original row into the new return sale_item with negated qty.
+        db.prepare(`
+          INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty)
+          VALUES (?, ?, ?, ?)
+        `).run(newSaleItemId, sil.lot_id, sil.product_id, -sil.qty)
+
+        // Mark the original as cancelled so reports:voidSale won't restore it
+        // again if the operator later voids the entire original sale.
+        db.prepare(`UPDATE sale_item_lots SET is_cancelled = 1 WHERE id = ?`).run(sil.id)
+
+        if (sil.lot_id) {
+          const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(sil.lot_id) as any
+          if (lot) {
+            const qtyBefore = lot.qty_on_hand
+            const qtyAfter = qtyBefore + sil.qty
+            // Restoring stock to a closed lot must reopen it, otherwise FEFO
+            // queries (which filter is_closed=0) will hide the restored qty.
+            const setParts = ['qty_on_hand = qty_on_hand + ?']
+            const setVals: any[] = [sil.qty]
+            if (lot.is_closed) {
+              setParts.push('is_closed = 0', 'closed_at = NULL')
+            }
+            db.prepare(`UPDATE product_lots SET ${setParts.join(', ')} WHERE id = ?`)
+              .run(...setVals, sil.lot_id)
+            db.prepare(`
+              INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, unit_cost, note, created_by)
+              VALUES (?, ?, 'sale_return', 'return', ?, ?, ?, ?, ?, ?, ?)
+            `).run(sil.product_id, sil.lot_id, saleId,
+              sil.qty, qtyBefore, qtyAfter, lot.cost_price,
+              `คืนชุด ${si.trade_name} จาก ${si.orig_invoice}: ${payload.reason}`,
+              payload.created_by)
+          }
+        }
+        // Oversold (lot_id IS NULL): no stock to restore, no movement to log.
+      }
+
+      // Mark the original sale_items row cancelled — SaleDetailDialog will
+      // render it with line-through styling (matches the existing UI for
+      // partially-returned items).
+      db.prepare(`UPDATE sale_items SET is_cancelled = 1 WHERE id = ?`).run(payload.sale_item_id)
+
+      return { success: true, invoice_no: invoiceNo, total_amount: negTotal }
+    })
+    return doReturn()
+  })
+
   // Get daily stats
   ipcMain.handle('pos:getDailyStats', () => {
     const db = getDb()
