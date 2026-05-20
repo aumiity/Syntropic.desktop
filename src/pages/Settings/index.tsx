@@ -12,10 +12,10 @@ export default function SettingsPage() {
   const [tab, setTab] = useState('shop')
 
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title="ตั้งค่า" />
 
-      <Tabs value={tab} onValueChange={setTab} className="items-center shrink-0">
+      <Tabs value={tab} onValueChange={setTab} className="shrink-0 self-start">
         <TabsList>
           <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
           <TabsTrigger value="categories"><Tag /> หมวดหมู่</TabsTrigger>

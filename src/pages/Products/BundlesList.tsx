@@ -99,24 +99,11 @@ export default function BundlesList() {
     ])
   }, [allStats, stockFilter, setSummary])
 
-  const handleCreate = async () => {
-    // Quick-create: name + barcode are filled in EditBundle. Create a minimal
-    // bundle row so EditBundle has an id to attach components to; the rest of
-    // the fields (price, label, etc.) are edited there.
-    const fallbackUnit = await window.api.settings.allUnits() as Array<{ id: number; name: string }>
-    const bundleUnitId = fallbackUnit.find(u => u.name === 'ชุด')?.id
-                      ?? fallbackUnit[0]?.id
-    const created: any = await window.api.products.create({
-      trade_name: 'ชุดสินค้าใหม่',
-      is_bundle: 1,
-      is_stock_item: 0,
-      unit_id: bundleUnitId ?? null,
-      price_retail: 0, price_wholesale1: 0, price_wholesale2: 0,
-      cost_price: 0, last_cost_price: 0,
-      has_vat: 0, is_drug: 0, is_antibiotic: 0,
-      is_fda9: 0, is_fda10: 0, is_fda11: 0, is_fda13: 0,
-    })
-    if (created?.id) navigate(`/products/bundles/${created.id}/edit`)
+  const handleCreate = () => {
+    // No DB row yet — EditBundle in "new" mode commits atomically (product +
+    // >=2 components in one transaction) so we never leave an orphan bundle
+    // with <2 components in the DB.
+    navigate('/products/bundles/new')
   }
 
   return (

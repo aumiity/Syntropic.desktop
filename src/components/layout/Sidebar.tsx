@@ -13,9 +13,9 @@ const mainNavItems = [
   { to: '/', label: 'การขาย', icon: ShoppingCart, exact: true },
   { to: '/purchase', label: 'การซื้อ', icon: PackagePlus },
   { to: '/products', label: 'สินค้า', icon: Pill },
-  { to: '/people', label: 'บุคคล', icon: Users },
   { to: '/manage', label: 'ประวัติ & สต็อก', icon: ClipboardList },
   { to: '/reports', label: 'รายงาน', icon: LineChart },
+  { to: '/people', label: 'บุคคล', icon: Users },
   { to: '/settings', label: 'ตั้งค่า', icon: Settings },
 ]
 

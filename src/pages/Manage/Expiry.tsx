@@ -124,7 +124,10 @@ export default function ManageExpiryPage() {
 
   useEffect(() => {
     setSummary([
-      { label: 'จำนวนล็อต', value: totalLots.toLocaleString(), icon: Package, tint: 'primary' },
+      {
+        label: 'จำนวนล็อต', value: totalLots.toLocaleString(), icon: Package, tint: 'primary',
+        onClick: () => setFilter('all'), isActive: filter === 'all',
+      },
       { label: 'คงเหลือรวม', value: totalQty.toLocaleString(), icon: Boxes, tint: 'info-soft' },
       { label: 'มูลค่าทุน', value: formatCurrency(totalCost), icon: TrendingDown, tint: 'warm' },
       {
@@ -132,9 +135,10 @@ export default function ManageExpiryPage() {
         value: `${expiredCount} ล็อต`,
         icon: CalendarX,
         tint: expiredCount > 0 ? 'destructive' : 'success',
+        onClick: () => setFilter('expired'), isActive: filter === 'expired',
       },
     ])
-  }, [totalLots, totalQty, totalCost, expiredCount, setSummary])
+  }, [totalLots, totalQty, totalCost, expiredCount, filter, setSummary])
 
   return (
     <>

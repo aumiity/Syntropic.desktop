@@ -337,104 +337,30 @@ export default function EditProductPage() {
   const updatedShort = (product as any).updated_at ? String((product as any).updated_at).slice(0, 10) : null
 
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader
         title={isNew ? 'เพิ่มสินค้าใหม่' : 'สินค้า'}
         right={
           <>
             {tab === 'general' || tab === 'price' ? (
               <>
-                <Button variant="primary-soft" onClick={goBack}>
-                  <ArrowLeft className="w-4 h-4 mr-1.5" />
-                  ย้อนกลับ
+                <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={goBack}>
+                  <ArrowLeft className="size-4" /> ย้อนกลับ
                 </Button>
-                <Button onClick={handleSave} disabled={saving}>
-                  <Save className="w-4 h-4 mr-1.5" />
-                  {saving ? 'กำลังบันทึก...' : isNew ? 'เพิ่มสินค้า' : 'บันทึก'}
+                <Button size="lg" className="h-10 px-3" onClick={handleSave} disabled={saving}>
+                  <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : isNew ? 'เพิ่มสินค้า' : 'บันทึก'}
                 </Button>
               </>
             ) : (
-              <Button variant="primary-soft" onClick={goBack}>
-                <ArrowLeft className="w-4 h-4 mr-1.5" />
-                ย้อนกลับ
+              <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={goBack}>
+                <ArrowLeft className="size-4" /> ย้อนกลับ
               </Button>
             )}
           </>
         }
       />
 
-      {/* 4 cards: meta + 3 stats. In create mode, MetricCards stay in place
-          but are grayed out — values aren't meaningful until the product exists. */}
-      <div className="grid grid-cols-4 gap-3 shrink-0">
-        {/* Meta card */}
-        <div className="bg-card rounded-card p-4 shadow-card h-32 overflow-hidden relative flex flex-col">
-          <span className={`absolute top-4 right-4 grid place-items-center size-11 rounded-xl bg-primary-soft text-primary ${isNew ? 'opacity-50' : ''}`}>
-            <Info className="size-7" />
-          </span>
-          <div className="pr-14 min-w-0">
-            <div
-              className="text-base font-bold text-foreground leading-snug truncate"
-              title={isNew ? 'สินค้าใหม่' : product.trade_name}
-            >
-              {isNew ? (form.trade_name?.trim() || 'สินค้าใหม่') : product.trade_name}
-            </div>
-            <div className="text-sm text-muted-foreground truncate mt-0.5">
-              <span className="font-mono">{isNew ? '—' : (product.code ?? '—')}</span>
-              <span className="mx-1.5">·</span>
-              <span>{isNew ? 'รอบันทึก' : (categoryName ?? 'ไม่ระบุ')}</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-2 flex-wrap min-h-[18px] mt-auto">
-            <div className="flex items-center gap-1 flex-wrap">
-              {!isNew && !!product.is_drug && <Badge variant="success" className="text-xs rounded-md px-1.5 py-0">ยา</Badge>}
-              {!isNew && !!product.is_fda9 && <Badge variant="brand-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.9</Badge>}
-              {!isNew && !!product.is_fda10 && <Badge variant="warm" className="text-xs rounded-md px-1.5 py-0">ข.ย.10</Badge>}
-              {!isNew && !!product.is_fda11 && <Badge variant="destructive2" className="text-xs rounded-md px-1.5 py-0">ข.ย.11</Badge>}
-              {!isNew && !!product.is_fda13 && <Badge variant="info-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.13</Badge>}
-              {!isNew && !!product.is_hidden && <Badge variant="secondary" className="text-xs rounded-md px-1.5 py-0">ซ่อน</Badge>}
-            </div>
-            {!isNew && !!product.is_disabled && <Badge variant="destructive" className="text-xs rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
-          </div>
-        </div>
-
-        <MetricCard
-          label="ราคาทุน (ล่าสุด)"
-          value={isNew ? '—' : formatCurrency(product.last_cost_price)}
-          unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
-          sub={isNew ? undefined : `เฉลี่ย ${formatCurrency(product.cost_price)}`}
-          icon={Coins}
-          tint="warm"
-          className={isNew ? 'opacity-50' : ''}
-        />
-        <MetricCard
-          label="ราคาขาย"
-          value={isNew ? '—' : formatCurrency(product.price_retail)}
-          valueClassName={'text-foreground'}
-          unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
-          sub={!isNew && refCost > 0
-            ? `กำไร ${profit >= 0 ? '+' : ''}${profit.toFixed(2)} (${profit >= 0 ? '+' : ''}${profitPct.toFixed(0)}%)`
-            : undefined}
-          subClassName={profit < 0 ? 'text-destructive' : undefined}
-          icon={Tag}
-          tint="success"
-          className={isNew ? 'opacity-50' : ''}
-        />
-        <MetricCard
-          label="คงเหลือ"
-          value={isNew ? '—' : totalStock.toLocaleString()}
-          unit={isNew ? undefined : (baseUnit !== '—' ? baseUnit : undefined)}
-          sub={isNew ? undefined : 'คลิกเพื่อปรับสต็อก'}
-          badge={!isNew && nearExpiryCount > 0
-            ? <Badge variant="warning"><AlertTriangle className="size-3" /> ใกล้หมดอายุ {nearExpiryCount} ล็อต</Badge>
-            : undefined}
-          icon={Boxes}
-          tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive' : 'info-soft')}
-          onClick={isNew ? undefined : () => setAdjustOpen(true)}
-          className={isNew ? 'opacity-50' : ''}
-        />
-      </div>
-
-      <Tabs value={tab} onValueChange={setTab} className="shrink-0 items-center">
+      <Tabs value={tab} onValueChange={setTab} className="shrink-0 self-start">
         <TabsList>
           <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
           <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
@@ -453,7 +379,79 @@ export default function EditProductPage() {
         </TabsList>
       </Tabs>
 
-      <div className="flex-1 min-h-0 flex flex-col pb-4 [scrollbar-gutter:stable]">
+      {/* 4 cards: meta + 3 stats. In create mode, MetricCards stay in place
+          but are grayed out — values aren't meaningful until the product exists.
+          All cards use the StatCard-height compact form: icon-right, text-left,
+          sub inline next to value. */}
+      <div className="grid grid-cols-4 gap-3 shrink-0">
+        {/* Meta card — hand-rolled to match MetricCard size="sm" proportions */}
+        <div className="bg-card rounded-card shadow-card px-4 py-3 flex items-center gap-3 overflow-hidden">
+          <div className="flex flex-col min-w-0 flex-1 text-left">
+            <div
+              className="text-base font-bold text-foreground truncate"
+              title={isNew ? 'สินค้าใหม่' : product.trade_name}
+            >
+              {isNew ? (form.trade_name?.trim() || 'สินค้าใหม่') : product.trade_name}
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <span className="text-sm text-muted-foreground font-mono shrink-0">{isNew ? '—' : (product.code ?? '—')}</span>
+              <span className="text-sm text-muted-foreground shrink-0">·</span>
+              <span className="text-sm text-muted-foreground truncate">{isNew ? 'รอบันทึก' : (categoryName ?? 'ไม่ระบุ')}</span>
+              {!isNew && !!product.is_drug && <Badge variant="success" className="text-xs rounded-md px-1.5 py-0">ยา</Badge>}
+              {!isNew && !!product.is_fda9 && <Badge variant="brand-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.9</Badge>}
+              {!isNew && !!product.is_fda10 && <Badge variant="warm" className="text-xs rounded-md px-1.5 py-0">ข.ย.10</Badge>}
+              {!isNew && !!product.is_fda11 && <Badge variant="destructive2" className="text-xs rounded-md px-1.5 py-0">ข.ย.11</Badge>}
+              {!isNew && !!product.is_fda13 && <Badge variant="info-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.13</Badge>}
+              {!isNew && !!product.is_hidden && <Badge variant="secondary" className="text-xs rounded-md px-1.5 py-0">ซ่อน</Badge>}
+              {!isNew && !!product.is_disabled && <Badge variant="destructive" className="text-xs rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
+            </div>
+          </div>
+          <span className={`grid place-items-center size-11 rounded-xl bg-primary-soft text-primary shrink-0 ${isNew ? 'opacity-50' : ''}`}>
+            <Info className="size-7" />
+          </span>
+        </div>
+
+        <MetricCard
+          size="sm"
+          label="ราคาทุน (ล่าสุด)"
+          value={isNew ? '—' : formatCurrency(product.last_cost_price)}
+          unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
+          sub={isNew ? undefined : `เฉลี่ย ${formatCurrency(product.cost_price)}`}
+          icon={Coins}
+          tint="warm"
+          className={isNew ? 'opacity-50' : ''}
+        />
+        <MetricCard
+          size="sm"
+          label="ราคาขาย"
+          value={isNew ? '—' : formatCurrency(product.price_retail)}
+          valueClassName={'text-foreground'}
+          unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
+          sub={!isNew && refCost > 0
+            ? `กำไร ${profit >= 0 ? '+' : ''}${profit.toFixed(2)} (${profit >= 0 ? '+' : ''}${profitPct.toFixed(0)}%)`
+            : undefined}
+          subClassName={profit < 0 ? 'text-destructive' : undefined}
+          icon={Tag}
+          tint="success"
+          className={isNew ? 'opacity-50' : ''}
+        />
+        <MetricCard
+          size="sm"
+          label="คงเหลือ"
+          value={isNew ? '—' : totalStock.toLocaleString()}
+          unit={isNew ? undefined : (baseUnit !== '—' ? baseUnit : undefined)}
+          sub={isNew ? undefined : 'คลิกเพื่อปรับสต็อก'}
+          badge={!isNew && nearExpiryCount > 0
+            ? <Badge variant="warning"><AlertTriangle className="size-3" /> ใกล้หมดอายุ {nearExpiryCount} ล็อต</Badge>
+            : undefined}
+          icon={Boxes}
+          tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive' : 'info-soft')}
+          onClick={isNew ? undefined : () => setAdjustOpen(true)}
+          className={isNew ? 'opacity-50' : ''}
+        />
+      </div>
+
+      <div className="flex-1 min-h-0 flex flex-col [scrollbar-gutter:stable]">
         {/* Lots / History own their internal table scroll (sticky header,
             body scrolls) so they must fill the remaining height instead of
             sitting inside the page-level overflow wrapper. The form tabs

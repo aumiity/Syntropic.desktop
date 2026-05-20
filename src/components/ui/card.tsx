@@ -147,6 +147,7 @@ function MetricCard({
   badge,
   icon: Icon,
   tint = "primary",
+  size = "default",
   onClick,
   className,
   labelClassName,
@@ -160,6 +161,7 @@ function MetricCard({
   badge?: React.ReactNode
   icon: React.ComponentType<{ className?: string }>
   tint?: MetricTint
+  size?: "default" | "sm"
   onClick?: () => void
   className?: string
   labelClassName?: string
@@ -187,6 +189,46 @@ function MetricCard({
     : tint === "warm"        ? "text-warm-foreground"
     : tint === "info-soft"   ? "text-info-soft-foreground"
     : "text-primary"
+
+  // sm = StatCard-height compact variant: icon on the right, label + value-row
+  // stacked on the left. `sub` and `badge` collapse inline next to value so the
+  // card stays the same height as StatCard.
+  if (size === "sm") {
+    const innerSm = (
+      <>
+        <div className="flex flex-col min-w-0 flex-1 text-left">
+          <div className={cn("text-base font-semibold text-foreground truncate", labelClassName)} title={label}>{label}</div>
+          <div className="flex items-baseline gap-1.5 min-w-0">
+            <span className={cn("text-3xl font-bold tabular-nums leading-tight truncate", valColor, valueClassName)} title={value}>{value}</span>
+            {unit && <span className="text-sm font-semibold text-muted-foreground truncate" title={unit}>{unit}</span>}
+            {sub && <span className={cn("text-sm font-semibold tabular-nums truncate ml-1", accentColor, subClassName)} title={sub}>{sub}</span>}
+            {badge && <span className="ml-auto shrink-0 self-center">{badge}</span>}
+          </div>
+        </div>
+        <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
+          <Icon className="size-7" />
+        </span>
+      </>
+    )
+    const baseSm = "bg-card rounded-card shadow-card px-4 py-3 flex items-center gap-3 overflow-hidden"
+    if (onClick) {
+      return (
+        <button
+          type="button"
+          onClick={onClick}
+          data-slot="metric-card"
+          className={cn(baseSm, "cursor-pointer hover:shadow-md transition-all text-left w-full", className)}
+        >
+          {innerSm}
+        </button>
+      )
+    }
+    return (
+      <div data-slot="metric-card" className={cn(baseSm, className)}>
+        {innerSm}
+      </div>
+    )
+  }
 
   const inner = (
     <>

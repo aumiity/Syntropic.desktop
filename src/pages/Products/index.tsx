@@ -49,16 +49,8 @@ export default function ProductsLayout() {
   const ctx = useMemo<ProductsOutletContext>(() => ({ setSummary }), [])
 
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title="สินค้า" />
-
-      {summary && summary.length > 0 && (
-        <div className={`grid grid-cols-2 ${COLS_BY_COUNT[summary.length] ?? 'md:grid-cols-3'} gap-3 shrink-0`}>
-          {summary.map((c, i) => c.onClick
-            ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
-            : <MetricCard key={i} {...c} />)}
-        </div>
-      )}
 
       <Tabs
         value={tab}
@@ -66,7 +58,7 @@ export default function ProductsLayout() {
           const t = TABS.find(x => x.value === v)
           if (t) navigate(t.path)
         }}
-        className="shrink-0 items-center"
+        className="shrink-0 self-start"
       >
         <TabsList>
           {TABS.map(t => (
@@ -76,6 +68,14 @@ export default function ProductsLayout() {
           ))}
         </TabsList>
       </Tabs>
+
+      {summary && summary.length > 0 && (
+        <div className={`grid grid-cols-2 ${COLS_BY_COUNT[summary.length] ?? 'md:grid-cols-3'} gap-3 shrink-0`}>
+          {summary.map((c, i) => c.onClick
+            ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
+            : <MetricCard key={i} {...c} />)}
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 flex flex-col [scrollbar-gutter:stable]">
         <Outlet context={ctx} />

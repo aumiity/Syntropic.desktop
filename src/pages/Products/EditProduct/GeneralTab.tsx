@@ -9,7 +9,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import {
-  Package, ScanBarcode, Pill, Boxes, FileText, EyeOff,
+  Package, ScanBarcode, Pill, Boxes, FileText, EyeOff, Settings,
 } from 'lucide-react'
 import type { ProductCategory, DrugType, ItemUnit } from '@/types'
 import type { GenericNameSuggestion } from './shared'
@@ -121,6 +121,25 @@ export function GeneralTab({
                   </SelectContent>
                 </Select>
               </Field>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard icon={Settings} title="ตัวเลือกการขาย" tint="secondary">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
+              <div>
+                <div className="text-sm font-semibold text-foreground">มี VAT</div>
+                <div className="text-xs text-muted-foreground">บวก 7% เมื่อออกใบกำกับภาษี</div>
+              </div>
+              <Switch size="lg" checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
+            </div>
+            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
+              <div>
+                <div className="text-sm font-semibold text-foreground">นับสต็อก</div>
+                <div className="text-xs text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
+              </div>
+              <Switch size="lg" checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
             </div>
           </div>
         </SectionCard>

@@ -252,7 +252,7 @@ export default function CSSPage() {
   }
 
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title="CSS" />
 
       <div className="flex-1 overflow-y-auto">

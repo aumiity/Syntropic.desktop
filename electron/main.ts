@@ -59,6 +59,12 @@ ipcMain.handle('window:maximize', () => {
 })
 ipcMain.handle('window:close', () => mainWindow?.close())
 ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized() ?? false)
+ipcMain.handle('window:setSize', (_e, width: number, height: number) => {
+  if (!mainWindow) return
+  if (mainWindow.isMaximized()) mainWindow.unmaximize()
+  mainWindow.setSize(Math.round(width), Math.round(height))
+  mainWindow.center()
+})
 
 // Register all IPC handlers
 registerPosHandlers()

@@ -635,7 +635,7 @@ export default function PurchasePage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-2">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
 
       {/* ── HEADER ── */}
       <PageHeader title="การซื้อสินค้า" />

@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import { MetricCard } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/toast'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { ArrowLeft, FileText, Tag, Boxes, Pill, Save } from 'lucide-react'
+import { ArrowLeft, FileText, Tag, Boxes, Pill, Save, Info, Coins, Package } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 import type { ProductCategory, ItemUnit } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
 import { LabelsTab } from '../EditProduct/LabelsTab'
 import { GeneralTab } from './GeneralTab'
 import { PriceTab } from './PriceTab'
-import { ComponentsTab } from './ComponentsTab'
+import { ComponentsTab, type DraftItem } from './ComponentsTab'
 
 // EditBundle is a slimmer EditProduct dedicated to is_bundle=1 products.
 // Why a separate page (vs. a flag on EditProduct): bundles have a disjoint
@@ -21,13 +24,27 @@ export default function EditBundlePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const productId = Number(id)
+  // "new" mode = creating from scratch — no DB row exists yet. Atomic commit
+  // on save (product + >=2 components in one transaction).
+  const isNew = !id || id === 'new'
+  const productId = isNew ? 0 : Number(id)
 
   const [tab, setTab] = useState('general')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [product, setProduct] = useState<FullProduct | null>(null)
-  const [form, setForm] = useState<any>({})
+  const [form, setForm] = useState<any>(isNew
+    ? {
+        trade_name: '', name_for_print: '', code: '',
+        barcode: '', barcode2: '', barcode3: '', barcode4: '',
+        category_id: 0, unit_id: 0,
+        price_retail: 0, price_wholesale1: 0, price_wholesale2: 0,
+        has_vat: 0, search_keywords: '', note: '', is_disabled: 0,
+      }
+    : {})
+  // New-mode only: components live here (controlled). Edit-mode: ComponentsTab
+  // owns its own state and persists via products:saveBundleItems.
+  const [draftItems, setDraftItems] = useState<DraftItem[]>([])
   const [categories, setCategories] = useState<ProductCategory[]>([])
   const [itemUnits, setItemUnits] = useState<ItemUnit[]>([])
   const [labelFrequencies, setLabelFrequencies] = useState<any[]>([])
@@ -36,9 +53,24 @@ export default function EditBundlePage() {
   const [labelTimes, setLabelTimes] = useState<any[]>([])
   const [labelAdvices, setLabelAdvices] = useState<any[]>([])
 
-  useEffect(() => { loadAll() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [productId])
+  useEffect(() => { loadAll() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [productId, isNew])
 
   const loadAll = async () => {
+    // In new mode we still need lookup tables (categories/units) but skip
+    // products.get + label lookups (Labels tab is hidden until first save).
+    if (isNew) {
+      const [cats, units] = await Promise.all([
+        window.api.settings.allCategories(),
+        window.api.settings.allUnits(),
+      ])
+      setCategories(cats as ProductCategory[])
+      setItemUnits(units as ItemUnit[])
+      // Default unit = "ชุด" if present (most natural for a bundle).
+      const bundleUnit = (units as ItemUnit[]).find(u => u.name === 'ชุด')
+                     ?? (units as ItemUnit[])[0]
+      if (bundleUnit) setForm((f: any) => ({ ...f, unit_id: bundleUnit.id }))
+      return
+    }
     setLoading(true)
     try {
       const [p, cats, units, freqs, dosages, meals, times, advices] = await Promise.all([
@@ -102,6 +134,15 @@ export default function EditBundlePage() {
   const handleSave = async () => {
     if (!form.trade_name?.trim()) {
       toast({ title: 'กรุณาระบุชื่อชุดสินค้า', variant: 'error' })
+      // Bounce to General so the user sees what's missing.
+      if (tab !== 'general') setTab('general')
+      return
+    }
+    // New mode requires >=2 components in one shot (atomic create) — no
+    // empty draft row ever lands in the DB.
+    if (isNew && draftItems.length < 2) {
+      toast({ title: 'ชุดสินค้าต้องมีรายการอย่างน้อย 2 รายการ', variant: 'error' })
+      setTab('components')
       return
     }
     setSaving(true)
@@ -112,7 +153,6 @@ export default function EditBundlePage() {
       const payload: Record<string, any> = {
         trade_name: form.trade_name,
         name_for_print: form.name_for_print || null,
-        code: form.code || null,
         barcode: form.barcode || null,
         barcode2: form.barcode2 || null,
         barcode3: form.barcode3 || null,
@@ -126,20 +166,31 @@ export default function EditBundlePage() {
         search_keywords: form.search_keywords || null,
         note: form.note || null,
         is_disabled: form.is_disabled ? 1 : 0,
-        is_bundle: 1,
-        is_stock_item: 0,
       }
-      await window.api.products.update(productId, payload)
-      toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
-      await refreshProduct()
+      if (isNew) {
+        const created: any = await window.api.products.createBundle({
+          product: payload,
+          items: draftItems.map(it => ({
+            component_product_id: it.component_product_id,
+            qty_per_bundle: it.qty_per_bundle,
+          })),
+        })
+        toast({ title: 'สร้างชุดสินค้าสำเร็จ', variant: 'success' })
+        // Replace history entry so back doesn't return to /new with stale state.
+        navigate(`/products/bundles/${created.id}/edit`, { replace: true })
+      } else {
+        await window.api.products.update(productId, { ...payload, code: form.code || null, is_bundle: 1, is_stock_item: 0 })
+        toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
+        await refreshProduct()
+      }
     } catch (e: any) {
-      toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+      toast({ title: isNew ? 'สร้างไม่สำเร็จ' : 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading || !product) {
+  if (!isNew && (loading || !product)) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
         กำลังโหลด...
@@ -147,67 +198,167 @@ export default function EditBundlePage() {
     )
   }
 
-  const componentCount = product.bundle_items?.length ?? 0
-  const labelCount = product.labels?.length ?? 0
+  // In new mode `product` is null — derive stats from the in-memory form +
+  // draftItems (cost = sum of component_cost * qty; recomputed live).
+  const componentCount = isNew ? draftItems.length : (product!.bundle_items?.length ?? 0)
+  const labelCount = isNew ? 0 : (product!.labels?.length ?? 0)
+
+  // Derived stats for the 4-card row (mirrors EditProduct). Bundles have no
+  // last_cost_price / own lots — cost_price is auto-computed from components
+  // (recomputeBundleCost), so it's the right number for the cost card.
+  const baseUnit = isNew
+    ? (itemUnits.find(u => u.id === form.unit_id)?.name ?? '—')
+    : (product!.unit_name ?? itemUnits.find(u => u.id === product!.unit_id)?.name ?? '—')
+  const categoryName = categories.find(c => c.id === (isNew ? form.category_id : product!.category_id))?.name
+  const cost = isNew
+    ? draftItems.reduce((s, it) => s + it.component_cost * it.qty_per_bundle, 0)
+    : (Number(product!.cost_price) || 0)
+  const retail = isNew ? (Number(form.price_retail) || 0) : (Number(product!.price_retail) || 0)
+  const profit = retail - cost
+  const profitPct = cost > 0 ? (profit / cost) * 100 : 0
+
+  const displayName = isNew ? (form.trade_name || 'ชุดสินค้าใหม่') : (product!.trade_name)
+  const displayCode = isNew ? null : product!.code
+  const displayHasVat = isNew ? !!form.has_vat : !!product!.has_vat
+  const displayDisabled = isNew ? !!form.is_disabled : !!product!.is_disabled
 
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader
-        title={form.trade_name || 'ชุดสินค้า'}
+        title={form.trade_name || (isNew ? 'สร้างชุดสินค้าใหม่' : 'ชุดสินค้า')}
         right={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="lg" onClick={() => navigate('/products/bundles')} className="h-10 px-2">
-              <ArrowLeft className="size-4" /> กลับ
+            <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={() => navigate('/products/bundles')}>
+              <ArrowLeft className="size-4" /> ย้อนกลับ
             </Button>
-            <Button size="lg" onClick={handleSave} disabled={saving} className="h-10 px-3">
-              <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+            <Button
+              size="lg"
+              className="h-10 px-3"
+              onClick={handleSave}
+              disabled={saving || (isNew && draftItems.length < 2)}
+              title={isNew && draftItems.length < 2 ? 'ต้องเพิ่มรายการอย่างน้อย 2 รายการก่อน' : undefined}
+            >
+              <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : (isNew ? 'สร้างชุดสินค้า' : 'บันทึก')}
             </Button>
           </div>
         }
       />
 
-      <Tabs value={tab} onValueChange={setTab} className="items-center shrink-0">
+      <Tabs value={tab} onValueChange={setTab} className="shrink-0 self-start">
         <TabsList>
           <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
           <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
-          <TabsTrigger value="components"><Boxes /> ส่วนประกอบ ({componentCount})</TabsTrigger>
-          <TabsTrigger value="labels"><Pill /> ฉลาก ({labelCount})</TabsTrigger>
+          <TabsTrigger value="components"><Boxes /> รายการ ({componentCount})</TabsTrigger>
+          {/* Labels tab needs a saved product id — hidden in new mode. */}
+          {!isNew && <TabsTrigger value="labels"><Pill /> ฉลาก ({labelCount})</TabsTrigger>}
         </TabsList>
-
-        <TabsContent value="general" className="w-full mt-3">
-          <GeneralTab
-            form={form}
-            setF={setF}
-            categories={categories}
-            itemUnits={itemUnits}
-          />
-        </TabsContent>
-
-        <TabsContent value="price" className="w-full mt-3">
-          <PriceTab form={form} setF={setF} product={product} />
-        </TabsContent>
-
-        <TabsContent value="components" className="w-full mt-3 flex-1 min-h-0 flex flex-col">
-          <ComponentsTab
-            product={product}
-            productId={productId}
-            onRefresh={refreshProduct}
-          />
-        </TabsContent>
-
-        <TabsContent value="labels" className="w-full mt-3 flex-1 min-h-0 flex flex-col">
-          <LabelsTab
-            product={product}
-            productId={productId}
-            labelFrequencies={labelFrequencies}
-            labelDosages={labelDosages}
-            labelMealRelations={labelMealRelations}
-            labelTimes={labelTimes}
-            labelAdvices={labelAdvices}
-            onRefresh={refreshProduct}
-          />
-        </TabsContent>
       </Tabs>
+
+      {/* 4 cards: meta + cost + price + components. Mirrors the EditProduct
+          row but tailored to bundles — cost is auto from components, there
+          are no own lots, so the 4th card is component count (click → tab). */}
+      <div className="grid grid-cols-4 gap-3 shrink-0">
+        {/* Meta card — hand-rolled to match MetricCard size="sm" proportions */}
+        <div className="bg-card rounded-card shadow-card px-4 py-3 flex items-center gap-3 overflow-hidden">
+          <div className="flex flex-col min-w-0 flex-1 text-left">
+            <div
+              className="text-base font-bold text-foreground truncate"
+              title={displayName}
+            >
+              {displayName}
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <span className="text-sm text-muted-foreground font-mono shrink-0">{displayCode ?? '—'}</span>
+              <span className="text-sm text-muted-foreground shrink-0">·</span>
+              <span className="text-sm text-muted-foreground truncate">{categoryName ?? 'ไม่ระบุ'}</span>
+              <Badge variant="brand-soft" className="text-xs rounded-md px-1.5 py-0">ชุดสินค้า</Badge>
+              {isNew && <Badge variant="warning" className="text-xs rounded-md px-1.5 py-0">ยังไม่บันทึก</Badge>}
+              {displayHasVat && <Badge variant="info-soft" className="text-xs rounded-md px-1.5 py-0">VAT</Badge>}
+              {displayDisabled && <Badge variant="destructive" className="text-xs rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
+            </div>
+          </div>
+          <span className="grid place-items-center size-11 rounded-xl bg-primary-soft text-primary shrink-0">
+            <Info className="size-7" />
+          </span>
+        </div>
+
+        <MetricCard
+          size="sm"
+          label="ต้นทุนรวม"
+          value={formatCurrency(cost)}
+          unit={baseUnit !== '—' ? `/ ${baseUnit}` : undefined}
+          sub="อัตโนมัติจากรายการ"
+          icon={Coins}
+          tint="warm"
+        />
+        <MetricCard
+          size="sm"
+          label="ราคาขาย"
+          value={formatCurrency(retail)}
+          valueClassName={'text-foreground'}
+          unit={baseUnit !== '—' ? `/ ${baseUnit}` : undefined}
+          sub={cost > 0
+            ? `กำไร ${profit >= 0 ? '+' : ''}${profit.toFixed(2)} (${profit >= 0 ? '+' : ''}${profitPct.toFixed(0)}%)`
+            : undefined}
+          subClassName={profit < 0 ? 'text-destructive' : undefined}
+          icon={Tag}
+          tint="success"
+        />
+        <MetricCard
+          size="sm"
+          label="รายการ"
+          value={componentCount.toLocaleString()}
+          unit={componentCount > 0 ? 'รายการ' : undefined}
+          sub="คลิกเพื่อแก้ไข"
+          icon={Package}
+          tint={componentCount === 0 ? 'destructive' : 'info-soft'}
+          onClick={() => setTab('components')}
+        />
+      </div>
+
+      {/* Same scroll model as EditProduct: form tabs (general/price) use an
+          outer overflow-y-auto wrapper; table tabs (components/labels) own
+          their internal sticky-header scroll, so they get flex-col only. */}
+      <div className="flex-1 min-h-0 flex flex-col [scrollbar-gutter:stable]">
+        {tab === 'components' ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <ComponentsTab
+              product={product}
+              productId={isNew ? null : productId}
+              onRefresh={refreshProduct}
+              controlledItems={isNew ? draftItems : undefined}
+              onControlledItemsChange={isNew ? setDraftItems : undefined}
+            />
+          </div>
+        ) : tab === 'labels' && !isNew ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <LabelsTab
+              product={product!}
+              productId={productId}
+              labelFrequencies={labelFrequencies}
+              labelDosages={labelDosages}
+              labelMealRelations={labelMealRelations}
+              labelTimes={labelTimes}
+              labelAdvices={labelAdvices}
+              onRefresh={refreshProduct}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto pb-8">
+            {tab === 'general' && (
+              <GeneralTab
+                form={form}
+                setF={setF}
+                categories={categories}
+                itemUnits={itemUnits}
+              />
+            )}
+            {tab === 'price' && (
+              <PriceTab form={form} setF={setF} product={product} />
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

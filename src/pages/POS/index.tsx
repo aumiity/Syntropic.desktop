@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
 import dayjs from 'dayjs'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy } from '@/types'
@@ -692,15 +693,9 @@ export default function POSPage() {
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-2">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
 
-      {/* ── HEADER ── */}
-      <div className="flex items-end justify-between shrink-0 px-1 mb-2">
-        <h1 className="text-3xl font-bold leading-none tracking-tight">หน้าจอการขายสินค้า</h1>
-        <div className="text-m font-semibold text-foreground">
-          {dateStr} · <span className="tabular-nums">{timeStr}</span>
-        </div>
-      </div>
+      <PageHeader title="หน้าจอการขายสินค้า" />
 
       <div className="flex gap-3 flex-1 min-h-0">
 

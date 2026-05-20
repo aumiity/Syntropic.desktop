@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
+import { StatCard, type MetricTint } from '@/components/ui/card'
 import { Receipt, CalendarClock, PackagePlus, PackageX } from 'lucide-react'
 
 // Phase 1: ประวัติการขาย + ใกล้หมดอายุ. Phase 2: + ประวัติการซื้อ.
@@ -56,16 +56,8 @@ export default function ManageLayout() {
   const ctx = useMemo<ManageOutletContext>(() => ({ setSummary }), [])
 
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title="ประวัติ & สต็อก" />
-
-      {summary && summary.length > 0 && (
-        <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>
-          {summary.map((c, i) => c.onClick
-            ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
-            : <MetricCard key={i} {...c} />)}
-        </div>
-      )}
 
       <Tabs
         value={current}
@@ -73,7 +65,7 @@ export default function ManageLayout() {
           const tab = TABS.find(t => t.value === v)
           if (tab) navigate(tab.to)
         }}
-        className="shrink-0 items-center"
+        className="shrink-0 self-start"
       >
         <TabsList>
           {TABS.map(({ value, label, icon: Icon }) => (
@@ -83,6 +75,14 @@ export default function ManageLayout() {
           ))}
         </TabsList>
       </Tabs>
+
+      {summary && summary.length > 0 && (
+        <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>
+          {summary.map((c, i) => (
+            <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
+          ))}
+        </div>
+      )}
 
       <Outlet context={ctx} />
     </div>

@@ -79,7 +79,8 @@
       "Bash(grep *)",
       "Bash(git -C /Users/CYUT/Documents/GitHub/Syntropic.desktop remote -v)",
       "Bash(git *)",
-      "Bash(node_modules/.bin/tsc --noEmit -p tsconfig.json)"
+      "Bash(node_modules/.bin/tsc --noEmit -p tsconfig.json)",
+      "Bash(echo \"Exit: $?\")"
     ]
   }
 }

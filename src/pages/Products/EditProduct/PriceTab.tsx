@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
 import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
 import {
@@ -94,85 +93,76 @@ export function PriceTab({
   return (
     <div className="grid grid-cols-2 gap-4 pt-4 items-start">
 
-      {/* ── LEFT: ราคาและต้นทุน ── */}
-      <SectionCard icon={Tag} title="ราคาและต้นทุน" tint="success">
-        <div className="space-y-3">
+      {/* ── LEFT: ราคาขายปลีก & ต้นทุน + ราคาขายส่ง ── */}
+      <div className="space-y-4">
 
-          {/* ราคาทุน (ล่าสุด) — editable pricing reference (last_cost_price) */}
-          <Field label={<>ราคาทุนล่าสุด{unitSuffix(baseUnit)}</>}>
-            <PriceInput
-              value={form.cost_price}
-              onChange={v => setF('cost_price', v)}
-              placeholder="ทุนล่าสุดที่ซื้อ — ใช้อ้างอิงตั้งราคา"
-            />
-          </Field>
+        {/* Card 1: ต้นทุน + ราคาขายปลีก */}
+        <SectionCard icon={Tag} title="ราคาขายปลีก & ต้นทุน" tint="success">
+          <div className="space-y-3">
 
-          {/* ราคาทุนเฉลี่ย (ถ่วงน้ำหนัก) — อ่านอย่างเดียว, อ้างอิงเฉยๆ */}
-          <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">ราคาทุนเฉลี่ย ({baseUnit})</span>
-            {avgCost > 0
-              ? <span className="text-sm font-bold text-warm-foreground tabular-nums">{formatCurrency(avgCost)}</span>
-              : <span className="text-sm text-foreground-subtle">—</span>}
-          </div>
-
-          {/* ราคาขายปลีก + กล่องกำไร */}
-          <div data-field="price_retail">
-            <Field label={<>ราคาขายปลีก{unitSuffix(baseUnit)}</>} required>
+            {/* ราคาทุน (ล่าสุด) — editable pricing reference (last_cost_price) */}
+            <Field label={<>ราคาทุนล่าสุด{unitSuffix(baseUnit)}</>}>
               <PriceInput
-                value={form.price_retail}
-                onChange={v => setF('price_retail', v)}
-                aria-invalid={errors.has('price_retail')}
+                value={form.cost_price}
+                onChange={v => setF('cost_price', v)}
+                placeholder="ทุนล่าสุดที่ซื้อ — ใช้อ้างอิงตั้งราคา"
               />
             </Field>
-          </div>
-          <div className="rounded-lg bg-success-soft/50 px-3 py-2 tabular-nums">
-            <div className="flex items-center justify-between">
-              <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร ({baseUnit})</span>
-              {profitText(retail)}
-            </div>
-          </div>
 
-          {/* ราคาส่ง 1 + ราคาส่ง 2 — stack แนวตั้ง, แต่ละชุด input + กล่องกำไร */}
-          {([
-            { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: form.price_wholesale1, d: ws1 },
-            { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },
-          ] as const).map(({ label, key, value, d }) => (
-            <div key={key} className="space-y-3">
-              <Field label={<>{label}{unitSuffix(baseUnit)}</>}>
+            {/* ราคาทุนเฉลี่ย (ถ่วงน้ำหนัก) — อ่านอย่างเดียว, อ้างอิงเฉยๆ */}
+            <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">ราคาทุนเฉลี่ย ({baseUnit})</span>
+              {avgCost > 0
+                ? <span className="text-sm font-bold text-warm-foreground tabular-nums">{formatCurrency(avgCost)}</span>
+                : <span className="text-sm text-foreground-subtle">—</span>}
+            </div>
+
+            {/* ราคาขายปลีก + กล่องกำไร */}
+            <div data-field="price_retail">
+              <Field label={<>ราคาขายปลีก{unitSuffix(baseUnit)}</>} required>
                 <PriceInput
-                  value={value}
-                  onChange={v => setF(key, v)}
+                  value={form.price_retail}
+                  onChange={v => setF('price_retail', v)}
+                  aria-invalid={errors.has('price_retail')}
                 />
               </Field>
-              <div className="rounded-lg bg-success-soft/50 px-3 py-2 tabular-nums">
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร ({baseUnit})</span>
-                  {profitText(d)}
+            </div>
+            <div className="rounded-lg bg-success-soft/50 px-3 py-2 tabular-nums">
+              <div className="flex items-center justify-between">
+                <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร ({baseUnit})</span>
+                {profitText(retail)}
+              </div>
+            </div>
+
+          </div>
+        </SectionCard>
+
+        {/* Card 2: ราคาขายส่ง */}
+        <SectionCard icon={Tag} title="ราคาขายส่ง">
+          <div className="space-y-3">
+            {([
+              { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: form.price_wholesale1, d: ws1 },
+              { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },
+            ] as const).map(({ label, key, value, d }) => (
+              <div key={key} className="space-y-3">
+                <Field label={<>{label}{unitSuffix(baseUnit)}</>}>
+                  <PriceInput
+                    value={value}
+                    onChange={v => setF(key, v)}
+                  />
+                </Field>
+                <div className="rounded-lg bg-success-soft/50 px-3 py-2 tabular-nums">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร ({baseUnit})</span>
+                    {profitText(d)}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-
-          {/* มี VAT | นับสต็อก */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
-              <div>
-                <div className="text-sm font-semibold text-foreground">มี VAT</div>
-                <div className="text-xs text-muted-foreground">บวก 7% เมื่อออกใบกำกับภาษี</div>
-              </div>
-              <Switch size="lg" checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
-            </div>
-            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
-              <div>
-                <div className="text-sm font-semibold text-foreground">นับสต็อก</div>
-                <div className="text-xs text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
-              </div>
-              <Switch size="lg" checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
-            </div>
+            ))}
           </div>
+        </SectionCard>
 
-        </div>
-      </SectionCard>
+      </div>
 
       {/* ── RIGHT: ประวัติการเปลี่ยนราคา ── */}
       <div className="bg-card rounded-card shadow-card overflow-hidden">

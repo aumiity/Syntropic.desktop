@@ -34,6 +34,8 @@ const api = {
     getBundleItems: (bundleId: number) => ipcRenderer.invoke('products:getBundleItems', bundleId),
     saveBundleItems: (bundleId: number, items: Array<{ component_product_id: number; qty_per_bundle: number }>) =>
       ipcRenderer.invoke('products:saveBundleItems', bundleId, items),
+    createBundle: (payload: { product: any; items: Array<{ component_product_id: number; qty_per_bundle: number }> }) =>
+      ipcRenderer.invoke('products:createBundle', payload),
     adjustLot: (payload: { product_id: number; qty: number; note?: string; user_id: number }) =>
       ipcRenderer.invoke('products:adjustLot', payload),
     adjustLotBatch: (payload: {
@@ -124,6 +126,7 @@ const api = {
     maximize: () => ipcRenderer.invoke('window:maximize'),
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    setSize: (width: number, height: number) => ipcRenderer.invoke('window:setSize', width, height),
   },
   // App
   app: {

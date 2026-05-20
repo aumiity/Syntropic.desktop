@@ -81,11 +81,35 @@ export function registerProductHandlers() {
     }
     const orderCol = (sort_by && SORT_MAP[sort_by]) || 'p.trade_name'
     const orderDir = sort_dir === 'desc' ? 'DESC' : 'ASC'
-    // Always tie-break on trade_name so paginated results are stable when the
-    // primary sort column has duplicates (e.g. many products with cost_price=0).
-    const orderBy = orderCol === 'p.trade_name'
-      ? `${orderCol} ${orderDir}`
-      : `${orderCol} ${orderDir}, p.trade_name ASC`
+    // Relevance ranking when searching by name (default sort + a query present).
+    // Mirrors pos:searchProducts so the same query returns the same top hit in
+    // both places — without this, AMMIDENE (which has "pirox" in search_keywords)
+    // outranks PIROXICAM-* (trade_name match) just because A < P alphabetically.
+    // Skipped when the caller picked an explicit sort_by other than trade_name —
+    // they asked for that order specifically.
+    const orderParams: any[] = []
+    let orderBy: string
+    if (orderCol === 'p.trade_name' && q) {
+      const prefix = `${q}%`
+      const kwMid = `%,${q}%`
+      const kwMidSp = `%, ${q}%`
+      orderBy = `
+        CASE
+          WHEN p.trade_name LIKE ? THEN 1
+          WHEN p.code LIKE ? THEN 2
+          WHEN p.search_keywords LIKE ? OR p.search_keywords LIKE ? OR p.search_keywords LIKE ? THEN 3
+          ELSE 4
+        END,
+        p.trade_name ${orderDir}
+      `
+      orderParams.push(prefix, prefix, prefix, kwMid, kwMidSp)
+    } else if (orderCol === 'p.trade_name') {
+      orderBy = `${orderCol} ${orderDir}`
+    } else {
+      // Always tie-break on trade_name so paginated results are stable when the
+      // primary sort column has duplicates (e.g. many products with cost_price=0).
+      orderBy = `${orderCol} ${orderDir}, p.trade_name ASC`
+    }
 
     const total = (db.prepare(`SELECT COUNT(*) as c FROM products p ${where}`).get(...params) as any).c
 
@@ -101,7 +125,7 @@ export function registerProductHandlers() {
       LEFT JOIN drug_types dt ON dt.id = p.drug_type_id
       LEFT JOIN item_units u ON u.id = p.unit_id
       ${where} ORDER BY ${orderBy} ${limitClause}
-    `).all(...params, ...limitParams)
+    `).all(...params, ...orderParams, ...limitParams)
 
     return { rows, total, page, limit: limit ?? total }
   })
@@ -326,6 +350,98 @@ export function registerProductHandlers() {
     }
     const r = insProduct.run(params)
     return db.prepare(`SELECT * FROM products WHERE id = ?`).get(r.lastInsertRowid)
+  })
+
+  // Atomic bundle creation. Unlike products:create + saveBundleItems (which
+  // could leave an empty bundle row stranded if the user abandons mid-flow),
+  // this commits the product row AND its >=2 components in a single
+  // transaction — or rolls back entirely. Enforces the same "at least 2
+  // components" invariant as saveBundleItems.
+  ipcMain.handle('products:createBundle', (_e, payload: {
+    product: any
+    items: Array<{ component_product_id: number; qty_per_bundle: number }>
+  }) => {
+    const db = getDb()
+    const { product: data, items } = payload
+    if (!data?.trade_name?.trim()) throw new Error('กรุณาระบุชื่อชุดสินค้า')
+    if (!items || items.length < 2) throw new Error('ชุดสินค้าต้องมีรายการอย่างน้อย 2 รายการ')
+
+    return db.transaction(() => {
+      // Validate components up-front so we don't INSERT a doomed product row.
+      for (const it of items) {
+        if (!it.component_product_id) throw new Error('ส่วนประกอบไม่ถูกต้อง')
+        if (!it.qty_per_bundle || Number(it.qty_per_bundle) <= 0) throw new Error('จำนวนต่อชุดต้องมากกว่า 0')
+        const c = db.prepare(`SELECT id, trade_name, is_bundle, is_disabled FROM products WHERE id = ?`).get(it.component_product_id) as any
+        if (!c) throw new Error('ไม่พบส่วนประกอบ')
+        if (c.is_bundle === 1) throw new Error(`"${c.trade_name}" เป็นชุดสินค้า — ห้ามซ้อน`)
+        if (c.is_disabled === 1) throw new Error(`"${c.trade_name}" ถูกพักใช้งาน`)
+      }
+
+      // Reuse products:create's code/sequence/defaults logic by calling the
+      // same scaffolding inline (we can't recurse into the IPC handler).
+      const last = db.prepare(`SELECT code FROM products WHERE code GLOB 'P[0-9][0-9][0-9][0-9]*' ORDER BY code DESC LIMIT 1`).get() as any
+      let nextNum = 1
+      if (last?.code) nextNum = parseInt(last.code.slice(1)) + 1
+      const code = `P${String(nextNum).padStart(4, '0')}`
+
+      const fallbackUnitId = (db.prepare(`SELECT id FROM item_units WHERE name = 'ชิ้น'`).get() as any)?.id
+                           ?? (db.prepare(`INSERT INTO item_units (name) VALUES ('ชิ้น')`).run().lastInsertRowid as number)
+
+      const defaults: Record<string, any> = {
+        barcode: null, barcode2: null, barcode3: null, barcode4: null,
+        name_for_print: null,
+        category_id: null,
+        price_retail: 0, price_wholesale1: 0, price_wholesale2: 0,
+        cost_price: 0, last_cost_price: 0,
+        has_vat: 0,
+        reorder_point: null, safety_stock: null,
+        drug_type_id: null, tmt_id: null,
+        is_drug: 0, is_antibiotic: 0,
+        indication_note: null, side_effect_note: null,
+        is_fda9: 0, is_fda10: 0, is_fda11: 0, is_fda13: 0,
+        search_keywords: null, note: null,
+      }
+      const params = {
+        ...defaults,
+        ...data,
+        code,
+        unit_id: data.unit_id ?? fallbackUnitId,
+        is_bundle: 1,
+        is_stock_item: 0,
+      }
+      const r = db.prepare(`
+        INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,
+          category_id, is_stock_item, is_bundle,
+          price_retail, price_wholesale1, price_wholesale2, cost_price, last_cost_price,
+          unit_id,
+          has_vat, reorder_point, safety_stock,
+          drug_type_id, tmt_id,
+          is_drug, is_antibiotic,
+          indication_note, side_effect_note,
+          is_fda9, is_fda10, is_fda11, is_fda13,
+          search_keywords, note)
+        VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,
+          @category_id, @is_stock_item, @is_bundle,
+          @price_retail, @price_wholesale1, @price_wholesale2, @cost_price, @last_cost_price,
+          @unit_id,
+          @has_vat, @reorder_point, @safety_stock,
+          @drug_type_id, @tmt_id,
+          @is_drug, @is_antibiotic,
+          @indication_note, @side_effect_note,
+          @is_fda9, @is_fda10, @is_fda11, @is_fda13,
+          @search_keywords, @note)
+      `).run(params)
+
+      const bundleId = r.lastInsertRowid as number
+      const ins = db.prepare(`
+        INSERT INTO product_bundle_items (bundle_id, component_product_id, qty_per_bundle, sort_order)
+        VALUES (?, ?, ?, ?)
+      `)
+      items.forEach((it, i) => ins.run(bundleId, it.component_product_id, Number(it.qty_per_bundle), i + 1))
+
+      recomputeBundleCost(db, bundleId)
+      return db.prepare(`SELECT * FROM products WHERE id = ?`).get(bundleId)
+    })()
   })
 
   ipcMain.handle('products:update', (_e, id: number, data: any) => {
@@ -718,6 +834,7 @@ export function registerProductHandlers() {
       const bundle = db.prepare(`SELECT id, is_bundle FROM products WHERE id = ?`).get(bundleId) as any
       if (!bundle) throw new Error('ไม่พบชุดสินค้า')
       if (bundle.is_bundle !== 1) throw new Error('สินค้านี้ไม่ใช่ชุดสินค้า')
+      if (items.length < 2) throw new Error('ชุดสินค้าต้องมีรายการอย่างน้อย 2 รายการ')
 
       for (const it of items) {
         if (!it.component_product_id) throw new Error('ส่วนประกอบไม่ถูกต้อง')

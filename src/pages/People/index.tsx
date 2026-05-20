@@ -655,10 +655,10 @@ export default function PeoplePage() {
   const [tab, setTab] = useState('customers')
 
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title="บุคคล" />
 
-      <Tabs value={tab} onValueChange={setTab} className="shrink-0 items-center">
+      <Tabs value={tab} onValueChange={setTab} className="shrink-0 self-start">
         <TabsList>
           <TabsTrigger value="customers">
             <Users className="size-4 mr-1.5" /> ลูกค้า

@@ -50,15 +50,9 @@ export default function ReportsLayout() {
   const ctx = useMemo<ReportsOutletContext>(() => ({ setSummary }), [])
 
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <div className="no-print contents">
         <PageHeader title="รายงาน" />
-
-        {summary && summary.length > 0 && (
-          <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>
-            {summary.map((c, i) => <MetricCard key={i} {...c} />)}
-          </div>
-        )}
 
         <Tabs
           value={current}
@@ -66,7 +60,7 @@ export default function ReportsLayout() {
             const tab = TABS.find(t => t.value === v)
             if (tab) navigate(tab.to)
           }}
-          className="shrink-0 items-center"
+          className="shrink-0 self-start"
         >
           <TabsList>
             {TABS.map(({ value, label, icon: Icon }) => (
@@ -76,6 +70,12 @@ export default function ReportsLayout() {
             ))}
           </TabsList>
         </Tabs>
+
+        {summary && summary.length > 0 && (
+          <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>
+            {summary.map((c, i) => <MetricCard key={i} {...c} />)}
+          </div>
+        )}
       </div>
 
       <Outlet context={ctx} />

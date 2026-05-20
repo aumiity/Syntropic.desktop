@@ -56,6 +56,7 @@ export default function App() {
               </Route>
               <Route path="products/new" element={<EditProduct />} />
               <Route path="products/:id/edit" element={<EditProduct />} />
+              <Route path="products/bundles/new" element={<EditBundle />} />
               <Route path="products/bundles/:id/edit" element={<EditBundle />} />
               <Route path="people" element={<People />} />
               <Route path="manage" element={<ManageLayout />}>

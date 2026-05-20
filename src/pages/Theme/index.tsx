@@ -161,7 +161,7 @@ export default function Theme() {
   const [pickerUnit, setPickerUnit] = useState('เม็ด')
 
   return (
-    <div className="flex flex-col h-full px-8 pt-10 pb-4 gap-3">
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title="ธีม" />
 
       <div className="flex-1 overflow-y-auto">
@@ -838,6 +838,21 @@ export default function Theme() {
                       icon={Boxes}
                       tint="info-soft"
                       badge={<Badge variant="warning"><AlertTriangle className="size-3" /> ใกล้หมดอายุ 2 ล็อต</Badge>}
+                    />
+                  </div>
+                </DemoRow>
+                <DemoRow label="MetricCard size='sm' (compact — StatCard-height · icon-right · sub & badge collapse inline next to value)">
+                  <div className="grid grid-cols-3 gap-4 w-full">
+                    <MetricCard size="sm" label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="warm" />
+                    <MetricCard size="sm" label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success" />
+                    <MetricCard
+                      size="sm"
+                      label="คงเหลือ"
+                      value="48"
+                      unit="ชิ้น"
+                      icon={Boxes}
+                      tint="info-soft"
+                      badge={<Badge variant="warning"><AlertTriangle className="size-3" /> 2 ล็อต</Badge>}
                     />
                   </div>
                 </DemoRow>
