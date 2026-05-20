@@ -11,6 +11,19 @@
 import type { Database } from 'better-sqlite3'
 
 /**
+ * Defense in depth — every stock/lot mutation handler asserts the target
+ * is NOT a bundle. UI hides these affordances for bundles, but direct IPC
+ * callers (and now the Purchase intake which uses pos:searchProducts without
+ * an is_bundle filter) could otherwise corrupt the "bundles have no lots"
+ * invariant. Lives in pricing.ts so both electron/ipc/products.ts and
+ * electron/ipc/purchase.ts can use it without cross-IPC imports.
+ */
+export function assertNotBundle(db: Database, productId: number): void {
+  const r = db.prepare(`SELECT is_bundle FROM products WHERE id = ?`).get(productId) as any
+  if (r?.is_bundle === 1) throw new Error('ทำรายการสต็อกกับชุดสินค้าไม่ได้ — ชุดสินค้าไม่มีล็อต')
+}
+
+/**
  * Weighted-average cost over OPEN lots. Call after any event that
  * changes a product's lot composition (receive, cancel, adjust, lot edit).
  * No-op when the product has no open lots — leaves cost_price alone

@@ -1,24 +1,91 @@
 # Syntropic Desktop - Build Progress
 
-## Status: ✅ Runnable — **Product Bundle (ชุดสินค้า) Phase 1 + 2 shipped** (sell-as-one + deduct-as-many; whole-bundle return from sale detail). **Manage/Reports restructure Phase 1–4 done; Phase 5 placeholder shipped.** `/manage` has 4 tabs; `/purchase` is receive-form-only; `/reports` rebuilt as finance dashboard. `/products` is now a Tabs page (สินค้า / ชุดสินค้า). Type-clean across the board. **Bundle + Manage/Reports Phase 1–4 + h-10 sweep all NOT click-tested yet.** Phase 5 (อย.) still blocked on spec.
+## Status: ✅ Runnable — **Product Bundle (ชุดสินค้า) Phase 1 + 2 shipped + 6 critical audit fixes** (3-source audit found voidSale column collision + returnBundle accounting double-removal + return-of-a-return path + purchase guard + 2 cost-recompute gaps; all fixed). **Manage/Reports restructure Phase 1–4 done; Phase 5 placeholder shipped.** `/manage` has 4 tabs; `/purchase` is receive-form-only; `/reports` rebuilt as finance dashboard. `/products` is now a Tabs page (สินค้า / ชุดสินค้า). Type-clean across the board. **Bundle + audit fixes + Manage/Reports Phase 1–4 + h-10 sweep all NOT click-tested yet.** Phase 5 (อย.) still blocked on spec.
 ## Last updated: 2026-05-20
 ## Run: `npm run electron:dev`
 ## ⚠️ Next session:
-##   1. **Click-test Product Bundle Phase 1 + 2** end-to-end — create bundle in `/products/bundles` → sell in POS (verify 1 cart line + FEFO per component) → void (verify no double-restore) → return bundle line via SaleDetailDialog `คืนชุด` (verify lots restored + sale_item_lots.is_cancelled flips) → GR a component (verify bundle cost auto-updates). Verify ProductsList stat cards don't inflate from bundles, and that EditProduct/EditBundle cross-redirect guards work.
+##   1. **Click-test Product Bundle Phase 1 + 2 + audit fixes** end-to-end — create bundle in `/products/bundles` → sell in POS (verify 1 cart line + FEFO per component) → void (verify stock_movements.product_id = component, NOT bundle, after C1) → return bundle line via SaleDetailDialog `คืนชุด` (verify lots restored + reports.salesList total_cost nets to 0 across original+RT- after C2; "คืนชุด" button HIDDEN on the new RT- bill after C3) → expire a component lot via /manage/expiry (verify bundle cost_price updates after C5) → restock then return bundle (verify reopened lot triggers bundle cost recompute after C6) → try GR a bundle from Purchase page (verify backend throws ทำรายการสต็อกกับชุดสินค้าไม่ได้ after C4). Verify ProductsList stat cards don't inflate from bundles; EditProduct/EditBundle cross-redirect guards work; BundlesList "+ เพิ่มชุดสินค้า" no longer throws RangeError.
 ##   2. **Click-test Phase 1–4** — /manage 4 tabs (sales w/ void; purchases w/ payment cards + receipt + edit + cancel GR; low-stock w/ search+shortfall+ไปหน้ารับสินค้า; expiry); `/purchase` pure receive flow; **/reports** (date range → 6 finance cards + payment-mix + daily trend; เจ้าหนี้การค้า aging buckets + outstanding list). Also the topbar `h-10` sweep from Session 2026-05-20b.
 ##   3. **Phase 5** — รายงาน อย. (greenfield, blocked: needs the exact อย. forms/columns from the operator).
 ##   4. **When real login lands: delete the ⚠️ DEV-ONLY role toggle in `Reports/Finance.tsx`** (2 marked spots — see "Reports/Finance — 7-day access gate" 2026-05-19).
 ## (Carried over, lower priority: click-test EditProduct split [2026-05-17]; cost-audit Manage/Sales+Expiry.)
-## ✅ DONE 2026-05-20c: **Product Bundle (ชุดสินค้า) Phase 1 + 2** (Session 2026-05-20c below) — commits `1d794e1` + `034d887`. Schema (`is_bundle` + `product_bundle_items`), shared `electron/db/pricing.ts` replacing 4× SQL duplication, FEFO `deductFefo` refactor in `pos.ts`, new `EditBundle` page, new `/products/bundles` tab, POS bundle cost preview + cart row breakdown + return-modal toast, `SaleDetailDialog` bundle expand + `คืนชุด` button, `pos:returnBundle` IPC, 5 stock/lot handlers reject bundle. Pre-audited by 3 reviewers before implementation. Plan archived at `docs/plans/product-bundle-phase1.md`. tsc clean, **click-test pending**.
+## ✅ DONE 2026-05-20d: **Product Bundle audit — 6 critical fixes + 1 hotfix** (Session 2026-05-20d below) — 3-source audit (CC + Deepseek + Gemini) caught C1 voidSale column collision (`SELECT sil.*, si.product_id` → bundle id leaks into stock_movements), C2 returnBundle aggregate double-removal of total_cost across original+RT- bills (fixed via Option 3 — voidSale now skips via `si.is_cancelled` instead of marking `sil.is_cancelled=1`), C3 return-of-a-return path (op could click "คืนชุด" on an RT- bill's negative bundle row → would DEDUCT stock), C4 missing `assertNotBundle` in `purchase:save`+`purchase:cancel` (bundles could be GR'd → invariant pwned), C5 `expireLot` skipped cost recompute (bundle cost stale after disposal), C6 `pos:returnBundle` skipped recompute when reopening closed lots. Helper `assertNotBundle` moved to shared `electron/db/pricing.ts`. Hotfix: `products:create` now defaults every named param (BundlesList quick-create was throwing RangeError) + enforces `is_bundle=1 ⇒ is_stock_item=0` invariant. Plan/audit docs moved to `docs/{plans,audits}/done/`. tsc clean, **click-test pending**.
+## ✅ DONE 2026-05-20c: **Product Bundle (ชุดสินค้า) Phase 1 + 2** (Session 2026-05-20c below) — commits `1d794e1` + `034d887`. Schema (`is_bundle` + `product_bundle_items`), shared `electron/db/pricing.ts` replacing 4× SQL duplication, FEFO `deductFefo` refactor in `pos.ts`, new `EditBundle` page, new `/products/bundles` tab, POS bundle cost preview + cart row breakdown + return-modal toast, `SaleDetailDialog` bundle expand + `คืนชุด` button, `pos:returnBundle` IPC, 5 stock/lot handlers reject bundle. Pre-audited by 3 reviewers before implementation. Plan archived at `docs/plans/done/product-bundle-phase1.md`. tsc clean, **click-test pending**.
 ## ✅ DONE 2026-05-20b: **Topbar control-height standardization (`h-14` strip → `h-10` controls)** (Session 2026-05-20b) — every filter-strip control bumped to `h-10` to match the baked defaults of DateInput/DateRangePicker/Combobox; `Toggle framed="input"` primitive raised h-9 → h-10; new HARD rule added to CLAUDE.md + showcase. Also tightened `Manage/Purchases.tsx` to showcase styling (action column, column order, Badge defaults, font weights). tsc clean, **click-test pending**.
 ## ✅ DONE 2026-05-20: **Table-card top/bottom bar sweep + `Toggle framed="input"`** (Session 2026-05-20) — all group A+B list/report tables now match the showcase: toolbar folded into the card top bar, bottom bar = page-size·pagination·count. New borderless `framed="input"` Toggle mode that blends with the search Input. tsc clean, **click-test pending**.
 ## ✅ DONE 2026-05-19: **POS "ยกเลิกบิล" button fixed** (Session 2026-05-19b) — invoice-lookup → SaleDetailDialog → ConfirmDialog → voidSale. tsc clean, **click-test pending**.
 
 ---
 
+## Session 2026-05-20d — Product Bundle audit (3 sources) + 6 critical fixes + RangeError hotfix — ✅ DONE 2026-05-20 (tsc clean, NOT click-tested)
+
+> Self-contained. Audit-driven session immediately after Phase 1+2 shipped (Session 2026-05-20c). Operator ran 3 independent code-reviewing LLMs over the bundle commits (`1d794e1` + `034d887`) and the audit-request brief at `docs/audits/done/product-bundle-audit-request.md`. The three reports were merged + de-duped; 6 critical findings were addressed in this session. Plan + audit-request docs moved to `docs/{plans,audits}/done/` as part of the wrap-up.
+
+### Audit sources
+- **CC (Claude main session)** — caught aggregate accounting (C2), return-of-a-return UX path (C3), expireLot cost gap (C5), plus 11 minor findings
+- **Audit A (Deepseek-class)** — caught voidSale `SELECT sil.*, si.product_id` column collision (C1), confirmed purchase guard gap (C4), `saveBundleItems` validation gaps
+- **Audit B (Gemini-class)** — caught expireLot cost gap (C5), returnBundle reopen-without-recompute (C6), confirmed purchase guard (C4)
+
+Merge table: 5 critical confirmed by ≥2 sources, 1 unique to each. Final ordered TODO produced by CC, executed inline.
+
+### 6 critical fixes shipped
+
+**C1 — voidSale column collision** (`reports.ts:175-188`)
+- Old: `SELECT sil.*, si.product_id FROM sale_item_lots sil JOIN sale_items si ...`
+- Both tables carry `product_id`; better-sqlite3 row mapper takes the later column (= `si.product_id` = bundle id, not the component id stored on `sil`). For a voided bundle sale, the subsequent `INSERT INTO stock_movements (product_id, ...)` recorded the BUNDLE id instead of the component, corrupting the audit trail.
+- Fix: drop `si.product_id` (dead column — never read in the loop body); JOIN stays for the `sale_id` filter.
+- Bonus tightening: query now also filters `si.is_cancelled = 0` so a bundle that was already returned via `pos:returnBundle` is skipped at the higher level (no longer relies on a `sil.is_cancelled=1` marking — see C2).
+
+**C2 — returnBundle aggregate accounting (Option 3 refactor)** (`pos.ts:430-450`, `reports.ts:185-189`)
+- Old: returnBundle marked the original `sale_item_lots.is_cancelled=1` AND inserted RT- mirror rows at `is_cancelled=0`. Reports filter `sil.is_cancelled=0` everywhere — so the original bundle's cost was excluded (via 1) AND the RT- mirror contributed negative cost. Across any date range spanning both bills, the bundle cost was effectively subtracted TWICE → aggregate `total_cost` understated by bundle cost → aggregate profit overstated by the same amount.
+- Considered "Option B" (insert mirror at `is_cancelled=1`) but rejected — it leaves the RT- bill's per-bill profit display showing `-line_total` (off by bundle cost in the other direction).
+- **Option 3 (shipped):** Don't mark `sale_item_lots.is_cancelled` at all in `pos:returnBundle`. Original bundle's sil contributes positive cost; RT- mirror contributes negative cost; aggregate nets to exactly 0 cost from the bundle (matches "sold then refunded" reality). `reports:voidSale` now skips the bundle's sil via the parent `si.is_cancelled=1` flag, which `pos:returnBundle` still sets.
+- Net: aggregate accounting correct, original-bill display sane (bundle row line-through, item_cost = full), RT-bill display sane (item_cost = -full, profit = -line_total + cost = recovered portion).
+
+**C3 — return-of-a-return guard** (`pos.ts:386-398`, `SaleDetailDialog.tsx:125-138`)
+- The RT- bill (sale_type='return') has a bundle `sale_items` row with `is_cancelled=0` (fresh row) and `qty<0` (mirror). All four pre-existing `pos:returnBundle` validators pass for it (`is_bundle=1` from products table, `is_cancelled=0`, `sale_status='completed'`, no double-return marker). Operator opens an RT- bill → "คืนชุด" button shows → clicks → handler proceeds → stock-restore loop does `qty_on_hand += sil.qty` where `sil.qty` is negative → **DEDUCTS** stock instead of restoring.
+- Backend: added `if (Number(si.qty) <= 0) throw 'รายการนี้เป็นการคืนสินค้าอยู่แล้ว — คืนซ้ำไม่ได้'`.
+- UI: `canReturn` now also returns false for `detail.sale_type === 'return'` and `item.qty <= 0`.
+
+**C4 — purchase:save / purchase:cancel `assertNotBundle` guards** (`purchase.ts:131-132, 409`, `pricing.ts:13-24`)
+- Plan called for backend rejection of bundles on every stock/lot handler. Phase 1 covered 5 in `products.ts` but missed both purchase handlers. Purchase page uses `pos:searchProducts` (no `is_bundle` filter) → bundle products show up in the GR picker → operator could (and the schema would let them) write a `product_lots` row for a bundle product, pwning the "bundles have no lots" invariant + the `STOCK_EXPR` CASE WHEN logic.
+- Moved `assertNotBundle` helper from `products.ts` (where it was a local fn) to `electron/db/pricing.ts` so `purchase.ts` can use it without cross-IPC imports. `products.ts` now imports it from `pricing.ts` like the recompute helpers.
+- Added guard in `purchase:save` item-loop and `purchase:cancel` line-loop (defense in depth — once save guards, cancel can never see a bundle line, but the redundant check makes any future bypass surface clearly).
+
+**C5 — expireLot cost propagation** (`products.ts:898-905`)
+- `products:expireLot` (System C disposal) sets `qty_on_hand=0, is_closed=1` but didn't call `recomputeAvgCost` / `propagateCostToBundles`. The `is_closed: 0→1` transition removes the lot from the weighted-avg pool (recompute's WHERE filter is `is_closed=0 AND qty_received>0`), so the open-lot composition changed but cost stayed stale until an unrelated stock event happened to fire a recompute. Bundles depending on this component were stale too.
+- Fix: two-liner after the UPDATE — `recomputeAvgCost(db, lot.product_id) + propagateCostToBundles(db, lot.product_id)`.
+
+**C6 — returnBundle cost recompute after lot reopen** (`pos.ts:455, 485-486`)
+- When restoring stock to a closed component lot, `pos:returnBundle` correctly toggled `is_closed: 1→0` (so FEFO can see the restored qty) — but didn't trigger a cost recompute. The reopen brings the lot BACK into the weighted-avg pool, which means `products.cost_price` is now stale (was computed without this lot, should include it again).
+- Captured `wasClosed = lot.is_closed === 1` BEFORE the UPDATE so we can branch on the actual transition, then `if (wasClosed) recomputeAvgCost + propagateCostToBundles`. Pure qty restores on an already-open lot DON'T recompute — `qty_received` (which is what the weighted-avg keys on) is unchanged, so the avg is identical.
+
+### Hotfix — `products:create` RangeError on bundle quick-create
+- After C4, operator clicked "+ เพิ่มชุดสินค้า" → `Missing named parameter "barcode"` from better-sqlite3. The INSERT in `products:create` uses `@`-named params (barcode, barcode2, barcode3, barcode4, name_for_print, category_id, …). `BundlesList.handleCreate` only passed a subset of fields (trade_name, is_bundle, prices, etc.) — the spread `{...data, code, ...}` left the other `@` params undefined → RangeError. EditProduct happened to fill them all so this never tripped pre-bundle.
+- Fix: build params with an explicit `defaults` object covering every column the INSERT names, then spread `data` on top so caller-provided fields win. Bonus: same change folded in the M9 audit-suggestion to enforce `is_bundle=1 ⇒ is_stock_item=0` at the IPC level (no longer relies on every caller getting that right).
+
+### Files touched
+- `electron/db/pricing.ts` — exported `assertNotBundle` helper (10 lines)
+- `electron/ipc/products.ts` — removed local `assertNotBundle` (now imports), C5 expireLot recompute, hotfix defaults block, force `is_stock_item=0` when bundle
+- `electron/ipc/purchase.ts` — import `assertNotBundle`, guards in save loop + cancel loop
+- `electron/ipc/pos.ts` — import recompute helpers, C2 (removed sil.is_cancelled mark + reverted mirror INSERT), C3 (`Number(si.qty) <= 0` guard), C6 (recompute after reopen)
+- `electron/ipc/reports.ts` — C1 (dropped `si.product_id` from SELECT) + C2 (added `si.is_cancelled = 0` filter)
+- `src/components/dialogs/SaleDetailDialog.tsx` — C3 UI guards (sale_type='return', qty<=0)
+
+### Verification (audit cheat-sheet greps)
+- `SUM(qty_received * cost_price)` outside `pricing.ts`: only `dev.ts` seed script — clean
+- `assertNotBundle` usage: 7 sites (5 products.ts + 2 purchase.ts), plus 1 definition in pricing.ts
+- Cross-redirect guards: present in EditProduct, EditBundle, POS, SaleDetailDialog
+- `npx tsc --noEmit` — clean
+
+### Minor / suggestion findings — deferred (still in TODO)
+Carried forward (not blocking click-test): voidSale + returnItems don't reopen closed lots (M1+M2); `saveBundleItems` allows `items=[]` and doesn't validate `is_stock_item=1` on components (M3+M4); `expireLot` no `assertNotBundle` (M5, self-limits via lot lookup); SaleDetailDialog profit display weirdness on cancelled bundle row (M6 — addressed for aggregate by C2 but per-bill view still arguable); ComponentsTab drag-reorder UI missing (M7); `/products/bundles/new` route not registered (M8 — quick-create path works without it); `reports:getSale` doesn't return bundle fields (M10 — only `getSaleByInvoice` does); `pos:searchProducts` bundle_items query doesn't filter disabled components (M11). G1 `getDailyStats` bill-count includes RT- rows is a pre-existing concern.
+
+---
+
 ## Session 2026-05-20c — Product Bundle (ชุดสินค้า) Phase 1 + 2 — ✅ DONE 2026-05-20 (tsc clean, NOT click-tested)
 
-> Self-contained. Two commits: `1d794e1` (Phase 1 — sell as one, deduct as many) + `034d887` (Phase 2 — whole-bundle return from sale detail). The full design lives at [`docs/plans/product-bundle-phase1.md`](docs/plans/product-bundle-phase1.md) — pre-audited by operator + Deepseek + Gemini before any code was written; every audit finding (route convention, backend guards, 4× SQL duplication, stockStats/lowStock bundle leak, `last_cost_price` mirror, NULL-lot edge case, etc.) was folded into the plan before exit-plan-mode. Read that doc for the design rationale — this entry only logs what shipped.
+> Self-contained. Two commits: `1d794e1` (Phase 1 — sell as one, deduct as many) + `034d887` (Phase 2 — whole-bundle return from sale detail). The full design lives at [`docs/plans/done/product-bundle-phase1.md`](docs/plans/done/product-bundle-phase1.md) — pre-audited by operator + Deepseek + Gemini before any code was written; every audit finding (route convention, backend guards, 4× SQL duplication, stockStats/lowStock bundle leak, `last_cost_price` mirror, NULL-lot edge case, etc.) was folded into the plan before exit-plan-mode. Read that doc for the design rationale — this entry only logs what shipped.
 
 ### Goal
 Sell a "ชุดสินค้า" (e.g. *ชุดยาแก้ปวด* = Ibuprofen ×1 + Norgesic ×1) as **one cart line** with its own barcode / retail+wholesale price / unit / dispensing label, while still deducting each component's stock via FEFO. Void + return must work as if it were a single product. The "just make it a standalone product" workaround was rejected (component stock wouldn't move).

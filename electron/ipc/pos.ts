@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
+import { recomputeAvgCost, propagateCostToBundles } from '../db/pricing'
 import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes'
 import dayjs from 'dayjs'
 
@@ -337,10 +338,19 @@ export function registerPosHandlers() {
 
   // Whole-bundle return — Phase 2. Returns a single bundle sale_item from a
   // completed sale: restores each component's lot, marks the original
-  // sale_item_lots is_cancelled=1 (so a later void doesn't double-restore),
-  // marks the original sale_items.is_cancelled=1 (UI shows line-through), and
-  // emits an RT- sales row with one negative sale_items + N negative
-  // sale_item_lots mirroring the original.
+  // sale_items.is_cancelled=1 (UI shows line-through + voidSale skips its
+  // sale_item_lots via the si.is_cancelled=0 filter), and emits an RT- sales
+  // row with one negative sale_items + N negative sale_item_lots mirroring
+  // the original.
+  //
+  // Why we DON'T mark the original sale_item_lots is_cancelled=1: report
+  // aggregates (reports:salesList total_cost, financeSummary, etc.) filter on
+  // sil.is_cancelled=0 to skip refunded lines. If we marked the original sil
+  // rows AND inserted negative-qty mirrors on the RT- bill, the bundle's
+  // cost would be subtracted twice in any date range spanning both bills.
+  // Keeping the original sil intact + negative mirror = net-0 cost from the
+  // bundle across both bills (matches "sold then refunded" reality). voidSale
+  // uses si.is_cancelled instead to avoid re-restoring already-returned items.
   //
   // Restores to the EXACT SAME LOTS the components came from (sale_item_lots
   // is the authoritative trace) — preserves cost provenance vs. FEFO-restoring
@@ -375,6 +385,14 @@ export function registerPosHandlers() {
       if (si.is_bundle !== 1) throw new Error('รายการนี้ไม่ใช่ชุดสินค้า')
       if (si.is_cancelled === 1) throw new Error('รายการนี้ถูกคืนแล้ว')
       if (si.sale_status === 'voided') throw new Error('บิลนี้ถูกยกเลิกแล้ว — ไม่ต้องคืนชุด')
+      // Return-of-a-return guard: an RT- bill's bundle sale_item has qty <= 0
+      // (mirror of the original with negated qty). The other checks above pass
+      // for it (is_bundle=1 from the product, is_cancelled=0 because it's a
+      // fresh row, sale_status='completed' because RT- bills aren't voided),
+      // so without this check the handler would proceed and the stock-restore
+      // loop would actually DEDUCT stock (UPDATE qty_on_hand += sil.qty where
+      // sil.qty is negative).
+      if (Number(si.qty) <= 0) throw new Error('รายการนี้เป็นการคืนสินค้าอยู่แล้ว — คืนซ้ำไม่ได้')
 
       // The original deductions — these are the ground truth for what to
       // restore. Already-cancelled rows are skipped (defensive — should be
@@ -418,18 +436,20 @@ export function registerPosHandlers() {
       const newSaleItemId = itemResult.lastInsertRowid
 
       // For each original lot row: restore stock, write negative sale_item_lots
-      // mirroring it (component product_id, original lot_id), mark the original
-      // as cancelled, and log a sale_return movement.
+      // mirroring it (component product_id, original lot_id), and log a
+      // sale_return movement. We deliberately do NOT mark the original
+      // sale_item_lots rows is_cancelled=1 — instead, the higher-level
+      // sale_items.is_cancelled=1 (set below at line ~478) is what voidSale
+      // uses to skip them. This keeps cost-aggregation correct: the original
+      // bundle's positive cost and the RT- mirror's negative cost both stay
+      // visible, so total_cost across both sales nets to zero for the returned
+      // bundle (rather than being subtracted twice as it was before).
       for (const sil of origLots) {
         // Mirror the original row into the new return sale_item with negated qty.
         db.prepare(`
           INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty)
           VALUES (?, ?, ?, ?)
         `).run(newSaleItemId, sil.lot_id, sil.product_id, -sil.qty)
-
-        // Mark the original as cancelled so reports:voidSale won't restore it
-        // again if the operator later voids the entire original sale.
-        db.prepare(`UPDATE sale_item_lots SET is_cancelled = 1 WHERE id = ?`).run(sil.id)
 
         if (sil.lot_id) {
           const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(sil.lot_id) as any
@@ -438,9 +458,10 @@ export function registerPosHandlers() {
             const qtyAfter = qtyBefore + sil.qty
             // Restoring stock to a closed lot must reopen it, otherwise FEFO
             // queries (which filter is_closed=0) will hide the restored qty.
+            const wasClosed = lot.is_closed === 1
             const setParts = ['qty_on_hand = qty_on_hand + ?']
             const setVals: any[] = [sil.qty]
-            if (lot.is_closed) {
+            if (wasClosed) {
               setParts.push('is_closed = 0', 'closed_at = NULL')
             }
             db.prepare(`UPDATE product_lots SET ${setParts.join(', ')} WHERE id = ?`)
@@ -452,6 +473,18 @@ export function registerPosHandlers() {
               sil.qty, qtyBefore, qtyAfter, lot.cost_price,
               `คืนชุด ${si.trade_name} จาก ${si.orig_invoice}: ${payload.reason}`,
               payload.created_by)
+            // Reopening a lot (is_closed 1→0) brings it back into the
+            // weighted-avg pool that recomputeAvgCost uses (filter is_closed=0).
+            // Without this call, products.cost_price stays at the
+            // pre-reopen value until the next unrelated event triggers a
+            // recompute — and bundles that depend on this component stay
+            // stale too. Pure qty restores on an already-open lot don't
+            // change the avg because cost is weighted by qty_received, not
+            // qty_on_hand.
+            if (wasClosed) {
+              recomputeAvgCost(db, sil.product_id)
+              propagateCostToBundles(db, sil.product_id)
+            }
           }
         }
         // Oversold (lot_id IS NULL): no stock to restore, no movement to log.

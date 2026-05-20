@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { useToast } from '@/components/ui/toast'
 import type { ManageOutletContext } from './index'
 import { Search, PackagePlus, PackageX, Package, ShoppingCart, TrendingDown } from 'lucide-react'
+
+type StatusFilter = 'all' | 'out' | 'low'
 
 interface LowStockRow {
   product_id: number
@@ -32,11 +34,21 @@ export default function ManageLowStockPage() {
 
   const [q, setQ] = useState('')
   const [categoryId, setCategoryId] = useState<string>('0')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [rows, setRows] = useState<LowStockRow[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [outCount, setOutCount] = useState(0)
   const [totalShortfall, setTotalShortfall] = useState(0)
   const [loading, setLoading] = useState(false)
+
+  // Backend returns the full low-stock universe; status filter narrows the
+  // table on the client so the summary counts (which drive the filter chips)
+  // always reflect the unfiltered set — same pattern as Sales/Purchases.
+  const filteredRows = useMemo(() => {
+    if (statusFilter === 'out') return rows.filter(r => r.stock_qty <= 0)
+    if (statusFilter === 'low') return rows.filter(r => r.stock_qty > 0)
+    return rows
+  }, [rows, statusFilter])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -67,16 +79,32 @@ export default function ManageLowStockPage() {
 
   useEffect(() => {
     setSummary([
-      { label: 'ต้องสั่งซื้อ', value: rows.length.toLocaleString(), icon: Package, tint: 'primary' },
+      {
+        label: 'ต้องสั่งซื้อทั้งหมด',
+        value: rows.length.toLocaleString(),
+        icon: Package,
+        tint: 'primary',
+        onClick: () => setStatusFilter('all'),
+        isActive: statusFilter === 'all',
+      },
       {
         label: 'หมดสต็อก',
         value: outCount.toLocaleString(),
         icon: PackageX,
-        tint: outCount > 0 ? 'destructive' : 'success',
+        tint: 'destructive',
+        onClick: () => setStatusFilter('out'),
+        isActive: statusFilter === 'out',
       },
-      { label: 'ขาดรวม (หน่วย)', value: totalShortfall.toLocaleString(), icon: TrendingDown, tint: 'warning' },
+      {
+        label: 'ใกล้หมด',
+        value: Math.max(0, rows.length - outCount).toLocaleString(),
+        icon: TrendingDown,
+        tint: 'warm',
+        onClick: () => setStatusFilter('low'),
+        isActive: statusFilter === 'low',
+      },
     ])
-  }, [rows.length, outCount, totalShortfall, setSummary])
+  }, [rows.length, outCount, statusFilter, setSummary])
 
   return (
     <>
@@ -129,14 +157,14 @@ export default function ManageLowStockPage() {
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
-              ) : rows.length === 0 ? (
+              ) : filteredRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
                     <ShoppingCart className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่มีสินค้าที่ต่ำกว่าจุดสั่งซื้อ
                   </TableCell>
                 </TableRow>
-              ) : rows.map(r => {
+              ) : filteredRows.map(r => {
                 const isOut = r.stock_qty <= 0
                 return (
                   <TableRow key={r.product_id} className={isOut ? 'bg-destructive-soft/30' : ''}>
@@ -174,9 +202,12 @@ export default function ManageLowStockPage() {
           </Table>
         </div>
 
-        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between text-sm shrink-0">
           <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{rows.length.toLocaleString()}</span> รายการที่ต้องสั่งซื้อ</>}
+            ขาดรวม <span className="font-semibold text-warning-strong tabular-nums">{totalShortfall.toLocaleString()}</span> หน่วย
+          </span>
+          <span className="text-muted-foreground">
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{filteredRows.length.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>

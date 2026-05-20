@@ -170,11 +170,21 @@ export function registerReportHandlers() {
       const sale = db.prepare(`SELECT * FROM sales WHERE id = ?`).get(id) as any
       if (!sale || sale.status === 'voided') throw new Error('ไม่สามารถยกเลิกรายการนี้ได้')
 
-      // Restore stock for each lot
+      // Restore stock for each lot. SELECT sil.* only — sale_item_lots and
+      // sale_items BOTH have a product_id column, so `SELECT sil.*, si.product_id`
+      // collides at the better-sqlite3 row mapper (last column wins → row.product_id
+      // resolves to si.product_id, i.e. the BUNDLE id, not the component id). This
+      // was harmless pre-bundle (always equal) but corrupts stock_movements.product_id
+      // for bundle voids. The JOIN is still needed for the sale_id filter.
+      //
+      // si.is_cancelled = 0 is what skips sale_items that have ALREADY been
+      // returned via pos:returnBundle — that handler marks sale_items.is_cancelled=1
+      // but leaves sale_item_lots untouched, so aggregate cost calculations stay
+      // correct. We rely on the higher-level si flag here to avoid double-restore.
       const saleItemLots = db.prepare(`
-        SELECT sil.*, si.product_id FROM sale_item_lots sil
+        SELECT sil.* FROM sale_item_lots sil
         JOIN sale_items si ON si.id = sil.sale_item_id
-        WHERE si.sale_id = ? AND sil.is_cancelled = 0 AND sil.lot_id IS NOT NULL
+        WHERE si.sale_id = ? AND si.is_cancelled = 0 AND sil.is_cancelled = 0 AND sil.lot_id IS NOT NULL
       `).all(id) as any[]
 
       for (const sil of saleItemLots) {

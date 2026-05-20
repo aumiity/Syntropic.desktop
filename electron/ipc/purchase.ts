@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
-import { recomputeAvgCost, propagateCostToBundles } from '../db/pricing'
+import { assertNotBundle, recomputeAvgCost, propagateCostToBundles } from '../db/pricing'
 import dayjs from 'dayjs'
 
 export function registerPurchaseHandlers() {
@@ -125,6 +125,12 @@ export function registerPurchaseHandlers() {
              payload.receive_date)
 
       for (const item of payload.items) {
+        // Bundles have no own lots — block GR'ing a bundle. UI hides them via
+        // pos:searchProducts result filtering, but Purchase/PurchaseIntake call
+        // searchProducts without an is_bundle filter so this is the only
+        // backstop. assertNotBundle throws inside the transaction → rollback.
+        assertNotBundle(db, item.product_id)
+
         const existing = db.prepare(`SELECT * FROM product_lots WHERE product_id = ? AND lot_number = ?`).get(item.product_id, item.lot_number) as any
 
         let lotId: number
@@ -396,6 +402,11 @@ export function registerPurchaseHandlers() {
 
     const lines = db.prepare(`SELECT * FROM purchase_receipt_items WHERE invoice_no = ?`).all(payload.invoice_no) as any[]
     if (lines.length === 0) return { success: false, error: 'no_lines' }
+
+    // Defense in depth — once purchase:save asserts no bundles, no GR line
+    // can carry a bundle product_id. Recheck here so a legacy row from before
+    // the guard surfaces as a clear error rather than silently corrupting cost.
+    for (const line of lines) assertNotBundle(db, line.product_id)
 
     const blockers: { product_id: number; lot_id: number | null; lot_number: string; need: number; have: number }[] = []
     for (const line of lines) {

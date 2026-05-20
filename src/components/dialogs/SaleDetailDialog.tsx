@@ -125,6 +125,13 @@ export function SaleDetailDialog({
   const canReturn = (item: BundleSaleItem): boolean => {
     if (!onVoidRequest) return false  // host page doesn't expose mutation actions
     if (detail?.status === 'voided') return false
+    // RT- bills (sale_type='return') already represent a return — clicking
+    // "คืนชุด" on the negative bundle line inside one would re-process it
+    // through pos:returnBundle and actually deduct stock instead of restoring.
+    // The backend now rejects this too (qty<=0 check), but hide the button
+    // from the operator entirely so they never see an option that throws.
+    if (detail?.sale_type === 'return') return false
+    if (item.qty <= 0) return false
     if (item.is_cancelled === 1) return false
     return item.is_bundle === 1
   }

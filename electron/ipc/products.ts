@@ -1,14 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
-import { recomputeAvgCost, recomputeBundleCost, propagateCostToBundles } from '../db/pricing'
-
-// Defense in depth — every stock/lot mutation handler asserts the target
-// is NOT a bundle. UI hides these affordances for bundles, but direct IPC
-// callers could otherwise corrupt the "bundles have no lots" invariant.
-function assertNotBundle(db: ReturnType<typeof getDb>, productId: number): void {
-  const r = db.prepare(`SELECT is_bundle FROM products WHERE id = ?`).get(productId) as any
-  if (r?.is_bundle === 1) throw new Error('ทำรายการสต็อกกับชุดสินค้าไม่ได้ — ชุดสินค้าไม่มีล็อต')
-}
+import { assertNotBundle, recomputeAvgCost, recomputeBundleCost, propagateCostToBundles } from '../db/pricing'
 
 // Stock expression aware of bundles: regular products sum open lots,
 // bundles derive MIN(component_open_stock / qty_per_bundle). Used by
@@ -283,13 +275,39 @@ export function registerProductHandlers() {
     // New product has no lots yet: seed both costs from the entered value.
     // cost_price (weighted avg) will be recomputed once lots exist;
     // last_cost_price is the pricing reference until the first paid receive.
-    const r = insProduct.run({
-      ...data, code,
+    //
+    // Build a complete params object with explicit defaults for every named
+    // parameter in the INSERT — better-sqlite3 throws RangeError on any
+    // missing @-binding, and not every caller (e.g., BundlesList quick-create)
+    // fills the full product surface. Spread `data` on top so caller-provided
+    // values win. Bundle invariant is enforced last: is_bundle=1 ⇒ is_stock_item=0.
+    const isBundle = data.is_bundle === 1 ? 1 : 0
+    const defaults: Record<string, any> = {
+      barcode: null, barcode2: null, barcode3: null, barcode4: null,
+      name_for_print: null,
+      category_id: null,
+      is_stock_item: 1,
+      price_retail: 0, price_wholesale1: 0, price_wholesale2: 0,
+      cost_price: 0, last_cost_price: 0,
+      has_vat: 0,
+      reorder_point: null, safety_stock: null,
+      drug_type_id: null, tmt_id: null,
+      is_drug: 0, is_antibiotic: 0,
+      indication_note: null, side_effect_note: null,
+      is_fda9: 0, is_fda10: 0, is_fda11: 0, is_fda13: 0,
+      search_keywords: null, note: null,
+    }
+    const params = {
+      ...defaults,
+      ...data,
+      code,
       unit_id: data.unit_id ?? fallbackUnitId,
-      is_bundle: data.is_bundle ?? 0,
+      is_bundle: isBundle,
+      is_stock_item: isBundle ? 0 : (data.is_stock_item ?? 1),
       cost_price: data.cost_price ?? 0,
       last_cost_price: data.last_cost_price ?? data.cost_price ?? 0,
-    })
+    }
+    const r = insProduct.run(params)
     return db.prepare(`SELECT * FROM products WHERE id = ?`).get(r.lastInsertRowid)
   })
 
@@ -902,6 +920,14 @@ export function registerProductHandlers() {
         INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by)
         VALUES (?, ?, ?, 'expiry_report', ?, ?, 0, ?, ?, ?)
       `).run(lot.product_id, lot_id, movementType, -qtyBefore, qtyBefore, lot.cost_price, note, user_id)
+
+      // Closing the lot (is_closed: 0→1) removes it from the weighted-avg pool
+      // that recomputeAvgCost uses (filter is_closed = 0). Without this call,
+      // products.cost_price keeps the pre-disposal value until the next stock
+      // event happens to fire a recompute. Bundles containing this product
+      // also stay stale until then.
+      recomputeAvgCost(db, lot.product_id)
+      propagateCostToBundles(db, lot.product_id)
 
       return {
         success: true,
