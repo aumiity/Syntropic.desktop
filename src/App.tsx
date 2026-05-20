@@ -23,6 +23,7 @@ const ReportsLayout = lazy(() => import('./pages/Reports'))
 const ReportsFinance = lazy(() => import('./pages/Reports/Finance'))
 const ReportsPayables = lazy(() => import('./pages/Reports/Payables'))
 const ReportsFda = lazy(() => import('./pages/Reports/FdaReports'))
+const ReportsKhorYor9 = lazy(() => import('./pages/Reports/KhorYor9'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Theme = lazy(() => import('./pages/Theme'))
 const CSSPage = lazy(() => import('./pages/CSS'))
@@ -67,7 +68,10 @@ export default function App() {
               <Route path="reports" element={<ReportsLayout />}>
                 <Route index element={<ReportsFinance />} />
                 <Route path="payables" element={<ReportsPayables />} />
-                <Route path="fda" element={<ReportsFda />} />
+                <Route path="fda">
+                  <Route index element={<ReportsFda />} />
+                  <Route path="khor-yor-9" element={<ReportsKhorYor9 />} />
+                </Route>
               </Route>
               <Route path="settings" element={<Settings />} />
               <Route path="theme" element={<Theme />} />

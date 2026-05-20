@@ -371,3 +371,25 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
 * {
   font-family: var(--font-latin), var(--font-thai), sans-serif;
 }
+
+/* ── Print — official forms (ขย.9 etc.) ─────────────────────────────────
+   Strategy: hide app chrome via .no-print (sidebar, titlebar, page header,
+   tabs, filter strip). The .print-area expands to fill the printed page.
+   Authored tables inside .print-area must repeat their <thead> on each page. */
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  html, body { background: white !important; }
+  .no-print { display: none !important; }
+  .print-area {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 8mm 10mm !important;
+    margin: 0 !important;
+  }
+  .print-area thead { display: table-header-group; }
+  .print-area tr, .print-area td, .print-area th { page-break-inside: avoid; }
+}

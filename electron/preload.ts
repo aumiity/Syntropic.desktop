@@ -82,6 +82,7 @@ const api = {
     financeSummary: (filters: any) => ipcRenderer.invoke('reports:financeSummary', filters),
     salesPurchaseTrend: (filters: any) => ipcRenderer.invoke('reports:salesPurchaseTrend', filters),
     accountsPayable: () => ipcRenderer.invoke('reports:accountsPayable'),
+    khorYor9: (filters: { date_from?: string; date_to?: string }) => ipcRenderer.invoke('reports:khorYor9', filters),
   },
   // Settings
   settings: {

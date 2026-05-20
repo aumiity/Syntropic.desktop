@@ -385,4 +385,40 @@ export function registerReportHandlers() {
     const total = rows.reduce((s, r) => s + r.amount, 0)
     return { rows, total, count: rows.length, buckets }
   })
+
+  // ── ขย.9 — บัญชีการซื้อยา (Drug Purchase Record per Thai Pharmacy Council) ──
+  // One row per drug line in a non-cancelled GR within the date range. Bundle
+  // SKUs are excluded — they can carry is_drug=1 as a category hint but are
+  // sold-only constructs (purchases hit their component lots, not the bundle).
+  ipcMain.handle('reports:khorYor9', (_e, filters: { date_from?: string; date_to?: string }) => {
+    const db = getDb()
+    const { date_from, date_to } = filters
+    const conds: string[] = [
+      `pr.status = 'completed'`,
+      `pr.cancelled_at IS NULL`,
+      `p.is_drug = 1`,
+      `p.is_bundle = 0`,
+    ]
+    const params: any[] = []
+    if (date_from) { conds.push(`date(pr.created_at) >= date(?)`); params.push(date_from) }
+    if (date_to)   { conds.push(`date(pr.created_at) <= date(?)`); params.push(date_to) }
+
+    return db.prepare(`
+      SELECT
+        pr.invoice_no                                              AS invoice_no,
+        pr.created_at                                              AS purchase_date,
+        COALESCE(s.name, '')                                       AS supplier_name,
+        COALESCE(NULLIF(p.name_for_print,''), p.trade_name)        AS drug_name,
+        COALESCE(pri.lot_number, '')                               AS lot_number,
+        pri.qty                                                    AS qty,
+        COALESCE(u.name, '')                                       AS unit_name
+      FROM purchase_receipt_items pri
+      JOIN purchase_receipts pr ON pr.invoice_no = pri.invoice_no
+      JOIN products          p  ON p.id  = pri.product_id
+      LEFT JOIN suppliers    s  ON s.id  = pr.supplier_id
+      LEFT JOIN item_units   u  ON u.id  = p.unit_id
+      WHERE ${conds.join(' AND ')}
+      ORDER BY pr.created_at ASC, pri.invoice_no ASC, pri.id ASC
+    `).all(...params)
+  })
 }

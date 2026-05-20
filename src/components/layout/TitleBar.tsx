@@ -27,7 +27,7 @@ export function TitleBar() {
 
   return (
     <div
-      className="absolute top-0 left-0 right-0 flex items-center justify-end h-9 select-none z-50"
+      className="no-print absolute top-0 left-0 right-0 flex items-center justify-end h-9 select-none z-50"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       {/* Windows-style controls: minimize | maximize | close */}
