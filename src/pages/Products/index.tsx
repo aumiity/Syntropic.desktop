@@ -226,7 +226,7 @@ export default function ProductsPage() {
                 <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-28">ราคาขาย</SortableTableHead>
                 <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="hidden md:table-cell min-w-36">กำไร</SortableTableHead>
                 <SortableTableHead field="stock_qty" align="center" sort={sort} onToggle={toggleSort} className="min-w-28">สต็อก</SortableTableHead>
-                <TableHead className="text-center min-w-20">จัดการ</TableHead>
+                <TableHead className="text-center min-w-16">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -304,7 +304,7 @@ export default function ProductsPage() {
             <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>

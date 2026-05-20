@@ -254,7 +254,7 @@ export default function ManageExpiryPage() {
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{totalLots.toLocaleString()}</span> ล็อต</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{totalLots.toLocaleString()}</span> ล็อต</>}
           </span>
         </div>
       </div>

@@ -124,14 +124,14 @@ export function HistoryTab({ productId, isNew, active }: Props) {
   return (
     <div className="pt-4 flex-1 min-h-0 flex flex-col">
       <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
-        {/* Date range bar */}
-        <div className="h-14 px-2 flex items-center gap-3 shrink-0">
-          <span className="text-sm font-semibold text-muted-foreground shrink-0">ช่วงวันที่:</span>
+        {/* Top bar — date range + filter chips + clear buttons, all on one row.
+            min-h-14 + flex-wrap so it gracefully grows on narrow viewports. */}
+        <div className="min-h-14 px-2 py-2 flex items-center flex-wrap gap-2 shrink-0">
           <DateRangePicker
             from={movementDateFrom}
             to={movementDateTo}
             onChange={(f, t) => { setMovementDateFrom(f); setMovementDateTo(t) }}
-            className="h-9 w-72"
+            className="h-9 w-60 shrink-0"
           />
           {(movementDateFrom || movementDateTo) && (
             <Button
@@ -143,11 +143,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
               ล้างวันที่
             </Button>
           )}
-        </div>
-        {/* Filter bar: chips on the left, bulk actions on the right */}
-        <div className="h-14 px-2 flex items-center gap-3 shrink-0">
-          <span className="text-sm font-semibold text-muted-foreground shrink-0">ตัวกรอง:</span>
-          <div className="flex flex-wrap items-center gap-1.5 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
             {Object.entries(MOVEMENT_META).map(([type, meta]) => {
               const active = movementTypeFilter.has(type)
               return (
@@ -195,7 +191,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                 <TableHead className="min-w-40 text-center">Lot</TableHead>
                 <TableHead className="min-w-28 text-right">เปลี่ยนแปลง</TableHead>
                 <TableHead className="min-w-28 text-right">คงเหลือ</TableHead>
-                <TableHead className="min-w-40 text-center">ดูข้อมูล</TableHead>
+                <TableHead className="min-w-32 text-center">ดูข้อมูล</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -294,7 +290,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
             <RotateCcw className="size-4" /> รีเฟรช
           </Button>
           <span className="shrink-0">
-            พบ{' '}
+            แสดง{' '}
             <span className="font-semibold text-foreground tabular-nums">
               {filteredMovements.length}
             </span>

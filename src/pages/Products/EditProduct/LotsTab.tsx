@@ -147,14 +147,14 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-32">Lot No.</TableHead>
+                <TableHead className="min-w-28">Lot No.</TableHead>
                 <TableHead className="min-w-32">ผู้จัดจำหน่าย</TableHead>
                 <TableHead className="min-w-24">วันหมดอายุ</TableHead>
                 <TableHead className="min-w-20 text-right">ราคาทุน</TableHead>
                 <TableHead className="min-w-20 text-right">รับเข้า</TableHead>
                 <TableHead className="min-w-20 text-right">คงเหลือ</TableHead>
                 <TableHead className="min-w-20 text-center">สถานะ</TableHead>
-                <TableHead className="min-w-20 text-center">จัดการ</TableHead>
+                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -34,14 +34,18 @@ export function registerReportHandlers() {
     const rowConditions = statusCond ? [...baseConditions, statusCond] : baseConditions
     const where = rowConditions.length ? `WHERE ${rowConditions.join(' AND ')}` : ''
     const baseWhere = baseConditions.length ? `WHERE ${baseConditions.join(' AND ')}` : ''
-    const validSorts = ['sold_at', 'invoice_no', 'subtotal', 'total_discount', 'total_amount']
-    const sortCol = validSorts.includes(sort_by) ? `s.${sort_by}` : 's.sold_at'
+    const validSorts = ['sold_at', 'invoice_no', 'subtotal', 'total_discount', 'total_amount', 'item_kinds']
+    // item_kinds is a computed alias on the SELECT, not a column on s.
+    const sortCol = !validSorts.includes(sort_by) ? 's.sold_at'
+      : sort_by === 'item_kinds' ? 'item_kinds'
+      : `s.${sort_by}`
     const sortDirection = sort_dir === 'ASC' ? 'ASC' : 'DESC'
 
     const limitClause = limit ? `LIMIT ? OFFSET ?` : ''
     const limitParams = limit ? [limit, offset] : []
     const rows = db.prepare(`
-      SELECT s.*, c.full_name as customer_name
+      SELECT s.*, c.full_name as customer_name,
+        (SELECT COUNT(DISTINCT si.product_id) FROM sale_items si WHERE si.sale_id = s.id AND si.is_cancelled = 0) as item_kinds
       FROM sales s
       LEFT JOIN customers c ON c.id = s.customer_id
       ${where}

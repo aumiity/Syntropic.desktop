@@ -176,7 +176,7 @@ export default function ManageLowStockPage() {
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{rows.length.toLocaleString()}</span> รายการที่ต้องสั่งซื้อ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{rows.length.toLocaleString()}</span> รายการที่ต้องสั่งซื้อ</>}
           </span>
         </div>
       </div>

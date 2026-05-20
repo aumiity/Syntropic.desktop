@@ -104,6 +104,7 @@ export function SaleDetailDialog({
                       pinned tfoot's border-t below. */}
                   <TableHeader className="[&_th]:border-b [&_th]:border-border">
                     <TableRow>
+                      <TableHead className="text-center w-8">#</TableHead>
                       <TableHead>รายการ</TableHead>
                       <TableHead className="text-center">หน่วย</TableHead>
                       <TableHead className="text-right">จำนวน</TableHead>
@@ -115,10 +116,11 @@ export function SaleDetailDialog({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {detail.items.map(item => {
+                    {detail.items.map((item, i) => {
                       const profit = item.line_total - (item.item_cost ?? 0)
                       return (
                         <TableRow key={item.id} className={item.is_cancelled ? 'opacity-40 line-through' : ''}>
+                          <TableCell className="text-center text-xs text-muted-foreground tabular-nums">{i + 1}</TableCell>
                           <TableCell>
                             <div className="font-medium text-sm">{item.item_name}</div>
                             {item.item_note && <div className="text-sm text-muted-foreground">{item.item_note}</div>}
@@ -144,7 +146,7 @@ export function SaleDetailDialog({
                       bg-muted so scrolling rows don't bleed through. */}
                   <tfoot>
                     <tr className="[&>td]:sticky [&>td]:bottom-9 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
-                      <td colSpan={4} className="px-4 py-2" />
+                      <td colSpan={5} className="px-4 py-2" />
                       <td className="px-4 py-2 text-right text-sm font-medium text-muted-foreground">รวมส่วนลด</td>
                       <td className="px-4 py-2 text-right text-sm font-medium text-warning-strong">
                         {detail.total_discount > 0 ? `-${formatCurrency(detail.total_discount)}` : '—'}
@@ -152,7 +154,7 @@ export function SaleDetailDialog({
                       <td colSpan={2} />
                     </tr>
                     <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted">
-                      <td colSpan={4} className="px-4 py-2" />
+                      <td colSpan={5} className="px-4 py-2" />
                       <td className="px-4 py-2 text-right text-sm font-bold">ยอดสุทธิ</td>
                       <td className="px-4 py-2 text-right font-bold text-primary">{formatCurrency(detail.total_amount)}</td>
                       <td className="px-4 py-2 text-right text-sm text-muted-foreground">

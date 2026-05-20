@@ -30,6 +30,7 @@ interface SaleSummary {
 
 interface SaleRow extends Sale {
   customer_name?: string
+  item_kinds?: number
 }
 
 const EMPTY_SUMMARY: SaleSummary = {
@@ -45,7 +46,7 @@ const SALE_TYPE_VARIANTS: Record<string, any> = {
   retail: 'secondary', wholesale: 'default', rx: 'success', return: 'warning',
 }
 
-type SortField = 'invoice_no' | 'sold_at' | 'total_amount'
+type SortField = 'invoice_no' | 'sold_at' | 'total_amount' | 'item_kinds'
 type SortDir = 'asc' | 'desc'
 interface SortState { by: SortField; dir: SortDir }
 
@@ -163,7 +164,7 @@ export default function ManageSalesPage() {
             from={dateFrom}
             to={dateTo}
             onChange={(f, t) => { setDateFrom(f); setDateTo(t) }}
-            className="h-9 w-72 shrink-0 bg-input hover:bg-surface-hover"
+            className="h-9 w-60 shrink-0 bg-input hover:bg-surface-hover"
           />
         </div>
 
@@ -172,22 +173,23 @@ export default function ManageSalesPage() {
             <TableHeader>
               <TableRow>
                 <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="w-36">วันที่/เวลา</SortableTableHead>
-                <SortableTableHead field="invoice_no" sort={sort} onToggle={toggleSort} className="w-36">เลขบิล</SortableTableHead>
+                <SortableTableHead field="invoice_no" sort={sort} onToggle={toggleSort} className="w-40">เลขบิล</SortableTableHead>
                 <TableHead className="w-48">ลูกค้า</TableHead>
                 <TableHead className="text-center w-24">ประเภท</TableHead>
+                <SortableTableHead field="item_kinds" align="center" sort={sort} onToggle={toggleSort} className="w-24">รายการ</SortableTableHead>
                 <SortableTableHead field="total_amount" align="right" sort={sort} onToggle={toggleSort} className="w-32">ยอดสุทธิ</SortableTableHead>
                 <TableHead className="text-center w-24">สถานะ</TableHead>
-                <TableHead className="text-center w-40">จัดการ</TableHead>
+                <TableHead className="text-center w-16">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
                     <Receipt className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูล
                   </TableCell>
@@ -203,6 +205,9 @@ export default function ManageSalesPage() {
                     <Badge variant={SALE_TYPE_VARIANTS[s.sale_type] ?? 'secondary'}>
                       {SALE_TYPE_LABELS[s.sale_type] ?? s.sale_type}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-center text-sm tabular-nums text-foreground">
+                    {(s.item_kinds ?? 0).toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">
                     {formatCurrency(s.total_amount)}
@@ -249,7 +254,7 @@ export default function ManageSalesPage() {
             <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>

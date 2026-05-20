@@ -413,7 +413,7 @@ export default function ManagePurchasesPage() {
             <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loadingHist ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{histTotal.toLocaleString()}</span> รายการ</>}
+            {loadingHist ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{histTotal.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>

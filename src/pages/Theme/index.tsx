@@ -940,7 +940,7 @@ export default function Theme() {
                     <div className="flex-1 flex justify-center">
                       <Pagination page={page} totalPages={10} onPageChange={setPage} className="w-auto justify-center" />
                     </div>
-                    <span className="text-muted-foreground shrink-0">พบ <span className="font-semibold text-foreground tabular-nums">{PRODUCTS.length * 3}</span> รายการ</span>
+                    <span className="text-muted-foreground shrink-0">แสดง <span className="font-semibold text-foreground tabular-nums">{PRODUCTS.length * 3}</span> รายการ</span>
                   </div>
                 </div>
               </Section>

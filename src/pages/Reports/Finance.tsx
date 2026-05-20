@@ -253,7 +253,7 @@ export default function ReportsFinancePage() {
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>พบ <span className="font-semibold text-foreground tabular-nums">{trend.length.toLocaleString()}</span> วัน</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{trend.length.toLocaleString()}</span> วัน</>}
           </span>
         </div>
       </div>
