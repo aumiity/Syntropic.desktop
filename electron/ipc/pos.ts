@@ -3,6 +3,57 @@ import { getDb } from '../db'
 import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes'
 import dayjs from 'dayjs'
 
+// FEFO deduction shared by single-product sales and bundle-component sales.
+// Takes BASE-unit qty — the caller multiplies by qty_per_base for non-base
+// unit sales. Bundles iterate this helper once per component.
+//
+// Behavior (intentionally preserved from the pre-refactor inline loop):
+// - Walks open lots ordered by expiry_date ASC.
+// - Each take inserts a sale_item_lots row + a stock_movements 'sale' row,
+//   tagged with the COMPONENT's product_id (independent of sale_items.product_id).
+//   This makes void/return work for bundles with no reports.ts changes.
+// - Oversell remainder is written as ONE sale_item_lots row with lot_id=NULL.
+// - Does NOT auto-close lots at qty_on_hand=0 — FEFO queries filter
+//   `qty_on_hand > 0 AND is_closed=0` already; adjustStock/updateLot owns
+//   the close-toggle behavior. Adding it here would change semantics.
+function deductFefo(
+  db: any,
+  productId: number,
+  baseQty: number,
+  saleItemId: number | bigint,
+  saleId: number | bigint,
+  invoiceNo: string,
+  soldBy: number,
+): void {
+  const lots = db.prepare(`
+    SELECT * FROM product_lots
+    WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0
+    ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC
+  `).all(productId) as any[]
+
+  let remaining = baseQty
+  for (const lot of lots) {
+    if (remaining <= 0) break
+    const deduct = Math.min(lot.qty_on_hand, remaining)
+    const qtyBefore = lot.qty_on_hand
+    db.prepare(`UPDATE product_lots SET qty_on_hand = qty_on_hand - ? WHERE id = ?`).run(deduct, lot.id)
+    db.prepare(`INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty) VALUES (?, ?, ?, ?)`)
+      .run(saleItemId, lot.id, productId, deduct)
+    db.prepare(`INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, unit_cost, note, created_by)
+      VALUES (?, ?, 'sale', 'sale', ?, ?, ?, ?, ?, ?, ?)`).run(
+      productId, lot.id, saleId, -deduct, qtyBefore, qtyBefore - deduct, lot.cost_price,
+      `ขาย: ${invoiceNo}`, soldBy
+    )
+    remaining -= deduct
+  }
+
+  if (remaining > 0) {
+    // Oversold — record the unfulfilled portion against no lot.
+    db.prepare(`INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty) VALUES (?, NULL, ?, ?)`)
+      .run(saleItemId, productId, remaining)
+  }
+}
+
 export function registerPosHandlers() {
   // Search products for POS
   ipcMain.handle('pos:searchProducts', (_e, query: string) => {
@@ -46,6 +97,30 @@ export function registerPosHandlers() {
         WHERE pu.product_id = ? AND pu.is_disabled = 0 AND pu.is_for_sale = 1
         ORDER BY pu.qty_per_base ASC
       `).all(prod.id)
+
+      // Bundles carry composition + per-component lots so POS can FEFO-cost
+      // the preview without a second round-trip.
+      if (prod.is_bundle === 1) {
+        const items = db.prepare(`
+          SELECT bi.*,
+                 c.trade_name as component_name,
+                 u.name as component_unit_name,
+                 c.cost_price as component_cost
+          FROM product_bundle_items bi
+          JOIN products c ON c.id = bi.component_product_id
+          LEFT JOIN item_units u ON u.id = c.unit_id
+          WHERE bi.bundle_id = ?
+          ORDER BY bi.sort_order, bi.id
+        `).all(prod.id) as any[]
+        for (const it of items) {
+          it.lots = db.prepare(`
+            SELECT * FROM product_lots
+            WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0
+            ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC
+          `).all(it.component_product_id)
+        }
+        prod.bundle_items = items
+      }
     }
 
     return products
@@ -139,32 +214,31 @@ export function registerPosHandlers() {
         `).run(saleId, item.product_id, item.item_name, item.unit_name, item.qty, item.unit_price, item.discount, item.line_total, item.item_note ?? '')
         const saleItemId = itemResult.lastInsertRowid
 
-        // FEFO stock deduction
-        const lots = db.prepare(`
-          SELECT * FROM product_lots
-          WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0
-          ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC
-        `).all(item.product_id) as any[]
+        // Resolve bundle status from authoritative source — payload could be
+        // stale (the client may have searched before the product was flipped).
+        const prod = db.prepare(`SELECT is_bundle FROM products WHERE id = ?`)
+          .get(item.product_id) as { is_bundle: number } | undefined
 
-        // Lots are stored in BASE units; item.qty is in the sold unit.
-        let remaining = item.qty * (item.qty_per_base ?? 1)
-        for (const lot of lots) {
-          if (remaining <= 0) break
-          const deduct = Math.min(lot.qty_on_hand, remaining)
-          const qtyBefore = lot.qty_on_hand
-          db.prepare(`UPDATE product_lots SET qty_on_hand = qty_on_hand - ? WHERE id = ?`).run(deduct, lot.id)
-          db.prepare(`INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty) VALUES (?, ?, ?, ?)`).run(saleItemId, lot.id, item.product_id, deduct)
-          db.prepare(`INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, unit_cost, note, created_by)
-            VALUES (?, ?, 'sale', 'sale', ?, ?, ?, ?, ?, ?, ?)`).run(
-            item.product_id, lot.id, saleId, -deduct, qtyBefore, qtyBefore - deduct, lot.cost_price,
-            `ขาย: ${invoiceNo}`, payload.sold_by
-          )
-          remaining -= deduct
-        }
+        if (prod?.is_bundle === 1) {
+          // Bundle: 1 sale_items row (the bundle) + N sale_item_lots rows
+          // (one per component lot, tagged with the COMPONENT's product_id).
+          // Void/return restoration in reports.ts iterates these rows by
+          // sale_item_lots.product_id, so each component lot returns to its
+          // own product automatically — no special-case there.
+          const components = db.prepare(`
+            SELECT component_product_id, qty_per_bundle
+            FROM product_bundle_items
+            WHERE bundle_id = ?
+          `).all(item.product_id) as Array<{ component_product_id: number; qty_per_bundle: number }>
 
-        // Handle oversold (no stock)
-        if (remaining > 0) {
-          db.prepare(`INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty) VALUES (?, NULL, ?, ?)`).run(saleItemId, item.product_id, remaining)
+          // qty_per_base is irrelevant for v1 bundles (always sold in base unit).
+          for (const comp of components) {
+            const componentBaseQty = Number(comp.qty_per_bundle) * item.qty
+            deductFefo(db, comp.component_product_id, componentBaseQty, saleItemId, saleId, invoiceNo, payload.sold_by)
+          }
+        } else {
+          // Regular product — qty_per_base converts sold-unit qty into base qty.
+          deductFefo(db, item.product_id, item.qty * (item.qty_per_base ?? 1), saleItemId, saleId, invoiceNo, payload.sold_by)
         }
       }
 

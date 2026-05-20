@@ -1,5 +1,32 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
+import { recomputeAvgCost, recomputeBundleCost, propagateCostToBundles } from '../db/pricing'
+
+// Defense in depth — every stock/lot mutation handler asserts the target
+// is NOT a bundle. UI hides these affordances for bundles, but direct IPC
+// callers could otherwise corrupt the "bundles have no lots" invariant.
+function assertNotBundle(db: ReturnType<typeof getDb>, productId: number): void {
+  const r = db.prepare(`SELECT is_bundle FROM products WHERE id = ?`).get(productId) as any
+  if (r?.is_bundle === 1) throw new Error('ทำรายการสต็อกกับชุดสินค้าไม่ได้ — ชุดสินค้าไม่มีล็อต')
+}
+
+// Stock expression aware of bundles: regular products sum open lots,
+// bundles derive MIN(component_open_stock / qty_per_bundle). Used by
+// products:list (sort + filter), stockStats, and anywhere else that
+// needs "how many of this can we sell right now".
+const STOCK_EXPR = `
+  CASE WHEN p.is_bundle = 1 THEN
+    COALESCE((
+      SELECT MIN(CAST(
+        (SELECT COALESCE(SUM(qty_on_hand),0) FROM product_lots
+         WHERE product_id = bi.component_product_id AND is_closed = 0) / bi.qty_per_bundle
+      AS INTEGER))
+      FROM product_bundle_items bi WHERE bi.bundle_id = p.id
+    ), 0)
+  ELSE
+    COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)
+  END
+`
 
 export function registerProductHandlers() {
   ipcMain.handle('products:list', (_e, filters: {
@@ -8,9 +35,10 @@ export function registerProductHandlers() {
     sort_by?: string; sort_dir?: 'asc' | 'desc'
     stock_filter?: 'all' | 'low' | 'out'
     include_disabled?: boolean
+    is_bundle?: 0 | 1
   }) => {
     const db = getDb()
-    const { q, category_id, drug_type_id, page = 1, limit: limitOpt, sort_by, sort_dir, stock_filter, include_disabled } = filters
+    const { q, category_id, drug_type_id, page = 1, limit: limitOpt, sort_by, sort_dir, stock_filter, include_disabled, is_bundle } = filters
     const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 50)
     const offset = limit ? (page - 1) * limit : 0
     const conditions: string[] = []
@@ -26,15 +54,16 @@ export function registerProductHandlers() {
     }
     if (category_id) { conditions.push(`p.category_id = ?`); params.push(category_id) }
     if (drug_type_id) { conditions.push(`p.drug_type_id = ?`); params.push(drug_type_id) }
+    // Bundle filter: ProductsList passes 0, BundlesList passes 1; undefined = no filter.
+    if (is_bundle === 0 || is_bundle === 1) { conditions.push(`p.is_bundle = ?`); params.push(is_bundle) }
 
     // Stock-state filter: 'low' / 'out' narrow the result; 'all' (or missing) is a no-op.
-    // Same SUM-of-open-lots expression as stockStats, kept inline to share the WHERE.
+    // Uses STOCK_EXPR so bundles evaluate against their derived capacity.
     if (stock_filter === 'out' || stock_filter === 'low') {
-      const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
       if (stock_filter === 'out') {
-        conditions.push(`${stockExpr} <= 0`)
+        conditions.push(`(${STOCK_EXPR}) <= 0`)
       } else {
-        conditions.push(`${stockExpr} > 0 AND p.reorder_point > 0 AND ${stockExpr} <= p.reorder_point`)
+        conditions.push(`(${STOCK_EXPR}) > 0 AND p.reorder_point > 0 AND (${STOCK_EXPR}) <= p.reorder_point`)
       }
     }
 
@@ -66,7 +95,8 @@ export function registerProductHandlers() {
     const rows = db.prepare(`
       SELECT p.*, c.name as category_name, dt.name_th as drug_type_name,
              u.name as unit_name,
-             COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0) as stock_qty
+             (${STOCK_EXPR}) as stock_qty,
+             (SELECT COUNT(*) FROM product_bundle_items WHERE bundle_id = p.id) as component_count
       FROM products p
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN drug_types dt ON dt.id = p.drug_type_id
@@ -79,9 +109,10 @@ export function registerProductHandlers() {
 
   ipcMain.handle('products:stockStats', (_e, filters: {
     q?: string; category_id?: number; drug_type_id?: number; include_disabled?: boolean
+    is_bundle?: 0 | 1
   }) => {
     const db = getDb()
-    const { q, category_id, drug_type_id, include_disabled } = filters
+    const { q, category_id, drug_type_id, include_disabled, is_bundle } = filters
     const conditions: string[] = []
     const params: any[] = []
 
@@ -94,22 +125,28 @@ export function registerProductHandlers() {
     }
     if (category_id) { conditions.push(`p.category_id = ?`); params.push(category_id) }
     if (drug_type_id) { conditions.push(`p.drug_type_id = ?`); params.push(drug_type_id) }
+    // Bundle filter — ProductsList passes 0 so the "out" / "low" / total stats
+    // don't get inflated by bundles (which have is_stock_item=0 and no lots).
+    if (is_bundle === 0 || is_bundle === 1) { conditions.push(`p.is_bundle = ?`); params.push(is_bundle) }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
-
-    const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
 
     const andStock = (extra: string) => where
       ? `${where} AND ${extra}`
       : `WHERE ${extra}`
-    const out = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`${stockExpr} <= 0`)}`).get(...params) as any).c
-    const low = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`${stockExpr} > 0 AND p.reorder_point > 0 AND ${stockExpr} <= p.reorder_point`)}`).get(...params) as any).c
-    // Total — used by "สินค้าทั้งหมด" stat card. Respects only the "include_disabled"
-    // toggle, never the search/category/drug-type filters, so it doesn't shrink
-    // as the user narrows the list.
+    const out = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`(${STOCK_EXPR}) <= 0`)}`).get(...params) as any).c
+    const low = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`(${STOCK_EXPR}) > 0 AND p.reorder_point > 0 AND (${STOCK_EXPR}) <= p.reorder_point`)}`).get(...params) as any).c
+    // Total — used by "สินค้าทั้งหมด" stat card. Respects "include_disabled" and
+    // "is_bundle" (so the count matches what the user actually sees in the list),
+    // but ignores the search/category/drug-type filters.
+    const totalCond: string[] = []
+    const totalParams: any[] = []
+    if (!include_disabled) totalCond.push('is_disabled = 0')
+    if (is_bundle === 0 || is_bundle === 1) { totalCond.push('is_bundle = ?'); totalParams.push(is_bundle) }
+    const totalWhere = totalCond.length ? `WHERE ${totalCond.join(' AND ')}` : ''
     const total_all = (db.prepare(
-      `SELECT COUNT(*) as c FROM products ${include_disabled ? '' : 'WHERE is_disabled = 0'}`
-    ).get() as any).c
+      `SELECT COUNT(*) as c FROM products ${totalWhere}`
+    ).get(...totalParams) as any).c
 
     return { out, low, total_all }
   })
@@ -135,6 +172,9 @@ export function registerProductHandlers() {
 
     // Same SUM-of-open-lots expression as products:list / stockStats.
     const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
+    // Bundles are never "low-stock" in the reorder sense — they have no
+    // reorder_point and no own lots. Hardcode the exclusion.
+    conditions.push(`p.is_bundle = 0`)
     conditions.push(`p.reorder_point > 0`)
     conditions.push(`${stockExpr} <= p.reorder_point`)
     const where = `WHERE ${conditions.join(' AND ')}`
@@ -168,7 +208,7 @@ export function registerProductHandlers() {
       FROM products p
       LEFT JOIN item_units u ON u.id = p.unit_id
       WHERE p.id = ?
-    `).get(id)
+    `).get(id) as any
     if (!product) return null
     const units = db.prepare(`
       SELECT pu.*, u.name as unit_name FROM product_units pu
@@ -184,7 +224,24 @@ export function registerProductHandlers() {
       LEFT JOIN label_meal_relations lm ON lm.id = pl.timing_id
       WHERE pl.product_id = ? ORDER BY pl.sort_order, pl.id
     `).all(id)
-    return { ...(product as any), units, lots, labels }
+    // Bundles carry their composition. Joined display fields (component_name etc.)
+    // make EditBundle's ComponentsTab render without a second IPC round-trip.
+    const bundle_items = product.is_bundle === 1
+      ? db.prepare(`
+          SELECT bi.*,
+                 c.trade_name as component_name,
+                 u.name as component_unit_name,
+                 c.cost_price as component_cost,
+                 COALESCE((SELECT SUM(qty_on_hand) FROM product_lots
+                           WHERE product_id = c.id AND is_closed = 0), 0) as component_stock
+          FROM product_bundle_items bi
+          JOIN products c ON c.id = bi.component_product_id
+          LEFT JOIN item_units u ON u.id = c.unit_id
+          WHERE bi.bundle_id = ?
+          ORDER BY bi.sort_order, bi.id
+        `).all(id)
+      : []
+    return { ...product, units, lots, labels, bundle_items }
   })
 
   ipcMain.handle('products:create', (_e, data: any) => {
@@ -202,7 +259,7 @@ export function registerProductHandlers() {
 
     const insProduct = db.prepare(`
       INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,
-        category_id, is_stock_item,
+        category_id, is_stock_item, is_bundle,
         price_retail, price_wholesale1, price_wholesale2, cost_price, last_cost_price,
         unit_id,
         has_vat, reorder_point, safety_stock,
@@ -212,7 +269,7 @@ export function registerProductHandlers() {
         is_fda9, is_fda10, is_fda11, is_fda13,
         search_keywords, note)
       VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,
-        @category_id, @is_stock_item,
+        @category_id, @is_stock_item, @is_bundle,
         @price_retail, @price_wholesale1, @price_wholesale2, @cost_price, @last_cost_price,
         @unit_id,
         @has_vat, @reorder_point, @safety_stock,
@@ -229,6 +286,7 @@ export function registerProductHandlers() {
     const r = insProduct.run({
       ...data, code,
       unit_id: data.unit_id ?? fallbackUnitId,
+      is_bundle: data.is_bundle ?? 0,
       cost_price: data.cost_price ?? 0,
       last_cost_price: data.last_cost_price ?? data.cost_price ?? 0,
     })
@@ -350,19 +408,14 @@ export function registerProductHandlers() {
     if (!data.qty || data.qty <= 0) throw new Error('จำนวนต้องมากกว่า 0')
 
     const db = getDb()
+    assertNotBundle(db, productId)
 
-    const recomputeAvgCost = (pid: number) => {
-      const agg = db.prepare(`
-        SELECT
-          COALESCE(SUM(qty_received * cost_price), 0) as cost_sum,
-          COALESCE(SUM(qty_received), 0) as qty_sum
-        FROM product_lots
-        WHERE product_id = ? AND qty_received > 0 AND is_closed = 0
-      `).get(pid) as any
-      if (agg.qty_sum > 0) {
-        db.prepare(`UPDATE products SET cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
-          .run(agg.cost_sum / agg.qty_sum, pid)
-      }
+    // Helper that mirrors recomputeAvgCost + propagateCostToBundles so callers
+    // below can stay terse. The shared helpers from electron/db/pricing.ts run
+    // inside the same transaction (db param threaded through).
+    const recompute = (pid: number) => {
+      recomputeAvgCost(db, pid)
+      propagateCostToBundles(db, pid)
     }
 
     return db.transaction(() => {
@@ -409,7 +462,7 @@ export function registerProductHandlers() {
           remaining -= deduct
         }
 
-        recomputeAvgCost(productId)
+        recompute(productId)
         return { success: true, mode: 'decrease', affected_lots: affected }
       }
 
@@ -458,7 +511,7 @@ export function registerProductHandlers() {
           VALUES (?, ?, 'adjust_in', 'adjust', ?, 0, ?, ?, ?, ?)
         `).run(productId, newLotId, data.qty, data.qty, cost, data.note, data.userId)
 
-        recomputeAvgCost(productId)
+        recompute(productId)
         return { success: true, mode: 'increase_new_lot', lot_id: newLotId, lot_number: lotNumber, cost_price: cost }
       }
 
@@ -511,7 +564,7 @@ export function registerProductHandlers() {
           `).run(data.target_lot_id, productId, oldCost, newLotCost, `เพิ่มสต็อกเข้าล็อตเดิม: ${data.note}`, data.userId)
         }
 
-        recomputeAvgCost(productId)
+        recompute(productId)
         return {
           success: true,
           mode: 'increase_existing_lot',
@@ -588,13 +641,69 @@ export function registerProductHandlers() {
     return getDb().prepare(`SELECT * FROM drug_generic_names WHERE name LIKE ? AND is_disabled=0 LIMIT 10`).all(`%${q}%`)
   })
 
-  // Lots for a product
+  // Lots for a product. Bundles have no lots — return empty rather than throw
+  // (less surprising for callers that defensively call this on any product id).
   ipcMain.handle('products:getLots', (_e, productId: number) => {
-    return getDb().prepare(`
+    const db = getDb()
+    const row = db.prepare(`SELECT is_bundle FROM products WHERE id = ?`).get(productId) as any
+    if (row?.is_bundle === 1) return []
+    return db.prepare(`
       SELECT pl.*, s.name as supplier_name FROM product_lots pl
       LEFT JOIN suppliers s ON s.id = pl.supplier_id
       WHERE pl.product_id = ? ORDER BY pl.created_at DESC
     `).all(productId)
+  })
+
+  // Bundle items — composition of a is_bundle=1 product.
+  ipcMain.handle('products:getBundleItems', (_e, bundleId: number) => {
+    return getDb().prepare(`
+      SELECT bi.*,
+             c.trade_name as component_name,
+             u.name as component_unit_name,
+             c.cost_price as component_cost,
+             COALESCE((SELECT SUM(qty_on_hand) FROM product_lots
+                       WHERE product_id = c.id AND is_closed = 0), 0) as component_stock
+      FROM product_bundle_items bi
+      JOIN products c ON c.id = bi.component_product_id
+      LEFT JOIN item_units u ON u.id = c.unit_id
+      WHERE bi.bundle_id = ?
+      ORDER BY bi.sort_order, bi.id
+    `).all(bundleId)
+  })
+
+  // Replace the entire composition of a bundle in one transaction. Validates
+  // that the target is actually a bundle, each component exists and is itself
+  // a non-bundle non-disabled product, and qty_per_bundle > 0. Recomputes
+  // bundle cost at the end.
+  ipcMain.handle('products:saveBundleItems', (_e, bundleId: number, items: Array<{
+    component_product_id: number; qty_per_bundle: number
+  }>) => {
+    const db = getDb()
+    return db.transaction(() => {
+      const bundle = db.prepare(`SELECT id, is_bundle FROM products WHERE id = ?`).get(bundleId) as any
+      if (!bundle) throw new Error('ไม่พบชุดสินค้า')
+      if (bundle.is_bundle !== 1) throw new Error('สินค้านี้ไม่ใช่ชุดสินค้า')
+
+      for (const it of items) {
+        if (!it.component_product_id) throw new Error('ส่วนประกอบไม่ถูกต้อง')
+        if (it.component_product_id === bundleId) throw new Error('ชุดสินค้ามีตัวเองเป็นส่วนประกอบไม่ได้')
+        if (!it.qty_per_bundle || Number(it.qty_per_bundle) <= 0) throw new Error('จำนวนต่อชุดต้องมากกว่า 0')
+        const c = db.prepare(`SELECT id, trade_name, is_bundle, is_disabled FROM products WHERE id = ?`).get(it.component_product_id) as any
+        if (!c) throw new Error('ไม่พบส่วนประกอบ')
+        if (c.is_bundle === 1) throw new Error(`"${c.trade_name}" เป็นชุดสินค้า — ห้ามซ้อน`)
+        if (c.is_disabled === 1) throw new Error(`"${c.trade_name}" ถูกพักใช้งาน`)
+      }
+
+      db.prepare(`DELETE FROM product_bundle_items WHERE bundle_id = ?`).run(bundleId)
+      const ins = db.prepare(`
+        INSERT INTO product_bundle_items (bundle_id, component_product_id, qty_per_bundle, sort_order)
+        VALUES (?, ?, ?, ?)
+      `)
+      items.forEach((it, i) => ins.run(bundleId, it.component_product_id, Number(it.qty_per_bundle), i + 1))
+
+      recomputeBundleCost(db, bundleId)
+      return { success: true, count: items.length }
+    })()
   })
 
   // System A — FEFO stock-out (POS quick adjust)
@@ -608,6 +717,7 @@ export function registerProductHandlers() {
     if (!payload.user_id) throw new Error('ไม่พบผู้ใช้งาน')
 
     const db = getDb()
+    assertNotBundle(db, payload.product_id)
     return db.transaction(() => {
       const lot = db.prepare(`
         SELECT * FROM product_lots
@@ -644,6 +754,7 @@ export function registerProductHandlers() {
     if (!payload.items || payload.items.length === 0) throw new Error('ไม่มีรายการที่จะตัด')
 
     const db = getDb()
+    for (const item of payload.items) assertNotBundle(db, item.product_id)
     return db.transaction(() => {
       const results: Array<{ product_id: number; lot_id: number; lot_number: string; qty_before: number; qty_after: number }> = []
 
@@ -689,6 +800,9 @@ export function registerProductHandlers() {
     return db.transaction(() => {
       const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(id) as any
       if (!lot) throw new Error('ไม่พบล็อต')
+
+      // Bundles have no lots — defense in depth against direct IPC abuse.
+      assertNotBundle(db, lot.product_id)
 
       // Block edits on cancelled lots (UI hides the button, but guard against direct IPC)
       if (lot.is_cancelled) throw new Error('ไม่สามารถแก้ไขล็อตที่ถูกยกเลิกได้')
@@ -755,17 +869,8 @@ export function registerProductHandlers() {
       // A lot's contribution to that avg changes whenever its cost_price changes OR
       // it transitions in/out of is_closed (qty crossing 0). Recompute on both.
       if (qtyChanged || costChanged) {
-        const agg = db.prepare(`
-          SELECT
-            COALESCE(SUM(qty_received * cost_price), 0) as cost_sum,
-            COALESCE(SUM(qty_received), 0) as qty_sum
-          FROM product_lots
-          WHERE product_id = ? AND qty_received > 0 AND is_closed = 0
-        `).get(lot.product_id) as any
-        if (agg.qty_sum > 0) {
-          db.prepare(`UPDATE products SET cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
-            .run(agg.cost_sum / agg.qty_sum, lot.product_id)
-        }
+        recomputeAvgCost(db, lot.product_id)
+        propagateCostToBundles(db, lot.product_id)
       }
 
       return db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(id)

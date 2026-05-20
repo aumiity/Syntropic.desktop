@@ -91,6 +91,7 @@ export function initializeSchema(db: Database.Database) {
       name_for_print TEXT,
       category_id INTEGER REFERENCES product_categories(id),
       is_stock_item INTEGER NOT NULL DEFAULT 1,
+      is_bundle INTEGER NOT NULL DEFAULT 0,
       is_disabled INTEGER NOT NULL DEFAULT 0,
       is_hidden INTEGER NOT NULL DEFAULT 0,
       price_retail REAL NOT NULL DEFAULT 0,
@@ -135,6 +136,24 @@ export function initializeSchema(db: Database.Database) {
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
+
+    -- Product Bundle Items (recipe for is_bundle=1 products)
+    -- One bundle row in products + N rows here. Stock is derived
+    -- (MIN of component capacities); cost is auto Σ(component_cost × qty).
+    -- Sale-time FEFO deducts from each component's lots; void/return
+    -- restores via sale_item_lots.product_id (component-tagged).
+    CREATE TABLE IF NOT EXISTS product_bundle_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bundle_id            INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      component_product_id INTEGER NOT NULL REFERENCES products(id),
+      qty_per_bundle       REAL NOT NULL DEFAULT 1,
+      sort_order           INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      UNIQUE(bundle_id, component_product_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_pbi_bundle ON product_bundle_items(bundle_id);
+    CREATE INDEX IF NOT EXISTS idx_pbi_component ON product_bundle_items(component_product_id);
 
     -- Product Lots / Batches
     CREATE TABLE IF NOT EXISTS product_lots (
@@ -504,6 +523,9 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE products ADD COLUMN is_drug INTEGER NOT NULL DEFAULT 0`,
     // Backfill: anything that already had a drug_type assigned was implicitly a drug.
     `UPDATE products SET is_drug = 1 WHERE drug_type_id IS NOT NULL AND is_drug = 0`,
+    // is_bundle: marks a product as a "ชุดสินค้า" (kit/bundle). Bundle rows
+    // hold no lots (is_stock_item=0); stock derived via product_bundle_items.
+    `ALTER TABLE products ADD COLUMN is_bundle INTEGER NOT NULL DEFAULT 0`,
   ]) {
     try { db.exec(sql) } catch {}
   }

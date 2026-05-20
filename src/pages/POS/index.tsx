@@ -865,10 +865,17 @@ export default function POSPage() {
                       </TableCell>
 
                       <TableCell className="text-center">
-                        <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
-                          className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-accent-soft text-warning-strong text-sm font-semibold tabular-nums hover:bg-accent-soft transition-colors">
-                          <span className="truncate">{item.unit_name}</span>
-                        </Button>
+                        {item.product?.is_bundle ? (
+                          // Bundles are base-unit-only in v1 — no unit picker, just a static label.
+                          <div className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-muted text-muted-foreground text-sm font-semibold tabular-nums">
+                            <span className="truncate">{item.unit_name}</span>
+                          </div>
+                        ) : (
+                          <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
+                            className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-accent-soft text-warning-strong text-sm font-semibold tabular-nums hover:bg-accent-soft transition-colors">
+                            <span className="truncate">{item.unit_name}</span>
+                          </Button>
+                        )}
                       </TableCell>
 
                       <TableCell className="text-center">
@@ -1379,21 +1386,42 @@ export default function POSPage() {
               // lot.qty_on_hand / lot.cost_price are per base unit.
               const lotRemaining = new Map<number, number>()
               const totalCost = cart.items.reduce((sum, i) => {
-                const factor = i.selectedUnit?.qty_per_base ?? 1
-                let baseQty = i.qty * factor
                 let lineCost = 0
-                for (const lot of i.product?.lots ?? []) {
-                  if (baseQty <= 0) break
-                  if (!lotRemaining.has(lot.id)) lotRemaining.set(lot.id, lot.qty_on_hand)
-                  const avail = lotRemaining.get(lot.id)!
-                  if (avail <= 0) continue
-                  const take = Math.min(avail, baseQty)
-                  lineCost += take * lot.cost_price
-                  lotRemaining.set(lot.id, avail - take)
-                  baseQty -= take
+                if (i.product?.is_bundle && i.product.bundle_items?.length) {
+                  // Bundle: FEFO-walk EACH component's lots, reusing the same
+                  // lotRemaining map so the simulation mirrors saveBill's
+                  // deductFefo loop. qty_per_base is always 1 for v1 bundles
+                  // (base-unit-only), so the multiplier is just qty_per_bundle × qty.
+                  for (const bi of i.product.bundle_items) {
+                    let cmpRemaining = (Number(bi.qty_per_bundle) || 0) * i.qty
+                    for (const lot of bi.lots ?? []) {
+                      if (cmpRemaining <= 0) break
+                      if (!lotRemaining.has(lot.id)) lotRemaining.set(lot.id, lot.qty_on_hand)
+                      const avail = lotRemaining.get(lot.id)!
+                      if (avail <= 0) continue
+                      const take = Math.min(avail, cmpRemaining)
+                      lineCost += take * lot.cost_price
+                      lotRemaining.set(lot.id, avail - take)
+                      cmpRemaining -= take
+                    }
+                    if (cmpRemaining > 0) lineCost += cmpRemaining * (Number(bi.component_cost) || 0)
+                  }
+                } else {
+                  const factor = i.selectedUnit?.qty_per_base ?? 1
+                  let baseQty = i.qty * factor
+                  for (const lot of i.product?.lots ?? []) {
+                    if (baseQty <= 0) break
+                    if (!lotRemaining.has(lot.id)) lotRemaining.set(lot.id, lot.qty_on_hand)
+                    const avail = lotRemaining.get(lot.id)!
+                    if (avail <= 0) continue
+                    const take = Math.min(avail, baseQty)
+                    lineCost += take * lot.cost_price
+                    lotRemaining.set(lot.id, avail - take)
+                    baseQty -= take
+                  }
+                  // Oversold remainder → value at weighted-avg cost.
+                  if (baseQty > 0) lineCost += baseQty * (i.product?.cost_price ?? 0)
                 }
-                // Oversold remainder → value at weighted-avg cost.
-                if (baseQty > 0) lineCost += baseQty * (i.product?.cost_price ?? 0)
                 return sum + lineCost
               }, 0)
               const net = pendingNet
@@ -1463,6 +1491,13 @@ export default function POSPage() {
                                 <div className="min-w-0 flex-1">
                                   <div className="text-base font-semibold truncate">{item.item_name}</div>
                                   <div className="text-sm text-muted-foreground tabular-nums">{formatCurrency(item.line_total)}</div>
+                                  {item.product?.is_bundle && item.product.bundle_items?.length ? (
+                                    <div className="text-xs text-muted-foreground truncate">
+                                      ประกอบด้วย: {item.product.bundle_items
+                                        .map(b => `${b.component_name} ×${b.qty_per_bundle}`)
+                                        .join(', ')}
+                                    </div>
+                                  ) : null}
                                 </div>
                                 <div className="shrink-0 text-right text-sm tabular-nums whitespace-nowrap">
                                   {item.qty}{item.unit_name ? ` ${item.unit_name}` : ''}

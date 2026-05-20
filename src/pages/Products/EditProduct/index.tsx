@@ -112,6 +112,12 @@ export default function EditProductPage() {
 
       if (!p) { navigate('/products'); return }
       const prod = p as FullProduct
+      // Bundle products live on a different page — bounce so the user never
+      // sees an EditProduct form filled with bundle-irrelevant fields.
+      if ((prod as any).is_bundle === 1) {
+        navigate(`/products/bundles/${productId}/edit`, { replace: true })
+        return
+      }
       setProduct(prod)
       setForm({
         trade_name: prod.trade_name ?? '',

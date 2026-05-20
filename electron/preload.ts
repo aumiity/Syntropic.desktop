@@ -31,6 +31,9 @@ const api = {
     deleteLabel: (id: number) => ipcRenderer.invoke('products:deleteLabel', id),
     searchGenericNames: (q: string) => ipcRenderer.invoke('products:searchGenericNames', q),
     getLots: (productId: number) => ipcRenderer.invoke('products:getLots', productId),
+    getBundleItems: (bundleId: number) => ipcRenderer.invoke('products:getBundleItems', bundleId),
+    saveBundleItems: (bundleId: number, items: Array<{ component_product_id: number; qty_per_bundle: number }>) =>
+      ipcRenderer.invoke('products:saveBundleItems', bundleId, items),
     adjustLot: (payload: { product_id: number; qty: number; note?: string; user_id: number }) =>
       ipcRenderer.invoke('products:adjustLot', payload),
     adjustLotBatch: (payload: {
@@ -40,7 +43,7 @@ const api = {
     }) => ipcRenderer.invoke('products:adjustLotBatch', payload),
     updateLot: (id: number, data: any) => ipcRenderer.invoke('products:updateLot', id, data),
     expireLot: (lotId: number, userId: number) => ipcRenderer.invoke('products:expireLot', lotId, userId),
-    stockStats: (filters: { q?: string; category_id?: number; drug_type_id?: number; include_disabled?: boolean }) =>
+    stockStats: (filters: { q?: string; category_id?: number; drug_type_id?: number; include_disabled?: boolean; is_bundle?: 0 | 1 }) =>
       ipcRenderer.invoke('products:stockStats', filters),
   },
   // Purchase

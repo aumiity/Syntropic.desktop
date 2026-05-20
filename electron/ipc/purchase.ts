@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
+import { recomputeAvgCost, propagateCostToBundles } from '../db/pricing'
 import dayjs from 'dayjs'
 
 export function registerPurchaseHandlers() {
@@ -201,21 +202,12 @@ export function registerPurchaseHandlers() {
         }
       }
 
-      // Recompute products.cost_price as the weighted average of open lots
-      // (by qty_received) — identical shape to the lot-edit / GR-cancel flows.
+      // Recompute products.cost_price as the weighted average of open lots,
+      // then fan out to any bundle that uses these products as components.
       const affectedIds = Array.from(new Set(payload.items.map(i => i.product_id)))
       for (const pid of affectedIds) {
-        const agg = db.prepare(`
-          SELECT
-            COALESCE(SUM(qty_received * cost_price), 0) as cost_sum,
-            COALESCE(SUM(qty_received), 0) as qty_sum
-          FROM product_lots
-          WHERE product_id = ? AND qty_received > 0 AND is_closed = 0
-        `).get(pid) as any
-        if (agg.qty_sum > 0) {
-          db.prepare(`UPDATE products SET cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
-            .run(agg.cost_sum / agg.qty_sum, pid)
-        }
+        recomputeAvgCost(db, pid)
+        propagateCostToBundles(db, pid)
       }
       return { success: true, invoice_no: payload.invoice_no }
     })
@@ -458,17 +450,8 @@ export function registerPurchaseHandlers() {
 
       const productIds = Array.from(new Set(lines.map(l => l.product_id)))
       for (const pid of productIds) {
-        const agg = db.prepare(`
-          SELECT
-            COALESCE(SUM(qty_received * cost_price), 0) as cost_sum,
-            COALESCE(SUM(qty_received), 0) as qty_sum
-          FROM product_lots
-          WHERE product_id = ? AND qty_received > 0 AND is_closed = 0
-        `).get(pid) as any
-        if (agg.qty_sum > 0) {
-          db.prepare(`UPDATE products SET cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
-            .run(agg.cost_sum / agg.qty_sum, pid)
-        }
+        recomputeAvgCost(db, pid)
+        propagateCostToBundles(db, pid)
       }
 
       db.prepare(`

@@ -9,7 +9,10 @@ const POS = lazy(() => import('./pages/POS'))
 const Purchase = lazy(() => import('./pages/Purchase'))
 const PurchaseIntake = lazy(() => import('./pages/PurchaseIntake'))
 const Products = lazy(() => import('./pages/Products'))
+const ProductsList = lazy(() => import('./pages/Products/ProductsList'))
+const BundlesList = lazy(() => import('./pages/Products/BundlesList'))
 const EditProduct = lazy(() => import('./pages/Products/EditProduct'))
+const EditBundle = lazy(() => import('./pages/Products/EditBundle'))
 const People = lazy(() => import('./pages/People'))
 const ManageLayout = lazy(() => import('./pages/Manage'))
 const ManageSales = lazy(() => import('./pages/Manage/Sales'))
@@ -46,9 +49,13 @@ export default function App() {
               <Route index element={<POS />} />
               <Route path="purchase" element={<Purchase />} />
               <Route path="purchase-intake" element={<PurchaseIntake />} />
-              <Route path="products" element={<Products />} />
+              <Route path="products" element={<Products />}>
+                <Route index element={<ProductsList />} />
+                <Route path="bundles" element={<BundlesList />} />
+              </Route>
               <Route path="products/new" element={<EditProduct />} />
               <Route path="products/:id/edit" element={<EditProduct />} />
+              <Route path="products/bundles/:id/edit" element={<EditBundle />} />
               <Route path="people" element={<People />} />
               <Route path="manage" element={<ManageLayout />}>
                 <Route index element={<ManageSales />} />

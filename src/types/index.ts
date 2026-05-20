@@ -3,7 +3,7 @@ export interface Product {
   barcode?: string; barcode2?: string; barcode3?: string; barcode4?: string
   code?: string; trade_name: string; name_for_print?: string
   category_id?: number
-  is_stock_item: number; is_disabled: number; is_hidden: number
+  is_stock_item: number; is_bundle: number; is_disabled: number; is_hidden: number
   price_retail: number; price_wholesale1: number; price_wholesale2: number; cost_price: number; last_cost_price: number
   has_wholesale1: number; has_wholesale2: number
   unit_id?: number
@@ -22,8 +22,27 @@ export interface Product {
   // Joined
   category_name?: string; drug_type_name?: string; unit_name?: string
   stock_qty?: number
+  component_count?: number  // bundle list: how many components this bundle has
   // Relations
   units?: ProductUnit[]; lots?: ProductLot[]; labels?: ProductLabel[]
+  bundle_items?: ProductBundleItem[]
+}
+
+// Composition of a bundle (is_bundle=1) product — one row per component.
+export interface ProductBundleItem {
+  id: number
+  bundle_id: number
+  component_product_id: number
+  qty_per_bundle: number
+  sort_order: number
+  // Joined display fields (products:get / pos:searchProducts / saveBundleItems readback)
+  component_name?: string
+  component_unit_name?: string
+  component_cost?: number
+  component_stock?: number
+  // Attached only by pos:searchProducts so POS can FEFO-cost the bundle preview
+  // without a second IPC round-trip. Not present on plain reads.
+  lots?: ProductLot[]
 }
 
 // Non-base unit variants only (แผง, กล่อง, …). Base unit lives on Product.
