@@ -249,21 +249,16 @@ export function SaleDetailDialog({
                     <tr aria-hidden><td colSpan={9} className="h-full p-0" /></tr>
                   </TableBody>
                   {/* Pinned totals: each <td> is sticky (per-cell, not <tr> —
-                      sticky on <tr>/<tfoot> is flaky in Chromium). Upper row
-                      sits at bottom-9 (≈ height of the lower row); opaque
-                      bg-muted so scrolling rows don't bleed through. */}
+                      sticky on <tr>/<tfoot> is flaky in Chromium). Single
+                      row aligns values directly under their column headers
+                      (ส่วนลด → col 6, รวม → col 7, ต้นทุน → col 8, กำไร → col 9). */}
                   <tfoot>
-                    <tr className="[&>td]:sticky [&>td]:bottom-9 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-b [&>td]:border-border">
-                      <td colSpan={5} className="py-2" />
-                      <td className="pr-2 py-2 text-right text-sm font-medium text-muted-foreground">ส่วนลด</td>
+                    <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
+                      <td colSpan={4} className="py-2" />
+                      <td className="pr-2 py-2 text-right text-sm font-bold">ยอดสุทธิ</td>
                       <td className="px-2 py-2 text-right text-sm font-medium text-warning-strong">
                         {detail.total_discount > 0 ? `-${formatCurrency(detail.total_discount)}` : '0'}
-                      </td> 
-                      <td colSpan={2} />
-                    </tr>
-                    <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted">
-                      <td colSpan={5} className="py-2" />
-                      <td className="pr-2 py-2 text-right text-sm font-bold">ยอดสุทธิ</td>
+                      </td>
                       <td className="pr-2 py-2 text-right font-bold text-primary">{formatCurrency(detail.total_amount)}</td>
                       <td className="pr-2 py-2 text-right text-sm text-muted-foreground">
                         {formatCurrency(detail.items.reduce((s, i) => s + (i.item_cost ?? 0), 0))}

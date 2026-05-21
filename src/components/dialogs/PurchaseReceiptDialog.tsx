@@ -119,7 +119,7 @@ export function PurchaseReceiptDialog({
               </div>
 
               <div className="flex-1 min-h-0 border border-border rounded-lg overflow-hidden">
-                <Table containerClassName="h-full overflow-y-auto overflow-x-auto scrollbar-thin" className="border-separate border-spacing-0">
+                <Table containerClassName="h-full overflow-y-auto overflow-x-auto scrollbar-thin" className="border-separate border-spacing-0 h-full">
                   {/* Divider rides with the sticky header — works because the
                       <Table> is border-separate (collapse model strands cell
                       borders behind sticking cells). */}
@@ -156,39 +156,50 @@ export function PurchaseReceiptDialog({
                         <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(item.cost_price * item.qty_received)}</TableCell>
                       </TableRow>
                     ))}
+                    {/* Slack-absorber — keeps tfoot pinned to the actual
+                        container bottom when data rows don't fill the height.
+                        Uses a raw <tr> so TableRow's border-b doesn't add a
+                        stray separator above the empty band. */}
+                    <tr aria-hidden><td colSpan={7} className="h-full p-0" /></tr>
                   </TableBody>
-                  {/* Sticky discount/surcharge rows — per-cell sticky because
-                      sticky on <tr>/<tfoot> is flaky in Chromium. Only shown
-                      when there's actually an adjustment. Grand total lives in
-                      DialogFooter, not here. */}
-                  {hasAdjust && (
-                    <tfoot>
-                      <tr className="[&>td]:sticky [&>td]:bottom-9 [&>td]:z-20 [&>td]:bg-muted/40 [&>td]:border-t [&>td]:border-border">
-                        <td colSpan={6} className="px-4 py-1.5 text-right text-sm text-muted-foreground">ราคารวมก่อนปรับ</td>
-                        <td className="px-4 py-1.5 text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(rawTotal)}</td>
-                      </tr>
-                      {discountAmt > 0 && (
-                        <tr className={`[&>td]:sticky ${surchargeAmt > 0 ? '[&>td]:bottom-[2.25rem]' : '[&>td]:bottom-0'} [&>td]:z-20 [&>td]:bg-muted/40`}>
-                          <td colSpan={6} className="px-4 py-1 text-right text-sm text-primary">ส่วนลดรวม</td>
-                          <td className="px-4 py-1 text-right text-sm tabular-nums text-primary">−{formatCurrency(discountAmt)}</td>
+                  {/* Pinned totals: each <td> is sticky (per-cell, not <tr> —
+                      sticky on <tr>/<tfoot> is flaky in Chromium). Grand total
+                      always pinned at bottom-0; adjustment rows stack above it
+                      when present. */}
+                  <tfoot>
+                    {hasAdjust && (
+                      <>
+                        <tr className={`[&>td]:sticky ${
+                          discountAmt > 0 && surchargeAmt > 0
+                            ? '[&>td]:bottom-[6.5rem]'
+                            : '[&>td]:bottom-[4.5rem]'
+                        } [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
+                          <td colSpan={6} className="px-2 py-1.5 text-right text-sm text-muted-foreground">ราคารวม</td>
+                          <td className="px-2 py-1.5 text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(rawTotal)}</td>
                         </tr>
-                      )}
-                      {surchargeAmt > 0 && (
-                        <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted/40">
-                          <td colSpan={6} className="px-4 py-1 text-right text-sm text-warning-strong">ส่วนเพิ่ม</td>
-                          <td className="px-4 py-1 text-right text-sm tabular-nums text-warning-strong">+{formatCurrency(surchargeAmt)}</td>
-                        </tr>
-                      )}
-                    </tfoot>
-                  )}
+                        {discountAmt > 0 && (
+                          <tr className={`[&>td]:sticky ${surchargeAmt > 0 ? '[&>td]:bottom-[4.5rem]' : '[&>td]:bottom-10'} [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
+                            <td colSpan={6} className="px-2 py-1 text-right text-sm text-warning-strong">ส่วนลด</td>
+                            <td className="px-2 py-1 text-right text-sm tabular-nums text-warning-strong">−{formatCurrency(discountAmt)}</td>
+                          </tr>
+                        )}
+                        {surchargeAmt > 0 && (
+                          <tr className="[&>td]:sticky [&>td]:bottom-10 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
+                            <td colSpan={6} className="px-2 py-1 text-right text-sm text-warning-strong">ส่วนเพิ่ม</td>
+                            <td className="px-2 py-1 text-right text-sm tabular-nums text-warning-strong">+{formatCurrency(surchargeAmt)}</td>
+                          </tr>
+                        )}
+                      </>
+                    )}
+                    <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
+                      <td colSpan={6} className="px-2 py-2 text-right text-sm font-bold">ยอดสุทธิ</td>
+                      <td className="px-2 py-2 text-right font-bold text-primary tabular-nums">{formatCurrency(finalTotal)}</td>
+                    </tr>
+                  </tfoot>
                 </Table>
               </div>
             </DialogBody>
-            <DialogFooter className="pt-3 sm:justify-between items-center">
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">{items.length} รายการ</span>
-                <span className="font-extrabold text-primary tabular-nums text-lg">{formatCurrency(finalTotal)}</span>
-              </div>
+            <DialogFooter className="pt-3 sm:justify-end">
               <div className="flex items-center gap-2">
                 {!isCancelled && actions}
                 <Button size="xl" variant="destructive2" onClick={() => onOpenChange(false)}>ปิด</Button>
