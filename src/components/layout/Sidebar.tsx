@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { NavLink, useResolvedPath, useMatch } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -7,6 +7,7 @@ import {
   Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen, ScanLine, LineChart,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
+import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
 const mainNavItems = [
@@ -31,9 +32,16 @@ type NavItemProps = {
   icon: React.ComponentType<{ className?: string }>
   exact?: boolean
   collapsed: boolean
+  hasBadge?: boolean
+  badgeCount?: number
 }
 
-function NavItem({ to, label, icon: Icon, exact, collapsed }: NavItemProps) {
+// The "badge" here is intentionally a small dot — count lives on the page tab
+// (e.g. /manage tabs row). Keeping the sidebar visual lightweight prevents the
+// badge from overflowing the row when the sidebar is expanded.
+// `badgeCount` is shown in the collapsed-mode tooltip only (zero-click info
+// without cluttering the icon).
+function NavItem({ to, label, icon: Icon, exact, collapsed, hasBadge, badgeCount }: NavItemProps) {
   const resolved = useResolvedPath(to)
   const isActive = !!useMatch({ path: resolved.pathname, end: !!exact })
 
@@ -54,7 +62,15 @@ function NavItem({ to, label, icon: Icon, exact, collapsed }: NavItemProps) {
           transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
         />
       )}
-      <Icon className="relative z-10 h-5 w-5 shrink-0" />
+      <span className="relative z-10 shrink-0 inline-flex">
+        <Icon className="h-5 w-5" />
+        {hasBadge && (
+          <span
+            aria-hidden
+            className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-warning ring-2 ring-sidebar"
+          />
+        )}
+      </span>
       {!collapsed && (
         <span className="relative z-10 text-sm font-bold leading-none whitespace-nowrap">{label}</span>
       )}
@@ -66,7 +82,9 @@ function NavItem({ to, label, icon: Icon, exact, collapsed }: NavItemProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>{link}</TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      <TooltipContent>
+        {label}{hasBadge && badgeCount ? ` (${badgeCount})` : ''}
+      </TooltipContent>
     </Tooltip>
   )
 }
@@ -75,6 +93,12 @@ export function Sidebar() {
   const { theme, toggleTheme, isSidebarCollapsed, toggleSidebar } = useThemeStore()
   const isDark = theme === 'dark'
   const collapsed = isSidebarCollapsed
+
+  // Hydrate the negative-stock badge once on mount; every mutation site
+  // (POS save, GR save, void, reconcile, dismiss) calls refresh() too.
+  const negativeStockCount = useNegativeStockBadge(s => s.count)
+  const refreshNegativeStock = useNegativeStockBadge(s => s.refresh)
+  useEffect(() => { refreshNegativeStock() }, [refreshNegativeStock])
 
   const btnClass = cn(
     'flex items-center justify-center h-11 w-full rounded-xl transition-colors',
@@ -116,7 +140,13 @@ export function Sidebar() {
       {/* Main Nav */}
       <nav className="flex-1 flex flex-col py-3 px-1.5 gap-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
         {mainNavItems.map((item) => (
-          <NavItem key={item.to} {...item} collapsed={collapsed} />
+          <NavItem
+            key={item.to}
+            {...item}
+            collapsed={collapsed}
+            hasBadge={item.to === '/manage' && negativeStockCount > 0}
+            badgeCount={item.to === '/manage' ? negativeStockCount : undefined}
+          />
         ))}
       </nav>
 

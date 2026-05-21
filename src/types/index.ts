@@ -179,3 +179,27 @@ export interface LabelMealRelation {
 }
 
 export type Theme = 'light' | 'dark'
+
+// One outstanding negative-stock marker — a sale_item_lots row with lot_id=NULL
+// that represents qty oversold against a product. See electron/ipc/negativeStock.ts.
+export interface NegativeStockRow {
+  id: number                // sale_item_lots.id
+  sale_item_id: number
+  sale_id: number
+  invoice_no: string
+  sold_at: string
+  customer_name: string
+  product_id: number
+  product_code: string
+  trade_name: string
+  unit_name: string
+  qty: number               // outstanding qty in base units
+  available_stock: number   // sum qty_on_hand across open non-cancelled lots NOW
+}
+
+export interface NegativeStockAlert {
+  product_id: number
+  trade_name: string
+  marker_count: number
+  total_qty: number
+}

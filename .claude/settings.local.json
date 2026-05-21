@@ -81,7 +81,10 @@
       "Bash(git *)",
       "Bash(node_modules/.bin/tsc --noEmit -p tsconfig.json)",
       "Bash(echo \"Exit: $?\")",
-      "Bash(sqlite3 *)"
+      "Bash(sqlite3 *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Syntropic.Project\\\\Syntropic.desktop\" -Depth 2)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)"
     ]
   }
 }

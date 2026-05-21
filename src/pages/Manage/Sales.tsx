@@ -15,6 +15,7 @@ import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDeta
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import type { Sale } from '@/types'
 import type { ManageOutletContext } from './index'
+import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { Search, Receipt, Ban, ShoppingCart, Boxes, Undo2, Info } from 'lucide-react'
 
 // Money lives in the table rows; the summary slot now carries only the count
@@ -122,6 +123,9 @@ export default function ManageSalesPage() {
       const wasOpenInDialog = detailInvoice === voidTarget.invoice_no
       setVoidTarget(null)
       if (wasOpenInDialog) setDetailOpen(false)
+      // Void also cancels any negative-stock markers on this sale (see
+      // electron/ipc/reports.ts voidSale), so refresh the sidebar badge.
+      useNegativeStockBadge.getState().refresh()
       load(page)
     } catch (e: any) {
       toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })

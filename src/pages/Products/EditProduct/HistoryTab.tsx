@@ -10,6 +10,7 @@ import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDeta
 import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
+import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { formatDateTime, cn } from '@/lib/utils'
 import {
   History, RotateCcw, Info, StickyNote,
@@ -105,6 +106,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
       setSaleDetailOpen(false)
       setSaleDetailInvoice(null)
       reloadMovements()
+      useNegativeStockBadge.getState().refresh()
     } catch (e: any) {
       toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? String(e), variant: 'destructive' })
       setVoidTarget(null)

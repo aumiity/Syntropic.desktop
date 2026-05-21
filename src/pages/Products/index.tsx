@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useLocation, useNavigate, Outlet } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
@@ -45,6 +46,10 @@ export default function ProductsLayout() {
   const location = useLocation()
   const tab = resolveTab(location.pathname)
   const [summary, setSummary] = useState<ProductsSummaryCard[] | null>(null)
+  // overflow-hidden is required during height animation to clip collapsing
+  // content, but it also clips the StatCard active-ring (extends 2px outside).
+  // Flip overflow back to visible once the enter animation settles.
+  const [animatingSummary, setAnimatingSummary] = useState(true)
 
   const ctx = useMemo<ProductsOutletContext>(() => ({ setSummary }), [])
 
@@ -69,13 +74,35 @@ export default function ProductsLayout() {
         </TabsList>
       </Tabs>
 
-      {summary && summary.length > 0 && (
-        <div className={`grid grid-cols-2 ${COLS_BY_COUNT[summary.length] ?? 'md:grid-cols-3'} gap-3 shrink-0`}>
-          {summary.map((c, i) => c.onClick
-            ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
-            : <MetricCard key={i} {...c} />)}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {summary && summary.length > 0 && (
+          <motion.div
+            key="products-summary"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            onAnimationStart={() => setAnimatingSummary(true)}
+            onAnimationComplete={() => setAnimatingSummary(false)}
+            className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
+          >
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className={`grid grid-cols-2 ${COLS_BY_COUNT[summary.length] ?? 'md:grid-cols-3'} gap-3 p-0.5`}
+              >
+                {summary.map((c, i) => c.onClick
+                  ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
+                  : <MetricCard key={i} {...c} />)}
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex-1 min-h-0 flex flex-col [scrollbar-gutter:stable]">
         <Outlet context={ctx} />

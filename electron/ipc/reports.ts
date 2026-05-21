@@ -198,6 +198,18 @@ export function registerReportHandlers() {
         )
       }
 
+      // Cancel any negative-stock markers (lot_id IS NULL) on this sale so
+      // the /manage/negative-stock queue doesn't ghost a voided bill. The
+      // marker only exists when deductFefo couldn't fully satisfy the qty,
+      // so most voids hit zero rows; cheap to run unconditionally.
+      db.prepare(`
+        UPDATE sale_item_lots
+           SET is_cancelled = 1
+         WHERE sale_item_id IN (SELECT id FROM sale_items WHERE sale_id = ?)
+           AND lot_id IS NULL
+           AND is_cancelled = 0
+      `).run(id)
+
       db.prepare(`UPDATE sales SET status = 'voided', void_reason = ?, updated_at = datetime('now','localtime') WHERE id = ?`).run(reason, id)
       return true
     })

@@ -150,6 +150,15 @@ const api = {
       rows: Array<{ barcode: string; qty: number | string; expiry: string; lineTotal: number | string }>,
     ) => ipcRenderer.invoke('matcher:exportCSV', rows),
   },
+  // Negative-stock reconciliation
+  negativeStock: {
+    list: () => ipcRenderer.invoke('negativeStock:list'),
+    count: () => ipcRenderer.invoke('negativeStock:count'),
+    reconcile: (payload: { id: number; userId: number }) =>
+      ipcRenderer.invoke('negativeStock:reconcile', payload),
+    dismiss: (payload: { id: number; userId: number }) =>
+      ipcRenderer.invoke('negativeStock:dismiss', payload),
+  },
   // Auth (placeholder until proper login)
   auth: {
     getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),

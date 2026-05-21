@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useCartStore } from '@/stores/cartStore'
 import { getCurrentUserId } from '@/stores/userStore'
+import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,14 +19,14 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
 import dayjs from 'dayjs'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings } from '@/types'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass } from './cartAlerts'
 import {
   Search, User, Trash2, Plus, Minus,
-  Banknote, AlertTriangle, AlertCircle, AlertOctagon, PackageX,
-  ChevronDown, X, UserPlus, Info,
+  Banknote, AlertTriangle, AlertCircle, PackageX,
+  X, UserPlus, Info,
   RotateCcw, ChevronRight, ChevronLeft, Tag,
   ShoppingBasket, Timer, RefreshCcw, HandCoins,
   Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
@@ -396,6 +397,7 @@ export default function POSPage() {
       setVoidTarget(null)
       setVoidDetailOpen(false)
       loadDailyStats() // voided bill must drop out of today's totals
+      useNegativeStockBadge.getState().refresh()
     } catch (e: any) {
       toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
       setVoidTarget(null)
@@ -712,6 +714,10 @@ export default function POSPage() {
       setDailyStats({ bills: result.daily_bills, total: result.daily_total, latest: result.latest_bill_time })
       cart.clearCart(); setExpandedBundles(new Set()); setShowPayment(false); setShowSuccess(true)
       setCashAmount(''); setCardAmount(''); setTransferAmount('')
+      // Bill may have oversold a product (deductFefo writes lot_id=NULL marker
+      // rows when stock runs out). Refresh the sidebar badge so the operator
+      // sees the queue grow.
+      useNegativeStockBadge.getState().refresh()
     } catch (err: any) { toast(err.message ?? 'เกิดข้อผิดพลาด', 'error') }
     finally { setSaving(false) }
   }
@@ -936,12 +942,14 @@ export default function POSPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : cart.items.flatMap((item, idx) => {
+                  ) : cart.items.map((item, idx) => {
                     const isBundle = !!item.product?.is_bundle
                     const isExpanded = expandedBundles.has(idx)
                     const alert = getCartItemAlert(item, salesSettings)
-                    const rows = [
-                    <TableRow key={idx} className="hover:bg-transparent [&_td]:py-1">
+                    const components = isBundle ? (item.product?.bundle_items ?? []) : []
+                    return (
+                    <React.Fragment key={idx}>
+                    <TableRow className="hover:bg-transparent [&_td]:py-1">
                       <TableCell className="text-center text-sm text-muted-foreground p-0">
                         {isBundle ? (
                           <Button
@@ -951,7 +959,13 @@ export default function POSPage() {
                             title={isExpanded ? 'ย่อรายการ' : 'ขยายรายการ'}
                             className="w-full h-8 gap-0.5 rounded"
                           >
-                            {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                            <motion.span
+                              animate={{ rotate: isExpanded ? 90 : 0 }}
+                              transition={{ duration: 0.2, ease: 'easeOut' }}
+                              className="inline-flex"
+                            >
+                              <ChevronRight className="size-3.5" />
+                            </motion.span>
                             <span className="tabular-nums text-sm">{idx + 1}</span>
                           </Button>
                         ) : (
@@ -964,7 +978,7 @@ export default function POSPage() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className={`shrink-0 inline-flex ${alertColorClass(alert.level)}`}>
-                                  {alert.level === 'expired'   && <AlertOctagon  className="size-4" />}
+                                  {alert.level === 'expired'   && <ClockAlert    className="size-4" />}
                                   {alert.level === 'low_stock' && <PackageX      className="size-4" />}
                                   {alert.level === 'danger'    && <AlertTriangle className="size-4" />}
                                   {alert.level === 'warn'      && <AlertCircle   className="size-4" />}
@@ -1033,28 +1047,31 @@ export default function POSPage() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                    ]
-                    if (isBundle && isExpanded) {
-                      const components = item.product?.bundle_items ?? []
-                      components.forEach((c, ci) => {
-                        rows.push(
-                          <TableRow key={`${idx}-c-${ci}`} className="bg-muted/30 hover:bg-muted/40 [&_td]:py-1">
-                            <TableCell />
-                            <TableCell className="pl-6 text-xs text-foreground-subtle truncate">
-                              • {c.component_name ?? '-'}
-                            </TableCell>
-                            <TableCell className="text-center text-xs text-foreground-subtle">
-                              {c.component_unit_name ?? '-'}
-                            </TableCell>
-                            <TableCell className="text-center text-xs text-foreground-subtle tabular-nums">
-                              {(c.qty_per_bundle ?? 1) * item.qty}
-                            </TableCell>
-                            <TableCell colSpan={4} />
-                          </TableRow>
-                        )
-                      })
-                    }
-                    return rows
+                    <AnimatePresence initial={false}>
+                      {isBundle && isExpanded && components.map((c, ci) => (
+                        <motion.tr
+                          key={`c-${ci}`}
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0, transition: { duration: 0.2, delay: ci * 0.04, ease: 'easeOut' } }}
+                          exit={{ opacity: 0, y: -6, transition: { duration: 0.12, ease: 'easeIn' } }}
+                          className="bg-muted/30 hover:bg-muted/40 [&_td]:py-1"
+                        >
+                          <TableCell />
+                          <TableCell className="pl-6 text-xs text-foreground-subtle truncate">
+                            • {c.component_name ?? '-'}
+                          </TableCell>
+                          <TableCell className="text-center text-xs text-foreground-subtle">
+                            {c.component_unit_name ?? '-'}
+                          </TableCell>
+                          <TableCell className="text-center text-xs text-foreground-subtle tabular-nums">
+                            {(c.qty_per_bundle ?? 1) * item.qty}
+                          </TableCell>
+                          <TableCell colSpan={4} />
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                    </React.Fragment>
+                    )
                   })}
                 </TableBody>
               </table>
@@ -1065,7 +1082,20 @@ export default function POSPage() {
                 <div>
                   <div className="text-sm font-semibold text-foreground-subtle">จำนวน <span className="text-sm font-medium tabular-nums text-foreground">{cart.items.length}</span> รายการ</div>
                 </div>
-                <div className="flex-1" />
+                <div className="flex-1 flex items-center justify-center gap-4 text-xs text-foreground-subtle">
+                  <span className="inline-flex items-center gap-1">
+                    <ClockAlert className="size-3.5 text-destructive" /> หมดอายุ
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <PackageX className="size-3.5 text-destructive" /> สต๊อกไม่พอ
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <AlertTriangle className="size-3.5 text-warning-strong" /> อายุต่ำกว่า {salesSettings?.expiry_danger_months ?? 3} เดือน
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <AlertCircle className="size-3.5 text-warning" /> อายุต่ำกว่า {salesSettings?.expiry_warn_months ?? 6} เดือน
+                  </span>
+                </div>
                 {cart.totalDiscount() > 0 && (
                   <div className="text-right">
                     <div className="text-sm font-semibold text-foreground-subtle">ส่วนลดรวม

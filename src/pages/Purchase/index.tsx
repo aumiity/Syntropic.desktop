@@ -16,7 +16,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
-import type { Supplier } from '@/types'
+import type { Supplier, NegativeStockAlert } from '@/types'
+import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import {
   Plus, Trash2, Package,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle,
@@ -538,7 +539,7 @@ export default function PurchasePage() {
     if (paymentType === 'credit' && !dueDate) { toast('กรุณาระบุวันครบกำหนดชำระ', 'error'); return }
     setSaving(true)
     try {
-      await window.api.purchase.save({
+      const saveResult = await window.api.purchase.save({
         invoice_no: invoiceNo, supplier_id: supplierId, supplier_invoice_no: supplierInvoiceNo,
         receive_date: receiveDate, order_date: orderDate || undefined, payment_type: paymentType,
         due_date: dueDate || undefined, is_paid: isPaid, paid_date: paidDate || undefined,
@@ -558,7 +559,23 @@ export default function PurchasePage() {
             qty: qtyNum, note: r.note || undefined,
           }
         }),
-      })
+      }) as { success: boolean; invoice_no: string; negative_stock_alerts?: NegativeStockAlert[] }
+
+      // Flag any products that now have outstanding negative-stock markers
+      // waiting to be reconciled. Badge refresh fires unconditionally so the
+      // sidebar stays accurate even when the alert array is empty.
+      const alerts = saveResult?.negative_stock_alerts ?? []
+      if (alerts.length > 0) {
+        const head = alerts[0].trade_name
+        const more = alerts.length > 1 ? ` (+${alerts.length - 1})` : ''
+        toast(
+          `สินค้า ${head}${more} มียอดติดลบรอตัด — กดเมนู "ประวัติ & สต็อก" เพื่อตรวจสอบ`,
+          'info',
+          5000,
+        )
+      }
+      useNegativeStockBadge.getState().refresh()
+
       setSavedInvoice(invoiceNo)
       setShowSuccess(true)
       await loadNextGR()

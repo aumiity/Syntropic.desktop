@@ -181,12 +181,12 @@ export default function ProductsList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-14">#</TableHead>
+                <TableHead className="w-8">#</TableHead>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[280px]">ชื่อสินค้า</SortableTableHead>
-                <SortableTableHead field="unit_name" align="center" sort={sort} onToggle={toggleSort} className="hidden 2xl:table-cell min-w-16">หน่วย</SortableTableHead>
-                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-20">ต้นทุน</SortableTableHead>
-                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-20">ราคาขาย</SortableTableHead>
-                <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="hidden md:table-cell min-w-20">กำไร</SortableTableHead>
+                <SortableTableHead field="unit_name" align="center" sort={sort} onToggle={toggleSort} className="hidden xl:table-cell min-w-16">หน่วย</SortableTableHead>
+                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-16">ต้นทุน</SortableTableHead>
+                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-16">ราคาขาย</SortableTableHead>
+                <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-20">กำไร</SortableTableHead>
                 <SortableTableHead field="stock_qty" align="center" sort={sort} onToggle={toggleSort} className="min-w-20">สต็อก</SortableTableHead>
                 <TableHead className="text-center min-w-16">จัดการ</TableHead>
               </TableRow>
@@ -213,7 +213,7 @@ export default function ProductsList() {
                     <TableCell className="max-w-0">
                       <div className="font-semibold text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
                     </TableCell>
-                    <TableCell className="hidden 2xl:table-cell text-center text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
+                    <TableCell className="hidden xl:table-cell text-center text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
                     <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
                     <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">{formatCurrency(row.price_retail)}</TableCell>
                     <TableCell className="hidden md:table-cell text-right text-sm font-medium tabular-nums">

@@ -11,6 +11,7 @@ import { registerPrinterHandlers } from './ipc/printer'
 import { registerAuthHandlers } from './ipc/auth'
 import { registerDevHandlers } from './ipc/dev'
 import { registerMatcherHandlers } from './ipc/matcher'
+import { registerNegativeStockHandlers } from './ipc/negativeStock'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -76,6 +77,7 @@ registerSettingsHandlers()
 registerPrinterHandlers()
 registerAuthHandlers()
 registerMatcherHandlers()
+registerNegativeStockHandlers()
 if (isDev) registerDevHandlers()
 
 // App event

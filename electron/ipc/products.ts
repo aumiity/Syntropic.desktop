@@ -25,7 +25,7 @@ export function registerProductHandlers() {
     q?: string; category_id?: number; drug_type_id?: number; page?: number
     limit?: number | 'all'
     sort_by?: string; sort_dir?: 'asc' | 'desc'
-    stock_filter?: 'all' | 'low' | 'out' | 'in' | 'disabled'
+    stock_filter?: 'all' | 'low' | 'out' | 'in' | 'enabled' | 'disabled'
     include_disabled?: boolean
     is_bundle?: 0 | 1
   }) => {
@@ -37,9 +37,12 @@ export function registerProductHandlers() {
     const params: any[] = []
 
     // Disabled-only mode ('disabled') forces is_disabled=1 and skips other stock
-    // filters. Otherwise hide disabled unless include_disabled is true.
+    // filters. Enabled-only mode ('enabled') forces is_disabled=0 regardless of
+    // include_disabled. Otherwise hide disabled unless include_disabled is true.
     if (stock_filter === 'disabled') {
       conditions.push(`p.is_disabled = 1`)
+    } else if (stock_filter === 'enabled') {
+      conditions.push(`p.is_disabled = 0`)
     } else if (!include_disabled) {
       conditions.push(`p.is_disabled = 0`)
     }

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
@@ -46,6 +47,9 @@ export default function ReportsLayout() {
   const location = useLocation()
   const current = resolveTab(location.pathname)
   const [summary, setSummary] = useState<ReportsSummaryCard[] | null>(null)
+  // Mirror of Manage: overflow-hidden during height transition only, so any
+  // future ring/glow on a child card isn't clipped post-animation.
+  const [animatingSummary, setAnimatingSummary] = useState(true)
 
   const ctx = useMemo<ReportsOutletContext>(() => ({ setSummary }), [])
 
@@ -71,11 +75,33 @@ export default function ReportsLayout() {
           </TabsList>
         </Tabs>
 
-        {summary && summary.length > 0 && (
-          <div className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 shrink-0`}>
-            {summary.map((c, i) => <MetricCard key={i} {...c} />)}
-          </div>
-        )}
+        <AnimatePresence initial={false}>
+          {summary && summary.length > 0 && (
+            <motion.div
+              key="reports-summary"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              onAnimationStart={() => setAnimatingSummary(true)}
+              onAnimationComplete={() => setAnimatingSummary(false)}
+              className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
+            >
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.div
+                  key={location.pathname}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
+                >
+                  {summary.map((c, i) => <MetricCard key={i} {...c} />)}
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <Outlet context={ctx} />

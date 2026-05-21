@@ -841,7 +841,7 @@ export default function Theme() {
                     />
                   </div>
                 </DemoRow>
-                <DemoRow label="MetricCard size='sm' (compact — StatCard-height · icon-right · sub & badge collapse inline next to value)">
+                <DemoRow label="MetricCard size='sm' (compact — icon-right · 3 stacked lines: label / value+unit / sub)">
                   <div className="grid grid-cols-3 gap-4 w-full">
                     <MetricCard size="sm" label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="warm" />
                     <MetricCard size="sm" label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success" />

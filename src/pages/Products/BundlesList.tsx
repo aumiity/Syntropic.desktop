@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
@@ -10,13 +9,14 @@ import { Toggle } from '@/components/ui/switch'
 import { formatCurrency } from '@/lib/utils'
 import type { Product } from '@/types'
 import type { ProductsOutletContext } from './index'
-import { Search, Plus, Edit, Boxes, PackageCheck, PackageX } from 'lucide-react'
+import { Search, Plus, Edit, Boxes, CheckCircle2, Ban } from 'lucide-react'
 
-type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'stock_qty'
+type SortField = 'trade_name' | 'unit_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
 type SortDir = 'asc' | 'desc'
 interface SortState { by: SortField; dir: SortDir }
 
 interface BundleRow extends Product {
+  unit_name?: string
   stock_qty: number
   component_count: number
 }
@@ -32,12 +32,12 @@ export default function BundlesList() {
 
   const [q, setQ] = useState('')
   const [showDisabled, setShowDisabled] = useState(false)
-  const [stockFilter, setStockFilter] = useState<'all' | 'in' | 'out'>('all')
+  const [stockFilter, setStockFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
   const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
 
-  // Global bundle stats (total / assemblable / not-assemblable). Same shape as
-  // products:stockStats with is_bundle=1; "ประกอบได้" = total_all - out.
-  const [allStats, setAllStats] = useState({ out: 0, total_all: 0 })
+  // Global bundle stats (total / enabled / disabled). Same shape as
+  // products:stockStats with is_bundle=1; "ใช้งาน" = total_all - disabled.
+  const [allStats, setAllStats] = useState({ total_all: 0, disabled: 0 })
 
   const [pageSize, setPageSize] = useState<PageSize>(50)
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
@@ -70,7 +70,7 @@ export default function BundlesList() {
         q: q.trim() || undefined,
         include_disabled: showDisabled,
         is_bundle: 1,
-      }).then((s: any) => setAllStats(s ?? { out: 0, total_all: 0 }))
+      }).then((s: any) => setAllStats(s ?? { total_all: 0, disabled: 0 }))
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -82,20 +82,20 @@ export default function BundlesList() {
       : { by: field, dir: 'asc' })
   }
 
-  const toggleStockFilter = (next: 'all' | 'in' | 'out') => {
+  const toggleStockFilter = (next: 'all' | 'enabled' | 'disabled') => {
     setStockFilter(curr => (next === 'all' ? 'all' : curr === next ? 'all' : next))
   }
 
-  // Push the 3 clickable stat cards up to ProductsLayout. "ประกอบได้" =
-  // total_all − out (bundles whose components are all in stock).
+  // Push the 3 clickable stat cards up to ProductsLayout. "ใช้งาน" =
+  // total_all − disabled (enabled bundles).
   useEffect(() => {
     setSummary([
       { label: 'ชุดสินค้าทั้งหมด', value: allStats.total_all.toLocaleString(), icon: Boxes, tint: 'primary',
         onClick: () => toggleStockFilter('all'), isActive: stockFilter === 'all' },
-      { label: 'ประกอบได้', value: Math.max(0, allStats.total_all - allStats.out).toLocaleString(), icon: PackageCheck, tint: 'success',
-        onClick: () => toggleStockFilter('in'), isActive: stockFilter === 'in' },
-      { label: 'ประกอบไม่ได้', value: allStats.out.toLocaleString(), icon: PackageX, tint: 'destructive',
-        onClick: () => toggleStockFilter('out'), isActive: stockFilter === 'out' },
+      { label: 'ใช้งาน', value: Math.max(0, allStats.total_all - allStats.disabled).toLocaleString(), icon: CheckCircle2, tint: 'success',
+        onClick: () => toggleStockFilter('enabled'), isActive: stockFilter === 'enabled' },
+      { label: 'ปิดการใช้งาน', value: allStats.disabled.toLocaleString(), icon: Ban, tint: 'secondary',
+        onClick: () => toggleStockFilter('disabled'), isActive: stockFilter === 'disabled' },
     ])
   }, [allStats, stockFilter, setSummary])
 
@@ -131,28 +131,31 @@ export default function BundlesList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-14">#</TableHead>
+                <TableHead className="w-8">#</TableHead>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[280px]">ชื่อชุดสินค้า</SortableTableHead>
-                <TableHead className="text-center min-w-28">ส่วนประกอบ</TableHead>
-                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-28">ต้นทุน (อัตโนมัติ)</SortableTableHead>
-                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-28">ราคาขาย</SortableTableHead>
-                <SortableTableHead field="stock_qty" align="center" sort={sort} onToggle={toggleSort} className="min-w-28">ประกอบได้</SortableTableHead>
-                <TableHead className="text-center min-w-16">จัดการ</TableHead>
+                <SortableTableHead field="unit_name" align="center" sort={sort} onToggle={toggleSort} className="min-w-24">หน่วย</SortableTableHead>
+                <TableHead className="text-center min-w-20">รายการ</TableHead>
+                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
+                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ราคาขาย</SortableTableHead>
+                <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
+                <TableHead className="text-center min-w-20">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
                     <Boxes className="size-10 mx-auto mb-2 opacity-30" />
                     ยังไม่มีชุดสินค้า
                   </TableCell>
                 </TableRow>
               ) : rows.map((row, i) => {
+                const profit = row.price_retail - (row.cost_price ?? 0)
+                const pct = (row.cost_price ?? 0) > 0 ? (profit / row.cost_price!) * 100 : 0
                 const isDisabled = !!row.is_disabled
                 return (
                   <TableRow key={row.id} className={isDisabled ? 'opacity-60' : ''}>
@@ -160,15 +163,18 @@ export default function BundlesList() {
                     <TableCell className="max-w-0">
                       <div className="font-semibold text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
                     </TableCell>
+                    <TableCell className="text-center text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
                     <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
                       {(row.component_count ?? 0).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
                     <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">{formatCurrency(row.price_retail)}</TableCell>
-                    <TableCell className="text-center">
-                      {row.stock_qty <= 0
-                        ? <Badge variant="destructive" className="rounded-lg gap-1.5"><span className="size-1.5 rounded-full bg-white/90" />ประกอบไม่ได้</Badge>
-                        : <span className="text-sm font-semibold tabular-nums text-foreground">{row.stock_qty.toLocaleString()}</span>}
+                    <TableCell className="hidden md:table-cell text-right text-sm font-medium tabular-nums">
+                      <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
+                        {formatCurrency(profit)}
+                        {/* text-xs: user-approved exception to the text-sm minimum rule */}
+                        <span className="ml-1 text-xs opacity-70">({pct.toFixed(0)}%)</span>
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-center">

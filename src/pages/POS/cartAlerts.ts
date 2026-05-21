@@ -86,12 +86,13 @@ export function getCartItemAlert(
       }
       const ex = evalExpiry(c.lots, settings, today)
       if (ex.level) {
+        const name = c.component_name ?? 'องค์ประกอบ'
         const reason =
           ex.level === 'expired'
-            ? `${c.component_name ?? 'องค์ประกอบ'} หมดอายุแล้ว (${fmt(ex.date)})`
+            ? `${name} หมดอายุแล้ว (${fmt(ex.date)})`
             : ex.level === 'danger'
-              ? `${c.component_name ?? 'องค์ประกอบ'} ใกล้หมดอายุ (${fmt(ex.date)})`
-              : `${c.component_name ?? 'องค์ประกอบ'} เหลืออายุน้อย (${fmt(ex.date)})`
+              ? `${name} อายุต่ำกว่า ${settings.expiry_danger_months} เดือน (${fmt(ex.date)})`
+              : `${name} อายุต่ำกว่า ${settings.expiry_warn_months} เดือน (${fmt(ex.date)})`
         const candidate: CartAlert = { level: ex.level, reason }
         if (!worst || SEVERITY[candidate.level] > SEVERITY[worst.level]) worst = candidate
       }
@@ -109,7 +110,7 @@ export function getCartItemAlert(
     const baseUnit = product.unit_name ? ` ${product.unit_name}` : ''
     return {
       level: 'low_stock',
-      reason: `สต๊อกไม่พอ: ต้องการ ${soldBase}${baseUnit} แต่มี ${stock}${baseUnit}`,
+      reason: `สต๊อกไม่พอ`,
     }
   }
   const ex = evalExpiry(product.lots, settings, today)
@@ -118,8 +119,8 @@ export function getCartItemAlert(
       ex.level === 'expired'
         ? `สินค้าหมดอายุแล้ว (${fmt(ex.date)})`
         : ex.level === 'danger'
-          ? `ใกล้หมดอายุ (${fmt(ex.date)})`
-          : `เหลืออายุน้อย (${fmt(ex.date)})`
+          ? `อายุต่ำกว่า ${settings.expiry_danger_months} เดือน (${fmt(ex.date)})`
+          : `อายุต่ำกว่า ${settings.expiry_warn_months} เดือน (${fmt(ex.date)})`
     return { level: ex.level, reason }
   }
   return null

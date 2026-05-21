@@ -190,27 +190,33 @@ function MetricCard({
     : tint === "info-soft"   ? "text-info-soft-foreground"
     : "text-primary"
 
-  // sm = StatCard-height compact variant: icon on the right, label + value-row
-  // stacked on the left. `sub` and `badge` collapse inline next to value so the
-  // card stays the same height as StatCard.
+  // sm = compact variant: icon on the right, 3 stacked lines on the left —
+  // label / value+unit / sub. Sizes tuned so the 3-line card matches the old
+  // 2-line StatCard height (label text-sm, value text-2xl leading-none, sub
+  // text-xs — the sub uses text-xs as helper/caption text per the global
+  // size rule). `sub` on its own line means longer captions like
+  // "กำไร +6.50 (+76%)" / "เฉลี่ย ฿8.20" no longer get truncated.
   if (size === "sm") {
     const innerSm = (
       <>
         <div className="flex flex-col min-w-0 flex-1 text-left">
-          <div className={cn("text-base font-semibold text-foreground truncate", labelClassName)} title={label}>{label}</div>
+          <div className={cn("text-sm font-semibold text-foreground truncate leading-tight", labelClassName)} title={label}>{label}</div>
           <div className="flex items-baseline gap-1.5 min-w-0">
-            <span className={cn("text-3xl font-bold tabular-nums leading-tight truncate", valColor, valueClassName)} title={value}>{value}</span>
+            <span className={cn("text-lg font-bold tabular-nums leading-none truncate", valColor, valueClassName)} title={value}>{value}</span>
             {unit && <span className="text-sm font-semibold text-muted-foreground truncate" title={unit}>{unit}</span>}
-            {sub && <span className={cn("text-sm font-semibold tabular-nums truncate ml-1", accentColor, subClassName)} title={sub}>{sub}</span>}
             {badge && <span className="ml-auto shrink-0 self-center">{badge}</span>}
           </div>
+          {sub && <div className={cn("text-sm font-semibold tabular-nums truncate leading-tight", accentColor, subClassName)} title={sub}>{sub}</div>}
         </div>
         <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
           <Icon className="size-7" />
         </span>
       </>
     )
-    const baseSm = "bg-card rounded-card shadow-card px-4 py-3 flex items-center gap-3 overflow-hidden"
+    // py-2 (vs py-3 on StatCard) compensates for the extra 3rd line: a 2-line
+    // StatCard at py-3 ≈ a 3-line MetricCard sm at py-2, so the two card
+    // primitives render the same total height when sharing a grid row.
+    const baseSm = "bg-card rounded-card shadow-card px-4 py-2 flex items-center gap-3 overflow-hidden"
     if (onClick) {
       return (
         <button

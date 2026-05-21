@@ -215,7 +215,34 @@ export function registerPurchaseHandlers() {
         recomputeAvgCost(db, pid)
         propagateCostToBundles(db, pid)
       }
-      return { success: true, invoice_no: payload.invoice_no }
+
+      // Surface negative-stock markers that the just-received product(s) now
+      // make eligible for retroactive deduction. The renderer uses this to
+      // toast the operator + refresh the sidebar badge.
+      // Build the IN-list dynamically — better-sqlite3 has no array binding.
+      const placeholders = affectedIds.map(() => '?').join(',')
+      const negativeStockAlerts = affectedIds.length === 0 ? [] : db.prepare(`
+        SELECT sil.product_id,
+               p.trade_name,
+               COUNT(*)                 AS marker_count,
+               COALESCE(SUM(sil.qty),0) AS total_qty
+          FROM sale_item_lots sil
+          JOIN sale_items si ON si.id = sil.sale_item_id
+          JOIN sales      s  ON s.id  = si.sale_id
+          JOIN products   p  ON p.id  = sil.product_id
+         WHERE sil.lot_id      IS NULL
+           AND sil.is_cancelled = 0
+           AND si.is_cancelled  = 0
+           AND s.status         = 'completed'
+           AND sil.product_id IN (${placeholders})
+         GROUP BY sil.product_id, p.trade_name
+      `).all(...affectedIds)
+
+      return {
+        success: true,
+        invoice_no: payload.invoice_no,
+        negative_stock_alerts: negativeStockAlerts,
+      }
     })
     return save()
   })

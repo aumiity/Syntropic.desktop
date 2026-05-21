@@ -381,11 +381,10 @@ export default function EditProductPage() {
 
       {/* 4 cards: meta + 3 stats. In create mode, MetricCards stay in place
           but are grayed out — values aren't meaningful until the product exists.
-          All cards use the StatCard-height compact form: icon-right, text-left,
-          sub inline next to value. */}
+          MetricCard size="sm" uses 3 stacked lines: label / value+unit / sub. */}
       <div className="grid grid-cols-4 gap-3 shrink-0">
         {/* Meta card — hand-rolled to match MetricCard size="sm" proportions */}
-        <div className="bg-card rounded-card shadow-card px-4 py-3 flex items-center gap-3 overflow-hidden">
+        <div className="bg-card rounded-card shadow-card px-4 py-2 flex items-center gap-3 overflow-hidden">
           <div className="flex flex-col min-w-0 flex-1 text-left">
             <div
               className="text-base font-bold text-foreground truncate"
