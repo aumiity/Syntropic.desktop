@@ -22,6 +22,7 @@ import {
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
+import { motion } from 'framer-motion'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -1000,19 +1001,47 @@ export default function PurchasePage() {
                       <div className="flex gap-2">
                         <Button
                           type="button"
-                          variant={paymentType === 'cash' ? 'default' : 'outline'}
+                          variant="ghost"
                           onClick={() => setPaymentType('cash')}
-                          className="flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5"
+                          className={`relative flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5 hover:bg-transparent ${
+                            paymentType === 'cash'
+                              ? 'text-primary-foreground hover:text-primary-foreground'
+                              : 'text-foreground-subtle hover:text-foreground'
+                          }`}
                         >
-                          <Banknote className="size-3.5" /> เงินสด
+                          {paymentType === 'cash' && (
+                            <motion.span
+                              layoutId="payment-pill"
+                              aria-hidden
+                              className="absolute inset-0 rounded-lg bg-primary"
+                              transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                            />
+                          )}
+                          <span className="relative z-10 inline-flex items-center gap-1.5">
+                            <Banknote className="size-3.5" /> เงินสด
+                          </span>
                         </Button>
                         <Button
                           type="button"
-                          variant={paymentType === 'credit' ? 'tertiary' : 'outline'}
+                          variant="ghost"
                           onClick={() => setPaymentType('credit')}
-                          className="flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5"
+                          className={`relative flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5 hover:bg-transparent ${
+                            paymentType === 'credit'
+                              ? 'text-tertiary-foreground hover:text-tertiary-foreground'
+                              : 'text-foreground-subtle hover:text-foreground'
+                          }`}
                         >
-                          <CreditCard className="size-3.5" /> เครดิต
+                          {paymentType === 'credit' && (
+                            <motion.span
+                              layoutId="payment-pill"
+                              aria-hidden
+                              className="absolute inset-0 rounded-lg bg-tertiary"
+                              transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                            />
+                          )}
+                          <span className="relative z-10 inline-flex items-center gap-1.5">
+                            <CreditCard className="size-3.5" /> เครดิต
+                          </span>
                         </Button>
                       </div>
                       {paymentType === 'credit' && (

@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Textarea } from '@/components/ui/textarea'
-import { formatCurrency, formatDate, formatExpiry, getExpiryStatus } from '@/lib/utils'
+import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialog'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import type { ManageOutletContext } from './index'
 import {
@@ -72,10 +73,13 @@ export default function ManagePurchasesPage() {
   const [histSort, setHistSort] = useState<SortState>({ by: 'created_at', dir: 'desc' })
   const [loadingHist, setLoadingHist] = useState(false)
 
-  // Receipt detail dialog
+  // Receipt detail dialog — selectedInvoice drives PurchaseReceiptDialog
+  // (loads items itself); receiptItems is hydrated via onLoad so openEditBill
+  // can read header fields without a duplicate fetch. receiptRefresh forces
+  // the dialog to re-fetch after edit/cancel.
   const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null)
   const [receiptItems, setReceiptItems] = useState<ReceiptDetail[]>([])
-  const [receiptInvoice, setReceiptInvoice] = useState('')
+  const [receiptRefresh, setReceiptRefresh] = useState(0)
 
   // Cancel-GR modal
   const [showCancelModal, setShowCancelModal] = useState(false)
@@ -132,7 +136,6 @@ export default function ManagePurchasesPage() {
       if (clearIfMissing && selectedInvoice && !res.rows.some((r: HistoryRow) => r.invoice_no === selectedInvoice)) {
         setSelectedInvoice(null)
         setReceiptItems([])
-        setReceiptInvoice('')
       }
     } finally {
       setLoadingHist(false)
@@ -146,7 +149,7 @@ export default function ManagePurchasesPage() {
     setSlotSummary(([
       { v: 'all',       label: 'ทั้งหมด',     count: histSummary.count,           icon: FileText,      tint: 'secondary' },
       { v: 'cash',      label: 'เงินสด',       count: histSummary.cash_count,      icon: Banknote,      tint: 'primary' },
-      { v: 'credit',    label: 'เครดิตทั้งหมด', count: histSummary.credit_count,    icon: CreditCard,    tint: 'warm' },
+      { v: 'credit',    label: 'เครดิต', count: histSummary.credit_count,    icon: CreditCard,    tint: 'warm' },
       { v: 'unpaid',    label: 'ค้างชำระ',     count: histSummary.unpaid_count,    icon: AlertTriangle, tint: 'warning' },
       { v: 'cancelled', label: 'ยกเลิก',       count: histSummary.cancelled_count, icon: Ban,           tint: 'destructive' },
     ] as const).map(c => ({
@@ -205,19 +208,12 @@ export default function ManagePurchasesPage() {
       : { by: field, dir: 'desc' })
   }
 
-  const openReceipt = async (invoice_no: string) => {
-    try {
-      const data = await window.api.purchase.getReceipt(invoice_no) as ReceiptDetail[]
-      setReceiptItems(data)
-      setReceiptInvoice(invoice_no)
-      setSelectedInvoice(invoice_no)
-    } catch (e: any) {
-      toast(e?.message ? `โหลดใบรับไม่สำเร็จ: ${e.message}` : 'โหลดใบรับไม่สำเร็จ', 'error')
-    }
+  const openReceipt = (invoice_no: string) => {
+    setSelectedInvoice(invoice_no)
   }
 
   const openEditBill = () => {
-    if (!receiptInvoice || receiptItems.length === 0) return
+    if (!selectedInvoice || receiptItems.length === 0) return
     const first = receiptItems[0]
     setEditSupplierId((first as any).supplier_id ?? 0)
     setEditSupplierInvoiceNo(first.supplier_invoice_no ?? '')
@@ -232,7 +228,7 @@ export default function ManagePurchasesPage() {
   }
 
   const handleSaveEdit = async () => {
-    if (!receiptInvoice) return
+    if (!selectedInvoice) return
     if (!editSupplierId) { toast('กรุณาเลือกผู้จัดจำหน่าย', 'error'); return }
     if (!editSupplierInvoiceNo.trim()) { toast('กรุณาระบุเลขที่ใบกำกับสินค้า', 'error'); return }
     if (!editReceiveDate) { toast('กรุณาระบุวันที่รับสินค้า', 'error'); return }
@@ -240,7 +236,7 @@ export default function ManagePurchasesPage() {
     setEditSaving(true)
     try {
       const res = await window.api.purchase.updateHeader({
-        invoice_no: receiptInvoice,
+        invoice_no: selectedInvoice,
         supplier_id: editSupplierId,
         supplier_invoice_no: editSupplierInvoiceNo.trim(),
         order_date: editOrderDate || undefined,
@@ -255,8 +251,7 @@ export default function ManagePurchasesPage() {
         toast('บันทึกการแก้ไขสำเร็จ', 'success')
         setShowEditModal(false)
         await loadHistory(histPage)
-        const data = await window.api.purchase.getReceipt(receiptInvoice) as ReceiptDetail[]
-        setReceiptItems(data)
+        setReceiptRefresh(n => n + 1)
       } else if (res?.error === 'cancelled') {
         toast('บิลถูกยกเลิกแล้ว ไม่สามารถแก้ไขได้', 'error')
       } else if (res?.error === 'not_found') {
@@ -272,13 +267,13 @@ export default function ManagePurchasesPage() {
   }
 
   const handleCancelBill = async () => {
-    if (!receiptInvoice) return
+    if (!selectedInvoice) return
     const reason = cancelReason.trim()
     if (!reason) { toast('กรุณาระบุเหตุผล', 'error'); return }
     setCancelling(true)
     try {
       const res = await window.api.purchase.cancel({
-        invoice_no: receiptInvoice,
+        invoice_no: selectedInvoice,
         reason,
         userId: getCurrentUserId(),
       }) as any
@@ -288,9 +283,7 @@ export default function ManagePurchasesPage() {
         setCancelReason('')
         setCancelBlockers([])
         await loadHistory(histPage)
-        // Refresh detail panel
-        const data = await window.api.purchase.getReceipt(receiptInvoice) as ReceiptDetail[]
-        setReceiptItems(data)
+        setReceiptRefresh(n => n + 1)
       } else if (res?.error === 'stock_consumed') {
         setCancelBlockers(res.blockers ?? [])
         toast('ไม่สามารถยกเลิกได้ — สินค้าบางรายการถูกขายแล้ว', 'error')
@@ -406,8 +399,8 @@ export default function ManagePurchasesPage() {
                           ? h.is_paid
                             ? <Badge variant="success">ชำระแล้ว</Badge>
                             : isOverdue
-                              ? <Badge variant="destructive"><AlertTriangle className="size-3" />{h.due_date ? formatDate(h.due_date) : ''}</Badge>
-                              : <Badge variant="warm"><CreditCard className="size-3" />{h.due_date ? formatDate(h.due_date) : ''}</Badge>
+                              ? <Badge variant="destructive">เครดิต</Badge>
+                              : <Badge variant="tertiary">เครดิต</Badge>
                           : <Badge variant="brand-soft">เงินสด</Badge>
                       }
                     </TableCell>
@@ -455,183 +448,34 @@ export default function ManagePurchasesPage() {
         </div>
       </div>
 
-      {/* ── Receipt detail dialog ── */}
-      <Dialog
-        open={!!selectedInvoice && receiptItems.length > 0}
-        onOpenChange={(o) => { if (!o) { setSelectedInvoice(null); setReceiptItems([]); setReceiptInvoice('') } }}
-      >
-        <DialogContent size="4xl" className="max-h-[88vh] flex flex-col">
-          {(() => {
-            const h = history.find(r => r.invoice_no === receiptInvoice)
-            const first = receiptItems[0]
-            if (!first) return null
-            const isCancelled = (first.status ?? h?.status) === 'cancelled'
-            const isOverdue = !isCancelled && h && h.payment_type === 'credit' && !h.is_paid && !!h.due_date && h.due_date < today
-            const rawTotal = receiptItems.reduce((s, i) => s + i.cost_price * i.qty_received, 0)
-            const discountAmt = first.discount_amount ?? 0
-            const surchargeAmt = first.surcharge_amount ?? 0
-            const hasAdjust = discountAmt > 0 || surchargeAmt > 0
-            return (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-3 pr-10">
-                    <span className={isCancelled ? 'text-muted-foreground line-through' : ''}>{receiptInvoice}</span>
-                    {isCancelled
-                      ? <Badge variant="destructive" className="text-sm">ยกเลิกแล้ว</Badge>
-                      : h && (
-                        h.payment_type === 'credit'
-                          ? h.is_paid
-                            ? <Badge variant="success" className="text-sm">ชำระแล้ว</Badge>
-                            : isOverdue
-                              ? <Badge variant="destructive" className="text-sm">เกินกำหนด{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                              : <Badge variant="warm" className="text-sm">เครดิต{h.due_date ? ` · ${formatDate(h.due_date)}` : ''}</Badge>
-                          : <Badge variant="brand-soft" className="text-sm">เงินสด</Badge>
-                      )}
-                  </DialogTitle>
-                </DialogHeader>
-
-                <DialogBody className="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
-                  {isCancelled && (
-                    <div className="px-4 py-2.5 bg-destructive-soft rounded-lg shrink-0">
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle className="size-4 text-destructive shrink-0 mt-0.5" />
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-destructive">
-                            บิลถูกยกเลิก{first.cancelled_at ? ` · ${formatDate(first.cancelled_at)}` : ''}
-                          </div>
-                          {first.cancel_reason && (
-                            <div className="text-sm text-destructive mt-0.5 break-words">เหตุผล: {first.cancel_reason}</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 shrink-0">
-                    <div>
-                      <div className="text-sm text-foreground-subtle uppercase tracking-wide">ผู้จำหน่าย</div>
-                      <div className="text-sm font-medium text-foreground truncate">{first.supplier_name ?? '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-foreground-subtle uppercase tracking-wide">เลขที่ใบกำกับสินค้า</div>
-                      <div className="text-sm font-medium text-foreground">{first.supplier_invoice_no || '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-foreground-subtle uppercase tracking-wide">วันที่สั่งซื้อตามบิล</div>
-                      <div className="text-sm font-medium text-foreground">{first.order_date ? formatDate(first.order_date) : '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-foreground-subtle uppercase tracking-wide">วันที่รับสินค้า</div>
-                      <div className="text-sm font-medium text-foreground">{first.created_at ? formatDate(first.created_at) : '—'}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 min-h-0 border border-border rounded-lg overflow-hidden">
-                    <Table containerClassName="h-full overflow-auto scrollbar-thin">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>สินค้า</TableHead>
-                          <TableHead>หน่วย</TableHead>
-                          <TableHead className="text-right">ราคาทุน</TableHead>
-                          <TableHead className="text-right">จำนวน</TableHead>
-                          <TableHead className="text-right">รวม</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {receiptItems.map(item => {
-                          const es = getExpiryStatus(item.expiry_date)
-                          return (
-                            <TableRow key={item.id}>
-                              <TableCell>
-                                <div className="font-medium text-sm">{item.trade_name}</div>
-                                <div className="flex flex-col items-start gap-0.5 mt-0.5">
-                                  {item.lot_number && (
-                                    <span className="text-sm text-foreground-subtle">Lot. {item.lot_number}</span>
-                                  )}
-                                  {item.expiry_date && (
-                                    <span className={`text-sm ${
-                                      es === 'expired' ? 'text-destructive font-semibold' :
-                                      es === 'danger'  ? 'text-warning-strong font-semibold' :
-                                      es === 'warning' ? 'text-warning' :
-                                      'text-foreground-subtle'
-                                    }`}>exp. {formatExpiry(item.expiry_date)}
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground">{item.unit_name || '—'}</TableCell>
-                              <TableCell className="text-right tabular-nums">{formatCurrency(item.cost_price)}</TableCell>
-                              <TableCell className="text-right tabular-nums">{item.qty_received}</TableCell>
-                              <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(item.cost_price * item.qty_received)}</TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      </TableBody>
-                      {hasAdjust && (
-                        <tfoot>
-                          <tr className="bg-muted/40">
-                            <td colSpan={4} className="px-4 py-1.5 text-right text-sm text-muted-foreground">ราคารวมก่อนปรับ</td>
-                            <td className="px-4 py-1.5 text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(rawTotal)}</td>
-                          </tr>
-                          {discountAmt > 0 && (
-                            <tr className="bg-muted/40">
-                              <td colSpan={4} className="px-4 py-1 text-right text-sm text-primary">ส่วนลดรวม</td>
-                              <td className="px-4 py-1 text-right text-sm tabular-nums text-primary">−{formatCurrency(discountAmt)}</td>
-                            </tr>
-                          )}
-                          {surchargeAmt > 0 && (
-                            <tr className="bg-muted/40">
-                              <td colSpan={4} className="px-4 py-1 text-right text-sm text-warning-strong">ส่วนเพิ่ม</td>
-                              <td className="px-4 py-1 text-right text-sm tabular-nums text-warning-strong">+{formatCurrency(surchargeAmt)}</td>
-                            </tr>
-                          )}
-                        </tfoot>
-                      )}
-                    </Table>
-                  </div>
-
-                  <div className="flex justify-between items-center shrink-0">
-                    <div className="text-sm text-muted-foreground">{receiptItems.length} รายการ</div>
-                    <div className="font-extrabold text-primary tabular-nums text-lg">
-                      {formatCurrency(rawTotal - discountAmt + surchargeAmt)}
-                    </div>
-                  </div>
-                </DialogBody>
-
-                <DialogFooter>
-                  {!isCancelled && (
-                    <>
-                      <Button variant="outline" size="lg" onClick={openEditBill}>แก้ไขบิล</Button>
-                      <Button
-                        variant="destructive"
-                        size="lg"
-                        onClick={() => { setCancelReason(''); setCancelBlockers([]); setShowCancelModal(true) }}
-                      >
-                        <X className="size-4" />
-                        ยกเลิกบิล
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    variant="destructive2"
-                    size="lg"
-                    onClick={() => { setSelectedInvoice(null); setReceiptItems([]); setReceiptInvoice('') }}
-                  >
-                    ปิด
-                  </Button>
-                </DialogFooter>
-              </>
-            )
-          })()}
-        </DialogContent>
-      </Dialog>
+      {/* ── Receipt detail dialog (shared with HistoryTab) ── */}
+      <PurchaseReceiptDialog
+        open={!!selectedInvoice}
+        onOpenChange={(o) => { if (!o) { setSelectedInvoice(null); setReceiptItems([]) } }}
+        invoiceNo={selectedInvoice}
+        refreshKey={receiptRefresh}
+        onLoad={(items) => setReceiptItems(items as ReceiptDetail[])}
+        actions={
+          <>
+            <Button variant="outline" size="xl" onClick={openEditBill}>แก้ไขบิล</Button>
+            <Button
+              variant="destructive"
+              size="xl"
+              onClick={() => { setCancelReason(''); setCancelBlockers([]); setShowCancelModal(true) }}
+            >
+              <X className="size-4" />
+              ยกเลิกบิล
+            </Button>
+          </>
+        }
+      />
 
       {/* ── Edit-bill (header) modal ── */}
       <Dialog open={showEditModal} onOpenChange={(o) => { if (!editSaving) setShowEditModal(o) }}>
         <DialogContent size="lg">
           <DialogHeader>
             <DialogTitle className="text-xl">แก้ไขรายละเอียดบิล</DialogTitle>
-            <div className="text-sm text-muted-foreground mt-0.5">{receiptInvoice}</div>
+            <div className="text-sm text-muted-foreground mt-0.5">{selectedInvoice}</div>
           </DialogHeader>
           <DialogBody className="space-y-4">
               <div>
@@ -733,7 +577,7 @@ export default function ManagePurchasesPage() {
               </span>
               <div className="min-w-0">
                 <DialogTitle className="text-xl">ยกเลิกบิลรับสินค้า</DialogTitle>
-                <div className="text-sm text-muted-foreground mt-0.5">{receiptInvoice}</div>
+                <div className="text-sm text-muted-foreground mt-0.5">{selectedInvoice}</div>
               </div>
             </div>
           </DialogHeader>

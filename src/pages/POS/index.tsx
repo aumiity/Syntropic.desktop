@@ -11,17 +11,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
 import dayjs from 'dayjs'
-import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy } from '@/types'
+import { motion } from 'framer-motion'
+import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings } from '@/types'
 import { redistributeDiscounts } from './redistributeDiscount'
+import { getCartItemAlert, alertColorClass } from './cartAlerts'
 import {
   Search, User, Trash2, Plus, Minus,
-  Banknote, AlertTriangle, ChevronDown, X, UserPlus, Info,
+  Banknote, AlertTriangle, AlertCircle, AlertOctagon, PackageX,
+  ChevronDown, X, UserPlus, Info,
   RotateCcw, ChevronRight, ChevronLeft, Tag,
   ShoppingBasket, Timer, RefreshCcw, HandCoins,
   Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
@@ -128,6 +132,14 @@ export default function POSPage() {
   const [lastInvoice, setLastInvoice] = useState('')
   const [showSuccess, setShowSuccess] = useState(false)
 
+  // Sales settings (alert thresholds + toggles) — loaded once on mount.
+  const [salesSettings, setSalesSettings] = useState<SalesSettings | null>(null)
+
+  // Bundle row expansion: tracks cart row indices whose component list is open.
+  // Keyed by idx because CartItem has no stable id — keep the Set in sync when
+  // rows are removed (see removeCartItem).
+  const [expandedBundles, setExpandedBundles] = useState<Set<number>>(new Set())
+
   // Per-row modals
   const [unitModalIdx, setUnitModalIdx] = useState<number | null>(null)
   const [priceModalIdx, setPriceModalIdx] = useState<number | null>(null)
@@ -184,6 +196,22 @@ export default function POSPage() {
     loadDailyStats()
     const tick = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(tick)
+  }, [])
+
+  // Load POS alert thresholds on mount. Settings changes during a POS session
+  // require a refresh — out of scope for this iteration.
+  useEffect(() => {
+    window.api.settings.getSalesSettings()
+      .then(data => { if (data) setSalesSettings(data as SalesSettings) })
+      .catch(() => { /* keep defaults / no-alert mode */ })
+  }, [])
+
+  const toggleBundleExpand = useCallback((idx: number) => {
+    setExpandedBundles(prev => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx); else next.add(idx)
+      return next
+    })
   }, [])
 
   const anyModalOpen = searchOpen || showPayment || showCustomerSearch || showQuickAdd || showSuccess || showCustomerInfo ||
@@ -273,6 +301,23 @@ export default function POSPage() {
       mainInputRef.current?.focus()
     }, 100)
   }, [])
+
+  // Wraps cart.removeItem so the expandedBundles Set stays aligned with the
+  // shifted row indices (Set keys above the removed index decrement by 1).
+  // Without this the kept-around index would point at the wrong cart row after
+  // a deletion in front of it.
+  const removeCartItem = useCallback((idx: number) => {
+    setExpandedBundles(prev => {
+      const next = new Set<number>()
+      prev.forEach(k => {
+        if (k < idx) next.add(k)
+        else if (k > idx) next.add(k - 1)
+      })
+      return next
+    })
+    cart.removeItem(idx)
+    refocusSearch()
+  }, [cart, refocusSearch])
 
   // Keep search input permanently focused.
   // Registered once ([] deps) — reads modal state from refs to avoid stale closures.
@@ -665,7 +710,7 @@ export default function POSPage() {
       }) as any
       setLastInvoice(result.invoice_no)
       setDailyStats({ bills: result.daily_bills, total: result.daily_total, latest: result.latest_bill_time })
-      cart.clearCart(); setShowPayment(false); setShowSuccess(true)
+      cart.clearCart(); setExpandedBundles(new Set()); setShowPayment(false); setShowSuccess(true)
       setCashAmount(''); setCardAmount(''); setTransferAmount('')
     } catch (err: any) { toast(err.message ?? 'เกิดข้อผิดพลาด', 'error') }
     finally { setSaving(false) }
@@ -724,14 +769,22 @@ export default function POSPage() {
                   onClick={() => { cart.setActiveSlot(i); refocusSearch() }}
                   className={`relative flex flex-col items-stretch text-left h-28 px-4 py-3 rounded-2xl transition-colors ${
                     isActive
-                      ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                      ? 'text-primary-foreground hover:text-primary-foreground hover:bg-transparent'
                       : 'bg-card text-foreground hover:bg-surface-hover'
                   }`}>
-                  <span className={`absolute top-3 right-3 grid place-items-center w-11 h-11 rounded-xl shrink-0 ${iconBox}`}>
+                  {isActive && (
+                    <motion.div
+                      layoutId="pos-cart-slot-pill"
+                      aria-hidden
+                      className="absolute inset-0 rounded-2xl bg-primary"
+                      transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                    />
+                  )}
+                  <span className={`absolute top-3 right-3 z-10 grid place-items-center w-11 h-11 rounded-xl shrink-0 ${iconBox}`}>
                     <Icon className="size-7" strokeWidth={2}/>
                   </span>
-                  <span className="text-sm font-semibold leading-none pr-12">รายการขาย {i + 1}</span>
-                  <div className="flex flex-col gap-1 w-full min-w-0 mt-auto">
+                  <span className="relative z-10 text-sm font-semibold leading-none pr-12">รายการขาย {i + 1}</span>
+                  <div className="relative z-10 flex flex-col gap-1 w-full min-w-0 mt-auto">
                     <span className="text-2xl font-bold tabular-nums leading-none truncate">
                       {formatCurrency(total)}
                     </span>
@@ -795,17 +848,37 @@ export default function POSPage() {
           <div className="flex items-center gap-2 px-1.5 h-14 shrink-0 border-0">
             <Button
               type="button"
-              variant={cart.saleType === 'retail' ? 'default' : 'secondary'}
+              variant="ghost"
               onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
-              className="flex h-9 w-[84px] px-0 rounded-lg text-sm font-semibold shrink-0 justify-center">
-              ขายปลีก
+              className={`relative flex h-9 w-[84px] px-0 rounded-lg text-sm font-semibold shrink-0 justify-center hover:bg-transparent ${
+                cart.saleType === 'retail' ? 'text-primary-foreground hover:text-primary-foreground' : 'text-foreground-subtle hover:text-foreground'
+              }`}>
+              {cart.saleType === 'retail' && (
+                <motion.div
+                  layoutId="pos-sale-type-pill"
+                  aria-hidden
+                  className="absolute inset-0 rounded-lg bg-primary"
+                  transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                />
+              )}
+              <span className="relative z-10">ขายปลีก</span>
             </Button>
             <Button
               type="button"
-              variant={cart.saleType === 'wholesale' ? 'tertiary' : 'secondary'}
+              variant="ghost"
               onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
-              className="flex h-9 w-[84px] px-0 rounded-lg text-sm font-semibold shrink-0 justify-center">
-              ขายส่ง
+              className={`relative flex h-9 w-[84px] px-0 rounded-lg text-sm font-semibold shrink-0 justify-center hover:bg-transparent ${
+                cart.saleType === 'wholesale' ? 'text-tertiary-foreground hover:text-tertiary-foreground' : 'text-foreground-subtle hover:text-foreground'
+              }`}>
+              {cart.saleType === 'wholesale' && (
+                <motion.div
+                  layoutId="pos-sale-type-pill"
+                  aria-hidden
+                  className="absolute inset-0 rounded-lg bg-tertiary"
+                  transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                />
+              )}
+              <span className="relative z-10">ขายส่ง</span>
             </Button>
             <div className="relative flex-1 min-w-0">
               <Input
@@ -819,7 +892,7 @@ export default function POSPage() {
               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
             </div>
             <Button variant="destructive2" size="sm" disabled={cart.items.length === 0}
-              onClick={() => { cart.clearCart(); refocusSearch() }}
+              onClick={() => { cart.clearCart(); setExpandedBundles(new Set()); refocusSearch() }}
               className="gap-1.5 px-3 py-1.5 h-9 rounded-lg text-sm font-medium hover:bg-destructive hover:text-primary-foreground shrink-0">
               <Trash2 className="size-3.5" /> ลบรายการทั้งหมด
             </Button>
@@ -863,11 +936,45 @@ export default function POSPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : cart.items.map((item, idx) => (
+                  ) : cart.items.flatMap((item, idx) => {
+                    const isBundle = !!item.product?.is_bundle
+                    const isExpanded = expandedBundles.has(idx)
+                    const alert = getCartItemAlert(item, salesSettings)
+                    const rows = [
                     <TableRow key={idx} className="hover:bg-transparent [&_td]:py-1">
-                      <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
+                      <TableCell className="text-center text-sm text-muted-foreground p-0">
+                        {isBundle ? (
+                          <Button
+                            variant="ghost"
+                            size="icon-lg"
+                            onClick={() => toggleBundleExpand(idx)}
+                            title={isExpanded ? 'ย่อรายการ' : 'ขยายรายการ'}
+                            className="w-full h-8 gap-0.5 rounded"
+                          >
+                            {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                            <span className="tabular-nums text-sm">{idx + 1}</span>
+                          </Button>
+                        ) : (
+                          <>{idx + 1}</>
+                        )}
+                      </TableCell>
                       <TableCell className="min-w-0 pr-2 ">
-                        <div className="font-medium truncate text-sm">{item.item_name}</div>
+                        <div className="font-medium truncate text-sm flex items-center gap-1.5">
+                          {alert && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className={`shrink-0 inline-flex ${alertColorClass(alert.level)}`}>
+                                  {alert.level === 'expired'   && <AlertOctagon  className="size-4" />}
+                                  {alert.level === 'low_stock' && <PackageX      className="size-4" />}
+                                  {alert.level === 'danger'    && <AlertTriangle className="size-4" />}
+                                  {alert.level === 'warn'      && <AlertCircle   className="size-4" />}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{alert.reason}</TooltipContent>
+                            </Tooltip>
+                          )}
+                          <span className="truncate">{item.item_name}</span>
+                        </div>
                       </TableCell>
 
                       <TableCell className="text-center">
@@ -920,13 +1027,35 @@ export default function POSPage() {
                       </TableCell>
 
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => { cart.removeItem(idx); refocusSearch() }}
+                        <Button variant="ghost" size="icon" onClick={() => removeCartItem(idx)}
                           className="w-7 h-7 rounded inline-flex items-center justify-center text-foreground-subtle hover:text-destructive hover:bg-destructive/10">
                           <Trash2 className="size-3.5" />
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    ]
+                    if (isBundle && isExpanded) {
+                      const components = item.product?.bundle_items ?? []
+                      components.forEach((c, ci) => {
+                        rows.push(
+                          <TableRow key={`${idx}-c-${ci}`} className="bg-muted/30 hover:bg-muted/40 [&_td]:py-1">
+                            <TableCell />
+                            <TableCell className="pl-6 text-xs text-foreground-subtle truncate">
+                              • {c.component_name ?? '-'}
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-foreground-subtle">
+                              {c.component_unit_name ?? '-'}
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-foreground-subtle tabular-nums">
+                              {(c.qty_per_bundle ?? 1) * item.qty}
+                            </TableCell>
+                            <TableCell colSpan={4} />
+                          </TableRow>
+                        )
+                      })
+                    }
+                    return rows
+                  })}
                 </TableBody>
               </table>
             </div>

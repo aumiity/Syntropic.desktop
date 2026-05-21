@@ -39,6 +39,7 @@ export interface ProductBundleItem {
   component_name?: string
   component_unit_name?: string
   component_cost?: number
+  component_sell_price?: number
   component_stock?: number
   // Attached only by pos:searchProducts so POS can FEFO-cost the bundle preview
   // without a second IPC round-trip. Not present on plain reads.
@@ -133,6 +134,18 @@ export interface CartItem {
 export interface Setting {
   id: number; shop_name: string; shop_address: string; shop_phone: string
   shop_license_no: string; shop_tax_id: string; shop_line_id: string
+}
+
+// POS / Sales settings (singleton). Keys MUST match sales_settings columns 1:1
+// — SalesTab form state is saved verbatim via a dynamic Object.keys() UPDATE.
+export interface SalesSettings {
+  id: number
+  expiry_alert_enabled: number
+  expiry_warn_months: number
+  expiry_danger_months: number
+  expired_alert_enabled: number
+  low_stock_alert_enabled: number
+  updated_at?: string
 }
 
 export interface ProductCategory {

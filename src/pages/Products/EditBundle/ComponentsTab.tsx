@@ -8,7 +8,7 @@ import { Search, Trash2, Boxes, Save, X } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductBundleItem } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
-
+ 
 interface Props {
   // null when creating a brand-new bundle (no DB row yet).
   product: FullProduct | null
@@ -31,6 +31,7 @@ export interface DraftItem {
   component_name: string
   component_unit_name?: string
   component_cost: number
+  component_sell_price: number
   component_stock: number
   qty_per_bundle: number
 }
@@ -42,6 +43,7 @@ interface SearchRow {
   code: string | null
   unit_name: string | null
   cost_price: number
+  price_retail: number
   stock_qty: number
 }
 
@@ -71,6 +73,14 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
 
+  // Per-row edit strings for the qty input — keyed by component_product_id.
+  // Decouples the displayed string from the parsed number so the user can clear
+  // the field or type transient forms ("0", "0.5", "01") without parseFloat
+  // snapping the display back. React's controlled-input diffing won't sync the
+  // DOM when value prop is unchanged — so "01" parsing to 1 (same as prior
+  // state) would otherwise leave the typed "01" stuck in the input forever.
+  const [qtyDrafts, setQtyDrafts] = useState<Record<number, string>>({})
+
   // Component picker — shared query between main input and modal input.
   const [searchOpen, setSearchOpen] = useState(false)
   const [q, setQ] = useState('')
@@ -95,10 +105,12 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
       component_name: bi.component_name ?? '—',
       component_unit_name: bi.component_unit_name,
       component_cost: Number(bi.component_cost ?? 0),
+      component_sell_price: Number(bi.component_sell_price ?? 0),
       component_stock: Number(bi.component_stock ?? 0),
       qty_per_bundle: Number(bi.qty_per_bundle ?? 1),
     }))
     setLocalItems(seeded)
+    setQtyDrafts({})
     setDirty(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.bundle_items, isControlled])
@@ -215,9 +227,17 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
       component_name: p.trade_name,
       component_unit_name: p.unit_name ?? undefined,
       component_cost: Number(p.cost_price ?? 0),
+      component_sell_price: Number(p.price_retail ?? 0),
       component_stock: Number(p.stock_qty ?? 0),
       qty_per_bundle: 1,
     }])
+    // Clear any stale draft so a re-added component shows the seeded "1"
+    // instead of a string left over from a previous edit on the same id.
+    setQtyDrafts(prev => {
+      const next = { ...prev }
+      delete next[p.id]
+      return next
+    })
     setDirty(true)
     // Close after add (POS pattern) — main input auto-refocuses via the
     // searchOpen→false effect above, so the next search is one keystroke away.
@@ -235,17 +255,32 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   }
 
   const removeAt = (idx: number) => {
+    const removed = items[idx]
     setItems(prev => prev.filter((_, i) => i !== idx))
+    if (removed) {
+      setQtyDrafts(prev => {
+        const next = { ...prev }
+        delete next[removed.component_product_id]
+        return next
+      })
+    }
     setDirty(true)
   }
 
-  const updateQty = (idx: number, v: string) => {
-    const num = parseFloat(v)
-    setItems(prev => prev.map((it, i) => i === idx ? { ...it, qty_per_bundle: isNaN(num) ? 0 : num } : it))
+  const updateQty = (componentId: number, v: string) => {
+    // Integer-only field — strip every non-digit before storing the draft so
+    // typing/pasting "5.5" or "-3" can't survive even as a transient string.
+    const cleaned = v.replace(/\D/g, '')
+    setQtyDrafts(prev => ({ ...prev, [componentId]: cleaned }))
+    const num = parseInt(cleaned, 10)
+    setItems(prev => prev.map(it => it.component_product_id === componentId
+      ? { ...it, qty_per_bundle: isNaN(num) ? 0 : num }
+      : it))
     setDirty(true)
   }
 
   const totalCost = items.reduce((s, it) => s + it.component_cost * it.qty_per_bundle, 0)
+  const totalSell = items.reduce((s, it) => s + it.component_sell_price * it.qty_per_bundle, 0)
 
   const handleSave = async () => {
     // Pre-validate so server-side errors don't surface as toasts only — the
@@ -317,23 +352,25 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
               <TableHead className="text-center min-w-14">#</TableHead>
               <TableHead className="min-w-[260px]">รายการ</TableHead>
               <TableHead className="text-center min-w-20">หน่วย</TableHead>
-              <TableHead className="text-center min-w-32">จำนวนต่อชุด</TableHead>
-              <TableHead className="text-right min-w-28">ราคาทุนต่อหน่วย</TableHead>
-              <TableHead className="text-right min-w-28">รวมต่อชุด</TableHead>
-              <TableHead className="text-center min-w-24">คงเหลือ</TableHead>
-              <TableHead className="text-center min-w-16">ลบ</TableHead>
+              <TableHead className="text-center min-w-32">จำนวน</TableHead>
+              <TableHead className="text-right min-w-28">ราคาทุน</TableHead>
+              <TableHead className="text-right min-w-28">รวม(ทุน)</TableHead>
+              <TableHead className="text-right min-w-28">ราคาขาย</TableHead>
+              <TableHead className="text-right min-w-28">รวม(ขาย)</TableHead>
+              <TableHead className="text-center min-w-16" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
                   <Boxes className="size-10 mx-auto mb-2 opacity-30" />
                   ยังไม่มีรายการ — พิมพ์ในช่องค้นหาเพื่อเพิ่ม
                 </TableCell>
               </TableRow>
             ) : items.map((it, i) => {
               const lineCost = it.component_cost * it.qty_per_bundle
+              const lineSell = it.component_sell_price * it.qty_per_bundle
               return (
                 <TableRow key={`${it.component_product_id}-${i}`}>
                   <TableCell className="text-center text-sm tabular-nums text-muted-foreground">{i + 1}</TableCell>
@@ -341,15 +378,21 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                   <TableCell className="text-center text-sm text-muted-foreground">{it.component_unit_name ?? '—'}</TableCell>
                   <TableCell className="text-center">
                     <Input
-                      type="number" step="any" min="0"
-                      value={it.qty_per_bundle}
-                      onChange={e => updateQty(i, e.target.value)}
+                      type="number" step="1" min="0" inputMode="numeric"
+                      value={qtyDrafts[it.component_product_id] ?? String(it.qty_per_bundle)}
+                      onChange={e => updateQty(it.component_product_id, e.target.value)}
+                      onBlur={() => setQtyDrafts(prev => {
+                        const next = { ...prev }
+                        delete next[it.component_product_id]
+                        return next
+                      })}
                       className="h-9 w-24 mx-auto text-center"
                     />
                   </TableCell>
                   <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(it.component_cost)}</TableCell>
                   <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">{formatCurrency(lineCost)}</TableCell>
-                  <TableCell className="text-center text-sm tabular-nums text-muted-foreground">{it.component_stock.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(it.component_sell_price)}</TableCell>
+                  <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">{formatCurrency(lineSell)}</TableCell>
                   <TableCell>
                     <div className="flex justify-center">
                       <Button
@@ -377,9 +420,14 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
               ? <span className="text-warning-strong">มีการเปลี่ยนแปลงที่ยังไม่บันทึก</span>
               : <>{items.length.toLocaleString()} รายการ</>}
         </span>
-        <span className="text-muted-foreground">
-          ต้นทุนรวม (อัตโนมัติ) <span className="font-semibold text-foreground tabular-nums">{formatCurrency(totalCost)}</span>
-        </span>
+        <div className="flex items-center gap-6">
+          <span className="text-muted-foreground">
+            ราคาทุนรวม <span className="font-semibold text-foreground tabular-nums">{formatCurrency(totalCost)}</span>
+          </span>
+          <span className="text-muted-foreground">
+            ราคาขายรวม <span className="font-semibold text-foreground tabular-nums">{formatCurrency(totalSell)}</span>
+          </span>
+        </div>
       </div>
 
       {/* ── POS-STYLE SEARCH DIALOG (1000×800) ── */}

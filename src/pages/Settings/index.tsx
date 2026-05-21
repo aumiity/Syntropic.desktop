@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Store, Tag, Ruler, Pill, Printer } from 'lucide-react'
+import { Store, Tag, Ruler, Pill, Printer, ShoppingCart } from 'lucide-react'
 import { ShopTab } from './ShopTab'
 import { CategoriesTab } from './CategoriesTab'
 import { UnitsTab } from './UnitsTab'
 import { DrugTypesTab } from './DrugTypesTab'
 import { LabelSettingsTab } from './LabelSettingsTab'
+import { SalesTab } from './SalesTab'
 
 export default function SettingsPage() {
   const [tab, setTab] = useState('shop')
@@ -21,6 +22,7 @@ export default function SettingsPage() {
           <TabsTrigger value="categories"><Tag /> หมวดหมู่</TabsTrigger>
           <TabsTrigger value="units"><Ruler /> หน่วยนับ</TabsTrigger>
           <TabsTrigger value="drugtypes"><Pill /> ประเภทยา</TabsTrigger>
+          <TabsTrigger value="sales"><ShoppingCart /> การขาย</TabsTrigger>
           <TabsTrigger value="labels"><Printer /> การพิมพ์ฉลาก</TabsTrigger>
         </TabsList>
       </Tabs>
@@ -30,6 +32,7 @@ export default function SettingsPage() {
         {tab === 'categories' && <CategoriesTab />}
         {tab === 'units' && <UnitsTab />}
         {tab === 'drugtypes' && <DrugTypesTab />}
+        {tab === 'sales' && <SalesTab />}
         {tab === 'labels' && <LabelSettingsTab />}
       </div>
     </div>

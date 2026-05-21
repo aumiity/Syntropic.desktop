@@ -188,6 +188,30 @@ export function registerSettingsHandlers() {
     return db.prepare(`SELECT * FROM label_settings LIMIT 1`).get()
   })
 
+  // Sales settings (singleton) — POS cart alert thresholds and toggles.
+  // First read auto-inserts a default row so the renderer always gets a complete object.
+  ipcMain.handle('settings:getSalesSettings', () => {
+    const db = getDb()
+    let row = db.prepare(`SELECT * FROM sales_settings LIMIT 1`).get()
+    if (!row) {
+      db.prepare(`INSERT INTO sales_settings DEFAULT VALUES`).run()
+      row = db.prepare(`SELECT * FROM sales_settings LIMIT 1`).get()
+    }
+    return row
+  })
+  ipcMain.handle('settings:saveSalesSettings', (_e, data: any) => {
+    const db = getDb()
+    const existing = db.prepare(`SELECT id FROM sales_settings LIMIT 1`).get() as any
+    if (existing) {
+      const { id, updated_at, ...rest } = data
+      const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
+      db.prepare(`UPDATE sales_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = ?`).run({ ...rest, id: existing.id })
+    } else {
+      db.prepare(`INSERT INTO sales_settings DEFAULT VALUES`).run()
+    }
+    return db.prepare(`SELECT * FROM sales_settings LIMIT 1`).get()
+  })
+
   // All item units (for dropdowns)
   ipcMain.handle('settings:allUnits', () => {
     return getDb().prepare(`SELECT * FROM item_units ORDER BY name`).all()

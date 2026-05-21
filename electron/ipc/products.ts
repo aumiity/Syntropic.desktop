@@ -265,6 +265,7 @@ export function registerProductHandlers() {
                  c.trade_name as component_name,
                  u.name as component_unit_name,
                  c.cost_price as component_cost,
+                 c.price_retail as component_sell_price,
                  COALESCE((SELECT SUM(qty_on_hand) FROM product_lots
                            WHERE product_id = c.id AND is_closed = 0), 0) as component_stock
           FROM product_bundle_items bi
@@ -812,6 +813,7 @@ export function registerProductHandlers() {
              c.trade_name as component_name,
              u.name as component_unit_name,
              c.cost_price as component_cost,
+             c.price_retail as component_sell_price,
              COALESCE((SELECT SUM(qty_on_hand) FROM product_lots
                        WHERE product_id = c.id AND is_closed = 0), 0) as component_stock
       FROM product_bundle_items bi

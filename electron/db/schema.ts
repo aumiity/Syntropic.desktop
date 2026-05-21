@@ -423,6 +423,19 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    -- POS / Sales Settings (singleton). Columns map 1:1 to SalesTab form keys —
+    -- the IPC upsert builds dynamic SQL from Object.keys(), so any renamed key
+    -- would throw "no such column".
+    CREATE TABLE IF NOT EXISTS sales_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      expiry_alert_enabled    INTEGER NOT NULL DEFAULT 1,
+      expiry_warn_months      INTEGER NOT NULL DEFAULT 6,
+      expiry_danger_months    INTEGER NOT NULL DEFAULT 3,
+      expired_alert_enabled   INTEGER NOT NULL DEFAULT 1,
+      low_stock_alert_enabled INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     -- Purchase receipt headers (GR-level metadata, one row per invoice_no).
     -- Authoritative source for supplier / payment / dates of a GR.
     -- product_lots also stores some of these for stock display, but is last-write-wins.

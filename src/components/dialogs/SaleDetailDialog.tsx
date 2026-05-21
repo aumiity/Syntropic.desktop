@@ -103,28 +103,20 @@ export function SaleDetailDialog({
               </DialogTitle>
             </DialogHeader>
             <DialogBody className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-sm bg-muted/30 rounded-lg p-3">
+              <div className="relative grid grid-cols-2 gap-3 text-sm bg-muted/30 rounded-lg p-3">
+                <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                  {([
+                    detail.cash_amount > 0 && { label: 'เงินสด', variant: 'success' as const },
+                    detail.card_amount > 0 && { label: 'บัตร', variant: 'info-soft' as const },
+                    detail.transfer_amount > 0 && { label: 'โอน', variant: 'warm' as const },
+                  ].filter(Boolean) as { label: string; variant: 'success' | 'info-soft' | 'warm' }[]).map(m => (
+                    <Badge key={m.label} variant={m.variant}>{m.label}</Badge>
+                  ))}
+                </div>
                 <div><span className="text-muted-foreground">วันที่:</span> <span className="font-medium">{formatDateTime(detail.sold_at)}</span></div>
-                <div><span className="text-muted-foreground">พนักงาน:</span> <span className="font-medium">{detail.sold_by_name ?? '—'}</span></div>
+                <div className="pr-40"><span className="text-muted-foreground">พนักงาน:</span> <span className="font-medium">{detail.sold_by_name ?? '—'}</span></div>
                 <div><span className="text-muted-foreground">ลูกค้า:</span> <span className="font-medium">{detail.customer_name ?? detail.customer_name_free ?? 'ลูกค้าทั่วไป'}</span></div>
                 <div><span className="text-muted-foreground">ประเภทการขาย:</span> <span className="font-medium">{SALE_TYPE_LABELS[detail.sale_type] ?? detail.sale_type}</span></div>
-                <div className="col-span-2 flex items-center gap-2">
-                  <span className="text-muted-foreground">การชำระเงิน:</span>
-                  {(() => {
-                    const methods = [
-                      detail.cash_amount > 0 && { label: 'เงินสด', variant: 'success' as const },
-                      detail.card_amount > 0 && { label: 'บัตร', variant: 'info-soft' as const },
-                      detail.transfer_amount > 0 && { label: 'โอน', variant: 'warm' as const },
-                    ].filter(Boolean) as { label: string; variant: 'success' | 'info-soft' | 'warm' }[]
-                    return methods.length > 0
-                      ? methods.map(m => (
-                          <Badge key={m.label} variant={m.variant}>
-                            {m.label}
-                          </Badge>
-                        ))
-                      : <span className="font-medium">—</span>
-                  })()}
-                </div>
                 {detail.cash_amount > 0 && <div><span className="text-muted-foreground">รับเงินมา:</span> <span className="font-medium">{formatCurrency(detail.cash_amount)}</span></div>}
                 {detail.change_amount > 0 && <div><span className="text-muted-foreground">เงินทอน:</span> <span className="font-medium">{formatCurrency(detail.change_amount)}</span></div>}
                 {detail.void_reason && (
@@ -133,8 +125,15 @@ export function SaleDetailDialog({
               </div>
 
               <div className="border border-border rounded-lg overflow-hidden">
-                {/* ~10 rows visible: header h-10 (40) + 10×~33 + sticky tfoot (~72) */}
-                <Table containerClassName="max-h-[450px]" className="border-separate border-spacing-0 table-fixed">
+                {/* Locked to 10-row height — fewer rows leave empty space below
+                    the sticky tfoot rather than shrinking the modal; more rows
+                    scroll inside the container. Breakdown: header h-10 (40) +
+                    10×~33 + sticky tfoot (~72) ≈ 450.
+                    Table is h-full so a `<tr h-full>` spacer at the end of
+                    tbody can absorb the slack — without it, sticky tfoot only
+                    "sticks" when content overflows, otherwise it floats below
+                    the last data row leaving a big blank band underneath. */}
+                <Table containerClassName="h-[450px] scrollbar-thin" className=" scrollbar-thin border-separate border-spacing-0 table-fixed h-full">
                   {/* Divider rides with the sticky header — works because the
                       <Table> is border-separate (collapse model strands cell
                       borders behind sticking cells). Same pattern as the
@@ -143,13 +142,13 @@ export function SaleDetailDialog({
                     <TableRow>
                       <TableHead className="text-center w-8">#</TableHead>
                       <TableHead className="w-64">รายการ</TableHead>
-                      <TableHead className="text-center w-12">หน่วย</TableHead>
                       <TableHead className="text-center w-12">จำนวน</TableHead>
+                      <TableHead className="text-center w-12">หน่วย</TableHead>
                       <TableHead className="text-right w-20">ราคา</TableHead>
                       <TableHead className="text-right w-20">ส่วนลด</TableHead>
                       <TableHead className="text-right w-20">รวม</TableHead>
                       <TableHead className="text-right w-20">ต้นทุน</TableHead>
-                      <TableHead className="text-right w-20">กำไร</TableHead>
+                      <TableHead className="text-right w-20 pr-4">กำไร</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -183,15 +182,15 @@ export function SaleDetailDialog({
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="text-center text-sm">{item.unit_name}</TableCell>
                             <TableCell className="text-center text-sm">{item.qty}</TableCell>
+                            <TableCell className="text-center text-sm">{item.unit_name}</TableCell>
                             <TableCell className="text-right text-sm">{formatCurrency(item.unit_price)}</TableCell>
                             <TableCell className="text-right text-sm text-warning-strong">
-                              {item.discount > 0 ? formatCurrency(item.discount) : '—'}
+                              {item.discount > 0 ? formatCurrency(item.discount) : '0'}
                             </TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(item.line_total)}</TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(item.item_cost ?? 0)}</TableCell>
-                            <TableCell className={`text-right text-sm font-medium ${profitColor(profit)}`}>
+                            <TableCell className={`text-right pr-4 text-sm font-medium ${profitColor(profit)}`}>
                               {formatCurrency(profit)}
                             </TableCell>
                           </TableRow>
@@ -243,6 +242,11 @@ export function SaleDetailDialog({
                         </>
                       )
                     })}
+                    {/* Slack-absorber — keeps tfoot pinned to the actual
+                        container bottom when data rows don't fill the 450px.
+                        Uses a raw <tr> so TableRow's border-b doesn't add a
+                        stray separator above the empty band. */}
+                    <tr aria-hidden><td colSpan={9} className="h-full p-0" /></tr>
                   </TableBody>
                   {/* Pinned totals: each <td> is sticky (per-cell, not <tr> —
                       sticky on <tr>/<tfoot> is flaky in Chromium). Upper row
@@ -250,21 +254,21 @@ export function SaleDetailDialog({
                       bg-muted so scrolling rows don't bleed through. */}
                   <tfoot>
                     <tr className="[&>td]:sticky [&>td]:bottom-9 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-b [&>td]:border-border">
-                      <td colSpan={5} className="px-4 py-2" />
-                      <td className="px-4 py-2 text-right text-sm font-medium text-muted-foreground">ส่วนลด</td>
-                      <td className="px-4 py-2 text-right text-sm font-medium text-warning-strong">
-                        {detail.total_discount > 0 ? `-${formatCurrency(detail.total_discount)}` : '—'}
-                      </td>
+                      <td colSpan={5} className="py-2" />
+                      <td className="pr-2 py-2 text-right text-sm font-medium text-muted-foreground">ส่วนลด</td>
+                      <td className="px-2 py-2 text-right text-sm font-medium text-warning-strong">
+                        {detail.total_discount > 0 ? `-${formatCurrency(detail.total_discount)}` : '0'}
+                      </td> 
                       <td colSpan={2} />
                     </tr>
                     <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted">
-                      <td colSpan={5} className="px-4 py-2" />
-                      <td className="px-4 py-2 text-right text-sm font-bold">ยอดสุทธิ</td>
-                      <td className="px-4 py-2 text-right font-bold text-primary">{formatCurrency(detail.total_amount)}</td>
-                      <td className="px-4 py-2 text-right text-sm text-muted-foreground">
+                      <td colSpan={5} className="py-2" />
+                      <td className="pr-2 py-2 text-right text-sm font-bold">ยอดสุทธิ</td>
+                      <td className="pr-2 py-2 text-right font-bold text-primary">{formatCurrency(detail.total_amount)}</td>
+                      <td className="pr-2 py-2 text-right text-sm text-muted-foreground">
                         {formatCurrency(detail.items.reduce((s, i) => s + (i.item_cost ?? 0), 0))}
                       </td>
-                      <td className={`px-4 py-2 text-right font-bold ${profitColor(detail.items.reduce((s, i) => s + (i.line_total - (i.item_cost ?? 0)), 0))}`}>
+                      <td className={`pr-4 py-2 text-right font-bold ${profitColor(detail.items.reduce((s, i) => s + (i.line_total - (i.item_cost ?? 0)), 0))}`}>
                         {formatCurrency(detail.items.reduce((s, i) => s + (i.line_total - (i.item_cost ?? 0)), 0))}
                       </td>
                     </tr>
