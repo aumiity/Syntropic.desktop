@@ -171,7 +171,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           <Button
             size="lg"
             variant="ghost"
-            className="px-3 shrink-0"
+            className="h-10 px-3 shrink-0"
             onClick={() => setMovementTypeFilter(new Set())}
             disabled={movementTypeFilter.size === 0}
           >

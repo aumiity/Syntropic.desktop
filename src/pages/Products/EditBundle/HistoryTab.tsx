@@ -168,7 +168,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           <Button
             size="lg"
             variant="ghost"
-            className="px-3 shrink-0"
+            className="h-10 px-3 shrink-0"
             onClick={() => setMovementTypeFilter(new Set())}
             disabled={movementTypeFilter.size === 0}
           >
@@ -212,6 +212,10 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                 }
                 const Icon = meta.icon
                 const isPositive = m.qty_change > 0
+                const displayNote = m.note
+                  || (m.sale_invoice_no
+                    ? `${m.movement_type === 'sale_return' ? 'คืนสินค้า' : 'ขาย'}: ${m.sale_invoice_no}`
+                    : null)
                 return (
                   <TableRow key={m.id} className="hover:bg-primary-soft/60 transition-colors">
                     <TableCell className="text-sm tabular-nums">{formatDateTime(m.created_at)}</TableCell>
@@ -228,7 +232,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1.5">
-                        {m.note ? (
+                        {displayNote ? (
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button size="icon-lg" variant="warm" title="ดูหมายเหตุ">
@@ -236,7 +240,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent align="center" className="w-80 max-w-[90vw]">
-                              <div className="text-sm whitespace-pre-wrap break-words">{m.note}</div>
+                              <div className="text-sm whitespace-pre-wrap break-words">{displayNote}</div>
                             </PopoverContent>
                           </Popover>
                         ) : (

@@ -485,7 +485,7 @@ export function registerProductHandlers() {
   // Stock movement audit log for a single product. Returns rows from
   // stock_movements joined with lot + user info for display. Ordered newest
   // first. movement_type values: receive, sale, sale_return, adjust_in,
-  // adjust_out, lot_edit, gr_cancel. Note often contains a referencing
+  // adjust_out, purchase_return, expired, near_expiry. Note often contains a referencing
   // invoice/GR number (frontend extracts for navigation).
   ipcMain.handle('products:stockMovements', (_e, productId: number, opts?: {
     limit?: number
@@ -520,7 +520,7 @@ export function registerProductHandlers() {
                  CASE WHEN s.sale_type = 'return' THEN 'sale_return' ELSE 'sale' END as movement_type,
                  'sale' as ref_type, s.id as ref_id,
                  -si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,
-                 si.item_note as note, s.sold_at as created_at,
+                 COALESCE(NULLIF(si.item_note, ''), 'ขาย: ' || s.invoice_no) as note, s.sold_at as created_at,
                  NULL as lot_id, NULL as lot_number, NULL as expiry_date,
                  NULL AS gr_invoice_no,
                  s.invoice_no AS sale_invoice_no,
@@ -560,7 +560,7 @@ export function registerProductHandlers() {
     if (opts?.date_to)   { conditions.push('date(sm.created_at) <= ?'); params.push(opts.date_to)   }
 
     // pl.invoice_no = the GR (purchase_receipt) the lot belongs to → used for
-    // navigating receive/gr_cancel movements to the purchase detail page.
+    // navigating receive/purchase_return movements to the purchase detail page.
     // s.invoice_no = the sale the movement references → only meaningful when
     // ref_type='sale' (covers both 'sale' and 'sale_return' movement_types).
     return db.prepare(`

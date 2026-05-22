@@ -5,6 +5,7 @@ import { Label as LabelPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
+
 function Label({
   className,
   ...props
@@ -23,14 +24,15 @@ function Label({
   )
 }
 
-function FormField({ label, required, children }: {
+function FormField({ label, required, children, labelClassName }: {
   label: React.ReactNode
   required?: boolean
   children: React.ReactNode
+  labelClassName?: string
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-semibold uppercase text-foreground">
+      <label className={cn("block text-sm font-semibold uppercase text-foreground", labelClassName)}>
         {label}{required && <span className="text-destructive ml-0.5">*</span>}
       </label>
       {children}

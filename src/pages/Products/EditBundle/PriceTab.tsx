@@ -83,13 +83,23 @@ export function PriceTab({ form, setF, product, productId, isNew, reloadToken }:
   const ws1 = calc(parseFloat(form.price_wholesale1) || 0)
   const ws2 = calc(parseFloat(form.price_wholesale2) || 0)
 
-  const profitText = (d: ReturnType<typeof calc>) => d.dim ? (
-    <span className="text-sm text-foreground-subtle">—</span>
-  ) : (
-    <span className={`text-sm font-bold tabular-nums ${d.pos ? 'text-success' : 'text-destructive'}`}>
-      {d.pos ? '+' : ''}{d.profit.toFixed(2)} ({d.pos ? '+' : ''}{d.pct.toFixed(0)}%)
-    </span>
-  )
+  const profitBox = (d: ReturnType<typeof calc>) => {
+    const labelCls = `text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`
+    const valCls = `text-sm font-bold tabular-nums ${d.pos ? 'text-success' : 'text-destructive'}`
+    const dash = <span className="text-sm text-foreground-subtle">—</span>
+    return (
+      <div className="rounded-lg bg-success-soft/50 px-3 py-2 tabular-nums space-y-1">
+        <div className="flex items-center justify-between">
+          <span className={labelCls}>กำไรต่อชุด</span>
+          {d.dim ? dash : <span className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)}</span>}
+        </div>
+        <div className="flex items-center justify-between">
+          <span className={labelCls}>กำไร (%)</span>
+          {d.dim ? dash : <span className={valCls}>{d.pos ? '+' : ''}{d.pct.toFixed(0)}%</span>}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="grid grid-cols-2 gap-4 pt-4 items-start">
@@ -99,62 +109,62 @@ export function PriceTab({ form, setF, product, productId, isNew, reloadToken }:
 
         {/* Card 1: ต้นทุนรวม + ราคาขายปลีก */}
         <SectionCard icon={Tag} title="ราคาขายปลีก & ต้นทุน" tint="success">
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
 
-            {/* ต้นทุนรวม — auto-computed, read-only (mirrors ราคาทุนเฉลี่ย ใน EditProduct) */}
-            <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">ต้นทุนรวม (อัตโนมัติ)</span>
-              {cost > 0
-                ? <span className="text-sm font-bold text-warm-foreground tabular-nums">{formatCurrency(cost)}</span>
-                : <span className="text-sm text-foreground-subtle">—</span>}
-            </div>
-
-            {/* ราคาขายปลีก + กล่องกำไร */}
-            <Field label="ราคาขายปลีก" required>
-              <PriceInput
-                value={form.price_retail}
-                onChange={v => setF('price_retail', v)}
-              />
-            </Field>
-            <div className="rounded-lg bg-success-soft/50 px-3 py-2 tabular-nums">
-              <div className="flex items-center justify-between">
-                <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไรต่อชุด</span>
-                {profitText(retail)}
+            {/* LEFT: ต้นทุนรวม (อ่านอย่างเดียว) — input หลอกๆ ด้านบนเพื่อจัดบรรทัดให้ตรงกับ ราคาขายปลีก ฝั่งขวา */}
+            <div className="space-y-3">
+              <Field label="ราคาทุนล่าสุด" labelClassName="text-right">
+                <PriceInput
+                  value={cost > 0 ? cost.toFixed(2) : ''}
+                  onChange={() => {}}
+                  disabled
+                />
+              </Field>
+              <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">ต้นทุนรวม (อัตโนมัติ)</span>
+                {cost > 0
+                  ? <span className="text-sm font-bold text-warm-foreground tabular-nums">{formatCurrency(cost)}</span>
+                  : <span className="text-sm text-foreground-subtle">—</span>}
               </div>
             </div>
 
-            {/* คำอธิบายสูตรต้นทุน — ดูดเข้ามาในการ์ดเดียวกันแทนการ์ดแยก */}
-            <p className="text-sm text-muted-foreground flex items-start gap-1.5 pt-1">
-              <Info className="size-4 shrink-0 mt-0.5" />
-              <span>
-                ต้นทุน = ผลรวมของ <span className="font-semibold">(ราคาทุนของส่วนประกอบ × จำนวนต่อชุด)</span>
-                {' '}อัพเดตอัตโนมัติเมื่อราคาทุนของส่วนประกอบเปลี่ยน
-              </span>
-            </p>
+            {/* RIGHT: ราคาขายปลีก + กล่องกำไร */}
+            <div className="space-y-3">
+              <Field label="ราคาขายปลีก" required labelClassName="text-right">
+                <PriceInput
+                  value={form.price_retail}
+                  onChange={v => setF('price_retail', v)}
+                />
+              </Field>
+              {profitBox(retail)}
+            </div>
 
           </div>
         </SectionCard>
 
-        {/* Card 2: ราคาขายส่ง */}
+        {/* Card 2: คำอธิบายสูตรต้นทุน — แยกออกมาเพื่อไม่ให้ Card 1 หนักเกินไป */}
+        <SectionCard icon={Info} title="สูตรคำนวณต้นทุน">
+          <p className="text-sm text-muted-foreground">
+            ต้นทุน = ผลรวมของ <span className="font-semibold">(ราคาทุนของส่วนประกอบ × จำนวนต่อชุด)</span>
+            {' '}อัพเดตอัตโนมัติเมื่อราคาทุนของส่วนประกอบเปลี่ยน
+          </p>
+        </SectionCard>
+
+        {/* Card 3: ราคาขายส่ง — 2 คอลัมน์ ส่ง 1 ซ้าย / ส่ง 2 ขวา */}
         <SectionCard icon={Tag} title="ราคาขายส่ง">
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {([
               { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: form.price_wholesale1, d: ws1 },
               { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },
             ] as const).map(({ label, key, value, d }) => (
               <div key={key} className="space-y-3">
-                <Field label={label}>
+                <Field label={label} labelClassName="text-right">
                   <PriceInput
                     value={value}
                     onChange={v => setF(key, v)}
                   />
                 </Field>
-                <div className="rounded-lg bg-success-soft/50 px-3 py-2 tabular-nums">
-                  <div className="flex items-center justify-between">
-                    <span className={`text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไรต่อชุด</span>
-                    {profitText(d)}
-                  </div>
-                </div>
+                {profitBox(d)}
               </div>
             ))}
           </div>

@@ -1,6 +1,6 @@
 // Shared types and constants for EditProduct tabs.
 import {
-  ArrowDownToLine, ArrowUpFromLine, RotateCcw, SlidersHorizontal, Edit, X,
+  ArrowDownToLine, ArrowUpFromLine, RotateCcw, SlidersHorizontal, ClockAlert, X,
 } from 'lucide-react'
 import type { Product, ProductUnit, ProductLot, ProductLabel } from '@/types'
 
@@ -39,13 +39,14 @@ export const MOVEMENT_META: Record<string, {
   variant: 'success' | 'destructive' | 'info-soft' | 'warm' | 'secondary' | 'tertiary'
   icon: typeof ArrowDownToLine
 }> = {
-  receive:      { label: 'รับเข้า',     variant: 'success',    icon: ArrowDownToLine },
-  sale:         { label: 'ขาย',         variant: 'destructive', icon: ArrowUpFromLine },
-  sale_return:  { label: 'คืนสินค้า',  variant: 'tertiary',   icon: RotateCcw },
-  adjust_in:    { label: 'ปรับเพิ่ม',  variant: 'info-soft',  icon: SlidersHorizontal },
-  adjust_out:   { label: 'ปรับลด',     variant: 'warm',       icon: SlidersHorizontal },
-  lot_edit:     { label: 'แก้ไขล็อต',  variant: 'warm',       icon: Edit },
-  gr_cancel:    { label: 'ยกเลิกรับ',  variant: 'destructive', icon: X },
+  receive:         { label: 'รับเข้า',       variant: 'success',     icon: ArrowDownToLine },
+  sale:            { label: 'ขาย',           variant: 'destructive', icon: ArrowUpFromLine },
+  sale_return:     { label: 'คืนสินค้า',    variant: 'tertiary',    icon: RotateCcw },
+  adjust_in:       { label: 'ปรับเพิ่ม',    variant: 'info-soft',   icon: SlidersHorizontal },
+  adjust_out:      { label: 'ปรับลด',       variant: 'warm',        icon: SlidersHorizontal },
+  purchase_return: { label: 'ยกเลิกรับ',    variant: 'destructive', icon: X },
+  expired:         { label: 'ตัดหมดอายุ',   variant: 'destructive', icon: ClockAlert },
+  near_expiry:     { label: 'ตัดใกล้หมดอายุ', variant: 'warm',      icon: ClockAlert },
 }
 
 export interface GenericNameSuggestion { id: number; name: string; is_antibiotic: number }
