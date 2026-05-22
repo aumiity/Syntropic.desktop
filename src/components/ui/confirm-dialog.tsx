@@ -8,7 +8,7 @@ interface ConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
-  description?: string
+  description?: React.ReactNode
   confirmLabel?: string
   cancelLabel?: string
   variant?: 'default' | 'destructive'
@@ -48,7 +48,7 @@ export function ConfirmDialog({
           </DialogTitle>
         </DialogHeader>
         <DialogBody className="space-y-3">
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          {description && <div className="text-sm text-muted-foreground">{description}</div>}
           {requireReason && (
             <div className="space-y-1">
               <label className="text-sm font-medium">{reasonLabel} <span className="text-destructive">*</span></label>

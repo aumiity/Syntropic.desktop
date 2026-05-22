@@ -218,7 +218,7 @@ export function registerReportHandlers() {
 
   // System C — Expiry report data
   ipcMain.handle('reports:expiringLots', (_e, filters: {
-    filter: 'expired' | 30 | 60 | 90 | 'all'
+    filter: 'expired' | 30 | 90 | 365
     category_id?: number
     q?: string
   }) => {

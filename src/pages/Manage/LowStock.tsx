@@ -172,7 +172,7 @@ export default function ManageLowStockPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-56">ชื่อสินค้า</TableHead>
+                <TableHead className="min-w-[220px]">ชื่อสินค้า</TableHead>
                 <TableHead className="min-w-12">หน่วย</TableHead>
                 <TableHead className="text-right min-w-12">คงเหลือ</TableHead>
                 <TableHead className="text-right min-w-12">จุดสั่งซื้อ</TableHead>
@@ -201,7 +201,7 @@ export default function ManageLowStockPage() {
                 const isOut = r.stock_qty <= 0
                 return (
                   <TableRow key={r.product_id} className={isOut ? 'bg-destructive-soft/30' : ''}>
-                    <TableCell className="text-sm font-medium truncate" title={r.trade_name}>
+                    <TableCell className="max-w-[260px] text-sm font-medium truncate" title={r.trade_name}>
                       {r.trade_name}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">

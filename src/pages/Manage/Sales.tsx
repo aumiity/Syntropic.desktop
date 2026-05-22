@@ -173,17 +173,17 @@ export default function ManageSalesPage() {
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table className="table-fixed">
+          <Table>
             <TableHeader>
               <TableRow>
-                <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="w-36">วันที่/เวลา</SortableTableHead>
-                <SortableTableHead field="invoice_no" sort={sort} onToggle={toggleSort} className="w-40">เลขบิล</SortableTableHead>
-                <TableHead className="w-48">ลูกค้า</TableHead>
-                <TableHead className="text-center w-24">ประเภท</TableHead>
-                <TableHead className="text-center w-24">รายการ</TableHead>
-                <SortableTableHead field="total_amount" align="right" sort={sort} onToggle={toggleSort} className="w-32">ยอดสุทธิ</SortableTableHead>
-                <TableHead className="text-center w-24">สถานะ</TableHead>
-                <TableHead className="text-center w-16">จัดการ</TableHead>
+                <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="min-w-24">วันที่/เวลา</SortableTableHead>
+                <SortableTableHead field="invoice_no" sort={sort} onToggle={toggleSort} className="min-w-24">เลขบิล</SortableTableHead>
+                <TableHead className="min-w-[180px]">ลูกค้า</TableHead>
+                <TableHead className="text-center min-w-20">ประเภท</TableHead>
+                <TableHead className="text-center min-w-12">รายการ</TableHead>
+                <SortableTableHead field="total_amount" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ยอดสุทธิ</SortableTableHead>
+                <TableHead className="text-center min-w-20">สถานะ</TableHead>
+                <TableHead className="text-center min-w-14">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -202,7 +202,7 @@ export default function ManageSalesPage() {
                 <TableRow key={s.id} className={s.status === 'voided' ? 'opacity-60' : ''}>
                   <TableCell className="text-sm whitespace-nowrap">{formatDateTime(s.sold_at)}</TableCell>
                   <TableCell className="font-mono text-sm">{s.invoice_no}</TableCell>
-                  <TableCell className="text-sm truncate" title={s.customer_name ?? s.customer_name_free ?? ''}>
+                  <TableCell className="text-sm truncate max-w-[200px]" title={s.customer_name ?? s.customer_name_free ?? ''}>
                     {s.customer_name ?? s.customer_name_free ?? <span className="text-foreground-subtle">—</span>}
                   </TableCell>
                   <TableCell className="text-center">
@@ -258,7 +258,7 @@ export default function ManageSalesPage() {
             <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>จำนวนบิลในหน้านี้ <span className="font-semibold text-foreground tabular-nums">{rows.length.toLocaleString()}</span> บิล</>}
           </span>
         </div>
       </div>

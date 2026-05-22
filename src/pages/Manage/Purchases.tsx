@@ -396,9 +396,9 @@ export default function ManagePurchasesPage() {
               <TableRow>
                 <SortableTableHead field="created_at" sort={histSort} onToggle={toggleHistSort} className="min-w-24">วันที่</SortableTableHead>
                 <SortableTableHead field="invoice_no" sort={histSort} onToggle={toggleHistSort} className="min-w-32">เลขที่ใบรับ</SortableTableHead>
-                <TableHead className="min-w-56">ผู้จัดจำหน่าย</TableHead>
-                <TableHead className="min-w-20 text-right">รายการ</TableHead>
-                <SortableTableHead field="total_cost" align="right" sort={histSort} onToggle={toggleHistSort} className="min-w-32">ยอดรวม</SortableTableHead>
+                <TableHead className="min-w-48">ผู้จัดจำหน่าย</TableHead>
+                <TableHead className="min-w-20 text-center">รายการ</TableHead>
+                <SortableTableHead field="total_cost" align="right" sort={histSort} onToggle={toggleHistSort} className="min-w-20">ยอดรวม</SortableTableHead>
                 <TableHead className="min-w-28 text-center">สถานะ</TableHead>
                 <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
@@ -429,7 +429,7 @@ export default function ManagePurchasesPage() {
                       {h.invoice_no}
                     </TableCell>
                     <TableCell className="truncate">{h.supplier_name ?? '—'}</TableCell>
-                    <TableCell className="text-right tabular-nums">{h.item_count}</TableCell>
+                    <TableCell className="text-center tabular-nums">{h.item_count}</TableCell>
                     <TableCell className={`text-right font-semibold tabular-nums ${isCancelled ? 'text-foreground-subtle line-through' : ''}`}>
                       {formatCurrency(h.total_cost)}
                     </TableCell>
@@ -484,7 +484,7 @@ export default function ManagePurchasesPage() {
             <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loadingHist ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{histTotal.toLocaleString()}</span> รายการ</>}
+            {loadingHist ? 'กำลังโหลด...' : <>จำนวนบิลในหน้านี้ <span className="font-semibold text-foreground tabular-nums">{history.length.toLocaleString()}</span> บิล</>}
           </span>
         </div>
       </div>

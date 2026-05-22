@@ -743,21 +743,21 @@ export default function PurchasePage() {
 
                       <Table
                         containerClassName="flex-1 min-h-0 overflow-auto scrollbar-thin"
-                        className="table-fixed border-l-8 border-r-8 border-card"
+                        className="border-l-8 border-r-8 border-card"
                       >
                         <TableHeader>
                           <TableRow className="border-0 hover:bg-transparent">
                             <TableHead className="px-3 text-center w-8">#</TableHead>
-                            <TableHead className="px-3">ชื่อสินค้า</TableHead>
-                            <TableHead className="px-3 text-center w-[8%]">Lot</TableHead>
-                            {showMfg && <TableHead className="px-3 text-center w-[13%]">วันผลิต</TableHead>}
-                            <TableHead className="px-3 text-center w-[13%]">วันหมดอายุ</TableHead>
-                            <TableHead className="px-3 text-center w-[6%]">หน่วย</TableHead>
-                            <TableHead className="px-3 text-center w-[6%]">จำนวน</TableHead>
-                            <TableHead className="px-3 text-center w-[10%]">ทุน</TableHead>
-                            <TableHead className="px-3 text-center w-[10%]">ราคาขาย</TableHead>
-                            {showDiscount && <TableHead className="px-3 text-center w-[8%]">ส่วนลด</TableHead>}
-                            <TableHead className="px-3 text-center w-[11%]">รวม</TableHead>
+                            <TableHead className="px-3 min-w-[200px]">ชื่อสินค้า</TableHead>
+                            <TableHead className="px-3 text-center min-w-20">Lot</TableHead>
+                            {showMfg && <TableHead className="px-3 text-center min-w-24">วันผลิต</TableHead>}
+                            <TableHead className="px-3 text-center min-w-24">วันหมดอายุ</TableHead>
+                            <TableHead className="px-3 text-center min-w-16">หน่วย</TableHead>
+                            <TableHead className="px-3 text-center min-w-10">จำนวน</TableHead>
+                            <TableHead className="px-3 text-center min-w-16">ทุน</TableHead>
+                            <TableHead className="px-3 text-center min-w-16">ราคาขาย</TableHead>
+                            {showDiscount && <TableHead className="px-3 text-center min-w-16">ส่วนลด</TableHead>}
+                            <TableHead className="px-3 text-center min-w-16">รวม</TableHead>
                             <TableHead className="w-8" />
                           </TableRow>
                         </TableHeader>
@@ -786,7 +786,7 @@ export default function PurchasePage() {
                                       autoComplete="off"
                                     />
                                     {activeSuggRow === i && (suggestions[i]?.length ?? 0) > 0 && (
-                                      <div className="absolute left-2 top-full mt-0.5 z-50 w-80 bg-card rounded-xl shadow-card overflow-hidden">
+                                      <div className="absolute left-2 top-full mt-0.5 z-50 w-64 bg-card rounded-xl shadow-card overflow-hidden">
                                         {suggestions[i].map((p, si) => (
                                           <Button
                                             key={p.id}
@@ -810,24 +810,24 @@ export default function PurchasePage() {
                                   </TableCell>
 
                                   {/* Lot */}
-                                  <TableCell className="px-2 py-1.5">
+                                  <TableCell className="max-w-24 px-2 py-1.5">
                                     <Input data-cell={`${i}-2`} value={row.lot_number} onChange={e => updateRow(i, 'lot_number', e.target.value)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
                                   </TableCell>
 
                                   {/* วันผลิต (optional) */}
                                   {showMfg && (
-                                    <TableCell className="px-2 py-1.5">
+                                    <TableCell className="max-w-40 px-2 py-1.5">
                                       <DateInput data-cell={`${i}-3`} value={row.manufactured_date} onChange={v => updateRow(i, 'manufactured_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
                                     </TableCell>
                                   )}
 
                                   {/* วันหมดอายุ */}
-                                  <TableCell className="px-2 py-1.5">
+                                  <TableCell className="max-w-40 px-2 py-1.5">
                                     <DateInput data-cell={`${i}-4`} value={row.expiry_date} onChange={v => updateRow(i, 'expiry_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
                                   </TableCell>
 
                                   {/* หน่วย — opens swap modal */}
-                                  <TableCell className="px-2 py-1.5">
+                                  <TableCell className="max-w-24 px-2 py-1.5">
                                     <Button
                                       type="button"
                                       variant="outline"
@@ -841,7 +841,7 @@ export default function PurchasePage() {
                                   </TableCell>
 
                                   {/* จำนวน */}
-                                  <TableCell className="px-2 py-1.5">
+                                  <TableCell className="max-w-16 px-2 py-1.5">
                                     <Input
                                       data-cell={`${i}-1`}
                                       type="text"
@@ -856,7 +856,7 @@ export default function PurchasePage() {
                                   </TableCell>
 
                                   {/* ทุน */}
-                                  <TableCell className="px-2 py-1.5">
+                                  <TableCell className="max-w-20 px-2 py-1.5">
                                     <Input
                                       data-cell={`${i}-5`}
                                       type="text"
@@ -875,7 +875,7 @@ export default function PurchasePage() {
                                   </TableCell>
 
                                   {/* ราคาขาย — opens quick-edit modal */}
-                                  <TableCell className="px-2 py-1.5">
+                                  <TableCell className="max-w-28 px-2 py-1.5">
                                     <Button
                                       type="button"
                                       variant="outline"
@@ -892,7 +892,7 @@ export default function PurchasePage() {
 
                                   {/* ส่วนลด (optional) */}
                                   {showDiscount && (
-                                    <TableCell className="px-2 py-1.5">
+                                    <TableCell className="max-w-28 px-2 py-1.5">
                                       <Input
                                         data-cell={`${i}-5b`}
                                         type="text"
@@ -912,7 +912,7 @@ export default function PurchasePage() {
                                   )}
 
                                   {/* รวม */}
-                                  <TableCell className="px-2 py-1.5">
+                                  <TableCell className="max-w-28 px-2 py-1.5">
                                     <Input
                                       data-cell={`${i}-6`}
                                       type="text"

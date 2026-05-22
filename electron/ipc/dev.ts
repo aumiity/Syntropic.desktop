@@ -7,17 +7,32 @@ export function registerDevHandlers() {
 
   // dev:seedSalesHistory
   // -------------------
-  // Backdates ~500 GRs + ~9000 sales across the last 90 days using the REAL
-  // seeded products / suppliers / customers. Every product gets a lot
-  // (≤3 per product); FEFO is enforced day-by-day so
-  // movements/lots/sale_item_lots are internally consistent — same shape as a
-  // user clicking through POS + GR 9000+ times.
+  // Backdates GR + sales across the last N days (default 180) using the REAL
+  // seeded products / suppliers / customers. Every product gets 1-3 lots;
+  // FEFO is enforced; per-SKU on-hand never exceeds safety_stock
+  // (fallback 200 when NULL). Same shape as a user clicking POS + GR by hand.
+  //
+  // After the random simulation, a final "end-state engineering" phase
+  // guarantees the demo state the user asked for:
+  //   • 20 SKUs out of stock
+  //   • 80-100 SKUs below reorder_point
+  //   • 20 SKUs expired
+  //   • 40 SKUs near-expire (30-90 days)
+  // The four target sets are mutually exclusive — each SKU is in at most one.
   //
   // Idempotent via the '[DEV-SEED]' marker on purchase_receipts.note,
   // product_lots.note, and sales.note. Re-running wipes prior seed and
   // regenerates. Refuses to wipe if any non-dev sale references a dev lot.
-  ipcMain.handle('dev:seedSalesHistory', () => {
+  ipcMain.handle('dev:seedSalesHistory', (_e, payload?: { days?: number }) => {
     const db = getDb()
+    const DAYS = Math.max(1, Math.min(720, payload?.days ?? 90))
+
+    // Stock cap = safety_stock × STOCK_CAP_MULT. Larger multiplier means more
+    // headroom for opening + refills so we don't drain to zero across DAYS days
+    // of sales. Opening qty = safety_stock × OPENING_MULT (must be < cap).
+    const STOCK_CAP_MULT = 3
+    const OPENING_MULT_MIN = 1.5
+    const OPENING_MULT_MAX = 2.5
 
     const rand = (min: number, max: number) =>
       Math.floor(Math.random() * (max - min + 1)) + min
@@ -32,18 +47,21 @@ export function registerDevHandlers() {
       }
       return opts[opts.length - 1][0]
     }
+    const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5)
 
     // ---- Pre-flight ----
+    type Product = {
+      id: number; trade_name: string; name_for_print: string | null
+      cost_price: number; price_retail: number; unit_id: number | null; unit_name: string | null
+      reorder_point: number | null; safety_stock: number | null
+    }
     const products = db.prepare(`
       SELECT p.id, p.trade_name, p.name_for_print, p.cost_price, p.price_retail, p.unit_id,
-             u.name AS unit_name
+             u.name AS unit_name, p.reorder_point, p.safety_stock
       FROM products p
       LEFT JOIN item_units u ON u.id = p.unit_id
       WHERE p.is_disabled = 0 AND p.is_stock_item = 1 AND p.price_retail > 0
-    `).all() as Array<{
-      id: number; trade_name: string; name_for_print: string | null
-      cost_price: number; price_retail: number; unit_id: number | null; unit_name: string | null
-    }>
+    `).all() as Product[]
     if (products.length === 0) throw new Error('ไม่มีสินค้าที่ขายได้ — รัน seed หลักก่อน')
 
     const suppliers = (db.prepare(`SELECT id FROM suppliers WHERE is_disabled = 0`).all() as any[])
@@ -59,6 +77,17 @@ export function registerDevHandlers() {
     const users = (db.prepare(`SELECT id FROM users WHERE is_disabled = 0`).all() as any[])
       .map(r => r.id) as number[]
     if (users.length === 0) throw new Error('ไม่มี users')
+
+    // Per-SKU caps. Fallback when product has no value set.
+    const FALLBACK_SAFETY_STOCK = 200
+    const FALLBACK_REORDER = 50
+    const safetyCap = (p: Product) =>
+      (p.safety_stock != null && p.safety_stock > 0 ? p.safety_stock : FALLBACK_SAFETY_STOCK)
+        * STOCK_CAP_MULT
+    const reorderOf = (p: Product) =>
+      p.reorder_point != null && p.reorder_point > 0
+        ? p.reorder_point
+        : Math.max(1, Math.floor(safetyCap(p) * 0.3))
 
     // ---- Safety: any non-dev sale referencing a dev lot? ----
     const conflict = (db.prepare(`
@@ -98,29 +127,26 @@ export function registerDevHandlers() {
       return { sales: oldSaleIds.length, grs: oldGRs.length, lots: oldLotIds.length }
     })()
 
-    // ---- Phase 2: Generate 90 days ----
+    // ---- Phase 2: Simulation params ----
     const today = dayjs()
-    const DAYS = 90
 
-    // Per-day rates (spec): GR 3-8 ใบ/วัน, ขาย 90-100 ใบ/วัน over ~91 days
-    // → ≈500 GR / ≈9000 sales total. No exact-total distribution: each day
-    // draws its own count so the volume looks organic, not perfectly flat.
-    const GR_PER_DAY_MIN = 3, GR_PER_DAY_MAX = 8
-    const SALES_PER_DAY_MIN = 90, SALES_PER_DAY_MAX = 100
+    const GR_PER_DAY_MIN = 3, GR_PER_DAY_MAX = 5
+    const LINES_PER_GR_MIN = 5, LINES_PER_GR_MAX = 30
+    const SALES_PER_DAY_MIN = 80, SALES_PER_DAY_MAX = 100
+    const ITEMS_PER_SALE_MIN = 1, ITEMS_PER_SALE_MAX = 12
 
-    // "ทุก SKU active" — every sellable product participates (no subset cap)
-    const inventory = products
-
-    // "มี Lot ทุกสินค้า — สินค้าละ ไม่เกิน 3 Lot": hard cap. The opening GR
-    // gives every product lot #1; regular GRs may add lot #2/#3 only. A
-    // product already at 3 lots is excluded from further GR lines, so the
-    // 5-50 lines/GR target clamps to the remaining candidate pool — the lot
-    // cap always wins over the line-count target.
     const MAX_LOTS_PER_PRODUCT = 3
+
+    // Per-SKU lot count (gates GR eligibility — hard cap of 3 lots/SKU)
     const lotCountByProduct = new Map<number, number>()
 
+    // Per-SKU running on-hand total (gates GR eligibility — must stay ≤ safety cap)
+    const onHandByProduct = new Map<number, number>()
+    const bumpOnHand = (pid: number, delta: number) =>
+      onHandByProduct.set(pid, (onHandByProduct.get(pid) ?? 0) + delta)
+
     // Lot number = plain running 6-digit (000001, 000002, …). Globally
-    // unique, so it never collides on the (product, lot_number) UNIQUE index.
+    // unique so it never collides on the (product, lot_number) UNIQUE index.
     let lotSeq = 0
     const nextLotNo = () => String(++lotSeq).padStart(6, '0')
 
@@ -184,13 +210,50 @@ export function registerDevHandlers() {
       WHERE id = ?
     `)
 
+    // Receive one line: insert lot + receipt item + stock_movement, update bookkeeping.
+    // Returns true if succeeded (room under safety cap, lot cap), false if skipped.
+    const receiveLine = (
+      product: Product, supplierId: number, grNo: string,
+      dateStr: string, dtStr: string, payType: string, dueDate: string | null,
+      isPaid: number, qtyHint: number,
+    ): boolean => {
+      const cap = safetyCap(product)
+      const headroom = cap - (onHandByProduct.get(product.id) ?? 0)
+      if (headroom < 1) return false
+      if ((lotCountByProduct.get(product.id) ?? 0) >= MAX_LOTS_PER_PRODUCT) return false
+
+      const qty = Math.max(1, Math.min(qtyHint, Math.floor(headroom)))
+      const cost = Math.max(0.5, +(product.cost_price * randF(0.85, 1.15)).toFixed(2))
+      const day = dayjs(dateStr)
+      const expiry = day.add(rand(6, 24) * 30, 'day').format('YYYY-MM-DD')
+      const mfg = day.subtract(rand(30, 360), 'day').format('YYYY-MM-DD')
+      const lotNo = nextLotNo()
+
+      const lotRes = insLot.run(
+        product.id, supplierId, lotNo, mfg, expiry,
+        cost, product.price_retail, qty, qty,
+        grNo, `INV-MOCK-${grNo}`, dateStr,
+        payType, dueDate, isPaid, isPaid ? dateStr : null,
+        dtStr, dtStr,
+      )
+      const lotId = Number(lotRes.lastInsertRowid)
+      lotCountByProduct.set(product.id, (lotCountByProduct.get(product.id) ?? 0) + 1)
+      bumpOnHand(product.id, qty)
+
+      insReceiptItem.run(grNo, product.id, lotId, lotNo, mfg, expiry,
+        cost, product.price_retail, qty, dtStr)
+      insMove.run(product.id, lotId, 'receive', 'stock_receive', null,
+        qty, 0, qty, cost, `รับสินค้า: ${grNo} [DEV-SEED]`, users[0], dtStr)
+      return true
+    }
+
     const result = db.transaction(() => {
       let grCount = 0, lotCount = 0, saleCount = 0, saleItemCount = 0
 
       // ---- Day 0: opening-stock GR ----
       // One bootstrap receipt on the oldest day that stocks EVERY inventory
-      // SKU, so sales have stock to draw from from day one (no ramp). Counted
-      // as seq 1 of that day; the regular day-loop GRs continue from seq 2.
+      // SKU so sales have stock from day one (no ramp). Opening qty is sized
+      // against safety_stock so we leave headroom for subsequent GRs.
       {
         const openDay = today.subtract(DAYS, 'day')
         const openDate = openDay.format('YYYY-MM-DD')
@@ -204,46 +267,32 @@ export function registerDevHandlers() {
         insReceipt.run(grNo, supplierId, `INV-MOCK-${grNo}`, openDate,
           'cash', null, 1, openDate, dtStr)
 
-        for (const product of inventory) {
-          const cost = Math.max(0.5, +(product.cost_price * randF(0.85, 1.15)).toFixed(2))
-          const qty = rand(200, 800)
-          const expiry = openDay.add(rand(6, 24) * 30, 'day').format('YYYY-MM-DD')
-          const mfg = openDay.subtract(rand(30, 360), 'day').format('YYYY-MM-DD')
-          const lotNo = nextLotNo()
-
-          const lotRes = insLot.run(
-            product.id, supplierId, lotNo, mfg, expiry,
-            cost, product.price_retail, qty, qty,
-            grNo, `INV-MOCK-${grNo}`, openDate,
-            'cash', null, 1, openDate,
-            dtStr, dtStr,
-          )
-          const lotId = Number(lotRes.lastInsertRowid)
-          lotCount++
-          lotCountByProduct.set(product.id, 1) // lot #1 for every product
-
-          insReceiptItem.run(grNo, product.id, lotId, lotNo, mfg, expiry,
-            cost, product.price_retail, qty, dtStr)
-          insMove.run(product.id, lotId, 'receive', 'stock_receive', null,
-            qty, 0, qty, cost, `รับสินค้า: ${grNo} [DEV-SEED]`, users[0], dtStr)
+        for (const product of products) {
+          const baseSafety = product.safety_stock != null && product.safety_stock > 0
+            ? product.safety_stock : FALLBACK_SAFETY_STOCK
+          const opening = Math.max(1, Math.floor(baseSafety * randF(OPENING_MULT_MIN, OPENING_MULT_MAX)))
+          if (receiveLine(product, supplierId, grNo, openDate, dtStr, 'cash', null, 1, opening)) {
+            lotCount++
+          }
         }
         grCount++
       }
 
-      for (let d = DAYS; d >= 0; d--) {
+      for (let d = DAYS - 1; d >= 0; d--) {
         const day = today.subtract(d, 'day')
         const dateStr = day.format('YYYY-MM-DD')
         const yymmdd = day.format('YYYYMMDD')
 
-        // ---- GRs (3-8 ใบ/วัน → ~500 total) ----
+        // ---- GRs (3-5 ใบ/วัน) ----
         const grPerDay = rand(GR_PER_DAY_MIN, GR_PER_DAY_MAX)
         for (let g = 0; g < grPerDay; g++) {
-          // Only products under the 3-lot cap can receive more stock. Once
-          // every product is capped, no further GR lines are possible — stop
-          // creating GRs for the rest of the run.
-          const candidates = inventory.filter(
-            p => (lotCountByProduct.get(p.id) ?? 0) < MAX_LOTS_PER_PRODUCT,
-          )
+          // Candidates = products that still have headroom AND haven't hit
+          // the 3-lot cap. If everyone is full, stop generating GRs today.
+          const candidates = products.filter(p => {
+            if ((lotCountByProduct.get(p.id) ?? 0) >= MAX_LOTS_PER_PRODUCT) return false
+            const cap = safetyCap(p)
+            return (onHandByProduct.get(p.id) ?? 0) < cap
+          })
           if (candidates.length === 0) break
 
           const seq = (grSeqByDate.get(yymmdd) ?? 0) + 1
@@ -262,37 +311,20 @@ export function registerDevHandlers() {
           insReceipt.run(grNo, supplierId, `INV-MOCK-${grNo}`, dateStr,
             paymentType, dueDate, isPaid, isPaid ? dateStr : null, dtStr)
 
-          const lineCount = Math.min(rand(5, 50), candidates.length)
-          const lineProducts = [...candidates].sort(() => Math.random() - 0.5).slice(0, lineCount)
+          const lineCount = Math.min(rand(LINES_PER_GR_MIN, LINES_PER_GR_MAX), candidates.length)
+          const lineProducts = shuffle(candidates).slice(0, lineCount)
 
           for (const product of lineProducts) {
-            const cost = Math.max(0.5, +(product.cost_price * randF(0.85, 1.15)).toFixed(2))
-            const sellPrice = product.price_retail
-            const qty = rand(50, 500)
-            const expiry = day.add(rand(6, 24) * 30, 'day').format('YYYY-MM-DD')
-            const mfg = day.subtract(rand(30, 360), 'day').format('YYYY-MM-DD')
-            const lotNo = nextLotNo()
-
-            const lotRes = insLot.run(
-              product.id, supplierId, lotNo, mfg, expiry,
-              cost, sellPrice, qty, qty,
-              grNo, `INV-MOCK-${grNo}`, dateStr,
-              paymentType, dueDate, isPaid, isPaid ? dateStr : null,
-              dtStr, dtStr,
-            )
-            const lotId = Number(lotRes.lastInsertRowid)
-            lotCount++
-            lotCountByProduct.set(product.id, (lotCountByProduct.get(product.id) ?? 0) + 1)
-
-            insReceiptItem.run(grNo, product.id, lotId, lotNo, mfg, expiry,
-              cost, sellPrice, qty, dtStr)
-            insMove.run(product.id, lotId, 'receive', 'stock_receive', null,
-              qty, 0, qty, cost, `รับสินค้า: ${grNo} [DEV-SEED]`, users[0], dtStr)
+            // Per-line qty 20-200, but capped by remaining headroom inside receiveLine.
+            const qtyHint = rand(20, 200)
+            if (receiveLine(product, supplierId, grNo, dateStr, dtStr, paymentType, dueDate, isPaid, qtyHint)) {
+              lotCount++
+            }
           }
           grCount++
         }
 
-        // ---- Sales (90-100 ใบ/วัน → ~9000 total) ----
+        // ---- Sales (80-100 ใบ/วัน) ----
         const salesPerDay = rand(SALES_PER_DAY_MIN, SALES_PER_DAY_MAX)
         for (let s = 0; s < salesPerDay; s++) {
           const seq = (saleSeqByDate.get(yymmdd) ?? 0) + 1
@@ -310,18 +342,25 @@ export function registerDevHandlers() {
             : (namedCustomers.length ? pick(namedCustomers) : walkIn.id)
           const userId = pick(users)
 
-          const itemCount = rand(1, 10) // 1-10 รายการ/ใบ
+          // Target bill amount in [20, 2000] — weighted toward mid-range,
+          // sometimes small or large to mimic real distribution.
+          const targetAmount = weighted<number>([
+            [rand(20, 200), 35], [rand(200, 800), 45], [rand(800, 2000), 20],
+          ])
+          const maxItems = rand(ITEMS_PER_SALE_MIN, ITEMS_PER_SALE_MAX)
 
-          // Pick `itemCount` distinct products that currently have stock
-          const shuffled = [...inventory].sort(() => Math.random() - 0.5)
+          const shuffled = shuffle(products)
           const items: Array<{
-            product: typeof inventory[0]
+            product: Product
             qty: number
             lots: Array<{ id: number; qty: number; cost: number; qtyBefore: number }>
           }> = []
+          let runningSubtotal = 0
 
           for (const product of shuffled) {
-            if (items.length >= itemCount) break
+            if (items.length >= maxItems) break
+            if (runningSubtotal >= targetAmount) break
+
             const lots = selLotsFEFO.all(product.id) as Array<{
               id: number; qty_on_hand: number; cost_price: number
             }>
@@ -329,31 +368,34 @@ export function registerDevHandlers() {
             const avail = lots.reduce((s, l) => s + l.qty_on_hand, 0)
             if (avail < 1) continue
 
+            // Size the line so it nudges the bill toward (not past) the target.
+            const remaining = Math.max(1, targetAmount - runningSubtotal)
+            const idealQty = Math.max(1, Math.round(remaining / product.price_retail))
             const desired = weighted<number>([
-              [1, 30], [2, 30], [3, 15], [rand(4, 5), 15], [rand(6, 10), 8], [rand(10, 25), 2],
+              [1, 35], [2, 25], [3, 15], [rand(4, 6), 15], [rand(6, 12), 10],
             ])
-            const qty = Math.min(desired, Math.floor(avail))
+            const qty = Math.min(desired, idealQty, Math.floor(avail))
             if (qty < 1) continue
 
             // Plan FEFO deduction
             const used: typeof items[0]['lots'] = []
-            let remaining = qty
+            let remainingQty = qty
             for (const lot of lots) {
-              if (remaining <= 0) break
-              const deduct = Math.min(lot.qty_on_hand, remaining)
+              if (remainingQty <= 0) break
+              const deduct = Math.min(lot.qty_on_hand, remainingQty)
               used.push({
                 id: lot.id, qty: deduct, cost: lot.cost_price, qtyBefore: lot.qty_on_hand,
               })
-              remaining -= deduct
+              remainingQty -= deduct
             }
             items.push({ product, qty, lots: used })
+            runningSubtotal += qty * product.price_retail
 
-            // Apply deduction to lots immediately so the next item's FEFO query
-            // sees the right state (prevents over-selling across items in the
-            // same sale even though items are distinct products)
+            // Apply deduction immediately so next item's FEFO query sees it
             for (const u of used) {
               const after = u.qtyBefore - u.qty
               updLotAfterSale.run(after, after, after, dtStr, u.id)
+              bumpOnHand(product.id, -u.qty)
             }
           }
           if (items.length === 0) continue
@@ -417,7 +459,139 @@ export function registerDevHandlers() {
       return { grCount, lotCount, saleCount, saleItemCount }
     })()
 
-    // ---- Phase 3: Recompute products.cost_price (weighted avg of open lots) ----
+    // ---- Phase 3: End-state engineering ----
+    // After the random simulation, force the demo-friendly state the user asked
+    // for. Four disjoint product subsets so each SKU lands in at most one bucket.
+    const TARGET_OUT_OF_STOCK = 20
+    const TARGET_BELOW_REORDER_MIN = 80
+    const TARGET_BELOW_REORDER_MAX = 100
+    const TARGET_EXPIRED = 20
+    const TARGET_NEAR_EXPIRE = 40
+
+    const targetBelowReorder = rand(TARGET_BELOW_REORDER_MIN, TARGET_BELOW_REORDER_MAX)
+
+    // Eligible = has at least one open, non-cancelled dev-seed lot
+    const eligibleIds = (db.prepare(`
+      SELECT DISTINCT p.id
+      FROM products p
+      JOIN product_lots pl ON pl.product_id = p.id
+      WHERE pl.note = '[DEV-SEED]' AND pl.is_closed = 0 AND pl.is_cancelled = 0
+        AND pl.qty_on_hand > 0
+    `).all() as any[]).map(r => r.id) as number[]
+
+    const productById = new Map(products.map(p => [p.id, p]))
+    const shuffledEligible = shuffle(eligibleIds)
+
+    const need = TARGET_OUT_OF_STOCK + targetBelowReorder + TARGET_EXPIRED + TARGET_NEAR_EXPIRE
+    if (shuffledEligible.length < need) {
+      // Not enough — proportionally scale down each bucket so we don't bias one.
+      // Rare for a real run (typically 1000+ SKUs eligible), defensive only.
+    }
+
+    let cursor = 0
+    const take = (n: number) => {
+      const slice = shuffledEligible.slice(cursor, cursor + n)
+      cursor += n
+      return slice
+    }
+    const outOfStockIds = take(TARGET_OUT_OF_STOCK)
+    const belowReorderIds = take(targetBelowReorder)
+    const expiredIds = take(TARGET_EXPIRED)
+    const nearExpireIds = take(TARGET_NEAR_EXPIRE)
+
+    const adjustStmt = db.prepare(`
+      UPDATE product_lots
+      SET qty_on_hand = ?,
+          is_closed = CASE WHEN ? <= 0 THEN 1 ELSE is_closed END,
+          closed_at = CASE WHEN ? <= 0 AND closed_at IS NULL THEN ? ELSE closed_at END
+      WHERE id = ?
+    `)
+    const updExpiry = db.prepare(`
+      UPDATE product_lots
+      SET expiry_date = ?, updated_at = ?
+      WHERE id = ?
+    `)
+    const nowStr = today.format('YYYY-MM-DD HH:mm:ss')
+
+    // Helper: drain qty from a product's FEFO-ordered lots by `deltaDown` units,
+    // logging adjust_out movements.
+    const drainProduct = (pid: number, deltaDown: number) => {
+      if (deltaDown <= 0) return
+      const lots = db.prepare(`
+        SELECT id, qty_on_hand, cost_price FROM product_lots
+        WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0 AND is_cancelled = 0
+        ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC, id ASC
+      `).all(pid) as Array<{ id: number; qty_on_hand: number; cost_price: number }>
+      let remaining = deltaDown
+      for (const lot of lots) {
+        if (remaining <= 0) break
+        const cut = Math.min(lot.qty_on_hand, remaining)
+        const after = lot.qty_on_hand - cut
+        adjustStmt.run(after, after, after, nowStr, lot.id)
+        insMove.run(
+          pid, lot.id, 'adjust_out', 'adjust', null,
+          -cut, lot.qty_on_hand, after, lot.cost_price,
+          'ปรับสต๊อก dev seed (end-state) [DEV-SEED]', users[0], nowStr,
+        )
+        remaining -= cut
+      }
+    }
+
+    const totalOnHandStmt = db.prepare(`
+      SELECT COALESCE(SUM(qty_on_hand), 0) AS total FROM product_lots
+      WHERE product_id = ? AND is_closed = 0 AND is_cancelled = 0
+    `)
+    const totalOnHand = (pid: number) =>
+      (totalOnHandStmt.get(pid) as { total: number }).total
+
+    const engineered = db.transaction(() => {
+      // 1. Out of stock → drain everything
+      for (const pid of outOfStockIds) {
+        const cur = totalOnHand(pid)
+        if (cur > 0) drainProduct(pid, cur)
+      }
+
+      // 2. Below reorder → drain to a value in [1, reorder-1]
+      for (const pid of belowReorderIds) {
+        const p = productById.get(pid)
+        if (!p) continue
+        const reorder = reorderOf(p)
+        const target = Math.max(1, rand(1, Math.max(1, Math.floor(reorder) - 1)))
+        const cur = totalOnHand(pid)
+        if (cur > target) drainProduct(pid, cur - target)
+      }
+
+      // 3. Expired → push the latest-expiry lot into the past (1-90 days ago)
+      const latestLotStmt = db.prepare(`
+        SELECT id FROM product_lots
+        WHERE product_id = ? AND is_closed = 0 AND is_cancelled = 0 AND qty_on_hand > 0
+        ORDER BY CASE WHEN expiry_date IS NULL THEN '0000-00-00' ELSE expiry_date END DESC, id DESC
+        LIMIT 1
+      `)
+      for (const pid of expiredIds) {
+        const row = latestLotStmt.get(pid) as { id: number } | undefined
+        if (!row) continue
+        const past = today.subtract(rand(1, 90), 'day').format('YYYY-MM-DD')
+        updExpiry.run(past, nowStr, row.id)
+      }
+
+      // 4. Near-expire → push the latest-expiry lot to 30-90 days out
+      for (const pid of nearExpireIds) {
+        const row = latestLotStmt.get(pid) as { id: number } | undefined
+        if (!row) continue
+        const near = today.add(rand(30, 90), 'day').format('YYYY-MM-DD')
+        updExpiry.run(near, nowStr, row.id)
+      }
+
+      return {
+        outOfStock: outOfStockIds.length,
+        belowReorder: belowReorderIds.length,
+        expired: expiredIds.length,
+        nearExpire: nearExpireIds.length,
+      }
+    })()
+
+    // ---- Phase 4: Recompute products.cost_price (weighted avg of open lots) ----
     const affected = (db.prepare(`
       SELECT DISTINCT product_id FROM product_lots WHERE note = '[DEV-SEED]'
     `).all() as any[]).map(r => r.product_id) as number[]
@@ -437,7 +611,14 @@ export function registerDevHandlers() {
     return {
       wiped,
       ...result,
-      message: `✓ ลบของเก่า ${wiped.grs} GR / ${wiped.sales} sales / ${wiped.lots} lots — สร้างใหม่ ${result.grCount} GR (รวม GR เปิดสต็อก 1 ใบ, ${result.lotCount} lots, ≤3/สินค้า), ${result.saleCount} sales (${result.saleItemCount} items)`,
+      engineered,
+      days: DAYS,
+      message:
+        `✓ ลบของเก่า ${wiped.grs} GR / ${wiped.sales} sales / ${wiped.lots} lots\n` +
+        `สร้างใหม่ย้อน ${DAYS} วัน: ${result.grCount} GR (≤3 lot/สินค้า, รวม ${result.lotCount} lots), ` +
+        `${result.saleCount} sales (${result.saleItemCount} items)\n` +
+        `End-state: ${engineered.outOfStock} หมดสต็อก / ${engineered.belowReorder} ต่ำกว่าจุดสั่งซื้อ / ` +
+        `${engineered.expired} expired / ${engineered.nearExpire} near-expire`,
     }
   })
 }

@@ -64,12 +64,10 @@ export function seedDatabase(db) {
     // the Hygeia Item export) plus a handful of common ones we want available
     // even on a minimal install. INSERT OR IGNORE = safe to re-run.
     var units = [
-        'เม็ด', 'กล่อง', 'แผง', 'ขวด', 'หลอด', 'ซอง',
-        'ชิ้น', 'อัน', 'ถุง', 'แคปซูล',
-        'ห่อ', 'กระปุก', 'กระป๋อง', 'แพ็ค', 'แพค', 'ม้วน',
-        'ตลับ', 'ก้อน', 'ด้าม', 'ชุด', 'เครื่อง', 'แผ่น',
-        'ใบ', 'ตัว', 'คู่', 'ขีด', 'เมตร', 'เส้น',
-        'ผืน', 'ถ้วย', 'แกลลอน', 'AMP',
+        'ก้อน', 'กล่อง', 'กระป๋อง', 'กระปุก', 'ชุด', 'ชิ้น', 
+        'ซอง', 'ด้าม', 'ตลับ', 'ม้วน', 'เม็ด', 'หลอด', 
+        'ห่อ', 'อัน', 'เครื่อง', 'แคปซูล', 'แผ่น', 'แพ็ค', 
+        'แพ็คสิบ', 'แพ็คโหล', 'แอมป์', 'แผง'
     ];
     var insUnit = db.prepare("INSERT OR IGNORE INTO item_units (name) VALUES (?)");
     for (var _b = 0, units_1 = units; _b < units_1.length; _b++) {
@@ -125,6 +123,12 @@ export function seedDatabase(db) {
         ['S0003', 'WELLEKPHARMA'],
         ['S0004', 'FORTE'],
         ['S0005', 'LIKHIT'],
+        ['S0006', 'T.MAN'],
+        ['S0007', 'GREATER PHARMA'],
+        ['S0008', 'THAI NAKORN PATANA'],
+        ['S0009', 'PHARMAHOF'],
+        ['S0010', 'MASALAB'],
+        ['S0011', 'MACRO PHAR'],
     ];
     for (var _g = 0, suppliers_1 = suppliers; _g < suppliers_1.length; _g++) {
         var _h = suppliers_1[_g], code = _h[0], name_4 = _h[1];

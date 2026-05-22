@@ -1,19 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency } from '@/lib/utils'
 import type { ManageOutletContext } from './index'
-import { Search, PackageX, Package, Boxes, TrendingDown, CalendarX } from 'lucide-react'
+import { Search, PackageX, ClockAlert } from 'lucide-react'
 
-type FilterType = 'expired' | 30 | 60 | 90 | 'all'
+type FilterType = 'expired' | 30 | 90 | 365
+type SortField = 'trade_name' | 'expiry_date' | 'total_cost'
+type SortDir = 'asc' | 'desc'
 
 interface ExpiringLot {
   lot_id: number
@@ -32,19 +35,24 @@ interface ExpiringLot {
 
 interface Category { id: number; name: string }
 
-const FILTER_OPTIONS: { label: string; value: FilterType }[] = [
-  { label: 'หมดอายุแล้ว', value: 'expired' },
-  { label: '≤ 30 วัน',    value: 30 },
-  { label: '≤ 60 วัน',    value: 60 },
-  { label: '≤ 90 วัน',    value: 90 },
-  { label: 'ทั้งหมด',     value: 'all' },
-]
-
 // Plain render functions (NOT components — keeps page file free of local JSX components)
 function renderDays(days: number | null) {
   if (days === null) return <span className="text-foreground-subtle">—</span>
-  if (days < 0) return <span className="text-destructive font-semibold">หมดอายุ {Math.abs(days)} วัน</span>
-  if (days === 0) return <span className="text-destructive font-semibold">หมดวันนี้</span>
+  if (days <= 0) return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center text-destructive cursor-help">
+          <ClockAlert className="size-5" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" align="center">
+        <div className="font-semibold text-destructive">หมดอายุแล้ว</div>
+        <div className="text-muted-foreground font-normal">
+          ล็อตนี้เกินวันหมดอายุไปแล้ว
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  )
   if (days <= 30) return <span className="text-destructive font-medium">{days} วัน</span>
   if (days <= 60) return <span className="text-warning-strong font-medium">{days} วัน</span>
   if (days <= 90) return <span className="text-warning">{days} วัน</span>
@@ -74,11 +82,48 @@ export default function ManageExpiryPage() {
   const [confirmingLot, setConfirmingLot] = useState<ExpiringLot | null>(null)
   const [expiring, setExpiring] = useState(false)
 
+  const [sort, setSort] = useState<{ by: SortField; dir: SortDir }>({ by: 'expiry_date', dir: 'asc' })
+  const toggleSort = (field: SortField) => {
+    setSort(s => s.by === field
+      ? { by: field, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+      : { by: field, dir: field === 'trade_name' ? 'asc' : 'desc' })
+  }
+
+  // Always load all expiring lots; cards filter client-side so all
+  // 5 counts stay accurate without re-querying per card click.
+  const trackedRows = useMemo(() => rows.filter(r => r.expiry_date !== null), [rows])
+
+  const filteredRows = useMemo(() => {
+    if (filter === 'expired') return trackedRows.filter(r => (r.days_remaining ?? 1) < 0)
+    return trackedRows.filter(r => (r.days_remaining ?? 9999) <= filter)
+  }, [trackedRows, filter])
+
+  const sortedRows = useMemo(() => {
+    const arr = [...filteredRows]
+    const { by, dir } = sort
+    const mul = dir === 'asc' ? 1 : -1
+    arr.sort((a, b) => {
+      if (by === 'trade_name') {
+        return a.trade_name.localeCompare(b.trade_name, 'th') * mul
+      }
+      if (by === 'expiry_date') {
+        // null expiry → always pushed to the end regardless of direction
+        if (a.expiry_date === b.expiry_date) return 0
+        if (a.expiry_date === null) return 1
+        if (b.expiry_date === null) return -1
+        return (a.expiry_date < b.expiry_date ? -1 : 1) * mul
+      }
+      // total_cost
+      return (a.total_cost - b.total_cost) * mul
+    })
+    return arr
+  }, [filteredRows, sort])
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const data = await (window.api.reports as any).expiringLots({
-        filter,
+        filter: 'all',
         category_id: categoryId !== '0' ? Number(categoryId) : undefined,
         q: q.trim() || undefined,
       }) as ExpiringLot[]
@@ -88,7 +133,7 @@ export default function ManageExpiryPage() {
     } finally {
       setLoading(false)
     }
-  }, [filter, categoryId, q])
+  }, [categoryId, q])
 
   useEffect(() => {
     window.api.settings.allCategories().then((c: any) => setCategories(c))
@@ -117,28 +162,35 @@ export default function ManageExpiryPage() {
     }
   }
 
-  const totalLots = rows.length
-  const totalQty = rows.reduce((s, r) => s + r.qty_on_hand, 0)
-  const totalCost = rows.reduce((s, r) => s + r.total_cost, 0)
-  const expiredCount = rows.filter(r => (r.days_remaining ?? 1) < 0).length
+  const totalLots = filteredRows.length
+  const totalCost = filteredRows.reduce((s, r) => s + r.total_cost, 0)
+
+  // Filter-bucketed counts (derived from full data; not affected by current filter)
+  const count30 = trackedRows.filter(r => (r.days_remaining ?? 9999) <= 30).length
+  const count90 = trackedRows.filter(r => (r.days_remaining ?? 9999) <= 90).length
+  const count365 = trackedRows.filter(r => (r.days_remaining ?? 9999) <= 365).length
+  const countExpired = trackedRows.filter(r => (r.days_remaining ?? 1) < 0).length
 
   useEffect(() => {
     setSummary([
       {
-        label: 'รายการทั้งหมด', value: totalLots.toLocaleString(), icon: Package, tint: 'primary',
-        onClick: () => setFilter('all'), isActive: filter === 'all',
-      },
-      { label: 'คงเหลือรวม', value: totalQty.toLocaleString(), icon: Boxes, tint: 'info-soft' },
-      { label: 'มูลค่าทุน', value: formatCurrency(totalCost), icon: TrendingDown, tint: 'warm' },
-      {
-        label: 'หมดอายุแล้ว',
-        value: `${expiredCount} ล็อต`,
-        icon: CalendarX,
-        tint: expiredCount > 0 ? 'destructive' : 'success',
+        label: 'หมดอายุแล้ว', value: countExpired.toLocaleString(), icon: ClockAlert, tint: 'destructive',
         onClick: () => setFilter('expired'), isActive: filter === 'expired',
       },
+      {
+        label: '≤ 30 วัน', value: count30.toLocaleString(), icon: ClockAlert, tint: 'warm',
+        onClick: () => setFilter(30), isActive: filter === 30,
+      },
+      {
+        label: '≤ 90 วัน', value: count90.toLocaleString(), icon: ClockAlert, tint: 'info-soft',
+        onClick: () => setFilter(90), isActive: filter === 90,
+      },
+      {
+        label: '≤ 1 ปี', value: count365.toLocaleString(), icon: ClockAlert, tint: 'primary',
+        onClick: () => setFilter(365), isActive: filter === 365,
+      },
     ])
-  }, [totalLots, totalQty, totalCost, expiredCount, filter, setSummary])
+  }, [count30, count90, count365, countExpired, filter, setSummary])
 
   return (
     <>
@@ -155,21 +207,6 @@ export default function ManageExpiryPage() {
             />
           </div>
 
-          {/* Preset filter chips */}
-          <div className="flex gap-1 shrink-0">
-            {FILTER_OPTIONS.map(opt => (
-              <Button
-                key={String(opt.value)}
-                size="lg"
-                className="h-10 px-2"
-                variant={filter === opt.value ? 'default' : 'outline'}
-                onClick={() => setFilter(opt.value)}
-              >
-                {opt.label}
-              </Button>
-            ))}
-          </div>
-
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger className="h-10 w-44 shrink-0">
               <SelectValue placeholder="ทุกหมวดหมู่" />
@@ -184,18 +221,18 @@ export default function ManageExpiryPage() {
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table className="table-fixed">
+          <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[240px]">ชื่อสินค้า</TableHead>
+                <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>
                 <TableHead className="min-w-20">ล็อต</TableHead>
-                <TableHead className="min-w-24">วันหมดอายุ</TableHead>
-                <TableHead className="min-w-20">วันคงเหลือ</TableHead>
-                <TableHead className="text-right min-w-20">คงเหลือ</TableHead>
-                <TableHead className="text-right min-w-24">ทุนรวม</TableHead>
-                <TableHead className="min-w-20">หน่วย</TableHead>
-                <TableHead className="min-w-32">ผู้จัดจำหน่าย</TableHead>
-                <TableHead className="text-center w-18">จัดการ</TableHead>
+                <SortableTableHead field="expiry_date" sort={sort} onToggle={toggleSort} className="min-w-24">วันหมดอายุ</SortableTableHead>
+                <TableHead className="text-center min-w-24">วันคงเหลือ</TableHead>
+                <TableHead className="text-right min-w-16">คงเหลือ</TableHead>
+                <TableHead className="min-w-16">หน่วย</TableHead>
+                <SortableTableHead field="total_cost" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ทุนรวม</SortableTableHead>
+                <TableHead className="min-w-[140px]">ผู้จัดจำหน่าย</TableHead>
+                <TableHead className="text-center min-w-20">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -203,18 +240,18 @@ export default function ManageExpiryPage() {
                 <TableRow>
                   <TableCell colSpan={9} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
-              ) : rows.length === 0 ? (
+              ) : sortedRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
                     <PackageX className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบล็อตตามเงื่อนไขที่เลือก
                   </TableCell>
                 </TableRow>
-              ) : rows.map(lot => {
+              ) : sortedRows.map(lot => {
                 const isExpired = (lot.days_remaining ?? 1) < 0
                 return (
                   <TableRow key={lot.lot_id} className={isExpired ? 'bg-destructive-soft/30' : ''}>
-                    <TableCell className="text-sm font-medium truncate" title={lot.trade_name}>
+                    <TableCell className="max-w-[220px] text-sm font-medium truncate" title={lot.trade_name}>
                       {lot.trade_name}
                     </TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground">
@@ -223,29 +260,30 @@ export default function ManageExpiryPage() {
                     <TableCell className="text-sm">
                       {renderExpiryDate(lot.expiry_date, lot.days_remaining)}
                     </TableCell>
-                    <TableCell className="text-sm tabular-nums">
+                    <TableCell className="text-center text-sm tabular-nums">
                       {renderDays(lot.days_remaining)}
                     </TableCell>
                     <TableCell className="text-right text-sm font-semibold tabular-nums">
                       {lot.qty_on_hand.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
-                      {formatCurrency(lot.total_cost)}
-                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {lot.unit_name || <span className="text-foreground-subtle">—</span>}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground truncate" title={lot.supplier_name ?? ''}>
+                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                      {formatCurrency(lot.total_cost)}
+                    </TableCell>
+                    <TableCell className="max-w-[160px] text-sm text-muted-foreground truncate" title={lot.supplier_name ?? ''}>
                       {lot.supplier_name || <span className="text-foreground-subtle">—</span>}
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-center">
                         <Button
-                          size="default"
+                          size="icon-lg"
                           variant="destructive2"
+                          title="ตัดออก"
                           onClick={() => setConfirmingLot(lot)}
                         >
-                          ตัดออก
+                          <PackageX />
                         </Button>
                       </div>
                     </TableCell>
@@ -256,9 +294,12 @@ export default function ManageExpiryPage() {
           </Table>
         </div>
 
-        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between text-sm shrink-0">
           <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{totalLots.toLocaleString()}</span> ล็อต</>}
+            มูลค่าทั้งหมด <span className="font-semibold text-foreground tabular-nums ml-1">฿{formatCurrency(totalCost)}</span>
+          </span>
+          <span className="text-muted-foreground">
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{totalLots.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>
@@ -268,11 +309,22 @@ export default function ManageExpiryPage() {
         onOpenChange={(v) => { if (!v && !expiring) setConfirmingLot(null) }}
         variant="destructive"
         title="ยืนยันการตัดออก"
-        description={
-          confirmingLot
-            ? `ตัดออกล็อต ${confirmingLot.lot_number || '—'} (${confirmingLot.trade_name}) จำนวน ${confirmingLot.qty_on_hand} ${confirmingLot.unit_name || ''} — มูลค่าทุน ฿${formatCurrency(confirmingLot.total_cost)} — การดำเนินการนี้ย้อนกลับไม่ได้`
-            : ''
-        }
+        description={confirmingLot && (
+          <div className="space-y-3">
+            <div className="rounded-lg bg-muted px-3 py-2.5 space-y-1.5">
+              <div className="text-sm font-semibold text-foreground">{confirmingLot.trade_name}</div>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                <dt className="text-muted-foreground">ล็อต</dt>
+                <dd className="font-mono">{confirmingLot.lot_number || '—'}</dd>
+                <dt className="text-muted-foreground">จำนวน</dt>
+                <dd className="tabular-nums">{confirmingLot.qty_on_hand.toLocaleString()} {confirmingLot.unit_name || ''}</dd>
+                <dt className="text-muted-foreground">มูลค่าทุน</dt>
+                <dd className="tabular-nums">฿{formatCurrency(confirmingLot.total_cost)}</dd>
+              </dl>
+            </div>
+            <p className="text-destructive font-medium">การดำเนินการนี้ย้อนกลับไม่ได้</p>
+          </div>
+        )}
         confirmLabel={expiring ? 'กำลังตัด...' : 'ยืนยันตัดออก'}
         cancelLabel="ยกเลิก"
         onConfirm={handleExpire}
