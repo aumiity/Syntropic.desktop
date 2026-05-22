@@ -19,14 +19,17 @@ interface ReceiptItem extends ProductLot {
 // Shared GR (goods-receipt) detail modal — opened from the Purchases report
 // page (with edit/cancel actions) and the EditProduct → ความเคลื่อนไหว tab
 // (view-only). The `actions` slot renders before the close button in the
-// footer; `onLoad` lets the parent hydrate state for follow-up actions.
+// footer; `footerLeft` puts hint/info content on the bottom-left (e.g. a
+// "edit this in the Purchases page" note for view-only callers); `onLoad`
+// lets the parent hydrate state for follow-up actions.
 export function PurchaseReceiptDialog({
-  open, onOpenChange, invoiceNo, actions, onLoad, refreshKey,
+  open, onOpenChange, invoiceNo, actions, footerLeft, onLoad, refreshKey,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   invoiceNo: string | null
   actions?: ReactNode
+  footerLeft?: ReactNode
   onLoad?: (items: ReceiptItem[]) => void
   refreshKey?: number
 }) {
@@ -163,43 +166,45 @@ export function PurchaseReceiptDialog({
                     <tr aria-hidden><td colSpan={7} className="h-full p-0" /></tr>
                   </TableBody>
                   {/* Pinned totals: each <td> is sticky (per-cell, not <tr> —
-                      sticky on <tr>/<tfoot> is flaky in Chromium). Grand total
-                      always pinned at bottom-0; adjustment rows stack above it
-                      when present. */}
+                      sticky on <tr>/<tfoot> is flaky in Chromium). Every row
+                      is forced to h-8 (32px) so the bottom offsets stack as
+                      exact multiples of 2rem with no transparent gaps
+                      between layers. */}
                   <tfoot>
                     {hasAdjust && (
                       <>
-                        <tr className={`[&>td]:sticky ${
+                        <tr className={`[&>td]:sticky [&>td]:h-8 ${
                           discountAmt > 0 && surchargeAmt > 0
-                            ? '[&>td]:bottom-[6.5rem]'
-                            : '[&>td]:bottom-[4.5rem]'
+                            ? '[&>td]:bottom-24'
+                            : '[&>td]:bottom-16'
                         } [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
-                          <td colSpan={6} className="px-2 py-1.5 text-right text-sm text-muted-foreground">ราคารวม</td>
-                          <td className="px-2 py-1.5 text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(rawTotal)}</td>
+                          <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-muted-foreground">ราคารวม</td>
+                          <td className="px-2 py-0.5 text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(rawTotal)}</td>
                         </tr>
                         {discountAmt > 0 && (
-                          <tr className={`[&>td]:sticky ${surchargeAmt > 0 ? '[&>td]:bottom-[4.5rem]' : '[&>td]:bottom-10'} [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
-                            <td colSpan={6} className="px-2 py-1 text-right text-sm text-warning-strong">ส่วนลด</td>
-                            <td className="px-2 py-1 text-right text-sm tabular-nums text-warning-strong">−{formatCurrency(discountAmt)}</td>
+                          <tr className={`[&>td]:sticky [&>td]:h-8 ${surchargeAmt > 0 ? '[&>td]:bottom-16' : '[&>td]:bottom-8'} [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
+                            <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-warning-strong">ส่วนลด</td>
+                            <td className="px-2 py-0.5 text-right text-sm tabular-nums text-warning-strong">−{formatCurrency(discountAmt)}</td>
                           </tr>
                         )}
                         {surchargeAmt > 0 && (
-                          <tr className="[&>td]:sticky [&>td]:bottom-10 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
-                            <td colSpan={6} className="px-2 py-1 text-right text-sm text-warning-strong">ส่วนเพิ่ม</td>
-                            <td className="px-2 py-1 text-right text-sm tabular-nums text-warning-strong">+{formatCurrency(surchargeAmt)}</td>
+                          <tr className="[&>td]:sticky [&>td]:h-8 [&>td]:bottom-8 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
+                            <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-warning-strong">ส่วนเพิ่ม</td>
+                            <td className="px-2 py-0.5 text-right text-sm tabular-nums text-warning-strong">+{formatCurrency(surchargeAmt)}</td>
                           </tr>
                         )}
                       </>
                     )}
-                    <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
-                      <td colSpan={6} className="px-2 py-2 text-right text-sm font-bold">ยอดสุทธิ</td>
-                      <td className="px-2 py-2 text-right font-bold text-primary tabular-nums">{formatCurrency(finalTotal)}</td>
+                    <tr className="[&>td]:sticky [&>td]:h-8 [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
+                      <td colSpan={6} className="px-2 py-0.5 text-right text-sm font-bold">ยอดสุทธิ</td>
+                      <td className="px-2 py-0.5 text-right font-bold text-primary tabular-nums">{formatCurrency(finalTotal)}</td>
                     </tr>
                   </tfoot>
                 </Table>
               </div>
             </DialogBody>
-            <DialogFooter className="pt-3 sm:justify-end">
+            <DialogFooter className={`pt-3 ${footerLeft ? 'sm:justify-between' : 'sm:justify-end'}`}>
+              {footerLeft && <div className="flex items-center min-w-0">{footerLeft}</div>}
               <div className="flex items-center gap-2">
                 {!isCancelled && actions}
                 <Button size="xl" variant="destructive2" onClick={() => onOpenChange(false)}>ปิด</Button>

@@ -340,6 +340,12 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           if (!o) setGrDetailInvoice(null)
         }}
         invoiceNo={grDetailInvoice}
+        footerLeft={
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Info className="size-4 shrink-0" />
+            <span>สามารถแก้ไขได้ในหน้าประวัติการรับสินค้า</span>
+          </div>
+        }
       />
     </div>
   )

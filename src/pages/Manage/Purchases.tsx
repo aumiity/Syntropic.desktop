@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { useOutletContext } from 'react-router-dom'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
@@ -15,11 +16,11 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Sortable
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Textarea } from '@/components/ui/textarea'
 import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialog'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import type { ManageOutletContext } from './index'
 import {
-  Search, X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Info,
+  Search, X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Info, Check,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -86,6 +87,10 @@ export default function ManagePurchasesPage() {
   const [cancelReason, setCancelReason] = useState('')
   const [cancelling, setCancelling] = useState(false)
   const [cancelBlockers, setCancelBlockers] = useState<Array<{ trade_name: string; product_code: string; lot_number: string; need: number; have: number }>>([])
+
+  // Quick-paid (mark unpaid credit bill as paid today, one-click from the
+  // GR detail dialog's footer-left)
+  const [quickPaying, setQuickPaying] = useState(false)
 
   // Edit-bill (header) modal
   const [showEditModal, setShowEditModal] = useState(false)
@@ -266,6 +271,41 @@ export default function ManagePurchasesPage() {
     }
   }
 
+  const handleQuickPay = async () => {
+    if (!selectedInvoice || receiptItems.length === 0) return
+    const first = receiptItems[0]
+    setQuickPaying(true)
+    try {
+      const res = await window.api.purchase.updateHeader({
+        invoice_no: selectedInvoice,
+        supplier_id: (first as any).supplier_id ?? 0,
+        supplier_invoice_no: first.supplier_invoice_no ?? '',
+        order_date: first.order_date || undefined,
+        receive_date: first.created_at,
+        payment_type: 'credit',
+        due_date: first.due_date || undefined,
+        is_paid: true,
+        paid_date: today,
+        userId: getCurrentUserId(),
+      }) as any
+      if (res?.success) {
+        toast('บันทึกการชำระเงินสำเร็จ', 'success')
+        await loadHistory(histPage)
+        setReceiptRefresh(n => n + 1)
+      } else if (res?.error === 'cancelled') {
+        toast('บิลถูกยกเลิกแล้ว ไม่สามารถชำระได้', 'error')
+      } else if (res?.error === 'not_found') {
+        toast('ไม่พบบิล', 'error')
+      } else {
+        toast('บันทึกไม่สำเร็จ', 'error')
+      }
+    } catch (e: any) {
+      toast(e?.message ? `บันทึกไม่สำเร็จ: ${e.message}` : 'บันทึกไม่สำเร็จ', 'error')
+    } finally {
+      setQuickPaying(false)
+    }
+  }
+
   const handleCancelBill = async () => {
     if (!selectedInvoice) return
     const reason = cancelReason.trim()
@@ -302,6 +342,7 @@ export default function ManagePurchasesPage() {
   }
 
   const histSupplier = suppliers.find(s => s.id === histSupplierId) ?? null
+  const editSupplier = suppliers.find(s => s.id === editSupplierId) ?? null
   const histTotalPages = histPageSize === 'all' ? 1 : Math.ceil(histTotal / histPageSize)
   const today = new Date().toISOString().split('T')[0]
 
@@ -449,114 +490,224 @@ export default function ManagePurchasesPage() {
       </div>
 
       {/* ── Receipt detail dialog (shared with HistoryTab) ── */}
-      <PurchaseReceiptDialog
-        open={!!selectedInvoice}
-        onOpenChange={(o) => { if (!o) { setSelectedInvoice(null); setReceiptItems([]) } }}
-        invoiceNo={selectedInvoice}
-        refreshKey={receiptRefresh}
-        onLoad={(items) => setReceiptItems(items as ReceiptDetail[])}
-        actions={
-          <>
-            <Button variant="outline" size="xl" onClick={openEditBill}>แก้ไขบิล</Button>
-            <Button
-              variant="destructive"
-              size="xl"
-              onClick={() => { setCancelReason(''); setCancelBlockers([]); setShowCancelModal(true) }}
-            >
-              <X className="size-4" />
-              ยกเลิกบิล
-            </Button>
-          </>
-        }
-      />
+      {(() => {
+        const receiptHeader = receiptItems[0]
+        const receiptCancelled = receiptHeader?.status === 'cancelled'
+        const canQuickPay = !!receiptHeader && !receiptCancelled
+          && receiptHeader.payment_type === 'credit' && !receiptHeader.is_paid
+        return (
+          <PurchaseReceiptDialog
+            open={!!selectedInvoice}
+            onOpenChange={(o) => { if (!o) { setSelectedInvoice(null); setReceiptItems([]) } }}
+            invoiceNo={selectedInvoice}
+            refreshKey={receiptRefresh}
+            onLoad={(items) => setReceiptItems(items as ReceiptDetail[])}
+            footerLeft={canQuickPay && (
+              <Button variant="success" size="xl" onClick={handleQuickPay} disabled={quickPaying}>
+                <Check className="size-4" />
+                {quickPaying ? 'กำลังบันทึก...' : 'ชำระวันนี้'}
+              </Button>
+            )}
+            actions={
+              <>
+                <Button variant="warm" size="xl" onClick={openEditBill}>แก้ไขบิล</Button>
+                <Button
+                  variant="destructive"
+                  size="xl"
+                  onClick={() => { setCancelReason(''); setCancelBlockers([]); setShowCancelModal(true) }}
+                >
+                  <X className="size-4" />
+                  ยกเลิกบิล
+                </Button>
+              </>
+            }
+          />
+        )
+      })()}
 
-      {/* ── Edit-bill (header) modal ── */}
+      {/* ── Edit-bill (header) modal ──
+          Fixed height (h-[640px]) so toggling cash/credit doesn't resize the
+          dialog. The credit-details panel is always rendered and just dims
+          when payment_type === 'cash' (the alternative — conditional render —
+          made the modal jump and shift the footer buttons). */}
       <Dialog open={showEditModal} onOpenChange={(o) => { if (!editSaving) setShowEditModal(o) }}>
-        <DialogContent size="lg">
+        <DialogContent size="xl">
           <DialogHeader>
-            <DialogTitle className="text-xl">แก้ไขรายละเอียดบิล</DialogTitle>
-            <div className="text-sm text-muted-foreground mt-0.5">{selectedInvoice}</div>
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
+              <FileText className="size-5 text-muted-foreground" />
+              <span>แก้ไขรายละเอียดบิล</span>
+              <span className="text-sm font-mono text-muted-foreground font-normal">{selectedInvoice}</span>
+            </DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-4">
-              <div>
-                <label className="block text-base font-medium mb-1">ผู้จำหน่าย <span className="text-destructive">*</span></label>
-                <Select value={String(editSupplierId)} onValueChange={v => setEditSupplierId(Number(v))}>
-                  <SelectTrigger className="h-10 rounded-xl text-sm">
-                    <SelectValue placeholder="— เลือกผู้จำหน่าย —" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">— เลือกผู้จำหน่าย —</SelectItem>
-                    {suppliers.map(s => (
-                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* min-w-0 on each grid item lets columns shrink past their
+                content size — without it a long supplier name would push the
+                column wide and squash the invoice field. The Combobox trigger
+                already truncates internally. */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="min-w-0">
+                <label className="block text-sm font-medium mb-1.5">
+                  ผู้จัดจำหน่าย <span className="text-destructive">*</span>
+                </label>
+                <Combobox
+                  items={suppliers}
+                  value={editSupplier}
+                  onChange={(s) => setEditSupplierId(s?.id ?? 0)}
+                  getKey={(s) => s.id}
+                  getLabel={(s) => s.name}
+                  getSublabel={(s) => s.code}
+                  icon={Building2}
+                  emptyLabel="— เลือกผู้จัดจำหน่าย —"
+                  searchPlaceholder="ชื่อหรือรหัสผู้จัดจำหน่าย..."
+                  emptyText="ไม่พบผู้จัดจำหน่าย"
+                />
               </div>
-
-              <div>
-                <label className="block text-base font-medium mb-1">เลขที่ใบกำกับสินค้า <span className="text-destructive">*</span></label>
+              <div className="min-w-0">
+                <label className="block text-sm font-medium mb-1.5">
+                  เลขที่ใบกำกับสินค้า <span className="text-destructive">*</span>
+                </label>
                 <Input
                   value={editSupplierInvoiceNo}
                   onChange={e => setEditSupplierInvoiceNo(e.target.value)}
-                  className="h-10 rounded-xl text-sm"
                 />
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-base font-medium mb-1">วันที่สั่งซื้อตามบิล</label>
-                  <DateInput value={editOrderDate} onChange={setEditOrderDate} className="w-full h-10 rounded-xl text-sm" />
-                </div>
-                <div>
-                  <label className="block text-base font-medium mb-1">วันที่รับสินค้า <span className="text-destructive">*</span></label>
-                  <DateInput value={editReceiveDate} onChange={setEditReceiveDate} className="w-full h-10 rounded-xl text-sm" />
-                </div>
-              </div>
-
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-base font-medium mb-2">ประเภทการชำระเงิน</label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={editPaymentType === 'cash' ? 'default' : 'secondary'}
-                    onClick={() => setEditPaymentType('cash')}
-                    className="flex-1 h-10 rounded-xl text-sm font-semibold gap-1.5"
-                  >
-                    <Banknote className="size-4" /> เงินสด
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={editPaymentType === 'credit' ? 'warm' : 'secondary'}
-                    onClick={() => setEditPaymentType('credit')}
-                    className="flex-1 h-10 rounded-xl text-sm font-semibold gap-1.5"
-                  >
-                    <CreditCard className="size-4" /> เครดิต
-                  </Button>
-                </div>
+                <label className="block text-sm font-medium mb-1.5">วันที่สั่งซื้อตามบิล</label>
+                <DateInput value={editOrderDate} onChange={setEditOrderDate} className="w-full" />
               </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">
+                  วันที่รับสินค้า <span className="text-destructive">*</span>
+                </label>
+                <DateInput value={editReceiveDate} onChange={setEditReceiveDate} className="w-full" />
+              </div>
+            </div>
 
-              {editPaymentType === 'credit' && (
-                <div className="rounded-xl bg-muted p-3 space-y-3">
-                  <div>
-                    <label className="block text-base font-medium mb-1">วันครบกำหนดชำระ <span className="text-destructive">*</span></label>
-                    <DateInput value={editDueDate} onChange={setEditDueDate} className="w-full h-10 rounded-xl text-sm" />
+            <div>
+              <label className="block text-sm font-medium mb-1.5">การชำระเงิน</label>
+              {/* Sliding pill toggle — same `layoutId` on both motion.spans
+                  makes framer-motion animate the active background between
+                  them. Pattern ported from the Purchase (รับสินค้า) page. */}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setEditPaymentType('cash')}
+                  className={cn(
+                    'relative flex-1 h-10 rounded-lg text-sm font-semibold gap-1.5 hover:bg-transparent',
+                    editPaymentType === 'cash'
+                      ? 'text-primary-foreground hover:text-primary-foreground'
+                      : 'text-foreground-subtle hover:text-foreground',
+                  )}
+                >
+                  {editPaymentType === 'cash' && (
+                    <motion.span
+                      layoutId="edit-payment-pill"
+                      aria-hidden
+                      className="absolute inset-0 rounded-lg bg-primary"
+                      transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                    />
+                  )}
+                  <span className="relative z-10 inline-flex items-center gap-1.5">
+                    <Banknote className="size-4" /> เงินสด
+                  </span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setEditPaymentType('credit')}
+                  className={cn(
+                    'relative flex-1 h-10 rounded-lg text-sm font-semibold gap-1.5 hover:bg-transparent',
+                    editPaymentType === 'credit'
+                      ? 'text-tertiary-foreground hover:text-tertiary-foreground'
+                      : 'text-foreground-subtle hover:text-foreground',
+                  )}
+                >
+                  {editPaymentType === 'credit' && (
+                    <motion.span
+                      layoutId="edit-payment-pill"
+                      aria-hidden
+                      className="absolute inset-0 rounded-lg bg-tertiary"
+                      transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                    />
+                  )}
+                  <span className="relative z-10 inline-flex items-center gap-1.5">
+                    <CreditCard className="size-4" /> เครดิต
+                  </span>
+                </Button>
+              </div>
+            </div>
+
+            <div className={cn(
+              'rounded-card bg-muted/50 p-4 space-y-3 transition-opacity',
+              editPaymentType !== 'credit' && 'opacity-40 pointer-events-none',
+            )}>
+              {/* Two-column layout — left: due date + day-offset shortcuts,
+                  right: paid date + วันนี้/วันครบกำหนด shortcuts. The "ชำระแล้ว"
+                  checkbox lives in the right column's label slot so it sits
+                  directly above the field it controls; whole right column
+                  dims when unchecked. */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="flex items-center h-6 text-sm font-medium">
+                    วันครบกำหนดชำระ <span className="text-destructive ml-1">*</span>
+                  </label>
+                  <DateInput value={editDueDate} onChange={setEditDueDate} className="w-full" />
+                  <div className="flex gap-1">
+                    {[15, 30, 60, 90].map(d => (
+                      <Button
+                        key={d}
+                        type="button"
+                        variant="warm"
+                        onClick={() => {
+                          const dt = new Date()
+                          dt.setDate(dt.getDate() + d)
+                          setEditDueDate(dt.toISOString().slice(0, 10))
+                        }}
+                        className="flex-1 h-8 px-0 text-sm font-semibold"
+                      >
+                        {d} วัน
+                      </Button>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-2 pt-0.5">
+                </div>
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-2 cursor-pointer select-none h-6">
                     <Checkbox
                       id="edit-is-paid"
                       checked={editIsPaid}
-                      onCheckedChange={(v) => setEditIsPaid(!!v)}
+                      onCheckedChange={(v) => setEditIsPaid(v === true)}
                     />
-                    <label htmlFor="edit-is-paid" className="text-base font-medium cursor-pointer">ชำระแล้ว</label>
-                  </div>
-                  {editIsPaid && (
-                    <div>
-                      <label className="block text-base font-medium mb-1">วันที่ชำระ</label>
-                      <DateInput value={editPaidDate} onChange={setEditPaidDate} className="w-full h-10 rounded-xl text-sm" />
+                    <span className="text-sm font-medium">ชำระเงินแล้ว</span>
+                  </label>
+                  <div className={cn('space-y-1.5 transition-opacity', !editIsPaid && 'opacity-40 pointer-events-none')}>
+                    <DateInput value={editPaidDate} onChange={setEditPaidDate} className="w-full" />
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant="brand-soft"
+                        onClick={() => setEditPaidDate(today)}
+                        className="flex-1 h-8 text-sm font-semibold"
+                      >
+                        วันนี้
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="warm"
+                        onClick={() => editDueDate && setEditPaidDate(editDueDate)}
+                        disabled={!editDueDate}
+                        className="flex-1 h-8 text-sm font-semibold"
+                      >
+                        วันครบกำหนด
+                      </Button>
                     </div>
-                  )}
+                  </div>
                 </div>
-              )}
+              </div>
+            </div>
           </DialogBody>
           <DialogFooter>
             <Button variant="destructive2" size="xl" onClick={() => setShowEditModal(false)} disabled={editSaving}>ยกเลิก</Button>
