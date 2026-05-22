@@ -6,7 +6,7 @@ import { MetricCard } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/toast'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { ArrowLeft, FileText, Tag, Boxes, Pill, Save, Info, Coins, Package } from 'lucide-react'
+import { ArrowLeft, FileText, Tag, Boxes, Pill, Save, Info, Coins, Package, History } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductCategory, ItemUnit } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
@@ -14,6 +14,7 @@ import { LabelsTab } from '../EditProduct/LabelsTab'
 import { GeneralTab } from './GeneralTab'
 import { PriceTab } from './PriceTab'
 import { ComponentsTab, type DraftItem } from './ComponentsTab'
+import { HistoryTab } from './HistoryTab'
 
 // EditBundle is a slimmer EditProduct dedicated to is_bundle=1 products.
 // Why a separate page (vs. a flag on EditProduct): bundles have a disjoint
@@ -179,6 +180,17 @@ export default function EditBundlePage() {
         // Replace history entry so back doesn't return to /new with stale state.
         navigate(`/products/bundles/${created.id}/edit`, { replace: true })
       } else {
+        // Audit price changes BEFORE the generic update (same shape as
+        // EditProduct save flow). products:update is a raw UPDATE with no
+        // logging; products:updatePrice writes a price_logs row and self-
+        // dedupes (skips when unchanged), so it must run while the column
+        // still holds the old price.
+        const priceNote = 'แก้ไขจากหน้าชุดสินค้า'
+        await Promise.all([
+          window.api.products.updatePrice(productId, { price_type: 'retail',     new_price: payload.price_retail,     note: priceNote }),
+          window.api.products.updatePrice(productId, { price_type: 'wholesale1', new_price: payload.price_wholesale1, note: priceNote }),
+          window.api.products.updatePrice(productId, { price_type: 'wholesale2', new_price: payload.price_wholesale2, note: priceNote }),
+        ])
         await window.api.products.update(productId, { ...payload, code: form.code || null, is_bundle: 1, is_stock_item: 0 })
         toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
         await refreshProduct()
@@ -249,8 +261,8 @@ export default function EditBundlePage() {
           <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
           <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
           <TabsTrigger value="components"><Boxes /> รายการ ({componentCount})</TabsTrigger>
-          {/* Labels tab needs a saved product id — hidden in new mode. */}
           {!isNew && <TabsTrigger value="labels"><Pill /> ฉลาก ({labelCount})</TabsTrigger>}
+          {!isNew && <TabsTrigger value="history"><History /> ความเคลื่อนไหว</TabsTrigger>}
         </TabsList>
       </Tabs>
 
@@ -342,6 +354,14 @@ export default function EditBundlePage() {
               onRefresh={refreshProduct}
             />
           </div>
+        ) : tab === 'history' && !isNew ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <HistoryTab
+              productId={productId}
+              isNew={isNew}
+              active={tab === 'history'}
+            />
+          </div>
         ) : (
           <div className="flex-1 min-h-0 overflow-y-auto pb-8">
             {tab === 'general' && (
@@ -353,7 +373,14 @@ export default function EditBundlePage() {
               />
             )}
             {tab === 'price' && (
-              <PriceTab form={form} setF={setF} product={product} />
+              <PriceTab
+                form={form}
+                setF={setF}
+                product={product}
+                productId={productId}
+                isNew={isNew}
+                reloadToken={(product as any)?.updated_at ?? ''}
+              />
             )}
           </div>
         )}

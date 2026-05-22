@@ -349,14 +349,14 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-center min-w-14">#</TableHead>
+              <TableHead className="text-center w-14">#</TableHead>
               <TableHead className="min-w-[260px]">รายการ</TableHead>
               <TableHead className="text-center min-w-20">หน่วย</TableHead>
-              <TableHead className="text-center min-w-32">จำนวน</TableHead>
-              <TableHead className="text-right min-w-28">ราคาทุน</TableHead>
-              <TableHead className="text-right min-w-28">รวม(ทุน)</TableHead>
-              <TableHead className="text-right min-w-28">ราคาขาย</TableHead>
-              <TableHead className="text-right min-w-28">รวม(ขาย)</TableHead>
+              <TableHead className="text-center min-w-20">จำนวน</TableHead>
+              <TableHead className="text-right min-w-24">ราคาทุน</TableHead>
+              <TableHead className="text-right min-w-24">รวม(ทุน)</TableHead>
+              <TableHead className="text-right min-w-24">ราคาขาย</TableHead>
+              <TableHead className="text-right min-w-24">รวม(ขาย)</TableHead>
               <TableHead className="text-center min-w-16" />
             </TableRow>
           </TableHeader>
@@ -386,7 +386,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                         delete next[it.component_product_id]
                         return next
                       })}
-                      className="h-9 w-24 mx-auto text-center"
+                      className="h-9 w-16 mx-auto text-center"
                     />
                   </TableCell>
                   <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(it.component_cost)}</TableCell>

@@ -45,8 +45,8 @@ export default function NegativeStockPage() {
 
   useEffect(() => { load() }, [load])
 
-  // Sibling tabs (Sales/Purchases) don't null summary on unmount, so without
-  // this their cards would leak through. Clear on mount to force a clean slate.
+  // NegativeStock has no summary cards. ManageLayout clears summary on tab
+  // change, so no clear-on-mount needed here.
   useEffect(() => {
     setSummary(null)
   }, [setSummary])

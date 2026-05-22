@@ -1238,11 +1238,28 @@ export default function POSPage() {
               </div>
             ) : (
               flatItems.map((it, i) => {
-                const stock = it.product.lots?.reduce((s, l) => s + l.qty_on_hand, 0) ?? 0
+                // Bundles have no own lots — derive stock from components
+                // (MIN of floor(component_qty / qty_per_bundle)). Expiry warn
+                // also scans across all component lots. Regular products read
+                // their own lots as before.
+                const isBundle = !!it.product.is_bundle
+                const stock = isBundle
+                  ? (() => {
+                      const items = it.product.bundle_items ?? []
+                      if (items.length === 0) return 0
+                      return Math.min(...items.map(bi => {
+                        const compStock = (bi.lots ?? []).reduce((s, l) => s + (l.qty_on_hand ?? 0), 0)
+                        return Math.floor(compStock / (bi.qty_per_bundle || 1))
+                      }))
+                    })()
+                  : (it.product.lots?.reduce((s, l) => s + l.qty_on_hand, 0) ?? 0)
                 const price = it.unit ? it.unit.price_retail : it.product.price_retail
                 const unitName = it.unit?.unit_name ?? it.product.unit_name ?? '-'
                 const active = i === highlightIdx
-                const expiryWarn = it.product.lots?.some(l => getExpiryStatus(l.expiry_date) !== 'normal')
+                const expiryWarn = isBundle
+                  ? (it.product.bundle_items ?? []).some(bi =>
+                      (bi.lots ?? []).some(l => getExpiryStatus(l.expiry_date) !== 'normal'))
+                  : it.product.lots?.some(l => getExpiryStatus(l.expiry_date) !== 'normal')
                 return (
                   <div
                     key={`${it.product.id}-${it.unit?.id ?? 'base'}`}

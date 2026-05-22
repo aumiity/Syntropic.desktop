@@ -62,6 +62,15 @@ export default function ManageLayout() {
   const [animatingSummary, setAnimatingSummary] = useState(true)
   const negativeStockCount = useNegativeStockBadge(s => s.count)
 
+  // Drop summary the instant the tab changes so the new tab never paints with
+  // the previous tab's cards. During-render reset (vs useEffect) avoids the
+  // one-frame flash of stale data after route change.
+  const [prevTab, setPrevTab] = useState(current)
+  if (prevTab !== current) {
+    setPrevTab(current)
+    setSummary(null)
+  }
+
   const ctx = useMemo<ManageOutletContext>(() => ({ setSummary }), [])
 
   return (

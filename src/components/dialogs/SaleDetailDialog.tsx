@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
-import { Ban, ChevronDown, ChevronRight, Boxes } from 'lucide-react'
+import { Ban, ChevronRight, Boxes } from 'lucide-react'
 import type { Sale, SaleItem } from '@/types'
 
 // One sale_item_lots row exposed to the renderer. Joined fields come from
@@ -158,7 +159,7 @@ export function SaleDetailDialog({
                       const isExpanded = expanded.has(item.id)
                       const dimmed = item.is_cancelled ? 'opacity-40 line-through' : ''
                       return (
-                        <>
+                        <Fragment key={item.id}>
                           <TableRow key={item.id} className={dimmed}>
                             <TableCell className="text-center text-xs text-muted-foreground tabular-nums">{i + 1}</TableCell>
                             <TableCell>
@@ -168,9 +169,16 @@ export function SaleDetailDialog({
                                     type="button"
                                     onClick={() => toggleExpand(item.id)}
                                     className="shrink-0 inline-flex items-center justify-center size-5 rounded hover:bg-muted"
-                                    title={isExpanded ? 'ย่อ' : 'ดูส่วนประกอบ'}
+                                    title={isExpanded ? 'ย่อ' : 'ดูรายการ'}
+                                    aria-expanded={isExpanded}
                                   >
-                                    {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                                    <motion.span
+                                      animate={{ rotate: isExpanded ? 90 : 0 }}
+                                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                                      className="inline-flex"
+                                    >
+                                      <ChevronRight className="size-4" />
+                                    </motion.span>
                                   </button>
                                 )}
                                 <div className="flex-1 min-w-0">
@@ -194,52 +202,66 @@ export function SaleDetailDialog({
                               {formatCurrency(profit)}
                             </TableCell>
                           </TableRow>
-                          {isBundle && isExpanded && item.component_lots && item.component_lots.length > 0 && (
-                            <TableRow key={`${item.id}-components`} className="bg-muted/20">
-                              <TableCell colSpan={9} className="py-2">
-                                <div className="pl-8 pr-2">
-                                  <div className="text-xs text-muted-foreground mb-1.5 font-semibold">ส่วนประกอบ (FEFO):</div>
-                                  <table className="w-full text-sm">
-                                    <thead className="text-xs text-muted-foreground">
-                                      <tr className="text-left">
-                                        <th className="py-1 pr-4">ส่วนประกอบ</th>
-                                        <th className="py-1 pr-4">ล็อต</th>
-                                        <th className="py-1 pr-4">วันหมดอายุ</th>
-                                        <th className="py-1 pr-4 text-right">จำนวน</th>
-                                        <th className="py-1 pr-4 text-right">ทุน/หน่วย</th>
-                                        <th className="py-1 text-right">รวม</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {item.component_lots.map(cl => {
-                                        const lineCost = cl.lot_id != null ? cl.qty * (cl.cost_price ?? 0) : 0
-                                        const cancelledStyle = cl.is_cancelled ? 'opacity-40 line-through' : ''
-                                        return (
-                                          <tr key={cl.id} className={cancelledStyle}>
-                                            <td className="py-1 pr-4">{cl.component_name ?? '—'}</td>
-                                            <td className="py-1 pr-4 font-mono text-xs">
-                                              {cl.lot_id == null
-                                                ? <span className="text-destructive">ไม่มีล็อต (ขายเกิน)</span>
-                                                : (cl.lot_number ?? '—')}
-                                            </td>
-                                            <td className="py-1 pr-4">{cl.expiry_date ?? '—'}</td>
-                                            <td className="py-1 pr-4 text-right tabular-nums">{cl.qty}</td>
-                                            <td className="py-1 pr-4 text-right tabular-nums text-muted-foreground">
-                                              {cl.lot_id != null ? formatCurrency(cl.cost_price ?? 0) : '—'}
-                                            </td>
-                                            <td className="py-1 text-right tabular-nums">
-                                              {cl.lot_id != null ? formatCurrency(lineCost) : '—'}
-                                            </td>
+                          <AnimatePresence initial={false}>
+                            {isBundle && isExpanded && item.component_lots && item.component_lots.length > 0 && (
+                              <motion.tr
+                                key={`${item.id}-components`}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1, transition: { duration: 0.16, ease: 'easeOut' } }}
+                                exit={{ opacity: 0, transition: { duration: 0.12, ease: 'easeIn' } }}
+                                className="bg-muted/20"
+                              >
+                                <TableCell colSpan={9} className="p-0">
+                                  <motion.div
+                                    initial={{ height: 0, y: -4 }}
+                                    animate={{ height: 'auto', y: 0, transition: { duration: 0.22, ease: 'easeOut' } }}
+                                    exit={{ height: 0, y: -4, transition: { duration: 0.16, ease: 'easeIn' } }}
+                                    className="overflow-hidden"
+                                  >
+                                    <div className="py-2 pl-8 pr-2">
+                                      <table className="w-full text-sm">
+                                        <thead className="text-xs text-muted-foreground">
+                                          <tr className="text-left">
+                                            <th className="py-1 pr-4">รายการ</th>
+                                            <th className="py-1 pr-4">ล็อต</th>
+                                            <th className="py-1 pr-4">วันหมดอายุ</th>
+                                            <th className="py-1 pr-4 text-right">จำนวน</th>
+                                            <th className="py-1 pr-4 text-right">ทุน/หน่วย</th>
+                                            <th className="py-1 text-right">รวม</th>
                                           </tr>
-                                        )
-                                      })}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </>
+                                        </thead>
+                                        <tbody>
+                                          {item.component_lots.map(cl => {
+                                            const lineCost = cl.lot_id != null ? cl.qty * (cl.cost_price ?? 0) : 0
+                                            const cancelledStyle = cl.is_cancelled ? 'opacity-40 line-through' : ''
+                                            return (
+                                              <tr key={cl.id} className={cancelledStyle}>
+                                                <td className="py-1 pr-4">{cl.component_name ?? '—'}</td>
+                                                <td className="py-1 pr-4 font-mono text-xs">
+                                                  {cl.lot_id == null
+                                                    ? <span className="text-destructive">ไม่มีล็อต (ขายเกิน)</span>
+                                                    : (cl.lot_number ?? '—')}
+                                                </td>
+                                                <td className="py-1 pr-4">{cl.expiry_date ?? '—'}</td>
+                                                <td className="py-1 pr-4 text-right tabular-nums">{cl.qty}</td>
+                                                <td className="py-1 pr-4 text-right tabular-nums text-muted-foreground">
+                                                  {cl.lot_id != null ? formatCurrency(cl.cost_price ?? 0) : '—'}
+                                                </td>
+                                                <td className="py-1 text-right tabular-nums">
+                                                  {cl.lot_id != null ? formatCurrency(lineCost) : '—'}
+                                                </td>
+                                              </tr>
+                                            )
+                                          })}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </motion.div>
+                                </TableCell>
+                              </motion.tr>
+                            )}
+                          </AnimatePresence>
+                        </Fragment>
                       )
                     })}
                     {/* Slack-absorber — keeps tfoot pinned to the actual

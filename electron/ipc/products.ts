@@ -493,21 +493,77 @@ export function registerProductHandlers() {
     date_from?: string
     date_to?: string
   }) => {
+    const db = getDb()
     const limit = opts?.limit ?? 200
+
+    // Bundles (is_bundle=1) have no rows in stock_movements because they don't
+    // hold stock (only components do). We simulate movements by querying
+    // sale_items joined with sales to show the bill history.
+    const prod = db.prepare('SELECT is_bundle FROM products WHERE id = ?').get(productId) as { is_bundle: number } | undefined
+    if (prod?.is_bundle === 1) {
+      const siConds = ['si.product_id = ?']
+      const siParams: any[] = [productId]
+      if (opts?.date_from) { siConds.push('date(s.sold_at) >= ?'); siParams.push(opts.date_from) }
+      if (opts?.date_to)   { siConds.push('date(s.sold_at) <= ?'); siParams.push(opts.date_to)   }
+
+      const typesFilter = opts?.movement_types && opts.movement_types.length > 0
+        ? `WHERE movement_type IN (${opts.movement_types.map(() => '?').join(',')})`
+        : ''
+      const typeParams = opts?.movement_types ?? []
+
+      // Simulating movements:
+      // 1. Every sale_item row is a 'sale' (or 'sale_return' if RT- bill).
+      // 2. If the sale is voided, we add a balancing 'sale_return' row.
+      return db.prepare(`
+        SELECT * FROM (
+          SELECT si.id,
+                 CASE WHEN s.sale_type = 'return' THEN 'sale_return' ELSE 'sale' END as movement_type,
+                 'sale' as ref_type, s.id as ref_id,
+                 -si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,
+                 si.item_note as note, s.sold_at as created_at,
+                 NULL as lot_id, NULL as lot_number, NULL as expiry_date,
+                 NULL AS gr_invoice_no,
+                 s.invoice_no AS sale_invoice_no,
+                 s.sold_by as created_by, u.name AS created_by_name
+          FROM sale_items si
+          JOIN sales s ON s.id = si.sale_id
+          LEFT JOIN users u ON u.id = s.sold_by
+          WHERE ${siConds.join(' AND ')}
+
+          UNION ALL
+
+          SELECT si.id, 'sale_return' as movement_type, 'sale' as ref_type, s.id as ref_id,
+                 si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,
+                 'ยกเลิก: ' || COALESCE(s.void_reason, '') as note, s.updated_at as created_at,
+                 NULL as lot_id, NULL as lot_number, NULL as expiry_date,
+                 NULL AS gr_invoice_no,
+                 s.invoice_no AS sale_invoice_no,
+                 s.sold_by as created_by, u.name AS created_by_name
+          FROM sale_items si
+          JOIN sales s ON s.id = si.sale_id
+          LEFT JOIN users u ON u.id = s.sold_by
+          WHERE ${siConds.join(' AND ')} AND s.status = 'voided'
+        )
+        ${typesFilter}
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?
+      `).all(...siParams, ...siParams, ...typeParams, limit)
+    }
+
     const conditions: string[] = ['sm.product_id = ?']
     const params: any[] = [productId]
     if (opts?.movement_types && opts.movement_types.length > 0) {
       conditions.push(`sm.movement_type IN (${opts.movement_types.map(() => '?').join(',')})`)
       params.push(...opts.movement_types)
     }
-    if (opts?.date_from) { conditions.push(`date(sm.created_at) >= ?`); params.push(opts.date_from) }
-    if (opts?.date_to)   { conditions.push(`date(sm.created_at) <= ?`); params.push(opts.date_to)   }
+    if (opts?.date_from) { conditions.push('date(sm.created_at) >= ?'); params.push(opts.date_from) }
+    if (opts?.date_to)   { conditions.push('date(sm.created_at) <= ?'); params.push(opts.date_to)   }
 
     // pl.invoice_no = the GR (purchase_receipt) the lot belongs to → used for
     // navigating receive/gr_cancel movements to the purchase detail page.
     // s.invoice_no = the sale the movement references → only meaningful when
     // ref_type='sale' (covers both 'sale' and 'sale_return' movement_types).
-    return getDb().prepare(`
+    return db.prepare(`
       SELECT sm.id, sm.movement_type, sm.ref_type, sm.ref_id,
              sm.qty_change, sm.qty_before, sm.qty_after, sm.unit_cost,
              sm.note, sm.created_at,

@@ -129,8 +129,8 @@ export function GeneralTab({
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
               <div>
-                <div className="text-sm font-semibold text-foreground">มี VAT</div>
-                <div className="text-xs text-muted-foreground">บวก 7% เมื่อออกใบกำกับภาษี</div>
+                <div className="text-sm font-semibold text-foreground">เปิดใช้งาน VAT</div>
+                <div className="text-xs text-muted-foreground">*ระบบยังไม่รองรับ*</div>
               </div>
               <Switch size="lg" checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
             </div>

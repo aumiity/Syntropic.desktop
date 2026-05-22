@@ -137,9 +137,9 @@ export function PriceTab({
           </div>
         </SectionCard>
 
-        {/* Card 2: ราคาขายส่ง */}
+        {/* Card 2: ราคาขายส่ง — 2 คอลัมน์ ส่ง 1 ซ้าย / ส่ง 2 ขวา */}
         <SectionCard icon={Tag} title="ราคาขายส่ง">
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {([
               { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: form.price_wholesale1, d: ws1 },
               { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },

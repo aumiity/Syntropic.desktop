@@ -51,6 +51,15 @@ export default function ProductsLayout() {
   // Flip overflow back to visible once the enter animation settles.
   const [animatingSummary, setAnimatingSummary] = useState(true)
 
+  // Drop summary the instant the tab changes so the new tab never paints with
+  // the previous tab's cards. During-render reset (vs useEffect) avoids the
+  // one-frame flash of stale data after route change.
+  const [prevTab, setPrevTab] = useState(tab)
+  if (prevTab !== tab) {
+    setPrevTab(tab)
+    setSummary(null)
+  }
+
   const ctx = useMemo<ProductsOutletContext>(() => ({ setSummary }), [])
 
   return (

@@ -51,6 +51,15 @@ export default function ReportsLayout() {
   // future ring/glow on a child card isn't clipped post-animation.
   const [animatingSummary, setAnimatingSummary] = useState(true)
 
+  // Drop summary the instant the tab changes so the new tab never paints with
+  // the previous tab's cards. During-render reset (vs useEffect) avoids the
+  // one-frame flash of stale data after route change.
+  const [prevTab, setPrevTab] = useState(current)
+  if (prevTab !== current) {
+    setPrevTab(current)
+    setSummary(null)
+  }
+
   const ctx = useMemo<ReportsOutletContext>(() => ({ setSummary }), [])
 
   return (

@@ -184,9 +184,9 @@ export default function ProductsList() {
                 <TableHead className="w-8">#</TableHead>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[280px]">ชื่อสินค้า</SortableTableHead>
                 <SortableTableHead field="unit_name" align="center" sort={sort} onToggle={toggleSort} className="hidden xl:table-cell min-w-16">หน่วย</SortableTableHead>
-                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-16">ต้นทุน</SortableTableHead>
-                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-16">ราคาขาย</SortableTableHead>
-                <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-20">กำไร</SortableTableHead>
+                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
+                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ราคาขาย</SortableTableHead>
+                <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
                 <SortableTableHead field="stock_qty" align="center" sort={sort} onToggle={toggleSort} className="min-w-20">สต็อก</SortableTableHead>
                 <TableHead className="text-center min-w-16">จัดการ</TableHead>
               </TableRow>

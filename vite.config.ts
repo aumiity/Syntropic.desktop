@@ -4,6 +4,12 @@ import electron from 'vite-plugin-electron'
 import renderer from 'vite-plugin-electron-renderer'
 import path from 'path'
 
+const resolveConfig = {
+  // The repo may contain emitted electron/*.js files next to the TS sources.
+  // Prefer TS so Electron builds do not silently bundle stale generated JS.
+  extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx', '.json'],
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -17,6 +23,7 @@ export default defineConfig({
               external: ['better-sqlite3', 'electron'],
             },
           },
+          resolve: resolveConfig,
         },
       },
       {
@@ -28,6 +35,7 @@ export default defineConfig({
               external: ['electron'],
             },
           },
+          resolve: resolveConfig,
         },
         onstart(options) {
           options.reload()
@@ -37,6 +45,7 @@ export default defineConfig({
     renderer(),
   ],
   resolve: {
+    ...resolveConfig,
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
