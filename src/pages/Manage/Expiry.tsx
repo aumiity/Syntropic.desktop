@@ -125,7 +125,7 @@ export default function ManageExpiryPage() {
   useEffect(() => {
     setSummary([
       {
-        label: 'จำนวนล็อต', value: totalLots.toLocaleString(), icon: Package, tint: 'primary',
+        label: 'รายการทั้งหมด', value: totalLots.toLocaleString(), icon: Package, tint: 'primary',
         onClick: () => setFilter('all'), isActive: filter === 'all',
       },
       { label: 'คงเหลือรวม', value: totalQty.toLocaleString(), icon: Boxes, tint: 'info-soft' },
@@ -188,14 +188,14 @@ export default function ManageExpiryPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[240px]">ชื่อสินค้า</TableHead>
-                <TableHead className="w-32">ล็อต</TableHead>
-                <TableHead className="w-32">วันหมดอายุ</TableHead>
-                <TableHead className="w-36">วันคงเหลือ</TableHead>
-                <TableHead className="text-right w-24">คงเหลือ</TableHead>
-                <TableHead className="text-right w-28">ทุนรวม</TableHead>
-                <TableHead className="w-20">หน่วย</TableHead>
-                <TableHead className="w-40">ผู้จัดจำหน่าย</TableHead>
-                <TableHead className="text-center w-28">จัดการ</TableHead>
+                <TableHead className="min-w-20">ล็อต</TableHead>
+                <TableHead className="min-w-24">วันหมดอายุ</TableHead>
+                <TableHead className="min-w-20">วันคงเหลือ</TableHead>
+                <TableHead className="text-right min-w-20">คงเหลือ</TableHead>
+                <TableHead className="text-right min-w-24">ทุนรวม</TableHead>
+                <TableHead className="min-w-20">หน่วย</TableHead>
+                <TableHead className="min-w-32">ผู้จัดจำหน่าย</TableHead>
+                <TableHead className="text-center w-18">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

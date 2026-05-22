@@ -215,26 +215,46 @@ export function registerProductHandlers() {
     conditions.push(`${stockExpr} <= p.reorder_point`)
     const where = `WHERE ${conditions.join(' AND ')}`
 
+    // "ซื้อเพิ่ม" = qty to buy to reach safety_stock (fallback reorder_point
+    // when safety_stock isn't configured). Clamp to 0 — overshoot products
+    // (stock > target) shouldn't show a negative value. SQLite's MAX(a,b) is a
+    // scalar (not aggregate) when called with multiple args.
+    const buyMoreExpr = `MAX(0, CASE
+      WHEN p.safety_stock IS NOT NULL AND p.safety_stock > 0 THEN p.safety_stock - ${stockExpr}
+      ELSE p.reorder_point - ${stockExpr}
+    END)`
+    // Cheapest supplier within the last 3 months, excluding cancelled receives.
+    // Two correlated subqueries (name + cost) — SQLite caches the inner scan
+    // per row, and the outer set is already pruned to low-stock products.
+    const cheapestWhere = `pl.product_id = p.id
+        AND pl.supplier_id IS NOT NULL
+        AND pl.is_cancelled = 0
+        AND pl.created_at >= date('now','-3 months')`
+    const cheapestOrder = `ORDER BY pl.cost_price ASC, pl.created_at DESC LIMIT 1`
+
     const rows = db.prepare(`
       SELECT p.id as product_id, p.code, p.trade_name,
              p.reorder_point, p.safety_stock,
-             u.name as unit_name, c.name as category_name,
+             p.cost_price as cost_avg,
+             u.name as unit_name,
              ${stockExpr} as stock_qty,
-             (p.reorder_point - ${stockExpr}) as shortfall,
+             ${buyMoreExpr} as buy_more,
              (SELECT s.name FROM product_lots pl
                 JOIN suppliers s ON s.id = pl.supplier_id
-                WHERE pl.product_id = p.id AND pl.supplier_id IS NOT NULL
-                ORDER BY pl.created_at DESC LIMIT 1) as last_supplier_name
+                WHERE ${cheapestWhere}
+                ${cheapestOrder}) as cheapest_supplier_name,
+             (SELECT pl.cost_price FROM product_lots pl
+                WHERE ${cheapestWhere}
+                ${cheapestOrder}) as cheapest_supplier_cost
       FROM products p
-      LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN item_units u ON u.id = p.unit_id
       ${where}
-      ORDER BY shortfall DESC, p.trade_name ASC
+      ORDER BY buy_more DESC, p.trade_name ASC
     `).all(...params) as any[]
 
     const out_count = rows.filter(r => r.stock_qty <= 0).length
-    const total_shortfall = rows.reduce((s, r) => s + Math.max(0, r.shortfall), 0)
-    return { rows, count: rows.length, out_count, total_shortfall }
+    const total_buy_more = rows.reduce((s, r) => s + (r.buy_more || 0), 0)
+    return { rows, count: rows.length, out_count, total_buy_more }
   })
 
   ipcMain.handle('products:get', (_e, id: number) => {

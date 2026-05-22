@@ -6,9 +6,11 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Toggle } from '@/components/ui/switch'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast'
 import type { ManageOutletContext } from './index'
-import { Search, PackagePlus, PackageX, Package, ShoppingCart, TrendingDown } from 'lucide-react'
+import { Search, PackagePlus, PackageX, Package, ShoppingCart, TrendingDown, Edit } from 'lucide-react'
 
 type StatusFilter = 'all' | 'out' | 'low'
 
@@ -18,14 +20,17 @@ interface LowStockRow {
   trade_name: string
   reorder_point: number
   safety_stock: number | null
+  cost_avg: number | null
   unit_name: string | null
-  category_name: string | null
   stock_qty: number
-  shortfall: number
-  last_supplier_name: string | null
+  buy_more: number
+  cheapest_supplier_name: string | null
+  cheapest_supplier_cost: number | null
 }
 
 interface Category { id: number; name: string }
+
+const SUPPLIER_TOGGLE_KEY = 'lowStock.showCheapestSupplier'
 
 export default function ManageLowStockPage() {
   const { toast } = useToast()
@@ -38,8 +43,15 @@ export default function ManageLowStockPage() {
   const [rows, setRows] = useState<LowStockRow[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [outCount, setOutCount] = useState(0)
-  const [totalShortfall, setTotalShortfall] = useState(0)
+  const [totalBuyMore, setTotalBuyMore] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [showSupplier, setShowSupplier] = useState<boolean>(() => {
+    return localStorage.getItem(SUPPLIER_TOGGLE_KEY) === '1'
+  })
+
+  useEffect(() => {
+    localStorage.setItem(SUPPLIER_TOGGLE_KEY, showSupplier ? '1' : '0')
+  }, [showSupplier])
 
   // Backend returns the full low-stock universe; status filter narrows the
   // table on the client so the summary counts (which drive the filter chips)
@@ -56,10 +68,10 @@ export default function ManageLowStockPage() {
       const res = await (window.api.products as any).lowStock({
         q: q.trim() || undefined,
         category_id: categoryId !== '0' ? Number(categoryId) : undefined,
-      }) as { rows: LowStockRow[]; count: number; out_count: number; total_shortfall: number }
+      }) as { rows: LowStockRow[]; count: number; out_count: number; total_buy_more: number }
       setRows(res.rows)
       setOutCount(res.out_count)
-      setTotalShortfall(res.total_shortfall)
+      setTotalBuyMore(res.total_buy_more)
     } catch (e: any) {
       toast(e?.message ?? 'โหลดข้อมูลไม่สำเร็จ', 'error')
     } finally {
@@ -80,7 +92,7 @@ export default function ManageLowStockPage() {
   useEffect(() => {
     setSummary([
       {
-        label: 'ต้องสั่งซื้อทั้งหมด',
+        label: 'รายการทั้งหมด',
         value: rows.length.toLocaleString(),
         icon: Package,
         tint: 'primary',
@@ -105,6 +117,8 @@ export default function ManageLowStockPage() {
       },
     ])
   }, [rows.length, outCount, statusFilter, setSummary])
+
+  const colCount = showSupplier ? 9 : 8
 
   return (
     <>
@@ -133,33 +147,52 @@ export default function ManageLowStockPage() {
             </SelectContent>
           </Select>
 
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="shrink-0">
+                <Toggle
+                  framed="input"
+                  checked={showSupplier}
+                  onChange={setShowSupplier}
+                  label="ผู้จำหน่ายราคาทุนต่ำสุด"
+                />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              แสดงผู้จำหน่ายที่เสนอราคาทุนต่ำสุดในรอบ 3 เดือนล่าสุด
+            </TooltipContent>
+          </Tooltip>
+
           <Button size="lg" variant="info-soft" className="h-10 px-2 shrink-0" onClick={() => navigate('/purchase')}>
             <PackagePlus className="size-4" /> ไปหน้ารับสินค้า
           </Button>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table className="table-fixed">
+          <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[240px]">ชื่อสินค้า</TableHead>
-                <TableHead className="w-36">หมวดหมู่</TableHead>
-                <TableHead className="text-right w-24">คงเหลือ</TableHead>
-                <TableHead className="text-right w-24">จุดสั่งซื้อ</TableHead>
-                <TableHead className="text-right w-24">สต็อกปลอดภัย</TableHead>
-                <TableHead className="text-right w-24">ขาด</TableHead>
-                <TableHead className="w-20">หน่วย</TableHead>
-                <TableHead className="w-40">ผู้จัดจำหน่ายล่าสุด</TableHead>
+                <TableHead className="min-w-56">ชื่อสินค้า</TableHead>
+                <TableHead className="min-w-12">หน่วย</TableHead>
+                <TableHead className="text-right min-w-12">คงเหลือ</TableHead>
+                <TableHead className="text-right min-w-12">จุดสั่งซื้อ</TableHead>
+                <TableHead className="text-right min-w-24">สต็อกปลอดภัย</TableHead>
+                <TableHead className="text-right min-w-16">ซื้อเพิ่ม</TableHead>
+                <TableHead className="text-right min-w-16">ทุนเฉลี่ย</TableHead>
+                {showSupplier && (
+                  <TableHead className="text-right min-w-32">ผู้จำหน่าย</TableHead>
+                )}
+                <TableHead className="text-center min-w-20">จัดการสินค้า</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={colCount} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : filteredRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={colCount} className="text-center text-muted-foreground py-16">
                     <ShoppingCart className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่มีสินค้าที่ต่ำกว่าจุดสั่งซื้อ
                   </TableCell>
@@ -170,10 +203,9 @@ export default function ManageLowStockPage() {
                   <TableRow key={r.product_id} className={isOut ? 'bg-destructive-soft/30' : ''}>
                     <TableCell className="text-sm font-medium truncate" title={r.trade_name}>
                       {r.trade_name}
-                      {r.code && <span className="ml-2 text-xs text-foreground-subtle">{r.code}</span>}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground truncate" title={r.category_name ?? ''}>
-                      {r.category_name || <span className="text-foreground-subtle">—</span>}
+                    <TableCell className="text-sm text-muted-foreground">
+                      {r.unit_name || <span className="text-foreground-subtle">—</span>}
                     </TableCell>
                     <TableCell className={`text-right text-sm font-semibold tabular-nums ${isOut ? 'text-destructive' : 'text-warning-strong'}`}>
                       {r.stock_qty.toLocaleString()}
@@ -187,13 +219,42 @@ export default function ManageLowStockPage() {
                         : <span className="text-foreground-subtle">—</span>}
                     </TableCell>
                     <TableCell className="text-right text-sm font-bold tabular-nums text-destructive">
-                      {Math.max(0, r.shortfall).toLocaleString()}
+                      {Math.max(0, r.buy_more).toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {r.unit_name || <span className="text-foreground-subtle">—</span>}
+                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                      {r.cost_avg != null && r.cost_avg > 0
+                        ? r.cost_avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        : <span className="text-foreground-subtle">—</span>}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground truncate" title={r.last_supplier_name ?? ''}>
-                      {r.last_supplier_name || <span className="text-foreground-subtle">—</span>}
+                    {showSupplier && (
+                      <TableCell className="text-right text-sm">
+                        {r.cheapest_supplier_name ? (
+                          <div className="flex flex-col leading-tight">
+                            <span className="text-foreground truncate" title={r.cheapest_supplier_name}>
+                              {r.cheapest_supplier_name}
+                            </span>
+                            {r.cheapest_supplier_cost != null && (
+                              <span className="text-xs font-semibold text-success tabular-nums">
+                                {r.cheapest_supplier_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-foreground-subtle">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <div className="flex justify-center">
+                        <Button
+                          size="icon-lg"
+                          variant="outline"
+                          onClick={() => navigate(`/products/${r.product_id}/edit`)}
+                          title="แก้ไขสินค้า"
+                        >
+                          <Edit />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )
@@ -202,10 +263,7 @@ export default function ManageLowStockPage() {
           </Table>
         </div>
 
-        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between text-sm shrink-0">
-          <span className="text-muted-foreground">
-            ขาดรวม <span className="font-semibold text-warning-strong tabular-nums">{totalShortfall.toLocaleString()}</span> หน่วย
-          </span>
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
             {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{filteredRows.length.toLocaleString()}</span> รายการ</>}
           </span>
