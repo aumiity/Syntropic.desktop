@@ -73,12 +73,10 @@ export function seedDatabase(db: Database.Database) {
   // the Hygeia Item export) plus a handful of common ones we want available
   // even on a minimal install. INSERT OR IGNORE = safe to re-run.
   const units = [
-    'เม็ด', 'กล่อง', 'แผง', 'ขวด', 'หลอด', 'ซอง',
-    'ชิ้น', 'อัน', 'ถุง', 'แคปซูล',
-    'ห่อ', 'กระปุก', 'กระป๋อง', 'แพ็ค', 'แพค', 'ม้วน',
-    'ตลับ', 'ก้อน', 'ด้าม', 'ชุด', 'เครื่อง', 'แผ่น',
-    'ใบ', 'ตัว', 'คู่', 'ขีด', 'เมตร', 'เส้น',
-    'ผืน', 'ถ้วย', 'แกลลอน', 'AMP',
+      'กระปุก', 'กระป๋อง', 'กล่อง', 'ก้อน', 'ขวด', 'ชุด', 
+      'ซอง', 'ตลับ', 'ชิ้น', 'ม้วน', 'ยูนิต', 'ลัง', 'หลอด', 
+     'ห่อ', 'อัน', 'แกลลอน', 'แคปซูล', 'แผง', 'แพ็ค', 
+      'แพ็คสิบ', 'แพ็คหก', 'แพ็คโหล', 'เม็ด', 'แอมป์', 'เครื่อง'
   ]
   const insUnit = db.prepare(`INSERT OR IGNORE INTO item_units (name) VALUES (?)`)
   for (const name of units) insUnit.run(name)
@@ -134,6 +132,9 @@ export function seedDatabase(db: Database.Database) {
     ['S0003', 'WELLEKPHARMA'],
     ['S0004', 'FORTE'],
     ['S0005', 'LIKHIT'],
+    ['S0006', 'THAI NAKORN PATANA'],
+    ['S0007', 'MACRO PHAR'],
+    ['S0008', 'MASALAB'],
   ]
   for (const [code, name] of suppliers) insSupplier.run(code, name)
 

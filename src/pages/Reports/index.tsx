@@ -4,20 +4,22 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { LineChart, Wallet, ShieldCheck } from 'lucide-react'
+import { LineChart, ShoppingBag, Wallet, ShieldCheck } from 'lucide-react'
 
-// Phase 4: finance dashboard (ภาพรวมการเงิน + เจ้าหนี้การค้า).
-// Phase 5: รายงาน อย. — placeholder tab (under construction). See PROGRESS.md.
+// Phase 4: finance dashboard split into ภาพรวม / ขาย / ซื้อ (each with its own
+// DateRangePicker). Phase 5: รายงาน อย. — placeholder. See PROGRESS.md.
 const TABS = [
-  { value: 'finance',  to: '/reports',          label: 'ภาพรวมการเงิน', icon: LineChart },
-  { value: 'payables', to: '/reports/payables', label: 'เจ้าหนี้การค้า', icon: Wallet },
-  { value: 'fda',      to: '/reports/fda',      label: 'รายงาน อย.',    icon: ShieldCheck },
+  { value: 'finance',   to: '/reports',           label: 'ภาพรวม',    icon: LineChart },
+  { value: 'sales',     to: '/reports/sales',     label: 'ขาย',        icon: ShoppingBag },
+  { value: 'purchases', to: '/reports/purchases', label: 'ซื้อ',       icon: Wallet },
+  { value: 'fda',       to: '/reports/fda',       label: 'รายงาน อย.', icon: ShieldCheck },
 ] as const
 
 type TabValue = typeof TABS[number]['value']
 
 function resolveTab(pathname: string): TabValue {
-  if (pathname.startsWith('/reports/payables')) return 'payables'
+  if (pathname.startsWith('/reports/sales')) return 'sales'
+  if (pathname.startsWith('/reports/purchases')) return 'purchases'
   if (pathname.startsWith('/reports/fda')) return 'fda'
   return 'finance'
 }
@@ -26,12 +28,14 @@ export interface ReportsSummaryCard {
   label: string
   value: string
   sub?: string
+  subClassName?: string
   icon: React.ComponentType<{ className?: string }>
   tint: MetricTint
 }
 
 export interface ReportsOutletContext {
   setSummary: (cards: ReportsSummaryCard[] | null) => void
+  setToolbar: (node: React.ReactNode | null) => void
 }
 
 // Tailwind needs literal class strings to be discoverable in source.
@@ -47,42 +51,47 @@ export default function ReportsLayout() {
   const location = useLocation()
   const current = resolveTab(location.pathname)
   const [summary, setSummary] = useState<ReportsSummaryCard[] | null>(null)
+  const [toolbar, setToolbar] = useState<React.ReactNode | null>(null)
   // Mirror of Manage: overflow-hidden during height transition only, so any
   // future ring/glow on a child card isn't clipped post-animation.
   const [animatingSummary, setAnimatingSummary] = useState(true)
 
-  // Drop summary the instant the tab changes so the new tab never paints with
-  // the previous tab's cards. During-render reset (vs useEffect) avoids the
-  // one-frame flash of stale data after route change.
+  // Drop summary + toolbar the instant the tab changes so the new tab never
+  // paints with the previous tab's cards/controls. During-render reset (vs
+  // useEffect) avoids the one-frame flash of stale data after route change.
   const [prevTab, setPrevTab] = useState(current)
   if (prevTab !== current) {
     setPrevTab(current)
     setSummary(null)
+    setToolbar(null)
   }
 
-  const ctx = useMemo<ReportsOutletContext>(() => ({ setSummary }), [])
+  const ctx = useMemo<ReportsOutletContext>(() => ({ setSummary, setToolbar }), [])
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <div className="no-print contents">
         <PageHeader title="รายงาน" />
 
-        <Tabs
-          value={current}
-          onValueChange={(v) => {
-            const tab = TABS.find(t => t.value === v)
-            if (tab) navigate(tab.to)
-          }}
-          className="shrink-0 self-start"
-        >
-          <TabsList>
-            {TABS.map(({ value, label, icon: Icon }) => (
-              <TabsTrigger key={value} value={value}>
-                <Icon className="size-4 mr-1.5" /> {label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-3 shrink-0">
+          <Tabs
+            value={current}
+            onValueChange={(v) => {
+              const tab = TABS.find(t => t.value === v)
+              if (tab) navigate(tab.to)
+            }}
+          >
+            <TabsList>
+              {TABS.map(({ value, label, icon: Icon }) => (
+                <TabsTrigger key={value} value={value}>
+                  <Icon className="size-4 mr-1.5" /> {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          {/* Page-provided toolbar (DateRangePicker / DEV / etc.) — right-aligned */}
+          {toolbar && <div className="ml-auto flex items-center gap-3">{toolbar}</div>}
+        </div>
 
         <AnimatePresence initial={false}>
           {summary && summary.length > 0 && (

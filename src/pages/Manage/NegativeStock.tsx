@@ -108,24 +108,22 @@ export default function NegativeStockPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-32">เลขที่บิล</TableHead>
-                <TableHead className="min-w-40">วันที่ขาย</TableHead>
-                <TableHead className="min-w-40">ลูกค้า</TableHead>
-                <TableHead className="min-w-24">รหัส</TableHead>
-                <TableHead className="min-w-[240px]">ชื่อสินค้า</TableHead>
-                <TableHead className="min-w-28 text-right">จำนวนค้าง</TableHead>
-                <TableHead className="min-w-28 text-right">สต๊อกปัจจุบัน</TableHead>
-                <TableHead className="min-w-[120px] text-center">การจัดการ</TableHead>
+                <TableHead className="min-w-28">เลขที่บิล</TableHead>
+                <TableHead className="min-w-32">วันที่ขาย</TableHead>
+                <TableHead className="min-w-40">ชื่อสินค้า</TableHead>
+                <TableHead className="min-w-24 text-center">จำนวนค้าง</TableHead>
+                <TableHead className="min-w-24 text-right">สต๊อกปัจจุบัน</TableHead>
+                <TableHead className="min-w-24 text-center">การจัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
                     <PackageCheck className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่มีรายการสต๊อคติดลบค้างอยู่
                   </TableCell>
@@ -136,10 +134,8 @@ export default function NegativeStockPage() {
                   <TableRow key={r.id}>
                     <TableCell className="text-sm font-medium whitespace-nowrap">{r.invoice_no}</TableCell>
                     <TableCell className="text-sm whitespace-nowrap">{formatDateTime(r.sold_at)}</TableCell>
-                    <TableCell className="text-sm truncate" title={r.customer_name}>{r.customer_name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{r.product_code || <span className="text-foreground-subtle">—</span>}</TableCell>
-                    <TableCell className="text-sm font-medium truncate" title={r.trade_name}>{r.trade_name}</TableCell>
-                    <TableCell className="text-right text-sm font-bold tabular-nums text-destructive whitespace-nowrap">
+                    <TableCell className="min-w-56 text-sm font-medium truncate" title={r.trade_name}>{r.trade_name}</TableCell>
+                    <TableCell className="text-center text-sm font-bold tabular-nums text-destructive whitespace-nowrap">
                       {r.qty.toLocaleString()} {r.unit_name && <span className="text-xs text-foreground-subtle ml-0.5">{r.unit_name}</span>}
                     </TableCell>
                     <TableCell className={`text-right text-sm tabular-nums whitespace-nowrap ${canReconcile ? 'text-success font-semibold' : 'text-foreground-subtle'}`}>
@@ -192,33 +188,46 @@ export default function NegativeStockPage() {
                   {confirming.kind === 'reconcile' ? 'ยืนยันตัดสต๊อคย้อนหลัง' : 'ยืนยันลบรายการ'}
                 </DialogTitle>
               </DialogHeader>
-              <DialogBody className="text-sm text-foreground space-y-2 pt-3">
-                <div>
-                  บิล <span className="font-semibold">{confirming.row.invoice_no}</span> — {confirming.row.trade_name}
+              <DialogBody className="space-y-3 pt-3">
+                <div className="rounded-xl bg-muted/50 p-3 space-y-2 text-sm">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-muted-foreground shrink-0">เลขที่บิล</span>
+                    <span className="font-mono font-semibold">{confirming.row.invoice_no}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-muted-foreground shrink-0">สินค้า</span>
+                    <span className="font-medium text-right">{confirming.row.trade_name}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-muted-foreground shrink-0">จำนวนค้าง</span>
+                    <span className="font-semibold text-destructive tabular-nums">
+                      {confirming.row.qty.toLocaleString()} {confirming.row.unit_name}
+                    </span>
+                  </div>
                 </div>
+
                 {confirming.kind === 'reconcile' ? (
                   <>
-                    <div className="text-muted-foreground">
-                      จะตัดสต๊อก <span className="font-semibold text-foreground tabular-nums">
+                    <div className="rounded-xl bg-success-soft p-3 text-sm text-success leading-relaxed">
+                      จะตัดสต๊อก <span className="font-bold tabular-nums">
                         {Math.min(confirming.row.qty, confirming.row.available_stock).toLocaleString()}
                       </span> {confirming.row.unit_name} จากล็อตปัจจุบัน (FEFO)
                     </div>
                     {confirming.row.available_stock < confirming.row.qty && (
-                      <div className="text-warning-strong">
-                        สต๊อกปัจจุบันไม่พอตัดครบ — จะตัดได้บางส่วน และเหลือค้าง {
-                          (confirming.row.qty - confirming.row.available_stock).toLocaleString()
-                        } {confirming.row.unit_name}
+                      <div className="rounded-xl bg-warning-soft p-3 text-sm text-warning-strong leading-relaxed">
+                        สต๊อกปัจจุบันไม่พอตัดครบ — เหลือค้าง <span className="font-bold tabular-nums">
+                          {(confirming.row.qty - confirming.row.available_stock).toLocaleString()}
+                        </span> {confirming.row.unit_name}
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="text-muted-foreground">
-                    จะลบรายการค้าง {confirming.row.qty.toLocaleString()} {confirming.row.unit_name} โดยไม่ตัดสต๊อก —
-                    สต๊อกในระบบจะคงอยู่ตามเดิม การกระทำนี้บันทึกในประวัติเพื่อ audit
+                  <div className="rounded-xl bg-destructive-soft p-3 text-sm text-destructive leading-relaxed">
+                    จะลบรายการนี้โดยไม่ตัดสต๊อก — สต๊อกในระบบคงอยู่ตามเดิม การกระทำนี้บันทึกในประวัติเพื่อ audit
                   </div>
                 )}
               </DialogBody>
-              <DialogFooter>
+              <DialogFooter className="pt-4">
                 <Button variant="destructive2" size="xl" className="flex-1" disabled={busy} onClick={() => setConfirming(null)}>
                   ยกเลิก
                 </Button>

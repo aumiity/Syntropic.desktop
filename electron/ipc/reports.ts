@@ -279,9 +279,11 @@ export function registerReportHandlers() {
       FROM purchase_receipt_items pri WHERE pri.invoice_no = pr.invoice_no)
      - pr.discount_amount + pr.surcharge_amount)`
 
-  ipcMain.handle('reports:financeSummary', (_e, filters: { date_from?: string; date_to?: string }) => {
+  // Compute sales+purchase rollup for a date window. Pulled out so we can run
+  // it twice (current + previous period) for delta widgets without duplicating
+  // the SQL or losing the SALE_COST_SUB / PURCHASE_NET_SUB sharing.
+  function computeFinanceWindow(date_from?: string, date_to?: string) {
     const db = getDb()
-    const { date_from, date_to } = filters
     const sCond = [`s.status != 'voided'`]
     const sParams: any[] = []
     if (date_from) { sCond.push(`date(s.sold_at) >= ?`); sParams.push(date_from) }
@@ -318,6 +320,28 @@ export function registerReportHandlers() {
       FROM purchase_receipts pr ${pWhere}
     `).get(...pParams) as any
 
+    return { ...sales, ...purchases }
+  }
+
+  // Same-length window immediately before [date_from, date_to]. e.g. May 1–23
+  // (23 days) → April 8–30. Returned as ISO yyyy-mm-dd to match input format.
+  function previousWindow(date_from: string, date_to: string): { from: string; to: string } {
+    const ms = new Date(date_to).getTime() - new Date(date_from).getTime()
+    const days = Math.round(ms / 86_400_000) + 1
+    const prevTo = new Date(date_from)
+    prevTo.setDate(prevTo.getDate() - 1)
+    const prevFrom = new Date(prevTo)
+    prevFrom.setDate(prevFrom.getDate() - (days - 1))
+    return { from: prevFrom.toISOString().slice(0, 10), to: prevTo.toISOString().slice(0, 10) }
+  }
+
+  ipcMain.handle('reports:financeSummary', (_e, filters: {
+    date_from?: string; date_to?: string; with_compare?: boolean
+  }) => {
+    const db = getDb()
+    const { date_from, date_to, with_compare } = filters
+    const current = computeFinanceWindow(date_from, date_to)
+
     // Accounts payable is CURRENT outstanding — never date-bound.
     const payable = db.prepare(`
       SELECT
@@ -327,24 +351,54 @@ export function registerReportHandlers() {
       WHERE pr.status != 'cancelled' AND pr.payment_type = 'credit' AND pr.is_paid = 0
     `).get() as any
 
-    return { ...sales, ...purchases, ...payable }
+    // `previous` only included on explicit opt-in; existing callers that don't
+    // pass with_compare get the same shape as before (no perf hit for a second
+    // round of aggregation when not needed).
+    let previous: any = null
+    if (with_compare && date_from && date_to) {
+      const prev = previousWindow(date_from, date_to)
+      previous = { ...computeFinanceWindow(prev.from, prev.to), date_from: prev.from, date_to: prev.to }
+    }
+    return { ...current, ...payable, previous }
   })
 
-  ipcMain.handle('reports:salesPurchaseTrend', (_e, filters: { date_from?: string; date_to?: string }) => {
+  ipcMain.handle('reports:salesPurchaseTrend', (_e, filters: {
+    date_from?: string; date_to?: string;
+    granularity?: 'day' | 'week' | 'month' | 'year';
+  }) => {
     const db = getDb()
     const { date_from, date_to } = filters
+    const granularity = filters.granularity ?? 'day'
+    // SQLite strftime keys produce comparable strings ordered correctly when
+    // sorted lexicographically (zero-padded month/week). For day we keep
+    // date() so the key remains a valid yyyy-mm-dd that the frontend can pass
+    // to existing formatters; the other granularities return the raw key
+    // (frontend renders "พ.ค. 2569" / "สัปดาห์ 21" / "2569").
+    const keyForSales = (
+      granularity === 'week'  ? `strftime('%Y-W%W', s.sold_at)` :
+      granularity === 'month' ? `strftime('%Y-%m', s.sold_at)` :
+      granularity === 'year'  ? `strftime('%Y', s.sold_at)` :
+      `date(s.sold_at)`
+    )
+    const keyForPurchase = (
+      granularity === 'week'  ? `strftime('%Y-W%W', pr.created_at)` :
+      granularity === 'month' ? `strftime('%Y-%m', pr.created_at)` :
+      granularity === 'year'  ? `strftime('%Y', pr.created_at)` :
+      `date(pr.created_at)`
+    )
+
     const sCond = [`s.status != 'voided'`]
     const sParams: any[] = []
     if (date_from) { sCond.push(`date(s.sold_at) >= ?`); sParams.push(date_from) }
     if (date_to) { sCond.push(`date(s.sold_at) <= ?`); sParams.push(date_to) }
 
-    const salesByDay = db.prepare(`
-      SELECT date(s.sold_at) AS d,
+    const salesByBucket = db.prepare(`
+      SELECT ${keyForSales} AS d,
              COALESCE(SUM(s.total_amount), 0)   AS sales_net,
              COALESCE(SUM(${SALE_COST_SUB}), 0) AS sales_cost
       FROM sales s
       WHERE ${sCond.join(' AND ')}
-      GROUP BY date(s.sold_at)
+      GROUP BY ${keyForSales}
     `).all(...sParams) as any[]
 
     const pCond = [`pr.status != 'cancelled'`]
@@ -352,19 +406,19 @@ export function registerReportHandlers() {
     if (date_from) { pCond.push(`date(pr.created_at) >= ?`); pParams.push(date_from) }
     if (date_to) { pCond.push(`date(pr.created_at) <= ?`); pParams.push(date_to) }
 
-    const purchaseByDay = db.prepare(`
-      SELECT date(pr.created_at) AS d,
+    const purchaseByBucket = db.prepare(`
+      SELECT ${keyForPurchase} AS d,
              COALESCE(SUM(${PURCHASE_NET_SUB}), 0) AS purchase_total
       FROM purchase_receipts pr
       WHERE ${pCond.join(' AND ')}
-      GROUP BY date(pr.created_at)
+      GROUP BY ${keyForPurchase}
     `).all(...pParams) as any[]
 
     const map = new Map<string, { date: string; sales_net: number; sales_cost: number; sales_profit: number; purchase_total: number }>()
-    for (const r of salesByDay) {
+    for (const r of salesByBucket) {
       map.set(r.d, { date: r.d, sales_net: r.sales_net, sales_cost: r.sales_cost, sales_profit: r.sales_net - r.sales_cost, purchase_total: 0 })
     }
-    for (const r of purchaseByDay) {
+    for (const r of purchaseByBucket) {
       const e = map.get(r.d)
       if (e) e.purchase_total = r.purchase_total
       else map.set(r.d, { date: r.d, sales_net: 0, sales_cost: 0, sales_profit: 0, purchase_total: r.purchase_total })

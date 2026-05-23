@@ -1,21 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import {
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-} from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { useToast } from '@/components/ui/toast'
 import { useUserStore } from '@/stores/userStore'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import type { ReportsOutletContext } from './index'
+import { GranularityTabs, type Granularity } from '@/components/ui/charts/granularity-tabs'
+import { TrendChart, type TrendDatum } from '@/components/ui/charts/trend-chart'
+import { CompareBarChart, type CompareDatum } from '@/components/ui/charts/compare-bar-chart'
 import {
-  Banknote, CreditCard, ArrowLeftRight, TrendingUp, TrendingDown,
-  Wallet, ShoppingBag, Percent, LineChart,
+  Banknote, CreditCard, ArrowLeftRight, TrendingUp,
+  Wallet, ShoppingBag, LineChart, Receipt, BarChart3,
 } from 'lucide-react'
 
-interface FinanceSummary {
+interface FinanceWindow {
   sales_subtotal: number
   sales_discount: number
   sales_net: number
@@ -30,26 +30,26 @@ interface FinanceSummary {
   purchase_cash: number
   purchase_credit: number
   purchase_count: number
+}
+
+interface FinanceSummary extends FinanceWindow {
   payable_total: number
   payable_count: number
+  previous: (FinanceWindow & { date_from: string; date_to: string }) | null
 }
 
-interface TrendRow {
-  date: string
-  sales_net: number
-  sales_cost: number
-  sales_profit: number
-  purchase_total: number
-}
-
-const EMPTY: FinanceSummary = {
+const EMPTY_WINDOW: FinanceWindow = {
   sales_subtotal: 0, sales_discount: 0, sales_net: 0, sales_cost: 0, sales_profit: 0,
   cash_amount: 0, card_amount: 0, transfer_amount: 0, credit_count: 0, sale_count: 0,
   purchase_total: 0, purchase_cash: 0, purchase_credit: 0, purchase_count: 0,
-  payable_total: 0, payable_count: 0,
 }
 
-// Default window = 7 วันล่าสุด (รวมวันนี้). ตรงกับ preset "7 วันล่าสุด" ใน DateRangePicker.
+const EMPTY: FinanceSummary = {
+  ...EMPTY_WINDOW,
+  payable_total: 0, payable_count: 0,
+  previous: null,
+}
+
 const FREE_RANGE_DAYS = 7
 
 function daysAgoIso(n: number): string {
@@ -58,13 +58,27 @@ function daysAgoIso(n: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-// จำนวนวันแบบนับรวมหัวท้าย (inclusive) ของช่วง ISO yyyy-mm-dd
 function inclusiveDayCount(from: string, to: string): number {
   const ms = new Date(to).getTime() - new Date(from).getTime()
   return Math.round(ms / 86_400_000) + 1
 }
 
-// Plain render helper (NOT a component — keeps page free of local JSX components)
+// Period-over-Period delta as a sub-line ("▲ 12.3%") + Tailwind class for color.
+// Convention: ▲ green when curr ≥ prev, ▼ red when curr < prev. Caller can flip
+// for cost-style metrics where lower is better (we don't here — the sales/profit
+// cards are all "higher = better" and payable shows current outstanding only).
+function delta(curr: number, prev: number | undefined | null): { sub: string; cls: string } | null {
+  if (prev == null) return null
+  if (prev === 0 && curr === 0) return null
+  if (prev === 0) return { sub: 'ใหม่ในช่วงนี้', cls: 'text-success' }
+  const pct = ((curr - prev) / Math.abs(prev)) * 100
+  const up = pct >= 0
+  return {
+    sub: `${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}% vs ช่วงก่อน`,
+    cls: up ? 'text-success' : 'text-destructive',
+  }
+}
+
 function payRow(label: string, value: number, muted = false) {
   return (
     <div className="flex items-center justify-between">
@@ -76,11 +90,10 @@ function payRow(label: string, value: number, muted = false) {
 
 export default function ReportsFinancePage() {
   const { toast } = useToast()
-  const { setSummary } = useOutletContext<ReportsOutletContext>()
+  const { setSummary, setToolbar } = useOutletContext<ReportsOutletContext>()
   const isOwner = useUserStore(s => s.current?.role === 'admin')
 
   // ⚠️ DEV ONLY — สลับ role ไว้ทดสอบสิทธิ์ ก่อนระบบ login จริงจะมา.
-  // ลบทั้งบล็อกนี้ + ปุ่มในแถบ toolbar ทิ้งเมื่อทำ login เสร็จ.
   const devUser = useUserStore(s => s.current)
   const devSetCurrent = useUserStore(s => s.setCurrent)
   const devToggleRole = () => {
@@ -91,17 +104,18 @@ export default function ReportsFinancePage() {
   const today = new Date().toISOString().slice(0, 10)
   const [dateFrom, setDateFrom] = useState(daysAgoIso(FREE_RANGE_DAYS - 1))
   const [dateTo, setDateTo] = useState(today)
+  const [granularity, setGranularity] = useState<Granularity>('day')
 
   const [sum, setSum] = useState<FinanceSummary>(EMPTY)
-  const [trend, setTrend] = useState<TrendRow[]>([])
+  const [trend, setTrend] = useState<TrendDatum[]>([])
   const [loading, setLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const [s, t] = await Promise.all([
-        (window.api.reports as any).financeSummary({ date_from: dateFrom, date_to: dateTo }),
-        (window.api.reports as any).salesPurchaseTrend({ date_from: dateFrom, date_to: dateTo }),
+        (window.api.reports as any).financeSummary({ date_from: dateFrom, date_to: dateTo, with_compare: true }),
+        (window.api.reports as any).salesPurchaseTrend({ date_from: dateFrom, date_to: dateTo, granularity }),
       ])
       setSum(s ?? EMPTY)
       setTrend(t ?? [])
@@ -110,10 +124,8 @@ export default function ReportsFinancePage() {
     } finally {
       setLoading(false)
     }
-  }, [dateFrom, dateTo])
+  }, [dateFrom, dateTo, granularity])
 
-  // เฉพาะ admin (เจ้าของร้าน) เท่านั้นที่ดูย้อนหลังเกิน 7 วันได้.
-  // ผู้ใช้อื่นเลือกช่วงกว้างกว่านั้น → เด้งกลับเป็น 7 วัน (อิงวันสิ้นสุดที่เลือก) + แจ้งเตือน.
   const handleRangeChange = useCallback((f: string, t: string) => {
     if (!isOwner && f && t && inclusiveDayCount(f, t) > FREE_RANGE_DAYS) {
       const clampedFrom = new Date(t)
@@ -136,58 +148,136 @@ export default function ReportsFinancePage() {
     ? `${((sum.sales_profit / sum.sales_net) * 100).toFixed(1)}%`
     : undefined
 
+  // KPI cards with PoP delta. Payable has no delta (snapshot, not date-bound).
   useEffect(() => {
+    const dSales = delta(sum.sales_net, sum.previous?.sales_net)
+    const dProfit = delta(sum.sales_profit, sum.previous?.sales_profit)
+    const dPurchase = delta(sum.purchase_total, sum.previous?.purchase_total)
     setSummary([
-      { label: 'ยอดขายสุทธิ', value: formatCurrency(sum.sales_net), sub: `${sum.sale_count.toLocaleString()} บิล`, icon: ShoppingBag, tint: 'primary' },
-      { label: 'ต้นทุนขาย', value: formatCurrency(sum.sales_cost), icon: TrendingDown, tint: 'warm' },
+      {
+        label: 'ยอดขายสุทธิ',
+        value: formatCurrency(sum.sales_net),
+        sub: dSales?.sub ?? `${sum.sale_count.toLocaleString()} บิล`,
+        subClassName: dSales?.cls,
+        icon: ShoppingBag,
+        tint: 'primary',
+      },
       {
         label: 'กำไรขั้นต้น',
         value: formatCurrency(sum.sales_profit),
-        sub: margin,
+        sub: dProfit?.sub ?? margin,
+        subClassName: dProfit?.cls,
         icon: TrendingUp,
         tint: sum.sales_profit >= 0 ? 'success' : 'destructive',
       },
-      { label: 'ยอดซื้อ', value: formatCurrency(sum.purchase_total), sub: `${sum.purchase_count.toLocaleString()} บิล`, icon: Wallet, tint: 'info-soft' },
       {
-        label: 'เจ้าหนี้คงค้าง',
+        label: 'ยอดซื้อ',
+        value: formatCurrency(sum.purchase_total),
+        sub: dPurchase?.sub ?? `${sum.purchase_count.toLocaleString()} บิล`,
+        subClassName: dPurchase?.cls,
+        icon: Wallet,
+        tint: 'info-soft',
+      },
+      {
+        label: 'หนี้ค้างชำระ',
         value: formatCurrency(sum.payable_total),
         sub: `${sum.payable_count.toLocaleString()} บิล`,
         icon: CreditCard,
         tint: sum.payable_total > 0 ? 'warning' : 'success',
       },
-      { label: 'ส่วนลดขายรวม', value: formatCurrency(sum.sales_discount), icon: Percent, tint: 'secondary' },
     ])
   }, [sum, margin, setSummary])
 
-  return (
-    <>
-      {/* Toolbar */}
-      <div className="flex flex-wrap gap-2 items-center shrink-0">
-        <DateRangePicker
-          from={dateFrom}
-          to={dateTo}
-          onChange={handleRangeChange}
-          className="h-10 w-72"
-        />
-        <span className="text-sm text-muted-foreground">
-          {loading ? 'กำลังโหลด...' : `${formatDate(dateFrom)} – ${formatDate(dateTo)}`}
-        </span>
-
+  useEffect(() => {
+    setToolbar(
+      <>
         {/* ⚠️ DEV ONLY — ปุ่มทดสอบสลับสิทธิ์ ลบทิ้งเมื่อมีระบบ login จริง */}
         <Button
           variant={isOwner ? 'success' : 'warm'}
           size="lg"
           onClick={devToggleRole}
-          className="ml-auto"
           title="ปุ่มทดสอบ — ลบเมื่อทำ login เสร็จ"
         >
           DEV: สลับเป็น {isOwner ? 'staff (พนักงาน)' : 'admin (เจ้าของร้าน)'}
         </Button>
-      </div>
+        <DateRangePicker
+          from={dateFrom}
+          to={dateTo}
+          onChange={handleRangeChange}
+          align="end"
+          className="h-10 w-72 bg-card shadow-card hover:bg-card"
+        />
+      </>,
+    )
+    return () => setToolbar(null)
+  }, [dateFrom, dateTo, isOwner, handleRangeChange, devToggleRole, setToolbar])
 
-      {/* Payment mix */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
-        <SectionCard icon={Banknote} title="ช่องทางรับเงิน (ขาย)" tint="primary">
+  // PoP bars: 4 categories side-by-side current vs previous.
+  const compareData: CompareDatum[] = [
+    { name: 'ยอดขายสุทธิ', current: sum.sales_net,      previous: sum.previous?.sales_net      ?? 0 },
+    { name: 'ต้นทุน',       current: sum.sales_cost,     previous: sum.previous?.sales_cost     ?? 0 },
+    { name: 'กำไร',         current: sum.sales_profit,   previous: sum.previous?.sales_profit   ?? 0 },
+    { name: 'ยอดซื้อ',       current: sum.purchase_total, previous: sum.previous?.purchase_total ?? 0 },
+  ]
+
+  const hasTrend = trend.length > 0
+  const hasCompare = sum.previous != null
+
+  return (
+    /* Page-level scroll: charts + section cards can outgrow viewport. Each
+       child is shrink-0 so the column doesn't fight for height. */
+    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2 -mx-1 px-1">
+      {/* Trend chart — full width, granularity tabs in the title bar */}
+      <SectionCard
+        icon={LineChart}
+        title="แนวโน้มรายได้-กำไร"
+        tint="primary"
+        right={<GranularityTabs value={granularity} onChange={setGranularity} />}
+      >
+        {loading ? (
+          <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
+        ) : !hasTrend ? (
+          <div className="h-[300px] flex flex-col items-center justify-center text-sm text-muted-foreground">
+            <LineChart className="size-10 mb-2 opacity-30" />
+            ไม่มีข้อมูลในช่วงเวลานี้
+          </div>
+        ) : (
+          <TrendChart data={trend} granularity={granularity} height={300} showPurchases />
+        )}
+      </SectionCard>
+
+      {/* PoP compare bar */}
+      <SectionCard icon={BarChart3} title="เปรียบเทียบช่วงนี้กับช่วงก่อน" tint="warm">
+        {loading ? (
+          <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
+        ) : !hasCompare ? (
+          <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">ไม่มีข้อมูลช่วงก่อนสำหรับเปรียบเทียบ</div>
+        ) : (
+          <CompareBarChart data={compareData} height={280} />
+        )}
+      </SectionCard>
+
+      {/* 3-col breakdown — same as before */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
+        <SectionCard icon={Receipt} title="สรุปรายได้" tint="primary">
+          {payRow('ยอดก่อนหักลด', sum.sales_subtotal)}
+          {payRow('ส่วนลดขาย', sum.sales_discount, true)}
+          <div className="flex items-center justify-between pt-1 border-t border-border">
+            <span className="text-sm font-semibold text-foreground">ยอดขายสุทธิ</span>
+            <span className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(sum.sales_net)}</span>
+          </div>
+          {payRow('ต้นทุนขาย', sum.sales_cost, true)}
+          <div className="flex items-center justify-between pt-1 border-t border-border">
+            <span className="text-sm font-semibold text-foreground">
+              กำไรขั้นต้น{margin ? <span className="text-muted-foreground font-normal"> · {margin}</span> : ''}
+            </span>
+            <span className={`text-sm font-bold tabular-nums ${sum.sales_profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {formatCurrency(sum.sales_profit)}
+            </span>
+          </div>
+        </SectionCard>
+
+        <SectionCard icon={Banknote} title="ช่องทางรับเงิน (ขาย)" tint="success">
           {payRow('เงินสด', sum.cash_amount)}
           {payRow('บัตร', sum.card_amount)}
           {payRow('เงินโอน', sum.transfer_amount)}
@@ -201,62 +291,11 @@ export default function ReportsFinancePage() {
           {payRow('เงินสด', sum.purchase_cash)}
           {payRow('เครดิต', sum.purchase_credit)}
           <div className="flex items-center justify-between pt-1 border-t border-border">
-            <span className="text-sm text-muted-foreground">เจ้าหนี้คงค้างปัจจุบัน</span>
+            <span className="text-sm text-muted-foreground">หนี้ค้างชำระปัจจุบัน</span>
             <span className="text-sm font-semibold tabular-nums text-warning-strong">{formatCurrency(sum.payable_total)}</span>
           </div>
         </SectionCard>
       </div>
-
-      {/* Daily trend */}
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center">
-          <span>แนวโน้มรายวัน</span>
-        </div>
-
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table className="table-fixed">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-40">วันที่</TableHead>
-                <TableHead className="text-right">ขายสุทธิ</TableHead>
-                <TableHead className="text-right">ต้นทุน</TableHead>
-                <TableHead className="text-right">กำไร</TableHead>
-                <TableHead className="text-right">ยอดซื้อ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
-                </TableRow>
-              ) : trend.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
-                    <LineChart className="size-10 mx-auto mb-2 opacity-30" />
-                    ไม่มีข้อมูลในช่วงเวลานี้
-                  </TableCell>
-                </TableRow>
-              ) : trend.map(r => (
-                <TableRow key={r.date}>
-                  <TableCell className="text-sm tabular-nums">{formatDate(r.date)}</TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-foreground">{formatCurrency(r.sales_net)}</TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(r.sales_cost)}</TableCell>
-                  <TableCell className={`text-right text-sm font-semibold tabular-nums ${r.sales_profit >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {formatCurrency(r.sales_profit)}
-                  </TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(r.purchase_total)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
-          <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{trend.length.toLocaleString()}</span> วัน</>}
-          </span>
-        </div>
-      </div>
-    </>
+    </div>
   )
 }

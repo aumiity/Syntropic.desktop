@@ -751,12 +751,8 @@ export default function ManagePurchasesPage() {
                 <div className="rounded-xl bg-destructive-soft p-3">
                   <div className="text-sm font-semibold text-destructive mb-1.5">สินค้าต่อไปนี้ถูกขายไปแล้ว ไม่สามารถยกเลิกบิลได้:</div>
                   <ul className="text-sm text-destructive space-y-0.5 list-disc pl-4">
-                    {cancelBlockers.map((b, i) => (
-                      <li key={i}>
-                        <span className="font-medium">{b.trade_name}</span>
-                        <span className="text-destructive"> · Lot {b.lot_number}</span>
-                        <span className="text-destructive"> · ต้องคืน {b.need} แต่เหลือเพียง {b.have}</span>
-                      </li>
+                    {Array.from(new Set(cancelBlockers.map(b => b.trade_name))).map((name, i) => (
+                      <li key={i} className="font-medium">{name}</li>
                     ))}
                   </ul>
                 </div>
