@@ -83,55 +83,60 @@ export default function ReportsLayout() {
   const toolbar = toolbarState?.tab === current ? toolbarState.node : null
 
   return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
-      <div className="no-print contents">
+    /* Page-scroll dashboard pattern: the whole layout is the single scroll
+       context. Only the PageHeader (title + clock) sticks at top-0 so the
+       page identity is always visible; Tabs + Summary scroll away with the
+       content. Individual report pages drop their own
+       `flex-1 min-h-0 overflow-y-auto` and just flow. */
+    <div className="flex flex-col h-full overflow-y-auto scrollbar-thin px-8 pb-4">
+      <div className="no-print sticky top-0 z-20 bg-background">
         <PageHeader title="รายงาน" />
-
-        <div className="flex items-center gap-3 shrink-0">
-          <Tabs
-            value={current}
-            onValueChange={(v) => {
-              const tab = TABS.find(t => t.value === v)
-              if (tab) navigate(tab.to)
-            }}
-          >
-            <TabsList>
-              {TABS.map(({ value, label, icon: Icon }) => (
-                <TabsTrigger key={value} value={value}>
-                  <Icon className="size-4 mr-1.5" /> {label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          {/* Page-provided toolbar (DateRangePicker / DEV / etc.) — right-aligned */}
-          {toolbar && <div className="ml-auto flex items-center gap-3">{toolbar}</div>}
-        </div>
-
-        {summary && summary.length > 0 && (
-          <motion.div
-            key={`reports-summary-${current}`}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            onAnimationStart={() => setAnimatingSummary(true)}
-            onAnimationComplete={() => setAnimatingSummary(false)}
-            className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
-          >
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.div
-                key={location.pathname}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
-                className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
-              >
-                {summary.map((c, i) => <MetricCard key={i} {...c} />)}
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-        )}
       </div>
+
+      <div className="no-print flex items-center gap-3 shrink-0 pb-2">
+        <Tabs
+          value={current}
+          onValueChange={(v) => {
+            const tab = TABS.find(t => t.value === v)
+            if (tab) navigate(tab.to)
+          }}
+        >
+          <TabsList>
+            {TABS.map(({ value, label, icon: Icon }) => (
+              <TabsTrigger key={value} value={value}>
+                <Icon className="size-4 mr-1.5" /> {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        {/* Page-provided toolbar (DateRangePicker / DEV / etc.) — right-aligned */}
+        {toolbar && <div className="ml-auto flex items-center gap-3">{toolbar}</div>}
+      </div>
+
+      {summary && summary.length > 0 && (
+        <motion.div
+          key={`reports-summary-${current}`}
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          onAnimationStart={() => setAnimatingSummary(true)}
+          onAnimationComplete={() => setAnimatingSummary(false)}
+          className={`no-print shrink-0 mb-2 ${animatingSummary ? 'overflow-hidden' : ''}`}
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
+            >
+              {summary.map((c, i) => <MetricCard key={i} {...c} />)}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      )}
 
       <Outlet context={ctx} />
     </div>

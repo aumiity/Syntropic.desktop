@@ -1161,22 +1161,33 @@ export default function POSPage() {
           </div>
 
           {/* Daily summary */}
-          <div className="rounded-2xl bg-card p-3 shrink-0">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-foreground">สรุปยอดขายวันนี้</h3>
+          <div className="rounded-2xl bg-card px-3 py-2.5 shrink-0 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <HandCoins className="size-4 text-primary shrink-0" />
+                <h3 className="text-sm font-semibold text-foreground truncate">ยอดขายวันนี้</h3>
+              </div>
+              <div className="text-lg font-bold tabular-nums text-primary leading-none">
+                {formatCurrency(dailyStats.total)}
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <div className="text-xs font-semibold text-foreground-subtle mb-0.5">บิลล่าสุด</div>
-                <div className="text-sm font-medium tabular-nums">{dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}</div>
+
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="rounded-lg bg-muted px-2.5 py-1.5 flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <ShoppingBasket className="size-3.5" /> บิล
+                </div>
+                <div className="text-sm font-semibold tabular-nums text-foreground">
+                  {dailyStats.bills}
+                </div>
               </div>
-              <div>
-                <div className="text-xs font-semibold text-foreground-subtle mb-0.5">จำนวนบิล</div>
-                <div className="text-sm font-medium tabular-nums">{dailyStats.bills} บิล</div>
-              </div>
-              <div className="col-span-2">
-                <div className="text-xs font-semibold text-foreground-subtle mb-0.5">ยอดรวมของวัน</div>
-                <div className="text-lg font-semibold tabular-nums text-primary"> {formatCurrency(dailyStats.total)}</div>
+              <div className="rounded-lg bg-muted px-2.5 py-1.5 flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Timer className="size-3.5" /> ล่าสุด
+                </div>
+                <div className="text-sm font-semibold tabular-nums text-foreground">
+                  {dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}
+                </div>
               </div>
             </div>
           </div>

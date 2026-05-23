@@ -506,6 +506,18 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_product_lots_expiry ON product_lots(expiry_date);
     CREATE INDEX IF NOT EXISTS idx_sales_invoice ON sales(invoice_no);
     CREATE INDEX IF NOT EXISTS idx_sales_sold_at ON sales(sold_at);
+    -- Reports hot path: every cost/profit aggregate joins sale_items → sale_item_lots
+    -- per sale. Without these the subquery does a full table scan, killing perf
+    -- once sales count > ~5k (financeSummary, salesPurchaseTrend, topProducts,
+    -- cashierLeaderboard all hit this). Also covers reports:getSale per-bill detail.
+    CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
+    CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id);
+    CREATE INDEX IF NOT EXISTS idx_sale_item_lots_sale_item ON sale_item_lots(sale_item_id);
+    CREATE INDEX IF NOT EXISTS idx_sale_item_lots_lot ON sale_item_lots(lot_id);
+    CREATE INDEX IF NOT EXISTS idx_sale_item_lots_product ON sale_item_lots(product_id);
+    -- Same story for purchase aggregates and history filtering.
+    CREATE INDEX IF NOT EXISTS idx_purchase_receipts_created ON purchase_receipts(created_at);
+    CREATE INDEX IF NOT EXISTS idx_purchase_receipts_supplier ON purchase_receipts(supplier_id);
     CREATE INDEX IF NOT EXISTS idx_stock_movements_product ON stock_movements(product_id, lot_id);
     CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON stock_movements(movement_type);
     CREATE INDEX IF NOT EXISTS idx_stock_movements_created ON stock_movements(created_at);
@@ -692,4 +704,10 @@ export function initializeSchema(db: Database.Database) {
   ]) {
     try { db.exec(sql) } catch {}
   }
+
+  // Refresh query-planner stats so the planner picks the new indexes added
+  // above on first launch (and on later launches where data has grown).
+  // PRAGMA optimize is cheap when stats are fresh — only re-ANALYZEs tables
+  // whose stats are stale.
+  try { db.exec(`PRAGMA optimize`) } catch {}
 }

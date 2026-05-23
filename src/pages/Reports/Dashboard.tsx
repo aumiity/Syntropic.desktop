@@ -204,7 +204,7 @@ export default function ReportsDashboardPage() {
         rev, pro, low,
         sup, csh, ss, apr,
         inact, vel,
-        lowSt, expSoon, expExp, negCnt,
+        lowSt, expCounts, negCnt,
       ] = await Promise.all([
         r.financeSummary({ ...args, with_compare: true }),
         r.salesPurchaseTrend({ ...args, granularity }),
@@ -219,8 +219,7 @@ export default function ReportsDashboardPage() {
         r.inactiveProducts({ ...args, limit: 30 }),
         r.productVelocity({ limit: 30, sort_by: 'days_cover' }),
         p.lowStock({}),
-        r.expiringLots({ filter: 30 }),
-        r.expiringLots({ filter: 'expired' }),
+        r.expiringLots({ count_only: true }),
         n.count(),
       ])
       setFin(f ?? EMPTY_FIN)
@@ -231,8 +230,8 @@ export default function ReportsDashboardPage() {
       setStats(ss ?? EMPTY_STATS); setAp(apr ?? EMPTY_AP)
       setInactive(inact ?? []); setVelocity(vel ?? [])
       setLowStockCount(Array.isArray(lowSt) ? lowSt.length : 0)
-      setExpiringSoonCount(Array.isArray(expSoon) ? expSoon.length : 0)
-      setExpiredCount(Array.isArray(expExp) ? expExp.length : 0)
+      setExpiringSoonCount(expCounts?.counts?.d30 ?? 0)
+      setExpiredCount(expCounts?.counts?.expired ?? 0)
       setNegStockCount(typeof negCnt === 'number' ? negCnt : 0)
     } catch (e: any) {
       toast(e?.message ?? 'โหลดข้อมูลไม่สำเร็จ', 'error')
@@ -376,7 +375,7 @@ export default function ReportsDashboardPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-3 -mx-1 px-1 pb-4">
+    <div className="flex flex-col gap-3">
 
       {/* Section 1 — Trend + Hourly traffic */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

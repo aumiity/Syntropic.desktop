@@ -65,7 +65,6 @@ const PRESETS: Preset[] = [
     },
   },
   { label: 'ปีนี้', range: () => { const y = new Date().getFullYear(); return { from: new Date(y, 0, 1), to: new Date(y, 11, 31) } } },
-  { label: 'ทั้งหมด', range: () => null },
 ]
 
 interface DateRangePickerProps {

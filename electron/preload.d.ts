@@ -201,7 +201,7 @@ declare const api: {
         getCurrentUser: () => Promise<any>;
     };
     dev: {
-        seedSalesHistory: () => Promise<any>;
+        seedSalesHistory: (days?: number) => Promise<any>;
     };
 };
 export type ElectronAPI = typeof api;

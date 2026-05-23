@@ -273,9 +273,9 @@ export default function ReportsFinancePage() {
   const salesDeltaShort = delta(sum.sales_net, sum.previous?.sales_net)
 
   return (
-    /* Page-level scroll: charts + section cards can outgrow viewport. Each
-       child is shrink-0 so the column doesn't fight for height. */
-    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2 -mx-1 px-1">
+    /* Page scroll lives on ReportsLayout. Each section flows naturally and
+       the dashboard scrolls as one document — no inner scrollbar. */
+    <div className="flex flex-col gap-2">
       {/* Charts row — trend + PoP compare side by side. Stacks to 1-col below
           `lg` so narrow windows don't squish the trend's many time-buckets. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 shrink-0">

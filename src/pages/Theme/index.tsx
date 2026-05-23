@@ -150,6 +150,7 @@ export default function Theme() {
   const [seedConfirmOpen, setSeedConfirmOpen] = useState(false)
   const [seedRunning, setSeedRunning] = useState(false)
   const [seedResult, setSeedResult] = useState<string | null>(null)
+  const [seedDaysChoice, setSeedDaysChoice] = useState<90 | 365 | 730>(90)
   const [sortRows, setSortRows] = useState(PRODUCTS)
   const [priceVal, setPriceVal] = useState<string>('120.00')
   const [unitPickerOpen, setUnitPickerOpen] = useState(false)
@@ -1442,11 +1443,12 @@ export default function Theme() {
               >
                 <div className="space-y-4">
                   <div className="text-sm text-muted-foreground space-y-1">
-                    <p>สร้างข้อมูลทดสอบย้อน 90 วัน — ใช้ products / suppliers / customers ที่ seed แล้ว ผ่าน business logic เดียวกับ POS / GR จริง</p>
+                    <p>สร้างข้อมูลทดสอบย้อนหลัง (เลือก 90 / 365 / 730 วัน) — ใช้ products / suppliers / customers ที่ seed แล้ว ผ่าน business logic เดียวกับ POS / GR จริง</p>
                     <ul className="list-disc list-inside space-y-0.5 pl-2">
-                      <li>ใบรับสินค้า (GR) — 3-5 ใบ/วัน, 5-30 รายการ/ใบ</li>
-                      <li>มี Lot ทุกสินค้า — สินค้าละ 1-3 Lot</li>
-                      <li>ใบขาย (RC) — 80-100 ใบ/วัน, 1-12 รายการ/ใบ, FEFO ถูกต้อง, บิลละ 20-2,000 บาท</li>
+                      <li>ใบรับสินค้า (GR) — 3-6 ใบ/วัน, 5-30 รายการ/ใบ <strong>แบบ stock-aware</strong> (สินค้าต่ำกว่าจุดสั่งซื้อจะถูกเติมก่อน)</li>
+                      <li>มี Lot ทุกสินค้า — รับเข้าทุก SKU ตั้งแต่วันแรก จำนวน lot สะสมตาม turnover จริง</li>
+                      <li>ใบขาย (RC) — 80-100 ใบ/วัน, 1-12 รายการ/ใบ, FEFO ถูกต้อง</li>
+                      <li>บิลละ 50-2,000 บาท เฉลี่ย ~150 บ./บิล → ยอดรายวัน ~10,000-20,000 บ.</li>
                       <li>สต็อกแต่ละ SKU เพดาน = <code className="bg-muted px-1 rounded">safety_stock × 3</code>, opening ≈ safety × 1.5-2.5 (default safety = 200 หาก NULL)</li>
                       <li>กระจาย supplier / payment / discount / customer</li>
                     </ul>
@@ -1458,19 +1460,38 @@ export default function Theme() {
                       <li>40 SKU near-expire (30-90 วัน)</li>
                     </ul>
                     <p className="pt-2">
-                      <span className="font-semibold text-foreground">Idempotent</span> — รันซ้ำได้, ลบ seed เดิม (โดย note marker <code className="bg-muted px-1 rounded">[DEV-SEED]</code>) แล้วสร้างใหม่. ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ
+                      <span className="font-semibold text-foreground">Idempotent</span> — รันซ้ำได้, ลบ seed เดิม (โดย note marker <code className="bg-muted px-1 rounded">[DEV-SEED]</code>) แล้วสร้างใหม่. แต่ละปุ่มสร้างชุดข้อมูลของตัวเอง ไม่ต้องกดเรียงลำดับ. ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Button
+                      variant="info-soft"
+                      size="lg"
+                      onClick={() => { setSeedDaysChoice(90); setSeedConfirmOpen(true) }}
+                      disabled={seedRunning}
+                    >
+                      90 วัน
+                    </Button>
+                    <Button
+                      variant="brand-soft"
+                      size="lg"
+                      onClick={() => { setSeedDaysChoice(365); setSeedConfirmOpen(true) }}
+                      disabled={seedRunning}
+                    >
+                      365 วัน (1 ปี)
+                    </Button>
                     <Button
                       variant="default"
                       size="lg"
-                      onClick={() => setSeedConfirmOpen(true)}
+                      onClick={() => { setSeedDaysChoice(730); setSeedConfirmOpen(true) }}
                       disabled={seedRunning}
                     >
-                      {seedRunning ? 'กำลัง seed... (อาจใช้เวลา 10-60 วินาที)' : 'เริ่ม Seed'}
+                      730 วัน (2 ปี)
                     </Button>
+                    {seedRunning && (
+                      <span className="text-sm text-muted-foreground">กำลัง seed... (อาจใช้เวลาหลายนาที)</span>
+                    )}
                   </div>
 
                   {seedResult && (
@@ -1490,15 +1511,15 @@ export default function Theme() {
       <ConfirmDialog
         open={seedConfirmOpen}
         onOpenChange={setSeedConfirmOpen}
-        title="Seed ข้อมูลทดสอบ?"
-        description="จะลบ seed dev เดิม (ถ้ามี) แล้วสร้าง GR + sales ย้อน 90 วัน พร้อม engineer end-state (หมดสต็อก/ต่ำกว่าจุดสั่งซื้อ/expired/near-expire). ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ"
+        title={`Seed ข้อมูลทดสอบ ${seedDaysChoice} วัน?`}
+        description={`จะลบ seed dev เดิม (ถ้ามี) แล้วสร้าง GR + sales ย้อน ${seedDaysChoice} วัน พร้อม engineer end-state (หมดสต็อก/ต่ำกว่าจุดสั่งซื้อ/expired/near-expire).${seedDaysChoice >= 365 ? ' ⏱ อาจใช้เวลา 2-5 นาที.' : ''} ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ`}
         confirmLabel="เริ่ม Seed"
         variant="default"
         onConfirm={async () => {
           setSeedRunning(true)
           setSeedResult(null)
           try {
-            const res = await window.api.dev.seedSalesHistory()
+            const res = await window.api.dev.seedSalesHistory(seedDaysChoice)
             setSeedResult(res.message)
             toast({ title: 'Seed สำเร็จ', description: res.message, variant: 'success' })
           } catch (e: any) {

@@ -188,7 +188,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                       {lot.is_cancelled
                         ? <Badge variant="destructive" className="text-xs rounded-md">ยกเลิก</Badge>
                         : lot.is_closed
-                        ? <Badge variant="secondary" className="text-xs rounded-md">ปิด</Badge>
+                        ? <Badge variant="destructive2" className="text-xs rounded-md">ปิด</Badge>
                         : lot.qty_on_hand === 0
                         ? <Badge variant="secondary" className="text-xs rounded-md">หมด</Badge>
                         : <Badge variant="success" className="text-xs rounded-md">ใช้งาน</Badge>}

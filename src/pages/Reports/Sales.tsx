@@ -146,8 +146,10 @@ export default function ReportsSalesPage() {
   }, [dateFrom, dateTo, handleRangeChange, setToolbar])
 
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
+    /* Page scroll lives on ReportsLayout. Cards row + daily-trend table flow
+       naturally; the table caps its own height to keep page rhythm. */
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <SectionCard icon={Receipt} title="สรุปรายได้-กำไร" tint="primary">
           {payRow('ยอดก่อนหักลด', sum.sales_subtotal)}
           {payRow('ส่วนลดขาย', sum.sales_discount, true)}
@@ -177,12 +179,12 @@ export default function ReportsSalesPage() {
         </SectionCard>
       </div>
 
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
+      <div className="flex flex-col bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center">
           <span>ยอดขายรายวัน</span>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="[&>[data-slot=table-container]]:max-h-[480px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
@@ -224,6 +226,6 @@ export default function ReportsSalesPage() {
           </span>
         </div>
       </div>
-    </>
+    </div>
   )
 }

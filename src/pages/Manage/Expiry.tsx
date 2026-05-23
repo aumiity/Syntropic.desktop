@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
+import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -14,9 +15,12 @@ import { formatCurrency } from '@/lib/utils'
 import type { ManageOutletContext } from './index'
 import { Search, PackageX, ClockAlert } from 'lucide-react'
 
-type FilterType = 'expired' | 30 | 90 | 365
+type FilterType = 'expired' | 30 | 90 | 180
 type SortField = 'trade_name' | 'expiry_date' | 'total_cost'
 type SortDir = 'asc' | 'desc'
+
+interface ExpiryCounts { expired: number; d30: number; d90: number; d180: number }
+const EMPTY_COUNTS: ExpiryCounts = { expired: 0, d30: 0, d90: 0, d180: 0 }
 
 interface ExpiringLot {
   lot_id: number
@@ -82,6 +86,15 @@ export default function ManageExpiryPage() {
   const [confirmingLot, setConfirmingLot] = useState<ExpiringLot | null>(null)
   const [expiring, setExpiring] = useState(false)
 
+  // Server-side pagination + sort. Filter switching, sort, and search all
+  // refetch — paginated payload keeps the page snappy even at 10k+ lots.
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const [total, setTotal] = useState(0)
+  const [totalCost, setTotalCost] = useState(0)
+  const [counts, setCounts] = useState<ExpiryCounts>(EMPTY_COUNTS)
+  const totalPages = Math.ceil(total / (pageSize as number))
+
   const [sort, setSort] = useState<{ by: SortField; dir: SortDir }>({ by: 'expiry_date', dir: 'asc' })
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
@@ -89,59 +102,39 @@ export default function ManageExpiryPage() {
       : { by: field, dir: field === 'trade_name' ? 'asc' : 'desc' })
   }
 
-  // Always load all expiring lots; cards filter client-side so all
-  // 5 counts stay accurate without re-querying per card click.
-  const trackedRows = useMemo(() => rows.filter(r => r.expiry_date !== null), [rows])
-
-  const filteredRows = useMemo(() => {
-    if (filter === 'expired') return trackedRows.filter(r => (r.days_remaining ?? 1) < 0)
-    return trackedRows.filter(r => (r.days_remaining ?? 9999) <= filter)
-  }, [trackedRows, filter])
-
-  const sortedRows = useMemo(() => {
-    const arr = [...filteredRows]
-    const { by, dir } = sort
-    const mul = dir === 'asc' ? 1 : -1
-    arr.sort((a, b) => {
-      if (by === 'trade_name') {
-        return a.trade_name.localeCompare(b.trade_name, 'th') * mul
-      }
-      if (by === 'expiry_date') {
-        // null expiry → always pushed to the end regardless of direction
-        if (a.expiry_date === b.expiry_date) return 0
-        if (a.expiry_date === null) return 1
-        if (b.expiry_date === null) return -1
-        return (a.expiry_date < b.expiry_date ? -1 : 1) * mul
-      }
-      // total_cost
-      return (a.total_cost - b.total_cost) * mul
-    })
-    return arr
-  }, [filteredRows, sort])
-
-  const load = useCallback(async () => {
+  const load = useCallback(async (p = 1) => {
     setLoading(true)
     try {
-      const data = await (window.api.reports as any).expiringLots({
-        filter: 'all',
+      const res = await (window.api.reports as any).expiringLots({
+        filter,
         category_id: categoryId !== '0' ? Number(categoryId) : undefined,
         q: q.trim() || undefined,
-      }) as ExpiringLot[]
-      setRows(data)
+        page: p,
+        limit: pageSize,
+        sort_by: sort.by,
+        sort_dir: sort.dir.toUpperCase(),
+      }) as { rows: ExpiringLot[]; total: number; total_cost: number; counts: ExpiryCounts }
+      setRows(res.rows ?? [])
+      setTotal(res.total ?? 0)
+      setTotalCost(res.total_cost ?? 0)
+      setCounts(res.counts ?? EMPTY_COUNTS)
+      setPage(p)
     } catch (e: any) {
       toast(e?.message ?? 'โหลดข้อมูลไม่สำเร็จ', 'error')
     } finally {
       setLoading(false)
     }
-  }, [categoryId, q])
+  }, [filter, categoryId, q, pageSize, sort])
 
   useEffect(() => {
     window.api.settings.allCategories().then((c: any) => setCategories(c))
   }, [])
 
-  // Debounced auto-load on filter/category/search change
+  // Debounced auto-load on filter/category/search/sort/pageSize change. Resets
+  // to page 1 — switching filter on page 5 would otherwise show "no data" if
+  // the new set is smaller.
   useEffect(() => {
-    const t = setTimeout(() => { load() }, 300)
+    const t = setTimeout(() => { load(1) }, 300)
     return () => clearTimeout(t)
   }, [load])
 
@@ -154,7 +147,7 @@ export default function ManageExpiryPage() {
       const label = res?.classification === 'near_expiry' ? 'ใกล้หมดอายุ' : 'หมดอายุ'
       toast(`ตัดออกล็อต ${lot.lot_number} (${lot.trade_name}) — ${label} สำเร็จ`, 'success')
       setConfirmingLot(null)
-      setRows(r => r.filter(x => x.lot_id !== lot.lot_id))
+      load(page)
     } catch (e: any) {
       toast(e?.message ?? 'ตัดออกไม่สำเร็จ', 'error')
     } finally {
@@ -162,35 +155,26 @@ export default function ManageExpiryPage() {
     }
   }
 
-  const totalLots = filteredRows.length
-  const totalCost = filteredRows.reduce((s, r) => s + r.total_cost, 0)
-
-  // Filter-bucketed counts (derived from full data; not affected by current filter)
-  const count30 = trackedRows.filter(r => (r.days_remaining ?? 9999) <= 30).length
-  const count90 = trackedRows.filter(r => (r.days_remaining ?? 9999) <= 90).length
-  const count365 = trackedRows.filter(r => (r.days_remaining ?? 9999) <= 365).length
-  const countExpired = trackedRows.filter(r => (r.days_remaining ?? 1) < 0).length
-
   useEffect(() => {
     setSummary([
       {
-        label: 'หมดอายุแล้ว', value: countExpired.toLocaleString(), icon: ClockAlert, tint: 'destructive',
+        label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive',
         onClick: () => setFilter('expired'), isActive: filter === 'expired',
       },
       {
-        label: '≤ 30 วัน', value: count30.toLocaleString(), icon: ClockAlert, tint: 'warm',
+        label: '≤ 30 วัน', value: counts.d30.toLocaleString(), icon: ClockAlert, tint: 'warm',
         onClick: () => setFilter(30), isActive: filter === 30,
       },
       {
-        label: '≤ 90 วัน', value: count90.toLocaleString(), icon: ClockAlert, tint: 'info-soft',
+        label: '≤ 90 วัน', value: counts.d90.toLocaleString(), icon: ClockAlert, tint: 'info-soft',
         onClick: () => setFilter(90), isActive: filter === 90,
       },
       {
-        label: '≤ 1 ปี', value: count365.toLocaleString(), icon: ClockAlert, tint: 'primary',
-        onClick: () => setFilter(365), isActive: filter === 365,
+        label: '≤ 180 วัน', value: counts.d180.toLocaleString(), icon: ClockAlert, tint: 'primary',
+        onClick: () => setFilter(180), isActive: filter === 180,
       },
     ])
-  }, [count30, count90, count365, countExpired, filter, setSummary])
+  }, [counts, filter, setSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).
@@ -246,14 +230,14 @@ export default function ManageExpiryPage() {
                 <TableRow>
                   <TableCell colSpan={9} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
-              ) : sortedRows.length === 0 ? (
+              ) : rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
                     <PackageX className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบล็อตตามเงื่อนไขที่เลือก
                   </TableCell>
                 </TableRow>
-              ) : sortedRows.map(lot => {
+              ) : rows.map(lot => {
                 const isExpired = (lot.days_remaining ?? 1) < 0
                 return (
                   <TableRow key={lot.lot_id} className={isExpired ? 'bg-destructive-soft/30' : ''}>
@@ -300,12 +284,29 @@ export default function ManageExpiryPage() {
           </Table>
         </div>
 
-        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between text-sm shrink-0">
-          <span className="text-muted-foreground">
-            มูลค่าทั้งหมด <span className="font-semibold text-foreground tabular-nums ml-1">฿{formatCurrency(totalCost)}</span>
-          </span>
-          <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{totalLots.toLocaleString()}</span> รายการ</>}
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
+          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+            <span>แสดง</span>
+            <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
+              <SelectTrigger className="h-9 min-w-20">
+                <SelectValue>{String(pageSize)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="min-w-28">
+                {[50, 100, 250, 500].map(opt => (
+                  <SelectItem key={opt} value={String(opt)}>{String(opt)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>รายการ</span>
+            <span className="ml-3">
+              มูลค่าทั้งหมด <span className="font-semibold text-foreground tabular-nums ml-1">฿{formatCurrency(totalCost)}</span>
+            </span>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
+          </div>
+          <span className="text-muted-foreground shrink-0">
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{rows.length.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>

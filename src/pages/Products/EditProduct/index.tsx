@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { AdjustStockDialog } from '@/components/dialogs/AdjustStockDialog'
 import { useToast } from '@/components/ui/toast'
-import { formatCurrency, getExpiryStatus } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import type { ProductCategory, DrugType, ItemUnit } from '@/types'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
@@ -323,10 +323,6 @@ export default function EditProductPage() {
   // ---- Derived stats for ProductInfoCard ----
   const activeLotList = (product.lots ?? []).filter(l => !l.is_cancelled)
   const totalStock = activeLotList.reduce((sum, l) => sum + (Number(l.qty_on_hand) || 0), 0)
-  const nearExpiryCount = activeLotList.filter(l => {
-    const status = getExpiryStatus(l.expiry_date)
-    return status === 'warning' || status === 'danger' || status === 'expired'
-  }).length
   const baseUnit = product.unit_name ?? itemUnits.find(u => u.id === product.unit_id)?.name ?? '—'
   const categoryName = categories.find(c => c.id === product.category_id)?.name
   // Pricing glance → margin vs last cost paid (last_cost_price), not the
@@ -440,9 +436,6 @@ export default function EditProductPage() {
           value={isNew ? '—' : totalStock.toLocaleString()}
           unit={isNew ? undefined : (baseUnit !== '—' ? baseUnit : undefined)}
           sub={isNew ? undefined : 'คลิกเพื่อปรับสต็อก'}
-          badge={!isNew && nearExpiryCount > 0
-            ? <Badge variant="warning"><AlertTriangle className="size-3" /> ใกล้หมดอายุ {nearExpiryCount} ล็อต</Badge>
-            : undefined}
           icon={Boxes}
           tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive' : 'info-soft')}
           onClick={isNew ? undefined : () => setAdjustOpen(true)}

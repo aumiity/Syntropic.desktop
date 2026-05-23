@@ -53,31 +53,15 @@ export function registerReportHandlers() {
       ${limitClause}
     `).all(...params, ...limitParams)
 
-    const summary = db.prepare(`
-      SELECT
-        COALESCE(SUM(s.subtotal), 0) as total_subtotal,
-        COALESCE(SUM(s.total_discount), 0) as total_discount,
-        COALESCE(SUM(s.total_amount), 0) as total_amount,
-        COALESCE(SUM(
-          (SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)
-           FROM sale_items si2
-           JOIN sale_item_lots sil ON sil.sale_item_id = si2.id
-           JOIN product_lots pl ON pl.id = sil.lot_id
-           WHERE si2.sale_id = s.id AND sil.is_cancelled = 0)
-        ), 0) as total_cost,
-        COUNT(*) as sale_count
-      FROM sales s
-      LEFT JOIN customers c ON c.id = s.customer_id
-      ${where}
-    `).get(...params) as any
-
-    summary.total_profit = summary.total_amount - summary.total_cost
-
     // Card counts — partition over the q/date set only (ignores status_filter).
+    // Cost/profit aggregates are NOT computed here: they require a per-sale
+    // subquery over sale_item_lots × product_lots (O(N) bills × O(M) lots = slow
+    // at 2k+ bills) and the list page only renders the count_* fields. Use
+    // /reports → Finance / Dashboard for revenue/cost/profit aggregates.
     // retail + wholesale + rx + return = non-voided; + voided = all. rx has no
     // dedicated card (lives only inside count_all), so the visible cards don't
     // sum to count_all by design; a voided row counts as voided only.
-    const counts = db.prepare(`
+    const summary = db.prepare(`
       SELECT
         COUNT(*) as count_all,
         COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'retail' THEN 1 ELSE 0 END), 0) as count_retail,
@@ -88,7 +72,6 @@ export function registerReportHandlers() {
       LEFT JOIN customers c ON c.id = s.customer_id
       ${baseWhere}
     `).get(...params) as any
-    Object.assign(summary, counts)
 
     const total = (db.prepare(`SELECT COUNT(*) as c FROM sales s LEFT JOIN customers c ON c.id = s.customer_id ${where}`).get(...params) as any).c
     return { rows, summary, total, page, limit: limit ?? total }
@@ -216,31 +199,77 @@ export function registerReportHandlers() {
     return voidSale()
   })
 
-  // System C — Expiry report data
+  // System C — Expiry report data.
+  // Returns { rows (paginated, filter-applied), total, counts (cumulative
+  // buckets — same q/category scope, ignores `filter`) }. With 16k+ tracked
+  // lots in long-running stores, returning everything + filtering client-side
+  // froze the UI; the rows query is now LIMIT-paginated and the four card
+  // counts come from a single cheap aggregate. Pass `count_only: true` to
+  // skip the rows query entirely (used by Reports/Dashboard for its KPI cards).
   ipcMain.handle('reports:expiringLots', (_e, filters: {
-    filter: 'expired' | 30 | 90 | 365
+    filter?: 'expired' | 30 | 90 | 180
     category_id?: number
     q?: string
+    page?: number
+    limit?: number
+    sort_by?: 'trade_name' | 'expiry_date' | 'total_cost'
+    sort_dir?: 'ASC' | 'DESC'
+    count_only?: boolean
   }) => {
     const db = getDb()
-    const { filter, category_id, q } = filters
-    const conditions = [`pl.qty_on_hand > 0`, `pl.is_closed = 0`]
-    const params: any[] = []
+    const { filter, category_id, q, page = 1, limit = 50, sort_by, sort_dir, count_only } = filters
 
+    // Base = open lots with an expiry date in q/category scope. The four card
+    // counts always reflect this set; only the rows query layers `filter` on top.
+    const baseConds = [`pl.qty_on_hand > 0`, `pl.is_closed = 0`, `pl.expiry_date IS NOT NULL`]
+    const baseParams: any[] = []
+    if (category_id) { baseConds.push(`p.category_id = ?`); baseParams.push(category_id) }
+    if (q) { baseConds.push(`(p.trade_name LIKE ? OR pl.lot_number LIKE ?)`); const lq = `%${q}%`; baseParams.push(lq, lq) }
+    const baseWhere = `WHERE ${baseConds.join(' AND ')}`
+
+    const counts = db.prepare(`
+      SELECT
+        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <  date('now')              THEN 1 ELSE 0 END), 0) AS expired,
+        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <= date('now', '+30 days')  THEN 1 ELSE 0 END), 0) AS d30,
+        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <= date('now', '+90 days')  THEN 1 ELSE 0 END), 0) AS d90,
+        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <= date('now', '+180 days') THEN 1 ELSE 0 END), 0) AS d180
+      FROM product_lots pl
+      JOIN products p ON p.id = pl.product_id
+      ${baseWhere}
+    `).get(...baseParams) as { expired: number; d30: number; d90: number; d180: number }
+
+    if (count_only) return { rows: [], total: 0, counts }
+
+    const rowConds = [...baseConds]
+    const rowParams = [...baseParams]
     if (filter === 'expired') {
-      conditions.push(`pl.expiry_date IS NOT NULL AND date(pl.expiry_date) < date('now')`)
+      rowConds.push(`date(pl.expiry_date) < date('now')`)
     } else if (typeof filter === 'number') {
-      conditions.push(`pl.expiry_date IS NOT NULL AND date(pl.expiry_date) <= date('now', '+' || ? || ' days')`)
-      params.push(filter)
+      rowConds.push(`date(pl.expiry_date) <= date('now', '+' || ? || ' days')`)
+      rowParams.push(filter)
     }
-    // 'all' → no date condition
+    const rowWhere = `WHERE ${rowConds.join(' AND ')}`
 
-    if (category_id) { conditions.push(`p.category_id = ?`); params.push(category_id) }
-    if (q) { conditions.push(`(p.trade_name LIKE ? OR pl.lot_number LIKE ?)`); const lq = `%${q}%`; params.push(lq, lq) }
+    const SORT_COLS: Record<string, string> = {
+      trade_name: 'p.trade_name',
+      expiry_date: 'pl.expiry_date',
+      total_cost: 'total_cost',
+    }
+    const sortCol = sort_by && SORT_COLS[sort_by] ? SORT_COLS[sort_by] : 'pl.expiry_date'
+    const sortDirSql = sort_dir === 'DESC' ? 'DESC' : 'ASC'
 
-    const where = `WHERE ${conditions.join(' AND ')}`
+    const totalAgg = db.prepare(`
+      SELECT COUNT(*) AS c,
+             ROUND(COALESCE(SUM(pl.qty_on_hand * pl.cost_price), 0), 2) AS total_cost
+      FROM product_lots pl
+      JOIN products p ON p.id = pl.product_id
+      ${rowWhere}
+    `).get(...rowParams) as { c: number; total_cost: number }
+    const total = totalAgg.c
+    const total_cost = totalAgg.total_cost
 
-    return db.prepare(`
+    const offset = (page - 1) * limit
+    const rows = db.prepare(`
       SELECT
         pl.id          AS lot_id,
         pl.lot_number,
@@ -259,9 +288,12 @@ export function registerReportHandlers() {
       LEFT JOIN item_units u ON u.id = p.unit_id
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN suppliers s ON s.id = pl.supplier_id
-      ${where}
-      ORDER BY pl.expiry_date ASC, p.trade_name ASC
-    `).all(...params)
+      ${rowWhere}
+      ORDER BY ${sortCol} ${sortDirSql}, p.trade_name ASC
+      LIMIT ? OFFSET ?
+    `).all(...rowParams, limit, offset)
+
+    return { rows, total, total_cost, counts }
   })
 
   // ── Phase 4: finance dashboard aggregates ────────────────────────────────

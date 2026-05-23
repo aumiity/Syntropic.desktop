@@ -349,7 +349,7 @@ export default function ManagePurchasesPage() {
 
   const histSupplier = suppliers.find(s => s.id === histSupplierId) ?? null
   const editSupplier = suppliers.find(s => s.id === editSupplierId) ?? null
-  const histTotalPages = histPageSize === 'all' ? 1 : Math.ceil(histTotal / histPageSize)
+  const histTotalPages = Math.ceil(histTotal / histPageSize)
   const today = new Date().toISOString().split('T')[0]
 
   return (
@@ -474,13 +474,13 @@ export default function ManagePurchasesPage() {
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
           <div className="flex items-center gap-2 text-muted-foreground shrink-0">
             <span>แสดง</span>
-            <Select value={String(histPageSize)} onValueChange={v => setHistPageSize(v === 'all' ? 'all' : Number(v))}>
+            <Select value={String(histPageSize)} onValueChange={v => setHistPageSize(Number(v))}>
               <SelectTrigger className="h-9 min-w-20">
-                <SelectValue>{histPageSize === 'all' ? 'ทั้งหมด' : String(histPageSize)}</SelectValue>
+                <SelectValue>{String(histPageSize)}</SelectValue>
               </SelectTrigger>
               <SelectContent className="min-w-28">
-                {[50, 100, 250, 500, 'all'].map(opt => (
-                  <SelectItem key={String(opt)} value={String(opt)}>{opt === 'all' ? 'ทั้งหมด' : String(opt)}</SelectItem>
+                {[50, 100, 250, 500].map(opt => (
+                  <SelectItem key={opt} value={String(opt)}>{String(opt)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

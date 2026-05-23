@@ -41,7 +41,7 @@ export default function ReportsFdaPage() {
   useEffect(() => { setSummary(null) }, [setSummary])
 
   return (
-    <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 content-start">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 content-start">
       {FORMS.map(({ code, title, description, icon: Icon, to, enabled }) => {
         const content = (
           <div className="flex items-start gap-4 p-5 h-full">

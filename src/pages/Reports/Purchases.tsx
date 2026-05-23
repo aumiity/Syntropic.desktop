@@ -183,11 +183,9 @@ export default function ReportsPurchasesPage() {
   const b = payables.buckets
 
   return (
-    /* Single scroll context for the whole page — the layout flex column has
-       multiple stretchy children here (2 cards row + 2 tables) so the
-       Finance-style "one flex-1 table at bottom" pattern would push earlier
-       sections off-screen with no way to scroll back to them. */
-    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2 -mx-1 px-1">
+    /* Page scroll lives on ReportsLayout. Inner tables keep their own
+       max-h caps so a long payables list doesn't dominate the page flow. */
+    <div className="flex flex-col gap-2">
       {/* Breakdown: payment mix + daily trend */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
         <SectionCard icon={ArrowLeftRight} title="ช่องทางชำระ" tint="primary">

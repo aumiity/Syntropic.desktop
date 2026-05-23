@@ -172,7 +172,7 @@ const api = {
   },
   // Dev (only registered when isDev=true in main.ts; will reject otherwise)
   dev: {
-    seedSalesHistory: () => ipcRenderer.invoke('dev:seedSalesHistory'),
+    seedSalesHistory: (days?: number) => ipcRenderer.invoke('dev:seedSalesHistory', { days }),
   },
 }
 

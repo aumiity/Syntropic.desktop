@@ -8,9 +8,10 @@ export function registerDevHandlers() {
   // dev:seedSalesHistory
   // -------------------
   // Backdates GR + sales across the last N days (default 180) using the REAL
-  // seeded products / suppliers / customers. Every product gets 1-3 lots;
-  // FEFO is enforced; per-SKU on-hand never exceeds safety_stock
-  // (fallback 200 when NULL). Same shape as a user clicking POS + GR by hand.
+  // seeded products / suppliers / customers. Lots accumulate naturally over
+  // the simulation window — no hard cap on lot count per SKU. Per-SKU on-hand
+  // never exceeds safety_stock × STOCK_CAP_MULT (fallback safety = 200 when
+  // NULL). FEFO is enforced. Same shape as a user clicking POS + GR by hand.
   //
   // After the random simulation, a final "end-state engineering" phase
   // guarantees the demo state the user asked for:
@@ -25,14 +26,16 @@ export function registerDevHandlers() {
   // regenerates. Refuses to wipe if any non-dev sale references a dev lot.
   ipcMain.handle('dev:seedSalesHistory', (_e, payload?: { days?: number }) => {
     const db = getDb()
-    const DAYS = Math.max(1, Math.min(720, payload?.days ?? 90))
+    const DAYS = Math.max(1, Math.min(800, payload?.days ?? 90))
 
     // Stock cap = safety_stock × STOCK_CAP_MULT. Larger multiplier means more
     // headroom for opening + refills so we don't drain to zero across DAYS days
     // of sales. Opening qty = safety_stock × OPENING_MULT (must be < cap).
     const STOCK_CAP_MULT = 3
-    const OPENING_MULT_MIN = 1.5
-    const OPENING_MULT_MAX = 2.5
+    // Opening lot qty = safety_stock × [MIN, MAX]. Keep modest so the bootstrap
+    // lot drains within months (not years) and frees a lot-slot for new GRs.
+    const OPENING_MULT_MIN = 0.7
+    const OPENING_MULT_MAX = 1.3
 
     const rand = (min: number, max: number) =>
       Math.floor(Math.random() * (max - min + 1)) + min
@@ -130,15 +133,10 @@ export function registerDevHandlers() {
     // ---- Phase 2: Simulation params ----
     const today = dayjs()
 
-    const GR_PER_DAY_MIN = 3, GR_PER_DAY_MAX = 5
+    const GR_PER_DAY_MIN = 3, GR_PER_DAY_MAX = 6
     const LINES_PER_GR_MIN = 5, LINES_PER_GR_MAX = 30
     const SALES_PER_DAY_MIN = 80, SALES_PER_DAY_MAX = 100
     const ITEMS_PER_SALE_MIN = 1, ITEMS_PER_SALE_MAX = 12
-
-    const MAX_LOTS_PER_PRODUCT = 3
-
-    // Per-SKU lot count (gates GR eligibility — hard cap of 3 lots/SKU)
-    const lotCountByProduct = new Map<number, number>()
 
     // Per-SKU running on-hand total (gates GR eligibility — must stay ≤ safety cap)
     const onHandByProduct = new Map<number, number>()
@@ -211,7 +209,7 @@ export function registerDevHandlers() {
     `)
 
     // Receive one line: insert lot + receipt item + stock_movement, update bookkeeping.
-    // Returns true if succeeded (room under safety cap, lot cap), false if skipped.
+    // Returns true if succeeded (room under safety cap), false if skipped.
     const receiveLine = (
       product: Product, supplierId: number, grNo: string,
       dateStr: string, dtStr: string, payType: string, dueDate: string | null,
@@ -220,7 +218,6 @@ export function registerDevHandlers() {
       const cap = safetyCap(product)
       const headroom = cap - (onHandByProduct.get(product.id) ?? 0)
       if (headroom < 1) return false
-      if ((lotCountByProduct.get(product.id) ?? 0) >= MAX_LOTS_PER_PRODUCT) return false
 
       const qty = Math.max(1, Math.min(qtyHint, Math.floor(headroom)))
       const cost = Math.max(0.5, +(product.cost_price * randF(0.85, 1.15)).toFixed(2))
@@ -237,7 +234,6 @@ export function registerDevHandlers() {
         dtStr, dtStr,
       )
       const lotId = Number(lotRes.lastInsertRowid)
-      lotCountByProduct.set(product.id, (lotCountByProduct.get(product.id) ?? 0) + 1)
       bumpOnHand(product.id, qty)
 
       insReceiptItem.run(grNo, product.id, lotId, lotNo, mfg, expiry,
@@ -283,13 +279,13 @@ export function registerDevHandlers() {
         const dateStr = day.format('YYYY-MM-DD')
         const yymmdd = day.format('YYYYMMDD')
 
-        // ---- GRs (3-5 ใบ/วัน) ----
+        // ---- GRs (3-6 ใบ/วัน) ----
         const grPerDay = rand(GR_PER_DAY_MIN, GR_PER_DAY_MAX)
         for (let g = 0; g < grPerDay; g++) {
-          // Candidates = products that still have headroom AND haven't hit
-          // the 3-lot cap. If everyone is full, stop generating GRs today.
+          // Candidates = products with on-hand below the safety cap. Lots can
+          // accumulate freely — no hard lot-count cap. If every SKU is full,
+          // stop generating GRs today.
           const candidates = products.filter(p => {
-            if ((lotCountByProduct.get(p.id) ?? 0) >= MAX_LOTS_PER_PRODUCT) return false
             const cap = safetyCap(p)
             return (onHandByProduct.get(p.id) ?? 0) < cap
           })
@@ -311,12 +307,20 @@ export function registerDevHandlers() {
           insReceipt.run(grNo, supplierId, `INV-MOCK-${grNo}`, dateStr,
             paymentType, dueDate, isPaid, isPaid ? dateStr : null, dtStr)
 
+          // Stock-aware refill: prioritize products below reorder_point so they
+          // get topped up first; healthy products fill any remaining line slots
+          // for variety.
+          const low = candidates.filter(p =>
+            (onHandByProduct.get(p.id) ?? 0) < reorderOf(p))
+          const healthy = candidates.filter(p =>
+            (onHandByProduct.get(p.id) ?? 0) >= reorderOf(p))
           const lineCount = Math.min(rand(LINES_PER_GR_MIN, LINES_PER_GR_MAX), candidates.length)
-          const lineProducts = shuffle(candidates).slice(0, lineCount)
+          const lineProducts = [...shuffle(low), ...shuffle(healthy)].slice(0, lineCount)
 
           for (const product of lineProducts) {
-            // Per-line qty 20-200, but capped by remaining headroom inside receiveLine.
-            const qtyHint = rand(20, 200)
+            // Per-line qty 10-80, capped by remaining headroom inside receiveLine.
+            // Smaller batches let lots drain and close within a reasonable window.
+            const qtyHint = rand(10, 80)
             if (receiveLine(product, supplierId, grNo, dateStr, dtStr, paymentType, dueDate, isPaid, qtyHint)) {
               lotCount++
             }
@@ -342,10 +346,13 @@ export function registerDevHandlers() {
             : (namedCustomers.length ? pick(namedCustomers) : walkIn.id)
           const userId = pick(users)
 
-          // Target bill amount in [20, 2000] — weighted toward mid-range,
-          // sometimes small or large to mimic real distribution.
+          // Target bill amount in [50, 2000] — heavily biased to small bills
+          // so daily total lands in 10k-20k with 80-100 bills/day (avg ~150 b./bill).
           const targetAmount = weighted<number>([
-            [rand(20, 200), 35], [rand(200, 800), 45], [rand(800, 2000), 20],
+            [rand(50, 100), 60],
+            [rand(100, 200), 30],
+            [rand(200, 600), 8],
+            [rand(600, 2000), 2],
           ])
           const maxItems = rand(ITEMS_PER_SALE_MIN, ITEMS_PER_SALE_MAX)
 
@@ -615,7 +622,7 @@ export function registerDevHandlers() {
       days: DAYS,
       message:
         `✓ ลบของเก่า ${wiped.grs} GR / ${wiped.sales} sales / ${wiped.lots} lots\n` +
-        `สร้างใหม่ย้อน ${DAYS} วัน: ${result.grCount} GR (≤3 lot/สินค้า, รวม ${result.lotCount} lots), ` +
+        `สร้างใหม่ย้อน ${DAYS} วัน: ${result.grCount} GR (รวม ${result.lotCount} lots), ` +
         `${result.saleCount} sales (${result.saleItemCount} items)\n` +
         `End-state: ${engineered.outOfStock} หมดสต็อก / ${engineered.belowReorder} ต่ำกว่าจุดสั่งซื้อ / ` +
         `${engineered.expired} expired / ${engineered.nearExpire} near-expire`,
