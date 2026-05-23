@@ -21,6 +21,7 @@ const ManageLowStock = lazy(() => import('./pages/Manage/LowStock'))
 const ManageExpiry = lazy(() => import('./pages/Manage/Expiry'))
 const ManageNegativeStock = lazy(() => import('./pages/Manage/NegativeStock'))
 const ReportsLayout = lazy(() => import('./pages/Reports'))
+const ReportsDashboard = lazy(() => import('./pages/Reports/Dashboard'))
 const ReportsFinance = lazy(() => import('./pages/Reports/Finance'))
 const ReportsSales = lazy(() => import('./pages/Reports/Sales'))
 const ReportsPurchases = lazy(() => import('./pages/Reports/Purchases'))
@@ -71,6 +72,7 @@ export default function App() {
               {/* Phase 4: Reports rebuilt as finance dashboard (Phase 5 adds อย.). */}
               <Route path="reports" element={<ReportsLayout />}>
                 <Route index element={<ReportsFinance />} />
+                <Route path="dashboard" element={<ReportsDashboard />} />
                 <Route path="sales" element={<ReportsSales />} />
                 <Route path="purchases" element={<ReportsPurchases />} />
                 <Route path="fda">

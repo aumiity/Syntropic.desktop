@@ -1,15 +1,16 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-export type Granularity = 'day' | 'week' | 'month' | 'year'
+export type Granularity = 'hour' | 'day' | 'week' | 'month' | 'year'
 
 const LABELS: Record<Granularity, string> = {
+  hour: 'ชั่วโมง',
   day: 'วัน',
   week: 'สัปดาห์',
   month: 'เดือน',
   year: 'ปี',
 }
 
-const ORDER: Granularity[] = ['day', 'week', 'month', 'year']
+const ORDER: Granularity[] = ['hour', 'day', 'week', 'month', 'year']
 
 export function GranularityTabs({
   value, onChange,

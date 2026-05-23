@@ -192,6 +192,12 @@ export default function ManageExpiryPage() {
     ])
   }, [count30, count90, count365, countExpired, filter, setSummary])
 
+  // Clear slot summary on unmount — prevents stale cards leaking into the next
+  // tab (esp. NegativeStock which has no summary of its own to overwrite).
+  useEffect(() => {
+    return () => setSummary(null)
+  }, [setSummary])
+
   return (
     <>
       {/* List card */}

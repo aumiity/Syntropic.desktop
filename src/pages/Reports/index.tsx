@@ -1,14 +1,18 @@
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { LineChart, ShoppingBag, Wallet, ShieldCheck } from 'lucide-react'
+import { LineChart, ShoppingBag, Wallet, ShieldCheck, LayoutDashboard } from 'lucide-react'
 
 // Phase 4: finance dashboard split into ภาพรวม / ขาย / ซื้อ (each with its own
 // DateRangePicker). Phase 5: รายงาน อย. — placeholder. See PROGRESS.md.
+// Dashboard tab added later as an operational view (top sellers, stock risk,
+// safety-stock helper) — kept first so it's the primary entry; Finance stays
+// the /reports index route so the existing URL keeps working.
 const TABS = [
+  { value: 'dashboard', to: '/reports/dashboard', label: 'แดชบอร์ด',   icon: LayoutDashboard },
   { value: 'finance',   to: '/reports',           label: 'ภาพรวม',    icon: LineChart },
   { value: 'sales',     to: '/reports/sales',     label: 'ขาย',        icon: ShoppingBag },
   { value: 'purchases', to: '/reports/purchases', label: 'ซื้อ',       icon: Wallet },
@@ -18,6 +22,7 @@ const TABS = [
 type TabValue = typeof TABS[number]['value']
 
 function resolveTab(pathname: string): TabValue {
+  if (pathname.startsWith('/reports/dashboard')) return 'dashboard'
   if (pathname.startsWith('/reports/sales')) return 'sales'
   if (pathname.startsWith('/reports/purchases')) return 'purchases'
   if (pathname.startsWith('/reports/fda')) return 'fda'
@@ -29,6 +34,7 @@ export interface ReportsSummaryCard {
   value: string
   sub?: string
   subClassName?: string
+  sparkline?: number[]
   icon: React.ComponentType<{ className?: string }>
   tint: MetricTint
 }
@@ -50,23 +56,31 @@ export default function ReportsLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const current = resolveTab(location.pathname)
-  const [summary, setSummary] = useState<ReportsSummaryCard[] | null>(null)
-  const [toolbar, setToolbar] = useState<React.ReactNode | null>(null)
+  const [summaryState, setSummaryState] = useState<{ tab: TabValue; cards: ReportsSummaryCard[] } | null>(null)
+  const [toolbarState, setToolbarState] = useState<{ tab: TabValue; node: React.ReactNode } | null>(null)
   // Mirror of Manage: overflow-hidden during height transition only, so any
   // future ring/glow on a child card isn't clipped post-animation.
   const [animatingSummary, setAnimatingSummary] = useState(true)
 
-  // Drop summary + toolbar the instant the tab changes so the new tab never
-  // paints with the previous tab's cards/controls. During-render reset (vs
-  // useEffect) avoids the one-frame flash of stale data after route change.
-  const [prevTab, setPrevTab] = useState(current)
-  if (prevTab !== current) {
-    setPrevTab(current)
-    setSummary(null)
-    setToolbar(null)
-  }
+  const setSummary = useCallback((cards: ReportsSummaryCard[] | null) => {
+    const ownerTab = current
+    setSummaryState(prev => {
+      if (cards && cards.length > 0) return { tab: ownerTab, cards }
+      return prev?.tab === ownerTab ? null : prev
+    })
+  }, [current])
 
-  const ctx = useMemo<ReportsOutletContext>(() => ({ setSummary, setToolbar }), [])
+  const setToolbar = useCallback((node: React.ReactNode | null) => {
+    const ownerTab = current
+    setToolbarState(prev => {
+      if (node) return { tab: ownerTab, node }
+      return prev?.tab === ownerTab ? null : prev
+    })
+  }, [current])
+
+  const ctx = useMemo<ReportsOutletContext>(() => ({ setSummary, setToolbar }), [setSummary, setToolbar])
+  const summary = summaryState?.tab === current ? summaryState.cards : null
+  const toolbar = toolbarState?.tab === current ? toolbarState.node : null
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
@@ -93,33 +107,30 @@ export default function ReportsLayout() {
           {toolbar && <div className="ml-auto flex items-center gap-3">{toolbar}</div>}
         </div>
 
-        <AnimatePresence initial={false}>
-          {summary && summary.length > 0 && (
-            <motion.div
-              key="reports-summary"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              onAnimationStart={() => setAnimatingSummary(true)}
-              onAnimationComplete={() => setAnimatingSummary(false)}
-              className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
-            >
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.div
-                  key={location.pathname}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15, ease: 'easeOut' }}
-                  className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
-                >
-                  {summary.map((c, i) => <MetricCard key={i} {...c} />)}
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {summary && summary.length > 0 && (
+          <motion.div
+            key={`reports-summary-${current}`}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            onAnimationStart={() => setAnimatingSummary(true)}
+            onAnimationComplete={() => setAnimatingSummary(false)}
+            className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
+          >
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
+              >
+                {summary.map((c, i) => <MetricCard key={i} {...c} />)}
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        )}
       </div>
 
       <Outlet context={ctx} />

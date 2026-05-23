@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { useToast } from '@/components/ui/toast'
 import { useUserStore } from '@/stores/userStore'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
+import dayjs from 'dayjs'
 import type { ReportsOutletContext } from './index'
-import { GranularityTabs, type Granularity } from '@/components/ui/charts/granularity-tabs'
+import type { Granularity } from '@/components/ui/charts/granularity-tabs'
+import { GranularitySelect } from '@/components/ui/charts/granularity-select'
 import { TrendChart, type TrendDatum } from '@/components/ui/charts/trend-chart'
 import { CompareBarChart, type CompareDatum } from '@/components/ui/charts/compare-bar-chart'
 import {
@@ -67,16 +69,44 @@ function inclusiveDayCount(from: string, to: string): number {
 // Convention: ▲ green when curr ≥ prev, ▼ red when curr < prev. Caller can flip
 // for cost-style metrics where lower is better (we don't here — the sales/profit
 // cards are all "higher = better" and payable shows current outstanding only).
-function delta(curr: number, prev: number | undefined | null): { sub: string; cls: string } | null {
+function delta(
+  curr: number,
+  prev: number | undefined | null,
+  prevLabel?: string,
+): { sub: string; cls: string } | null {
   if (prev == null) return null
   if (prev === 0 && curr === 0) return null
   if (prev === 0) return { sub: 'ใหม่ในช่วงนี้', cls: 'text-success' }
   const pct = ((curr - prev) / Math.abs(prev)) * 100
   const up = pct >= 0
+  const suffix = prevLabel ? ` vs ${prevLabel}` : ''
   return {
-    sub: `${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}% vs ช่วงก่อน`,
+    sub: `${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%${suffix}`,
     cls: up ? 'text-success' : 'text-destructive',
   }
+}
+
+// Compact currency for headline labels — "฿37.5K" / "฿1.2M". Keeps the
+// side panel readable without an axis ruler.
+function compactCurrency(v: number): string {
+  const abs = Math.abs(v)
+  if (abs >= 1_000_000) return `฿${(v / 1_000_000).toFixed(1)}M`
+  if (abs >= 1_000) return `฿${(v / 1_000).toFixed(1)}K`
+  return `฿${v.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`
+}
+
+// Short human label for an ISO date range. Same-month → "1-23 พ.ค. 69"; same-year
+// diff-month → "30 เม.ย. - 23 พ.ค. 69"; otherwise full BE years on both ends.
+function formatRangeShort(from: string, to: string): string {
+  const f = dayjs(from)
+  const t = dayjs(to)
+  if (f.year() === t.year() && f.month() === t.month()) {
+    return `${f.date()}-${t.date()} ${f.format('MMM BB')}`
+  }
+  if (f.year() === t.year()) {
+    return `${f.format('D MMM')} - ${t.format('D MMM BB')}`
+  }
+  return `${f.format('D MMM BB')} - ${t.format('D MMM BB')}`
 }
 
 function payRow(label: string, value: number, muted = false) {
@@ -149,10 +179,15 @@ export default function ReportsFinancePage() {
     : undefined
 
   // KPI cards with PoP delta. Payable has no delta (snapshot, not date-bound).
+  // Show the actual previous date range in the delta sub so "vs X" is concrete
+  // (previous label was "ช่วงก่อน" which left users guessing what window that was).
   useEffect(() => {
-    const dSales = delta(sum.sales_net, sum.previous?.sales_net)
-    const dProfit = delta(sum.sales_profit, sum.previous?.sales_profit)
-    const dPurchase = delta(sum.purchase_total, sum.previous?.purchase_total)
+    const prevLabel = sum.previous
+      ? formatRangeShort(sum.previous.date_from, sum.previous.date_to)
+      : undefined
+    const dSales = delta(sum.sales_net, sum.previous?.sales_net, prevLabel)
+    const dProfit = delta(sum.sales_profit, sum.previous?.sales_profit, prevLabel)
+    const dPurchase = delta(sum.purchase_total, sum.previous?.purchase_total, prevLabel)
     setSummary([
       {
         label: 'ยอดขายสุทธิ',
@@ -188,6 +223,12 @@ export default function ReportsFinancePage() {
     ])
   }, [sum, margin, setSummary])
 
+  // Clear slot summary on unmount — prevents stale cards leaking into the next
+  // tab (esp. FdaReports/KhorYor9 which have no summary of their own).
+  useEffect(() => {
+    return () => setSummary(null)
+  }, [setSummary])
+
   useEffect(() => {
     setToolbar(
       <>
@@ -222,40 +263,88 @@ export default function ReportsFinancePage() {
 
   const hasTrend = trend.length > 0
   const hasCompare = sum.previous != null
+  const currentRangeLabel = formatRangeShort(dateFrom, dateTo)
+  const prevRangeLabel = sum.previous
+    ? formatRangeShort(sum.previous.date_from, sum.previous.date_to)
+    : null
+  // Short delta (no "vs ..." suffix) — the side panel mirrors the reference
+  // and only has room for "▲ 12.3%". KPI cards above still carry the full
+  // version that names the previous window.
+  const salesDeltaShort = delta(sum.sales_net, sum.previous?.sales_net)
 
   return (
     /* Page-level scroll: charts + section cards can outgrow viewport. Each
        child is shrink-0 so the column doesn't fight for height. */
     <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2 -mx-1 px-1">
-      {/* Trend chart — full width, granularity tabs in the title bar */}
-      <SectionCard
-        icon={LineChart}
-        title="แนวโน้มรายได้-กำไร"
-        tint="primary"
-        right={<GranularityTabs value={granularity} onChange={setGranularity} />}
-      >
-        {loading ? (
-          <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
-        ) : !hasTrend ? (
-          <div className="h-[300px] flex flex-col items-center justify-center text-sm text-muted-foreground">
-            <LineChart className="size-10 mb-2 opacity-30" />
-            ไม่มีข้อมูลในช่วงเวลานี้
-          </div>
-        ) : (
-          <TrendChart data={trend} granularity={granularity} height={300} showPurchases />
-        )}
-      </SectionCard>
+      {/* Charts row — trend + PoP compare side by side. Stacks to 1-col below
+          `lg` so narrow windows don't squish the trend's many time-buckets. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 shrink-0">
+        <SectionCard
+          icon={LineChart}
+          title="แนวโน้มรายได้-กำไร"
+          tint="primary"
+          right={<GranularitySelect value={granularity} onChange={setGranularity} />}
+        >
+          {loading ? (
+            <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
+          ) : !hasTrend ? (
+            <div className="h-[300px] flex flex-col items-center justify-center text-sm text-muted-foreground">
+              <LineChart className="size-10 mb-2 opacity-30" />
+              ไม่มีข้อมูลในช่วงเวลานี้
+            </div>
+          ) : (
+            /* Compact headline like the reference: one big compact number,
+               label, delta. Centered vertically against the chart. */
+            <div className="flex gap-4 items-center">
+              <div className="shrink-0 w-28">
+                <div className="text-3xl font-bold tabular-nums text-foreground leading-none">
+                  {compactCurrency(sum.sales_net)}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">ยอดขาย</div>
+                {salesDeltaShort && (
+                  <div className={cn('text-sm font-semibold mt-1', salesDeltaShort.cls)}>
+                    {salesDeltaShort.sub}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <TrendChart data={trend} granularity={granularity} height={300} />
+              </div>
+            </div>
+          )}
+        </SectionCard>
 
-      {/* PoP compare bar */}
-      <SectionCard icon={BarChart3} title="เปรียบเทียบช่วงนี้กับช่วงก่อน" tint="warm">
-        {loading ? (
-          <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
-        ) : !hasCompare ? (
-          <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">ไม่มีข้อมูลช่วงก่อนสำหรับเปรียบเทียบ</div>
-        ) : (
-          <CompareBarChart data={compareData} height={280} />
-        )}
-      </SectionCard>
+        {/* PoP compare bar — title bar shows the two windows being compared so
+            "ช่วงนี้/ช่วงก่อน" is never abstract. Legend labels echo the dates
+            too in case the user scrolls past the title. */}
+        <SectionCard
+          icon={BarChart3}
+          title="เปรียบเทียบช่วงเวลา"
+          tint="warm"
+          right={
+            prevRangeLabel ? (
+              <span className="text-sm text-muted-foreground">
+                <span className="text-foreground font-medium">{currentRangeLabel}</span>
+                <span className="mx-1.5 opacity-50">vs</span>
+                <span className="font-medium">{prevRangeLabel}</span>
+              </span>
+            ) : undefined
+          }
+        >
+          {loading ? (
+            <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
+          ) : !hasCompare || !prevRangeLabel ? (
+            <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">ไม่มีข้อมูลช่วงก่อนสำหรับเปรียบเทียบ</div>
+          ) : (
+            <CompareBarChart
+              data={compareData}
+              height={300}
+              currentLabel={`ช่วงนี้ · ${currentRangeLabel}`}
+              previousLabel={`ช่วงก่อน · ${prevRangeLabel}`}
+            />
+          )}
+        </SectionCard>
+      </div>
 
       {/* 3-col breakdown — same as before */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">

@@ -126,6 +126,12 @@ export default function ReportsSalesPage() {
     ])
   }, [sum, margin, setSummary])
 
+  // Clear slot summary on unmount — prevents stale cards leaking into the next
+  // tab (esp. FdaReports/KhorYor9 which have no summary of their own).
+  useEffect(() => {
+    return () => setSummary(null)
+  }, [setSummary])
+
   useEffect(() => {
     setToolbar(
       <DateRangePicker

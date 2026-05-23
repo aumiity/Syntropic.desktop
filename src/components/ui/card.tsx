@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { Sparkline } from "@/components/ui/charts/sparkline"
 
 function Card({
   className,
@@ -148,6 +149,8 @@ function MetricCard({
   icon: Icon,
   tint = "primary",
   size = "default",
+  sparkline,
+  sparklineColor,
   onClick,
   className,
   labelClassName,
@@ -162,6 +165,10 @@ function MetricCard({
   icon: React.ComponentType<{ className?: string }>
   tint?: MetricTint
   size?: "default" | "sm"
+  /** Optional micro-trend rendered at the bottom of the default-size card. */
+  sparkline?: number[]
+  /** CSS color value for the sparkline; defaults to the card's accent color. */
+  sparklineColor?: string
   onClick?: () => void
   className?: string
   labelClassName?: string
@@ -238,10 +245,22 @@ function MetricCard({
 
   const inner = (
     <>
-      <span className={cn("absolute top-4 right-4 grid place-items-center size-11 rounded-xl", iconBox)}>
+      <span className={cn("absolute top-4 right-4 grid place-items-center size-11 rounded-xl z-10", iconBox)}>
         <Icon className="size-7" />
       </span>
-      <div className="pr-14 min-w-0">
+      {/* Ambient sparkline at the bottom — inherits accent color via Tailwind
+          text utility on the wrapper (Sparkline uses currentColor). Lives below
+          the natural content flow so it never overlaps label/value, only the
+          empty space under `sub`. */}
+      {sparkline && sparkline.length > 0 && (
+        <div
+          className={cn("absolute inset-x-0 bottom-0 h-9 pointer-events-none", accentColor)}
+          style={sparklineColor ? { color: sparklineColor } : undefined}
+        >
+          <Sparkline data={sparkline} color="currentColor" height={36} />
+        </div>
+      )}
+      <div className="pr-14 min-w-0 relative z-10">
         <div className={cn("text-base font-bold text-foreground truncate", labelClassName)} title={label}>{label}</div>
         <div className="flex items-baseline gap-1.5 mt-1 min-w-0">
           <span className={cn("text-3xl font-bold tabular-nums leading-none truncate", valColor, valueClassName)} title={value}>{value}</span>

@@ -150,6 +150,12 @@ export default function ManageSalesPage() {
     ])
   }, [summary, statusFilter, setSlotSummary])
 
+  // Clear slot summary on unmount — prevents stale cards leaking into the next
+  // tab (esp. NegativeStock which has no summary of its own to overwrite).
+  useEffect(() => {
+    return () => setSlotSummary(null)
+  }, [setSlotSummary])
+
   return (
     <>
       {/* List card */}

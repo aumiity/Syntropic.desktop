@@ -364,7 +364,7 @@ export function registerReportHandlers() {
 
   ipcMain.handle('reports:salesPurchaseTrend', (_e, filters: {
     date_from?: string; date_to?: string;
-    granularity?: 'day' | 'week' | 'month' | 'year';
+    granularity?: 'hour' | 'day' | 'week' | 'month' | 'year';
   }) => {
     const db = getDb()
     const { date_from, date_to } = filters
@@ -373,14 +373,16 @@ export function registerReportHandlers() {
     // sorted lexicographically (zero-padded month/week). For day we keep
     // date() so the key remains a valid yyyy-mm-dd that the frontend can pass
     // to existing formatters; the other granularities return the raw key
-    // (frontend renders "พ.ค. 2569" / "สัปดาห์ 21" / "2569").
+    // (frontend renders "พ.ค. 2569" / "สัปดาห์ 21" / "2569" / "14:00").
     const keyForSales = (
+      granularity === 'hour'  ? `strftime('%Y-%m-%d %H:00', s.sold_at)` :
       granularity === 'week'  ? `strftime('%Y-W%W', s.sold_at)` :
       granularity === 'month' ? `strftime('%Y-%m', s.sold_at)` :
       granularity === 'year'  ? `strftime('%Y', s.sold_at)` :
       `date(s.sold_at)`
     )
     const keyForPurchase = (
+      granularity === 'hour'  ? `strftime('%Y-%m-%d %H:00', pr.created_at)` :
       granularity === 'week'  ? `strftime('%Y-W%W', pr.created_at)` :
       granularity === 'month' ? `strftime('%Y-%m', pr.created_at)` :
       granularity === 'year'  ? `strftime('%Y', pr.created_at)` :
@@ -450,6 +452,433 @@ export function registerReportHandlers() {
     }
     const total = rows.reduce((s, r) => s + r.amount, 0)
     return { rows, total, count: rows.length, buckets }
+  })
+
+  // ── Dashboard handlers ───────────────────────────────────────────────────
+  // Used by /reports/dashboard. Most reuse the SALE_COST_SUB / PURCHASE_NET_SUB
+  // fragments defined above so revenue/cost/profit numbers stay consistent
+  // with financeSummary and salesList. All time-bound handlers exclude
+  // s.status='voided' (sales) and pr.status='cancelled' (purchases).
+
+  // Top products within window — by qty, revenue, profit, or low_profit
+  // (lowest margin first; surfaces loss-leaders / mispriced SKUs).
+  ipcMain.handle('reports:topProducts', (_e, filters: {
+    date_from?: string; date_to?: string
+    by?: 'qty' | 'revenue' | 'profit' | 'low_profit'
+    limit?: number
+  }) => {
+    const db = getDb()
+    const { date_from, date_to } = filters
+    const by = filters.by ?? 'revenue'
+    const limit = filters.limit ?? 10
+    const conds = [`s.status != 'voided'`, `si.is_cancelled = 0`]
+    const params: any[] = []
+    if (date_from) { conds.push(`date(s.sold_at) >= ?`); params.push(date_from) }
+    if (date_to)   { conds.push(`date(s.sold_at) <= ?`); params.push(date_to) }
+    const where = `WHERE ${conds.join(' AND ')}`
+
+    // cost = Σ(lot qty × lot cost_price), matched per sale_item. Same expression
+    // as salesList's total_cost subquery but pivoted by product instead of sale.
+    const orderBy = (
+      by === 'qty'        ? `qty DESC` :
+      by === 'profit'     ? `profit DESC` :
+      by === 'low_profit' ? `profit ASC` :
+      `revenue DESC`
+    )
+
+    return db.prepare(`
+      SELECT p.id                                        AS product_id,
+             p.trade_name,
+             u.name                                      AS unit_name,
+             COALESCE(SUM(si.qty), 0)                    AS qty,
+             COALESCE(SUM(si.line_total), 0)             AS revenue,
+             COALESCE(SUM((
+               SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)
+               FROM sale_item_lots sil
+               LEFT JOIN product_lots pl ON pl.id = sil.lot_id
+               WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0
+             )), 0)                                      AS cost,
+             COALESCE(SUM(si.line_total), 0) - COALESCE(SUM((
+               SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)
+               FROM sale_item_lots sil
+               LEFT JOIN product_lots pl ON pl.id = sil.lot_id
+               WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0
+             )), 0)                                      AS profit
+      FROM sale_items si
+      JOIN sales s    ON s.id = si.sale_id
+      JOIN products p ON p.id = si.product_id
+      LEFT JOIN item_units u ON u.id = p.unit_id
+      ${where}
+      GROUP BY p.id
+      ORDER BY ${orderBy}
+      LIMIT ?
+    `).all(...params, limit)
+  })
+
+  // Top suppliers by purchase amount in window. Same PURCHASE_NET_SUB logic
+  // as financeSummary so totals reconcile.
+  ipcMain.handle('reports:topSuppliers', (_e, filters: {
+    date_from?: string; date_to?: string; limit?: number
+  }) => {
+    const db = getDb()
+    const { date_from, date_to } = filters
+    const limit = filters.limit ?? 10
+    const conds = [`pr.status != 'cancelled'`, `pr.supplier_id IS NOT NULL`]
+    const params: any[] = []
+    if (date_from) { conds.push(`date(pr.created_at) >= ?`); params.push(date_from) }
+    if (date_to)   { conds.push(`date(pr.created_at) <= ?`); params.push(date_to) }
+    const where = `WHERE ${conds.join(' AND ')}`
+
+    return db.prepare(`
+      SELECT s.id                            AS supplier_id,
+             s.name                          AS supplier_name,
+             COUNT(*)                        AS receipt_count,
+             COALESCE(SUM(${PURCHASE_NET_SUB}), 0) AS total_amount
+      FROM purchase_receipts pr
+      JOIN suppliers s ON s.id = pr.supplier_id
+      ${where}
+      GROUP BY s.id
+      ORDER BY total_amount DESC
+      LIMIT ?
+    `).all(...params, limit)
+  })
+
+  // Bills/sales by hour. Two modes:
+  //   single_day  — date_from === date_to → returns up to 24 points for that
+  //                 actual day (gaps filled with zero so the chart shows a
+  //                 continuous 0..23 axis).
+  //   aggregated  — multi-day → buckets by hour-of-day across the whole range
+  //                 (average busiest times). Same fill so 24 points always.
+  ipcMain.handle('reports:hourlyTraffic', (_e, filters: {
+    date_from?: string; date_to?: string
+  }) => {
+    const db = getDb()
+    const { date_from, date_to } = filters
+    const mode: 'single_day' | 'aggregated' =
+      (date_from && date_to && date_from === date_to) ? 'single_day' : 'aggregated'
+
+    const conds = [`s.status != 'voided'`]
+    const params: any[] = []
+    if (date_from) { conds.push(`date(s.sold_at) >= ?`); params.push(date_from) }
+    if (date_to)   { conds.push(`date(s.sold_at) <= ?`); params.push(date_to) }
+    const where = `WHERE ${conds.join(' AND ')}`
+
+    const rows = db.prepare(`
+      SELECT CAST(strftime('%H', s.sold_at) AS INTEGER) AS hour,
+             COUNT(*)                                   AS bills,
+             COALESCE(SUM(s.total_amount), 0)           AS sales
+      FROM sales s
+      ${where}
+      GROUP BY hour
+      ORDER BY hour ASC
+    `).all(...params) as Array<{ hour: number; bills: number; sales: number }>
+
+    // Fill zero-buckets so charts get a continuous 0..23 axis.
+    const map = new Map(rows.map(r => [r.hour, r]))
+    const points = Array.from({ length: 24 }, (_, h) =>
+      map.get(h) ?? { hour: h, bills: 0, sales: 0 })
+    return { mode, points }
+  })
+
+  // Cashier leaderboard within window. Cost subquery is the same as
+  // topProducts to keep profit comparable across reports.
+  ipcMain.handle('reports:cashierLeaderboard', (_e, filters: {
+    date_from?: string; date_to?: string; limit?: number
+  }) => {
+    const db = getDb()
+    const { date_from, date_to } = filters
+    const limit = filters.limit ?? 10
+    const conds = [`s.status != 'voided'`, `s.sold_by IS NOT NULL`]
+    const params: any[] = []
+    if (date_from) { conds.push(`date(s.sold_at) >= ?`); params.push(date_from) }
+    if (date_to)   { conds.push(`date(s.sold_at) <= ?`); params.push(date_to) }
+    const where = `WHERE ${conds.join(' AND ')}`
+
+    return db.prepare(`
+      SELECT u.id                                    AS user_id,
+             COALESCE(u.name, '(ไม่ทราบ)')           AS user_name,
+             COUNT(*)                                AS bill_count,
+             COALESCE(SUM(s.total_amount), 0)        AS total_amount,
+             COALESCE(SUM(s.total_amount), 0) - COALESCE(SUM(${SALE_COST_SUB}), 0) AS profit
+      FROM sales s
+      LEFT JOIN users u ON u.id = s.sold_by
+      ${where}
+      GROUP BY s.sold_by
+      ORDER BY total_amount DESC
+      LIMIT ?
+    `).all(...params, limit)
+  })
+
+  // Extra metrics for the dashboard — packed in one round-trip:
+  //   - sale_type counts (retail / wholesale / rx / return / voided)
+  //   - avg basket value + avg items per bill (non-voided non-return)
+  //   - new vs returning customers within window
+  //   - return rate / void rate / discount usage
+  //   - bundle revenue share
+  ipcMain.handle('reports:salesStats', (_e, filters: {
+    date_from?: string; date_to?: string
+  }) => {
+    const db = getDb()
+    const { date_from, date_to } = filters
+    const sCond: string[] = []
+    const sParams: any[] = []
+    if (date_from) { sCond.push(`date(s.sold_at) >= ?`); sParams.push(date_from) }
+    if (date_to)   { sCond.push(`date(s.sold_at) <= ?`); sParams.push(date_to) }
+    const sWhere = sCond.length ? `WHERE ${sCond.join(' AND ')}` : ''
+
+    const counts = db.prepare(`
+      SELECT
+        COUNT(*) AS count_all,
+        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'retail'    THEN 1 ELSE 0 END), 0) AS count_retail,
+        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'wholesale' THEN 1 ELSE 0 END), 0) AS count_wholesale,
+        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'rx'        THEN 1 ELSE 0 END), 0) AS count_rx,
+        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'return'    THEN 1 ELSE 0 END), 0) AS count_return,
+        COALESCE(SUM(CASE WHEN s.status = 'voided' THEN 1 ELSE 0 END), 0) AS count_voided,
+        COALESCE(SUM(CASE WHEN s.sale_type = 'return' THEN s.total_amount ELSE 0 END), 0) AS return_amount,
+        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.total_discount > 0 THEN 1 ELSE 0 END), 0) AS count_discounted
+      FROM sales s ${sWhere}
+    `).get(...sParams) as any
+
+    // Avg basket — limit to revenue-positive types (exclude returns + voids).
+    const basket = db.prepare(`
+      SELECT
+        COALESCE(AVG(s.total_amount), 0) AS avg_basket,
+        COALESCE(AVG(items.kinds), 0)    AS avg_item_kinds,
+        COALESCE(AVG(items.units), 0)    AS avg_units_per_bill
+      FROM sales s
+      LEFT JOIN (
+        SELECT si.sale_id,
+               COUNT(DISTINCT si.product_id) AS kinds,
+               COALESCE(SUM(si.qty), 0)      AS units
+        FROM sale_items si WHERE si.is_cancelled = 0
+        GROUP BY si.sale_id
+      ) items ON items.sale_id = s.id
+      WHERE s.status != 'voided' AND s.sale_type != 'return'
+      ${sCond.length ? 'AND ' + sCond.join(' AND ') : ''}
+    `).get(...sParams) as any
+
+    // New vs returning — "new" = customer's first ever sale falls within the window.
+    // Walk-in (C0000) is treated as a real customer (CLAUDE.md invariant), so it
+    // appears here too; the share will be heavy on a single C0000 row by design.
+    const customers = db.prepare(`
+      SELECT
+        COUNT(DISTINCT s.customer_id) AS unique_customers,
+        COALESCE(SUM(CASE
+          WHEN first_sale.first_sold_at >= COALESCE(?, '0000-01-01')
+           AND first_sale.first_sold_at <= COALESCE(?, '9999-12-31')
+          THEN 1 ELSE 0
+        END), 0) AS new_customers
+      FROM (
+        SELECT DISTINCT s.customer_id
+        FROM sales s
+        WHERE s.status != 'voided' AND s.customer_id IS NOT NULL ${sCond.length ? 'AND ' + sCond.join(' AND ') : ''}
+      ) AS s
+      LEFT JOIN (
+        SELECT customer_id, MIN(date(sold_at)) AS first_sold_at
+        FROM sales WHERE status != 'voided' AND customer_id IS NOT NULL
+        GROUP BY customer_id
+      ) first_sale ON first_sale.customer_id = s.customer_id
+    `).get(date_from ?? null, date_to ?? null, ...sParams) as any
+
+    // Bundle revenue share.
+    const bundle = db.prepare(`
+      SELECT
+        COALESCE(SUM(CASE WHEN p.is_bundle = 1 THEN si.line_total ELSE 0 END), 0) AS bundle_revenue,
+        COALESCE(SUM(si.line_total), 0) AS total_revenue
+      FROM sale_items si
+      JOIN sales    s ON s.id = si.sale_id
+      JOIN products p ON p.id = si.product_id
+      WHERE s.status != 'voided' AND si.is_cancelled = 0
+      ${sCond.length ? 'AND ' + sCond.join(' AND ') : ''}
+    `).get(...sParams) as any
+
+    const non_voided_non_return = counts.count_retail + counts.count_wholesale + counts.count_rx
+    const return_rate = non_voided_non_return > 0
+      ? counts.count_return / (non_voided_non_return + counts.count_return)
+      : 0
+    const void_rate = counts.count_all > 0 ? counts.count_voided / counts.count_all : 0
+    const discount_rate = non_voided_non_return > 0
+      ? counts.count_discounted / non_voided_non_return
+      : 0
+    const bundle_share = bundle.total_revenue > 0
+      ? bundle.bundle_revenue / bundle.total_revenue
+      : 0
+
+    return {
+      counts: {
+        all: counts.count_all,
+        retail: counts.count_retail,
+        wholesale: counts.count_wholesale,
+        rx: counts.count_rx,
+        return: counts.count_return,
+        voided: counts.count_voided,
+      },
+      return_amount: counts.return_amount,
+      avg_basket: basket.avg_basket,
+      avg_item_kinds: basket.avg_item_kinds,
+      avg_units_per_bill: basket.avg_units_per_bill,
+      unique_customers: customers.unique_customers,
+      new_customers: customers.new_customers,
+      returning_customers: Math.max(0, customers.unique_customers - customers.new_customers),
+      return_rate,
+      void_rate,
+      discount_rate,
+      bundle_revenue: bundle.bundle_revenue,
+      bundle_share,
+    }
+  })
+
+  // Products with stock on hand but no sale_items within window. Drives the
+  // "สินค้าไม่เคลื่อนไหวในช่วงนี้" panel. avg_monthly_6m is a 6-month rolling
+  // window (not affected by the date filter) so users see how badly the SKU
+  // is stalled relative to its own baseline.
+  ipcMain.handle('reports:inactiveProducts', (_e, filters: {
+    date_from?: string; date_to?: string; limit?: number
+  }) => {
+    const db = getDb()
+    const { date_from, date_to } = filters
+    const limit = filters.limit ?? 50
+    const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
+    const costExpr = `COALESCE((SELECT SUM(qty_on_hand * cost_price) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
+
+    const sCond = [`s.status != 'voided'`, `si.is_cancelled = 0`]
+    const sParams: any[] = []
+    if (date_from) { sCond.push(`date(s.sold_at) >= ?`); sParams.push(date_from) }
+    if (date_to)   { sCond.push(`date(s.sold_at) <= ?`); sParams.push(date_to) }
+    const inactiveCondition = `NOT EXISTS (
+      SELECT 1 FROM sale_items si
+      JOIN sales s ON s.id = si.sale_id
+      WHERE si.product_id = p.id AND ${sCond.join(' AND ')}
+    )`
+
+    return db.prepare(`
+      SELECT p.id                                  AS product_id,
+             p.trade_name,
+             u.name                                AS unit_name,
+             ${stockExpr}                          AS qty_on_hand,
+             ${costExpr}                           AS cost_value,
+             (SELECT MAX(s2.sold_at)
+                FROM sale_items si2
+                JOIN sales s2 ON s2.id = si2.sale_id
+                WHERE si2.product_id = p.id AND s2.status != 'voided' AND si2.is_cancelled = 0
+             )                                     AS last_sold_at,
+             (SELECT COALESCE(SUM(sil3.qty), 0) / 6.0
+                FROM sale_item_lots sil3
+                JOIN sale_items si3 ON si3.id = sil3.sale_item_id
+                JOIN sales s3 ON s3.id = si3.sale_id
+                WHERE sil3.product_id = p.id
+                  AND sil3.is_cancelled = 0
+                  AND si3.is_cancelled = 0
+                  AND s3.status != 'voided'
+                  AND date(s3.sold_at) >= date('now','-6 months')
+             )                                     AS avg_monthly_6m
+      FROM products p
+      LEFT JOIN item_units u ON u.id = p.unit_id
+      WHERE p.is_disabled = 0
+        AND p.is_bundle   = 0
+        AND ${stockExpr} > 0
+        AND ${inactiveCondition}
+      ORDER BY cost_value DESC
+      LIMIT ?
+    `).all(...sParams, limit)
+  })
+
+  // Sales velocity per product (6-month rolling base, not affected by date
+  // filter) + suggested safety_stock / reorder_point for the operator. We
+  // explicitly do NOT persist the suggestions — owner reviews and edits the
+  // value on the product page if they agree.
+  //
+  // avg_monthly_6m subtracts returns ('sale_return' movements would double the
+  // count, so we filter by sale_type and use sale_item_lots qty as the canonical
+  // base-unit consumption — non-base unit sales are already converted at POS
+  // save). bundles: consumption hits component lots, so summing by
+  // sale_item_lots.product_id naturally rolls component velocity.
+  ipcMain.handle('reports:productVelocity', (_e, filters: {
+    q?: string; limit?: number; sort_by?: 'days_cover' | 'avg_monthly'
+  }) => {
+    const db = getDb()
+    const limit = filters.limit ?? 50
+    const sort_by = filters.sort_by ?? 'days_cover'
+
+    const conds = [`p.is_disabled = 0`, `p.is_bundle = 0`]
+    const params: any[] = []
+    if (filters.q) {
+      conds.push(`(p.trade_name LIKE ? OR p.code LIKE ?)`)
+      const lq = `%${filters.q}%`
+      params.push(lq, lq)
+    }
+    const where = `WHERE ${conds.join(' AND ')}`
+
+    // Build per-product consumption (returns SUBTRACTED) over the last 6 months.
+    // months_with_data = distinct yyyy-mm in that window — informs the "ข้อมูลยังน้อย" flag.
+    const rows = db.prepare(`
+      SELECT p.id AS product_id,
+             p.trade_name,
+             p.reorder_point,
+             p.safety_stock,
+             u.name AS unit_name,
+             COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0) AS current_stock,
+             COALESCE((
+               SELECT SUM(CASE WHEN s.sale_type = 'return' THEN -sil.qty ELSE sil.qty END)
+                 FROM sale_item_lots sil
+                 JOIN sale_items si ON si.id = sil.sale_item_id
+                 JOIN sales s ON s.id = si.sale_id
+                WHERE sil.product_id = p.id
+                  AND sil.is_cancelled = 0
+                  AND si.is_cancelled = 0
+                  AND s.status != 'voided'
+                  AND date(s.sold_at) >= date('now','-6 months')
+             ), 0) AS total_6m_qty,
+             COALESCE((
+               SELECT COUNT(DISTINCT strftime('%Y-%m', s.sold_at))
+                 FROM sale_item_lots sil
+                 JOIN sale_items si ON si.id = sil.sale_item_id
+                 JOIN sales s ON s.id = si.sale_id
+                WHERE sil.product_id = p.id
+                  AND sil.is_cancelled = 0
+                  AND si.is_cancelled = 0
+                  AND s.status != 'voided'
+                  AND date(s.sold_at) >= date('now','-6 months')
+             ), 0) AS months_with_data
+      FROM products p
+      LEFT JOIN item_units u ON u.id = p.unit_id
+      ${where}
+    `).all(...params) as any[]
+
+    // Project derived values JS-side — cleaner than nested CASEs and avoids
+    // recomputing avg_daily three times in SQL.
+    const enriched = rows.map(r => {
+      const avg_monthly_6m = Math.max(0, (r.total_6m_qty ?? 0) / 6)
+      const avg_daily = avg_monthly_6m / 30
+      const days_cover = avg_daily > 0 ? r.current_stock / avg_daily : null
+      const suggested_safety_stock = Math.ceil(avg_daily * 30)
+      const suggested_reorder_point = Math.ceil(avg_daily * 14)
+      return {
+        product_id: r.product_id,
+        trade_name: r.trade_name,
+        unit_name: r.unit_name,
+        current_stock: r.current_stock,
+        reorder_point: r.reorder_point,
+        safety_stock: r.safety_stock,
+        avg_monthly_6m,
+        avg_daily,
+        days_cover,
+        months_with_data: r.months_with_data,
+        suggested_safety_stock,
+        suggested_reorder_point,
+      }
+    })
+    // Sort by days_cover ASC (urgent first) or avg_monthly DESC (high-velocity first).
+    enriched.sort((a, b) => {
+      if (sort_by === 'days_cover') {
+        const ax = a.avg_daily > 0 ? a.days_cover! : Number.POSITIVE_INFINITY
+        const bx = b.avg_daily > 0 ? b.days_cover! : Number.POSITIVE_INFINITY
+        if (ax !== bx) return ax - bx
+        return b.current_stock - a.current_stock
+      }
+      return b.avg_monthly_6m - a.avg_monthly_6m
+    })
+    return enriched.slice(0, limit)
   })
 
   // ── ขย.9 — บัญชีการซื้อยา (Drug Purchase Record per Thai Pharmacy Council) ──

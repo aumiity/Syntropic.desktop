@@ -83,6 +83,13 @@ const api = {
     salesPurchaseTrend: (filters: any) => ipcRenderer.invoke('reports:salesPurchaseTrend', filters),
     accountsPayable: () => ipcRenderer.invoke('reports:accountsPayable'),
     khorYor9: (filters: { date_from?: string; date_to?: string }) => ipcRenderer.invoke('reports:khorYor9', filters),
+    topProducts:        (filters: any) => ipcRenderer.invoke('reports:topProducts', filters),
+    topSuppliers:       (filters: any) => ipcRenderer.invoke('reports:topSuppliers', filters),
+    hourlyTraffic:      (filters: any) => ipcRenderer.invoke('reports:hourlyTraffic', filters),
+    cashierLeaderboard: (filters: any) => ipcRenderer.invoke('reports:cashierLeaderboard', filters),
+    salesStats:         (filters: any) => ipcRenderer.invoke('reports:salesStats', filters),
+    inactiveProducts:   (filters: any) => ipcRenderer.invoke('reports:inactiveProducts', filters),
+    productVelocity:    (filters: any) => ipcRenderer.invoke('reports:productVelocity', filters),
   },
   // Settings
   settings: {

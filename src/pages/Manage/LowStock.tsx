@@ -118,6 +118,12 @@ export default function ManageLowStockPage() {
     ])
   }, [rows.length, outCount, statusFilter, setSummary])
 
+  // Clear slot summary on unmount — prevents stale cards leaking into the next
+  // tab (esp. NegativeStock which has no summary of its own to overwrite).
+  useEffect(() => {
+    return () => setSummary(null)
+  }, [setSummary])
+
   const colCount = showSupplier ? 9 : 8
 
   return (

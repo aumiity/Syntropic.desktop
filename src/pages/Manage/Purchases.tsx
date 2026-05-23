@@ -167,6 +167,12 @@ export default function ManagePurchasesPage() {
     })))
   }, [histSummary, histPaymentFilter, loadHistory, setSlotSummary])
 
+  // Clear slot summary on unmount — prevents stale cards leaking into the next
+  // tab (esp. NegativeStock which has no summary of its own to overwrite).
+  useEffect(() => {
+    return () => setSlotSummary(null)
+  }, [setSlotSummary])
+
   useEffect(() => {
     loadSuppliers()
     loadHistory()

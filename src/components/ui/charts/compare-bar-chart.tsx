@@ -1,6 +1,6 @@
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, Cell,
+  Tooltip, Legend, Cell,
 } from 'recharts'
 import { formatCurrency } from '@/lib/utils'
 
@@ -8,14 +8,6 @@ export interface CompareDatum {
   name: string
   current: number
   previous: number
-}
-
-function compactNumber(v: number): string {
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`
-  if (v <= -1_000_000) return `-${(Math.abs(v) / 1_000_000).toFixed(1)}M`
-  if (v <= -1_000) return `-${(Math.abs(v) / 1_000).toFixed(0)}K`
-  return v.toLocaleString()
 }
 
 // Highlight an individual bar (e.g. negative profit) by overriding fill.
@@ -40,20 +32,16 @@ export function CompareBarChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 12, right: 16, bottom: 0, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+        {/* Grid + Y-axis labels removed to match TrendChart's clean look —
+            exact values surface in the tooltip on hover. */}
         <XAxis
           dataKey="name"
           tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-          tickLine={{ stroke: 'hsl(var(--border))' }}
-          axisLine={{ stroke: 'hsl(var(--border))' }}
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
         />
-        <YAxis
-          tickFormatter={compactNumber}
-          tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-          tickLine={{ stroke: 'hsl(var(--border))' }}
-          axisLine={{ stroke: 'hsl(var(--border))' }}
-          width={50}
-        />
+        <YAxis hide />
         <Tooltip
           contentStyle={{
             backgroundColor: 'hsl(var(--card))',

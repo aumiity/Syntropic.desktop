@@ -109,6 +109,13 @@ declare const api: {
             date_from?: string;
             date_to?: string;
         }) => Promise<any>;
+        topProducts: (filters: any) => Promise<any>;
+        topSuppliers: (filters: any) => Promise<any>;
+        hourlyTraffic: (filters: any) => Promise<any>;
+        cashierLeaderboard: (filters: any) => Promise<any>;
+        salesStats: (filters: any) => Promise<any>;
+        inactiveProducts: (filters: any) => Promise<any>;
+        productVelocity: (filters: any) => Promise<any>;
     };
     settings: {
         getShop: () => Promise<any>;

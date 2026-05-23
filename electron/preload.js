@@ -81,6 +81,13 @@ var api = {
         salesPurchaseTrend: function (filters) { return ipcRenderer.invoke('reports:salesPurchaseTrend', filters); },
         accountsPayable: function () { return ipcRenderer.invoke('reports:accountsPayable'); },
         khorYor9: function (filters) { return ipcRenderer.invoke('reports:khorYor9', filters); },
+        topProducts: function (filters) { return ipcRenderer.invoke('reports:topProducts', filters); },
+        topSuppliers: function (filters) { return ipcRenderer.invoke('reports:topSuppliers', filters); },
+        hourlyTraffic: function (filters) { return ipcRenderer.invoke('reports:hourlyTraffic', filters); },
+        cashierLeaderboard: function (filters) { return ipcRenderer.invoke('reports:cashierLeaderboard', filters); },
+        salesStats: function (filters) { return ipcRenderer.invoke('reports:salesStats', filters); },
+        inactiveProducts: function (filters) { return ipcRenderer.invoke('reports:inactiveProducts', filters); },
+        productVelocity: function (filters) { return ipcRenderer.invoke('reports:productVelocity', filters); },
     },
     // Settings
     settings: {

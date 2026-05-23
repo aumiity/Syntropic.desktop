@@ -217,10 +217,20 @@ export function registerProductHandlers() {
         conditions.push("p.reorder_point > 0");
         conditions.push("".concat(stockExpr, " <= p.reorder_point"));
         var where = "WHERE ".concat(conditions.join(' AND '));
-        var rows = (_a = db.prepare("\n      SELECT p.id as product_id, p.code, p.trade_name,\n             p.reorder_point, p.safety_stock,\n             u.name as unit_name, c.name as category_name,\n             ".concat(stockExpr, " as stock_qty,\n             (p.reorder_point - ").concat(stockExpr, ") as shortfall,\n             (SELECT s.name FROM product_lots pl\n                JOIN suppliers s ON s.id = pl.supplier_id\n                WHERE pl.product_id = p.id AND pl.supplier_id IS NOT NULL\n                ORDER BY pl.created_at DESC LIMIT 1) as last_supplier_name\n      FROM products p\n      LEFT JOIN product_categories c ON c.id = p.category_id\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      ").concat(where, "\n      ORDER BY shortfall DESC, p.trade_name ASC\n    "))).all.apply(_a, params);
+        // "ซื้อเพิ่ม" = qty to buy to reach safety_stock (fallback reorder_point
+        // when safety_stock isn't configured). Clamp to 0 — overshoot products
+        // (stock > target) shouldn't show a negative value. SQLite's MAX(a,b) is a
+        // scalar (not aggregate) when called with multiple args.
+        var buyMoreExpr = "MAX(0, CASE\n      WHEN p.safety_stock IS NOT NULL AND p.safety_stock > 0 THEN p.safety_stock - ".concat(stockExpr, "\n      ELSE p.reorder_point - ").concat(stockExpr, "\n    END)");
+        // Cheapest supplier within the last 3 months, excluding cancelled receives.
+        // Two correlated subqueries (name + cost) — SQLite caches the inner scan
+        // per row, and the outer set is already pruned to low-stock products.
+        var cheapestWhere = "pl.product_id = p.id\n        AND pl.supplier_id IS NOT NULL\n        AND pl.is_cancelled = 0\n        AND pl.created_at >= date('now','-3 months')";
+        var cheapestOrder = "ORDER BY pl.cost_price ASC, pl.created_at DESC LIMIT 1";
+        var rows = (_a = db.prepare("\n      SELECT p.id as product_id, p.code, p.trade_name,\n             p.reorder_point, p.safety_stock,\n             p.cost_price as cost_avg,\n             u.name as unit_name,\n             ".concat(stockExpr, " as stock_qty,\n             ").concat(buyMoreExpr, " as buy_more,\n             (SELECT s.name FROM product_lots pl\n                JOIN suppliers s ON s.id = pl.supplier_id\n                WHERE ").concat(cheapestWhere, "\n                ").concat(cheapestOrder, ") as cheapest_supplier_name,\n             (SELECT pl.cost_price FROM product_lots pl\n                WHERE ").concat(cheapestWhere, "\n                ").concat(cheapestOrder, ") as cheapest_supplier_cost\n      FROM products p\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      ").concat(where, "\n      ORDER BY buy_more DESC, p.trade_name ASC\n    "))).all.apply(_a, params);
         var out_count = rows.filter(function (r) { return r.stock_qty <= 0; }).length;
-        var total_shortfall = rows.reduce(function (s, r) { return s + Math.max(0, r.shortfall); }, 0);
-        return { rows: rows, count: rows.length, out_count: out_count, total_shortfall: total_shortfall };
+        var total_buy_more = rows.reduce(function (s, r) { return s + (r.buy_more || 0); }, 0);
+        return { rows: rows, count: rows.length, out_count: out_count, total_buy_more: total_buy_more };
     });
     ipcMain.handle('products:get', function (_e, id) {
         var db = getDb();

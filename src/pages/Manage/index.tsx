@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -55,23 +55,23 @@ export default function ManageLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const current = resolveTab(location.pathname)
-  const [summary, setSummary] = useState<ManageSummaryCard[] | null>(null)
+  const [summaryState, setSummaryState] = useState<{ tab: TabValue; cards: ManageSummaryCard[] } | null>(null)
   // overflow-hidden is required during height animation to clip collapsing
   // content, but it also clips the StatCard active-ring (extends 2px outside).
   // Flip overflow back to visible once the enter animation settles.
   const [animatingSummary, setAnimatingSummary] = useState(true)
   const negativeStockCount = useNegativeStockBadge(s => s.count)
 
-  // Drop summary the instant the tab changes so the new tab never paints with
-  // the previous tab's cards. During-render reset (vs useEffect) avoids the
-  // one-frame flash of stale data after route change.
-  const [prevTab, setPrevTab] = useState(current)
-  if (prevTab !== current) {
-    setPrevTab(current)
-    setSummary(null)
-  }
+  const setSummary = useCallback((cards: ManageSummaryCard[] | null) => {
+    const ownerTab = current
+    setSummaryState(prev => {
+      if (cards && cards.length > 0) return { tab: ownerTab, cards }
+      return prev?.tab === ownerTab ? null : prev
+    })
+  }, [current])
 
-  const ctx = useMemo<ManageOutletContext>(() => ({ setSummary }), [])
+  const ctx = useMemo<ManageOutletContext>(() => ({ setSummary }), [setSummary])
+  const summary = summaryState?.tab === current ? summaryState.cards : null
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
@@ -106,38 +106,32 @@ export default function ManageLayout() {
         </TabsList>
       </Tabs>
 
-      <AnimatePresence initial={false}>
-        {summary && summary.length > 0 && (
-          <motion.div
-            key="manage-summary"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            onAnimationStart={() => setAnimatingSummary(true)}
-            onAnimationComplete={() => setAnimatingSummary(false)}
-            className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
-          >
-            {/* Inner AnimatePresence crossfades the card grid per tab.
-                popLayout removes the exiting grid from flow so the new one
-                takes the slot immediately — keeps Outlet stable below. */}
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.div
-                key={location.pathname}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
-                className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
-              >
-                {summary.map((c, i) => (
-                  <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
-                ))}
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {summary && summary.length > 0 && (
+        <motion.div
+          key={`manage-summary-${current}`}
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          onAnimationStart={() => setAnimatingSummary(true)}
+          onAnimationComplete={() => setAnimatingSummary(false)}
+          className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
+            >
+              {summary.map((c, i) => (
+                <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      )}
 
       <Outlet context={ctx} />
     </div>
