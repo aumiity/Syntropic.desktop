@@ -1,0 +1,85 @@
+# Table-Card Layout
+
+## Tables (`table.tsx`)
+
+- **Sticky headers:** the `<Table>` wrapper renders `<div data-slot="table-container" className="… overflow-x-auto">`, which auto-promotes to a vertical scroll container too — meaning `sticky` on `<thead>` pins to *that* div, not the page-level scroll wrapper, so the header rides up with the rows. Fix: (a) on the parent, target the inner div via `[&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto` so it becomes the actual scroll element; (b) put `sticky top-0 z-10 bg-muted` on each `<th>` (NOT on `<thead>` — many renderers ignore sticky there). For a hairline that scrolls with the sticky cell, add `shadow-[0_1px_0_var(--border)]` per `<th>` (a plain `border-b` doesn't move with sticky and leaves a gap).
+
+## Standard table-card layout (Products list, EditProduct tabs, etc.)
+
+- Outer wrapper: `bg-card rounded-card shadow-card overflow-hidden` (`rounded-card` = the `--radius-card` token; never hardcode `rounded-2xl`/`rounded-xl` on cards)
+
+### Background zones (HARD — don't mix up)
+
+The card has four horizontal bands and the bg color is what tells them apart:
+
+1. **Section header bar** (description/count + Add button row): `bg-card` — **white, NO border**. This is the "title strip" sitting above the column headers. It flows into the muted column-header row below — the muted band itself is the visual separator, so don't add `border-b`.
+2. **Column header row** (`<thead>` with col names): `bg-muted text-foreground-subtle` — the **only** muted band. Sticky.
+3. **Body rows** (`<tbody>`): `bg-card` (default) — **white**.
+4. **Status / total bar** at the bottom of the card: `h-12 px-5 bg-card border-t border-border flex items-center justify-between` — **white WITH a top separator line**. Use this for "+ เพิ่มแถว / count / total" footers and pagination footers. NOT `bg-muted`. The `border-t border-border` is what visually divides it from the body — without it the strip disappears into the rows. This is the ONLY band that gets a border. **Bar = `h-12`; any button inside = `h-9` (Button `size="lg"`)** — same rule as the top header bar.
+
+Rule of thumb: only the column-header band is muted. The bottom status bar gets a top border. Top/title bar gets NO border (the muted column-header below it does the separation work).
+
+### Inner header bar (top strip)
+
+`h-12 px-5 text-sm font-semibold text-muted-foreground flex items-center justify-between` — left = description/count, right = Add button. **The bar is `h-12`; any button inside is `h-9`** — use `<Button size="lg" className="px-2">` (lg = h-9 with proper text-sm). Do NOT hand-size with `h-9` className overrides on `size="sm"` (that gave us h-9 with small text).
+
+### Filter strip / topbar (HARD): `h-14 px-2`, every control inside = `h-10`
+
+This is the strip with search + filters (Sales/Purchases/Products/People/etc.) — **not** the h-12 inner header bar above. Every control in this strip is `h-10`:
+
+- Input (`className="h-10 pl-9 rounded-lg text-sm bg-input"`)
+- Select/SelectTrigger (`h-10`)
+- Combobox (default `h-10` — no override)
+- DateInput / DateRangePicker (default `h-10` — **do not pass `h-9`**, it desyncs the calendar button)
+- Toggle `framed="input"` (primitive baked-in `h-10`)
+- Button (`size="lg" className="h-10 px-2 shrink-0"` — `lg` is `h-9` so the `h-10` override is required until a new size lands)
+
+The `h-10` matches the baked defaults of DateInput / DateRangePicker / Combobox — so most controls need no height class at all; only Input / SelectTrigger / Button still need it. **Don't mix `h-9` controls into a `h-14` strip** — that was the legacy pattern and breaks visual alignment with DateRangePicker. Pagination/footer at the bottom of the card stays `h-12` with `h-9` controls (separate rule above).
+
+### Table area
+
+`[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card` (the side borders match the card bg = 8px inset effect without padding)
+
+### Column widths use `min-w-` NEVER `w-`/`table-fixed` (HARD) — for *display / list* tables
+
+Every `<TableHead>` carries a `min-w-XX` (or `min-w-[NNNpx]`) and the `<Table>` has **no** `table-fixed`. This keeps columns elastic — they stretch to fill a wide screen and shrink on a narrow one, but never collapse below the minimum. `w-XX` + `table-fixed` pins columns to a hard pixel width and wastes space / clips on resize — do not use it. Canonical example: `Products/index.tsx` (`min-w-14`, `min-w-[280px]`, `min-w-28`, …). Applies to **every list/report/history table** in the app.
+
+### EXCEPTION — spreadsheet-style data-entry grids use `table-fixed` + `w-[%]` (by design)
+
+A grid whose cells are editable `<Input>`/`<DateInput>`/`<Button>` with keyboard cell navigation (Excel-like) is NOT a display table — elastic columns are the wrong UX there (numeric/date columns yank wide, slack lands on the wrong column, and `max-w-` on a `<th>/<td>` is silently ignored by every browser in both `table-auto` and `table-fixed`). For these grids: `<Table className="table-fixed …">` + each `<TableHead className="w-[N%]">` (percentages, not px → still fully responsive, scales with the window; the flexible column just gets the largest %). Clamp the *visible control* with `min-w-/max-w-` on the inner `<Input>` (works — it's not a table cell), e.g. `w-full min-w-16 max-w-20 mx-auto`. Canonical: the receive-items grid in `Purchase/index.tsx`. Do NOT "fix" these to elastic `min-w-` — that fight has been had; this is deliberate.
+
+### Header sticky
+
+`[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted [&_th]:text-foreground-subtle`
+
+### Row hover
+
+`hover:bg-primary-soft/60 transition-colors`
+
+### Action buttons in rows = the square icon-button style (HARD)
+
+Use `<Button size="icon-lg" variant="...">` with a single lucide icon and **no width override** — a square, NOT a wide `w-16` rectangle and NOT `size="sm" variant="ghost"`. One button → on its own; multiple in a cell → `flex gap-1.5 justify-center`. Always give an action-only icon button a `title` for the tooltip/aria. Differentiate by role-tint:
+
+- **แก้ไข (edit)** → `outline`
+- **info / ดูรายละเอียด icon** (e.g. `Info`) → `warm`
+- **external-link / open-in icon** (e.g. `ExternalLink`) → `primary-soft`
+- delete → `destructive`, toggle-on/disable → `destructive2`, toggle-off/enable → `info-soft`, confirm → `success`
+
+Canonical: the "ดูรายการ" button in `Manage/Sales.tsx`. (Legacy `w-16` rectangles in `Products/index.tsx`, `EditProduct/LotsTab.tsx`, `EditProduct/HistoryTab.tsx` predate this rule — migrate to square when you touch them.)
+
+### Empty state
+
+lucide icon (`size-10 opacity-30`) + Thai message, `py-16` padding inside a `<TableCell colSpan={N}>`
+
+## Scrollbar gutter trick
+
+`[scrollbar-gutter:stable]` for tab/page scroll shifts: if you have a horizontally centered element (like a `w-fit` segmented Tabs) inside a vertically-scrollable container, switching content between short and tall tabs makes the scrollbar appear/disappear and shifts the centered element by ~12-15px. Apply `[scrollbar-gutter:stable]` (Tailwind arbitrary value) to the scroll container — reserves the gutter even when no scrollbar is needed.
+
+## Sortable table (`src/components/ui/sortable.tsx`)
+
+Drag-to-reorder for table-card lists, built on `framer-motion` `Reorder` (already a dependency — do not add a DnD lib). `<SortableTableBody values onReorder>` renders the `<tbody>`; `<SortableRow value className>` (optional `onDragEnd`) renders one `<tr>` whose **first cell is a grip handle** (`dragListener={false}` + `useDragControls` — only the handle starts a drag, so a stray row click never reorders). Caller owns the list state (`values`/`onReorder`).
+
+- **Gate reordering behind an explicit mode toggle (HARD).** Never leave a list permanently draggable. Header strip gets a `จัดลำดับ` button (`variant="info-soft"`, disabled when `< 2` rows); while on, swap the normal `<TableBody>` for `<SortableTableBody>` and the row's action column for the grip column. Canonical: `Settings/CategoriesTab.tsx`.
+- **Drafts are local; commit/cancel is explicit (HARD).** Do NOT persist on each drop (`onDragEnd`) — that strands the user with no undo. On entering reorder mode, snapshot the current order into state. Drags only mutate local `rows`. Reorder mode shows two buttons: `ยกเลิก` (`variant="destructive2"`) restores the snapshot and exits with no IPC; `เสร็จสิ้น` (`variant="success"`) persists then reloads. Because the save fires from a button (not inside a drag), it reads fresh `rows` directly — no stale-closure ref needed.
+- **Backend renumbers, never the client.** Persist via an IPC that takes the ordered id array and rewrites `sort_order = 1..n` in **one transaction** (`settings:reorderCategories`). The list query stays `ORDER BY sort_order, id` (no UNIQUE on `sort_order` — ties just break by `id`, which is why a manual integer field was a bad UX and got replaced by drag).
+- Reorder only works where the table has a `sort_order` column. `product_categories` has one; `drug_types` does **not** (ordered by `id`) — adding it there needs a schema migration first.
