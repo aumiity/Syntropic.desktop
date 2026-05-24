@@ -477,6 +477,8 @@ export default function EditProductPage() {
                 categories={categories}
                 drugTypes={drugTypes}
                 itemUnits={itemUnits}
+                productId={productId}
+                isNew={isNew}
               />
             )}
 

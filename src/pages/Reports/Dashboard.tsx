@@ -6,7 +6,9 @@ import {
 import dayjs from 'dayjs'
 import { useToast } from '@/components/ui/toast'
 import { useUserStore } from '@/stores/userStore'
-import { DateRangePicker } from '@/components/ui/date-range-picker'
+import {
+  PeriodPicker, defaultPeriodFor, allowedModesFor, type PeriodMode,
+} from '@/components/ui/period-picker'
 import { SectionCard, MetricCard, type MetricTint } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -152,10 +154,6 @@ function formatPercent(v: number): string {
   return `${(v * 100).toFixed(1)}%`
 }
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function ReportsDashboardPage() {
   const navigate = useNavigate()
@@ -163,9 +161,15 @@ export default function ReportsDashboardPage() {
   const { setSummary, setToolbar } = useOutletContext<ReportsOutletContext>()
   const isOwner = useUserStore(s => s.current?.role === 'admin')
 
-  const [dateFrom, setDateFrom] = useState(todayIso())
-  const [dateTo, setDateTo] = useState(todayIso())
-  const [granularity, setGranularity] = useState<Granularity>('hour')
+  const initial = defaultPeriodFor(isOwner)
+  const [mode, setMode] = useState<PeriodMode>(initial.mode)
+  const [dateFrom, setDateFrom] = useState(initial.from)
+  const [dateTo, setDateTo] = useState(initial.to)
+  // Match the initial range — owner's "this month" auto-picks 'day';
+  // non-owner's "today" auto-picks 'hour'. Avoids a flash of wrong granularity.
+  const [granularity, setGranularity] = useState<Granularity>(
+    autoGranularity(inclusiveDayCount(initial.from, initial.to)),
+  )
 
   const [fin, setFin] = useState<FinanceSummary>(EMPTY_FIN)
   const [trend, setTrend] = useState<TrendDatum[]>([])
@@ -240,16 +244,17 @@ export default function ReportsDashboardPage() {
     }
   }, [dateFrom, dateTo, granularity, toast])
 
-  const handleRangeChange = useCallback((f: string, t: string) => {
-    if (!isOwner && f && t && inclusiveDayCount(f, t) > FREE_RANGE_DAYS) {
+  const handlePeriodChange = useCallback((m: PeriodMode, f: string, t: string) => {
+    if (m === 'custom' && !isOwner && f && t && inclusiveDayCount(f, t) > FREE_RANGE_DAYS) {
       const clampedFrom = new Date(t)
       clampedFrom.setDate(clampedFrom.getDate() - (FREE_RANGE_DAYS - 1))
+      setMode('custom')
       setDateFrom(clampedFrom.toISOString().slice(0, 10))
       setDateTo(t)
-      toast(`ดูข้อมูลย้อนหลังได้สูงสุด ${FREE_RANGE_DAYS} วัน — ช่วงที่กว้างกว่านี้ต้องใช้สิทธิ์เจ้าของร้าน`, 'error')
+      toast(`ดูข้อมูลย้อนหลังได้สูงสุด ${FREE_RANGE_DAYS} วัน — ช่วงที่กว้างกว่านี้ต้องใช้สิทธิ์เจ้าของร้าน`, 'warning')
       return
     }
-    setDateFrom(f); setDateTo(t)
+    setMode(m); setDateFrom(f); setDateTo(t)
   }, [isOwner, toast])
 
   // Debounce reload so dragging the date range doesn't fire IPC per keystroke.
@@ -322,19 +327,20 @@ export default function ReportsDashboardPage() {
 
   useEffect(() => () => setSummary(null), [setSummary])
 
-  // Toolbar — DateRangePicker only (granularity tabs live per-chart).
+  // Toolbar — PeriodPicker only (per-chart granularity tabs live in their cards).
   useEffect(() => {
     setToolbar(
-      <DateRangePicker
+      <PeriodPicker
+        mode={mode}
         from={dateFrom}
         to={dateTo}
-        onChange={handleRangeChange}
+        onChange={handlePeriodChange}
+        allowedModes={allowedModesFor(isOwner)}
         align="end"
-        className="h-10 w-72 bg-card shadow-card hover:bg-card"
       />,
     )
     return () => setToolbar(null)
-  }, [dateFrom, dateTo, handleRangeChange, setToolbar])
+  }, [mode, dateFrom, dateTo, handlePeriodChange, isOwner, setToolbar])
 
   // ── Render helpers ─────────────────────────────────────────────────────
   const hasTrend = trend.length > 0

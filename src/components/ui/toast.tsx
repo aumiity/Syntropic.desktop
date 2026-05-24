@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { X, CheckCircle, AlertCircle, Info } from 'lucide-react'
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react'
 
-type ToastType = 'success' | 'error' | 'info'
+type ToastType = 'success' | 'error' | 'warning' | 'info'
 
 interface Toast {
   id: string
@@ -32,6 +32,7 @@ const ToastContext = createContext<ToastContextValue>({ toast: () => {} })
 
 function variantToType(v: ToastVariant | undefined): ToastType {
   if (v === 'destructive' || v === 'error') return 'error'
+  if (v === 'warning') return 'warning'
   if (v === 'success') return 'success'
   return 'info'
 }
@@ -66,11 +67,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               'pointer-events-auto flex items-start gap-3 rounded-lg border px-4 py-3 shadow-lg text-sm min-w-[280px] max-w-sm animate-in slide-in-from-right',
               t.type === 'success' && 'bg-success-soft border-success/30 text-success',
               t.type === 'error' && 'bg-destructive-soft border-destructive/30 text-destructive',
+              t.type === 'warning' && 'bg-warning-soft border-warning/40 text-warning-strong',
               t.type === 'info' && 'bg-primary-soft border-primary-soft-border text-primary',
             )}
           >
             {t.type === 'success' && <CheckCircle className="h-4 w-4 shrink-0 mt-0.5" />}
             {t.type === 'error' && <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />}
+            {t.type === 'warning' && <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />}
             {t.type === 'info' && <Info className="h-4 w-4 shrink-0 mt-0.5" />}
             <div className="flex-1 min-w-0">
               <div className="font-medium">{t.title}</div>

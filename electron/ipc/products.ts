@@ -872,6 +872,40 @@ export function registerProductHandlers() {
     return getDb().prepare(`SELECT * FROM drug_generic_names WHERE name LIKE ? AND is_disabled=0 LIMIT 10`).all(`%${q}%`)
   })
 
+  // Monthly sold-qty for a product: current month + last 6 completed months + avg.
+  // Drives the safety-stock guide in EditProduct → General tab. Excludes voided
+  // sales and cancelled line items. qty is summed raw (whichever unit it was
+  // sold in) — pharmacy sells most products in the base unit so this is a
+  // useful rough guide; pack-unit sales will inflate counts proportionally,
+  // which the operator can read past.
+  ipcMain.handle('products:monthlySales', (_e, productId: number) => {
+    const db = getDb()
+    const rows = db.prepare(`
+      SELECT strftime('%Y-%m', s.sold_at) AS ym, COALESCE(SUM(si.qty), 0) AS qty
+      FROM sale_items si
+      JOIN sales s ON s.id = si.sale_id
+      WHERE si.product_id = ?
+        AND si.is_cancelled = 0
+        AND s.status = 'completed'
+        AND date(s.sold_at) >= date('now','localtime','start of month','-6 months')
+      GROUP BY ym
+    `).all(productId) as Array<{ ym: string; qty: number }>
+
+    const qtyByYm = new Map(rows.map(r => [r.ym, Number(r.qty) || 0]))
+    const now = new Date()
+    const months: string[] = []
+    for (let i = 0; i <= 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      months.push(ym)
+    }
+    const current_month = { ym: months[0], qty: qtyByYm.get(months[0]) ?? 0 }
+    const history = months.slice(1).map(ym => ({ ym, qty: qtyByYm.get(ym) ?? 0 }))
+    const total6 = history.reduce((s, h) => s + h.qty, 0)
+    const avg_per_month = total6 / 6
+    return { current_month, history, avg_per_month }
+  })
+
   // Lots for a product. Bundles have no lots — return empty rather than throw
   // (less surprising for callers that defensively call this on any product id).
   ipcMain.handle('products:getLots', (_e, productId: number) => {

@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { SectionCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { DateRangePicker } from '@/components/ui/date-range-picker'
+import {
+  PeriodPicker, defaultPeriodFor, allowedModesFor, type PeriodMode,
+} from '@/components/ui/period-picker'
 import { useToast } from '@/components/ui/toast'
 import { useUserStore } from '@/stores/userStore'
 import { formatCurrency, cn } from '@/lib/utils'
@@ -53,12 +55,6 @@ const EMPTY: FinanceSummary = {
 }
 
 const FREE_RANGE_DAYS = 7
-
-function daysAgoIso(n: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() - n)
-  return d.toISOString().slice(0, 10)
-}
 
 function inclusiveDayCount(from: string, to: string): number {
   const ms = new Date(to).getTime() - new Date(from).getTime()
@@ -131,9 +127,10 @@ export default function ReportsFinancePage() {
     devSetCurrent({ ...base, role: base.role === 'admin' ? 'staff' : 'admin' })
   }
 
-  const today = new Date().toISOString().slice(0, 10)
-  const [dateFrom, setDateFrom] = useState(daysAgoIso(FREE_RANGE_DAYS - 1))
-  const [dateTo, setDateTo] = useState(today)
+  const initial = defaultPeriodFor(isOwner)
+  const [mode, setMode] = useState<PeriodMode>(initial.mode)
+  const [dateFrom, setDateFrom] = useState(initial.from)
+  const [dateTo, setDateTo] = useState(initial.to)
   const [granularity, setGranularity] = useState<Granularity>('day')
 
   const [sum, setSum] = useState<FinanceSummary>(EMPTY)
@@ -156,15 +153,17 @@ export default function ReportsFinancePage() {
     }
   }, [dateFrom, dateTo, granularity])
 
-  const handleRangeChange = useCallback((f: string, t: string) => {
-    if (!isOwner && f && t && inclusiveDayCount(f, t) > FREE_RANGE_DAYS) {
+  const handlePeriodChange = useCallback((m: PeriodMode, f: string, t: string) => {
+    if (m === 'custom' && !isOwner && f && t && inclusiveDayCount(f, t) > FREE_RANGE_DAYS) {
       const clampedFrom = new Date(t)
       clampedFrom.setDate(clampedFrom.getDate() - (FREE_RANGE_DAYS - 1))
+      setMode('custom')
       setDateFrom(clampedFrom.toISOString().slice(0, 10))
       setDateTo(t)
-      toast(`ดูข้อมูลย้อนหลังได้สูงสุด ${FREE_RANGE_DAYS} วัน — ช่วงที่กว้างกว่านี้ต้องใช้สิทธิ์เจ้าของร้าน`, 'error')
+      toast(`ดูข้อมูลย้อนหลังได้สูงสุด ${FREE_RANGE_DAYS} วัน — ช่วงที่กว้างกว่านี้ต้องใช้สิทธิ์เจ้าของร้าน`, 'warning')
       return
     }
+    setMode(m)
     setDateFrom(f)
     setDateTo(t)
   }, [isOwner, toast])
@@ -241,17 +240,18 @@ export default function ReportsFinancePage() {
         >
           DEV: สลับเป็น {isOwner ? 'staff (พนักงาน)' : 'admin (เจ้าของร้าน)'}
         </Button>
-        <DateRangePicker
+        <PeriodPicker
+          mode={mode}
           from={dateFrom}
           to={dateTo}
-          onChange={handleRangeChange}
+          onChange={handlePeriodChange}
+          allowedModes={allowedModesFor(isOwner)}
           align="end"
-          className="h-10 w-72 bg-card shadow-card hover:bg-card"
         />
       </>,
     )
     return () => setToolbar(null)
-  }, [dateFrom, dateTo, isOwner, handleRangeChange, devToggleRole, setToolbar])
+  }, [mode, dateFrom, dateTo, isOwner, handlePeriodChange, devToggleRole, setToolbar])
 
   // PoP bars: 4 categories side-by-side current vs previous.
   const compareData: CompareDatum[] = [

@@ -4,7 +4,9 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
-import { DateRangePicker } from '@/components/ui/date-range-picker'
+import {
+  PeriodPicker, defaultPeriodFor, allowedModesFor, type PeriodMode,
+} from '@/components/ui/period-picker'
 import { useToast } from '@/components/ui/toast'
 import { useUserStore } from '@/stores/userStore'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -40,12 +42,6 @@ const EMPTY: SalesSummary = {
 
 const FREE_RANGE_DAYS = 7
 
-function daysAgoIso(n: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() - n)
-  return d.toISOString().slice(0, 10)
-}
-
 function inclusiveDayCount(from: string, to: string): number {
   const ms = new Date(to).getTime() - new Date(from).getTime()
   return Math.round(ms / 86_400_000) + 1
@@ -65,9 +61,10 @@ export default function ReportsSalesPage() {
   const { setSummary, setToolbar } = useOutletContext<ReportsOutletContext>()
   const isOwner = useUserStore(s => s.current?.role === 'admin')
 
-  const today = new Date().toISOString().slice(0, 10)
-  const [dateFrom, setDateFrom] = useState(daysAgoIso(FREE_RANGE_DAYS - 1))
-  const [dateTo, setDateTo] = useState(today)
+  const initial = defaultPeriodFor(isOwner)
+  const [mode, setMode] = useState<PeriodMode>(initial.mode)
+  const [dateFrom, setDateFrom] = useState(initial.from)
+  const [dateTo, setDateTo] = useState(initial.to)
 
   const [sum, setSum] = useState<SalesSummary>(EMPTY)
   const [trend, setTrend] = useState<TrendRow[]>([])
@@ -89,15 +86,21 @@ export default function ReportsSalesPage() {
     }
   }, [dateFrom, dateTo])
 
-  const handleRangeChange = useCallback((f: string, t: string) => {
-    if (!isOwner && f && t && inclusiveDayCount(f, t) > FREE_RANGE_DAYS) {
+  // Owner: all modes free; non-owner: only day/custom exposed, and the
+  // custom range is clamped to FREE_RANGE_DAYS. Mode change always
+  // commits a fresh range from PeriodPicker so we don't need a separate
+  // guard for day/month/year mode switches.
+  const handlePeriodChange = useCallback((m: PeriodMode, f: string, t: string) => {
+    if (m === 'custom' && !isOwner && f && t && inclusiveDayCount(f, t) > FREE_RANGE_DAYS) {
       const clampedFrom = new Date(t)
       clampedFrom.setDate(clampedFrom.getDate() - (FREE_RANGE_DAYS - 1))
+      setMode('custom')
       setDateFrom(clampedFrom.toISOString().slice(0, 10))
       setDateTo(t)
-      toast(`ดูข้อมูลย้อนหลังได้สูงสุด ${FREE_RANGE_DAYS} วัน — ช่วงที่กว้างกว่านี้ต้องใช้สิทธิ์เจ้าของร้าน`, 'error')
+      toast(`ดูข้อมูลย้อนหลังได้สูงสุด ${FREE_RANGE_DAYS} วัน — ช่วงที่กว้างกว่านี้ต้องใช้สิทธิ์เจ้าของร้าน`, 'warning')
       return
     }
+    setMode(m)
     setDateFrom(f)
     setDateTo(t)
   }, [isOwner, toast])
@@ -134,16 +137,17 @@ export default function ReportsSalesPage() {
 
   useEffect(() => {
     setToolbar(
-      <DateRangePicker
+      <PeriodPicker
+        mode={mode}
         from={dateFrom}
         to={dateTo}
-        onChange={handleRangeChange}
+        onChange={handlePeriodChange}
+        allowedModes={allowedModesFor(isOwner)}
         align="end"
-        className="h-10 w-72 bg-card shadow-card hover:bg-card"
       />,
     )
     return () => setToolbar(null)
-  }, [dateFrom, dateTo, handleRangeChange, setToolbar])
+  }, [mode, dateFrom, dateTo, handlePeriodChange, isOwner, setToolbar])
 
   return (
     /* Page scroll lives on ReportsLayout. Cards row + daily-trend table flow

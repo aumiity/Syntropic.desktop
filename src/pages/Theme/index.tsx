@@ -39,6 +39,7 @@ import {
 import { Pagination } from '@/components/ui/pagination'
 import { DateInput } from '@/components/ui/date-input'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { PeriodPicker, type PeriodMode } from '@/components/ui/period-picker'
 import { Calendar } from '@/components/ui/calendar'
 import {
   Search, Plus, Edit, Trash2, Info, ExternalLink,
@@ -129,6 +130,16 @@ export default function Theme() {
   const [dateVal, setDateVal] = useState('')
   const [rangeFrom, setRangeFrom] = useState('')
   const [rangeTo, setRangeTo] = useState('')
+  // PeriodPicker showcase state — default to this-month (owner-style)
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
+  const [periodFrom, setPeriodFrom] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)
+  })
+  const [periodTo, setPeriodTo] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10)
+  })
   const [page, setPage] = useState(3)
   const [pageSize, setPageSize] = useState<import('@/components/ui/pagination').PageSize>(50)
   const [tableQ, setTableQ] = useState('')
@@ -1332,6 +1343,12 @@ export default function Theme() {
                     <AlertTriangle /> Error
                   </Button>
                   <Button
+                    variant="warm"
+                    onClick={() => toast('ดูข้อมูลย้อนหลังได้สูงสุด 7 วัน', 'warning')}
+                  >
+                    <AlertTriangle /> Warning
+                  </Button>
+                  <Button
                     variant="outline"
                     onClick={() => toast('กำลังประมวลผล รอสักครู่...', 'info')}
                   >
@@ -1385,7 +1402,43 @@ export default function Theme() {
                   </div>
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
-                  มี preset วันนี้ / เมื่อวาน / 7 วัน / 30 วัน / เดือนนี้ / เดือนที่แล้ว / ปีนี้ / ทั้งหมด
+                  มี preset วันนี้ / เมื่อวาน / 7 วัน / 30 วัน / เดือนนี้ / เดือนที่แล้ว / ปีนี้ / ทั้งหมด.
+                  ใช้ในหน้า <strong>filter / list ทั่วไป</strong> (Manage/Sales, Manage/Purchases, Expiry).
+                </p>
+              </Section>
+
+              {/* ── PERIOD PICKER ── */}
+              <Section title="PeriodPicker" path="src/components/ui/period-picker.tsx" full>
+                <DemoRow label="Granularity-first (วัน/เดือน/ปี/กำหนดเอง) + Prev/Next stepper">
+                  <div className="w-full space-y-3">
+                    <PeriodPicker
+                      mode={periodMode}
+                      from={periodFrom}
+                      to={periodTo}
+                      onChange={(m, f, t) => { setPeriodMode(m); setPeriodFrom(f); setPeriodTo(t) }}
+                      align="start"
+                    />
+                    <p className="text-sm text-muted-foreground font-mono">
+                      mode: <span className="text-foreground">{periodMode}</span>{' · '}
+                      {periodFrom} → {periodTo}
+                    </p>
+                  </div>
+                </DemoRow>
+                <DemoRow label="Non-owner — only [วัน] [กำหนดเอง] exposed">
+                  <PeriodPicker
+                    mode={periodMode === 'month' || periodMode === 'year' ? 'day' : periodMode}
+                    from={periodFrom}
+                    to={periodTo}
+                    onChange={(m, f, t) => { setPeriodMode(m); setPeriodFrom(f); setPeriodTo(t) }}
+                    allowedModes={['day', 'custom']}
+                    align="start"
+                  />
+                </DemoRow>
+                <p className="text-sm text-muted-foreground">
+                  ใช้แทน <code className="font-mono bg-muted px-1 rounded">DateRangePicker</code> ในหน้า <strong>รายงาน/แดชบอร์ด</strong> ที่
+                  ผู้ใช้ต้องการเลือก "ทั้งเดือน/ทั้งปี" ทีเดียวบ่อย ๆ — pattern แบบ Hygeia.
+                  Prev/next stepper เลื่อนหน่วยเวลาทีละ 1 หน่วยตาม mode (custom = shift by range length).
+                  ใช้ <code className="font-mono bg-muted px-1 rounded">defaultPeriodFor(isOwner)</code> + <code className="font-mono bg-muted px-1 rounded">allowedModesFor(isOwner)</code> helper ใน parent.
                 </p>
               </Section>
 

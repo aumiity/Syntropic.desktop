@@ -262,8 +262,22 @@ function MetricCard({
       )}
       <div className="pr-14 min-w-0 relative z-10">
         <div className={cn("text-base font-bold text-foreground truncate", labelClassName)} title={label}>{label}</div>
-        <div className="flex items-baseline gap-1.5 mt-1 min-w-0">
-          <span className={cn("text-3xl font-bold tabular-nums leading-none truncate", valColor, valueClassName)} title={value}>{value}</span>
+        {/* Value scales with card width via container queries — `cqi` = 1% of
+            the container's inline-size. At ~200px-wide cards on a tight 6-col
+            grid the font shrinks toward the min (text-sm); at full width it
+            caps at text-3xl. Pure CSS, no ResizeObserver. */}
+        <div className="flex items-baseline gap-1.5 mt-1 min-w-0 [container-type:inline-size]">
+          <span
+            className={cn(
+              "font-bold tabular-nums leading-none truncate",
+              "text-[clamp(0.875rem,14cqi,1.875rem)]",
+              valColor,
+              valueClassName,
+            )}
+            title={value}
+          >
+            {value}
+          </span>
           {unit && <span className="text-sm font-semibold text-muted-foreground truncate" title={unit}>{unit}</span>}
         </div>
         {sub && <div className={cn("font-semibold text-sm tabular-nums leading-tight truncate", accentColor, subClassName)}>{sub}</div>}

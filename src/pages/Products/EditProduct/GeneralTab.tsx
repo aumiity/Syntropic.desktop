@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,6 +16,20 @@ import type { GenericNameSuggestion } from './shared'
 
 const Field = FormField
 
+const THAI_MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+// 'YYYY-MM' → 'พ.ค. 69' (last two digits of Buddhist-Era year)
+function formatThaiMonth(ym: string) {
+  const [y, m] = ym.split('-').map(Number)
+  const be = (y + 543) % 100
+  return `${THAI_MONTHS_SHORT[m - 1]} ${String(be).padStart(2, '0')}`
+}
+
+type MonthlySales = {
+  current_month: { ym: string; qty: number }
+  history: Array<{ ym: string; qty: number }>
+  avg_per_month: number
+}
+
 interface Props {
   form: any
   setF: (key: string, value: any) => void
@@ -27,16 +41,31 @@ interface Props {
   /** Initial query string for the generic-name autocomplete — empty for new products,
       resolved by drug_generic_name_id lookup later. */
   initialGenericQuery?: string
+  productId?: number
+  isNew?: boolean
 }
 
 export function GeneralTab({
   form, setF, setForm, errors, categories, drugTypes, itemUnits,
   initialGenericQuery = '',
+  productId,
+  isNew = false,
 }: Props) {
   const [genericQuery, setGenericQuery] = useState(initialGenericQuery)
   const [genericSuggestions, setGenericSuggestions] = useState<GenericNameSuggestion[]>([])
   const [showGenericSugg, setShowGenericSugg] = useState(false)
   const genericTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [monthlySales, setMonthlySales] = useState<MonthlySales | null>(null)
+
+  useEffect(() => {
+    if (isNew || !productId) { setMonthlySales(null); return }
+    let cancelled = false
+    ;(async () => {
+      const data = await window.api.products.monthlySales(productId) as MonthlySales
+      if (!cancelled) setMonthlySales(data)
+    })()
+    return () => { cancelled = true }
+  }, [productId, isNew])
 
   const handleGenericSearch = (q: string) => {
     setGenericQuery(q)
@@ -199,6 +228,47 @@ export function GeneralTab({
               <Input type="number" value={form.safety_stock} onChange={e => setF('safety_stock', e.target.value)} min={0} />
             </Field>
           </div>
+
+          {!isNew && (
+            <div className="space-y-3 pt-3 border-t border-border">
+              {/* Top tiles: avg/month + current month — same pattern as PriceTab's profitBox/ทุนเฉลี่ย */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">เฉลี่ย / เดือน</span>
+                  {monthlySales
+                    ? <span className="text-base font-bold text-warm-foreground tabular-nums">{monthlySales.avg_per_month.toFixed(2)}</span>
+                    : <span className="text-sm text-foreground-subtle">—</span>}
+                </div>
+                <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {monthlySales ? formatThaiMonth(monthlySales.current_month.ym) : 'เดือนปัจจุบัน'}
+                  </span>
+                  {monthlySales
+                    ? <span className="text-base font-bold text-warm-foreground tabular-nums">{monthlySales.current_month.qty.toFixed(2)}</span>
+                    : <span className="text-sm text-foreground-subtle">—</span>}
+                </div>
+              </div>
+
+              {/* 6-month history */}
+              <div className="text-sm font-semibold text-muted-foreground">
+                ยอดขายย้อนหลัง
+                <span className="font-normal mx-1.5">·</span>
+                <span className="font-normal">6 เดือน</span>
+              </div>
+              <div className="rounded-lg bg-muted/40 divide-y divide-border overflow-hidden">
+                {(monthlySales?.history ?? Array.from({ length: 6 }, (_, i) => ({ ym: `_${i}`, qty: 0 }))).map(h => (
+                  <div key={h.ym} className="flex items-center justify-between px-3 py-1.5 text-sm">
+                    <span className="text-muted-foreground">
+                      {monthlySales ? formatThaiMonth(h.ym) : '—'}
+                    </span>
+                    {monthlySales
+                      ? <span className="font-semibold text-foreground tabular-nums">{h.qty.toFixed(2)}</span>
+                      : <span className="text-foreground-subtle">—</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </SectionCard>
 
         <SectionCard

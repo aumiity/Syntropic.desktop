@@ -31,6 +31,7 @@ const api = {
     deleteLabel: (id: number) => ipcRenderer.invoke('products:deleteLabel', id),
     searchGenericNames: (q: string) => ipcRenderer.invoke('products:searchGenericNames', q),
     getLots: (productId: number) => ipcRenderer.invoke('products:getLots', productId),
+    monthlySales: (productId: number) => ipcRenderer.invoke('products:monthlySales', productId),
     getBundleItems: (bundleId: number) => ipcRenderer.invoke('products:getBundleItems', bundleId),
     saveBundleItems: (bundleId: number, items: Array<{ component_product_id: number; qty_per_bundle: number }>) =>
       ipcRenderer.invoke('products:saveBundleItems', bundleId, items),
