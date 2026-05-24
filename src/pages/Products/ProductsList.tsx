@@ -2,19 +2,20 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Toggle } from '@/components/ui/switch'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { formatCurrency } from '@/lib/utils'
 import type { Product, ProductCategory } from '@/types'
 import type { ProductsOutletContext } from './index'
 import {
-  Search, Plus, Edit, AlertTriangle, Package, PackageX, Boxes, Ban,
+  Search, Plus, Edit, AlertTriangle, Package, PackageX, Boxes, Ban, Settings2,
 } from 'lucide-react'
 
-type SortField = 'trade_name' | 'unit_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
+type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
 type SortDir = 'asc' | 'desc'
 interface SortState { by: SortField; dir: SortDir }
 
@@ -38,7 +39,10 @@ export default function ProductsList() {
   const [q, setQ] = useState('')
   const [categoryId, setCategoryId] = useState<number>(0)
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out' | 'disabled'>('all')
-  const [showDisabled, setShowDisabled] = useState(false)
+  const [showCost, setShowCost] = useState(true)
+  const [showProfit, setShowProfit] = useState(false)
+  const [showPrice, setShowPrice] = useState(true)
+  const [showStock, setShowStock] = useState(true)
   const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
 
   // Dropdown data
@@ -63,13 +67,13 @@ export default function ProductsList() {
       window.api.products.stockStats({
         q: q.trim() || undefined,
         category_id: categoryId || undefined,
-        include_disabled: showDisabled,
+        include_disabled: true,
         is_bundle: 0,
       }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0, disabled: 0 }))
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, categoryId, stockFilter, showDisabled, sort, pageSize])
+  }, [q, categoryId, stockFilter, sort, pageSize])
 
   const loadDropdowns = async () => {
     const cats = await window.api.settings.allCategories()
@@ -87,7 +91,7 @@ export default function ProductsList() {
         sort_by: sort.by,
         sort_dir: sort.dir,
         stock_filter: stockFilter,
-        include_disabled: showDisabled,
+        include_disabled: stockFilter === 'disabled',
         is_bundle: 0,
       }) as any
       setRows(res.rows)
@@ -96,7 +100,7 @@ export default function ProductsList() {
     } finally {
       setLoading(false)
     }
-  }, [q, categoryId, page, pageSize, sort, stockFilter, showDisabled])
+  }, [q, categoryId, page, pageSize, sort, stockFilter])
 
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
@@ -123,24 +127,29 @@ export default function ProductsList() {
     ])
   }, [allStats, stockFilter, setSummary])
 
-  const renderStockCell = (qty: number, reorder: number) => {
-    if (qty <= 0) {
-      return (
-        <Badge variant="destructive" className="rounded-lg gap-1.5">
-          <span className="size-1.5 rounded-full bg-white/90" />
-          หมด
-        </Badge>
-      )
-    }
-    if (reorder > 0 && qty <= reorder) {
-      return (
-        <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning-soft px-2 py-0.5 text-sm font-semibold text-warning-strong">
-          <AlertTriangle className="size-3" />
-          {qty.toLocaleString()}
-        </span>
-      )
-    }
-    return <span className="text-sm font-semibold tabular-nums text-foreground">{qty.toLocaleString()}</span>
+  // Stock cell: qty + unit + status label, with progress bar scaled by safety_stock.
+  // qty=0 → หมด (red, empty), qty≤reorder → ใกล้หมด (red), else → ปกติ (green).
+  // safety_stock unset → bar full at "ปกติ" since there's no max to scale against.
+  const renderStockCell = (qty: number, reorder: number, safety: number, unitName?: string) => {
+    const unit = unitName || 'หน่วย'
+    const isOut = qty <= 0
+    const isLow = !isOut && reorder > 0 && qty <= reorder
+    const status = isOut ? 'หมด' : isLow ? 'ใกล้หมด' : 'ปกติ'
+    const tone = isOut || isLow ? 'text-destructive' : 'text-success'
+    const barTone = isOut || isLow ? 'bg-destructive' : 'bg-success'
+    const pct = isOut ? 0 : safety > 0 ? Math.min(100, (qty / safety) * 100) : 100
+    return (
+      <div className="flex flex-col gap-1 min-w-[140px]">
+        <div className="text-sm">
+          <span className="font-semibold tabular-nums text-foreground">{qty.toLocaleString()}</span>
+          <span className="text-muted-foreground"> {unit} · </span>
+          <span className={`font-medium ${tone}`}>{status}</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -170,7 +179,34 @@ export default function ProductsList() {
             </SelectContent>
           </Select>
 
-          <Toggle className="shrink-0 text-muted-foreground" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>ตัวเลือกการแสดงผล</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showCost} onCheckedChange={v => setShowCost(v === true)} />
+                <span className="text-sm">แสดงต้นทุน</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showPrice} onCheckedChange={v => setShowPrice(v === true)} />
+                <span className="text-sm">แสดงราคาขาย</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showProfit} onCheckedChange={v => setShowProfit(v === true)} />
+                <span className="text-sm">แสดงกำไร</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showStock} onCheckedChange={v => setShowStock(v === true)} />
+                <span className="text-sm">แสดงสต็อก</span>
+              </label>
+            </PopoverContent>
+          </Popover>
 
           <Button onClick={() => navigate('/products/new')} size="lg" className="h-10 px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มสินค้า
@@ -183,22 +219,29 @@ export default function ProductsList() {
               <TableRow>
                 <TableHead className="w-8">#</TableHead>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[280px]">ชื่อสินค้า</SortableTableHead>
-                <SortableTableHead field="unit_name" align="center" sort={sort} onToggle={toggleSort} className="hidden xl:table-cell min-w-16">หน่วย</SortableTableHead>
-                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
-                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ราคาขาย</SortableTableHead>
-                <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
-                <SortableTableHead field="stock_qty" align="center" sort={sort} onToggle={toggleSort} className="min-w-20">สต็อก</SortableTableHead>
+                {showCost && (
+                  <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
+                )}
+                {showPrice && (
+                  <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ราคาขาย</SortableTableHead>
+                )}
+                {showProfit && (
+                  <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
+                )}
+                {showStock && (
+                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[160px]">สต็อก</SortableTableHead>
+                )}
                 <TableHead className="text-center min-w-16">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={3 + (showCost ? 1 : 0) + (showPrice ? 1 : 0) + (showProfit ? 1 : 0) + (showStock ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={3 + (showCost ? 1 : 0) + (showPrice ? 1 : 0) + (showProfit ? 1 : 0) + (showStock ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <Package className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบสินค้า
                   </TableCell>
@@ -208,24 +251,61 @@ export default function ProductsList() {
                 const pct = (row.cost_price ?? 0) > 0 ? (profit / row.cost_price!) * 100 : 0
                 const isDisabled = !!row.is_disabled
                 return (
-                  <TableRow key={row.id} className={isDisabled ? 'opacity-60' : ''}>
+                  <TableRow key={row.id} className={`[&_td]:py-2.5 ${isDisabled ? 'opacity-60' : ''}`}>
                     <TableCell className="text-foreground-subtle text-sm tabular-nums">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
                     <TableCell className="max-w-0">
                       <div className="font-semibold text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell text-center text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
-                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
-                    <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">{formatCurrency(row.price_retail)}</TableCell>
-                    <TableCell className="hidden md:table-cell text-right text-sm font-medium tabular-nums">
-                      <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
-                        {formatCurrency(profit)}
-                        {/* text-xs: user-approved exception to the text-sm minimum rule */}
-                        <span className="ml-1 text-xs opacity-70">({pct.toFixed(0)}%)</span>
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {renderStockCell(row.stock_qty, row.reorder_point ?? 0)}
-                    </TableCell>
+                    {showCost && (
+                      <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
+                    )}
+                    {showPrice && (
+                      <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">
+                        {showCost && showProfit ? (
+                          formatCurrency(row.price_retail)
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">
+                                {formatCurrency(row.price_retail)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="px-3 py-2">
+                              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm tabular-nums">
+                                {!showCost && (
+                                  <>
+                                    <span className="text-muted-foreground">ต้นทุน</span>
+                                    <span className="text-right font-medium">{formatCurrency(row.cost_price)}</span>
+                                  </>
+                                )}
+                                {!showProfit && (
+                                  <>
+                                    <span className="text-muted-foreground">กำไร</span>
+                                    <span className={`text-right font-medium ${profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                      {formatCurrency(profit)} ({pct.toFixed(0)}%)
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                    )}
+                    {showProfit && (
+                      <TableCell className="text-right text-sm font-medium tabular-nums">
+                        <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
+                          {formatCurrency(profit)}
+                          {/* text-xs: user-approved exception to the text-sm minimum rule */}
+                          <span className="ml-1 text-xs opacity-70">({pct.toFixed(0)}%)</span>
+                        </span>
+                      </TableCell>
+                    )}
+                    {showStock && (
+                      <TableCell>
+                        {renderStockCell(row.stock_qty, row.reorder_point ?? 0, row.safety_stock ?? 0, row.unit_name)}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex justify-center">
                         <Button

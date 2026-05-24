@@ -5,13 +5,15 @@ import { Input } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Toggle } from '@/components/ui/switch'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { formatCurrency } from '@/lib/utils'
 import type { Product } from '@/types'
 import type { ProductsOutletContext } from './index'
-import { Search, Plus, Edit, Boxes, CheckCircle2, Ban } from 'lucide-react'
+import { Search, Plus, Edit, Boxes, CheckCircle2, Ban, Settings2 } from 'lucide-react'
 
-type SortField = 'trade_name' | 'unit_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
+type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
 type SortDir = 'asc' | 'desc'
 interface SortState { by: SortField; dir: SortDir }
 
@@ -31,7 +33,8 @@ export default function BundlesList() {
   const [loading, setLoading] = useState(false)
 
   const [q, setQ] = useState('')
-  const [showDisabled, setShowDisabled] = useState(false)
+  const [showCost, setShowCost] = useState(true)
+  const [showProfit, setShowProfit] = useState(false)
   const [stockFilter, setStockFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
   const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
 
@@ -52,7 +55,7 @@ export default function BundlesList() {
         sort_by: sort.by,
         sort_dir: sort.dir,
         stock_filter: stockFilter,
-        include_disabled: showDisabled,
+        include_disabled: stockFilter === 'disabled',
         is_bundle: 1,
       }) as any
       setRows(res.rows)
@@ -61,20 +64,20 @@ export default function BundlesList() {
     } finally {
       setLoading(false)
     }
-  }, [q, page, pageSize, sort, stockFilter, showDisabled])
+  }, [q, page, pageSize, sort, stockFilter])
 
   useEffect(() => {
     const t = setTimeout(() => {
       load(1)
       window.api.products.stockStats({
         q: q.trim() || undefined,
-        include_disabled: showDisabled,
+        include_disabled: true,
         is_bundle: 1,
       }).then((s: any) => setAllStats(s ?? { total_all: 0, disabled: 0 }))
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, showDisabled, stockFilter, sort, pageSize])
+  }, [q, stockFilter, sort, pageSize])
 
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
@@ -120,7 +123,26 @@ export default function BundlesList() {
             />
           </div>
 
-          <Toggle className="shrink-0 text-muted-foreground" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>ตัวเลือกการแสดงผล</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showCost} onCheckedChange={v => setShowCost(v === true)} />
+                <span className="text-sm">แสดงต้นทุน</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showProfit} onCheckedChange={v => setShowProfit(v === true)} />
+                <span className="text-sm">แสดงกำไร</span>
+              </label>
+            </PopoverContent>
+          </Popover>
 
           <Button onClick={handleCreate} size="lg" className="h-10 px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มชุดสินค้า
@@ -133,22 +155,26 @@ export default function BundlesList() {
               <TableRow>
                 <TableHead className="w-8">#</TableHead>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[280px]">ชื่อชุดสินค้า</SortableTableHead>
-                <SortableTableHead field="unit_name" align="center" sort={sort} onToggle={toggleSort} className="min-w-24">หน่วย</SortableTableHead>
+                <TableHead className="text-center min-w-24">หน่วย</TableHead>
                 <TableHead className="text-center min-w-20">รายการ</TableHead>
-                <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
+                {showCost && (
+                  <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
+                )}
                 <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ราคาขาย</SortableTableHead>
-                <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
+                {showProfit && (
+                  <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
+                )}
                 <TableHead className="text-center min-w-20">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={6 + (showCost ? 1 : 0) + (showProfit ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={6 + (showCost ? 1 : 0) + (showProfit ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <Boxes className="size-10 mx-auto mb-2 opacity-30" />
                     ยังไม่มีชุดสินค้า
                   </TableCell>
@@ -158,7 +184,7 @@ export default function BundlesList() {
                 const pct = (row.cost_price ?? 0) > 0 ? (profit / row.cost_price!) * 100 : 0
                 const isDisabled = !!row.is_disabled
                 return (
-                  <TableRow key={row.id} className={isDisabled ? 'opacity-60' : ''}>
+                  <TableRow key={row.id} className={`[&_td]:py-2.5 ${isDisabled ? 'opacity-60' : ''}`}>
                     <TableCell className="text-foreground-subtle text-sm tabular-nums">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
                     <TableCell className="max-w-0">
                       <div className="font-semibold text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
@@ -167,15 +193,49 @@ export default function BundlesList() {
                     <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
                       {(row.component_count ?? 0).toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
-                    <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">{formatCurrency(row.price_retail)}</TableCell>
-                    <TableCell className="hidden md:table-cell text-right text-sm font-medium tabular-nums">
-                      <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
-                        {formatCurrency(profit)}
-                        {/* text-xs: user-approved exception to the text-sm minimum rule */}
-                        <span className="ml-1 text-xs opacity-70">({pct.toFixed(0)}%)</span>
-                      </span>
+                    {showCost && (
+                      <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
+                    )}
+                    <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">
+                      {showCost && showProfit ? (
+                        formatCurrency(row.price_retail)
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help">
+                              {formatCurrency(row.price_retail)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="px-3 py-2">
+                            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm tabular-nums">
+                              {!showCost && (
+                                <>
+                                  <span className="text-muted-foreground">ต้นทุน</span>
+                                  <span className="text-right font-medium">{formatCurrency(row.cost_price)}</span>
+                                </>
+                              )}
+                              {!showProfit && (
+                                <>
+                                  <span className="text-muted-foreground">กำไร</span>
+                                  <span className={`text-right font-medium ${profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                    {formatCurrency(profit)} ({pct.toFixed(0)}%)
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                     </TableCell>
+                    {showProfit && (
+                      <TableCell className="text-right text-sm font-medium tabular-nums">
+                        <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
+                          {formatCurrency(profit)}
+                          {/* text-xs: user-approved exception to the text-sm minimum rule */}
+                          <span className="ml-1 text-xs opacity-70">({pct.toFixed(0)}%)</span>
+                        </span>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex justify-center">
                         <Button

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "./button"
@@ -133,7 +133,8 @@ function SortableTableHead<F extends string>({
   children: React.ReactNode
 }) {
   const isActive = sort.by === field
-  const Icon = !isActive ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown
+  // Single ChevronDown; rotates 180° when sorting asc so the transition animates.
+  const rotated = isActive && sort.dir === "asc"
   const justify =
     align === "right" ? "justify-end"
     : align === "center" ? "justify-center"
@@ -153,7 +154,13 @@ function SortableTableHead<F extends string>({
         )}
       >
         <span>{children}</span>
-        <Icon className={cn("size-3", isActive ? "opacity-100" : "opacity-40")} />
+        <ChevronDown
+          className={cn(
+            "size-3 transition-transform duration-200",
+            rotated && "rotate-180",
+            isActive ? "opacity-100" : "opacity-40",
+          )}
+        />
       </Button>
     </TableHead>
   )
