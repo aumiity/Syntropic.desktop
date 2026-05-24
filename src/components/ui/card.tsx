@@ -156,11 +156,14 @@ function MetricCard({
   labelClassName,
   valueClassName,
   subClassName,
+  subTitle,
 }: {
   label: string
   value: string
   unit?: string
   sub?: string
+  /** Native HTML `title` for the sub line — shown as a tooltip on hover. */
+  subTitle?: string
   badge?: React.ReactNode
   icon: React.ComponentType<{ className?: string }>
   tint?: MetricTint
@@ -213,7 +216,7 @@ function MetricCard({
             {unit && <span className="text-sm font-semibold text-muted-foreground truncate" title={unit}>{unit}</span>}
             {badge && <span className="ml-auto shrink-0 self-center">{badge}</span>}
           </div>
-          {sub && <div className={cn("text-sm font-semibold tabular-nums truncate leading-tight", accentColor, subClassName)} title={sub}>{sub}</div>}
+          {sub && <div className={cn("text-sm font-semibold tabular-nums truncate leading-tight", accentColor, subClassName)} title={subTitle ?? sub}>{sub}</div>}
         </div>
         <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
           <Icon className="size-7" />
@@ -280,7 +283,7 @@ function MetricCard({
           </span>
           {unit && <span className="text-sm font-semibold text-muted-foreground truncate" title={unit}>{unit}</span>}
         </div>
-        {sub && <div className={cn("font-semibold text-sm tabular-nums leading-tight truncate", accentColor, subClassName)}>{sub}</div>}
+        {sub && <div className={cn("font-semibold text-sm tabular-nums leading-tight truncate", accentColor, subClassName)} title={subTitle}>{sub}</div>}
         {badge && <div className="mt-1.5">{badge}</div>}
       </div>
     </>

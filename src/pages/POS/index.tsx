@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '@/stores/cartStore'
 import { getCurrentUserId } from '@/stores/userStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
@@ -14,8 +15,6 @@ import { SectionCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
-import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
 import dayjs from 'dayjs'
@@ -86,6 +85,7 @@ const resolveSalePrice = (
 export default function POSPage() {
   const { toast } = useToast()
   const cart = useCartStore()
+  const navigate = useNavigate()
 
   // Search modal
   const [searchOpen, setSearchOpen] = useState(false)
@@ -182,17 +182,6 @@ export default function POSPage() {
   const adjustInputRef = useRef<HTMLInputElement>(null)
   const adjustQtyRef = useRef<HTMLInputElement>(null)
 
-  // Void-bill lookup — look up a completed bill by invoice no and void the WHOLE bill.
-  // Reuses reports.getSaleByInvoice + SaleDetailDialog + reports.voidSale (the proven
-  // void path that restores all lots). Whole bill only — never per-item here.
-  const [showVoidLookup, setShowVoidLookup] = useState(false)
-  const [voidQuery, setVoidQuery] = useState('')
-  const [voidLooking, setVoidLooking] = useState(false)
-  const [voidDetailInvoice, setVoidDetailInvoice] = useState<string | null>(null)
-  const [voidDetailOpen, setVoidDetailOpen] = useState(false)
-  const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
-  const voidLookupRef = useRef<HTMLInputElement>(null)
-
   useEffect(() => {
     loadDailyStats()
     const tick = setInterval(() => setNow(new Date()), 1000)
@@ -216,7 +205,7 @@ export default function POSPage() {
   }, [])
 
   const anyModalOpen = searchOpen || showPayment || showCustomerSearch || showQuickAdd || showSuccess || showCustomerInfo ||
-    showReturn || showAdjust || showVoidLookup || voidDetailOpen || !!voidTarget ||
+    showReturn || showAdjust ||
     unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null
 
   // Refs so focus callbacks always see current modal state without stale closures
@@ -252,10 +241,6 @@ export default function POSPage() {
   useEffect(() => {
     if (showAdjust) setTimeout(() => adjustInputRef.current?.focus(), 50)
   }, [showAdjust])
-
-  useEffect(() => {
-    if (showVoidLookup) setTimeout(() => voidLookupRef.current?.focus(), 50)
-  }, [showVoidLookup])
 
   // Refocus main input whenever all modals close
   const prevAnyModalOpen = useRef(false)
@@ -364,44 +349,6 @@ export default function POSPage() {
   const loadDailyStats = async () => {
     const stats = await window.api.pos.getDailyStats() as any
     setDailyStats({ bills: stats?.bills ?? 0, total: stats?.total ?? 0, latest: stats?.latest ?? '' })
-  }
-
-  const doVoidLookup = async () => {
-    const inv = voidQuery.trim()
-    if (!inv) return
-    setVoidLooking(true)
-    try {
-      const sale = await window.api.reports.getSaleByInvoice(inv) as any
-      if (!sale) {
-        toast({ title: 'ไม่พบบิล', description: `ไม่พบบิลเลขที่ ${inv}`, variant: 'error' })
-        return
-      }
-      if (sale.status === 'voided') {
-        toast({ title: 'บิลนี้ถูกยกเลิกไปแล้ว', description: inv, variant: 'error' })
-        return
-      }
-      setVoidDetailInvoice(sale.invoice_no)
-      setShowVoidLookup(false)
-      setVoidQuery('')
-      setVoidDetailOpen(true)
-    } finally {
-      setVoidLooking(false)
-    }
-  }
-
-  const handleVoidBill = async (reason: string) => {
-    if (!voidTarget) return
-    try {
-      await window.api.reports.voidSale(voidTarget.id, reason)
-      toast({ title: 'ยกเลิกบิลสำเร็จ', variant: 'success' })
-      setVoidTarget(null)
-      setVoidDetailOpen(false)
-      loadDailyStats() // voided bill must drop out of today's totals
-      useNegativeStockBadge.getState().refresh()
-    } catch (e: any) {
-      toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-      setVoidTarget(null)
-    }
   }
 
   const handleSearch = useCallback(async (q: string) => {
@@ -1154,7 +1101,7 @@ export default function POSPage() {
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium">
               <RotateCcw className="size-6 text-foreground-subtle" /> รับคืนสินค้า
             </Button>
-            <Button variant="outline" onClick={() => setShowVoidLookup(true)}
+            <Button variant="outline" onClick={() => navigate('/manage')}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted hover:text-destructive text-xl font-medium">
               <Trash2 className="size-6 text-foreground-subtle" /> ยกเลิกบิล
             </Button>
@@ -2673,58 +2620,6 @@ export default function POSPage() {
         })()}
       </Dialog>
 
-      {/* ── VOID BILL: invoice-no lookup → detail → confirm ── */}
-      <Dialog open={showVoidLookup} onOpenChange={(v) => { if (!v) { setShowVoidLookup(false); setVoidQuery('') } }}>
-        <DialogContent size="md" onClose={() => { setShowVoidLookup(false); setVoidQuery('') }}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2.5">
-              <span className="grid place-items-center size-9 rounded-lg bg-destructive-soft text-destructive">
-                <Trash2 className="size-5" />
-              </span>
-              ยกเลิกบิล
-            </DialogTitle>
-          </DialogHeader>
-          <DialogBody className="space-y-2">
-            <Label>เลขที่ใบเสร็จ</Label>
-            <Input
-              ref={voidLookupRef}
-              value={voidQuery}
-              onChange={e => setVoidQuery(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); doVoidLookup() } }}
-              placeholder="สแกนหรือพิมพ์เลขที่ใบเสร็จ เช่น RC-20260519-0001"
-            />
-            <p className="text-sm text-muted-foreground">ค้นหาบิลที่ขายแล้วเพื่อยกเลิกทั้งบิล — สต็อกจะถูกคืนกลับอัตโนมัติ</p>
-          </DialogBody>
-          <DialogFooter>
-            <Button size="xl" variant="destructive2" onClick={() => { setShowVoidLookup(false); setVoidQuery('') }}>ยกเลิก</Button>
-            <Button size="xl" onClick={doVoidLookup} disabled={voidLooking || !voidQuery.trim()}>
-              {voidLooking ? 'กำลังค้นหา...' : 'ค้นหาบิล'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <SaleDetailDialog
-        open={voidDetailOpen}
-        onOpenChange={setVoidDetailOpen}
-        invoiceNo={voidDetailInvoice}
-        onVoidRequest={(sale: SaleDetail) => {
-          setVoidTarget({ id: sale.id, invoice_no: sale.invoice_no })
-          setVoidDetailOpen(false)
-        }}
-      />
-
-      <ConfirmDialog
-        open={!!voidTarget}
-        onOpenChange={open => { if (!open) setVoidTarget(null) }}
-        title="ยกเลิกบิล"
-        description={`ต้องการยกเลิกบิล ${voidTarget?.invoice_no}? สต็อกจะถูกคืนกลับอัตโนมัติ`}
-        confirmLabel="ยกเลิกบิล"
-        variant="destructive"
-        requireReason
-        reasonLabel="เหตุผลการยกเลิก"
-        onConfirm={reason => handleVoidBill(reason ?? '')}
-      />
     </div>
   )
 }

@@ -75,7 +75,7 @@ export default function ManageSalesPage() {
   const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
 
   const [pageSize, setPageSize] = useState<PageSize>(50)
-  const totalPages = Math.ceil(total / pageSize)
+  const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   const load = useCallback(async (p = 1) => {
     setLoading(true)

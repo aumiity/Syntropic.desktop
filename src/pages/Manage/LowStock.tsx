@@ -3,16 +3,20 @@ import { useOutletContext, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Toggle } from '@/components/ui/switch'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast'
+import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/QuickStockDialog'
 import type { ManageOutletContext } from './index'
-import { Search, PackagePlus, PackageX, Package, ShoppingCart, TrendingDown, Edit } from 'lucide-react'
+import { Search, PackagePlus, PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes } from 'lucide-react'
 
 type StatusFilter = 'all' | 'out' | 'low'
+type SortField = 'trade_name'
+type SortDir = 'asc' | 'desc'
+interface SortState { by: SortField; dir: SortDir }
 
 interface LowStockRow {
   product_id: number
@@ -45,9 +49,17 @@ export default function ManageLowStockPage() {
   const [outCount, setOutCount] = useState(0)
   const [totalBuyMore, setTotalBuyMore] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [quickTarget, setQuickTarget] = useState<QuickStockTarget | null>(null)
   const [showSupplier, setShowSupplier] = useState<boolean>(() => {
     return localStorage.getItem(SUPPLIER_TOGGLE_KEY) === '1'
   })
+  const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
+
+  const toggleSort = (field: SortField) => {
+    setSort(s => s.by === field
+      ? { by: field, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+      : { by: field, dir: 'asc' })
+  }
 
   useEffect(() => {
     localStorage.setItem(SUPPLIER_TOGGLE_KEY, showSupplier ? '1' : '0')
@@ -57,10 +69,15 @@ export default function ManageLowStockPage() {
   // table on the client so the summary counts (which drive the filter chips)
   // always reflect the unfiltered set — same pattern as Sales/Purchases.
   const filteredRows = useMemo(() => {
-    if (statusFilter === 'out') return rows.filter(r => r.stock_qty <= 0)
-    if (statusFilter === 'low') return rows.filter(r => r.stock_qty > 0)
-    return rows
-  }, [rows, statusFilter])
+    const base = statusFilter === 'out' ? rows.filter(r => r.stock_qty <= 0)
+      : statusFilter === 'low' ? rows.filter(r => r.stock_qty > 0)
+      : rows
+    const sorted = [...base].sort((a, b) => {
+      const cmp = (a.trade_name || '').localeCompare(b.trade_name || '', 'th')
+      return sort.dir === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [rows, statusFilter, sort])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -178,7 +195,7 @@ export default function ManageLowStockPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[220px]">ชื่อสินค้า</TableHead>
+                <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>
                 <TableHead className="min-w-12">หน่วย</TableHead>
                 <TableHead className="text-right min-w-12">คงเหลือ</TableHead>
                 <TableHead className="text-right min-w-12">จุดสั่งซื้อ</TableHead>
@@ -251,7 +268,23 @@ export default function ManageLowStockPage() {
                       </TableCell>
                     )}
                     <TableCell>
-                      <div className="flex justify-center">
+                      <div className="flex gap-1.5 justify-center">
+                        <Button
+                          size="icon-lg"
+                          variant="info-soft"
+                          onClick={() => setQuickTarget({
+                            id: r.product_id,
+                            trade_name: r.trade_name,
+                            code: r.code,
+                            unit_name: r.unit_name,
+                            stock_qty: r.stock_qty,
+                            reorder_point: r.reorder_point,
+                            safety_stock: r.safety_stock,
+                          })}
+                          title="ตั้งค่าสต็อก"
+                        >
+                          <Boxes />
+                        </Button>
                         <Button
                           size="icon-lg"
                           variant="outline"
@@ -275,6 +308,12 @@ export default function ManageLowStockPage() {
           </span>
         </div>
       </div>
+
+      <QuickStockDialog
+        target={quickTarget}
+        onClose={() => setQuickTarget(null)}
+        onSaved={load}
+      />
     </>
   )
 }

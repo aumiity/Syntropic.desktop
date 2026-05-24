@@ -67,8 +67,11 @@ export default function ManagePurchasesPage() {
   const [histPageSize, setHistPageSize] = useState<PageSize>(50)
   const [histQ, setHistQ] = useState('')
   const [histSupplierId, setHistSupplierId] = useState<number>(0)
-  const [histDateFrom, setHistDateFrom] = useState('')
-  const [histDateTo, setHistDateTo] = useState('')
+  const [histDateFrom, setHistDateFrom] = useState(() => {
+    const t = new Date().toISOString().split('T')[0]
+    return t.slice(0, 8) + '01'
+  })
+  const [histDateTo, setHistDateTo] = useState(() => new Date().toISOString().split('T')[0])
   const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'unpaid' | 'cancelled'>('all')
   const [histSummary, setHistSummary] = useState({ count: 0, cash_count: 0, credit_count: 0, unpaid_count: 0, cancelled_count: 0 })
   const [histSort, setHistSort] = useState<SortState>({ by: 'created_at', dir: 'desc' })
@@ -349,7 +352,7 @@ export default function ManagePurchasesPage() {
 
   const histSupplier = suppliers.find(s => s.id === histSupplierId) ?? null
   const editSupplier = suppliers.find(s => s.id === editSupplierId) ?? null
-  const histTotalPages = Math.ceil(histTotal / histPageSize)
+  const histTotalPages = histPageSize === 'all' ? 1 : Math.ceil(histTotal / histPageSize)
   const today = new Date().toISOString().split('T')[0]
 
   return (

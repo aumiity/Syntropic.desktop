@@ -68,16 +68,14 @@ function inclusiveDayCount(from: string, to: string): number {
 function delta(
   curr: number,
   prev: number | undefined | null,
-  prevLabel?: string,
 ): { sub: string; cls: string } | null {
   if (prev == null) return null
   if (prev === 0 && curr === 0) return null
   if (prev === 0) return { sub: 'ใหม่ในช่วงนี้', cls: 'text-success' }
   const pct = ((curr - prev) / Math.abs(prev)) * 100
   const up = pct >= 0
-  const suffix = prevLabel ? ` vs ${prevLabel}` : ''
   return {
-    sub: `${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%${suffix}`,
+    sub: `${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%`,
     cls: up ? 'text-success' : 'text-destructive',
   }
 }
@@ -103,6 +101,18 @@ function formatRangeShort(from: string, to: string): string {
     return `${f.format('D MMM')} - ${t.format('D MMM BB')}`
   }
   return `${f.format('D MMM BB')} - ${t.format('D MMM BB')}`
+}
+
+// Tooltip label for the PoP delta — short by design ("เดือนที่แล้ว", etc).
+// The visible sub line shows only "▲ 12.3%"; this hover hint tells the user
+// what window the % is compared against.
+function shortPrevLabel(mode: PeriodMode): string {
+  switch (mode) {
+    case 'day': return 'เมื่อวาน'
+    case 'month': return 'เดือนที่แล้ว'
+    case 'year': return 'ปีที่แล้ว'
+    default: return 'ช่วงก่อนหน้า'
+  }
 }
 
 function payRow(label: string, value: number, muted = false) {
@@ -181,18 +191,17 @@ export default function ReportsFinancePage() {
   // Show the actual previous date range in the delta sub so "vs X" is concrete
   // (previous label was "ช่วงก่อน" which left users guessing what window that was).
   useEffect(() => {
-    const prevLabel = sum.previous
-      ? formatRangeShort(sum.previous.date_from, sum.previous.date_to)
-      : undefined
-    const dSales = delta(sum.sales_net, sum.previous?.sales_net, prevLabel)
-    const dProfit = delta(sum.sales_profit, sum.previous?.sales_profit, prevLabel)
-    const dPurchase = delta(sum.purchase_total, sum.previous?.purchase_total, prevLabel)
+    const prevHint = shortPrevLabel(mode)
+    const dSales = delta(sum.sales_net, sum.previous?.sales_net)
+    const dProfit = delta(sum.sales_profit, sum.previous?.sales_profit)
+    const dPurchase = delta(sum.purchase_total, sum.previous?.purchase_total)
     setSummary([
       {
         label: 'ยอดขายสุทธิ',
         value: formatCurrency(sum.sales_net),
         sub: dSales?.sub ?? `${sum.sale_count.toLocaleString()} บิล`,
         subClassName: dSales?.cls,
+        subTitle: dSales ? prevHint : undefined,
         icon: ShoppingBag,
         tint: 'primary',
       },
@@ -201,6 +210,7 @@ export default function ReportsFinancePage() {
         value: formatCurrency(sum.sales_profit),
         sub: dProfit?.sub ?? margin,
         subClassName: dProfit?.cls,
+        subTitle: dProfit ? prevHint : undefined,
         icon: TrendingUp,
         tint: sum.sales_profit >= 0 ? 'success' : 'destructive',
       },
@@ -209,6 +219,7 @@ export default function ReportsFinancePage() {
         value: formatCurrency(sum.purchase_total),
         sub: dPurchase?.sub ?? `${sum.purchase_count.toLocaleString()} บิล`,
         subClassName: dPurchase?.cls,
+        subTitle: dPurchase ? prevHint : undefined,
         icon: Wallet,
         tint: 'info-soft',
       },
@@ -220,7 +231,7 @@ export default function ReportsFinancePage() {
         tint: sum.payable_total > 0 ? 'warning' : 'success',
       },
     ])
-  }, [sum, margin, setSummary])
+  }, [sum, margin, mode, setSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. FdaReports/KhorYor9 which have no summary of their own).

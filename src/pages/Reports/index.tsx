@@ -33,6 +33,7 @@ export interface ReportsSummaryCard {
   label: string
   value: string
   sub?: string
+  subTitle?: string
   subClassName?: string
   sparkline?: number[]
   icon: React.ComponentType<{ className?: string }>
