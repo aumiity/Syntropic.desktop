@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Input, SearchInput } from '@/components/ui/input'
 import { DateInput } from '@/components/ui/date-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -15,8 +15,9 @@ import { Toggle } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
+import { usePagePrefs } from '@/hooks/usePagePrefs'
 import type { Customer, Supplier, User, DrugAllergy } from '@/types'
-import { Search, Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2 } from 'lucide-react'
+import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2 } from 'lucide-react'
 
 const SEVERITY_LABELS: Record<string, string> = {
   mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต'
@@ -37,17 +38,29 @@ const submitOnEnter = (fn: () => void) => (e: React.KeyboardEvent) => {
 // ========================
 // CUSTOMERS TAB
 // ========================
+interface CustomersPrefs {
+  pageSize: PageSize
+  showDisabled: boolean
+  showColPhone: boolean
+  showColAlert: boolean
+  showColStatus: boolean
+}
+const CUSTOMERS_DEFAULTS: CustomersPrefs = {
+  pageSize: 50, showDisabled: false, showColPhone: true, showColAlert: true, showColStatus: true,
+}
+
 function CustomersTab() {
   const { toast } = useToast()
+  const [prefs, setPrefs] = usePagePrefs<CustomersPrefs>('people.customers', CUSTOMERS_DEFAULTS)
   const [rows, setRows] = useState<Customer[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
-  const [showDisabled, setShowDisabled] = useState(false)
+  const showDisabled = prefs.showDisabled
   // Column visibility (จัดการ + รหัส + ชื่อ always shown)
-  const [showColPhone, setShowColPhone] = useState(true)
-  const [showColAlert, setShowColAlert] = useState(true)
-  const [showColStatus, setShowColStatus] = useState(true)
+  const showColPhone = prefs.showColPhone
+  const showColAlert = prefs.showColAlert
+  const showColStatus = prefs.showColStatus
   const [loading, setLoading] = useState(false)
 
   const [dialog, setDialog] = useState(false)
@@ -55,7 +68,8 @@ function CustomersTab() {
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
 
-  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const pageSize = prefs.pageSize
+  const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   const load = useCallback(async (p = 1) => {
@@ -122,12 +136,9 @@ function CustomersTab() {
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input value={q} onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหาชื่อ, โทร, รหัส..." className="h-10 pl-9 rounded-lg bg-input text-sm" />
-          </div>
-          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0">
+          <SearchInput value={q} onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อ, โทร, รหัส..." />
+          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0 ml-auto">
             <Plus className="size-4" /> เพิ่มลูกค้า
           </Button>
           <Popover>
@@ -141,15 +152,15 @@ function CustomersTab() {
                 <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColPhone} onCheckedChange={v => setShowColPhone(v === true)} />
+                <Checkbox checked={showColPhone} onCheckedChange={v => setPrefs({ showColPhone: v === true })} />
                 <span className="text-sm">โทรศัพท์</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColAlert} onCheckedChange={v => setShowColAlert(v === true)} />
+                <Checkbox checked={showColAlert} onCheckedChange={v => setPrefs({ showColAlert: v === true })} />
                 <span className="text-sm">แจ้งเตือน</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
+                <Checkbox checked={showColStatus} onCheckedChange={v => setPrefs({ showColStatus: v === true })} />
                 <span className="text-sm">สถานะ</span>
               </label>
               <div className="my-1 border-t border-border" />
@@ -157,7 +168,7 @@ function CustomersTab() {
                 <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showDisabled} onCheckedChange={v => setShowDisabled(v === true)} />
+                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
                 <span className="text-sm">แสดงที่ปิดใช้งาน</span>
               </label>
             </PopoverContent>
@@ -236,7 +247,7 @@ function CustomersTab() {
             <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{total.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>
@@ -324,23 +335,35 @@ function CustomersTab() {
 // ========================
 // SUPPLIERS TAB
 // ========================
+interface SuppliersPrefs {
+  pageSize: PageSize
+  showDisabled: boolean
+  showColPhone: boolean
+  showColStatus: boolean
+}
+const SUPPLIERS_DEFAULTS: SuppliersPrefs = {
+  pageSize: 50, showDisabled: false, showColPhone: true, showColStatus: true,
+}
+
 function SuppliersTab() {
   const { toast } = useToast()
+  const [prefs, setPrefs] = usePagePrefs<SuppliersPrefs>('people.suppliers', SUPPLIERS_DEFAULTS)
   const [rows, setRows] = useState<Supplier[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
-  const [showDisabled, setShowDisabled] = useState(false)
+  const showDisabled = prefs.showDisabled
   // Column visibility (รหัส + ชื่อบริษัท + จัดการ always shown)
-  const [showColPhone, setShowColPhone] = useState(true)
-  const [showColStatus, setShowColStatus] = useState(true)
+  const showColPhone = prefs.showColPhone
+  const showColStatus = prefs.showColStatus
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
   const [editing, setEditing] = useState<Supplier | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
 
-  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const pageSize = prefs.pageSize
+  const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   const load = useCallback(async (p = 1) => {
@@ -389,12 +412,9 @@ function SuppliersTab() {
     <div className="flex flex-col h-full gap-3">
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input value={q} onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหาชื่อ, รหัส, โทร..." className="h-10 pl-9 rounded-lg bg-input text-sm" />
-          </div>
-          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0">
+          <SearchInput value={q} onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อ, รหัส, โทร..." />
+          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0 ml-auto">
             <Plus className="size-4" /> เพิ่มผู้จำหน่าย
           </Button>
           <Popover>
@@ -408,11 +428,11 @@ function SuppliersTab() {
                 <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColPhone} onCheckedChange={v => setShowColPhone(v === true)} />
+                <Checkbox checked={showColPhone} onCheckedChange={v => setPrefs({ showColPhone: v === true })} />
                 <span className="text-sm">โทรศัพท์</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
+                <Checkbox checked={showColStatus} onCheckedChange={v => setPrefs({ showColStatus: v === true })} />
                 <span className="text-sm">สถานะ</span>
               </label>
               <div className="my-1 border-t border-border" />
@@ -420,7 +440,7 @@ function SuppliersTab() {
                 <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showDisabled} onCheckedChange={v => setShowDisabled(v === true)} />
+                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
                 <span className="text-sm">แสดงที่ปิดใช้งาน</span>
               </label>
             </PopoverContent>
@@ -490,7 +510,7 @@ function SuppliersTab() {
             <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{total.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>
@@ -539,15 +559,26 @@ function SuppliersTab() {
 // ========================
 // STAFF TAB
 // ========================
+interface StaffPrefs {
+  showDisabled: boolean
+  showColEmail: boolean
+  showColRole: boolean
+  showColStatus: boolean
+}
+const STAFF_DEFAULTS: StaffPrefs = {
+  showDisabled: false, showColEmail: true, showColRole: true, showColStatus: true,
+}
+
 function StaffTab() {
   const { toast } = useToast()
+  const [prefs, setPrefs] = usePagePrefs<StaffPrefs>('people.staff', STAFF_DEFAULTS)
   const [rows, setRows] = useState<User[]>([])
   const [q, setQ] = useState('')
-  const [showDisabled, setShowDisabled] = useState(false)
+  const showDisabled = prefs.showDisabled
   // Column visibility (ชื่อ + จัดการ always shown)
-  const [showColEmail, setShowColEmail] = useState(true)
-  const [showColRole, setShowColRole] = useState(true)
-  const [showColStatus, setShowColStatus] = useState(true)
+  const showColEmail = prefs.showColEmail
+  const showColRole = prefs.showColRole
+  const showColStatus = prefs.showColStatus
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
@@ -609,12 +640,9 @@ function StaffTab() {
     <div className="flex flex-col h-full gap-3">
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input value={q} onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหาชื่อ, อีเมล..." className="h-10 pl-9 rounded-lg bg-input text-sm" />
-          </div>
-          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0">
+          <SearchInput value={q} onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อ, อีเมล..." />
+          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0 ml-auto">
             <Plus className="size-4" /> เพิ่มพนักงาน
           </Button>
           <Popover>
@@ -628,15 +656,15 @@ function StaffTab() {
                 <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColEmail} onCheckedChange={v => setShowColEmail(v === true)} />
+                <Checkbox checked={showColEmail} onCheckedChange={v => setPrefs({ showColEmail: v === true })} />
                 <span className="text-sm">อีเมล</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColRole} onCheckedChange={v => setShowColRole(v === true)} />
+                <Checkbox checked={showColRole} onCheckedChange={v => setPrefs({ showColRole: v === true })} />
                 <span className="text-sm">ตำแหน่ง</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
+                <Checkbox checked={showColStatus} onCheckedChange={v => setPrefs({ showColStatus: v === true })} />
                 <span className="text-sm">สถานะ</span>
               </label>
               <div className="my-1 border-t border-border" />
@@ -644,7 +672,7 @@ function StaffTab() {
                 <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showDisabled} onCheckedChange={v => setShowDisabled(v === true)} />
+                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
                 <span className="text-sm">แสดงที่ปิดใช้งาน</span>
               </label>
             </PopoverContent>
@@ -701,7 +729,7 @@ function StaffTab() {
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{filtered.length.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{filtered.length.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>

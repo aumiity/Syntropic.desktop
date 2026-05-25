@@ -56,7 +56,7 @@ export function TopListCard({
         const body = (
           <div className="flex items-center gap-3 py-2 px-1">
             {it.rank != null && (
-              <span className="shrink-0 size-7 rounded-lg bg-muted text-foreground-subtle text-sm font-semibold tabular-nums flex items-center justify-center">
+              <span className="shrink-0 size-7 rounded-lg bg-muted text-foreground-subtle text-sm font-semibold flex items-center justify-center">
                 {it.rank}
               </span>
             )}
@@ -67,11 +67,11 @@ export function TopListCard({
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <span className={cn('text-sm font-semibold tabular-nums text-foreground', it.valueClassName)}>
+              <span className={cn('text-sm font-semibold text-foreground', it.valueClassName)}>
                 {it.value}
               </span>
               {it.badge && (
-                <span className="text-xs text-muted-foreground tabular-nums">{it.badge}</span>
+                <span className="text-xs text-muted-foreground">{it.badge}</span>
               )}
             </div>
           </div>

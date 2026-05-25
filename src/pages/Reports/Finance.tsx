@@ -119,7 +119,7 @@ function payRow(label: string, value: number, muted = false) {
   return (
     <div className="flex items-center justify-between">
       <span className={`text-sm ${muted ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>{label}</span>
-      <span className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(value)}</span>
+      <span className="text-sm font-semibold text-foreground">{formatCurrency(value)}</span>
     </div>
   )
 }
@@ -308,7 +308,7 @@ export default function ReportsFinancePage() {
                label, delta. Centered vertically against the chart. */
             <div className="flex gap-4 items-center">
               <div className="shrink-0 w-28">
-                <div className="text-3xl font-bold tabular-nums text-foreground leading-none">
+                <div className="text-3xl font-bold text-foreground leading-none">
                   {compactCurrency(sum.sales_net)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">ยอดขาย</div>
@@ -364,14 +364,14 @@ export default function ReportsFinancePage() {
           {payRow('ส่วนลดขาย', sum.sales_discount, true)}
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <span className="text-sm font-semibold text-foreground">ยอดขายสุทธิ</span>
-            <span className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(sum.sales_net)}</span>
+            <span className="text-sm font-bold text-foreground">{formatCurrency(sum.sales_net)}</span>
           </div>
           {payRow('ต้นทุนขาย', sum.sales_cost, true)}
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <span className="text-sm font-semibold text-foreground">
               กำไรขั้นต้น{margin ? <span className="text-muted-foreground font-normal"> · {margin}</span> : ''}
             </span>
-            <span className={`text-sm font-bold tabular-nums ${sum.sales_profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+            <span className={`text-sm font-bold ${sum.sales_profit >= 0 ? 'text-success' : 'text-destructive'}`}>
               {formatCurrency(sum.sales_profit)}
             </span>
           </div>
@@ -383,7 +383,7 @@ export default function ReportsFinancePage() {
           {payRow('เงินโอน', sum.transfer_amount)}
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <span className="text-sm text-muted-foreground">บิลเครดิต (ค้างชำระ)</span>
-            <span className="text-sm font-semibold tabular-nums text-warning-strong">{sum.credit_count.toLocaleString()} บิล</span>
+            <span className="text-sm font-semibold text-warning-strong">{sum.credit_count.toLocaleString()} บิล</span>
           </div>
         </SectionCard>
 
@@ -392,7 +392,7 @@ export default function ReportsFinancePage() {
           {payRow('เครดิต', sum.purchase_credit)}
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <span className="text-sm text-muted-foreground">หนี้ค้างชำระปัจจุบัน</span>
-            <span className="text-sm font-semibold tabular-nums text-warning-strong">{formatCurrency(sum.payable_total)}</span>
+            <span className="text-sm font-semibold text-warning-strong">{formatCurrency(sum.payable_total)}</span>
           </div>
         </SectionCard>
       </div>

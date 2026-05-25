@@ -9,7 +9,7 @@ interface PriceInputProps extends Omit<React.ComponentProps<'input'>, 'type' | '
   decimals?: number
 }
 
-// Number input tuned for currency/price fields. Defaults: text-right, tabular-nums,
+// Number input tuned for currency/price fields. Defaults: text-right,,
 // min=0, step="0.01", placeholder="0.00". On blur, an empty/NaN value normalizes
 // to "0" so the field never reads as a confusing blank after the user clears it.
 const PriceInput = React.forwardRef<HTMLInputElement, PriceInputProps>(
@@ -31,7 +31,7 @@ const PriceInput = React.forwardRef<HTMLInputElement, PriceInputProps>(
         placeholder={placeholder ?? fallback}
         min={0}
         step={step}
-        className={cn('text-right tabular-nums', className)}
+        className={cn('text-right', className)}
         {...props}
       />
     )

@@ -223,7 +223,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                 const hasDetail = Boolean(m.sale_invoice_no || m.gr_invoice_no)
                 return (
                   <TableRow key={m.id} className="hover:bg-primary-soft/60 transition-colors">
-                    <TableCell className="text-sm tabular-nums">{formatDateTime(m.created_at)}</TableCell>
+                    <TableCell className="text-sm">{formatDateTime(m.created_at)}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant={meta.variant} className="rounded-md gap-1">
                         <Icon className="size-3" /> {meta.label}
@@ -231,12 +231,12 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                     </TableCell>
                     <TableCell className="text-sm font-mono truncate text-center" title={m.lot_number ?? undefined}>{m.lot_number ?? '—'}</TableCell>
                     <TableCell className={cn(
-                      'text-right text-sm font-semibold tabular-nums',
+                      'text-right text-sm font-semibold',
                       isPositive ? 'text-success' : 'text-destructive',
                     )}>
                       {isPositive ? '+' : ''}{m.qty_change.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums">
+                    <TableCell className="text-right text-sm">
                       <span className="text-muted-foreground">{m.qty_before.toLocaleString()}</span>
                       <span className="text-muted-foreground mx-1">→</span>
                       <span className="font-semibold text-foreground">{m.qty_after.toLocaleString()}</span>
@@ -293,7 +293,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           </Button>
           <span className="shrink-0">
             แสดง{' '}
-            <span className="font-semibold text-foreground tabular-nums">
+            <span className="font-semibold text-foreground">
               {filteredMovements.length}
             </span>
             {movements && movementTypeFilter.size > 0 ? <> / {movements.length}</> : null}

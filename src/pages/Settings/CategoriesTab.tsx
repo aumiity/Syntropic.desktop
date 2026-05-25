@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Input, SearchInput } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -9,7 +9,7 @@ import { FormField } from '@/components/ui/label'
 import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
 import type { ProductCategory } from '@/types'
-import { Plus, Edit, Tag, ArrowUpDown, Check, X, Search } from 'lucide-react'
+import { Plus, Edit, Tag, ArrowUpDown, Check, X } from 'lucide-react'
 
 export function CategoriesTab() {
   const { toast } = useToast()
@@ -106,16 +106,12 @@ export function CategoriesTab() {
             </>
           ) : (
             <>
-              <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  value={q}
-                  onChange={e => setQ(e.target.value)}
-                  placeholder="ค้นหารหัส, ชื่อหมวดหมู่, คำอธิบาย..."
-                  className="h-10 pl-9 rounded-lg text-sm bg-input"
-                />
-              </div>
-              <Button size="lg" className="h-10 px-2 shrink-0" variant="info-soft" onClick={enterReorder} disabled={rows.length < 2}>
+              <SearchInput
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="ค้นหารหัส, ชื่อหมวดหมู่, คำอธิบาย..."
+              />
+              <Button size="lg" className="h-10 px-2 shrink-0 ml-auto" variant="info-soft" onClick={enterReorder} disabled={rows.length < 2}>
                 <ArrowUpDown className="size-4" /> จัดลำดับ
               </Button>
               <Button size="lg" className="h-10 px-2 shrink-0" onClick={openAdd}>
@@ -166,7 +162,7 @@ export function CategoriesTab() {
                   </TableRow>
                 ) : filtered.map((c, i) => (
                   <TableRow key={c.id} className={c.is_disabled ? 'opacity-60' : ''}>
-                    <TableCell className="text-center text-sm tabular-nums text-muted-foreground">{i + 1}</TableCell>
+                    <TableCell className="text-center text-sm text-muted-foreground">{i + 1}</TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
                     <TableCell className="font-semibold text-sm text-foreground">{c.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.description ?? '—'}</TableCell>
@@ -191,7 +187,7 @@ export function CategoriesTab() {
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
-            แสดง <span className="font-semibold text-foreground tabular-nums">{(reorderMode ? rows : filtered).length.toLocaleString()}</span> รายการ
+            แสดง <span className="font-semibold text-foreground">{(reorderMode ? rows : filtered).length.toLocaleString()}</span> รายการ
           </span>
         </div>
       </div>

@@ -134,7 +134,7 @@ export function UnitsTab({
     <div className="pt-4">
       <div className="bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between h-12">
-          <span>หน่วยนับสำหรับซื้อ/ขายสินค้า · <span className="text-foreground tabular-nums">{(product.units?.length ?? 0) + 1}</span> หน่วย</span>
+          <span>หน่วยนับสำหรับซื้อ/ขายสินค้า · <span className="text-foreground">{(product.units?.length ?? 0) + 1}</span> หน่วย</span>
           <Button onClick={openAddUnit} className="h-9 rounded-lg px-2 text-sm">
             <Plus className="size-4" /> เพิ่มหน่วย
           </Button>
@@ -158,10 +158,10 @@ export function UnitsTab({
               {/* Base unit row — sourced from the products table. Edited via General tab. */}
               <TableRow className="bg-primary-soft/30 h-10">
                 <TableCell className="font-semibold text-sm">{baseUnit}</TableCell>
-                <TableCell className="text-center text-sm tabular-nums">1</TableCell>
-                <TableCell className="text-right text-sm font-semibold tabular-nums">{formatCurrency(product.price_retail ?? 0)}</TableCell>
-                <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{(product.price_wholesale1 ?? 0) > 0 ? formatCurrency(product.price_wholesale1) : '—'}</TableCell>
-                <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
+                <TableCell className="text-center text-sm">1</TableCell>
+                <TableCell className="text-right text-sm font-semibold">{formatCurrency(product.price_retail ?? 0)}</TableCell>
+                <TableCell className="text-right text-sm font-semibold text-muted-foreground">{(product.price_wholesale1 ?? 0) > 0 ? formatCurrency(product.price_wholesale1) : '—'}</TableCell>
+                <TableCell className="text-right text-sm font-semibold text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
                 <TableCell className="text-center">
                   <div className="flex justify-center"><Checkbox checked tabIndex={-1} className="pointer-events-none" /></div>
                 </TableCell>
@@ -174,10 +174,10 @@ export function UnitsTab({
               {product.units?.map(u => (
                 <TableRow key={u.id} className={`hover:bg-primary-soft/60 transition-colors ${u.is_disabled ? 'opacity-60' : ''}`}>
                   <TableCell className="font-semibold text-sm">{u.unit_name ?? `Unit #${u.unit_id}`}</TableCell>
-                  <TableCell className="text-center text-sm tabular-nums">{u.qty_per_base}</TableCell>
-                  <TableCell className="text-right text-sm font-semibold tabular-nums">{formatCurrency(u.price_retail)}</TableCell>
-                  <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{u.price_wholesale1 > 0 ? formatCurrency(u.price_wholesale1) : '—'}</TableCell>
-                  <TableCell className="text-right text-sm font-semibold tabular-nums text-muted-foreground">{u.price_wholesale2 > 0 ? formatCurrency(u.price_wholesale2) : '—'}</TableCell>
+                  <TableCell className="text-center text-sm">{u.qty_per_base}</TableCell>
+                  <TableCell className="text-right text-sm font-semibold">{formatCurrency(u.price_retail)}</TableCell>
+                  <TableCell className="text-right text-sm font-semibold text-muted-foreground">{u.price_wholesale1 > 0 ? formatCurrency(u.price_wholesale1) : '—'}</TableCell>
+                  <TableCell className="text-right text-sm font-semibold text-muted-foreground">{u.price_wholesale2 > 0 ? formatCurrency(u.price_wholesale2) : '—'}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center"><Checkbox checked={!!u.is_for_sale} tabIndex={-1} className="pointer-events-none" /></div>
                   </TableCell>
@@ -202,7 +202,7 @@ export function UnitsTab({
           </Table>
         </div>
         <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between">
-          <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{(product.units?.length ?? 0) + 1}</span> หน่วย</span>
+          <span>ทั้งหมด <span className="font-semibold text-foreground">{(product.units?.length ?? 0) + 1}</span> หน่วย</span>
           <span>หน่วยหลัก: <span className="font-semibold text-foreground">{baseUnit}</span></span>
         </div>
       </div>
@@ -246,7 +246,7 @@ export function UnitsTab({
                         </Select>
                       </Field>
                       <Field label="ขนาดบรรจุ">
-                        <Input type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="text-right tabular-nums" min={0.0001} step="0.0001" />
+                        <Input type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="text-right" min={0.0001} step="0.0001" />
                       </Field>
                     </div>
                     <Field label="บาร์โค้ด">
@@ -280,7 +280,7 @@ export function UnitsTab({
                   {/* ── ขวา: ราคา + รายละเอียด ── */}
                   <div className="space-y-3">
                     {/* ราคาทุน — รวมหน่วยฐาน + หน่วยใหม่ ในกรอบเดียว */}
-                    <div className="rounded-lg bg-warm/50 px-3 py-2 space-y-1 tabular-nums">
+                    <div className="rounded-lg bg-warm/50 px-3 py-2 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">ราคาทุน ({baseUnit})</span>
                         <span className="text-sm font-bold text-warm-foreground">{formatCurrency(baseCost)}</span>
@@ -295,7 +295,7 @@ export function UnitsTab({
                     <Field label={<>ราคาปลีก{unitSuffix(newUnit)}</>}>
                       <PriceInput value={unitForm.price_retail} onChange={v => setUnitForm((f: any) => ({ ...f, price_retail: v }))} />
                     </Field>
-                    <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-2 tabular-nums">
+                    <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">คิดเป็น ({baseUnit})</span>
                         <span className="text-sm font-bold text-foreground">{formatCurrency(retail.perPiece)}</span>
@@ -321,7 +321,7 @@ export function UnitsTab({
                         <Field label={<>{label}{unitSuffix(newUnit)}</>}>
                           <PriceInput value={value} onChange={v => setUnitForm((f: any) => ({ ...f, [key]: v }))} />
                         </Field>
-                        <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-2 tabular-nums">
+                        <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">คิดเป็น ({baseUnit})</span>
                             <span className="text-sm font-bold text-foreground">{formatCurrency(d.perPiece)}</span>

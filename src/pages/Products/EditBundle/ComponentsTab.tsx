@@ -373,7 +373,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
               const lineSell = it.component_sell_price * it.qty_per_bundle
               return (
                 <TableRow key={`${it.component_product_id}-${i}`}>
-                  <TableCell className="text-center text-sm tabular-nums text-muted-foreground">{i + 1}</TableCell>
+                  <TableCell className="text-center text-sm text-muted-foreground">{i + 1}</TableCell>
                   <TableCell className="font-semibold text-sm text-foreground">{it.component_name}</TableCell>
                   <TableCell className="text-center text-sm text-muted-foreground">{it.component_unit_name ?? '—'}</TableCell>
                   <TableCell className="text-center">
@@ -389,10 +389,10 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                       className="h-9 w-16 mx-auto text-center"
                     />
                   </TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(it.component_cost)}</TableCell>
-                  <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">{formatCurrency(lineCost)}</TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(it.component_sell_price)}</TableCell>
-                  <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">{formatCurrency(lineSell)}</TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(it.component_cost)}</TableCell>
+                  <TableCell className="text-right text-sm font-semibold text-foreground">{formatCurrency(lineCost)}</TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(it.component_sell_price)}</TableCell>
+                  <TableCell className="text-right text-sm font-semibold text-foreground">{formatCurrency(lineSell)}</TableCell>
                   <TableCell>
                     <div className="flex justify-center">
                       <Button
@@ -422,10 +422,10 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
         </span>
         <div className="flex items-center gap-6">
           <span className="text-muted-foreground">
-            ราคาทุนรวม <span className="font-semibold text-foreground tabular-nums">{formatCurrency(totalCost)}</span>
+            ราคาทุนรวม <span className="font-semibold text-foreground">{formatCurrency(totalCost)}</span>
           </span>
           <span className="text-muted-foreground">
-            ราคาขายรวม <span className="font-semibold text-foreground tabular-nums">{formatCurrency(totalSell)}</span>
+            ราคาขายรวม <span className="font-semibold text-foreground">{formatCurrency(totalSell)}</span>
           </span>
         </div>
       </div>
@@ -500,8 +500,8 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                       {p.code && <div className="text-xs text-muted-foreground font-mono truncate">{p.code}</div>}
                     </div>
                     <div className="text-center text-base text-muted-foreground truncate">{p.unit_name ?? '—'}</div>
-                    <div className="text-right font-bold text-foreground text-base tabular-nums">{formatCurrency(p.cost_price)}</div>
-                    <div className={`text-right text-base font-semibold tabular-nums ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock.toLocaleString()}</div>
+                    <div className="text-right font-bold text-foreground text-base">{formatCurrency(p.cost_price)}</div>
+                    <div className={`text-right text-base font-semibold ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock.toLocaleString()}</div>
                   </div>
                 )
               })

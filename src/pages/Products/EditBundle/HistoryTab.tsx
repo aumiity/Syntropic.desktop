@@ -218,14 +218,14 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                     : null)
                 return (
                   <TableRow key={m.id} className="hover:bg-primary-soft/60 transition-colors">
-                    <TableCell className="text-sm tabular-nums">{formatDateTime(m.created_at)}</TableCell>
+                    <TableCell className="text-sm">{formatDateTime(m.created_at)}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant={meta.variant} className="rounded-md gap-1">
                         <Icon className="size-3" /> {meta.label}
                       </Badge>
                     </TableCell>
                     <TableCell className={cn(
-                      'text-right text-sm font-semibold tabular-nums',
+                      'text-right text-sm font-semibold',
                       isPositive ? 'text-success' : 'text-destructive',
                     )}>
                       {isPositive ? '+' : ''}{m.qty_change.toLocaleString()}
@@ -277,7 +277,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           </Button>
           <span className="shrink-0">
             แสดง{' '}
-            <span className="font-semibold text-foreground tabular-nums">
+            <span className="font-semibold text-foreground">
               {filteredMovements.length}
             </span>
             {movements && movementTypeFilter.size > 0 ? <> / {movements.length}</> : null}

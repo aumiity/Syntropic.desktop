@@ -171,12 +171,12 @@ export default function NegativeStockPage() {
                     {showColDate && <TableCell className="text-sm whitespace-nowrap">{formatDateTime(r.sold_at)}</TableCell>}
                     <TableCell className="min-w-56 text-sm font-medium truncate" title={r.trade_name}>{r.trade_name}</TableCell>
                     {showColShortfall && (
-                      <TableCell className="text-center text-sm font-bold tabular-nums text-destructive whitespace-nowrap">
+                      <TableCell className="text-center text-sm font-bold text-destructive whitespace-nowrap">
                         {r.qty.toLocaleString()} {r.unit_name && <span className="text-xs text-foreground-subtle ml-0.5">{r.unit_name}</span>}
                       </TableCell>
                     )}
                     {showColAvailable && (
-                      <TableCell className={`text-right text-sm tabular-nums whitespace-nowrap ${canReconcile ? 'text-success font-semibold' : 'text-foreground-subtle'}`}>
+                      <TableCell className={`text-right text-sm whitespace-nowrap ${canReconcile ? 'text-success font-semibold' : 'text-foreground-subtle'}`}>
                         {r.available_stock.toLocaleString()}
                       </TableCell>
                     )}
@@ -210,7 +210,7 @@ export default function NegativeStockPage() {
 
         <div className="h-12 px-5 bg-card border-t border-border flex items-center justify-between text-sm shrink-0">
           <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{rows.length.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{rows.length.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>
@@ -239,7 +239,7 @@ export default function NegativeStockPage() {
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-muted-foreground shrink-0">จำนวนค้าง</span>
-                    <span className="font-semibold text-destructive tabular-nums">
+                    <span className="font-semibold text-destructive">
                       {confirming.row.qty.toLocaleString()} {confirming.row.unit_name}
                     </span>
                   </div>
@@ -248,13 +248,13 @@ export default function NegativeStockPage() {
                 {confirming.kind === 'reconcile' ? (
                   <>
                     <div className="rounded-xl bg-success-soft p-3 text-sm text-success leading-relaxed">
-                      จะตัดสต๊อก <span className="font-bold tabular-nums">
+                      จะตัดสต๊อก <span className="font-bold">
                         {Math.min(confirming.row.qty, confirming.row.available_stock).toLocaleString()}
                       </span> {confirming.row.unit_name} จากล็อตปัจจุบัน (FEFO)
                     </div>
                     {confirming.row.available_stock < confirming.row.qty && (
                       <div className="rounded-xl bg-warning-soft p-3 text-sm text-warning-strong leading-relaxed">
-                        สต๊อกปัจจุบันไม่พอตัดครบ — เหลือค้าง <span className="font-bold tabular-nums">
+                        สต๊อกปัจจุบันไม่พอตัดครบ — เหลือค้าง <span className="font-bold">
                           {(confirming.row.qty - confirming.row.available_stock).toLocaleString()}
                         </span> {confirming.row.unit_name}
                       </div>

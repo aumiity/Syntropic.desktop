@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -28,6 +29,19 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 )
 Input.displayName = "Input"
 
-export { Input }
+const SearchInput = React.forwardRef<
+  HTMLInputElement,
+  React.ComponentProps<"input"> & { wrapperClassName?: string }
+>(({ className, wrapperClassName, ...props }, ref) => {
+  return (
+    <div className={cn("relative w-96 shrink-0", wrapperClassName)}>
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+      <Input ref={ref} className={cn("pl-9", className)} {...props} />
+    </div>
+  )
+})
+SearchInput.displayName = "SearchInput"
+
+export { Input, SearchInput }
 
 

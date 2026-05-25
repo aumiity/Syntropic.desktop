@@ -457,11 +457,11 @@ export default function ReportsDashboardPage() {
                           <div className="px-3 py-2 space-y-1">
                             <div className="flex justify-between gap-3">
                               <span className="text-background/70">บิล</span>
-                              <span className="font-semibold tabular-nums">{p.bills.toLocaleString()}</span>
+                              <span className="font-semibold">{p.bills.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between gap-3">
                               <span className="text-background/70">ยอดขาย</span>
-                              <span className="font-semibold tabular-nums">{formatCurrency(p.sales)}</span>
+                              <span className="font-semibold">{formatCurrency(p.sales)}</span>
                             </div>
                           </div>
                         </div>
@@ -588,11 +588,11 @@ export default function ReportsDashboardPage() {
               {inactive.map((r) => (
                 <TableRow key={r.product_id} className="cursor-pointer" onClick={() => navigate(`/products/${r.product_id}/edit`)}>
                   <TableCell className="text-sm font-medium">{r.trade_name}</TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell className="text-right">
                     {(r.qty_on_hand ?? 0).toLocaleString()} {r.unit_name ?? ''}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCurrency(r.cost_value ?? 0)}</TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell className="text-right">{formatCurrency(r.cost_value ?? 0)}</TableCell>
+                  <TableCell className="text-right">
                     {r.avg_monthly_6m > 0 ? `${r.avg_monthly_6m.toFixed(1)}` : '—'}
                   </TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground">
@@ -660,24 +660,24 @@ export default function ReportsDashboardPage() {
                         <Badge variant="warning" className="ml-2 text-xs">ข้อมูลยังน้อย</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell className="text-right">
                       {(r.current_stock ?? 0).toLocaleString()} {r.unit_name ?? ''}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{r.avg_monthly_6m.toFixed(1)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.avg_daily.toFixed(2)}</TableCell>
-                    <TableCell className={cn('text-right tabular-nums font-semibold', coverCls)}>
+                    <TableCell className="text-right">{r.avg_monthly_6m.toFixed(1)}</TableCell>
+                    <TableCell className="text-right">{r.avg_daily.toFixed(2)}</TableCell>
+                    <TableCell className={cn('text-right font-semibold', coverCls)}>
                       {cover == null ? '—' : Math.round(cover).toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                    <TableCell className="text-right text-muted-foreground">
                       {r.reorder_point != null ? r.reorder_point.toLocaleString() : '—'}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                    <TableCell className="text-right text-muted-foreground">
                       {r.safety_stock != null ? r.safety_stock.toLocaleString() : '—'}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-info-soft-foreground">
+                    <TableCell className="text-right font-semibold text-info-soft-foreground">
                       {r.suggested_reorder_point.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-info-soft-foreground">
+                    <TableCell className="text-right font-semibold text-info-soft-foreground">
                       {r.suggested_safety_stock.toLocaleString()}
                     </TableCell>
                     <TableCell></TableCell>
@@ -709,7 +709,7 @@ export default function ReportsDashboardPage() {
         </div>
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <span className="text-sm text-muted-foreground">รวมหนี้ค้างทั้งหมด</span>
-          <span className="text-base font-bold tabular-nums text-foreground">{formatCurrency(ap.total)}</span>
+          <span className="text-base font-bold text-foreground">{formatCurrency(ap.total)}</span>
         </div>
       </SectionCard>
 
@@ -736,7 +736,7 @@ function payRow(label: string, value: string) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-semibold tabular-nums text-foreground">{value}</span>
+      <span className="text-sm font-semibold text-foreground">{value}</span>
     </div>
   )
 }
@@ -757,7 +757,7 @@ function agingTile(label: string, amount: number, tint: MetricTint) {
   return (
     <div className="bg-muted rounded-lg px-3 py-2.5">
       <div className="text-sm text-muted-foreground">{label}</div>
-      <div className={cn('text-lg font-bold tabular-nums leading-tight mt-0.5', colorCls)}>
+      <div className={cn('text-lg font-bold leading-tight mt-0.5', colorCls)}>
         {formatCurrency(amount)}
       </div>
     </div>
@@ -775,7 +775,7 @@ function saleTypeBox(label: string, value: number, tint: MetricTint) {
   return (
     <div className="bg-muted rounded-lg px-3 py-2.5">
       <div className="text-sm text-muted-foreground">{label}</div>
-      <div className={cn('text-2xl font-bold tabular-nums leading-tight mt-0.5', colorCls)}>
+      <div className={cn('text-2xl font-bold leading-tight mt-0.5', colorCls)}>
         {value.toLocaleString()}
       </div>
     </div>

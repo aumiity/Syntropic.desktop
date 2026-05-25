@@ -39,7 +39,7 @@ function ChartTooltip({ active, payload, label, granularity }: any) {
           <div key={i} className="flex items-center gap-2 whitespace-nowrap">
             <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
             <span className="text-background/70 flex-1">{p.name}</span>
-            <span className="font-semibold tabular-nums">{formatCurrency(p.value)}</span>
+            <span className="font-semibold">{formatCurrency(p.value)}</span>
           </div>
         ))}
       </div>

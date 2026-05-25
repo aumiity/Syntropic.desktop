@@ -4,11 +4,12 @@ import { useOutletContext } from 'react-router-dom'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Input, SearchInput } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { DateInput } from '@/components/ui/date-input'
-import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { DateRangePicker, resolveDateRangePreset, type DateRangePresetKey } from '@/components/ui/date-range-picker'
+import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
@@ -21,7 +22,7 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import type { ManageOutletContext } from './index'
 import {
-  Search, X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Info, Check, Settings2,
+  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Info, Check, Settings2,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -53,11 +54,35 @@ type SortField = 'created_at' | 'invoice_no' | 'total_cost'
 type SortDir = 'asc' | 'desc'
 interface SortState { by: SortField; dir: SortDir }
 
+interface PurchasesPrefs {
+  histPageSize: PageSize
+  histSort: SortState
+  datePreset: DateRangePresetKey | null
+  showColDate: boolean
+  showColSupplier: boolean
+  showColItems: boolean
+  showColTotal: boolean
+  showColStatus: boolean
+}
+
+const PURCHASES_DEFAULTS: PurchasesPrefs = {
+  histPageSize: 50,
+  histSort: { by: 'created_at', dir: 'desc' },
+  datePreset: 'thisMonth',
+  showColDate: true,
+  showColSupplier: true,
+  showColItems: true,
+  showColTotal: true,
+  showColStatus: true,
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ManagePurchasesPage() {
   const { toast } = useToast()
   const { setSummary: setSlotSummary } = useOutletContext<ManageOutletContext>()
+
+  const [prefs, setPrefs] = usePagePrefs<PurchasesPrefs>('purchases', PURCHASES_DEFAULTS)
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
 
@@ -65,23 +90,29 @@ export default function ManagePurchasesPage() {
   const [history, setHistory] = useState<HistoryRow[]>([])
   const [histTotal, setHistTotal] = useState(0)
   const [histPage, setHistPage] = useState(1)
-  const [histPageSize, setHistPageSize] = useState<PageSize>(50)
+  // Recompute the date range fresh from the persisted preset on mount, so a
+  // "this month" preset doesn't show last month's data after a month rolls over.
+  const initialRange = prefs.datePreset
+    ? resolveDateRangePreset(prefs.datePreset)
+    : { from: new Date().toISOString().slice(0, 8) + '01', to: new Date().toISOString().slice(0, 10) }
+  const histPageSize = prefs.histPageSize
+  const setHistPageSize = (v: PageSize) => setPrefs({ histPageSize: v })
   const [histQ, setHistQ] = useState('')
   const [histSupplierId, setHistSupplierId] = useState<number>(0)
-  const [histDateFrom, setHistDateFrom] = useState(() => {
-    const t = new Date().toISOString().split('T')[0]
-    return t.slice(0, 8) + '01'
-  })
-  const [histDateTo, setHistDateTo] = useState(() => new Date().toISOString().split('T')[0])
+  const [histDateFrom, setHistDateFrom] = useState(initialRange.from)
+  const [histDateTo, setHistDateTo] = useState(initialRange.to)
   const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'unpaid' | 'cancelled'>('all')
   const [histSummary, setHistSummary] = useState({ count: 0, cash_count: 0, credit_count: 0, unpaid_count: 0, cancelled_count: 0 })
-  const [histSort, setHistSort] = useState<SortState>({ by: 'created_at', dir: 'desc' })
+  const histSort = prefs.histSort
+  const setHistSort = (next: SortState | ((prev: SortState) => SortState)) => {
+    setPrefs({ histSort: typeof next === 'function' ? next(prefs.histSort) : next })
+  }
   // Column visibility (เลขที่ใบรับ + จัดการ always shown)
-  const [showColDate, setShowColDate] = useState(true)
-  const [showColSupplier, setShowColSupplier] = useState(true)
-  const [showColItems, setShowColItems] = useState(true)
-  const [showColTotal, setShowColTotal] = useState(true)
-  const [showColStatus, setShowColStatus] = useState(true)
+  const showColDate = prefs.showColDate
+  const showColSupplier = prefs.showColSupplier
+  const showColItems = prefs.showColItems
+  const showColTotal = prefs.showColTotal
+  const showColStatus = prefs.showColStatus
   const [loadingHist, setLoadingHist] = useState(false)
 
   // Receipt detail dialog — selectedInvoice drives PurchaseReceiptDialog
@@ -369,15 +400,11 @@ export default function ManagePurchasesPage() {
 
         {/* Filter strip — search left, filters right (showcase top bar) */}
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={histQ}
-              onChange={e => setHistQ(e.target.value)}
-              placeholder="ค้นหาเลขที่ใบรับ..."
-              className="h-10 pl-9 rounded-lg text-sm bg-input"
-            />
-          </div>
+          <SearchInput
+            value={histQ}
+            onChange={e => setHistQ(e.target.value)}
+            placeholder="ค้นหาเลขที่ใบรับ..."
+          />
           <div className="w-80 shrink-0">
             <Combobox
               items={suppliers}
@@ -401,11 +428,12 @@ export default function ManagePurchasesPage() {
                 setHistDateTo(to)
                 loadHistory(1, undefined, { from, to }, true)
               }}
+              onPresetChange={key => setPrefs({ datePreset: key })}
             />
           </div>
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0 ml-auto" title="ตัวเลือกการแสดงผล">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
@@ -414,23 +442,23 @@ export default function ManagePurchasesPage() {
                 <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColDate} onCheckedChange={v => setShowColDate(v === true)} />
+                <Checkbox checked={showColDate} onCheckedChange={v => setPrefs({ showColDate: v === true })} />
                 <span className="text-sm">วันที่</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColSupplier} onCheckedChange={v => setShowColSupplier(v === true)} />
+                <Checkbox checked={showColSupplier} onCheckedChange={v => setPrefs({ showColSupplier: v === true })} />
                 <span className="text-sm">ผู้จัดจำหน่าย</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColItems} onCheckedChange={v => setShowColItems(v === true)} />
+                <Checkbox checked={showColItems} onCheckedChange={v => setPrefs({ showColItems: v === true })} />
                 <span className="text-sm">รายการ</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColTotal} onCheckedChange={v => setShowColTotal(v === true)} />
+                <Checkbox checked={showColTotal} onCheckedChange={v => setPrefs({ showColTotal: v === true })} />
                 <span className="text-sm">ยอดรวม</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
+                <Checkbox checked={showColStatus} onCheckedChange={v => setPrefs({ showColStatus: v === true })} />
                 <span className="text-sm">สถานะ</span>
               </label>
             </PopoverContent>
@@ -477,9 +505,9 @@ export default function ManagePurchasesPage() {
                       {h.invoice_no}
                     </TableCell>
                     {showColSupplier && <TableCell className="truncate">{h.supplier_name ?? '—'}</TableCell>}
-                    {showColItems && <TableCell className="text-center tabular-nums">{h.item_count}</TableCell>}
+                    {showColItems && <TableCell className="text-center">{h.item_count}</TableCell>}
                     {showColTotal && (
-                      <TableCell className={`text-right font-semibold tabular-nums ${isCancelled ? 'text-foreground-subtle line-through' : ''}`}>
+                      <TableCell className={`text-right font-semibold ${isCancelled ? 'text-foreground-subtle line-through' : ''}`}>
                         {formatCurrency(h.total_cost)}
                       </TableCell>
                     )}
@@ -536,7 +564,7 @@ export default function ManagePurchasesPage() {
             <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loadingHist ? 'กำลังโหลด...' : <>จำนวนบิลในหน้านี้ <span className="font-semibold text-foreground tabular-nums">{history.length.toLocaleString()}</span> บิล</>}
+            {loadingHist ? 'กำลังโหลด...' : <>จำนวนบิลในหน้านี้ <span className="font-semibold text-foreground">{history.length.toLocaleString()}</span> บิล</>}
           </span>
         </div>
       </div>

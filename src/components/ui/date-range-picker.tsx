@@ -45,18 +45,22 @@ function endOfMonth(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0)
 }
 
+export type DateRangePresetKey = 'today' | 'yesterday' | 'last7d' | 'last30d' | 'thisMonth' | 'lastMonth' | 'thisYear'
+
 interface Preset {
+  key: DateRangePresetKey
   label: string
-  range: () => { from: Date; to: Date } | null
+  range: () => { from: Date; to: Date }
 }
 
 const PRESETS: Preset[] = [
-  { label: 'วันนี้', range: () => { const t = startOfDay(new Date()); return { from: t, to: t } } },
-  { label: 'เมื่อวาน', range: () => { const t = startOfDay(addDays(new Date(), -1)); return { from: t, to: t } } },
-  { label: '7 วันล่าสุด', range: () => { const t = startOfDay(new Date()); return { from: addDays(t, -6), to: t } } },
-  { label: '30 วันล่าสุด', range: () => { const t = startOfDay(new Date()); return { from: addDays(t, -29), to: t } } },
-  { label: 'เดือนนี้', range: () => { const t = new Date(); return { from: startOfMonth(t), to: endOfMonth(t) } } },
+  { key: 'today', label: 'วันนี้', range: () => { const t = startOfDay(new Date()); return { from: t, to: t } } },
+  { key: 'yesterday', label: 'เมื่อวาน', range: () => { const t = startOfDay(addDays(new Date(), -1)); return { from: t, to: t } } },
+  { key: 'last7d', label: '7 วันล่าสุด', range: () => { const t = startOfDay(new Date()); return { from: addDays(t, -6), to: t } } },
+  { key: 'last30d', label: '30 วันล่าสุด', range: () => { const t = startOfDay(new Date()); return { from: addDays(t, -29), to: t } } },
+  { key: 'thisMonth', label: 'เดือนนี้', range: () => { const t = new Date(); return { from: startOfMonth(t), to: endOfMonth(t) } } },
   {
+    key: 'lastMonth',
     label: 'เดือนที่แล้ว',
     range: () => {
       const t = new Date()
@@ -64,13 +68,29 @@ const PRESETS: Preset[] = [
       return { from: startOfMonth(lm), to: endOfMonth(lm) }
     },
   },
-  { label: 'ปีนี้', range: () => { const y = new Date().getFullYear(); return { from: new Date(y, 0, 1), to: new Date(y, 11, 31) } } },
+  { key: 'thisYear', label: 'ปีนี้', range: () => { const y = new Date().getFullYear(); return { from: new Date(y, 0, 1), to: new Date(y, 11, 31) } } },
 ]
+
+// Compute {from, to} ISO strings from a preset key — used by pages that persist
+// a preset and want to recompute current dates on mount.
+export function resolveDateRangePreset(key: DateRangePresetKey): { from: string; to: string } {
+  const p = PRESETS.find(x => x.key === key)
+  if (!p) {
+    const t = startOfDay(new Date())
+    return { from: dateToIso(t), to: dateToIso(t) }
+  }
+  const r = p.range()
+  return { from: dateToIso(r.from), to: dateToIso(r.to) }
+}
 
 interface DateRangePickerProps {
   from: string  // ISO yyyy-mm-dd
   to: string
   onChange: (from: string, to: string) => void
+  // Emits which preset the user picked (or null when they pick custom dates from
+  // the calendar). Pages that want to persist a "rolling" range save this key
+  // and recompute the actual dates via resolveDateRangePreset() on mount.
+  onPresetChange?: (key: DateRangePresetKey | null) => void
   className?: string
   placeholder?: string
   align?: 'start' | 'center' | 'end'
@@ -80,6 +100,7 @@ export function DateRangePicker({
   from,
   to,
   onChange,
+  onPresetChange,
   className,
   placeholder = 'เลือกช่วงวันที่',
   align = 'start',
@@ -98,22 +119,24 @@ export function DateRangePicker({
         ? isoToDisplay(from)
         : isoToDisplay(to)
 
-  const apply = (next?: { from: Date; to: Date } | null) => {
+  const apply = (next: { from: Date; to: Date } | null, presetKey: DateRangePresetKey | null) => {
     if (!next) {
       onChange('', '')
     } else {
       onChange(dateToIso(next.from), dateToIso(next.to))
     }
+    onPresetChange?.(presetKey)
     setOpen(false)
   }
 
   const onPickRange = (r: DateRange | undefined) => {
-    if (!r) { onChange('', ''); return }
+    if (!r) { onChange('', ''); onPresetChange?.(null); return }
     if (r.from && r.to) {
-      apply({ from: r.from, to: r.to })
+      apply({ from: r.from, to: r.to }, null)
     } else if (r.from && !r.to) {
       // First click — keep popover open, write just the start so user sees it
       onChange(dateToIso(r.from), '')
+      onPresetChange?.(null)
     }
   }
 
@@ -144,11 +167,11 @@ export function DateRangePicker({
             <div className="flex flex-col gap-0.5">
               {PRESETS.map(p => (
                 <Button
-                  key={p.label}
+                  key={p.key}
                   variant="ghost"
                   size="sm"
                   className="justify-start h-8 px-3 text-sm font-normal hover:bg-primary-soft hover:text-primary"
-                  onClick={() => apply(p.range())}
+                  onClick={() => apply(p.range(), p.key)}
                 >
                   {p.label}
                 </Button>

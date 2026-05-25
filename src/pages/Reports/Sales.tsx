@@ -51,7 +51,7 @@ function payRow(label: string, value: number, muted = false) {
   return (
     <div className="flex items-center justify-between">
       <span className={`text-sm ${muted ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>{label}</span>
-      <span className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(value)}</span>
+      <span className="text-sm font-semibold text-foreground">{formatCurrency(value)}</span>
     </div>
   )
 }
@@ -159,14 +159,14 @@ export default function ReportsSalesPage() {
           {payRow('ส่วนลดขาย', sum.sales_discount, true)}
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <span className="text-sm font-semibold text-foreground">ยอดขายสุทธิ</span>
-            <span className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(sum.sales_net)}</span>
+            <span className="text-sm font-bold text-foreground">{formatCurrency(sum.sales_net)}</span>
           </div>
           {payRow('ต้นทุนขาย', sum.sales_cost, true)}
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <span className="text-sm font-semibold text-foreground">
               กำไรขั้นต้น{margin ? <span className="text-muted-foreground font-normal"> · {margin}</span> : ''}
             </span>
-            <span className={`text-sm font-bold tabular-nums ${sum.sales_profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+            <span className={`text-sm font-bold ${sum.sales_profit >= 0 ? 'text-success' : 'text-destructive'}`}>
               {formatCurrency(sum.sales_profit)}
             </span>
           </div>
@@ -178,7 +178,7 @@ export default function ReportsSalesPage() {
           {payRow('เงินโอน', sum.transfer_amount)}
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <span className="text-sm text-muted-foreground">บิลเครดิต (ค้างชำระ)</span>
-            <span className="text-sm font-semibold tabular-nums text-warning-strong">{sum.credit_count.toLocaleString()} บิล</span>
+            <span className="text-sm font-semibold text-warning-strong">{sum.credit_count.toLocaleString()} บิล</span>
           </div>
         </SectionCard>
       </div>
@@ -212,10 +212,10 @@ export default function ReportsSalesPage() {
                 </TableRow>
               ) : trend.map(r => (
                 <TableRow key={r.date}>
-                  <TableCell className="text-sm tabular-nums">{formatDate(r.date)}</TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-foreground">{formatCurrency(r.sales_net)}</TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(r.sales_cost)}</TableCell>
-                  <TableCell className={`text-right text-sm font-semibold tabular-nums ${r.sales_profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  <TableCell className="text-sm">{formatDate(r.date)}</TableCell>
+                  <TableCell className="text-right text-sm text-foreground">{formatCurrency(r.sales_net)}</TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(r.sales_cost)}</TableCell>
+                  <TableCell className={`text-right text-sm font-semibold ${r.sales_profit >= 0 ? 'text-success' : 'text-destructive'}`}>
                     {formatCurrency(r.sales_profit)}
                   </TableCell>
                 </TableRow>
@@ -226,7 +226,7 @@ export default function ReportsSalesPage() {
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{trend.length.toLocaleString()}</span> วัน</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{trend.length.toLocaleString()}</span> วัน</>}
           </span>
         </div>
       </div>

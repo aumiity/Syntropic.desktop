@@ -56,19 +56,21 @@ const TabsListCtx = React.createContext<{ pillId: string; showPill: boolean }>({
   showPill: false,
 })
 
-function TabsList({
-  className,
-  variant = "default",
-  children,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.List> &
-  VariantProps<typeof tabsListVariants>) {
+const TabsList = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.List>,
+  React.ComponentProps<typeof TabsPrimitive.List> &
+    VariantProps<typeof tabsListVariants>
+>(function TabsList(
+  { className, variant = "default", children, ...props },
+  ref
+) {
   const pillId = React.useId()
   const showPill: boolean = variant === "default" || variant === "pill"
 
   return (
     <TabsListCtx.Provider value={{ pillId, showPill }}>
       <TabsPrimitive.List
+        ref={ref}
         data-slot="tabs-list"
         data-variant={variant}
         className={cn(tabsListVariants({ variant }), "relative", className)}
@@ -78,7 +80,7 @@ function TabsList({
       </TabsPrimitive.List>
     </TabsListCtx.Provider>
   )
-}
+})
 
 function TabsTrigger({
   className,

@@ -140,7 +140,7 @@ export function PurchaseReceiptDialog({
                   <TableBody>
                     {items.map((item, idx) => (
                       <TableRow key={item.id}>
-                        <TableCell className="text-center tabular-nums text-muted-foreground">{idx + 1}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">{idx + 1}</TableCell>
                         <TableCell>
                           <div className="font-medium text-sm">{item.trade_name}</div>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
@@ -152,11 +152,11 @@ export function PurchaseReceiptDialog({
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{item.qty_received}</TableCell>
+                        <TableCell className="text-right">{item.qty_received}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{item.unit_name || '—'}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatCurrency(item.cost_price)}</TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">{formatCurrency(0)}</TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(item.cost_price * item.qty_received)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.cost_price)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{formatCurrency(0)}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(item.cost_price * item.qty_received)}</TableCell>
                       </TableRow>
                     ))}
                     {/* Slack-absorber — keeps tfoot pinned to the actual
@@ -179,25 +179,25 @@ export function PurchaseReceiptDialog({
                             : '[&>td]:bottom-16'
                         } [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
                           <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-muted-foreground">ราคารวม</td>
-                          <td className="px-2 py-0.5 text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(rawTotal)}</td>
+                          <td className="px-2 py-0.5 text-right text-sm text-muted-foreground">{formatCurrency(rawTotal)}</td>
                         </tr>
                         {discountAmt > 0 && (
                           <tr className={`[&>td]:sticky [&>td]:h-8 ${surchargeAmt > 0 ? '[&>td]:bottom-16' : '[&>td]:bottom-8'} [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
                             <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-warning-strong">ส่วนลด</td>
-                            <td className="px-2 py-0.5 text-right text-sm tabular-nums text-warning-strong">−{formatCurrency(discountAmt)}</td>
+                            <td className="px-2 py-0.5 text-right text-sm text-warning-strong">−{formatCurrency(discountAmt)}</td>
                           </tr>
                         )}
                         {surchargeAmt > 0 && (
                           <tr className="[&>td]:sticky [&>td]:h-8 [&>td]:bottom-8 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
                             <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-warning-strong">ส่วนเพิ่ม</td>
-                            <td className="px-2 py-0.5 text-right text-sm tabular-nums text-warning-strong">+{formatCurrency(surchargeAmt)}</td>
+                            <td className="px-2 py-0.5 text-right text-sm text-warning-strong">+{formatCurrency(surchargeAmt)}</td>
                           </tr>
                         )}
                       </>
                     )}
                     <tr className="[&>td]:sticky [&>td]:h-8 [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
                       <td colSpan={6} className="px-2 py-0.5 text-right text-sm font-bold">ยอดสุทธิ</td>
-                      <td className="px-2 py-0.5 text-right font-bold text-primary tabular-nums">{formatCurrency(finalTotal)}</td>
+                      <td className="px-2 py-0.5 text-right font-bold text-primary">{formatCurrency(finalTotal)}</td>
                     </tr>
                   </tfoot>
                 </Table>

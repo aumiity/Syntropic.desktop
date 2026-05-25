@@ -80,7 +80,7 @@ export function TitleBar() {
                   onClick={() => setSize(p.w, p.h)}
                   className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-primary-soft/60 transition-colors"
                 >
-                  <span className="tabular-nums">{p.label}</span>
+                  <span className="">{p.label}</span>
                   {p.note && (
                     <span className="text-xs text-muted-foreground">{p.note}</span>
                   )}

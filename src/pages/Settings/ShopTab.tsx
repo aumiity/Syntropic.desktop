@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/toast'
 import type { Setting } from '@/types'
 import { Store, Save } from 'lucide-react'
 
-export function ShopTab() {
+export function ShopTab({ width }: { width?: number | null }) {
   const { toast } = useToast()
   const [form, setForm] = useState<Partial<Setting>>({})
   const [saving, setSaving] = useState(false)
@@ -30,7 +30,7 @@ export function ShopTab() {
   }
 
   return (
-    <div className="pt-4">
+    <div className="pt-4 w-fit" style={width ? { width } : undefined}>
       <SectionCard
         icon={Store}
         title="ข้อมูลร้านค้า / ร้านยา"

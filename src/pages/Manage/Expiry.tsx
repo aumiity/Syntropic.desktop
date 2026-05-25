@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/input'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
@@ -13,9 +13,10 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } 
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
+import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency } from '@/lib/utils'
 import type { ManageOutletContext } from './index'
-import { Search, PackageX, ClockAlert, Settings2 } from 'lucide-react'
+import { PackageX, ClockAlert, Settings2 } from 'lucide-react'
 
 type FilterType = 'expired' | 30 | 90 | 180
 type SortField = 'trade_name' | 'expiry_date' | 'total_cost'
@@ -74,10 +75,38 @@ function renderExpiryDate(date: string | null, days: number | null) {
   return <span className={isExpired ? 'text-destructive font-medium' : 'text-sm'}>{formatted}</span>
 }
 
+interface ExpiryPrefs {
+  pageSize: PageSize
+  sort: { by: SortField; dir: SortDir }
+  showColLot: boolean
+  showColExpiry: boolean
+  showColDays: boolean
+  showColQty: boolean
+  showColUnit: boolean
+  showColCost: boolean
+  showColSupplier: boolean
+}
+
+const EXPIRY_DEFAULTS: ExpiryPrefs = {
+  pageSize: 50,
+  sort: { by: 'expiry_date', dir: 'asc' },
+  showColLot: true,
+  showColExpiry: true,
+  showColDays: false,
+  showColQty: true,
+  showColUnit: true,
+  showColCost: true,
+  showColSupplier: true,
+}
+
 export default function ManageExpiryPage() {
   const { toast } = useToast()
   const { setSummary } = useOutletContext<ManageOutletContext>()
 
+  const [prefs, setPrefs] = usePagePrefs<ExpiryPrefs>('expiry', EXPIRY_DEFAULTS)
+
+  // filter (90/30/180/expired) and categoryId are NOT persisted — they're
+  // primary navigation in this view and reset per session.
   const [filter, setFilter] = useState<FilterType>(90)
   const [categoryId, setCategoryId] = useState<string>('0')
   const [q, setQ] = useState('')
@@ -88,25 +117,29 @@ export default function ManageExpiryPage() {
   const [confirmingLot, setConfirmingLot] = useState<ExpiringLot | null>(null)
   const [expiring, setExpiring] = useState(false)
 
-  // Column visibility (ชื่อสินค้า + จัดการ always shown)
-  const [showColLot, setShowColLot] = useState(true)
-  const [showColExpiry, setShowColExpiry] = useState(true)
-  const [showColDays, setShowColDays] = useState(true)
-  const [showColQty, setShowColQty] = useState(true)
-  const [showColUnit, setShowColUnit] = useState(true)
-  const [showColCost, setShowColCost] = useState(true)
-  const [showColSupplier, setShowColSupplier] = useState(true)
+  // Column visibility (ชื่อสินค้า + จัดการ always shown) — persisted
+  const showColLot = prefs.showColLot
+  const showColExpiry = prefs.showColExpiry
+  const showColDays = prefs.showColDays
+  const showColQty = prefs.showColQty
+  const showColUnit = prefs.showColUnit
+  const showColCost = prefs.showColCost
+  const showColSupplier = prefs.showColSupplier
 
   // Server-side pagination + sort. Filter switching, sort, and search all
   // refetch — paginated payload keeps the page snappy even at 10k+ lots.
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const pageSize = prefs.pageSize
+  const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
   const [total, setTotal] = useState(0)
   const [totalCost, setTotalCost] = useState(0)
   const [counts, setCounts] = useState<ExpiryCounts>(EMPTY_COUNTS)
   const totalPages = Math.ceil(total / (pageSize as number))
 
-  const [sort, setSort] = useState<{ by: SortField; dir: SortDir }>({ by: 'expiry_date', dir: 'asc' })
+  const sort = prefs.sort
+  const setSort = (next: { by: SortField; dir: SortDir } | ((prev: { by: SortField; dir: SortDir }) => { by: SortField; dir: SortDir })) => {
+    setPrefs({ sort: typeof next === 'function' ? next(prefs.sort) : next })
+  }
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
       ? { by: field, dir: s.dir === 'asc' ? 'desc' : 'asc' }
@@ -198,15 +231,11 @@ export default function ManageExpiryPage() {
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              placeholder="ชื่อสินค้า, Lot No..."
-              className="h-10 pl-9 rounded-lg text-sm bg-input"
-            />
-          </div>
+          <SearchInput
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ชื่อสินค้า, Lot No..."
+          />
 
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger className="h-10 w-44 shrink-0">
@@ -222,7 +251,7 @@ export default function ManageExpiryPage() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0 ml-auto" title="ตัวเลือกการแสดงผล">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
@@ -231,31 +260,31 @@ export default function ManageExpiryPage() {
                 <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColLot} onCheckedChange={v => setShowColLot(v === true)} />
+                <Checkbox checked={showColLot} onCheckedChange={v => setPrefs({ showColLot: v === true })} />
                 <span className="text-sm">ล็อต</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColExpiry} onCheckedChange={v => setShowColExpiry(v === true)} />
+                <Checkbox checked={showColExpiry} onCheckedChange={v => setPrefs({ showColExpiry: v === true })} />
                 <span className="text-sm">วันหมดอายุ</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColDays} onCheckedChange={v => setShowColDays(v === true)} />
+                <Checkbox checked={showColDays} onCheckedChange={v => setPrefs({ showColDays: v === true })} />
                 <span className="text-sm">วันคงเหลือ</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColQty} onCheckedChange={v => setShowColQty(v === true)} />
+                <Checkbox checked={showColQty} onCheckedChange={v => setPrefs({ showColQty: v === true })} />
                 <span className="text-sm">คงเหลือ</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColUnit} onCheckedChange={v => setShowColUnit(v === true)} />
+                <Checkbox checked={showColUnit} onCheckedChange={v => setPrefs({ showColUnit: v === true })} />
                 <span className="text-sm">หน่วย</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColCost} onCheckedChange={v => setShowColCost(v === true)} />
+                <Checkbox checked={showColCost} onCheckedChange={v => setPrefs({ showColCost: v === true })} />
                 <span className="text-sm">ทุนรวม</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColSupplier} onCheckedChange={v => setShowColSupplier(v === true)} />
+                <Checkbox checked={showColSupplier} onCheckedChange={v => setPrefs({ showColSupplier: v === true })} />
                 <span className="text-sm">ผู้จัดจำหน่าย</span>
               </label>
             </PopoverContent>
@@ -307,12 +336,12 @@ export default function ManageExpiryPage() {
                       </TableCell>
                     )}
                     {showColDays && (
-                      <TableCell className="text-center text-sm tabular-nums">
+                      <TableCell className="text-center text-sm">
                         {renderDays(lot.days_remaining)}
                       </TableCell>
                     )}
                     {showColQty && (
-                      <TableCell className="text-right text-sm font-semibold tabular-nums">
+                      <TableCell className="text-right text-sm font-semibold">
                         {lot.qty_on_hand.toLocaleString()}
                       </TableCell>
                     )}
@@ -322,7 +351,7 @@ export default function ManageExpiryPage() {
                       </TableCell>
                     )}
                     {showColCost && (
-                      <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                      <TableCell className="text-right text-sm text-muted-foreground">
                         {formatCurrency(lot.total_cost)}
                       </TableCell>
                     )}
@@ -365,14 +394,14 @@ export default function ManageExpiryPage() {
             </Select>
             <span>รายการ</span>
             <span className="ml-3">
-              มูลค่าทั้งหมด <span className="font-semibold text-foreground tabular-nums ml-1">฿{formatCurrency(totalCost)}</span>
+              มูลค่าทั้งหมด <span className="font-semibold text-foreground ml-1">฿{formatCurrency(totalCost)}</span>
             </span>
           </div>
           <div className="flex-1 flex justify-center">
             <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{rows.length.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{rows.length.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>
@@ -390,9 +419,9 @@ export default function ManageExpiryPage() {
                 <dt className="text-muted-foreground">ล็อต</dt>
                 <dd className="font-mono">{confirmingLot.lot_number || '—'}</dd>
                 <dt className="text-muted-foreground">จำนวน</dt>
-                <dd className="tabular-nums">{confirmingLot.qty_on_hand.toLocaleString()} {confirmingLot.unit_name || ''}</dd>
+                <dd className="">{confirmingLot.qty_on_hand.toLocaleString()} {confirmingLot.unit_name || ''}</dd>
                 <dt className="text-muted-foreground">มูลค่าทุน</dt>
-                <dd className="tabular-nums">฿{formatCurrency(confirmingLot.total_cost)}</dd>
+                <dd className="">฿{formatCurrency(confirmingLot.total_cost)}</dd>
               </dl>
             </div>
             <p className="text-destructive font-medium">การดำเนินการนี้ย้อนกลับไม่ได้</p>

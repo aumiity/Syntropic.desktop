@@ -56,7 +56,7 @@ export function UnitPickerDialog<T extends UnitPickerOption>({
                       {isBase ? (
                         <Badge variant="tertiary" className="rounded-lg">หลัก</Badge>
                       ) : (
-                        <div className="flex flex-col items-end gap-1 text-sm font-normal leading-normal tabular-nums">
+                        <div className="flex flex-col items-end gap-1 text-sm font-normal leading-normal">
                           <span>บรรจุ {qpb} {baseUnitName}</span>
                           {(u.price_retail ?? 0) > 0 && (
                             <span className="text-muted-foreground">คิดเป็น {formatCurrency(perBase)} / {baseUnitName}</span>

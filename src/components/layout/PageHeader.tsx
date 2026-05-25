@@ -28,7 +28,7 @@ export function PageHeader({ title, right }: PageHeaderProps) {
       <div className="absolute right-1 bottom-2 flex items-center gap-3">
         {right}
         <div className="text-base font-semibold text-foreground leading-none">
-          {dateStr} · <span className="tabular-nums">{timeStr}</span>
+          {dateStr} · <span className="">{timeStr}</span>
         </div>
       </div>
     </div>

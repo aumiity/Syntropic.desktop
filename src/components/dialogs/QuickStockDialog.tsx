@@ -119,7 +119,7 @@ export function QuickStockDialog({
           {/* Current stock summary */}
           <div className="rounded-lg bg-muted/40 px-3 py-2 flex items-center justify-between">
             <span className="text-sm text-muted-foreground">คงเหลือ</span>
-            <span className="text-base font-bold tabular-nums text-foreground">
+            <span className="text-base font-bold text-foreground">
               {target?.stock_qty.toLocaleString()}
               {target?.unit_name && <span className="text-sm font-normal text-muted-foreground ml-1.5">{target.unit_name}</span>}
             </span>
@@ -154,7 +154,7 @@ export function QuickStockDialog({
               <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">เฉลี่ย / เดือน</span>
                 {monthlySales
-                  ? <span className="text-base font-bold text-warm-foreground tabular-nums">{monthlySales.avg_per_month.toFixed(2)}</span>
+                  ? <span className="text-base font-bold text-warm-foreground">{monthlySales.avg_per_month.toFixed(2)}</span>
                   : <span className="text-sm text-foreground-subtle">—</span>}
               </div>
               <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
@@ -162,7 +162,7 @@ export function QuickStockDialog({
                   {monthlySales ? formatThaiMonth(monthlySales.current_month.ym) : 'เดือนปัจจุบัน'}
                 </span>
                 {monthlySales
-                  ? <span className="text-base font-bold text-warm-foreground tabular-nums">{monthlySales.current_month.qty.toFixed(2)}</span>
+                  ? <span className="text-base font-bold text-warm-foreground">{monthlySales.current_month.qty.toFixed(2)}</span>
                   : <span className="text-sm text-foreground-subtle">—</span>}
               </div>
             </div>
@@ -179,7 +179,7 @@ export function QuickStockDialog({
                     {monthlySales ? formatThaiMonth(h.ym) : '—'}
                   </span>
                   {monthlySales
-                    ? <span className="font-semibold text-foreground tabular-nums">{h.qty.toFixed(2)}</span>
+                    ? <span className="font-semibold text-foreground">{h.qty.toFixed(2)}</span>
                     : <span className="text-foreground-subtle">—</span>}
                 </div>
               ))}

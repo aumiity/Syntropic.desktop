@@ -212,6 +212,31 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
 
 
 @font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/Inter_18pt-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/Inter_18pt-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/Inter_18pt-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/Inter_18pt-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
   font-family: 'Google Sans';
   src: url('./assets/fonts/GoogleSans-Regular.ttf') format('truetype');
   font-weight: 400;
@@ -236,35 +261,47 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   font-style: normal;
 }
 
+/* Thai-only fonts get unicode-range scoped to the Thai block (U+0E00-0E7F).
+   Without this, Chromium's per-run script selection routes digit-only/Common-
+   script runs (e.g. "1,525" in a KPI card) to the Thai font because the
+   element has no surrounding Latin letters to anchor the run as Latin —
+   producing two different digit styles in the same page. Scoping the
+   @font-face restricts these fonts to Thai code points only, forcing every
+   non-Thai character to use the Latin font in the stack instead. */
 @font-face {
   font-family: 'IBM Plex Sans Thai Looped';
   src: url('./assets/fonts/IBMPlexSansThaiLooped-Light.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 @font-face {
   font-family: 'IBM Plex Sans Thai Looped';
   src: url('./assets/fonts/IBMPlexSansThaiLooped-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 @font-face {
   font-family: 'IBM Plex Sans Thai Looped';
   src: url('./assets/fonts/IBMPlexSansThaiLooped-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 @font-face {
   font-family: 'IBM Plex Sans Thai Looped';
   src: url('./assets/fonts/IBMPlexSansThaiLooped-SemiBold.ttf') format('truetype');
   font-weight: 600;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 @font-face {
   font-family: 'IBM Plex Sans Thai Looped';
   src: url('./assets/fonts/IBMPlexSansThaiLooped-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 
 @font-face {
@@ -324,30 +361,45 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   src: url('./assets/fonts/IBMPlexSansThai-Light.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 @font-face {
   font-family: 'IBM Plex Sans Thai';
   src: url('./assets/fonts/IBMPlexSansThai-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 @font-face {
   font-family: 'IBM Plex Sans Thai';
   src: url('./assets/fonts/IBMPlexSansThai-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 @font-face {
   font-family: 'IBM Plex Sans Thai';
   src: url('./assets/fonts/IBMPlexSansThai-SemiBold.ttf') format('truetype');
   font-weight: 600;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 @font-face {
   font-family: 'IBM Plex Sans Thai';
   src: url('./assets/fonts/IBMPlexSansThai-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
+}
+
+/* Sarabun is shipped by Windows as a system font (no .ttf in assets/).
+   We re-declare it via local() so we can attach unicode-range — without this,
+   Chromium picks system-Sarabun for digit-only runs since it bypasses our
+   bundled Thai fonts and their scoping. */
+@font-face {
+  font-family: 'Sarabun';
+  src: local('Sarabun');
+  unicode-range: U+0E00-0E7F;
 }
 
 /* Noto Sans Thai — variable font (weights 100–900, widths 62.5–100) */
@@ -357,6 +409,7 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   font-weight: 100 900;
   font-stretch: 62.5% 100%;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 
 /* Noto Sans Thai Looped — variable font (weights 100–900, widths 62.5–100) */
@@ -366,6 +419,7 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   font-weight: 100 900;
   font-stretch: 62.5% 100%;
   font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 
 * {

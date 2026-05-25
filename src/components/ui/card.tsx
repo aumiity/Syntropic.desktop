@@ -212,11 +212,11 @@ function MetricCard({
         <div className="flex flex-col min-w-0 flex-1 text-left">
           <div className={cn("text-sm font-semibold text-foreground truncate leading-tight", labelClassName)} title={label}>{label}</div>
           <div className="flex items-baseline gap-1.5 min-w-0">
-            <span className={cn("text-lg font-bold tabular-nums leading-none truncate", valColor, valueClassName)} title={value}>{value}</span>
+            <span className={cn("text-lg font-bold leading-none truncate", valColor, valueClassName)} title={value}>{value}</span>
             {unit && <span className="text-sm font-semibold text-muted-foreground truncate" title={unit}>{unit}</span>}
             {badge && <span className="ml-auto shrink-0 self-center">{badge}</span>}
           </div>
-          {sub && <div className={cn("text-sm font-semibold tabular-nums truncate leading-tight", accentColor, subClassName)} title={subTitle ?? sub}>{sub}</div>}
+          {sub && <div className={cn("text-sm font-semibold truncate leading-tight", accentColor, subClassName)} title={subTitle ?? sub}>{sub}</div>}
         </div>
         <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
           <Icon className="size-7" />
@@ -272,7 +272,7 @@ function MetricCard({
         <div className="flex items-baseline gap-1.5 mt-1 min-w-0 [container-type:inline-size]">
           <span
             className={cn(
-              "font-bold tabular-nums leading-none truncate",
+              "font-bold leading-none truncate",
               "text-[clamp(0.875rem,14cqi,1.875rem)]",
               valColor,
               valueClassName,
@@ -283,7 +283,7 @@ function MetricCard({
           </span>
           {unit && <span className="text-sm font-semibold text-muted-foreground truncate" title={unit}>{unit}</span>}
         </div>
-        {sub && <div className={cn("font-semibold text-sm tabular-nums leading-tight truncate", accentColor, subClassName)} title={subTitle}>{sub}</div>}
+        {sub && <div className={cn("font-semibold text-sm leading-tight truncate", accentColor, subClassName)} title={subTitle}>{sub}</div>}
         {badge && <div className="mt-1.5">{badge}</div>}
       </div>
     </>
@@ -371,7 +371,7 @@ function StatCard({
     >
       <div className="flex flex-col min-w-0 flex-1 text-left">
         <span className="text-base text-foreground font-semibold truncate">{label}</span>
-        <span className="text-3xl font-bold tabular-nums leading-tight">{value}</span>
+        <span className="text-3xl font-bold leading-tight">{value}</span>
       </div>
       <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
         <Icon className="size-7" />

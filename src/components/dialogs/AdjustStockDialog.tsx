@@ -236,9 +236,9 @@ export function AdjustStockDialog({
                 <div className="font-semibold text-base truncate">{target.trade_name}</div>
                 <div className="flex gap-2 text-sm text-muted-foreground mt-1">
                   สต็อกปัจจุบัน :{' '}
-                  <span className="font-semibold text-foreground tabular-nums">{target.stock_qty.toLocaleString()}</span>{' '}
+                  <span className="font-semibold text-foreground">{target.stock_qty.toLocaleString()}</span>{' '}
                   {target.unit_name ?? 'ชิ้น'} | จำนวน
-                  <span className="tabular-nums font-semibold">{openLotsSummary.length}</span> ล็อต
+                  <span className="font-semibold">{openLotsSummary.length}</span> ล็อต
                 </div>
               </div>
             )}
@@ -249,7 +249,7 @@ export function AdjustStockDialog({
               </label>
               <div className="flex items-center gap-3">
                 <span
-                  className={`inline-flex flex-1 basis-0 items-center justify-center gap-1.5 rounded-lg px-3 h-10 text-base font-semibold tabular-nums ${
+                  className={`inline-flex flex-1 basis-0 items-center justify-center gap-1.5 rounded-lg px-3 h-10 text-base font-semibold ${
                     adjustDelta === null
                       ? 'bg-muted text-muted-foreground/60'
                       : adjustDelta > 0
@@ -273,7 +273,7 @@ export function AdjustStockDialog({
                   onChange={e => setAdjustTarget(e.target.value)}
                   placeholder="0"
                   min={0}
-                  className="h-10 rounded-lg text-lg font-semibold tabular-nums flex-1 basis-0 text-right"
+                  className="h-10 rounded-lg text-lg font-semibold flex-1 basis-0 text-right"
                   autoFocus
                 />
               </div>
@@ -294,7 +294,7 @@ export function AdjustStockDialog({
                           <span className="font-mono font-semibold text-foreground truncate">{lot.lot_number}</span>
                           <span className="text-muted-foreground shrink-0">exp {formatExp(lot.expiry_date)}</span>
                         </span>
-                        <span className="flex items-center gap-4 shrink-0 tabular-nums">
+                        <span className="flex items-center gap-4 shrink-0">
                           <span>
                             <span className="text-muted-foreground">เดิม</span>{' '}
                             <span className="font-semibold text-foreground">{lot.qty_on_hand.toLocaleString()}</span>
@@ -407,8 +407,8 @@ export function AdjustStockDialog({
                           {selectedTargetLot ? (
                             <>
                               <span><span className="font-medium">หมดอายุ :</span> {formatExp(selectedTargetLot.expiry_date)}</span>
-                              <span className="tabular-nums"><span className="font-medium">คงเหลือ :</span> {selectedTargetLot.qty_on_hand.toLocaleString()}</span>
-                              <span className="tabular-nums"><span className="font-medium">ต้นทุน :</span> {formatCurrency(selectedTargetLot.cost_price)}</span>
+                              <span className=""><span className="font-medium">คงเหลือ :</span> {selectedTargetLot.qty_on_hand.toLocaleString()}</span>
+                              <span className=""><span className="font-medium">ต้นทุน :</span> {formatCurrency(selectedTargetLot.cost_price)}</span>
                             </>
                           ) : (
                             <span className="text-muted-foreground/60">—</span>
@@ -436,7 +436,7 @@ export function AdjustStockDialog({
                           <Info className="size-3.5" />
                           <span>ต้นทุนเฉลี่ยใหม่</span>
                         </label>
-                        <div className="h-10 px-3 flex items-center bg-muted rounded-lg text-sm tabular-nums">
+                        <div className="h-10 px-3 flex items-center bg-muted rounded-lg text-sm">
                           {mergedLotPreview ? (
                             <span>
                               <span className="text-muted-foreground">{formatCurrency(mergedLotPreview.lot.cost_price)}</span>

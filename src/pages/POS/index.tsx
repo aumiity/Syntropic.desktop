@@ -738,11 +738,11 @@ export default function POSPage() {
                   </span>
                   <span className="relative z-10 text-sm font-semibold leading-none pr-12">รายการขาย {i + 1}</span>
                   <div className="relative z-10 flex flex-col gap-1 w-full min-w-0 mt-auto">
-                    <span className="text-2xl font-bold tabular-nums leading-none truncate">
+                    <span className="text-2xl font-bold leading-none truncate">
                       {formatCurrency(total)}
                     </span>
                     <div className="flex items-center justify-between w-full">
-                      <span className={`text-sm tabular-nums leading-none ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                      <span className={`text-sm leading-none ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                         {pieces} รายการ
                       </span>
                       {slot.saleType === 'wholesale' ? (
@@ -913,7 +913,7 @@ export default function POSPage() {
                             >
                               <ChevronRight className="size-3.5" />
                             </motion.span>
-                            <span className="tabular-nums text-sm">{idx + 1}</span>
+                            <span className="text-sm">{idx + 1}</span>
                           </Button>
                         ) : (
                           <>{idx + 1}</>
@@ -941,12 +941,12 @@ export default function POSPage() {
                       <TableCell className="text-center">
                         {item.product?.is_bundle ? (
                           // Bundles are base-unit-only in v1 — no unit picker, just a static label.
-                          <div className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-muted text-muted-foreground text-sm font-semibold tabular-nums">
+                          <div className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-muted text-muted-foreground text-sm font-semibold">
                             <span className="truncate">{item.unit_name}</span>
                           </div>
                         ) : (
                           <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
-                            className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-accent-soft text-warning-strong text-sm font-semibold tabular-nums hover:bg-accent-soft transition-colors">
+                            className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-accent-soft text-warning-strong text-sm font-semibold hover:bg-accent-soft transition-colors">
                             <span className="truncate">{item.unit_name}</span>
                           </Button>
                         )}
@@ -955,14 +955,14 @@ export default function POSPage() {
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm"
                           onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                          className="flex items-center w-full justify-center h-8 rounded-md bg-info-soft text-info-soft-foreground text-sm font-semibold tabular-nums hover:bg-info-soft transition-colors ">
+                          className="flex items-center w-full justify-center h-8 rounded-md bg-info-soft text-info-soft-foreground text-sm font-semibold hover:bg-info-soft transition-colors ">
                           <span className="flex-1 text-center">{item.qty}</span>
                         </Button>
                       </TableCell>
 
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
-                          className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 overflow-hidden rounded-md bg-primary-soft text-primary text-sm font-semibold tabular-nums hover:bg-primary-soft transition-colors">
+                          className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 overflow-hidden rounded-md bg-primary-soft text-primary text-sm font-semibold hover:bg-primary-soft transition-colors">
                           <span className="text-right truncate">{formatCurrency(item.unit_price)}</span>
                         </Button>
                       </TableCell>
@@ -971,19 +971,19 @@ export default function POSPage() {
                         {item.discount ? (
                           <Button variant="outline" size="sm"
                             onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
-                            className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md bg-destructive-soft text-destructive text-sm font-semibold tabular-nums hover:bg-destructive/20 transition-colors">
+                            className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md bg-destructive-soft text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors">
                             <span className="leading-none">{formatCurrency(item.discount)}</span>
                           </Button>
                         ) : (
                           <Button variant="outline" size="sm"
                             onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
-                            className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md bg-card text-destructive text-sm font-medium tabular-nums bg-destructive-soft hover:bg-destructive-soft hover:text-destructive transition-colors">
+                            className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md bg-card text-destructive text-sm font-medium bg-destructive-soft hover:bg-destructive-soft hover:text-destructive transition-colors">
                             <span className="text-right">0</span>
                           </Button>
                         )}
                       </TableCell>
 
-                      <TableCell className="text-right pr-2 font-semibold text-primary text-sm tabular-nums truncate">
+                      <TableCell className="text-right pr-2 font-semibold text-primary text-sm truncate">
                         {formatCurrency(item.line_total)}
                       </TableCell>
 
@@ -1010,7 +1010,7 @@ export default function POSPage() {
                           <TableCell className="text-center text-xs text-foreground-subtle">
                             {c.component_unit_name ?? '-'}
                           </TableCell>
-                          <TableCell className="text-center text-xs text-foreground-subtle tabular-nums">
+                          <TableCell className="text-center text-xs text-foreground-subtle">
                             {(c.qty_per_bundle ?? 1) * item.qty}
                           </TableCell>
                           <TableCell colSpan={4} />
@@ -1027,7 +1027,7 @@ export default function POSPage() {
             {cart.items.length > 0 && (
               <div className="px-5 h-12 shrink-0 flex items-center gap-6 bg-card border-t border-border">
                 <div>
-                  <div className="text-sm font-semibold text-foreground-subtle">จำนวน <span className="text-sm font-medium tabular-nums text-foreground">{cart.items.length}</span> รายการ</div>
+                  <div className="text-sm font-semibold text-foreground-subtle">จำนวน <span className="text-sm font-medium text-foreground">{cart.items.length}</span> รายการ</div>
                 </div>
                 <div className="flex-1 flex items-center justify-center gap-4 text-xs text-foreground-subtle">
                   <span className="inline-flex items-center gap-1">
@@ -1050,7 +1050,7 @@ export default function POSPage() {
                   </div>
                 )}
                 <div className="text-right">
-                  <div className="text-sm font-semibold text-foreground-subtle">ราคารวม <span className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(cart.subtotal())}</span></div>
+                  <div className="text-sm font-semibold text-foreground-subtle">ราคารวม <span className="text-sm font-bold text-foreground">{formatCurrency(cart.subtotal())}</span></div>
                 </div>
               </div>
             )}
@@ -1064,7 +1064,7 @@ export default function POSPage() {
           {/* Total card */}
           <div className="h-40 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0">
             <div className="text-right text-md font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
-            <div className="mt-6 text-right font-bold tabular-nums leading-[1.05] tracking-tight text-right" style={{ fontSize: '66px', letterSpacing: '-1.5px' }}>
+            <div className="mt-6 text-right font-bold leading-[1.05] tracking-tight text-right" style={{ fontSize: '66px', letterSpacing: '-1.5px' }}>
               {formatCurrency(cart.totalAmount())}
             </div>
           </div>
@@ -1114,7 +1114,7 @@ export default function POSPage() {
                 <HandCoins className="size-4 text-primary shrink-0" />
                 <h3 className="text-sm font-semibold text-foreground truncate">ยอดขายวันนี้</h3>
               </div>
-              <div className="text-lg font-bold tabular-nums text-primary leading-none">
+              <div className="text-lg font-bold text-primary leading-none">
                 {formatCurrency(dailyStats.total)}
               </div>
             </div>
@@ -1124,7 +1124,7 @@ export default function POSPage() {
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <ShoppingBasket className="size-3.5" /> บิล
                 </div>
-                <div className="text-sm font-semibold tabular-nums text-foreground">
+                <div className="text-sm font-semibold text-foreground">
                   {dailyStats.bills}
                 </div>
               </div>
@@ -1132,7 +1132,7 @@ export default function POSPage() {
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Timer className="size-3.5" /> ล่าสุด
                 </div>
-                <div className="text-sm font-semibold tabular-nums text-foreground">
+                <div className="text-sm font-semibold text-foreground">
                   {dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}
                 </div>
               </div>
@@ -1234,8 +1234,8 @@ export default function POSPage() {
                       </div>
                     </div>
                     <div className="text-center text-base text-muted-foreground truncate">{unitName}</div>
-                    <div className="text-right font-bold text-primary text-base tabular-nums">{formatCurrency(price)}</div>
-                    <div className={`text-right text-base font-semibold tabular-nums ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock}</div>
+                    <div className="text-right font-bold text-primary text-base">{formatCurrency(price)}</div>
+                    <div className={`text-right text-base font-semibold ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock}</div>
                   </div>
                 )
               })
@@ -1611,7 +1611,7 @@ export default function POSPage() {
                       </div>
                       <div className="flex flex-col items-end shrink-0 text-sm">
                         <span className="font-semibold whitespace-nowrap">{dateStr}</span>
-                        <span className="text-muted-foreground tabular-nums">{timeStr}</span>
+                        <span className="text-muted-foreground">{timeStr}</span>
                       </div>
                     </div>
 
@@ -1619,7 +1619,7 @@ export default function POSPage() {
                     <div className="rounded-xl bg-muted p-4 flex flex-col min-h-0 flex-1">
                       <div className="text-base font-semibold mb-2 shrink-0 flex items-center justify-between">
                         <span>รายการสินค้า</span>
-                        <span className="text-base font-semibold text-muted-foreground tabular-nums">{cart.items.length} รายการ</span>
+                        <span className="text-base font-semibold text-muted-foreground">{cart.items.length} รายการ</span>
                       </div>
                       <div className="overflow-y-auto scrollbar-thin -mr-2 pr-2 flex-1 min-h-0">
                         {cart.items.length === 0 ? (
@@ -1630,7 +1630,7 @@ export default function POSPage() {
                               <li key={idx} className="flex items-start justify-between gap-3 py-2.5">
                                 <div className="min-w-0 flex-1">
                                   <div className="text-base font-semibold truncate">{item.item_name}</div>
-                                  <div className="text-sm text-muted-foreground tabular-nums">{formatCurrency(item.line_total)}</div>
+                                  <div className="text-sm text-muted-foreground">{formatCurrency(item.line_total)}</div>
                                   {item.product?.is_bundle && item.product.bundle_items?.length ? (
                                     <div className="text-xs text-muted-foreground truncate">
                                       ประกอบด้วย: {item.product.bundle_items
@@ -1639,7 +1639,7 @@ export default function POSPage() {
                                     </div>
                                   ) : null}
                                 </div>
-                                <div className="shrink-0 text-right text-sm tabular-nums whitespace-nowrap">
+                                <div className="shrink-0 text-right text-sm whitespace-nowrap">
                                   {item.qty}{item.unit_name ? ` ${item.unit_name}` : ''}
                                 </div>
                               </li>
@@ -1656,7 +1656,7 @@ export default function POSPage() {
                   <div className="rounded-xl bg-muted p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-semibold text-muted-foreground">ราคาขายรวม</span>
-                      <span className="text-3xl font-semibold tabular-nums pr-2.5">{formatCurrency(subtotal)}</span>
+                      <span className="text-3xl font-semibold pr-2.5">{formatCurrency(subtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xl font-semibold text-muted-foreground">ส่วนลดรวม</span>
@@ -1676,7 +1676,7 @@ export default function POSPage() {
                         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                         placeholder="0.00"
                         disabled={cart.items.length === 0 || subtotal <= 0}
-                        className="text-right tabular-nums w-52 h-12 text-3xl font-semibold bg-card text-destructive focus-visible:ring-destructive/30"
+                        className="text-right w-52 h-12 text-3xl font-semibold bg-card text-destructive focus-visible:ring-destructive/30"
                       />
                     </div>
                   </div>
@@ -1686,7 +1686,7 @@ export default function POSPage() {
                     ? 'bg-destructive-soft'
                     : 'bg-primary-soft'}`}>
                     <div className="text-xl text-muted-foreground font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
-                    <div className={`pr-2 text-6xl font-extrabold text-right leading-none tabular-nums ${netNegative ? 'text-destructive' : 'text-success'}`}>
+                    <div className={`pr-2 text-6xl font-extrabold text-right leading-none ${netNegative ? 'text-destructive' : 'text-success'}`}>
                       {formatCurrency(net)}
                     </div>
                   </div>
@@ -1717,7 +1717,7 @@ export default function POSPage() {
                         handleCompleteSale()
                       }}
                       placeholder="0.00"
-                      className="text-right bg-card tabular-nums w-52 h-12 text-4xl font-semibold focus-visible:ring-success/30"
+                      className="text-right bg-card w-52 h-12 text-4xl font-semibold focus-visible:ring-success/30"
                       autoFocus
                     />
                   </div>
@@ -1732,7 +1732,7 @@ export default function POSPage() {
                         กรุณาตรวจสอบ
                       </span>
                     ) : (
-                      <span className="text-right tabular-nums w-52 h-12 text-4xl font-semibold text-warning pr-2.5">
+                      <span className="text-right w-52 h-12 text-4xl font-semibold text-warning pr-2.5">
                         {formatCurrency(Math.max(0, change))}
                       </span>
                     )}
@@ -1749,7 +1749,7 @@ export default function POSPage() {
                       {showBreakdown ? 'ซ่อนรายละเอียด' : 'รายละเอียด'}
                     </Button>
                     {showBreakdown && (
-                      <div className="rounded-xl bg-muted px-5 py-3 space-y-2 text-base tabular-nums">
+                      <div className="rounded-xl bg-muted px-5 py-3 space-y-2 text-base">
                         <div className="flex items-center justify-between gap-4">
                           <span className="text-muted-foreground font-semibold">ต้นทุน</span>
                           <span className="font-semibold">{formatCurrency(totalCost)}</span>
@@ -1898,7 +1898,7 @@ export default function POSPage() {
                         onChange={e => setAdjustQtyInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleAddAdjustItem() }}
                         placeholder="1"
-                        className="w-16 flex-1 h-12 text-center text-3xl font-bold bg-card rounded-xl border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 outline-none px-2 tabular-nums"
+                        className="w-16 flex-1 h-12 text-center text-3xl font-bold bg-card rounded-xl border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 outline-none px-2"
                       />
                       <Button variant="default" size="icon"
                         onClick={() => setAdjustQtyInput(v => String((parseFloat(v) || 0) + 1))}
@@ -1941,10 +1941,10 @@ export default function POSPage() {
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <span className="font-mono truncate">{item.lot_number || '—'}</span>
                         <span className="text-foreground-subtle">·</span>
-                        <span className="tabular-nums">×{item.qty}</span>
+                        <span className="">×{item.qty}</span>
                       </div>
                     </div>
-                    <div className="text-sm font-bold tabular-nums text-warning-strong shrink-0">{formatCurrency(item.line_total)}</div>
+                    <div className="text-sm font-bold text-warning-strong shrink-0">{formatCurrency(item.line_total)}</div>
                     <Button variant="ghost" size="icon-sm"
                       onClick={() => setAdjustList(list => list.filter((_, i) => i !== idx))}
                       className="shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive-soft">
@@ -1958,7 +1958,7 @@ export default function POSPage() {
                 {adjustList.length > 0 && (
                   <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-warning-soft">
                     <span className="text-sm font-semibold text-warning-strong">มูลค่าทุนรวม</span>
-                    <span className="text-lg font-extrabold tabular-nums text-warning-strong">
+                    <span className="text-lg font-extrabold text-warning-strong">
                       {formatCurrency(adjustList.reduce((s, i) => s + i.line_total, 0))}
                     </span>
                   </div>
@@ -2108,7 +2108,7 @@ export default function POSPage() {
                             >
                               <div className="flex justify-between items-center gap-2">
                                 <span className={`font-mono font-semibold text-sm truncate ${selected ? 'text-primary' : 'text-foreground'}`}>{lot.lot_number || '—'}</span>
-                                <span className="text-sm font-bold tabular-nums text-foreground shrink-0">{formatCurrency(lot.sell_price)}</span>
+                                <span className="text-sm font-bold text-foreground shrink-0">{formatCurrency(lot.sell_price)}</span>
                               </div>
                               <div className="flex items-center justify-between gap-2 mt-0.5">
                                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 truncate">
@@ -2146,7 +2146,7 @@ export default function POSPage() {
                         onChange={e => setReturnQtyInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleAddReturnItem() }}
                         placeholder="1"
-                        className="w-16 flex-1 h-12 text-center text-3xl font-bold bg-card rounded-xl border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 outline-none px-2 tabular-nums"
+                        className="w-16 flex-1 h-12 text-center text-3xl font-bold bg-card rounded-xl border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 outline-none px-2"
                       />
                       <Button variant="default" size="icon"
                         onClick={() => setReturnQtyInput(v => String((parseFloat(v) || 0) + 1))}
@@ -2189,10 +2189,10 @@ export default function POSPage() {
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <span className="font-mono truncate">{item.lot_number || '—'}</span>
                         <span className="text-foreground-subtle">·</span>
-                        <span className="tabular-nums">×{item.qty}</span>
+                        <span className="">×{item.qty}</span>
                       </div>
                     </div>
-                    <div className="text-sm font-bold tabular-nums text-warning-strong shrink-0">{formatCurrency(item.line_total)}</div>
+                    <div className="text-sm font-bold text-warning-strong shrink-0">{formatCurrency(item.line_total)}</div>
                     <Button variant="ghost" size="icon-sm"
                       onClick={() => setReturnList(list => list.filter((_, i) => i !== idx))}
                       className="shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive-soft">
@@ -2206,7 +2206,7 @@ export default function POSPage() {
                 {returnList.length > 0 && (
                   <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-warning-soft">
                     <span className="text-sm font-semibold text-warning-strong">ยอดคืนรวม</span>
-                    <span className="text-lg font-extrabold tabular-nums text-warning-strong">
+                    <span className="text-lg font-extrabold text-warning-strong">
                       {formatCurrency(returnList.reduce((s, i) => s + i.line_total, 0))}
                     </span>
                   </div>
@@ -2356,15 +2356,15 @@ export default function POSPage() {
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
                         <div className="text-foreground-subtle text-xs">ทุน</div>
-                        <div className="font-semibold text-muted-foreground tabular-nums">{formatCurrency(cost)}</div>
+                        <div className="font-semibold text-muted-foreground">{formatCurrency(cost)}</div>
                       </div>
                       <div>
                         <div className="text-foreground-subtle text-xs">กำไร</div>
-                        <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(customProfit)}</div>
+                        <div className={`font-semibold ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(customProfit)}</div>
                       </div>
                       <div>
                         <div className="text-foreground-subtle text-xs">กำไร %</div>
-                        <div className={`font-semibold tabular-nums ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</div>
+                        <div className={`font-semibold ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</div>
                       </div>
                     </div>
                   </div>
@@ -2379,19 +2379,19 @@ export default function POSPage() {
                         className={`w-full h-auto px-4 py-3 rounded-xl transition-colors ${active ? 'ring-2 ring-inset ring-primary' : ''}`}>
                         <div className="space-y-1 w-full">
                           <div className={`text-base font-bold text-left ${active ? 'text-primary' : 'text-foreground'}`}>{opt.label}</div>
-                          <div className="text-right text-3xl font-extrabold text-primary tabular-nums"> {formatCurrency(opt.price)}</div>
+                          <div className="text-right text-3xl font-extrabold text-primary"> {formatCurrency(opt.price)}</div>
                           <div className="text-left grid grid-cols-3 gap-2 text-sm pt-1">
                             <div>
                               <div className="text-foreground-subtle text-xs">ทุน</div>
-                              <div className="font-semibold text-muted-foreground tabular-nums">{formatCurrency(cost)}</div>
+                              <div className="font-semibold text-muted-foreground">{formatCurrency(cost)}</div>
                             </div>
                             <div>
                               <div className="text-foreground-subtle text-xs">กำไร</div>
-                              <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(profit)}</div>
+                              <div className={`font-semibold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(profit)}</div>
                             </div>
                             <div>
                               <div className="text-foreground-subtle text-xs">กำไร %</div>
-                              <div className={`font-semibold tabular-nums ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</div>
+                              <div className={`font-semibold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</div>
                             </div>
                           </div>
                         </div>
@@ -2437,7 +2437,7 @@ export default function POSPage() {
               <DialogBody className="space-y-4">
                 <div className="flex justify-between text-base">
                   <span className="font-bold text-muted-foreground">คงเหลือ</span>
-                  <span className={`font-semibold tabular-nums ${stockQty > 0 ? 'text-foreground' : 'text-destructive'}`}>{stockQty} {item?.unit_name}</span>
+                  <span className={`font-semibold ${stockQty > 0 ? 'text-foreground' : 'text-destructive'}`}>{stockQty} {item?.unit_name}</span>
                 </div>
                 <div>
                   <Label className="block text-base font-bold text-muted-foreground mb-2">จำนวน ({item?.unit_name})</Label>
@@ -2456,7 +2456,7 @@ export default function POSPage() {
                       onChange={e => setQtyInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') applyQty(q) }}
                       placeholder="1"
-                      className="w-16 flex-1 h-14 text-center text-3xl font-bold bg-card rounded-xl focus:ring-0 focus:ring-primary outline-none px-4 tabular-nums"
+                      className="w-16 flex-1 h-14 text-center text-3xl font-bold bg-card rounded-xl focus:ring-0 focus:ring-primary outline-none px-4"
                     />
                     <Button variant="default" size="icon" onClick={() => bump(1)}
                       className="mr-3 w-10 h-10 rounded-full flex items-center justify-center bg-secondary-hover hover:text-primary-foreground hover:bg-primary text-muted-foreground font-bold shrink-0">
@@ -2467,7 +2467,7 @@ export default function POSPage() {
                 <div className="grid grid-cols-5 gap-2">
                   {[1, 5, 10, 20, 50].map(n => (
                     <Button key={n} variant="brand-soft" size="sm" onClick={() => setQtyInput(String(n))}
-                      className="h-10 rounded-xl text-base font-semibold tabular-nums transition-colors">
+                      className="h-10 rounded-xl text-base font-semibold transition-colors">
                       {n}
                     </Button>
                   ))}
@@ -2511,7 +2511,7 @@ export default function POSPage() {
               <DialogBody className="space-y-4">
                 <div className="flex justify-between border-t border-b border-border">
                   <span className="py-2 text-base font-bold text-muted-foreground">ราคารวม</span>
-                  <span className="py-2 text-2xl font-semibold text-foreground tabular-nums">{formatCurrency(totalPrice)}</span>
+                  <span className="py-2 text-2xl font-semibold text-foreground">{formatCurrency(totalPrice)}</span>
                 </div>
 
                 {/* Percent presets */}
@@ -2556,7 +2556,7 @@ export default function POSPage() {
                         }}
                         onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                         placeholder="0"
-                        className="w-full h-14 text-right text-3xl font-bold bg-card rounded-xl ring-border ring-1 focus:ring-2 focus:ring-destructive/50 outline-none pl-4 pr-10 tabular-nums"
+                        className="w-full h-14 text-right text-3xl font-bold bg-card rounded-xl ring-border ring-1 focus:ring-2 focus:ring-destructive/50 outline-none pl-4 pr-10"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-subtle text-xl font-bold pointer-events-none">%</span>
                     </div>
@@ -2580,7 +2580,7 @@ export default function POSPage() {
                       }}
                       onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                       placeholder="0.00"
-                      className="w-full h-14 text-right text-3xl font-bold bg-card ring-border ring-1 rounded-xl focus:ring-2 focus:ring-destructive/50 outline-none px-4 tabular-nums"
+                      className="w-full h-14 text-right text-3xl font-bold bg-card ring-border ring-1 rounded-xl focus:ring-2 focus:ring-destructive/50 outline-none px-4"
                     />
                   </div>
                 </div>
@@ -2606,7 +2606,7 @@ export default function POSPage() {
                     }}
                     onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                     placeholder={formatCurrency(totalPrice)}
-                    className="w-full h-14 text-right text-3xl font-bold bg-card ring-border ring-1 rounded-xl focus:ring-2 focus:ring-primary outline-none px-4 tabular-nums"
+                    className="w-full h-14 text-right text-3xl font-bold bg-card ring-border ring-1 rounded-xl focus:ring-2 focus:ring-primary outline-none px-4"
                   />
                 </div>
               </DialogBody>

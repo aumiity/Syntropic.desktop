@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Input, SearchInput } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { FormField } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
 import type { ItemUnit } from '@/types'
-import { Plus, Edit, Ruler, Search } from 'lucide-react'
+import { Plus, Edit, Ruler } from 'lucide-react'
 
 export function UnitsTab() {
   const { toast } = useToast()
@@ -48,16 +48,12 @@ export function UnitsTab() {
     <div className="pt-4 h-full flex flex-col min-h-0">
       <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหาชื่อหน่วย..."
-              className="h-10 pl-9 rounded-lg text-sm bg-input"
-            />
-          </div>
-          <Button size="lg" className="h-10 px-2 shrink-0" onClick={openAdd}>
+          <SearchInput
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อหน่วย..."
+          />
+          <Button size="lg" className="h-10 px-2 shrink-0 ml-auto" onClick={openAdd}>
             <Plus className="size-4" /> เพิ่มหน่วย
           </Button>
         </div>
@@ -82,7 +78,7 @@ export function UnitsTab() {
               ) : filtered.map(u => (
                 <TableRow key={u.id}>
                   <TableCell className="font-semibold text-sm text-foreground">{u.name}</TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground tabular-nums">{(u.usage_count ?? 0).toLocaleString()} สินค้า</TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">{(u.usage_count ?? 0).toLocaleString()} สินค้า</TableCell>
                   <TableCell>
                     <div className="flex justify-center">
                       <Button size="icon-lg" variant="outline" onClick={() => openEdit(u)} title="แก้ไข">
@@ -98,7 +94,7 @@ export function UnitsTab() {
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
-            แสดง <span className="font-semibold text-foreground tabular-nums">{filtered.length.toLocaleString()}</span> รายการ
+            แสดง <span className="font-semibold text-foreground">{filtered.length.toLocaleString()}</span> รายการ
           </span>
         </div>
       </div>

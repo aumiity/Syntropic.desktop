@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency } from '@/lib/utils'
 import type { Product } from '@/types'
 import type { ProductsOutletContext } from './index'
-import { Search, Plus, Edit, Boxes, CheckCircle2, Ban, Settings2 } from 'lucide-react'
+import { Plus, Edit, Boxes, CheckCircle2, Ban, Settings2 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
 type SortDir = 'asc' | 'desc'
@@ -23,9 +24,25 @@ interface BundleRow extends Product {
   component_count: number
 }
 
+interface BundlesPrefs {
+  pageSize: PageSize
+  sort: SortState
+  showCost: boolean
+  showProfit: boolean
+}
+
+const BUNDLES_DEFAULTS: BundlesPrefs = {
+  pageSize: 50,
+  sort: { by: 'trade_name', dir: 'asc' },
+  showCost: true,
+  showProfit: false,
+}
+
 export default function BundlesList() {
   const navigate = useNavigate()
   const { setSummary } = useOutletContext<ProductsOutletContext>()
+
+  const [prefs, setPrefs] = usePagePrefs<BundlesPrefs>('bundles', BUNDLES_DEFAULTS)
 
   const [rows, setRows] = useState<BundleRow[]>([])
   const [total, setTotal] = useState(0)
@@ -33,16 +50,20 @@ export default function BundlesList() {
   const [loading, setLoading] = useState(false)
 
   const [q, setQ] = useState('')
-  const [showCost, setShowCost] = useState(true)
-  const [showProfit, setShowProfit] = useState(false)
+  const showCost = prefs.showCost
+  const showProfit = prefs.showProfit
   const [stockFilter, setStockFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
-  const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
+  const sort = prefs.sort
+  const setSort = (next: SortState | ((prev: SortState) => SortState)) => {
+    setPrefs({ sort: typeof next === 'function' ? next(prefs.sort) : next })
+  }
 
   // Global bundle stats (total / enabled / disabled). Same shape as
   // products:stockStats with is_bundle=1; "ใช้งาน" = total_all - disabled.
   const [allStats, setAllStats] = useState({ total_all: 0, disabled: 0 })
 
-  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const pageSize = prefs.pageSize
+  const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   const load = useCallback(async (p = page) => {
@@ -113,17 +134,13 @@ export default function BundlesList() {
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหาชื่อชุด, บาร์โค้ด, รหัส..."
-              className="h-10 pl-9 rounded-lg text-sm bg-input"
-            />
-          </div>
+          <SearchInput
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อชุด, บาร์โค้ด, รหัส..."
+          />
 
-          <Button onClick={handleCreate} size="lg" className="h-10 px-2 shrink-0">
+          <Button onClick={handleCreate} size="lg" className="h-10 px-2 shrink-0 ml-auto">
             <Plus className="size-4" /> เพิ่มชุดสินค้า
           </Button>
 
@@ -138,11 +155,11 @@ export default function BundlesList() {
                 <PopoverTitle>ตัวเลือกการแสดงผล</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showCost} onCheckedChange={v => setShowCost(v === true)} />
+                <Checkbox checked={showCost} onCheckedChange={v => setPrefs({ showCost: v === true })} />
                 <span className="text-sm">แสดงต้นทุน</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showProfit} onCheckedChange={v => setShowProfit(v === true)} />
+                <Checkbox checked={showProfit} onCheckedChange={v => setPrefs({ showProfit: v === true })} />
                 <span className="text-sm">แสดงกำไร</span>
               </label>
             </PopoverContent>
@@ -155,14 +172,14 @@ export default function BundlesList() {
               <TableRow>
                 <TableHead className="w-8">#</TableHead>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[280px]">ชื่อชุดสินค้า</SortableTableHead>
-                <TableHead className="text-center min-w-24">หน่วย</TableHead>
-                <TableHead className="text-center min-w-20">รายการ</TableHead>
+                <TableHead className="min-w-24">หน่วย</TableHead>
+                <TableHead className="min-w-20">รายการ</TableHead>
                 {showCost && (
-                  <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
+                  <SortableTableHead field="cost_price" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
                 )}
-                <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ราคาขาย</SortableTableHead>
+                <SortableTableHead field="price_retail" sort={sort} onToggle={toggleSort} className="min-w-24">ราคาขาย</SortableTableHead>
                 {showProfit && (
-                  <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
+                  <SortableTableHead field="profit" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
                 )}
                 <TableHead className="text-center min-w-20">จัดการ</TableHead>
               </TableRow>
@@ -185,18 +202,18 @@ export default function BundlesList() {
                 const isDisabled = !!row.is_disabled
                 return (
                   <TableRow key={row.id} className={`[&_td]:py-2.5 ${isDisabled ? 'opacity-60' : ''}`}>
-                    <TableCell className="text-foreground-subtle text-sm tabular-nums">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
+                    <TableCell className="text-foreground-subtle text-sm">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
                     <TableCell className="max-w-0">
                       <div className="font-semibold text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
                     </TableCell>
-                    <TableCell className="text-center text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
-                    <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
                       {(row.component_count ?? 0).toLocaleString()}
                     </TableCell>
                     {showCost && (
-                      <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
                     )}
-                    <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">
+                    <TableCell className="text-sm font-semibold text-foreground">
                       {showCost && showProfit ? (
                         formatCurrency(row.price_retail)
                       ) : (
@@ -207,7 +224,7 @@ export default function BundlesList() {
                             </span>
                           </TooltipTrigger>
                           <TooltipContent side="left" className="px-3 py-2">
-                            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm tabular-nums">
+                            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
                               {!showCost && (
                                 <>
                                   <span className="text-muted-foreground">ต้นทุน</span>
@@ -228,7 +245,7 @@ export default function BundlesList() {
                       )}
                     </TableCell>
                     {showProfit && (
-                      <TableCell className="text-right text-sm font-medium tabular-nums">
+                      <TableCell className="text-sm font-medium">
                         <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
                           {formatCurrency(profit)}
                           {/* text-xs: user-approved exception to the text-sm minimum rule */}
@@ -276,7 +293,7 @@ export default function BundlesList() {
             <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{total.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>

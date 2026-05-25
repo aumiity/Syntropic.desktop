@@ -172,7 +172,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                   <TableRow key={lot.id} className="hover:bg-primary-soft/60 transition-colors">
                     <TableCell className="font-mono text-sm font-semibold">{lot.lot_number}</TableCell>
                     <TableCell className="text-sm">{(lot as any).supplier_name ?? '—'}</TableCell>
-                    <TableCell className="text-sm tabular-nums">
+                    <TableCell className="text-sm">
                       <span className={
                         expStatus === 'expired' ? 'text-destructive font-semibold' :
                         expStatus === 'danger'  ? 'text-warning-strong font-semibold' :
@@ -181,9 +181,9 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                         {formatExpiry(lot.expiry_date)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums">{formatCurrency(lot.cost_price)}</TableCell>
-                    <TableCell className="text-right text-sm tabular-nums">{lot.qty_received}</TableCell>
-                    <TableCell className="text-right text-sm font-semibold tabular-nums">{lot.qty_on_hand}</TableCell>
+                    <TableCell className="text-right text-sm">{formatCurrency(lot.cost_price)}</TableCell>
+                    <TableCell className="text-right text-sm">{lot.qty_received}</TableCell>
+                    <TableCell className="text-right text-sm font-semibold">{lot.qty_on_hand}</TableCell>
                     <TableCell className="text-center">
                       {lot.is_cancelled
                         ? <Badge variant="destructive" className="text-xs rounded-md">ยกเลิก</Badge>
@@ -209,10 +209,10 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
           </Table>
         </div>
         <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between h-12">
-          <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{product.lots?.length ?? 0}</span> ล็อต</span>
+          <span>ทั้งหมด <span className="font-semibold text-foreground">{product.lots?.length ?? 0}</span> ล็อต</span>
           <span className="flex items-center gap-3">
-            <span>ใช้งาน <span className="font-semibold text-success tabular-nums">{activeLotList.length}</span></span>
-            <span>คงเหลือรวม <span className="font-semibold text-foreground tabular-nums">{totalStock.toLocaleString()}</span> {baseUnit}</span>
+            <span>ใช้งาน <span className="font-semibold text-success">{activeLotList.length}</span></span>
+            <span>คงเหลือรวม <span className="font-semibold text-foreground">{totalStock.toLocaleString()}</span> {baseUnit}</span>
           </span>
         </div>
       </div>
@@ -235,7 +235,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                   </div>
                   <div className="text-right">
                     <div className="text-sm text-muted-foreground">รับเข้า</div>
-                    <div className="text-sm font-semibold text-foreground tabular-nums">
+                    <div className="text-sm font-semibold text-foreground">
                       {lot?.qty_received ?? 0} <span className="font-normal text-muted-foreground">{baseUnit}</span>
                     </div>
                   </div>
@@ -266,7 +266,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                   <Field label={<>จำนวนคงเหลือ{unitSuffix(baseUnit)}</>}>
                     <Input type="number" value={lotEditForm.qty_on_hand}
                       onChange={e => setLotEditForm(f => ({ ...f, qty_on_hand: e.target.value }))}
-                      className="text-right tabular-nums" min={0} />
+                      className="text-right" min={0} />
                   </Field>
                 </div>
 
@@ -300,9 +300,9 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                   {getLotEditChanges(confirmLot).map((c, i) => (
                     <div key={i} className="flex items-baseline gap-2 text-sm">
                       <span className="w-28 shrink-0 text-muted-foreground">{c.label}</span>
-                      <span className="text-foreground-subtle tabular-nums line-through">{c.before}</span>
+                      <span className="text-foreground-subtle line-through">{c.before}</span>
                       <span className="text-muted-foreground">→</span>
-                      <span className="font-semibold tabular-nums">{c.after}</span>
+                      <span className="font-semibold">{c.after}</span>
                     </div>
                   ))}
                 </div>

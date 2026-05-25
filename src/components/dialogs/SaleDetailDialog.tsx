@@ -161,7 +161,7 @@ export function SaleDetailDialog({
                       return (
                         <Fragment key={item.id}>
                           <TableRow key={item.id} className={dimmed}>
-                            <TableCell className="text-center text-xs text-muted-foreground tabular-nums">{i + 1}</TableCell>
+                            <TableCell className="text-center text-xs text-muted-foreground">{i + 1}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 {isBundle && (
@@ -243,11 +243,11 @@ export function SaleDetailDialog({
                                                     : (cl.lot_number ?? '—')}
                                                 </td>
                                                 <td className="py-1 pr-4">{cl.expiry_date ?? '—'}</td>
-                                                <td className="py-1 pr-4 text-right tabular-nums">{cl.qty}</td>
-                                                <td className="py-1 pr-4 text-right tabular-nums text-muted-foreground">
+                                                <td className="py-1 pr-4 text-right">{cl.qty}</td>
+                                                <td className="py-1 pr-4 text-right text-muted-foreground">
                                                   {cl.lot_id != null ? formatCurrency(cl.cost_price ?? 0) : '—'}
                                                 </td>
-                                                <td className="py-1 text-right tabular-nums">
+                                                <td className="py-1 text-right">
                                                   {cl.lot_id != null ? formatCurrency(lineCost) : '—'}
                                                 </td>
                                               </tr>

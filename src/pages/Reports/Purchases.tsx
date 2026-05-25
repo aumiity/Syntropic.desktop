@@ -69,7 +69,7 @@ function payRow(label: string, value: number, muted = false) {
   return (
     <div className="flex items-center justify-between">
       <span className={`text-sm ${muted ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>{label}</span>
-      <span className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(value)}</span>
+      <span className="text-sm font-semibold text-foreground">{formatCurrency(value)}</span>
     </div>
   )
 }
@@ -193,11 +193,11 @@ export default function ReportsPurchasesPage() {
           {payRow('เครดิต', sum.purchase_credit)}
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <span className="text-sm font-semibold text-foreground">รวมยอดซื้อ</span>
-            <span className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(sum.purchase_total)}</span>
+            <span className="text-sm font-bold text-foreground">{formatCurrency(sum.purchase_total)}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">จำนวนบิล</span>
-            <span className="text-sm font-semibold tabular-nums">{sum.purchase_count.toLocaleString()} บิล</span>
+            <span className="text-sm font-semibold">{sum.purchase_count.toLocaleString()} บิล</span>
           </div>
         </SectionCard>
 
@@ -206,29 +206,29 @@ export default function ReportsPurchasesPage() {
             <span className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
               <CalendarCheck className="size-3.5" /> ยังไม่ครบกำหนด
             </span>
-            <span className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(b.not_due)}</span>
+            <span className="text-sm font-semibold text-foreground">{formatCurrency(b.not_due)}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
               <Clock className="size-3.5 text-warning-strong" /> เกิน 1–30 วัน
             </span>
-            <span className="text-sm font-semibold tabular-nums text-warning-strong">{formatCurrency(b.d1_30)}</span>
+            <span className="text-sm font-semibold text-warning-strong">{formatCurrency(b.d1_30)}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
               <AlertTriangle className="size-3.5 text-warning-strong" /> เกิน 31–60 วัน
             </span>
-            <span className="text-sm font-semibold tabular-nums text-warning-strong">{formatCurrency(b.d31_60)}</span>
+            <span className="text-sm font-semibold text-warning-strong">{formatCurrency(b.d31_60)}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
               <CircleAlert className="size-3.5 text-destructive" /> เกิน 60 วัน
             </span>
-            <span className="text-sm font-semibold tabular-nums text-destructive">{formatCurrency(b.d60_plus)}</span>
+            <span className="text-sm font-semibold text-destructive">{formatCurrency(b.d60_plus)}</span>
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <span className="text-sm font-semibold text-foreground">รวม</span>
-            <span className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(payables.total)}</span>
+            <span className="text-sm font-bold text-foreground">{formatCurrency(payables.total)}</span>
           </div>
         </SectionCard>
       </div>
@@ -262,8 +262,8 @@ export default function ReportsPurchasesPage() {
                 </TableRow>
               ) : trend.map(r => (
                 <TableRow key={r.date}>
-                  <TableCell className="text-sm tabular-nums">{formatDate(r.date)}</TableCell>
-                  <TableCell className="text-right text-sm tabular-nums font-semibold text-foreground">{formatCurrency(r.purchase_total)}</TableCell>
+                  <TableCell className="text-sm">{formatDate(r.date)}</TableCell>
+                  <TableCell className="text-right text-sm font-semibold text-foreground">{formatCurrency(r.purchase_total)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -314,12 +314,12 @@ export default function ReportsPurchasesPage() {
                     <TableCell className="text-sm text-muted-foreground truncate" title={r.supplier_invoice_no ?? ''}>
                       {r.supplier_invoice_no || <span className="text-foreground-subtle">—</span>}
                     </TableCell>
-                    <TableCell className="text-sm tabular-nums text-muted-foreground">{formatDate(r.received_at)}</TableCell>
-                    <TableCell className="text-sm tabular-nums">
+                    <TableCell className="text-sm text-muted-foreground">{formatDate(r.received_at)}</TableCell>
+                    <TableCell className="text-sm">
                       {r.due_date ? formatDate(r.due_date) : <span className="text-foreground-subtle">—</span>}
                     </TableCell>
                     <TableCell>{dueBadge(r.days_overdue)}</TableCell>
-                    <TableCell className="text-right text-sm font-bold tabular-nums text-foreground">
+                    <TableCell className="text-right text-sm font-bold text-foreground">
                       {formatCurrency(r.amount)}
                     </TableCell>
                   </TableRow>
@@ -331,7 +331,7 @@ export default function ReportsPurchasesPage() {
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between shrink-0">
           <span className="text-sm text-muted-foreground">{payables.count.toLocaleString()} บิล</span>
-          <span className="text-base font-bold tabular-nums text-foreground">รวม {formatCurrency(payables.total)}</span>
+          <span className="text-base font-bold text-foreground">รวม {formatCurrency(payables.total)}</span>
         </div>
       </div>
     </div>

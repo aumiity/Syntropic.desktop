@@ -35,10 +35,12 @@ export function registerReportHandlers() {
     const rowConditions = statusCond ? [...baseConditions, statusCond] : baseConditions
     const where = rowConditions.length ? `WHERE ${rowConditions.join(' AND ')}` : ''
     const baseWhere = baseConditions.length ? `WHERE ${baseConditions.join(' AND ')}` : ''
-    const validSorts = ['sold_at', 'invoice_no', 'subtotal', 'total_discount', 'total_amount', 'item_kinds']
+    const validSorts = ['sold_at', 'invoice_no', 'subtotal', 'total_discount', 'total_amount', 'item_kinds', 'customer_name']
     // item_kinds is a computed alias on the SELECT, not a column on s.
+    // customer_name: walk-in sales fall back to s.customer_name_free when no customer_id.
     const sortCol = !validSorts.includes(sort_by) ? 's.sold_at'
       : sort_by === 'item_kinds' ? 'item_kinds'
+      : sort_by === 'customer_name' ? 'COALESCE(c.full_name, s.customer_name_free)'
       : `s.${sort_by}`
     const sortDirection = sort_dir === 'ASC' ? 'ASC' : 'DESC'
 

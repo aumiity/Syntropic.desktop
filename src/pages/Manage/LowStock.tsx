@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/input'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
@@ -10,9 +10,10 @@ import { useToast } from '@/components/ui/toast'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/QuickStockDialog'
+import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { compareNameBuckets } from '@/lib/sortName'
 import type { ManageOutletContext } from './index'
-import { Search, PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes, Settings2 } from 'lucide-react'
+import { PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes, Settings2 } from 'lucide-react'
 
 type StatusFilter = 'all' | 'out' | 'low'
 type SortField = 'trade_name'
@@ -35,12 +36,28 @@ interface LowStockRow {
 
 interface Category { id: number; name: string }
 
-const SUPPLIER_TOGGLE_KEY = 'lowStock.showCheapestSupplier'
+interface LowStockPrefs {
+  sort: SortState
+  showSupplier: boolean
+  showColStockBar: boolean
+  showColBuyMore: boolean
+  showColCost: boolean
+}
+
+const LOWSTOCK_DEFAULTS: LowStockPrefs = {
+  sort: { by: 'trade_name', dir: 'asc' },
+  showSupplier: false,
+  showColStockBar: true,
+  showColBuyMore: true,
+  showColCost: true,
+}
 
 export default function ManageLowStockPage() {
   const { toast } = useToast()
   const { setSummary } = useOutletContext<ManageOutletContext>()
   const navigate = useNavigate()
+
+  const [prefs, setPrefs] = usePagePrefs<LowStockPrefs>('lowStock', LOWSTOCK_DEFAULTS)
 
   const [q, setQ] = useState('')
   const [categoryId, setCategoryId] = useState<string>('0')
@@ -51,26 +68,22 @@ export default function ManageLowStockPage() {
   const [totalBuyMore, setTotalBuyMore] = useState(0)
   const [loading, setLoading] = useState(false)
   const [quickTarget, setQuickTarget] = useState<QuickStockTarget | null>(null)
-  const [showSupplier, setShowSupplier] = useState<boolean>(() => {
-    return localStorage.getItem(SUPPLIER_TOGGLE_KEY) === '1'
-  })
+  const showSupplier = prefs.showSupplier
   // Column visibility (ชื่อสินค้า + จัดการสินค้า always shown).
   // "สต็อก" bar consolidates คงเหลือ/จุดสั่งซื้อ/สต็อกปลอดภัย/หน่วย into one cell
   // — same pattern as ProductsList renderStockCell.
-  const [showColStockBar, setShowColStockBar] = useState(true)
-  const [showColBuyMore, setShowColBuyMore] = useState(true)
-  const [showColCost, setShowColCost] = useState(true)
-  const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
+  const showColStockBar = prefs.showColStockBar
+  const showColBuyMore = prefs.showColBuyMore
+  const showColCost = prefs.showColCost
+  const sort = prefs.sort
 
   const toggleSort = (field: SortField) => {
-    setSort(s => s.by === field
-      ? { by: field, dir: s.dir === 'asc' ? 'desc' : 'asc' }
-      : { by: field, dir: 'asc' })
+    setPrefs({
+      sort: prefs.sort.by === field
+        ? { by: field, dir: prefs.sort.dir === 'asc' ? 'desc' : 'asc' }
+        : { by: field, dir: 'asc' },
+    })
   }
-
-  useEffect(() => {
-    localStorage.setItem(SUPPLIER_TOGGLE_KEY, showSupplier ? '1' : '0')
-  }, [showSupplier])
 
   // Backend returns the full low-stock universe; status filter narrows the
   // table on the client so the summary counts (which drive the filter chips)
@@ -168,7 +181,7 @@ export default function ManageLowStockPage() {
     return (
       <div className="flex flex-col gap-1 min-w-[160px]">
         <div className="text-sm">
-          <span className="font-semibold tabular-nums text-foreground">{qty.toLocaleString()}</span>
+          <span className="font-semibold text-foreground">{qty.toLocaleString()}</span>
           <span className="text-muted-foreground"> {unit} · </span>
           <span className={`font-medium ${tone}`}>{status}</span>
         </div>
@@ -176,7 +189,7 @@ export default function ManageLowStockPage() {
           <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
         </div>
         {hasMeta && (
-          <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>{reorder > 0 ? <>จุดสั่งซื้อ <span className="text-foreground">{reorder.toLocaleString()}</span></> : null}</span>
             <span>{safety > 0 ? <>สต็อคปลอดภัย <span className="text-foreground">{safety.toLocaleString()}</span></> : null}</span>
           </div>
@@ -190,15 +203,11 @@ export default function ManageLowStockPage() {
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              placeholder="ชื่อสินค้า, รหัส, บาร์โค้ด..."
-              className="h-10 pl-9 rounded-lg text-sm bg-input"
-            />
-          </div>
+          <SearchInput
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ชื่อสินค้า, รหัส, บาร์โค้ด..."
+          />
 
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger className="h-10 w-44 shrink-0">
@@ -214,7 +223,7 @@ export default function ManageLowStockPage() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0 ml-auto" title="ตัวเลือกการแสดงผล">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
@@ -223,19 +232,19 @@ export default function ManageLowStockPage() {
                 <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColStockBar} onCheckedChange={v => setShowColStockBar(v === true)} />
+                <Checkbox checked={showColStockBar} onCheckedChange={v => setPrefs({ showColStockBar: v === true })} />
                 <span className="text-sm">สต็อก</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColBuyMore} onCheckedChange={v => setShowColBuyMore(v === true)} />
+                <Checkbox checked={showColBuyMore} onCheckedChange={v => setPrefs({ showColBuyMore: v === true })} />
                 <span className="text-sm">ซื้อเพิ่ม</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColCost} onCheckedChange={v => setShowColCost(v === true)} />
+                <Checkbox checked={showColCost} onCheckedChange={v => setPrefs({ showColCost: v === true })} />
                 <span className="text-sm">ทุนเฉลี่ย</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted" title="แสดงผู้จำหน่ายที่เสนอราคาทุนต่ำสุดในรอบ 3 เดือนล่าสุด">
-                <Checkbox checked={showSupplier} onCheckedChange={v => setShowSupplier(v === true)} />
+                <Checkbox checked={showSupplier} onCheckedChange={v => setPrefs({ showSupplier: v === true })} />
                 <span className="text-sm">ผู้จำหน่ายราคาทุนต่ำสุด</span>
               </label>
             </PopoverContent>
@@ -281,12 +290,12 @@ export default function ManageLowStockPage() {
                       </TableCell>
                     )}
                     {showColBuyMore && (
-                      <TableCell className="text-right text-sm font-bold tabular-nums text-destructive">
+                      <TableCell className="text-right text-sm font-bold text-destructive">
                         {Math.max(0, r.buy_more).toLocaleString()}
                       </TableCell>
                     )}
                     {showColCost && (
-                      <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                      <TableCell className="text-right text-sm text-muted-foreground">
                         {r.cost_avg != null && r.cost_avg > 0
                           ? r.cost_avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                           : <span className="text-foreground-subtle">—</span>}
@@ -300,7 +309,7 @@ export default function ManageLowStockPage() {
                               {r.cheapest_supplier_name}
                             </span>
                             {r.cheapest_supplier_cost != null && (
-                              <span className="text-xs font-semibold text-success tabular-nums">
+                              <span className="text-xs font-semibold text-success">
                                 {r.cheapest_supplier_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
                             )}
@@ -347,7 +356,7 @@ export default function ManageLowStockPage() {
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{filteredRows.length.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{filteredRows.length.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>

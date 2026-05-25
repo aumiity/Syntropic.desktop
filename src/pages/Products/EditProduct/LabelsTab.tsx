@@ -140,7 +140,7 @@ export function LabelsTab({
     <div className="pt-4">
       <div className="bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between h-12 border-b">
-          <span>ฉลากยาสำหรับพิมพ์ · <span className="text-foreground tabular-nums">{product.labels?.length ?? 0}</span> ฉลาก</span>
+          <span>ฉลากยาสำหรับพิมพ์ · <span className="text-foreground">{product.labels?.length ?? 0}</span> ฉลาก</span>
           <Button onClick={openAddLabel} className="h-9 rounded-lg px-2 text-sm">
             <Plus className="size-4" /> เพิ่มฉลาก
           </Button>
@@ -184,10 +184,10 @@ export function LabelsTab({
           )}
         </div>
         <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between h-12">
-          <span>ทั้งหมด <span className="font-semibold text-foreground tabular-nums">{product.labels?.length ?? 0}</span> ฉลาก</span>
+          <span>ทั้งหมด <span className="font-semibold text-foreground">{product.labels?.length ?? 0}</span> ฉลาก</span>
           <span className="flex items-center gap-3">
-            <span>เปิดใช้งาน <span className="font-semibold text-success tabular-nums">{product.labels?.filter(l => l.is_active).length ?? 0}</span></span>
-            <span>ปิดใช้งาน <span className="font-semibold text-foreground tabular-nums">{product.labels?.filter(l => !l.is_active).length ?? 0}</span></span>
+            <span>เปิดใช้งาน <span className="font-semibold text-success">{product.labels?.filter(l => l.is_active).length ?? 0}</span></span>
+            <span>ปิดใช้งาน <span className="font-semibold text-foreground">{product.labels?.filter(l => !l.is_active).length ?? 0}</span></span>
           </span>
         </div>
       </div>

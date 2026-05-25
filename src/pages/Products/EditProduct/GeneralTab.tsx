@@ -236,7 +236,7 @@ export function GeneralTab({
                 <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">เฉลี่ย / เดือน</span>
                   {monthlySales
-                    ? <span className="text-base font-bold text-warm-foreground tabular-nums">{monthlySales.avg_per_month.toFixed(2)}</span>
+                    ? <span className="text-base font-bold text-warm-foreground">{monthlySales.avg_per_month.toFixed(2)}</span>
                     : <span className="text-sm text-foreground-subtle">—</span>}
                 </div>
                 <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
@@ -244,7 +244,7 @@ export function GeneralTab({
                     {monthlySales ? formatThaiMonth(monthlySales.current_month.ym) : 'เดือนปัจจุบัน'}
                   </span>
                   {monthlySales
-                    ? <span className="text-base font-bold text-warm-foreground tabular-nums">{monthlySales.current_month.qty.toFixed(2)}</span>
+                    ? <span className="text-base font-bold text-warm-foreground">{monthlySales.current_month.qty.toFixed(2)}</span>
                     : <span className="text-sm text-foreground-subtle">—</span>}
                 </div>
               </div>
@@ -262,7 +262,7 @@ export function GeneralTab({
                       {monthlySales ? formatThaiMonth(h.ym) : '—'}
                     </span>
                     {monthlySales
-                      ? <span className="font-semibold text-foreground tabular-nums">{h.qty.toFixed(2)}</span>
+                      ? <span className="font-semibold text-foreground">{h.qty.toFixed(2)}</span>
                       : <span className="text-foreground-subtle">—</span>}
                   </div>
                 ))}

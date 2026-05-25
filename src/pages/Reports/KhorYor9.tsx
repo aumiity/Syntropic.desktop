@@ -162,12 +162,12 @@ export default function KhorYor9Page() {
                 ))}
                 {!loading && displayRows.map((r, i) => (
                   <tr key={`${r.invoice_no}-${i}`}>
-                    <td className="border border-foreground/80 px-2 py-1 text-center tabular-nums">{i + 1}</td>
+                    <td className="border border-foreground/80 px-2 py-1 text-center">{i + 1}</td>
                     <td className="border border-foreground/80 px-2 py-1 text-center">{formatThaiShortBE(r.purchase_date)}</td>
                     <td className="border border-foreground/80 px-2 py-1">{r.supplier_name}</td>
                     <td className="border border-foreground/80 px-2 py-1">{r.drug_name}</td>
                     <td className="border border-foreground/80 px-2 py-1">{r.lot_number}</td>
-                    <td className="border border-foreground/80 px-2 py-1 text-center tabular-nums">
+                    <td className="border border-foreground/80 px-2 py-1 text-center">
                       {formatQty(r.qty)}{r.unit_name ? ` ${r.unit_name}` : ''}
                     </td>
                     <td className="border border-foreground/80 px-2 py-1"></td>

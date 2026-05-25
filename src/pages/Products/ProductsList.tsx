@@ -1,18 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency } from '@/lib/utils'
 import type { Product, ProductCategory } from '@/types'
 import type { ProductsOutletContext } from './index'
 import {
-  Search, Plus, Edit, AlertTriangle, Package, PackageX, Boxes, Ban, Settings2,
+  Plus, Edit, AlertTriangle, Package, PackageX, Boxes, Ban, Settings2,
 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
@@ -26,24 +27,47 @@ interface ProductRow extends Product {
   stock_qty: number
 }
 
+interface ProductsPrefs {
+  pageSize: PageSize
+  sort: SortState
+  showCost: boolean
+  showProfit: boolean
+  showPrice: boolean
+  showStock: boolean
+}
+
+const PRODUCTS_DEFAULTS: ProductsPrefs = {
+  pageSize: 50,
+  sort: { by: 'trade_name', dir: 'asc' },
+  showCost: true,
+  showProfit: false,
+  showPrice: true,
+  showStock: true,
+}
+
 export default function ProductsList() {
   const navigate = useNavigate()
   const { setSummary } = useOutletContext<ProductsOutletContext>()
+
+  const [prefs, setPrefs] = usePagePrefs<ProductsPrefs>('products', PRODUCTS_DEFAULTS)
 
   const [rows, setRows] = useState<ProductRow[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
 
-  // Filters
+  // Filters (q, categoryId, stockFilter are NOT persisted — reset per session)
   const [q, setQ] = useState('')
   const [categoryId, setCategoryId] = useState<number>(0)
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out' | 'disabled'>('all')
-  const [showCost, setShowCost] = useState(true)
-  const [showProfit, setShowProfit] = useState(false)
-  const [showPrice, setShowPrice] = useState(true)
-  const [showStock, setShowStock] = useState(true)
-  const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
+  const showCost = prefs.showCost
+  const showProfit = prefs.showProfit
+  const showPrice = prefs.showPrice
+  const showStock = prefs.showStock
+  const sort = prefs.sort
+  const setSort = (next: SortState | ((prev: SortState) => SortState)) => {
+    setPrefs({ sort: typeof next === 'function' ? next(prefs.sort) : next })
+  }
 
   // Dropdown data
   const [categories, setCategories] = useState<ProductCategory[]>([])
@@ -52,7 +76,8 @@ export default function ProductsList() {
   // headline "หมดสต็อก" / "ใกล้หมด" / "สินค้าทั้งหมด" / "ปิดการใช้งาน" never inflate.
   const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0, disabled: 0 })
 
-  const [pageSize, setPageSize] = useState<PageSize>(50)
+  const pageSize = prefs.pageSize
+  const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   useEffect(() => {
@@ -141,7 +166,7 @@ export default function ProductsList() {
     return (
       <div className="flex flex-col gap-1 min-w-[140px]">
         <div className="text-sm">
-          <span className="font-semibold tabular-nums text-foreground">{qty.toLocaleString()}</span>
+          <span className="font-semibold text-foreground">{qty.toLocaleString()}</span>
           <span className="text-muted-foreground"> {unit} · </span>
           <span className={`font-medium ${tone}`}>{status}</span>
         </div>
@@ -157,15 +182,11 @@ export default function ProductsList() {
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
-              className="h-10 pl-9 rounded-lg text-sm bg-input"
-            />
-          </div>
+          <SearchInput
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
+          />
 
           <Select value={String(categoryId)} onValueChange={v => setCategoryId(Number(v))}>
             <SelectTrigger className="h-10 w-44 shrink-0">
@@ -179,7 +200,7 @@ export default function ProductsList() {
             </SelectContent>
           </Select>
 
-          <Button onClick={() => navigate('/products/new')} size="lg" className="h-10 px-2 shrink-0">
+          <Button onClick={() => navigate('/products/new')} size="lg" className="h-10 px-2 shrink-0 ml-auto">
             <Plus className="size-4" /> เพิ่มสินค้า
           </Button>
 
@@ -194,19 +215,19 @@ export default function ProductsList() {
                 <PopoverTitle>ตัวเลือกการแสดงผล</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showCost} onCheckedChange={v => setShowCost(v === true)} />
+                <Checkbox checked={showCost} onCheckedChange={v => setPrefs({ showCost: v === true })} />
                 <span className="text-sm">แสดงต้นทุน</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showPrice} onCheckedChange={v => setShowPrice(v === true)} />
+                <Checkbox checked={showPrice} onCheckedChange={v => setPrefs({ showPrice: v === true })} />
                 <span className="text-sm">แสดงราคาขาย</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showProfit} onCheckedChange={v => setShowProfit(v === true)} />
+                <Checkbox checked={showProfit} onCheckedChange={v => setPrefs({ showProfit: v === true })} />
                 <span className="text-sm">แสดงกำไร</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showStock} onCheckedChange={v => setShowStock(v === true)} />
+                <Checkbox checked={showStock} onCheckedChange={v => setPrefs({ showStock: v === true })} />
                 <span className="text-sm">แสดงสต็อก</span>
               </label>
             </PopoverContent>
@@ -218,18 +239,18 @@ export default function ProductsList() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8">#</TableHead>
-                <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[280px]">ชื่อสินค้า</SortableTableHead>
+                <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>
+                {showStock && (
+                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[220px] pl-6 pr-6">สต็อก</SortableTableHead>
+                )}
                 {showCost && (
-                  <SortableTableHead field="cost_price" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
+                  <SortableTableHead field="cost_price" align="left" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
                 )}
                 {showPrice && (
-                  <SortableTableHead field="price_retail" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ราคาขาย</SortableTableHead>
+                  <SortableTableHead field="price_retail" align="left" sort={sort} onToggle={toggleSort} className="min-w-24">ราคาขาย</SortableTableHead>
                 )}
                 {showProfit && (
-                  <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
-                )}
-                {showStock && (
-                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[160px] pl-6">สต็อก</SortableTableHead>
+                  <SortableTableHead field="profit" align="left" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
                 )}
                 <TableHead className="text-center min-w-16">จัดการ</TableHead>
               </TableRow>
@@ -252,15 +273,20 @@ export default function ProductsList() {
                 const isDisabled = !!row.is_disabled
                 return (
                   <TableRow key={row.id} className={`[&_td]:py-2.5 ${isDisabled ? 'opacity-60' : ''}`}>
-                    <TableCell className="text-foreground-subtle text-sm tabular-nums">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
+                    <TableCell className="text-foreground-subtle text-sm">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
                     <TableCell className="max-w-0">
                       <div className="font-semibold text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
                     </TableCell>
+                    {showStock && (
+                      <TableCell className="pl-6 pr-6">
+                        {renderStockCell(row.stock_qty, row.reorder_point ?? 0, row.safety_stock ?? 0, row.unit_name)}
+                      </TableCell>
+                    )}
                     {showCost && (
-                      <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
+                      <TableCell className="text-left text-sm text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
                     )}
                     {showPrice && (
-                      <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">
+                      <TableCell className="text-left text-sm font-semibold text-foreground">
                         {showCost && showProfit ? (
                           formatCurrency(row.price_retail)
                         ) : (
@@ -270,8 +296,8 @@ export default function ProductsList() {
                                 {formatCurrency(row.price_retail)}
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent side="left" className="px-3 py-2">
-                              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm tabular-nums">
+                            <TooltipContent side="right" className="px-3 py-2">
+                              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
                                 {!showCost && (
                                   <>
                                     <span className="text-muted-foreground">ต้นทุน</span>
@@ -293,17 +319,12 @@ export default function ProductsList() {
                       </TableCell>
                     )}
                     {showProfit && (
-                      <TableCell className="text-right text-sm font-medium tabular-nums">
+                      <TableCell className="text-left text-sm font-medium">
                         <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
                           {formatCurrency(profit)}
                           {/* text-xs: user-approved exception to the text-sm minimum rule */}
                           <span className="ml-1 text-xs opacity-70">({pct.toFixed(0)}%)</span>
                         </span>
-                      </TableCell>
-                    )}
-                    {showStock && (
-                      <TableCell className="pl-6">
-                        {renderStockCell(row.stock_qty, row.reorder_point ?? 0, row.safety_stock ?? 0, row.unit_name)}
                       </TableCell>
                     )}
                     <TableCell>
@@ -346,7 +367,7 @@ export default function ProductsList() {
             <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto justify-center" />
           </div>
           <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground tabular-nums">{total.toLocaleString()}</span> รายการ</>}
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{total.toLocaleString()}</span> รายการ</>}
           </span>
         </div>
       </div>

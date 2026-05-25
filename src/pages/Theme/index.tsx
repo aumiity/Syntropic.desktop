@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/toast'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
+import { Input, SearchInput } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import {
@@ -489,7 +489,7 @@ export default function Theme() {
 
               {/* ── PRICE INPUT ── */}
               <Section title="PriceInput" path="src/components/ui/price-input.tsx">
-                <DemoRow label="Currency (decimals=2) — ชิดขวา, tabular-nums, ว่าง→0 เมื่อ blur">
+                <DemoRow label="Currency (decimals=2) — ชิดขวา,, ว่าง→0 เมื่อ blur">
                   <PriceInput
                     className="max-w-[160px]"
                     value={priceVal}
@@ -901,17 +901,13 @@ export default function Theme() {
                 </p>
                 <div className="bg-card rounded-card shadow-card overflow-hidden">
                   <div className="h-14 px-2 flex items-center gap-3">
-                    <div className="relative flex-1 min-w-0">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                      <Input
-                        value={tableQ}
-                        onChange={e => setTableQ(e.target.value)}
-                        placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
-                        className="h-10 pl-9 rounded-lg text-sm bg-input"
-                      />
-                    </div>
+                    <SearchInput
+                      value={tableQ}
+                      onChange={e => setTableQ(e.target.value)}
+                      placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
+                    />
                     <Select defaultValue="all">
-                      <SelectTrigger className="h-10 flex-1 min-w-0"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-10 w-44 shrink-0"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
                         <SelectItem value="1">ยาต้านเชื้อ</SelectItem>
@@ -919,7 +915,7 @@ export default function Theme() {
                         <SelectItem value="3">วิตามิน</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button size="lg" className="h-10 px-2 shrink-0"><Plus className="size-4" /> เพิ่มสินค้า</Button>
+                    <Button size="lg" className="h-10 px-2 shrink-0 ml-auto"><Plus className="size-4" /> เพิ่มสินค้า</Button>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
@@ -978,7 +974,7 @@ export default function Theme() {
                           {showColName && <TableCell className="font-medium">{row.name}</TableCell>}
                           {showColCategory && <TableCell><Badge variant="outline">{row.cat}</Badge></TableCell>}
                           {showColPrice && <TableCell className="text-right font-mono">{row.price}</TableCell>}
-                          {showColStock && <TableCell className="text-right tabular-nums">{row.stock.toLocaleString()}</TableCell>}
+                          {showColStock && <TableCell className="text-right">{row.stock.toLocaleString()}</TableCell>}
                           {showColStatus && <TableCell><Badge variant={row.status}>{STATUS_LABEL[row.status]}</Badge></TableCell>}
                           <TableCell>
                             {/* Row actions = square icon buttons (no w-16).
@@ -1016,7 +1012,7 @@ export default function Theme() {
                     <div className="flex-1 flex justify-center">
                       <Pagination page={page} totalPages={10} onPageChange={setPage} className="w-auto justify-center" />
                     </div>
-                    <span className="text-muted-foreground shrink-0">แสดง <span className="font-semibold text-foreground tabular-nums">{PRODUCTS.length * 3}</span> รายการ</span>
+                    <span className="text-muted-foreground shrink-0">แสดง <span className="font-semibold text-foreground">{PRODUCTS.length * 3}</span> รายการ</span>
                   </div>
                 </div>
               </Section>

@@ -84,10 +84,10 @@ export function PriceTab({
 
   const profitBox = (d: ReturnType<typeof calc>) => {
     const labelCls = `text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`
-    const valCls = `text-sm font-bold tabular-nums ${d.pos ? 'text-success' : 'text-destructive'}`
+    const valCls = `text-sm font-bold ${d.pos ? 'text-success' : 'text-destructive'}`
     const dash = <span className="text-sm text-foreground-subtle">—</span>
     return (
-      <div className="rounded-lg bg-success-soft/50 px-3 py-2 tabular-nums space-y-1">
+      <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-1">
         <div className="flex items-center justify-between">
           <span className={labelCls}>กำไร ({baseUnit})</span>
           {d.dim ? dash : <span className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)}</span>}
@@ -122,7 +122,7 @@ export function PriceTab({
               <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">ทุนเฉลี่ย ({baseUnit})</span>
                 {avgCost > 0
-                  ? <span className="text-sm font-bold text-warm-foreground tabular-nums">{formatCurrency(avgCost)}</span>
+                  ? <span className="text-sm font-bold text-warm-foreground">{formatCurrency(avgCost)}</span>
                   : <span className="text-sm text-foreground-subtle">—</span>}
               </div>
             </div>
@@ -186,7 +186,7 @@ export function PriceTab({
           <span>
             ประวัติการเปลี่ยนราคา
             {history && history.length > 0 && (
-              <> · <span className="text-foreground tabular-nums">{history.length}</span> รายการ</>
+              <> · <span className="text-foreground">{history.length}</span> รายการ</>
             )}
           </span>
           <Button
@@ -227,14 +227,14 @@ export function PriceTab({
                 const up = h.new_price > h.old_price
                 return (
                   <TableRow key={h.id} className="hover:bg-primary-soft/60 transition-colors">
-                    <TableCell className="text-sm tabular-nums">{formatDateTime(h.created_at)}</TableCell>
+                    <TableCell className="text-sm">{formatDateTime(h.created_at)}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant={meta.variant} className="rounded-md">{meta.label}</Badge>
                     </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
+                    <TableCell className="text-right text-sm text-muted-foreground">
                       {formatCurrency(h.old_price)}
                     </TableCell>
-                    <TableCell className={`text-right text-sm font-semibold tabular-nums ${up ? 'text-success' : 'text-destructive'}`}>
+                    <TableCell className={`text-right text-sm font-semibold ${up ? 'text-success' : 'text-destructive'}`}>
                       {formatCurrency(h.new_price)}
                     </TableCell>
                     <TableCell className="text-center">

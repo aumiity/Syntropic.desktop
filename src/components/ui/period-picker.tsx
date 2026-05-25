@@ -170,7 +170,7 @@ export function PeriodPicker({
             <Button
               type="button"
               variant="ghost"
-              className="h-10 px-3 rounded-none min-w-[180px] justify-center font-medium tabular-nums"
+              className="h-10 px-3 rounded-none min-w-[180px] justify-center font-medium"
             >
               <CalendarDays className="size-4 mr-2 text-foreground-subtle" />
               {displayLabel(mode, from, to)}
@@ -230,7 +230,7 @@ function MonthPanel({ from, onPick }: { from: string; onPick: (f: string, t: str
         <Button variant="ghost" size="icon" className="size-8" onClick={() => setYear(y => y - 1)} title="ปีก่อนหน้า">
           <ChevronLeft className="size-4" />
         </Button>
-        <span className="text-sm font-semibold tabular-nums">{(year + 543).toString()}</span>
+        <span className="text-sm font-semibold">{(year + 543).toString()}</span>
         <Button variant="ghost" size="icon" className="size-8" onClick={() => setYear(y => y + 1)} title="ปีถัดไป">
           <ChevronRight className="size-4" />
         </Button>
@@ -276,7 +276,7 @@ function YearPanel({ from, onPick }: { from: string; onPick: (f: string, t: stri
         <Button variant="ghost" size="icon" className="size-8" onClick={() => setPageStart(p => p - 12)} title="ก่อนหน้า">
           <ChevronLeft className="size-4" />
         </Button>
-        <span className="text-sm font-semibold tabular-nums">
+        <span className="text-sm font-semibold">
           {pageStart + 543} – {pageStart + 11 + 543}
         </span>
         <Button variant="ghost" size="icon" className="size-8" onClick={() => setPageStart(p => p + 12)} title="ถัดไป">
@@ -294,7 +294,7 @@ function YearPanel({ from, onPick }: { from: string; onPick: (f: string, t: stri
               variant={isSelected ? 'default' : 'ghost'}
               size="sm"
               className={cn(
-                'h-9 text-sm tabular-nums',
+                'h-9 text-sm',
                 !isSelected && isCurrent && 'ring-2 ring-primary/40 text-primary',
               )}
               onClick={() => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Input, SearchInput } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -9,7 +9,7 @@ import { FormField } from '@/components/ui/label'
 import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
 import type { DrugType } from '@/types'
-import { Plus, Edit, Pill, Search } from 'lucide-react'
+import { Plus, Edit, Pill } from 'lucide-react'
 
 const FDA_FLAGS = [
   { key: 'is_fda9',  label: 'ข.ย.9 — บัญชีการซื้อยา' },
@@ -69,16 +69,12 @@ export function DrugTypesTab() {
     <div className="pt-4 h-full flex flex-col min-h-0">
       <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              placeholder="ค้นหารหัส, ชื่อประเภทยา..."
-              className="h-10 pl-9 rounded-lg text-sm bg-input"
-            />
-          </div>
-          <Button size="lg" className="h-10 px-2 shrink-0" onClick={openAdd}>
+          <SearchInput
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหารหัส, ชื่อประเภทยา..."
+          />
+          <Button size="lg" className="h-10 px-2 shrink-0 ml-auto" onClick={openAdd}>
             <Plus className="size-4" /> เพิ่มประเภทยา
           </Button>
         </div>
@@ -136,7 +132,7 @@ export function DrugTypesTab() {
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
-            แสดง <span className="font-semibold text-foreground tabular-nums">{filtered.length.toLocaleString()}</span> รายการ
+            แสดง <span className="font-semibold text-foreground">{filtered.length.toLocaleString()}</span> รายการ
           </span>
         </div>
       </div>

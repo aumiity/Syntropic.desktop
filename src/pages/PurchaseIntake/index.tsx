@@ -333,7 +333,7 @@ export default function PurchaseIntake() {
                         : '—'
                     return (
                       <TableRow key={i}>
-                        <TableCell className="text-muted-foreground tabular-nums">{i + 1}</TableCell>
+                        <TableCell className="text-muted-foreground">{i + 1}</TableCell>
                         <TableCell className="break-words text-sm">{r.supplierText}</TableCell>
                         <TableCell className={cellTint(r.tier, r.score)}>
                           {searchIdx === i ? (
@@ -400,7 +400,7 @@ export default function PurchaseIntake() {
                             className="h-9 rounded-lg text-sm text-right"
                           />
                         </TableCell>
-                        <TableCell className="text-center tabular-nums text-sm text-muted-foreground">
+                        <TableCell className="text-center text-sm text-muted-foreground">
                           {lot}
                         </TableCell>
                         <TableCell>

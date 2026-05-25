@@ -9,7 +9,7 @@ import { Combobox } from '@/components/ui/combobox'
 import { DateInput } from '@/components/ui/date-input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Switch } from '@/components/ui/switch'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -20,7 +20,7 @@ import type { Supplier, NegativeStockAlert } from '@/types'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import {
   Plus, Trash2, Package,
-  Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle,
+  Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle, Settings2,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { motion } from 'framer-motion'
@@ -721,14 +721,6 @@ export default function PurchasePage() {
                       <div className="px-2 h-14 flex items-center justify-between bg-card gap-2 shrink-0">
                         <span className="pl-2 text-base font-semibold text-muted-foreground">รายการสินค้า</span>
                         <div className="flex items-center gap-2">
-                          <label className="inline-flex items-center gap-2 h-9 px-3 rounded-lg cursor-pointer select-none text-sm font-normal transition-colors bg-muted text-muted-foreground hover:bg-muted-hover">
-                            <span>วันผลิต</span>
-                            <Switch size="default" checked={showMfg} onCheckedChange={setShowMfg} />
-                          </label>
-                          <label className="inline-flex items-center gap-2 h-9 px-3 rounded-lg cursor-pointer select-none text-sm font-normal transition-colors bg-muted text-muted-foreground hover:bg-muted-hover">
-                            <span>ส่วนลด</span>
-                            <Switch size="default" checked={showDiscount} onCheckedChange={setShowDiscount} />
-                          </label>
                           <Button size="sm" variant="info-soft" onClick={() => setShowImport(true)} className="h-9 rounded-lg text-sm gap-1.5">
                             <ClipboardPaste className="size-3.5" /> นำเข้าข้อมูล
                           </Button>
@@ -738,6 +730,26 @@ export default function PurchasePage() {
                           <Button size="sm" variant="default" onClick={() => { addRow(); focusCell(rows.length, 0) }} className="h-9 rounded-lg text-sm gap-1.5">
                             <Plus className="size-3.5" /> เพิ่มแถว
                           </Button>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button size="sm" variant="outline" className="h-9 w-9 p-0 rounded-lg" title="ตัวเลือกการแสดงผล">
+                                <Settings2 className="size-3.5" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-48">
+                              <PopoverHeader>
+                                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                              </PopoverHeader>
+                              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                                <Checkbox checked={showMfg} onCheckedChange={v => setShowMfg(v === true)} />
+                                <span className="text-sm">วันผลิต</span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                                <Checkbox checked={showDiscount} onCheckedChange={v => setShowDiscount(v === true)} />
+                                <span className="text-sm">ส่วนลด</span>
+                              </label>
+                            </PopoverContent>
+                          </Popover>
                         </div>
                       </div>
 
@@ -770,7 +782,7 @@ export default function PurchasePage() {
                                 <TableRow key={i} className={`border-0 hover:bg-transparent ${rowBg}`}>
 
                                   {/* # */}
-                                  <TableCell className="px-3 py-1.5 text-sm text-foreground-subtle tabular-nums text-center">{i + 1}</TableCell>
+                                  <TableCell className="px-3 py-1.5 text-sm text-foreground-subtle text-center">{i + 1}</TableCell>
 
                                   {/* Product search */}
                                   <TableCell className="px-2 py-1.5 relative">
@@ -851,7 +863,7 @@ export default function PurchasePage() {
                                       onFocus={() => { setActiveRow(i); setFocusedCell(`${i}-1`) }}
                                       onBlur={() => setFocusedCell(null)}
                                       placeholder="0"
-                                      className="h-8 text-sm text-center tabular-nums"
+                                      className="h-8 text-sm text-center"
                                     />
                                   </TableCell>
 
@@ -870,7 +882,7 @@ export default function PurchasePage() {
                                         if (isFinite(n)) updateLineMath(i, 'cost_price', n.toFixed(2))
                                       }}
                                       placeholder="0.00"
-                                      className="h-8 text-sm text-right tabular-nums"
+                                      className="h-8 text-sm text-right"
                                     />
                                   </TableCell>
 
@@ -882,7 +894,7 @@ export default function PurchasePage() {
                                       size="sm"
                                       disabled={!row.product_id}
                                       onClick={() => { setActiveRow(i); openPriceModal(i) }}
-                                      className="h-8 w-full justify-end px-2 rounded-lg bg-input text-sm font-normal tabular-nums hover:bg-muted-hover border-0 disabled:opacity-50"
+                                      className="h-8 w-full justify-end px-2 rounded-lg bg-input text-sm font-normal hover:bg-muted-hover border-0 disabled:opacity-50"
                                     >
                                       <span>
                                         {row.product_id ? `${formatCurrency(row.default_sell_price || 0)}` : ''}
@@ -906,7 +918,7 @@ export default function PurchasePage() {
                                           if (isFinite(n)) updateLineMath(i, 'discount', n.toFixed(2))
                                         }}
                                         placeholder="0.00"
-                                        className="h-8 text-sm text-right tabular-nums"
+                                        className="h-8 text-sm text-right"
                                       />
                                     </TableCell>
                                   )}
@@ -927,7 +939,7 @@ export default function PurchasePage() {
                                       }}
                                       onKeyDown={e => handleQtyKeyDown(i, e)}
                                       placeholder="0.00"
-                                      className="h-8 text-sm text-right tabular-nums"
+                                      className="h-8 text-sm text-right"
                                     />
                                   </TableCell>
 
@@ -962,27 +974,27 @@ export default function PurchasePage() {
                           <div className="bg-card px-5 py-1 space-y-0.5">
                             <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
                               <span>ราคารวม</span>
-                              <span className="tabular-nums w-32 text-right">{formatCurrency(adjustSubtotal)}</span>
+                              <span className="w-32 text-right">{formatCurrency(adjustSubtotal)}</span>
                             </div>
                             {adjustDiscountAmt > 0 && (
                               <div className="flex items-center justify-end gap-6 text-sm text-primary">
                                 <span>ส่วนลด</span>
-                                <span className="tabular-nums w-32 text-right">−{formatCurrency(adjustDiscountAmt)}</span>
+                                <span className="w-32 text-right">−{formatCurrency(adjustDiscountAmt)}</span>
                               </div>
                             )}
                             {adjustSurchargeAmt > 0 && (
                               <div className="flex items-center justify-end gap-6 text-sm text-warning-strong">
                                 <span>ส่วนเพิ่ม</span>
-                                <span className="tabular-nums w-32 text-right">+{formatCurrency(adjustSurchargeAmt)}</span>
+                                <span className="w-32 text-right">+{formatCurrency(adjustSurchargeAmt)}</span>
                               </div>
                             )}
                           </div>
                         )}
                         <div className="bg-card border-t border-border px-5 py-2 flex items-center justify-between gap-3">
-                          <Badge variant="brand-soft" className="text-sm rounded-md tabular-nums">{validRows.length}/{rows.length} รายการ</Badge>
+                          <Badge variant="brand-soft" className="text-sm rounded-md">{validRows.length}/{rows.length} รายการ</Badge>
                           <div className="flex items-center gap-6">
                             <span className="text-sm font-semibold text-foreground-subtle">มูลค่ารวมทั้งหมด</span>
-                            <span className="font-extrabold text-primary text-base tabular-nums w-32 text-right">{formatCurrency(totalCost)}</span>
+                            <span className="font-extrabold text-primary text-base w-32 text-right">{formatCurrency(totalCost)}</span>
                           </div>
                         </div>
                       </div>
@@ -998,7 +1010,7 @@ export default function PurchasePage() {
                       <div className="text-sm font-bold text-foreground-subtle uppercase tracking-wide">สรุปใบรับสินค้า</div>
                       <div>
                         <div className="text-sm text-foreground-subtle mb-0.5">เลขที่ใบรับ</div>
-                        <div className="text-sm font-bold text-primary tabular-nums">{invoiceNo || '—'}</div>
+                        <div className="text-sm font-bold text-primary">{invoiceNo || '—'}</div>
                       </div>
                       <div>
                         <div className="text-sm text-foreground-subtle mb-0.5">ผู้จัดจำหน่าย</div>
@@ -1240,24 +1252,24 @@ export default function PurchasePage() {
 
                           {/* เก่า */}
                           <div className="text-foreground-subtle">เก่า</div>
-                          <div className="tabular-nums text-right text-muted-foreground">{formatCurrency(oldSellPrice)}</div>
-                          <div className="tabular-nums text-right text-muted-foreground">{formatCurrency(prevCost)}</div>
-                          <div className={`tabular-nums text-right ${profitCls(oldProfit)}`}>{formatCurrency(oldProfit)}</div>
-                          <div className={`tabular-nums text-right ${profitCls(oldMargin)}`}>{oldMargin.toFixed(1)}%</div>
+                          <div className="text-right text-muted-foreground">{formatCurrency(oldSellPrice)}</div>
+                          <div className="text-right text-muted-foreground">{formatCurrency(prevCost)}</div>
+                          <div className={`text-right ${profitCls(oldProfit)}`}>{formatCurrency(oldProfit)}</div>
+                          <div className={`text-right ${profitCls(oldMargin)}`}>{oldMargin.toFixed(1)}%</div>
 
                           {/* ใหม่ */}
                           <div className="font-semibold">ใหม่</div>
-                          <div className="tabular-nums text-right font-semibold text-foreground">{formatCurrency(newSellPrice)}</div>
-                          <div className="tabular-nums text-right font-semibold text-foreground">{formatCurrency(cost)}</div>
-                          <div className={`tabular-nums text-right font-semibold ${profitCls(newProfit)}`}>{formatCurrency(newProfit)}</div>
-                          <div className={`tabular-nums text-right font-semibold ${profitCls(newMargin)}`}>{newMargin.toFixed(1)}%</div>
+                          <div className="text-right font-semibold text-foreground">{formatCurrency(newSellPrice)}</div>
+                          <div className="text-right font-semibold text-foreground">{formatCurrency(cost)}</div>
+                          <div className={`text-right font-semibold ${profitCls(newProfit)}`}>{formatCurrency(newProfit)}</div>
+                          <div className={`text-right font-semibold ${profitCls(newMargin)}`}>{newMargin.toFixed(1)}%</div>
 
                           {/* ส่วนต่าง */}
                           <div className="text-foreground-subtle">ส่วนต่าง</div>
-                          <div className={`tabular-nums text-right ${priceDiffCls}`}>{sign(priceDiff)}{formatCurrency(priceDiff)}</div>
-                          <div className={`tabular-nums text-right ${costDiffCls}`}>{sign(costDiff)}{formatCurrency(costDiff)}</div>
-                          <div className={`tabular-nums text-right ${profitDiffCls}`}>{sign(profitDiff)}{formatCurrency(profitDiff)}</div>
-                          <div className={`tabular-nums text-right ${marginDiffCls}`}>{sign(marginDiff)}{marginDiff.toFixed(1)}%</div>
+                          <div className={`text-right ${priceDiffCls}`}>{sign(priceDiff)}{formatCurrency(priceDiff)}</div>
+                          <div className={`text-right ${costDiffCls}`}>{sign(costDiff)}{formatCurrency(costDiff)}</div>
+                          <div className={`text-right ${profitDiffCls}`}>{sign(profitDiff)}{formatCurrency(profitDiff)}</div>
+                          <div className={`text-right ${marginDiffCls}`}>{sign(marginDiff)}{marginDiff.toFixed(1)}%</div>
                         </div>
                       </div>
                     )
@@ -1294,9 +1306,9 @@ export default function PurchasePage() {
                             {priceHistory.map(h => (
                               <tr key={h.id}>
                                 {/* text-xs — intentional exception to min-text-sm rule for compact history rows (per user request) */}
-                                <td className="px-2 py-1 text-xs text-muted-foreground tabular-nums truncate">{fmtDate(h.created_at)}</td>
-                                <td className="px-2 py-1 text-xs text-right text-muted-foreground tabular-nums">{formatCurrency(h.old_price)}</td>
-                                <td className="px-2 py-1 text-xs text-right text-foreground font-semibold tabular-nums">{formatCurrency(h.new_price)}</td>
+                                <td className="px-2 py-1 text-xs text-muted-foreground truncate">{fmtDate(h.created_at)}</td>
+                                <td className="px-2 py-1 text-xs text-right text-muted-foreground">{formatCurrency(h.old_price)}</td>
+                                <td className="px-2 py-1 text-xs text-right text-foreground font-semibold">{formatCurrency(h.new_price)}</td>
                                 <td className="px-2 py-1 text-xs text-muted-foreground truncate">{h.note || '-'}</td>
                               </tr>
                             ))}
@@ -1440,15 +1452,15 @@ export default function PurchasePage() {
                     <div className="rounded-lg bg-primary-soft/50 px-4 py-3 space-y-1.5 text-sm">
                       <div className="flex justify-between text-muted-foreground">
                         <span>ยอดรวมเดิม</span>
-                        <span className="pr-2.5 tabular-nums">{formatCurrency(adjustModalSum)}</span>
+                        <span className="pr-2.5">{formatCurrency(adjustModalSum)}</span>
                       </div>
                       <div className="flex justify-between text-primary">
                         <span>ส่วนลด</span>
-                        <span className="pr-2.5 tabular-nums">{previewDisc > 0 ? '−' : ''}{formatCurrency(previewDisc)}</span>
+                        <span className="pr-2.5">{previewDisc > 0 ? '−' : ''}{formatCurrency(previewDisc)}</span>
                       </div>
                       <div className="flex justify-between text-warning-strong">
                         <span>ส่วนเพิ่ม</span>
-                        <span className="pr-2.5 tabular-nums">{previewSur > 0 ? '+' : ''}{formatCurrency(previewSur)}</span>
+                        <span className="pr-2.5">{previewSur > 0 ? '+' : ''}{formatCurrency(previewSur)}</span>
                       </div>
                       <div className="flex items-center justify-between font-semibold text-foreground pt-1.5 mt-1">
                         <span>ยอดสุทธิ</span>
