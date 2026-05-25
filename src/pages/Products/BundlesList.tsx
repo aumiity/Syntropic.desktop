@@ -123,6 +123,10 @@ export default function BundlesList() {
             />
           </div>
 
+          <Button onClick={handleCreate} size="lg" className="h-10 px-2 shrink-0">
+            <Plus className="size-4" /> เพิ่มชุดสินค้า
+          </Button>
+
           <Popover>
             <PopoverTrigger asChild>
               <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
@@ -143,10 +147,6 @@ export default function BundlesList() {
               </label>
             </PopoverContent>
           </Popover>
-
-          <Button onClick={handleCreate} size="lg" className="h-10 px-2 shrink-0">
-            <Plus className="size-4" /> เพิ่มชุดสินค้า
-          </Button>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">

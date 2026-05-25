@@ -9,11 +9,13 @@ import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency } from '@/lib/utils'
 import type { ManageOutletContext } from './index'
-import { Search, PackageX, ClockAlert } from 'lucide-react'
+import { Search, PackageX, ClockAlert, Settings2 } from 'lucide-react'
 
 type FilterType = 'expired' | 30 | 90 | 180
 type SortField = 'trade_name' | 'expiry_date' | 'total_cost'
@@ -85,6 +87,15 @@ export default function ManageExpiryPage() {
 
   const [confirmingLot, setConfirmingLot] = useState<ExpiringLot | null>(null)
   const [expiring, setExpiring] = useState(false)
+
+  // Column visibility (ชื่อสินค้า + จัดการ always shown)
+  const [showColLot, setShowColLot] = useState(true)
+  const [showColExpiry, setShowColExpiry] = useState(true)
+  const [showColDays, setShowColDays] = useState(true)
+  const [showColQty, setShowColQty] = useState(true)
+  const [showColUnit, setShowColUnit] = useState(true)
+  const [showColCost, setShowColCost] = useState(true)
+  const [showColSupplier, setShowColSupplier] = useState(true)
 
   // Server-side pagination + sort. Filter switching, sort, and search all
   // refetch — paginated payload keeps the page snappy even at 10k+ lots.
@@ -208,6 +219,47 @@ export default function ManageExpiryPage() {
               ))}
             </SelectContent>
           </Select>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColLot} onCheckedChange={v => setShowColLot(v === true)} />
+                <span className="text-sm">ล็อต</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColExpiry} onCheckedChange={v => setShowColExpiry(v === true)} />
+                <span className="text-sm">วันหมดอายุ</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColDays} onCheckedChange={v => setShowColDays(v === true)} />
+                <span className="text-sm">วันคงเหลือ</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColQty} onCheckedChange={v => setShowColQty(v === true)} />
+                <span className="text-sm">คงเหลือ</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColUnit} onCheckedChange={v => setShowColUnit(v === true)} />
+                <span className="text-sm">หน่วย</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColCost} onCheckedChange={v => setShowColCost(v === true)} />
+                <span className="text-sm">ทุนรวม</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColSupplier} onCheckedChange={v => setShowColSupplier(v === true)} />
+                <span className="text-sm">ผู้จัดจำหน่าย</span>
+              </label>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -215,24 +267,24 @@ export default function ManageExpiryPage() {
             <TableHeader>
               <TableRow>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>
-                <TableHead className="min-w-20">ล็อต</TableHead>
-                <SortableTableHead field="expiry_date" sort={sort} onToggle={toggleSort} className="min-w-24">วันหมดอายุ</SortableTableHead>
-                <TableHead className="text-center min-w-24">วันคงเหลือ</TableHead>
-                <TableHead className="text-right min-w-16">คงเหลือ</TableHead>
-                <TableHead className="min-w-16">หน่วย</TableHead>
-                <SortableTableHead field="total_cost" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ทุนรวม</SortableTableHead>
-                <TableHead className="min-w-[140px]">ผู้จัดจำหน่าย</TableHead>
+                {showColLot && <TableHead className="min-w-20">ล็อต</TableHead>}
+                {showColExpiry && <SortableTableHead field="expiry_date" sort={sort} onToggle={toggleSort} className="min-w-24">วันหมดอายุ</SortableTableHead>}
+                {showColDays && <TableHead className="text-center min-w-24">วันคงเหลือ</TableHead>}
+                {showColQty && <TableHead className="text-right min-w-16">คงเหลือ</TableHead>}
+                {showColUnit && <TableHead className="min-w-16">หน่วย</TableHead>}
+                {showColCost && <SortableTableHead field="total_cost" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ทุนรวม</SortableTableHead>}
+                {showColSupplier && <TableHead className="min-w-[140px]">ผู้จัดจำหน่าย</TableHead>}
                 <TableHead className="text-center min-w-20">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={2 + (showColLot ? 1 : 0) + (showColExpiry ? 1 : 0) + (showColDays ? 1 : 0) + (showColQty ? 1 : 0) + (showColUnit ? 1 : 0) + (showColCost ? 1 : 0) + (showColSupplier ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={2 + (showColLot ? 1 : 0) + (showColExpiry ? 1 : 0) + (showColDays ? 1 : 0) + (showColQty ? 1 : 0) + (showColUnit ? 1 : 0) + (showColCost ? 1 : 0) + (showColSupplier ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <PackageX className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบล็อตตามเงื่อนไขที่เลือก
                   </TableCell>
@@ -244,27 +296,41 @@ export default function ManageExpiryPage() {
                     <TableCell className="max-w-[220px] text-sm font-medium truncate" title={lot.trade_name}>
                       {lot.trade_name}
                     </TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">
-                      {lot.lot_number || <span className="text-foreground-subtle">—</span>}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {renderExpiryDate(lot.expiry_date, lot.days_remaining)}
-                    </TableCell>
-                    <TableCell className="text-center text-sm tabular-nums">
-                      {renderDays(lot.days_remaining)}
-                    </TableCell>
-                    <TableCell className="text-right text-sm font-semibold tabular-nums">
-                      {lot.qty_on_hand.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {lot.unit_name || <span className="text-foreground-subtle">—</span>}
-                    </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
-                      {formatCurrency(lot.total_cost)}
-                    </TableCell>
-                    <TableCell className="max-w-[160px] text-sm text-muted-foreground truncate" title={lot.supplier_name ?? ''}>
-                      {lot.supplier_name || <span className="text-foreground-subtle">—</span>}
-                    </TableCell>
+                    {showColLot && (
+                      <TableCell className="font-mono text-sm text-muted-foreground">
+                        {lot.lot_number || <span className="text-foreground-subtle">—</span>}
+                      </TableCell>
+                    )}
+                    {showColExpiry && (
+                      <TableCell className="text-sm">
+                        {renderExpiryDate(lot.expiry_date, lot.days_remaining)}
+                      </TableCell>
+                    )}
+                    {showColDays && (
+                      <TableCell className="text-center text-sm tabular-nums">
+                        {renderDays(lot.days_remaining)}
+                      </TableCell>
+                    )}
+                    {showColQty && (
+                      <TableCell className="text-right text-sm font-semibold tabular-nums">
+                        {lot.qty_on_hand.toLocaleString()}
+                      </TableCell>
+                    )}
+                    {showColUnit && (
+                      <TableCell className="text-sm text-muted-foreground">
+                        {lot.unit_name || <span className="text-foreground-subtle">—</span>}
+                      </TableCell>
+                    )}
+                    {showColCost && (
+                      <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                        {formatCurrency(lot.total_cost)}
+                      </TableCell>
+                    )}
+                    {showColSupplier && (
+                      <TableCell className="max-w-[160px] text-sm text-muted-foreground truncate" title={lot.supplier_name ?? ''}>
+                        {lot.supplier_name || <span className="text-foreground-subtle">—</span>}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex justify-center">
                         <Button

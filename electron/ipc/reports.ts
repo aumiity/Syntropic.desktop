@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
+import { orderByBucket } from '../db/sortName'
 
 export function registerReportHandlers() {
   ipcMain.handle('reports:salesList', (_e, filters: {
@@ -117,7 +118,7 @@ export function registerReportHandlers() {
           LEFT JOIN item_units u ON u.id = c.unit_id
           LEFT JOIN product_lots pl ON pl.id = sil.lot_id
           WHERE sil.sale_item_id = ?
-          ORDER BY c.trade_name, pl.expiry_date
+          ORDER BY ${orderByBucket('c.trade_name')}, pl.expiry_date
         `).all(it.id)
       }
     }
@@ -257,6 +258,9 @@ export function registerReportHandlers() {
     }
     const sortCol = sort_by && SORT_COLS[sort_by] ? SORT_COLS[sort_by] : 'pl.expiry_date'
     const sortDirSql = sort_dir === 'DESC' ? 'DESC' : 'ASC'
+    const sortClause = sortCol === 'p.trade_name'
+      ? orderByBucket(sortCol, sortDirSql as 'ASC' | 'DESC')
+      : `${sortCol} ${sortDirSql}, ${orderByBucket('p.trade_name')}`
 
     const totalAgg = db.prepare(`
       SELECT COUNT(*) AS c,
@@ -289,7 +293,7 @@ export function registerReportHandlers() {
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN suppliers s ON s.id = pl.supplier_id
       ${rowWhere}
-      ORDER BY ${sortCol} ${sortDirSql}, p.trade_name ASC
+      ORDER BY ${sortClause}
       LIMIT ? OFFSET ?
     `).all(...rowParams, limit, offset)
 
@@ -542,7 +546,7 @@ export function registerReportHandlers() {
       LEFT JOIN item_units u ON u.id = p.unit_id
       ${where}
       GROUP BY p.id
-      ORDER BY ${orderBy}
+      ORDER BY ${orderBy}, ${orderByBucket('p.trade_name')}
       LIMIT ?
     `).all(...params, limit)
   })

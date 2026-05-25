@@ -179,6 +179,10 @@ export default function ProductsList() {
             </SelectContent>
           </Select>
 
+          <Button onClick={() => navigate('/products/new')} size="lg" className="h-10 px-2 shrink-0">
+            <Plus className="size-4" /> เพิ่มสินค้า
+          </Button>
+
           <Popover>
             <PopoverTrigger asChild>
               <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
@@ -207,10 +211,6 @@ export default function ProductsList() {
               </label>
             </PopoverContent>
           </Popover>
-
-          <Button onClick={() => navigate('/products/new')} size="lg" className="h-10 px-2 shrink-0">
-            <Plus className="size-4" /> เพิ่มสินค้า
-          </Button>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -229,7 +229,7 @@ export default function ProductsList() {
                   <SortableTableHead field="profit" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
                 )}
                 {showStock && (
-                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[160px]">สต็อก</SortableTableHead>
+                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[160px] pl-6">สต็อก</SortableTableHead>
                 )}
                 <TableHead className="text-center min-w-16">จัดการ</TableHead>
               </TableRow>
@@ -302,7 +302,7 @@ export default function ProductsList() {
                       </TableCell>
                     )}
                     {showStock && (
-                      <TableCell>
+                      <TableCell className="pl-6">
                         {renderStockCell(row.stock_qty, row.reorder_point ?? 0, row.safety_stock ?? 0, row.unit_name)}
                       </TableCell>
                     )}

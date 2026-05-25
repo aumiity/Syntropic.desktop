@@ -16,7 +16,9 @@ import { formatCurrency, formatDateTime } from '@/lib/utils'
 import type { Sale } from '@/types'
 import type { ManageOutletContext } from './index'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
-import { Search, Receipt, Ban, ShoppingCart, Boxes, Undo2, Info } from 'lucide-react'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Search, Receipt, Ban, ShoppingCart, Boxes, Undo2, Info, Settings2 } from 'lucide-react'
 
 // Money lives in the table rows; the summary slot now carries only the count
 // cards, which double as the status filter. rx (ใบสั่งยา) bills have no
@@ -75,6 +77,13 @@ export default function ManageSalesPage() {
   const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
 
   const [pageSize, setPageSize] = useState<PageSize>(50)
+  // Column visibility (เลขบิล + จัดการ always shown)
+  const [showColDate, setShowColDate] = useState(true)
+  const [showColCustomer, setShowColCustomer] = useState(true)
+  const [showColType, setShowColType] = useState(true)
+  const [showColItems, setShowColItems] = useState(true)
+  const [showColTotal, setShowColTotal] = useState(true)
+  const [showColStatus, setShowColStatus] = useState(true)
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
 
   const load = useCallback(async (p = 1) => {
@@ -176,57 +185,103 @@ export default function ManageSalesPage() {
             onChange={(f, t) => { setDateFrom(f); setDateTo(t) }}
             className="w-60 shrink-0 bg-input hover:bg-surface-hover"
           />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColDate} onCheckedChange={v => setShowColDate(v === true)} />
+                <span className="text-sm">วันที่/เวลา</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColCustomer} onCheckedChange={v => setShowColCustomer(v === true)} />
+                <span className="text-sm">ลูกค้า</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColType} onCheckedChange={v => setShowColType(v === true)} />
+                <span className="text-sm">ประเภท</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColItems} onCheckedChange={v => setShowColItems(v === true)} />
+                <span className="text-sm">รายการ</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColTotal} onCheckedChange={v => setShowColTotal(v === true)} />
+                <span className="text-sm">ยอดสุทธิ</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
+                <span className="text-sm">สถานะ</span>
+              </label>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
           <Table>
             <TableHeader>
               <TableRow>
-                <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="min-w-24">วันที่/เวลา</SortableTableHead>
+                {showColDate && <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="min-w-24">วันที่/เวลา</SortableTableHead>}
                 <SortableTableHead field="invoice_no" sort={sort} onToggle={toggleSort} className="min-w-24">เลขบิล</SortableTableHead>
-                <TableHead className="min-w-[180px]">ลูกค้า</TableHead>
-                <TableHead className="text-center min-w-20">ประเภท</TableHead>
-                <TableHead className="text-center min-w-12">รายการ</TableHead>
-                <SortableTableHead field="total_amount" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ยอดสุทธิ</SortableTableHead>
-                <TableHead className="text-center min-w-20">สถานะ</TableHead>
+                {showColCustomer && <TableHead className="min-w-[180px]">ลูกค้า</TableHead>}
+                {showColType && <TableHead className="text-center min-w-20">ประเภท</TableHead>}
+                {showColItems && <TableHead className="text-center min-w-12">รายการ</TableHead>}
+                {showColTotal && <SortableTableHead field="total_amount" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ยอดสุทธิ</SortableTableHead>}
+                {showColStatus && <TableHead className="text-center min-w-20">สถานะ</TableHead>}
                 <TableHead className="text-center min-w-14">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColCustomer ? 1 : 0) + (showColType ? 1 : 0) + (showColItems ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColCustomer ? 1 : 0) + (showColType ? 1 : 0) + (showColItems ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <Receipt className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูล
                   </TableCell>
                 </TableRow>
               ) : rows.map(s => (
                 <TableRow key={s.id} className={s.status === 'voided' ? 'opacity-60' : ''}>
-                  <TableCell className="text-sm whitespace-nowrap">{formatDateTime(s.sold_at)}</TableCell>
+                  {showColDate && <TableCell className="text-sm whitespace-nowrap">{formatDateTime(s.sold_at)}</TableCell>}
                   <TableCell className="font-mono text-sm">{s.invoice_no}</TableCell>
-                  <TableCell className="text-sm truncate max-w-[200px]" title={s.customer_name ?? s.customer_name_free ?? ''}>
-                    {s.customer_name ?? s.customer_name_free ?? <span className="text-foreground-subtle">—</span>}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={SALE_TYPE_VARIANTS[s.sale_type] ?? 'secondary'}>
-                      {SALE_TYPE_LABELS[s.sale_type] ?? s.sale_type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center text-sm tabular-nums text-foreground">
-                    {(s.item_kinds ?? 0).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">
-                    {formatCurrency(s.total_amount)}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {s.status === 'voided'
-                      ? <Badge variant="destructive">ยกเลิก</Badge>
-                      : <Badge variant="success">สำเร็จ</Badge>}
-                  </TableCell>
+                  {showColCustomer && (
+                    <TableCell className="text-sm truncate max-w-[200px]" title={s.customer_name ?? s.customer_name_free ?? ''}>
+                      {s.customer_name ?? s.customer_name_free ?? <span className="text-foreground-subtle">—</span>}
+                    </TableCell>
+                  )}
+                  {showColType && (
+                    <TableCell className="text-center">
+                      <Badge variant={SALE_TYPE_VARIANTS[s.sale_type] ?? 'secondary'}>
+                        {SALE_TYPE_LABELS[s.sale_type] ?? s.sale_type}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {showColItems && (
+                    <TableCell className="text-center text-sm tabular-nums text-foreground">
+                      {(s.item_kinds ?? 0).toLocaleString()}
+                    </TableCell>
+                  )}
+                  {showColTotal && (
+                    <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">
+                      {formatCurrency(s.total_amount)}
+                    </TableCell>
+                  )}
+                  {showColStatus && (
+                    <TableCell className="text-center">
+                      {s.status === 'voided'
+                        ? <Badge variant="destructive">ยกเลิก</Badge>
+                        : <Badge variant="success">สำเร็จ</Badge>}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex justify-center">
                       <Button

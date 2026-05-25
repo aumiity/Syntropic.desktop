@@ -6,12 +6,13 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Toggle } from '@/components/ui/switch'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/QuickStockDialog'
+import { compareNameBuckets } from '@/lib/sortName'
 import type { ManageOutletContext } from './index'
-import { Search, PackagePlus, PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes } from 'lucide-react'
+import { Search, PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes, Settings2 } from 'lucide-react'
 
 type StatusFilter = 'all' | 'out' | 'low'
 type SortField = 'trade_name'
@@ -53,6 +54,12 @@ export default function ManageLowStockPage() {
   const [showSupplier, setShowSupplier] = useState<boolean>(() => {
     return localStorage.getItem(SUPPLIER_TOGGLE_KEY) === '1'
   })
+  // Column visibility (ชื่อสินค้า + จัดการสินค้า always shown).
+  // "สต็อก" bar consolidates คงเหลือ/จุดสั่งซื้อ/สต็อกปลอดภัย/หน่วย into one cell
+  // — same pattern as ProductsList renderStockCell.
+  const [showColStockBar, setShowColStockBar] = useState(true)
+  const [showColBuyMore, setShowColBuyMore] = useState(true)
+  const [showColCost, setShowColCost] = useState(true)
   const [sort, setSort] = useState<SortState>({ by: 'trade_name', dir: 'asc' })
 
   const toggleSort = (field: SortField) => {
@@ -73,7 +80,7 @@ export default function ManageLowStockPage() {
       : statusFilter === 'low' ? rows.filter(r => r.stock_qty > 0)
       : rows
     const sorted = [...base].sort((a, b) => {
-      const cmp = (a.trade_name || '').localeCompare(b.trade_name || '', 'th')
+      const cmp = compareNameBuckets(a.trade_name || '', b.trade_name || '')
       return sort.dir === 'asc' ? cmp : -cmp
     })
     return sorted
@@ -141,7 +148,42 @@ export default function ManageLowStockPage() {
     return () => setSummary(null)
   }, [setSummary])
 
-  const colCount = showSupplier ? 9 : 8
+  const colCount = 2
+    + (showColStockBar ? 1 : 0)
+    + (showColBuyMore ? 1 : 0)
+    + (showColCost ? 1 : 0)
+    + (showSupplier ? 1 : 0)
+
+  // Stock cell — qty/unit/status + bar + a meta line under the bar showing
+  // reorder & safety_stock targets.
+  const renderStockCell = (qty: number, reorder: number, safety: number, unitName?: string | null) => {
+    const unit = unitName || 'หน่วย'
+    const isOut = qty <= 0
+    const isLow = !isOut && reorder > 0 && qty <= reorder
+    const status = isOut ? 'หมด' : isLow ? 'ใกล้หมด' : 'ปกติ'
+    const tone = isOut || isLow ? 'text-destructive' : 'text-success'
+    const barTone = isOut || isLow ? 'bg-destructive' : 'bg-success'
+    const pct = isOut ? 0 : safety > 0 ? Math.min(100, (qty / safety) * 100) : 100
+    const hasMeta = reorder > 0 || safety > 0
+    return (
+      <div className="flex flex-col gap-1 min-w-[160px]">
+        <div className="text-sm">
+          <span className="font-semibold tabular-nums text-foreground">{qty.toLocaleString()}</span>
+          <span className="text-muted-foreground"> {unit} · </span>
+          <span className={`font-medium ${tone}`}>{status}</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
+        </div>
+        {hasMeta && (
+          <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
+            <span>{reorder > 0 ? <>จุดสั่งซื้อ <span className="text-foreground">{reorder.toLocaleString()}</span></> : null}</span>
+            <span>{safety > 0 ? <>สต็อคปลอดภัย <span className="text-foreground">{safety.toLocaleString()}</span></> : null}</span>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -170,25 +212,34 @@ export default function ManageLowStockPage() {
             </SelectContent>
           </Select>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="shrink-0">
-                <Toggle
-                  framed="input"
-                  checked={showSupplier}
-                  onChange={setShowSupplier}
-                  label="ผู้จำหน่ายราคาทุนต่ำสุด"
-                />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              แสดงผู้จำหน่ายที่เสนอราคาทุนต่ำสุดในรอบ 3 เดือนล่าสุด
-            </TooltipContent>
-          </Tooltip>
-
-          <Button size="lg" variant="info-soft" className="h-10 px-2 shrink-0" onClick={() => navigate('/purchase')}>
-            <PackagePlus className="size-4" /> ไปหน้ารับสินค้า
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColStockBar} onCheckedChange={v => setShowColStockBar(v === true)} />
+                <span className="text-sm">สต็อก</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColBuyMore} onCheckedChange={v => setShowColBuyMore(v === true)} />
+                <span className="text-sm">ซื้อเพิ่ม</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColCost} onCheckedChange={v => setShowColCost(v === true)} />
+                <span className="text-sm">ทุนเฉลี่ย</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted" title="แสดงผู้จำหน่ายที่เสนอราคาทุนต่ำสุดในรอบ 3 เดือนล่าสุด">
+                <Checkbox checked={showSupplier} onCheckedChange={v => setShowSupplier(v === true)} />
+                <span className="text-sm">ผู้จำหน่ายราคาทุนต่ำสุด</span>
+              </label>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -196,12 +247,9 @@ export default function ManageLowStockPage() {
             <TableHeader>
               <TableRow>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>
-                <TableHead className="min-w-12">หน่วย</TableHead>
-                <TableHead className="text-right min-w-12">คงเหลือ</TableHead>
-                <TableHead className="text-right min-w-12">จุดสั่งซื้อ</TableHead>
-                <TableHead className="text-right min-w-24">สต็อกปลอดภัย</TableHead>
-                <TableHead className="text-right min-w-16">ซื้อเพิ่ม</TableHead>
-                <TableHead className="text-right min-w-16">ทุนเฉลี่ย</TableHead>
+                {showColStockBar && <TableHead className="min-w-[160px] pl-6">สต็อก</TableHead>}
+                {showColBuyMore && <TableHead className="text-right min-w-16">ซื้อเพิ่ม</TableHead>}
+                {showColCost && <TableHead className="text-right min-w-16">ทุนเฉลี่ย</TableHead>}
                 {showSupplier && (
                   <TableHead className="text-right min-w-32">ผู้จำหน่าย</TableHead>
                 )}
@@ -223,32 +271,27 @@ export default function ManageLowStockPage() {
               ) : filteredRows.map(r => {
                 const isOut = r.stock_qty <= 0
                 return (
-                  <TableRow key={r.product_id} className={isOut ? 'bg-destructive-soft/30' : ''}>
+                  <TableRow key={r.product_id} className={`[&_td]:py-2.5 ${isOut ? 'bg-destructive-soft/30' : ''}`}>
                     <TableCell className="max-w-[260px] text-sm font-medium truncate" title={r.trade_name}>
                       {r.trade_name}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {r.unit_name || <span className="text-foreground-subtle">—</span>}
-                    </TableCell>
-                    <TableCell className={`text-right text-sm font-semibold tabular-nums ${isOut ? 'text-destructive' : 'text-warning-strong'}`}>
-                      {r.stock_qty.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
-                      {r.reorder_point.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
-                      {r.safety_stock != null && r.safety_stock > 0
-                        ? r.safety_stock.toLocaleString()
-                        : <span className="text-foreground-subtle">—</span>}
-                    </TableCell>
-                    <TableCell className="text-right text-sm font-bold tabular-nums text-destructive">
-                      {Math.max(0, r.buy_more).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
-                      {r.cost_avg != null && r.cost_avg > 0
-                        ? r.cost_avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                        : <span className="text-foreground-subtle">—</span>}
-                    </TableCell>
+                    {showColStockBar && (
+                      <TableCell className="pl-6">
+                        {renderStockCell(r.stock_qty, r.reorder_point, r.safety_stock ?? 0, r.unit_name)}
+                      </TableCell>
+                    )}
+                    {showColBuyMore && (
+                      <TableCell className="text-right text-sm font-bold tabular-nums text-destructive">
+                        {Math.max(0, r.buy_more).toLocaleString()}
+                      </TableCell>
+                    )}
+                    {showColCost && (
+                      <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                        {r.cost_avg != null && r.cost_avg > 0
+                          ? r.cost_avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                          : <span className="text-foreground-subtle">—</span>}
+                      </TableCell>
+                    )}
                     {showSupplier && (
                       <TableCell className="text-right text-sm">
                         {r.cheapest_supplier_name ? (

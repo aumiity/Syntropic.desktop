@@ -3,6 +3,7 @@ import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { getDb } from '../db'
+import { orderByBucket } from '../db/sortName'
 
 type ThemeColorPayload = {
   token: string
@@ -130,7 +131,7 @@ export function registerSettingsHandlers() {
       SELECT u.*, COUNT(DISTINCT pu.product_id) as usage_count
       FROM item_units u
       LEFT JOIN product_units pu ON pu.unit_id = u.id
-      GROUP BY u.id ORDER BY u.name
+      GROUP BY u.id ORDER BY ${orderByBucket('u.name')}
     `).all()
   })
   ipcMain.handle('settings:saveUnit', (_e, data: any) => {
@@ -161,7 +162,7 @@ export function registerSettingsHandlers() {
 
   // Dosage forms
   ipcMain.handle('settings:listDosageForms', () => {
-    return getDb().prepare(`SELECT * FROM dosage_forms WHERE is_disabled = 0 ORDER BY name_th`).all()
+    return getDb().prepare(`SELECT * FROM dosage_forms WHERE is_disabled = 0 ORDER BY ${orderByBucket('name_th')}`).all()
   })
 
   // Label frequencies/dosages/etc.
@@ -214,7 +215,7 @@ export function registerSettingsHandlers() {
 
   // All item units (for dropdowns)
   ipcMain.handle('settings:allUnits', () => {
-    return getDb().prepare(`SELECT * FROM item_units ORDER BY name`).all()
+    return getDb().prepare(`SELECT * FROM item_units ORDER BY ${orderByBucket('name')}`).all()
   })
   // All categories (for dropdowns)
   ipcMain.handle('settings:allCategories', () => {
@@ -226,7 +227,7 @@ export function registerSettingsHandlers() {
   })
   // All dosage forms (for dropdowns)
   ipcMain.handle('settings:allDosageForms', () => {
-    return getDb().prepare(`SELECT * FROM dosage_forms WHERE is_disabled = 0 ORDER BY name_th`).all()
+    return getDb().prepare(`SELECT * FROM dosage_forms WHERE is_disabled = 0 ORDER BY ${orderByBucket('name_th')}`).all()
   })
 
   // Theme color tokens in src/index.css

@@ -45,6 +45,7 @@ import {
   Search, Plus, Edit, Trash2, Info, ExternalLink,
   AlertTriangle, CheckCircle, Package, ChevronRight,
   TrendingUp, FileText, Boxes, AlertCircle, Coins, Building2,
+  Settings2,
 } from 'lucide-react'
 import { Combobox } from '@/components/ui/combobox'
 import { PriceInput } from '@/components/ui/price-input'
@@ -143,6 +144,12 @@ export default function Theme() {
   const [page, setPage] = useState(3)
   const [pageSize, setPageSize] = useState<import('@/components/ui/pagination').PageSize>(50)
   const [tableQ, setTableQ] = useState('')
+  // Standard Table-Card showcase: per-column show/hide (จัดการ column always shown)
+  const [showColName, setShowColName] = useState(true)
+  const [showColCategory, setShowColCategory] = useState(true)
+  const [showColPrice, setShowColPrice] = useState(true)
+  const [showColStock, setShowColStock] = useState(true)
+  const [showColStatus, setShowColStatus] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const comboItems = [
     { id: 1, name: 'บริษัท ฟาร์มาซี จำกัด', code: 'S0001' },
@@ -884,11 +891,13 @@ export default function Theme() {
               <Section title="Standard Table-Card Layout" path="CLAUDE.md → UI Conventions" full>
                 <p className="text-sm text-muted-foreground">
                   รูปแบบมาตรฐานของ Products list / EditProduct tabs — 4 แถบ:
-                  แถบบน (ขาว ไม่มีเส้น, <code className="font-mono">h-14 px-2</code> — px-2 ให้ขอบ search ตรงกับ inset 8px ของตาราง) = ช่องค้นหา (ซ้าย) + Select filter / สวิช <code className="font-mono">framed="input"</code> (กรอบ bg-input กลมกลืนกับ search) / ปุ่ม action (ขวา)
+                  แถบบน (ขาว ไม่มีเส้น, <code className="font-mono">h-14 px-2</code> — px-2 ให้ขอบ search ตรงกับ inset 8px ของตาราง) = ช่องค้นหา (ซ้าย) + Select filter / ปุ่ม action / <strong>ปุ่ม ⚙️ ตั้งค่า</strong> (ขวาสุด)
                   · column header (muted, sticky) · เนื้อหา (ขาว เลื่อนได้)
                   · แถบล่าง (ขาว + เส้นบน, <code className="font-mono">h-12 px-5</code>) = page-size selector (ซ้าย) · pagination (กลาง) · จำนวนที่พบ (ขวา)
-                  — <strong>controls ในแถบบน <code className="font-mono">h-14</code> ใช้ <code className="font-mono">h-10</code></strong> (Input/Select/Combobox/DateInput/DateRangePicker/Toggle <code className="font-mono">framed="input"</code> + Button <code className="font-mono">size="lg" className="h-10"</code>) — ตรงกับ default ของ DateInput/DateRangePicker/Combobox.
+                  — <strong>controls ในแถบบน <code className="font-mono">h-14</code> ใช้ <code className="font-mono">h-10</code></strong> (Input/Select/Combobox/DateInput/DateRangePicker + Button <code className="font-mono">size="lg" className="h-10"</code>) — ตรงกับ default ของ DateInput/DateRangePicker/Combobox.
                   ส่วน controls ในแถบล่าง <code className="font-mono">h-12</code> ใช้ <code className="font-mono">h-9</code> (Button <code className="font-mono">size="lg"</code>)
+                  <br />
+                  <strong>ปุ่มตั้งค่า ⚙️</strong> = <code className="font-mono">{'<Button variant="outline" size="lg" className="h-10 w-10 p-0">'}</code> + <code className="font-mono">{'<Settings2 />'}</code> ในรูป Popover (<code className="font-mono">align="end"</code> เพราะอยู่ขวาสุด) — รวบทั้ง <strong>คอลัมน์ที่แสดง</strong> (ยกเว้น <em>จัดการ</em> ซึ่งแสดงตลอด) + <strong>ตัวกรองเพิ่มเติม</strong> (เช่น "แสดงที่ปิดใช้งาน") ไว้ในที่เดียว เพื่อไม่ให้แถบ <code className="font-mono">h-14</code> รก
                 </p>
                 <div className="bg-card rounded-card shadow-card overflow-hidden">
                   <div className="h-14 px-2 flex items-center gap-3">
@@ -910,28 +919,67 @@ export default function Theme() {
                         <SelectItem value="3">วิตามิน</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Toggle framed="input" size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่ปิดใช้งาน" className="shrink-0 text-muted-foreground" />
                     <Button size="lg" className="h-10 px-2 shrink-0"><Plus className="size-4" /> เพิ่มสินค้า</Button>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                          <Settings2 className="size-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-56">
+                        <PopoverHeader>
+                          <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                        </PopoverHeader>
+                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                          <Checkbox checked={showColName} onCheckedChange={v => setShowColName(v === true)} />
+                          <span className="text-sm">ชื่อสินค้า</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                          <Checkbox checked={showColCategory} onCheckedChange={v => setShowColCategory(v === true)} />
+                          <span className="text-sm">หมวดหมู่</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                          <Checkbox checked={showColPrice} onCheckedChange={v => setShowColPrice(v === true)} />
+                          <span className="text-sm">ราคา</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                          <Checkbox checked={showColStock} onCheckedChange={v => setShowColStock(v === true)} />
+                          <span className="text-sm">สต็อก</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                          <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
+                          <span className="text-sm">สถานะ</span>
+                        </label>
+                        <div className="my-1 border-t border-border" />
+                        <PopoverHeader>
+                          <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
+                        </PopoverHeader>
+                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                          <Checkbox checked={switchOn} onCheckedChange={v => setSwitchOn(v === true)} />
+                          <span className="text-sm">แสดงที่ปิดใช้งาน</span>
+                        </label>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <Table containerClassName="max-h-[260px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="min-w-[220px]">ชื่อสินค้า</TableHead>
-                        <TableHead className="min-w-40">หมวดหมู่</TableHead>
-                        <TableHead className="min-w-32 text-right">ราคา (฿)</TableHead>
-                        <TableHead className="min-w-24 text-right">สต็อก</TableHead>
-                        <TableHead className="min-w-28">สถานะ</TableHead>
+                        {showColName && <TableHead className="min-w-[220px]">ชื่อสินค้า</TableHead>}
+                        {showColCategory && <TableHead className="min-w-40">หมวดหมู่</TableHead>}
+                        {showColPrice && <TableHead className="min-w-32 text-right">ราคา (฿)</TableHead>}
+                        {showColStock && <TableHead className="min-w-24 text-right">สต็อก</TableHead>}
+                        {showColStatus && <TableHead className="min-w-28">สถานะ</TableHead>}
                         <TableHead className="min-w-[148px] text-center">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {[...PRODUCTS, ...PRODUCTS, ...PRODUCTS].map((row, i) => (
                         <TableRow key={`${row.id}-${i}`}>
-                          <TableCell className="font-medium">{row.name}</TableCell>
-                          <TableCell><Badge variant="outline">{row.cat}</Badge></TableCell>
-                          <TableCell className="text-right font-mono">{row.price}</TableCell>
-                          <TableCell className="text-right tabular-nums">{row.stock.toLocaleString()}</TableCell>
-                          <TableCell><Badge variant={row.status}>{STATUS_LABEL[row.status]}</Badge></TableCell>
+                          {showColName && <TableCell className="font-medium">{row.name}</TableCell>}
+                          {showColCategory && <TableCell><Badge variant="outline">{row.cat}</Badge></TableCell>}
+                          {showColPrice && <TableCell className="text-right font-mono">{row.price}</TableCell>}
+                          {showColStock && <TableCell className="text-right tabular-nums">{row.stock.toLocaleString()}</TableCell>}
+                          {showColStatus && <TableCell><Badge variant={row.status}>{STATUS_LABEL[row.status]}</Badge></TableCell>}
                           <TableCell>
                             {/* Row actions = square icon buttons (no w-16).
                                 edit=outline · info=warm · external-link=primary-soft */}

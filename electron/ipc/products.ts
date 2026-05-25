@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { assertNotBundle, recomputeAvgCost, recomputeBundleCost, propagateCostToBundles } from '../db/pricing'
+import { orderByBucket } from '../db/sortName'
 
 // Stock expression aware of bundles: regular products sum open lots,
 // bundles derive MIN(component_open_stock / qty_per_bundle). Used by
@@ -103,15 +104,15 @@ export function registerProductHandlers() {
           WHEN p.search_keywords LIKE ? OR p.search_keywords LIKE ? OR p.search_keywords LIKE ? THEN 3
           ELSE 4
         END,
-        p.trade_name ${orderDir}
+        ${orderByBucket('p.trade_name', orderDir as 'ASC' | 'DESC')}
       `
       orderParams.push(prefix, prefix, prefix, kwMid, kwMidSp)
     } else if (orderCol === 'p.trade_name') {
-      orderBy = `${orderCol} ${orderDir}`
+      orderBy = orderByBucket(orderCol, orderDir as 'ASC' | 'DESC')
     } else {
       // Always tie-break on trade_name so paginated results are stable when the
       // primary sort column has duplicates (e.g. many products with cost_price=0).
-      orderBy = `${orderCol} ${orderDir}, p.trade_name ASC`
+      orderBy = `${orderCol} ${orderDir}, ${orderByBucket('p.trade_name')}`
     }
 
     const total = (db.prepare(`SELECT COUNT(*) as c FROM products p ${where}`).get(...params) as any).c
@@ -249,7 +250,7 @@ export function registerProductHandlers() {
       FROM products p
       LEFT JOIN item_units u ON u.id = p.unit_id
       ${where}
-      ORDER BY buy_more DESC, p.trade_name ASC
+      ORDER BY buy_more DESC, ${orderByBucket('p.trade_name')}
     `).all(...params) as any[]
 
     const out_count = rows.filter(r => r.stock_qty <= 0).length

@@ -85,7 +85,12 @@
       "Bash(Get-ChildItem -Path \"D:\\\\Syntropic.Project\\\\Syntropic.desktop\" -Depth 2)",
       "Bash(Select-Object FullName, PSIsContainer)",
       "Bash(Format-Table -AutoSize)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(sed -n '183,195p' src/pages/Manage/Sales.tsx)",
+      "Bash(sed -n '404,415p' src/pages/Manage/Purchases.tsx)",
+      "Bash(sed -n '196,212p' src/pages/Manage/LowStock.tsx)",
+      "Bash(sed -n '215,228p' src/pages/Manage/Expiry.tsx)",
+      "Bash(sed -n '109,118p' src/pages/Manage/NegativeStock.tsx)"
     ]
   }
 }

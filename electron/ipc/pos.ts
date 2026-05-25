@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes'
+import { orderByBucket } from '../db/sortName'
 import dayjs from 'dayjs'
 
 // FEFO deduction shared by single-product sales and bundle-component sales.
@@ -80,7 +81,7 @@ export function registerPosHandlers() {
           WHEN p.search_keywords LIKE ? OR p.search_keywords LIKE ? OR p.search_keywords LIKE ? THEN 3
           ELSE 4
         END,
-        p.trade_name
+        ${orderByBucket('p.trade_name')}
       LIMIT 30
     `).all(q, q, q, q, q, q, q, prefix, prefix, prefix, kwMid, kwMidSp)
 
@@ -134,7 +135,7 @@ export function registerPosHandlers() {
       WHERE is_disabled = 0
         AND code != '${WALKIN_CUSTOMER_CODE}'
         AND (full_name LIKE ? OR phone LIKE ? OR code LIKE ?)
-      ORDER BY full_name
+      ORDER BY ${orderByBucket('full_name')}
       LIMIT 20
     `).all(q, q, q)
   })

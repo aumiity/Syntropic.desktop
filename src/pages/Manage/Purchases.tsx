@@ -11,6 +11,7 @@ import { DateInput } from '@/components/ui/date-input'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
@@ -20,7 +21,7 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import type { ManageOutletContext } from './index'
 import {
-  Search, X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Info, Check,
+  Search, X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Info, Check, Settings2,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -75,6 +76,12 @@ export default function ManagePurchasesPage() {
   const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'unpaid' | 'cancelled'>('all')
   const [histSummary, setHistSummary] = useState({ count: 0, cash_count: 0, credit_count: 0, unpaid_count: 0, cancelled_count: 0 })
   const [histSort, setHistSort] = useState<SortState>({ by: 'created_at', dir: 'desc' })
+  // Column visibility (เลขที่ใบรับ + จัดการ always shown)
+  const [showColDate, setShowColDate] = useState(true)
+  const [showColSupplier, setShowColSupplier] = useState(true)
+  const [showColItems, setShowColItems] = useState(true)
+  const [showColTotal, setShowColTotal] = useState(true)
+  const [showColStatus, setShowColStatus] = useState(true)
   const [loadingHist, setLoadingHist] = useState(false)
 
   // Receipt detail dialog — selectedInvoice drives PurchaseReceiptDialog
@@ -396,6 +403,38 @@ export default function ManagePurchasesPage() {
               }}
             />
           </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColDate} onCheckedChange={v => setShowColDate(v === true)} />
+                <span className="text-sm">วันที่</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColSupplier} onCheckedChange={v => setShowColSupplier(v === true)} />
+                <span className="text-sm">ผู้จัดจำหน่าย</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColItems} onCheckedChange={v => setShowColItems(v === true)} />
+                <span className="text-sm">รายการ</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColTotal} onCheckedChange={v => setShowColTotal(v === true)} />
+                <span className="text-sm">ยอดรวม</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
+                <span className="text-sm">สถานะ</span>
+              </label>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Table */}
@@ -403,23 +442,23 @@ export default function ManagePurchasesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <SortableTableHead field="created_at" sort={histSort} onToggle={toggleHistSort} className="min-w-24">วันที่</SortableTableHead>
+                {showColDate && <SortableTableHead field="created_at" sort={histSort} onToggle={toggleHistSort} className="min-w-24">วันที่</SortableTableHead>}
                 <SortableTableHead field="invoice_no" sort={histSort} onToggle={toggleHistSort} className="min-w-32">เลขที่ใบรับ</SortableTableHead>
-                <TableHead className="min-w-48">ผู้จัดจำหน่าย</TableHead>
-                <TableHead className="min-w-20 text-center">รายการ</TableHead>
-                <SortableTableHead field="total_cost" align="right" sort={histSort} onToggle={toggleHistSort} className="min-w-20">ยอดรวม</SortableTableHead>
-                <TableHead className="min-w-28 text-center">สถานะ</TableHead>
+                {showColSupplier && <TableHead className="min-w-48">ผู้จัดจำหน่าย</TableHead>}
+                {showColItems && <TableHead className="min-w-20 text-center">รายการ</TableHead>}
+                {showColTotal && <SortableTableHead field="total_cost" align="right" sort={histSort} onToggle={toggleHistSort} className="min-w-20">ยอดรวม</SortableTableHead>}
+                {showColStatus && <TableHead className="min-w-28 text-center">สถานะ</TableHead>}
                 <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loadingHist ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-foreground-subtle py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColSupplier ? 1 : 0) + (showColItems ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-foreground-subtle py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : history.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-foreground-subtle py-16">
+                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColSupplier ? 1 : 0) + (showColItems ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-foreground-subtle py-16">
                     <FileText className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูล
                   </TableCell>
@@ -433,27 +472,31 @@ export default function ManagePurchasesPage() {
                     key={h.invoice_no}
                     className={`${isSelected ? 'bg-primary-soft' : ''} ${isCancelled ? 'opacity-70' : ''}`}
                   >
-                    <TableCell className="whitespace-nowrap">{formatDate(h.created_at)}</TableCell>
+                    {showColDate && <TableCell className="whitespace-nowrap">{formatDate(h.created_at)}</TableCell>}
                     <TableCell className={`font-mono ${isCancelled ? 'text-muted-foreground line-through' : isSelected ? 'text-primary' : ''}`}>
                       {h.invoice_no}
                     </TableCell>
-                    <TableCell className="truncate">{h.supplier_name ?? '—'}</TableCell>
-                    <TableCell className="text-center tabular-nums">{h.item_count}</TableCell>
-                    <TableCell className={`text-right font-semibold tabular-nums ${isCancelled ? 'text-foreground-subtle line-through' : ''}`}>
-                      {formatCurrency(h.total_cost)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {isCancelled
-                        ? <Badge variant="destructive">ยกเลิก</Badge>
-                        : h.payment_type === 'credit'
-                          ? h.is_paid
-                            ? <Badge variant="success">ชำระแล้ว</Badge>
-                            : isOverdue
-                              ? <Badge variant="destructive">เครดิต</Badge>
-                              : <Badge variant="tertiary">เครดิต</Badge>
-                          : <Badge variant="brand-soft">เงินสด</Badge>
-                      }
-                    </TableCell>
+                    {showColSupplier && <TableCell className="truncate">{h.supplier_name ?? '—'}</TableCell>}
+                    {showColItems && <TableCell className="text-center tabular-nums">{h.item_count}</TableCell>}
+                    {showColTotal && (
+                      <TableCell className={`text-right font-semibold tabular-nums ${isCancelled ? 'text-foreground-subtle line-through' : ''}`}>
+                        {formatCurrency(h.total_cost)}
+                      </TableCell>
+                    )}
+                    {showColStatus && (
+                      <TableCell className="text-center">
+                        {isCancelled
+                          ? <Badge variant="destructive">ยกเลิก</Badge>
+                          : h.payment_type === 'credit'
+                            ? h.is_paid
+                              ? <Badge variant="success">ชำระแล้ว</Badge>
+                              : isOverdue
+                                ? <Badge variant="destructive">เครดิต</Badge>
+                                : <Badge variant="tertiary">เครดิต</Badge>
+                            : <Badge variant="brand-soft">เงินสด</Badge>
+                        }
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex justify-center">
                         <Button

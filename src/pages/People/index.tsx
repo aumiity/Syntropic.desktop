@@ -13,8 +13,10 @@ import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { useToast } from '@/components/ui/toast'
 import { Toggle } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import type { Customer, Supplier, User, DrugAllergy } from '@/types'
-import { Search, Plus, Edit, AlertTriangle, Users, Building2, UserCog } from 'lucide-react'
+import { Search, Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2 } from 'lucide-react'
 
 const SEVERITY_LABELS: Record<string, string> = {
   mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต'
@@ -42,6 +44,10 @@ function CustomersTab() {
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const [showDisabled, setShowDisabled] = useState(false)
+  // Column visibility (จัดการ + รหัส + ชื่อ always shown)
+  const [showColPhone, setShowColPhone] = useState(true)
+  const [showColAlert, setShowColAlert] = useState(true)
+  const [showColStatus, setShowColStatus] = useState(true)
   const [loading, setLoading] = useState(false)
 
   const [dialog, setDialog] = useState(false)
@@ -121,10 +127,41 @@ function CustomersTab() {
             <Input value={q} onChange={e => setQ(e.target.value)}
               placeholder="ค้นหาชื่อ, โทร, รหัส..." className="h-10 pl-9 rounded-lg bg-input text-sm" />
           </div>
-          <Toggle className="shrink-0" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
           <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มลูกค้า
           </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColPhone} onCheckedChange={v => setShowColPhone(v === true)} />
+                <span className="text-sm">โทรศัพท์</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColAlert} onCheckedChange={v => setShowColAlert(v === true)} />
+                <span className="text-sm">แจ้งเตือน</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
+                <span className="text-sm">สถานะ</span>
+              </label>
+              <div className="my-1 border-t border-border" />
+              <PopoverHeader>
+                <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showDisabled} onCheckedChange={v => setShowDisabled(v === true)} />
+                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
+              </label>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -133,18 +170,18 @@ function CustomersTab() {
               <TableRow>
                 <TableHead className="w-[12%]">รหัส</TableHead>
                 <TableHead className="w-[35%]">ชื่อ-นามสกุล</TableHead>
-                <TableHead className="w-[18%]">โทรศัพท์</TableHead>
-                <TableHead className="text-center w-[10%]">แจ้งเตือน</TableHead>
-                <TableHead className="text-center w-[10%]">สถานะ</TableHead>
+                {showColPhone && <TableHead className="w-[18%]">โทรศัพท์</TableHead>}
+                {showColAlert && <TableHead className="text-center w-[10%]">แจ้งเตือน</TableHead>}
+                {showColStatus && <TableHead className="text-center w-[10%]">สถานะ</TableHead>}
                 <TableHead className="text-center w-[13%]">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3 + (showColPhone ? 1 : 0) + (showColAlert ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={3 + (showColPhone ? 1 : 0) + (showColAlert ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <Users className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูลลูกค้า
                   </TableCell>
@@ -156,15 +193,19 @@ function CustomersTab() {
                     <div className="font-medium text-sm text-foreground truncate">{c.full_name}</div>
                     {c.chronic_diseases && <div className="text-sm text-muted-foreground truncate">{c.chronic_diseases}</div>}
                   </TableCell>
-                  <TableCell className="text-sm truncate">{c.phone ?? '—'}</TableCell>
-                  <TableCell className="text-center">
-                    {c.is_alert ? <AlertTriangle className="size-4 text-destructive mx-auto" /> : null}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {c.is_disabled
-                      ? <Badge variant="secondary">พักใช้งาน</Badge>
-                      : <Badge variant="success">ใช้งาน</Badge>}
-                  </TableCell>
+                  {showColPhone && <TableCell className="text-sm truncate">{c.phone ?? '—'}</TableCell>}
+                  {showColAlert && (
+                    <TableCell className="text-center">
+                      {c.is_alert ? <AlertTriangle className="size-4 text-destructive mx-auto" /> : null}
+                    </TableCell>
+                  )}
+                  {showColStatus && (
+                    <TableCell className="text-center">
+                      {c.is_disabled
+                        ? <Badge variant="secondary">พักใช้งาน</Badge>
+                        : <Badge variant="success">ใช้งาน</Badge>}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
                       <Button size="icon-lg" variant="outline" onClick={() => openEdit(c)} title="แก้ไข"><Edit /></Button>
@@ -290,6 +331,9 @@ function SuppliersTab() {
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const [showDisabled, setShowDisabled] = useState(false)
+  // Column visibility (รหัส + ชื่อบริษัท + จัดการ always shown)
+  const [showColPhone, setShowColPhone] = useState(true)
+  const [showColStatus, setShowColStatus] = useState(true)
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
   const [editing, setEditing] = useState<Supplier | null>(null)
@@ -350,10 +394,37 @@ function SuppliersTab() {
             <Input value={q} onChange={e => setQ(e.target.value)}
               placeholder="ค้นหาชื่อ, รหัส, โทร..." className="h-10 pl-9 rounded-lg bg-input text-sm" />
           </div>
-          <Toggle className="shrink-0" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
           <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มผู้จำหน่าย
           </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColPhone} onCheckedChange={v => setShowColPhone(v === true)} />
+                <span className="text-sm">โทรศัพท์</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
+                <span className="text-sm">สถานะ</span>
+              </label>
+              <div className="my-1 border-t border-border" />
+              <PopoverHeader>
+                <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showDisabled} onCheckedChange={v => setShowDisabled(v === true)} />
+                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
+              </label>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -362,17 +433,17 @@ function SuppliersTab() {
               <TableRow>
                 <TableHead className="text-left w-[12%]">รหัส</TableHead>
                 <TableHead className="text-left w-[45%]">ชื่อบริษัท</TableHead>
-                <TableHead className="text-left w-[20%]">โทรศัพท์</TableHead>
-                <TableHead className="text-center w-[10%]">สถานะ</TableHead>
+                {showColPhone && <TableHead className="text-left w-[20%]">โทรศัพท์</TableHead>}
+                {showColStatus && <TableHead className="text-center w-[10%]">สถานะ</TableHead>}
                 <TableHead className="text-center w-[13%]">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3 + (showColPhone ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={3 + (showColPhone ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <Building2 className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูลผู้จำหน่าย
                   </TableCell>
@@ -381,12 +452,14 @@ function SuppliersTab() {
                 <TableRow key={s.id}>
                   <TableCell className="font-mono text-sm text-muted-foreground truncate">{s.code}</TableCell>
                   <TableCell className="font-medium text-sm truncate">{s.name}</TableCell>
-                  <TableCell className="text-sm truncate">{s.phone ?? '—'}</TableCell>
-                  <TableCell className="text-center">
-                    {s.is_disabled
-                      ? <Badge variant="secondary">พักใช้งาน</Badge>
-                      : <Badge variant="success">ใช้งาน</Badge>}
-                  </TableCell>
+                  {showColPhone && <TableCell className="text-sm truncate">{s.phone ?? '—'}</TableCell>}
+                  {showColStatus && (
+                    <TableCell className="text-center">
+                      {s.is_disabled
+                        ? <Badge variant="secondary">พักใช้งาน</Badge>
+                        : <Badge variant="success">ใช้งาน</Badge>}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
                       <Button size="icon-lg" variant="outline" onClick={() => openEdit(s)} title="แก้ไข"><Edit /></Button>
@@ -471,6 +544,10 @@ function StaffTab() {
   const [rows, setRows] = useState<User[]>([])
   const [q, setQ] = useState('')
   const [showDisabled, setShowDisabled] = useState(false)
+  // Column visibility (ชื่อ + จัดการ always shown)
+  const [showColEmail, setShowColEmail] = useState(true)
+  const [showColRole, setShowColRole] = useState(true)
+  const [showColStatus, setShowColStatus] = useState(true)
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
@@ -537,10 +614,41 @@ function StaffTab() {
             <Input value={q} onChange={e => setQ(e.target.value)}
               placeholder="ค้นหาชื่อ, อีเมล..." className="h-10 pl-9 rounded-lg bg-input text-sm" />
           </div>
-          <Toggle className="shrink-0" framed="input" size="lg" checked={showDisabled} onChange={setShowDisabled} label="แสดงที่ปิดใช้งาน" />
           <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0">
             <Plus className="size-4" /> เพิ่มพนักงาน
           </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColEmail} onCheckedChange={v => setShowColEmail(v === true)} />
+                <span className="text-sm">อีเมล</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColRole} onCheckedChange={v => setShowColRole(v === true)} />
+                <span className="text-sm">ตำแหน่ง</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
+                <span className="text-sm">สถานะ</span>
+              </label>
+              <div className="my-1 border-t border-border" />
+              <PopoverHeader>
+                <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showDisabled} onCheckedChange={v => setShowDisabled(v === true)} />
+                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
+              </label>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
@@ -548,18 +656,18 @@ function StaffTab() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[30%]">ชื่อ</TableHead>
-                <TableHead className="w-[35%]">อีเมล</TableHead>
-                <TableHead className="text-center w-[15%]">ตำแหน่ง</TableHead>
-                <TableHead className="text-center w-[10%]">สถานะ</TableHead>
+                {showColEmail && <TableHead className="w-[35%]">อีเมล</TableHead>}
+                {showColRole && <TableHead className="text-center w-[15%]">ตำแหน่ง</TableHead>}
+                {showColStatus && <TableHead className="text-center w-[10%]">สถานะ</TableHead>}
                 <TableHead className="text-center w-[13%]">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={2 + (showColEmail ? 1 : 0) + (showColRole ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={2 + (showColEmail ? 1 : 0) + (showColRole ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <UserCog className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูลพนักงาน
                   </TableCell>
@@ -567,15 +675,19 @@ function StaffTab() {
               ) : filtered.map(u => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium text-sm truncate">{u.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground truncate">{u.email}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="secondary">{ROLES[u.role] ?? u.role}</Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {u.is_disabled
-                      ? <Badge variant="secondary">พักใช้งาน</Badge>
-                      : <Badge variant="success">ใช้งาน</Badge>}
-                  </TableCell>
+                  {showColEmail && <TableCell className="text-sm text-muted-foreground truncate">{u.email}</TableCell>}
+                  {showColRole && (
+                    <TableCell className="text-center">
+                      <Badge variant="secondary">{ROLES[u.role] ?? u.role}</Badge>
+                    </TableCell>
+                  )}
+                  {showColStatus && (
+                    <TableCell className="text-center">
+                      {u.is_disabled
+                        ? <Badge variant="secondary">พักใช้งาน</Badge>
+                        : <Badge variant="success">ใช้งาน</Badge>}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex gap-1.5 justify-center">
                       <Button size="icon-lg" variant="outline" onClick={() => openEdit(u)} title="แก้ไข"><Edit /></Button>

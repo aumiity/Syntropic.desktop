@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes'
+import { orderByBucket } from '../db/sortName'
 
 export function registerPeopleHandlers() {
   // --- CUSTOMERS ---
@@ -86,7 +87,7 @@ export function registerPeopleHandlers() {
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : ''
     const limitClause = limit ? `LIMIT ? OFFSET ?` : ''
     const limitParams = limit ? [limit, offset] : []
-    const rows = db.prepare(`SELECT * FROM suppliers ${where} ORDER BY name ${limitClause}`).all(...params, ...limitParams)
+    const rows = db.prepare(`SELECT * FROM suppliers ${where} ORDER BY ${orderByBucket('name')} ${limitClause}`).all(...params, ...limitParams)
     const total = (db.prepare(`SELECT COUNT(*) as c FROM suppliers ${where}`).get(...params) as any).c
     return { rows, total, page, limit: limit ?? total }
   })
@@ -120,7 +121,7 @@ export function registerPeopleHandlers() {
   ipcMain.handle('people:listStaff', (_e, filters?: { includeDisabled?: boolean }) => {
     const { includeDisabled = false } = filters ?? {}
     const where = includeDisabled ? '' : `WHERE is_disabled = 0`
-    return getDb().prepare(`SELECT id, name, email, role, is_disabled, created_at FROM users ${where} ORDER BY name`).all()
+    return getDb().prepare(`SELECT id, name, email, role, is_disabled, created_at FROM users ${where} ORDER BY ${orderByBucket('name')}`).all()
   })
 
   ipcMain.handle('people:saveStaff', (_e, data: any) => {
@@ -143,6 +144,6 @@ export function registerPeopleHandlers() {
 
   // All suppliers (for dropdowns) — always filters disabled.
   ipcMain.handle('people:allSuppliers', () => {
-    return getDb().prepare(`SELECT id, code, name FROM suppliers WHERE is_disabled = 0 ORDER BY name`).all()
+    return getDb().prepare(`SELECT id, code, name FROM suppliers WHERE is_disabled = 0 ORDER BY ${orderByBucket('name')}`).all()
   })
 }

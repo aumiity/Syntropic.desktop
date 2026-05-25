@@ -7,13 +7,15 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { formatDateTime } from '@/lib/utils'
 import { useUserStore } from '@/stores/userStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import type { ManageOutletContext } from './index'
 import type { NegativeStockRow } from '@/types'
-import { PackageCheck, Trash2 } from 'lucide-react'
+import { PackageCheck, Trash2, Settings2 } from 'lucide-react'
 
 type Confirming =
   | { kind: 'reconcile'; row: NegativeStockRow }
@@ -30,6 +32,11 @@ export default function NegativeStockPage() {
   const [loading, setLoading] = useState(false)
   const [confirming, setConfirming] = useState<Confirming>(null)
   const [busy, setBusy] = useState(false)
+  // Column visibility (ชื่อสินค้า + การจัดการ always shown)
+  const [showColInvoice, setShowColInvoice] = useState(true)
+  const [showColDate, setShowColDate] = useState(true)
+  const [showColShortfall, setShowColShortfall] = useState(true)
+  const [showColAvailable, setShowColAvailable] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -98,32 +105,60 @@ export default function NegativeStockPage() {
   return (
     <>
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="h-12 px-5 flex items-center justify-between shrink-0">
-          <span className="text-sm font-semibold text-muted-foreground">
+        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+          <span className="flex-1 text-sm font-semibold text-muted-foreground pl-3">
             รายการขายที่สต๊อกติดลบ — ตัดสต๊อกย้อนหลังเมื่อรับสินค้าเข้าระบบแล้ว
           </span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColInvoice} onCheckedChange={v => setShowColInvoice(v === true)} />
+                <span className="text-sm">เลขที่บิล</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColDate} onCheckedChange={v => setShowColDate(v === true)} />
+                <span className="text-sm">วันที่ขาย</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColShortfall} onCheckedChange={v => setShowColShortfall(v === true)} />
+                <span className="text-sm">จำนวนค้าง</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColAvailable} onCheckedChange={v => setShowColAvailable(v === true)} />
+                <span className="text-sm">สต๊อกปัจจุบัน</span>
+              </label>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-28">เลขที่บิล</TableHead>
-                <TableHead className="min-w-32">วันที่ขาย</TableHead>
+                {showColInvoice && <TableHead className="min-w-28">เลขที่บิล</TableHead>}
+                {showColDate && <TableHead className="min-w-32">วันที่ขาย</TableHead>}
                 <TableHead className="min-w-40">ชื่อสินค้า</TableHead>
-                <TableHead className="min-w-24 text-center">จำนวนค้าง</TableHead>
-                <TableHead className="min-w-24 text-right">สต๊อกปัจจุบัน</TableHead>
+                {showColShortfall && <TableHead className="min-w-24 text-center">จำนวนค้าง</TableHead>}
+                {showColAvailable && <TableHead className="min-w-24 text-right">สต๊อกปัจจุบัน</TableHead>}
                 <TableHead className="min-w-24 text-center">การจัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={2 + (showColInvoice ? 1 : 0) + (showColDate ? 1 : 0) + (showColShortfall ? 1 : 0) + (showColAvailable ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={2 + (showColInvoice ? 1 : 0) + (showColDate ? 1 : 0) + (showColShortfall ? 1 : 0) + (showColAvailable ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <PackageCheck className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่มีรายการสต๊อคติดลบค้างอยู่
                   </TableCell>
@@ -132,15 +167,19 @@ export default function NegativeStockPage() {
                 const canReconcile = r.available_stock > 0
                 return (
                   <TableRow key={r.id}>
-                    <TableCell className="text-sm font-medium whitespace-nowrap">{r.invoice_no}</TableCell>
-                    <TableCell className="text-sm whitespace-nowrap">{formatDateTime(r.sold_at)}</TableCell>
+                    {showColInvoice && <TableCell className="text-sm font-medium whitespace-nowrap">{r.invoice_no}</TableCell>}
+                    {showColDate && <TableCell className="text-sm whitespace-nowrap">{formatDateTime(r.sold_at)}</TableCell>}
                     <TableCell className="min-w-56 text-sm font-medium truncate" title={r.trade_name}>{r.trade_name}</TableCell>
-                    <TableCell className="text-center text-sm font-bold tabular-nums text-destructive whitespace-nowrap">
-                      {r.qty.toLocaleString()} {r.unit_name && <span className="text-xs text-foreground-subtle ml-0.5">{r.unit_name}</span>}
-                    </TableCell>
-                    <TableCell className={`text-right text-sm tabular-nums whitespace-nowrap ${canReconcile ? 'text-success font-semibold' : 'text-foreground-subtle'}`}>
-                      {r.available_stock.toLocaleString()}
-                    </TableCell>
+                    {showColShortfall && (
+                      <TableCell className="text-center text-sm font-bold tabular-nums text-destructive whitespace-nowrap">
+                        {r.qty.toLocaleString()} {r.unit_name && <span className="text-xs text-foreground-subtle ml-0.5">{r.unit_name}</span>}
+                      </TableCell>
+                    )}
+                    {showColAvailable && (
+                      <TableCell className={`text-right text-sm tabular-nums whitespace-nowrap ${canReconcile ? 'text-success font-semibold' : 'text-foreground-subtle'}`}>
+                        {r.available_stock.toLocaleString()}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex gap-1.5 justify-center">
                         <Button
