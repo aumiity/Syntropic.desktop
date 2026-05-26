@@ -50,6 +50,7 @@ const badgeVariants = cva(
         "brand-outline": "rounded-md border-primary/40 bg-brand-soft text-primary",
         "destructive-outline": "rounded-md border-destructive/40 bg-destructive-soft text-destructive-strong",
         "violet-outline": "rounded-md border-violet/40 bg-violet-soft text-violet-strong",
+        "neutral-outline": "rounded-md border-border bg-card text-foreground",
       },
     },
     defaultVariants: {

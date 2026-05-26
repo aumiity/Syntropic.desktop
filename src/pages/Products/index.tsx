@@ -3,8 +3,9 @@ import { useLocation, useNavigate, Outlet } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
-import { Package, Boxes } from 'lucide-react'
+import { Package, Boxes, Plus } from 'lucide-react'
 
 // Products page is a Tabs shell — products vs bundles, each owns its own list
 // component (ProductsList / BundlesList) with its own filters and IPC calls.
@@ -66,22 +67,31 @@ export default function ProductsLayout() {
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title="สินค้า" />
 
-      <Tabs
-        value={tab}
-        onValueChange={v => {
-          const t = TABS.find(x => x.value === v)
-          if (t) navigate(t.path)
-        }}
-        className="shrink-0 self-start"
-      >
-        <TabsList variant="segmented">
-          {TABS.map(t => (
-            <TabsTrigger key={t.value} value={t.value}>
-              <t.icon /> {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {/* Top row: segmented tabs (left) + add button (right). Add button label
+          and target route depend on the active tab. */}
+      <div className="flex items-center gap-3 shrink-0">
+        <Tabs
+          value={tab}
+          onValueChange={v => {
+            const t = TABS.find(x => x.value === v)
+            if (t) navigate(t.path)
+          }}
+        >
+          <TabsList variant="segmented" className="h-10">
+            {TABS.map(t => (
+              <TabsTrigger key={t.value} value={t.value}>
+                <t.icon /> {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <Button
+          onClick={() => navigate(tab === 'bundles' ? '/products/bundles/new' : '/products/new')}
+          className="ml-auto h-10 px-3"
+        >
+          <Plus className="size-4" /> {tab === 'bundles' ? 'เพิ่มชุดสินค้า' : 'เพิ่มสินค้า'}
+        </Button>
+      </div>
 
       <AnimatePresence initial={false}>
         {summary && summary.length > 0 && (

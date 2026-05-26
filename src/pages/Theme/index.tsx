@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card'
 import {
   Table, TableHeader, TableBody, TableRow,
-  TableHead, TableCell,
+  TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
 import { SortableTableBody, SortableRow } from '@/components/ui/sortable'
 import {
@@ -45,7 +45,7 @@ import {
   Search, Plus, Edit, Trash2, Info, ExternalLink,
   AlertTriangle, CheckCircle, Package, ChevronRight,
   TrendingUp, FileText, Boxes, AlertCircle, Coins, Building2,
-  Settings2,
+  Settings2, Filter, Wallet, MoreHorizontal,
 } from 'lucide-react'
 import { Combobox } from '@/components/ui/combobox'
 import { PriceInput } from '@/components/ui/price-input'
@@ -99,16 +99,16 @@ function DemoRow({ label, children }: { label?: string; children: React.ReactNod
 // ─── Showcase constants ───────────────────────────────────────────────────────
 
 const PRODUCTS = [
-  { id: 'prd-001', name: 'Amoxicillin 500mg', cat: 'ยาต้านเชื้อ', price: '12.00', stock: 240, status: 'success' as const },
-  { id: 'prd-002', name: 'Paracetamol 500mg', cat: 'ยาแก้ปวด', price: '2.50', stock: 800, status: 'success' as const },
-  { id: 'prd-003', name: 'Metformin 500mg', cat: 'ยาเบาหวาน', price: '8.00', stock: 15, status: 'warning' as const },
-  { id: 'prd-004', name: 'Atorvastatin 10mg', cat: 'ยาลดไขมัน', price: '35.00', stock: 0, status: 'danger' as const },
+  { id: 'prd-001', name: 'Amoxicillin 500mg', cat: 'ยาต้านเชื้อ', price: '12.00', stock: 240, status: 'success-outline' as const },
+  { id: 'prd-002', name: 'Paracetamol 500mg', cat: 'ยาแก้ปวด', price: '2.50', stock: 800, status: 'success-outline' as const },
+  { id: 'prd-003', name: 'Metformin 500mg', cat: 'ยาเบาหวาน', price: '8.00', stock: 15, status: 'warning-outline' as const },
+  { id: 'prd-004', name: 'Atorvastatin 10mg', cat: 'ยาลดไขมัน', price: '35.00', stock: 0, status: 'destructive-outline' as const },
 ]
 
 const STATUS_LABEL: Record<string, string> = {
-  success: 'ปกติ',
-  warning: 'ใกล้หมด',
-  danger: 'หมดสต็อก',
+  'success-outline': 'ปกติ',
+  'warning-outline': 'ใกล้หมด',
+  'destructive-outline': 'หมดสต็อก',
 }
 
 /** Parse "yyyy-mm-dd" as local-time midnight, not UTC midnight */
@@ -144,6 +144,14 @@ export default function Theme() {
   const [page, setPage] = useState(3)
   const [pageSize, setPageSize] = useState<import('@/components/ui/pagination').PageSize>(50)
   const [tableQ, setTableQ] = useState('')
+  const [tableStatusFilter, setTableStatusFilter] = useState<{ ok: boolean; low: boolean; out: boolean }>({ ok: true, low: true, out: true })
+  type TableSortField = 'name' | 'price' | 'stock'
+  const [tableSort, setTableSort] = useState<{ by: TableSortField; dir: 'asc' | 'desc' }>({ by: 'name', dir: 'asc' })
+  const toggleTableSort = (field: TableSortField) => {
+    setTableSort(s => s.by === field
+      ? { by: field, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+      : { by: field, dir: 'asc' })
+  }
   // Standard Table-Card showcase: per-column show/hide (จัดการ column always shown)
   const [showColName, setShowColName] = useState(true)
   const [showColCategory, setShowColCategory] = useState(true)
@@ -386,6 +394,11 @@ export default function Theme() {
                   <Button variant="destructive2">Destructive2</Button>
                   <Button variant="success">Success</Button>
                   <Button variant="link">Link</Button>
+                  <Button variant="elevated">Elevated</Button>
+                </DemoRow>
+                <DemoRow label="Elevated — white bg + shadow (no border)">
+                  <Button variant="elevated"><Filter className="size-4" /> Status</Button>
+                  <Button variant="elevated"><Wallet className="size-4" /> Method</Button>
                 </DemoRow>
                 <DemoRow label="Sizes">
                   <Button size="xl">XL</Button>
@@ -437,6 +450,7 @@ export default function Theme() {
                   <Badge variant="brand-outline">Delivered</Badge>
                   <Badge variant="violet-outline">Shipped</Badge>
                   <Badge variant="destructive-outline">Cancelled</Badge>
+                  <Badge variant="neutral-outline">20</Badge>
                 </DemoRow>
                 <DemoRow label="In Context">
                   <div className="flex items-center gap-2 text-sm">
@@ -492,6 +506,10 @@ export default function Theme() {
                 <DemoRow label="States">
                   <Input className="max-w-[180px]" placeholder="Disabled" disabled />
                   <Input className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
+                </DemoRow>
+                <DemoRow label="Elevated — white bg + shadow (no border)">
+                  <Input variant="elevated" className="max-w-[220px]" placeholder="พิมพ์ข้อความ..." />
+                  <SearchInput variant="elevated" wrapperClassName="w-[260px]" placeholder="Search transactions.." />
                 </DemoRow>
               </Section>
 
@@ -563,6 +581,18 @@ export default function Theme() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1">ตัวเลือก 1</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </DemoRow>
+                <DemoRow label="Elevated — white bg + shadow (no border)">
+                  <Select>
+                    <SelectTrigger variant="elevated" className="w-32">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
                     </SelectContent>
                   </Select>
                 </DemoRow>
@@ -907,24 +937,43 @@ export default function Theme() {
               {/* ── STANDARD TABLE-CARD ── */}
               <Section title="Standard Table-Card Layout" path="CLAUDE.md → UI Conventions" full>
                 <p className="text-sm text-muted-foreground">
-                  รูปแบบมาตรฐานของ Products list / EditProduct tabs — 4 แถบ:
-                  แถบบน (ขาว ไม่มีเส้น, <code className="font-mono">h-14 px-2</code> — px-2 ให้ขอบ search ตรงกับ inset 8px ของตาราง) = ช่องค้นหา (ซ้าย) + Select filter / ปุ่ม action / <strong>ปุ่ม ⚙️ ตั้งค่า</strong> (ขวาสุด)
-                  · column header (muted, sticky) · เนื้อหา (ขาว เลื่อนได้)
-                  · แถบล่าง (ขาว + เส้นบน, <code className="font-mono">h-12 px-5</code>) = page-size selector (ซ้าย) · pagination (กลาง) · จำนวนที่พบ (ขวา)
-                  — <strong>controls ในแถบบน <code className="font-mono">h-14</code> ใช้ <code className="font-mono">h-10</code></strong> (Input/Select/Combobox/DateInput/DateRangePicker + Button <code className="font-mono">size="lg" className="h-10"</code>) — ตรงกับ default ของ DateInput/DateRangePicker/Combobox.
-                  ส่วน controls ในแถบล่าง <code className="font-mono">h-12</code> ใช้ <code className="font-mono">h-9</code> (Button <code className="font-mono">size="lg"</code>)
+                  รูปแบบมาตรฐานของ Products list / EditProduct tabs — Card (bg-card + border-border + shadow-card + rounded-card) ครอบ 3 แถบ:
                   <br />
-                  <strong>ปุ่มตั้งค่า ⚙️</strong> = <code className="font-mono">{'<Button variant="outline" size="lg" className="h-10 w-10 p-0">'}</code> + <code className="font-mono">{'<Settings2 />'}</code> ในรูป Popover (<code className="font-mono">align="end"</code> เพราะอยู่ขวาสุด) — รวบทั้ง <strong>คอลัมน์ที่แสดง</strong> (ยกเว้น <em>จัดการ</em> ซึ่งแสดงตลอด) + <strong>ตัวกรองเพิ่มเติม</strong> (เช่น "แสดงที่ปิดใช้งาน") ไว้ในที่เดียว เพื่อไม่ให้แถบ <code className="font-mono">h-14</code> รก
+                  <strong>แถบบน (h-14 px-4)</strong> — px-4 ตรงกับ inset 16px ของตาราง:
+                  ซ้าย = <strong>title</strong> (icon-in-box: <code>size-8 rounded-lg border bg-card shadow-sm</code> + h3 text-lg + Badge <code>neutral-outline</code> นับจำนวน) · ขวา (ชิดผ่าน <code>ml-auto</code>) = SearchInput + Select หมวด + <strong>ปุ่มตัวกรอง</strong> (icon-only Popover) + <strong>ปุ่มคอลัมน์</strong> (Settings2 Popover) — controls ทั้งหมดใช้ <strong>h-9</strong> + <code>variant="elevated"</code> (bg-card + border-border + shadow-sm)
+                  <br />
+                  <strong>ตาราง</strong> — wrap ด้วย <code>border-l-[16px] border-r-[16px] border-card</code> เพื่อ inset column header จากขอบ card · header แถบ muted + <code>border-b</code> + <code>text-foreground</code> · row hover = <code>bg-muted</code> (เดียวกับ header) · row divider = <code>border-border</code> · max-h-[440px] + <code>scrollbar-thin</code> (header sticky + 10 rows ≈ 40px แต่ละแถว)
+                  <br />
+                  <strong>แถบล่าง (h-12 px-5)</strong>: ซ้าย = "จำนวนแถว [Select] แสดง X-Y จาก N รายการ" · ขวา = Pagination (sliding window 5 หน้า ไม่มี ellipsis)
+                  <br />
+                  <strong>Row action</strong> = ปุ่มเดียว <code>icon-lg variant="ghost"</code> + MoreHorizontal → Popover (รายละเอียด/แก้ไข/ลบ ฯลฯ) — เกาะสีพื้นไม่เด่น
+                  <br />
+                  <strong>Status badge</strong> = STATUS (soft + outline) family: <code>success-outline</code> / <code>warning-outline</code> / <code>destructive-outline</code> ฯลฯ — column alignment ใช้ <code>text-left</code> ทุกคอลัมน์ (รวม "จัดการ")
                 </p>
-                <div className="bg-card rounded-card shadow-card overflow-hidden">
-                  <div className="h-14 px-2 flex items-center gap-3">
+                <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
+                  {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px]
+                      inset so filter-strip controls align with column edges. */}
+                  <div className="h-14 px-4 flex items-center gap-3">
+                    {/* Table title (left): icon-in-box + title + count badge.
+                        Filter strip controls cluster on the right via ml-auto
+                        on the first control. */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+                        <Package className="size-4 text-foreground" />
+                      </span>
+                      <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
+                      <Badge variant="neutral-outline">{PRODUCTS.length * 3}</Badge>
+                    </div>
                     <SearchInput
+                      variant="elevated"
+                      className="h-9"
+                      wrapperClassName="w-72 shrink-0 ml-auto"
                       value={tableQ}
                       onChange={e => setTableQ(e.target.value)}
                       placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
                     />
                     <Select defaultValue="all">
-                      <SelectTrigger className="h-10 w-44 shrink-0"><SelectValue /></SelectTrigger>
+                      <SelectTrigger variant="elevated" className="h-9 w-44 shrink-0"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
                         <SelectItem value="1">ยาต้านเชื้อ</SelectItem>
@@ -932,10 +981,54 @@ export default function Theme() {
                         <SelectItem value="3">วิตามิน</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button size="lg" className="h-10 px-2 shrink-0 ml-auto"><Plus className="size-4" /> เพิ่มสินค้า</Button>
+                    {/* Filter popover — secondary filters (status, show disabled) */}
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
+                          <Filter className="size-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-56">
+                        {(() => {
+                          const allOn = tableStatusFilter.ok && tableStatusFilter.low && tableStatusFilter.out && switchOn
+                          const toggleAll = () => {
+                            const next = !allOn
+                            setTableStatusFilter({ ok: next, low: next, out: next })
+                            setSwitchOn(next)
+                          }
+                          return (
+                            <PopoverHeader className="flex-row items-center justify-between">
+                              <PopoverTitle>ตัวกรอง</PopoverTitle>
+                              <Badge variant="neutral-outline" asChild>
+                                <button type="button" onClick={toggleAll} className="cursor-pointer hover:bg-muted">
+                                  {allOn ? 'ล้างทั้งหมด' : 'ทั้งหมด'}
+                                </button>
+                              </Badge>
+                            </PopoverHeader>
+                          )
+                        })()}
+                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                          <Checkbox checked={tableStatusFilter.ok} onCheckedChange={v => setTableStatusFilter(s => ({ ...s, ok: v === true }))} />
+                          <span className="text-sm">ปกติ</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                          <Checkbox checked={tableStatusFilter.low} onCheckedChange={v => setTableStatusFilter(s => ({ ...s, low: v === true }))} />
+                          <span className="text-sm">ใกล้หมด</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                          <Checkbox checked={tableStatusFilter.out} onCheckedChange={v => setTableStatusFilter(s => ({ ...s, out: v === true }))} />
+                          <span className="text-sm">หมดสต็อก</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                          <Checkbox checked={switchOn} onCheckedChange={v => setSwitchOn(v === true)} />
+                          <span className="text-sm">แสดงที่ปิดใช้งาน</span>
+                        </label>
+                      </PopoverContent>
+                    </Popover>
+                    {/* Column settings popover — visibility per column */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="คอลัมน์ที่แสดง">
                           <Settings2 className="size-4" />
                         </Button>
                       </PopoverTrigger>
@@ -963,73 +1056,104 @@ export default function Theme() {
                           <Checkbox checked={showColStatus} onCheckedChange={v => setShowColStatus(v === true)} />
                           <span className="text-sm">สถานะ</span>
                         </label>
-                        <div className="my-1 border-t border-border" />
-                        <PopoverHeader>
-                          <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
-                        </PopoverHeader>
-                        <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                          <Checkbox checked={switchOn} onCheckedChange={v => setSwitchOn(v === true)} />
-                          <span className="text-sm">แสดงที่ปิดใช้งาน</span>
-                        </label>
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <Table containerClassName="max-h-[260px]">
+                  {/* Side padding via card-colored border so the muted column
+                      header doesn't touch the card edge (matches ProductsList). */}
+                  <div className="border-l-[16px] border-r-[16px] border-card">
+                  {/* Fixed height = header (h-10 = 40px) + 10 rows (~40px each).
+                      Beyond 10 rows the body scrolls (scrollbar-thin). */}
+                  <Table containerClassName="max-h-[440px] scrollbar-thin">
                     <TableHeader>
                       <TableRow>
-                        {showColName && <TableHead className="min-w-[220px]">ชื่อสินค้า</TableHead>}
+                        {showColName && <SortableTableHead field="name" sort={tableSort} onToggle={toggleTableSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>}
                         {showColCategory && <TableHead className="min-w-40">หมวดหมู่</TableHead>}
-                        {showColPrice && <TableHead className="min-w-32 text-right">ราคา (฿)</TableHead>}
-                        {showColStock && <TableHead className="min-w-24 text-right">สต็อก</TableHead>}
+                        {showColPrice && <SortableTableHead field="price" sort={tableSort} onToggle={toggleTableSort} className="min-w-32">ราคา (฿)</SortableTableHead>}
+                        {showColStock && <SortableTableHead field="stock" sort={tableSort} onToggle={toggleTableSort} className="min-w-24">สต็อก</SortableTableHead>}
                         {showColStatus && <TableHead className="min-w-28">สถานะ</TableHead>}
-                        <TableHead className="min-w-[148px] text-center">จัดการ</TableHead>
+                        <TableHead className="min-w-16">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {[...PRODUCTS, ...PRODUCTS, ...PRODUCTS].map((row, i) => (
+                      {[...PRODUCTS, ...PRODUCTS, ...PRODUCTS]
+                        .filter(row =>
+                          (row.status === 'success-outline' && tableStatusFilter.ok) ||
+                          (row.status === 'warning-outline' && tableStatusFilter.low) ||
+                          (row.status === 'destructive-outline' && tableStatusFilter.out)
+                        )
+                        .sort((a, b) => {
+                          const mul = tableSort.dir === 'asc' ? 1 : -1
+                          if (tableSort.by === 'name')  return a.name.localeCompare(b.name) * mul
+                          if (tableSort.by === 'price') return (parseFloat(a.price) - parseFloat(b.price)) * mul
+                          if (tableSort.by === 'stock') return (a.stock - b.stock) * mul
+                          return 0
+                        })
+                        .map((row, i) => (
                         <TableRow key={`${row.id}-${i}`}>
                           {showColName && <TableCell className="font-medium">{row.name}</TableCell>}
                           {showColCategory && <TableCell><Badge variant="outline">{row.cat}</Badge></TableCell>}
-                          {showColPrice && <TableCell className="text-right font-mono">{row.price}</TableCell>}
-                          {showColStock && <TableCell className="text-right">{row.stock.toLocaleString()}</TableCell>}
+                          {showColPrice && <TableCell>{row.price}</TableCell>}
+                          {showColStock && <TableCell>{row.stock.toLocaleString()}</TableCell>}
                           {showColStatus && <TableCell><Badge variant={row.status}>{STATUS_LABEL[row.status]}</Badge></TableCell>}
                           <TableCell>
-                            {/* Row actions = square icon buttons (no w-16).
-                                edit=outline · info=warm · external-link=primary-soft */}
-                            <div className="flex gap-1.5 justify-center">
-                              <Button size="icon-lg" variant="outline" title="แก้ไข"><Edit /></Button>
-                              <Button size="icon-lg" variant="warm" title="ดูรายละเอียด"><Info /></Button>
-                              <Button size="icon-lg" variant="primary-soft" title="เปิดดู"><ExternalLink /></Button>
-                            </div>
+                            {/* Row actions = single ghost more-menu trigger (no bg
+                                so it blends with row). Popover lists the actions. */}
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                                  <MoreHorizontal />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                                <button type="button" className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                                  <Edit className="size-4" /> แก้ไข
+                                </button>
+                                <button type="button" className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                                  <Info className="size-4" /> ดูรายละเอียด
+                                </button>
+                                <button type="button" className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                                  <ExternalLink className="size-4" /> เปิดดู
+                                </button>
+                              </PopoverContent>
+                            </Popover>
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                   <div className="h-12 px-5 bg-card border-t border-border flex items-center justify-between gap-3 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-                      <span>แสดง</span>
-                      <Select
-                        value={String(pageSize)}
-                        onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}
-                      >
-                        <SelectTrigger className="h-9 min-w-20">
-                          <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="min-w-28">
-                          {[50, 100, 250, 500, 'all'].map(opt => (
-                            <SelectItem key={String(opt)} value={String(opt)}>
-                              {opt === 'all' ? 'ทั้งหมด' : String(opt)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <span>รายการ</span>
-                    </div>
-                    <div className="flex-1 flex justify-center">
-                      <Pagination page={page} totalPages={10} onPageChange={setPage} className="w-auto justify-center" />
-                    </div>
-                    <span className="text-muted-foreground shrink-0">แสดง <span className="font-semibold text-foreground">{PRODUCTS.length * 3}</span> รายการ</span>
+                    {(() => {
+                      const totalRows = 300
+                      const size = pageSize === 'all' ? totalRows : pageSize
+                      const start = (page - 1) * size + 1
+                      const end = Math.min(page * size, totalRows)
+                      return (
+                        <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                          <span>จำนวนแถว</span>
+                          <Select
+                            value={String(pageSize)}
+                            onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}
+                          >
+                            <SelectTrigger variant="elevated" className="h-9 min-w-20">
+                              <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="min-w-28">
+                              {[50, 100, 250, 500, 'all'].map(opt => (
+                                <SelectItem key={String(opt)} value={String(opt)}>
+                                  {opt === 'all' ? 'ทั้งหมด' : String(opt)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <span>
+                            แสดง <span className="font-semibold text-foreground">{start.toLocaleString()}-{end.toLocaleString()}</span>
+                          </span>
+                        </div>
+                      )
+                    })()}
+                    <Pagination page={page} totalPages={10} onPageChange={setPage} className="w-auto" />
                   </div>
                 </div>
               </Section>
@@ -1046,7 +1170,7 @@ export default function Theme() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-center min-w-16">ลาก</TableHead>
+                        <TableHead className="min-w-16">ลาก</TableHead>
                         <TableHead className="min-w-[220px]">ชื่อสินค้า</TableHead>
                         <TableHead className="min-w-40">หมวดหมู่</TableHead>
                         <TableHead className="min-w-28">สถานะ</TableHead>

@@ -32,19 +32,24 @@ function SelectValue({
 function SelectTrigger({
   className,
   size = "default",
+  variant = "default",
   children,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default"
+  variant?: "default" | "elevated"
 }) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       data-size={size}
+      data-variant={variant}
       className={cn(
         "group flex w-fit items-center justify-between gap-1.5",
         "rounded-control",
-        "bg-muted dark:bg-input/30",
+        variant === "elevated"
+          ? "bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted"
+          : "bg-muted dark:bg-input/30",
         "py-2 pr-2 pl-2.5",
         "text-sm whitespace-nowrap",
         "transition-colors outline-none select-none",

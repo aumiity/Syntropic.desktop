@@ -6,11 +6,11 @@
   :root {
     /* Teal brand — #0F5D56 / Yellow accent — #F5C24A */
     --background: 0 0% 99%;
-    --foreground: 0 0% 10%;
+    --foreground: 0 0% 12%;
     --card: 0 0% 99%;
     --card-foreground: 0 0% 32%;
     --popover: 0 0% 99%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 0 0% 12%;
     --primary: 179 91% 22%;           /* #0F5D56 */
     --primary-foreground: 0 0% 99%;
     --primary-hover: 175 72% 17%;
@@ -18,7 +18,7 @@
     --secondary-foreground: 0 0% 32%;
     --secondary-hover: 0 0% 90%;
     --tertiary: 43 100% 64%;
-    --tertiary-foreground: 0 0% 10%;
+    --tertiary-foreground: 0 0% 12%;
     --tertiary-hover: 43 90% 54%;
     --brand-soft: 180 20% 90%;
     --brand-soft-foreground: 179 91% 22%;
@@ -32,7 +32,7 @@
     --warm-hover: 45 96% 80%;
     --warm-foreground: 32 88% 33%;
     --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 10%;
+    --muted-foreground: 0 0% 12%;
     --muted-hover: 0 0% 88%;
     --accent: 43 100% 64%;             /* #F5C24A */
     --accent-foreground: 44 100% 8%;  /* #2A1F00 */

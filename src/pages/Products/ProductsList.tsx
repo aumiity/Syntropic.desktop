@@ -7,16 +7,15 @@ import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import type { Product, ProductCategory } from '@/types'
 import type { ProductsOutletContext } from './index'
 import {
-  Plus, Edit, AlertTriangle, Package, PackageX, Boxes, Settings2, MoreHorizontal, Eye, Ban,
+  Edit, AlertTriangle, Package, Boxes, Settings2, Filter, MoreHorizontal, Eye, Ban, Check,
 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
@@ -60,10 +59,10 @@ export default function ProductsList() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
 
-  // Filters (q, categoryId, stockFilter are NOT persisted — reset per session)
+  // Filters (q, categoryId, statusFilter NOT persisted — reset per session)
   const [q, setQ] = useState('')
   const [categoryId, setCategoryId] = useState<number>(0)
-  const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out' | 'disabled'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
   const showCost = prefs.showCost
   const showProfit = prefs.showProfit
   const showPrice = prefs.showPrice
@@ -80,6 +79,8 @@ export default function ProductsList() {
   // tabs render the same 4 stat cards from this data, so users see a single
   // shared dashboard regardless of active tab.
   const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0, disabled: 0 })
+  // Separate count of bundles (is_bundle=1). Replaces "หมดสต็อก" stat card.
+  const [bundleCount, setBundleCount] = useState(0)
 
   const pageSize = prefs.pageSize
   const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
@@ -100,10 +101,15 @@ export default function ProductsList() {
       window.api.products.stockStats({
         include_disabled: true,
       }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0, disabled: 0 }))
+      // Bundle count for the "ชุดสินค้า" stat card.
+      window.api.products.stockStats({
+        include_disabled: true,
+        is_bundle: 1,
+      }).then((s: any) => setBundleCount(s?.total_all ?? 0))
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, categoryId, stockFilter, sort, pageSize])
+  }, [q, categoryId, sort, pageSize, statusFilter])
 
   const loadDropdowns = async () => {
     const cats = await window.api.settings.allCategories()
@@ -120,8 +126,10 @@ export default function ProductsList() {
         limit: pageSize,
         sort_by: sort.by,
         sort_dir: sort.dir,
-        stock_filter: stockFilter,
-        include_disabled: stockFilter === 'disabled',
+        // 'all' → include enabled+disabled · 'enabled' → only enabled
+        // · 'disabled' → only disabled (forced via stock_filter='disabled')
+        stock_filter: statusFilter === 'disabled' ? 'disabled' : statusFilter === 'enabled' ? 'enabled' : 'all',
+        include_disabled: statusFilter !== 'enabled',
         is_bundle: 0,
       }) as any
       setRows(res.rows)
@@ -130,7 +138,7 @@ export default function ProductsList() {
     } finally {
       setLoading(false)
     }
-  }, [q, categoryId, page, pageSize, sort, stockFilter])
+  }, [q, categoryId, page, pageSize, sort, statusFilter])
 
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
@@ -138,17 +146,16 @@ export default function ProductsList() {
       : { by: field, dir: 'asc' })
   }
 
-  // Stat cards = passive display (no onClick) since filtering moved to the
-  // underline tabs below. Omitting onClick makes ProductsLayout render
-  // MetricCard instead of the clickable StatCard.
+  // Stat cards = passive display (no onClick). Omitting onClick makes
+  // ProductsLayout render MetricCard instead of the clickable StatCard.
   useEffect(() => {
     setSummary([
-      { label: 'ทั้งหมด',          value: allStats.total_all.toLocaleString(), icon: Boxes,           tint: 'primary' },
+      { label: 'ทั้งหมด',          value: allStats.total_all.toLocaleString(), icon: Package,         tint: 'primary' },
       { label: 'ต่ำกว่าจุดสั่งซื้อ', value: allStats.low.toLocaleString(),       icon: AlertTriangle,    tint: 'warning' },
-      { label: 'หมดสต็อก',         value: allStats.out.toLocaleString(),       icon: PackageX,         tint: 'destructive' },
+      { label: 'ชุดสินค้า',         value: bundleCount.toLocaleString(),        icon: Boxes,           tint: 'info-soft' },
       { label: 'ปิดการใช้งาน',      value: allStats.disabled.toLocaleString(),  icon: Ban,              tint: 'secondary' },
     ])
-  }, [allStats, setSummary])
+  }, [allStats, bundleCount, setSummary])
 
   const toggleDisabled = async (row: ProductRow) => {
     try {
@@ -185,39 +192,34 @@ export default function ProductsList() {
     )
   }
 
-  const STOCK_TABS: { value: typeof stockFilter; label: string; count: number }[] = [
-    { value: 'all',      label: 'ทั้งหมด',         count: allStats.total_all },
-    { value: 'low',      label: 'ต่ำกว่าจุดสั่งซื้อ', count: allStats.low },
-    { value: 'out',      label: 'หมดสต็อก',        count: allStats.out },
-    { value: 'disabled', label: 'ปิดการใช้งาน',     count: allStats.disabled },
-  ]
-
   return (
-    <div className="flex flex-col flex-1 min-h-0 gap-3">
-      {/* Stock filter tabs (replaces the 4 stat cards). Counts on the right
-          give the same snapshot at a fraction of the vertical space. */}
-      <Tabs value={stockFilter} onValueChange={v => setStockFilter(v as typeof stockFilter)} className="shrink-0">
-        <TabsList variant="line">
-          {STOCK_TABS.map(t => (
-            <TabsTrigger key={t.value} value={t.value}>
-              {t.label}
-              <span className="ml-1 text-xs text-muted-foreground">{t.count.toLocaleString()}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
+    <div className="flex flex-col flex-1 min-h-0">
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+        {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px] inset
+            so filter-strip controls align with column edges. */}
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          {/* Title cluster (left): icon-in-box + heading + count badge */}
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <Package className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
+            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+          </div>
+
+          {/* Right cluster — ml-auto on first to push right */}
           <SearchInput
+            variant="elevated"
+            wrapperClassName="w-72 shrink-0 ml-auto"
+            className="h-9"
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
           />
 
           <Select value={String(categoryId)} onValueChange={v => setCategoryId(Number(v))}>
-            <SelectTrigger className="h-10 w-44 shrink-0">
+            <SelectTrigger variant="elevated" className="h-9 w-44 shrink-0">
               <SelectValue placeholder="หมวดหมู่ทั้งหมด" />
             </SelectTrigger>
             <SelectContent>
@@ -228,19 +230,54 @@ export default function ProductsList() {
             </SelectContent>
           </Select>
 
-          <Button onClick={() => navigate('/products/new')} size="lg" className="h-10 px-2 shrink-0 ml-auto">
-            <Plus className="size-4" /> เพิ่มสินค้า
-          </Button>
+          {/* Filter popover — usage status (enabled/disabled). Stock status
+              filter was removed; use the Low-Stock page for that. */}
+          {(() => {
+            const STATUS_OPTIONS: { value: typeof statusFilter; label: string }[] = [
+              { value: 'all',      label: 'ทั้งหมด' },
+              { value: 'enabled',  label: 'ใช้งาน' },
+              { value: 'disabled', label: 'ปิดใช้งาน' },
+            ]
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
+                    <Filter className="size-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-1 gap-0">
+                  <PopoverHeader className="px-2">
+                    <PopoverTitle>สถานะ</PopoverTitle>
+                  </PopoverHeader>
+                  {STATUS_OPTIONS.map(o => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setStatusFilter(o.value)}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                        statusFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
+                      )}
+                    >
+                      <Check className={cn('size-4', statusFilter === o.value ? 'opacity-100' : 'opacity-0')} />
+                      <span className="flex-1 text-left">{o.label}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )
+          })()}
 
+          {/* Column settings popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="คอลัมน์ที่แสดง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>ตัวเลือกการแสดงผล</PopoverTitle>
+                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showCost} onCheckedChange={v => setPrefs({ showCost: v === true })} />
@@ -262,15 +299,12 @@ export default function ProductsList() {
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8">#</TableHead>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>
-                {showStock && (
-                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[220px] pl-6 pr-6">สต็อก</SortableTableHead>
-                )}
                 {showCost && (
                   <SortableTableHead field="cost_price" align="left" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
                 )}
@@ -280,7 +314,10 @@ export default function ProductsList() {
                 {showProfit && (
                   <SortableTableHead field="profit" align="left" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
                 )}
-                <TableHead className="text-center min-w-16">จัดการ</TableHead>
+                {showStock && (
+                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[220px] pl-6 pr-6">สต็อก</SortableTableHead>
+                )}
+                <TableHead className="min-w-16">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -305,11 +342,6 @@ export default function ProductsList() {
                     <TableCell className="max-w-0">
                       <div className="font-semibold text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
                     </TableCell>
-                    {showStock && (
-                      <TableCell className="pl-6 pr-6">
-                        {renderStockCell(row.stock_qty, row.reorder_point ?? 0, row.safety_stock ?? 0, row.unit_name)}
-                      </TableCell>
-                    )}
                     {showCost && (
                       <TableCell className="text-left text-sm text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
                     )}
@@ -355,8 +387,13 @@ export default function ProductsList() {
                         </span>
                       </TableCell>
                     )}
+                    {showStock && (
+                      <TableCell className="pl-6 pr-6">
+                        {renderStockCell(row.stock_qty, row.reorder_point ?? 0, row.safety_stock ?? 0, row.unit_name)}
+                      </TableCell>
+                    )}
                     <TableCell>
-                      <div className="flex justify-center">
+                      <div className="flex">
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
@@ -397,28 +434,34 @@ export default function ProductsList() {
         </div>
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
-          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-            <span>แสดง</span>
-            <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
-              <SelectTrigger className="h-9 min-w-20">
-                <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="min-w-28">
-                {[50, 100, 250, 500, 'all'].map(opt => (
-                  <SelectItem key={String(opt)} value={String(opt)}>
-                    {opt === 'all' ? 'ทั้งหมด' : String(opt)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span>รายการ</span>
-          </div>
-          <div className="flex-1 flex justify-center">
-            <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto justify-center" />
-          </div>
-          <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{total.toLocaleString()}</span> รายการ</>}
-          </span>
+          {(() => {
+            const size = pageSize === 'all' ? total : pageSize
+            const start = total === 0 ? 0 : (page - 1) * size + 1
+            const end = Math.min(page * size, total)
+            return (
+              <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                <span>จำนวนแถว</span>
+                <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
+                  <SelectTrigger variant="elevated" className="h-9 min-w-20">
+                    <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="min-w-28">
+                    {[50, 100, 250, 500, 'all'].map(opt => (
+                      <SelectItem key={String(opt)} value={String(opt)}>
+                        {opt === 'all' ? 'ทั้งหมด' : String(opt)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>
+                  {loading
+                    ? 'กำลังโหลด...'
+                    : <>แสดง <span className="font-semibold text-foreground">{start.toLocaleString()}-{end.toLocaleString()}</span></>}
+                </span>
+              </div>
+            )
+          })()}
+          <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto" />
         </div>
       </div>
     </div>

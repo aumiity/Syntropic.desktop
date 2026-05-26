@@ -12,7 +12,7 @@ import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency } from '@/lib/utils'
 import type { Product } from '@/types'
 import type { ProductsOutletContext } from './index'
-import { Plus, Edit, Boxes, AlertTriangle, PackageX, Ban, Settings2 } from 'lucide-react'
+import { Plus, Edit, Boxes, AlertTriangle, Package, Ban, Settings2 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
 type SortDir = 'asc' | 'desc'
@@ -62,6 +62,8 @@ export default function BundlesList() {
   // ProductsList — both tabs render the identical 4-card summary so users
   // see a single source of truth no matter which tab is active.
   const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0, disabled: 0 })
+  // Separate count of bundles for the "ชุดสินค้า" stat card (mirrors ProductsList).
+  const [bundleCount, setBundleCount] = useState(0)
 
   const pageSize = prefs.pageSize
   const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
@@ -96,6 +98,10 @@ export default function BundlesList() {
       window.api.products.stockStats({
         include_disabled: true,
       }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0, disabled: 0 }))
+      window.api.products.stockStats({
+        include_disabled: true,
+        is_bundle: 1,
+      }).then((s: any) => setBundleCount(s?.total_all ?? 0))
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,12 +118,12 @@ export default function BundlesList() {
   // dashboard so users see the same snapshot regardless of active tab.
   useEffect(() => {
     setSummary([
-      { label: 'ทั้งหมด',          value: allStats.total_all.toLocaleString(), icon: Boxes,           tint: 'primary' },
+      { label: 'ทั้งหมด',          value: allStats.total_all.toLocaleString(), icon: Package,         tint: 'primary' },
       { label: 'ต่ำกว่าจุดสั่งซื้อ', value: allStats.low.toLocaleString(),       icon: AlertTriangle,    tint: 'warning' },
-      { label: 'หมดสต็อก',         value: allStats.out.toLocaleString(),       icon: PackageX,         tint: 'destructive' },
+      { label: 'ชุดสินค้า',         value: bundleCount.toLocaleString(),        icon: Boxes,           tint: 'info-soft' },
       { label: 'ปิดการใช้งาน',      value: allStats.disabled.toLocaleString(),  icon: Ban,              tint: 'secondary' },
     ])
-  }, [allStats, setSummary])
+  }, [allStats, bundleCount, setSummary])
 
   const handleCreate = () => {
     // No DB row yet — EditBundle in "new" mode commits atomically (product +

@@ -37,7 +37,7 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
       data-slot="table-body"
-      className={cn("[&_tr:last-child]:border-0 [&_tr]:border-input", className)}
+      className={cn("[&_tr:last-child]:border-0 [&_tr]:border-border", className)}
       {...props}
     />
   )
@@ -62,7 +62,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
       data-slot="table-row"
       className={cn(
         "border-b transition-colors",
-        "hover:bg-primary-soft/60 has-aria-expanded:bg-primary-soft/60",
+        "hover:bg-muted has-aria-expanded:bg-muted",
         "data-[state=selected]:bg-primary-soft",
         className
       )}
@@ -78,8 +78,9 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
       className={cn(
         "sticky top-0 z-10",
         "h-10 px-2 text-left align-middle",
-        "bg-muted text-foreground-subtle",
+        "bg-muted text-foreground",
         "font-medium whitespace-nowrap",
+        "border-b border-border",
         "[&:has([role=checkbox])]:pr-0",
         className
       )}
@@ -150,7 +151,8 @@ function SortableTableHead<F extends string>({
           "h-auto w-full px-0 py-0 text-sm font-medium",
           "hover:bg-transparent",
           justify,
-          isActive ? "text-foreground" : "text-foreground-subtle",
+          "text-foreground",
+          isActive ? "" : "opacity-80",
         )}
       >
         <span>{children}</span>

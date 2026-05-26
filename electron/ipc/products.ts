@@ -168,18 +168,22 @@ export function registerProductHandlers() {
       : `WHERE p.is_stock_item = 1 AND ${extra}`
     const out = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`(${STOCK_EXPR}) <= 0`)}`).get(...params) as any).c
     const low = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`(${STOCK_EXPR}) > 0 AND p.reorder_point > 0 AND (${STOCK_EXPR}) <= p.reorder_point`)}`).get(...params) as any).c
-    // Total / disabled — pinned to is_stock_item=1 so all 4 cards
-    // (total / low / out / disabled) report against the same population.
-    // Otherwise "ทั้งหมด" would include bundles + non-stock services that
-    // can't appear in low/out, producing a misleading mismatch.
-    const totalCond: string[] = ['is_stock_item = 1']
+    // Total / disabled — for the products dashboard we pin is_stock_item=1 so
+    // all 4 cards (total / low / out / disabled) report against the same
+    // population. EXCEPT when the caller specifically asks for bundles
+    // (is_bundle=1): bundles have is_stock_item=0, so applying that filter
+    // would zero out the count. In that case skip is_stock_item entirely.
+    const stockItemFilter = is_bundle === 1 ? [] : ['is_stock_item = 1']
+
+    const totalCond: string[] = [...stockItemFilter]
     const totalParams: any[] = []
     if (is_bundle === 0 || is_bundle === 1) { totalCond.push('is_bundle = ?'); totalParams.push(is_bundle) }
+    const totalWhere = totalCond.length ? `WHERE ${totalCond.join(' AND ')}` : ''
     const total_all = (db.prepare(
-      `SELECT COUNT(*) as c FROM products WHERE ${totalCond.join(' AND ')}`
+      `SELECT COUNT(*) as c FROM products ${totalWhere}`
     ).get(...totalParams) as any).c
 
-    const disabledCond: string[] = ['is_stock_item = 1', 'is_disabled = 1']
+    const disabledCond: string[] = [...stockItemFilter, 'is_disabled = 1']
     const disabledParams: any[] = []
     if (is_bundle === 0 || is_bundle === 1) { disabledCond.push('is_bundle = ?'); disabledParams.push(is_bundle) }
     const disabled = (db.prepare(

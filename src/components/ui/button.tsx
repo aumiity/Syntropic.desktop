@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils"
 const buttonVariants = cva(
   [
     "group/button inline-flex shrink-0 items-center justify-center",
-    "rounded-lg border border-transparent bg-clip-padding",
+    "rounded-lg bg-clip-padding",
     "text-sm font-medium whitespace-nowrap",
     "transition-all outline-none select-none",
+    "shadow-md hover:shadow-md",
     "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
     "active:not-aria-[haspopup]:translate-y-px",
     "disabled:pointer-events-none disabled:opacity-50",
@@ -56,6 +57,7 @@ const buttonVariants = cva(
           "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         ].join(" "),
         ghost: [
+          "shadow-none hover:shadow-none",
           "hover:bg-muted hover:text-foreground",
           "aria-expanded:bg-muted aria-expanded:text-foreground",
           "dark:hover:bg-muted/50",
@@ -68,6 +70,11 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         success: "bg-success text-success-foreground hover:bg-success-hover",
         destructive2: "bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive",
+        elevated: [
+          "bg-card text-foreground ring-border ring-1 shadow-md",
+          "hover:bg-muted hover:shadow-md",
+          "aria-expanded:shadow-md aria-expanded:bg-muted",
+        ].join(" "),
       },
       size: {
         default: [
