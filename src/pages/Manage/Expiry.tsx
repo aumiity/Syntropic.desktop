@@ -16,7 +16,9 @@ import { getCurrentUserId } from '@/stores/userStore'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency } from '@/lib/utils'
 import type { ManageOutletContext } from './index'
-import { PackageX, ClockAlert, Settings2 } from 'lucide-react'
+import { PackageX, ClockAlert, Settings2, MoreHorizontal, CalendarClock } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 type FilterType = 'expired' | 30 | 90 | 180
 type SortField = 'trade_name' | 'expiry_date' | 'total_cost'
@@ -229,16 +231,27 @@ export default function ManageExpiryPage() {
   return (
     <>
       {/* List card */}
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <CalendarClock className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">ใกล้หมดอายุ</h3>
+            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+          </div>
+
           <SearchInput
+            variant="elevated"
+            wrapperClassName="w-72 shrink-0 ml-auto"
+            className="h-9"
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="ชื่อสินค้า, Lot No..."
           />
 
           <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger className="h-10 w-44 shrink-0">
+            <SelectTrigger variant="elevated" className="h-9 w-44 shrink-0">
               <SelectValue placeholder="ทุกหมวดหมู่" />
             </SelectTrigger>
             <SelectContent>
@@ -251,13 +264,13 @@ export default function ManageExpiryPage() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0 ml-auto" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColLot} onCheckedChange={v => setPrefs({ showColLot: v === true })} />
@@ -291,7 +304,7 @@ export default function ManageExpiryPage() {
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -321,8 +334,8 @@ export default function ManageExpiryPage() {
               ) : rows.map(lot => {
                 const isExpired = (lot.days_remaining ?? 1) < 0
                 return (
-                  <TableRow key={lot.lot_id} className={isExpired ? 'bg-destructive-soft/30' : ''}>
-                    <TableCell className="max-w-[220px] text-sm font-medium truncate" title={lot.trade_name}>
+                  <TableRow key={lot.lot_id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isExpired && 'bg-destructive-soft/30')}>
+                    <TableCell className="max-w-[220px] text-sm truncate" title={lot.trade_name}>
                       {lot.trade_name}
                     </TableCell>
                     {showColLot && (
@@ -362,14 +375,19 @@ export default function ManageExpiryPage() {
                     )}
                     <TableCell>
                       <div className="flex justify-center">
-                        <Button
-                          size="icon-lg"
-                          variant="destructive2"
-                          title="ตัดออก"
-                          onClick={() => setConfirmingLot(lot)}
-                        >
-                          <PackageX />
-                        </Button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                              <MoreHorizontal />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                            <button type="button" onClick={() => setConfirmingLot(lot)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                              <PackageX className="size-4" /> ตัดออก
+                            </button>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -380,29 +398,35 @@ export default function ManageExpiryPage() {
         </div>
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
-          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-            <span>แสดง</span>
-            <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
-              <SelectTrigger className="h-9 min-w-20">
-                <SelectValue>{String(pageSize)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="min-w-28">
-                {[50, 100, 250, 500].map(opt => (
-                  <SelectItem key={opt} value={String(opt)}>{String(opt)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span>รายการ</span>
-            <span className="ml-3">
-              มูลค่าทั้งหมด <span className="font-semibold text-foreground ml-1">฿{formatCurrency(totalCost)}</span>
-            </span>
-          </div>
-          <div className="flex-1 flex justify-center">
-            <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
-          </div>
-          <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{rows.length.toLocaleString()}</span> รายการ</>}
-          </span>
+          {(() => {
+            const size = pageSize as number
+            const start = total === 0 ? 0 : (page - 1) * size + 1
+            const end = Math.min(page * size, total)
+            return (
+              <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                <span>จำนวนแถว</span>
+                <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
+                  <SelectTrigger variant="elevated" className="h-9 min-w-20">
+                    <SelectValue>{String(pageSize)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="min-w-28">
+                    {[50, 100, 250, 500].map(opt => (
+                      <SelectItem key={opt} value={String(opt)}>{String(opt)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>
+                  {loading
+                    ? 'กำลังโหลด...'
+                    : <>แสดง <span className="font-semibold text-foreground">{start.toLocaleString()}-{end.toLocaleString()}</span></>}
+                </span>
+                <span className="ml-3">
+                  มูลค่าทั้งหมด <span className="font-semibold text-foreground ml-1">฿{formatCurrency(totalCost)}</span>
+                </span>
+              </div>
+            )
+          })()}
+          <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto" />
         </div>
       </div>
 

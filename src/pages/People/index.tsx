@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -15,9 +15,12 @@ import { Toggle } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
+import { MetricCard, type MetricTint } from '@/components/ui/card'
+import { motion } from 'framer-motion'
+import { cn } from '@/lib/utils'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import type { Customer, Supplier, User, DrugAllergy } from '@/types'
-import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2 } from 'lucide-react'
+import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2, Filter, MoreHorizontal, Ban, Check } from 'lucide-react'
 
 const SEVERITY_LABELS: Record<string, string> = {
   mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต'
@@ -49,7 +52,7 @@ const CUSTOMERS_DEFAULTS: CustomersPrefs = {
   pageSize: 50, showDisabled: false, showColPhone: true, showColAlert: true, showColStatus: true,
 }
 
-function CustomersTab() {
+function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; addNonce: number }) {
   const { toast } = useToast()
   const [prefs, setPrefs] = usePagePrefs<CustomersPrefs>('people.customers', CUSTOMERS_DEFAULTS)
   const [rows, setRows] = useState<Customer[]>([])
@@ -124,32 +127,81 @@ function CustomersTab() {
       toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
       setDialog(false)
       load(page)
+      refreshStats()
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     } finally { setSaving(false) }
   }
 
+  const toggleDisabled = async (c: Customer) => {
+    try {
+      await window.api.people.setCustomerStatus(c.id, !c.is_disabled)
+      toast({ title: c.is_disabled ? 'เปิดใช้งานลูกค้าแล้ว' : 'ปิดใช้งานลูกค้าแล้ว', variant: 'success' })
+      load(page)
+      refreshStats()
+    } catch (e: any) {
+      toast({ title: 'ดำเนินการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
+  }
+
+  // Shell's "เพิ่มลูกค้า" button bumps addNonce → open the add dialog.
+  // Skip the initial 0-value so we don't auto-open on mount.
+  useEffect(() => { if (addNonce > 0) openAdd() }, [addNonce])
+
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
   return (
-    <div className="flex flex-col h-full gap-3">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* List card */}
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <SearchInput value={q} onChange={e => setQ(e.target.value)}
-            placeholder="ค้นหาชื่อ, โทร, รหัส..." />
-          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0 ml-auto">
-            <Plus className="size-4" /> เพิ่มลูกค้า
-          </Button>
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          {/* Title cluster (left): icon-in-box + heading + count badge */}
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <Users className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">รายชื่อลูกค้า</h3>
+            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+          </div>
+
+          {/* Right cluster — ml-auto on first to push right */}
+          <SearchInput
+            variant="elevated"
+            wrapperClassName="w-72 shrink-0 ml-auto"
+            className="h-9"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อ, โทร, รหัส..."
+          />
+
+          {/* Filter popover — usage status (show disabled) */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
+                <Filter className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>ตัวกรอง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
+                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
+              </label>
+            </PopoverContent>
+          </Popover>
+
+          {/* Column settings popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColPhone} onCheckedChange={v => setPrefs({ showColPhone: v === true })} />
@@ -163,28 +215,20 @@ function CustomersTab() {
                 <Checkbox checked={showColStatus} onCheckedChange={v => setPrefs({ showColStatus: v === true })} />
                 <span className="text-sm">สถานะ</span>
               </label>
-              <div className="my-1 border-t border-border" />
-              <PopoverHeader>
-                <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
-              </PopoverHeader>
-              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
-                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
-              </label>
             </PopoverContent>
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table className="table-fixed">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+          <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[12%]">รหัส</TableHead>
-                <TableHead className="w-[35%]">ชื่อ-นามสกุล</TableHead>
-                {showColPhone && <TableHead className="w-[18%]">โทรศัพท์</TableHead>}
-                {showColAlert && <TableHead className="text-center w-[10%]">แจ้งเตือน</TableHead>}
-                {showColStatus && <TableHead className="text-center w-[10%]">สถานะ</TableHead>}
-                <TableHead className="text-center w-[13%]">จัดการ</TableHead>
+                <TableHead className="min-w-24">รหัส</TableHead>
+                <TableHead className="min-w-[280px]">ชื่อ-นามสกุล</TableHead>
+                {showColPhone && <TableHead className="min-w-32">โทรศัพท์</TableHead>}
+                {showColAlert && <TableHead className="min-w-24 text-center">แจ้งเตือน</TableHead>}
+                {showColStatus && <TableHead className="min-w-24 text-center">สถานะ</TableHead>}
+                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -197,11 +241,13 @@ function CustomersTab() {
                     ไม่พบข้อมูลลูกค้า
                   </TableCell>
                 </TableRow>
-              ) : rows.map(c => (
-                <TableRow key={c.id}>
+              ) : rows.map(c => {
+                const isDisabled = !!c.is_disabled
+                return (
+                <TableRow key={c.id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isDisabled && 'opacity-60')}>
                   <TableCell className="font-mono text-sm text-muted-foreground truncate">{c.code}</TableCell>
-                  <TableCell className="min-w-0">
-                    <div className="font-medium text-sm text-foreground truncate">{c.full_name}</div>
+                  <TableCell className="max-w-0">
+                    <div className="text-sm text-foreground truncate" title={c.full_name}>{c.full_name}</div>
                     {c.chronic_diseases && <div className="text-sm text-muted-foreground truncate">{c.chronic_diseases}</div>}
                   </TableCell>
                   {showColPhone && <TableCell className="text-sm truncate">{c.phone ?? '—'}</TableCell>}
@@ -214,41 +260,69 @@ function CustomersTab() {
                     <TableCell className="text-center">
                       {c.is_disabled
                         ? <Badge variant="secondary">พักใช้งาน</Badge>
-                        : <Badge variant="success">ใช้งาน</Badge>}
+                        : <Badge variant="success-outline">ใช้งาน</Badge>}
                     </TableCell>
                   )}
                   <TableCell>
-                    <div className="flex gap-1.5 justify-center">
-                      <Button size="icon-lg" variant="outline" onClick={() => openEdit(c)} title="แก้ไข"><Edit /></Button>
+                    <div className="flex justify-center">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                            <MoreHorizontal />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(c)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
+                          >
+                            <Edit className="size-4" /> แก้ไข
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleDisabled(c)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                          >
+                            <Ban className="size-4" /> {c.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                          </button>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </div>
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
-          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-            <span>แสดง</span>
-            <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
-              <SelectTrigger className="h-9 min-w-20">
-                <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="min-w-28">
-                {[50, 100, 250, 500, 'all'].map(opt => (
-                  <SelectItem key={String(opt)} value={String(opt)}>{opt === 'all' ? 'ทั้งหมด' : String(opt)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span>รายการ</span>
-          </div>
-          <div className="flex-1 flex justify-center">
-            <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
-          </div>
-          <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{total.toLocaleString()}</span> รายการ</>}
-          </span>
+          {(() => {
+            const size = pageSize === 'all' ? total : pageSize
+            const start = total === 0 ? 0 : (page - 1) * size + 1
+            const end = Math.min(page * size, total)
+            return (
+              <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                <span>จำนวนแถว</span>
+                <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
+                  <SelectTrigger variant="elevated" className="h-9 min-w-20">
+                    <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="min-w-28">
+                    {[50, 100, 250, 500, 'all'].map(opt => (
+                      <SelectItem key={String(opt)} value={String(opt)}>{opt === 'all' ? 'ทั้งหมด' : String(opt)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>
+                  {loading
+                    ? 'กำลังโหลด...'
+                    : <>แสดง <span className="font-semibold text-foreground">{start.toLocaleString()}-{end.toLocaleString()}</span></>}
+                </span>
+              </div>
+            )
+          })()}
+          <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto" />
         </div>
       </div>
 
@@ -345,7 +419,7 @@ const SUPPLIERS_DEFAULTS: SuppliersPrefs = {
   pageSize: 50, showDisabled: false, showColPhone: true, showColStatus: true,
 }
 
-function SuppliersTab() {
+function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; addNonce: number }) {
   const { toast } = useToast()
   const [prefs, setPrefs] = usePagePrefs<SuppliersPrefs>('people.suppliers', SUPPLIERS_DEFAULTS)
   const [rows, setRows] = useState<Supplier[]>([])
@@ -401,31 +475,74 @@ function SuppliersTab() {
       toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
       setDialog(false)
       load(page)
+      refreshStats()
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     } finally { setSaving(false) }
   }
 
+  const toggleDisabled = async (s: Supplier) => {
+    try {
+      await window.api.people.setSupplierStatus(s.id, !s.is_disabled)
+      toast({ title: s.is_disabled ? 'เปิดใช้งานผู้จำหน่ายแล้ว' : 'ปิดใช้งานผู้จำหน่ายแล้ว', variant: 'success' })
+      load(page)
+      refreshStats()
+    } catch (e: any) {
+      toast({ title: 'ดำเนินการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
+  }
+
+  useEffect(() => { if (addNonce > 0) openAdd() }, [addNonce])
+
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <SearchInput value={q} onChange={e => setQ(e.target.value)}
-            placeholder="ค้นหาชื่อ, รหัส, โทร..." />
-          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0 ml-auto">
-            <Plus className="size-4" /> เพิ่มผู้จำหน่าย
-          </Button>
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <Building2 className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">รายชื่อผู้จำหน่าย</h3>
+            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+          </div>
+
+          <SearchInput
+            variant="elevated"
+            wrapperClassName="w-72 shrink-0 ml-auto"
+            className="h-9"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อ, รหัส, โทร..."
+          />
+
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
+                <Filter className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>ตัวกรอง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
+                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
+              </label>
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColPhone} onCheckedChange={v => setPrefs({ showColPhone: v === true })} />
@@ -435,27 +552,19 @@ function SuppliersTab() {
                 <Checkbox checked={showColStatus} onCheckedChange={v => setPrefs({ showColStatus: v === true })} />
                 <span className="text-sm">สถานะ</span>
               </label>
-              <div className="my-1 border-t border-border" />
-              <PopoverHeader>
-                <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
-              </PopoverHeader>
-              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
-                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
-              </label>
             </PopoverContent>
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table className="table-fixed">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+          <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-left w-[12%]">รหัส</TableHead>
-                <TableHead className="text-left w-[45%]">ชื่อบริษัท</TableHead>
-                {showColPhone && <TableHead className="text-left w-[20%]">โทรศัพท์</TableHead>}
-                {showColStatus && <TableHead className="text-center w-[10%]">สถานะ</TableHead>}
-                <TableHead className="text-center w-[13%]">จัดการ</TableHead>
+                <TableHead className="min-w-24">รหัส</TableHead>
+                <TableHead className="min-w-[320px]">ชื่อบริษัท</TableHead>
+                {showColPhone && <TableHead className="min-w-32">โทรศัพท์</TableHead>}
+                {showColStatus && <TableHead className="min-w-24 text-center">สถานะ</TableHead>}
+                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -468,50 +577,76 @@ function SuppliersTab() {
                     ไม่พบข้อมูลผู้จำหน่าย
                   </TableCell>
                 </TableRow>
-              ) : rows.map(s => (
-                <TableRow key={s.id}>
+              ) : rows.map(s => {
+                const isDisabled = !!s.is_disabled
+                return (
+                <TableRow key={s.id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isDisabled && 'opacity-60')}>
                   <TableCell className="font-mono text-sm text-muted-foreground truncate">{s.code}</TableCell>
-                  <TableCell className="font-medium text-sm truncate">{s.name}</TableCell>
+                  <TableCell className="max-w-0">
+                    <div className="text-sm text-foreground truncate" title={s.name}>{s.name}</div>
+                  </TableCell>
                   {showColPhone && <TableCell className="text-sm truncate">{s.phone ?? '—'}</TableCell>}
                   {showColStatus && (
                     <TableCell className="text-center">
                       {s.is_disabled
                         ? <Badge variant="secondary">พักใช้งาน</Badge>
-                        : <Badge variant="success">ใช้งาน</Badge>}
+                        : <Badge variant="success-outline">ใช้งาน</Badge>}
                     </TableCell>
                   )}
                   <TableCell>
-                    <div className="flex gap-1.5 justify-center">
-                      <Button size="icon-lg" variant="outline" onClick={() => openEdit(s)} title="แก้ไข"><Edit /></Button>
+                    <div className="flex justify-center">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                            <MoreHorizontal />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                          <button type="button" onClick={() => openEdit(s)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                            <Edit className="size-4" /> แก้ไข
+                          </button>
+                          <button type="button" onClick={() => toggleDisabled(s)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                            <Ban className="size-4" /> {s.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                          </button>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </div>
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
-          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-            <span>แสดง</span>
-            <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
-              <SelectTrigger className="h-9 min-w-20">
-                <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="min-w-28">
-                {[50, 100, 250, 500, 'all'].map(opt => (
-                  <SelectItem key={String(opt)} value={String(opt)}>{opt === 'all' ? 'ทั้งหมด' : String(opt)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span>รายการ</span>
-          </div>
-          <div className="flex-1 flex justify-center">
-            <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
-          </div>
-          <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{total.toLocaleString()}</span> รายการ</>}
-          </span>
+          {(() => {
+            const size = pageSize === 'all' ? total : pageSize
+            const start = total === 0 ? 0 : (page - 1) * size + 1
+            const end = Math.min(page * size, total)
+            return (
+              <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                <span>จำนวนแถว</span>
+                <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
+                  <SelectTrigger variant="elevated" className="h-9 min-w-20">
+                    <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="min-w-28">
+                    {[50, 100, 250, 500, 'all'].map(opt => (
+                      <SelectItem key={String(opt)} value={String(opt)}>{opt === 'all' ? 'ทั้งหมด' : String(opt)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>
+                  {loading
+                    ? 'กำลังโหลด...'
+                    : <>แสดง <span className="font-semibold text-foreground">{start.toLocaleString()}-{end.toLocaleString()}</span></>}
+                </span>
+              </div>
+            )
+          })()}
+          <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto" />
         </div>
       </div>
 
@@ -569,7 +704,7 @@ const STAFF_DEFAULTS: StaffPrefs = {
   showDisabled: false, showColEmail: true, showColRole: true, showColStatus: true,
 }
 
-function StaffTab() {
+function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNonce: number }) {
   const { toast } = useToast()
   const [prefs, setPrefs] = usePagePrefs<StaffPrefs>('people.staff', STAFF_DEFAULTS)
   const [rows, setRows] = useState<User[]>([])
@@ -619,10 +754,24 @@ function StaffTab() {
       toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
       setDialog(false)
       load()
+      refreshStats()
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     } finally { setSaving(false) }
   }
+
+  const toggleDisabled = async (u: User) => {
+    try {
+      await window.api.people.setStaffStatus(u.id, !u.is_disabled)
+      toast({ title: u.is_disabled ? 'เปิดใช้งานพนักงานแล้ว' : 'ปิดใช้งานพนักงานแล้ว', variant: 'success' })
+      load()
+      refreshStats()
+    } catch (e: any) {
+      toast({ title: 'ดำเนินการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
+  }
+
+  useEffect(() => { if (addNonce > 0) openAdd() }, [addNonce])
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
@@ -637,23 +786,52 @@ function StaffTab() {
     : rows
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <SearchInput value={q} onChange={e => setQ(e.target.value)}
-            placeholder="ค้นหาชื่อ, อีเมล..." />
-          <Button onClick={openAdd} size="lg" className="h-10 px-2 shrink-0 ml-auto">
-            <Plus className="size-4" /> เพิ่มพนักงาน
-          </Button>
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <UserCog className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">รายชื่อพนักงาน</h3>
+            <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
+          </div>
+
+          <SearchInput
+            variant="elevated"
+            wrapperClassName="w-72 shrink-0 ml-auto"
+            className="h-9"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อ, อีเมล..."
+          />
+
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
+                <Filter className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <PopoverHeader>
+                <PopoverTitle>ตัวกรอง</PopoverTitle>
+              </PopoverHeader>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
+                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
+              </label>
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColEmail} onCheckedChange={v => setPrefs({ showColEmail: v === true })} />
@@ -667,27 +845,19 @@ function StaffTab() {
                 <Checkbox checked={showColStatus} onCheckedChange={v => setPrefs({ showColStatus: v === true })} />
                 <span className="text-sm">สถานะ</span>
               </label>
-              <div className="my-1 border-t border-border" />
-              <PopoverHeader>
-                <PopoverTitle>ตัวกรองเพิ่มเติม</PopoverTitle>
-              </PopoverHeader>
-              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
-                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
-              </label>
             </PopoverContent>
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-          <Table className="table-fixed">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+          <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[30%]">ชื่อ</TableHead>
-                {showColEmail && <TableHead className="w-[35%]">อีเมล</TableHead>}
-                {showColRole && <TableHead className="text-center w-[15%]">ตำแหน่ง</TableHead>}
-                {showColStatus && <TableHead className="text-center w-[10%]">สถานะ</TableHead>}
-                <TableHead className="text-center w-[13%]">จัดการ</TableHead>
+                <TableHead className="min-w-[240px]">ชื่อ</TableHead>
+                {showColEmail && <TableHead className="min-w-56">อีเมล</TableHead>}
+                {showColRole && <TableHead className="min-w-28 text-center">ตำแหน่ง</TableHead>}
+                {showColStatus && <TableHead className="min-w-24 text-center">สถานะ</TableHead>}
+                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -700,9 +870,11 @@ function StaffTab() {
                     ไม่พบข้อมูลพนักงาน
                   </TableCell>
                 </TableRow>
-              ) : filtered.map(u => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-medium text-sm truncate">{u.name}</TableCell>
+              ) : filtered.map(u => {
+                const isDisabled = !!u.is_disabled
+                return (
+                <TableRow key={u.id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isDisabled && 'opacity-60')}>
+                  <TableCell className="text-sm truncate">{u.name}</TableCell>
                   {showColEmail && <TableCell className="text-sm text-muted-foreground truncate">{u.email}</TableCell>}
                   {showColRole && (
                     <TableCell className="text-center">
@@ -713,16 +885,32 @@ function StaffTab() {
                     <TableCell className="text-center">
                       {u.is_disabled
                         ? <Badge variant="secondary">พักใช้งาน</Badge>
-                        : <Badge variant="success">ใช้งาน</Badge>}
+                        : <Badge variant="success-outline">ใช้งาน</Badge>}
                     </TableCell>
                   )}
                   <TableCell>
-                    <div className="flex gap-1.5 justify-center">
-                      <Button size="icon-lg" variant="outline" onClick={() => openEdit(u)} title="แก้ไข"><Edit /></Button>
+                    <div className="flex justify-center">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                            <MoreHorizontal />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                          <button type="button" onClick={() => openEdit(u)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                            <Edit className="size-4" /> แก้ไข
+                          </button>
+                          <button type="button" onClick={() => toggleDisabled(u)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                            <Ban className="size-4" /> {u.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                          </button>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </div>
@@ -791,31 +979,83 @@ function StaffTab() {
 // ========================
 // MAIN PAGE
 // ========================
+interface PeopleStats {
+  customers_active: number
+  customers_disabled: number
+  suppliers: number
+  staff: number
+}
+
+const ADD_BUTTON: Record<string, string> = {
+  customers: 'เพิ่มลูกค้า',
+  suppliers: 'เพิ่มผู้จำหน่าย',
+  staff:     'เพิ่มพนักงาน',
+}
+
 export default function PeoplePage() {
   const [tab, setTab] = useState('customers')
+  const [stats, setStats] = useState<PeopleStats>({ customers_active: 0, customers_disabled: 0, suppliers: 0, staff: 0 })
+  // Trigger nonce — incremented by shell when it wants the active tab to open
+  // its "add" dialog. Children watch the nonce in an effect to react.
+  const [addNonce, setAddNonce] = useState(0)
+
+  const refreshStats = useCallback(async () => {
+    const [activeC, allC, sup, st] = await Promise.all([
+      window.api.people.listCustomers({ limit: 1, includeDisabled: false }) as Promise<{ total: number }>,
+      window.api.people.listCustomers({ limit: 1, includeDisabled: true })  as Promise<{ total: number }>,
+      window.api.people.listSuppliers({ limit: 1, includeDisabled: true })  as Promise<{ total: number }>,
+      window.api.people.listStaff({ includeDisabled: true }) as Promise<any[]>,
+    ])
+    setStats({
+      customers_active: activeC.total,
+      customers_disabled: allC.total - activeC.total,
+      suppliers: sup.total,
+      staff: st.length,
+    })
+  }, [])
+
+  useEffect(() => { refreshStats() }, [refreshStats])
+
+  const summary = useMemo(() => [
+    { label: 'ลูกค้าที่ใช้งาน',     value: stats.customers_active.toLocaleString(),   icon: Users,     tint: 'primary'   as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground' },
+    { label: 'ลูกค้าที่ปิดใช้งาน',  value: stats.customers_disabled.toLocaleString(), icon: Ban,       tint: 'destructive2' as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground' },
+    { label: 'ผู้จัดจำหน่าย',      value: stats.suppliers.toLocaleString(),          icon: Building2, tint: 'info-soft' as MetricTint, sub: 'ราย', subClassName: 'text-base text-foreground' },
+    { label: 'พนักงาน',           value: stats.staff.toLocaleString(),              icon: UserCog,   tint: 'success'   as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+  ], [stats])
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title="บุคคล" />
 
-      <Tabs value={tab} onValueChange={setTab} className="shrink-0 self-start">
-        <TabsList>
-          <TabsTrigger value="customers">
-            <Users className="size-4 mr-1.5" /> ลูกค้า
-          </TabsTrigger>
-          <TabsTrigger value="suppliers">
-            <Building2 className="size-4 mr-1.5" /> ผู้จัดจำหน่าย
-          </TabsTrigger>
-          <TabsTrigger value="staff">
-            <UserCog className="size-4 mr-1.5" /> พนักงาน
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Tabs + Add button (mirrors ProductsLayout: tabs left, add right). */}
+      <div className="flex items-center gap-3 shrink-0">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList variant="segmented" className="h-10">
+            <TabsTrigger value="customers"><Users /> ลูกค้า</TabsTrigger>
+            <TabsTrigger value="suppliers"><Building2 /> ผู้จัดจำหน่าย</TabsTrigger>
+            <TabsTrigger value="staff"><UserCog /> พนักงาน</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <Button onClick={() => setAddNonce(n => n + 1)} className="ml-auto h-10 px-3">
+          <Plus className="size-4" /> {ADD_BUTTON[tab]}
+        </Button>
+      </div>
 
-      <div className="flex-1 min-h-0">
-        {tab === 'customers' && <CustomersTab />}
-        {tab === 'suppliers' && <SuppliersTab />}
-        {tab === 'staff' && <StaffTab />}
+      <motion.div
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: 'auto', opacity: 1 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className="shrink-0"
+      >
+        <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 p-0.5">
+          {summary.map((c, i) => <MetricCard key={i} {...c} />)}
+        </div>
+      </motion.div>
+
+      <div className="flex-1 min-h-0 flex flex-col">
+        {tab === 'customers' && <CustomersTab refreshStats={refreshStats} addNonce={addNonce} />}
+        {tab === 'suppliers' && <SuppliersTab refreshStats={refreshStats} addNonce={addNonce} />}
+        {tab === 'staff'     && <StaffTab     refreshStats={refreshStats} addNonce={addNonce} />}
       </div>
     </div>
   )

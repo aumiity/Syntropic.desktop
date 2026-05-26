@@ -738,7 +738,7 @@ export default function PurchasePage() {
                             </PopoverTrigger>
                             <PopoverContent align="end" className="w-48">
                               <PopoverHeader>
-                                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                                <PopoverTitle>จัดการตาราง</PopoverTitle>
                               </PopoverHeader>
                               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                                 <Checkbox checked={showMfg} onCheckedChange={v => setShowMfg(v === true)} />

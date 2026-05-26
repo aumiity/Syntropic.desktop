@@ -28,7 +28,7 @@ export default function SettingsPage() {
       <PageHeader title="ตั้งค่า" />
 
       <Tabs value={tab} onValueChange={setTab} className="shrink-0 self-start">
-        <TabsList ref={tabsListRef}>
+        <TabsList ref={tabsListRef} variant="segmented" className="h-10">
           <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
           <TabsTrigger value="categories"><Tag /> หมวดหมู่</TabsTrigger>
           <TabsTrigger value="units"><Ruler /> หน่วยนับ</TabsTrigger>

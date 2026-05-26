@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/toast'
 import { useUserStore } from '@/stores/userStore'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { ReportsOutletContext } from './index'
+import { Badge } from '@/components/ui/badge'
 import {
   Banknote, TrendingUp, ShoppingBag, Receipt, Percent, LineChart,
 } from 'lucide-react'
@@ -183,12 +184,16 @@ export default function ReportsSalesPage() {
         </SectionCard>
       </div>
 
-      <div className="flex flex-col bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center">
-          <span>ยอดขายรายวัน</span>
+      <div className="flex flex-col bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+            <LineChart className="size-4 text-foreground" />
+          </span>
+          <h3 className="text-lg font-semibold text-foreground">ยอดขายรายวัน</h3>
+          <Badge variant="neutral-outline">{trend.length.toLocaleString()}</Badge>
         </div>
 
-        <div className="[&>[data-slot=table-container]]:max-h-[480px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="[&>[data-slot=table-container]]:max-h-[480px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
@@ -211,11 +216,11 @@ export default function ReportsSalesPage() {
                   </TableCell>
                 </TableRow>
               ) : trend.map(r => (
-                <TableRow key={r.date}>
+                <TableRow key={r.date} className="[&_td]:py-2.5 [&_td]:font-medium">
                   <TableCell className="text-sm">{formatDate(r.date)}</TableCell>
                   <TableCell className="text-right text-sm text-foreground">{formatCurrency(r.sales_net)}</TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(r.sales_cost)}</TableCell>
-                  <TableCell className={`text-right text-sm font-semibold ${r.sales_profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  <TableCell className={`text-right text-sm ${r.sales_profit >= 0 ? 'text-success' : 'text-destructive'}`}>
                     {formatCurrency(r.sales_profit)}
                   </TableCell>
                 </TableRow>

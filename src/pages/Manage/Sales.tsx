@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { InitialAvatar } from '@/components/ui/avatar'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
@@ -19,7 +20,8 @@ import type { ManageOutletContext } from './index'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Receipt, Ban, ShoppingCart, Boxes, Undo2, Info, Settings2 } from 'lucide-react'
+import { ReceiptText, Ban, ShoppingCart, ShoppingBag, Undo2, Settings2, Filter, Check, MoreHorizontal, Eye } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 // Money lives in the table rows; the summary slot now carries only the count
 // cards, which double as the status filter. rx (ใบสั่งยา) bills have no
@@ -46,11 +48,13 @@ type StatusFilter = 'all' | 'retail' | 'wholesale' | 'return' | 'voided'
 const SALE_TYPE_LABELS: Record<string, string> = {
   retail: 'ปลีก', wholesale: 'ส่ง', rx: 'ใบสั่งยา', return: 'คืนสินค้า',
 }
+// STATUS (soft + outline) family — matches success-outline / warning-outline /
+// destructive-outline on the "สถานะ" column so all status pills share a tone.
 const SALE_TYPE_VARIANTS: Record<string, any> = {
-  retail: 'secondary', wholesale: 'default', rx: 'success', return: 'warning',
+  retail: 'neutral-outline', wholesale: 'brand-outline', rx: 'success-outline', return: 'warning-outline',
 }
 
-type SortField = 'invoice_no' | 'sold_at' | 'total_amount' | 'customer_name'
+type SortField = 'invoice_no' | 'sold_at' | 'total_amount'
 type SortDir = 'asc' | 'desc'
 interface SortState { by: SortField; dir: SortDir }
 
@@ -152,7 +156,7 @@ export default function ManageSalesPage() {
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
       ? { by: field, dir: s.dir === 'asc' ? 'desc' : 'asc' }
-      : { by: field, dir: field === 'customer_name' ? 'asc' : 'desc' })
+      : { by: field, dir: 'desc' })
   }
 
   const openDetail = (sale: SaleRow) => {
@@ -178,22 +182,18 @@ export default function ManageSalesPage() {
     }
   }
 
-  // The four count cards double as the status filter — clicking one narrows
-  // the table; the numbers themselves stay fixed to the q/date set.
+  // Passive MetricCard snapshot of the q/date set. The status filter lives in
+  // the filter strip's Filter popover (no onClick → ManageLayout renders
+  // MetricCard instead of the clickable StatCard).
   useEffect(() => {
     setSlotSummary([
-      { label: 'จำนวนบิล', value: summary.count_all.toLocaleString(), icon: Receipt, tint: 'primary',
-        onClick: () => setStatusFilter('all'), isActive: statusFilter === 'all' },
-      { label: 'ขายปลีก', value: summary.count_retail.toLocaleString(), icon: ShoppingCart, tint: 'success',
-        onClick: () => setStatusFilter('retail'), isActive: statusFilter === 'retail' },
-      { label: 'ขายส่ง', value: summary.count_wholesale.toLocaleString(), icon: Boxes, tint: 'info-soft',
-        onClick: () => setStatusFilter('wholesale'), isActive: statusFilter === 'wholesale' },
-      { label: 'รับคืนสินค้า', value: summary.count_return.toLocaleString(), icon: Undo2, tint: 'warm',
-        onClick: () => setStatusFilter('return'), isActive: statusFilter === 'return' },
-      { label: 'ยกเลิก', value: summary.count_voided.toLocaleString(), icon: Ban, tint: 'destructive',
-        onClick: () => setStatusFilter('voided'), isActive: statusFilter === 'voided' },
+      { label: 'จำนวนบิล', value: summary.count_all.toLocaleString(),       icon: ReceiptText,  tint: 'primary',   sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ขายปลีก',   value: summary.count_retail.toLocaleString(),    icon: ShoppingCart, tint: 'success',   sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+      { label: 'ขายส่ง',    value: summary.count_wholesale.toLocaleString(), icon: ShoppingBag,  tint: 'info-soft', sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'รับคืน',    value: summary.count_return.toLocaleString(),    icon: Undo2,        tint: 'warm',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ยกเลิก',    value: summary.count_voided.toLocaleString(),    icon: Ban,          tint: 'destructive2', sub: 'รายการ', subClassName: 'text-base text-foreground' },
     ])
-  }, [summary, statusFilter, setSlotSummary])
+  }, [summary, setSlotSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).
@@ -204,29 +204,81 @@ export default function ManageSalesPage() {
   return (
     <>
       {/* List card */}
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <ReceiptText className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">ประวัติการขาย</h3>
+            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+          </div>
+
           <SearchInput
+            variant="elevated"
+            wrapperClassName="w-72 shrink-0 ml-auto"
+            className="h-9"
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
           />
           <DateRangePicker
+            variant="elevated"
             from={dateFrom}
             to={dateTo}
             onChange={(f, t) => { setDateFrom(f); setDateTo(t) }}
             onPresetChange={key => setPrefs({ datePreset: key })}
-            className="w-60 shrink-0 bg-input hover:bg-surface-hover"
+            className="h-9 w-60 shrink-0"
           />
+
+          {/* Status filter popover — was previously the clickable summary cards */}
+          {(() => {
+            const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+              { value: 'all',       label: 'ทั้งหมด' },
+              { value: 'retail',    label: 'ขายปลีก' },
+              { value: 'wholesale', label: 'ขายส่ง' },
+              { value: 'return',    label: 'รับคืน' },
+              { value: 'voided',    label: 'ยกเลิก' },
+            ]
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรองสถานะ">
+                    <Filter className="size-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-1 gap-0">
+                  <PopoverHeader className="px-2">
+                    <PopoverTitle>สถานะ</PopoverTitle>
+                  </PopoverHeader>
+                  {STATUS_OPTIONS.map(o => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setStatusFilter(o.value)}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                        statusFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
+                      )}
+                    >
+                      <Check className={cn('size-4', statusFilter === o.value ? 'opacity-100' : 'opacity-0')} />
+                      <span className="flex-1 text-left">{o.label}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )
+          })()}
+
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0 ml-auto" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColDate} onCheckedChange={v => setPrefs({ showColDate: v === true })} />
@@ -252,42 +304,54 @@ export default function ManageSalesPage() {
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
                 <SortableTableHead field="invoice_no" sort={sort} onToggle={toggleSort} className="min-w-24">เลขบิล</SortableTableHead>
-                {showColItems && <TableHead className="min-w-12">รายการ</TableHead>}
-                {showColTotal && <SortableTableHead field="total_amount" sort={sort} onToggle={toggleSort} className="min-w-24">ยอดสุทธิ</SortableTableHead>}
+                {showColCustomer && <TableHead className="min-w-[180px]">ลูกค้า</TableHead>}
                 {showColStatus && <TableHead className="min-w-[140px]">สถานะ</TableHead>}
-                {showColCustomer && <SortableTableHead field="customer_name" sort={sort} onToggle={toggleSort} className="min-w-[180px]">ลูกค้า</SortableTableHead>}
-                {showColDate && <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="min-w-24">วันที่/เวลา</SortableTableHead>}
+                {showColTotal && <SortableTableHead field="total_amount" sort={sort} onToggle={toggleSort} className="min-w-24">ยอดสุทธิ</SortableTableHead>}
+                {showColDate && <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="min-w-24">เวลา</SortableTableHead>}
                 <TableHead className="text-center min-w-14">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColCustomer ? 1 : 0) + (showColItems ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColCustomer ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColCustomer ? 1 : 0) + (showColItems ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">
-                    <Receipt className="size-10 mx-auto mb-2 opacity-30" />
+                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColCustomer ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">
+                    <ReceiptText className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูล
                   </TableCell>
                 </TableRow>
-              ) : rows.map(s => (
-                <TableRow key={s.id} className={s.status === 'voided' ? 'opacity-60' : ''}>
-                  <TableCell className="font-mono text-sm">{s.invoice_no}</TableCell>
-                  {showColItems && (
-                    <TableCell className="text-sm text-foreground">
-                      {(s.item_kinds ?? 0).toLocaleString()}
-                    </TableCell>
-                  )}
-                  {showColTotal && (
-                    <TableCell className="text-sm font-semibold text-foreground">
-                      {formatCurrency(s.total_amount)}
+              ) : rows.map(s => {
+                const isVoided = s.status === 'voided'
+                return (
+                <TableRow key={s.id} className="[&_td]:py-2.5 [&_td]:font-medium">
+                  <TableCell className="text-sm">
+                    <div className="text-foreground">{s.invoice_no}</div>
+                    {showColItems && (
+                      <div className="text-xs font-normal text-muted-foreground">
+                        {(s.item_kinds ?? 0).toLocaleString()} รายการ
+                      </div>
+                    )}
+                  </TableCell>
+                  {showColCustomer && (
+                    <TableCell className="text-sm max-w-[220px]">
+                      {(() => {
+                        const name = s.customer_name ?? s.customer_name_free ?? null
+                        if (!name) return <span className="text-foreground-subtle">—</span>
+                        return (
+                          <div className="flex items-center gap-2 min-w-0">
+                            <InitialAvatar name={name} size="sm" />
+                            <span className="truncate" title={name}>{name}</span>
+                          </div>
+                        )
+                      })()}
                     </TableCell>
                   )}
                   {showColStatus && (
@@ -296,57 +360,74 @@ export default function ManageSalesPage() {
                         <Badge variant={SALE_TYPE_VARIANTS[s.sale_type] ?? 'secondary'}>
                           {SALE_TYPE_LABELS[s.sale_type] ?? s.sale_type}
                         </Badge>
-                        {s.status === 'voided'
-                          ? <Badge variant="destructive">ยกเลิก</Badge>
-                          : <Badge variant="success">สำเร็จ</Badge>}
+                        {isVoided
+                          ? <Badge variant="destructive-outline">ยกเลิก</Badge>
+                          : <Badge variant="success-outline">สำเร็จ</Badge>}
                       </div>
                     </TableCell>
                   )}
-                  {showColCustomer && (
-                    <TableCell className="text-sm truncate max-w-[200px]" title={s.customer_name ?? s.customer_name_free ?? ''}>
-                      {s.customer_name ?? s.customer_name_free ?? <span className="text-foreground-subtle">—</span>}
+                  {showColTotal && (
+                    <TableCell className="text-sm text-foreground">
+                      {formatCurrency(s.total_amount)}
                     </TableCell>
                   )}
                   {showColDate && <TableCell className="text-sm whitespace-nowrap">{formatDateTime(s.sold_at)}</TableCell>}
                   <TableCell>
                     <div className="flex justify-center">
-                      <Button
-                        size="icon-lg"
-                        variant="warm"
-                        onClick={() => openDetail(s)}
-                        title="ดูรายการ"
-                      >
-                        <Info />
-                      </Button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                            <MoreHorizontal />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                          <button type="button" onClick={() => openDetail(s)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                            <Eye className="size-4" /> ดูรายละเอียด
+                          </button>
+                          {!isVoided && (
+                            <button type="button" onClick={() => setVoidTarget({ id: s.id, invoice_no: s.invoice_no })}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                              <Ban className="size-4" /> ยกเลิกบิล
+                            </button>
+                          )}
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </div>
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
-          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-            <span>แสดง</span>
-            <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
-              <SelectTrigger className="h-9 min-w-20">
-                <SelectValue>{String(pageSize)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="min-w-28">
-                {[50, 100, 250, 500].map(opt => (
-                  <SelectItem key={opt} value={String(opt)}>{String(opt)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span>รายการ</span>
-          </div>
-          <div className="flex-1 flex justify-center">
-            <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto justify-center" />
-          </div>
-          <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>จำนวนบิลในหน้านี้ <span className="font-semibold text-foreground">{rows.length.toLocaleString()}</span> บิล</>}
-          </span>
+          {(() => {
+            const size = pageSize === 'all' ? total : pageSize
+            const start = total === 0 ? 0 : (page - 1) * size + 1
+            const end = Math.min(page * size, total)
+            return (
+              <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                <span>จำนวนแถว</span>
+                <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
+                  <SelectTrigger variant="elevated" className="h-9 min-w-20">
+                    <SelectValue>{String(pageSize)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="min-w-28">
+                    {[50, 100, 250, 500].map(opt => (
+                      <SelectItem key={opt} value={String(opt)}>{String(opt)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>
+                  {loading
+                    ? 'กำลังโหลด...'
+                    : <>แสดง <span className="font-semibold text-foreground">{start.toLocaleString()}-{end.toLocaleString()}</span></>}
+                </span>
+              </div>
+            )
+          })()}
+          <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto" />
         </div>
       </div>
 

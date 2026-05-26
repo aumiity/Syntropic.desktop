@@ -10,12 +10,13 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast'
+import { AdjustStockDialog, type AdjustStockTarget } from '@/components/dialogs/AdjustStockDialog'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency, cn } from '@/lib/utils'
 import type { Product, ProductCategory } from '@/types'
 import type { ProductsOutletContext } from './index'
 import {
-  Edit, AlertTriangle, Package, Boxes, Settings2, Filter, MoreHorizontal, Eye, Ban, Check,
+  Edit, Package, Settings2, Filter, MoreHorizontal, Layers, Ban, Check,
 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
@@ -49,7 +50,7 @@ const PRODUCTS_DEFAULTS: ProductsPrefs = {
 
 export default function ProductsList() {
   const navigate = useNavigate()
-  const { setSummary } = useOutletContext<ProductsOutletContext>()
+  const { refreshSummary } = useOutletContext<ProductsOutletContext>()
   const { toast } = useToast()
 
   const [prefs, setPrefs] = usePagePrefs<ProductsPrefs>('products', PRODUCTS_DEFAULTS)
@@ -75,12 +76,8 @@ export default function ProductsList() {
   // Dropdown data
   const [categories, setCategories] = useState<ProductCategory[]>([])
 
-  // Global stats (products + bundles combined). Both Products and Bundles
-  // tabs render the same 4 stat cards from this data, so users see a single
-  // shared dashboard regardless of active tab.
-  const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0, disabled: 0 })
-  // Separate count of bundles (is_bundle=1). Replaces "หมดสต็อก" stat card.
-  const [bundleCount, setBundleCount] = useState(0)
+  // Stock-adjust dialog target (null = closed)
+  const [adjustTarget, setAdjustTarget] = useState<AdjustStockTarget | null>(null)
 
   const pageSize = prefs.pageSize
   const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
@@ -90,23 +87,11 @@ export default function ProductsList() {
     loadDropdowns()
   }, [])
 
-  // Live search: debounce text + reactive filters.
-  // Sort changes also trigger reload but debounced so rapid clicks coalesce.
+  // Live search: debounce text + reactive filters. Stats live in the shell
+  // and refresh on mount + on mutation (refreshSummary), so we don't refetch
+  // them here.
   useEffect(() => {
-    const t = setTimeout(() => {
-      load(1)
-      // No q / category_id / is_bundle → unfiltered global counts so the
-      // 4-card summary stays consistent across tabs and ignores in-list
-      // search/category controls.
-      window.api.products.stockStats({
-        include_disabled: true,
-      }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0, disabled: 0 }))
-      // Bundle count for the "ชุดสินค้า" stat card.
-      window.api.products.stockStats({
-        include_disabled: true,
-        is_bundle: 1,
-      }).then((s: any) => setBundleCount(s?.total_all ?? 0))
-    }, 300)
+    const t = setTimeout(() => { load(1) }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, categoryId, sort, pageSize, statusFilter])
@@ -146,22 +131,12 @@ export default function ProductsList() {
       : { by: field, dir: 'asc' })
   }
 
-  // Stat cards = passive display (no onClick). Omitting onClick makes
-  // ProductsLayout render MetricCard instead of the clickable StatCard.
-  useEffect(() => {
-    setSummary([
-      { label: 'ทั้งหมด',          value: allStats.total_all.toLocaleString(), icon: Package,         tint: 'primary' },
-      { label: 'ต่ำกว่าจุดสั่งซื้อ', value: allStats.low.toLocaleString(),       icon: AlertTriangle,    tint: 'warning' },
-      { label: 'ชุดสินค้า',         value: bundleCount.toLocaleString(),        icon: Boxes,           tint: 'info-soft' },
-      { label: 'ปิดการใช้งาน',      value: allStats.disabled.toLocaleString(),  icon: Ban,              tint: 'secondary' },
-    ])
-  }, [allStats, bundleCount, setSummary])
-
   const toggleDisabled = async (row: ProductRow) => {
     try {
       await window.api.products.update(row.id, { is_disabled: row.is_disabled ? 0 : 1 })
       toast({ title: row.is_disabled ? 'เปิดใช้งานสินค้าแล้ว' : 'ปิดใช้งานสินค้าแล้ว', variant: 'success' })
       load(page)
+      refreshSummary()
     } catch (e: any) {
       toast({ title: 'ดำเนินการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     }
@@ -181,11 +156,11 @@ export default function ProductsList() {
     return (
       <div className="flex flex-col gap-1 min-w-[140px]">
         <div className="flex items-center gap-2 text-sm">
-          <span className="font-semibold text-foreground">{qty.toLocaleString()}</span>
+          <span className="text-foreground">{qty.toLocaleString()}</span>
           <span className="text-muted-foreground">{unit}</span>
           <Badge variant={statusVariant}>{statusLabel}</Badge>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div className="h-1.5 w-full rounded-full bg-muted-hover overflow-hidden">
           <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
         </div>
       </div>
@@ -271,13 +246,13 @@ export default function ProductsList() {
           {/* Column settings popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="คอลัมน์ที่แสดง">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showCost} onCheckedChange={v => setPrefs({ showCost: v === true })} />
@@ -315,9 +290,9 @@ export default function ProductsList() {
                   <SortableTableHead field="profit" align="left" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
                 )}
                 {showStock && (
-                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[220px] pl-6 pr-6">สต็อก</SortableTableHead>
+                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[220px] pr-6">สต็อก</SortableTableHead>
                 )}
-                <TableHead className="min-w-16">จัดการ</TableHead>
+                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -337,16 +312,16 @@ export default function ProductsList() {
                 const pct = (row.cost_price ?? 0) > 0 ? (profit / row.cost_price!) * 100 : 0
                 const isDisabled = !!row.is_disabled
                 return (
-                  <TableRow key={row.id} className={`[&_td]:py-2.5 ${isDisabled ? 'opacity-60' : ''}`}>
-                    <TableCell className="text-foreground-subtle text-sm">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
+                  <TableRow key={row.id} className={`[&_td]:py-2.5 [&_td]:font-medium ${isDisabled ? 'opacity-60' : ''}`}>
+                    <TableCell className="text-muted-foreground text-sm">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
                     <TableCell className="max-w-0">
-                      <div className="font-semibold text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
+                      <div className="text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
                     </TableCell>
                     {showCost && (
                       <TableCell className="text-left text-sm text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
                     )}
                     {showPrice && (
-                      <TableCell className="text-left text-sm font-semibold text-foreground">
+                      <TableCell className="text-left text-sm text-foreground">
                         {showCost && showProfit ? (
                           formatCurrency(row.price_retail)
                         ) : (
@@ -379,7 +354,7 @@ export default function ProductsList() {
                       </TableCell>
                     )}
                     {showProfit && (
-                      <TableCell className="text-left text-sm font-medium">
+                      <TableCell className="text-left text-sm">
                         <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
                           {formatCurrency(profit)}
                           {/* text-xs: user-approved exception to the text-sm minimum rule */}
@@ -388,12 +363,12 @@ export default function ProductsList() {
                       </TableCell>
                     )}
                     {showStock && (
-                      <TableCell className="pl-6 pr-6">
+                      <TableCell className="pr-6">
                         {renderStockCell(row.stock_qty, row.reorder_point ?? 0, row.safety_stock ?? 0, row.unit_name)}
                       </TableCell>
                     )}
                     <TableCell>
-                      <div className="flex">
+                      <div className="flex justify-center">
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
@@ -406,14 +381,19 @@ export default function ProductsList() {
                               onClick={() => navigate(`/products/${row.id}/edit`)}
                               className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
                             >
-                              <Eye className="size-4" /> รายละเอียด
+                              <Edit className="size-4" /> แก้ไข
                             </button>
                             <button
                               type="button"
-                              onClick={() => navigate(`/products/${row.id}/edit`)}
+                              onClick={() => setAdjustTarget({
+                                id: row.id,
+                                trade_name: row.trade_name,
+                                stock_qty: row.stock_qty,
+                                unit_name: row.unit_name,
+                              })}
                               className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
                             >
-                              <Edit className="size-4" /> แก้ไข
+                              <Layers className="size-4" /> ปรับสต็อค
                             </button>
                             <button
                               type="button"
@@ -464,6 +444,12 @@ export default function ProductsList() {
           <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto" />
         </div>
       </div>
+
+      <AdjustStockDialog
+        target={adjustTarget}
+        onClose={() => setAdjustTarget(null)}
+        onSaved={() => { load(page); refreshSummary() }}
+      />
     </div>
   )
 }

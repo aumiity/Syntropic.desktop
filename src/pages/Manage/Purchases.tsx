@@ -22,7 +22,7 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import type { ManageOutletContext } from './index'
 import {
-  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Info, Check, Settings2,
+  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Check, Settings2, MoreHorizontal, Eye, Edit3,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -396,16 +396,27 @@ export default function ManagePurchasesPage() {
   return (
     <>
       {/* ── Full-width history table-card ── */}
-      <div className="flex flex-1 flex-col bg-card rounded-card shadow-card overflow-hidden min-h-0">
+      <div className="flex flex-1 flex-col bg-card rounded-card shadow-card border border-border overflow-hidden min-h-0">
 
-        {/* Filter strip — search left, filters right (showcase top bar) */}
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+        {/* Filter strip — title cluster left, search/filters right */}
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <FileText className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">ประวัติการซื้อ</h3>
+            <Badge variant="neutral-outline">{histTotal.toLocaleString()}</Badge>
+          </div>
+
           <SearchInput
+            variant="elevated"
+            wrapperClassName="w-60 shrink-0 ml-auto"
+            className="h-9"
             value={histQ}
             onChange={e => setHistQ(e.target.value)}
             placeholder="ค้นหาเลขที่ใบรับ..."
           />
-          <div className="w-80 shrink-0">
+          <div className="w-60 shrink-0">
             <Combobox
               items={suppliers}
               value={histSupplier}
@@ -433,13 +444,13 @@ export default function ManagePurchasesPage() {
           </div>
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0 ml-auto" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColDate} onCheckedChange={v => setPrefs({ showColDate: v === true })} />
@@ -466,7 +477,7 @@ export default function ManagePurchasesPage() {
         </div>
 
         {/* Table */}
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -498,28 +509,28 @@ export default function ManagePurchasesPage() {
                 return (
                   <TableRow
                     key={h.invoice_no}
-                    className={`${isSelected ? 'bg-primary-soft' : ''} ${isCancelled ? 'opacity-70' : ''}`}
+                    className={cn('[&_td]:py-2.5 [&_td]:font-medium', isSelected && 'bg-primary-soft', isCancelled && 'opacity-70')}
                   >
                     {showColDate && <TableCell className="whitespace-nowrap">{formatDate(h.created_at)}</TableCell>}
-                    <TableCell className={`font-mono ${isCancelled ? 'text-muted-foreground line-through' : isSelected ? 'text-primary' : ''}`}>
+                    <TableCell className={cn('font-mono', isCancelled ? 'text-muted-foreground line-through' : isSelected && 'text-primary')}>
                       {h.invoice_no}
                     </TableCell>
                     {showColSupplier && <TableCell className="truncate">{h.supplier_name ?? '—'}</TableCell>}
                     {showColItems && <TableCell className="text-center">{h.item_count}</TableCell>}
                     {showColTotal && (
-                      <TableCell className={`text-right font-semibold ${isCancelled ? 'text-foreground-subtle line-through' : ''}`}>
+                      <TableCell className={cn('text-right', isCancelled && 'text-foreground-subtle line-through')}>
                         {formatCurrency(h.total_cost)}
                       </TableCell>
                     )}
                     {showColStatus && (
                       <TableCell className="text-center">
                         {isCancelled
-                          ? <Badge variant="destructive">ยกเลิก</Badge>
+                          ? <Badge variant="destructive-outline">ยกเลิก</Badge>
                           : h.payment_type === 'credit'
                             ? h.is_paid
-                              ? <Badge variant="success">ชำระแล้ว</Badge>
+                              ? <Badge variant="success-outline">ชำระแล้ว</Badge>
                               : isOverdue
-                                ? <Badge variant="destructive">เครดิต</Badge>
+                                ? <Badge variant="destructive-outline">เครดิต</Badge>
                                 : <Badge variant="tertiary">เครดิต</Badge>
                             : <Badge variant="brand-soft">เงินสด</Badge>
                         }
@@ -527,14 +538,19 @@ export default function ManagePurchasesPage() {
                     )}
                     <TableCell>
                       <div className="flex justify-center">
-                        <Button
-                          size="icon-lg"
-                          variant="warm"
-                          onClick={() => openReceipt(h.invoice_no)}
-                          title="ดูรายการ"
-                        >
-                          <Info />
-                        </Button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                              <MoreHorizontal />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                            <button type="button" onClick={() => openReceipt(h.invoice_no)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                              <Eye className="size-4" /> ดูรายละเอียด
+                            </button>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -546,26 +562,32 @@ export default function ManagePurchasesPage() {
 
         {/* Status / pagination footer */}
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
-          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-            <span>แสดง</span>
-            <Select value={String(histPageSize)} onValueChange={v => setHistPageSize(Number(v))}>
-              <SelectTrigger className="h-9 min-w-20">
-                <SelectValue>{String(histPageSize)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="min-w-28">
-                {[50, 100, 250, 500].map(opt => (
-                  <SelectItem key={opt} value={String(opt)}>{String(opt)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span>รายการ</span>
-          </div>
-          <div className="flex-1 flex justify-center">
-            <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} className="w-auto justify-center" />
-          </div>
-          <span className="text-muted-foreground shrink-0">
-            {loadingHist ? 'กำลังโหลด...' : <>จำนวนบิลในหน้านี้ <span className="font-semibold text-foreground">{history.length.toLocaleString()}</span> บิล</>}
-          </span>
+          {(() => {
+            const size = histPageSize === 'all' ? histTotal : histPageSize
+            const start = histTotal === 0 ? 0 : (histPage - 1) * size + 1
+            const end = Math.min(histPage * size, histTotal)
+            return (
+              <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                <span>จำนวนแถว</span>
+                <Select value={String(histPageSize)} onValueChange={v => setHistPageSize(Number(v))}>
+                  <SelectTrigger variant="elevated" className="h-9 min-w-20">
+                    <SelectValue>{String(histPageSize)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="min-w-28">
+                    {[50, 100, 250, 500].map(opt => (
+                      <SelectItem key={opt} value={String(opt)}>{String(opt)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>
+                  {loadingHist
+                    ? 'กำลังโหลด...'
+                    : <>แสดง <span className="font-semibold text-foreground">{start.toLocaleString()}-{end.toLocaleString()}</span></>}
+                </span>
+              </div>
+            )
+          })()}
+          <Pagination page={histPage} totalPages={histTotalPages} onPageChange={p => loadHistory(p)} className="w-auto" />
         </div>
       </div>
 

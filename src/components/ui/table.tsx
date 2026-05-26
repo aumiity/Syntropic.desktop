@@ -63,6 +63,9 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
       className={cn(
         "border-b transition-colors",
         "hover:bg-muted has-aria-expanded:bg-muted",
+        // Empty/loading rows use a colSpan'd cell — they're not real data, so
+        // suppress the hover highlight (and the cursor that comes with it).
+        "has-[td[colspan]]:hover:bg-transparent",
         "data-[state=selected]:bg-primary-soft",
         className
       )}

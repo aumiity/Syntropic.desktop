@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { StatCard, type MetricTint } from '@/components/ui/card'
+import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
 import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus } from 'lucide-react'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 
@@ -33,6 +33,9 @@ export interface ManageSummaryCard {
   sub?: string
   icon: React.ComponentType<{ className?: string }>
   tint: MetricTint
+  // Override the auto-tinted value/sub color on passive MetricCard.
+  valueClassName?: string
+  subClassName?: string
   // When set, the card renders as a clickable StatCard filter shortcut
   // (active = ring) instead of a passive MetricCard.
   onClick?: () => void
@@ -85,12 +88,12 @@ export default function ManageLayout() {
         }}
         className="shrink-0 self-start"
       >
-        <TabsList>
+        <TabsList variant="segmented" className="h-10">
           {TABS.map(({ value, label, icon: Icon }) => {
             const showBadge = value === 'negative-stock' && negativeStockCount > 0
             return (
               <TabsTrigger key={value} value={value}>
-                <Icon className="size-4 mr-1.5" />
+                <Icon />
                 <span className="relative inline-block">
                   {label}
                   {showBadge && (
@@ -125,9 +128,9 @@ export default function ManageLayout() {
               transition={{ duration: 0.15, ease: 'easeOut' }}
               className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
             >
-              {summary.map((c, i) => (
-                <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
-              ))}
+              {summary.map((c, i) => c.onClick
+                ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
+                : <MetricCard key={i} {...c} />)}
             </motion.div>
           </AnimatePresence>
         </motion.div>

@@ -1028,13 +1028,13 @@ export default function Theme() {
                     {/* Column settings popover — visibility per column */}
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="คอลัมน์ที่แสดง">
+                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                           <Settings2 className="size-4" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent align="end" className="w-56">
                         <PopoverHeader>
-                          <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                          <PopoverTitle>จัดการตาราง</PopoverTitle>
                         </PopoverHeader>
                         <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                           <Checkbox checked={showColName} onCheckedChange={v => setShowColName(v === true)} />
@@ -1090,8 +1090,8 @@ export default function Theme() {
                           return 0
                         })
                         .map((row, i) => (
-                        <TableRow key={`${row.id}-${i}`}>
-                          {showColName && <TableCell className="font-medium">{row.name}</TableCell>}
+                        <TableRow key={`${row.id}-${i}`} className="[&_td]:font-medium">
+                          {showColName && <TableCell>{row.name}</TableCell>}
                           {showColCategory && <TableCell><Badge variant="outline">{row.cat}</Badge></TableCell>}
                           {showColPrice && <TableCell>{row.price}</TableCell>}
                           {showColStock && <TableCell>{row.stock.toLocaleString()}</TableCell>}
@@ -1549,7 +1549,7 @@ export default function Theme() {
 
               {/* ── DATE INPUT ── */}
               <Section title="DateInput" path="src/components/ui/date-input.tsx">
-                <DemoRow label="With Calendar Picker">
+                <DemoRow label="Default (bg-input) — สำหรับฟอร์ม">
                   <div className="w-full space-y-1.5">
                     <Label>วันที่รับสินค้า</Label>
                     <DateInput
@@ -1562,15 +1562,24 @@ export default function Theme() {
                     )}
                   </div>
                 </DemoRow>
+                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip'>
+                  <DateInput
+                    variant="elevated"
+                    value={dateVal}
+                    onChange={setDateVal}
+                    className="h-9 w-44"
+                  />
+                </DemoRow>
                 <p className="text-sm text-muted-foreground">
                   รับ / ส่งค่าเป็น ISO <code className="font-mono">yyyy-mm-dd</code>.
                   แสดงผลเป็น <code className="font-mono">dd/mm/yyyy</code>. มี calendar picker ในตัว.
+                  filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์ SearchInput/Select/DateRangePicker.
                 </p>
               </Section>
 
               {/* ── DATE RANGE PICKER ── */}
               <Section title="DateRangePicker" path="src/components/ui/date-range-picker.tsx">
-                <DemoRow label="With Presets">
+                <DemoRow label="Default (bg-input) — สำหรับฟอร์ม">
                   <div className="w-full space-y-1.5">
                     <Label>ช่วงวันที่รายงาน</Label>
                     <DateRangePicker
@@ -1586,9 +1595,19 @@ export default function Theme() {
                     )}
                   </div>
                 </DemoRow>
+                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip ของ list table'>
+                  <DateRangePicker
+                    variant="elevated"
+                    from={rangeFrom}
+                    to={rangeTo}
+                    onChange={(f, t) => { setRangeFrom(f); setRangeTo(t) }}
+                    className="h-9 w-60"
+                  />
+                </DemoRow>
                 <p className="text-sm text-muted-foreground">
                   มี preset วันนี้ / เมื่อวาน / 7 วัน / 30 วัน / เดือนนี้ / เดือนที่แล้ว / ปีนี้ / ทั้งหมด.
-                  ใช้ในหน้า <strong>filter / list ทั่วไป</strong> (Manage/Sales, Manage/Purchases, Expiry).
+                  ใช้ในหน้า <strong>filter / list ทั่วไป</strong> (Manage/Sales, Manage/Purchases, Expiry) —
+                  filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์กับ SearchInput/Select.
                 </p>
               </Section>
 

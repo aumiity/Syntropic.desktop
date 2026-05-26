@@ -105,7 +105,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-type MetricTint = "primary" | "success" | "warning" | "destructive" | "secondary" | "warm" | "info-soft"
+type MetricTint = "primary" | "success" | "warning" | "destructive" | "destructive2" | "secondary" | "warm" | "info-soft"
 type SectionTint = MetricTint
 
 function SectionCard({
@@ -122,6 +122,7 @@ function SectionCard({
     tint === 'success'     ? 'bg-success-soft text-success'
     : tint === 'warning'   ? 'bg-warning-soft text-warning-strong'
     : tint === 'destructive' ? 'bg-destructive-soft text-destructive'
+    : tint === 'destructive2' ? 'bg-destructive/15 text-destructive'
     : tint === 'secondary' ? 'bg-muted text-muted-foreground'
     : tint === "warm"   ? "bg-warm text-warm-foreground"
     : tint === "info-soft"   ? "bg-info-soft text-info-soft-foreground"
@@ -182,6 +183,7 @@ function MetricCard({
     tint === "success"     ? "bg-success-soft text-success"
     : tint === "warning"     ? "bg-warning-soft text-warning-strong"
     : tint === "destructive" ? "bg-destructive-soft text-destructive"
+    : tint === "destructive2" ? "bg-destructive/15 text-destructive"
     : tint === "secondary"   ? "bg-muted text-muted-foreground"
     : tint === "warm"   ? "bg-warm text-warm-foreground"
     : tint === "info-soft"   ? "bg-info-soft text-info-soft-foreground"
@@ -195,6 +197,7 @@ function MetricCard({
     tint === "success"     ? "text-success"
     : tint === "warning"     ? "text-warning-strong"
     : tint === "destructive" ? "text-destructive"
+    : tint === "destructive2" ? "text-destructive"
     : tint === "secondary"   ? "text-muted-foreground"
     : tint === "warm"        ? "text-warm-foreground"
     : tint === "info-soft"   ? "text-info-soft-foreground"
@@ -263,17 +266,12 @@ function MetricCard({
           <Sparkline data={sparkline} color="currentColor" height={36} />
         </div>
       )}
-      <div className="pr-14 min-w-0 relative z-10">
+      <div className="pr-10 min-w-0 relative z-10 h-full flex flex-col justify-start">
         <div className={cn("text-base font-bold text-foreground truncate", labelClassName)} title={label}>{label}</div>
-        {/* Value scales with card width via container queries — `cqi` = 1% of
-            the container's inline-size. At ~200px-wide cards on a tight 6-col
-            grid the font shrinks toward the min (text-sm); at full width it
-            caps at text-3xl. Pure CSS, no ResizeObserver. */}
-        <div className="flex items-baseline gap-1.5 mt-1 min-w-0 [container-type:inline-size]">
+        <div className="flex items-baseline gap-1.5 mt-1 min-w-0">
           <span
             className={cn(
-              "font-bold leading-none truncate",
-              "text-[clamp(0.875rem,14cqi,1.875rem)]",
+              "text-3xl font-bold leading-none truncate",
               valColor,
               valueClassName,
             )}
@@ -296,7 +294,7 @@ function MetricCard({
         onClick={onClick}
         data-slot="metric-card"
         className={cn(
-          "bg-card rounded-card p-4 shadow-card border border-border h-32 overflow-hidden relative text-left",
+          "bg-card rounded-card p-4 pt-3 shadow-card border border-border h-32 overflow-hidden relative text-left",
           "cursor-pointer hover:shadow-md transition-all",
           className
         )}
@@ -310,7 +308,7 @@ function MetricCard({
     <div
       data-slot="metric-card"
       className={cn(
-        "bg-card rounded-card p-4 shadow-card border border-border h-32 overflow-hidden relative",
+        "bg-card rounded-card p-4 pt-3 shadow-card border border-border h-32 overflow-hidden relative",
         className
       )}
     >

@@ -43,10 +43,13 @@ type InputProps = React.ComponentProps<typeof Input>
 interface DateInputProps extends Omit<InputProps, 'value' | 'onChange' | 'type'> {
   value: string
   onChange: (iso: string) => void
+  // Forwarded to the inner <Input>. "elevated" → bg-card + border + shadow,
+  // matches DateRangePicker/SelectTrigger elevated for filter-strip use.
+  variant?: 'default' | 'elevated'
 }
 
 export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, onChange, placeholder = '', className, ...props }, ref) => {
+  ({ value, onChange, placeholder = '', className, variant = 'default', ...props }, ref) => {
     const [text, setText] = React.useState(() => isoToDisplay(value))
     const [open, setOpen] = React.useState(false)
 
@@ -64,6 +67,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
         <Input
           ref={ref}
           type="text"
+          variant={variant}
           inputMode="numeric"
           placeholder={placeholder}
           value={text}

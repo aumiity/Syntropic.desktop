@@ -10,7 +10,7 @@ const buttonVariants = cva(
     "rounded-lg bg-clip-padding",
     "text-sm font-medium whitespace-nowrap",
     "transition-all outline-none select-none",
-    "shadow-md hover:shadow-md",
+    "shadow-sm hover:shadow-sm",
     "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
     "active:not-aria-[haspopup]:translate-y-px",
     "disabled:pointer-events-none disabled:opacity-50",
@@ -27,7 +27,7 @@ const buttonVariants = cva(
           "hover:bg-primary-hover [a]:hover:bg-primary/80",
         ].join(" "),
         secondary: [
-          "bg-secondary text-secondary-foreground",
+          "bg-secondary border-border border text-secondary-foreground",
           "hover:bg-secondary-hover [a]:hover:bg-secondary/80",
         ].join(" "),
         tertiary: [
@@ -71,9 +71,9 @@ const buttonVariants = cva(
         success: "bg-success text-success-foreground hover:bg-success-hover",
         destructive2: "bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive",
         elevated: [
-          "bg-card text-foreground ring-border ring-1 shadow-md",
-          "hover:bg-muted hover:shadow-md",
-          "aria-expanded:shadow-md aria-expanded:bg-muted",
+          "bg-card text-foreground border-border border shadow-sm",
+          "hover:bg-muted hover:shadow-sm",
+          "aria-expanded:shadow-sm aria-expanded:bg-muted",
         ].join(" "),
       },
       size: {

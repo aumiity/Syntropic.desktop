@@ -2,17 +2,19 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { useToast } from '@/components/ui/toast'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import type { Product } from '@/types'
 import type { ProductsOutletContext } from './index'
-import { Plus, Edit, Boxes, AlertTriangle, Package, Ban, Settings2 } from 'lucide-react'
+import { Edit, Boxes, Settings2, Filter, MoreHorizontal, Ban, Check } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
 type SortDir = 'asc' | 'desc'
@@ -40,7 +42,8 @@ const BUNDLES_DEFAULTS: BundlesPrefs = {
 
 export default function BundlesList() {
   const navigate = useNavigate()
-  const { setSummary } = useOutletContext<ProductsOutletContext>()
+  const { refreshSummary } = useOutletContext<ProductsOutletContext>()
+  const { toast } = useToast()
 
   const [prefs, setPrefs] = usePagePrefs<BundlesPrefs>('bundles', BUNDLES_DEFAULTS)
 
@@ -57,13 +60,6 @@ export default function BundlesList() {
   const setSort = (next: SortState | ((prev: SortState) => SortState)) => {
     setPrefs({ sort: typeof next === 'function' ? next(prefs.sort) : next })
   }
-
-  // Global stats (products + bundles combined). Same shape & data as
-  // ProductsList — both tabs render the identical 4-card summary so users
-  // see a single source of truth no matter which tab is active.
-  const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0, disabled: 0 })
-  // Separate count of bundles for the "ชุดสินค้า" stat card (mirrors ProductsList).
-  const [bundleCount, setBundleCount] = useState(0)
 
   const pageSize = prefs.pageSize
   const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
@@ -91,18 +87,7 @@ export default function BundlesList() {
   }, [q, page, pageSize, sort, stockFilter])
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      load(1)
-      // No is_bundle filter → combined products+bundles stats. Matches the
-      // global figures shown on the Products tab so both tabs read the same.
-      window.api.products.stockStats({
-        include_disabled: true,
-      }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0, disabled: 0 }))
-      window.api.products.stockStats({
-        include_disabled: true,
-        is_bundle: 1,
-      }).then((s: any) => setBundleCount(s?.total_all ?? 0))
-    }, 300)
+    const t = setTimeout(() => { load(1) }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, stockFilter, sort, pageSize])
@@ -113,48 +98,87 @@ export default function BundlesList() {
       : { by: field, dir: 'asc' })
   }
 
-  // Identical 4-card summary as ProductsList (same labels/icons/tints, same
-  // global data). Passive — filter UI is per-tab, the cards are just a shared
-  // dashboard so users see the same snapshot regardless of active tab.
-  useEffect(() => {
-    setSummary([
-      { label: 'ทั้งหมด',          value: allStats.total_all.toLocaleString(), icon: Package,         tint: 'primary' },
-      { label: 'ต่ำกว่าจุดสั่งซื้อ', value: allStats.low.toLocaleString(),       icon: AlertTriangle,    tint: 'warning' },
-      { label: 'ชุดสินค้า',         value: bundleCount.toLocaleString(),        icon: Boxes,           tint: 'info-soft' },
-      { label: 'ปิดการใช้งาน',      value: allStats.disabled.toLocaleString(),  icon: Ban,              tint: 'secondary' },
-    ])
-  }, [allStats, bundleCount, setSummary])
-
-  const handleCreate = () => {
-    // No DB row yet — EditBundle in "new" mode commits atomically (product +
-    // >=2 components in one transaction) so we never leave an orphan bundle
-    // with <2 components in the DB.
-    navigate('/products/bundles/new')
+  const toggleDisabled = async (row: BundleRow) => {
+    try {
+      await window.api.products.update(row.id, { is_disabled: row.is_disabled ? 0 : 1 })
+      toast({ title: row.is_disabled ? 'เปิดใช้งานชุดสินค้าแล้ว' : 'ปิดใช้งานชุดสินค้าแล้ว', variant: 'success' })
+      load(page)
+      refreshSummary()
+    } catch (e: any) {
+      toast({ title: 'ดำเนินการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
   }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          {/* Title cluster (left): icon-in-box + heading + count badge */}
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <Boxes className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">รายการชุดสินค้า</h3>
+            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+          </div>
+
+          {/* Right cluster — ml-auto on first to push right */}
           <SearchInput
+            variant="elevated"
+            wrapperClassName="w-72 shrink-0 ml-auto"
+            className="h-9"
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาชื่อชุด, บาร์โค้ด, รหัส..."
           />
 
-          <Button onClick={handleCreate} size="lg" className="h-10 px-2 shrink-0 ml-auto">
-            <Plus className="size-4" /> เพิ่มชุดสินค้า
-          </Button>
+          {/* Filter popover — usage status (enabled/disabled) */}
+          {(() => {
+            const STATUS_OPTIONS: { value: typeof stockFilter; label: string }[] = [
+              { value: 'all',      label: 'ทั้งหมด' },
+              { value: 'enabled',  label: 'ใช้งาน' },
+              { value: 'disabled', label: 'ปิดใช้งาน' },
+            ]
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
+                    <Filter className="size-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-1 gap-0">
+                  <PopoverHeader className="px-2">
+                    <PopoverTitle>สถานะ</PopoverTitle>
+                  </PopoverHeader>
+                  {STATUS_OPTIONS.map(o => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setStockFilter(o.value)}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                        stockFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
+                      )}
+                    >
+                      <Check className={cn('size-4', stockFilter === o.value ? 'opacity-100' : 'opacity-0')} />
+                      <span className="flex-1 text-left">{o.label}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )
+          })()}
 
+          {/* Column settings popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>ตัวเลือกการแสดงผล</PopoverTitle>
+                <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showCost} onCheckedChange={v => setPrefs({ showCost: v === true })} />
@@ -168,7 +192,7 @@ export default function BundlesList() {
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -203,10 +227,10 @@ export default function BundlesList() {
                 const pct = (row.cost_price ?? 0) > 0 ? (profit / row.cost_price!) * 100 : 0
                 const isDisabled = !!row.is_disabled
                 return (
-                  <TableRow key={row.id} className={`[&_td]:py-2.5 ${isDisabled ? 'opacity-60' : ''}`}>
+                  <TableRow key={row.id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isDisabled && 'opacity-60')}>
                     <TableCell className="text-foreground-subtle text-sm">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
                     <TableCell className="max-w-0">
-                      <div className="font-semibold text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
+                      <div className="text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{row.unit_name ?? '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -215,7 +239,7 @@ export default function BundlesList() {
                     {showCost && (
                       <TableCell className="text-sm text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
                     )}
-                    <TableCell className="text-sm font-semibold text-foreground">
+                    <TableCell className="text-sm text-foreground">
                       {showCost && showProfit ? (
                         formatCurrency(row.price_retail)
                       ) : (
@@ -247,7 +271,7 @@ export default function BundlesList() {
                       )}
                     </TableCell>
                     {showProfit && (
-                      <TableCell className="text-sm font-medium">
+                      <TableCell className="text-sm">
                         <span className={profit >= 0 ? 'text-success' : 'text-destructive'}>
                           {formatCurrency(profit)}
                           {/* text-xs: user-approved exception to the text-sm minimum rule */}
@@ -257,14 +281,29 @@ export default function BundlesList() {
                     )}
                     <TableCell>
                       <div className="flex justify-center">
-                        <Button
-                          size="icon-lg"
-                          variant="outline"
-                          onClick={() => navigate(`/products/bundles/${row.id}/edit`)}
-                          title="แก้ไข"
-                        >
-                          <Edit />
-                        </Button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                              <MoreHorizontal />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/products/bundles/${row.id}/edit`)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                              <Edit className="size-4" /> แก้ไข
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleDisabled(row)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                            >
+                              <Ban className="size-4" /> {row.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                            </button>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -275,28 +314,34 @@ export default function BundlesList() {
         </div>
 
         <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
-          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-            <span>แสดง</span>
-            <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
-              <SelectTrigger className="h-9 min-w-20">
-                <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="min-w-28">
-                {[50, 100, 250, 500, 'all'].map(opt => (
-                  <SelectItem key={String(opt)} value={String(opt)}>
-                    {opt === 'all' ? 'ทั้งหมด' : String(opt)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span>รายการ</span>
-          </div>
-          <div className="flex-1 flex justify-center">
-            <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto justify-center" />
-          </div>
-          <span className="text-muted-foreground shrink-0">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{total.toLocaleString()}</span> รายการ</>}
-          </span>
+          {(() => {
+            const size = pageSize === 'all' ? total : pageSize
+            const start = total === 0 ? 0 : (page - 1) * size + 1
+            const end = Math.min(page * size, total)
+            return (
+              <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                <span>จำนวนแถว</span>
+                <Select value={String(pageSize)} onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}>
+                  <SelectTrigger variant="elevated" className="h-9 min-w-20">
+                    <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="min-w-28">
+                    {[50, 100, 250, 500, 'all'].map(opt => (
+                      <SelectItem key={String(opt)} value={String(opt)}>
+                        {opt === 'all' ? 'ทั้งหมด' : String(opt)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>
+                  {loading
+                    ? 'กำลังโหลด...'
+                    : <>แสดง <span className="font-semibold text-foreground">{start.toLocaleString()}-{end.toLocaleString()}</span></>}
+                </span>
+              </div>
+            )
+          })()}
+          <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto" />
         </div>
       </div>
     </div>

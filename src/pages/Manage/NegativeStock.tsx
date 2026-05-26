@@ -15,7 +15,8 @@ import { useUserStore } from '@/stores/userStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import type { ManageOutletContext } from './index'
 import type { NegativeStockRow } from '@/types'
-import { PackageCheck, Trash2, Settings2 } from 'lucide-react'
+import { PackageCheck, Trash2, Settings2, MoreHorizontal, PackageMinus } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 type Confirming =
   | { kind: 'reconcile'; row: NegativeStockRow }
@@ -104,20 +105,28 @@ export default function NegativeStockPage() {
 
   return (
     <>
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
-          <span className="flex-1 text-sm font-semibold text-muted-foreground pl-3">
-            รายการขายที่สต๊อกติดลบ — ตัดสต๊อกย้อนหลังเมื่อรับสินค้าเข้าระบบแล้ว
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <PackageMinus className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">สต็อคติดลบ</h3>
+            <Badge variant="neutral-outline">{rows.length.toLocaleString()}</Badge>
+          </div>
+          <span className="ml-2 text-sm text-muted-foreground truncate hidden xl:inline">
+            ตัดสต็อคย้อนหลังเมื่อรับสินค้าเข้าระบบแล้ว
           </span>
+
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 ml-auto" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColInvoice} onCheckedChange={v => setShowColInvoice(v === true)} />
@@ -139,7 +148,7 @@ export default function NegativeStockPage() {
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -166,10 +175,10 @@ export default function NegativeStockPage() {
               ) : rows.map(r => {
                 const canReconcile = r.available_stock > 0
                 return (
-                  <TableRow key={r.id}>
-                    {showColInvoice && <TableCell className="text-sm font-medium whitespace-nowrap">{r.invoice_no}</TableCell>}
+                  <TableRow key={r.id} className="[&_td]:py-2.5 [&_td]:font-medium">
+                    {showColInvoice && <TableCell className="text-sm whitespace-nowrap">{r.invoice_no}</TableCell>}
                     {showColDate && <TableCell className="text-sm whitespace-nowrap">{formatDateTime(r.sold_at)}</TableCell>}
-                    <TableCell className="min-w-56 text-sm font-medium truncate" title={r.trade_name}>{r.trade_name}</TableCell>
+                    <TableCell className="min-w-56 text-sm truncate" title={r.trade_name}>{r.trade_name}</TableCell>
                     {showColShortfall && (
                       <TableCell className="text-center text-sm font-bold text-destructive whitespace-nowrap">
                         {r.qty.toLocaleString()} {r.unit_name && <span className="text-xs text-foreground-subtle ml-0.5">{r.unit_name}</span>}
@@ -181,24 +190,28 @@ export default function NegativeStockPage() {
                       </TableCell>
                     )}
                     <TableCell>
-                      <div className="flex gap-1.5 justify-center">
-                        <Button
-                          size="icon-lg"
-                          variant="success"
-                          title={canReconcile ? 'ตัดสต๊อคย้อนหลัง' : 'ไม่มีสต๊อกพร้อมตัด — ต้องรับสินค้าก่อน'}
-                          disabled={!canReconcile}
-                          onClick={() => setConfirming({ kind: 'reconcile', row: r })}
-                        >
-                          <PackageCheck className="size-4" />
-                        </Button>
-                        <Button
-                          size="icon-lg"
-                          variant="destructive2"
-                          title="ลบรายการโดยไม่ตัดสต๊อค"
-                          onClick={() => setConfirming({ kind: 'dismiss', row: r })}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
+                      <div className="flex justify-center">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                              <MoreHorizontal />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" sideOffset={4} className="w-52 p-1 gap-0">
+                            <button type="button"
+                              disabled={!canReconcile}
+                              onClick={() => setConfirming({ kind: 'reconcile', row: r })}
+                              title={canReconcile ? 'ตัดสต็อคย้อนหลัง' : 'ไม่มีสต็อคพร้อมตัด — ต้องรับสินค้าก่อน'}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                              <PackageCheck className="size-4" /> ตัดสต็อคย้อนหลัง
+                            </button>
+                            <button type="button"
+                              onClick={() => setConfirming({ kind: 'dismiss', row: r })}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                              <Trash2 className="size-4" /> ลบรายการ
+                            </button>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </TableCell>
                   </TableRow>

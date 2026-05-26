@@ -94,6 +94,8 @@ interface DateRangePickerProps {
   className?: string
   placeholder?: string
   align?: 'start' | 'center' | 'end'
+  // "elevated" → bg-card + border + shadow, matches Input/Select elevated.
+  variant?: 'default' | 'elevated'
 }
 
 export function DateRangePicker({
@@ -104,6 +106,7 @@ export function DateRangePicker({
   className,
   placeholder = 'เลือกช่วงวันที่',
   align = 'start',
+  variant = 'default',
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false)
   const fromDate = isoToDate(from)
@@ -148,8 +151,10 @@ export function DateRangePicker({
           variant="outline"
           className={cn(
             'relative h-10 w-full justify-start font-normal',
-            'rounded-lg bg-input px-2.5 pr-9 text-sm',
-            'hover:bg-muted-hover',
+            'rounded-lg px-2.5 pr-9 text-sm',
+            variant === 'elevated'
+              ? 'bg-card border border-border shadow-sm hover:shadow-sm hover:bg-muted'
+              : 'bg-input hover:bg-muted-hover',
             !from && !to ? 'text-foreground-subtle' : 'text-foreground',
             className,
           )}

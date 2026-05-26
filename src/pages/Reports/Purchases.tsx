@@ -235,12 +235,16 @@ export default function ReportsPurchasesPage() {
 
       {/* Daily purchase trend — caps at 280px so it doesn't dominate the
           page-level scroll on long ranges; rows above that scroll inside. */}
-      <div className="flex flex-col bg-card rounded-card shadow-card overflow-hidden shrink-0">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center">
-          <span>ยอดซื้อรายวัน</span>
+      <div className="flex flex-col bg-card rounded-card shadow-card border border-border overflow-hidden shrink-0">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+            <LineChart className="size-4 text-foreground" />
+          </span>
+          <h3 className="text-lg font-semibold text-foreground">ยอดซื้อรายวัน</h3>
+          <Badge variant="neutral-outline">{trend.length.toLocaleString()}</Badge>
         </div>
 
-        <div className="[&>[data-slot=table-container]]:max-h-[280px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="[&>[data-slot=table-container]]:max-h-[280px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
@@ -261,9 +265,9 @@ export default function ReportsPurchasesPage() {
                   </TableCell>
                 </TableRow>
               ) : trend.map(r => (
-                <TableRow key={r.date}>
+                <TableRow key={r.date} className="[&_td]:py-2.5 [&_td]:font-medium">
                   <TableCell className="text-sm">{formatDate(r.date)}</TableCell>
-                  <TableCell className="text-right text-sm font-semibold text-foreground">{formatCurrency(r.purchase_total)}</TableCell>
+                  <TableCell className="text-right text-sm text-foreground">{formatCurrency(r.purchase_total)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -273,12 +277,17 @@ export default function ReportsPurchasesPage() {
 
       {/* Outstanding payables list — current (not date-bound). Caps at 480px
           inside the page-level scroll so a long list doesn't bury the rest. */}
-      <div className="flex flex-col bg-card rounded-card shadow-card overflow-hidden shrink-0">
-        <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center">
-          <span>{loading ? 'กำลังโหลด...' : `หนี้ค้างชำระ ${payables.count.toLocaleString()} บิล (ปัจจุบัน — ไม่อิงช่วงวันที่)`}</span>
+      <div className="flex flex-col bg-card rounded-card shadow-card border border-border overflow-hidden shrink-0">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+            <CreditCard className="size-4 text-foreground" />
+          </span>
+          <h3 className="text-lg font-semibold text-foreground">หนี้ค้างชำระ</h3>
+          <Badge variant="neutral-outline">{payables.count.toLocaleString()}</Badge>
+          <span className="ml-2 text-sm text-muted-foreground hidden xl:inline">ปัจจุบัน — ไม่อิงช่วงวันที่</span>
         </div>
 
-        <div className="[&>[data-slot=table-container]]:max-h-[480px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="[&>[data-slot=table-container]]:max-h-[480px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
@@ -306,8 +315,8 @@ export default function ReportsPurchasesPage() {
               ) : payables.rows.map(r => {
                 const overdue = (r.days_overdue ?? 0) > 0
                 return (
-                  <TableRow key={r.invoice_no} className={overdue ? 'bg-destructive-soft/30' : ''}>
-                    <TableCell className="font-semibold text-sm">{r.invoice_no}</TableCell>
+                  <TableRow key={r.invoice_no} className={`[&_td]:py-2.5 [&_td]:font-medium ${overdue ? 'bg-destructive-soft/30' : ''}`}>
+                    <TableCell className="text-sm">{r.invoice_no}</TableCell>
                     <TableCell className="text-sm text-muted-foreground truncate" title={r.supplier_name ?? ''}>
                       {r.supplier_name || <span className="text-foreground-subtle">—</span>}
                     </TableCell>
@@ -319,7 +328,7 @@ export default function ReportsPurchasesPage() {
                       {r.due_date ? formatDate(r.due_date) : <span className="text-foreground-subtle">—</span>}
                     </TableCell>
                     <TableCell>{dueBadge(r.days_overdue)}</TableCell>
-                    <TableCell className="text-right text-sm font-bold text-foreground">
+                    <TableCell className="text-right text-sm text-foreground">
                       {formatCurrency(r.amount)}
                     </TableCell>
                   </TableRow>

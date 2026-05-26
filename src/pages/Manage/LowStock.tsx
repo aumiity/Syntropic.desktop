@@ -13,7 +13,9 @@ import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/Qu
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { compareNameBuckets } from '@/lib/sortName'
 import type { ManageOutletContext } from './index'
-import { PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes, Settings2 } from 'lucide-react'
+import { PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes, Settings2, MoreHorizontal } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 type StatusFilter = 'all' | 'out' | 'low'
 type SortField = 'trade_name'
@@ -201,16 +203,27 @@ export default function ManageLowStockPage() {
   return (
     <>
       {/* List card */}
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <PackageX className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">ต่ำกว่าจุดสั่งซื้อ</h3>
+            <Badge variant="neutral-outline">{filteredRows.length.toLocaleString()}</Badge>
+          </div>
+
           <SearchInput
+            variant="elevated"
+            wrapperClassName="w-72 shrink-0 ml-auto"
+            className="h-9"
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="ชื่อสินค้า, รหัส, บาร์โค้ด..."
           />
 
           <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger className="h-10 w-44 shrink-0">
+            <SelectTrigger variant="elevated" className="h-9 w-44 shrink-0">
               <SelectValue placeholder="ทุกหมวดหมู่" />
             </SelectTrigger>
             <SelectContent>
@@ -223,13 +236,13 @@ export default function ManageLowStockPage() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="outline" className="h-10 w-10 p-0 shrink-0 ml-auto" title="ตัวเลือกการแสดงผล">
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
-                <PopoverTitle>คอลัมน์ที่แสดง</PopoverTitle>
+                <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColStockBar} onCheckedChange={v => setPrefs({ showColStockBar: v === true })} />
@@ -251,7 +264,7 @@ export default function ManageLowStockPage() {
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -280,8 +293,8 @@ export default function ManageLowStockPage() {
               ) : filteredRows.map(r => {
                 const isOut = r.stock_qty <= 0
                 return (
-                  <TableRow key={r.product_id} className={`[&_td]:py-2.5 ${isOut ? 'bg-destructive-soft/30' : ''}`}>
-                    <TableCell className="max-w-[260px] text-sm font-medium truncate" title={r.trade_name}>
+                  <TableRow key={r.product_id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isOut && 'bg-destructive-soft/30')}>
+                    <TableCell className="max-w-[260px] text-sm truncate" title={r.trade_name}>
                       {r.trade_name}
                     </TableCell>
                     {showColStockBar && (
@@ -320,31 +333,33 @@ export default function ManageLowStockPage() {
                       </TableCell>
                     )}
                     <TableCell>
-                      <div className="flex gap-1.5 justify-center">
-                        <Button
-                          size="icon-lg"
-                          variant="info-soft"
-                          onClick={() => setQuickTarget({
-                            id: r.product_id,
-                            trade_name: r.trade_name,
-                            code: r.code,
-                            unit_name: r.unit_name,
-                            stock_qty: r.stock_qty,
-                            reorder_point: r.reorder_point,
-                            safety_stock: r.safety_stock,
-                          })}
-                          title="ตั้งค่าสต็อก"
-                        >
-                          <Boxes />
-                        </Button>
-                        <Button
-                          size="icon-lg"
-                          variant="outline"
-                          onClick={() => navigate(`/products/${r.product_id}/edit`)}
-                          title="แก้ไขสินค้า"
-                        >
-                          <Edit />
-                        </Button>
+                      <div className="flex justify-center">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                              <MoreHorizontal />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                            <button type="button"
+                              onClick={() => setQuickTarget({
+                                id: r.product_id,
+                                trade_name: r.trade_name,
+                                code: r.code,
+                                unit_name: r.unit_name,
+                                stock_qty: r.stock_qty,
+                                reorder_point: r.reorder_point,
+                                safety_stock: r.safety_stock,
+                              })}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                              <Boxes className="size-4" /> ตั้งค่าสต็อก
+                            </button>
+                            <button type="button" onClick={() => navigate(`/products/${r.product_id}/edit`)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                              <Edit className="size-4" /> แก้ไขสินค้า
+                            </button>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </TableCell>
                   </TableRow>

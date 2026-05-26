@@ -257,7 +257,7 @@ export default function EditBundlePage() {
       />
 
       <Tabs value={tab} onValueChange={setTab} className="shrink-0 self-start">
-        <TabsList>
+        <TabsList variant="segmented" className="h-10">
           <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
           <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
           <TabsTrigger value="components"><Boxes /> รายการ ({componentCount})</TabsTrigger>

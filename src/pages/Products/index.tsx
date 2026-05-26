@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, Outlet } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
-import { Package, Boxes, Plus } from 'lucide-react'
+import { MetricCard, type MetricTint } from '@/components/ui/card'
+import { Package, Boxes, Plus, Ban, Check } from 'lucide-react'
 
 // Products page is a Tabs shell — products vs bundles, each owns its own list
 // component (ProductsList / BundlesList) with its own filters and IPC calls.
@@ -27,41 +27,50 @@ const COLS_BY_COUNT: Record<number, string> = {
   4: 'md:grid-cols-2 xl:grid-cols-4',
 }
 
-export interface ProductsSummaryCard {
-  label: string
-  value: string
-  icon: React.ComponentType<{ className?: string }>
-  tint: MetricTint
-  // Clickable filter shortcut → StatCard (with ring on active);
-  // omit onClick for a passive MetricCard.
-  onClick?: () => void
-  isActive?: boolean
+export interface ProductsOutletContext {
+  // Children call this after a mutation (toggle disabled, adjust stock, etc.)
+  // to ask the shell to re-fetch the shared summary stats.
+  refreshSummary: () => void
 }
 
-export interface ProductsOutletContext {
-  setSummary: (cards: ProductsSummaryCard[] | null) => void
+interface GlobalStats {
+  total_all: number
+  disabled: number
 }
 
 export default function ProductsLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const tab = resolveTab(location.pathname)
-  const [summary, setSummary] = useState<ProductsSummaryCard[] | null>(null)
   // overflow-hidden is required during height animation to clip collapsing
-  // content, but it also clips the StatCard active-ring (extends 2px outside).
+  // content, but it also clips active-ring states (extends outside).
   // Flip overflow back to visible once the enter animation settles.
   const [animatingSummary, setAnimatingSummary] = useState(true)
 
-  // Drop summary the instant the tab changes so the new tab never paints with
-  // the previous tab's cards. During-render reset (vs useEffect) avoids the
-  // one-frame flash of stale data after route change.
-  const [prevTab, setPrevTab] = useState(tab)
-  if (prevTab !== tab) {
-    setPrevTab(tab)
-    setSummary(null)
-  }
+  // Shared global summary — same 4-card snapshot for both Products and
+  // Bundles tabs (matches the original intent: one dashboard, two lists).
+  // Lives here in the shell so the cards don't flicker on tab switch and
+  // both children read the same source of truth.
+  const [allStats, setAllStats] = useState<GlobalStats>({ total_all: 0, disabled: 0 })
+  const [bundleCount, setBundleCount] = useState(0)
 
-  const ctx = useMemo<ProductsOutletContext>(() => ({ setSummary }), [])
+  const refreshSummary = useCallback(() => {
+    window.api.products.stockStats({ include_disabled: true })
+      .then((s: any) => setAllStats(s ?? { total_all: 0, disabled: 0 }))
+    window.api.products.stockStats({ include_disabled: true, is_bundle: 1 })
+      .then((s: any) => setBundleCount(s?.total_all ?? 0))
+  }, [])
+
+  useEffect(() => { refreshSummary() }, [refreshSummary])
+
+  const summary = useMemo(() => [
+    { label: 'ทั้งหมด',     value: allStats.total_all.toLocaleString(),                       icon: Package, tint: 'primary'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground' },
+    { label: 'เปิดใช้งาน',   value: (allStats.total_all - allStats.disabled).toLocaleString(), icon: Check,   tint: 'success'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+    { label: 'ปิดการใช้งาน', value: allStats.disabled.toLocaleString(),                        icon: Ban,     tint: 'destructive2' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground' },
+    { label: 'ชุดสินค้า',    value: bundleCount.toLocaleString(),                              icon: Boxes,   tint: 'info-soft' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground' },
+  ], [allStats, bundleCount])
+
+  const ctx = useMemo<ProductsOutletContext>(() => ({ refreshSummary }), [refreshSummary])
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
@@ -93,35 +102,18 @@ export default function ProductsLayout() {
         </Button>
       </div>
 
-      <AnimatePresence initial={false}>
-        {summary && summary.length > 0 && (
-          <motion.div
-            key="products-summary"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            onAnimationStart={() => setAnimatingSummary(true)}
-            onAnimationComplete={() => setAnimatingSummary(false)}
-            className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
-          >
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.div
-                key={location.pathname}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
-                className={`grid grid-cols-2 ${COLS_BY_COUNT[summary.length] ?? 'md:grid-cols-3'} gap-3 p-0.5`}
-              >
-                {summary.map((c, i) => c.onClick
-                  ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
-                  : <MetricCard key={i} {...c} />)}
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <motion.div
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: 'auto', opacity: 1 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        onAnimationStart={() => setAnimatingSummary(true)}
+        onAnimationComplete={() => setAnimatingSummary(false)}
+        className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
+      >
+        <div className={`grid grid-cols-2 ${COLS_BY_COUNT[summary.length] ?? 'md:grid-cols-3'} gap-3 p-0.5`}>
+          {summary.map((c, i) => <MetricCard key={i} {...c} />)}
+        </div>
+      </motion.div>
 
       <div className="flex-1 min-h-0 flex flex-col [scrollbar-gutter:stable]">
         <Outlet context={ctx} />

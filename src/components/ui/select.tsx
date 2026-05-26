@@ -48,7 +48,7 @@ function SelectTrigger({
         "group flex w-fit items-center justify-between gap-1.5",
         "rounded-control",
         variant === "elevated"
-          ? "bg-card border border-border shadow-sm hover:shadow-md hover:bg-muted"
+          ? "bg-card border border-border shadow-sm hover:shadow-sm hover:bg-muted"
           : "bg-muted dark:bg-input/30",
         "py-2 pr-2 pl-2.5",
         "text-sm whitespace-nowrap",
