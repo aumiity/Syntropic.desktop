@@ -12,7 +12,7 @@ import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency } from '@/lib/utils'
 import type { Product } from '@/types'
 import type { ProductsOutletContext } from './index'
-import { Plus, Edit, Boxes, CheckCircle2, Ban, Settings2 } from 'lucide-react'
+import { Plus, Edit, Boxes, AlertTriangle, PackageX, Ban, Settings2 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
 type SortDir = 'asc' | 'desc'
@@ -58,9 +58,10 @@ export default function BundlesList() {
     setPrefs({ sort: typeof next === 'function' ? next(prefs.sort) : next })
   }
 
-  // Global bundle stats (total / enabled / disabled). Same shape as
-  // products:stockStats with is_bundle=1; "ใช้งาน" = total_all - disabled.
-  const [allStats, setAllStats] = useState({ total_all: 0, disabled: 0 })
+  // Global stats (products + bundles combined). Same shape & data as
+  // ProductsList — both tabs render the identical 4-card summary so users
+  // see a single source of truth no matter which tab is active.
+  const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0, disabled: 0 })
 
   const pageSize = prefs.pageSize
   const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
@@ -90,11 +91,11 @@ export default function BundlesList() {
   useEffect(() => {
     const t = setTimeout(() => {
       load(1)
+      // No is_bundle filter → combined products+bundles stats. Matches the
+      // global figures shown on the Products tab so both tabs read the same.
       window.api.products.stockStats({
-        q: q.trim() || undefined,
         include_disabled: true,
-        is_bundle: 1,
-      }).then((s: any) => setAllStats(s ?? { total_all: 0, disabled: 0 }))
+      }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0, disabled: 0 }))
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,22 +107,17 @@ export default function BundlesList() {
       : { by: field, dir: 'asc' })
   }
 
-  const toggleStockFilter = (next: 'all' | 'enabled' | 'disabled') => {
-    setStockFilter(curr => (next === 'all' ? 'all' : curr === next ? 'all' : next))
-  }
-
-  // Push the 3 clickable stat cards up to ProductsLayout. "ใช้งาน" =
-  // total_all − disabled (enabled bundles).
+  // Identical 4-card summary as ProductsList (same labels/icons/tints, same
+  // global data). Passive — filter UI is per-tab, the cards are just a shared
+  // dashboard so users see the same snapshot regardless of active tab.
   useEffect(() => {
     setSummary([
-      { label: 'ชุดสินค้าทั้งหมด', value: allStats.total_all.toLocaleString(), icon: Boxes, tint: 'primary',
-        onClick: () => toggleStockFilter('all'), isActive: stockFilter === 'all' },
-      { label: 'ใช้งาน', value: Math.max(0, allStats.total_all - allStats.disabled).toLocaleString(), icon: CheckCircle2, tint: 'success',
-        onClick: () => toggleStockFilter('enabled'), isActive: stockFilter === 'enabled' },
-      { label: 'ปิดการใช้งาน', value: allStats.disabled.toLocaleString(), icon: Ban, tint: 'secondary',
-        onClick: () => toggleStockFilter('disabled'), isActive: stockFilter === 'disabled' },
+      { label: 'ทั้งหมด',          value: allStats.total_all.toLocaleString(), icon: Boxes,           tint: 'primary' },
+      { label: 'ต่ำกว่าจุดสั่งซื้อ', value: allStats.low.toLocaleString(),       icon: AlertTriangle,    tint: 'warning' },
+      { label: 'หมดสต็อก',         value: allStats.out.toLocaleString(),       icon: PackageX,         tint: 'destructive' },
+      { label: 'ปิดการใช้งาน',      value: allStats.disabled.toLocaleString(),  icon: Ban,              tint: 'secondary' },
     ])
-  }, [allStats, stockFilter, setSummary])
+  }, [allStats, setSummary])
 
   const handleCreate = () => {
     // No DB row yet — EditBundle in "new" mode commits atomically (product +

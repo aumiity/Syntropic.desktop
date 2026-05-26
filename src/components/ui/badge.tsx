@@ -44,6 +44,12 @@ const badgeVariants = cva(
         warning: "border-transparent bg-warning text-warning-foreground",
         danger: "border-transparent bg-destructive text-primary-foreground",
         destructive2: "bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive",
+        "success-outline": "rounded-md border-success/40 bg-success-soft text-success",
+        "info-outline": "rounded-md border-info/40 bg-info-soft text-info",
+        "warning-outline": "rounded-md border-warning-strong/40 bg-warm text-warning-strong",
+        "brand-outline": "rounded-md border-primary/40 bg-brand-soft text-primary",
+        "destructive-outline": "rounded-md border-destructive/40 bg-destructive-soft text-destructive-strong",
+        "violet-outline": "rounded-md border-violet/40 bg-violet-soft text-violet-strong",
       },
     },
     defaultVariants: {

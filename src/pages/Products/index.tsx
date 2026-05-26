@@ -74,7 +74,7 @@ export default function ProductsLayout() {
         }}
         className="shrink-0 self-start"
       >
-        <TabsList>
+        <TabsList variant="segmented">
           {TABS.map(t => (
             <TabsTrigger key={t.value} value={t.value}>
               <t.icon /> {t.label}

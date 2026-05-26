@@ -77,6 +77,12 @@ export default {
           soft: 'hsl(var(--warning-soft))',
           strong: 'hsl(var(--warning-strong))',
         },
+        violet: {
+          DEFAULT: 'hsl(var(--violet))',
+          foreground: 'hsl(var(--violet-foreground))',
+          soft: 'hsl(var(--violet-soft))',
+          strong: 'hsl(var(--violet-strong))',
+        },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',

@@ -5,16 +5,16 @@
 @layer base {
   :root {
     /* Teal brand — #0F5D56 / Yellow accent — #F5C24A */
-    --background: 72 15% 94%;
+    --background: 0 0% 99%;
     --foreground: 0 0% 10%;
-    --card: 0 0% 100%;
+    --card: 0 0% 99%;
     --card-foreground: 0 0% 32%;
-    --popover: 0 0% 100%;
+    --popover: 0 0% 99%;
     --popover-foreground: 0 0% 10%;
     --primary: 179 91% 22%;           /* #0F5D56 */
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 0 0% 99%;
     --primary-hover: 175 72% 17%;
-    --secondary: 0 0% 100%;
+    --secondary: 0 0% 99%;
     --secondary-foreground: 0 0% 32%;
     --secondary-hover: 0 0% 90%;
     --tertiary: 43 100% 64%;
@@ -27,7 +27,7 @@
     --info-soft-foreground: 219 30% 44%;
     --info-soft-hover: 219 100% 84%;
     --info: 221 83% 53%;                /* iOS-blue ≈ blue-600 #2563EB */
-    --info-foreground: 0 0% 100%;
+    --info-foreground: 0 0% 99%;
     --warm: 45 96% 90%;
     --warm-hover: 45 96% 80%;
     --warm-foreground: 32 88% 33%;
@@ -40,13 +40,13 @@
     --destructive: 3 100% 59%;
     --destructive-foreground: 0 0% 100%;
     --destructive-hover: 3 100% 39%;
-    --border: 0 0% 80%;
+    --border: 0 0% 87%;
     --input: 0 0% 95%;
     --ring: 175 35% 75%;
     --radius: 0.5rem;
     --radius-card: 1rem;       /* card / panel corner — single source of truth */
     --radius-control: 0.5rem;  /* button / input / select corner */
-    --sidebar: 0 0% 100%;
+    --sidebar: 0 0% 99%;
     --sidebar-foreground: 0 0% 32%;
     --sidebar-border: 0 0% 90%;
     --sidebar-accent: 43 100% 64%;
@@ -78,6 +78,11 @@
 
     --destructive-soft: 0 86% 97%;
     --destructive-strong: 0 70% 35%;
+
+    --violet: 262 83% 58%;
+    --violet-foreground: 0 0% 100%;
+    --violet-soft: 250 100% 97%;
+    --violet-strong: 263 70% 42%;
 
     --shadow-card: 0 1px 0 rgba(20, 32, 29, 0.04), 0 8px 24px -16px rgba(20, 32, 29, 0.10);
     --selection-bg: hsl(175 60% 60% / 0.4);
@@ -163,6 +168,11 @@
     --destructive-soft: 0 86% 97%;
     --destructive-strong: 0 70% 35%;
 
+    --violet: 262 83% 65%;
+    --violet-foreground: 0 0% 100%;
+    --violet-soft: 263 30% 18%;
+    --violet-strong: 263 80% 75%;
+
     --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 28px -18px rgba(0, 0, 0, 0.6);
     --selection-bg: hsl(175 60% 60% / 0.4);
     --font-latin: 'Google Sans';
@@ -174,7 +184,7 @@
   * { @apply border-border; }
   body { @apply bg-background text-foreground font-sans; }
   ::selection { background: var(--selection-bg); }
-  html { font-size: 18px; }
+  html { font-size: 16px; }
   ::-webkit-scrollbar { 
     @apply w-[10px] h-[10px]; 
   }

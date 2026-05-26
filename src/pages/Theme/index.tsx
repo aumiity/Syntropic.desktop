@@ -430,6 +430,14 @@ export default function Theme() {
                   <Badge variant="danger">Danger</Badge>
                   <Badge variant="ghost">Ghost</Badge>
                 </DemoRow>
+                <DemoRow label="Status (soft + outline)">
+                  <Badge variant="success-outline">Delivered</Badge>
+                  <Badge variant="info-outline">Shipped</Badge>
+                  <Badge variant="warning-outline">Processing</Badge>
+                  <Badge variant="brand-outline">Delivered</Badge>
+                  <Badge variant="violet-outline">Shipped</Badge>
+                  <Badge variant="destructive-outline">Cancelled</Badge>
+                </DemoRow>
                 <DemoRow label="In Context">
                   <div className="flex items-center gap-2 text-sm">
                     <span>สถานะ:</span>
@@ -713,6 +721,15 @@ export default function Theme() {
                     <TabsContent value="year">
                       <div className="mt-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">ข้อมูลปีนี้</div>
                     </TabsContent>
+                  </Tabs>
+                </DemoRow>
+                <DemoRow label="Segmented — iOS-style control">
+                  <Tabs defaultValue="1y" className="w-fit">
+                    <TabsList variant="segmented">
+                      <TabsTrigger value="1y">1 Year</TabsTrigger>
+                      <TabsTrigger value="3m">3 Months</TabsTrigger>
+                      <TabsTrigger value="30d">30 Days</TabsTrigger>
+                    </TabsList>
                   </Tabs>
                 </DemoRow>
                 <DemoRow label="Line — underline indicator">

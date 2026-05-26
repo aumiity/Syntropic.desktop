@@ -226,7 +226,7 @@ function MetricCard({
     // py-2 (vs py-3 on StatCard) compensates for the extra 3rd line: a 2-line
     // StatCard at py-3 ≈ a 3-line MetricCard sm at py-2, so the two card
     // primitives render the same total height when sharing a grid row.
-    const baseSm = "bg-card rounded-card shadow-card px-4 py-2 flex items-center gap-3 overflow-hidden"
+    const baseSm = "bg-card rounded-card shadow-card border border-border px-4 py-2 flex items-center gap-3 overflow-hidden"
     if (onClick) {
       return (
         <button
@@ -296,7 +296,7 @@ function MetricCard({
         onClick={onClick}
         data-slot="metric-card"
         className={cn(
-          "bg-card rounded-card p-4 shadow-card h-32 overflow-hidden relative text-left",
+          "bg-card rounded-card p-4 shadow-card border border-border h-32 overflow-hidden relative text-left",
           "cursor-pointer hover:shadow-md transition-all",
           className
         )}
@@ -310,7 +310,7 @@ function MetricCard({
     <div
       data-slot="metric-card"
       className={cn(
-        "bg-card rounded-card p-4 shadow-card h-32 overflow-hidden relative",
+        "bg-card rounded-card p-4 shadow-card border border-border h-32 overflow-hidden relative",
         className
       )}
     >
@@ -363,7 +363,7 @@ function StatCard({
       disabled={!onClick}
       data-slot="stat-card"
       className={cn(
-        "bg-card rounded-card shadow-card px-4 py-3 flex items-center gap-3 disabled:cursor-default",
+        "bg-card rounded-card shadow-card border border-border px-4 py-3 flex items-center gap-3 disabled:cursor-default",
         activeRing,
         interactive,
         className,

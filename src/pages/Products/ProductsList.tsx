@@ -7,13 +7,16 @@ import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { useToast } from '@/components/ui/toast'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency } from '@/lib/utils'
 import type { Product, ProductCategory } from '@/types'
 import type { ProductsOutletContext } from './index'
 import {
-  Plus, Edit, AlertTriangle, Package, PackageX, Boxes, Ban, Settings2,
+  Plus, Edit, AlertTriangle, Package, PackageX, Boxes, Settings2, MoreHorizontal, Eye, Ban,
 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
@@ -48,6 +51,7 @@ const PRODUCTS_DEFAULTS: ProductsPrefs = {
 export default function ProductsList() {
   const navigate = useNavigate()
   const { setSummary } = useOutletContext<ProductsOutletContext>()
+  const { toast } = useToast()
 
   const [prefs, setPrefs] = usePagePrefs<ProductsPrefs>('products', PRODUCTS_DEFAULTS)
 
@@ -72,8 +76,9 @@ export default function ProductsList() {
   // Dropdown data
   const [categories, setCategories] = useState<ProductCategory[]>([])
 
-  // Global stock health counts. Excludes bundles via is_bundle=0 so the
-  // headline "หมดสต็อก" / "ใกล้หมด" / "สินค้าทั้งหมด" / "ปิดการใช้งาน" never inflate.
+  // Global stats (products + bundles combined). Both Products and Bundles
+  // tabs render the same 4 stat cards from this data, so users see a single
+  // shared dashboard regardless of active tab.
   const [allStats, setAllStats] = useState({ out: 0, low: 0, total_all: 0, disabled: 0 })
 
   const pageSize = prefs.pageSize
@@ -89,11 +94,11 @@ export default function ProductsList() {
   useEffect(() => {
     const t = setTimeout(() => {
       load(1)
+      // No q / category_id / is_bundle → unfiltered global counts so the
+      // 4-card summary stays consistent across tabs and ignores in-list
+      // search/category controls.
       window.api.products.stockStats({
-        q: q.trim() || undefined,
-        category_id: categoryId || undefined,
         include_disabled: true,
-        is_bundle: 0,
       }).then((s: any) => setAllStats(s ?? { out: 0, low: 0, total_all: 0, disabled: 0 }))
     }, 300)
     return () => clearTimeout(t)
@@ -133,42 +138,45 @@ export default function ProductsList() {
       : { by: field, dir: 'asc' })
   }
 
-  const toggleStockFilter = (next: 'all' | 'low' | 'out' | 'disabled') => {
-    setStockFilter(curr => (next === 'all' ? 'all' : curr === next ? 'all' : next))
-  }
-
-  // Push the 4 clickable stat cards up to ProductsLayout. They double as
-  // filter shortcuts — clicking one narrows the table to that subset.
+  // Stat cards = passive display (no onClick) since filtering moved to the
+  // underline tabs below. Omitting onClick makes ProductsLayout render
+  // MetricCard instead of the clickable StatCard.
   useEffect(() => {
     setSummary([
-      { label: 'สินค้าทั้งหมด', value: allStats.total_all.toLocaleString(), icon: Boxes, tint: 'primary',
-        onClick: () => toggleStockFilter('all'), isActive: stockFilter === 'all' },
-      { label: 'ต่ำกว่าจุดสั่งซื้อ', value: allStats.low.toLocaleString(), icon: AlertTriangle, tint: 'warning',
-        onClick: () => toggleStockFilter('low'), isActive: stockFilter === 'low' },
-      { label: 'หมดสต็อก', value: allStats.out.toLocaleString(), icon: PackageX, tint: 'destructive',
-        onClick: () => toggleStockFilter('out'), isActive: stockFilter === 'out' },
-      { label: 'ปิดการใช้งาน', value: allStats.disabled.toLocaleString(), icon: Ban, tint: 'secondary',
-        onClick: () => toggleStockFilter('disabled'), isActive: stockFilter === 'disabled' },
+      { label: 'ทั้งหมด',          value: allStats.total_all.toLocaleString(), icon: Boxes,           tint: 'primary' },
+      { label: 'ต่ำกว่าจุดสั่งซื้อ', value: allStats.low.toLocaleString(),       icon: AlertTriangle,    tint: 'warning' },
+      { label: 'หมดสต็อก',         value: allStats.out.toLocaleString(),       icon: PackageX,         tint: 'destructive' },
+      { label: 'ปิดการใช้งาน',      value: allStats.disabled.toLocaleString(),  icon: Ban,              tint: 'secondary' },
     ])
-  }, [allStats, stockFilter, setSummary])
+  }, [allStats, setSummary])
 
-  // Stock cell: qty + unit + status label, with progress bar scaled by safety_stock.
-  // qty=0 → หมด (red, empty), qty≤reorder → ใกล้หมด (red), else → ปกติ (green).
-  // safety_stock unset → bar full at "ปกติ" since there's no max to scale against.
+  const toggleDisabled = async (row: ProductRow) => {
+    try {
+      await window.api.products.update(row.id, { is_disabled: row.is_disabled ? 0 : 1 })
+      toast({ title: row.is_disabled ? 'เปิดใช้งานสินค้าแล้ว' : 'ปิดใช้งานสินค้าแล้ว', variant: 'success' })
+      load(page)
+    } catch (e: any) {
+      toast({ title: 'ดำเนินการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
+  }
+
+  // Stock cell: qty + unit + status badge (outlined), with progress bar scaled by safety_stock.
+  // qty=0 → หมด (destructive-outline, empty bar), qty≤reorder → ใกล้หมด (warning-outline),
+  // else → ปกติ (success-outline). safety_stock unset → bar full since no max to scale.
   const renderStockCell = (qty: number, reorder: number, safety: number, unitName?: string) => {
     const unit = unitName || 'หน่วย'
     const isOut = qty <= 0
     const isLow = !isOut && reorder > 0 && qty <= reorder
-    const status = isOut ? 'หมด' : isLow ? 'ใกล้หมด' : 'ปกติ'
-    const tone = isOut || isLow ? 'text-destructive' : 'text-success'
+    const statusLabel = isOut ? 'หมด' : isLow ? 'ใกล้หมด' : 'ปกติ'
+    const statusVariant = isOut ? 'destructive-outline' : isLow ? 'warning-outline' : 'success-outline'
     const barTone = isOut || isLow ? 'bg-destructive' : 'bg-success'
     const pct = isOut ? 0 : safety > 0 ? Math.min(100, (qty / safety) * 100) : 100
     return (
       <div className="flex flex-col gap-1 min-w-[140px]">
-        <div className="text-sm">
+        <div className="flex items-center gap-2 text-sm">
           <span className="font-semibold text-foreground">{qty.toLocaleString()}</span>
-          <span className="text-muted-foreground"> {unit} · </span>
-          <span className={`font-medium ${tone}`}>{status}</span>
+          <span className="text-muted-foreground">{unit}</span>
+          <Badge variant={statusVariant}>{statusLabel}</Badge>
         </div>
         <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
           <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
@@ -177,10 +185,30 @@ export default function ProductsList() {
     )
   }
 
+  const STOCK_TABS: { value: typeof stockFilter; label: string; count: number }[] = [
+    { value: 'all',      label: 'ทั้งหมด',         count: allStats.total_all },
+    { value: 'low',      label: 'ต่ำกว่าจุดสั่งซื้อ', count: allStats.low },
+    { value: 'out',      label: 'หมดสต็อก',        count: allStats.out },
+    { value: 'disabled', label: 'ปิดการใช้งาน',     count: allStats.disabled },
+  ]
+
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col flex-1 min-h-0 gap-3">
+      {/* Stock filter tabs (replaces the 4 stat cards). Counts on the right
+          give the same snapshot at a fraction of the vertical space. */}
+      <Tabs value={stockFilter} onValueChange={v => setStockFilter(v as typeof stockFilter)} className="shrink-0">
+        <TabsList variant="line">
+          {STOCK_TABS.map(t => (
+            <TabsTrigger key={t.value} value={t.value}>
+              {t.label}
+              <span className="ml-1 text-xs text-muted-foreground">{t.count.toLocaleString()}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
       {/* List card */}
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
           <SearchInput
             value={q}
@@ -329,14 +357,36 @@ export default function ProductsList() {
                     )}
                     <TableCell>
                       <div className="flex justify-center">
-                        <Button
-                          size="icon-lg"
-                          variant="outline"
-                          onClick={() => navigate(`/products/${row.id}/edit`)}
-                          title="แก้ไข"
-                        >
-                          <Edit />
-                        </Button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                              <MoreHorizontal />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/products/${row.id}/edit`)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                              <Eye className="size-4" /> รายละเอียด
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/products/${row.id}/edit`)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                              <Edit className="size-4" /> แก้ไข
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleDisabled(row)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                            >
+                              <Ban className="size-4" /> {row.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                            </button>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </TableCell>
                   </TableRow>

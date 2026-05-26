@@ -34,13 +34,15 @@ const tabsListVariants = cva(
     "data-[variant=line]:rounded-none",
     "data-[variant=pill]:rounded-none data-[variant=pill]:p-0 data-[variant=pill]:gap-1 data-[variant=pill]:group-data-horizontal/tabs:h-auto",
     "data-[variant=default]:inline-grid data-[variant=default]:grid-flow-col data-[variant=default]:auto-cols-fr data-[variant=default]:rounded-xl data-[variant=default]:p-1 data-[variant=default]:gap-1 data-[variant=default]:group-data-horizontal/tabs:h-auto",
+    "data-[variant=segmented]:rounded-lg data-[variant=segmented]:p-1 data-[variant=segmented]:gap-1 data-[variant=segmented]:group-data-horizontal/tabs:h-auto",
   ].join(" "),
   {
     variants: {
       variant: {
         default: "bg-card shadow-card",
-        line: "gap-1 bg-transparent",
+        line: "gap-1 bg-transparent w-full justify-start border-b border-border",
         pill: "bg-transparent",
+        segmented: "bg-muted",
       },
     },
     defaultVariants: {
@@ -51,9 +53,14 @@ const tabsListVariants = cva(
 
 type TabsListVariant = NonNullable<VariantProps<typeof tabsListVariants>["variant"]>
 
-const TabsListCtx = React.createContext<{ pillId: string; showPill: boolean }>({
+const TabsListCtx = React.createContext<{
+  pillId: string
+  showPill: boolean
+  variant: TabsListVariant
+}>({
   pillId: "",
   showPill: false,
+  variant: "default",
 })
 
 const TabsList = React.forwardRef<
@@ -65,10 +72,10 @@ const TabsList = React.forwardRef<
   ref
 ) {
   const pillId = React.useId()
-  const showPill: boolean = variant === "default" || variant === "pill"
+  const showPill: boolean = variant === "default" || variant === "pill" || variant === "segmented"
 
   return (
-    <TabsListCtx.Provider value={{ pillId, showPill }}>
+    <TabsListCtx.Provider value={{ pillId, showPill, variant }}>
       <TabsPrimitive.List
         ref={ref}
         data-slot="tabs-list"
@@ -87,7 +94,7 @@ function TabsTrigger({
   children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
-  const { pillId, showPill } = React.useContext(TabsListCtx)
+  const { pillId, showPill, variant } = React.useContext(TabsListCtx)
   const ref = React.useRef<HTMLButtonElement>(null)
   const [isActive, setIsActive] = React.useState(false)
 
@@ -126,9 +133,14 @@ function TabsTrigger({
         "group-data-[variant=pill]/tabs-list:data-[state=active]:text-primary-foreground",
         // LINE — transparent, primary text + underline (no sliding pill)
         "group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:text-primary group-data-[variant=line]/tabs-list:data-[state=active]:shadow-none",
+        // SEGMENTED — iOS-style: muted track, sliding card pill (via framer) on active,
+        // text stays foreground (not primary-foreground).
+        // flex-none overrides base flex-1 so triggers are content-width, not equal-fill.
+        "group-data-[variant=segmented]/tabs-list:flex-none group-data-[variant=segmented]/tabs-list:rounded-md group-data-[variant=segmented]/tabs-list:px-3 group-data-[variant=segmented]/tabs-list:py-1.5 group-data-[variant=segmented]/tabs-list:h-auto",
+        "group-data-[variant=segmented]/tabs-list:data-[state=active]:text-foreground",
         "after:absolute after:bg-primary after:opacity-0 after:transition-opacity",
-        "group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-[-5px] group-data-horizontal/tabs:after:h-0.5",
-        "group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-vertical/tabs:after:w-0.5",
+        "group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-[-5px] group-data-horizontal/tabs:after:h-[3px] group-data-horizontal/tabs:after:rounded-full",
+        "group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-vertical/tabs:after:w-[3px] group-data-vertical/tabs:after:rounded-full",
         "group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-100",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
@@ -139,7 +151,12 @@ function TabsTrigger({
         <motion.div
           layoutId={pillId}
           aria-hidden
-          className="absolute inset-0 rounded-lg bg-primary shadow-sm"
+          className={cn(
+            "absolute inset-0",
+            variant === "segmented"
+              ? "rounded-md bg-card shadow-md"
+              : "rounded-lg bg-primary shadow-sm"
+          )}
           transition={{ type: "spring", bounce: 0.18, duration: 0.45 }}
         />
       )}

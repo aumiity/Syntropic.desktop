@@ -158,27 +158,28 @@ export function registerProductHandlers() {
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
 
+    // out/low only make sense for stock-tracked rows. Bundles
+    // (is_stock_item=0) would otherwise inflate "out" because STOCK_EXPR
+    // returns 0 for them — making every bundle look stockless. Pin
+    // is_stock_item=1 here so callers don't need to remember to pass
+    // is_bundle=0.
     const andStock = (extra: string) => where
-      ? `${where} AND ${extra}`
-      : `WHERE ${extra}`
+      ? `${where} AND p.is_stock_item = 1 AND ${extra}`
+      : `WHERE p.is_stock_item = 1 AND ${extra}`
     const out = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`(${STOCK_EXPR}) <= 0`)}`).get(...params) as any).c
     const low = (db.prepare(`SELECT COUNT(*) as c FROM products p ${andStock(`(${STOCK_EXPR}) > 0 AND p.reorder_point > 0 AND (${STOCK_EXPR}) <= p.reorder_point`)}`).get(...params) as any).c
-    // Total — used by "สินค้าทั้งหมด" stat card. Always counts every product
-    // (enabled + disabled); only "is_bundle" applies so bundles don't inflate
-    // the count. Ignores search/category/drug-type and the include_disabled
-    // toggle — "ทั้งหมด" must literally mean all.
-    const totalCond: string[] = []
+    // Total / disabled — pinned to is_stock_item=1 so all 4 cards
+    // (total / low / out / disabled) report against the same population.
+    // Otherwise "ทั้งหมด" would include bundles + non-stock services that
+    // can't appear in low/out, producing a misleading mismatch.
+    const totalCond: string[] = ['is_stock_item = 1']
     const totalParams: any[] = []
     if (is_bundle === 0 || is_bundle === 1) { totalCond.push('is_bundle = ?'); totalParams.push(is_bundle) }
-    const totalWhere = totalCond.length ? `WHERE ${totalCond.join(' AND ')}` : ''
     const total_all = (db.prepare(
-      `SELECT COUNT(*) as c FROM products ${totalWhere}`
+      `SELECT COUNT(*) as c FROM products WHERE ${totalCond.join(' AND ')}`
     ).get(...totalParams) as any).c
 
-    // Disabled — global count of disabled products (force is_disabled=1, respects
-    // is_bundle only). Mirrors total_all's "ignore search filters" semantics so
-    // the "ปิดการใช้งาน" card always shows the total disabled count.
-    const disabledCond: string[] = ['is_disabled = 1']
+    const disabledCond: string[] = ['is_stock_item = 1', 'is_disabled = 1']
     const disabledParams: any[] = []
     if (is_bundle === 0 || is_bundle === 1) { disabledCond.push('is_bundle = ?'); disabledParams.push(is_bundle) }
     const disabled = (db.prepare(
