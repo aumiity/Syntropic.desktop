@@ -138,8 +138,8 @@ function TabsTrigger({
         // flex-none overrides base flex-1 so triggers are content-width, not equal-fill.
         "group-data-[variant=segmented]/tabs-list:flex-none group-data-[variant=segmented]/tabs-list:rounded-md group-data-[variant=segmented]/tabs-list:px-3 group-data-[variant=segmented]/tabs-list:py-1.5 group-data-[variant=segmented]/tabs-list:h-auto",
         "group-data-[variant=segmented]/tabs-list:data-[state=active]:text-foreground",
-        "after:absolute after:bg-primary after:opacity-0 after:transition-opacity",
-        "group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-[-5px] group-data-horizontal/tabs:after:h-[3px] group-data-horizontal/tabs:after:rounded-full",
+        "after:absolute after:bg-primary after:opacity-0 after:transition-opacity after:z-10",
+        "group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-[-3px] group-data-horizontal/tabs:after:h-[3px] group-data-horizontal/tabs:after:rounded-full",
         "group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-vertical/tabs:after:w-[3px] group-data-vertical/tabs:after:rounded-full",
         "group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-100",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
