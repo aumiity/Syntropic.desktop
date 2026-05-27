@@ -389,6 +389,7 @@ export default function Theme() {
                   <Button variant="info-soft">Info-soft</Button>
                   <Button variant="warm">Warm</Button>
                   <Button variant="outline">Outline</Button>
+                  <Button variant="mutedborder">Mutedborder</Button>
                   <Button variant="ghost">Ghost</Button>
                   <Button variant="destructive">Destructive</Button>
                   <Button variant="destructive2">Destructive2</Button>
@@ -444,13 +445,15 @@ export default function Theme() {
                   <Badge variant="ghost">Ghost</Badge>
                 </DemoRow>
                 <DemoRow label="Status (soft + outline)">
-                  <Badge variant="success-outline">Delivered</Badge>
-                  <Badge variant="info-outline">Shipped</Badge>
-                  <Badge variant="warning-outline">Processing</Badge>
-                  <Badge variant="brand-outline">Delivered</Badge>
-                  <Badge variant="violet-outline">Shipped</Badge>
-                  <Badge variant="destructive-outline">Cancelled</Badge>
-                  <Badge variant="neutral-outline">20</Badge>
+                  <Badge variant="success-outline">Success-outline</Badge>
+                  <Badge variant="info-outline">Info-outline</Badge>
+                  <Badge variant="warning-outline">Warning-outline</Badge>
+                  <Badge variant="brand-outline">Brand-outline</Badge>
+                  <Badge variant="violet-outline">Violet-outline</Badge>
+                  <Badge variant="teal-outline">Teal-outline</Badge>
+                  <Badge variant="destructive-outline">Destructive-outline</Badge>
+                  <Badge variant="neutral-outline">Neutral-outline</Badge>
+                  <Badge variant="muted-outline">Muted-outline</Badge>
                 </DemoRow>
                 <DemoRow label="In Context">
                   <div className="flex items-center gap-2 text-sm">
@@ -1461,6 +1464,23 @@ export default function Theme() {
                 <DemoRow label="With empty/all row (filter mode) — h-10 เท่ากับ Input / DateInput / DateRangePicker">
                   <div className="w-72">
                     <Combobox
+                      items={comboItems}
+                      value={comboFilterVal}
+                      onChange={setComboFilterVal}
+                      getKey={(s) => s.id}
+                      getLabel={(s) => s.name}
+                      getSublabel={(s) => s.code}
+                      icon={Building2}
+                      emptyLabel="ทุกผู้จัดจำหน่าย"
+                      searchPlaceholder="ชื่อหรือรหัส..."
+                      emptyText="ไม่พบรายการ"
+                    />
+                  </div>
+                </DemoRow>
+                <DemoRow label="variant='elevated' — ใช้ในแถบฟิลเตอร์ของ table-card คู่กับ SearchInput / DateRangePicker variant='elevated'">
+                  <div className="w-72">
+                    <Combobox
+                      variant="elevated"
                       items={comboItems}
                       value={comboFilterVal}
                       onChange={setComboFilterVal}

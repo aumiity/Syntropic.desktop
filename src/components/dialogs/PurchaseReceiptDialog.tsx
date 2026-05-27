@@ -78,14 +78,14 @@ export function PurchaseReceiptDialog({
               <DialogTitle className="flex items-center gap-3 pr-10">
                 <span className={isCancelled ? 'text-muted-foreground line-through' : ''}>{invoiceNo}</span>
                 {isCancelled
-                  ? <Badge variant="destructive">ยกเลิกแล้ว</Badge>
+                  ? <Badge variant="destructive-outline">ยกเลิกแล้ว</Badge>
                   : header.payment_type === 'credit'
                     ? header.is_paid
-                      ? <Badge variant="success">ชำระแล้ว</Badge>
+                      ? <Badge variant="success-outline">ชำระแล้ว</Badge>
                       : isOverdue
-                        ? <Badge variant="destructive">เครดิต</Badge>
-                        : <Badge variant="tertiary">เครดิต</Badge>
-                    : <Badge variant="brand-soft">เงินสด</Badge>}
+                        ? <Badge variant="destructive-outline">เกินกำหนด</Badge>
+                        : <Badge variant="warning-outline">เครดิต</Badge>
+                    : <Badge variant="info-outline">เงินสด</Badge>}
               </DialogTitle>
             </DialogHeader>
             <DialogBody className="flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">

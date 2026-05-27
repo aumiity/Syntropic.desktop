@@ -22,7 +22,7 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import type { ManageOutletContext } from './index'
 import {
-  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Check, Settings2, MoreHorizontal, Eye, Edit3,
+  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Check, Settings2, Eye, Edit3, Filter,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -188,25 +188,18 @@ export default function ManagePurchasesPage() {
     }
   }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, histPageSize, histSort, selectedInvoice])
 
-  // Status-filter StatCards live in the shared summary slot (top, above the
-  // Tabs) — same as the other tabs, so the table-card sits flush at the top.
-  // Must sit after loadHistory: it's a const useCallback, not hoisted.
+  // Passive MetricCard snapshot of the q/date set. The status filter lives in
+  // the filter strip's Filter popover (no onClick → ManageLayout renders
+  // MetricCard instead of the clickable StatCard).
   useEffect(() => {
-    setSlotSummary(([
-      { v: 'all',       label: 'ทั้งหมด',     count: histSummary.count,           icon: FileText,      tint: 'secondary' },
-      { v: 'cash',      label: 'เงินสด',       count: histSummary.cash_count,      icon: Banknote,      tint: 'primary' },
-      { v: 'credit',    label: 'เครดิต', count: histSummary.credit_count,    icon: CreditCard,    tint: 'warm' },
-      { v: 'unpaid',    label: 'ค้างชำระ',     count: histSummary.unpaid_count,    icon: AlertTriangle, tint: 'warning' },
-      { v: 'cancelled', label: 'ยกเลิก',       count: histSummary.cancelled_count, icon: Ban,           tint: 'destructive' },
-    ] as const).map(c => ({
-      label: c.label,
-      value: c.count.toLocaleString(),
-      icon: c.icon,
-      tint: c.tint,
-      onClick: () => { setHistPaymentFilter(c.v); loadHistory(1, c.v, undefined, true) },
-      isActive: histPaymentFilter === c.v,
-    })))
-  }, [histSummary, histPaymentFilter, loadHistory, setSlotSummary])
+    setSlotSummary([
+      { label: 'จำนวนบิล', value: histSummary.count.toLocaleString(),           icon: FileText,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'เงินสด',    value: histSummary.cash_count.toLocaleString(),      icon: Banknote,      tint: 'success',      sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+      { label: 'เครดิต',    value: histSummary.credit_count.toLocaleString(),    icon: CreditCard,    tint: 'info-soft',    sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ค้างชำระ',  value: histSummary.unpaid_count.toLocaleString(),    icon: AlertTriangle, tint: 'warm',         sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive2', sub: 'รายการ', subClassName: 'text-base text-foreground' },
+    ])
+  }, [histSummary, setSlotSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).
@@ -418,6 +411,7 @@ export default function ManagePurchasesPage() {
           />
           <div className="w-60 shrink-0">
             <Combobox
+              variant="elevated"
               items={suppliers}
               value={histSupplier}
               onChange={(s) => setHistSupplierId(s?.id ?? 0)}
@@ -430,18 +424,58 @@ export default function ManagePurchasesPage() {
               emptyText="ไม่พบผู้จัดจำหน่าย"
             />
           </div>
-          <div className="w-60 shrink-0">
-            <DateRangePicker
-              from={histDateFrom}
-              to={histDateTo}
-              onChange={(from, to) => {
-                setHistDateFrom(from)
-                setHistDateTo(to)
-                loadHistory(1, undefined, { from, to }, true)
-              }}
-              onPresetChange={key => setPrefs({ datePreset: key })}
-            />
-          </div>
+          <DateRangePicker
+            variant="elevated"
+            from={histDateFrom}
+            to={histDateTo}
+            onChange={(from, to) => {
+              setHistDateFrom(from)
+              setHistDateTo(to)
+              loadHistory(1, undefined, { from, to }, true)
+            }}
+            onPresetChange={key => setPrefs({ datePreset: key })}
+            className="h-9 w-60 shrink-0"
+          />
+
+          {/* Status filter popover — was previously the clickable summary cards */}
+          {(() => {
+            const STATUS_OPTIONS: { value: typeof histPaymentFilter; label: string }[] = [
+              { value: 'all',       label: 'ทั้งหมด' },
+              { value: 'cash',      label: 'เงินสด' },
+              { value: 'credit',    label: 'เครดิต' },
+              { value: 'unpaid',    label: 'ค้างชำระ' },
+              { value: 'cancelled', label: 'ยกเลิก' },
+            ]
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรองสถานะ">
+                    <Filter className="size-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-1 gap-0">
+                  <PopoverHeader className="px-2">
+                    <PopoverTitle>สถานะ</PopoverTitle>
+                  </PopoverHeader>
+                  {STATUS_OPTIONS.map(o => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => { setHistPaymentFilter(o.value); loadHistory(1, o.value, undefined, true) }}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                        histPaymentFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
+                      )}
+                    >
+                      <Check className={cn('size-4', histPaymentFilter === o.value ? 'opacity-100' : 'opacity-0')} />
+                      <span className="flex-1 text-left">{o.label}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )
+          })()}
+
           <Popover>
             <PopoverTrigger asChild>
               <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
@@ -484,7 +518,6 @@ export default function ManagePurchasesPage() {
                 {showColDate && <SortableTableHead field="created_at" sort={histSort} onToggle={toggleHistSort} className="min-w-24">วันที่</SortableTableHead>}
                 <SortableTableHead field="invoice_no" sort={histSort} onToggle={toggleHistSort} className="min-w-32">เลขที่ใบรับ</SortableTableHead>
                 {showColSupplier && <TableHead className="min-w-48">ผู้จัดจำหน่าย</TableHead>}
-                {showColItems && <TableHead className="min-w-20 text-center">รายการ</TableHead>}
                 {showColTotal && <SortableTableHead field="total_cost" align="right" sort={histSort} onToggle={toggleHistSort} className="min-w-20">ยอดรวม</SortableTableHead>}
                 {showColStatus && <TableHead className="min-w-28 text-center">สถานะ</TableHead>}
                 <TableHead className="min-w-16 text-center">จัดการ</TableHead>
@@ -493,11 +526,11 @@ export default function ManagePurchasesPage() {
             <TableBody>
               {loadingHist ? (
                 <TableRow>
-                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColSupplier ? 1 : 0) + (showColItems ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-foreground-subtle py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColSupplier ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-foreground-subtle py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : history.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColSupplier ? 1 : 0) + (showColItems ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-foreground-subtle py-16">
+                  <TableCell colSpan={2 + (showColDate ? 1 : 0) + (showColSupplier ? 1 : 0) + (showColTotal ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-foreground-subtle py-16">
                     <FileText className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูล
                   </TableCell>
@@ -512,11 +545,17 @@ export default function ManagePurchasesPage() {
                     className={cn('[&_td]:py-2.5 [&_td]:font-medium', isSelected && 'bg-primary-soft', isCancelled && 'opacity-70')}
                   >
                     {showColDate && <TableCell className="whitespace-nowrap">{formatDate(h.created_at)}</TableCell>}
-                    <TableCell className={cn('font-mono', isCancelled ? 'text-muted-foreground line-through' : isSelected && 'text-primary')}>
-                      {h.invoice_no}
+                    <TableCell className="text-sm">
+                      <div className={cn(isCancelled ? 'text-muted-foreground line-through' : isSelected && 'text-primary')}>
+                        {h.invoice_no}
+                      </div>
+                      {showColItems && (
+                        <div className="text-xs font-normal text-muted-foreground">
+                          {(h.item_count ?? 0).toLocaleString()} รายการ
+                        </div>
+                      )}
                     </TableCell>
                     {showColSupplier && <TableCell className="truncate">{h.supplier_name ?? '—'}</TableCell>}
-                    {showColItems && <TableCell className="text-center">{h.item_count}</TableCell>}
                     {showColTotal && (
                       <TableCell className={cn('text-right', isCancelled && 'text-foreground-subtle line-through')}>
                         {formatCurrency(h.total_cost)}
@@ -530,27 +569,22 @@ export default function ManagePurchasesPage() {
                             ? h.is_paid
                               ? <Badge variant="success-outline">ชำระแล้ว</Badge>
                               : isOverdue
-                                ? <Badge variant="destructive-outline">เครดิต</Badge>
-                                : <Badge variant="tertiary">เครดิต</Badge>
-                            : <Badge variant="brand-soft">เงินสด</Badge>
+                                ? <Badge variant="destructive-outline">เกินกำหนด</Badge>
+                                : <Badge variant="warning-outline">เครดิต</Badge>
+                            : <Badge variant="info-outline">เงินสด</Badge>
                         }
                       </TableCell>
                     )}
                     <TableCell>
                       <div className="flex justify-center">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
-                              <MoreHorizontal />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
-                            <button type="button" onClick={() => openReceipt(h.invoice_no)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                              <Eye className="size-4" /> ดูรายละเอียด
-                            </button>
-                          </PopoverContent>
-                        </Popover>
+                        <Button
+                          size="icon-lg"
+                          variant="ghost"
+                          title="ดูรายละเอียด"
+                          onClick={() => openReceipt(h.invoice_no)}
+                        >
+                          <Eye />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -612,7 +646,7 @@ export default function ManagePurchasesPage() {
             )}
             actions={
               <>
-                <Button variant="warm" size="xl" onClick={openEditBill}>แก้ไขบิล</Button>
+                <Button variant="outline" size="xl" onClick={openEditBill}>แก้ไขบิล</Button>
                 <Button
                   variant="destructive"
                   size="xl"
@@ -638,7 +672,7 @@ export default function ManagePurchasesPage() {
             <DialogTitle className="flex items-center gap-2 flex-wrap">
               <FileText className="size-5 text-muted-foreground" />
               <span>แก้ไขรายละเอียดบิล</span>
-              <span className="text-sm font-mono text-muted-foreground font-normal">{selectedInvoice}</span>
+              <span className="text-sm text-muted-foreground font-normal">{selectedInvoice}</span>
             </DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-4">

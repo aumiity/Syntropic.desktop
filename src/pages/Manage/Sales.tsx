@@ -310,8 +310,8 @@ export default function ManageSalesPage() {
               <TableRow>
                 <SortableTableHead field="invoice_no" sort={sort} onToggle={toggleSort} className="min-w-24">เลขบิล</SortableTableHead>
                 {showColCustomer && <TableHead className="min-w-[180px]">ลูกค้า</TableHead>}
-                {showColStatus && <TableHead className="min-w-[140px]">สถานะ</TableHead>}
                 {showColTotal && <SortableTableHead field="total_amount" sort={sort} onToggle={toggleSort} className="min-w-24">ยอดสุทธิ</SortableTableHead>}
+                {showColStatus && <TableHead className="min-w-[140px]">สถานะ</TableHead>}
                 {showColDate && <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="min-w-24">เวลา</SortableTableHead>}
                 <TableHead className="text-center min-w-14">จัดการ</TableHead>
               </TableRow>
@@ -354,6 +354,11 @@ export default function ManageSalesPage() {
                       })()}
                     </TableCell>
                   )}
+                  {showColTotal && (
+                    <TableCell className="text-sm text-foreground">
+                      {formatCurrency(s.total_amount)}
+                    </TableCell>
+                  )}
                   {showColStatus && (
                     <TableCell>
                       <div className="flex items-center gap-1.5">
@@ -364,11 +369,6 @@ export default function ManageSalesPage() {
                           ? <Badge variant="destructive-outline">ยกเลิก</Badge>
                           : <Badge variant="success-outline">สำเร็จ</Badge>}
                       </div>
-                    </TableCell>
-                  )}
-                  {showColTotal && (
-                    <TableCell className="text-sm text-foreground">
-                      {formatCurrency(s.total_amount)}
                     </TableCell>
                   )}
                   {showColDate && <TableCell className="text-sm whitespace-nowrap">{formatDateTime(s.sold_at)}</TableCell>}

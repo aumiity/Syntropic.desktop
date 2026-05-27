@@ -84,6 +84,11 @@
     --violet-soft: 250 100% 97%;
     --violet-strong: 263 70% 42%;
 
+    --teal: 167 76% 36%;
+    --teal-foreground: 0 0% 100%;
+    --teal-soft: 165 76% 92%;
+    --teal-strong: 167 76% 26%;
+
     --shadow-card: 0 1px 0 rgba(20, 32, 29, 0.04), 0 8px 24px -16px rgba(20, 32, 29, 0.10);
     --selection-bg: hsl(175 60% 60% / 0.4);
 
@@ -172,6 +177,11 @@
     --violet-foreground: 0 0% 100%;
     --violet-soft: 263 30% 18%;
     --violet-strong: 263 80% 75%;
+
+    --teal: 167 70% 50%;
+    --teal-foreground: 0 0% 100%;
+    --teal-soft: 167 30% 18%;
+    --teal-strong: 167 70% 75%;
 
     --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 28px -18px rgba(0, 0, 0, 0.6);
     --selection-bg: hsl(175 60% 60% / 0.4);

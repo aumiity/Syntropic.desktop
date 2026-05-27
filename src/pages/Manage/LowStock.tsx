@@ -13,7 +13,7 @@ import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/Qu
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { compareNameBuckets } from '@/lib/sortName'
 import type { ManageOutletContext } from './index'
-import { PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes, Settings2, MoreHorizontal } from 'lucide-react'
+import { PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes, Settings2, MoreHorizontal, Filter, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -128,34 +128,16 @@ export default function ManageLowStockPage() {
     return () => clearTimeout(t)
   }, [load])
 
+  // Passive MetricCard snapshot of the q/category set. The status filter lives
+  // in the filter strip's Filter popover (no onClick → ManageLayout renders
+  // MetricCard instead of the clickable StatCard).
   useEffect(() => {
     setSummary([
-      {
-        label: 'รายการทั้งหมด',
-        value: rows.length.toLocaleString(),
-        icon: Package,
-        tint: 'primary',
-        onClick: () => setStatusFilter('all'),
-        isActive: statusFilter === 'all',
-      },
-      {
-        label: 'หมดสต็อก',
-        value: outCount.toLocaleString(),
-        icon: PackageX,
-        tint: 'destructive',
-        onClick: () => setStatusFilter('out'),
-        isActive: statusFilter === 'out',
-      },
-      {
-        label: 'ใกล้หมด',
-        value: Math.max(0, rows.length - outCount).toLocaleString(),
-        icon: TrendingDown,
-        tint: 'warm',
-        onClick: () => setStatusFilter('low'),
-        isActive: statusFilter === 'low',
-      },
+      { label: 'รายการทั้งหมด', value: rows.length.toLocaleString(),                  icon: Package,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'หมดสต็อก',      value: outCount.toLocaleString(),                     icon: PackageX,     tint: 'destructive2', sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ใกล้หมด',       value: Math.max(0, rows.length - outCount).toLocaleString(), icon: TrendingDown, tint: 'warm',  sub: 'รายการ', subClassName: 'text-base text-foreground' },
     ])
-  }, [rows.length, outCount, statusFilter, setSummary])
+  }, [rows.length, outCount, setSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).
@@ -233,6 +215,43 @@ export default function ManageLowStockPage() {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Status filter popover — was previously the clickable summary cards */}
+          {(() => {
+            const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+              { value: 'all', label: 'ทั้งหมด' },
+              { value: 'out', label: 'หมดสต็อก' },
+              { value: 'low', label: 'ใกล้หมด' },
+            ]
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรองสถานะ">
+                    <Filter className="size-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-1 gap-0">
+                  <PopoverHeader className="px-2">
+                    <PopoverTitle>สถานะ</PopoverTitle>
+                  </PopoverHeader>
+                  {STATUS_OPTIONS.map(o => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setStatusFilter(o.value)}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                        statusFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
+                      )}
+                    >
+                      <Check className={cn('size-4', statusFilter === o.value ? 'opacity-100' : 'opacity-0')} />
+                      <span className="flex-1 text-left">{o.label}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )
+          })()}
 
           <Popover>
             <PopoverTrigger asChild>

@@ -3,6 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { text } from "stream/consumers"
 
 const buttonVariants = cva(
   [
@@ -52,6 +53,13 @@ const buttonVariants = cva(
         ].join(" "),
         outline: [
           "border-transparent bg-muted",
+          "hover:bg-muted-hover hover:text-foreground",
+          "aria-expanded:bg-muted aria-expanded:text-foreground",
+          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+        ].join(" "),
+         mutedborder: [
+          "border-border-strong/30 bg-muted",
+          "text-muted-foreground border",
           "hover:bg-muted-hover hover:text-foreground",
           "aria-expanded:bg-muted aria-expanded:text-foreground",
           "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",

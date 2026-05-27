@@ -16,7 +16,7 @@ import { getCurrentUserId } from '@/stores/userStore'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency } from '@/lib/utils'
 import type { ManageOutletContext } from './index'
-import { PackageX, ClockAlert, Settings2, MoreHorizontal, CalendarClock } from 'lucide-react'
+import { PackageX, ClockAlert, Settings2, CalendarClock, Filter, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -201,26 +201,17 @@ export default function ManageExpiryPage() {
     }
   }
 
+  // Passive MetricCard snapshot of the q/category set. The time-range filter
+  // lives in the filter strip's Filter popover (no onClick → ManageLayout
+  // renders MetricCard instead of the clickable StatCard).
   useEffect(() => {
     setSummary([
-      {
-        label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive',
-        onClick: () => setFilter('expired'), isActive: filter === 'expired',
-      },
-      {
-        label: '≤ 30 วัน', value: counts.d30.toLocaleString(), icon: ClockAlert, tint: 'warm',
-        onClick: () => setFilter(30), isActive: filter === 30,
-      },
-      {
-        label: '≤ 90 วัน', value: counts.d90.toLocaleString(), icon: ClockAlert, tint: 'info-soft',
-        onClick: () => setFilter(90), isActive: filter === 90,
-      },
-      {
-        label: '≤ 180 วัน', value: counts.d180.toLocaleString(), icon: ClockAlert, tint: 'primary',
-        onClick: () => setFilter(180), isActive: filter === 180,
-      },
+      { label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive2', sub: 'ล็อต', subClassName: 'text-base text-foreground' },
+      { label: '≤ 30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'warm',         sub: 'ล็อต', subClassName: 'text-base text-foreground' },
+      { label: '≤ 90 วัน',     value: counts.d90.toLocaleString(),     icon: ClockAlert, tint: 'info-soft',    sub: 'ล็อต', subClassName: 'text-base text-foreground' },
+      { label: '≤ 180 วัน',    value: counts.d180.toLocaleString(),    icon: ClockAlert, tint: 'primary',      sub: 'ล็อต', subClassName: 'text-base text-foreground' },
     ])
-  }, [counts, filter, setSummary])
+  }, [counts, setSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).
@@ -261,6 +252,44 @@ export default function ManageExpiryPage() {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Time-range filter popover — was previously the clickable summary cards */}
+          {(() => {
+            const RANGE_OPTIONS: { value: FilterType; label: string }[] = [
+              { value: 'expired', label: 'หมดอายุแล้ว' },
+              { value: 30,        label: '≤ 30 วัน' },
+              { value: 90,        label: '≤ 90 วัน' },
+              { value: 180,       label: '≤ 180 วัน' },
+            ]
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรองช่วงเวลา">
+                    <Filter className="size-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-1 gap-0">
+                  <PopoverHeader className="px-2">
+                    <PopoverTitle>ช่วงเวลา</PopoverTitle>
+                  </PopoverHeader>
+                  {RANGE_OPTIONS.map(o => (
+                    <button
+                      key={String(o.value)}
+                      type="button"
+                      onClick={() => setFilter(o.value)}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                        filter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
+                      )}
+                    >
+                      <Check className={cn('size-4', filter === o.value ? 'opacity-100' : 'opacity-0')} />
+                      <span className="flex-1 text-left">{o.label}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )
+          })()}
 
           <Popover>
             <PopoverTrigger asChild>
@@ -339,7 +368,7 @@ export default function ManageExpiryPage() {
                       {lot.trade_name}
                     </TableCell>
                     {showColLot && (
-                      <TableCell className="font-mono text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground">
                         {lot.lot_number || <span className="text-foreground-subtle">—</span>}
                       </TableCell>
                     )}
@@ -375,19 +404,14 @@ export default function ManageExpiryPage() {
                     )}
                     <TableCell>
                       <div className="flex justify-center">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
-                              <MoreHorizontal />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
-                            <button type="button" onClick={() => setConfirmingLot(lot)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
-                              <PackageX className="size-4" /> ตัดออก
-                            </button>
-                          </PopoverContent>
-                        </Popover>
+                        <Button
+                          size="icon-lg"
+                          variant="destructive2"
+                          title="ตัดออก"
+                          onClick={() => setConfirmingLot(lot)}
+                        >
+                          <PackageX />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -441,7 +465,7 @@ export default function ManageExpiryPage() {
               <div className="text-sm font-semibold text-foreground">{confirmingLot.trade_name}</div>
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
                 <dt className="text-muted-foreground">ล็อต</dt>
-                <dd className="font-mono">{confirmingLot.lot_number || '—'}</dd>
+                <dd>{confirmingLot.lot_number || '—'}</dd>
                 <dt className="text-muted-foreground">จำนวน</dt>
                 <dd className="">{confirmingLot.qty_on_hand.toLocaleString()} {confirmingLot.unit_name || ''}</dd>
                 <dt className="text-muted-foreground">มูลค่าทุน</dt>
