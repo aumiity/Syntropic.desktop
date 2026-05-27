@@ -239,7 +239,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
               ) : rows.map(c => {
                 return (
                 <TableRow key={c.id} className="[&_td]:py-2.5 [&_td]:font-medium">
-                  <TableCell className="font-mono text-sm text-muted-foreground truncate">{c.code}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground truncate">{c.code}</TableCell>
                   <TableCell className="max-w-0">
                     <div className="flex items-center gap-2 min-w-0">
                       <InitialAvatar name={c.full_name} size="sm" />
@@ -571,7 +571,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
               ) : rows.map(s => {
                 return (
                 <TableRow key={s.id} className="[&_td]:py-2.5 [&_td]:font-medium">
-                  <TableCell className="font-mono text-sm text-muted-foreground truncate">{s.code}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground truncate">{s.code}</TableCell>
                   <TableCell className="max-w-0">
                     <div className="text-sm text-foreground truncate" title={s.name}>{s.name}</div>
                   </TableCell>

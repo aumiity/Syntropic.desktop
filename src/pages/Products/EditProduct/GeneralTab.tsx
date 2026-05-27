@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import type { ProductCategory, DrugType, ItemUnit } from '@/types'
 import type { GenericNameSuggestion } from './shared'
+import { PriceSection, PriceHistoryDialog } from './PriceTab'
 
 const Field = FormField
 
@@ -43,6 +44,11 @@ interface Props {
   initialGenericQuery?: string
   productId?: number
   isNew?: boolean
+  /** weighted-avg cost (products.cost_price) — informational only, 0 when new */
+  avgCost: number
+  baseUnit: string
+  /** Changes whenever the product is re-fetched (after save) → reload price history. */
+  reloadToken: string | number
 }
 
 export function GeneralTab({
@@ -50,12 +56,16 @@ export function GeneralTab({
   initialGenericQuery = '',
   productId,
   isNew = false,
+  avgCost,
+  baseUnit,
+  reloadToken,
 }: Props) {
   const [genericQuery, setGenericQuery] = useState(initialGenericQuery)
   const [genericSuggestions, setGenericSuggestions] = useState<GenericNameSuggestion[]>([])
   const [showGenericSugg, setShowGenericSugg] = useState(false)
   const genericTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [monthlySales, setMonthlySales] = useState<MonthlySales | null>(null)
+  const [priceHistoryOpen, setPriceHistoryOpen] = useState(false)
 
   useEffect(() => {
     if (isNew || !productId) { setMonthlySales(null); return }
@@ -156,6 +166,16 @@ export function GeneralTab({
           </div>
         </SectionCard>
 
+        <PriceSection
+          form={form}
+          setF={setF}
+          errors={errors}
+          avgCost={avgCost}
+          baseUnit={baseUnit}
+          isNew={isNew}
+          onOpenHistory={() => setPriceHistoryOpen(true)}
+        />
+
         <SectionCard icon={Settings} title="ตัวเลือกการขาย" tint="secondary">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
@@ -206,6 +226,25 @@ export function GeneralTab({
 
       {/* RIGHT COLUMN */}
       <div className="space-y-4">
+
+        <SectionCard icon={EyeOff} title="สถานะ" tint="secondary">
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_hidden ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
+              <div>
+                <div className="text-sm font-semibold text-foreground">ซ่อน</div>
+                <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>
+              </div>
+              <Switch size="lg" variant="destructive" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
+            </div>
+            <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_disabled ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
+              <div>
+                <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
+                <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
+              </div>
+              <Switch size="lg" variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
+            </div>
+          </div>
+        </SectionCard>
 
         <SectionCard icon={ScanBarcode} title="บาร์โค้ด" tint="secondary">
           <div className="grid grid-cols-2 gap-3">
@@ -394,26 +433,15 @@ export function GeneralTab({
           )}
         </SectionCard>
 
-        <SectionCard icon={EyeOff} title="สถานะ" tint="secondary">
-          <div className="grid grid-cols-2 gap-3">
-            <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_hidden ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
-              <div>
-                <div className="text-sm font-semibold text-foreground">ซ่อน</div>
-                <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>
-              </div>
-              <Switch size="lg" variant="destructive" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
-            </div>
-            <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_disabled ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
-              <div>
-                <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
-                <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
-              </div>
-              <Switch size="lg" variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
-            </div>
-          </div>
-        </SectionCard>
-
       </div>
+
+      <PriceHistoryDialog
+        open={priceHistoryOpen}
+        onOpenChange={setPriceHistoryOpen}
+        productId={productId ?? 0}
+        isNew={isNew}
+        reloadToken={reloadToken}
+      />
     </div>
   )
 }

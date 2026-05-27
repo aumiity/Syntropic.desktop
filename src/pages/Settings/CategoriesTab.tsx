@@ -140,7 +140,7 @@ export function CategoriesTab() {
               <SortableTableBody values={rows} onReorder={setRows}>
                 {rows.map(c => (
                   <SortableRow key={c.id} value={c}>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
                     <TableCell className="font-semibold text-sm text-foreground">{c.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.description ?? '—'}</TableCell>
                     <TableCell className="text-center">
@@ -163,7 +163,7 @@ export function CategoriesTab() {
                 ) : filtered.map((c, i) => (
                   <TableRow key={c.id}>
                     <TableCell className="text-center text-sm text-muted-foreground">{i + 1}</TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
                     <TableCell className="font-semibold text-sm text-foreground">{c.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.description ?? '—'}</TableCell>
                     <TableCell className="text-center">

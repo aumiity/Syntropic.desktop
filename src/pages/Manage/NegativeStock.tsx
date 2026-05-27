@@ -244,7 +244,7 @@ export default function NegativeStockPage() {
                 <div className="rounded-xl bg-muted/50 p-3 space-y-2 text-sm">
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-muted-foreground shrink-0">เลขที่บิล</span>
-                    <span className="font-mono font-semibold">{confirming.row.invoice_no}</span>
+                    <span className="font-semibold">{confirming.row.invoice_no}</span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-muted-foreground shrink-0">สินค้า</span>

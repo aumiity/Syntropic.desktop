@@ -150,7 +150,7 @@ export function LabelsTab({
             <h3 className="text-lg font-semibold text-foreground">ฉลากยา</h3>
             <Badge variant="neutral-outline">{product.labels?.length ?? 0}</Badge>
           </div>
-          <Button onClick={openAddLabel} className="h-9 px-3 ml-auto shrink-0">
+          <Button variant="elevated" onClick={openAddLabel} className="h-9 px-3 ml-auto shrink-0">
             <Plus className="size-4" /> เพิ่มฉลาก
           </Button>
         </div>

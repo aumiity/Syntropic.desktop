@@ -99,18 +99,18 @@ export function SaleDetailDialog({
               <DialogTitle className="flex items-center gap-3">
                 <span>{detail.invoice_no}</span>
                 {detail.status === 'voided'
-                  ? <Badge variant="destructive">ยกเลิกแล้ว</Badge>
-                  : <Badge variant="success">สำเร็จ</Badge>}
+                  ? <Badge variant="destructive-outline">ยกเลิกแล้ว</Badge>
+                  : <Badge variant="success-outline">สำเร็จ</Badge>}
               </DialogTitle>
             </DialogHeader>
             <DialogBody className="space-y-4">
               <div className="relative grid grid-cols-2 gap-3 text-sm bg-muted/30 rounded-lg p-3">
                 <div className="absolute top-3 right-3 flex items-center gap-1.5">
                   {([
-                    detail.cash_amount > 0 && { label: 'เงินสด', variant: 'success' as const },
-                    detail.card_amount > 0 && { label: 'บัตร', variant: 'info-soft' as const },
-                    detail.transfer_amount > 0 && { label: 'โอน', variant: 'warm' as const },
-                  ].filter(Boolean) as { label: string; variant: 'success' | 'info-soft' | 'warm' }[]).map(m => (
+                    detail.cash_amount > 0 && { label: 'เงินสด', variant: 'success-outline' as const },
+                    detail.card_amount > 0 && { label: 'บัตร', variant: 'info-outline' as const },
+                    detail.transfer_amount > 0 && { label: 'โอน', variant: 'warning-outline' as const },
+                  ].filter(Boolean) as { label: string; variant: 'success-outline' | 'info-outline' | 'warning-outline' }[]).map(m => (
                     <Badge key={m.label} variant={m.variant}>{m.label}</Badge>
                   ))}
                 </div>
@@ -183,7 +183,7 @@ export function SaleDetailDialog({
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium text-sm flex items-center gap-2">
-                                    {isBundle && <Badge variant="tertiary" className="shrink-0"><Boxes className="size-3 mr-1" />ชุด</Badge>}
+                                    {isBundle && <Badge variant="violet-outline" className="shrink-0"><Boxes className="size-3 mr-1" />ชุด</Badge>}
                                     <span className="truncate">{item.item_name}</span>
                                   </div>
                                   {item.item_note && <div className="text-sm text-muted-foreground">{item.item_note}</div>}
@@ -237,7 +237,7 @@ export function SaleDetailDialog({
                                             return (
                                               <tr key={cl.id} className={cancelledStyle}>
                                                 <td className="py-1 pr-4">{cl.component_name ?? '—'}</td>
-                                                <td className="py-1 pr-4 font-mono text-xs">
+                                                <td className="py-1 pr-4 text-xs">
                                                   {cl.lot_id == null
                                                     ? <span className="text-destructive">ไม่มีล็อต (ขายเกิน)</span>
                                                     : (cl.lot_number ?? '—')}

@@ -108,7 +108,7 @@ export function QuickStockDialog({
             <div className="min-w-0">
               <div>สต็อกและการแจ้งเตือน</div>
               <div className="text-sm font-normal text-muted-foreground truncate">
-                {target?.code && <span className="font-mono mr-1.5">{target.code}</span>}
+                {target?.code && <span className="mr-1.5">{target.code}</span>}
                 {target?.trade_name}
               </div>
             </div>

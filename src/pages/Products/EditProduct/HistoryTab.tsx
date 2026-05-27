@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
+import { Pagination, type PageSize } from '@/components/ui/pagination'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
@@ -20,6 +22,19 @@ import { MOVEMENT_META, type StockMovement, type MovementSortKey } from './share
 
 const ALL_MOVEMENT_TYPES = Object.keys(MOVEMENT_META)
 
+// Group movement types by label so types that share a label (e.g. `expired`
+// and `near_expiry` both display as "หมดอายุ") collapse into a single filter
+// checkbox that toggles all member types together.
+const MOVEMENT_FILTER_GROUPS: { label: string; types: string[]; icon: typeof MOVEMENT_META[string]['icon'] }[] = (() => {
+  const seen = new Map<string, { label: string; types: string[]; icon: typeof MOVEMENT_META[string]['icon'] }>()
+  for (const [type, meta] of Object.entries(MOVEMENT_META)) {
+    const existing = seen.get(meta.label)
+    if (existing) existing.types.push(type)
+    else seen.set(meta.label, { label: meta.label, types: [type], icon: meta.icon })
+  }
+  return Array.from(seen.values())
+})()
+
 interface Props {
   productId: number
   isNew: boolean
@@ -30,7 +45,12 @@ interface Props {
 export function HistoryTab({ productId, isNew, active }: Props) {
   const { toast } = useToast()
 
+  // Server-side pagination + filtering. `movements` is the current page's
+  // rows; `total` is the unpaginated count for the active filter set.
   const [movements, setMovements] = useState<StockMovement[] | null>(null)
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState<PageSize>(50)
   const [movementsLoading, setMovementsLoading] = useState(false)
   // Whitelist: types currently selected to show. Initialize as all types
   // (= no narrowing). Empty set = show none.
@@ -48,58 +68,53 @@ export function HistoryTab({ productId, isNew, active }: Props) {
   const [grDetailOpen, setGrDetailOpen] = useState(false)
   const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
 
-  // Lazy load on first activation. `movements === null` is the "not loaded yet" marker.
+  const loadMovements = useCallback(async () => {
+    if (!productId || isNew) return
+    // Manual "uncheck all" short-circuits the IPC — no need to ask the
+    // backend for zero rows.
+    if (movementTypeFilter.size === 0) {
+      setMovements([])
+      setTotal(0)
+      return
+    }
+    setMovementsLoading(true)
+    try {
+      // Only send `movement_types` when the user has narrowed the set.
+      // Sending the full whitelist is wasted bind params + a redundant IN clause.
+      const isNarrowing = movementTypeFilter.size < ALL_MOVEMENT_TYPES.length
+      const res = await window.api.products.stockMovements(productId, {
+        page,
+        pageSize: pageSize === 'all' ? 0 : pageSize,
+        movement_types: isNarrowing ? Array.from(movementTypeFilter) : undefined,
+        date_from: movementDateFrom || undefined,
+        date_to: movementDateTo || undefined,
+        sort_dir: movementSort.dir,
+      }) as { rows: StockMovement[]; total: number }
+      setMovements(res.rows)
+      setTotal(res.total)
+    } catch (err: any) {
+      console.error('[stockMovements] failed:', err)
+      toast({ title: 'โหลดประวัติไม่สำเร็จ', description: err?.message ?? String(err), variant: 'error' })
+      setMovements([])
+      setTotal(0)
+    } finally {
+      setMovementsLoading(false)
+    }
+  }, [productId, isNew, page, pageSize, movementTypeFilter, movementDateFrom, movementDateTo, movementSort.dir, toast])
+
   useEffect(() => {
-    if (!active || isNew || !productId) return
-    if (movements !== null) return
-    setMovementsLoading(true)
-    window.api.products.stockMovements(productId, { limit: 500 })
-      .then((rows: any) => setMovements(rows as StockMovement[]))
-      .catch(err => {
-        console.error('[stockMovements] failed:', err)
-        toast({ title: 'โหลดประวัติไม่สำเร็จ', description: err?.message ?? String(err), variant: 'destructive' })
-        setMovements([])
-      })
-      .finally(() => setMovementsLoading(false))
-  }, [active, productId, isNew, movements, toast])
+    if (active) loadMovements()
+  }, [active, loadMovements])
 
-  const reloadMovements = () => {
-    if (!productId) return
-    setMovementsLoading(true)
-    window.api.products.stockMovements(productId, { limit: 500 })
-      .then((rows: any) => setMovements(rows as StockMovement[]))
-      .catch(err => {
-        console.error('[stockMovements] failed:', err)
-        toast({ title: 'โหลดประวัติไม่สำเร็จ', description: err?.message ?? String(err), variant: 'destructive' })
-        setMovements([])
-      })
-      .finally(() => setMovementsLoading(false))
-  }
-
-  const filteredMovements = useMemo(() => {
-    const filtered = (movements ?? []).filter(m => {
-      if (!movementTypeFilter.has(m.movement_type)) return false
-      if (movementDateFrom || movementDateTo) {
-        // stock_movements.created_at format = 'YYYY-MM-DD HH:MM:SS' so the
-        // first 10 chars are the date — lexical compare matches calendar order
-        const day = m.created_at.slice(0, 10)
-        if (movementDateFrom && day < movementDateFrom) return false
-        if (movementDateTo && day > movementDateTo) return false
-      }
-      return true
-    })
-    const mul = movementSort.dir === 'asc' ? 1 : -1
-    return [...filtered].sort((a, b) => {
-      const cmp = a.created_at.localeCompare(b.created_at)
-      if (cmp !== 0) return mul * cmp
-      return mul * (a.id - b.id)
-    })
-  }, [movements, movementTypeFilter, movementSort, movementDateFrom, movementDateTo])
+  // Manual reload — used after void/refresh button. Forces re-fetch of the
+  // current page (loadMovements identity is stable for unchanged deps).
+  const reloadMovements = () => { loadMovements() }
 
   const toggleMovementSort = (by: MovementSortKey) => {
     setMovementSort(prev => prev.by === by
       ? { by, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
       : { by, dir: 'desc' })
+    setPage(1)
   }
 
   const handleVoidBill = async (reason: string) => {
@@ -137,14 +152,14 @@ export function HistoryTab({ productId, isNew, active }: Props) {
               <History className="size-4 text-foreground" />
             </span>
             <h3 className="text-lg font-semibold text-foreground">ประวัติเคลื่อนไหว</h3>
-            <Badge variant="neutral-outline">{(movements?.length ?? 0).toLocaleString()}</Badge>
+            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
           </div>
 
           <DateRangePicker
             variant="elevated"
             from={movementDateFrom}
             to={movementDateTo}
-            onChange={(f, t) => { setMovementDateFrom(f); setMovementDateTo(t) }}
+            onChange={(f, t) => { setMovementDateFrom(f); setMovementDateTo(t); setPage(1) }}
             className="w-60 shrink-0 ml-auto"
           />
           {(movementDateFrom || movementDateTo) && (
@@ -152,7 +167,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
               size="lg"
               variant="ghost"
               className="h-9 px-3 shrink-0"
-              onClick={() => { setMovementDateFrom(''); setMovementDateTo('') }}
+              onClick={() => { setMovementDateFrom(''); setMovementDateTo(''); setPage(1) }}
             >
               ล้างวันที่
             </Button>
@@ -165,9 +180,15 @@ export function HistoryTab({ productId, isNew, active }: Props) {
             const allOn = movementTypeFilter.size === ALL_MOVEMENT_TYPES.length
             const toggleAll = () => {
               setMovementTypeFilter(allOn ? new Set() : new Set(ALL_MOVEMENT_TYPES))
+              setPage(1)
             }
-            // Badge shows count only when filter is actively narrowing the view
+            // Badge shows count only when filter is actively narrowing the view.
+            // Count by group (UI-visible row count) not by raw type count, so
+            // merged entries like "หมดอายุ" (expired + near_expiry) read as 1.
             const isNarrowing = movementTypeFilter.size < ALL_MOVEMENT_TYPES.length
+            const activeGroupCount = MOVEMENT_FILTER_GROUPS.filter(g =>
+              g.types.every(t => movementTypeFilter.has(t))
+            ).length
             return (
               <Popover>
                 <PopoverTrigger asChild>
@@ -175,7 +196,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                     <Filter className="size-4" />
                     {isNarrowing && (
                       <span className="absolute -top-1 -right-1 size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                        {movementTypeFilter.size}
+                        {activeGroupCount}
                       </span>
                     )}
                   </Button>
@@ -193,22 +214,23 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                       {allOn ? 'ล้างทั้งหมด' : 'ทั้งหมด'}
                     </Button>
                   </PopoverHeader>
-                  {Object.entries(MOVEMENT_META).map(([type, meta]) => {
-                    const checked = movementTypeFilter.has(type)
+                  {MOVEMENT_FILTER_GROUPS.map(group => {
+                    const allChecked = group.types.every(t => movementTypeFilter.has(t))
                     return (
-                      <label key={type} className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                      <label key={group.label} className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                         <Checkbox
-                          checked={checked}
+                          checked={allChecked}
                           onCheckedChange={v => {
                             setMovementTypeFilter(prev => {
                               const next = new Set(prev)
-                              if (v === true) next.add(type)
-                              else next.delete(type)
+                              if (v === true) group.types.forEach(t => next.add(t))
+                              else group.types.forEach(t => next.delete(t))
                               return next
                             })
+                            setPage(1)
                           }}
                         />
-                        <span className="text-sm">{meta.label}</span>
+                        <span className="text-sm">{group.label}</span>
                       </label>
                     )
                   })}
@@ -250,16 +272,16 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                     กำลังโหลด...
                   </TableCell>
                 </TableRow>
-              ) : filteredMovements.length === 0 ? (
+              ) : (movements?.length ?? 0) === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
                     <History className="size-10 mx-auto mb-2 opacity-30" />
-                    {movements && movements.length > 0
+                    {(movementDateFrom || movementDateTo || movementTypeFilter.size < ALL_MOVEMENT_TYPES.length)
                       ? 'ไม่มีรายการตามตัวกรอง'
                       : 'ยังไม่มีความเคลื่อนไหวสต็อค'}
                   </TableCell>
                 </TableRow>
-              ) : filteredMovements.map(m => {
+              ) : (movements ?? []).map(m => {
                 const meta = MOVEMENT_META[m.movement_type] ?? {
                   label: m.movement_type,
                   variant: 'secondary' as const,
@@ -276,7 +298,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                         <Icon className="size-3" /> {meta.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm font-mono truncate" title={m.lot_number ?? undefined}>{m.lot_number ?? '—'}</TableCell>
+                    <TableCell className="text-sm truncate" title={m.lot_number ?? undefined}>{m.lot_number ?? '—'}</TableCell>
                     <TableCell className={cn(
                       'text-sm font-semibold',
                       isPositive ? 'text-success' : 'text-destructive',
@@ -333,18 +355,41 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           </Table>
         </div>
 
-        <div className="px-5 h-12 bg-card border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-end">
-          <span>
-            แสดง{' '}
-            <span className="font-semibold text-foreground">
-              {filteredMovements.length}
-            </span>
-            {movements && movementTypeFilter.size < ALL_MOVEMENT_TYPES.length ? <> / {movements.length}</> : null}
-            {' '}รายการ
-            {movements && movements.length >= 500 && (
-              <span className="ml-2 text-warning-strong">(แสดงล่าสุด 500 รายการ)</span>
-            )}
-          </span>
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
+          {(() => {
+            const size = pageSize === 'all' ? Math.max(total, 1) : pageSize
+            const start = total === 0 ? 0 : (page - 1) * size + 1
+            const end = Math.min(page * size, total)
+            const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(total / pageSize))
+            return (
+              <>
+                <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                  <span>จำนวนแถว</span>
+                  <Select
+                    value={String(pageSize)}
+                    onValueChange={v => { setPageSize(v === 'all' ? 'all' : Number(v)); setPage(1) }}
+                  >
+                    <SelectTrigger variant="elevated" className="h-9 min-w-20">
+                      <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="min-w-28">
+                      {[50, 100, 250, 500, 'all'].map(opt => (
+                        <SelectItem key={String(opt)} value={String(opt)}>
+                          {opt === 'all' ? 'ทั้งหมด' : String(opt)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span>
+                    {movementsLoading
+                      ? 'กำลังโหลด...'
+                      : <>แสดง <span className="font-semibold text-foreground">{start.toLocaleString()}-{end.toLocaleString()}</span> / {total.toLocaleString()}</>}
+                  </span>
+                </div>
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} className="w-auto" />
+              </>
+            )
+          })()}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +23,6 @@ import { LotsTab } from './LotsTab'
 import { LabelsTab } from './LabelsTab'
 import { UnitsTab } from './UnitsTab'
 import { GeneralTab } from './GeneralTab'
-import { PriceTab } from './PriceTab'
 import {
   type FullProduct,
   REQUIRED_FIELDS,
@@ -33,7 +32,16 @@ import {
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
+  // location.key === 'default' means the user landed here via direct URL /
+  // refresh — there's no history entry to pop back to, so we fall back to
+  // /products. Otherwise navigate(-1) returns them to where they came from
+  // (POS, sales report, dashboard, etc.).
+  const backToOrigin = () => {
+    if (location.key === 'default') navigate('/products')
+    else navigate(-1)
+  }
   const isNew = id === undefined
   const productId = Number(id)
 
@@ -205,7 +213,7 @@ export default function EditProductPage() {
 
   const goBack = () => {
     if (isDirty) { setShowLeaveConfirm(true); return }
-    navigate('/products')
+    backToOrigin()
   }
 
   // ---- Save general ----
@@ -215,13 +223,11 @@ export default function EditProductPage() {
       setErrors(missing)
       const labels = REQUIRED_FIELDS.filter(k => missing.has(k)).map(k => REQUIRED_LABEL[k])
       toast({ title: 'กรุณากรอกข้อมูลที่จำเป็น', description: labels.join(', '), variant: 'error' })
-      // Scroll to first missing field. price_retail now lives on the "ราคา"
-      // tab — switch there first so the highlighted field is actually visible,
-      // then defer the scroll/focus until the tab content has rendered.
+      // Scroll to first missing field. All required fields (incl. price_retail)
+      // now live on the General tab, so just switch there if we're elsewhere.
       const first = REQUIRED_FIELDS.find(k => missing.has(k))
       if (first) {
-        const targetTab = first === 'price_retail' ? 'price' : 'general'
-        setTab(targetTab)
+        setTab('general')
         setTimeout(() => {
           const el = document.querySelector(`[data-field="${first}"]`) as HTMLElement | null
           el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -341,7 +347,6 @@ export default function EditProductPage() {
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList variant="segmented" className="h-10">
             <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
-            <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
             <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
               <Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})
             </TabsTrigger>
@@ -360,7 +365,7 @@ export default function EditProductPage() {
           <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={goBack}>
             <ArrowLeft className="size-4" /> ย้อนกลับ
           </Button>
-          {(tab === 'general' || tab === 'price') && (
+          {tab === 'general' && (
             <Button size="lg" className="h-10 px-3" onClick={handleSave} disabled={saving}>
               <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : isNew ? 'เพิ่มสินค้า' : 'บันทึก'}
             </Button>
@@ -373,35 +378,39 @@ export default function EditProductPage() {
         // but are grayed out — values aren't meaningful until the product exists.
         const metricCardsGrid = (
           <div className="grid grid-cols-4 gap-3 shrink-0 pt-3">
-            {/* Meta card — hand-rolled to match MetricCard size="sm" proportions */}
-            <div className="bg-card rounded-card shadow-card border border-border px-4 py-2 flex items-center gap-3 overflow-hidden">
-              <div className="flex flex-col min-w-0 flex-1 text-left">
+            {/* Meta card — hand-rolled to match MetricCard default-size
+                proportions (h-32, icon top-right). Custom layout because we
+                need badges on their own row, which the MetricCard primitive
+                doesn't model. */}
+            <div className="bg-card rounded-card p-4 pt-3 shadow-card border border-border h-32 overflow-hidden relative">
+              <span className={`absolute top-4 right-4 grid place-items-center size-11 rounded-xl z-10 bg-primary-soft text-primary ${isNew ? 'opacity-50' : ''}`}>
+                <Info className="size-7" />
+              </span>
+              <div className="pr-10 min-w-0 relative z-10 h-full flex flex-col justify-start">
                 <div
                   className="text-base font-bold text-foreground truncate"
                   title={isNew ? 'สินค้าใหม่' : product.trade_name}
                 >
                   {isNew ? (form.trade_name?.trim() || 'สินค้าใหม่') : product.trade_name}
                 </div>
-                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                  <span className="text-sm text-muted-foreground font-mono shrink-0">{isNew ? '—' : (product.code ?? '—')}</span>
-                  <span className="text-sm text-muted-foreground shrink-0">·</span>
-                  <span className="text-sm text-muted-foreground truncate">{isNew ? 'รอบันทึก' : (categoryName ?? 'ไม่ระบุ')}</span>
-                  {!isNew && !!product.is_drug && <Badge variant="success" className="text-xs rounded-md px-1.5 py-0">ยา</Badge>}
-                  {!isNew && !!product.is_fda9 && <Badge variant="brand-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.9</Badge>}
-                  {!isNew && !!product.is_fda10 && <Badge variant="warm" className="text-xs rounded-md px-1.5 py-0">ข.ย.10</Badge>}
-                  {!isNew && !!product.is_fda11 && <Badge variant="destructive2" className="text-xs rounded-md px-1.5 py-0">ข.ย.11</Badge>}
-                  {!isNew && !!product.is_fda13 && <Badge variant="info-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.13</Badge>}
-                  {!isNew && !!product.is_hidden && <Badge variant="secondary" className="text-xs rounded-md px-1.5 py-0">ซ่อน</Badge>}
-                  {!isNew && !!product.is_disabled && <Badge variant="destructive" className="text-xs rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
+                <div className="flex items-center gap-1.5 mt-1 min-w-0 text-sm h-[30px]">
+                  <span className="text-muted-foreground shrink-0">{isNew ? '—' : (product.code ?? '—')}</span>
+                  <span className="text-muted-foreground shrink-0">·</span>
+                  <span className="text-muted-foreground truncate">{isNew ? 'รอบันทึก' : (categoryName ?? 'ไม่ระบุ')}</span>
+                </div>
+                <div className="flex items-center gap-1 mt-auto min-w-0 flex-wrap">
+                  {!isNew && !!product.is_drug && <Badge variant="success-outline">ยา</Badge>}
+                  {!isNew && !!product.is_fda9 && <Badge variant="brand-outline">ข.ย.9</Badge>}
+                  {!isNew && !!product.is_fda10 && <Badge variant="warning-outline">ข.ย.10</Badge>}
+                  {!isNew && !!product.is_fda11 && <Badge variant="destructive-outline">ข.ย.11</Badge>}
+                  {!isNew && !!product.is_fda13 && <Badge variant="info-outline">ข.ย.13</Badge>}
+                  {!isNew && !!product.is_hidden && <Badge variant="muted-outline">ซ่อน</Badge>}
+                  {!isNew && !!product.is_disabled && <Badge variant="destructive-outline">ปิดใช้งาน</Badge>}
                 </div>
               </div>
-              <span className={`grid place-items-center size-11 rounded-xl bg-primary-soft text-primary shrink-0 ${isNew ? 'opacity-50' : ''}`}>
-                <Info className="size-7" />
-              </span>
             </div>
 
             <MetricCard
-              size="sm"
               label="ราคาทุน (ล่าสุด)"
               value={isNew ? '—' : formatCurrency(product.last_cost_price)}
               unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
@@ -411,7 +420,6 @@ export default function EditProductPage() {
               className={isNew ? 'opacity-50' : ''}
             />
             <MetricCard
-              size="sm"
               label="ราคาขาย"
               value={isNew ? '—' : formatCurrency(product.price_retail)}
               valueClassName={'text-foreground'}
@@ -425,7 +433,6 @@ export default function EditProductPage() {
               className={isNew ? 'opacity-50' : ''}
             />
             <MetricCard
-              size="sm"
               label="คงเหลือ"
               value={isNew ? '—' : totalStock.toLocaleString()}
               unit={isNew ? undefined : (baseUnit !== '—' ? baseUnit : undefined)}
@@ -477,15 +484,6 @@ export default function EditProductPage() {
                 categories={categories}
                 drugTypes={drugTypes}
                 itemUnits={itemUnits}
-                productId={productId}
-                isNew={isNew}
-              />
-            )}
-            {tab === 'price' && (
-              <PriceTab
-                form={form}
-                setF={setF}
-                errors={errors}
                 productId={productId}
                 isNew={isNew}
                 avgCost={product.cost_price ?? 0}
@@ -575,7 +573,7 @@ export default function EditProductPage() {
           </DialogBody>
           <DialogFooter>
             <Button variant="destructive2" size="xl" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
-            <Button variant="destructive" size="xl" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); navigate('/products') }}>
+            <Button variant="destructive" size="xl" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); backToOrigin() }}>
               ออกจากหน้านี้
             </Button>
           </DialogFooter>

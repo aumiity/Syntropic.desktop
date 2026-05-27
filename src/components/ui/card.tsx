@@ -281,8 +281,12 @@ function MetricCard({
           </span>
           {unit && <span className="text-sm font-semibold text-muted-foreground truncate" title={unit}>{unit}</span>}
         </div>
-        {sub && <div className={cn("font-semibold text-sm leading-tight truncate", accentColor, subClassName)} title={subTitle}>{sub}</div>}
-        {badge && <div className="mt-1.5">{badge}</div>}
+        {(sub || badge) && (
+          <div className="flex items-center gap-1.5 mt-auto min-w-0">
+            {sub && <div className={cn("font-semibold text-sm leading-tight truncate", accentColor, subClassName)} title={subTitle ?? sub}>{sub}</div>}
+            {badge && <div className="shrink-0">{badge}</div>}
+          </div>
+        )}
       </div>
     </>
   )

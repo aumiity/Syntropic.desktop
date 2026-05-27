@@ -119,7 +119,7 @@ function FontCard({
       )}
     >
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[11px] font-mono text-muted-foreground">{label}</span>
+        <span className="text-[11px] text-muted-foreground">{label}</span>
         {isActive && <span className="text-[10px] font-semibold text-primary">● ใช้งาน</span>}
       </div>
       <div className="text-base text-foreground" style={{ fontFamily }}>{sample}</div>
@@ -142,7 +142,7 @@ function Section({
     )}>
       <div className="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-3 gap-4">
         <span className="font-semibold text-sm text-foreground">{title}</span>
-        <code className="text-[11px] font-mono text-muted-foreground bg-muted border border-border/60 px-2 py-0.5 rounded-md shrink-0">
+        <code className="text-[11px] text-muted-foreground bg-muted border border-border/60 px-2 py-0.5 rounded-md shrink-0">
           {path}
         </code>
       </div>
@@ -260,7 +260,7 @@ export default function CSSPage() {
           {/* ── FONTS ── */}
           <Section title="Fonts" path="--font-latin / --font-thai" full>
             <p className="text-xs text-foreground">
-              เลือกฟอนต์ Latin และ Thai แยกกัน คลิกเพื่อเปลี่ยนทันที (auto-save ลง <code className="font-mono">src/index.css</code>)
+              เลือกฟอนต์ Latin และ Thai แยกกัน คลิกเพื่อเปลี่ยนทันที (auto-save ลง <code>src/index.css</code>)
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -296,11 +296,11 @@ export default function CSSPage() {
           <Section title="Color Tokens (from index.css)" path="src/index.css" full>
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-foreground">
-                แก้ค่า HSL ได้จากหน้านี้ แล้วกดบันทึกเพื่อเขียนลงไฟล์ <code className="font-mono">src/index.css</code>
+                แก้ค่า HSL ได้จากหน้านี้ แล้วกดบันทึกเพื่อเขียนลงไฟล์ <code>src/index.css</code>
               </p>
               <div className="flex items-center gap-2">
                 <Input
-                  className="h-8 w-24 text-xs font-mono"
+                  className="h-8 w-24 text-xs"
                   value={fontSize}
                   onChange={e => setFontSize(e.target.value)}
                   placeholder="18px"
@@ -325,7 +325,7 @@ export default function CSSPage() {
                 return (
                   <div key={token} className="grid grid-cols-[190px_1fr_1fr] border-b border-border last:border-b-0 bg-card">
                     <div className="px-3 py-2 flex items-center">
-                      <p className="text-[11px] font-mono text-foreground">{token}</p>
+                      <p className="text-[11px] text-foreground">{token}</p>
                     </div>
                     <div className="px-3 py-2">
                       <div
@@ -337,7 +337,7 @@ export default function CSSPage() {
                       >
                         <span className="text-[10px] font-semibold text-foreground">Aa</span>
                         <Input
-                          className="h-6 w-40 border-border/70 bg-background/85 text-[10px] font-mono text-foreground placeholder:text-muted-foreground"
+                          className="h-6 w-40 border-border/70 bg-background/85 text-[10px] text-foreground placeholder:text-muted-foreground"
                           value={light}
                           onChange={e => updateColorValue(token, 'light', e.target.value)}
                         />
@@ -353,7 +353,7 @@ export default function CSSPage() {
                       >
                         <span className="text-[10px] leading-none text-foreground">Aa</span>
                         <Input
-                          className="h-6 w-40 border-border/70 bg-background/85 text-[10px] font-mono text-foreground placeholder:text-muted-foreground"
+                          className="h-6 w-40 border-border/70 bg-background/85 text-[10px] text-foreground placeholder:text-muted-foreground"
                           value={dark}
                           onChange={e => updateColorValue(token, 'dark', e.target.value)}
                         />
@@ -377,8 +377,8 @@ export default function CSSPage() {
                       style={{ backgroundColor: selectedPaletteColor.hex }}
                     />
                     <p className="font-semibold text-xs text-foreground">{selectedPaletteColor.family}-{selectedPaletteColor.shade}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{selectedPaletteColor.hex}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{selectedPaletteColor.hsl}</p>
+                    <p className="text-xs text-muted-foreground">{selectedPaletteColor.hex}</p>
+                    <p className="text-xs text-muted-foreground">{selectedPaletteColor.hsl}</p>
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">ยังไม่ได้เลือกสี</p>

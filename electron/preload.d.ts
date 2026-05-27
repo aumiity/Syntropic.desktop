@@ -20,10 +20,12 @@ declare const api: {
         }) => Promise<any>;
         priceHistory: (id: number, limit?: number) => Promise<any>;
         stockMovements: (productId: number, opts?: {
-            limit?: number;
+            page?: number;
+            pageSize?: number;
             movement_types?: string[];
             date_from?: string;
             date_to?: string;
+            sort_dir?: "asc" | "desc";
         }) => Promise<any>;
         adjustStock: (productId: number, data: any) => Promise<any>;
         addUnit: (data: any) => Promise<any>;

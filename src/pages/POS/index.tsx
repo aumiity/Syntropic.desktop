@@ -1398,7 +1398,7 @@ export default function POSPage() {
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="text-xl font-bold leading-tight truncate">{c.full_name}</div>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge variant="secondary" className="font-mono">{c.code || '-'}</Badge>
+                        <Badge variant="secondary">{c.code || '-'}</Badge>
                         {hasAlert ? (
                           <Badge variant="destructive" className="gap-1">
                             <AlertTriangle className="size-3" /> มีการแจ้งเตือน
@@ -1423,18 +1423,18 @@ export default function POSPage() {
                   <SectionCard icon={Contact} title="ข้อมูลติดต่อ" tint="info-soft">
                     <div className="space-y-2.5">
                       {[
-                        { Icon: Phone, label: 'เบอร์โทร', value: c.phone || '-', mono: false },
-                        { Icon: CreditCard, label: 'เลขบัตรประชาชน', value: c.id_card || '-', mono: true },
-                        { Icon: Cake, label: 'วันเกิด', value: dobText || '-', mono: false },
-                        { Icon: MapPin, label: 'ที่อยู่', value: c.address || '-', mono: false, wrap: true },
-                      ].map(({ Icon, label, value, mono, wrap }) => (
+                        { Icon: Phone, label: 'เบอร์โทร', value: c.phone || '-' },
+                        { Icon: CreditCard, label: 'เลขบัตรประชาชน', value: c.id_card || '-' },
+                        { Icon: Cake, label: 'วันเกิด', value: dobText || '-' },
+                        { Icon: MapPin, label: 'ที่อยู่', value: c.address || '-', wrap: true },
+                      ].map(({ Icon, label, value, wrap }) => (
                         <div key={label} className="flex items-start gap-3">
                           <span className="grid place-items-center size-9 rounded-lg bg-muted text-muted-foreground shrink-0">
                             <Icon className="size-4" />
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm text-muted-foreground">{label}</div>
-                            <div className={`text-base text-foreground ${mono ? 'font-mono' : ''} ${wrap ? 'whitespace-pre-line break-words' : 'truncate'}`}>
+                            <div className={`text-base text-foreground ${wrap ? 'whitespace-pre-line break-words' : 'truncate'}`}>
                               {value}
                             </div>
                           </div>
@@ -1600,7 +1600,7 @@ export default function POSPage() {
                         </span>
                         <div className="flex items-center gap-1.5 min-w-0">
                           {cart.customer?.code ? (
-                            <span className="text-sm text-muted-foreground font-mono truncate">{cart.customer.code}</span>
+                            <span className="text-sm text-muted-foreground truncate">{cart.customer.code}</span>
                           ) : null}
                           {cart.saleType === 'wholesale' ? (
                             <Badge variant="warm" className="text-xs rounded-md shrink-0">ขายส่ง</Badge>
@@ -1939,7 +1939,7 @@ export default function POSPage() {
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm truncate text-foreground">{item.product_name}</div>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <span className="font-mono truncate">{item.lot_number || '—'}</span>
+                        <span className="truncate">{item.lot_number || '—'}</span>
                         <span className="text-foreground-subtle">·</span>
                         <span className="">×{item.qty}</span>
                       </div>
@@ -2107,7 +2107,7 @@ export default function POSPage() {
                               className={`w-full text-left px-3 py-1.5 rounded-lg transition-colors focus:outline-none ${selected ? 'bg-primary-soft ring-2 ring-inset ring-primary' : 'bg-muted hover:bg-primary-soft/60'}`}
                             >
                               <div className="flex justify-between items-center gap-2">
-                                <span className={`font-mono font-semibold text-sm truncate ${selected ? 'text-primary' : 'text-foreground'}`}>{lot.lot_number || '—'}</span>
+                                <span className={`font-semibold text-sm truncate ${selected ? 'text-primary' : 'text-foreground'}`}>{lot.lot_number || '—'}</span>
                                 <span className="text-sm font-bold text-foreground shrink-0">{formatCurrency(lot.sell_price)}</span>
                               </div>
                               <div className="flex items-center justify-between gap-2 mt-0.5">
@@ -2187,7 +2187,7 @@ export default function POSPage() {
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm truncate text-foreground">{item.product_name}</div>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <span className="font-mono truncate">{item.lot_number || '—'}</span>
+                        <span className="truncate">{item.lot_number || '—'}</span>
                         <span className="text-foreground-subtle">·</span>
                         <span className="">×{item.qty}</span>
                       </div>

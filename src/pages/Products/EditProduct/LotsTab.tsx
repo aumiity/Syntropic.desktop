@@ -1,25 +1,56 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import {
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle,
+} from '@/components/ui/popover'
 import { DateInput } from '@/components/ui/date-input'
 import { FormField } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
-import { formatCurrency, formatExpiry, getExpiryStatus } from '@/lib/utils'
-import { Edit, Package } from 'lucide-react'
+import { formatCurrency, formatDate, formatExpiry, cn } from '@/lib/utils'
+import dayjs from 'dayjs'
+import { Edit, Package, Filter, Check, Clock, ClockFading, ClockAlert } from 'lucide-react'
 import type { ProductLot } from '@/types'
 import type { FullProduct } from './shared'
 
 const Field = FormField
 const unitSuffix = (u: string) => <span className="font-normal normal-case text-muted-foreground"> ({u})</span>
+
+type SortField = 'lot_number' | 'expiry_date' | 'cost_price' | 'status'
+type SortDir = 'asc' | 'desc'
+interface SortState { by: SortField; dir: SortDir }
+
+type LotStatus = 'active' | 'closed' | 'cancelled'
+type StatusFilter = 'all' | LotStatus
+
+// "หมด" (qty=0, !is_closed) is collapsed into "ปิด" — same semantic
+// (lot has no usable stock); the qty=0 + !is_closed combo is only a legacy
+// edge case since `is_closed` auto-toggles when qty crosses 0.
+const getLotStatus = (lot: ProductLot): LotStatus => {
+  if (lot.is_cancelled) return 'cancelled'
+  if (lot.is_closed || !Number(lot.qty_on_hand)) return 'closed'
+  return 'active'
+}
+
+// Sort rank: usable first → closed → cancelled (asc puts the most relevant
+// rows at the top).
+const STATUS_RANK: Record<LotStatus, number> = { active: 0, closed: 1, cancelled: 2 }
+
+const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: 'all',       label: 'ทั้งหมด' },
+  { value: 'active',    label: 'ใช้งาน' },
+  { value: 'closed',    label: 'ปิด' },
+  { value: 'cancelled', label: 'ยกเลิก' },
+]
 
 interface Props {
   product: FullProduct
@@ -40,8 +71,40 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
   // Lot edit confirm modal — extra step to prevent accidental saves
   const [confirmLot, setConfirmLot] = useState<ProductLot | null>(null)
 
-  const activeLotList = (product.lots ?? []).filter(l => !l.is_cancelled)
-  const totalStock = activeLotList.reduce((sum, l) => sum + (Number(l.qty_on_hand) || 0), 0)
+  // Default to expiry desc (newest lots first) + only "ใช้งาน" — operators
+  // viewing this tab usually want to confirm/edit the lots they just received,
+  // which sit at the far-future end of the expiry timeline.
+  const [sort, setSort] = useState<SortState>({ by: 'expiry_date', dir: 'desc' })
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active')
+
+  const toggleSort = (field: SortField) => {
+    setSort(s => s.by === field
+      ? { by: field, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+      : { by: field, dir: 'asc' })
+  }
+
+  const totalStock = (product.lots ?? [])
+    .filter(l => !l.is_cancelled)
+    .reduce((sum, l) => sum + (Number(l.qty_on_hand) || 0), 0)
+
+  const displayLots = useMemo(() => {
+    const all = product.lots ?? []
+    const filtered = statusFilter === 'all'
+      ? all
+      : all.filter(l => getLotStatus(l) === statusFilter)
+    const dir = sort.dir === 'asc' ? 1 : -1
+    return [...filtered].sort((a, b) => {
+      if (sort.by === 'cost_price') {
+        return ((Number(a.cost_price) || 0) - (Number(b.cost_price) || 0)) * dir
+      }
+      if (sort.by === 'status') {
+        return (STATUS_RANK[getLotStatus(a)] - STATUS_RANK[getLotStatus(b)]) * dir
+      }
+      const av = (sort.by === 'lot_number' ? a.lot_number : a.expiry_date) ?? ''
+      const bv = (sort.by === 'lot_number' ? b.lot_number : b.expiry_date) ?? ''
+      return av.localeCompare(bv) * dir
+    })
+  }, [product.lots, sort, statusFilter])
 
   const startEditLot = (lot: ProductLot) => {
     setEditingLotId(lot.id)
@@ -145,46 +208,85 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
               <Package className="size-4 text-foreground" />
             </span>
             <h3 className="text-lg font-semibold text-foreground">ล็อต</h3>
-            <Badge variant="neutral-outline">{product.lots?.length ?? 0}</Badge>
+            <Badge variant="neutral-outline">{displayLots.length}</Badge>
           </div>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 ml-auto" title="ตัวกรอง">
+                <Filter className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-1 gap-0">
+              <PopoverHeader className="px-2">
+                <PopoverTitle>สถานะ</PopoverTitle>
+              </PopoverHeader>
+              {STATUS_OPTIONS.map(o => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => setStatusFilter(o.value)}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                    statusFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
+                  )}
+                >
+                  <Check className={cn('size-4', statusFilter === o.value ? 'opacity-100' : 'opacity-0')} />
+                  <span className="flex-1 text-left">{o.label}</span>
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-28">Lot No.</TableHead>
+                <SortableTableHead field="lot_number" sort={sort} onToggle={toggleSort} className="min-w-28">Lot No.</SortableTableHead>
                 <TableHead className="min-w-32">ผู้จัดจำหน่าย</TableHead>
-                <TableHead className="min-w-24">วันหมดอายุ</TableHead>
-                <TableHead className="min-w-24">ราคาทุน</TableHead>
+                <SortableTableHead field="expiry_date" sort={sort} onToggle={toggleSort} className="min-w-24">วันหมดอายุ</SortableTableHead>
+                <SortableTableHead field="cost_price" sort={sort} onToggle={toggleSort} className="min-w-24">ราคาทุน</SortableTableHead>
                 <TableHead className="min-w-20">รับเข้า</TableHead>
                 <TableHead className="min-w-20">คงเหลือ</TableHead>
-                <TableHead className="min-w-24">สถานะ</TableHead>
+                <SortableTableHead field="status" sort={sort} onToggle={toggleSort} className="min-w-24">สถานะ</SortableTableHead>
                 <TableHead className="min-w-16">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(product.lots?.length ?? 0) === 0 ? (
+              {displayLots.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
                     <Package className="size-10 mx-auto mb-2 opacity-30" />
-                    ยังไม่มีล็อต
+                    {(product.lots?.length ?? 0) === 0 ? 'ยังไม่มีล็อต' : 'ไม่พบล็อตที่ตรงเงื่อนไข'}
                   </TableCell>
                 </TableRow>
-              ) : product.lots.map(lot => {
-                const expStatus = getExpiryStatus(lot.expiry_date)
-
+              ) : displayLots.map(lot => {
                 return (
                   <TableRow key={lot.id} className="[&_td]:py-2.5 [&_td]:font-medium">
-                    <TableCell className="font-mono text-sm font-semibold">{lot.lot_number}</TableCell>
+                    <TableCell className="text-sm font-semibold">{lot.lot_number}</TableCell>
                     <TableCell className="text-sm">{(lot as any).supplier_name ?? '—'}</TableCell>
                     <TableCell className="text-sm">
-                      <span className={
-                        expStatus === 'expired' ? 'text-destructive font-semibold' :
-                        expStatus === 'danger'  ? 'text-warning-strong font-semibold' :
-                        expStatus === 'warning' ? 'text-warning' : ''
-                      }>
-                        {formatExpiry(lot.expiry_date)}
-                      </span>
+                      {(() => {
+                        if (!lot.expiry_date) return <span className="text-muted-foreground">—</span>
+                        const days = dayjs(lot.expiry_date).diff(dayjs(), 'day')
+                        const dateStr = formatDate(lot.expiry_date)
+                        // 3 buckets: expired (<0) · near-expiry (<90d, "ต่ำกว่า 3 เดือน") · normal
+                        if (days < 0) return (
+                          <Badge variant="destructive-outline" className="rounded-md gap-1">
+                            <ClockAlert className="size-3.5" /> {dateStr}
+                          </Badge>
+                        )
+                        if (days < 90) return (
+                          <Badge variant="warning-outline" className="rounded-md gap-1">
+                            <ClockFading className="size-3.5" /> {dateStr}
+                          </Badge>
+                        )
+                        return (
+                          <Badge variant="success-outline" className="rounded-md gap-1">
+                            <Clock className="size-3.5" /> {dateStr}
+                          </Badge>
+                        )
+                      })()}
                     </TableCell>
                     <TableCell className="text-sm">{formatCurrency(lot.cost_price)}</TableCell>
                     <TableCell className="text-sm">{lot.qty_received}</TableCell>
@@ -192,15 +294,13 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                     <TableCell>
                       {lot.is_cancelled
                         ? <Badge variant="destructive-outline" className="rounded-md">ยกเลิก</Badge>
-                        : lot.is_closed
-                        ? <Badge variant="destructive-outline" className="rounded-md">ปิด</Badge>
-                        : lot.qty_on_hand === 0
-                        ? <Badge variant="neutral-outline" className="rounded-md">หมด</Badge>
+                        : (lot.is_closed || lot.qty_on_hand === 0)
+                        ? <Badge variant="muted-outline" className="rounded-md">ปิด</Badge>
                         : <Badge variant="success-outline" className="rounded-md">ใช้งาน</Badge>}
                     </TableCell>
                     <TableCell>
                       {!lot.is_cancelled && (
-                        <Button size="icon-lg" variant="outline" onClick={() => startEditLot(lot)} title="แก้ไข">
+                        <Button size="icon-lg" variant="elevated" onClick={() => startEditLot(lot)} title="แก้ไข">
                           <Edit />
                         </Button>
                       )}
@@ -213,9 +313,8 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
         </div>
         <div className="px-5 h-12 bg-card border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between gap-3">
           <span className="truncate">การเปลี่ยนจำนวนคงเหลือจะบันทึกในประวัติการเคลื่อนไหวสต็อกอัตโนมัติ</span>
-          <span className="flex items-center gap-3 shrink-0">
-            <span>ใช้งาน <span className="font-semibold text-success">{activeLotList.length}</span></span>
-            <span>คงเหลือรวม <span className="font-semibold text-foreground">{totalStock.toLocaleString()}</span> {baseUnit}</span>
+          <span className="shrink-0">
+            คงเหลือรวม <span className="font-semibold text-foreground">{totalStock.toLocaleString()}</span> {baseUnit}
           </span>
         </div>
       </div>
@@ -246,8 +345,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
 
                 <Field label="Lot No.">
                   <Input variant="elevated" value={lotEditForm.lot_number}
-                    onChange={e => setLotEditForm(f => ({ ...f, lot_number: e.target.value }))}
-                    className="font-mono" />
+                    onChange={e => setLotEditForm(f => ({ ...f, lot_number: e.target.value }))} />
                 </Field>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -297,7 +395,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
               <>
                 <div className="bg-muted rounded-card px-4 py-3">
                   <div className="text-sm text-muted-foreground">ล็อต</div>
-                  <div className="font-mono font-semibold text-sm">{confirmLot.lot_number}</div>
+                  <div className="font-semibold text-sm">{confirmLot.lot_number}</div>
                 </div>
                 <div className="space-y-2">
                   {getLotEditChanges(confirmLot).map((c, i) => (

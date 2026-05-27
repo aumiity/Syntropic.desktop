@@ -497,7 +497,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                         <span className="truncate">{p.trade_name}</span>
                         {stock === 0 && <span className="text-xs bg-destructive/20 text-destructive px-1.5 py-0.5 rounded font-medium shrink-0">หมด</span>}
                       </div>
-                      {p.code && <div className="text-xs text-muted-foreground font-mono truncate">{p.code}</div>}
+                      {p.code && <div className="text-xs text-muted-foreground truncate">{p.code}</div>}
                     </div>
                     <div className="text-center text-base text-muted-foreground truncate">{p.unit_name ?? '—'}</div>
                     <div className="text-right font-bold text-foreground text-base">{formatCurrency(p.cost_price)}</div>

@@ -103,7 +103,7 @@ export function DrugTypesTab() {
                 </TableRow>
               ) : filtered.map(d => (
                 <TableRow key={d.id}>
-                  <TableCell className="font-mono text-sm font-semibold">{d.code}</TableCell>
+                  <TableCell className="text-sm font-semibold">{d.code}</TableCell>
                   <TableCell className="text-sm text-foreground">{d.name_th}</TableCell>
                   {FDA_FLAGS.map(({ key }) => (
                     <TableCell key={key} className="text-center">

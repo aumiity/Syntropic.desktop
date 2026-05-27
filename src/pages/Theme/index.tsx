@@ -74,7 +74,7 @@ function Section({
     )}>
       <div className="flex items-center justify-between bg-muted px-5 py-3 gap-4">
         <span className="font-semibold text-sm text-foreground-subtle">{title}</span>
-        <code className="text-sm font-mono text-muted-foreground bg-card border border-border px-2 py-0.5 rounded-md shrink-0">
+        <code className="text-sm text-muted-foreground bg-card border border-border px-2 py-0.5 rounded-md shrink-0">
           {path}
         </code>
       </div>
@@ -614,7 +614,7 @@ export default function Theme() {
                       onCheckedChange={v => setChecked(v === true)}
                     />
                     <Label htmlFor="cb-toggle">
-                      สถานะ: <span className="font-mono">{checked ? 'checked' : 'unchecked'}</span>
+                      สถานะ: <span>{checked ? 'checked' : 'unchecked'}</span>
                     </Label>
                   </div>
                 </DemoRow>
@@ -825,7 +825,7 @@ export default function Theme() {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">รหัสสินค้า</span>
-                          <span className="font-mono">PRD-0042</span>
+                          <span>PRD-0042</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">หมวดหมู่</span>
@@ -1171,10 +1171,10 @@ export default function Theme() {
               {/* ── SORTABLE (DRAG REORDER) ── */}
               <Section title="Sortable Table (drag-to-reorder)" path="src/components/ui/sortable.tsx" full>
                 <p className="text-sm text-muted-foreground">
-                  ลากจัดลำดับด้วย <code className="font-mono">SortableTableBody</code> + <code className="font-mono">SortableRow</code>.
+                  ลากจัดลำดับด้วย <code>SortableTableBody</code> + <code>SortableRow</code>.
                   คอลัมน์แรกเป็น grip handle (ลากได้เฉพาะที่ handle — กันลากพลาด) state เป็นของ caller
-                  (<code className="font-mono">values</code>/<code className="font-mono">onReorder</code>) ส่วนการเซฟลำดับให้ทำใน
-                  <code className="font-mono">onDragEnd</code>. ใช้คู่กับปุ่มสลับโหมด "จัดลำดับ" ในแถบหัวตาราง
+                  (<code>values</code>/<code>onReorder</code>) ส่วนการเซฟลำดับให้ทำใน
+                  <code>onDragEnd</code>. ใช้คู่กับปุ่มสลับโหมด "จัดลำดับ" ในแถบหัวตาราง
                 </p>
                 <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
                   <Table>
@@ -1337,7 +1337,7 @@ export default function Theme() {
                   </Dialog>
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
-                  Available sizes: <code className="font-mono">sm md lg xl 2xl full</code>
+                  Available sizes: <code>sm md lg xl 2xl full</code>
                 </p>
               </Section>
 
@@ -1508,7 +1508,7 @@ export default function Theme() {
                 <DemoRow label="Interactive (10 pages)">
                   <Pagination page={page} totalPages={10} onPageChange={setPage} />
                 </DemoRow>
-                <p className="text-sm text-muted-foreground font-mono">
+                <p className="text-sm text-muted-foreground">
                   page = {page} / totalPages = 10
                 </p>
                 <DemoRow label="Few pages (≤7, no ellipsis)">
@@ -1535,7 +1535,7 @@ export default function Theme() {
                   </div>
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
-                  Note: page-nav-only mode renders <code className="font-mono">null</code> when <code className="font-mono">totalPages {'<='} 1</code>. Pass both <code className="font-mono">pageSize</code> and <code className="font-mono">onPageSizeChange</code> to show the selector (default options <code className="font-mono">[50, 100, 250, 500, &apos;all&apos;]</code>) — layout becomes full-width <code className="font-mono">justify-between</code>: selector on the left, page nav on the right. Pages collapse to ellipsis (first, last, current ±1) when <code className="font-mono">totalPages {'>'} 7</code>.
+                  Note: page-nav-only mode renders <code>null</code> when <code>totalPages {'<='} 1</code>. Pass both <code>pageSize</code> and <code>onPageSizeChange</code> to show the selector (default options <code>[50, 100, 250, 500, &apos;all&apos;]</code>) — layout becomes full-width <code>justify-between</code>: selector on the left, page nav on the right. Pages collapse to ellipsis (first, last, current ±1) when <code>totalPages {'>'} 7</code>.
                 </p>
               </Section>
 
@@ -1568,8 +1568,8 @@ export default function Theme() {
                   </Button>
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
-                  ใช้ <code className="font-mono bg-muted px-1 rounded">useToast()</code> hook แล้วเรียก{' '}
-                  <code className="font-mono bg-muted px-1 rounded">toast(message, type?, duration?)</code>.
+                  ใช้ <code className="bg-muted px-1 rounded">useToast()</code> hook แล้วเรียก{' '}
+                  <code className="bg-muted px-1 rounded">toast(message, type?, duration?)</code>.
                   Toast จะแสดงที่มุมขวาล่างของหน้าจอ
                 </p>
               </Section>
@@ -1585,7 +1585,7 @@ export default function Theme() {
                       className="max-w-xs"
                     />
                     {dateVal && (
-                      <p className="text-sm text-muted-foreground font-mono">ISO: {dateVal}</p>
+                      <p className="text-sm text-muted-foreground">ISO: {dateVal}</p>
                     )}
                   </div>
                 </DemoRow>
@@ -1598,8 +1598,8 @@ export default function Theme() {
                   />
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
-                  รับ / ส่งค่าเป็น ISO <code className="font-mono">yyyy-mm-dd</code>.
-                  แสดงผลเป็น <code className="font-mono">dd/mm/yyyy</code>. มี calendar picker ในตัว.
+                  รับ / ส่งค่าเป็น ISO <code>yyyy-mm-dd</code>.
+                  แสดงผลเป็น <code>dd/mm/yyyy</code>. มี calendar picker ในตัว.
                   filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์ SearchInput/Select/DateRangePicker.
                 </p>
               </Section>
@@ -1616,7 +1616,7 @@ export default function Theme() {
                       className="max-w-xs"
                     />
                     {(rangeFrom || rangeTo) && (
-                      <p className="text-sm text-muted-foreground font-mono">
+                      <p className="text-sm text-muted-foreground">
                         {rangeFrom || '—'} → {rangeTo || '—'}
                       </p>
                     )}
@@ -1649,7 +1649,7 @@ export default function Theme() {
                       onChange={(m, f, t) => { setPeriodMode(m); setPeriodFrom(f); setPeriodTo(t) }}
                       align="start"
                     />
-                    <p className="text-sm text-muted-foreground font-mono">
+                    <p className="text-sm text-muted-foreground">
                       mode: <span className="text-foreground">{periodMode}</span>{' · '}
                       {periodFrom} → {periodTo}
                     </p>
@@ -1666,10 +1666,10 @@ export default function Theme() {
                   />
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
-                  ใช้แทน <code className="font-mono bg-muted px-1 rounded">DateRangePicker</code> ในหน้า <strong>รายงาน/แดชบอร์ด</strong> ที่
+                  ใช้แทน <code className="bg-muted px-1 rounded">DateRangePicker</code> ในหน้า <strong>รายงาน/แดชบอร์ด</strong> ที่
                   ผู้ใช้ต้องการเลือก "ทั้งเดือน/ทั้งปี" ทีเดียวบ่อย ๆ — pattern แบบ Hygeia.
                   Prev/next stepper เลื่อนหน่วยเวลาทีละ 1 หน่วยตาม mode (custom = shift by range length).
-                  ใช้ <code className="font-mono bg-muted px-1 rounded">defaultPeriodFor(isOwner)</code> + <code className="font-mono bg-muted px-1 rounded">allowedModesFor(isOwner)</code> helper ใน parent.
+                  ใช้ <code className="bg-muted px-1 rounded">defaultPeriodFor(isOwner)</code> + <code className="bg-muted px-1 rounded">allowedModesFor(isOwner)</code> helper ใน parent.
                 </p>
               </Section>
 
@@ -1686,7 +1686,7 @@ export default function Theme() {
                       onSelect={setCalDate}
                     />
                     {calDate && (
-                      <p className="text-sm text-muted-foreground mt-2 font-mono">
+                      <p className="text-sm text-muted-foreground mt-2">
                         Selected: {calDate.toLocaleDateString('th-TH', { dateStyle: 'medium' })}
                       </p>
                     )}

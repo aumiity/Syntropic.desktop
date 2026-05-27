@@ -1,21 +1,28 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MetricCard } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
-import { ArrowLeft, FileText, Tag, Boxes, Pill, Save, Info, Coins, Package, History } from 'lucide-react'
+import { ArrowLeft, FileText, Boxes, Pill, Save, Info, Coins, Package, History, Tag, AlertTriangle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductCategory, ItemUnit } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
 import { LabelsTab } from '../EditProduct/LabelsTab'
 import { GeneralTab } from './GeneralTab'
-import { PriceTab } from './PriceTab'
 import { ComponentsTab, type DraftItem } from './ComponentsTab'
 import { HistoryTab } from './HistoryTab'
+
+const REQUIRED_FIELDS = ['trade_name', 'unit_id', 'price_retail'] as const
+const REQUIRED_LABEL: Record<string, string> = {
+  trade_name: 'ชื่อชุดสินค้า',
+  unit_id: 'หน่วยหลัก',
+  price_retail: 'ราคาขายปลีก',
+}
 
 // EditBundle is a slimmer EditProduct dedicated to is_bundle=1 products.
 // Why a separate page (vs. a flag on EditProduct): bundles have a disjoint
@@ -25,7 +32,13 @@ import { HistoryTab } from './HistoryTab'
 export default function EditBundlePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
+  // location.key === 'default' = direct URL / refresh, no history to pop.
+  const backToOrigin = () => {
+    if (location.key === 'default') navigate('/products/bundles')
+    else navigate(-1)
+  }
   // "new" mode = creating from scratch — no DB row exists yet. Atomic commit
   // on save (product + >=2 components in one transaction).
   const isNew = !id || id === 'new'
@@ -44,6 +57,9 @@ export default function EditBundlePage() {
         has_vat: 0, search_keywords: '', note: '', is_disabled: 0,
       }
     : {})
+  const [errors, setErrors] = useState<Set<string>>(new Set())
+  const [isDirty, setIsDirty] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   // New-mode only: components live here (controlled). Edit-mode: ComponentsTab
   // owns its own state and persists via products:saveBundleItems.
   const [draftItems, setDraftItems] = useState<DraftItem[]>([])
@@ -131,13 +147,55 @@ export default function EditBundlePage() {
     setForm((f: any) => ({ ...f, /* keep edits */ }))
   }
 
-  const setF = (key: string, v: any) => setForm((f: any) => ({ ...f, [key]: v }))
+  const setF = (key: string, v: any) => {
+    setForm((f: any) => ({ ...f, [key]: v }))
+    setIsDirty(true)
+    setErrors(prev => {
+      if (!prev.has(key)) return prev
+      const next = new Set(prev)
+      next.delete(key)
+      return next
+    })
+  }
+
+  // Returns the set of required-field keys missing/invalid (matches EditProduct).
+  const validate = (): Set<string> => {
+    const missing = new Set<string>()
+    if (!form.trade_name?.trim()) missing.add('trade_name')
+    if (!form.unit_id || Number(form.unit_id) <= 0) missing.add('unit_id')
+    const retail = parseFloat(form.price_retail)
+    if (!form.price_retail || Number.isNaN(retail) || retail <= 0) missing.add('price_retail')
+    return missing
+  }
+
+  // beforeunload guard. In-app nav uses goBack() with the leave-confirm dialog.
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
+
+  const goBack = () => {
+    if (isDirty) { setShowLeaveConfirm(true); return }
+    backToOrigin()
+  }
 
   const handleSave = async () => {
-    if (!form.trade_name?.trim()) {
-      toast({ title: 'กรุณาระบุชื่อชุดสินค้า', variant: 'error' })
-      // Bounce to General so the user sees what's missing.
-      if (tab !== 'general') setTab('general')
+    const missing = validate()
+    if (missing.size > 0) {
+      setErrors(missing)
+      const labels = REQUIRED_FIELDS.filter(k => missing.has(k)).map(k => REQUIRED_LABEL[k])
+      toast({ title: 'กรุณากรอกข้อมูลที่จำเป็น', description: labels.join(', '), variant: 'error' })
+      const first = REQUIRED_FIELDS.find(k => missing.has(k))
+      if (first) {
+        setTab('general')
+        setTimeout(() => {
+          const el = document.querySelector(`[data-field="${first}"]`) as HTMLElement | null
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          ;(el?.querySelector('input, button') as HTMLElement | null)?.focus()
+        }, 60)
+      }
       return
     }
     // New mode requires >=2 components in one shot (atomic create) — no
@@ -177,6 +235,7 @@ export default function EditBundlePage() {
             qty_per_bundle: it.qty_per_bundle,
           })),
         })
+        setIsDirty(false)
         toast({ title: 'สร้างชุดสินค้าสำเร็จ', variant: 'success' })
         // Replace history entry so back doesn't return to /new with stale state.
         navigate(`/products/bundles/${created.id}/edit`, { replace: true })
@@ -193,6 +252,7 @@ export default function EditBundlePage() {
           window.api.products.updatePrice(productId, { price_type: 'wholesale2', new_price: payload.price_wholesale2, note: priceNote }),
         ])
         await window.api.products.update(productId, { ...payload, code: form.code || null, is_bundle: 1, is_stock_item: 0 })
+        setIsDirty(false)
         toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
         await refreshProduct()
       }
@@ -237,13 +297,22 @@ export default function EditBundlePage() {
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
-      <PageHeader
-        title={form.trade_name || (isNew ? 'สร้างชุดสินค้าใหม่' : 'ชุดสินค้า')}
-        right={
-          <div className="flex items-center gap-2">
-            <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={() => navigate('/products/bundles')}>
-              <ArrowLeft className="size-4" /> ย้อนกลับ
-            </Button>
+      <PageHeader title={isNew ? 'สร้างชุดสินค้าใหม่' : 'ชุดสินค้า'} />
+
+      <TabStrip className="-mb-2">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList variant="segmented" className="h-10">
+            <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
+            <TabsTrigger value="components"><Boxes /> รายการ ({componentCount})</TabsTrigger>
+            {!isNew && <TabsTrigger value="labels"><Pill /> ฉลาก ({labelCount})</TabsTrigger>}
+            {!isNew && <TabsTrigger value="history"><History /> ความเคลื่อนไหว</TabsTrigger>}
+          </TabsList>
+        </Tabs>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={goBack}>
+            <ArrowLeft className="size-4" /> ย้อนกลับ
+          </Button>
+          {tab === 'general' && (
             <Button
               size="lg"
               className="h-10 px-3"
@@ -253,20 +322,8 @@ export default function EditBundlePage() {
             >
               <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : (isNew ? 'สร้างชุดสินค้า' : 'บันทึก')}
             </Button>
-          </div>
-        }
-      />
-
-      <TabStrip className="-mb-2">
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="segmented" className="h-10">
-            <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
-            <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
-            <TabsTrigger value="components"><Boxes /> รายการ ({componentCount})</TabsTrigger>
-            {!isNew && <TabsTrigger value="labels"><Pill /> ฉลาก ({labelCount})</TabsTrigger>}
-            {!isNew && <TabsTrigger value="history"><History /> ความเคลื่อนไหว</TabsTrigger>}
-          </TabsList>
-        </Tabs>
+          )}
+        </div>
       </TabStrip>
 
       {/* 4 cards: meta + cost + price + components. Mirrors the EditProduct
@@ -283,7 +340,7 @@ export default function EditBundlePage() {
               {displayName}
             </div>
             <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-              <span className="text-sm text-muted-foreground font-mono shrink-0">{displayCode ?? '—'}</span>
+              <span className="text-sm text-muted-foreground shrink-0">{displayCode ?? '—'}</span>
               <span className="text-sm text-muted-foreground shrink-0">·</span>
               <span className="text-sm text-muted-foreground truncate">{categoryName ?? 'ไม่ระบุ'}</span>
               <Badge variant="brand-soft" className="text-xs rounded-md px-1.5 py-0">ชุดสินค้า</Badge>
@@ -366,19 +423,14 @@ export default function EditBundlePage() {
             />
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto pb-8">
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] pb-8">
             {tab === 'general' && (
               <GeneralTab
                 form={form}
                 setF={setF}
+                errors={errors}
                 categories={categories}
                 itemUnits={itemUnits}
-              />
-            )}
-            {tab === 'price' && (
-              <PriceTab
-                form={form}
-                setF={setF}
                 product={product}
                 productId={productId}
                 isNew={isNew}
@@ -388,6 +440,29 @@ export default function EditBundlePage() {
           </div>
         )}
       </div>
+
+      <Dialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle className="text-xl">ยังไม่ได้บันทึก</DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-3">
+            <div className="flex gap-3">
+              <AlertTriangle className="size-10 text-warning-strong shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-base font-medium">มีข้อมูลที่กรอกไว้แต่ยังไม่ได้บันทึก</p>
+                <p className="text-base text-muted-foreground">หากออกตอนนี้ ข้อมูลทั้งหมดจะหายไป</p>
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="destructive2" size="xl" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
+            <Button variant="destructive" size="xl" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); backToOrigin() }}>
+              ออกจากหน้านี้
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

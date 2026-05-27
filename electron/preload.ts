@@ -20,7 +20,9 @@ const api = {
     updatePrice: (id: number, data: { price_type?: 'retail' | 'wholesale1' | 'wholesale2'; new_price: number; note?: string }) => ipcRenderer.invoke('products:updatePrice', id, data),
     priceHistory: (id: number, limit?: number) => ipcRenderer.invoke('products:priceHistory', id, limit),
     stockMovements: (productId: number, opts?: {
-      limit?: number; movement_types?: string[]; date_from?: string; date_to?: string
+      page?: number; pageSize?: number;
+      movement_types?: string[]; date_from?: string; date_to?: string;
+      sort_dir?: 'asc' | 'desc'
     }) => ipcRenderer.invoke('products:stockMovements', productId, opts),
     adjustStock: (productId: number, data: any) => ipcRenderer.invoke('products:adjustStock', productId, data),
     addUnit: (data: any) => ipcRenderer.invoke('products:addUnit', data),

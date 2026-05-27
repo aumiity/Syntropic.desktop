@@ -34,19 +34,25 @@ export type MovementSortKey = 'created_at'
 
 // Movement type → Thai label, icon, badge variant. Keep in sync with the
 // movement_type values written by ipc/products.ts, ipc/purchase.ts, ipc/pos.ts.
+// `expired` and `near_expiry` share label/icon/variant — they're both
+// disposals from /manage/expiry, distinguished only by whether the lot was
+// already past its expiry date when cut. UI merges them as one row in the
+// table and one checkbox in the filter.
 export const MOVEMENT_META: Record<string, {
   label: string
-  variant: 'success' | 'destructive' | 'info-soft' | 'warm' | 'secondary' | 'tertiary'
+  variant:
+    | 'success-outline' | 'destructive-outline' | 'info-outline'
+    | 'warning-outline' | 'violet-outline' | 'muted-outline'
   icon: typeof ArrowDownToLine
 }> = {
-  receive:         { label: 'รับเข้า',       variant: 'success',     icon: ArrowDownToLine },
-  sale:            { label: 'ขาย',           variant: 'destructive', icon: ArrowUpFromLine },
-  sale_return:     { label: 'คืนสินค้า',    variant: 'tertiary',    icon: RotateCcw },
-  adjust_in:       { label: 'ปรับเพิ่ม',    variant: 'info-soft',   icon: SlidersHorizontal },
-  adjust_out:      { label: 'ปรับลด',       variant: 'warm',        icon: SlidersHorizontal },
-  purchase_return: { label: 'ยกเลิกรับ',    variant: 'destructive', icon: X },
-  expired:         { label: 'ตัดหมดอายุ',   variant: 'destructive', icon: ClockAlert },
-  near_expiry:     { label: 'ตัดใกล้หมดอายุ', variant: 'warm',      icon: ClockAlert },
+  receive:         { label: 'รับเข้า',     variant: 'success-outline',     icon: ArrowDownToLine },
+  sale:            { label: 'ขาย',         variant: 'destructive-outline', icon: ArrowUpFromLine },
+  sale_return:     { label: 'คืนสินค้า',  variant: 'violet-outline',      icon: RotateCcw },
+  adjust_in:       { label: 'ปรับเพิ่ม',  variant: 'info-outline',        icon: SlidersHorizontal },
+  adjust_out:      { label: 'ปรับลด',     variant: 'warning-outline',     icon: SlidersHorizontal },
+  purchase_return: { label: 'ยกเลิกรับ',  variant: 'muted-outline',       icon: X },
+  expired:         { label: 'หมดอายุ',    variant: 'destructive-outline', icon: ClockAlert },
+  near_expiry:     { label: 'หมดอายุ',    variant: 'destructive-outline', icon: ClockAlert },
 }
 
 export interface GenericNameSuggestion { id: number; name: string; is_antibiotic: number }

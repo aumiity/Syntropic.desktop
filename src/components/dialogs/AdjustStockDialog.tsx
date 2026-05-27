@@ -291,7 +291,7 @@ export function AdjustStockDialog({
                     {fefoPreview.map(({ lot, deduct, qtyAfter }) => (
                       <div key={lot.id} className="flex items-center justify-between text-sm bg-destructive-soft rounded-lg px-3 py-2">
                         <span className="flex items-center gap-2 min-w-0">
-                          <span className="font-mono font-semibold text-foreground truncate">{lot.lot_number}</span>
+                          <span className="font-semibold text-foreground truncate">{lot.lot_number}</span>
                           <span className="text-muted-foreground shrink-0">exp {formatExp(lot.expiry_date)}</span>
                         </span>
                         <span className="flex items-center gap-4 shrink-0">
@@ -358,7 +358,7 @@ export function AdjustStockDialog({
                           value={newLotNumber}
                           onChange={e => setNewLotNumber(e.target.value)}
                           placeholder="ปล่อยว่างเพื่อ auto"
-                          className="h-10 rounded-lg text-sm font-mono"
+                          className="h-10 rounded-lg text-sm"
                         />
                       </div>
                       <div>
@@ -392,12 +392,12 @@ export function AdjustStockDialog({
                           value={targetLotId ? String(targetLotId) : ''}
                           onValueChange={v => setTargetLotId(Number(v))}
                         >
-                          <SelectTrigger className="h-10 w-full rounded-lg text-sm font-mono">
+                          <SelectTrigger className="h-10 w-full rounded-lg text-sm">
                             <SelectValue placeholder="-- เลือกล็อต --" />
                           </SelectTrigger>
                           <SelectContent>
                             {mergeCandidates.map(l => (
-                              <SelectItem key={l.id} value={String(l.id)} className="font-mono">
+                              <SelectItem key={l.id} value={String(l.id)}>
                                 {l.lot_number}{l.is_closed ? ' (ปิด)' : ''}
                               </SelectItem>
                             ))}

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { formatCurrency, formatDate, formatExpiry } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { AlertTriangle } from 'lucide-react'
 import type { ProductLot } from '@/types'
 
@@ -148,7 +148,7 @@ export function PurchaseReceiptDialog({
                               <span className="text-sm text-foreground-subtle">Lot. {item.lot_number}</span>
                             )}
                             {item.expiry_date && (
-                              <span className="text-sm text-foreground-subtle">exp. {formatExpiry(item.expiry_date)}</span>
+                              <span className="text-sm text-foreground-subtle">exp. {formatDate(item.expiry_date)}</span>
                             )}
                           </div>
                         </TableCell>

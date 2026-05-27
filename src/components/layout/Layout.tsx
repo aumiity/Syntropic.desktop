@@ -10,6 +10,11 @@ export function Layout() {
   // Key by top-level section so sub-route changes (report tabs, product edit)
   // don't replay the full-page transition — only major section switches do.
   const sectionKey = location.pathname.split('/')[1] || 'home'
+  // POS owns its own layout (full-width cart + product grid). Every other
+  // page is constrained to 1280px so form fields don't stretch on large
+  // monitors.
+  const isPOS = location.pathname === '/' || location.pathname === ''
+  const widthClass = isPOS ? 'h-full' : 'h-full w-full max-w-7xl mx-auto'
 
   return (
     <div className="relative flex flex-col h-screen overflow-hidden bg-background">
@@ -20,7 +25,7 @@ export function Layout() {
           <AnimatePresence mode="wait">
             <motion.div
               key={sectionKey}
-              className="h-full"
+              className={widthClass}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}

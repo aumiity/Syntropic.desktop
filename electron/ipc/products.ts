@@ -508,19 +508,27 @@ export function registerProductHandlers() {
     `).all(productId, limit)
   })
 
-  // Stock movement audit log for a single product. Returns rows from
-  // stock_movements joined with lot + user info for display. Ordered newest
-  // first. movement_type values: receive, sale, sale_return, adjust_in,
-  // adjust_out, purchase_return, expired, near_expiry. Note often contains a referencing
-  // invoice/GR number (frontend extracts for navigation).
+  // Stock movement audit log for a single product. Returns `{ rows, total }`
+  // where `total` is the unpaginated count under the active filters — used by
+  // the UI to render Pagination.
+  //
+  // Filters are server-side: movement_types, date_from, date_to. Pagination
+  // is offset/limit; `pageSize <= 0` means "no limit" (avoid for large stores,
+  // memory-bound on the renderer side).
   ipcMain.handle('products:stockMovements', (_e, productId: number, opts?: {
-    limit?: number
+    page?: number
+    pageSize?: number
     movement_types?: string[]
     date_from?: string
     date_to?: string
+    sort_dir?: 'asc' | 'desc'
   }) => {
     const db = getDb()
-    const limit = opts?.limit ?? 200
+    const page = Math.max(1, opts?.page ?? 1)
+    const pageSize = opts?.pageSize ?? 50
+    const useLimit = pageSize > 0
+    const offset = (page - 1) * pageSize
+    const orderDir = opts?.sort_dir === 'asc' ? 'ASC' : 'DESC'
 
     // Bundles (is_bundle=1) have no rows in stock_movements because they don't
     // hold stock (only components do). We simulate movements by querying
@@ -540,40 +548,54 @@ export function registerProductHandlers() {
       // Simulating movements:
       // 1. Every sale_item row is a 'sale' (or 'sale_return' if RT- bill).
       // 2. If the sale is voided, we add a balancing 'sale_return' row.
-      return db.prepare(`
-        SELECT * FROM (
-          SELECT si.id,
-                 CASE WHEN s.sale_type = 'return' THEN 'sale_return' ELSE 'sale' END as movement_type,
-                 'sale' as ref_type, s.id as ref_id,
-                 -si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,
-                 COALESCE(NULLIF(si.item_note, ''), 'ขาย: ' || s.invoice_no) as note, s.sold_at as created_at,
-                 NULL as lot_id, NULL as lot_number, NULL as expiry_date,
-                 NULL AS gr_invoice_no,
-                 s.invoice_no AS sale_invoice_no,
-                 s.sold_by as created_by, u.name AS created_by_name
-          FROM sale_items si
-          JOIN sales s ON s.id = si.sale_id
-          LEFT JOIN users u ON u.id = s.sold_by
-          WHERE ${siConds.join(' AND ')}
+      const innerSelect = `
+        SELECT si.id,
+               CASE WHEN s.sale_type = 'return' THEN 'sale_return' ELSE 'sale' END as movement_type,
+               'sale' as ref_type, s.id as ref_id,
+               -si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,
+               COALESCE(NULLIF(si.item_note, ''), 'ขาย: ' || s.invoice_no) as note, s.sold_at as created_at,
+               NULL as lot_id, NULL as lot_number, NULL as expiry_date,
+               NULL AS gr_invoice_no,
+               s.invoice_no AS sale_invoice_no,
+               s.sold_by as created_by, u.name AS created_by_name
+        FROM sale_items si
+        JOIN sales s ON s.id = si.sale_id
+        LEFT JOIN users u ON u.id = s.sold_by
+        WHERE ${siConds.join(' AND ')}
 
-          UNION ALL
+        UNION ALL
 
-          SELECT si.id, 'sale_return' as movement_type, 'sale' as ref_type, s.id as ref_id,
-                 si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,
-                 'ยกเลิก: ' || COALESCE(s.void_reason, '') as note, s.updated_at as created_at,
-                 NULL as lot_id, NULL as lot_number, NULL as expiry_date,
-                 NULL AS gr_invoice_no,
-                 s.invoice_no AS sale_invoice_no,
-                 s.sold_by as created_by, u.name AS created_by_name
-          FROM sale_items si
-          JOIN sales s ON s.id = si.sale_id
-          LEFT JOIN users u ON u.id = s.sold_by
-          WHERE ${siConds.join(' AND ')} AND s.status = 'voided'
-        )
+        SELECT si.id, 'sale_return' as movement_type, 'sale' as ref_type, s.id as ref_id,
+               si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,
+               'ยกเลิก: ' || COALESCE(s.void_reason, '') as note, s.updated_at as created_at,
+               NULL as lot_id, NULL as lot_number, NULL as expiry_date,
+               NULL AS gr_invoice_no,
+               s.invoice_no AS sale_invoice_no,
+               s.sold_by as created_by, u.name AS created_by_name
+        FROM sale_items si
+        JOIN sales s ON s.id = si.sale_id
+        LEFT JOIN users u ON u.id = s.sold_by
+        WHERE ${siConds.join(' AND ')} AND s.status = 'voided'
+      `
+
+      const innerParams = [...siParams, ...siParams]
+      const filterParams = [...innerParams, ...typeParams]
+
+      const total = (db.prepare(`
+        SELECT COUNT(*) AS c FROM (${innerSelect}) ${typesFilter}
+      `).get(...filterParams) as { c: number }).c
+
+      const rowsSql = `
+        SELECT * FROM (${innerSelect})
         ${typesFilter}
-        ORDER BY created_at DESC, id DESC
-        LIMIT ?
-      `).all(...siParams, ...siParams, ...typeParams, limit)
+        ORDER BY created_at ${orderDir}, id ${orderDir}
+        ${useLimit ? 'LIMIT ? OFFSET ?' : ''}
+      `
+      const rows = useLimit
+        ? db.prepare(rowsSql).all(...filterParams, pageSize, offset)
+        : db.prepare(rowsSql).all(...filterParams)
+
+      return { rows, total }
     }
 
     const conditions: string[] = ['sm.product_id = ?']
@@ -585,11 +607,15 @@ export function registerProductHandlers() {
     if (opts?.date_from) { conditions.push('date(sm.created_at) >= ?'); params.push(opts.date_from) }
     if (opts?.date_to)   { conditions.push('date(sm.created_at) <= ?'); params.push(opts.date_to)   }
 
+    const total = (db.prepare(`
+      SELECT COUNT(*) AS c FROM stock_movements sm WHERE ${conditions.join(' AND ')}
+    `).get(...params) as { c: number }).c
+
     // pl.invoice_no = the GR (purchase_receipt) the lot belongs to → used for
     // navigating receive/purchase_return movements to the purchase detail page.
     // s.invoice_no = the sale the movement references → only meaningful when
     // ref_type='sale' (covers both 'sale' and 'sale_return' movement_types).
-    return db.prepare(`
+    const rowsSql = `
       SELECT sm.id, sm.movement_type, sm.ref_type, sm.ref_id,
              sm.qty_change, sm.qty_before, sm.qty_after, sm.unit_cost,
              sm.note, sm.created_at,
@@ -602,9 +628,14 @@ export function registerProductHandlers() {
       LEFT JOIN sales s ON sm.ref_type = 'sale' AND s.id = sm.ref_id
       LEFT JOIN users u ON u.id = sm.created_by
       WHERE ${conditions.join(' AND ')}
-      ORDER BY sm.created_at DESC, sm.id DESC
-      LIMIT ?
-    `).all(...params, limit)
+      ORDER BY sm.created_at ${orderDir}, sm.id ${orderDir}
+      ${useLimit ? 'LIMIT ? OFFSET ?' : ''}
+    `
+    const rows = useLimit
+      ? db.prepare(rowsSql).all(...params, pageSize, offset)
+      : db.prepare(rowsSql).all(...params)
+
+    return { rows, total }
   })
 
   // Stock adjustment from Products list. Three modes — operator picks one
