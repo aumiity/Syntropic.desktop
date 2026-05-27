@@ -98,7 +98,7 @@ const EXPIRY_DEFAULTS: ExpiryPrefs = {
   showColQty: true,
   showColUnit: true,
   showColCost: true,
-  showColSupplier: true,
+  showColSupplier: false,
 }
 
 export default function ManageExpiryPage() {
@@ -339,13 +339,13 @@ export default function ManageExpiryPage() {
               <TableRow>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>
                 {showColLot && <TableHead className="min-w-20">ล็อต</TableHead>}
-                {showColExpiry && <SortableTableHead field="expiry_date" sort={sort} onToggle={toggleSort} className="min-w-24">วันหมดอายุ</SortableTableHead>}
-                {showColDays && <TableHead className="text-center min-w-24">วันคงเหลือ</TableHead>}
-                {showColQty && <TableHead className="text-right min-w-16">คงเหลือ</TableHead>}
-                {showColUnit && <TableHead className="min-w-16">หน่วย</TableHead>}
-                {showColCost && <SortableTableHead field="total_cost" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">ทุนรวม</SortableTableHead>}
+                {showColExpiry && <SortableTableHead field="expiry_date" sort={sort} onToggle={toggleSort} className="min-w-20">วันหมดอายุ</SortableTableHead>}
+                {showColDays && <TableHead className="text-center min-w-12 w-12">วันคงเหลือ</TableHead>}
+                {showColQty && <TableHead className="text-right min-w-14">คงเหลือ</TableHead>}
+                {showColUnit && <TableHead className="min-w-8">หน่วย</TableHead>}
+                {showColCost && <SortableTableHead field="total_cost" align="right" sort={sort} onToggle={toggleSort} className="min-w-14">ทุนรวม</SortableTableHead>}
                 {showColSupplier && <TableHead className="min-w-[140px]">ผู้จัดจำหน่าย</TableHead>}
-                <TableHead className="text-center min-w-20">จัดการ</TableHead>
+                <TableHead className="text-center min-w-14">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -406,7 +406,7 @@ export default function ManageExpiryPage() {
                       <div className="flex justify-center">
                         <Button
                           size="icon-lg"
-                          variant="destructive2"
+                          variant="elevated"
                           title="ตัดออก"
                           onClick={() => setConfirmingLot(lot)}
                         >

@@ -81,7 +81,7 @@ export function UnitsTab() {
                   <TableCell className="text-right text-sm text-muted-foreground">{(u.usage_count ?? 0).toLocaleString()} สินค้า</TableCell>
                   <TableCell>
                     <div className="flex justify-center">
-                      <Button size="icon-lg" variant="outline" onClick={() => openEdit(u)} title="แก้ไข">
+                      <Button size="icon-lg" variant="elevated" onClick={() => openEdit(u)} title="แก้ไข">
                         <Edit />
                       </Button>
                     </div>

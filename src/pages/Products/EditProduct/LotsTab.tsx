@@ -138,23 +138,28 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
 
   return (
     <div className="pt-4 flex-1 min-h-0 flex flex-col">
-      <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
-        <div className="px-5 py-2.5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center gap-2 h-12">
-          <Edit className="size-4 shrink-0" />
-          <span>คลิกไอคอนแก้ไขเพื่อแก้ข้อมูลล็อตโดยตรง — การเปลี่ยนจำนวนคงเหลือจะบันทึกในประวัติการเคลื่อนไหวสต็อกอัตโนมัติ</span>
+      <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <Package className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">ล็อต</h3>
+            <Badge variant="neutral-outline">{product.lots?.length ?? 0}</Badge>
+          </div>
         </div>
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-28">Lot No.</TableHead>
                 <TableHead className="min-w-32">ผู้จัดจำหน่าย</TableHead>
                 <TableHead className="min-w-24">วันหมดอายุ</TableHead>
-                <TableHead className="min-w-24 text-right">ราคาทุน</TableHead>
-                <TableHead className="min-w-20 text-right">รับเข้า</TableHead>
-                <TableHead className="min-w-20 text-right">คงเหลือ</TableHead>
-                <TableHead className="min-w-20 text-center">สถานะ</TableHead>
-                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
+                <TableHead className="min-w-24">ราคาทุน</TableHead>
+                <TableHead className="min-w-20">รับเข้า</TableHead>
+                <TableHead className="min-w-20">คงเหลือ</TableHead>
+                <TableHead className="min-w-24">สถานะ</TableHead>
+                <TableHead className="min-w-16">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -169,7 +174,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                 const expStatus = getExpiryStatus(lot.expiry_date)
 
                 return (
-                  <TableRow key={lot.id} className="hover:bg-primary-soft/60 transition-colors">
+                  <TableRow key={lot.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                     <TableCell className="font-mono text-sm font-semibold">{lot.lot_number}</TableCell>
                     <TableCell className="text-sm">{(lot as any).supplier_name ?? '—'}</TableCell>
                     <TableCell className="text-sm">
@@ -181,26 +186,24 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                         {formatExpiry(lot.expiry_date)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right text-sm">{formatCurrency(lot.cost_price)}</TableCell>
-                    <TableCell className="text-right text-sm">{lot.qty_received}</TableCell>
-                    <TableCell className="text-right text-sm font-semibold">{lot.qty_on_hand}</TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-sm">{formatCurrency(lot.cost_price)}</TableCell>
+                    <TableCell className="text-sm">{lot.qty_received}</TableCell>
+                    <TableCell className="text-sm font-semibold">{lot.qty_on_hand}</TableCell>
+                    <TableCell>
                       {lot.is_cancelled
-                        ? <Badge variant="destructive" className="text-xs rounded-md">ยกเลิก</Badge>
+                        ? <Badge variant="destructive-outline" className="rounded-md">ยกเลิก</Badge>
                         : lot.is_closed
-                        ? <Badge variant="destructive2" className="text-xs rounded-md">ปิด</Badge>
+                        ? <Badge variant="destructive-outline" className="rounded-md">ปิด</Badge>
                         : lot.qty_on_hand === 0
-                        ? <Badge variant="secondary" className="text-xs rounded-md">หมด</Badge>
-                        : <Badge variant="success" className="text-xs rounded-md">ใช้งาน</Badge>}
+                        ? <Badge variant="neutral-outline" className="rounded-md">หมด</Badge>
+                        : <Badge variant="success-outline" className="rounded-md">ใช้งาน</Badge>}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-center">
-                        {!lot.is_cancelled && (
-                          <Button size="icon-lg" variant="outline" onClick={() => startEditLot(lot)} title="แก้ไข">
-                            <Edit />
-                          </Button>
-                        )}
-                      </div>
+                      {!lot.is_cancelled && (
+                        <Button size="icon-lg" variant="outline" onClick={() => startEditLot(lot)} title="แก้ไข">
+                          <Edit />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 )
@@ -208,9 +211,9 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
             </TableBody>
           </Table>
         </div>
-        <div className="px-5 py-2.5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between h-12">
-          <span>ทั้งหมด <span className="font-semibold text-foreground">{product.lots?.length ?? 0}</span> ล็อต</span>
-          <span className="flex items-center gap-3">
+        <div className="px-5 h-12 bg-card border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between gap-3">
+          <span className="truncate">การเปลี่ยนจำนวนคงเหลือจะบันทึกในประวัติการเคลื่อนไหวสต็อกอัตโนมัติ</span>
+          <span className="flex items-center gap-3 shrink-0">
             <span>ใช้งาน <span className="font-semibold text-success">{activeLotList.length}</span></span>
             <span>คงเหลือรวม <span className="font-semibold text-foreground">{totalStock.toLocaleString()}</span> {baseUnit}</span>
           </span>
@@ -242,29 +245,29 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                 </div>
 
                 <Field label="Lot No.">
-                  <Input value={lotEditForm.lot_number}
+                  <Input variant="elevated" value={lotEditForm.lot_number}
                     onChange={e => setLotEditForm(f => ({ ...f, lot_number: e.target.value }))}
                     className="font-mono" />
                 </Field>
 
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="วันที่ผลิต">
-                    <DateInput value={lotEditForm.manufactured_date}
+                    <DateInput variant="elevated" value={lotEditForm.manufactured_date}
                       onChange={v => setLotEditForm(f => ({ ...f, manufactured_date: v }))} />
                   </Field>
                   <Field label="วันหมดอายุ">
-                    <DateInput value={lotEditForm.expiry_date}
+                    <DateInput variant="elevated" value={lotEditForm.expiry_date}
                       onChange={v => setLotEditForm(f => ({ ...f, expiry_date: v }))} />
                   </Field>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="ราคาทุน">
-                    <PriceInput value={lotEditForm.cost_price}
+                    <PriceInput variant="elevated" value={lotEditForm.cost_price}
                       onChange={v => setLotEditForm(f => ({ ...f, cost_price: v }))} />
                   </Field>
                   <Field label={<>จำนวนคงเหลือ{unitSuffix(baseUnit)}</>}>
-                    <Input type="number" value={lotEditForm.qty_on_hand}
+                    <Input variant="elevated" type="number" value={lotEditForm.qty_on_hand}
                       onChange={e => setLotEditForm(f => ({ ...f, qty_on_hand: e.target.value }))}
                       className="text-right" min={0} />
                   </Field>

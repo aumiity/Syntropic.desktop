@@ -376,7 +376,7 @@ export default function ManageSalesPage() {
                     <div className="flex justify-center">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
                             <MoreHorizontal />
                           </Button>
                         </PopoverTrigger>

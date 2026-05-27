@@ -6,6 +6,7 @@ import { MetricCard } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/toast'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { TabStrip } from '@/components/layout/TabStrip'
 import { ArrowLeft, FileText, Tag, Boxes, Pill, Save, Info, Coins, Package, History } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductCategory, ItemUnit } from '@/types'
@@ -256,20 +257,22 @@ export default function EditBundlePage() {
         }
       />
 
-      <Tabs value={tab} onValueChange={setTab} className="shrink-0 self-start">
-        <TabsList variant="segmented" className="h-10">
-          <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
-          <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
-          <TabsTrigger value="components"><Boxes /> รายการ ({componentCount})</TabsTrigger>
-          {!isNew && <TabsTrigger value="labels"><Pill /> ฉลาก ({labelCount})</TabsTrigger>}
-          {!isNew && <TabsTrigger value="history"><History /> ความเคลื่อนไหว</TabsTrigger>}
-        </TabsList>
-      </Tabs>
+      <TabStrip className="-mb-2">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList variant="segmented" className="h-10">
+            <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
+            <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
+            <TabsTrigger value="components"><Boxes /> รายการ ({componentCount})</TabsTrigger>
+            {!isNew && <TabsTrigger value="labels"><Pill /> ฉลาก ({labelCount})</TabsTrigger>}
+            {!isNew && <TabsTrigger value="history"><History /> ความเคลื่อนไหว</TabsTrigger>}
+          </TabsList>
+        </Tabs>
+      </TabStrip>
 
       {/* 4 cards: meta + cost + price + components. Mirrors the EditProduct
           row but tailored to bundles — cost is auto from components, there
           are no own lots, so the 4th card is component count (click → tab). */}
-      <div className="grid grid-cols-4 gap-3 shrink-0">
+      <div className="grid grid-cols-4 gap-3 shrink-0 pt-3">
         {/* Meta card — hand-rolled to match MetricCard size="sm" proportions */}
         <div className="bg-card rounded-card shadow-card px-4 py-2 flex items-center gap-3 overflow-hidden">
           <div className="flex flex-col min-w-0 flex-1 text-left">

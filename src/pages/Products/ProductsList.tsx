@@ -142,23 +142,20 @@ export default function ProductsList() {
     }
   }
 
-  // Stock cell: qty + unit + status badge (outlined), with progress bar scaled by safety_stock.
-  // qty=0 → หมด (destructive-outline, empty bar), qty≤reorder → ใกล้หมด (warning-outline),
-  // else → ปกติ (success-outline). safety_stock unset → bar full since no max to scale.
+  // Stock cell: qty + unit, with progress bar scaled by safety_stock.
+  // Bar tone signals low/out (destructive) vs normal (success); the status pill
+  // moved into its own column, so the cell stays compact.
   const renderStockCell = (qty: number, reorder: number, safety: number, unitName?: string) => {
     const unit = unitName || 'หน่วย'
     const isOut = qty <= 0
     const isLow = !isOut && reorder > 0 && qty <= reorder
-    const statusLabel = isOut ? 'หมด' : isLow ? 'ใกล้หมด' : 'ปกติ'
-    const statusVariant = isOut ? 'destructive-outline' : isLow ? 'warning-outline' : 'success-outline'
     const barTone = isOut || isLow ? 'bg-destructive' : 'bg-success'
     const pct = isOut ? 0 : safety > 0 ? Math.min(100, (qty / safety) * 100) : 100
     return (
-      <div className="flex flex-col gap-1 min-w-[140px]">
+      <div className="flex flex-col gap-1 min-w-[100px]">
         <div className="flex items-center gap-2 text-sm">
           <span className="text-foreground">{qty.toLocaleString()}</span>
           <span className="text-muted-foreground">{unit}</span>
-          <Badge variant={statusVariant}>{statusLabel}</Badge>
         </div>
         <div className="h-1.5 w-full rounded-full bg-muted-hover overflow-hidden">
           <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
@@ -290,19 +287,20 @@ export default function ProductsList() {
                   <SortableTableHead field="profit" align="left" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
                 )}
                 {showStock && (
-                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[220px] pr-6">สต็อก</SortableTableHead>
+                  <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[140px] pr-6">สต็อก</SortableTableHead>
                 )}
+                <TableHead className="min-w-20 text-center">สถานะ</TableHead>
                 <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={3 + (showCost ? 1 : 0) + (showPrice ? 1 : 0) + (showProfit ? 1 : 0) + (showStock ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={4 + (showCost ? 1 : 0) + (showPrice ? 1 : 0) + (showProfit ? 1 : 0) + (showStock ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3 + (showCost ? 1 : 0) + (showPrice ? 1 : 0) + (showProfit ? 1 : 0) + (showStock ? 1 : 0)} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={4 + (showCost ? 1 : 0) + (showPrice ? 1 : 0) + (showProfit ? 1 : 0) + (showStock ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <Package className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบสินค้า
                   </TableCell>
@@ -312,7 +310,7 @@ export default function ProductsList() {
                 const pct = (row.cost_price ?? 0) > 0 ? (profit / row.cost_price!) * 100 : 0
                 const isDisabled = !!row.is_disabled
                 return (
-                  <TableRow key={row.id} className={`[&_td]:py-2.5 [&_td]:font-medium ${isDisabled ? 'opacity-60' : ''}`}>
+                  <TableRow key={row.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                     <TableCell className="text-muted-foreground text-sm">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
                     <TableCell className="max-w-0">
                       <div className="text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
@@ -367,11 +365,16 @@ export default function ProductsList() {
                         {renderStockCell(row.stock_qty, row.reorder_point ?? 0, row.safety_stock ?? 0, row.unit_name)}
                       </TableCell>
                     )}
+                    <TableCell className="text-center">
+                      <Badge variant={isDisabled ? 'destructive-outline' : 'success-outline'}>
+                        {isDisabled ? 'ปิดใช้งาน' : 'ใช้งาน'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <div className="flex justify-center">
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                            <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
                               <MoreHorizontal />
                             </Button>
                           </PopoverTrigger>

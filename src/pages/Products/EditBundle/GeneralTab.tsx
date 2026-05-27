@@ -31,7 +31,7 @@ export function GeneralTab({ form, setF, categories, itemUnits }: Props) {
           <div className="grid grid-cols-2 gap-3">
             {/* Row 1: รหัสสินค้า | คีย์เวิร์ดค้นหา */}
             <Field label="รหัสสินค้า">
-              <Input value={form.code ?? ''} readOnly className="bg-muted cursor-not-allowed"
+              <Input variant="elevated" value={form.code ?? ''} readOnly className="bg-muted cursor-not-allowed"
                      placeholder="สร้างอัตโนมัติ" />
             </Field>
             <Field label="คีย์เวิร์ดค้นหา">

@@ -114,6 +114,7 @@ export function PriceTab({
             <div className="space-y-3">
               <Field label={<>ราคาทุนล่าสุด{unitSuffix(baseUnit)}</>} labelClassName="text-right">
                 <PriceInput
+                  variant="elevated"
                   value={form.cost_price}
                   onChange={v => setF('cost_price', v)}
                   placeholder="ทุนล่าสุดที่ซื้อ"
@@ -132,6 +133,7 @@ export function PriceTab({
               <div data-field="price_retail">
                 <Field label={<>ราคาขายปลีก{unitSuffix(baseUnit)}</>} required labelClassName="text-right">
                   <PriceInput
+                    variant="elevated"
                     value={form.price_retail}
                     onChange={v => setF('price_retail', v)}
                     aria-invalid={errors.has('price_retail')}
@@ -168,6 +170,7 @@ export function PriceTab({
               <div key={key} className="space-y-3">
                 <Field label={<>{label}{unitSuffix(baseUnit)}</>} labelClassName="text-right">
                   <PriceInput
+                    variant="elevated"
                     value={value}
                     onChange={v => setF(key, v)}
                   />
@@ -181,33 +184,34 @@ export function PriceTab({
       </div>
 
       {/* ── RIGHT: ประวัติการเปลี่ยนราคา ── */}
-      <div className="bg-card rounded-card shadow-card overflow-hidden">
-        <div className="h-12 px-5 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
-          <span>
-            ประวัติการเปลี่ยนราคา
-            {history && history.length > 0 && (
-              <> · <span className="text-foreground">{history.length}</span> รายการ</>
-            )}
-          </span>
+      <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <History className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">ประวัติการเปลี่ยนราคา</h3>
+            <Badge variant="neutral-outline">{history?.length ?? 0}</Badge>
+          </div>
           <Button
             size="lg"
-            variant="outline"
-            className="px-2"
+            variant="elevated"
+            className="h-9 px-2 ml-auto shrink-0"
             onClick={loadHistory}
             disabled={historyLoading || isNew}
           >
             <RotateCcw className="size-4" /> รีเฟรช
           </Button>
         </div>
-        <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-32">วันที่</TableHead>
-                <TableHead className="min-w-20 text-center">ชนิดราคา</TableHead>
-                <TableHead className="min-w-16 text-right">เดิม</TableHead>
-                <TableHead className="min-w-16 text-right">ใหม่</TableHead>
-                <TableHead className="min-w-24 text-center">หมายเหตุ</TableHead>
+                <TableHead className="min-w-20">ชนิดราคา</TableHead>
+                <TableHead className="min-w-16">เดิม</TableHead>
+                <TableHead className="min-w-16">ใหม่</TableHead>
+                <TableHead className="min-w-16">หมายเหตุ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -226,18 +230,18 @@ export function PriceTab({
                 const meta = PRICE_TYPE_META[h.price_type] ?? { label: h.price_type, variant: 'success' as const }
                 const up = h.new_price > h.old_price
                 return (
-                  <TableRow key={h.id} className="hover:bg-primary-soft/60 transition-colors">
+                  <TableRow key={h.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                     <TableCell className="text-sm">{formatDateTime(h.created_at)}</TableCell>
-                    <TableCell className="text-center">
+                    <TableCell>
                       <Badge variant={meta.variant} className="rounded-md">{meta.label}</Badge>
                     </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground">
                       {formatCurrency(h.old_price)}
                     </TableCell>
-                    <TableCell className={`text-right text-sm font-semibold ${up ? 'text-success' : 'text-destructive'}`}>
+                    <TableCell className={`text-sm font-semibold ${up ? 'text-success' : 'text-destructive'}`}>
                       {formatCurrency(h.new_price)}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell>
                       {h.note ? (
                         <Popover>
                           <PopoverTrigger asChild>
@@ -259,7 +263,7 @@ export function PriceTab({
             </TableBody>
           </Table>
         </div>
-        <div className="h-12 px-5 border-t border-border text-sm text-muted-foreground shrink-0 flex items-center">
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center text-sm text-muted-foreground shrink-0">
           <span>
             ราคาที่แก้จากหน้านี้หรือหน้ารับเข้าสินค้าจะถูกบันทึกไว้ที่นี่
           </span>

@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
 import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus } from 'lucide-react'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
@@ -80,34 +81,35 @@ export default function ManageLayout() {
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title="ประวัติ & สต็อก" />
 
-      <Tabs
-        value={current}
-        onValueChange={(v) => {
-          const tab = TABS.find(t => t.value === v)
-          if (tab) navigate(tab.to)
-        }}
-        className="shrink-0 self-start"
-      >
-        <TabsList variant="segmented" className="h-10">
-          {TABS.map(({ value, label, icon: Icon }) => {
-            const showBadge = value === 'negative-stock' && negativeStockCount > 0
-            return (
-              <TabsTrigger key={value} value={value}>
-                <Icon />
-                <span className="relative inline-block">
-                  {label}
-                  {showBadge && (
-                    <span
-                      aria-hidden
-                      className="absolute -top-0.5 -right-2.5 h-2 w-2 rounded-full bg-warning ring-2 ring-card"
-                    />
-                  )}
-                </span>
-              </TabsTrigger>
-            )
-          })}
-        </TabsList>
-      </Tabs>
+      <TabStrip className="-mb-2">
+        <Tabs
+          value={current}
+          onValueChange={(v) => {
+            const tab = TABS.find(t => t.value === v)
+            if (tab) navigate(tab.to)
+          }}
+        >
+          <TabsList variant="segmented" className="h-10">
+            {TABS.map(({ value, label, icon: Icon }) => {
+              const showBadge = value === 'negative-stock' && negativeStockCount > 0
+              return (
+                <TabsTrigger key={value} value={value}>
+                  <Icon />
+                  <span className="relative inline-block">
+                    {label}
+                    {showBadge && (
+                      <span
+                        aria-hidden
+                        className="absolute -top-0.5 -right-2.5 h-2 w-2 rounded-full bg-warning ring-2 ring-card"
+                      />
+                    )}
+                  </span>
+                </TabsTrigger>
+              )
+            })}
+          </TabsList>
+        </Tabs>
+      </TabStrip>
 
       {summary && summary.length > 0 && (
         <motion.div
@@ -117,7 +119,7 @@ export default function ManageLayout() {
           transition={{ duration: 0.2, ease: 'easeOut' }}
           onAnimationStart={() => setAnimatingSummary(true)}
           onAnimationComplete={() => setAnimatingSummary(false)}
-          className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
+          className={`shrink-0 pt-3 ${animatingSummary ? 'overflow-hidden' : ''}`}
         >
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div

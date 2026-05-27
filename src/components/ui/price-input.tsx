@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Input } from './input'
 import { cn } from '@/lib/utils'
 
-interface PriceInputProps extends Omit<React.ComponentProps<'input'>, 'type' | 'value' | 'onChange'> {
+interface PriceInputProps extends Omit<React.ComponentProps<typeof Input>, 'type' | 'value' | 'onChange'> {
   value: string | number | undefined | null
   onChange: (value: string) => void
   /** Decimal places for placeholder + step. Default 2 (currency). */

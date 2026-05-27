@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, Outlet } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
@@ -78,7 +79,7 @@ export default function ProductsLayout() {
 
       {/* Top row: segmented tabs (left) + add button (right). Add button label
           and target route depend on the active tab. */}
-      <div className="flex items-center gap-3 shrink-0">
+      <TabStrip className="-mb-2">
         <Tabs
           value={tab}
           onValueChange={v => {
@@ -100,7 +101,7 @@ export default function ProductsLayout() {
         >
           <Plus className="size-4" /> {tab === 'bundles' ? 'เพิ่มชุดสินค้า' : 'เพิ่มสินค้า'}
         </Button>
-      </div>
+      </TabStrip>
 
       <motion.div
         initial={{ height: 0, opacity: 0 }}
@@ -108,7 +109,7 @@ export default function ProductsLayout() {
         transition={{ duration: 0.2, ease: 'easeOut' }}
         onAnimationStart={() => setAnimatingSummary(true)}
         onAnimationComplete={() => setAnimatingSummary(false)}
-        className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
+        className={`shrink-0 pt-3 ${animatingSummary ? 'overflow-hidden' : ''}`}
       >
         <div className={`grid grid-cols-2 ${COLS_BY_COUNT[summary.length] ?? 'md:grid-cols-3'} gap-3 p-0.5`}>
           {summary.map((c, i) => <MetricCard key={i} {...c} />)}

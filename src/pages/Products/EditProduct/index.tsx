@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/toast'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductCategory, DrugType, ItemUnit } from '@/types'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { TabStrip } from '@/components/layout/TabStrip'
 import {
   ArrowLeft, Save, AlertTriangle,
   Package, Tag, Pill, Boxes, FileText, Coins, Info,
@@ -334,140 +335,139 @@ export default function EditProductPage() {
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
-      <PageHeader
-        title={isNew ? 'เพิ่มสินค้าใหม่' : 'สินค้า'}
-        right={
-          <>
-            {tab === 'general' || tab === 'price' ? (
-              <>
-                <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={goBack}>
-                  <ArrowLeft className="size-4" /> ย้อนกลับ
-                </Button>
-                <Button size="lg" className="h-10 px-3" onClick={handleSave} disabled={saving}>
-                  <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : isNew ? 'เพิ่มสินค้า' : 'บันทึก'}
-                </Button>
-              </>
-            ) : (
-              <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={goBack}>
-                <ArrowLeft className="size-4" /> ย้อนกลับ
-              </Button>
-            )}
-          </>
-        }
-      />
+      <PageHeader title={isNew ? 'เพิ่มสินค้าใหม่' : 'สินค้า'} />
 
-      <Tabs value={tab} onValueChange={setTab} className="shrink-0 self-start">
-        <TabsList variant="segmented" className="h-10">
-          <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
-          <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
-          <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
-            <Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})
-          </TabsTrigger>
-          <TabsTrigger value="labels" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการฉลากยา' : undefined}>
-            <Pill /> ฉลากยา ({product.labels?.length ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="lots" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการล็อต' : undefined}>
-            <Package /> ล็อต ({product.lots?.length ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="history" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อดูประวัติ' : undefined}>
-            <History /> ความเคลื่อนไหว
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* 4 cards: meta + 3 stats. In create mode, MetricCards stay in place
-          but are grayed out — values aren't meaningful until the product exists.
-          MetricCard size="sm" uses 3 stacked lines: label / value+unit / sub. */}
-      <div className="grid grid-cols-4 gap-3 shrink-0">
-        {/* Meta card — hand-rolled to match MetricCard size="sm" proportions */}
-        <div className="bg-card rounded-card shadow-card px-4 py-2 flex items-center gap-3 overflow-hidden">
-          <div className="flex flex-col min-w-0 flex-1 text-left">
-            <div
-              className="text-base font-bold text-foreground truncate"
-              title={isNew ? 'สินค้าใหม่' : product.trade_name}
-            >
-              {isNew ? (form.trade_name?.trim() || 'สินค้าใหม่') : product.trade_name}
-            </div>
-            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-              <span className="text-sm text-muted-foreground font-mono shrink-0">{isNew ? '—' : (product.code ?? '—')}</span>
-              <span className="text-sm text-muted-foreground shrink-0">·</span>
-              <span className="text-sm text-muted-foreground truncate">{isNew ? 'รอบันทึก' : (categoryName ?? 'ไม่ระบุ')}</span>
-              {!isNew && !!product.is_drug && <Badge variant="success" className="text-xs rounded-md px-1.5 py-0">ยา</Badge>}
-              {!isNew && !!product.is_fda9 && <Badge variant="brand-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.9</Badge>}
-              {!isNew && !!product.is_fda10 && <Badge variant="warm" className="text-xs rounded-md px-1.5 py-0">ข.ย.10</Badge>}
-              {!isNew && !!product.is_fda11 && <Badge variant="destructive2" className="text-xs rounded-md px-1.5 py-0">ข.ย.11</Badge>}
-              {!isNew && !!product.is_fda13 && <Badge variant="info-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.13</Badge>}
-              {!isNew && !!product.is_hidden && <Badge variant="secondary" className="text-xs rounded-md px-1.5 py-0">ซ่อน</Badge>}
-              {!isNew && !!product.is_disabled && <Badge variant="destructive" className="text-xs rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
-            </div>
-          </div>
-          <span className={`grid place-items-center size-11 rounded-xl bg-primary-soft text-primary shrink-0 ${isNew ? 'opacity-50' : ''}`}>
-            <Info className="size-7" />
-          </span>
+      <TabStrip className="-mb-2">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList variant="segmented" className="h-10">
+            <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
+            <TabsTrigger value="price"><Tag /> ราคา</TabsTrigger>
+            <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
+              <Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})
+            </TabsTrigger>
+            <TabsTrigger value="labels" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการฉลากยา' : undefined}>
+              <Pill /> ฉลากยา ({product.labels?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="lots" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการล็อต' : undefined}>
+              <Package /> ล็อต ({product.lots?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="history" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อดูประวัติ' : undefined}>
+              <History /> ความเคลื่อนไหว
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={goBack}>
+            <ArrowLeft className="size-4" /> ย้อนกลับ
+          </Button>
+          {(tab === 'general' || tab === 'price') && (
+            <Button size="lg" className="h-10 px-3" onClick={handleSave} disabled={saving}>
+              <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : isNew ? 'เพิ่มสินค้า' : 'บันทึก'}
+            </Button>
+          )}
         </div>
+      </TabStrip>
 
-        <MetricCard
-          size="sm"
-          label="ราคาทุน (ล่าสุด)"
-          value={isNew ? '—' : formatCurrency(product.last_cost_price)}
-          unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
-          sub={isNew ? undefined : `เฉลี่ย ${formatCurrency(product.cost_price)}`}
-          icon={Coins}
-          tint="warm"
-          className={isNew ? 'opacity-50' : ''}
-        />
-        <MetricCard
-          size="sm"
-          label="ราคาขาย"
-          value={isNew ? '—' : formatCurrency(product.price_retail)}
-          valueClassName={'text-foreground'}
-          unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
-          sub={!isNew && refCost > 0
-            ? `กำไร ${profit >= 0 ? '+' : ''}${profit.toFixed(2)} (${profit >= 0 ? '+' : ''}${profitPct.toFixed(0)}%)`
-            : undefined}
-          subClassName={profit < 0 ? 'text-destructive' : undefined}
-          icon={Tag}
-          tint="success"
-          className={isNew ? 'opacity-50' : ''}
-        />
-        <MetricCard
-          size="sm"
-          label="คงเหลือ"
-          value={isNew ? '—' : totalStock.toLocaleString()}
-          unit={isNew ? undefined : (baseUnit !== '—' ? baseUnit : undefined)}
-          sub={isNew ? undefined : 'คลิกเพื่อปรับสต็อก'}
-          icon={Boxes}
-          tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive' : 'info-soft')}
-          onClick={isNew ? undefined : () => setAdjustOpen(true)}
-          className={isNew ? 'opacity-50' : ''}
-        />
-      </div>
+      {(() => {
+        // 4 cards: meta + 3 stats. In create mode, MetricCards stay in place
+        // but are grayed out — values aren't meaningful until the product exists.
+        const metricCardsGrid = (
+          <div className="grid grid-cols-4 gap-3 shrink-0 pt-3">
+            {/* Meta card — hand-rolled to match MetricCard size="sm" proportions */}
+            <div className="bg-card rounded-card shadow-card border border-border px-4 py-2 flex items-center gap-3 overflow-hidden">
+              <div className="flex flex-col min-w-0 flex-1 text-left">
+                <div
+                  className="text-base font-bold text-foreground truncate"
+                  title={isNew ? 'สินค้าใหม่' : product.trade_name}
+                >
+                  {isNew ? (form.trade_name?.trim() || 'สินค้าใหม่') : product.trade_name}
+                </div>
+                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                  <span className="text-sm text-muted-foreground font-mono shrink-0">{isNew ? '—' : (product.code ?? '—')}</span>
+                  <span className="text-sm text-muted-foreground shrink-0">·</span>
+                  <span className="text-sm text-muted-foreground truncate">{isNew ? 'รอบันทึก' : (categoryName ?? 'ไม่ระบุ')}</span>
+                  {!isNew && !!product.is_drug && <Badge variant="success" className="text-xs rounded-md px-1.5 py-0">ยา</Badge>}
+                  {!isNew && !!product.is_fda9 && <Badge variant="brand-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.9</Badge>}
+                  {!isNew && !!product.is_fda10 && <Badge variant="warm" className="text-xs rounded-md px-1.5 py-0">ข.ย.10</Badge>}
+                  {!isNew && !!product.is_fda11 && <Badge variant="destructive2" className="text-xs rounded-md px-1.5 py-0">ข.ย.11</Badge>}
+                  {!isNew && !!product.is_fda13 && <Badge variant="info-soft" className="text-xs rounded-md px-1.5 py-0">ข.ย.13</Badge>}
+                  {!isNew && !!product.is_hidden && <Badge variant="secondary" className="text-xs rounded-md px-1.5 py-0">ซ่อน</Badge>}
+                  {!isNew && !!product.is_disabled && <Badge variant="destructive" className="text-xs rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
+                </div>
+              </div>
+              <span className={`grid place-items-center size-11 rounded-xl bg-primary-soft text-primary shrink-0 ${isNew ? 'opacity-50' : ''}`}>
+                <Info className="size-7" />
+              </span>
+            </div>
 
-      <div className="flex-1 min-h-0 flex flex-col [scrollbar-gutter:stable]">
-        {/* Lots / History own their internal table scroll (sticky header,
-            body scrolls) so they must fill the remaining height instead of
-            sitting inside the page-level overflow wrapper. The form tabs
-            below still scroll as a whole page. */}
-        {tab === 'lots' ? (
-          <div className="flex-1 min-h-0 flex flex-col">
-            <LotsTab
-              product={product}
-              productId={productId}
-              baseUnit={baseUnit}
-              onRefresh={refreshProduct}
+            <MetricCard
+              size="sm"
+              label="ราคาทุน (ล่าสุด)"
+              value={isNew ? '—' : formatCurrency(product.last_cost_price)}
+              unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
+              sub={isNew ? undefined : `เฉลี่ย ${formatCurrency(product.cost_price)}`}
+              icon={Coins}
+              tint="warm"
+              className={isNew ? 'opacity-50' : ''}
+            />
+            <MetricCard
+              size="sm"
+              label="ราคาขาย"
+              value={isNew ? '—' : formatCurrency(product.price_retail)}
+              valueClassName={'text-foreground'}
+              unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
+              sub={!isNew && refCost > 0
+                ? `กำไร ${profit >= 0 ? '+' : ''}${profit.toFixed(2)} (${profit >= 0 ? '+' : ''}${profitPct.toFixed(0)}%)`
+                : undefined}
+              subClassName={profit < 0 ? 'text-destructive' : undefined}
+              icon={Tag}
+              tint="success"
+              className={isNew ? 'opacity-50' : ''}
+            />
+            <MetricCard
+              size="sm"
+              label="คงเหลือ"
+              value={isNew ? '—' : totalStock.toLocaleString()}
+              unit={isNew ? undefined : (baseUnit !== '—' ? baseUnit : undefined)}
+              sub={isNew ? undefined : 'คลิกเพื่อปรับสต็อก'}
+              icon={Boxes}
+              tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive' : 'info-soft')}
+              onClick={isNew ? undefined : () => setAdjustOpen(true)}
+              className={isNew ? 'opacity-50' : ''}
             />
           </div>
-        ) : tab === 'history' ? (
-          <div className="flex-1 min-h-0 flex flex-col">
-            <HistoryTab
-              productId={productId}
-              isNew={isNew}
-              active={tab === 'history'}
-            />
-          </div>
-        ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto pb-8">
-            {/* ======================== TAB: GENERAL ======================== */}
+        )
+
+        // Lots / History own internal table scroll → keep metric cards as a
+        // shrink-0 sibling so the table fills the remaining height.
+        if (tab === 'lots' || tab === 'history') {
+          return (
+            <>
+              {metricCardsGrid}
+              <div className="flex-1 min-h-0 flex flex-col">
+                {tab === 'lots' ? (
+                  <LotsTab
+                    product={product}
+                    productId={productId}
+                    baseUnit={baseUnit}
+                    onRefresh={refreshProduct}
+                  />
+                ) : (
+                  <HistoryTab
+                    productId={productId}
+                    isNew={isNew}
+                    active={tab === 'history'}
+                  />
+                )}
+              </div>
+            </>
+          )
+        }
+
+        // Form tabs: one thin scrollbar scrolls metric cards + form together.
+        return (
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] pb-8 space-y-2">
+            {metricCardsGrid}
             {tab === 'general' && (
               <GeneralTab
                 form={form}
@@ -481,8 +481,6 @@ export default function EditProductPage() {
                 isNew={isNew}
               />
             )}
-
-            {/* ======================== TAB: PRICE ======================== */}
             {tab === 'price' && (
               <PriceTab
                 form={form}
@@ -495,8 +493,6 @@ export default function EditProductPage() {
                 reloadToken={(product as any).updated_at ?? ''}
               />
             )}
-
-            {/* ======================== TAB: UNITS ======================== */}
             {tab === 'units' && (
               <UnitsTab
                 product={product}
@@ -507,8 +503,6 @@ export default function EditProductPage() {
                 onRefresh={refreshProduct}
               />
             )}
-
-            {/* ======================== TAB: LABELS ======================== */}
             {tab === 'labels' && (
               <LabelsTab
                 product={product}
@@ -522,8 +516,8 @@ export default function EditProductPage() {
               />
             )}
           </div>
-        )}
-      </div>
+        )
+      })()}
 
       {/* ======================== ADJUST STOCK DIALOG ======================== */}
       <AdjustStockDialog

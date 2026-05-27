@@ -8,6 +8,7 @@ import {
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
 import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/QuickStockDialog'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
@@ -157,25 +158,48 @@ export default function ManageLowStockPage() {
     const unit = unitName || 'หน่วย'
     const isOut = qty <= 0
     const isLow = !isOut && reorder > 0 && qty <= reorder
-    const status = isOut ? 'หมด' : isLow ? 'ใกล้หมด' : 'ปกติ'
-    const tone = isOut || isLow ? 'text-destructive' : 'text-success'
     const barTone = isOut || isLow ? 'bg-destructive' : 'bg-success'
     const pct = isOut ? 0 : safety > 0 ? Math.min(100, (qty / safety) * 100) : 100
     const hasMeta = reorder > 0 || safety > 0
     return (
       <div className="flex flex-col gap-1 min-w-[160px]">
-        <div className="text-sm">
-          <span className="font-semibold text-foreground">{qty.toLocaleString()}</span>
-          <span className="text-muted-foreground"> {unit} · </span>
-          <span className={`font-medium ${tone}`}>{status}</span>
-        </div>
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-          <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
+        {/* qty + unit float above the bar at pct% so the label tracks the fill end.
+            Position is clamped to keep the label fully visible at extremes. No
+            status badge — the page itself is the "low stock" context. */}
+        <div className="relative pt-4">
+          <span
+            className="absolute top-0 -translate-x-1/2 text-xs whitespace-nowrap"
+            style={{ left: `${Math.max(8, Math.min(92, pct))}%` }}
+          >
+            <span className="font-semibold text-foreground tabular-nums">{qty.toLocaleString()}</span>
+            <span className="text-muted-foreground"> {unit}</span>
+          </span>
+          <div className="h-1.5 w-full rounded-full bg-muted-hover overflow-hidden">
+            <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
+          </div>
         </div>
         {hasMeta && (
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{reorder > 0 ? <>จุดสั่งซื้อ <span className="text-foreground">{reorder.toLocaleString()}</span></> : null}</span>
-            <span>{safety > 0 ? <>สต็อคปลอดภัย <span className="text-foreground">{safety.toLocaleString()}</span></> : null}</span>
+            <span>
+              {reorder > 0 ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-foreground cursor-help tabular-nums">{reorder.toLocaleString()}</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">จุดสั่งซื้อ</TooltipContent>
+                </Tooltip>
+              ) : null}
+            </span>
+            <span>
+              {safety > 0 ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-foreground cursor-help tabular-nums">{safety.toLocaleString()}</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">สต็อคปลอดภัย</TooltipContent>
+                </Tooltip>
+              ) : null}
+            </span>
           </div>
         )}
       </div>
@@ -287,7 +311,7 @@ export default function ManageLowStockPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>
+                <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[160px]">ชื่อสินค้า</SortableTableHead>
                 {showColStockBar && <TableHead className="min-w-[160px] pl-6">สต็อก</TableHead>}
                 {showColBuyMore && <TableHead className="text-right min-w-16">ซื้อเพิ่ม</TableHead>}
                 {showColCost && <TableHead className="text-right min-w-16">ทุนเฉลี่ย</TableHead>}
@@ -313,7 +337,7 @@ export default function ManageLowStockPage() {
                 const isOut = r.stock_qty <= 0
                 return (
                   <TableRow key={r.product_id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isOut && 'bg-destructive-soft/30')}>
-                    <TableCell className="max-w-[260px] text-sm truncate" title={r.trade_name}>
+                    <TableCell className="max-w-[200px] text-sm truncate" title={r.trade_name}>
                       {r.trade_name}
                     </TableCell>
                     {showColStockBar && (
@@ -355,7 +379,7 @@ export default function ManageLowStockPage() {
                       <div className="flex justify-center">
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                            <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
                               <MoreHorizontal />
                             </Button>
                           </PopoverTrigger>

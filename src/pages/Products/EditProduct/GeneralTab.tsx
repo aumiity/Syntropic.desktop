@@ -97,11 +97,12 @@ export function GeneralTab({
           <div className="grid grid-cols-2 gap-3">
             {/* Row 1: รหัสสินค้า | คีย์เวิร์ดค้นหา */}
             <Field label="รหัสสินค้า">
-              <Input value={form.code} readOnly className="bg-muted cursor-not-allowed"
+              <Input variant="elevated" value={form.code} readOnly className="bg-muted cursor-not-allowed"
                       placeholder="สร้างอัตโนมัติ" />
             </Field>
             <Field label="คีย์เวิร์ดค้นหา">
               <Input
+                variant="elevated"
                 value={form.search_keywords}
                 onChange={e => setF('search_keywords', e.target.value)}
                 placeholder="ชื่ออื่นๆ คั่นด้วยจุลภาค เช่น พารา,para,tylenol"
@@ -112,6 +113,7 @@ export function GeneralTab({
             <div className="col-span-2" data-field="trade_name">
               <Field label="ชื่อสินค้า" required>
                 <Input
+                  variant="elevated"
                   value={form.trade_name}
                   onChange={e => setF('trade_name', e.target.value)}
                   aria-invalid={errors.has('trade_name')}
@@ -122,14 +124,14 @@ export function GeneralTab({
             {/* Row 3: ชื่อสำหรับพิมพ์ (full width) */}
             <div className="col-span-2">
               <Field label="ชื่อสำหรับพิมพ์">
-                <Input value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" />
+                <Input variant="elevated" value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" />
               </Field>
             </div>
 
             {/* Row 4: หมวดหมู่ | หน่วยหลัก */}
             <Field label="หมวดหมู่">
               <Select value={String(form.category_id ?? 0)} onValueChange={v => setF('category_id', Number(v))}>
-                <SelectTrigger className="h-10 w-full">
+                <SelectTrigger variant="elevated" className="h-10 w-full">
                   <SelectValue placeholder="— ไม่ระบุ —" />
                 </SelectTrigger>
                 <SelectContent>
@@ -141,7 +143,7 @@ export function GeneralTab({
             <div data-field="unit_id">
               <Field label="หน่วยหลัก" required>
                 <Select value={String(form.unit_id ?? 0)} onValueChange={v => setF('unit_id', Number(v) || null)}>
-                  <SelectTrigger aria-invalid={errors.has('unit_id')} className="h-10 w-full">
+                  <SelectTrigger variant="elevated" aria-invalid={errors.has('unit_id')} className="h-10 w-full">
                     <SelectValue placeholder="— เลือกหน่วย —" />
                   </SelectTrigger>
                   <SelectContent>
@@ -176,6 +178,7 @@ export function GeneralTab({
         <SectionCard icon={FileText} title="หมายเหตุและคำบรรยาย" tint="secondary">
           <Field label="สรรพคุณ">
             <Textarea
+              variant="elevated"
               value={form.indication_note}
               onChange={e => setF('indication_note', e.target.value)}
               rows={3}
@@ -183,6 +186,7 @@ export function GeneralTab({
           </Field>
           <Field label="ผลข้างเคียง">
             <Textarea
+              variant="elevated"
               value={form.side_effect_note}
               onChange={e => setF('side_effect_note', e.target.value)}
               rows={2}
@@ -190,6 +194,7 @@ export function GeneralTab({
           </Field>
           <Field label="หมายเหตุ">
             <Textarea
+              variant="elevated"
               value={form.note}
               onChange={e => setF('note', e.target.value)}
               rows={2}
@@ -205,16 +210,16 @@ export function GeneralTab({
         <SectionCard icon={ScanBarcode} title="บาร์โค้ด" tint="secondary">
           <div className="grid grid-cols-2 gap-3">
             <Field label="บาร์โค้ด 1">
-              <Input value={form.barcode} onChange={e => setF('barcode', e.target.value)} placeholder="ตัวเลข 13 หลัก" />
+              <Input variant="elevated" value={form.barcode} onChange={e => setF('barcode', e.target.value)} placeholder="ตัวเลข 13 หลัก" />
             </Field>
             <Field label="บาร์โค้ด 2">
-              <Input value={form.barcode2} onChange={e => setF('barcode2', e.target.value)} />
+              <Input variant="elevated" value={form.barcode2} onChange={e => setF('barcode2', e.target.value)} />
             </Field>
             <Field label="บาร์โค้ด 3">
-              <Input value={form.barcode3} onChange={e => setF('barcode3', e.target.value)} />
+              <Input variant="elevated" value={form.barcode3} onChange={e => setF('barcode3', e.target.value)} />
             </Field>
             <Field label="บาร์โค้ด 4">
-              <Input value={form.barcode4} onChange={e => setF('barcode4', e.target.value)} />
+              <Input variant="elevated" value={form.barcode4} onChange={e => setF('barcode4', e.target.value)} />
             </Field>
           </div>
         </SectionCard>
@@ -222,10 +227,10 @@ export function GeneralTab({
         <SectionCard icon={Boxes} title="สต็อกและการแจ้งเตือน" tint="warning">
           <div className="grid grid-cols-2 gap-3">
             <Field label="จุดสั่งซื้อ">
-              <Input type="number" value={form.reorder_point} onChange={e => setF('reorder_point', e.target.value)} min={0} />
+              <Input variant="elevated" type="number" value={form.reorder_point} onChange={e => setF('reorder_point', e.target.value)} min={0} />
             </Field>
             <Field label="สต็อกปลอดภัย">
-              <Input type="number" value={form.safety_stock} onChange={e => setF('safety_stock', e.target.value)} min={0} />
+              <Input variant="elevated" type="number" value={form.safety_stock} onChange={e => setF('safety_stock', e.target.value)} min={0} />
             </Field>
           </div>
 
@@ -310,7 +315,7 @@ export function GeneralTab({
                     }))
                   }}
                 >
-                  <SelectTrigger className="h-10 w-full">
+                  <SelectTrigger variant="elevated" className="h-10 w-full">
                     <SelectValue placeholder="— ไม่ระบุ —" />
                   </SelectTrigger>
                   <SelectContent>
@@ -322,6 +327,7 @@ export function GeneralTab({
               <Field label="ชื่อสามัญ">
                 <div className="relative">
                   <Input
+                    variant="elevated"
                     value={genericQuery}
                     onChange={e => handleGenericSearch(e.target.value)}
                     onFocus={() => setShowGenericSugg(true)}

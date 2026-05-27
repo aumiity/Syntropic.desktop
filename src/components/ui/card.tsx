@@ -128,7 +128,7 @@ function SectionCard({
     : tint === "info-soft"   ? "bg-info-soft text-info-soft-foreground"
     : 'bg-primary-soft text-primary'
   return (
-    <div className={cn('bg-card rounded-card p-4 space-y-3 shadow-card', className)}>
+    <div className={cn('bg-card rounded-card p-4 space-y-3 shadow-card border border-border', className)}>
       <div className="flex items-center gap-2.5">
         <span className={cn('grid place-items-center size-8 rounded-lg shrink-0', iconBox)}>
           <Icon className="size-4" />

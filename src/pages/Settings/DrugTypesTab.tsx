@@ -102,7 +102,7 @@ export function DrugTypesTab() {
                   </TableCell>
                 </TableRow>
               ) : filtered.map(d => (
-                <TableRow key={d.id} className={d.is_disabled ? 'opacity-60' : ''}>
+                <TableRow key={d.id}>
                   <TableCell className="font-mono text-sm font-semibold">{d.code}</TableCell>
                   <TableCell className="text-sm text-foreground">{d.name_th}</TableCell>
                   {FDA_FLAGS.map(({ key }) => (
@@ -114,12 +114,12 @@ export function DrugTypesTab() {
                   ))}
                   <TableCell className="text-center">
                     {d.is_disabled
-                      ? <Badge variant="secondary" className="text-xs">ปิด</Badge>
-                      : <Badge variant="success" className="text-xs">ใช้งาน</Badge>}
+                      ? <Badge variant="destructive-outline">ปิดใช้งาน</Badge>
+                      : <Badge variant="success-outline">ใช้งาน</Badge>}
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-center">
-                      <Button size="icon-lg" variant="outline" onClick={() => openEdit(d)} title="แก้ไข">
+                      <Button size="icon-lg" variant="elevated" onClick={() => openEdit(d)} title="แก้ไข">
                         <Edit />
                       </Button>
                     </div>

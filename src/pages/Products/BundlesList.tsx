@@ -207,17 +207,18 @@ export default function BundlesList() {
                 {showProfit && (
                   <SortableTableHead field="profit" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
                 )}
+                <TableHead className="text-center min-w-20">สถานะ</TableHead>
                 <TableHead className="text-center min-w-20">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6 + (showCost ? 1 : 0) + (showProfit ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={7 + (showCost ? 1 : 0) + (showProfit ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6 + (showCost ? 1 : 0) + (showProfit ? 1 : 0)} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={7 + (showCost ? 1 : 0) + (showProfit ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <Boxes className="size-10 mx-auto mb-2 opacity-30" />
                     ยังไม่มีชุดสินค้า
                   </TableCell>
@@ -227,7 +228,7 @@ export default function BundlesList() {
                 const pct = (row.cost_price ?? 0) > 0 ? (profit / row.cost_price!) * 100 : 0
                 const isDisabled = !!row.is_disabled
                 return (
-                  <TableRow key={row.id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isDisabled && 'opacity-60')}>
+                  <TableRow key={row.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                     <TableCell className="text-foreground-subtle text-sm">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
                     <TableCell className="max-w-0">
                       <div className="text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
@@ -279,11 +280,16 @@ export default function BundlesList() {
                         </span>
                       </TableCell>
                     )}
+                    <TableCell className="text-center">
+                      <Badge variant={isDisabled ? 'destructive-outline' : 'success-outline'}>
+                        {isDisabled ? 'ปิดใช้งาน' : 'ใช้งาน'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <div className="flex justify-center">
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                            <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
                               <MoreHorizontal />
                             </Button>
                           </PopoverTrigger>

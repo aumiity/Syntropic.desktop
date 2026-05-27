@@ -579,7 +579,7 @@ export default function ManagePurchasesPage() {
                       <div className="flex justify-center">
                         <Button
                           size="icon-lg"
-                          variant="ghost"
+                          variant="elevated"
                           title="ดูรายละเอียด"
                           onClick={() => openReceipt(h.invoice_no)}
                         >

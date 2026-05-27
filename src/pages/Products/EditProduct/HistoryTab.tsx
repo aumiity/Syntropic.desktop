@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialog'
@@ -13,9 +14,11 @@ import { useToast } from '@/components/ui/toast'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { formatDateTime, cn } from '@/lib/utils'
 import {
-  History, RotateCcw, Info, StickyNote,
+  History, RotateCcw, Info, StickyNote, Filter,
 } from 'lucide-react'
 import { MOVEMENT_META, type StockMovement, type MovementSortKey } from './shared'
+
+const ALL_MOVEMENT_TYPES = Object.keys(MOVEMENT_META)
 
 interface Props {
   productId: number
@@ -29,7 +32,9 @@ export function HistoryTab({ productId, isNew, active }: Props) {
 
   const [movements, setMovements] = useState<StockMovement[] | null>(null)
   const [movementsLoading, setMovementsLoading] = useState(false)
-  const [movementTypeFilter, setMovementTypeFilter] = useState<Set<string>>(new Set())
+  // Whitelist: types currently selected to show. Initialize as all types
+  // (= no narrowing). Empty set = show none.
+  const [movementTypeFilter, setMovementTypeFilter] = useState<Set<string>>(() => new Set(ALL_MOVEMENT_TYPES))
   const [movementSort, setMovementSort] = useState<{ by: MovementSortKey; dir: 'asc' | 'desc' }>({
     by: 'created_at', dir: 'desc',
   })
@@ -73,7 +78,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
 
   const filteredMovements = useMemo(() => {
     const filtered = (movements ?? []).filter(m => {
-      if (movementTypeFilter.size > 0 && !movementTypeFilter.has(m.movement_type)) return false
+      if (!movementTypeFilter.has(m.movement_type)) return false
       if (movementDateFrom || movementDateTo) {
         // stock_movements.created_at format = 'YYYY-MM-DD HH:MM:SS' so the
         // first 10 chars are the date — lexical compare matches calendar order
@@ -125,75 +130,117 @@ export function HistoryTab({ productId, isNew, active }: Props) {
 
   return (
     <div className="pt-4 flex-1 min-h-0 flex flex-col">
-      <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
-        {/* Top bar — date range + filter chips + clear buttons, all on one row.
-            min-h-14 + flex-wrap so it gracefully grows on narrow viewports. */}
-        <div className="min-h-14 px-2 py-2 flex items-center flex-wrap gap-2 shrink-0">
+      <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <History className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">ประวัติเคลื่อนไหว</h3>
+            <Badge variant="neutral-outline">{(movements?.length ?? 0).toLocaleString()}</Badge>
+          </div>
+
           <DateRangePicker
+            variant="elevated"
             from={movementDateFrom}
             to={movementDateTo}
             onChange={(f, t) => { setMovementDateFrom(f); setMovementDateTo(t) }}
-            className="w-60 shrink-0"
+            className="w-60 shrink-0 ml-auto"
           />
           {(movementDateFrom || movementDateTo) && (
             <Button
               size="lg"
               variant="ghost"
-              className="h-10 px-3 shrink-0"
+              className="h-9 px-3 shrink-0"
               onClick={() => { setMovementDateFrom(''); setMovementDateTo('') }}
             >
               ล้างวันที่
             </Button>
           )}
-          <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-            {Object.entries(MOVEMENT_META).map(([type, meta]) => {
-              const active = movementTypeFilter.has(type)
-              return (
-                <Button
-                  key={type}
-                  size="lg"
-                  variant={active ? meta.variant : 'outline'}
-                  className="h-10 px-3"
-                  onClick={() => {
-                    setMovementTypeFilter(prev => {
-                      const next = new Set(prev)
-                      if (next.has(type)) next.delete(type)
-                      else next.add(type)
-                      return next
-                    })
-                  }}
-                >
-                  {meta.label}
-                </Button>
-              )
-            })}
-          </div>
+
+          {/* Type filter popover — replaces inline chips per standard spec.
+              Whitelist semantics: empty set = show none, full set = show all.
+              Initialized to full so the default state matches the checked UI. */}
+          {(() => {
+            const allOn = movementTypeFilter.size === ALL_MOVEMENT_TYPES.length
+            const toggleAll = () => {
+              setMovementTypeFilter(allOn ? new Set() : new Set(ALL_MOVEMENT_TYPES))
+            }
+            // Badge shows count only when filter is actively narrowing the view
+            const isNarrowing = movementTypeFilter.size < ALL_MOVEMENT_TYPES.length
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 relative" title="ตัวกรองประเภท">
+                    <Filter className="size-4" />
+                    {isNarrowing && (
+                      <span className="absolute -top-1 -right-1 size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                        {movementTypeFilter.size}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56">
+                  <PopoverHeader className="flex-row items-center justify-between">
+                    <PopoverTitle>ประเภทรายการ</PopoverTitle>
+                    <Button
+                      type="button"
+                      variant="elevated"
+                      size="xs"
+                      onClick={toggleAll}
+                      className="rounded-md"
+                    >
+                      {allOn ? 'ล้างทั้งหมด' : 'ทั้งหมด'}
+                    </Button>
+                  </PopoverHeader>
+                  {Object.entries(MOVEMENT_META).map(([type, meta]) => {
+                    const checked = movementTypeFilter.has(type)
+                    return (
+                      <label key={type} className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={v => {
+                            setMovementTypeFilter(prev => {
+                              const next = new Set(prev)
+                              if (v === true) next.add(type)
+                              else next.delete(type)
+                              return next
+                            })
+                          }}
+                        />
+                        <span className="text-sm">{meta.label}</span>
+                      </label>
+                    )
+                  })}
+                </PopoverContent>
+              </Popover>
+            )
+          })()}
+
           <Button
             size="lg"
-            variant="ghost"
-            className="h-10 px-3 shrink-0"
-            onClick={() => setMovementTypeFilter(new Set())}
-            disabled={movementTypeFilter.size === 0}
+            variant="elevated"
+            className="h-9 w-9 p-0 shrink-0"
+            onClick={reloadMovements}
+            disabled={movementsLoading}
+            title="รีเฟรช"
           >
-            ล้างตัวกรอง
+            <RotateCcw className="size-4" />
           </Button>
         </div>
 
-        {/* Table — min-w-X on each column matches the lots tab pattern:
-            columns size to content with a floor; container scrolls
-            horizontally only below the cumulative min-width. */}
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
                 <SortableTableHead className="min-w-32" field="created_at" sort={movementSort} onToggle={toggleMovementSort}>
                   วันเวลา
                 </SortableTableHead>
-                <TableHead className="min-w-28 text-center">ประเภท</TableHead>
-                <TableHead className="min-w-40 text-center">Lot</TableHead>
-                <TableHead className="min-w-28 text-right">เปลี่ยนแปลง</TableHead>
-                <TableHead className="min-w-28 text-right">คงเหลือ</TableHead>
-                <TableHead className="min-w-32 text-center">ดูข้อมูล</TableHead>
+                <TableHead className="min-w-28">ประเภท</TableHead>
+                <TableHead className="min-w-32">Lot</TableHead>
+                <TableHead className="min-w-28">เปลี่ยนแปลง</TableHead>
+                <TableHead className="min-w-28">คงเหลือ</TableHead>
+                <TableHead className="min-w-24">ดูข้อมูล</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -222,33 +269,33 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                 const isPositive = m.qty_change > 0
                 const hasDetail = Boolean(m.sale_invoice_no || m.gr_invoice_no)
                 return (
-                  <TableRow key={m.id} className="hover:bg-primary-soft/60 transition-colors">
+                  <TableRow key={m.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                     <TableCell className="text-sm">{formatDateTime(m.created_at)}</TableCell>
-                    <TableCell className="text-center">
+                    <TableCell>
                       <Badge variant={meta.variant} className="rounded-md gap-1">
                         <Icon className="size-3" /> {meta.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm font-mono truncate text-center" title={m.lot_number ?? undefined}>{m.lot_number ?? '—'}</TableCell>
+                    <TableCell className="text-sm font-mono truncate" title={m.lot_number ?? undefined}>{m.lot_number ?? '—'}</TableCell>
                     <TableCell className={cn(
-                      'text-right text-sm font-semibold',
+                      'text-sm font-semibold',
                       isPositive ? 'text-success' : 'text-destructive',
                     )}>
                       {isPositive ? '+' : ''}{m.qty_change.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right text-sm">
+                    <TableCell className="text-sm">
                       <span className="text-muted-foreground">{m.qty_before.toLocaleString()}</span>
                       <span className="text-muted-foreground mx-1">→</span>
                       <span className="font-semibold text-foreground">{m.qty_after.toLocaleString()}</span>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1.5">
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
                         {m.note ? (
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button
                                 size="icon-lg"
-                                variant="warm"
+                                variant="elevated"
                                 title="ดูหมายเหตุ"
                               >
                                 <StickyNote />
@@ -259,21 +306,21 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                             </PopoverContent>
                           </Popover>
                         ) : (
-                          <Button size="icon-lg" variant="outline" disabled title="ไม่มีหมายเหตุ">
+                          <Button size="icon-lg" variant="elevated" disabled title="ไม่มีหมายเหตุ">
                             <StickyNote />
                           </Button>
                         )}
                         {hasDetail ? (
                           <Button
                             size="icon-lg"
-                            variant="primary-soft"
+                            variant="elevated"
                             onClick={() => openMovementDetail(m)}
                             title={`ดู ${m.sale_invoice_no ?? m.gr_invoice_no}`}
                           >
                             <Info />
                           </Button>
                         ) : (
-                          <Button size="icon-lg" variant="outline" disabled title="ไม่มีบิล/เอกสาร">
+                          <Button size="icon-lg" variant="elevated" disabled title="ไม่มีบิล/เอกสาร">
                             <Info />
                           </Button>
                         )}
@@ -286,17 +333,13 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           </Table>
         </div>
 
-        {/* Bottom strip — action left, count right (showcase) */}
-        <div className="px-5 h-12 bg-card border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-between gap-3">
-          <Button size="lg" variant="outline" onClick={reloadMovements} disabled={movementsLoading} className="px-3 shrink-0">
-            <RotateCcw className="size-4" /> รีเฟรช
-          </Button>
-          <span className="shrink-0">
+        <div className="px-5 h-12 bg-card border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-end">
+          <span>
             แสดง{' '}
             <span className="font-semibold text-foreground">
               {filteredMovements.length}
             </span>
-            {movements && movementTypeFilter.size > 0 ? <> / {movements.length}</> : null}
+            {movements && movementTypeFilter.size < ALL_MOVEMENT_TYPES.length ? <> / {movements.length}</> : null}
             {' '}รายการ
             {movements && movements.length >= 500 && (
               <span className="ml-2 text-warning-strong">(แสดงล่าสุด 500 รายการ)</span>

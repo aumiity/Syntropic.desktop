@@ -139,14 +139,14 @@ export function CategoriesTab() {
             {reorderMode ? (
               <SortableTableBody values={rows} onReorder={setRows}>
                 {rows.map(c => (
-                  <SortableRow key={c.id} value={c} className={c.is_disabled ? 'opacity-60' : ''}>
+                  <SortableRow key={c.id} value={c}>
                     <TableCell className="font-mono text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
                     <TableCell className="font-semibold text-sm text-foreground">{c.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.description ?? '—'}</TableCell>
                     <TableCell className="text-center">
                       {c.is_disabled
-                        ? <Badge variant="secondary" className="text-xs">ปิด</Badge>
-                        : <Badge variant="success" className="text-xs">ใช้งาน</Badge>}
+                        ? <Badge variant="destructive-outline">ปิดใช้งาน</Badge>
+                        : <Badge variant="success-outline">ใช้งาน</Badge>}
                     </TableCell>
                   </SortableRow>
                 ))}
@@ -161,19 +161,19 @@ export function CategoriesTab() {
                     </TableCell>
                   </TableRow>
                 ) : filtered.map((c, i) => (
-                  <TableRow key={c.id} className={c.is_disabled ? 'opacity-60' : ''}>
+                  <TableRow key={c.id}>
                     <TableCell className="text-center text-sm text-muted-foreground">{i + 1}</TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
                     <TableCell className="font-semibold text-sm text-foreground">{c.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.description ?? '—'}</TableCell>
                     <TableCell className="text-center">
                       {c.is_disabled
-                        ? <Badge variant="secondary" className="text-xs">ปิด</Badge>
-                        : <Badge variant="success" className="text-xs">ใช้งาน</Badge>}
+                        ? <Badge variant="destructive-outline">ปิดใช้งาน</Badge>
+                        : <Badge variant="success-outline">ใช้งาน</Badge>}
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-center">
-                        <Button size="icon-lg" variant="outline" onClick={() => openEdit(c)} title="แก้ไข">
+                        <Button size="icon-lg" variant="elevated" onClick={() => openEdit(c)} title="แก้ไข">
                           <Edit />
                         </Button>
                       </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
@@ -18,7 +19,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { motion } from 'framer-motion'
-import { cn } from '@/lib/utils'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import type { Customer, Supplier, User, DrugAllergy } from '@/types'
 import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2, Filter, MoreHorizontal, Ban, Check } from 'lucide-react'
@@ -47,10 +47,9 @@ interface CustomersPrefs {
   showDisabled: boolean
   showColPhone: boolean
   showColAlert: boolean
-  showColStatus: boolean
 }
 const CUSTOMERS_DEFAULTS: CustomersPrefs = {
-  pageSize: 50, showDisabled: false, showColPhone: true, showColAlert: true, showColStatus: true,
+  pageSize: 50, showDisabled: false, showColPhone: true, showColAlert: true,
 }
 
 function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; addNonce: number }) {
@@ -61,10 +60,9 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const showDisabled = prefs.showDisabled
-  // Column visibility (จัดการ + รหัส + ชื่อ always shown)
+  // Column visibility (จัดการ + รหัส + ชื่อ + สถานะ always shown)
   const showColPhone = prefs.showColPhone
   const showColAlert = prefs.showColAlert
-  const showColStatus = prefs.showColStatus
   const [loading, setLoading] = useState(false)
 
   const [dialog, setDialog] = useState(false)
@@ -212,10 +210,6 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                 <Checkbox checked={showColAlert} onCheckedChange={v => setPrefs({ showColAlert: v === true })} />
                 <span className="text-sm">แจ้งเตือน</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColStatus} onCheckedChange={v => setPrefs({ showColStatus: v === true })} />
-                <span className="text-sm">สถานะ</span>
-              </label>
             </PopoverContent>
           </Popover>
         </div>
@@ -228,24 +222,23 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                 <TableHead className="min-w-[280px]">ชื่อ-นามสกุล</TableHead>
                 {showColPhone && <TableHead className="min-w-32">โทรศัพท์</TableHead>}
                 {showColAlert && <TableHead className="min-w-24 text-center">แจ้งเตือน</TableHead>}
-                {showColStatus && <TableHead className="min-w-24 text-center">สถานะ</TableHead>}
+                <TableHead className="min-w-24 text-center">สถานะ</TableHead>
                 <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={3 + (showColPhone ? 1 : 0) + (showColAlert ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4 + (showColPhone ? 1 : 0) + (showColAlert ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3 + (showColPhone ? 1 : 0) + (showColAlert ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={4 + (showColPhone ? 1 : 0) + (showColAlert ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <Users className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูลลูกค้า
                   </TableCell>
                 </TableRow>
               ) : rows.map(c => {
-                const isDisabled = !!c.is_disabled
                 return (
-                <TableRow key={c.id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isDisabled && 'opacity-60')}>
+                <TableRow key={c.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                   <TableCell className="font-mono text-sm text-muted-foreground truncate">{c.code}</TableCell>
                   <TableCell className="max-w-0">
                     <div className="flex items-center gap-2 min-w-0">
@@ -262,18 +255,16 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                       {c.is_alert ? <AlertTriangle className="size-4 text-destructive mx-auto" /> : null}
                     </TableCell>
                   )}
-                  {showColStatus && (
-                    <TableCell className="text-center">
-                      {c.is_disabled
-                        ? <Badge variant="secondary">พักใช้งาน</Badge>
-                        : <Badge variant="success-outline">ใช้งาน</Badge>}
-                    </TableCell>
-                  )}
+                  <TableCell className="text-center">
+                    {c.is_disabled
+                      ? <Badge variant="destructive-outline">ปิดใช้งาน</Badge>
+                      : <Badge variant="success-outline">ใช้งาน</Badge>}
+                  </TableCell>
                   <TableCell>
                     <div className="flex justify-center">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
                             <MoreHorizontal />
                           </Button>
                         </PopoverTrigger>
@@ -419,10 +410,9 @@ interface SuppliersPrefs {
   pageSize: PageSize
   showDisabled: boolean
   showColPhone: boolean
-  showColStatus: boolean
 }
 const SUPPLIERS_DEFAULTS: SuppliersPrefs = {
-  pageSize: 50, showDisabled: false, showColPhone: true, showColStatus: true,
+  pageSize: 50, showDisabled: false, showColPhone: true,
 }
 
 function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; addNonce: number }) {
@@ -433,9 +423,8 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const showDisabled = prefs.showDisabled
-  // Column visibility (รหัส + ชื่อบริษัท + จัดการ always shown)
+  // Column visibility (รหัส + ชื่อบริษัท + สถานะ + จัดการ always shown)
   const showColPhone = prefs.showColPhone
-  const showColStatus = prefs.showColStatus
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
   const [editing, setEditing] = useState<Supplier | null>(null)
@@ -554,10 +543,6 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                 <Checkbox checked={showColPhone} onCheckedChange={v => setPrefs({ showColPhone: v === true })} />
                 <span className="text-sm">โทรศัพท์</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColStatus} onCheckedChange={v => setPrefs({ showColStatus: v === true })} />
-                <span className="text-sm">สถานะ</span>
-              </label>
             </PopoverContent>
           </Popover>
         </div>
@@ -569,41 +554,38 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                 <TableHead className="min-w-24">รหัส</TableHead>
                 <TableHead className="min-w-[320px]">ชื่อบริษัท</TableHead>
                 {showColPhone && <TableHead className="min-w-32">โทรศัพท์</TableHead>}
-                {showColStatus && <TableHead className="min-w-24 text-center">สถานะ</TableHead>}
+                <TableHead className="min-w-24 text-center">สถานะ</TableHead>
                 <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={3 + (showColPhone ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4 + (showColPhone ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3 + (showColPhone ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={4 + (showColPhone ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <Building2 className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูลผู้จำหน่าย
                   </TableCell>
                 </TableRow>
               ) : rows.map(s => {
-                const isDisabled = !!s.is_disabled
                 return (
-                <TableRow key={s.id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isDisabled && 'opacity-60')}>
+                <TableRow key={s.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                   <TableCell className="font-mono text-sm text-muted-foreground truncate">{s.code}</TableCell>
                   <TableCell className="max-w-0">
                     <div className="text-sm text-foreground truncate" title={s.name}>{s.name}</div>
                   </TableCell>
                   {showColPhone && <TableCell className="text-sm truncate">{s.phone ?? '—'}</TableCell>}
-                  {showColStatus && (
-                    <TableCell className="text-center">
-                      {s.is_disabled
-                        ? <Badge variant="secondary">พักใช้งาน</Badge>
-                        : <Badge variant="success-outline">ใช้งาน</Badge>}
-                    </TableCell>
-                  )}
+                  <TableCell className="text-center">
+                    {s.is_disabled
+                      ? <Badge variant="destructive-outline">ปิดใช้งาน</Badge>
+                      : <Badge variant="success-outline">ใช้งาน</Badge>}
+                  </TableCell>
                   <TableCell>
                     <div className="flex justify-center">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
                             <MoreHorizontal />
                           </Button>
                         </PopoverTrigger>
@@ -704,10 +686,9 @@ interface StaffPrefs {
   showDisabled: boolean
   showColEmail: boolean
   showColRole: boolean
-  showColStatus: boolean
 }
 const STAFF_DEFAULTS: StaffPrefs = {
-  showDisabled: false, showColEmail: true, showColRole: true, showColStatus: true,
+  showDisabled: false, showColEmail: true, showColRole: true,
 }
 
 function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNonce: number }) {
@@ -716,10 +697,9 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
   const [rows, setRows] = useState<User[]>([])
   const [q, setQ] = useState('')
   const showDisabled = prefs.showDisabled
-  // Column visibility (ชื่อ + จัดการ always shown)
+  // Column visibility (ชื่อ + สถานะ + จัดการ always shown)
   const showColEmail = prefs.showColEmail
   const showColRole = prefs.showColRole
-  const showColStatus = prefs.showColStatus
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
@@ -847,10 +827,6 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                 <Checkbox checked={showColRole} onCheckedChange={v => setPrefs({ showColRole: v === true })} />
                 <span className="text-sm">ตำแหน่ง</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColStatus} onCheckedChange={v => setPrefs({ showColStatus: v === true })} />
-                <span className="text-sm">สถานะ</span>
-              </label>
             </PopoverContent>
           </Popover>
         </div>
@@ -862,24 +838,23 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                 <TableHead className="min-w-[240px]">ชื่อ</TableHead>
                 {showColEmail && <TableHead className="min-w-56">อีเมล</TableHead>}
                 {showColRole && <TableHead className="min-w-28 text-center">ตำแหน่ง</TableHead>}
-                {showColStatus && <TableHead className="min-w-24 text-center">สถานะ</TableHead>}
+                <TableHead className="min-w-24 text-center">สถานะ</TableHead>
                 <TableHead className="min-w-16 text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={2 + (showColEmail ? 1 : 0) + (showColRole ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3 + (showColEmail ? 1 : 0) + (showColRole ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={2 + (showColEmail ? 1 : 0) + (showColRole ? 1 : 0) + (showColStatus ? 1 : 0)} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={3 + (showColEmail ? 1 : 0) + (showColRole ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <UserCog className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูลพนักงาน
                   </TableCell>
                 </TableRow>
               ) : filtered.map(u => {
-                const isDisabled = !!u.is_disabled
                 return (
-                <TableRow key={u.id} className={cn('[&_td]:py-2.5 [&_td]:font-medium', isDisabled && 'opacity-60')}>
+                <TableRow key={u.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                   <TableCell className="text-sm truncate">{u.name}</TableCell>
                   {showColEmail && <TableCell className="text-sm text-muted-foreground truncate">{u.email}</TableCell>}
                   {showColRole && (
@@ -887,18 +862,16 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                       <Badge variant="secondary">{ROLES[u.role] ?? u.role}</Badge>
                     </TableCell>
                   )}
-                  {showColStatus && (
-                    <TableCell className="text-center">
-                      {u.is_disabled
-                        ? <Badge variant="secondary">พักใช้งาน</Badge>
-                        : <Badge variant="success-outline">ใช้งาน</Badge>}
-                    </TableCell>
-                  )}
+                  <TableCell className="text-center">
+                    {u.is_disabled
+                      ? <Badge variant="destructive-outline">ปิดใช้งาน</Badge>
+                      : <Badge variant="success-outline">ใช้งาน</Badge>}
+                  </TableCell>
                   <TableCell>
                     <div className="flex justify-center">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
+                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
                             <MoreHorizontal />
                           </Button>
                         </PopoverTrigger>
@@ -1034,7 +1007,7 @@ export default function PeoplePage() {
       <PageHeader title="บุคคล" />
 
       {/* Tabs + Add button (mirrors ProductsLayout: tabs left, add right). */}
-      <div className="flex items-center gap-3 shrink-0">
+      <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList variant="segmented" className="h-10">
             <TabsTrigger value="customers"><Users /> ลูกค้า</TabsTrigger>
@@ -1045,13 +1018,13 @@ export default function PeoplePage() {
         <Button onClick={() => setAddNonce(n => n + 1)} className="ml-auto h-10 px-3">
           <Plus className="size-4" /> {ADD_BUTTON[tab]}
         </Button>
-      </div>
+      </TabStrip>
 
       <motion.div
         initial={{ height: 0, opacity: 0 }}
         animate={{ height: 'auto', opacity: 1 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="shrink-0"
+        className="shrink-0 pt-3"
       >
         <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 p-0.5">
           {summary.map((c, i) => <MetricCard key={i} {...c} />)}

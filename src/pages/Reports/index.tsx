@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
 import { LineChart, ShoppingBag, Wallet, ShieldCheck, LayoutDashboard } from 'lucide-react'
 
@@ -85,33 +86,31 @@ export default function ReportsLayout() {
 
   return (
     /* Page-scroll dashboard pattern: the whole layout is the single scroll
-       context. Only the PageHeader (title + clock) sticks at top-0 so the
-       page identity is always visible; Tabs + Summary scroll away with the
-       content. Individual report pages drop their own
-       `flex-1 min-h-0 overflow-y-auto` and just flow. */
+       context. PageHeader + TabStrip stick together at top-0 (wrapped in one
+       sticky bg-background div) so the strip's border-b becomes the boundary
+       where Summary + content scroll away beneath. */
     <div className="flex flex-col h-full overflow-y-auto scrollbar-thin px-8 pb-4">
       <div className="no-print sticky top-0 z-20 bg-background">
         <PageHeader title="รายงาน" />
-      </div>
-
-      <div className="no-print flex items-center gap-3 shrink-0 pb-2">
-        <Tabs
-          value={current}
-          onValueChange={(v) => {
-            const tab = TABS.find(t => t.value === v)
-            if (tab) navigate(tab.to)
-          }}
-        >
-          <TabsList variant="segmented" className="h-10">
-            {TABS.map(({ value, label, icon: Icon }) => (
-              <TabsTrigger key={value} value={value}>
-                <Icon /> {label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        {/* Page-provided toolbar (DateRangePicker / DEV / etc.) — right-aligned */}
-        {toolbar && <div className="ml-auto flex items-center gap-3">{toolbar}</div>}
+        <TabStrip className="static">
+          <Tabs
+            value={current}
+            onValueChange={(v) => {
+              const tab = TABS.find(t => t.value === v)
+              if (tab) navigate(tab.to)
+            }}
+          >
+            <TabsList variant="segmented" className="h-10">
+              {TABS.map(({ value, label, icon: Icon }) => (
+                <TabsTrigger key={value} value={value}>
+                  <Icon /> {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          {/* Page-provided toolbar (DateRangePicker / DEV / etc.) — right-aligned */}
+          {toolbar && <div className="ml-auto flex items-center gap-3">{toolbar}</div>}
+        </TabStrip>
       </div>
 
       {summary && summary.length > 0 && (
@@ -122,7 +121,7 @@ export default function ReportsLayout() {
           transition={{ duration: 0.2, ease: 'easeOut' }}
           onAnimationStart={() => setAnimatingSummary(true)}
           onAnimationComplete={() => setAnimatingSummary(false)}
-          className={`no-print shrink-0 mb-2 ${animatingSummary ? 'overflow-hidden' : ''}`}
+          className={`no-print shrink-0 pt-3 mb-2 ${animatingSummary ? 'overflow-hidden' : ''}`}
         >
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div

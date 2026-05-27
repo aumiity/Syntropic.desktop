@@ -544,6 +544,9 @@ export default function Theme() {
                   <Textarea className="max-w-[180px]" placeholder="Disabled" disabled />
                   <Textarea className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
                 </DemoRow>
+                <DemoRow label="Elevated — white bg + shadow (no border)">
+                  <Textarea variant="elevated" className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
+                </DemoRow>
               </Section>
 
               {/* ── SELECT ── */}
@@ -1002,11 +1005,15 @@ export default function Theme() {
                           return (
                             <PopoverHeader className="flex-row items-center justify-between">
                               <PopoverTitle>ตัวกรอง</PopoverTitle>
-                              <Badge variant="neutral-outline" asChild>
-                                <button type="button" onClick={toggleAll} className="cursor-pointer hover:bg-muted">
-                                  {allOn ? 'ล้างทั้งหมด' : 'ทั้งหมด'}
-                                </button>
-                              </Badge>
+                              <Button
+                                type="button"
+                                variant="elevated"
+                                size="xs"
+                                onClick={toggleAll}
+                                className="rounded-md"
+                              >
+                                {allOn ? 'ล้างทั้งหมด' : 'ทั้งหมด'}
+                              </Button>
                             </PopoverHeader>
                           )
                         })()}
@@ -1169,7 +1176,7 @@ export default function Theme() {
                   (<code className="font-mono">values</code>/<code className="font-mono">onReorder</code>) ส่วนการเซฟลำดับให้ทำใน
                   <code className="font-mono">onDragEnd</code>. ใช้คู่กับปุ่มสลับโหมด "จัดลำดับ" ในแถบหัวตาราง
                 </p>
-                <div className="bg-card rounded-card shadow-card overflow-hidden">
+                <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow>
