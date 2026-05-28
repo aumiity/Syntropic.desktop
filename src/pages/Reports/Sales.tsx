@@ -8,6 +8,7 @@ import {
   PeriodPicker, defaultPeriodFor, allowedModesFor, type PeriodMode,
 } from '@/components/ui/period-picker'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { useUserStore } from '@/stores/userStore'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { ReportsOutletContext } from './index'
@@ -186,9 +187,7 @@ export default function ReportsSalesPage() {
 
       <div className="flex flex-col bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
-          <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-            <LineChart className="size-4 text-foreground" />
-          </span>
+          <TintIcon icon={LineChart} tint="neutral" size="sm" />
           <h3 className="text-lg font-semibold text-foreground">ยอดขายรายวัน</h3>
           <Badge variant="neutral-outline">{trend.length.toLocaleString()}</Badge>
         </div>

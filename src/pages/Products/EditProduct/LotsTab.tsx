@@ -15,6 +15,7 @@ import {
 import { DateInput } from '@/components/ui/date-input'
 import { FormField } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { getCurrentUserId } from '@/stores/userStore'
 import { formatCurrency, formatDate, formatExpiry, cn } from '@/lib/utils'
 import dayjs from 'dayjs'
@@ -204,9 +205,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
       <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <Package className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={Package} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ล็อต</h3>
             <Badge variant="neutral-outline">{displayLots.length}</Badge>
           </div>

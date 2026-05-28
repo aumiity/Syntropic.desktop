@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useOutletContext } from 'react-router-dom'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { getCurrentUserId } from '@/stores/userStore'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
@@ -394,9 +395,7 @@ export default function ManagePurchasesPage() {
         {/* Filter strip — title cluster left, search/filters right */}
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <FileText className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={FileText} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติการซื้อ</h3>
             <Badge variant="neutral-outline">{histTotal.toLocaleString()}</Badge>
           </div>

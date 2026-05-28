@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { AdjustStockDialog, type AdjustStockTarget } from '@/components/dialogs/AdjustStockDialog'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency, cn } from '@/lib/utils'
@@ -173,9 +174,7 @@ export default function ProductsList() {
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           {/* Title cluster (left): icon-in-box + heading + count badge */}
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <Package className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={Package} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
             <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
           </div>

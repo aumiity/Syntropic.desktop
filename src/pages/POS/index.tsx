@@ -4,6 +4,7 @@ import { useCartStore } from '@/stores/cartStore'
 import { getCurrentUserId } from '@/stores/userStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
@@ -1295,9 +1296,7 @@ export default function POSPage() {
               type="button"
               onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
               className="group w-full flex items-center gap-3 rounded-card bg-tertiary/15 hover:bg-tertiary/25 ring-1 ring-tertiary/40 px-3 py-2.5 text-left transition-colors">
-              <span className="grid place-items-center size-11 rounded-xl bg-tertiary text-tertiary-foreground shrink-0">
-                <Users className="size-6" />
-              </span>
+              <TintIcon icon={Users} tint="tertiary" size="lg" iconClassName="size-6" />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-foreground">ลูกค้าทั่วไป</div>
                 {/* text-xs approved */}
@@ -1430,9 +1429,7 @@ export default function POSPage() {
                         { Icon: MapPin, label: 'ที่อยู่', value: c.address || '-', wrap: true },
                       ].map(({ Icon, label, value, wrap }) => (
                         <div key={label} className="flex items-start gap-3">
-                          <span className="grid place-items-center size-9 rounded-lg bg-muted text-muted-foreground shrink-0">
-                            <Icon className="size-4" />
-                          </span>
+                          <TintIcon icon={Icon} tint="secondary" size="md" iconClassName="size-4" />
                           <div className="min-w-0 flex-1">
                             <div className="text-sm text-muted-foreground">{label}</div>
                             <div className={`text-base text-foreground ${wrap ? 'whitespace-pre-line break-words' : 'truncate'}`}>
@@ -1788,9 +1785,7 @@ export default function POSPage() {
         <DialogContent size="4xl" onClose={closeAdjust}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
-              <span className="grid place-items-center size-9 rounded-lg bg-warning-soft text-warning-strong">
-                <PackageMinus className="size-5" />
-              </span>
+              <TintIcon icon={PackageMinus} tint="warning" size="md" />
               ตัดสต็อก
             </DialogTitle>
           </DialogHeader>
@@ -1842,9 +1837,7 @@ export default function POSPage() {
                 <div className="flex-1 min-h-0 flex flex-col px-3 pb-3 gap-2.5 overflow-hidden">
                   {/* Selected product hero */}
                   <div className="flex items-center gap-2.5 rounded-lg bg-primary-soft px-2.5 py-1.5 shrink-0">
-                    <span className="grid place-items-center size-9 rounded-lg bg-primary text-primary-foreground shrink-0">
-                      <PackageMinus className="size-5" />
-                    </span>
+                    <TintIcon icon={PackageMinus} tint="primary-strong" size="md" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm text-foreground truncate leading-tight">{adjustSelected.trade_name}</div>
                       <div className="text-sm text-muted-foreground truncate leading-tight">หน่วย: {adjustSelected.unit_name ?? '—'}</div>
@@ -2010,9 +2003,7 @@ export default function POSPage() {
         <DialogContent size="4xl" onClose={closeReturn}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
-              <span className="grid place-items-center size-9 rounded-lg bg-info-soft text-info-soft-foreground">
-                <RotateCcw className="size-5" />
-              </span>
+              <TintIcon icon={RotateCcw} tint="info-soft" size="md" />
               รับคืนสินค้า
             </DialogTitle>
           </DialogHeader>
@@ -2064,9 +2055,7 @@ export default function POSPage() {
                 <div className="flex-1 min-h-0 flex flex-col px-3 pb-3 gap-2.5 overflow-hidden">
                   {/* Selected product hero */}
                   <div className="flex items-center gap-2.5 rounded-lg bg-primary-soft px-2.5 py-1.5 shrink-0">
-                    <span className="grid place-items-center size-9 rounded-lg bg-primary text-primary-foreground shrink-0">
-                      <RotateCcw className="size-5" />
-                    </span>
+                    <TintIcon icon={RotateCcw} tint="primary-strong" size="md" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm text-foreground truncate leading-tight">{returnSelectedProduct.trade_name}</div>
                       <div className="text-sm text-muted-foreground truncate leading-tight">หน่วย: {returnSelectedProduct.unit_name ?? '—'}</div>

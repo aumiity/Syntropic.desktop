@@ -13,6 +13,7 @@ import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDeta
 import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { formatDateTime, cn } from '@/lib/utils'
 import {
@@ -148,9 +149,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
       <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <History className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={History} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติเคลื่อนไหว</h3>
             <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
           </div>

@@ -12,6 +12,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Toggle } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
@@ -156,9 +157,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           {/* Title cluster (left): icon-in-box + heading + count badge */}
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <Users className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={Users} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อลูกค้า</h3>
             <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
           </div>
@@ -496,9 +495,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <Building2 className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={Building2} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อผู้จำหน่าย</h3>
             <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
           </div>
@@ -776,9 +773,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <UserCog className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={UserCog} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อพนักงาน</h3>
             <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
           </div>

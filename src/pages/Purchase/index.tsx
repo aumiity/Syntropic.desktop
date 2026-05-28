@@ -13,6 +13,7 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -678,6 +679,7 @@ export default function PurchasePage() {
                             ผู้จำหน่าย <span className="text-destructive">*</span>
                           </label>
                           <Combobox
+                            variant="elevated"
                             items={suppliers}
                             value={receiveSupplier}
                             onChange={(s) => { setSupplierId(s?.id ?? 0); setSupplierName(s?.name ?? '') }}
@@ -697,6 +699,7 @@ export default function PurchasePage() {
                           <div className="relative">
                             <FileText className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground-subtle pointer-events-none" />
                             <Input
+                              variant="elevated"
                               value={supplierInvoiceNo}
                               onChange={e => setSupplierInvoiceNo(e.target.value)}
                               placeholder="PO-123456"
@@ -709,6 +712,7 @@ export default function PurchasePage() {
                         <div>
                           <label className="block text-base font-semibold text-muted-foreground mb-1.5">วันที่สั่งซื้อตามบิล</label>
                           <DateInput
+                            variant="elevated"
                             value={orderDate}
                             onChange={setOrderDate}
                             className="h-10 text-sm"
@@ -719,22 +723,29 @@ export default function PurchasePage() {
 
                     {/* Line items */}
                     <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
-                      <div className="px-2 h-14 flex items-center justify-between bg-card gap-2 shrink-0">
-                        <span className="pl-2 text-base font-semibold text-muted-foreground">รายการสินค้า</span>
-                        <div className="flex items-center gap-2">
-                          <Button size="sm" variant="info-soft" onClick={() => setShowImport(true)} className="h-9 rounded-lg text-sm gap-1.5">
+                      {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px] inset
+                          so strip controls align with column edges. */}
+                      <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+                        <div className="flex items-center gap-3 shrink-0">
+                          <TintIcon icon={Package} tint="neutral" size="sm" />
+                          <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
+                          <Badge variant="neutral-outline">{rows.length.toLocaleString()}</Badge>
+                        </div>
+
+                        <div className="flex items-center gap-2 ml-auto">
+                          <Button size="lg" variant="elevated" onClick={() => setShowImport(true)} className="h-9 rounded-lg text-sm gap-1.5">
                             <ClipboardPaste className="size-3.5" /> นำเข้าข้อมูล
                           </Button>
-                          <Button size="sm" variant="warm" onClick={openBillAdjust} className="h-9 rounded-lg text-sm gap-1.5">
+                          <Button size="lg" variant="elevated" onClick={openBillAdjust} className="h-9 rounded-lg text-sm gap-1.5">
                             ปรับยอดท้ายบิล
                           </Button>
-                          <Button size="sm" variant="default" onClick={() => { addRow(); focusCell(rows.length, 0) }} className="h-9 rounded-lg text-sm gap-1.5">
+                          <Button size="lg" variant="elevated" onClick={() => { addRow(); focusCell(rows.length, 0) }} className="h-9 rounded-lg text-sm gap-1.5">
                             <Plus className="size-3.5" /> เพิ่มแถว
                           </Button>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button size="sm" variant="outline" className="h-9 w-9 p-0 rounded-lg" title="ตัวเลือกการแสดงผล">
-                                <Settings2 className="size-3.5" />
+                              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+                                <Settings2 className="size-4" />
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent align="end" className="w-48">
@@ -754,24 +765,22 @@ export default function PurchasePage() {
                         </div>
                       </div>
 
-                      <Table
-                        containerClassName="flex-1 min-h-0 overflow-auto scrollbar-thin"
-                        className="border-l-8 border-r-8 border-card"
-                      >
+                      <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+                      <Table className="table-fixed">
                         <TableHeader>
                           <TableRow className="border-0 hover:bg-transparent">
-                            <TableHead className="px-3 text-center w-8">#</TableHead>
-                            <TableHead className="px-3 min-w-[200px]">ชื่อสินค้า</TableHead>
-                            <TableHead className="px-3 text-center min-w-20">Lot</TableHead>
-                            {showMfg && <TableHead className="px-3 text-center min-w-24">วันผลิต</TableHead>}
-                            <TableHead className="px-3 text-center min-w-24">วันหมดอายุ</TableHead>
-                            <TableHead className="px-3 text-center min-w-16">หน่วย</TableHead>
-                            <TableHead className="px-3 text-center min-w-10">จำนวน</TableHead>
-                            <TableHead className="px-3 text-center min-w-16">ทุน</TableHead>
-                            <TableHead className="px-3 text-center min-w-16">ราคาขาย</TableHead>
-                            {showDiscount && <TableHead className="px-3 text-center min-w-16">ส่วนลด</TableHead>}
-                            <TableHead className="px-3 text-center min-w-16">รวม</TableHead>
-                            <TableHead className="w-8" />
+                            <TableHead className="px-3 text-center w-10">#</TableHead>
+                            <TableHead className="px-3 w-[24%]">ชื่อสินค้า</TableHead>
+                            <TableHead className="px-3 text-center w-[10%]">Lot</TableHead>
+                            {showMfg && <TableHead className="px-3 text-center w-[10%]">วันผลิต</TableHead>}
+                            <TableHead className="px-3 text-center w-[11%]">วันหมดอายุ</TableHead>
+                            <TableHead className="px-3 text-center w-[10%]">หน่วย</TableHead>
+                            <TableHead className="px-3 text-center w-[8%]">จำนวน</TableHead>
+                            <TableHead className="px-3 text-center w-[10%]">ทุน</TableHead>
+                            <TableHead className="px-3 text-center w-[10%]">ราคาขาย</TableHead>
+                            {showDiscount && <TableHead className="px-3 text-center w-[9%]">ส่วนลด</TableHead>}
+                            <TableHead className="px-3 text-center w-[10%]">รวม</TableHead>
+                            <TableHead className="w-10" />
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -789,6 +798,7 @@ export default function PurchasePage() {
                                   <TableCell className="px-2 py-1.5 relative">
                                     <Input
                                       data-cell={`${i}-0`}
+                                      variant="elevated"
                                       value={searchQueries[i] ?? ''}
                                       onChange={e => handleProductSearch(i, e.target.value)}
                                       onFocus={() => { setActiveRow(i); setActiveSuggRow(i); setSuggHighlight(0) }}
@@ -824,30 +834,30 @@ export default function PurchasePage() {
 
                                   {/* Lot */}
                                   <TableCell className="max-w-24 px-2 py-1.5">
-                                    <Input data-cell={`${i}-2`} value={row.lot_number} onChange={e => updateRow(i, 'lot_number', e.target.value)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
+                                    <Input data-cell={`${i}-2`} variant="elevated" value={row.lot_number} onChange={e => updateRow(i, 'lot_number', e.target.value)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
                                   </TableCell>
 
                                   {/* วันผลิต (optional) */}
                                   {showMfg && (
                                     <TableCell className="max-w-40 px-2 py-1.5">
-                                      <DateInput data-cell={`${i}-3`} value={row.manufactured_date} onChange={v => updateRow(i, 'manufactured_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
+                                      <DateInput data-cell={`${i}-3`} variant="elevated" value={row.manufactured_date} onChange={v => updateRow(i, 'manufactured_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
                                     </TableCell>
                                   )}
 
                                   {/* วันหมดอายุ */}
                                   <TableCell className="max-w-40 px-2 py-1.5">
-                                    <DateInput data-cell={`${i}-4`} value={row.expiry_date} onChange={v => updateRow(i, 'expiry_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
+                                    <DateInput data-cell={`${i}-4`} variant="elevated" value={row.expiry_date} onChange={v => updateRow(i, 'expiry_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
                                   </TableCell>
 
                                   {/* หน่วย — opens swap modal */}
                                   <TableCell className="max-w-24 px-2 py-1.5">
                                     <Button
                                       type="button"
-                                      variant="outline"
+                                      variant="elevated"
                                       size="sm"
                                       disabled={!row.product_id}
                                       onClick={() => { setActiveRow(i); setUnitModalIdx(i) }}
-                                      className="h-8 w-full justify-center px-2 rounded-lg bg-input text-sm font-normal hover:bg-muted-hover border-0 disabled:opacity-50"
+                                      className="h-8 w-full justify-center px-2 rounded-lg text-sm font-normal disabled:opacity-50"
                                     >
                                       <span className="truncate">{row.unit_name || ''}</span>
                                     </Button>
@@ -857,6 +867,7 @@ export default function PurchasePage() {
                                   <TableCell className="max-w-16 px-2 py-1.5">
                                     <Input
                                       data-cell={`${i}-1`}
+                                      variant="elevated"
                                       type="text"
                                       inputMode="decimal"
                                       value={focusedCell === `${i}-1` ? row.qty : formatNum(row.qty)}
@@ -872,6 +883,7 @@ export default function PurchasePage() {
                                   <TableCell className="max-w-20 px-2 py-1.5">
                                     <Input
                                       data-cell={`${i}-5`}
+                                      variant="elevated"
                                       type="text"
                                       inputMode="decimal"
                                       value={focusedCell === `${i}-5` ? row.cost_price : formatNum(row.cost_price, true)}
@@ -891,11 +903,11 @@ export default function PurchasePage() {
                                   <TableCell className="max-w-28 px-2 py-1.5">
                                     <Button
                                       type="button"
-                                      variant="outline"
+                                      variant="elevated"
                                       size="sm"
                                       disabled={!row.product_id}
                                       onClick={() => { setActiveRow(i); openPriceModal(i) }}
-                                      className="h-8 w-full justify-end px-2 rounded-lg bg-input text-sm font-normal hover:bg-muted-hover border-0 disabled:opacity-50"
+                                      className="h-8 w-full justify-end px-2 rounded-lg text-sm font-normal disabled:opacity-50"
                                     >
                                       <span>
                                         {row.product_id ? `${formatCurrency(row.default_sell_price || 0)}` : ''}
@@ -908,6 +920,7 @@ export default function PurchasePage() {
                                     <TableCell className="max-w-28 px-2 py-1.5">
                                       <Input
                                         data-cell={`${i}-5b`}
+                                        variant="elevated"
                                         type="text"
                                         inputMode="decimal"
                                         value={focusedCell === `${i}-5b` ? row.discount : formatNum(row.discount, true)}
@@ -928,6 +941,7 @@ export default function PurchasePage() {
                                   <TableCell className="max-w-28 px-2 py-1.5">
                                     <Input
                                       data-cell={`${i}-6`}
+                                      variant="elevated"
                                       type="text"
                                       inputMode="decimal"
                                       value={focusedCell === `${i}-6` ? row.total : formatNum(row.total, true)}
@@ -947,11 +961,11 @@ export default function PurchasePage() {
                                   {/* ลบ */}
                                   <TableCell className="px-1 py-1.5">
                                     <Button
-                                      variant="ghost"
+                                      variant="elevated"
                                       size="icon"
                                       onClick={() => removeRow(i)}
                                       disabled={rows.length === 1}
-                                      className="size-7 rounded text-foreground-subtle hover:text-destructive hover:bg-destructive/10 disabled:opacity-0"
+                                      className="size-7 rounded text-foreground-subtle hover:text-destructive disabled:opacity-0"
                                     >
                                       <Trash2 className="size-3.5" />
                                     </Button>
@@ -961,6 +975,7 @@ export default function PurchasePage() {
                             })}
                         </TableBody>
                       </Table>
+                      </div>
 
                       {/* ── Footer bar — always pinned at bottom of card ── */}
                       <div className="shrink-0">
@@ -991,10 +1006,10 @@ export default function PurchasePage() {
                             )}
                           </div>
                         )}
-                        <div className="bg-card border-t border-border px-5 py-2 flex items-center justify-between gap-3">
+                        <div className="h-12 px-5 bg-card border-t border-border flex items-center justify-between gap-3">
                           <Badge variant="brand-soft" className="text-sm rounded-md">{validRows.length}/{rows.length} รายการ</Badge>
                           <div className="flex items-center gap-6">
-                            <span className="text-sm font-semibold text-foreground-subtle">มูลค่ารวมทั้งหมด</span>
+                            <span className="text-sm font-semibold text-foreground">มูลค่ารวมทั้งหมด</span>
                             <span className="font-extrabold text-primary text-base w-32 text-right">{formatCurrency(totalCost)}</span>
                           </div>
                         </div>
@@ -1021,7 +1036,7 @@ export default function PurchasePage() {
                       </div>
                       <div>
                         <label className="text-sm text-foreground-subtle mb-1 block">วันที่รับสินค้า</label>
-                        <DateInput value={receiveDate} onChange={setReceiveDate} className="h-9 text-sm" />
+                        <DateInput variant="elevated" value={receiveDate} onChange={setReceiveDate} className="h-9 text-sm" />
                       </div>
                     </div>
 
@@ -1078,7 +1093,7 @@ export default function PurchasePage() {
                         <div className="space-y-2.5">
                           <div>
                             <label className="text-sm font-semibold text-muted-foreground mb-1 block">วันครบกำหนด <span className="text-destructive">*</span></label>
-                            <DateInput value={dueDate} onChange={setDueDate} className="h-9 text-sm" />
+                            <DateInput variant="elevated" value={dueDate} onChange={setDueDate} className="h-9 text-sm" />
                             <div className="flex gap-1 mt-1.5">
                               {[15, 30, 60, 90].map(d => (
                                 <Button
@@ -1103,7 +1118,7 @@ export default function PurchasePage() {
                           </label>
                           {isPaid && (
                             <div className="space-y-1.5">
-                              <DateInput value={paidDate} onChange={setPaidDate} className="h-9 text-sm" />
+                              <DateInput variant="elevated" value={paidDate} onChange={setPaidDate} className="h-9 text-sm" />
                               <div className="flex gap-1">
                                 <Button
                                   type="button"
@@ -1133,6 +1148,7 @@ export default function PurchasePage() {
                     <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2">
                       <div className="text-sm font-bold text-foreground-subtle uppercase tracking-wide">หมายเหตุ</div>
                       <Textarea
+                        variant="elevated"
                         value={grNote}
                         onChange={e => setGrNote(e.target.value)}
                         placeholder="บันทึกเพิ่มเติม..."
@@ -1148,7 +1164,7 @@ export default function PurchasePage() {
                         disabled={saving || !supplierId || validRows.length === 0 || duplicateNames.length > 0}
                         className="w-full h-12 rounded-xl text-base font-bold"
                       >
-                        {saving ? 'กำลังบันทึก...' : 'บันทึกใบรับสินค้า'}
+                        {saving ? 'กำลังบันทึก...' : 'บันทึก'}
                       </Button>
                       <Button
                         variant="destructive2"

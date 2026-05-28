@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { FormField } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { SectionCard } from '@/components/ui/card'
-import { Package, ScanBarcode, FileText, EyeOff } from 'lucide-react'
+import { Package, ScanBarcode, FileText, Settings, Plus, X } from 'lucide-react'
 import type { ProductCategory, ItemUnit } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
 import { PriceSection, PriceHistoryDialog } from './PriceSection'
@@ -35,8 +36,33 @@ export function GeneralTab({
 }: Props) {
   const [priceHistoryOpen, setPriceHistoryOpen] = useState(false)
 
+  // Base unit label for the price section badge — derived from form.unit_id
+  // so it stays in sync when the user changes หน่วยหลัก. Fallback "หน่วย"
+  // covers the brief window before unit_id resolves.
+  const baseUnit = itemUnits.find(u => u.id === form.unit_id)?.name ?? 'หน่วย'
+
+  // Barcode rows are progressively disclosed — start with 1, click + to add another.
+  // Auto-grow on load when the bundle already has barcodes 2/3/4 saved (so users
+  // never have to expand to see their own data). Never shrinks automatically;
+  // collapse is explicit via the X on the last visible row.
+  const [barcodeSlots, setBarcodeSlots] = useState(1)
+  useEffect(() => {
+    const filledMax = form.barcode4 ? 4
+                    : form.barcode3 ? 3
+                    : form.barcode2 ? 2
+                    : 1
+    setBarcodeSlots(prev => Math.max(prev, filledMax))
+  }, [form.barcode2, form.barcode3, form.barcode4])
+  const collapseLastBarcode = () => {
+    const key = barcodeSlots === 4 ? 'barcode4'
+              : barcodeSlots === 3 ? 'barcode3'
+              : 'barcode2'
+    setF(key, '')
+    setBarcodeSlots(n => Math.max(1, n - 1))
+  }
+
   return (
-    <div className="grid grid-cols-2 gap-4 pt-4">
+    <div className="grid grid-cols-[3fr_2fr] gap-4 pt-4">
 
       {/* LEFT COLUMN */}
       <div className="space-y-4">
@@ -115,6 +141,7 @@ export function GeneralTab({
           setF={setF}
           errors={errors}
           product={product}
+          baseUnit={baseUnit}
           isNew={isNew}
           onOpenHistory={() => setPriceHistoryOpen(true)}
         />
@@ -133,15 +160,8 @@ export function GeneralTab({
       {/* RIGHT COLUMN */}
       <div className="space-y-4">
 
-        <SectionCard icon={EyeOff} title="สถานะ" tint="secondary">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 border border-border">
-              <div>
-                <div className="text-sm font-semibold text-foreground">VAT</div>
-                <div className="text-xs text-muted-foreground">คิดภาษีมูลค่าเพิ่ม</div>
-              </div>
-              <Switch size="lg" checked={!!form.has_vat} onCheckedChange={v => setF('has_vat', v ? 1 : 0)} />
-            </div>
+        <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
+          <div className="space-y-2">
             <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_disabled ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
               <div>
                 <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
@@ -149,23 +169,65 @@ export function GeneralTab({
               </div>
               <Switch size="lg" variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
             </div>
+            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
+              <div>
+                <div className="text-sm font-semibold text-foreground">VAT</div>
+                <div className="text-xs text-muted-foreground">คิดภาษีมูลค่าเพิ่ม</div>
+              </div>
+              <Switch size="lg" checked={!!form.has_vat} onCheckedChange={v => setF('has_vat', v ? 1 : 0)} />
+            </div>
           </div>
         </SectionCard>
 
         <SectionCard icon={ScanBarcode} title="บาร์โค้ด" tint="secondary">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             <Field label="บาร์โค้ด 1">
               <Input variant="elevated" value={form.barcode ?? ''} onChange={e => setF('barcode', e.target.value)} placeholder="ตัวเลข 13 หลัก" />
             </Field>
-            <Field label="บาร์โค้ด 2">
-              <Input variant="elevated" value={form.barcode2 ?? ''} onChange={e => setF('barcode2', e.target.value)} />
-            </Field>
-            <Field label="บาร์โค้ด 3">
-              <Input variant="elevated" value={form.barcode3 ?? ''} onChange={e => setF('barcode3', e.target.value)} />
-            </Field>
-            <Field label="บาร์โค้ด 4">
-              <Input variant="elevated" value={form.barcode4 ?? ''} onChange={e => setF('barcode4', e.target.value)} />
-            </Field>
+            {barcodeSlots >= 2 && (
+              <Field label="บาร์โค้ด 2">
+                <div className="flex gap-2">
+                  <Input variant="elevated" value={form.barcode2 ?? ''} onChange={e => setF('barcode2', e.target.value)} className="flex-1" />
+                  {barcodeSlots === 2 && (
+                    <Button type="button" variant="ghost" size="icon" onClick={collapseLastBarcode} title="ยุบ" aria-label="ยุบบาร์โค้ด 2">
+                      <X className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </Field>
+            )}
+            {barcodeSlots >= 3 && (
+              <Field label="บาร์โค้ด 3">
+                <div className="flex gap-2">
+                  <Input variant="elevated" value={form.barcode3 ?? ''} onChange={e => setF('barcode3', e.target.value)} className="flex-1" />
+                  {barcodeSlots === 3 && (
+                    <Button type="button" variant="ghost" size="icon" onClick={collapseLastBarcode} title="ยุบ" aria-label="ยุบบาร์โค้ด 3">
+                      <X className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </Field>
+            )}
+            {barcodeSlots >= 4 && (
+              <Field label="บาร์โค้ด 4">
+                <div className="flex gap-2">
+                  <Input variant="elevated" value={form.barcode4 ?? ''} onChange={e => setF('barcode4', e.target.value)} className="flex-1" />
+                  <Button type="button" variant="ghost" size="icon" onClick={collapseLastBarcode} title="ยุบ" aria-label="ยุบบาร์โค้ด 4">
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              </Field>
+            )}
+            {barcodeSlots < 4 && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setBarcodeSlots(n => Math.min(4, n + 1))}
+                className="w-full justify-center"
+              >
+                <Plus className="size-4" /> เพิ่มบาร์โค้ด
+              </Button>
+            )}
           </div>
         </SectionCard>
 

@@ -10,6 +10,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { formatDateTime } from '@/lib/utils'
 import { useUserStore } from '@/stores/userStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
@@ -108,9 +109,7 @@ export default function NegativeStockPage() {
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <PackageMinus className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={PackageMinus} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">สต็อคติดลบ</h3>
             <Badge variant="neutral-outline">{rows.length.toLocaleString()}</Badge>
           </div>

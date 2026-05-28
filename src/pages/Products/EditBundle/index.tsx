@@ -6,6 +6,7 @@ import { MetricCard } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { ArrowLeft, FileText, Boxes, Pill, Save, Info, Coins, Package, History, Tag, AlertTriangle } from 'lucide-react'
@@ -343,9 +344,13 @@ export default function EditBundlePage() {
             (h-32, icon absolute top-right). Badges row sits at the bottom via
             mt-auto so the layout matches EditProduct's meta card pixel-for-pixel. */}
         <div className="bg-card rounded-card p-4 pt-3 shadow-card border border-border h-32 overflow-hidden relative">
-          <span className={`absolute top-4 right-4 grid place-items-center size-11 rounded-xl z-10 bg-primary-soft text-primary ${isNew ? 'opacity-50' : ''}`}>
-            <Info className="size-7" />
-          </span>
+          <TintIcon
+            icon={Info}
+            tint="primary"
+            size="lg"
+            bordered
+            className={`absolute top-4 right-4 z-10 ${isNew ? 'opacity-50' : ''}`}
+          />
           <div className="pr-10 min-w-0 relative z-10 h-full flex flex-col justify-start">
             <div
               className="text-base font-bold text-foreground truncate"

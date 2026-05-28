@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Search, Trash2, Boxes, Save, X } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductBundleItem } from '@/types'
@@ -324,9 +325,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
             opens the picker modal. */}
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <Boxes className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={Boxes} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายการ</h3>
             <Badge variant="neutral-outline">{items.length}</Badge>
           </div>
@@ -391,6 +390,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                   <TableCell className="text-center text-sm text-muted-foreground">{it.component_unit_name ?? '—'}</TableCell>
                   <TableCell className="text-center">
                     <Input
+                      variant="elevated"
                       type="number" step="1" min="0" inputMode="numeric"
                       value={qtyDrafts[it.component_product_id] ?? String(it.qty_per_bundle)}
                       onChange={e => updateQty(it.component_product_id, e.target.value)}
@@ -410,7 +410,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                     <div className="flex justify-center">
                       <Button
                         size="icon-lg"
-                        variant="destructive2"
+                        variant="elevated-destructive"
                         onClick={() => removeAt(i)}
                         title="ลบรายการ"
                       >

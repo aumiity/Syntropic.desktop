@@ -13,6 +13,7 @@ import { DateRangePicker, resolveDateRangePreset, type DateRangePresetKey } from
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import type { Sale } from '@/types'
@@ -207,9 +208,7 @@ export default function ManageSalesPage() {
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <ReceiptText className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={ReceiptText} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติการขาย</h3>
             <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
           </div>

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Boxes } from 'lucide-react'
 
 const THAI_MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
@@ -102,9 +103,7 @@ export function QuickStockDialog({
       >
         <DialogHeader>
           <DialogTitle className="flex items-start gap-2.5">
-            <span className="grid place-items-center size-9 rounded-lg bg-warning-soft text-warning-strong shrink-0">
-              <Boxes className="size-5" />
-            </span>
+            <TintIcon icon={Boxes} tint="warning" size="md" />
             <div className="min-w-0">
               <div>สต็อกและการแจ้งเตือน</div>
               <div className="text-sm font-normal text-muted-foreground truncate">

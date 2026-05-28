@@ -22,7 +22,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { useToast } from '@/components/ui/toast'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
-import { Tag, History, RotateCcw, StickyNote } from 'lucide-react'
+import { CircleDollarSign, History, RotateCcw, StickyNote, Info } from 'lucide-react'
 import type { FullProduct } from '../EditProduct/shared'
 
 const Field = FormField
@@ -36,10 +36,10 @@ interface PriceLog {
   created_at: string
 }
 
-const PRICE_TYPE_META: Record<string, { label: string; variant: 'success-outline' | 'info-outline' | 'warning-outline' }> = {
-  retail:     { label: 'ราคาปลีก',  variant: 'success-outline' },
-  wholesale1: { label: 'ราคาส่ง 1', variant: 'info-outline' },
-  wholesale2: { label: 'ราคาส่ง 2', variant: 'warning-outline' },
+const PRICE_TYPE_META: Record<string, { label: string; variant: 'success' | 'info-soft' | 'warm' }> = {
+  retail:     { label: 'ราคาปลีก',  variant: 'success' },
+  wholesale1: { label: 'ราคาส่ง 1', variant: 'info-soft' },
+  wholesale2: { label: 'ราคาส่ง 2', variant: 'warm' },
 }
 
 interface PriceSectionProps {
@@ -49,11 +49,12 @@ interface PriceSectionProps {
   // null in new-mode (no DB row yet) — cost is then unknown until save (and
   // recomputeBundleCost runs server-side).
   product: FullProduct | null
+  baseUnit: string
   isNew: boolean
   onOpenHistory: () => void
 }
 
-export function PriceSection({ form, setF, errors, product, isNew, onOpenHistory }: PriceSectionProps) {
+export function PriceSection({ form, setF, errors, product, baseUnit, isNew, onOpenHistory }: PriceSectionProps) {
   const cost = Number(product?.cost_price) || 0
 
   // Markup-style %: profit / cost. Same shape as EditProduct/PriceSection so
@@ -72,14 +73,14 @@ export function PriceSection({ form, setF, errors, product, isNew, onOpenHistory
     const valCls = `text-sm font-bold ${d.pos ? 'text-success' : 'text-destructive'}`
     const dash = <span className="text-sm text-foreground-subtle">—</span>
     return (
-      <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-1">
-        <div className="flex items-center justify-between">
-          <span className={labelCls}>กำไรต่อชุด</span>
-          {d.dim ? dash : <span className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)}</span>}
+      <div className="rounded-lg bg-success-soft/50 px-3 py-2 grid grid-cols-2 gap-3">
+        <div className="space-y-0.5 min-w-0">
+          <div className={labelCls}>กำไร</div>
+          {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)}</div>}
         </div>
-        <div className="flex items-center justify-between">
-          <span className={labelCls}>กำไร (%)</span>
-          {d.dim ? dash : <span className={valCls}>{d.pos ? '+' : ''}{d.pct.toFixed(0)}%</span>}
+        <div className="space-y-0.5 min-w-0">
+          <div className={labelCls}>กำไร (%)</div>
+          {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.pct.toFixed(0)}%</div>}
         </div>
       </div>
     )
@@ -98,59 +99,69 @@ export function PriceSection({ form, setF, errors, product, isNew, onOpenHistory
     </Button>
   )
 
+  const titleNode = (
+    <span className="inline-flex items-center gap-2">
+      ราคาขาย & ต้นทุน
+      <Badge variant="success-outline" className="rounded-md font-normal">{baseUnit}</Badge>
+    </span>
+  )
+
   return (
     <>
-      <SectionCard icon={Tag} title="ราคาขายปลีก & ต้นทุน" tint="success" right={historyButton}>
-        <div className="grid grid-cols-2 gap-3">
-          {/* LEFT: ต้นทุน (อ่านอย่างเดียว — auto จากส่วนประกอบ) */}
-          <div className="space-y-3">
-            <Field label="ต้นทุนรวม (อัตโนมัติ)" labelClassName="text-right">
-              <PriceInput
-                variant="elevated"
-                value={cost > 0 ? cost.toFixed(2) : ''}
-                onChange={() => {}}
-                disabled
-              />
-            </Field>
-            <div className="rounded-lg bg-warm/50 px-3 py-2 text-xs text-muted-foreground">
-              ต้นทุน = ผลรวม (ทุนส่วนประกอบ × จำนวนต่อชุด) อัพเดตอัตโนมัติ
+      <SectionCard icon={CircleDollarSign} title={titleNode} tint="success" right={historyButton}>
+        <div className="space-y-4">
+          {/* Row 1: ต้นทุน (auto, disabled) + ราคาปลีก (input on top, detail below within each cell) */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
+              <Field label="ต้นทุนรวม (อัตโนมัติ)">
+                <PriceInput
+                  variant="elevated"
+                  value={cost > 0 ? cost.toFixed(2) : ''}
+                  onChange={() => {}}
+                  disabled
+                  className="text-left"
+                />
+              </Field>
+              <div className="rounded-lg bg-warm/50 px-3 py-2 flex-1 flex items-center">
+                <div className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <Info className="size-3.5 shrink-0" />
+                  <span>คำนวณอัตโนมัติจากทุนของส่วนประกอบ</span>
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* RIGHT: ราคาขายปลีก + กล่องกำไร */}
-          <div className="space-y-3">
-            <div data-field="price_retail">
-              <Field label="ราคาขายปลีก" required labelClassName="text-right">
+            <div className="flex flex-col gap-2" data-field="price_retail">
+              <Field label="ราคาขายปลีก" required>
                 <PriceInput
                   variant="elevated"
                   value={form.price_retail}
                   onChange={v => setF('price_retail', v)}
                   aria-invalid={errors.has('price_retail')}
+                  className="text-left"
                 />
               </Field>
+              {profitBox(retail)}
             </div>
-            {profitBox(retail)}
           </div>
-        </div>
-      </SectionCard>
 
-      <SectionCard icon={Tag} title="ราคาขายส่ง">
-        <div className="grid grid-cols-2 gap-3">
-          {([
-            { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: form.price_wholesale1, d: ws1 },
-            { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },
-          ] as const).map(({ label, key, value, d }) => (
-            <div key={key} className="space-y-3">
-              <Field label={label} labelClassName="text-right">
-                <PriceInput
-                  variant="elevated"
-                  value={value}
-                  onChange={v => setF(key, v)}
-                />
-              </Field>
-              {profitBox(d)}
-            </div>
-          ))}
+          {/* Row 2: ราคาส่ง 1 + ราคาส่ง 2 */}
+          <div className="grid grid-cols-2 gap-3">
+            {([
+              { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: form.price_wholesale1, d: ws1 },
+              { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },
+            ] as const).map(({ label, key, value, d }) => (
+              <div key={key} className="space-y-2">
+                <Field label={label}>
+                  <PriceInput
+                    variant="elevated"
+                    value={value}
+                    onChange={v => setF(key, v)}
+                    className="text-left"
+                  />
+                </Field>
+                {profitBox(d)}
+              </div>
+            ))}
+          </div>
         </div>
       </SectionCard>
     </>
@@ -232,7 +243,7 @@ export function PriceHistoryDialog({ open, onOpenChange, productId, isNew, reloa
                     </TableCell>
                   </TableRow>
                 ) : history.map(h => {
-                  const meta = PRICE_TYPE_META[h.price_type] ?? { label: h.price_type, variant: 'success-outline' as const }
+                  const meta = PRICE_TYPE_META[h.price_type] ?? { label: h.price_type, variant: 'success' as const }
                   const up = h.new_price > h.old_price
                   return (
                     <TableRow key={h.id} className="[&_td]:py-2.5 [&_td]:font-medium">

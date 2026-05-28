@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -212,9 +213,7 @@ export default function ManageLowStockPage() {
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <PackageX className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={PackageX} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ต่ำกว่าจุดสั่งซื้อ</h3>
             <Badge variant="neutral-outline">{filteredRows.length.toLocaleString()}</Badge>
           </div>

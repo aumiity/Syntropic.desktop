@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { formatCurrency } from '@/lib/utils'
 import { Plus, Trash2, Edit, Blocks, EyeOff, Eye } from 'lucide-react'
 import type { ProductUnit, ItemUnit } from '@/types'
@@ -145,9 +146,7 @@ export function UnitsTab({
       <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <Blocks className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={Blocks} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">หน่วยนับ</h3>
             <Badge variant="neutral-outline">{(product.units?.length ?? 0) + 1}</Badge>
           </div>

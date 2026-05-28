@@ -18,7 +18,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { useToast } from '@/components/ui/toast'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
-import { Tag, History, RotateCcw, StickyNote, Info } from 'lucide-react'
+import { CircleDollarSign, History, RotateCcw, StickyNote, Info } from 'lucide-react'
 
 const Field = FormField
 
@@ -36,8 +36,6 @@ const PRICE_TYPE_META: Record<string, { label: string; variant: 'success' | 'inf
   wholesale1: { label: 'ราคาส่ง 1', variant: 'info-soft' },
   wholesale2: { label: 'ราคาส่ง 2', variant: 'warm' },
 }
-
-const unitSuffix = (u: string) => <span className="font-normal normal-case text-muted-foreground"> ({u})</span>
 
 interface PriceSectionProps {
   form: any
@@ -73,7 +71,7 @@ export function PriceSection({
     return (
       <div className="rounded-lg bg-success-soft/50 px-3 py-2 grid grid-cols-2 gap-3">
         <div className="space-y-0.5 min-w-0">
-          <div className={labelCls}>กำไร ({baseUnit})</div>
+          <div className={labelCls}>กำไร</div>
           {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)}</div>}
         </div>
         <div className="space-y-0.5 min-w-0">
@@ -97,14 +95,21 @@ export function PriceSection({
     </Button>
   )
 
+  const titleNode = (
+    <span className="inline-flex items-center gap-2">
+      ราคาขาย & ต้นทุน
+      <Badge variant="success-outline" className="rounded-md font-normal">{baseUnit}</Badge>
+    </span>
+  )
+
   return (
     <>
-      <SectionCard icon={Tag} title="ราคาขาย & ต้นทุน" tint="success" right={historyButton}>
+      <SectionCard icon={CircleDollarSign} title={titleNode} tint="success" right={historyButton}>
         <div className="space-y-4">
           {/* Row 1: ราคาทุน + ราคาปลีก (input on top, detail below within each cell) */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Field label={<>ราคาทุนล่าสุด{unitSuffix(baseUnit)}</>}>
+              <Field label="ราคาทุนล่าสุด">
                 <PriceInput
                   variant="elevated"
                   value={form.cost_price}
@@ -115,7 +120,7 @@ export function PriceSection({
               </Field>
               <div className="rounded-lg bg-warm/50 px-3 py-2 space-y-0.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">ทุนเฉลี่ย ({baseUnit})</span>
+                  <span className="text-sm text-muted-foreground">ทุนเฉลี่ย</span>
                   {avgCost > 0
                     ? <span className="text-sm font-bold text-warm-foreground">{formatCurrency(avgCost)}</span>
                     : <span className="text-sm text-foreground-subtle">—</span>}
@@ -127,7 +132,7 @@ export function PriceSection({
               </div>
             </div>
             <div className="space-y-2" data-field="price_retail">
-              <Field label={<>ราคาขายปลีก{unitSuffix(baseUnit)}</>} required>
+              <Field label="ราคาขายปลีก" required>
                 <PriceInput
                   variant="elevated"
                   value={form.price_retail}
@@ -147,7 +152,7 @@ export function PriceSection({
               { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },
             ] as const).map(({ label, key, value, d }) => (
               <div key={key} className="space-y-2">
-                <Field label={<>{label}{unitSuffix(baseUnit)}</>}>
+                <Field label={label}>
                   <PriceInput
                     variant="elevated"
                     value={value}

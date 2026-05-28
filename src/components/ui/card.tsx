@@ -2,6 +2,7 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 import { Sparkline } from "@/components/ui/charts/sparkline"
+import { TintIcon, type TintIconTint } from "@/components/ui/tint-icon"
 
 function Card({
   className,
@@ -112,27 +113,16 @@ function SectionCard({
   icon: Icon, title, tint = 'primary', right, children, className,
 }: {
   icon: React.ComponentType<{ className?: string }>
-  title: string
+  title: React.ReactNode
   tint?: SectionTint
   right?: React.ReactNode
   children: React.ReactNode
   className?: string
 }) {
-  const iconBox =
-    tint === 'success'     ? 'bg-success-soft text-success'
-    : tint === 'warning'   ? 'bg-warning-soft text-warning-strong'
-    : tint === 'destructive' ? 'bg-destructive-soft text-destructive'
-    : tint === 'destructive2' ? 'bg-destructive/15 text-destructive'
-    : tint === 'secondary' ? 'bg-muted text-muted-foreground'
-    : tint === "warm"   ? "bg-warm text-warm-foreground"
-    : tint === "info-soft"   ? "bg-info-soft text-info-soft-foreground"
-    : 'bg-primary-soft text-primary'
   return (
     <div className={cn('bg-card rounded-card p-4 space-y-3 shadow-card border border-border', className)}>
       <div className="flex items-center gap-2.5">
-        <span className={cn('grid place-items-center size-8 rounded-lg shrink-0', iconBox)}>
-          <Icon className="size-4" />
-        </span>
+        <TintIcon icon={Icon} tint={tint as TintIconTint} size="sm" bordered />
         <h3 className="text-base font-semibold text-foreground flex-1">{title}</h3>
         {right}
       </div>
@@ -182,15 +172,6 @@ function MetricCard({
   valueClassName?: string
   subClassName?: string
 }) {
-  const iconBox =
-    tint === "success"     ? "bg-success-soft text-success"
-    : tint === "warning"     ? "bg-warning-soft text-warning-strong"
-    : tint === "destructive" ? "bg-destructive-soft text-destructive"
-    : tint === "destructive2" ? "bg-destructive/15 text-destructive"
-    : tint === "secondary"   ? "bg-muted text-muted-foreground"
-    : tint === "warm"   ? "bg-warm text-warm-foreground"
-    : tint === "info-soft"   ? "bg-info-soft text-info-soft-foreground"
-    : "bg-primary-soft text-primary"
   const valColor =
     tint === "success"     ? "text-success"
     : tint === "warning"     ? "text-warning-strong"
@@ -229,9 +210,7 @@ function MetricCard({
             </div>
           )}
         </div>
-        <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
-          <Icon className="size-7" />
-        </span>
+        <TintIcon icon={Icon} tint={tint as TintIconTint} size="lg" bordered />
       </>
     )
     // py-2 (vs py-3 on StatCard) compensates for the extra 3rd line: a 2-line
@@ -259,9 +238,13 @@ function MetricCard({
 
   const inner = (
     <>
-      <span className={cn("absolute top-4 right-4 grid place-items-center size-11 rounded-xl z-10", iconBox)}>
-        <Icon className="size-7" />
-      </span>
+      <TintIcon
+        icon={Icon}
+        tint={tint as TintIconTint}
+        size="lg"
+        bordered
+        className="absolute top-4 right-4 z-10"
+      />
       {/* Ambient sparkline at the bottom — inherits accent color via Tailwind
           text utility on the wrapper (Sparkline uses currentColor). Lives below
           the natural content flow so it never overlaps label/value, only the
@@ -351,14 +334,9 @@ function StatCard({
   onClick?: () => void
   className?: string
 }) {
-  const iconBox =
-    tint === "success"     ? "bg-success-soft text-success"
-    : tint === "warning"     ? "bg-warm text-warm-foreground"
-    : tint === "destructive" ? "bg-destructive-soft text-destructive"
-    : tint === "secondary"   ? "bg-muted text-muted-foreground"
-    : tint === "warm"   ? "bg-warm text-warm-foreground"
-    : tint === "info-soft"   ? "bg-info-soft text-info-soft-foreground"
-    : "bg-primary-soft text-primary"
+  // StatCard historically maps `warning` → warm-styled box (different from
+  // MetricCard/SectionCard which map warning → warning-soft). Preserve that.
+  const iconTint: TintIconTint = tint === "warning" ? "warm" : tint
   const activeRing =
     !isActive ? "ring-0"
     : tint === "success"     ? "ring-2 ring-success"
@@ -388,9 +366,7 @@ function StatCard({
         <span className="text-base text-foreground font-semibold truncate">{label}</span>
         <span className="text-3xl font-bold leading-tight">{value}</span>
       </div>
-      <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
-        <Icon className="size-7" />
-      </span>
+      <TintIcon icon={Icon} tint={iconTint} size="lg" bordered />
     </button>
   )
 }

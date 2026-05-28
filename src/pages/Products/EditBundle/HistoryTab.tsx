@@ -12,6 +12,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { formatDateTime, cn } from '@/lib/utils'
 import {
@@ -145,12 +146,10 @@ export function HistoryTab({ productId, isNew, active }: Props) {
 
   return (
     <div className="pt-4 flex-1 min-h-0 flex flex-col">
-      <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
+      <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <History className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={History} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติเคลื่อนไหว</h3>
             <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
           </div>
@@ -165,7 +164,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           {(movementDateFrom || movementDateTo) && (
             <Button
               size="lg"
-              variant="ghost"
+              variant="elevated"
               className="h-9 px-3 shrink-0"
               onClick={() => { setMovementDateFrom(''); setMovementDateTo(''); setPage(1) }}
             >
@@ -307,7 +306,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                         {displayNote ? (
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button size="icon-lg" variant="warm" title="ดูหมายเหตุ">
+                              <Button size="icon-lg" variant="elevated-warning" title="ดูหมายเหตุ">
                                 <StickyNote />
                               </Button>
                             </PopoverTrigger>
@@ -316,21 +315,21 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                             </PopoverContent>
                           </Popover>
                         ) : (
-                          <Button size="icon-lg" variant="outline" disabled title="ไม่มีหมายเหตุ">
+                          <Button size="icon-lg" variant="elevated" disabled title="ไม่มีหมายเหตุ">
                             <StickyNote />
                           </Button>
                         )}
                         {m.sale_invoice_no ? (
                           <Button
                             size="icon-lg"
-                            variant="primary-soft"
+                            variant="elevated"
                             onClick={() => openMovementDetail(m)}
                             title={`ดู ${m.sale_invoice_no}`}
                           >
                             <Info />
                           </Button>
                         ) : (
-                          <Button size="icon-lg" variant="outline" disabled title="ไม่มีบิล/เอกสาร">
+                          <Button size="icon-lg" variant="elevated" disabled title="ไม่มีบิล/เอกสาร">
                             <Info />
                           </Button>
                         )}

@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { AdjustStockDialog } from '@/components/dialogs/AdjustStockDialog'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductCategory, DrugType, ItemUnit } from '@/types'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -384,9 +385,13 @@ export default function EditProductPage() {
                 need badges on their own row, which the MetricCard primitive
                 doesn't model. */}
             <div className="bg-card rounded-card p-4 pt-3 shadow-card border border-border h-32 overflow-hidden relative">
-              <span className={`absolute top-4 right-4 grid place-items-center size-11 rounded-xl z-10 bg-primary-soft text-primary ${isNew ? 'opacity-50' : ''}`}>
-                <Info className="size-7" />
-              </span>
+              <TintIcon
+                icon={Info}
+                tint="primary"
+                size="lg"
+                bordered
+                className={`absolute top-4 right-4 z-10 ${isNew ? 'opacity-50' : ''}`}
+              />
               <div className="pr-10 min-w-0 relative z-10 h-full flex flex-col justify-start">
                 <div
                   className="text-base font-bold text-foreground truncate"

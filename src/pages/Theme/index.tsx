@@ -22,6 +22,7 @@ import {
   CardContent, CardFooter, CardAction,
   SectionCard, MetricCard, StatCard,
 } from '@/components/ui/card'
+import { TintIcon, type TintIconTint, type TintIconSize } from '@/components/ui/tint-icon'
 import {
   Table, TableHeader, TableBody, TableRow,
   TableHead, TableCell, SortableTableHead,
@@ -70,16 +71,32 @@ function Section({
 }) {
   return (
     <div className={cn(
-      'rounded-card bg-card shadow-card overflow-hidden',
+      'rounded-card bg-card shadow-card border border-border overflow-hidden',
       full && 'col-span-full',
     )}>
-      <div className="flex items-center justify-between bg-muted px-5 py-3 gap-4">
+      <div className="flex items-center justify-between bg-muted px-5 py-3 gap-4 border-b border-border">
         <span className="font-semibold text-sm text-foreground-subtle">{title}</span>
         <code className="text-sm text-muted-foreground bg-card border border-border px-2 py-0.5 rounded-md shrink-0">
           {path}
         </code>
       </div>
       <div className="p-5 space-y-5">{children}</div>
+    </div>
+  )
+}
+
+/** Heading row for grouping related Section cards in the Components tab.
+    Sits across the full grid via col-span-full so the 2-col card grid below
+    visually attaches to the heading. */
+function SectionGroup({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="col-span-full flex items-end justify-between gap-3 pt-4 pb-1 border-b border-border">
+      <div className="flex items-baseline gap-3 min-w-0">
+        <h2 className="text-lg font-bold text-foreground">{title}</h2>
+        {subtitle && (
+          <span className="text-sm text-muted-foreground truncate">{subtitle}</span>
+        )}
+      </div>
     </div>
   )
 }
@@ -384,6 +401,8 @@ export default function Theme() {
           {/* ── Components Tab ──────────────────────────────── */}
           <TabsContent value="components" className="m-0 p-6">
             <div className="grid grid-cols-2 gap-4">
+              <SectionGroup title="พื้นฐาน" />
+
               {/* ── BUTTON ── */}
               <Section title="Button" path="src/components/ui/button.tsx" full>
                 <DemoRow label="Variants">
@@ -499,6 +518,8 @@ export default function Theme() {
                 </DemoRow>
               </Section>
 
+              <SectionGroup title="ฟอร์มและอินพุต" />
+
               {/* ── INPUT ── */}
               <Section title="Input" path="src/components/ui/input.tsx">
                 <DemoRow label="Default">
@@ -612,6 +633,59 @@ export default function Theme() {
                 </DemoRow>
               </Section>
 
+              {/* ── COMBOBOX ── */}
+              <Section title="Combobox" path="src/components/ui/combobox.tsx">
+                <DemoRow label="Searchable select (click → search inside)">
+                  <div className="w-72">
+                    <Combobox
+                      items={comboItems}
+                      value={comboVal}
+                      onChange={setComboVal}
+                      getKey={(s) => s.id}
+                      getLabel={(s) => s.name}
+                      getSublabel={(s) => s.code}
+                      icon={Building2}
+                      placeholder="— เลือกผู้จำหน่าย —"
+                      searchPlaceholder="ชื่อหรือรหัส..."
+                      emptyText="ไม่พบรายการ"
+                    />
+                  </div>
+                </DemoRow>
+                <DemoRow label="With empty/all row (filter mode) — h-10 เท่ากับ Input / DateInput / DateRangePicker">
+                  <div className="w-72">
+                    <Combobox
+                      items={comboItems}
+                      value={comboFilterVal}
+                      onChange={setComboFilterVal}
+                      getKey={(s) => s.id}
+                      getLabel={(s) => s.name}
+                      getSublabel={(s) => s.code}
+                      icon={Building2}
+                      emptyLabel="ทุกผู้จัดจำหน่าย"
+                      searchPlaceholder="ชื่อหรือรหัส..."
+                      emptyText="ไม่พบรายการ"
+                    />
+                  </div>
+                </DemoRow>
+                <DemoRow label="variant='elevated' — ใช้ในแถบฟิลเตอร์ของ table-card คู่กับ SearchInput / DateRangePicker variant='elevated'">
+                  <div className="w-72">
+                    <Combobox
+                      variant="elevated"
+                      items={comboItems}
+                      value={comboFilterVal}
+                      onChange={setComboFilterVal}
+                      getKey={(s) => s.id}
+                      getLabel={(s) => s.name}
+                      getSublabel={(s) => s.code}
+                      icon={Building2}
+                      emptyLabel="ทุกผู้จัดจำหน่าย"
+                      searchPlaceholder="ชื่อหรือรหัส..."
+                      emptyText="ไม่พบรายการ"
+                    />
+                  </div>
+                </DemoRow>
+              </Section>
+
               {/* ── CHECKBOX ── */}
               <Section title="Checkbox" path="src/components/ui/checkbox.tsx">
                 <DemoRow label="Interactive">
@@ -717,6 +791,149 @@ export default function Theme() {
                   <Toggle framed variant="warning" size="lg" checked={switchOn} onChange={setSwitchOn} label="เปิดการแจ้งเตือน" />
                 </DemoRow>
               </Section>
+
+              <SectionGroup title="วันที่และเวลา" />
+
+              {/* ── DATE INPUT ── */}
+              <Section title="DateInput" path="src/components/ui/date-input.tsx">
+                <DemoRow label="Default (bg-input) — สำหรับฟอร์ม">
+                  <div className="w-full space-y-1.5">
+                    <Label>วันที่รับสินค้า</Label>
+                    <DateInput
+                      value={dateVal}
+                      onChange={setDateVal}
+                      className="max-w-xs"
+                    />
+                    {dateVal && (
+                      <p className="text-sm text-muted-foreground">ISO: {dateVal}</p>
+                    )}
+                  </div>
+                </DemoRow>
+                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip'>
+                  <DateInput
+                    variant="elevated"
+                    value={dateVal}
+                    onChange={setDateVal}
+                    className="h-9 w-44"
+                  />
+                </DemoRow>
+                <p className="text-sm text-muted-foreground">
+                  รับ / ส่งค่าเป็น ISO <code>yyyy-mm-dd</code>.
+                  แสดงผลเป็น <code>dd/mm/yyyy</code>. มี calendar picker ในตัว.
+                  filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์ SearchInput/Select/DateRangePicker.
+                </p>
+              </Section>
+
+              {/* ── DATE RANGE PICKER ── */}
+              <Section title="DateRangePicker" path="src/components/ui/date-range-picker.tsx">
+                <DemoRow label="Default (bg-input) — สำหรับฟอร์ม">
+                  <div className="w-full space-y-1.5">
+                    <Label>ช่วงวันที่รายงาน</Label>
+                    <DateRangePicker
+                      from={rangeFrom}
+                      to={rangeTo}
+                      onChange={(f, t) => { setRangeFrom(f); setRangeTo(t) }}
+                      className="max-w-xs"
+                    />
+                    {(rangeFrom || rangeTo) && (
+                      <p className="text-sm text-muted-foreground">
+                        {rangeFrom || '—'} → {rangeTo || '—'}
+                      </p>
+                    )}
+                  </div>
+                </DemoRow>
+                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip ของ list table'>
+                  <DateRangePicker
+                    variant="elevated"
+                    from={rangeFrom}
+                    to={rangeTo}
+                    onChange={(f, t) => { setRangeFrom(f); setRangeTo(t) }}
+                    className="h-9 w-60"
+                  />
+                </DemoRow>
+                <p className="text-sm text-muted-foreground">
+                  มี preset วันนี้ / เมื่อวาน / 7 วัน / 30 วัน / เดือนนี้ / เดือนที่แล้ว / ปีนี้ / ทั้งหมด.
+                  ใช้ในหน้า <strong>filter / list ทั่วไป</strong> (Manage/Sales, Manage/Purchases, Expiry) —
+                  filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์กับ SearchInput/Select.
+                </p>
+              </Section>
+
+              {/* ── PERIOD PICKER ── */}
+              <Section title="PeriodPicker" path="src/components/ui/period-picker.tsx" full>
+                <DemoRow label="Granularity-first (วัน/เดือน/ปี/กำหนดเอง) + Prev/Next stepper">
+                  <div className="w-full space-y-3">
+                    <PeriodPicker
+                      mode={periodMode}
+                      from={periodFrom}
+                      to={periodTo}
+                      onChange={(m, f, t) => { setPeriodMode(m); setPeriodFrom(f); setPeriodTo(t) }}
+                      align="start"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      mode: <span className="text-foreground">{periodMode}</span>{' · '}
+                      {periodFrom} → {periodTo}
+                    </p>
+                  </div>
+                </DemoRow>
+                <DemoRow label="Non-owner — only [วัน] [กำหนดเอง] exposed">
+                  <PeriodPicker
+                    mode={periodMode === 'month' || periodMode === 'year' ? 'day' : periodMode}
+                    from={periodFrom}
+                    to={periodTo}
+                    onChange={(m, f, t) => { setPeriodMode(m); setPeriodFrom(f); setPeriodTo(t) }}
+                    allowedModes={['day', 'custom']}
+                    align="start"
+                  />
+                </DemoRow>
+                <p className="text-sm text-muted-foreground">
+                  ใช้แทน <code className="bg-muted px-1 rounded">DateRangePicker</code> ในหน้า <strong>รายงาน/แดชบอร์ด</strong> ที่
+                  ผู้ใช้ต้องการเลือก "ทั้งเดือน/ทั้งปี" ทีเดียวบ่อย ๆ — pattern แบบ Hygeia.
+                  Prev/next stepper เลื่อนหน่วยเวลาทีละ 1 หน่วยตาม mode (custom = shift by range length).
+                  ใช้ <code className="bg-muted px-1 rounded">defaultPeriodFor(isOwner)</code> + <code className="bg-muted px-1 rounded">allowedModesFor(isOwner)</code> helper ใน parent.
+                </p>
+              </Section>
+
+              {/* ── CALENDAR ── */}
+              <Section title="Calendar" path="src/components/ui/calendar.tsx" full>
+                <div className="grid grid-cols-2 gap-8 items-start">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                      Single Mode
+                    </p>
+                    <Calendar
+                      mode="single"
+                      selected={calDate}
+                      onSelect={setCalDate}
+                    />
+                    {calDate && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Selected: {calDate.toLocaleDateString('th-TH', { dateStyle: 'medium' })}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                      Range Mode — linked to DateRangePicker above
+                    </p>
+                    <Calendar
+                      mode="range"
+                      selected={
+                          rangeFrom
+                            ? {
+                                from: parseISOLocal(rangeFrom),
+                                to:   rangeTo ? parseISOLocal(rangeTo) : undefined,
+                              }
+                            : undefined
+                        }
+                      numberOfMonths={1}
+                    />
+                    <p className="text-sm text-muted-foreground mt-2">
+                      เลือกช่วงวันผ่าน DateRangePicker ด้านบนเพื่อดูผล
+                    </p>
+                  </div>
+                </div>
+              </Section>
+              <SectionGroup title="Layout & Container" />
 
               {/* ── TABS ── */}
               <Section title="Tabs" path="src/components/ui/tabs.tsx" full>
@@ -887,6 +1104,45 @@ export default function Theme() {
                 </div>
               </Section>
 
+              {/* ── TINT ICON BOX ── */}
+              <Section title="TintIcon — tinted icon-box primitive" path="src/components/ui/tint-icon.tsx" full>
+                <DemoRow label="All tints (size=md)">
+                  <div className="flex flex-wrap gap-3">
+                    {([
+                      'primary', 'primary-strong',
+                      'success', 'warning',
+                      'destructive', 'destructive-strong', 'destructive2',
+                      'secondary', 'warm', 'info-soft', 'tertiary',
+                      'neutral',
+                    ] as TintIconTint[]).map(t => (
+                      <div key={t} className="flex flex-col items-center gap-1.5">
+                        <TintIcon icon={Package} tint={t} size="md" />
+                        <span className="text-xs text-muted-foreground">{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                </DemoRow>
+                <DemoRow label="All sizes (tint=primary)">
+                  <div className="flex items-end gap-3">
+                    {(['sm', 'md', 'lg'] as TintIconSize[]).map(s => (
+                      <div key={s} className="flex flex-col items-center gap-1.5">
+                        <TintIcon icon={Package} tint="primary" size={s} />
+                        <span className="text-xs text-muted-foreground">{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                </DemoRow>
+                <DemoRow label="bordered prop — tinted box with matching colored border (used inside SectionCard)">
+                  <div className="flex flex-wrap gap-3">
+                    {([
+                      'primary', 'success', 'warning', 'destructive', 'secondary', 'warm', 'info-soft',
+                    ] as TintIconTint[]).map(t => (
+                      <TintIcon key={t} icon={Package} tint={t} size="sm" bordered />
+                    ))}
+                  </div>
+                </DemoRow>
+              </Section>
+
               {/* ── DASHBOARD CARDS ── */}
               <Section title="SectionCard · MetricCard · StatCard" path="src/components/ui/card.tsx" full>
                 <DemoRow label="SectionCard (form grouping)">
@@ -955,6 +1211,8 @@ export default function Theme() {
                 </DemoRow>
               </Section>
 
+              <SectionGroup title="ตารางและข้อมูล" />
+
               {/* ── STANDARD TABLE-CARD ── */}
               <Section title="Standard Table-Card Layout" path="CLAUDE.md → UI Conventions" full>
                 <p className="text-sm text-muted-foreground">
@@ -979,9 +1237,7 @@ export default function Theme() {
                         Filter strip controls cluster on the right via ml-auto
                         on the first control. */}
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-                        <Package className="size-4 text-foreground" />
-                      </span>
+                      <TintIcon icon={Package} tint="neutral" size="sm" />
                       <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
                       <Badge variant="neutral-outline">{PRODUCTS.length * 3}</Badge>
                     </div>
@@ -1213,6 +1469,44 @@ export default function Theme() {
                   </Table>
                 </div>
               </Section>
+
+              {/* ── PAGINATION ── */}
+              <Section title="Pagination" path="src/components/ui/pagination.tsx">
+                <DemoRow label="Interactive (10 pages)">
+                  <Pagination page={page} totalPages={10} onPageChange={setPage} />
+                </DemoRow>
+                <p className="text-sm text-muted-foreground">
+                  page = {page} / totalPages = 10
+                </p>
+                <DemoRow label="Few pages (≤7, no ellipsis)">
+                  <Pagination page={2} totalPages={5} onPageChange={() => {}} />
+                </DemoRow>
+                <DemoRow label="At first page">
+                  <Pagination page={1} totalPages={20} onPageChange={() => {}} />
+                </DemoRow>
+                <DemoRow label="Middle page">
+                  <Pagination page={10} totalPages={20} onPageChange={() => {}} />
+                </DemoRow>
+                <DemoRow label="At last page">
+                  <Pagination page={20} totalPages={20} onPageChange={() => {}} />
+                </DemoRow>
+                <DemoRow label="With page-size selector (full-width footer)">
+                  <div className="w-full px-4 h-12 border-t border-border bg-card flex items-center">
+                    <Pagination
+                      page={page}
+                      totalPages={10}
+                      onPageChange={setPage}
+                      pageSize={pageSize}
+                      onPageSizeChange={setPageSize}
+                    />
+                  </div>
+                </DemoRow>
+                <p className="text-sm text-muted-foreground">
+                  Note: page-nav-only mode renders <code>null</code> when <code>totalPages {'<='} 1</code>. Pass both <code>pageSize</code> and <code>onPageSizeChange</code> to show the selector (default options <code>[50, 100, 250, 500, &apos;all&apos;]</code>) — layout becomes full-width <code>justify-between</code>: selector on the left, page nav on the right. Pages collapse to ellipsis (first, last, current ±1) when <code>totalPages {'>'} 7</code>.
+                </p>
+              </Section>
+
+              <SectionGroup title="Dialog & Overlay" />
 
               {/* ── MODAL LAYOUT ── */}
               <Section title="Modal Layout (form + scrolling body)" path="src/components/ui/dialog.tsx" full>
@@ -1805,95 +2099,6 @@ export default function Theme() {
                 </DemoRow>
               </Section>
 
-              {/* ── COMBOBOX ── */}
-              <Section title="Combobox" path="src/components/ui/combobox.tsx">
-                <DemoRow label="Searchable select (click → search inside)">
-                  <div className="w-72">
-                    <Combobox
-                      items={comboItems}
-                      value={comboVal}
-                      onChange={setComboVal}
-                      getKey={(s) => s.id}
-                      getLabel={(s) => s.name}
-                      getSublabel={(s) => s.code}
-                      icon={Building2}
-                      placeholder="— เลือกผู้จำหน่าย —"
-                      searchPlaceholder="ชื่อหรือรหัส..."
-                      emptyText="ไม่พบรายการ"
-                    />
-                  </div>
-                </DemoRow>
-                <DemoRow label="With empty/all row (filter mode) — h-10 เท่ากับ Input / DateInput / DateRangePicker">
-                  <div className="w-72">
-                    <Combobox
-                      items={comboItems}
-                      value={comboFilterVal}
-                      onChange={setComboFilterVal}
-                      getKey={(s) => s.id}
-                      getLabel={(s) => s.name}
-                      getSublabel={(s) => s.code}
-                      icon={Building2}
-                      emptyLabel="ทุกผู้จัดจำหน่าย"
-                      searchPlaceholder="ชื่อหรือรหัส..."
-                      emptyText="ไม่พบรายการ"
-                    />
-                  </div>
-                </DemoRow>
-                <DemoRow label="variant='elevated' — ใช้ในแถบฟิลเตอร์ของ table-card คู่กับ SearchInput / DateRangePicker variant='elevated'">
-                  <div className="w-72">
-                    <Combobox
-                      variant="elevated"
-                      items={comboItems}
-                      value={comboFilterVal}
-                      onChange={setComboFilterVal}
-                      getKey={(s) => s.id}
-                      getLabel={(s) => s.name}
-                      getSublabel={(s) => s.code}
-                      icon={Building2}
-                      emptyLabel="ทุกผู้จัดจำหน่าย"
-                      searchPlaceholder="ชื่อหรือรหัส..."
-                      emptyText="ไม่พบรายการ"
-                    />
-                  </div>
-                </DemoRow>
-              </Section>
-
-              {/* ── PAGINATION ── */}
-              <Section title="Pagination" path="src/components/ui/pagination.tsx">
-                <DemoRow label="Interactive (10 pages)">
-                  <Pagination page={page} totalPages={10} onPageChange={setPage} />
-                </DemoRow>
-                <p className="text-sm text-muted-foreground">
-                  page = {page} / totalPages = 10
-                </p>
-                <DemoRow label="Few pages (≤7, no ellipsis)">
-                  <Pagination page={2} totalPages={5} onPageChange={() => {}} />
-                </DemoRow>
-                <DemoRow label="At first page">
-                  <Pagination page={1} totalPages={20} onPageChange={() => {}} />
-                </DemoRow>
-                <DemoRow label="Middle page">
-                  <Pagination page={10} totalPages={20} onPageChange={() => {}} />
-                </DemoRow>
-                <DemoRow label="At last page">
-                  <Pagination page={20} totalPages={20} onPageChange={() => {}} />
-                </DemoRow>
-                <DemoRow label="With page-size selector (full-width footer)">
-                  <div className="w-full px-4 h-12 border-t border-border bg-card flex items-center">
-                    <Pagination
-                      page={page}
-                      totalPages={10}
-                      onPageChange={setPage}
-                      pageSize={pageSize}
-                      onPageSizeChange={setPageSize}
-                    />
-                  </div>
-                </DemoRow>
-                <p className="text-sm text-muted-foreground">
-                  Note: page-nav-only mode renders <code>null</code> when <code>totalPages {'<='} 1</code>. Pass both <code>pageSize</code> and <code>onPageSizeChange</code> to show the selector (default options <code>[50, 100, 250, 500, &apos;all&apos;]</code>) — layout becomes full-width <code>justify-between</code>: selector on the left, page nav on the right. Pages collapse to ellipsis (first, last, current ±1) when <code>totalPages {'>'} 7</code>.
-                </p>
-              </Section>
-
               {/* ── TOAST ── */}
               <Section title="Toast + useToast()" path="src/components/ui/toast.tsx" full>
                 <DemoRow label="Trigger Each Type">
@@ -1929,145 +2134,6 @@ export default function Theme() {
                 </p>
               </Section>
 
-              {/* ── DATE INPUT ── */}
-              <Section title="DateInput" path="src/components/ui/date-input.tsx">
-                <DemoRow label="Default (bg-input) — สำหรับฟอร์ม">
-                  <div className="w-full space-y-1.5">
-                    <Label>วันที่รับสินค้า</Label>
-                    <DateInput
-                      value={dateVal}
-                      onChange={setDateVal}
-                      className="max-w-xs"
-                    />
-                    {dateVal && (
-                      <p className="text-sm text-muted-foreground">ISO: {dateVal}</p>
-                    )}
-                  </div>
-                </DemoRow>
-                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip'>
-                  <DateInput
-                    variant="elevated"
-                    value={dateVal}
-                    onChange={setDateVal}
-                    className="h-9 w-44"
-                  />
-                </DemoRow>
-                <p className="text-sm text-muted-foreground">
-                  รับ / ส่งค่าเป็น ISO <code>yyyy-mm-dd</code>.
-                  แสดงผลเป็น <code>dd/mm/yyyy</code>. มี calendar picker ในตัว.
-                  filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์ SearchInput/Select/DateRangePicker.
-                </p>
-              </Section>
-
-              {/* ── DATE RANGE PICKER ── */}
-              <Section title="DateRangePicker" path="src/components/ui/date-range-picker.tsx">
-                <DemoRow label="Default (bg-input) — สำหรับฟอร์ม">
-                  <div className="w-full space-y-1.5">
-                    <Label>ช่วงวันที่รายงาน</Label>
-                    <DateRangePicker
-                      from={rangeFrom}
-                      to={rangeTo}
-                      onChange={(f, t) => { setRangeFrom(f); setRangeTo(t) }}
-                      className="max-w-xs"
-                    />
-                    {(rangeFrom || rangeTo) && (
-                      <p className="text-sm text-muted-foreground">
-                        {rangeFrom || '—'} → {rangeTo || '—'}
-                      </p>
-                    )}
-                  </div>
-                </DemoRow>
-                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip ของ list table'>
-                  <DateRangePicker
-                    variant="elevated"
-                    from={rangeFrom}
-                    to={rangeTo}
-                    onChange={(f, t) => { setRangeFrom(f); setRangeTo(t) }}
-                    className="h-9 w-60"
-                  />
-                </DemoRow>
-                <p className="text-sm text-muted-foreground">
-                  มี preset วันนี้ / เมื่อวาน / 7 วัน / 30 วัน / เดือนนี้ / เดือนที่แล้ว / ปีนี้ / ทั้งหมด.
-                  ใช้ในหน้า <strong>filter / list ทั่วไป</strong> (Manage/Sales, Manage/Purchases, Expiry) —
-                  filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์กับ SearchInput/Select.
-                </p>
-              </Section>
-
-              {/* ── PERIOD PICKER ── */}
-              <Section title="PeriodPicker" path="src/components/ui/period-picker.tsx" full>
-                <DemoRow label="Granularity-first (วัน/เดือน/ปี/กำหนดเอง) + Prev/Next stepper">
-                  <div className="w-full space-y-3">
-                    <PeriodPicker
-                      mode={periodMode}
-                      from={periodFrom}
-                      to={periodTo}
-                      onChange={(m, f, t) => { setPeriodMode(m); setPeriodFrom(f); setPeriodTo(t) }}
-                      align="start"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      mode: <span className="text-foreground">{periodMode}</span>{' · '}
-                      {periodFrom} → {periodTo}
-                    </p>
-                  </div>
-                </DemoRow>
-                <DemoRow label="Non-owner — only [วัน] [กำหนดเอง] exposed">
-                  <PeriodPicker
-                    mode={periodMode === 'month' || periodMode === 'year' ? 'day' : periodMode}
-                    from={periodFrom}
-                    to={periodTo}
-                    onChange={(m, f, t) => { setPeriodMode(m); setPeriodFrom(f); setPeriodTo(t) }}
-                    allowedModes={['day', 'custom']}
-                    align="start"
-                  />
-                </DemoRow>
-                <p className="text-sm text-muted-foreground">
-                  ใช้แทน <code className="bg-muted px-1 rounded">DateRangePicker</code> ในหน้า <strong>รายงาน/แดชบอร์ด</strong> ที่
-                  ผู้ใช้ต้องการเลือก "ทั้งเดือน/ทั้งปี" ทีเดียวบ่อย ๆ — pattern แบบ Hygeia.
-                  Prev/next stepper เลื่อนหน่วยเวลาทีละ 1 หน่วยตาม mode (custom = shift by range length).
-                  ใช้ <code className="bg-muted px-1 rounded">defaultPeriodFor(isOwner)</code> + <code className="bg-muted px-1 rounded">allowedModesFor(isOwner)</code> helper ใน parent.
-                </p>
-              </Section>
-
-              {/* ── CALENDAR ── */}
-              <Section title="Calendar" path="src/components/ui/calendar.tsx" full>
-                <div className="grid grid-cols-2 gap-8 items-start">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                      Single Mode
-                    </p>
-                    <Calendar
-                      mode="single"
-                      selected={calDate}
-                      onSelect={setCalDate}
-                    />
-                    {calDate && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Selected: {calDate.toLocaleDateString('th-TH', { dateStyle: 'medium' })}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                      Range Mode — linked to DateRangePicker above
-                    </p>
-                    <Calendar
-                      mode="range"
-                      selected={
-                          rangeFrom
-                            ? {
-                                from: parseISOLocal(rangeFrom),
-                                to:   rangeTo ? parseISOLocal(rangeTo) : undefined,
-                              }
-                            : undefined
-                        }
-                      numberOfMonths={1}
-                    />
-                    <p className="text-sm text-muted-foreground mt-2">
-                      เลือกช่วงวันผ่าน DateRangePicker ด้านบนเพื่อดูผล
-                    </p>
-                  </div>
-                </div>
-              </Section>
 
             </div>
           </TabsContent>

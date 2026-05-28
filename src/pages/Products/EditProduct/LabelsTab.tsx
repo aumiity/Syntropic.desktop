@@ -15,6 +15,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Plus, Trash2, Edit, Pill } from 'lucide-react'
 import type { ProductLabel } from '@/types'
 import type { FullProduct } from './shared'
@@ -144,9 +145,7 @@ export function LabelsTab({
       <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <Pill className="size-4 text-foreground" />
-            </span>
+            <TintIcon icon={Pill} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ฉลากยา</h3>
             <Badge variant="neutral-outline">{product.labels?.length ?? 0}</Badge>
           </div>
