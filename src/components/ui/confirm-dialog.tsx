@@ -79,7 +79,7 @@ export function ConfirmDialog({
           )}
         </DialogBody>
         <DialogFooter>
-          <Button size="xl" variant="destructive2" onClick={handleClose}>{cancelLabel}</Button>
+          <Button size="xl" variant="elevated" onClick={handleClose}>{cancelLabel}</Button>
           <Button
             size="xl"
             variant={variant === 'destructive' ? 'destructive' : 'default'}

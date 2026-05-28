@@ -394,7 +394,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
@@ -670,7 +670,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
             )}
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
@@ -946,7 +946,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
             )}
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>

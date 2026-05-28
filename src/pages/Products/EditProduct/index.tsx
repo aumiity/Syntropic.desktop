@@ -550,7 +550,7 @@ export default function EditProductPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setPriceWarning([])}>กลับไปแก้ไข</Button>
+            <Button variant="elevated" size="xl" onClick={() => setPriceWarning([])}>กลับไปแก้ไข</Button>
             <Button variant="destructive" size="xl" onClick={doSave} disabled={saving}>
               {saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
@@ -574,7 +574,7 @@ export default function EditProductPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
+            <Button variant="elevated" size="xl" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
             <Button variant="destructive" size="xl" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); backToOrigin() }}>
               ออกจากหน้านี้
             </Button>

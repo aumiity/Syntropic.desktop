@@ -669,7 +669,7 @@ export default function PurchasePage() {
                   <div className="flex-1 min-w-0 flex flex-col gap-3 min-h-0">
 
                     {/* Header fields */}
-                    <div className="bg-card rounded-2xl shadow-card p-4 space-y-3 shrink-0">
+                    <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-3 shrink-0">
                       <div className="grid grid-cols-[1fr_200px_200px] gap-3">
 
                         {/* Supplier selector */}
@@ -718,7 +718,7 @@ export default function PurchasePage() {
                     </div>
 
                     {/* Line items */}
-                    <div className="bg-card rounded-2xl shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
+                    <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
                       <div className="px-2 h-14 flex items-center justify-between bg-card gap-2 shrink-0">
                         <span className="pl-2 text-base font-semibold text-muted-foreground">รายการสินค้า</span>
                         <div className="flex items-center gap-2">
@@ -799,7 +799,7 @@ export default function PurchasePage() {
                                       autoComplete="off"
                                     />
                                     {activeSuggRow === i && (suggestions[i]?.length ?? 0) > 0 && (
-                                      <div className="absolute left-2 top-full mt-0.5 z-50 w-64 bg-card rounded-xl shadow-card overflow-hidden">
+                                      <div className="absolute left-2 top-full mt-0.5 z-50 w-64 bg-card rounded-card shadow-card overflow-hidden">
                                         {suggestions[i].map((p, si) => (
                                           <Button
                                             key={p.id}
@@ -1007,7 +1007,7 @@ export default function PurchasePage() {
                   <div className="w-64 shrink-0 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] space-y-3 pr-1">
 
                     {/* GR summary */}
-                    <div className="bg-card rounded-2xl shadow-card p-4 space-y-2.5">
+                    <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2.5">
                       <div className="text-sm font-bold text-foreground-subtle uppercase tracking-wide">สรุปใบรับสินค้า</div>
                       <div>
                         <div className="text-sm text-foreground-subtle mb-0.5">เลขที่ใบรับ</div>
@@ -1026,7 +1026,7 @@ export default function PurchasePage() {
                     </div>
 
                     {/* Payment type */}
-                    <div className="bg-card rounded-2xl shadow-card p-4 space-y-3">
+                    <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-3">
                       <div className="text-sm font-bold text-foreground-subtle uppercase tracking-wide">การชำระเงิน</div>
                       <div className="flex gap-2">
                         <Button
@@ -1130,7 +1130,7 @@ export default function PurchasePage() {
                     </div>
 
                     {/* Note */}
-                    <div className="bg-card rounded-2xl shadow-card p-4 space-y-2">
+                    <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2">
                       <div className="text-sm font-bold text-foreground-subtle uppercase tracking-wide">หมายเหตุ</div>
                       <Textarea
                         value={grNote}
@@ -1482,7 +1482,7 @@ export default function PurchasePage() {
                   </div>
                 </DialogBody>
                 <DialogFooter>
-                  <Button variant="destructive2" size="xl" className="flex-1" onClick={closeBillAdjust}>ยกเลิก</Button>
+                  <Button variant="elevated" size="xl" className="flex-1" onClick={closeBillAdjust}>ยกเลิก</Button>
                   <Button size="xl" className="flex-1" onClick={applyBillAdjust}>ตกลง</Button>
                 </DialogFooter>
               </>
@@ -1564,7 +1564,7 @@ export default function PurchasePage() {
             />
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" disabled={importing} onClick={() => { setShowImport(false); setImportText('') }}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" disabled={importing} onClick={() => { setShowImport(false); setImportText('') }}>ยกเลิก</Button>
             <Button size="xl" disabled={importing || !importText.trim() || !importColumns.includes('key')} onClick={handleImport}>
               {importing ? 'กำลังนำเข้า…' : 'นำเข้า'}
             </Button>

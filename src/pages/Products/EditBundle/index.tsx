@@ -467,7 +467,7 @@ export default function EditBundlePage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
+            <Button variant="elevated" size="xl" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
             <Button variant="destructive" size="xl" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); backToOrigin() }}>
               ออกจากหน้านี้
             </Button>

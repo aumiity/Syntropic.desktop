@@ -197,7 +197,7 @@ export function QuickStockDialog({
         </DialogBody>
 
         <DialogFooter>
-          <Button variant="destructive2" size="xl" onClick={onClose} disabled={saving}>ยกเลิก</Button>
+          <Button variant="elevated" size="xl" onClick={onClose} disabled={saving}>ยกเลิก</Button>
           <Button size="xl" onClick={handleSave} disabled={saving}>
             {saving ? 'กำลังบันทึก...' : 'บันทึก'}
           </Button>

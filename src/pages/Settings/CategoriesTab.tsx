@@ -97,7 +97,7 @@ export function CategoriesTab() {
               <div className="flex-1 min-w-0 pl-2 text-sm text-muted-foreground">
                 กำลังจัดลำดับ — ลากแถวเพื่อเรียงใหม่
               </div>
-              <Button size="lg" className="h-10 px-2 shrink-0" variant="destructive2" onClick={cancelReorder}>
+              <Button size="lg" className="h-10 px-2 shrink-0" variant="elevated" onClick={cancelReorder}>
                 <X className="size-4" /> ยกเลิก
               </Button>
               <Button size="lg" className="h-10 px-2 shrink-0" variant="success" onClick={saveReorder}>
@@ -218,7 +218,7 @@ export function CategoriesTab() {
             ) : null}
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>

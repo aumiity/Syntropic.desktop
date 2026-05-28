@@ -1481,7 +1481,7 @@ export default function POSPage() {
             })()}
           </DialogBody>
           <DialogFooter>
-            <Button autoFocus variant="destructive2" size="xl" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
+            <Button autoFocus variant="elevated" size="xl" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1991,7 +1991,7 @@ export default function POSPage() {
           </DialogBody>
 
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={closeAdjust}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={closeAdjust}>ยกเลิก</Button>
             <Button
               size="xl"
               onClick={handleConfirmAdjust}
@@ -2239,7 +2239,7 @@ export default function POSPage() {
           </DialogBody>
 
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={closeReturn}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={closeReturn}>ยกเลิก</Button>
             <Button
               size="xl"
               onClick={handleConfirmReturn}

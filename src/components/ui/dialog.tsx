@@ -67,14 +67,20 @@ const DialogContent = React.forwardRef<
     showCloseButton?: boolean
     size?: DialogSize
     onClose?: () => void
+    /** Adds horizontal divider strips below DialogHeader and above DialogFooter.
+        Use for dialogs that contain input fields so the form area reads as a
+        distinct zone separate from title/actions. Skip for alert/confirm/success
+        dialogs where the message body and footer flow naturally. */
+    divided?: boolean
   }
->(({ className, children, showCloseButton = true, size, onClose, ...props }, ref) => (
+>(({ className, children, showCloseButton = true, size, onClose, divided, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       aria-describedby={undefined}
       data-slot="dialog-content"
+      data-divided={divided ? "" : undefined}
       // Project-wide rule: modals NEVER close on outside-click. Esc still closes.
       // See memory/feedback_modal_behavior.md. Do not override these handlers.
       onPointerDownOutside={(e) => e.preventDefault()}
@@ -88,6 +94,18 @@ const DialogContent = React.forwardRef<
         "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
         "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
         size && dialogSizeMap[size],
+        // Divider strips for form dialogs. Targets DialogHeader / DialogFooter
+        // children by data-slot so callers don't need to pass classes through.
+        // pb-3 / pt-3 give the line a 12px breathing margin; the parent gap-4
+        // (16px) provides the body-side spacing.
+        divided && [
+          "[&>[data-slot=dialog-header]]:border-b",
+          "[&>[data-slot=dialog-header]]:border-border",
+          "[&>[data-slot=dialog-header]]:pb-3",
+          "[&>[data-slot=dialog-footer]]:border-t",
+          "[&>[data-slot=dialog-footer]]:border-border",
+          "[&>[data-slot=dialog-footer]]:pt-3",
+        ],
         className
       )}
       {...props}
@@ -95,7 +113,7 @@ const DialogContent = React.forwardRef<
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close data-slot="dialog-close" asChild onClick={onClose}>
-          <Button variant="outline" className="h-8 w-8 absolute top-4 right-4" size="icon-sm">
+          <Button variant="elevated" className="h-8 w-8 absolute top-4 right-4" size="icon-sm">
             <XIcon />
             <span className="sr-only">Close</span>
           </Button>

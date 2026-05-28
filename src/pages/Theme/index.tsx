@@ -46,6 +46,7 @@ import {
   AlertTriangle, CheckCircle, Package, ChevronRight,
   TrendingUp, TrendingDown, FileText, Boxes, AlertCircle, Coins, Building2,
   Settings2, Filter, Wallet, MoreHorizontal, Clock, PackageOpen,
+  RotateCcw, Printer, History, EyeOff,
 } from 'lucide-react'
 import { Combobox } from '@/components/ui/combobox'
 import { PriceInput } from '@/components/ui/price-input'
@@ -172,6 +173,11 @@ export default function Theme() {
   const [confirmReasonOpen, setConfirmReasonOpen] = useState(false)
   const [formModalOpen, setFormModalOpen] = useState(false)
   const [scrollModalOpen, setScrollModalOpen] = useState(false)
+  // Dialog Patterns showcase: single state holds the id of the active pattern
+  // so we don't need 8 separate useStates for each demo dialog.
+  const [openPattern, setOpenPattern] = useState<string | null>(null)
+  const closePattern = () => setOpenPattern(null)
+  const [tabbedDialogTab, setTabbedDialogTab] = useState<'discount' | 'charge'>('discount')
   const [statFilter, setStatFilter] = useState<'all' | 'low' | 'out'>('all')
   const [seedConfirmOpen, setSeedConfirmOpen] = useState(false)
   const [seedRunning, setSeedRunning] = useState(false)
@@ -400,6 +406,8 @@ export default function Theme() {
                 <DemoRow label="Elevated — white bg + shadow (no border)">
                   <Button variant="elevated"><Filter className="size-4" /> Status</Button>
                   <Button variant="elevated"><Wallet className="size-4" /> Method</Button>
+                  <Button variant="elevated-destructive"><Trash2 className="size-4" /> Elevated Destructive</Button>
+                  <Button variant="elevated-warning"><EyeOff className="size-4" /> Elevated Warning</Button>
                 </DemoRow>
                 <DemoRow label="Sizes">
                   <Button size="xl">XL</Button>
@@ -1214,11 +1222,11 @@ export default function Theme() {
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
                   ทุก modal: คลิกนอกไม่ปิด · Esc ปิด · Enter = ปุ่มหลัก · บังคับโครงสร้าง
-                  DialogHeader / DialogBody / DialogFooter · ปุ่ม &quot;ยกเลิก/ปิด&quot; ใช้ variant=&quot;destructive2&quot;
+                  DialogHeader / DialogBody / DialogFooter · ปุ่ม &quot;ยกเลิก/ปิด&quot; ใช้ variant=&quot;elevated&quot; (destructive2 สงวนไว้สำหรับ delete/clear)
                 </p>
 
                 <Dialog open={formModalOpen} onOpenChange={setFormModalOpen}>
-                  <DialogContent size="lg" onClose={() => setFormModalOpen(false)}>
+                  <DialogContent size="lg" divided onClose={() => setFormModalOpen(false)}>
                     <DialogHeader>
                       <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
                     </DialogHeader>
@@ -1271,7 +1279,7 @@ export default function Theme() {
                       </div>
                     </DialogBody>
                     <DialogFooter>
-                      <Button size="xl" variant="destructive2" onClick={() => setFormModalOpen(false)}>ยกเลิก</Button>
+                      <Button size="xl" variant="elevated" onClick={() => setFormModalOpen(false)}>ยกเลิก</Button>
                       <Button size="xl" onClick={() => { setFormModalOpen(false); toast('บันทึกสำเร็จ', 'success') }}>บันทึก</Button>
                     </DialogFooter>
                   </DialogContent>
@@ -1291,8 +1299,348 @@ export default function Theme() {
                       ))}
                     </DialogBody>
                     <DialogFooter>
-                      <Button size="xl" variant="destructive2" onClick={() => setScrollModalOpen(false)}>ปิด</Button>
+                      <Button size="xl" variant="elevated" onClick={() => setScrollModalOpen(false)}>ปิด</Button>
                       <Button size="xl" onClick={() => setScrollModalOpen(false)}>รับทราบ</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </Section>
+
+              {/* ── DIALOG PATTERNS (จากระบบจริง) ── */}
+              <Section title="Dialog Patterns (จากระบบจริง)" path="src/components/ui/dialog.tsx · compositions" full>
+                <p className="text-sm text-muted-foreground">
+                  รวม Dialog ทุกรูปแบบที่ใช้จริงในระบบ — แต่ละปุ่มจะเปิด pattern หนึ่งๆ ที่หยิบมาจาก production code
+                  (LotsTab, PriceHistoryDialog, AdjustStockDialog, ฯลฯ). แก้ไขทีละแบบในไฟล์นี้ได้เลย — จุดอ้างอิงในโค้ดผ่าน comment <code>{`{/* === Pattern N: ... === */}`}</code>
+                </p>
+
+                <DemoRow label="Confirm / ยืนยัน">
+                  <Button variant="outline" onClick={() => setOpenPattern('warn-confirm')}>
+                    <AlertTriangle /> Warning Confirm (sm)
+                  </Button>
+                  <Button variant="outline" onClick={() => setOpenPattern('action-confirm')}>
+                    <CheckCircle /> Action Confirm + summary (sm)
+                  </Button>
+                </DemoRow>
+
+                <DemoRow label="Form / ฟอร์ม">
+                  <Button variant="outline" onClick={() => setOpenPattern('simple-form')}>Simple Form (sm)</Button>
+                  <Button variant="outline" onClick={() => setOpenPattern('multi-section-form')}>Multi-Section Form (lg)</Button>
+                </DemoRow>
+
+                <DemoRow label="Data Viewer">
+                  <Button variant="outline" onClick={() => setOpenPattern('table-viewer')}>
+                    <History /> History Table Viewer (xl)
+                  </Button>
+                  <Button variant="outline" onClick={() => setOpenPattern('receipt-viewer')}>
+                    <FileText /> Receipt Viewer (4xl, h-85vh)
+                  </Button>
+                </DemoRow>
+
+                <DemoRow label="Specialty">
+                  <Button variant="outline" onClick={() => setOpenPattern('tabbed')}>Tabbed Dialog (sm)</Button>
+                  <Button variant="outline" onClick={() => setOpenPattern('success-toast')}>
+                    <CheckCircle /> Success Notification (sm, sr-only header)
+                  </Button>
+                </DemoRow>
+
+                {/* === Pattern 1: Warning Confirm (sm) ===
+                    Source: src/pages/Products/EditProduct/index.tsx "ราคาขายผิดปกติ"
+                    Use case: เตือนก่อนทำ destructive action ที่ผู้ใช้พลาดได้ */}
+                <Dialog open={openPattern === 'warn-confirm'} onOpenChange={o => !o && closePattern()}>
+                  <DialogContent size="sm">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">ราคาขายผิดปกติ</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="space-y-3">
+                      <div className="flex gap-3">
+                        <AlertTriangle className="size-10 text-warning-strong shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-base font-medium">ราคาปลีก, ราคาส่ง 1 ต่ำกว่าราคาทุน</p>
+                          <p className="text-base text-muted-foreground">ยืนยันจะบันทึกข้อมูลนี้?</p>
+                        </div>
+                      </div>
+                    </DialogBody>
+                    <DialogFooter>
+                      <Button variant="elevated" size="xl" onClick={closePattern}>กลับไปแก้ไข</Button>
+                      <Button variant="destructive" size="xl" onClick={() => { closePattern(); toast('บันทึกแล้ว', 'success') }}>บันทึก</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* === Pattern 2: Action Confirm + change summary (sm) ===
+                    Source: src/pages/Products/EditProduct/LotsTab.tsx "ยืนยันการแก้ไขล็อต"
+                    Use case: confirm ที่ต้องแสดงค่าก่อน/หลังให้ผู้ใช้ตรวจก่อนกดยืนยัน */}
+                <Dialog open={openPattern === 'action-confirm'} onOpenChange={o => !o && closePattern()}>
+                  <DialogContent size="sm">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">ยืนยันการแก้ไขล็อต</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="space-y-3">
+                      <p className="text-sm text-muted-foreground">ข้อมูลต่อไปนี้จะถูกอัปเดต:</p>
+                      <div className="rounded-lg bg-muted/40 divide-y divide-border overflow-hidden">
+                        <div className="flex items-center justify-between px-3 py-2 text-sm">
+                          <span className="text-muted-foreground">จำนวนคงเหลือ</span>
+                          <div className="flex items-center gap-2">
+                            <span className="line-through text-destructive">120</span>
+                            <ChevronRight className="size-4 text-muted-foreground" />
+                            <span className="font-semibold text-success">95</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between px-3 py-2 text-sm">
+                          <span className="text-muted-foreground">วันหมดอายุ</span>
+                          <div className="flex items-center gap-2">
+                            <span className="line-through text-destructive">31/12/2025</span>
+                            <ChevronRight className="size-4 text-muted-foreground" />
+                            <span className="font-semibold text-success">28/02/2026</span>
+                          </div>
+                        </div>
+                      </div>
+                    </DialogBody>
+                    <DialogFooter>
+                      <Button variant="elevated" size="xl" onClick={closePattern}>ยกเลิก</Button>
+                      <Button size="xl" onClick={() => { closePattern(); toast('บันทึกล็อตแล้ว', 'success') }}>ยืนยัน</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* === Pattern 3: Simple Form (sm, 1 field) ===
+                    Source: src/pages/Settings/CategoriesTab.tsx + UnitsTab.tsx + DrugTypesTab.tsx
+                    Use case: เพิ่ม/แก้ค่า lookup ที่มีฟิลด์เดียว */}
+                <Dialog open={openPattern === 'simple-form'} onOpenChange={o => !o && closePattern()}>
+                  <DialogContent size="sm" divided>
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">เพิ่มหมวดหมู่</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label>ชื่อหมวดหมู่ <span className="text-destructive">*</span></Label>
+                        <Input placeholder="ระบุชื่อหมวดหมู่..." autoFocus />
+                      </div>
+                    </DialogBody>
+                    <DialogFooter>
+                      <Button variant="elevated" size="xl" onClick={closePattern}>ยกเลิก</Button>
+                      <Button size="xl" onClick={() => { closePattern(); toast('เพิ่มสำเร็จ', 'success') }}>เพิ่ม</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* === Pattern 4: Multi-Section Form (lg) ===
+                    Source: src/pages/Products/EditProduct/LotsTab.tsx "แก้ไขล็อต"
+                    Use case: ฟอร์มที่แบ่งกลุ่มข้อมูลด้วย heading + divider ภายใน body */}
+                <Dialog open={openPattern === 'multi-section-form'} onOpenChange={o => !o && closePattern()}>
+                  <DialogContent size="lg" divided>
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">แก้ไขล็อต</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="text-sm font-bold uppercase text-foreground">ข้อมูลล็อต</div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label>เลขล็อต</Label>
+                            <Input variant="elevated" defaultValue="L0042" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>วันหมดอายุ</Label>
+                            <DateInput value={dateVal} onChange={setDateVal} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2 pt-3 border-t border-border">
+                        <div className="text-sm font-bold uppercase text-foreground">จำนวน</div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label>เริ่มต้น</Label>
+                            <PriceInput variant="elevated" value="120" onChange={() => {}} decimals={0} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>คงเหลือ</Label>
+                            <PriceInput variant="elevated" value="95" onChange={() => {}} decimals={0} />
+                          </div>
+                        </div>
+                      </div>
+                    </DialogBody>
+                    <DialogFooter>
+                      <Button variant="elevated" size="xl" onClick={closePattern}>ยกเลิก</Button>
+                      <Button size="xl" onClick={() => { closePattern(); toast('บันทึกแล้ว', 'success') }}>บันทึก</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* === Pattern 5: History Table Viewer (xl) ===
+                    Source: src/pages/Products/EditProduct/PriceSection.tsx "ประวัติการเปลี่ยนราคา"
+                    Use case: ดูประวัติ/log แบบตาราง — title มี badge นับ + ปุ่ม refresh */}
+                <Dialog open={openPattern === 'table-viewer'} onOpenChange={o => !o && closePattern()}>
+                  <DialogContent size="xl">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <History className="size-5" /> ประวัติการเปลี่ยนราคา
+                        <Badge variant="neutral-outline" className="ml-1">3</Badge>
+                        <Button size="lg" variant="elevated" className="h-9 px-2 ml-auto" title="รีเฟรช">
+                          <RotateCcw className="size-4" />
+                        </Button>
+                      </DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="p-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-32">วันที่</TableHead>
+                            <TableHead className="min-w-20">ชนิด</TableHead>
+                            <TableHead className="min-w-16">เดิม</TableHead>
+                            <TableHead className="min-w-16">ใหม่</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {[
+                            { date: '15/05/2026 14:32', kind: 'ปลีก', variant: 'success' as const, old: '15.00', neu: '18.00', up: true },
+                            { date: '01/04/2026 09:15', kind: 'ส่ง 1', variant: 'info-soft' as const, old: '12.50', neu: '13.50', up: true },
+                            { date: '20/03/2026 16:48', kind: 'ปลีก', variant: 'success' as const, old: '18.00', neu: '15.00', up: false },
+                          ].map((r, i) => (
+                            <TableRow key={i} className="[&_td]:py-2.5 [&_td]:font-medium">
+                              <TableCell className="text-sm">{r.date}</TableCell>
+                              <TableCell>
+                                <Badge variant={r.variant} className="rounded-md">{r.kind}</Badge>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">฿{r.old}</TableCell>
+                              <TableCell className={`text-sm font-semibold ${r.up ? 'text-success' : 'text-destructive'}`}>฿{r.neu}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </DialogBody>
+                    <DialogFooter>
+                      <Button variant="primary-soft" size="xl" onClick={closePattern}>ปิด</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* === Pattern 6: Receipt / Detail Viewer (4xl, h-85vh) ===
+                    Source: src/components/dialogs/PurchaseReceiptDialog.tsx + SaleDetailDialog.tsx
+                    Use case: ดูใบสำคัญ/ใบเสร็จเต็มความสูงจอ + ปุ่ม print + body เลื่อนภายใน */}
+                <Dialog open={openPattern === 'receipt-viewer'} onOpenChange={o => !o && closePattern()}>
+                  <DialogContent size="4xl" divided className="h-[85vh] flex flex-col">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-3">
+                        <FileText className="size-5" />
+                        ใบสำคัญรับสินค้า
+                        <Badge variant="success" className="rounded-md">PR-2026-0042</Badge>
+                        <Button size="lg" variant="elevated" className="h-9 px-3 ml-auto">
+                          <Printer className="size-4" /> พิมพ์
+                        </Button>
+                      </DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="flex-1 overflow-y-auto space-y-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <div className="text-xs uppercase text-muted-foreground font-semibold mb-1">ผู้จำหน่าย</div>
+                          <div className="text-sm font-medium">บริษัท ฟาร์มาซี จำกัด</div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase text-muted-foreground font-semibold mb-1">วันที่</div>
+                          <div className="text-sm font-medium">28/05/2026</div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase text-muted-foreground font-semibold mb-1">เลขที่ใบกำกับ</div>
+                          <div className="text-sm font-medium">INV-991122</div>
+                        </div>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>สินค้า</TableHead>
+                            <TableHead>จำนวน</TableHead>
+                            <TableHead>ทุน</TableHead>
+                            <TableHead>รวม</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {[
+                            { name: 'พาราเซตามอล 500mg', qty: '120 เม็ด', cost: '0.50', total: '60.00' },
+                            { name: 'อะม็อกซิซิลลิน 250mg', qty: '60 แคปซูล', cost: '2.00', total: '120.00' },
+                            { name: 'วิตามินซี 500mg', qty: '30 เม็ด', cost: '1.20', total: '36.00' },
+                          ].map((r, i) => (
+                            <TableRow key={i} className="[&_td]:py-2.5">
+                              <TableCell className="text-sm font-medium">{r.name}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">{r.qty}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">฿{r.cost}</TableCell>
+                              <TableCell className="text-sm font-semibold">฿{r.total}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <div className="flex justify-end pt-3 border-t border-border">
+                        <div className="space-y-1 text-sm w-64">
+                          <div className="flex justify-between"><span className="text-muted-foreground">รวมก่อน VAT</span><span>฿216.00</span></div>
+                          <div className="flex justify-between"><span className="text-muted-foreground">VAT 7%</span><span>฿15.12</span></div>
+                          <div className="flex justify-between text-base font-bold pt-1 border-t border-border"><span>รวมทั้งสิ้น</span><span>฿231.12</span></div>
+                        </div>
+                      </div>
+                    </DialogBody>
+                    <DialogFooter>
+                      <Button variant="primary-soft" size="xl" onClick={closePattern}>ปิด</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* === Pattern 7: Tabbed Dialog (sm) ===
+                    Source: src/pages/Purchase/index.tsx "ปรับยอดบิล"
+                    Use case: dialog ที่มีโหมดสลับด้วย tabs ภายใน body */}
+                <Dialog open={openPattern === 'tabbed'} onOpenChange={o => !o && closePattern()}>
+                  <DialogContent size="sm" divided>
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">ปรับยอดบิล</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="space-y-3">
+                      <Tabs value={tabbedDialogTab} onValueChange={v => setTabbedDialogTab(v as 'discount' | 'charge')}>
+                        <TabsList variant="segmented" className="h-10 w-full">
+                          <TabsTrigger value="discount" className="flex-1">ส่วนลด</TabsTrigger>
+                          <TabsTrigger value="charge" className="flex-1">ค่าบริการ</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="discount" className="pt-4 space-y-3">
+                          <div className="space-y-1.5">
+                            <Label>จำนวนเงิน</Label>
+                            <PriceInput variant="elevated" value="50" onChange={() => {}} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>หมายเหตุ</Label>
+                            <Input placeholder="ระบุเหตุผล..." />
+                          </div>
+                        </TabsContent>
+                        <TabsContent value="charge" className="pt-4 space-y-3">
+                          <div className="space-y-1.5">
+                            <Label>จำนวนเงิน</Label>
+                            <PriceInput variant="elevated" value="25" onChange={() => {}} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>รายละเอียด</Label>
+                            <Input placeholder="ค่าจัดส่ง, ค่าบรรจุ, ..." />
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </DialogBody>
+                    <DialogFooter>
+                      <Button variant="elevated" size="xl" onClick={closePattern}>ยกเลิก</Button>
+                      <Button size="xl" onClick={() => { closePattern(); toast('บันทึกแล้ว', 'success') }}>ยืนยัน</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* === Pattern 8: Success Notification (sm, sr-only header) ===
+                    Source: src/pages/Purchase/index.tsx "บันทึกสำเร็จ"
+                    Use case: dialog แจ้งผลสำเร็จ — title ซ่อนเพื่อ a11y, body เป็นไอคอน + ข้อความใหญ่กลางจอ */}
+                <Dialog open={openPattern === 'success-toast'} onOpenChange={o => !o && closePattern()}>
+                  <DialogContent size="sm">
+                    <DialogHeader className="sr-only">
+                      <DialogTitle>บันทึกสำเร็จ</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="flex flex-col items-center text-center py-8 gap-4">
+                      <CheckCircle className="size-16 text-success" />
+                      <p className="text-xl font-semibold">บันทึกสำเร็จ</p>
+                      <p className="text-base text-muted-foreground">รายการถูกบันทึกเรียบร้อยแล้ว</p>
+                    </DialogBody>
+                    <DialogFooter className="justify-center">
+                      <Button size="xl" variant="primary-soft" onClick={closePattern}>ปิด</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -1305,7 +1653,7 @@ export default function Theme() {
                     <DialogTrigger asChild>
                       <Button variant="outline">เปิด Dialog</Button>
                     </DialogTrigger>
-                    <DialogContent size="md" onClose={() => setDialogOpen(false)}>
+                    <DialogContent size="md" divided onClose={() => setDialogOpen(false)}>
                       <DialogHeader>
                         <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
                       </DialogHeader>
@@ -1333,7 +1681,7 @@ export default function Theme() {
                         </div>
                       </DialogBody>
                       <DialogFooter>
-                        <Button size="xl" variant="destructive2" onClick={() => setDialogOpen(false)}>
+                        <Button size="xl" variant="elevated" onClick={() => setDialogOpen(false)}>
                           ยกเลิก
                         </Button>
                         <Button size="xl" onClick={() => { setDialogOpen(false); toast('บันทึกสำเร็จ', 'success') }}>

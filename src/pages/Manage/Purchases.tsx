@@ -846,7 +846,7 @@ export default function ManagePurchasesPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setShowEditModal(false)} disabled={editSaving}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={() => setShowEditModal(false)} disabled={editSaving}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSaveEdit} disabled={editSaving}>
               {editSaving ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
@@ -895,7 +895,7 @@ export default function ManagePurchasesPage() {
               )}
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setShowCancelModal(false)} disabled={cancelling}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={() => setShowCancelModal(false)} disabled={cancelling}>ยกเลิก</Button>
             <Button
               variant="destructive"
               size="xl"

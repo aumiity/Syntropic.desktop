@@ -483,7 +483,7 @@ export function AdjustStockDialog({
           </div>
         </DialogBody>
         <DialogFooter>
-          <Button variant="destructive2" size="xl" onClick={onClose}>ยกเลิก</Button>
+          <Button variant="elevated" size="xl" onClick={onClose}>ยกเลิก</Button>
           <Button
             onClick={handleAdjust}
             disabled={adjusting || adjustDelta === null || adjustDelta === 0 || lotsLoading}

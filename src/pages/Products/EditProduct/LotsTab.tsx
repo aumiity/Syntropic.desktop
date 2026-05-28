@@ -376,7 +376,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                 </p>
               </DialogBody>
               <DialogFooter>
-                <Button variant="destructive2" size="xl" onClick={() => setEditingLotId(null)} disabled={lotSaving}>ยกเลิก</Button>
+                <Button variant="elevated" size="xl" onClick={() => setEditingLotId(null)} disabled={lotSaving}>ยกเลิก</Button>
                 <Button size="xl" onClick={handleSaveLot} disabled={lotSaving}>บันทึก</Button>
               </DialogFooter>
             </DialogContent>
@@ -414,7 +414,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
             )}
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setConfirmLot(null)} disabled={lotSaving}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={() => setConfirmLot(null)} disabled={lotSaving}>ยกเลิก</Button>
             <Button size="xl" onClick={confirmSaveLot} disabled={lotSaving} autoFocus>
               {lotSaving ? 'กำลังบันทึก...' : 'ยืนยันการแก้ไข'}
             </Button>

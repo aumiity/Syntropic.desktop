@@ -87,7 +87,7 @@ export function SaleDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="4xl">
+      <DialogContent size="4xl" divided>
         {loading || !detail ? (
           <>
             <DialogHeader><DialogTitle>กำลังโหลด...</DialogTitle></DialogHeader>
@@ -299,7 +299,7 @@ export function SaleDetailDialog({
                   <Ban className="size-4 mr-1.5" /> ยกเลิกบิล
                 </Button>
               )}
-              <Button size="xl" variant="destructive2" onClick={() => onOpenChange(false)}>ปิด</Button>
+              <Button size="xl" variant="elevated" onClick={() => onOpenChange(false)}>ปิด</Button>
             </DialogFooter>
           </>
         )}

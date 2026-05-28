@@ -112,7 +112,7 @@ export function UnitsTab() {
             </p>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>

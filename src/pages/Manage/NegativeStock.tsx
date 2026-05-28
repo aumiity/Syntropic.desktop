@@ -280,7 +280,7 @@ export default function NegativeStockPage() {
                 )}
               </DialogBody>
               <DialogFooter className="pt-4">
-                <Button variant="destructive2" size="xl" className="flex-1" disabled={busy} onClick={() => setConfirming(null)}>
+                <Button variant="elevated" size="xl" className="flex-1" disabled={busy} onClick={() => setConfirming(null)}>
                   ยกเลิก
                 </Button>
                 <Button

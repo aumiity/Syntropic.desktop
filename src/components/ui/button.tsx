@@ -83,6 +83,16 @@ const buttonVariants = cva(
           "hover:bg-muted hover:shadow-sm",
           "aria-expanded:shadow-sm aria-expanded:bg-muted",
         ].join(" "),
+        "elevated-destructive": [
+          "bg-card text-foreground border-border border shadow-sm",
+          "hover:bg-destructive hover:text-white hover:border-destructive hover:shadow-sm",
+          "aria-expanded:bg-destructive aria-expanded:text-white aria-expanded:border-destructive aria-expanded:shadow-sm",
+        ].join(" "),
+        "elevated-warning": [
+          "bg-card text-foreground border-border border shadow-sm",
+          "hover:bg-warning-soft hover:text-warning-strong hover:shadow-sm",
+          "aria-expanded:bg-warning-soft aria-expanded:text-warning-strong aria-expanded:shadow-sm",
+        ].join(" "),
       },
       size: {
         default: [

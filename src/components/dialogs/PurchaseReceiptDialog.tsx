@@ -62,7 +62,7 @@ export function PurchaseReceiptDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="4xl" className="h-[85vh] flex flex-col">
+      <DialogContent size="4xl" divided className="h-[85vh] flex flex-col">
         {loading || !header ? (
           <>
             <DialogHeader><DialogTitle>กำลังโหลด...</DialogTitle></DialogHeader>
@@ -207,7 +207,7 @@ export function PurchaseReceiptDialog({
               {footerLeft && <div className="flex items-center min-w-0">{footerLeft}</div>}
               <div className="flex items-center gap-2">
                 {!isCancelled && actions}
-                <Button size="xl" variant="destructive2" onClick={() => onOpenChange(false)}>ปิด</Button>
+                <Button size="xl" variant="elevated" onClick={() => onOpenChange(false)}>ปิด</Button>
               </div>
             </DialogFooter>
           </>

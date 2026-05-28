@@ -18,7 +18,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, Trash2, Edit, Blocks } from 'lucide-react'
+import { Plus, Trash2, Edit, Blocks, EyeOff, Eye } from 'lucide-react'
 import type { ProductUnit, ItemUnit } from '@/types'
 import type { FullProduct } from './shared'
 
@@ -42,7 +42,7 @@ export function UnitsTab({
   const [editingUnit, setEditingUnit] = useState<ProductUnit | null>(null)
   const [unitForm, setUnitForm] = useState<any>({})
   const [unitSaving, setUnitSaving] = useState(false)
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingUnit, setDeletingUnit] = useState<ProductUnit | null>(null)
 
   const openAddUnit = () => {
     setEditingUnit(null)
@@ -115,13 +115,23 @@ export function UnitsTab({
     }
   }
 
+  const handleToggleDisable = async (u: ProductUnit) => {
+    const next = u.is_disabled ? 0 : 1
+    try {
+      await window.api.products.updateUnit(u.id, { is_disabled: next })
+      toast({ title: next ? 'ปิดการใช้งานหน่วยแล้ว' : 'เปิดใช้งานหน่วยแล้ว', variant: 'success' })
+      await onRefresh()
+    } catch (e: any) {
+      toast({ title: 'ทำรายการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
+  }
+
   const handleDeleteUnit = async (unitId: number) => {
     setUnitSaving(true)
     try {
       await window.api.products.deleteUnit(unitId)
       toast({ title: 'ลบหน่วยสำเร็จ', variant: 'success' })
-      setDeleteConfirmOpen(false)
-      setUnitDialog(false)
+      setDeletingUnit(null)
       await onRefresh()
     } catch (e: any) {
       toast({ title: 'ลบไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
@@ -157,7 +167,7 @@ export function UnitsTab({
                 <TableHead className="min-w-16">ขาย</TableHead>
                 <TableHead className="min-w-16">ซื้อ</TableHead>
                 <TableHead className="min-w-24">สถานะ</TableHead>
-                <TableHead className="min-w-16">จัดการ</TableHead>
+                <TableHead className="min-w-32">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -188,9 +198,23 @@ export function UnitsTab({
                       : <Badge variant="success-outline">ใช้งาน</Badge>}
                   </TableCell>
                   <TableCell>
-                    <Button size="icon-lg" variant="outline" onClick={() => openEditUnit(u)} title="แก้ไข">
-                      <Edit />
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      <Button size="icon-lg" variant="elevated" onClick={() => openEditUnit(u)} title="แก้ไข">
+                        <Edit />
+                      </Button>
+                      {u.is_disabled ? (
+                        <Button size="icon-lg" variant="elevated" onClick={() => handleToggleDisable(u)} title="เปิดใช้งาน">
+                          <Eye />
+                        </Button>
+                      ) : (
+                        <Button size="icon-lg" variant="elevated-warning" onClick={() => handleToggleDisable(u)} title="ปิดการใช้งาน">
+                          <EyeOff />
+                        </Button>
+                      )}
+                      <Button size="icon-lg" variant="elevated-destructive" onClick={() => setDeletingUnit(u)} title="ลบ">
+                        <Trash2 />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -264,13 +288,6 @@ export function UnitsTab({
                       </div>
                       <Switch size="lg" checked={!!unitForm.is_for_purchase} onCheckedChange={v => setUnitForm((f: any) => ({ ...f, is_for_purchase: v ? 1 : 0 }))} />
                     </div>
-                    <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${unitForm.is_disabled ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
-                      <div>
-                        <div className="text-sm font-semibold text-foreground">ปิดการใช้งานหน่วยนี้</div>
-                        <div className="text-xs text-muted-foreground">ซ่อนจาก POS ชั่วคราวโดยไม่ต้องลบ</div>
-                      </div>
-                      <Switch size="lg" checked={!!unitForm.is_disabled} onCheckedChange={v => setUnitForm((f: any) => ({ ...f, is_disabled: v ? 1 : 0 }))} />
-                    </div>
                   </div>
 
                   {/* ── ขวา: ราคา + รายละเอียด ── */}
@@ -341,18 +358,7 @@ export function UnitsTab({
             })()}
           </DialogBody>
           <DialogFooter>
-            {editingUnit && (
-              <Button
-                variant="destructive"
-                size="xl"
-                className="mr-auto"
-                onClick={() => setDeleteConfirmOpen(true)}
-                disabled={unitSaving}
-              >
-                <Trash2 /> ลบหน่วย
-              </Button>
-            )}
-            <Button variant="destructive2" size="xl" onClick={() => setUnitDialog(false)}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={() => setUnitDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSaveUnit} disabled={unitSaving}>{unitSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
@@ -360,18 +366,29 @@ export function UnitsTab({
 
       {/* ======================== DELETE CONFIRM ======================== */}
       <ConfirmDialog
-        open={deleteConfirmOpen}
-        onOpenChange={(v) => { if (!v && !unitSaving) setDeleteConfirmOpen(false) }}
+        open={!!deletingUnit}
+        onOpenChange={(v) => { if (!v && !unitSaving) setDeletingUnit(null) }}
         variant="destructive"
         title="ลบหน่วยนับ"
-        description={
-          editingUnit
-            ? `ลบหน่วย "${editingUnit.unit_name ?? `Unit #${editingUnit.unit_id}`}" (ขนาดบรรจุ ${editingUnit.qty_per_base}) ออกจากสินค้านี้? ประวัติการขายเก่ายังคงแสดงชื่อหน่วยถูกต้อง — หากต้องการซ่อนชั่วคราว ให้ใช้ "ปิดการใช้งานหน่วยนี้" แทน`
-            : ''
-        }
+        description={deletingUnit && (
+          <div className="space-y-3">
+            <div className="rounded-lg bg-muted px-3 py-2.5 space-y-1.5">
+              <div className="text-sm font-semibold text-foreground">{deletingUnit.unit_name ?? `Unit #${deletingUnit.unit_id}`}</div>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                <dt className="text-muted-foreground">ขนาดบรรจุ</dt>
+                <dd>{deletingUnit.qty_per_base}</dd>
+                <dt className="text-muted-foreground">ราคาปลีก</dt>
+                <dd>{formatCurrency(deletingUnit.price_retail)}</dd>
+              </dl>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              ประวัติการขายเก่ายังคงแสดงชื่อหน่วยถูกต้อง — หากต้องการซ่อนชั่วคราว ให้ใช้ <span className="font-medium text-foreground">"ปิดการใช้งานหน่วยนี้"</span> แทน
+            </p>
+          </div>
+        )}
         confirmLabel={unitSaving ? 'กำลังลบ...' : 'ยืนยันลบ'}
         cancelLabel="ยกเลิก"
-        onConfirm={() => { if (editingUnit) handleDeleteUnit(editingUnit.id) }}
+        onConfirm={() => { if (deletingUnit) handleDeleteUnit(deletingUnit.id) }}
       />
     </div>
   )

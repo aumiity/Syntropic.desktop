@@ -94,7 +94,8 @@
       "Bash(Get-ChildItem *)",
       "Bash(netstat -ano)",
       "Bash(Select-String \"LISTENING\")",
-      "Bash(Select-String \"5173|5174\")"
+      "Bash(Select-String \"5173|5174\")",
+      "Bash(perl *)"
     ]
   }
 }

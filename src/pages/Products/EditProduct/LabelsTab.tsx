@@ -315,7 +315,7 @@ export function LabelsTab({
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive2" size="xl" onClick={() => setLabelDialog(false)}>ยกเลิก</Button>
+            <Button variant="elevated" size="xl" onClick={() => setLabelDialog(false)}>ยกเลิก</Button>
             <Button size="xl" onClick={handleSaveLabel} disabled={labelSaving}>{labelSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
