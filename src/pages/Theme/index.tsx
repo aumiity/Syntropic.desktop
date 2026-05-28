@@ -44,8 +44,8 @@ import { Calendar } from '@/components/ui/calendar'
 import {
   Search, Plus, Edit, Trash2, Info, ExternalLink,
   AlertTriangle, CheckCircle, Package, ChevronRight,
-  TrendingUp, FileText, Boxes, AlertCircle, Coins, Building2,
-  Settings2, Filter, Wallet, MoreHorizontal,
+  TrendingUp, TrendingDown, FileText, Boxes, AlertCircle, Coins, Building2,
+  Settings2, Filter, Wallet, MoreHorizontal, Clock, PackageOpen,
 } from 'lucide-react'
 import { Combobox } from '@/components/ui/combobox'
 import { PriceInput } from '@/components/ui/price-input'
@@ -907,10 +907,17 @@ export default function Theme() {
                       value="48"
                       unit="ชิ้น"
                       sub="คลิกเพื่อปรับสต็อก"
-                      icon={Boxes}
+                      icon={PackageOpen}
                       tint="info-soft"
                       badge={<Badge variant="warning"><AlertTriangle className="size-3" /> ใกล้หมดอายุ 2 ล็อต</Badge>}
                     />
+                  </div>
+                </DemoRow>
+                <DemoRow label="MetricCard with subIcon (trend indicator — TrendingUp/Down before sub text)">
+                  <div className="grid grid-cols-3 gap-4 w-full">
+                    <MetricCard label="ยอดขาย" value="฿42,500" sub="12.3%" subIcon={TrendingUp} icon={Wallet} tint="success" />
+                    <MetricCard label="ค่าใช้จ่าย" value="฿18,200" sub="5.8%" subIcon={TrendingDown} icon={Coins} tint="destructive" />
+                    <MetricCard label="กำไรสุทธิ" value="฿24,300" sub="ใหม่ในช่วงนี้" icon={TrendingUp} tint="primary" />
                   </div>
                 </DemoRow>
                 <DemoRow label="MetricCard size='sm' (compact — icon-right · 3 stacked lines: label / value+unit / sub)">
@@ -922,7 +929,7 @@ export default function Theme() {
                       label="คงเหลือ"
                       value="48"
                       unit="ชิ้น"
-                      icon={Boxes}
+                      icon={PackageOpen}
                       tint="info-soft"
                       badge={<Badge variant="warning"><AlertTriangle className="size-3" /> 2 ล็อต</Badge>}
                     />
@@ -1796,7 +1803,18 @@ export default function Theme() {
         open={seedConfirmOpen}
         onOpenChange={setSeedConfirmOpen}
         title={`Seed ข้อมูลทดสอบ ${seedDaysChoice} วัน?`}
-        description={`จะลบ seed dev เดิม (ถ้ามี) แล้วสร้าง GR + sales ย้อน ${seedDaysChoice} วัน พร้อม engineer end-state (หมดสต็อก/ต่ำกว่าจุดสั่งซื้อ/expired/near-expire).${seedDaysChoice >= 365 ? ' ⏱ อาจใช้เวลา 2-5 นาที.' : ''} ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ`}
+        description={
+          <>
+            จะลบ seed dev เดิม (ถ้ามี) แล้วสร้าง GR + sales ย้อน {seedDaysChoice} วัน พร้อม engineer end-state (หมดสต็อก/ต่ำกว่าจุดสั่งซื้อ/expired/near-expire).
+            {seedDaysChoice >= 365 && (
+              <span className="inline-flex items-center gap-1 ml-1 text-warning-strong">
+                <Clock className="size-3.5" />
+                อาจใช้เวลา 2-5 นาที.
+              </span>
+            )}
+            {' '}ข้อมูลที่กรอกผ่าน UI จะไม่โดนแตะ
+          </>
+        }
         confirmLabel="เริ่ม Seed"
         variant="default"
         onConfirm={async () => {

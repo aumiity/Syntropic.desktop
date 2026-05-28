@@ -15,8 +15,8 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import {
   ArrowLeft, Save, AlertTriangle,
-  Package, Tag, Pill, Boxes, FileText, Coins, Info,
-  History,
+  Package, Tag, Pill, FileText, Coins, Info,
+  History, PackageOpen, Blocks,
 } from 'lucide-react'
 import { HistoryTab } from './HistoryTab'
 import { LotsTab } from './LotsTab'
@@ -348,7 +348,7 @@ export default function EditProductPage() {
           <TabsList variant="segmented" className="h-10">
             <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
             <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
-              <Boxes /> หน่วยนับ ({(product.units?.length ?? 0) + 1})
+              <Blocks /> หน่วยนับ ({(product.units?.length ?? 0) + 1})
             </TabsTrigger>
             <TabsTrigger value="labels" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการฉลากยา' : undefined}>
               <Pill /> ฉลากยา ({product.labels?.length ?? 0})
@@ -377,7 +377,8 @@ export default function EditProductPage() {
         // 4 cards: meta + 3 stats. In create mode, MetricCards stay in place
         // but are grayed out — values aren't meaningful until the product exists.
         const metricCardsGrid = (
-          <div className="grid grid-cols-4 gap-3 shrink-0 pt-3">
+          <div className="shrink-0 pt-3">
+            <div className="grid grid-cols-4 gap-3 p-0.5">
             {/* Meta card — hand-rolled to match MetricCard default-size
                 proportions (h-32, icon top-right). Custom layout because we
                 need badges on their own row, which the MetricCard primitive
@@ -437,11 +438,12 @@ export default function EditProductPage() {
               value={isNew ? '—' : totalStock.toLocaleString()}
               unit={isNew ? undefined : (baseUnit !== '—' ? baseUnit : undefined)}
               sub={isNew ? undefined : 'คลิกเพื่อปรับสต็อก'}
-              icon={Boxes}
+              icon={PackageOpen}
               tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive' : 'info-soft')}
               onClick={isNew ? undefined : () => setAdjustOpen(true)}
               className={isNew ? 'opacity-50' : ''}
             />
+            </div>
           </div>
         )
 

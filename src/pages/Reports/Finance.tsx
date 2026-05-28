@@ -8,6 +8,7 @@ import {
 import { useToast } from '@/components/ui/toast'
 import { useUserStore } from '@/stores/userStore'
 import { formatCurrency, cn } from '@/lib/utils'
+import { delta } from '@/lib/delta'
 import dayjs from 'dayjs'
 import type { ReportsOutletContext } from './index'
 import type { Granularity } from '@/components/ui/charts/granularity-tabs'
@@ -61,25 +62,6 @@ function inclusiveDayCount(from: string, to: string): number {
   return Math.round(ms / 86_400_000) + 1
 }
 
-// Period-over-Period delta as a sub-line ("▲ 12.3%") + Tailwind class for color.
-// Convention: ▲ green when curr ≥ prev, ▼ red when curr < prev. Caller can flip
-// for cost-style metrics where lower is better (we don't here — the sales/profit
-// cards are all "higher = better" and payable shows current outstanding only).
-function delta(
-  curr: number,
-  prev: number | undefined | null,
-): { sub: string; cls: string } | null {
-  if (prev == null) return null
-  if (prev === 0 && curr === 0) return null
-  if (prev === 0) return { sub: 'ใหม่ในช่วงนี้', cls: 'text-success' }
-  const pct = ((curr - prev) / Math.abs(prev)) * 100
-  const up = pct >= 0
-  return {
-    sub: `${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%`,
-    cls: up ? 'text-success' : 'text-destructive',
-  }
-}
-
 // Compact currency for headline labels — "฿37.5K" / "฿1.2M". Keeps the
 // side panel readable without an axis ruler.
 function compactCurrency(v: number): string {
@@ -104,8 +86,8 @@ function formatRangeShort(from: string, to: string): string {
 }
 
 // Tooltip label for the PoP delta — short by design ("เดือนที่แล้ว", etc).
-// The visible sub line shows only "▲ 12.3%"; this hover hint tells the user
-// what window the % is compared against.
+// The visible sub line shows only the % (TrendingUp/Down icon + value); this
+// hover hint tells the user what window the % is compared against.
 function shortPrevLabel(mode: PeriodMode): string {
   switch (mode) {
     case 'day': return 'เมื่อวาน'
@@ -129,7 +111,7 @@ export default function ReportsFinancePage() {
   const { setSummary, setToolbar } = useOutletContext<ReportsOutletContext>()
   const isOwner = useUserStore(s => s.current?.role === 'admin')
 
-  // ⚠️ DEV ONLY — สลับ role ไว้ทดสอบสิทธิ์ ก่อนระบบ login จริงจะมา.
+  // DEV ONLY — สลับ role ไว้ทดสอบสิทธิ์ ก่อนระบบ login จริงจะมา.
   const devUser = useUserStore(s => s.current)
   const devSetCurrent = useUserStore(s => s.setCurrent)
   const devToggleRole = () => {
@@ -201,6 +183,7 @@ export default function ReportsFinancePage() {
         value: formatCurrency(sum.sales_net),
         sub: dSales?.sub ?? `${sum.sale_count.toLocaleString()} บิล`,
         subClassName: dSales?.cls,
+        subIcon: dSales?.icon ?? undefined,
         subTitle: dSales ? prevHint : undefined,
         icon: ShoppingBag,
         tint: 'primary',
@@ -210,6 +193,7 @@ export default function ReportsFinancePage() {
         value: formatCurrency(sum.sales_profit),
         sub: dProfit?.sub ?? margin,
         subClassName: dProfit?.cls,
+        subIcon: dProfit?.icon ?? undefined,
         subTitle: dProfit ? prevHint : undefined,
         icon: TrendingUp,
         tint: sum.sales_profit >= 0 ? 'success' : 'destructive',
@@ -219,6 +203,7 @@ export default function ReportsFinancePage() {
         value: formatCurrency(sum.purchase_total),
         sub: dPurchase?.sub ?? `${sum.purchase_count.toLocaleString()} บิล`,
         subClassName: dPurchase?.cls,
+        subIcon: dPurchase?.icon ?? undefined,
         subTitle: dPurchase ? prevHint : undefined,
         icon: Wallet,
         tint: 'info-soft',
@@ -242,7 +227,7 @@ export default function ReportsFinancePage() {
   useEffect(() => {
     setToolbar(
       <>
-        {/* ⚠️ DEV ONLY — ปุ่มทดสอบสลับสิทธิ์ ลบทิ้งเมื่อมีระบบ login จริง */}
+        {/* DEV ONLY — ปุ่มทดสอบสลับสิทธิ์ ลบทิ้งเมื่อมีระบบ login จริง */}
         <Button
           variant={isOwner ? 'success' : 'warm'}
           size="lg"
@@ -279,7 +264,7 @@ export default function ReportsFinancePage() {
     ? formatRangeShort(sum.previous.date_from, sum.previous.date_to)
     : null
   // Short delta (no "vs ..." suffix) — the side panel mirrors the reference
-  // and only has room for "▲ 12.3%". KPI cards above still carry the full
+  // and only has room for the icon + %. KPI cards above still carry the full
   // version that names the previous window.
   const salesDeltaShort = delta(sum.sales_net, sum.previous?.sales_net)
 
@@ -313,7 +298,8 @@ export default function ReportsFinancePage() {
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">ยอดขาย</div>
                 {salesDeltaShort && (
-                  <div className={cn('text-sm font-semibold mt-1', salesDeltaShort.cls)}>
+                  <div className={cn('text-sm font-semibold mt-1 inline-flex items-center gap-1', salesDeltaShort.cls)}>
+                    {salesDeltaShort.icon && <salesDeltaShort.icon className="size-3.5" />}
                     {salesDeltaShort.sub}
                   </div>
                 )}

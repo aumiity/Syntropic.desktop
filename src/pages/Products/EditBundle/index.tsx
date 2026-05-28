@@ -141,10 +141,11 @@ export default function EditBundlePage() {
   }
 
   const refreshProduct = async () => {
+    // cost_price is server-recomputed (recomputeBundleCost) but it isn't
+    // managed in `form` — display reads it from `product.cost_price` directly,
+    // so only the product snapshot needs refreshing.
     const updated = await window.api.products.get(productId) as FullProduct
     setProduct(updated)
-    // Sync editable fields that the server might have recomputed (cost_price).
-    setForm((f: any) => ({ ...f, /* keep edits */ }))
   }
 
   const setF = (key: string, v: any) => {
@@ -326,44 +327,54 @@ export default function EditBundlePage() {
         </div>
       </TabStrip>
 
-      {/* 4 cards: meta + cost + price + components. Mirrors the EditProduct
-          row but tailored to bundles — cost is auto from components, there
-          are no own lots, so the 4th card is component count (click → tab). */}
-      <div className="grid grid-cols-4 gap-3 shrink-0 pt-3">
-        {/* Meta card — hand-rolled to match MetricCard size="sm" proportions */}
-        <div className="bg-card rounded-card shadow-card px-4 py-2 flex items-center gap-3 overflow-hidden">
-          <div className="flex flex-col min-w-0 flex-1 text-left">
+      {/* 4 cards: meta + cost + price + components. Layout mirrors
+          EditProduct's top row (default-size h-32 cards, absolute-icon meta
+          card with badges-at-bottom). Bundle differs from product in three
+          ways: (1) cost is auto-summed from components (no "ล่าสุด"/"เฉลี่ย"
+          concept — sub line stays blank); (2) badges are bundle-specific
+          (ชุดสินค้า / ยังไม่บันทึก / VAT / ปิดใช้งาน); (3) the 4th card is
+          component count (click → tab), not stock-on-hand (bundles own no
+          lots). Live-value preview in new mode is intentionally preserved —
+          drafted cost / retail / count give the operator immediate feedback
+          before save, which EditProduct can't do (no values exist there yet). */}
+      <div className="shrink-0 pt-3">
+        <div className="grid grid-cols-4 gap-3 p-0.5">
+        {/* Meta card — hand-rolled to match MetricCard default-size proportions
+            (h-32, icon absolute top-right). Badges row sits at the bottom via
+            mt-auto so the layout matches EditProduct's meta card pixel-for-pixel. */}
+        <div className="bg-card rounded-card p-4 pt-3 shadow-card border border-border h-32 overflow-hidden relative">
+          <span className={`absolute top-4 right-4 grid place-items-center size-11 rounded-xl z-10 bg-primary-soft text-primary ${isNew ? 'opacity-50' : ''}`}>
+            <Info className="size-7" />
+          </span>
+          <div className="pr-10 min-w-0 relative z-10 h-full flex flex-col justify-start">
             <div
               className="text-base font-bold text-foreground truncate"
               title={displayName}
             >
               {displayName}
             </div>
-            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-              <span className="text-sm text-muted-foreground shrink-0">{displayCode ?? '—'}</span>
-              <span className="text-sm text-muted-foreground shrink-0">·</span>
-              <span className="text-sm text-muted-foreground truncate">{categoryName ?? 'ไม่ระบุ'}</span>
-              <Badge variant="brand-soft" className="text-xs rounded-md px-1.5 py-0">ชุดสินค้า</Badge>
-              {isNew && <Badge variant="warning" className="text-xs rounded-md px-1.5 py-0">ยังไม่บันทึก</Badge>}
-              {displayHasVat && <Badge variant="info-soft" className="text-xs rounded-md px-1.5 py-0">VAT</Badge>}
-              {displayDisabled && <Badge variant="destructive" className="text-xs rounded-md px-1.5 py-0">ปิดใช้งาน</Badge>}
+            <div className="flex items-center gap-1.5 mt-1 min-w-0 text-sm h-[30px]">
+              <span className="text-muted-foreground shrink-0">{displayCode ?? '—'}</span>
+              <span className="text-muted-foreground shrink-0">·</span>
+              <span className="text-muted-foreground truncate">{categoryName ?? 'ไม่ระบุ'}</span>
+            </div>
+            <div className="flex items-center gap-1 mt-auto min-w-0 flex-wrap">
+              <Badge variant="brand-outline">ชุดสินค้า</Badge>
+              {isNew && <Badge variant="warning-outline">ยังไม่บันทึก</Badge>}
+              {displayHasVat && <Badge variant="info-outline">VAT</Badge>}
+              {displayDisabled && <Badge variant="destructive-outline">ปิดใช้งาน</Badge>}
             </div>
           </div>
-          <span className="grid place-items-center size-11 rounded-xl bg-primary-soft text-primary shrink-0">
-            <Info className="size-7" />
-          </span>
         </div>
 
         <MetricCard
-          size="sm"
-          label="ต้นทุนรวม"
+          label="ราคาทุน"
           value={formatCurrency(cost)}
           unit={baseUnit !== '—' ? `/ ${baseUnit}` : undefined}
           icon={Coins}
           tint="warm"
         />
         <MetricCard
-          size="sm"
           label="ราคาขาย"
           value={formatCurrency(retail)}
           valueClassName={'text-foreground'}
@@ -376,7 +387,6 @@ export default function EditBundlePage() {
           tint="success"
         />
         <MetricCard
-          size="sm"
           label="รายการ"
           value={componentCount.toLocaleString()}
           unit={componentCount > 0 ? 'รายการ' : undefined}
@@ -385,6 +395,7 @@ export default function EditBundlePage() {
           tint={componentCount === 0 ? 'destructive' : 'info-soft'}
           onClick={() => setTab('components')}
         />
+        </div>
       </div>
 
       {/* Same scroll model as EditProduct: form tabs (general/price) use an

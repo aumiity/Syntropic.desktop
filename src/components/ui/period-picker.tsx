@@ -65,8 +65,8 @@ function displayLabel(mode: PeriodMode, from: string, to: string): string {
   }
 }
 
-// ◀ / ▶ shifts the period by one unit. For custom mode, shifts by the
-// range's own length so a 7-day window steps back 7 days.
+// Prev/next arrow shifts the period by one unit. For custom mode, shifts by
+// the range's own length so a 7-day window steps back 7 days.
 function stepPeriod(mode: PeriodMode, from: string, to: string, dir: -1 | 1): { from: string; to: string } {
   const f = dayjs(from)
   switch (mode) {

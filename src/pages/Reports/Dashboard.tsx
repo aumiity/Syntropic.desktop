@@ -19,6 +19,7 @@ import { TopListCard, type TopListCardItem } from '@/components/ui/top-list-card
 import { GranularityTabs, type Granularity } from '@/components/ui/charts/granularity-tabs'
 import { TrendChart, type TrendDatum } from '@/components/ui/charts/trend-chart'
 import { formatCurrency, cn } from '@/lib/utils'
+import { delta } from '@/lib/delta'
 import {
   ShoppingBag, TrendingUp, Wallet, Receipt, CreditCard, RotateCcw,
   LineChart as LineChartIcon, Users, UserCircle, Activity, Trophy,
@@ -131,17 +132,6 @@ function autoGranularity(days: number): Granularity {
   return 'month'
 }
 
-// Period-over-Period delta line ("▲ 12.3%") — green up, red down. Identical
-// to Finance.tsx's helper. Inlined for self-containment of the dashboard.
-function delta(curr: number, prev: number | undefined | null) {
-  if (prev == null) return null
-  if (prev === 0 && curr === 0) return null
-  if (prev === 0) return { sub: 'ใหม่ในช่วงนี้', cls: 'text-success' }
-  const pct = ((curr - prev) / Math.abs(prev)) * 100
-  const up = pct >= 0
-  return { sub: `${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%`, cls: up ? 'text-success' : 'text-destructive' }
-}
-
 function formatRangeShort(from: string, to: string): string {
   const f = dayjs(from); const t = dayjs(to)
   if (f.year() === t.year() && f.month() === t.month()) return `${f.date()}-${t.date()} ${f.format('MMM BB')}`
@@ -150,8 +140,8 @@ function formatRangeShort(from: string, to: string): string {
 }
 
 // Tooltip label for the PoP delta — short by design ("เดือนที่แล้ว", etc).
-// The visible sub line shows only "▲ 12.3%"; this hover hint tells the user
-// what window the % is compared against.
+// The visible sub line shows only the % (TrendingUp/Down icon + value); this
+// hover hint tells the user what window the % is compared against.
 function shortPrevLabel(mode: PeriodMode): string {
   switch (mode) {
     case 'day': return 'เมื่อวาน'
@@ -289,6 +279,7 @@ export default function ReportsDashboardPage() {
         value: formatCurrency(fin.sales_net),
         sub: dSales?.sub ?? `${fin.sale_count.toLocaleString()} บิล`,
         subClassName: dSales?.cls,
+        subIcon: dSales?.icon ?? undefined,
         subTitle: dSales ? prevHint : undefined,
         icon: ShoppingBag,
         tint: 'primary',
@@ -298,6 +289,7 @@ export default function ReportsDashboardPage() {
         value: formatCurrency(fin.sales_profit),
         sub: dProfit?.sub ?? margin,
         subClassName: dProfit?.cls,
+        subIcon: dProfit?.icon ?? undefined,
         subTitle: dProfit ? prevHint : undefined,
         icon: TrendingUp,
         tint: fin.sales_profit >= 0 ? 'success' : 'destructive',
@@ -321,6 +313,7 @@ export default function ReportsDashboardPage() {
         value: formatCurrency(fin.purchase_total),
         sub: dPurchase?.sub ?? `${fin.purchase_count.toLocaleString()} บิล`,
         subClassName: dPurchase?.cls,
+        subIcon: dPurchase?.icon ?? undefined,
         subTitle: dPurchase ? prevHint : undefined,
         icon: Wallet,
         tint: 'info-soft' as MetricTint,

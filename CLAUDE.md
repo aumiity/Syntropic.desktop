@@ -57,6 +57,7 @@ Each line is the headline of a rule with an incident behind it. The full context
 - **`is_closed` on lots auto-toggles when qty crosses 0.** Otherwise FEFO/availability queries (which filter `is_closed=0`) silently lose the lot. → `docs/claude/business-logic.md`
 
 ### UI & theming
+- **No emojis in program output.** Specifically: source code, UI strings/labels, and any visible runtime text. Use lucide-react icons for iconography and Badge variants + semantic color tokens for status indicators. OK to use emojis in plans, discussion, chat, and non-code comments (e.g. PR descriptions, planning docs) — the rule is about what ships to users, not how we talk about the work.
 - **`/theme` is the source of truth.** Before adding/restyling UI, open `src/pages/Theme/index.tsx`, find the matching pattern, match it. Changing a primitive's default? Update its showcase demo in the same change. → `docs/claude/ui-components.md`
 - **Never use Tailwind palette literals for colors** (`bg-blue-500`, `text-slate-600`, etc.). Use semantic tokens only (`bg-primary`, `text-foreground`, `bg-success-soft`, …). Missing role? Add a token to `:root` + `.dark` in `src/index.css`, register under `colors` in `tailwind.config.js`. → `docs/claude/ui-theming.md`
 - **Tailwind v3 syntax for CSS vars: bracketed only.** ✅ `w-[var(--x)]` ❌ `w-(--x)` (v4 shorthand, silently dropped). Audit `src/components/ui/*` for this when touching primitives. → `docs/claude/ui-theming.md`

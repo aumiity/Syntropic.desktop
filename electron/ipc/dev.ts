@@ -621,7 +621,7 @@ export function registerDevHandlers() {
       engineered,
       days: DAYS,
       message:
-        `✓ ลบของเก่า ${wiped.grs} GR / ${wiped.sales} sales / ${wiped.lots} lots\n` +
+        `ลบของเก่า ${wiped.grs} GR / ${wiped.sales} sales / ${wiped.lots} lots\n` +
         `สร้างใหม่ย้อน ${DAYS} วัน: ${result.grCount} GR (รวม ${result.lotCount} lots), ` +
         `${result.saleCount} sales (${result.saleItemCount} items)\n` +
         `End-state: ${engineered.outOfStock} หมดสต็อก / ${engineered.belowReorder} ต่ำกว่าจุดสั่งซื้อ / ` +

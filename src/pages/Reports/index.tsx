@@ -36,6 +36,7 @@ export interface ReportsSummaryCard {
   sub?: string
   subTitle?: string
   subClassName?: string
+  subIcon?: React.ComponentType<{ className?: string }>
   sparkline?: number[]
   icon: React.ComponentType<{ className?: string }>
   tint: MetricTint

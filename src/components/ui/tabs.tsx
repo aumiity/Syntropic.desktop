@@ -72,10 +72,14 @@ const TabsList = React.forwardRef<
   ref
 ) {
   const pillId = React.useId()
-  const showPill: boolean = variant === "default" || variant === "pill" || variant === "segmented"
+  // `variant` is `TabsListVariant | null | undefined` via VariantProps; the
+  // default kicks in for undefined but a caller could still pass null. Coerce
+  // so the context type stays non-nullable.
+  const safeVariant: TabsListVariant = variant ?? "default"
+  const showPill: boolean = safeVariant === "default" || safeVariant === "pill" || safeVariant === "segmented"
 
   return (
-    <TabsListCtx.Provider value={{ pillId, showPill, variant }}>
+    <TabsListCtx.Provider value={{ pillId, showPill, variant: safeVariant }}>
       <TabsPrimitive.List
         ref={ref}
         data-slot="tabs-list"

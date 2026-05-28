@@ -21,6 +21,7 @@ import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import {
   Plus, Trash2, Package,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle, Settings2,
+  CheckCircle2,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { motion } from 'framer-motion'
@@ -1579,7 +1580,7 @@ export default function PurchasePage() {
             <DialogTitle>บันทึกสำเร็จ</DialogTitle>
           </DialogHeader>
           <DialogBody className="text-center py-8 space-y-4">
-            <div className="text-6xl">✅</div>
+            <CheckCircle2 className="size-16 mx-auto text-success" />
             <div>
               <div className="text-lg font-semibold">บันทึกสำเร็จ</div>
               <div className="text-muted-foreground text-sm mt-1">{savedInvoice}</div>

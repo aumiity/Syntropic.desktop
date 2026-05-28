@@ -8,7 +8,7 @@ import { SectionCard } from '@/components/ui/card'
 import { Package, ScanBarcode, FileText, EyeOff } from 'lucide-react'
 import type { ProductCategory, ItemUnit } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
-import { PriceSection, PriceHistoryDialog } from './PriceTab'
+import { PriceSection, PriceHistoryDialog } from './PriceSection'
 
 const Field = FormField
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -313,39 +314,51 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-card rounded-card shadow-card overflow-hidden">
-      {/* Card header bar — search input takes the row (POS-style: icon on the
-          right, border-0, shadow-none), Save button on the right. */}
-      <div className="flex items-center gap-2 px-1.5 h-14 shrink-0">
-        <div className="relative flex-1 min-w-0">
-          <Input
-            ref={mainInputRef}
-            value={q}
-            onChange={e => handleSearch(e.target.value)}
-            placeholder="ค้นหาสินค้าเพื่อเพิ่ม / สแกนบาร์โค้ด / รหัสสินค้า"
-            autoFocus
-            autoComplete="off"
-            className="h-9 py-2 pl-3 pr-9 text-sm rounded-lg border-0 shadow-none"
-          />
-          <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none" />
+    <div className="pt-4 flex-1 min-h-0 flex flex-col">
+      <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
+        {/* Card header bar — icon+title+count cluster on the left (canonical
+            LotsTab/LabelsTab/HistoryTab pattern), search Input fills the
+            middle (POS-style: border-0 shadow-none so it blends; the cluster
+            and Save button frame it), Save button on the right. The search
+            Input stays as the always-focused entry point — typing/scanning
+            opens the picker modal. */}
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <Boxes className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">รายการ</h3>
+            <Badge variant="neutral-outline">{items.length}</Badge>
+          </div>
+          <div className="relative flex-1 min-w-0">
+            <Input
+              ref={mainInputRef}
+              value={q}
+              onChange={e => handleSearch(e.target.value)}
+              placeholder="ค้นหาสินค้าเพื่อเพิ่ม / สแกนบาร์โค้ด / รหัสสินค้า"
+              autoFocus
+              autoComplete="off"
+              className="h-10 py-2 pl-3 pr-9 text-sm rounded-lg border-0 shadow-none"
+            />
+            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none" />
+          </div>
+          {/* Controlled mode: parent's main "สร้างชุดสินค้า" button commits
+              atomically — no per-tab save here (would be a no-op since there's
+              no DB row yet). */}
+          {!isControlled && (
+            <Button
+              size="lg"
+              onClick={handleSave}
+              disabled={saving || !dirty || items.length < 2}
+              className="h-10 px-2 shrink-0"
+              title={items.length < 2 ? 'ต้องมีรายการอย่างน้อย 2 รายการ' : undefined}
+            >
+              <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : 'บันทึกรายการ'}
+            </Button>
+          )}
         </div>
-        {/* Controlled mode: parent's main "สร้างชุดสินค้า" button commits
-            atomically — no per-tab save here (would be a no-op since there's
-            no DB row yet). */}
-        {!isControlled && (
-          <Button
-            size="lg"
-            onClick={handleSave}
-            disabled={saving || !dirty || items.length < 2}
-            className="h-9 px-3 shrink-0"
-            title={items.length < 2 ? 'ต้องมีรายการอย่างน้อย 2 รายการ' : undefined}
-          >
-            <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : 'บันทึกรายการ'}
-          </Button>
-        )}
-      </div>
 
-      <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -372,7 +385,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
               const lineCost = it.component_cost * it.qty_per_bundle
               const lineSell = it.component_sell_price * it.qty_per_bundle
               return (
-                <TableRow key={`${it.component_product_id}-${i}`}>
+                <TableRow key={`${it.component_product_id}-${i}`} className="[&_td]:py-2.5 [&_td]:font-medium">
                   <TableCell className="text-center text-sm text-muted-foreground">{i + 1}</TableCell>
                   <TableCell className="font-semibold text-sm text-foreground">{it.component_name}</TableCell>
                   <TableCell className="text-center text-sm text-muted-foreground">{it.component_unit_name ?? '—'}</TableCell>
@@ -397,7 +410,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                     <div className="flex justify-center">
                       <Button
                         size="icon-lg"
-                        variant="destructive"
+                        variant="destructive2"
                         onClick={() => removeAt(i)}
                         title="ลบรายการ"
                       >
@@ -429,8 +442,13 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
           </span>
         </div>
       </div>
+      </div>
 
-      {/* ── POS-STYLE SEARCH DIALOG (1000×800) ── */}
+      {/* ── POS-STYLE SEARCH DIALOG (1000×800) ──
+          Sits as a sibling of the card, inside the pt-4 outer wrapper, to
+          match the LotsTab/LabelsTab structure (dialogs outside the card div
+          so the card's overflow-hidden never clips them — moot for portaled
+          Radix Dialog content, but kept consistent with the rest of the app). */}
       <Dialog open={searchOpen} onOpenChange={(v) => { if (!v) closeSearch() }}>
         <DialogContent
           showCloseButton={false}

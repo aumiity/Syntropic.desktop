@@ -29,6 +29,7 @@ import {
   RotateCcw, ChevronRight, ChevronLeft, Tag,
   ShoppingBasket, Timer, RefreshCcw, HandCoins,
   Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
+  CheckCircle2,
 } from 'lucide-react'
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -2261,7 +2262,7 @@ export default function POSPage() {
         >
           <DialogTitle className="sr-only">บันทึกบิลสำเร็จ</DialogTitle>
           <DialogBody className="text-center py-8 space-y-4">
-            <div className="text-6xl">✅</div>
+            <CheckCircle2 className="size-16 mx-auto text-success" />
             <div><div className="text-xl font-semibold">บันทึกบิลสำเร็จ</div>
               <div className="text-muted-foreground text-base mt-1">{lastInvoice}</div></div>
             <Button autoFocus onClick={() => setShowSuccess(false)} className="w-full h-12 text-xl">ตกลง</Button>

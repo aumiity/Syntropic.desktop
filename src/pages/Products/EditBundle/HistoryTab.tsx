@@ -6,7 +6,8 @@ import {
 } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -14,9 +15,30 @@ import { useToast } from '@/components/ui/toast'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { formatDateTime, cn } from '@/lib/utils'
 import {
-  History, RotateCcw, Info, StickyNote,
+  History, RotateCcw, Info, StickyNote, Filter,
 } from 'lucide-react'
 import { MOVEMENT_META, type StockMovement, type MovementSortKey } from '../EditProduct/shared'
+
+// Bundles only ever sell/return — receive/adjust/expired don't apply to a
+// bundle product row (those live on the components). Filter the canonical
+// MOVEMENT_META down to these two so the type-filter popover only shows
+// what the table can actually contain.
+const BUNDLE_MOVE_TYPES = ['sale', 'sale_return']
+
+// Group by label so types sharing a label collapse into one filter checkbox.
+// Bundle list has no merged labels currently (sale/sale_return are distinct),
+// but the structure mirrors EditProduct/HistoryTab so parity stays clean.
+const MOVEMENT_FILTER_GROUPS: { label: string; types: string[]; icon: typeof MOVEMENT_META[string]['icon'] }[] = (() => {
+  const seen = new Map<string, { label: string; types: string[]; icon: typeof MOVEMENT_META[string]['icon'] }>()
+  for (const type of BUNDLE_MOVE_TYPES) {
+    const meta = MOVEMENT_META[type]
+    if (!meta) continue
+    const existing = seen.get(meta.label)
+    if (existing) existing.types.push(type)
+    else seen.set(meta.label, { label: meta.label, types: [type], icon: meta.icon })
+  }
+  return Array.from(seen.values())
+})()
 
 interface Props {
   productId: number
@@ -38,8 +60,9 @@ export function HistoryTab({ productId, isNew, active }: Props) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<PageSize>(50)
   const [movementsLoading, setMovementsLoading] = useState(false)
-  // Empty set = no narrowing (show all bundle types). Non-empty = whitelist.
-  const [movementTypeFilter, setMovementTypeFilter] = useState<Set<string>>(new Set())
+  // Whitelist semantics (matches EditProduct/HistoryTab): full set = show all,
+  // narrower set = filtered, empty set = show none.
+  const [movementTypeFilter, setMovementTypeFilter] = useState<Set<string>>(() => new Set(BUNDLE_MOVE_TYPES))
   const [movementSort, setMovementSort] = useState<{ by: MovementSortKey; dir: 'asc' | 'desc' }>({
     by: 'created_at', dir: 'desc',
   })
@@ -53,12 +76,21 @@ export function HistoryTab({ productId, isNew, active }: Props) {
 
   const loadMovements = useCallback(async () => {
     if (!productId || isNew) return
+    // Short-circuit when user has unchecked every type — no IPC needed.
+    if (movementTypeFilter.size === 0) {
+      setMovements([])
+      setTotal(0)
+      return
+    }
     setMovementsLoading(true)
     try {
+      // Only send `movement_types` when narrowing — full whitelist is the
+      // implicit default on the backend.
+      const isNarrowing = movementTypeFilter.size < BUNDLE_MOVE_TYPES.length
       const res = await window.api.products.stockMovements(productId, {
         page,
         pageSize: pageSize === 'all' ? 0 : pageSize,
-        movement_types: movementTypeFilter.size > 0 ? Array.from(movementTypeFilter) : undefined,
+        movement_types: isNarrowing ? Array.from(movementTypeFilter) : undefined,
         date_from: movementDateFrom || undefined,
         date_to: movementDateTo || undefined,
         sort_dir: movementSort.dir,
@@ -111,66 +143,112 @@ export function HistoryTab({ productId, isNew, active }: Props) {
     }
   }
 
-  // Filter MOVEMENT_META to only include types a bundle can actually have.
-  const BUNDLE_MOVE_TYPES = ['sale', 'sale_return']
-
   return (
     <div className="pt-4 flex-1 min-h-0 flex flex-col">
       <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
-        <div className="min-h-14 px-2 py-2 flex items-center flex-wrap gap-2 shrink-0">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
+              <History className="size-4 text-foreground" />
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">ประวัติเคลื่อนไหว</h3>
+            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+          </div>
+
           <DateRangePicker
+            variant="elevated"
             from={movementDateFrom}
             to={movementDateTo}
             onChange={(f, t) => { setMovementDateFrom(f); setMovementDateTo(t); setPage(1) }}
-            className="w-60 shrink-0"
+            className="w-60 shrink-0 ml-auto"
           />
           {(movementDateFrom || movementDateTo) && (
             <Button
               size="lg"
               variant="ghost"
-              className="h-10 px-3 shrink-0"
+              className="h-9 px-3 shrink-0"
               onClick={() => { setMovementDateFrom(''); setMovementDateTo(''); setPage(1) }}
             >
               ล้างวันที่
             </Button>
           )}
-          <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-            {BUNDLE_MOVE_TYPES.map((type) => {
-              const meta = MOVEMENT_META[type]
-              const active = movementTypeFilter.has(type)
-              return (
-                <Button
-                  key={type}
-                  size="lg"
-                  variant={active ? meta.variant : 'outline'}
-                  className="h-10 px-3"
-                  onClick={() => {
-                    setMovementTypeFilter(prev => {
-                      const next = new Set(prev)
-                      if (next.has(type)) next.delete(type)
-                      else next.add(type)
-                      return next
-                    })
-                    setPage(1)
-                  }}
-                >
-                  {meta.label}
-                </Button>
-              )
-            })}
-          </div>
+
+          {/* Type-filter popover — mirrors EditProduct/HistoryTab. Whitelist
+              semantics: full set = show all (default), narrower = filtered.
+              Badge counter on the trigger appears only while narrowing. */}
+          {(() => {
+            const allOn = movementTypeFilter.size === BUNDLE_MOVE_TYPES.length
+            const toggleAll = () => {
+              setMovementTypeFilter(allOn ? new Set() : new Set(BUNDLE_MOVE_TYPES))
+              setPage(1)
+            }
+            const isNarrowing = movementTypeFilter.size < BUNDLE_MOVE_TYPES.length
+            const activeGroupCount = MOVEMENT_FILTER_GROUPS.filter(g =>
+              g.types.every(t => movementTypeFilter.has(t))
+            ).length
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 relative" title="ตัวกรองประเภท">
+                    <Filter className="size-4" />
+                    {isNarrowing && (
+                      <span className="absolute -top-1 -right-1 size-4 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                        {activeGroupCount}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56">
+                  <PopoverHeader className="flex-row items-center justify-between">
+                    <PopoverTitle>ประเภทรายการ</PopoverTitle>
+                    <Button
+                      type="button"
+                      variant="elevated"
+                      size="xs"
+                      onClick={toggleAll}
+                      className="rounded-md"
+                    >
+                      {allOn ? 'ล้างทั้งหมด' : 'ทั้งหมด'}
+                    </Button>
+                  </PopoverHeader>
+                  {MOVEMENT_FILTER_GROUPS.map(group => {
+                    const allChecked = group.types.every(t => movementTypeFilter.has(t))
+                    return (
+                      <label key={group.label} className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                        <Checkbox
+                          checked={allChecked}
+                          onCheckedChange={v => {
+                            setMovementTypeFilter(prev => {
+                              const next = new Set(prev)
+                              if (v === true) group.types.forEach(t => next.add(t))
+                              else group.types.forEach(t => next.delete(t))
+                              return next
+                            })
+                            setPage(1)
+                          }}
+                        />
+                        <span className="text-sm">{group.label}</span>
+                      </label>
+                    )
+                  })}
+                </PopoverContent>
+              </Popover>
+            )
+          })()}
+
           <Button
             size="lg"
-            variant="ghost"
-            className="h-10 px-3 shrink-0"
-            onClick={() => { setMovementTypeFilter(new Set()); setPage(1) }}
-            disabled={movementTypeFilter.size === 0}
+            variant="elevated"
+            className="h-9 w-9 p-0 shrink-0"
+            onClick={reloadMovements}
+            disabled={movementsLoading}
+            title="รีเฟรช"
           >
-            ล้างตัวกรอง
+            <RotateCcw className="size-4" />
           </Button>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -193,7 +271,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground py-16">
                     <History className="size-10 mx-auto mb-2 opacity-30" />
-                    {(movementDateFrom || movementDateTo || movementTypeFilter.size > 0)
+                    {(movementDateFrom || movementDateTo || movementTypeFilter.size < BUNDLE_MOVE_TYPES.length)
                       ? 'ไม่มีรายการตามตัวกรอง'
                       : 'ยังไม่มีประวัติการขาย'}
                   </TableCell>
@@ -274,9 +352,6 @@ export function HistoryTab({ productId, isNew, active }: Props) {
             return (
               <>
                 <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-                  <Button size="lg" variant="outline" onClick={reloadMovements} disabled={movementsLoading} className="h-9 px-3 shrink-0">
-                    <RotateCcw className="size-4" />
-                  </Button>
                   <span>จำนวนแถว</span>
                   <Select
                     value={String(pageSize)}

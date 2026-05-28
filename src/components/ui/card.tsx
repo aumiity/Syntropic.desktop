@@ -146,6 +146,7 @@ function MetricCard({
   value,
   unit,
   sub,
+  subIcon: SubIcon,
   badge,
   icon: Icon,
   tint = "primary",
@@ -163,6 +164,8 @@ function MetricCard({
   value: string
   unit?: string
   sub?: string
+  /** Small inline icon rendered before `sub` — e.g. TrendingUp/Down for delta. */
+  subIcon?: React.ComponentType<{ className?: string }>
   /** Native HTML `title` for the sub line — shown as a tooltip on hover. */
   subTitle?: string
   badge?: React.ReactNode
@@ -213,13 +216,18 @@ function MetricCard({
     const innerSm = (
       <>
         <div className="flex flex-col min-w-0 flex-1 text-left">
-          <div className={cn("text-sm font-semibold text-foreground truncate leading-tight", labelClassName)} title={label}>{label}</div>
+          <div className={cn("text-sm font-semibold text-foreground overflow-x-clip overflow-y-visible whitespace-nowrap text-ellipsis leading-snug", labelClassName)} title={label}>{label}</div>
           <div className="flex items-baseline gap-1.5 min-w-0">
             <span className={cn("text-lg font-bold leading-none truncate", valColor, valueClassName)} title={value}>{value}</span>
             {unit && <span className="text-sm font-semibold text-muted-foreground truncate" title={unit}>{unit}</span>}
             {badge && <span className="ml-auto shrink-0 self-center">{badge}</span>}
           </div>
-          {sub && <div className={cn("text-sm font-semibold truncate leading-tight", accentColor, subClassName)} title={subTitle ?? sub}>{sub}</div>}
+          {sub && (
+            <div className={cn("text-sm font-semibold truncate leading-tight inline-flex items-center gap-1", accentColor, subClassName)} title={subTitle ?? sub}>
+              {SubIcon && <SubIcon className="size-3.5 shrink-0" />}
+              <span className="truncate">{sub}</span>
+            </div>
+          )}
         </div>
         <span className={cn("grid place-items-center size-11 rounded-xl shrink-0", iconBox)}>
           <Icon className="size-7" />
@@ -267,7 +275,7 @@ function MetricCard({
         </div>
       )}
       <div className="pr-10 min-w-0 relative z-10 h-full flex flex-col justify-start">
-        <div className={cn("text-base font-bold text-foreground truncate", labelClassName)} title={label}>{label}</div>
+        <div className={cn("text-base font-bold text-foreground overflow-x-clip overflow-y-visible whitespace-nowrap text-ellipsis leading-7", labelClassName)} title={label}>{label}</div>
         <div className="flex items-baseline gap-1.5 mt-1 min-w-0">
           <span
             className={cn(
@@ -283,7 +291,12 @@ function MetricCard({
         </div>
         {(sub || badge) && (
           <div className="flex items-center gap-1.5 mt-auto min-w-0">
-            {sub && <div className={cn("font-semibold text-sm leading-tight truncate", accentColor, subClassName)} title={subTitle ?? sub}>{sub}</div>}
+            {sub && (
+              <div className={cn("font-semibold text-sm leading-tight truncate inline-flex items-center gap-1", accentColor, subClassName)} title={subTitle ?? sub}>
+                {SubIcon && <SubIcon className="size-3.5 shrink-0" />}
+                <span className="truncate">{sub}</span>
+              </div>
+            )}
             {badge && <div className="shrink-0">{badge}</div>}
           </div>
         )}

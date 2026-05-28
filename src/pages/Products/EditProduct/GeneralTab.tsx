@@ -9,11 +9,14 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import {
-  Package, ScanBarcode, Pill, Boxes, FileText, EyeOff, Settings,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Package, ScanBarcode, Pill, PackageOpen, FileText, Settings, Plus, X, History,
 } from 'lucide-react'
 import type { ProductCategory, DrugType, ItemUnit } from '@/types'
 import type { GenericNameSuggestion } from './shared'
-import { PriceSection, PriceHistoryDialog } from './PriceTab'
+import { PriceSection, PriceHistoryDialog } from './PriceSection'
 
 const Field = FormField
 
@@ -66,6 +69,27 @@ export function GeneralTab({
   const genericTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [monthlySales, setMonthlySales] = useState<MonthlySales | null>(null)
   const [priceHistoryOpen, setPriceHistoryOpen] = useState(false)
+  const [salesHistoryOpen, setSalesHistoryOpen] = useState(false)
+
+  // Barcode rows are progressively disclosed — start with 1, click + to add another.
+  // Auto-grow on load when the product already has barcodes 2/3/4 saved (so users
+  // never have to expand to see their own data). Never shrinks automatically;
+  // collapse is explicit via the X on the last visible row.
+  const [barcodeSlots, setBarcodeSlots] = useState(1)
+  useEffect(() => {
+    const filledMax = form.barcode4 ? 4
+                    : form.barcode3 ? 3
+                    : form.barcode2 ? 2
+                    : 1
+    setBarcodeSlots(prev => Math.max(prev, filledMax))
+  }, [form.barcode2, form.barcode3, form.barcode4])
+  const collapseLastBarcode = () => {
+    const key = barcodeSlots === 4 ? 'barcode4'
+              : barcodeSlots === 3 ? 'barcode3'
+              : 'barcode2'
+    setF(key, '')
+    setBarcodeSlots(n => Math.max(1, n - 1))
+  }
 
   useEffect(() => {
     if (isNew || !productId) { setMonthlySales(null); return }
@@ -98,7 +122,7 @@ export function GeneralTab({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 pt-4">
+    <div className="grid grid-cols-[3fr_2fr] gap-4 pt-4">
 
       {/* LEFT COLUMN */}
       <div className="space-y-4">
@@ -176,23 +200,50 @@ export function GeneralTab({
           onOpenHistory={() => setPriceHistoryOpen(true)}
         />
 
-        <SectionCard icon={Settings} title="ตัวเลือกการขาย" tint="secondary">
+        <SectionCard
+          icon={PackageOpen}
+          title="สต็อกและการแจ้งเตือน"
+          tint="warning"
+          right={
+            <Button
+              size="lg"
+              variant="elevated"
+              className="h-9 px-3"
+              onClick={() => setSalesHistoryOpen(true)}
+              disabled={isNew}
+              title={isNew ? 'บันทึกสินค้าก่อนเพื่อดูประวัติยอดขาย' : 'ดูยอดขายย้อนหลัง 6 เดือน'}
+            >
+              <History className="size-4" /> ประวัติ
+            </Button>
+          }
+        >
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
-              <div>
-                <div className="text-sm font-semibold text-foreground">เปิดใช้งาน VAT</div>
-                <div className="text-xs text-muted-foreground">*ระบบยังไม่รองรับ*</div>
-              </div>
-              <Switch size="lg" checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
-            </div>
-            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
-              <div>
-                <div className="text-sm font-semibold text-foreground">นับสต็อก</div>
-                <div className="text-xs text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
-              </div>
-              <Switch size="lg" checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
-            </div>
+            <Field label="จุดสั่งซื้อ">
+              <Input variant="elevated" type="number" value={form.reorder_point} onChange={e => setF('reorder_point', e.target.value)} min={0} />
+            </Field>
+            <Field label="สต็อกปลอดภัย">
+              <Input variant="elevated" type="number" value={form.safety_stock} onChange={e => setF('safety_stock', e.target.value)} min={0} />
+            </Field>
           </div>
+
+          {!isNew && (
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
+              <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">เฉลี่ย / เดือน</span>
+                {monthlySales
+                  ? <span className="text-base font-bold text-warm-foreground">{monthlySales.avg_per_month.toFixed(2)}</span>
+                  : <span className="text-sm text-foreground-subtle">—</span>}
+              </div>
+              <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {monthlySales ? formatThaiMonth(monthlySales.current_month.ym) : 'เดือนปัจจุบัน'}
+                </span>
+                {monthlySales
+                  ? <span className="text-base font-bold text-warm-foreground">{monthlySales.current_month.qty.toFixed(2)}</span>
+                  : <span className="text-sm text-foreground-subtle">—</span>}
+              </div>
+            </div>
+          )}
         </SectionCard>
 
         <SectionCard icon={FileText} title="หมายเหตุและคำบรรยาย" tint="secondary">
@@ -227,15 +278,8 @@ export function GeneralTab({
       {/* RIGHT COLUMN */}
       <div className="space-y-4">
 
-        <SectionCard icon={EyeOff} title="สถานะ" tint="secondary">
-          <div className="grid grid-cols-2 gap-3">
-            <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_hidden ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
-              <div>
-                <div className="text-sm font-semibold text-foreground">ซ่อน</div>
-                <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>
-              </div>
-              <Switch size="lg" variant="destructive" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
-            </div>
+        <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
+          <div className="space-y-2">
             <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_disabled ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
               <div>
                 <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
@@ -243,76 +287,80 @@ export function GeneralTab({
               </div>
               <Switch size="lg" variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
             </div>
+            <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_hidden ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
+              <div>
+                <div className="text-sm font-semibold text-foreground">ซ่อน</div>
+                <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>
+              </div>
+              <Switch size="lg" variant="destructive" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
+            </div>
+            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
+              <div>
+                <div className="text-sm font-semibold text-foreground">เปิดใช้งาน VAT</div>
+                <div className="text-xs text-muted-foreground">*ระบบยังไม่รองรับ*</div>
+              </div>
+              <Switch size="lg" checked={!!form.is_vat} onCheckedChange={v => setF('is_vat', v ? 1 : 0)} />
+            </div>
+            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
+              <div>
+                <div className="text-sm font-semibold text-foreground">นับสต็อก</div>
+                <div className="text-xs text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
+              </div>
+              <Switch size="lg" checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
+            </div>
           </div>
         </SectionCard>
 
         <SectionCard icon={ScanBarcode} title="บาร์โค้ด" tint="secondary">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             <Field label="บาร์โค้ด 1">
               <Input variant="elevated" value={form.barcode} onChange={e => setF('barcode', e.target.value)} placeholder="ตัวเลข 13 หลัก" />
             </Field>
-            <Field label="บาร์โค้ด 2">
-              <Input variant="elevated" value={form.barcode2} onChange={e => setF('barcode2', e.target.value)} />
-            </Field>
-            <Field label="บาร์โค้ด 3">
-              <Input variant="elevated" value={form.barcode3} onChange={e => setF('barcode3', e.target.value)} />
-            </Field>
-            <Field label="บาร์โค้ด 4">
-              <Input variant="elevated" value={form.barcode4} onChange={e => setF('barcode4', e.target.value)} />
-            </Field>
-          </div>
-        </SectionCard>
-
-        <SectionCard icon={Boxes} title="สต็อกและการแจ้งเตือน" tint="warning">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="จุดสั่งซื้อ">
-              <Input variant="elevated" type="number" value={form.reorder_point} onChange={e => setF('reorder_point', e.target.value)} min={0} />
-            </Field>
-            <Field label="สต็อกปลอดภัย">
-              <Input variant="elevated" type="number" value={form.safety_stock} onChange={e => setF('safety_stock', e.target.value)} min={0} />
-            </Field>
-          </div>
-
-          {!isNew && (
-            <div className="space-y-3 pt-3 border-t border-border">
-              {/* Top tiles: avg/month + current month — same pattern as PriceTab's profitBox/ทุนเฉลี่ย */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">เฉลี่ย / เดือน</span>
-                  {monthlySales
-                    ? <span className="text-base font-bold text-warm-foreground">{monthlySales.avg_per_month.toFixed(2)}</span>
-                    : <span className="text-sm text-foreground-subtle">—</span>}
+            {barcodeSlots >= 2 && (
+              <Field label="บาร์โค้ด 2">
+                <div className="flex gap-2">
+                  <Input variant="elevated" value={form.barcode2} onChange={e => setF('barcode2', e.target.value)} className="flex-1" />
+                  {barcodeSlots === 2 && (
+                    <Button type="button" variant="ghost" size="icon" onClick={collapseLastBarcode} title="ยุบ" aria-label="ยุบบาร์โค้ด 2">
+                      <X className="size-4" />
+                    </Button>
+                  )}
                 </div>
-                <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    {monthlySales ? formatThaiMonth(monthlySales.current_month.ym) : 'เดือนปัจจุบัน'}
-                  </span>
-                  {monthlySales
-                    ? <span className="text-base font-bold text-warm-foreground">{monthlySales.current_month.qty.toFixed(2)}</span>
-                    : <span className="text-sm text-foreground-subtle">—</span>}
+              </Field>
+            )}
+            {barcodeSlots >= 3 && (
+              <Field label="บาร์โค้ด 3">
+                <div className="flex gap-2">
+                  <Input variant="elevated" value={form.barcode3} onChange={e => setF('barcode3', e.target.value)} className="flex-1" />
+                  {barcodeSlots === 3 && (
+                    <Button type="button" variant="ghost" size="icon" onClick={collapseLastBarcode} title="ยุบ" aria-label="ยุบบาร์โค้ด 3">
+                      <X className="size-4" />
+                    </Button>
+                  )}
                 </div>
-              </div>
-
-              {/* 6-month history */}
-              <div className="text-sm font-semibold text-muted-foreground">
-                ยอดขายย้อนหลัง
-                <span className="font-normal mx-1.5">·</span>
-                <span className="font-normal">6 เดือน</span>
-              </div>
-              <div className="rounded-lg bg-muted/40 divide-y divide-border overflow-hidden">
-                {(monthlySales?.history ?? Array.from({ length: 6 }, (_, i) => ({ ym: `_${i}`, qty: 0 }))).map(h => (
-                  <div key={h.ym} className="flex items-center justify-between px-3 py-1.5 text-sm">
-                    <span className="text-muted-foreground">
-                      {monthlySales ? formatThaiMonth(h.ym) : '—'}
-                    </span>
-                    {monthlySales
-                      ? <span className="font-semibold text-foreground">{h.qty.toFixed(2)}</span>
-                      : <span className="text-foreground-subtle">—</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+              </Field>
+            )}
+            {barcodeSlots >= 4 && (
+              <Field label="บาร์โค้ด 4">
+                <div className="flex gap-2">
+                  <Input variant="elevated" value={form.barcode4} onChange={e => setF('barcode4', e.target.value)} className="flex-1" />
+                  <Button type="button" variant="ghost" size="icon" onClick={collapseLastBarcode} title="ยุบ" aria-label="ยุบบาร์โค้ด 4">
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              </Field>
+            )}
+            {barcodeSlots < 4 && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setBarcodeSlots(n => Math.min(4, n + 1))}
+                className="w-full justify-center"
+              >
+                <Plus className="size-4" /> เพิ่มบาร์โค้ด
+              </Button>
+            )}
+          </div>
         </SectionCard>
 
         <SectionCard
@@ -337,7 +385,7 @@ export function GeneralTab({
           </div>
           {!!form.is_drug && (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
               <Field label="ประเภทยา">
                 <Select
                   value={String(form.drug_type_id ?? 0)}
@@ -395,7 +443,7 @@ export function GeneralTab({
               {/* <Field label="TMT ID">
                 <Input value={form.tmt_id} onChange={e => setF('tmt_id', e.target.value)} />
               </Field> */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
                 {/* ข.ย.9 — locked to is_drug, shown read-only */}
                 <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
                   <div>
@@ -442,6 +490,34 @@ export function GeneralTab({
         isNew={isNew}
         reloadToken={reloadToken}
       />
+
+      <Dialog open={salesHistoryOpen} onOpenChange={setSalesHistoryOpen}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="size-5" /> ยอดขายย้อนหลัง
+              <span className="font-normal text-muted-foreground text-base ml-1">· 6 เดือน</span>
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <div className="rounded-lg bg-muted/40 divide-y divide-border overflow-hidden">
+              {(monthlySales?.history ?? Array.from({ length: 6 }, (_, i) => ({ ym: `_${i}`, qty: 0 }))).map(h => (
+                <div key={h.ym} className="flex items-center justify-between px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">
+                    {monthlySales ? formatThaiMonth(h.ym) : '—'}
+                  </span>
+                  {monthlySales
+                    ? <span className="font-semibold text-foreground">{h.qty.toFixed(2)}</span>
+                    : <span className="text-foreground-subtle">—</span>}
+                </div>
+              ))}
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="primary-soft" size="xl" onClick={() => setSalesHistoryOpen(false)}>ปิด</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

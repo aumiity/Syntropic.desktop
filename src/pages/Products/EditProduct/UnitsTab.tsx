@@ -18,7 +18,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, Trash2, Edit, Boxes } from 'lucide-react'
+import { Plus, Trash2, Edit, Blocks } from 'lucide-react'
 import type { ProductUnit, ItemUnit } from '@/types'
 import type { FullProduct } from './shared'
 
@@ -136,7 +136,7 @@ export function UnitsTab({
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <span className="grid place-items-center size-8 rounded-lg border border-border bg-card shadow-sm">
-              <Boxes className="size-4 text-foreground" />
+              <Blocks className="size-4 text-foreground" />
             </span>
             <h3 className="text-lg font-semibold text-foreground">หน่วยนับ</h3>
             <Badge variant="neutral-outline">{(product.units?.length ?? 0) + 1}</Badge>
@@ -170,7 +170,7 @@ export function UnitsTab({
                 <TableCell className="text-sm font-semibold text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
                 <TableCell><Checkbox checked tabIndex={-1} className="pointer-events-none" /></TableCell>
                 <TableCell><Checkbox checked tabIndex={-1} className="pointer-events-none" /></TableCell>
-                <TableCell><Badge variant="brand-outline" className="rounded-md">หลัก</Badge></TableCell>
+                <TableCell><Badge variant="warning-outline" className="rounded-md">หลัก</Badge></TableCell>
                 <TableCell className="text-sm text-muted-foreground">แก้ที่แท็บข้อมูลทั่วไป</TableCell>
               </TableRow>
               {product.units?.map(u => (

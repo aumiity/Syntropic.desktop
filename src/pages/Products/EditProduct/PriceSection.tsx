@@ -18,7 +18,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { useToast } from '@/components/ui/toast'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
-import { Tag, History, RotateCcw, StickyNote } from 'lucide-react'
+import { Tag, History, RotateCcw, StickyNote, Info } from 'lucide-react'
 
 const Field = FormField
 
@@ -71,14 +71,14 @@ export function PriceSection({
     const valCls = `text-sm font-bold ${d.pos ? 'text-success' : 'text-destructive'}`
     const dash = <span className="text-sm text-foreground-subtle">—</span>
     return (
-      <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-1">
-        <div className="flex items-center justify-between">
-          <span className={labelCls}>กำไร ({baseUnit})</span>
-          {d.dim ? dash : <span className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)}</span>}
+      <div className="rounded-lg bg-success-soft/50 px-3 py-2 grid grid-cols-2 gap-3">
+        <div className="space-y-0.5 min-w-0">
+          <div className={labelCls}>กำไร ({baseUnit})</div>
+          {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)}</div>}
         </div>
-        <div className="flex items-center justify-between">
-          <span className={labelCls}>กำไร (%)</span>
-          {d.dim ? dash : <span className={valCls}>{d.pos ? '+' : ''}{d.pct.toFixed(0)}%</span>}
+        <div className="space-y-0.5 min-w-0">
+          <div className={labelCls}>กำไร (%)</div>
+          {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.pct.toFixed(0)}%</div>}
         </div>
       </div>
     )
@@ -99,60 +99,66 @@ export function PriceSection({
 
   return (
     <>
-      <SectionCard icon={Tag} title="ราคาขายปลีก & ต้นทุน" tint="success" right={historyButton}>
-        <div className="grid grid-cols-2 gap-3">
-          {/* LEFT: ราคาทุนล่าสุด + ราคาทุนเฉลี่ย */}
-          <div className="space-y-3">
-            <Field label={<>ราคาทุนล่าสุด{unitSuffix(baseUnit)}</>} labelClassName="text-right">
-              <PriceInput
-                variant="elevated"
-                value={form.cost_price}
-                onChange={v => setF('cost_price', v)}
-                placeholder="ทุนล่าสุดที่ซื้อ"
-              />
-            </Field>
-            <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">ทุนเฉลี่ย ({baseUnit})</span>
-              {avgCost > 0
-                ? <span className="text-sm font-bold text-warm-foreground">{formatCurrency(avgCost)}</span>
-                : <span className="text-sm text-foreground-subtle">—</span>}
+      <SectionCard icon={Tag} title="ราคาขาย & ต้นทุน" tint="success" right={historyButton}>
+        <div className="space-y-4">
+          {/* Row 1: ราคาทุน + ราคาปลีก (input on top, detail below within each cell) */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Field label={<>ราคาทุนล่าสุด{unitSuffix(baseUnit)}</>}>
+                <PriceInput
+                  variant="elevated"
+                  value={form.cost_price}
+                  onChange={v => setF('cost_price', v)}
+                  placeholder="ทุนล่าสุดที่ซื้อ"
+                  className="text-left"
+                />
+              </Field>
+              <div className="rounded-lg bg-warm/50 px-3 py-2 space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">ทุนเฉลี่ย ({baseUnit})</span>
+                  {avgCost > 0
+                    ? <span className="text-sm font-bold text-warm-foreground">{formatCurrency(avgCost)}</span>
+                    : <span className="text-sm text-foreground-subtle">—</span>}
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <Info className="size-3.5 shrink-0" />
+                  <span>ราคาทุนเฉลี่ยจากทุกล็อต</span>
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* RIGHT: ราคาขายปลีก + กล่องกำไร */}
-          <div className="space-y-3">
-            <div data-field="price_retail">
-              <Field label={<>ราคาขายปลีก{unitSuffix(baseUnit)}</>} required labelClassName="text-right">
+            <div className="space-y-2" data-field="price_retail">
+              <Field label={<>ราคาขายปลีก{unitSuffix(baseUnit)}</>} required>
                 <PriceInput
                   variant="elevated"
                   value={form.price_retail}
                   onChange={v => setF('price_retail', v)}
                   aria-invalid={errors.has('price_retail')}
+                  className="text-left"
                 />
               </Field>
+              {profitBox(retail)}
             </div>
-            {profitBox(retail)}
           </div>
-        </div>
-      </SectionCard>
 
-      <SectionCard icon={Tag} title="ราคาขายส่ง">
-        <div className="grid grid-cols-2 gap-3">
-          {([
-            { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: form.price_wholesale1, d: ws1 },
-            { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },
-          ] as const).map(({ label, key, value, d }) => (
-            <div key={key} className="space-y-3">
-              <Field label={<>{label}{unitSuffix(baseUnit)}</>} labelClassName="text-right">
-                <PriceInput
-                  variant="elevated"
-                  value={value}
-                  onChange={v => setF(key, v)}
-                />
-              </Field>
-              {profitBox(d)}
-            </div>
-          ))}
+          {/* Row 2: ราคาส่ง 1 + ราคาส่ง 2 */}
+          <div className="grid grid-cols-2 gap-3">
+            {([
+              { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: form.price_wholesale1, d: ws1 },
+              { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },
+            ] as const).map(({ label, key, value, d }) => (
+              <div key={key} className="space-y-2">
+                <Field label={<>{label}{unitSuffix(baseUnit)}</>}>
+                  <PriceInput
+                    variant="elevated"
+                    value={value}
+                    onChange={v => setF(key, v)}
+                    className="text-left"
+                  />
+                </Field>
+                {profitBox(d)}
+              </div>
+            ))}
+          </div>
         </div>
       </SectionCard>
     </>
