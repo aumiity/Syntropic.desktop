@@ -28,7 +28,7 @@ import {
   Banknote, AlertTriangle, AlertCircle, PackageX,
   X, UserPlus, Info,
   RotateCcw, ChevronRight, ChevronLeft, Tag,
-  ShoppingBasket, Timer, RefreshCcw, HandCoins,
+  ShoppingBag, Hourglass, RefreshCcw, HandCoins,
   Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
   CheckCircle2,
 } from 'lucide-react'
@@ -708,21 +708,18 @@ export default function POSPage() {
               const slot = i === cart.activeSlot
                 ? { items: cart.items, saleType: cart.saleType }
                 : { items: cart.slots[i].items, saleType: cart.slots[i].saleType }
-              const pieces = slot.items.reduce((n, it) => n + it.qty, 0)
+              const lineCount = slot.items.length
               const total = slot.items.reduce((s, it) => s + it.line_total, 0)
               const isActive = i === cart.activeSlot
               const hasItems = slot.items.length > 0
-              const isWaiting = !isActive && hasItems
-              const Icon = isWaiting ? Timer : ShoppingBasket
+              const Icon = ShoppingBag
               const iconBox = isActive
-                ? 'bg-card text-primary'
-                : isWaiting
-                  ? 'bg-accent-soft text-warning-strong'
-                  : 'bg-primary-soft text-primary'
+                ? 'bg-primary-soft text-primary'
+                : 'bg-primary text-primary-foreground'
               return (
                 <Button key={i} variant="ghost"
                   onClick={() => { cart.setActiveSlot(i); refocusSearch() }}
-                  className={`relative flex flex-col items-stretch text-left h-28 px-4 py-3 rounded-2xl transition-colors ${
+                  className={`relative flex flex-col items-stretch text-left h-28 px-4 py-3 rounded-2xl border border-border transition-colors ${
                     isActive
                       ? 'text-primary-foreground hover:text-primary-foreground hover:bg-transparent'
                       : 'bg-card text-foreground hover:bg-surface-hover'
@@ -737,31 +734,36 @@ export default function POSPage() {
                   )}
                   <span className={`absolute top-3 right-3 z-10 grid place-items-center w-11 h-11 rounded-xl shrink-0 ${iconBox}`}>
                     <Icon className="size-7" strokeWidth={2}/>
+                    {hasItems && (
+                      <span
+                        aria-label={`${lineCount} รายการ`}
+                        className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 grid place-items-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold ring-2 ring-card"
+                      >
+                        {lineCount > 99 ? '99+' : lineCount}
+                      </span>
+                    )}
                   </span>
                   <span className="relative z-10 text-sm font-semibold leading-none pr-12">รายการขาย {i + 1}</span>
                   <div className="relative z-10 flex flex-col gap-1 w-full min-w-0 mt-auto">
                     <span className="text-2xl font-bold leading-none truncate">
                       {formatCurrency(total)}
                     </span>
-                    <div className="flex items-center justify-between w-full">
-                      <span className={`text-sm leading-none ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                        {pieces} รายการ
-                      </span>
+                    <div className="flex items-center w-full">
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant="warm" className="text-xs rounded-md">ขายส่ง</Badge>
+                        <Badge variant={isActive ? 'warm' : 'tertiary'} className="text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
-                        <Badge variant="brand-soft" className="text-xs rounded-md">ขายปลีก</Badge>
+                        <Badge variant={isActive ? 'brand-soft' : 'default'} className="text-xs rounded-md">ขายปลีก</Badge>
                       )}
                     </div>
                   </div>
                 </Button>
               )
             })}
-            <div className="flex flex-col gap-1.5 h-28 px-3 py-2.5 bg-card rounded-2xl">
+            <div className="flex flex-col gap-1.5 h-28 px-3 py-2.5 bg-card rounded-2xl border border-border">
               <Button variant="ghost"
                 onClick={() => setShowCustomerSearch(true)}
                 className="relative flex items-center gap-2 flex-1 min-h-0 p-1 rounded-xl hover:bg-transparent text-left">
-                <span className="relative grid place-items-center w-10 h-10 rounded-full shrink-0 bg-warm text-warm-foreground">
+                <span className="relative grid place-items-center w-10 h-10 rounded-full shrink-0 bg-primary text-primary-foreground">
                   <User className="size-6" />
                   {cart.customer?.is_alert && cart.customer.alert_note ? (
                     <span
@@ -781,13 +783,13 @@ export default function POSPage() {
                 </div>
               </Button>
               <div className="grid grid-cols-2 gap-1.5 shrink-0">
-                <Button variant="warm"
+                <Button variant="primary-soft"
                   onClick={() => setShowCustomerInfo(true)}
                   disabled={!cart.customer}
                   className="h-8 rounded-lg text-xs gap-1">
                   <Info className="size-3.5" /> ดูข้อมูล
                 </Button>
-                <Button variant="tertiary"
+                <Button variant="default"
                   onClick={() => setShowQuickAdd(true)}
                   className="h-8 rounded-lg text-xs gap-1">
                   <UserPlus className="size-3.5" /> เพิ่มลูกค้า
@@ -797,10 +799,10 @@ export default function POSPage() {
           </div>
 
           {/* Cart card (search + table + footer) */}
-          <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden border-0">
+          <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden border border-border">
 
           {/* Sale type + search + clear-all header */}
-          <div className="flex items-center gap-2 px-1.5 h-14 shrink-0 border-0">
+          <div className="flex items-center gap-2 px-4 h-14 shrink-0 border-0">
             <Button
               type="button"
               variant="ghost"
@@ -855,7 +857,7 @@ export default function POSPage() {
 
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
-              <table className="w-full caption-bottom text-base table-fixed border-l-8 border-r-8 border-card">
+              <table className="w-full caption-bottom text-base table-fixed border-l-[16px] border-r-[16px] border-card">
                 <colgroup>
                   <col style={{ width: 36 }} />
                   <col style={{ width: '35%' }} />
@@ -1110,7 +1112,7 @@ export default function POSPage() {
           </div>
 
           {/* Daily summary */}
-          <div className="rounded-2xl bg-card px-3 py-2.5 shrink-0 flex flex-col gap-2">
+          <div className="rounded-2xl bg-card px-3 py-2.5 shrink-0 flex flex-col gap-2 border border-border">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 min-w-0">
                 <HandCoins className="size-4 text-primary shrink-0" />
@@ -1124,7 +1126,7 @@ export default function POSPage() {
             <div className="grid grid-cols-2 gap-1.5">
               <div className="rounded-lg bg-muted px-2.5 py-1.5 flex items-center justify-between gap-1">
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <ShoppingBasket className="size-3.5" /> บิล
+                  <ShoppingBag className="size-3.5" /> บิล
                 </div>
                 <div className="text-sm font-semibold text-foreground">
                   {dailyStats.bills}
@@ -1132,7 +1134,7 @@ export default function POSPage() {
               </div>
               <div className="rounded-lg bg-muted px-2.5 py-1.5 flex items-center justify-between gap-1">
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Timer className="size-3.5" /> ล่าสุด
+                  <Hourglass className="size-3.5" /> ล่าสุด
                 </div>
                 <div className="text-sm font-semibold text-foreground">
                   {dailyStats.latest ? dailyStats.latest.slice(11, 16) : '—'}
@@ -1262,7 +1264,7 @@ export default function POSPage() {
           <DialogTitle className="sr-only">เลือกลูกค้า</DialogTitle>
 
           {/* Search input row */}
-          <div className="flex items-center gap-2 px-4 py-3 shrink-0">
+          <div className="flex items-center gap-2 px-4 py-3 shrink-0 border-b border-border">
             <Search className="size-5 text-primary shrink-0" />
             <Input
               ref={customerInputRef}
@@ -1284,66 +1286,48 @@ export default function POSPage() {
               autoComplete="off"
             />
             {customerQuery && (
-              <Button variant="outline" size="icon-xs" onClick={() => { setCustomerQuery(''); setCustomerResults([]); customerInputRef.current?.focus() }}
+              <Button variant="elevated" size="icon-xs" onClick={() => { setCustomerQuery(''); setCustomerResults([]); customerInputRef.current?.focus() }}
                 className="rounded-full text-foreground-subtle"><X className="size-3" strokeWidth={3} /></Button>
             )}
-            <Button variant="outline" size="sm" onClick={closeCustomerSearch} className="h-7">Esc</Button>
-          </div>
-
-          {/* Walk-in shortcut */}
-          <div className="px-4 pb-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
-              className="group w-full flex items-center gap-3 rounded-card bg-tertiary/15 hover:bg-tertiary/25 ring-1 ring-tertiary/40 px-3 py-2.5 text-left transition-colors">
-              <TintIcon icon={Users} tint="tertiary" size="lg" iconClassName="size-6" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-foreground">ลูกค้าทั่วไป</div>
-                {/* text-xs approved */}
-                <div className="text-xs text-muted-foreground">ขายโดยไม่ระบุลูกค้า</div>
-              </div>
-              <Badge variant="warm" className="text-xs rounded-md shrink-0">ค่าเริ่มต้น</Badge>
-              <ChevronRight className="size-4 text-muted-foreground shrink-0 group-hover:text-foreground transition-colors" />
-            </button>
+            <Button variant="elevated" size="sm" onClick={closeCustomerSearch} className="h-7">Esc</Button>
           </div>
 
           {/* Section label */}
-          <div className="px-5 pb-1.5 text-sm font-semibold text-muted-foreground shrink-0">
+          <div className="px-5 pt-3 pb-1.5 text-sm font-semibold text-muted-foreground shrink-0">
             {customerQuery ? `ผลการค้นหา (${customerResults.length})` : 'ลูกค้าทั้งหมด'}
           </div>
 
-          {/* Results — scrolls internally */}
+          {/* Results — scrolls internally. Walk-in is pinned as the first row of the list. */}
           <div className="flex-1 overflow-y-auto scrollbar-thin px-2" tabIndex={-1}>
-            {!customerQuery && customerResults.length === 0 ? (
-              <div className="py-12 text-center text-foreground-subtle">
-                <Search className="size-10 mx-auto mb-2 opacity-40" />
-                <p className="text-base">พิมพ์เพื่อค้นหาลูกค้า</p>
+            <div className="divide-y divide-border">
+              {/* Walk-in shortcut — pinned first, styled as a list row */}
+              <div
+                onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
+                className="group flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors hover:bg-primary-soft/60"
+              >
+                <span className="grid place-items-center size-11 rounded-xl shrink-0 bg-primary text-primary-foreground">
+                  <Users className="size-6" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-foreground">ลูกค้าทั่วไป</div>
+                  <div className="text-sm text-muted-foreground">ขายโดยไม่ระบุลูกค้า</div>
+                </div>
+                <Badge variant="tertiary" className="text-xs rounded-md shrink-0">ค่าเริ่มต้น</Badge>
+                <ChevronRight className="size-4 text-foreground-subtle shrink-0 group-hover:text-foreground transition-colors" />
               </div>
-            ) : customerQuery && customerResults.length === 0 ? (
-              <div className="py-12 text-center text-foreground-subtle">
-                <UserPlus className="size-10 mx-auto mb-2 opacity-40" />
-                <p className="text-base">ไม่พบลูกค้า "{customerQuery}"</p>
-                <p className="text-sm mt-1">ลองเพิ่มลูกค้าใหม่จากปุ่ม "เพิ่มลูกค้า"</p>
-              </div>
-            ) : (
-              <div className="space-y-1 pb-2">
-                {customerResults.map((c, i) => {
-                  const active = i === customerHighlightIdx
-                  const hasAlert = !!(c.is_alert && c.alert_note)
-                  return (
-                    <div
-                      key={c.id}
-                      ref={active ? activeCustomerRowRef : undefined}
-                      onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
-                      className={`group flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft/60'}`}
-                    >
-                      <span className={`relative grid place-items-center size-11 rounded-xl shrink-0 ${hasAlert ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'}`}>
+
+              {customerResults.map((c, i) => {
+                const active = i === customerHighlightIdx
+                const hasAlert = !!(c.is_alert && c.alert_note)
+                return (
+                  <div
+                    key={c.id}
+                    ref={active ? activeCustomerRowRef : undefined}
+                    onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
+                    className={`group flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft/60'}`}
+                  >
+                      <span className="grid place-items-center size-11 rounded-xl shrink-0 bg-primary text-primary-foreground">
                         <User className="size-6" />
-                        {hasAlert ? (
-                          <span className="absolute -top-1 -right-1 grid place-items-center size-4 rounded-full bg-destructive text-destructive-foreground ring-2 ring-card">
-                            <AlertTriangle className="size-2.5" />
-                          </span>
-                        ) : null}
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -1362,13 +1346,29 @@ export default function POSPage() {
                       <ChevronRight className={`size-4 shrink-0 transition-colors ${active ? 'text-primary' : 'text-foreground-subtle group-hover:text-foreground'}`} />
                     </div>
                   )
-                })}
+              })}
+            </div>
+
+            {customerResults.length === 0 && (
+              <div className="py-12 text-center text-foreground-subtle">
+                {customerQuery ? (
+                  <>
+                    <UserPlus className="size-10 mx-auto mb-2 opacity-40" />
+                    <p className="text-base">ไม่พบลูกค้า "{customerQuery}"</p>
+                    <p className="text-sm mt-1">ลองเพิ่มลูกค้าใหม่จากปุ่ม "เพิ่มลูกค้า"</p>
+                  </>
+                ) : (
+                  <>
+                    <Search className="size-10 mx-auto mb-2 opacity-40" />
+                    <p className="text-base">พิมพ์เพื่อค้นหาลูกค้า</p>
+                  </>
+                )}
               </div>
             )}
           </div>
 
           {/* Footer hint */}
-          <div className="flex items-center justify-between gap-3 px-4 py-2 bg-muted text-xs text-muted-foreground shrink-0">
+          <div className="flex items-center justify-between gap-3 px-4 py-2 bg-muted border-t border-border text-xs text-muted-foreground shrink-0">
             <span>
               <kbd>↑↓</kbd> เลื่อน · <kbd>Enter</kbd> เลือก · <kbd>Esc</kbd> ปิด
             </span>
@@ -1380,30 +1380,31 @@ export default function POSPage() {
       {/* ── CUSTOMER INFO DIALOG ── */}
       <Dialog open={showCustomerInfo} onOpenChange={setShowCustomerInfo}>
         <DialogContent size="md" onClose={() => setShowCustomerInfo(false)}>
-          <DialogHeader><DialogTitle>ข้อมูลลูกค้า</DialogTitle></DialogHeader>
-          <DialogBody className="space-y-4 max-h-[70vh] overflow-y-auto scrollbar-thin">
+          <DialogHeader className="sr-only"><DialogTitle>ข้อมูลลูกค้า</DialogTitle></DialogHeader>
+          <DialogBody className="space-y-5 max-h-[70vh] overflow-y-auto scrollbar-thin">
             {(() => {
               const c = customerDetails ?? cart.customer
               if (!c) return null
               const hasAlert = !!(c.is_alert && c.alert_note)
               const allergies = customerDetails?.allergies ?? []
               const dobText = c.dob ? dayjs(c.dob).format('DD/MM/YYYY') : ''
+              const contactRows = [
+                { Icon: Phone,      label: 'เบอร์โทร',          value: c.phone   || '-', wrap: false },
+                { Icon: CreditCard, label: 'เลขบัตรประชาชน',  value: c.id_card || '-', wrap: false },
+                { Icon: Cake,       label: 'วันเกิด',            value: dobText   || '-', wrap: false },
+                { Icon: MapPin,     label: 'ที่อยู่',              value: c.address || '-', wrap: true  },
+              ]
               return (
                 <>
-                  {/* Hero */}
-                  <div className={`flex items-center gap-4 rounded-card p-4 ${hasAlert ? 'bg-destructive-soft' : 'bg-primary-soft/50'}`}>
-                    <span className={`grid place-items-center size-16 rounded-full shrink-0 ${hasAlert ? 'bg-destructive text-destructive-foreground' : 'bg-warm text-warm-foreground'}`}>
-                      <User className="size-9" />
+                  {/* Hero — centered avatar + name + code */}
+                  <div className="flex flex-col items-center gap-3 pt-2">
+                    <span className="grid place-items-center size-24 rounded-full bg-primary text-primary-foreground">
+                      <User className="size-12" />
                     </span>
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <div className="text-xl font-bold leading-tight truncate">{c.full_name}</div>
-                      <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="text-center space-y-1.5">
+                      <div className="text-2xl font-bold leading-tight">{c.full_name}</div>
+                      <div className="flex items-center justify-center">
                         <Badge variant="secondary">{c.code || '-'}</Badge>
-                        {hasAlert ? (
-                          <Badge variant="destructive" className="gap-1">
-                            <AlertTriangle className="size-3" /> มีการแจ้งเตือน
-                          </Badge>
-                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -1411,35 +1412,31 @@ export default function POSPage() {
                   {/* Alert banner */}
                   {hasAlert ? (
                     <div className="flex items-start gap-3 rounded-card border border-destructive/30 bg-destructive-soft px-4 py-3">
-                      <AlertTriangle className="size-5 shrink-0 mt-0.5 text-destructive" />
+                      <AlertTriangle className="size-10 shrink-0 mt-0.5 text-destructive" />
                       <div className="min-w-0 space-y-0.5">
-                        <div className="text-sm font-semibold text-destructive">หมายเหตุแจ้งเตือน</div>
+                        <div className="text-sm font-semibold text-destructive">แจ้งเตือน</div>
                         <div className="text-base text-foreground whitespace-pre-line break-words">{c.alert_note}</div>
                       </div>
                     </div>
                   ) : null}
 
-                  {/* Contact */}
-                  <SectionCard icon={Contact} title="ข้อมูลติดต่อ" tint="info-soft">
-                    <div className="space-y-2.5">
-                      {[
-                        { Icon: Phone, label: 'เบอร์โทร', value: c.phone || '-' },
-                        { Icon: CreditCard, label: 'เลขบัตรประชาชน', value: c.id_card || '-' },
-                        { Icon: Cake, label: 'วันเกิด', value: dobText || '-' },
-                        { Icon: MapPin, label: 'ที่อยู่', value: c.address || '-', wrap: true },
-                      ].map(({ Icon, label, value, wrap }) => (
+                  {/* Contact rows — icon + label + value, "-" for missing */}
+                  <div className="space-y-3 px-1">
+                    {contactRows.map(({ Icon, label, value, wrap }) => {
+                      const isEmpty = value === '-'
+                      return (
                         <div key={label} className="flex items-start gap-3">
-                          <TintIcon icon={Icon} tint="secondary" size="md" iconClassName="size-4" />
+                          <Icon className="size-5 shrink-0 mt-0.5 text-foreground-subtle" />
                           <div className="min-w-0 flex-1">
                             <div className="text-sm text-muted-foreground">{label}</div>
-                            <div className={`text-base text-foreground ${wrap ? 'whitespace-pre-line break-words' : 'truncate'}`}>
+                            <div className={`text-base ${isEmpty ? 'text-foreground-subtle' : 'text-foreground'} ${wrap ? 'whitespace-pre-line break-words' : 'truncate'}`}>
                               {value}
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </SectionCard>
+                      )
+                    })}
+                  </div>
 
                   {/* Medical */}
                   {(c.chronic_diseases || allergies.length > 0) ? (
