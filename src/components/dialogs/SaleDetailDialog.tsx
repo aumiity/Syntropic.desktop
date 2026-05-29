@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
-import dayjs from 'dayjs'
-import { Ban, ChevronRight, Boxes, ClockAlert } from 'lucide-react'
+import { Ban, ChevronRight, Boxes } from 'lucide-react'
 import type { Sale, SaleItem } from '@/types'
 
 // One sale_item_lots row exposed to the renderer. Joined fields come from
@@ -245,12 +244,7 @@ export function SaleDetailDialog({
                                                     : (cl.lot_number ?? '—')}
                                                 </td>
                                                 <td className="py-1 pr-4">
-                                                  {!cl.expiry_date ? '—'
-                                                    : dayjs(cl.expiry_date).diff(dayjs(detail.sold_at), 'day') < 0 ? (
-                                                      <span className="inline-flex items-center gap-1 text-destructive" title="ล็อตนี้หมดอายุไปแล้ว ณ วันที่ขาย">
-                                                        <ClockAlert className="size-3" /> {formatDate(cl.expiry_date)}
-                                                      </span>
-                                                    ) : formatDate(cl.expiry_date)}
+                                                  {!cl.expiry_date ? '—' : formatDate(cl.expiry_date)}
                                                 </td>
                                                 <td className="py-1 pr-4 text-right">{cl.qty}</td>
                                                 <td className="py-1 pr-4 text-right text-muted-foreground">
@@ -314,7 +308,7 @@ export function SaleDetailDialog({
                   <Ban className="size-4 mr-1.5" /> ยกเลิกบิล
                 </Button>
               )}
-              <Button size="xl" variant="elevated" onClick={() => onOpenChange(false)}>ปิด</Button>
+              <Button size="xl" variant="default" onClick={() => onOpenChange(false)}>ปิด</Button>
             </DialogFooter>
           </>
         )}

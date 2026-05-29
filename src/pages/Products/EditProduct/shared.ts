@@ -49,7 +49,7 @@ export const MOVEMENT_META: Record<string, {
 }> = {
   receive:         { label: 'รับเข้า',     variant: 'success-outline',     icon: ArrowDownToLine },
   sale:            { label: 'ขาย',         variant: 'destructive-outline', icon: ArrowUpFromLine },
-  sale_return:     { label: 'รับคืนสินค้า', variant: 'violet-outline',      icon: RotateCcw },
+  sale_return:     { label: 'คืนสินค้า', variant: 'violet-outline',      icon: RotateCcw },
   sale_void:       { label: 'ยกเลิกการขาย', variant: 'muted-outline',       icon: Ban },
   adjust_in:       { label: 'ปรับเพิ่ม',  variant: 'brand-outline',       icon: SlidersHorizontal },
   adjust_out:      { label: 'ปรับลด',     variant: 'warning-outline',     icon: SlidersHorizontal },

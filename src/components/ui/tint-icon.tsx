@@ -12,6 +12,7 @@ export type TintIconTint =
   | "secondary"
   | "warm"
   | "info-soft"
+  | "violet"
   | "tertiary"
   | "neutral"
 
@@ -39,6 +40,7 @@ const BOX_BY_TINT: Record<TintIconTint, string> = {
   secondary:             "bg-muted text-muted-foreground",
   warm:                  "bg-warm text-warm-foreground",
   "info-soft":           "bg-info-soft text-info-soft-foreground",
+  violet:                "bg-violet-soft text-violet-strong",
   tertiary:              "bg-tertiary text-tertiary-foreground",
   neutral:               "bg-card text-foreground border border-border shadow-sm",
 }
@@ -54,6 +56,7 @@ const BORDER_BY_TINT: Record<Exclude<TintIconTint, "neutral">, string> = {
   secondary:             "border border-border",
   warm:                  "border border-warm-foreground/30",
   "info-soft":           "border border-info-soft-foreground/30",
+  violet:                "border border-violet/40",
   tertiary:              "border border-tertiary-foreground/30",
 }
 

@@ -11,7 +11,7 @@ import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DateRangePicker, resolveDateRangePreset, type DateRangePresetKey } from '@/components/ui/date-range-picker'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { VoidBillDialog } from '@/components/dialogs/VoidBillDialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
@@ -21,7 +21,7 @@ import type { ManageOutletContext } from './index'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ReceiptText, Ban, ShoppingCart, ShoppingBag, Undo2, Settings2, Filter, Check, MoreHorizontal, Eye } from 'lucide-react'
+import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Money lives in the table rows; the summary slot now carries only the count
@@ -52,7 +52,7 @@ const SALE_TYPE_LABELS: Record<string, string> = {
 // STATUS (soft + outline) family — matches success-outline / warning-outline /
 // destructive-outline on the "สถานะ" column so all status pills share a tone.
 const SALE_TYPE_VARIANTS: Record<string, any> = {
-  retail: 'brand-outline', wholesale: 'warning-outline', rx: 'success-outline', return: 'muted-outline',
+  retail: 'brand-outline', wholesale: 'warning-outline', rx: 'success-outline', return: 'violet-outline',
 }
 
 type SortField = 'invoice_no' | 'sold_at' | 'total_amount'
@@ -191,7 +191,7 @@ export default function ManageSalesPage() {
       { label: 'จำนวนบิล', value: summary.count_all.toLocaleString(),       icon: ReceiptText,  tint: 'primary',   sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'ขายปลีก',   value: summary.count_retail.toLocaleString(),    icon: ShoppingCart, tint: 'success',   sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
       { label: 'ขายส่ง',    value: summary.count_wholesale.toLocaleString(), icon: ShoppingBag,  tint: 'info-soft', sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'รับคืน',    value: summary.count_return.toLocaleString(),    icon: Undo2,        tint: 'warm',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'รับคืน',    value: summary.count_return.toLocaleString(),    icon: RotateCcw,    tint: 'violet',    sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'ยกเลิก',    value: summary.count_voided.toLocaleString(),    icon: Ban,          tint: 'destructive2', sub: 'รายการ', subClassName: 'text-base text-foreground' },
     ])
   }, [summary, setSlotSummary])
@@ -440,17 +440,10 @@ export default function ManageSalesPage() {
         }}
       />
 
-      <ConfirmDialog
-        open={!!voidTarget}
-        onOpenChange={open => { if (!open) setVoidTarget(null) }}
-        title="ยกเลิกบิล"
-        description={`ต้องการยกเลิกบิล ${voidTarget?.invoice_no}? สต็อกจะถูกคืนกลับอัตโนมัติ`}
-        confirmLabel="ยกเลิกบิล"
-        variant="destructive"
-        requireReason
-        reasonLabel="เหตุผลการยกเลิก"
-        reasonPresets={['คีย์รายการผิด', 'ราคาผิด', 'ลูกค้ายกเลิก', 'ลูกค้าคืนสินค้า', 'บิลซ้ำ']}
-        onConfirm={reason => handleVoid(reason ?? '')}
+      <VoidBillDialog
+        target={voidTarget}
+        onClose={() => setVoidTarget(null)}
+        onConfirm={handleVoid}
       />
     </>
   )

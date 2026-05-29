@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialog'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { VoidBillDialog } from '@/components/dialogs/VoidBillDialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
@@ -427,17 +427,10 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           setSaleDetailOpen(false)
         }}
       />
-      <ConfirmDialog
-        open={!!voidTarget}
-        onOpenChange={open => { if (!open) setVoidTarget(null) }}
-        title="ยกเลิกบิล"
-        description={`ต้องการยกเลิกบิล ${voidTarget?.invoice_no}? สต็อกจะถูกคืนกลับอัตโนมัติ`}
-        confirmLabel="ยกเลิกบิล"
-        variant="destructive"
-        requireReason
-        reasonLabel="เหตุผลการยกเลิก"
-        reasonPresets={['คีย์รายการผิด', 'ราคาผิด', 'ลูกค้ายกเลิก', 'ลูกค้าคืนสินค้า', 'บิลซ้ำ']}
-        onConfirm={reason => handleVoidBill(reason ?? '')}
+      <VoidBillDialog
+        target={voidTarget}
+        onClose={() => setVoidTarget(null)}
+        onConfirm={handleVoidBill}
       />
       <PurchaseReceiptDialog
         open={grDetailOpen}

@@ -18,12 +18,12 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { formatCurrency, getExpiryStatus, formatThaiDateHeader } from '@/lib/utils'
+import { formatCurrency, formatThaiDateHeader } from '@/lib/utils'
 import dayjs from 'dayjs'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings } from '@/types'
 import { redistributeDiscounts } from './redistributeDiscount'
-import { getCartItemAlert, alertColorClass } from './cartAlerts'
+import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
 import {
   Search, User, Trash2, Plus, Minus,
   Banknote, AlertTriangle, PackageX,
@@ -1200,10 +1200,7 @@ export default function POSPage() {
                 const price = it.unit ? it.unit.price_retail : it.product.price_retail
                 const unitName = it.unit?.unit_name ?? it.product.unit_name ?? '-'
                 const active = i === highlightIdx
-                const expiryWarn = isBundle
-                  ? (it.product.bundle_items ?? []).some(bi =>
-                      (bi.lots ?? []).some(l => getExpiryStatus(l.expiry_date) !== 'normal'))
-                  : it.product.lots?.some(l => getExpiryStatus(l.expiry_date) !== 'normal')
+                const expiryLevel = getProductExpiryLevel(it.product, salesSettings)
                 return (
                   <div
                     key={`${it.product.id}-${it.unit?.id ?? 'base'}`}
@@ -1214,9 +1211,12 @@ export default function POSPage() {
                   >
                     <div className="min-w-0 pr-2">
                       <div className="font-semibold text-base flex items-center gap-1.5 truncate">
-                        {expiryWarn && <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />}
+                        {/* Same ClockAlert + severity colour as the cart table (alertColorClass). */}
+                        {expiryLevel && (
+                          <ClockAlert className={`size-4 shrink-0 ${alertColorClass(expiryLevel)}`} />
+                        )}
                         <span className="truncate">{it.product.trade_name}</span>
-                        {stock === 0 && <span className="text-xs bg-destructive/20 text-destructive px-1.5 py-0.5 rounded font-medium shrink-0">หมด</span>}
+                        {stock === 0 && <Badge variant="destructive-outline" className="shrink-0">หมด</Badge>}
                       </div>
                     </div>
                     <div className="text-center text-base text-muted-foreground truncate">{unitName}</div>

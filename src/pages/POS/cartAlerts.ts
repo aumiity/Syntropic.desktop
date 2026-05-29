@@ -126,6 +126,33 @@ export function getCartItemAlert(
   return null
 }
 
+export type ExpiryLevel = 'expired' | 'danger' | 'warn'
+
+const EXPIRY_SEVERITY: Record<ExpiryLevel, number> = { expired: 3, danger: 2, warn: 1 }
+
+// Worst near-expiry level across a product's lots (bundle: across every component),
+// driven by the same salesSettings thresholds as getCartItemAlert. Used by the POS
+// search dialog so its name-prefix icon matches the cart table exactly.
+export function getProductExpiryLevel(
+  product:
+    | { is_bundle?: boolean | number; lots?: ProductLot[]; bundle_items?: { lots?: ProductLot[] }[] }
+    | null
+    | undefined,
+  settings: SalesSettings | null,
+  today: Dayjs = dayjs(),
+): ExpiryLevel | null {
+  if (!settings || !product) return null
+  const lotGroups = product.is_bundle
+    ? (product.bundle_items ?? []).map((c) => c.lots)
+    : [product.lots]
+  let worst: ExpiryLevel | null = null
+  for (const lots of lotGroups) {
+    const lvl = evalExpiry(lots, settings, today).level
+    if (lvl && (!worst || EXPIRY_SEVERITY[lvl] > EXPIRY_SEVERITY[worst])) worst = lvl
+  }
+  return worst
+}
+
 export function alertColorClass(level: AlertLevel): string {
   switch (level) {
     case 'expired':

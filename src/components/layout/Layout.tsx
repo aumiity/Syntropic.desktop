@@ -10,11 +10,12 @@ export function Layout() {
   // Key by top-level section so sub-route changes (report tabs, product edit)
   // don't replay the full-page transition — only major section switches do.
   const sectionKey = location.pathname.split('/')[1] || 'home'
-  // POS owns its own layout (full-width cart + product grid). Every other
-  // page is constrained to 1280px so form fields don't stretch on large
-  // monitors.
+  // POS owns its own layout (full-width cart + product grid). Purchase (รับสินค้า)
+  // is a wide data-entry grid that should stretch with the screen too. Every other
+  // page is constrained to 1280px so form fields don't stretch on large monitors.
   const isPOS = location.pathname === '/' || location.pathname === ''
-  const widthClass = isPOS ? 'h-full' : 'h-full w-full max-w-7xl mx-auto'
+  const isFullWidth = isPOS || location.pathname === '/purchase'
+  const widthClass = isFullWidth ? 'h-full' : 'h-full w-full max-w-7xl mx-auto'
 
   return (
     <div className="relative flex flex-col h-screen overflow-hidden bg-background">

@@ -1112,7 +1112,7 @@ export default function Theme() {
                       'primary', 'primary-strong',
                       'success', 'warning',
                       'destructive', 'destructive-strong', 'destructive2',
-                      'secondary', 'warm', 'info-soft', 'tertiary',
+                      'secondary', 'warm', 'info-soft', 'violet', 'tertiary',
                       'neutral',
                     ] as TintIconTint[]).map(t => (
                       <div key={t} className="flex flex-col items-center gap-1.5">
@@ -1135,7 +1135,7 @@ export default function Theme() {
                 <DemoRow label="bordered prop — tinted box with matching colored border (used inside SectionCard)">
                   <div className="flex flex-wrap gap-3">
                     {([
-                      'primary', 'success', 'warning', 'destructive', 'secondary', 'warm', 'info-soft',
+                      'primary', 'success', 'warning', 'destructive', 'secondary', 'warm', 'info-soft', 'violet',
                     ] as TintIconTint[]).map(t => (
                       <TintIcon key={t} icon={Package} tint={t} size="sm" bordered />
                     ))}

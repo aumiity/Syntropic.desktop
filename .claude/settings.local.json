@@ -97,7 +97,8 @@
       "Bash(Select-String \"5173|5174\")",
       "Bash(perl *)",
       "PowerShell(npx tsc --noEmit -p tsconfig.json 2>&1 | Select-Object -First 60)",
-      "PowerShell(npx tsc --noEmit -p tsconfig.json; \"Exit: $LASTEXITCODE\")"
+      "PowerShell(npx tsc --noEmit -p tsconfig.json; \"Exit: $LASTEXITCODE\")",
+      "PowerShell(npx tsc --noEmit -p tsconfig.json 2>&1 | Select-Object -First 30)"
     ]
   }
 }
