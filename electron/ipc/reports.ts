@@ -155,6 +155,10 @@ export function registerReportHandlers() {
     const voidSale = db.transaction(() => {
       const sale = db.prepare(`SELECT * FROM sales WHERE id = ?`).get(id) as any
       if (!sale || sale.status === 'voided') throw new Error('ไม่สามารถยกเลิกรายการนี้ได้')
+      // Return bills (RT-) can't be voided — if the operator wants to "undo"
+      // a return, they sell the item again as a normal sale. Voiding would
+      // also log a confusing 'sale_return' movement with a negative qty.
+      if (sale.sale_type === 'return') throw new Error('ไม่สามารถยกเลิกบิลรับคืนสินค้าได้ — ถ้าต้องการคืนสต็อก ให้ขายออกใหม่')
 
       // Restore stock for each lot. SELECT sil.* only — sale_item_lots and
       // sale_items BOTH have a product_id column, so `SELECT sil.*, si.product_id`

@@ -645,7 +645,7 @@ export default function ManagePurchasesPage() {
             )}
             actions={
               <>
-                <Button variant="outline" size="xl" onClick={openEditBill}>แก้ไขบิล</Button>
+                <Button variant="elevated" size="xl" onClick={openEditBill}>แก้ไขบิล</Button>
                 <Button
                   variant="destructive"
                   size="xl"
@@ -685,6 +685,7 @@ export default function ManagePurchasesPage() {
                   ผู้จัดจำหน่าย <span className="text-destructive">*</span>
                 </label>
                 <Combobox
+                  variant="elevated"
                   items={suppliers}
                   value={editSupplier}
                   onChange={(s) => setEditSupplierId(s?.id ?? 0)}
@@ -702,6 +703,7 @@ export default function ManagePurchasesPage() {
                   เลขที่ใบกำกับสินค้า <span className="text-destructive">*</span>
                 </label>
                 <Input
+                  variant="elevated"
                   value={editSupplierInvoiceNo}
                   onChange={e => setEditSupplierInvoiceNo(e.target.value)}
                 />
@@ -711,13 +713,13 @@ export default function ManagePurchasesPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1.5">วันที่สั่งซื้อตามบิล</label>
-                <DateInput value={editOrderDate} onChange={setEditOrderDate} className="w-full" />
+                <DateInput variant="elevated" value={editOrderDate} onChange={setEditOrderDate} className="w-full" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1.5">
                   วันที่รับสินค้า <span className="text-destructive">*</span>
                 </label>
-                <DateInput value={editReceiveDate} onChange={setEditReceiveDate} className="w-full" />
+                <DateInput variant="elevated" value={editReceiveDate} onChange={setEditReceiveDate} className="w-full" />
               </div>
             </div>
 
@@ -790,7 +792,7 @@ export default function ManagePurchasesPage() {
                   <label className="flex items-center h-6 text-sm font-medium">
                     วันครบกำหนดชำระ <span className="text-destructive ml-1">*</span>
                   </label>
-                  <DateInput value={editDueDate} onChange={setEditDueDate} className="w-full" />
+                  <DateInput variant="elevated" value={editDueDate} onChange={setEditDueDate} className="w-full" />
                   <div className="flex gap-1">
                     {[15, 30, 60, 90].map(d => (
                       <Button
@@ -819,7 +821,7 @@ export default function ManagePurchasesPage() {
                     <span className="text-sm font-medium">ชำระเงินแล้ว</span>
                   </label>
                   <div className={cn('space-y-1.5 transition-opacity', !editIsPaid && 'opacity-40 pointer-events-none')}>
-                    <DateInput value={editPaidDate} onChange={setEditPaidDate} className="w-full" />
+                    <DateInput variant="elevated" value={editPaidDate} onChange={setEditPaidDate} className="w-full" />
                     <div className="flex gap-1">
                       <Button
                         type="button"

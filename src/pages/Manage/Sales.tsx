@@ -52,7 +52,7 @@ const SALE_TYPE_LABELS: Record<string, string> = {
 // STATUS (soft + outline) family — matches success-outline / warning-outline /
 // destructive-outline on the "สถานะ" column so all status pills share a tone.
 const SALE_TYPE_VARIANTS: Record<string, any> = {
-  retail: 'neutral-outline', wholesale: 'brand-outline', rx: 'success-outline', return: 'warning-outline',
+  retail: 'brand-outline', wholesale: 'warning-outline', rx: 'success-outline', return: 'muted-outline',
 }
 
 type SortField = 'invoice_no' | 'sold_at' | 'total_amount'
@@ -384,7 +384,7 @@ export default function ManageSalesPage() {
                             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                             <Eye className="size-4" /> ดูรายละเอียด
                           </button>
-                          {!isVoided && (
+                          {!isVoided && s.sale_type !== 'return' && (
                             <button type="button" onClick={() => setVoidTarget({ id: s.id, invoice_no: s.invoice_no })}
                               className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
                               <Ban className="size-4" /> ยกเลิกบิล

@@ -186,7 +186,7 @@ export function SaleDetailDialog({
                                     {isBundle && <Badge variant="violet-outline" className="shrink-0"><Boxes className="size-3 mr-1" />ชุด</Badge>}
                                     <span className="truncate">{item.item_name}</span>
                                   </div>
-                                  {item.item_note && <div className="text-sm text-muted-foreground">{item.item_note}</div>}
+                                  {item.item_note && detail.sale_type !== 'return' && <div className="text-sm text-muted-foreground">{item.item_note}</div>}
                                 </div>
                               </div>
                             </TableCell>
@@ -293,8 +293,14 @@ export function SaleDetailDialog({
                 </Table>
               </div>
             </DialogBody>
-            <DialogFooter>
-              {onVoidRequest && detail.status !== 'voided' && (
+            <DialogFooter className="sm:items-center">
+              {detail.sale_type === 'return' && detail.note && (
+                <div className="mr-auto text-sm text-left">
+                  <span className="font-medium text-muted-foreground">เหตุผลรับคืนสินค้า:</span>{' '}
+                  <span className="text-foreground">{detail.note}</span>
+                </div>
+              )}
+              {onVoidRequest && detail.status !== 'voided' && detail.sale_type !== 'return' && (
                 <Button size="xl" variant="destructive" onClick={() => onVoidRequest(detail)}>
                   <Ban className="size-4 mr-1.5" /> ยกเลิกบิล
                 </Button>
