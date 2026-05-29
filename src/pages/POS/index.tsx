@@ -26,7 +26,7 @@ import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass } from './cartAlerts'
 import {
   Search, User, Trash2, Plus, Minus,
-  Banknote, AlertTriangle, AlertCircle, PackageX,
+  Banknote, AlertTriangle, PackageX,
   X, UserPlus, Info,
   RotateCcw, ChevronRight, ChevronLeft, Tag,
   ShoppingBag, Hourglass, RefreshCcw, HandCoins,
@@ -915,10 +915,8 @@ export default function POSPage() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className={`shrink-0 inline-flex ${alertColorClass(alert.level)}`}>
-                                  {alert.level === 'expired'   && <ClockAlert    className="size-4" />}
-                                  {alert.level === 'low_stock' && <PackageX      className="size-4" />}
-                                  {alert.level === 'danger'    && <AlertTriangle className="size-4" />}
-                                  {alert.level === 'warn'      && <AlertCircle   className="size-4" />}
+                                  {/* All expiry levels share ClockAlert — colour (via alertColorClass) carries severity. */}
+                                  {alert.level === 'low_stock' ? <PackageX className="size-4" /> : <ClockAlert className="size-4" />}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent>{alert.reason}</TooltipContent>
@@ -1014,23 +1012,22 @@ export default function POSPage() {
               </table>
             </div>
 
-            {cart.items.length > 0 && (
-              <div className="px-5 h-12 shrink-0 flex items-center gap-6 bg-card border-t border-border">
+            <div className="px-5 h-12 shrink-0 flex items-center gap-6 bg-card border-t border-border">
                 <div>
                   <div className="text-sm font-semibold text-foreground-subtle">จำนวน <span className="text-sm font-medium text-foreground">{cart.items.length}</span> รายการ</div>
                 </div>
                 <div className="flex-1 flex items-center justify-center gap-4 text-xs text-foreground-subtle">
                   <span className="inline-flex items-center gap-1">
-                    <ClockAlert className="size-3.5 text-destructive" /> หมดอายุ
-                  </span>
-                  <span className="inline-flex items-center gap-1">
                     <PackageX className="size-3.5 text-destructive" /> สต๊อกไม่พอ
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <AlertTriangle className="size-3.5 text-warning-strong" /> อายุต่ำกว่า {salesSettings?.expiry_danger_months ?? 3} เดือน
+                    <ClockAlert className="size-3.5 text-destructive" /> หมดอายุ
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <AlertCircle className="size-3.5 text-warning" /> อายุต่ำกว่า {salesSettings?.expiry_warn_months ?? 6} เดือน
+                    <ClockAlert className="size-3.5 text-warning-strong" /> อายุต่ำกว่า {salesSettings?.expiry_danger_months ?? 3} เดือน
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <ClockAlert className="size-3.5 text-warning" /> อายุต่ำกว่า {salesSettings?.expiry_warn_months ?? 6} เดือน
                   </span>
                 </div>
                 {cart.totalDiscount() > 0 && (
@@ -1042,8 +1039,7 @@ export default function POSPage() {
                 <div className="text-right">
                   <div className="text-sm font-semibold text-foreground-subtle">ราคารวม <span className="text-sm font-bold text-foreground">{formatCurrency(cart.subtotal())}</span></div>
                 </div>
-              </div>
-            )}
+            </div>
           </div>
           </div>
 
