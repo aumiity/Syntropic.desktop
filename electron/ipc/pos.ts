@@ -235,12 +235,16 @@ export function registerPosHandlers() {
         }
       }
 
-      // Daily summary
+      // Daily summary — sold_at is stored as 'YYYY-MM-DD HH:MM:SS', so the
+      // range must use the dashed date (NOT `today`, which is 'YYYYMMDD' for
+      // invoice numbering — string-comparing it against sold_at excludes every
+      // row because '-' < '0').
+      const dateStr = dayjs().format('YYYY-MM-DD')
       const dailySummary = db.prepare(`
         SELECT COUNT(*) as bills, COALESCE(SUM(total_amount),0) as total,
                MAX(sold_at) as latest
         FROM sales WHERE sold_at >= ? AND sold_at < ? AND status = 'completed'
-      `).get(`${today} 00:00:00`, `${today} 23:59:59`) as any
+      `).get(`${dateStr} 00:00:00`, `${dateStr} 23:59:59`) as any
 
       return { success: true, invoice_no: invoiceNo, daily_bills: dailySummary.bills, daily_total: dailySummary.total, latest_bill_time: dailySummary.latest }
     })
@@ -331,10 +335,12 @@ export function registerPosHandlers() {
   // Get daily stats
   ipcMain.handle('pos:getDailyStats', () => {
     const db = getDb()
-    const today = dayjs().format('YYYYMMDD')
+    // sold_at is 'YYYY-MM-DD HH:MM:SS' — must match that format in the range,
+    // not 'YYYYMMDD' (string-comparing the latter excludes every row).
+    const dateStr = dayjs().format('YYYY-MM-DD')
     return db.prepare(`
       SELECT COUNT(*) as bills, COALESCE(SUM(total_amount),0) as total, MAX(sold_at) as latest
       FROM sales WHERE sold_at >= ? AND sold_at < ? AND status = 'completed'
-    `).get(`${today} 00:00:00`, `${today} 23:59:59`)
+    `).get(`${dateStr} 00:00:00`, `${dateStr} 23:59:59`)
   })
 }

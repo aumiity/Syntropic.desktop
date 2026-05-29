@@ -826,12 +826,13 @@ export default function POSPage() {
             <div className="relative flex-1 min-w-0">
               <Input
                 ref={mainInputRef}
+                variant="elevated"
                 value={query}
                 onChange={e => handleSearch(e.target.value)}
                 placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                 autoFocus
                 autoComplete="off"
-                className="h-9 py-2 pl-3 pr-9 text-sm rounded-lg border-0 shadow-none"/>
+                className="h-9 py-2 pl-3 pr-9 text-sm rounded-lg"/>
               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
             </div>
             <Button variant="destructive2" size="sm" disabled={cart.items.length === 0}
@@ -1066,7 +1067,7 @@ export default function POSPage() {
               <Tag className="size-6 text-foreground-subtle" /> พิมพ์ฉลาก
             </Button>
             <Button variant="outline" onClick={() => setShowAdjust(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card hover:bg-warning-soft hover:text-warning-strong text-xl font-medium text-foreground border border-border">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium border border-border">
               <PackageMinus className="size-6 text-foreground-subtle" /> ตัดสต็อก
             </Button>
             <Button variant="outline" onClick={() => setShowReturn(true)}
@@ -1074,7 +1075,7 @@ export default function POSPage() {
               <RotateCcw className="size-6 text-foreground-subtle" /> รับคืนสินค้า
             </Button>
             <Button variant="outline" onClick={() => navigate('/manage')}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted hover:text-destructive text-xl font-medium border border-border">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium border border-border">
               <Trash2 className="size-6 text-foreground-subtle" /> ยกเลิกบิล
             </Button>
           </div>
