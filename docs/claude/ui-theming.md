@@ -47,6 +47,21 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - **`text-xs` = ข้อความที่ *รองจากเนื้อหา*** — อนุญาตให้ใช้ได้กับ: คำอธิบายย่อย/helper text, caption, status bar แสดงสถานะ, meta/timestamp, chip & status ใน `<Badge>`. อย่าใช้ `text-xs` กับเนื้อหาหลักหรือหัวข้อ.
    - ห้ามใช้เล็กกว่า `text-xs` (เช่น `text-[10px]`, `text-[11px]`, `text-[13px]`) — `text-xs` คือเล็กสุด.
 
+## ELEVATED — the primary surface treatment (HARD)
+
+After the elevated-UI rollout, **`variant="elevated"` is the house style for controls and panels**: `bg-card` + `border border-border` + `shadow-sm`. It reads as a raised card sitting on the background. Reach for it by default; the bare filled `default`/`bg-input` look is now the *exception*, used only where a recessed/inset field is deliberately wanted.
+
+Apply `variant="elevated"` to:
+- **Every Input / Textarea / SearchInput / Select(Trigger)** inside a form, dialog, or filter strip.
+- **Neutral / cancel / close / back Buttons** (the ones that would otherwise be `secondary`) — see [[dialog-button-convention]]: footer "ยกเลิก/ปิด/กลับ" = `variant="elevated"`.
+- Filter-strip controls (the `h-9 elevated` cluster — search + category select + filter/column popovers).
+
+**The live reference is `src/pages/Products/EditProduct/GeneralTab.tsx`** — every field there is `variant="elevated"`. Match it, not the showcase Modal demo (which is currently stale, still showing default-variant inputs — fix it when you next touch that Section).
+
+**The one exception — Button `default`.** Button's `default` variant is the primary teal CTA (save / confirm / pay) and must stay that way. "Elevated as primary" is about *surfaces and inputs*, not action buttons. Do NOT swap Button defaults to elevated.
+
+> **Why not just make `elevated` the literal default value of the variant prop?** Considered and rejected: (1) Button's default can't move (it's the CTA). (2) Flipping Input/Select/Textarea defaults would silently restyle every existing call site that relies on `bg-input`, with no type-checker to catch regressions — you'd have to audit and re-tag every inset field by hand. The convention + showcase + copying from EditProduct is the lower-risk enforcement. If the codebase ever reaches ~95% elevated, revisit as a deliberate migration (rename `default`→`inset`/`filled`, flip the default value, sweep call sites).
+
 ## Color palette & variants — USE THE FULL RANGE (HARD)
 
 We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don't default to those three everywhere — the app should feel colorful and varied.** Pick variants by *role*, not "what's the most neutral option."

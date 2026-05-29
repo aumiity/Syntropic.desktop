@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -1475,33 +1476,39 @@ export default function POSPage() {
             })()}
           </DialogBody>
           <DialogFooter>
-            <Button autoFocus variant="elevated" size="xl" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
+            <Button autoFocus variant="default" size="xl" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ── QUICK ADD CUSTOMER DIALOG ── */}
       <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
-        <DialogContent size="md" onClose={() => setShowQuickAdd(false)}>
-          <DialogHeader><DialogTitle className="text-xl">เพิ่มลูกค้าใหม่</DialogTitle></DialogHeader>
-          <DialogBody className="space-y-4"
-            onKeyDown={e => { if (e.key === 'Enter' && !qaSaving && qaName.trim()) handleQuickAdd() }}>
-            <div>
-              <Label className="block text-base font-medium mb-1">ชื่อ-นามสกุล <span className="text-destructive">*</span></Label>
-              <Input autoFocus value={qaName} onChange={e => setQaName(e.target.value)} />
-            </div>
-            <div>
-              <Label className="block text-base font-medium mb-1">เบอร์โทรศัพท์</Label>
-              <Input value={qaPhone} onChange={e => setQaPhone(e.target.value)}/>
-            </div>
-            <div>
-              <Label className="block text-base font-medium mb-1">หมายเหตุ / ประวัติแพ้ยา</Label>
-              <Input value={qaNote} onChange={e => setQaNote(e.target.value)}/>
+        <DialogContent size="lg" divided onClose={() => setShowQuickAdd(false)}>
+          <DialogHeader>
+            <DialogTitle>เพิ่มลูกค้าใหม่</DialogTitle>
+          </DialogHeader>
+          <DialogBody
+            onKeyDown={e => {
+              if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA' && !qaSaving && qaName.trim()) handleQuickAdd()
+            }}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>ชื่อ-นามสกุล <span className="text-destructive">*</span></Label>
+                <Input variant="elevated" autoFocus value={qaName} onChange={e => setQaName(e.target.value)} placeholder="ระบุชื่อ-นามสกุล..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label>เบอร์โทรศัพท์</Label>
+                <Input variant="elevated" value={qaPhone} onChange={e => setQaPhone(e.target.value)} placeholder="08X-XXX-XXXX" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>หมายเหตุ / ประวัติแพ้ยา</Label>
+                <Textarea variant="elevated" value={qaNote} onChange={e => setQaNote(e.target.value)} placeholder="เช่น แพ้ยาเพนิซิลลิน, ข้อควรระวัง..." />
+              </div>
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="secondary" className="w-32 h-10 text-base" onClick={() => setShowQuickAdd(false)}>ยกเลิก</Button>
-            <Button className="w-32 h-10 text-base" onClick={handleQuickAdd} disabled={qaSaving}>{qaSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
+            <Button size="xl" variant="elevated" onClick={() => setShowQuickAdd(false)}>ยกเลิก</Button>
+            <Button size="xl" onClick={handleQuickAdd} disabled={qaSaving}>{qaSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
