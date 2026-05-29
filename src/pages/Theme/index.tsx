@@ -1516,7 +1516,7 @@ export default function Theme() {
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
                   ทุก modal: คลิกนอกไม่ปิด · Esc ปิด · Enter = ปุ่มหลัก · บังคับโครงสร้าง
-                  DialogHeader / DialogBody / DialogFooter · ปุ่ม &quot;ยกเลิก/ปิด&quot; ใช้ variant=&quot;elevated&quot; (destructive2 สงวนไว้สำหรับ delete/clear)
+                  DialogHeader / DialogBody / DialogFooter · ปุ่มเดี่ยว = ปุ่มหลัก (กลางๆ/บวก → <code>default</code>, เชิงลบ → <code>destructive</code>) · มี 2 ปุ่ม → ปุ่มหลัก + ปุ่มรอง <code>elevated</code> (&quot;ยกเลิก/กลับ&quot;) · <code>elevated</code> ไม่ใช้เดี่ยวๆ
                 </p>
 
                 <Dialog open={formModalOpen} onOpenChange={setFormModalOpen}>

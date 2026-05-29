@@ -31,7 +31,7 @@ import {
   RotateCcw, ChevronRight, ChevronLeft, Tag,
   ShoppingBag, Hourglass, RefreshCcw, HandCoins,
   Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
-  CheckCircle2,
+  CheckCircle2, Check,
 } from 'lucide-react'
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -934,7 +934,7 @@ export default function POSPage() {
                           </div>
                         ) : (
                           <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
-                            className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-accent-soft text-warning-strong text-sm font-semibold hover:bg-accent-soft transition-colors">
+                            className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-primary-soft text-primary text-sm font-semibold hover:bg-primary-soft transition-colors">
                             <span className="truncate">{item.unit_name}</span>
                           </Button>
                         )}
@@ -943,7 +943,7 @@ export default function POSPage() {
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm"
                           onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                          className="flex items-center w-full justify-center h-8 rounded-md bg-info-soft text-info-soft-foreground text-sm font-semibold hover:bg-info-soft transition-colors ">
+                          className="flex items-center w-full justify-center h-8 rounded-md bg-primary-soft text-primary text-sm font-semibold hover:bg-primary-soft transition-colors ">
                           <span className="flex-1 text-center">{item.qty}</span>
                         </Button>
                       </TableCell>
@@ -2280,42 +2280,31 @@ export default function POSPage() {
             changeCartPrice(priceModalIdx, customPrice)
           }
           return (
-            <DialogContent size="sm" onClose={() => setPriceModalIdx(null)}>
+            <DialogContent size="md" divided onClose={() => setPriceModalIdx(null)}>
               <DialogHeader>
                 <DialogTitle className="text-2xl">ราคา</DialogTitle>
                 <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
               </DialogHeader>
               <DialogBody>
-                <div className="space-y-2 max-h-200 overflow-y-auto scrollbar-thin">
-                  {/* Custom price input */}
-                  <div className="w-full px-4 py-3 rounded-xl bg-primary-soft">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-base font-bold text-primary">กำหนดราคา</span>
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
+                <div className="grid gap-2 auto-rows-fr max-h-[32rem] overflow-y-auto scrollbar-thin p-0.5">
+                  {/* Custom price — special card with an input, kept distinct via primary tint */}
+                  <div className="w-full rounded-xl border-2 border-primary/30 bg-primary-soft/30 p-3.5">
+                    <span className="block text-base font-semibold text-primary">กำหนดราคาเอง</span>
+                    <div className="mt-2 flex items-center gap-2">
                       <PriceInput
                         autoFocus
                         value={customPriceInput}
                         onChange={setCustomPriceInput}
                         onFocus={e => e.currentTarget.select()}
                         onKeyDown={e => { if (e.key === 'Enter') applyCustomPrice() }}
-                        className="w-full flex-1 h-10 text-3xl font-bold bg-card rounded-lg focus:ring-2 focus:ring-primary outline-none px-3"
+                        className="w-full flex-1 h-12 text-2xl font-extrabold text-primary bg-card border border-border rounded-lg shadow-sm focus:ring-2 focus:ring-primary outline-none px-3"
                       />
-                      <Button variant="default" onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-10 px-4 text-sm">ตกลง</Button>
+                      <Button variant="default" onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-12 px-5 text-base">ตกลง</Button>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div>
-                        <div className="text-foreground-subtle text-xs">ทุน</div>
-                        <div className="font-semibold text-muted-foreground">{formatCurrency(cost)}</div>
-                      </div>
-                      <div>
-                        <div className="text-foreground-subtle text-xs">กำไร</div>
-                        <div className={`font-semibold ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(customProfit)}</div>
-                      </div>
-                      <div>
-                        <div className="text-foreground-subtle text-xs">กำไร %</div>
-                        <div className={`font-semibold ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</div>
-                      </div>
+                    <div className="mt-2.5 border-t border-border/60 pt-2 grid grid-cols-3 gap-2 text-sm">
+                      <span className="text-muted-foreground">ทุน <span className="font-semibold text-foreground">{formatCurrency(cost)}</span></span>
+                      <span className="text-muted-foreground">กำไร <span className={`font-semibold ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(customProfit)}</span></span>
+                      <span className="text-muted-foreground">กำไร% <span className={`font-semibold ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</span></span>
                     </div>
                   </div>
 
@@ -2324,26 +2313,24 @@ export default function POSPage() {
                     const profit = opt.price - cost
                     const markupPct = cost > 0 ? (profit / cost) * 100 : 0
                     return (
-                      <Button key={i} variant="brand-soft"
+                      <Button key={i} variant="elevated"
                         onClick={() => changeCartPrice(priceModalIdx, opt.price)}
-                        className={`w-full h-auto px-4 py-3 rounded-xl transition-colors ${active ? 'ring-2 ring-inset ring-primary' : ''}`}>
-                        <div className="space-y-1 w-full">
-                          <div className={`text-base font-bold text-left ${active ? 'text-primary' : 'text-foreground'}`}>{opt.label}</div>
-                          <div className="text-right text-3xl font-extrabold text-primary"> {formatCurrency(opt.price)}</div>
-                          <div className="text-left grid grid-cols-3 gap-2 text-sm pt-1">
-                            <div>
-                              <div className="text-foreground-subtle text-xs">ทุน</div>
-                              <div className="font-semibold text-muted-foreground">{formatCurrency(cost)}</div>
-                            </div>
-                            <div>
-                              <div className="text-foreground-subtle text-xs">กำไร</div>
-                              <div className={`font-semibold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(profit)}</div>
-                            </div>
-                            <div>
-                              <div className="text-foreground-subtle text-xs">กำไร %</div>
-                              <div className={`font-semibold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</div>
-                            </div>
+                        className={`w-full h-full flex flex-col items-stretch justify-between gap-2.5 text-left p-3.5 rounded-xl border-2 transition-all ${active ? 'border-primary bg-primary-soft/50 hover:bg-primary-soft/50 shadow-card' : 'hover:border-border-strong'}`}>
+                        {/* Top — label (left) + check (top-right corner); price right-aligned below */}
+                        <div className="w-full">
+                          <div className="flex items-start justify-between gap-3 w-full">
+                            <span className="text-base font-semibold text-muted-foreground">{opt.label}</span>
+                            <span className={`grid place-items-center size-7 rounded-full shrink-0 ${active ? 'bg-primary text-primary-foreground' : ''}`}>
+                              {active && <Check className="size-4" strokeWidth={3} />}
+                            </span>
                           </div>
+                          <span className="block text-right text-3xl font-extrabold text-primary leading-none mt-1.5">{formatCurrency(opt.price)}</span>
+                        </div>
+                        {/* Metrics — anchored to the bottom so the row lines up across all cards (justify-between) */}
+                        <div className="w-full border-t border-border/60 pt-2 grid grid-cols-3 gap-2 text-sm font-normal">
+                          <span className="text-muted-foreground">ทุน <span className="font-semibold text-foreground">{formatCurrency(cost)}</span></span>
+                          <span className="text-muted-foreground">กำไร <span className={`font-semibold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(profit)}</span></span>
+                          <span className="text-muted-foreground">กำไร% <span className={`font-semibold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</span></span>
                         </div>
                       </Button>
                     )
@@ -2351,7 +2338,7 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
+                <Button className="w-32 h-10 text-base" onClick={() => setPriceModalIdx(null)}>ปิด</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -2379,24 +2366,33 @@ export default function POSPage() {
             setQtyInput(String(next))
           }
           return (
-            <DialogContent size="sm" onClose={() => setQtyModalIdx(null)}>
+            <DialogContent size="sm" divided onClose={() => setQtyModalIdx(null)}>
               <DialogHeader>
-                <DialogTitle className="text-2xl">จำนวน</DialogTitle>
-                <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
+                <DialogTitle>จำนวน</DialogTitle>
+                <div className="text-sm font-medium text-muted-foreground overflow-x-clip overflow-y-visible">{item?.item_name}</div>
               </DialogHeader>
               <DialogBody className="space-y-4">
-                <div className="flex justify-between text-base">
-                  <span className="font-bold text-muted-foreground">คงเหลือ</span>
-                  <span className={`font-semibold ${stockQty > 0 ? 'text-foreground' : 'text-destructive'}`}>{stockQty} {item?.unit_name}</span>
+                {/* Summary strip — stock on hand + running line total */}
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-foreground-subtle">คงเหลือ</span>
+                    <span className={`text-sm font-semibold ${stockQty > 0 ? 'text-foreground' : 'text-destructive'}`}>{stockQty} {item?.unit_name}</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-xs text-foreground-subtle">รวม</span>
+                    <span className="text-base font-semibold text-foreground">{formatCurrency(lineTotal)}</span>
+                  </div>
                 </div>
-                <div>
-                  <Label className="block text-base font-bold text-muted-foreground mb-2">จำนวน ({item?.unit_name})</Label>
-                  <div className="flex items-center gap-2 rounded-xl ring-1 ring-border">
-                    <Button variant="default" size="icon" onClick={() => bump(-1)}
-                      className="ml-3 w-10 h-10 rounded-full flex items-center justify-center bg-secondary-hover hover:text-primary-foreground hover:bg-primary text-muted-foreground font-bold shrink-0">
+
+                {/* Stepper */}
+                <div className="space-y-1.5">
+                  <Label>จำนวน ({item?.unit_name})</Label>
+                  <div className="flex items-center gap-2">
+                    <Button variant="elevated" size="icon-xl" onClick={() => bump(-1)} className="shrink-0">
                       <Minus className="size-5" />
                     </Button>
                     <Input
+                      variant="elevated"
                       type="number"
                       autoFocus
                       value={qtyInput}
@@ -2406,26 +2402,36 @@ export default function POSPage() {
                       onChange={e => setQtyInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') applyQty(q) }}
                       placeholder="1"
-                      className="w-16 flex-1 h-14 text-center text-3xl font-bold bg-card rounded-xl focus:ring-0 focus:ring-primary outline-none px-4"
+                      className="h-11 flex-1 text-center text-3xl font-bold"
                     />
-                    <Button variant="default" size="icon" onClick={() => bump(1)}
-                      className="mr-3 w-10 h-10 rounded-full flex items-center justify-center bg-secondary-hover hover:text-primary-foreground hover:bg-primary text-muted-foreground font-bold shrink-0">
+                    <Button variant="elevated" size="icon-xl" onClick={() => bump(1)} className="shrink-0">
                       <Plus className="size-5" />
                     </Button>
                   </div>
                 </div>
-                <div className="grid grid-cols-5 gap-2">
-                  {[1, 5, 10, 20, 50].map(n => (
-                    <Button key={n} variant="brand-soft" size="sm" onClick={() => setQtyInput(String(n))}
-                      className="h-10 rounded-xl text-base font-semibold transition-colors">
-                      {n}
-                    </Button>
-                  ))}
+
+                {/* Quick presets — segmented track with a sliding pill (shared-layout) */}
+                <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
+                  {[1, 5, 10, 20, 50].map(n => {
+                    const active = (parseFloat(qtyInput) || 0) === n
+                    return (
+                      <Button key={n} variant="ghost" size="sm"
+                        onClick={() => setQtyInput(String(n))}
+                        className={`relative w-full h-9 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${active ? 'text-primary-foreground' : 'text-foreground'}`}>
+                        {active && (
+                          <motion.div layoutId="qty-preset-pill" aria-hidden
+                            className="absolute inset-0 rounded-md bg-primary shadow-sm"
+                            transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />
+                        )}
+                        <span className="relative z-10">{n}</span>
+                      </Button>
+                    )
+                  })}
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
-                <Button variant="default" className="w-32 h-10 text-base" onClick={() => applyQty(q)}>ตกลง</Button>
+                <Button variant="elevated" size="xl" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
+                <Button size="xl" onClick={() => applyQty(q)}>ตกลง</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -2453,31 +2459,31 @@ export default function POSPage() {
             setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
           }
           return (
-            <DialogContent size="md" onClose={() => setDiscountModalIdx(null)}>
+            <DialogContent size="lg" divided onClose={() => setDiscountModalIdx(null)}>
               <DialogHeader>
-                <DialogTitle className="text-2xl">ส่วนลด</DialogTitle>
-                <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
+                <DialogTitle>ส่วนลด</DialogTitle>
+                <div className="text-sm font-medium text-muted-foreground overflow-x-clip overflow-y-visible">{item?.item_name}</div>
               </DialogHeader>
               <DialogBody className="space-y-4">
-                <div className="flex justify-between border-t border-b border-border">
-                  <span className="py-2 text-base font-bold text-muted-foreground">ราคารวม</span>
-                  <span className="py-2 text-2xl font-semibold text-foreground">{formatCurrency(totalPrice)}</span>
+                {/* Reference total — the one value with no editable input below */}
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-2.5">
+                  <span className="text-sm font-medium text-muted-foreground">ราคารวม</span>
+                  <span className="text-3xl font-bold text-foreground">{formatCurrency(totalPrice)}</span>
                 </div>
 
-                {/* Percent presets */}
-                <div className="grid grid-cols-5 gap-2">
-                  {([
-                    { pct: 3,  base: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive', active: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive ring-2 ring-destructive' },
-                    { pct: 5,  base: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive', active: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive ring-2 ring-destructive' },
-                    { pct: 10, base: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive', active: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive ring-2 ring-destructive' },
-                    { pct: 15, base: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive', active: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive ring-2 ring-destructive' },
-                    { pct: 20, base: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive', active: 'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive ring-2 ring-destructive' },
-                  ] as const).map(({ pct, base, active }) => {
+                {/* Percent presets — segmented track with a sliding pill (shared-layout) */}
+                <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
+                  {[3, 5, 10, 15, 20].map(pct => {
                     const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
                     return (
-                      <Button key={pct} variant="outline" size="sm" onClick={() => applyPercent(pct)}
-                        className={`h-10 rounded-xl text-base font-semibold transition-colors ${isActive ? active : base}`}>
-                        {pct}%
+                      <Button key={pct} variant="ghost" size="sm" onClick={() => applyPercent(pct)}
+                        className={`relative w-full h-9 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'text-destructive-foreground' : 'text-destructive'}`}>
+                        {isActive && (
+                          <motion.div layoutId="discount-pct-pill" aria-hidden
+                            className="absolute inset-0 rounded-md bg-destructive shadow-sm"
+                            transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />
+                        )}
+                        <span className="relative z-10">{pct}%</span>
                       </Button>
                     )
                   })}
@@ -2485,10 +2491,11 @@ export default function POSPage() {
 
                 {/* ส่วนลด (%)  +  ส่วนลด (บาท) — side by side */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="block text-base font-bold text-muted-foreground mb-1">ส่วนลด (%)</Label>
+                  <div className="space-y-1.5">
+                    <Label>ส่วนลด (%)</Label>
                     <div className="relative">
                       <Input
+                        variant="elevated"
                         type="text"
                         inputMode="decimal"
                         value={discountFocus === 'pct' ? discountPctInput : formatNumWithCommas(discountPctInput)}
@@ -2506,15 +2513,16 @@ export default function POSPage() {
                         }}
                         onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                         placeholder="0"
-                        className="w-full h-14 text-right text-3xl font-bold bg-card rounded-xl ring-border ring-1 focus:ring-2 focus:ring-destructive/50 outline-none pl-4 pr-10"
+                        className="h-14 text-right text-3xl font-bold pl-4 pr-10"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-subtle text-xl font-bold pointer-events-none">%</span>
                     </div>
                   </div>
 
-                  <div>
-                    <Label className="block text-base font-bold text-muted-foreground mb-1">ส่วนลด (บาท)</Label>
+                  <div className="space-y-1.5">
+                    <Label>ส่วนลด (บาท)</Label>
                     <Input
+                      variant="elevated"
                       type="text"
                       inputMode="decimal"
                       autoFocus
@@ -2530,15 +2538,16 @@ export default function POSPage() {
                       }}
                       onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                       placeholder="0.00"
-                      className="w-full h-14 text-right text-3xl font-bold bg-card ring-border ring-1 rounded-xl focus:ring-2 focus:ring-destructive/50 outline-none px-4"
+                      className="h-14 text-right text-3xl font-bold px-4"
                     />
                   </div>
                 </div>
 
                 {/* Final price reverse-calc input */}
-                <div>
-                  <Label className="block text-base font-bold text-muted-foreground mb-1">ราคาสุดท้าย (บาท)</Label>
+                <div className="space-y-1.5">
+                  <Label>ราคาสุดท้าย (บาท)</Label>
                   <Input
+                    variant="elevated"
                     type="text"
                     inputMode="decimal"
                     value={discountFocus === 'final' ? finalPriceInput : formatNumWithCommas(finalPriceInput, true)}
@@ -2556,14 +2565,14 @@ export default function POSPage() {
                     }}
                     onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                     placeholder={formatCurrency(totalPrice)}
-                    className="w-full h-14 text-right text-3xl font-bold bg-card ring-border ring-1 rounded-xl focus:ring-2 focus:ring-primary outline-none px-4"
+                    className="h-14 text-right text-3xl font-bold px-4"
                   />
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="destructive2" className="w-32 h-10 text-base" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
-                <Button variant="tertiary" className="w-32 h-10 text-base" onClick={() => setDiscountModalIdx(null)}>ปิด</Button>
-                <Button className="w-32 h-10 text-base" onClick={() => applyDiscount(d)}>ตกลง</Button>
+                <Button variant="destructive2" size="xl" className="mr-auto" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
+                <Button variant="elevated" size="xl" onClick={() => setDiscountModalIdx(null)}>ปิด</Button>
+                <Button size="xl" onClick={() => applyDiscount(d)}>ตกลง</Button>
               </DialogFooter>
             </DialogContent>
           )

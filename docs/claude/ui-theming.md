@@ -53,7 +53,7 @@ After the elevated-UI rollout, **`variant="elevated"` is the house style for con
 
 Apply `variant="elevated"` to:
 - **Every Input / Textarea / SearchInput / Select(Trigger)** inside a form, dialog, or filter strip.
-- **Neutral / cancel / close / back Buttons** (the ones that would otherwise be `secondary`) — see [[dialog-button-convention]]: footer "ยกเลิก/ปิด/กลับ" = `variant="elevated"`.
+- **Secondary action Buttons** — the one paired *next to* a primary action (e.g. "ยกเลิก/กลับ" beside "บันทึก"). See [[dialog-button-convention]]. **`elevated` is never used as the only button** — a lone footer button takes the primary role (`default` for neutral/close/OK, `destructive` for negative).
 - Filter-strip controls (the `h-9 elevated` cluster — search + category select + filter/column popovers).
 
 **The live reference is `src/pages/Products/EditProduct/GeneralTab.tsx`** — every field there is `variant="elevated"`. Match it, not the showcase Modal demo (which is currently stale, still showing default-variant inputs — fix it when you next touch that Section).
@@ -77,7 +77,7 @@ We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don
 - `outline` — muted bg with border · neutral icon buttons · **the standard for row "แก้ไข" (edit) action buttons**
 - `ghost` — transparent · tertiary minor actions
 - `destructive` — solid red · delete, void
-- `destructive2` — soft red tint · destructive secondary · **also the default for "ยกเลิก" / "ปิด" buttons in dialog footers** (NOT `outline` — outline-on-popover blends in and is hard to spot)
+- `destructive2` — soft red tint · destructive secondary (the secondary slot next to a `destructive` primary)
 - `success` — green · positive confirm (e.g. "เพิ่มสต็อก")
 - `link` — text-only
 
@@ -113,6 +113,6 @@ These are baked into the components — **no override needed**:
 - **`Tabs`** — default variant = segmented (equal-width grid, sliding `primary` pill via `framer-motion` `layoutId` per-`TabsList` `useId()`). `pill` for sub-nav, `line` for tight underline. All variants use `primary` as the active color. Three variants only — `segmented` was renamed to `default`.
 - **`Select`** — popper position with `sideOffset={6}`, chevron rotates 180° when open (via `group-data-[state=open]:rotate-180`), panel width = trigger width, items have inset highlight (panel `p-2`), check icon on the right when selected (`pr-9` on items).
 - **`Table`** — `TableHead` is `sticky top-0 z-10 bg-muted text-foreground-subtle shadow-[0_1px_0_var(--border)]`. `TableRow` hover `bg-primary-soft/60`, selected `bg-primary-soft`. `TableCell` `py-1 px-2`. `<Table containerClassName="max-h-[NNNpx]">` makes the body scroll while the header stays.
-- **`Dialog`** — `DialogTitle` `text-xl` aligned with the X close button (`min-h-8 flex items-center`). Footer "ตกลง/บันทึก" and "ยกเลิก/ปิด" buttons commonly `size="xl"`. Cancel/Close = `variant="destructive2"`. `Switch` inside modals = `size="lg"`.
+- **`Dialog`** — `DialogTitle` `text-xl` aligned with the X close button (`min-h-8 flex items-center`). Footer buttons commonly `size="xl"`. **Button roles by footer shape:** a *lone* button = primary role → `default` for neutral/positive ("ปิด/ตกลง/บันทึก/รับทราบ"), `destructive` for negative; *two* buttons = primary (`default`/`destructive`) + a secondary `elevated` ("ยกเลิก/กลับ"). `elevated` is never the only button; `destructive2` is the secondary slot beside a `destructive` primary. `Switch` inside modals = `size="lg"`. → see [[dialog-button-convention]] in `docs/claude/ui-theming.md`.
 - **`DateInput` / `DateRangePicker`** — `h-10` wrapper default, `bg-input rounded-lg`, calendar icon absolute on the right (`right-2.5`). **`className` targets the wrapper** (sizes the whole component); the inner Input/Button is `h-full w-full`. Don't pass `className="h-X"` to the Input — it'll desync the calendar button position.
 - **Card radius** — every floating panel-card uses `rounded-card` (`--radius-card`, 1rem). Every control / control-panel (Button, Input, SelectContent, PopoverContent) uses `rounded-lg` / `rounded-control` (`--radius`, 0.5rem). Don't mix `rounded-xl` / `rounded-2xl` literals; reach for the tokens.
