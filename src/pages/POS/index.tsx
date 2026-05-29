@@ -1066,7 +1066,7 @@ export default function POSPage() {
         {/* Right column */}
         <div className="w-80 flex flex-col gap-2.5 min-w-0">
           {/* Total card */}
-          <div className="h-40 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0">
+          <div className="h-40 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0 border border-border">
             <div className="text-right text-md font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
             <div className="mt-6 text-right font-bold leading-[1.05] tracking-tight text-right" style={{ fontSize: '66px', letterSpacing: '-1.5px' }}>
               {formatCurrency(cart.totalAmount())}
@@ -1082,7 +1082,7 @@ export default function POSPage() {
               setShowBreakdown(false)
               setShowPayment(true)
             }}
-            className="w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-tertiary-hover  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3">
+            className="w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-tertiary-hover  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3 border border-border">
               <HandCoins className="size-9" strokeWidth={2.2} />
               <span className="text-4xl font-bold leading-none">ชำระเงิน</span>
           </Button>
@@ -1090,23 +1090,23 @@ export default function POSPage() {
           {/* Quick actions (vertical stack) */}
           <div className="flex flex-col gap-1.5 flex-1 min-h-0">
             <Button variant="outline" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium border border-border">
               <Banknote className="size-6 text-foreground-subtle" /> เปิดลิ้นชัก
             </Button>
             <Button variant="outline" disabled
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium border border-border">
               <Tag className="size-6 text-foreground-subtle" /> พิมพ์ฉลาก
             </Button>
             <Button variant="outline" onClick={() => setShowAdjust(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card hover:bg-warning-soft hover:text-warning-strong text-xl font-medium text-foreground">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card hover:bg-warning-soft hover:text-warning-strong text-xl font-medium text-foreground border border-border">
               <PackageMinus className="size-6 text-foreground-subtle" /> ตัดสต็อก
             </Button>
             <Button variant="outline" onClick={() => setShowReturn(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium border border-border">
               <RotateCcw className="size-6 text-foreground-subtle" /> รับคืนสินค้า
             </Button>
             <Button variant="outline" onClick={() => navigate('/manage')}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted hover:text-destructive text-xl font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted hover:text-destructive text-xl font-medium border border-border">
               <Trash2 className="size-6 text-foreground-subtle" /> ยกเลิกบิล
             </Button>
           </div>
