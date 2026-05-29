@@ -39,7 +39,7 @@ export function UnitPickerDialog<T extends UnitPickerOption>({
             <div className="text-base font-semibold text-foreground">{productName || '-'}</div>
           </DialogHeader>
           <DialogBody>
-            <div className="grid gap-2.5 max-h-[26rem] overflow-y-auto scrollbar-thin p-0.5">
+            <div className="grid gap-2.5 max-h-[28rem] overflow-y-auto scrollbar-thin p-0.5">
               {units.length === 0 ? (
                 <div className="text-sm text-center text-foreground-subtle py-6">ไม่มีหน่วยให้เลือก</div>
               ) : units.map(u => {

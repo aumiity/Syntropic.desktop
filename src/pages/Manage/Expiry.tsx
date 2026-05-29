@@ -15,9 +15,9 @@ import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { getCurrentUserId } from '@/stores/userStore'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import type { ManageOutletContext } from './index'
-import { PackageX, ClockAlert, Settings2, CalendarClock, Filter, Check } from 'lucide-react'
+import { PackageX, ClockAlert, ClockFading, Clock, Settings2, CalendarClock, Filter, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -46,36 +46,40 @@ interface ExpiringLot {
 interface Category { id: number; name: string }
 
 // Plain render functions (NOT components — keeps page file free of local JSX components)
-function renderDays(days: number | null) {
-  if (days === null) return <span className="text-foreground-subtle">—</span>
-  if (days <= 0) return (
+function renderExpiryDate(date: string | null, days: number | null) {
+  if (!date) return <span className="text-muted-foreground">—</span>
+  const dateStr = formatDate(date)
+  const d = days ?? 999
+  const tip = days === null
+    ? null
+    : d < 0
+      ? `หมดอายุแล้ว ${Math.abs(d).toLocaleString()} วัน`
+      : `เหลืออีก ${d.toLocaleString()} วัน`
+  // 3 buckets: expired (<0) · near-expiry (<90d) · normal — mirrors LotsTab
+  const badge = d < 0 ? (
+    <Badge variant="destructive-outline" className="rounded-md gap-1 text-sm">
+      <ClockAlert className="size-4" /> {dateStr}
+    </Badge>
+  ) : d < 90 ? (
+    <Badge variant="warning-outline" className="rounded-md gap-1 text-sm">
+      <ClockFading className="size-4" /> {dateStr}
+    </Badge>
+  ) : (
+    <Badge variant="success-outline" className="rounded-md gap-1 text-sm">
+      <Clock className="size-4" /> {dateStr}
+    </Badge>
+  )
+  if (!tip) return badge
+  // Wrap in <span> — Badge has no forwardRef, so Radix Tooltip's asChild can't
+  // attach the ref it needs to position the popper.
+  return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex items-center text-destructive cursor-help">
-          <ClockAlert className="size-5" />
-        </span>
+        <span className="inline-flex cursor-help">{badge}</span>
       </TooltipTrigger>
-      <TooltipContent side="top" align="center">
-        <div className="font-semibold text-destructive">หมดอายุแล้ว</div>
-        <div className="text-muted-foreground font-normal">
-          ล็อตนี้เกินวันหมดอายุไปแล้ว
-        </div>
-      </TooltipContent>
+      <TooltipContent side="top" align="center">{tip}</TooltipContent>
     </Tooltip>
   )
-  if (days <= 30) return <span className="text-destructive font-medium">{days} วัน</span>
-  if (days <= 60) return <span className="text-warning-strong font-medium">{days} วัน</span>
-  if (days <= 90) return <span className="text-warning">{days} วัน</span>
-  return <span className="text-muted-foreground">{days} วัน</span>
-}
-
-function renderExpiryDate(date: string | null, days: number | null) {
-  if (!date) return <span className="text-foreground-subtle">—</span>
-  const formatted = new Date(date).toLocaleDateString('th-TH', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-  })
-  const isExpired = (days ?? 1) < 0
-  return <span className={isExpired ? 'text-destructive font-medium' : 'text-sm'}>{formatted}</span>
 }
 
 interface ExpiryPrefs {
@@ -83,7 +87,6 @@ interface ExpiryPrefs {
   sort: { by: SortField; dir: SortDir }
   showColLot: boolean
   showColExpiry: boolean
-  showColDays: boolean
   showColQty: boolean
   showColUnit: boolean
   showColCost: boolean
@@ -95,7 +98,6 @@ const EXPIRY_DEFAULTS: ExpiryPrefs = {
   sort: { by: 'expiry_date', dir: 'asc' },
   showColLot: true,
   showColExpiry: true,
-  showColDays: false,
   showColQty: true,
   showColUnit: true,
   showColCost: true,
@@ -123,7 +125,6 @@ export default function ManageExpiryPage() {
   // Column visibility (ชื่อสินค้า + จัดการ always shown) — persisted
   const showColLot = prefs.showColLot
   const showColExpiry = prefs.showColExpiry
-  const showColDays = prefs.showColDays
   const showColQty = prefs.showColQty
   const showColUnit = prefs.showColUnit
   const showColCost = prefs.showColCost
@@ -309,10 +310,6 @@ export default function ManageExpiryPage() {
                 <span className="text-sm">วันหมดอายุ</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showColDays} onCheckedChange={v => setPrefs({ showColDays: v === true })} />
-                <span className="text-sm">วันคงเหลือ</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColQty} onCheckedChange={v => setPrefs({ showColQty: v === true })} />
                 <span className="text-sm">คงเหลือ</span>
               </label>
@@ -339,10 +336,9 @@ export default function ManageExpiryPage() {
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>
                 {showColLot && <TableHead className="min-w-20">ล็อต</TableHead>}
                 {showColExpiry && <SortableTableHead field="expiry_date" sort={sort} onToggle={toggleSort} className="min-w-20">วันหมดอายุ</SortableTableHead>}
-                {showColDays && <TableHead className="text-center min-w-12 w-12">วันคงเหลือ</TableHead>}
-                {showColQty && <TableHead className="text-right min-w-14">คงเหลือ</TableHead>}
+                {showColQty && <TableHead className="min-w-14">คงเหลือ</TableHead>}
                 {showColUnit && <TableHead className="min-w-8">หน่วย</TableHead>}
-                {showColCost && <SortableTableHead field="total_cost" align="right" sort={sort} onToggle={toggleSort} className="min-w-14">ทุนรวม</SortableTableHead>}
+                {showColCost && <SortableTableHead field="total_cost" sort={sort} onToggle={toggleSort} className="min-w-14">ทุนรวม</SortableTableHead>}
                 {showColSupplier && <TableHead className="min-w-[140px]">ผู้จัดจำหน่าย</TableHead>}
                 <TableHead className="text-center min-w-14">จัดการ</TableHead>
               </TableRow>
@@ -350,11 +346,11 @@ export default function ManageExpiryPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={2 + (showColLot ? 1 : 0) + (showColExpiry ? 1 : 0) + (showColDays ? 1 : 0) + (showColQty ? 1 : 0) + (showColUnit ? 1 : 0) + (showColCost ? 1 : 0) + (showColSupplier ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={2 + (showColLot ? 1 : 0) + (showColExpiry ? 1 : 0) + (showColQty ? 1 : 0) + (showColUnit ? 1 : 0) + (showColCost ? 1 : 0) + (showColSupplier ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={2 + (showColLot ? 1 : 0) + (showColExpiry ? 1 : 0) + (showColDays ? 1 : 0) + (showColQty ? 1 : 0) + (showColUnit ? 1 : 0) + (showColCost ? 1 : 0) + (showColSupplier ? 1 : 0)} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={2 + (showColLot ? 1 : 0) + (showColExpiry ? 1 : 0) + (showColQty ? 1 : 0) + (showColUnit ? 1 : 0) + (showColCost ? 1 : 0) + (showColSupplier ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <PackageX className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบล็อตตามเงื่อนไขที่เลือก
                   </TableCell>
@@ -376,13 +372,8 @@ export default function ManageExpiryPage() {
                         {renderExpiryDate(lot.expiry_date, lot.days_remaining)}
                       </TableCell>
                     )}
-                    {showColDays && (
-                      <TableCell className="text-center text-sm">
-                        {renderDays(lot.days_remaining)}
-                      </TableCell>
-                    )}
                     {showColQty && (
-                      <TableCell className="text-right text-sm font-semibold">
+                      <TableCell className="text-sm font-semibold">
                         {lot.qty_on_hand.toLocaleString()}
                       </TableCell>
                     )}
@@ -392,7 +383,7 @@ export default function ManageExpiryPage() {
                       </TableCell>
                     )}
                     {showColCost && (
-                      <TableCell className="text-right text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground">
                         {formatCurrency(lot.total_cost)}
                       </TableCell>
                     )}
@@ -405,7 +396,7 @@ export default function ManageExpiryPage() {
                       <div className="flex justify-center">
                         <Button
                           size="icon-lg"
-                          variant="elevated"
+                          variant="elevated-destructive"
                           title="ตัดออก"
                           onClick={() => setConfirmingLot(lot)}
                         >
@@ -474,7 +465,7 @@ export default function ManageExpiryPage() {
             <p className="text-destructive font-medium">การดำเนินการนี้ย้อนกลับไม่ได้</p>
           </div>
         )}
-        confirmLabel={expiring ? 'กำลังตัด...' : 'ยืนยันตัดออก'}
+        confirmLabel={expiring ? 'กำลังตัด...' : 'ยืนยัน'}
         cancelLabel="ยกเลิก"
         onConfirm={handleExpire}
       />
