@@ -4,7 +4,6 @@ import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
-import { DateInput } from '@/components/ui/date-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
@@ -21,15 +20,9 @@ import { MetricCard, type MetricTint } from '@/components/ui/card'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { motion } from 'framer-motion'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
-import type { Customer, Supplier, User, DrugAllergy } from '@/types'
+import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
+import type { Customer, Supplier, User } from '@/types'
 import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2, Filter, MoreHorizontal, Ban, Check } from 'lucide-react'
-
-const SEVERITY_LABELS: Record<string, string> = {
-  mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต'
-}
-const SEVERITY_VARIANTS: Record<string, any> = {
-  mild: 'secondary', moderate: 'warning', severe: 'danger', life_threatening: 'destructive'
-}
 
 // Enter on a working input fires the dialog's primary OK action (modal contract).
 // Textarea is exempted so multi-line input keeps newline behaviour.
@@ -67,9 +60,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   const [loading, setLoading] = useState(false)
 
   const [dialog, setDialog] = useState(false)
-  const [editing, setEditing] = useState<(Customer & { allergies?: DrugAllergy[] }) | null>(null)
-  const [form, setForm] = useState<any>({})
-  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const pageSize = prefs.pageSize
   const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
@@ -91,46 +82,13 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   }, [q, pageSize, showDisabled])
 
   const openAdd = () => {
-    setEditing(null)
-    setForm({
-      full_name: '', id_card: '', dob: '', phone: '', address: '',
-      chronic_diseases: '',
-      is_alert: 0, alert_note: '',
-      is_disabled: 0,
-    })
+    setEditingId(null)
     setDialog(true)
   }
 
-  const openEdit = async (c: Customer) => {
-    const data = await window.api.people.getCustomer(c.id) as any
-    setEditing(data)
-    setForm({
-      id: data.id,
-      full_name: data.full_name ?? '',
-      id_card: data.id_card ?? '',
-      dob: data.dob ?? '',
-      phone: data.phone ?? '',
-      address: data.address ?? '',
-      chronic_diseases: data.chronic_diseases ?? '',
-      is_alert: data.is_alert ?? 0,
-      alert_note: data.alert_note ?? '',
-      is_disabled: data.is_disabled ?? 0,
-    })
+  const openEdit = (c: Customer) => {
+    setEditingId(c.id)
     setDialog(true)
-  }
-
-  const handleSave = async () => {
-    if (!form.full_name?.trim()) { toast({ title: 'กรุณาระบุชื่อ', variant: 'error' }); return }
-    setSaving(true)
-    try {
-      await window.api.people.saveCustomer(form)
-      toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
-      setDialog(false)
-      load(page)
-      refreshStats()
-    } catch (e: any) {
-      toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-    } finally { setSaving(false) }
   }
 
   const toggleDisabled = async (c: Customer) => {
@@ -147,8 +105,6 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   // Shell's "เพิ่มลูกค้า" button bumps addNonce → open the add dialog.
   // Skip the initial 0-value so we don't auto-open on mount.
   useEffect(() => { if (addNonce > 0) openAdd() }, [addNonce])
-
-  const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -322,82 +278,13 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
         </div>
       </div>
 
-      {/* Customer dialog */}
-      <Dialog open={dialog} onOpenChange={setDialog}>
-        <DialogContent size="xl" onClose={() => setDialog(false)}>
-          <DialogHeader>
-            <DialogTitle>{editing ? `แก้ไข: ${editing.full_name}` : 'เพิ่มลูกค้าใหม่'}</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="space-y-4" onKeyDown={submitOnEnter(handleSave)}>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>ชื่อ-นามสกุล <span className="text-destructive">*</span></Label>
-                <Input value={form.full_name ?? ''} onChange={e => setF('full_name', e.target.value)} autoFocus />
-              </div>
-              <div className="space-y-1.5">
-                <Label>โทรศัพท์</Label>
-                <Input value={form.phone ?? ''} onChange={e => setF('phone', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>เลขบัตรประชาชน</Label>
-                <Input value={form.id_card ?? ''} onChange={e => setF('id_card', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>วันเกิด</Label>
-                <DateInput value={form.dob ?? ''} onChange={iso => setF('dob', iso)} />
-              </div>
-              <div className="col-span-2 space-y-1.5">
-                <Label>ที่อยู่</Label>
-                <Textarea value={form.address ?? ''} onChange={e => setF('address', e.target.value)} rows={3} className="resize-none" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>โรคประจำตัว</Label>
-              <Input value={form.chronic_diseases ?? ''} onChange={e => setF('chronic_diseases', e.target.value)} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>ข้อความแจ้งเตือน</Label>
-              <Input value={form.alert_note ?? ''} onChange={e => setF('alert_note', e.target.value)}
-                disabled={!form.is_alert} placeholder="เช่น แพ้ยา, แพ้อาหาร, ลดราคาพิเศษ" />
-            </div>
-
-            {/* Drug allergies (readonly) */}
-            {editing && (editing as any).allergies?.length > 0 && (
-              <div className="space-y-1.5">
-                <Label>ประวัติแพ้ยา</Label>
-                <div className="space-y-1.5">
-                  {((editing as any).allergies as DrugAllergy[]).map(a => (
-                    <div key={a.id} className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2 text-sm">
-                      <Badge variant={SEVERITY_VARIANTS[a.severity ?? 'moderate'] ?? 'secondary'} className="shrink-0">
-                        {SEVERITY_LABELS[a.severity ?? 'moderate']}
-                      </Badge>
-                      <span className="font-medium">{a.generic_name ?? a.drug_name_free ?? '—'}</span>
-                      {a.reaction && <span className="text-muted-foreground">→ {a.reaction}</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              <Toggle framed size="lg" variant="warning" className="flex-1 justify-between"
-                checked={!!form.is_alert} onChange={v => setF('is_alert', v ? 1 : 0)}
-                label="เปิดการแจ้งเตือน" />
-              {editing && (
-                <Toggle framed size="lg" variant="destructive" className="flex-1 justify-between"
-                  checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
-                  label="พักการใช้งาน" />
-              )}
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
-            <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Customer dialog (shared with POS) */}
+      <CustomerFormDialog
+        open={dialog}
+        onOpenChange={setDialog}
+        customerId={editingId}
+        onSaved={() => { load(page); refreshStats() }}
+      />
     </div>
   )
 }

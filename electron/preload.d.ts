@@ -2,7 +2,6 @@ declare const api: {
     pos: {
         searchProducts: (q: string) => Promise<any>;
         searchCustomers: (q: string) => Promise<any>;
-        addCustomer: (data: any) => Promise<any>;
         saveBill: (payload: any) => Promise<any>;
         getDailyStats: () => Promise<any>;
         returnItems: (payload: any) => Promise<any>;

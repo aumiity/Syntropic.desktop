@@ -5,7 +5,6 @@ const api = {
   pos: {
     searchProducts: (q: string) => ipcRenderer.invoke('pos:searchProducts', q),
     searchCustomers: (q: string) => ipcRenderer.invoke('pos:searchCustomers', q),
-    addCustomer: (data: any) => ipcRenderer.invoke('pos:addCustomer', data),
     saveBill: (payload: any) => ipcRenderer.invoke('pos:saveBill', payload),
     getDailyStats: () => ipcRenderer.invoke('pos:getDailyStats'),
     returnItems: (payload: any) => ipcRenderer.invoke('pos:returnItems', payload),

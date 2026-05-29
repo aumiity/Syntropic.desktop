@@ -32,8 +32,8 @@ export function walkInCustomerId(db: ReturnType<typeof getDb>): number {
  * out of order or a code is edited by hand. C0000 (reserved walk-in)
  * has suffix 0, so the first real customer is C0001.
  *
- * Single source of truth shared by `people:saveCustomer` and the POS
- * `pos:addCustomer` quick-add, so both can never diverge or collide.
+ * Single source of truth for customer codes (`people:saveCustomer`, shared
+ * by POS via the same handler), so codes can never diverge or collide.
  */
 export function nextCustomerCode(db: ReturnType<typeof getDb>): string {
   const row = db.prepare(

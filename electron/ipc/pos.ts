@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
-import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes'
+import { walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes'
 import { orderByBucket } from '../db/sortName'
 import dayjs from 'dayjs'
 
@@ -138,14 +138,6 @@ export function registerPosHandlers() {
       ORDER BY ${orderByBucket('full_name')}
       LIMIT 20
     `).all(q, q, q)
-  })
-
-  // Quick-add customer
-  ipcMain.handle('pos:addCustomer', (_e, data: { full_name: string; phone?: string }) => {
-    const db = getDb()
-    const code = nextCustomerCode(db)
-    const result = db.prepare(`INSERT INTO customers (code, full_name, phone) VALUES (?, ?, ?)`).run(code, data.full_name, data.phone ?? '')
-    return db.prepare(`SELECT * FROM customers WHERE id = ?`).get(result.lastInsertRowid)
   })
 
   // Save sale (main POS transaction)

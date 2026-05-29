@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -125,12 +125,8 @@ export default function POSPage() {
   const [showCustomerInfo, setShowCustomerInfo] = useState(false)
   const [customerDetails, setCustomerDetails] = useState<(Customer & { allergies?: DrugAllergy[] }) | null>(null)
 
-  // Quick add customer
+  // Add customer (shared dialog with the People page)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
-  const [qaName, setQaName] = useState('')
-  const [qaPhone, setQaPhone] = useState('')
-  const [qaNote, setQaNote] = useState('')
-  const [qaSaving, setQaSaving] = useState(false)
 
   // Success
   const [lastInvoice, setLastInvoice] = useState('')
@@ -621,17 +617,6 @@ export default function POSPage() {
     }
   }
 
-  const handleQuickAdd = async () => {
-    if (!qaName.trim()) { toast('กรุณากรอกชื่อ', 'error'); return }
-    setQaSaving(true)
-    try {
-      const c = await window.api.pos.addCustomer({ full_name: qaName.trim(), phone: qaPhone.trim(), alert_note: qaNote.trim() }) as Customer
-      cart.setCustomer(c)
-      setShowQuickAdd(false); setQaName(''); setQaPhone(''); setQaNote('')
-      toast('เพิ่มลูกค้าสำเร็จ', 'success')
-    } catch (e: any) { toast(e?.message ?? 'เกิดข้อผิดพลาด', 'error') }
-    finally { setQaSaving(false) }
-  }
 
   // Modal-scoped pending values — fall back to cart discounts when the modal
   // hasn't seeded (or items changed since the last seed).
@@ -1481,37 +1466,12 @@ export default function POSPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── QUICK ADD CUSTOMER DIALOG ── */}
-      <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
-        <DialogContent size="lg" divided onClose={() => setShowQuickAdd(false)}>
-          <DialogHeader>
-            <DialogTitle>เพิ่มลูกค้าใหม่</DialogTitle>
-          </DialogHeader>
-          <DialogBody
-            onKeyDown={e => {
-              if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA' && !qaSaving && qaName.trim()) handleQuickAdd()
-            }}>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>ชื่อ-นามสกุล <span className="text-destructive">*</span></Label>
-                <Input variant="elevated" autoFocus value={qaName} onChange={e => setQaName(e.target.value)} placeholder="ระบุชื่อ-นามสกุล..." />
-              </div>
-              <div className="space-y-1.5">
-                <Label>เบอร์โทรศัพท์</Label>
-                <Input variant="elevated" value={qaPhone} onChange={e => setQaPhone(e.target.value)} placeholder="08X-XXX-XXXX" />
-              </div>
-              <div className="col-span-2 space-y-1.5">
-                <Label>หมายเหตุ / ประวัติแพ้ยา</Label>
-                <Textarea variant="elevated" value={qaNote} onChange={e => setQaNote(e.target.value)} placeholder="เช่น แพ้ยาเพนิซิลลิน, ข้อควรระวัง..." />
-              </div>
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button size="xl" variant="elevated" onClick={() => setShowQuickAdd(false)}>ยกเลิก</Button>
-            <Button size="xl" onClick={handleQuickAdd} disabled={qaSaving}>{qaSaving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ── ADD CUSTOMER DIALOG (shared with People page) ── */}
+      <CustomerFormDialog
+        open={showQuickAdd}
+        onOpenChange={setShowQuickAdd}
+        onSaved={(c) => cart.setCustomer(c)}
+      />
 
       {/* ── PAYMENT DIALOG ── */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
