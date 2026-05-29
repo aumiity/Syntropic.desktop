@@ -14,7 +14,7 @@ const TABS = [
   { value: 'sales',          to: '/manage',                label: 'ประวัติการขาย', icon: Receipt },
   { value: 'purchases',      to: '/manage/purchases',      label: 'ประวัติการซื้อ', icon: PackagePlus },
   { value: 'low-stock',      to: '/manage/low-stock',      label: 'ต่ำกว่าจุดสั่งซื้อ', icon: PackageX },
-  { value: 'expiry',         to: '/manage/expiry',         label: 'ใกล้หมดอายุ',   icon: CalendarClock },
+  { value: 'expiry',         to: '/manage/expiry',         label: 'วันหมดอายุ',   icon: CalendarClock },
   { value: 'negative-stock', to: '/manage/negative-stock', label: 'สต๊อคติดลบ',    icon: PackageMinus },
 ] as const
 

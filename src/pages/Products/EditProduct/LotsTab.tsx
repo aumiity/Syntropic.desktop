@@ -12,6 +12,7 @@ import {
 import {
   Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle,
 } from '@/components/ui/popover'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { DateInput } from '@/components/ui/date-input'
 import { FormField } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
@@ -269,21 +270,32 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                         if (!lot.expiry_date) return <span className="text-muted-foreground">—</span>
                         const days = dayjs(lot.expiry_date).diff(dayjs(), 'day')
                         const dateStr = formatDate(lot.expiry_date)
+                        const tip = days < 0
+                          ? `หมดอายุแล้ว ${Math.abs(days).toLocaleString()} วัน`
+                          : `เหลืออีก ${days.toLocaleString()} วัน`
                         // 3 buckets: expired (<0) · near-expiry (<90d, "ต่ำกว่า 3 เดือน") · normal
-                        if (days < 0) return (
-                          <Badge variant="destructive-outline" className="rounded-md gap-1">
-                            <ClockAlert className="size-3.5" /> {dateStr}
+                        const badge = days < 0 ? (
+                          <Badge variant="destructive-outline" className="rounded-md gap-1 text-sm">
+                            <ClockAlert className="size-4" /> {dateStr}
+                          </Badge>
+                        ) : days < 90 ? (
+                          <Badge variant="warning-outline" className="rounded-md gap-1 text-sm">
+                            <ClockFading className="size-4" /> {dateStr}
+                          </Badge>
+                        ) : (
+                          <Badge variant="success-outline" className="rounded-md gap-1 text-sm">
+                            <Clock className="size-4" /> {dateStr}
                           </Badge>
                         )
-                        if (days < 90) return (
-                          <Badge variant="warning-outline" className="rounded-md gap-1">
-                            <ClockFading className="size-3.5" /> {dateStr}
-                          </Badge>
-                        )
+                        // Wrap in <span> — Badge has no forwardRef, so Radix
+                        // Tooltip's asChild can't attach the ref it needs.
                         return (
-                          <Badge variant="success-outline" className="rounded-md gap-1">
-                            <Clock className="size-3.5" /> {dateStr}
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex cursor-help">{badge}</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" align="center">{tip}</TooltipContent>
+                          </Tooltip>
                         )
                       })()}
                     </TableCell>

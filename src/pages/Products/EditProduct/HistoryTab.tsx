@@ -15,13 +15,27 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
-import { formatDateTime, cn } from '@/lib/utils'
+import { formatDate, formatDateTime, cn } from '@/lib/utils'
 import {
   History, RotateCcw, Info, StickyNote, Filter,
 } from 'lucide-react'
 import { MOVEMENT_META, type StockMovement, type MovementSortKey } from './shared'
 
 const ALL_MOVEMENT_TYPES = Object.keys(MOVEMENT_META)
+
+// Which document a movement's "ดูข้อมูล" button links to — decided by the
+// movement TYPE, not merely whether an invoice_no happens to be attached.
+// receive/purchase_return reference a GR; sale/sale_return reference a bill.
+// adjust/expiry disposals reference no document → button stays muted, even
+// though they sit on a lot that still carries its originating GR invoice_no.
+const GR_LINK_TYPES = new Set(['receive', 'purchase_return'])
+const SALE_LINK_TYPES = new Set(['sale', 'sale_return', 'sale_void'])
+
+function movementDetailLink(m: StockMovement): { kind: 'sale' | 'gr'; invoice: string } | null {
+  if (SALE_LINK_TYPES.has(m.movement_type) && m.sale_invoice_no) return { kind: 'sale', invoice: m.sale_invoice_no }
+  if (GR_LINK_TYPES.has(m.movement_type) && m.gr_invoice_no) return { kind: 'gr', invoice: m.gr_invoice_no }
+  return null
+}
 
 // Group movement types by label so types that share a label (e.g. `expired`
 // and `near_expiry` both display as "หมดอายุ") collapse into a single filter
@@ -135,11 +149,13 @@ export function HistoryTab({ productId, isNew, active }: Props) {
   }
 
   const openMovementDetail = (m: StockMovement) => {
-    if (m.sale_invoice_no) {
-      setSaleDetailInvoice(m.sale_invoice_no)
+    const link = movementDetailLink(m)
+    if (!link) return
+    if (link.kind === 'sale') {
+      setSaleDetailInvoice(link.invoice)
       setSaleDetailOpen(true)
-    } else if (m.gr_invoice_no) {
-      setGrDetailInvoice(m.gr_invoice_no)
+    } else {
+      setGrDetailInvoice(link.invoice)
       setGrDetailOpen(true)
     }
   }
@@ -259,6 +275,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                 </SortableTableHead>
                 <TableHead className="min-w-28">ประเภท</TableHead>
                 <TableHead className="min-w-32">Lot</TableHead>
+                <TableHead className="min-w-28">วันหมดอายุ</TableHead>
                 <TableHead className="min-w-28">เปลี่ยนแปลง</TableHead>
                 <TableHead className="min-w-28">คงเหลือ</TableHead>
                 <TableHead className="min-w-24">ดูข้อมูล</TableHead>
@@ -267,13 +284,13 @@ export function HistoryTab({ productId, isNew, active }: Props) {
             <TableBody>
               {movementsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                     กำลังโหลด...
                   </TableCell>
                 </TableRow>
               ) : (movements?.length ?? 0) === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-16">
                     <History className="size-10 mx-auto mb-2 opacity-30" />
                     {(movementDateFrom || movementDateTo || movementTypeFilter.size < ALL_MOVEMENT_TYPES.length)
                       ? 'ไม่มีรายการตามตัวกรอง'
@@ -288,7 +305,8 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                 }
                 const Icon = meta.icon
                 const isPositive = m.qty_change > 0
-                const hasDetail = Boolean(m.sale_invoice_no || m.gr_invoice_no)
+                const detailLink = movementDetailLink(m)
+                const hasDetail = detailLink != null
                 return (
                   <TableRow key={m.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                     <TableCell className="text-sm">{formatDateTime(m.created_at)}</TableCell>
@@ -298,6 +316,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm truncate" title={m.lot_number ?? undefined}>{m.lot_number ?? '—'}</TableCell>
+                    <TableCell className="text-sm">{m.expiry_date ? formatDate(m.expiry_date) : '—'}</TableCell>
                     <TableCell className={cn(
                       'text-sm font-semibold',
                       isPositive ? 'text-success' : 'text-destructive',
@@ -336,7 +355,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                             size="icon-lg"
                             variant="elevated"
                             onClick={() => openMovementDetail(m)}
-                            title={`ดู ${m.sale_invoice_no ?? m.gr_invoice_no}`}
+                            title={`ดู ${detailLink?.invoice ?? ''}`}
                           >
                             <Info />
                           </Button>

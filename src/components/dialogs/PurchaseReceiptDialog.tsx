@@ -207,7 +207,7 @@ export function PurchaseReceiptDialog({
               {footerLeft && <div className="flex items-center min-w-0">{footerLeft}</div>}
               <div className="flex items-center gap-2">
                 {!isCancelled && actions}
-                <Button size="xl" variant="elevated" onClick={() => onOpenChange(false)}>ปิด</Button>
+                <Button size="xl" variant="default" onClick={() => onOpenChange(false)}>ปิด</Button>
               </div>
             </DialogFooter>
           </>

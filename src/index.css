@@ -74,6 +74,7 @@
     --warning-foreground: 0 0% 100%;
     --warning-hover: 48 100% 38%;
     --warning-soft: 48 100% 96%;
+    --warning-soft-hover: 48 100% 86%;
     --warning-strong: 32 88% 33%;
 
     --destructive-soft: 0 86% 97%;
@@ -168,6 +169,7 @@
     --warning-foreground: 0 0% 100%;
     --warning-hover: 48 100% 38%;
     --warning-soft: 38 30% 18%;
+    --warning-soft-hover: 38 30% 28%;
     --warning-strong: 26 90% 37%;
 
     --destructive-soft: 0 86% 97%;

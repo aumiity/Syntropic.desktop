@@ -4,8 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { formatCurrency, formatDateTime } from '@/lib/utils'
-import { Ban, ChevronRight, Boxes } from 'lucide-react'
+import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
+import dayjs from 'dayjs'
+import { Ban, ChevronRight, Boxes, ClockAlert } from 'lucide-react'
 import type { Sale, SaleItem } from '@/types'
 
 // One sale_item_lots row exposed to the renderer. Joined fields come from
@@ -156,6 +157,7 @@ export function SaleDetailDialog({
                     {detail.items.map((item, i) => {
                       const profit = item.line_total - (item.item_cost ?? 0)
                       const isBundle = item.is_bundle === 1
+                      const hasLots = (item.component_lots?.length ?? 0) > 0
                       const isExpanded = expanded.has(item.id)
                       const dimmed = item.is_cancelled ? 'opacity-40 line-through' : ''
                       return (
@@ -164,12 +166,12 @@ export function SaleDetailDialog({
                             <TableCell className="text-center text-xs text-muted-foreground">{i + 1}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                {isBundle && (
+                                {hasLots && (
                                   <button
                                     type="button"
                                     onClick={() => toggleExpand(item.id)}
                                     className="shrink-0 inline-flex items-center justify-center size-5 rounded hover:bg-muted"
-                                    title={isExpanded ? 'ย่อ' : 'ดูรายการ'}
+                                    title={isExpanded ? 'ย่อ' : (isBundle ? 'ดูรายการ' : 'ดูล็อต/วันหมดอายุ')}
                                     aria-expanded={isExpanded}
                                   >
                                     <motion.span
@@ -203,7 +205,7 @@ export function SaleDetailDialog({
                             </TableCell>
                           </TableRow>
                           <AnimatePresence initial={false}>
-                            {isBundle && isExpanded && item.component_lots && item.component_lots.length > 0 && (
+                            {isExpanded && hasLots && item.component_lots && (
                               <motion.tr
                                 key={`${item.id}-components`}
                                 initial={{ opacity: 0 }}
@@ -222,7 +224,7 @@ export function SaleDetailDialog({
                                       <table className="w-full text-sm">
                                         <thead className="text-xs text-muted-foreground">
                                           <tr className="text-left">
-                                            <th className="py-1 pr-4">รายการ</th>
+                                            {isBundle && <th className="py-1 pr-4">รายการ</th>}
                                             <th className="py-1 pr-4">ล็อต</th>
                                             <th className="py-1 pr-4">วันหมดอายุ</th>
                                             <th className="py-1 pr-4 text-right">จำนวน</th>
@@ -236,13 +238,20 @@ export function SaleDetailDialog({
                                             const cancelledStyle = cl.is_cancelled ? 'opacity-40 line-through' : ''
                                             return (
                                               <tr key={cl.id} className={cancelledStyle}>
-                                                <td className="py-1 pr-4">{cl.component_name ?? '—'}</td>
+                                                {isBundle && <td className="py-1 pr-4">{cl.component_name ?? '—'}</td>}
                                                 <td className="py-1 pr-4 text-xs">
                                                   {cl.lot_id == null
                                                     ? <span className="text-destructive">ไม่มีล็อต (ขายเกิน)</span>
                                                     : (cl.lot_number ?? '—')}
                                                 </td>
-                                                <td className="py-1 pr-4">{cl.expiry_date ?? '—'}</td>
+                                                <td className="py-1 pr-4">
+                                                  {!cl.expiry_date ? '—'
+                                                    : dayjs(cl.expiry_date).diff(dayjs(detail.sold_at), 'day') < 0 ? (
+                                                      <span className="inline-flex items-center gap-1 text-destructive" title="ล็อตนี้หมดอายุไปแล้ว ณ วันที่ขาย">
+                                                        <ClockAlert className="size-3" /> {formatDate(cl.expiry_date)}
+                                                      </span>
+                                                    ) : formatDate(cl.expiry_date)}
+                                                </td>
                                                 <td className="py-1 pr-4 text-right">{cl.qty}</td>
                                                 <td className="py-1 pr-4 text-right text-muted-foreground">
                                                   {cl.lot_id != null ? formatCurrency(cl.cost_price ?? 0) : '—'}

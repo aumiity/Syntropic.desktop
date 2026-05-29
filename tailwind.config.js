@@ -75,6 +75,7 @@ export default {
           foreground: 'hsl(var(--warning-foreground))',
           hover: 'hsl(var(--warning-hover))',
           soft: 'hsl(var(--warning-soft))',
+          'soft-hover': 'hsl(var(--warning-soft-hover))',
           strong: 'hsl(var(--warning-strong))',
         },
         violet: {

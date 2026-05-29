@@ -1023,7 +1023,7 @@ export default function PurchasePage() {
 
                     {/* GR summary */}
                     <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2.5">
-                      <div className="text-sm font-bold text-foreground-subtle uppercase tracking-wide">สรุปใบรับสินค้า</div>
+                      <div className="text-sm font-bold text-foreground uppercase tracking-wide">สรุปใบรับสินค้า</div>
                       <div>
                         <div className="text-sm text-foreground-subtle mb-0.5">เลขที่ใบรับ</div>
                         <div className="text-sm font-bold text-primary">{invoiceNo || '—'}</div>
@@ -1042,7 +1042,7 @@ export default function PurchasePage() {
 
                     {/* Payment type */}
                     <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-3">
-                      <div className="text-sm font-bold text-foreground-subtle uppercase tracking-wide">การชำระเงิน</div>
+                      <div className="text-sm font-bold text-foreground uppercase tracking-wide">การชำระเงิน</div>
                       <div className="flex gap-2">
                         <Button
                           type="button"
@@ -1146,7 +1146,7 @@ export default function PurchasePage() {
 
                     {/* Note */}
                     <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2">
-                      <div className="text-sm font-bold text-foreground-subtle uppercase tracking-wide">หมายเหตุ</div>
+                      <div className="text-sm font-bold text-foreground uppercase tracking-wide">หมายเหตุ</div>
                       <Textarea
                         variant="elevated"
                         value={grNote}
@@ -1209,30 +1209,33 @@ export default function PurchasePage() {
             return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}` : (s ?? '')
           }
           return (
-            <DialogContent size="lg" onClose={closePriceModal}>
+            <DialogContent size="lg" divided onClose={closePriceModal}>
               <DialogHeader>
                 <DialogTitle className="text-2xl">ราคาขาย</DialogTitle>
                 <div className="text-base font-semibold text-foreground">{row.trade_name || '-'}</div>
               </DialogHeader>
               <DialogBody>
-                <div className="space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin px-1">
-                  {/* Custom price input — POS pattern */}
-                  <div className="w-full px-4 py-3 rounded-xl bg-primary-soft">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-base font-bold text-primary">กำหนดราคา (ต่อ {row.unit_name || 'ชิ้น'})</span>
-                    </div>
-                    <div className="flex items-center gap-2">
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin p-0.5">
+                  {/* Custom price — card-style, mirrors POS price picker */}
+                  <div className="w-full rounded-xl border-2 border-primary bg-primary-soft/50 p-3.5 shadow-card">
+                    <span className="text-base font-semibold text-primary">กำหนดราคา (ต่อ {row.unit_name || 'ชิ้น'})</span>
+                    <div className="mt-2 flex items-center gap-2">
                       <PriceInput
                         autoFocus
                         value={priceDraft}
                         onChange={setPriceDraft}
                         onFocus={e => e.currentTarget.select()}
                         onKeyDown={e => { if (e.key === 'Enter' && customPrice > 0 && !priceSaving) { e.preventDefault(); savePriceModal() } }}
-                        className="w-full flex-1 h-10 text-3xl font-bold bg-card rounded-lg focus:ring-2 focus:ring-primary outline-none px-3"
+                        className="w-full flex-1 h-12 text-3xl font-extrabold text-primary bg-card border border-border rounded-lg shadow-sm focus:ring-2 focus:ring-primary outline-none px-3"
                       />
-                      <Button variant="default" onClick={savePriceModal} disabled={priceSaving || customPrice <= 0} className="h-10 px-4 text-sm">
+                      <Button variant="default" onClick={savePriceModal} disabled={priceSaving || customPrice <= 0} className="h-12 px-5 text-base">
                         {priceSaving ? 'กำลังบันทึก…' : 'ตกลง'}
                       </Button>
+                    </div>
+                    <div className="mt-2.5 border-t border-border/60 pt-2 grid grid-cols-3 gap-2 text-sm">
+                      <span className="text-muted-foreground">ทุน <span className="font-semibold text-foreground">{formatCurrency(cost)}</span></span>
+                      <span className="text-muted-foreground">กำไร <span className={`font-semibold ${customProfit > 0 ? 'text-success' : customProfit < 0 ? 'text-destructive' : 'text-foreground'}`}>{formatCurrency(customProfit)}</span></span>
+                      <span className="text-muted-foreground">กำไร% <span className={`font-semibold ${customProfit > 0 ? 'text-success' : customProfit < 0 ? 'text-destructive' : 'text-foreground'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</span></span>
                     </div>
                   </div>
 
@@ -1257,7 +1260,7 @@ export default function PurchasePage() {
                     const profitCls = (n: number) => n > 0 ? 'text-success' : n < 0 ? 'text-destructive' : 'text-muted-foreground'
                     const sign = (n: number) => n > 0 ? '+' : ''
                     return (
-                      <div className="rounded-xl bg-muted px-4 py-3 space-y-2">
+                      <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 space-y-2">
                         <div className="text-base font-semibold text-foreground-subtle">เปรียบเทียบ</div>
                         <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr] gap-x-3 gap-y-1.5 text-sm items-center">
                           {/* Column headers */}
@@ -1296,6 +1299,7 @@ export default function PurchasePage() {
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1">หมายเหตุ</label>
                     <Input
+                      variant="elevated"
                       value={priceNote}
                       onChange={e => setPriceNote(e.target.value)}
                       placeholder="เหตุผลการแก้ไขราคา..."
@@ -1306,7 +1310,7 @@ export default function PurchasePage() {
                   {/* History */}
                   <div>
                     <div className="text-sm font-semibold text-muted-foreground mb-1.5">ประวัติการแก้ไขล่าสุด</div>
-                    <div className="rounded-lg bg-muted/40 max-h-40 overflow-y-auto">
+                    <div className="rounded-lg border border-border bg-muted/40 max-h-40 overflow-y-auto">
                       {priceHistory.length === 0 ? (
                         <div className="text-sm text-foreground-subtle text-center py-3">ยังไม่มีประวัติ</div>
                       ) : (
@@ -1337,7 +1341,7 @@ export default function PurchasePage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="tertiary" size="xl" className="w-32" onClick={closePriceModal}>ปิด</Button>
+                <Button size="xl" className="w-32" onClick={closePriceModal}>ปิด</Button>
               </DialogFooter>
             </DialogContent>
           )
@@ -1421,6 +1425,7 @@ export default function PurchasePage() {
                         <div className="relative">
                           <Input
                             autoFocus
+                            variant="elevated"
                             type="text"
                             inputMode="decimal"
                             value={adjFocus === 'baht'
@@ -1443,6 +1448,7 @@ export default function PurchasePage() {
                         <label className="text-sm font-semibold text-muted-foreground">เปอร์เซ็นต์ (%)</label>
                         <div className="relative">
                           <Input
+                            variant="elevated"
                             type="text"
                             inputMode="decimal"
                             value={adjFocus === 'pct'
@@ -1483,6 +1489,7 @@ export default function PurchasePage() {
                         <span>ยอดสุทธิ</span>
                         <div className="relative w-36">
                           <Input
+                            variant="elevated"
                             type="text"
                             inputMode="decimal"
                             value={adjFocus === 'net' ? billNetInput : formatNum(billNetInput, true)}
@@ -1490,7 +1497,7 @@ export default function PurchasePage() {
                             onFocus={() => setAdjFocus('net')}
                             onBlur={() => { setAdjFocus(null); setBillNetInput(calcNet(billDiscountBaht, billSurchargeBaht)) }}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyBillAdjust() } }}
-                            className="h-9 text-sm font-semibold text-right bg-card"
+                            className="h-9 text-sm font-semibold text-right"
                           />
                         </div>
                       </div>
@@ -1536,7 +1543,7 @@ export default function PurchasePage() {
                         setImportColumns(next)
                       }}
                     >
-                      <SelectTrigger size="sm" className="h-8 text-sm">
+                      <SelectTrigger variant="elevated" size="sm" className="h-8 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1573,6 +1580,7 @@ export default function PurchasePage() {
             </div>
             <Textarea
               autoFocus
+              variant="elevated"
               value={importText}
               onChange={e => setImportText(e.target.value)}
               placeholder={'CETRIZIN\t200\t41128\t04/11/2028\t04/11/2028\t1,020.00'}

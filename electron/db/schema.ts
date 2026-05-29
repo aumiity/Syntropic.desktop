@@ -705,6 +705,15 @@ export function initializeSchema(db: Database.Database) {
     try { db.exec(sql) } catch {}
   }
 
+  // Migration: split the sale_return movement type. Voids and genuine customer
+  // returns both used to write movement_type='sale_return', distinguished only
+  // by ref_type ('sale' = void, 'return' = real return). Promote voids to their
+  // own 'sale_void' type so the history/filter can tell them apart. The
+  // ref_type predicate makes this exact + idempotent (no rows match on re-run).
+  try {
+    db.exec(`UPDATE stock_movements SET movement_type = 'sale_void' WHERE movement_type = 'sale_return' AND ref_type = 'sale'`)
+  } catch {}
+
   // Refresh query-planner stats so the planner picks the new indexes added
   // above on first launch (and on later launches where data has grown).
   // PRAGMA optimize is cheap when stats are fresh — only re-ANALYZEs tables

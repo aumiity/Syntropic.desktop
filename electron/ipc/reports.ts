@@ -105,24 +105,24 @@ export function registerReportHandlers() {
       LEFT JOIN products p ON p.id = si.product_id
       WHERE si.sale_id = ?
     `).all(sale.id) as any[]
-    // For bundle items, attach the component breakdown (sale_item_lots grouped
-    // by product_id with joined component name + lot info). Used by
-    // SaleDetailDialog to render the expandable list under each bundle row.
+    // Attach the lot breakdown (sale_item_lots with joined lot info) to EVERY
+    // line. For a bundle this is the per-component split; for a normal product
+    // it's the FEFO lots that line was dispensed from. SaleDetailDialog uses it
+    // to render the expandable list under each row — letting the operator trace
+    // which lot (and its expiry) was sold, not just for bundles.
     for (const it of items) {
-      if (it.is_bundle === 1) {
-        it.component_lots = db.prepare(`
-          SELECT sil.id, sil.lot_id, sil.product_id, sil.qty, sil.is_cancelled,
-                 c.trade_name as component_name,
-                 u.name as component_unit_name,
-                 pl.lot_number, pl.expiry_date, pl.cost_price
-          FROM sale_item_lots sil
-          LEFT JOIN products c ON c.id = sil.product_id
-          LEFT JOIN item_units u ON u.id = c.unit_id
-          LEFT JOIN product_lots pl ON pl.id = sil.lot_id
-          WHERE sil.sale_item_id = ?
-          ORDER BY ${orderByBucket('c.trade_name')}, pl.expiry_date
-        `).all(it.id)
-      }
+      it.component_lots = db.prepare(`
+        SELECT sil.id, sil.lot_id, sil.product_id, sil.qty, sil.is_cancelled,
+               c.trade_name as component_name,
+               u.name as component_unit_name,
+               pl.lot_number, pl.expiry_date, pl.cost_price
+        FROM sale_item_lots sil
+        LEFT JOIN products c ON c.id = sil.product_id
+        LEFT JOIN item_units u ON u.id = c.unit_id
+        LEFT JOIN product_lots pl ON pl.id = sil.lot_id
+        WHERE sil.sale_item_id = ?
+        ORDER BY ${orderByBucket('c.trade_name')}, pl.expiry_date
+      `).all(it.id)
     }
     return { ...sale, items }
   })
@@ -157,7 +157,7 @@ export function registerReportHandlers() {
       if (!sale || sale.status === 'voided') throw new Error('ไม่สามารถยกเลิกรายการนี้ได้')
       // Return bills (RT-) can't be voided — if the operator wants to "undo"
       // a return, they sell the item again as a normal sale. Voiding would
-      // also log a confusing 'sale_return' movement with a negative qty.
+      // also log a confusing 'sale_void' movement with a negative qty.
       if (sale.sale_type === 'return') throw new Error('ไม่สามารถยกเลิกบิลรับคืนสินค้าได้ — ถ้าต้องการคืนสต็อก ให้ขายออกใหม่')
 
       // Restore stock for each lot. SELECT sil.* only — sale_item_lots and
@@ -183,7 +183,7 @@ export function registerReportHandlers() {
         db.prepare(`UPDATE product_lots SET qty_on_hand = qty_on_hand + ? WHERE id = ?`).run(sil.qty, sil.lot_id)
         db.prepare(`UPDATE sale_item_lots SET is_cancelled = 1 WHERE id = ?`).run(sil.id)
         db.prepare(`INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, note)
-          VALUES (?, ?, 'sale_return', 'sale', ?, ?, ?, ?, ?)`).run(
+          VALUES (?, ?, 'sale_void', 'sale', ?, ?, ?, ?, ?)`).run(
           sil.product_id, sil.lot_id, id, sil.qty, qtyBefore, qtyBefore + sil.qty, `ยกเลิกขาย: ${sale.invoice_no}`
         )
       }

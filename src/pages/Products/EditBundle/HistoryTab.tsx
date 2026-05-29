@@ -24,11 +24,11 @@ import { MOVEMENT_META, type StockMovement, type MovementSortKey } from '../Edit
 // bundle product row (those live on the components). Filter the canonical
 // MOVEMENT_META down to these two so the type-filter popover only shows
 // what the table can actually contain.
-const BUNDLE_MOVE_TYPES = ['sale', 'sale_return']
+const BUNDLE_MOVE_TYPES = ['sale', 'sale_return', 'sale_void']
 
 // Group by label so types sharing a label collapse into one filter checkbox.
-// Bundle list has no merged labels currently (sale/sale_return are distinct),
-// but the structure mirrors EditProduct/HistoryTab so parity stays clean.
+// Bundle list has no merged labels currently (sale/sale_return/sale_void are
+// distinct), but the structure mirrors EditProduct/HistoryTab for parity.
 const MOVEMENT_FILTER_GROUPS: { label: string; types: string[]; icon: typeof MOVEMENT_META[string]['icon'] }[] = (() => {
   const seen = new Map<string, { label: string; types: string[]; icon: typeof MOVEMENT_META[string]['icon'] }>()
   for (const type of BUNDLE_MOVE_TYPES) {
@@ -49,8 +49,9 @@ interface Props {
 }
 
 // Bundle history tab — specialized version of EditProduct/HistoryTab.
-// Bundles have no stock, so we only show 'sale' and 'sale_return' (voids/returns).
-// Lot and QtyBefore/After columns are removed as they are always empty.
+// Bundles have no stock, so we only show 'sale', 'sale_return' (customer
+// return) and 'sale_void' (bill cancelled). Lot and QtyBefore/After columns
+// are removed as they are always empty.
 export function HistoryTab({ productId, isNew, active }: Props) {
   const { toast } = useToast()
 
@@ -284,9 +285,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                 const Icon = meta.icon
                 const isPositive = m.qty_change > 0
                 const displayNote = m.note
-                  || (m.sale_invoice_no
-                    ? `${m.movement_type === 'sale_return' ? 'คืนสินค้า' : 'ขาย'}: ${m.sale_invoice_no}`
-                    : null)
+                  || (m.sale_invoice_no ? `${meta.label}: ${m.sale_invoice_no}` : null)
                 return (
                   <TableRow key={m.id} className="hover:bg-primary-soft/60 transition-colors">
                     <TableCell className="text-sm">{formatDateTime(m.created_at)}</TableCell>

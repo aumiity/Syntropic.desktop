@@ -1055,20 +1055,6 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Pay button */}
-          <Button disabled={cart.items.length === 0}
-            onClick={() => {
-              setPendingDiscounts(cart.items.map(i => i.discount))
-              setTotalDiscountInput(cart.totalDiscount().toFixed(2))
-              setCashAmount(cart.totalAmount().toFixed(2))
-              setShowBreakdown(false)
-              setShowPayment(true)
-            }}
-            className="w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-tertiary-hover  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3 border border-border">
-              <HandCoins className="size-9" strokeWidth={2.2} />
-              <span className="text-4xl font-bold leading-none">ชำระเงิน</span>
-          </Button>
-
           {/* Quick actions (vertical stack) */}
           <div className="flex flex-col gap-1.5 flex-1 min-h-0">
             <Button variant="outline" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
@@ -1092,6 +1078,20 @@ export default function POSPage() {
               <Trash2 className="size-6 text-foreground-subtle" /> ยกเลิกบิล
             </Button>
           </div>
+
+          {/* Pay button */}
+          <Button disabled={cart.items.length === 0}
+            onClick={() => {
+              setPendingDiscounts(cart.items.map(i => i.discount))
+              setTotalDiscountInput(cart.totalDiscount().toFixed(2))
+              setCashAmount(cart.totalAmount().toFixed(2))
+              setShowBreakdown(false)
+              setShowPayment(true)
+            }}
+            className="w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-tertiary-hover  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3 border border-border">
+              <HandCoins className="size-9" strokeWidth={2.2} />
+              <span className="text-4xl font-bold leading-none">ชำระเงิน</span>
+          </Button>
 
           {/* Daily summary */}
           <div className="rounded-2xl bg-card px-3 py-2.5 shrink-0 flex flex-col gap-2 border border-border">
@@ -1471,7 +1471,7 @@ export default function POSPage() {
 
       {/* ── PAYMENT DIALOG ── */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent size="full" onClose={() => setShowPayment(false)} className="h-[880px] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="full" onClose={() => setShowPayment(false)} className="h-[800px] grid-rows-[auto_1fr_auto]">
           <DialogHeader><DialogTitle className="text-2xl">ชำระเงิน</DialogTitle></DialogHeader>
           <DialogBody className="min-h-0 overflow-hidden">
             {(() => {
@@ -1574,7 +1574,7 @@ export default function POSPage() {
                     </div>
 
                     {/* Transaction details */}
-                    <div className="rounded-xl bg-muted p-4 flex flex-col min-h-0 flex-1">
+                    <div className="rounded-xl border border-border bg-muted/40 p-4 flex flex-col min-h-0 flex-1">
                       <div className="text-base font-semibold mb-2 shrink-0 flex items-center justify-between">
                         <span>รายการสินค้า</span>
                         <span className="text-base font-semibold text-muted-foreground">{cart.items.length} รายการ</span>
@@ -1611,7 +1611,7 @@ export default function POSPage() {
                   {/* RIGHT COLUMN — existing payment controls */}
                   <div className="flex flex-col gap-4 overflow-y-auto scrollbar-thin pr-1 min-h-0 h-full">
                   {/* Section 1 — Gross + editable discount */}
-                  <div className="rounded-xl bg-muted p-4 space-y-3">
+                  <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-semibold text-muted-foreground">ราคาขายรวม</span>
                       <span className="text-3xl font-semibold pr-2.5">{formatCurrency(subtotal)}</span>
@@ -1619,6 +1619,7 @@ export default function POSPage() {
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xl font-semibold text-muted-foreground">ส่วนลดรวม</span>
                       <Input
+                        variant="elevated"
                         type="number"
                         inputMode="decimal"
                         value={totalDiscountInput}
@@ -1634,13 +1635,13 @@ export default function POSPage() {
                         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                         placeholder="0.00"
                         disabled={cart.items.length === 0 || subtotal <= 0}
-                        className="text-right w-52 h-12 text-3xl font-semibold bg-card text-destructive focus-visible:ring-destructive/30"
+                        className="text-right w-52 h-12 text-3xl font-semibold text-destructive focus-visible:ring-destructive/30"
                       />
                     </div>
                   </div>
 
                   {/* Section 2 — Net total */}
-                  <div className={`rounded-xl p-4 ${netNegative
+                  <div className={`rounded-xl border border-border p-4 ${netNegative
                     ? 'bg-destructive-soft'
                     : 'bg-primary-soft'}`}>
                     <div className="text-xl text-muted-foreground font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
@@ -1650,12 +1651,13 @@ export default function POSPage() {
                   </div>
 
                   {/* Cash input */}
-                <div className="rounded-xl bg-muted p-4 space-y-3 h-36">
+                <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3 h-36">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-xl font-semibold text-muted-foreground flex items-center gap-1.5">
                       <Banknote className="size-7 text-success" /> รับเงินมา
                     </span>
                     <Input
+                      variant="elevated"
                       type="number"
                       value={cashAmount}
                       onFocus={e => e.currentTarget.select()}
@@ -1675,7 +1677,7 @@ export default function POSPage() {
                         handleCompleteSale()
                       }}
                       placeholder="0.00"
-                      className="text-right bg-card w-52 h-12 text-4xl font-semibold focus-visible:ring-success/30"
+                      className="text-right w-52 h-12 text-4xl font-semibold focus-visible:ring-success/30"
                       autoFocus
                     />
                   </div>
@@ -1700,14 +1702,14 @@ export default function POSPage() {
                   <div className="space-y-3">
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="elevated"
                       onClick={() => setShowBreakdown(v => !v)}
                       className="shrink-0 text-base"
                     >
                       {showBreakdown ? 'ซ่อนรายละเอียด' : 'รายละเอียด'}
                     </Button>
                     {showBreakdown && (
-                      <div className="rounded-xl bg-muted px-5 py-3 space-y-2 text-base">
+                      <div className="rounded-xl border border-border bg-muted/40 px-5 py-3 space-y-2 text-base">
                         <div className="flex items-center justify-between gap-4">
                           <span className="text-muted-foreground font-semibold">ต้นทุน</span>
                           <span className="font-semibold">{formatCurrency(totalCost)}</span>
@@ -1745,7 +1747,7 @@ export default function POSPage() {
         <DialogContent size="4xl" onClose={closeAdjust}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
-              <TintIcon icon={PackageMinus} tint="warning" size="md" />
+              <TintIcon icon={PackageMinus} tint="warning" size="md" bordered />
               ตัดสต็อก
             </DialogTitle>
           </DialogHeader>
@@ -1758,6 +1760,7 @@ export default function POSPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     ref={adjustInputRef}
+                    variant="elevated"
                     placeholder="สแกนหรือค้นหาชื่อ / บาร์โค้ด / รหัสสินค้า..."
                     value={adjustQuery}
                     onChange={e => handleAdjustSearch(e.target.value)}
@@ -1782,7 +1785,7 @@ export default function POSPage() {
                     <div className="px-2 pb-2 space-y-1">
                       {adjustResults.map(p => (
                         <div key={p.id} onClick={() => handleAdjustSelectProduct(p)}
-                          className="group flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer transition-colors hover:bg-primary-soft/60">
+                          className="group flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer transition-colors hover:bg-warm">
                           <div className="min-w-0 flex-1">
                             <div className="font-semibold text-sm truncate">{p.trade_name}</div>
                             <div className="text-sm text-muted-foreground truncate">{p.unit_name} · {p.barcode || p.code || '—'}</div>
@@ -1796,8 +1799,8 @@ export default function POSPage() {
               ) : (
                 <div className="flex-1 min-h-0 flex flex-col px-3 pb-3 gap-2.5 overflow-hidden">
                   {/* Selected product hero */}
-                  <div className="flex items-center gap-2.5 rounded-lg bg-primary-soft px-2.5 py-1.5 shrink-0">
-                    <TintIcon icon={PackageMinus} tint="primary-strong" size="md" />
+                  <div className="flex items-center gap-2.5 rounded-lg bg-warm px-2.5 py-1.5 shrink-0">
+                    <TintIcon icon={PackageMinus} tint="tertiary" size="md" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm text-foreground truncate leading-tight">{adjustSelected.trade_name}</div>
                       <div className="text-sm text-muted-foreground truncate leading-tight">หน่วย: {adjustSelected.unit_name ?? '—'}</div>
@@ -1814,15 +1817,15 @@ export default function POSPage() {
                     const totalStock = (adjustSelected.lots ?? []).reduce((s, l) => s + l.qty_on_hand, 0)
                     const noStock = totalStock <= 0
                     return (
-                      <div className={`shrink-0 rounded-lg px-3 py-2.5 ${noStock ? 'bg-destructive-soft' : 'bg-info-soft/50'}`}>
+                      <div className={`shrink-0 rounded-lg px-3 py-2.5 ${noStock ? 'bg-destructive-soft' : 'bg-warm'}`}>
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                            <Info className="size-4 text-info-soft-foreground" />
+                            <Info className="size-4 text-foreground" />
                             ตัดอัตโนมัติแบบ FEFO
                           </div>
                           <Badge variant={noStock ? 'destructive' : 'secondary'}>คงเหลือ {totalStock} {adjustSelected.unit_name ?? ''}</Badge>
                         </div>
-                        <div className="text-sm text-muted-foreground space-y-0.5">
+                        <div className="text-sm text-foreground space-y-0.5">
                           <div>ระบบจะตัดจากล็อตที่ใกล้หมดอายุก่อน</div>
                           <div>หากต้องการเลือกล็อต ให้ใช้ <span className="text-foreground font-medium">แก้ไขสินค้า → ล็อต</span></div>
                         </div>
@@ -1836,14 +1839,15 @@ export default function POSPage() {
                   {/* Qty section — pinned at bottom */}
                   <div className="space-y-2 shrink-0">
                     <Label className="text-sm font-semibold text-foreground block">จำนวนที่ตัด ({adjustSelected.unit_name})</Label>
-                    <div className="flex items-center gap-2 rounded-xl ring-1 ring-border">
-                      <Button variant="default" size="icon"
+                    <div className="flex items-center gap-2">
+                      <Button variant="elevated" size="icon-xl"
                         onClick={() => setAdjustQtyInput(v => String(Math.max(1, (parseFloat(v) || 1) - 1)))}
-                        className="ml-2 w-9 h-9 rounded-full bg-secondary-hover hover:bg-primary hover:text-primary-foreground text-muted-foreground shrink-0">
-                        <Minus className="size-4" />
+                        className="shrink-0">
+                        <Minus className="size-5" />
                       </Button>
                       <Input
                         ref={adjustQtyRef}
+                        variant="elevated"
                         type="number"
                         value={adjustQtyInput}
                         min={1}
@@ -1852,16 +1856,16 @@ export default function POSPage() {
                         onChange={e => setAdjustQtyInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleAddAdjustItem() }}
                         placeholder="1"
-                        className="w-16 flex-1 h-12 text-center text-3xl font-bold bg-card rounded-xl border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 outline-none px-2"
+                        className="h-12 flex-1 text-center text-3xl font-bold"
                       />
-                      <Button variant="default" size="icon"
+                      <Button variant="elevated" size="icon-xl"
                         onClick={() => setAdjustQtyInput(v => String((parseFloat(v) || 0) + 1))}
-                        className="mr-2 w-9 h-9 rounded-full bg-secondary-hover hover:bg-primary hover:text-primary-foreground text-muted-foreground shrink-0">
-                        <Plus className="size-4" />
+                        className="shrink-0">
+                        <Plus className="size-5" />
                       </Button>
                     </div>
                     <Button
-                      variant="info-soft"
+                      variant="tertiary"
                       onClick={handleAddAdjustItem}
                       disabled={!adjustQtyInput || parseFloat(adjustQtyInput) <= 0 || (adjustSelected.lots?.length ?? 0) === 0}
                       className="w-full h-10 gap-1.5"
@@ -1878,7 +1882,7 @@ export default function POSPage() {
               <div className="px-3 py-2.5 shrink-0 flex items-center justify-between bg-card border-b border-border">
                 <span className="text-sm font-semibold text-foreground">รายการที่จะตัด</span>
                 {adjustList.length > 0 && (
-                  <Badge variant="warning">{adjustList.length} รายการ</Badge>
+                  <Badge variant="warning-outline">{adjustList.length} รายการ</Badge>
                 )}
               </div>
 
@@ -1893,7 +1897,7 @@ export default function POSPage() {
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm truncate text-foreground">{item.product_name}</div>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <span className="truncate">{item.lot_number || '—'}</span>
+                        <span className="truncate">Lot : {item.lot_number || '—'}</span>
                         <span className="text-foreground-subtle">·</span>
                         <span className="">×{item.qty}</span>
                       </div>
@@ -1910,7 +1914,7 @@ export default function POSPage() {
 
               <div className="p-3 shrink-0 space-y-2.5 bg-card border-t border-border">
                 {adjustList.length > 0 && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-warning-soft">
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-warm">
                     <span className="text-sm font-semibold text-warning-strong">มูลค่าทุนรวม</span>
                     <span className="text-lg font-extrabold text-warning-strong">
                       {formatCurrency(adjustList.reduce((s, i) => s + i.line_total, 0))}
@@ -1927,12 +1931,13 @@ export default function POSPage() {
                         variant={adjustReason === reason ? 'tertiary' : 'secondary'}
                         size="sm"
                         onClick={() => setAdjustReason(r => r === reason ? '' : reason)}
-                        className="h-8 rounded-full">
+                        className="h-8 rounded-md">
                         {reason}
                       </Button>
                     ))}
                   </div>
                   <Input
+                    variant="elevated"
                     placeholder="ระบุสาเหตุ..."
                     value={adjustReason}
                     onChange={e => setAdjustReason(e.target.value)}
@@ -1947,12 +1952,11 @@ export default function POSPage() {
             <Button variant="elevated" size="xl" onClick={closeAdjust}>ยกเลิก</Button>
             <Button
               size="xl"
+              variant="tertiary"
               onClick={handleConfirmAdjust}
               disabled={adjustList.length === 0 || !adjustReason.trim() || adjustSaving}
-              className="gap-1.5"
             >
-              <PackageMinus className="size-5" />
-              {adjustSaving ? 'กำลังบันทึก...' : `ยืนยันตัดสต็อก${adjustList.length > 0 ? ` ${adjustList.length} รายการ` : ''}`}
+              {adjustSaving ? 'กำลังบันทึก...' : 'ยืนยัน'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1963,7 +1967,7 @@ export default function POSPage() {
         <DialogContent size="4xl" onClose={closeReturn}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
-              <TintIcon icon={RotateCcw} tint="info-soft" size="md" />
+              <TintIcon icon={RotateCcw} tint="primary" size="md" bordered />
               รับคืนสินค้า
             </DialogTitle>
           </DialogHeader>
@@ -1976,6 +1980,7 @@ export default function POSPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     ref={returnInputRef}
+                    variant="elevated"
                     placeholder="สแกนหรือค้นหาชื่อ / บาร์โค้ด / รหัสสินค้า..."
                     value={returnQuery}
                     onChange={e => handleReturnSearch(e.target.value)}
@@ -2057,11 +2062,11 @@ export default function POSPage() {
                               className={`w-full text-left px-3 py-1.5 rounded-lg transition-colors focus:outline-none ${selected ? 'bg-primary-soft ring-2 ring-inset ring-primary' : 'bg-muted hover:bg-primary-soft/60'}`}
                             >
                               <div className="flex justify-between items-center gap-2">
-                                <span className={`font-semibold text-sm truncate ${selected ? 'text-primary' : 'text-foreground'}`}>{lot.lot_number || '—'}</span>
+                                <span className={`font-semibold text-sm truncate ${selected ? 'text-primary' : 'text-foreground'}`}><span className="text-muted-foreground font-normal">Lot : </span>{lot.lot_number || '—'}</span>
                                 <span className="text-sm font-bold text-foreground shrink-0">{formatCurrency(lot.sell_price)}</span>
                               </div>
                               <div className="flex items-center justify-between gap-2 mt-0.5">
-                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 truncate">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 truncate">
                                   <ClockAlert className="size-3.5 shrink-0" />
                                   <span className="truncate">
                                     {lot.expiry_date ? dayjs(lot.expiry_date).format('DD/MM/YYYY') : '—'}
@@ -2080,14 +2085,15 @@ export default function POSPage() {
                   {/* Qty section — pinned at bottom */}
                   <div className="space-y-2 shrink-0">
                     <Label className="text-sm font-semibold text-foreground block">จำนวนที่คืน ({returnSelectedProduct.unit_name})</Label>
-                    <div className="flex items-center gap-2 rounded-xl ring-1 ring-border">
-                      <Button variant="default" size="icon"
+                    <div className="flex items-center gap-2">
+                      <Button variant="elevated" size="icon-xl"
                         onClick={() => setReturnQtyInput(v => String(Math.max(1, (parseFloat(v) || 1) - 1)))}
-                        className="ml-2 w-9 h-9 rounded-full bg-secondary-hover hover:bg-primary hover:text-primary-foreground text-muted-foreground shrink-0">
-                        <Minus className="size-4" />
+                        className="shrink-0">
+                        <Minus className="size-5" />
                       </Button>
                       <Input
                         ref={returnQtyRef}
+                        variant="elevated"
                         type="number"
                         value={returnQtyInput}
                         min={1}
@@ -2096,16 +2102,16 @@ export default function POSPage() {
                         onChange={e => setReturnQtyInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleAddReturnItem() }}
                         placeholder="1"
-                        className="w-16 flex-1 h-12 text-center text-3xl font-bold bg-card rounded-xl border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 outline-none px-2"
+                        className="h-12 flex-1 text-center text-3xl font-bold"
                       />
-                      <Button variant="default" size="icon"
+                      <Button variant="elevated" size="icon-xl"
                         onClick={() => setReturnQtyInput(v => String((parseFloat(v) || 0) + 1))}
-                        className="mr-2 w-9 h-9 rounded-full bg-secondary-hover hover:bg-primary hover:text-primary-foreground text-muted-foreground shrink-0">
-                        <Plus className="size-4" />
+                        className="shrink-0">
+                        <Plus className="size-5" />
                       </Button>
                     </div>
                     <Button
-                      variant="info-soft"
+                      variant="default"
                       onClick={handleAddReturnItem}
                       disabled={!returnSelectedLotId || !returnQtyInput || parseFloat(returnQtyInput) <= 0}
                       className="w-full h-10 gap-1.5"
@@ -2122,7 +2128,7 @@ export default function POSPage() {
               <div className="px-3 py-2.5 shrink-0 flex items-center justify-between bg-card border-b border-border">
                 <span className="text-sm font-semibold text-foreground">รายการที่จะคืน</span>
                 {returnList.length > 0 && (
-                  <Badge variant="warning">{returnList.length} รายการ</Badge>
+                  <Badge variant="brand-outline">{returnList.length} รายการ</Badge>
                 )}
               </div>
 
@@ -2137,12 +2143,12 @@ export default function POSPage() {
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm truncate text-foreground">{item.product_name}</div>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <span className="truncate">{item.lot_number || '—'}</span>
+                        <span className="truncate">Lot : {item.lot_number || '—'}</span>
                         <span className="text-foreground-subtle">·</span>
                         <span className="">×{item.qty}</span>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-warning-strong shrink-0">{formatCurrency(item.line_total)}</div>
+                    <div className="text-sm font-bold text-foreground shrink-0">{formatCurrency(item.line_total)}</div>
                     <Button variant="ghost" size="icon-sm"
                       onClick={() => setReturnList(list => list.filter((_, i) => i !== idx))}
                       className="shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive-soft">
@@ -2154,9 +2160,9 @@ export default function POSPage() {
 
               <div className="p-3 shrink-0 space-y-2.5 bg-card border-t border-border">
                 {returnList.length > 0 && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-warning-soft">
-                    <span className="text-sm font-semibold text-warning-strong">ยอดคืนรวม</span>
-                    <span className="text-lg font-extrabold text-warning-strong">
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-primary-soft">
+                    <span className="text-sm font-semibold text-foreground">ยอดคืนรวม</span>
+                    <span className="text-lg font-extrabold text-foreground">
                       {formatCurrency(returnList.reduce((s, i) => s + i.line_total, 0))}
                     </span>
                   </div>
@@ -2168,15 +2174,16 @@ export default function POSPage() {
                   <div className="flex flex-wrap gap-1.5">
                     {['ลูกค้าเปลี่ยนใจ', 'สินค้าเสียหาย', 'หมดอายุ'].map(reason => (
                       <Button key={reason}
-                        variant={returnReason === reason ? 'tertiary' : 'secondary'}
+                        variant={returnReason === reason ? 'default' : 'secondary'}
                         size="sm"
                         onClick={() => setReturnReason(r => r === reason ? '' : reason)}
-                        className="h-8 rounded-full">
+                        className="h-8 rounded-md">
                         {reason}
                       </Button>
                     ))}
                   </div>
                   <Input
+                    variant="elevated"
                     placeholder="ระบุสาเหตุ..."
                     value={returnReason}
                     onChange={e => setReturnReason(e.target.value)}
@@ -2193,10 +2200,8 @@ export default function POSPage() {
               size="xl"
               onClick={handleConfirmReturn}
               disabled={returnList.length === 0 || !returnReason.trim() || returnSaving}
-              className="gap-1.5"
             >
-              <RotateCcw className="size-5" />
-              {returnSaving ? 'กำลังบันทึก...' : `ยืนยันคืน${returnList.length > 0 ? ` ${returnList.length} รายการ` : ''}`}
+              {returnSaving ? 'กำลังบันทึก...' : 'ยืนยัน'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2275,6 +2280,9 @@ export default function POSPage() {
           const customPrice = parseFloat(customPriceInput) || 0
           const customProfit = customPrice - cost
           const customMarkupPct = cost > 0 ? (customProfit / cost) * 100 : 0
+          // Custom price is "active" when the cart's unit_price doesn't match
+          // any of the predefined options (retail / wholesale 1 / wholesale 2).
+          const customActive = item != null && !priceOptions.some(o => o.price === item.unit_price)
           const applyCustomPrice = () => {
             if (customPrice <= 0) return
             changeCartPrice(priceModalIdx, customPrice)
@@ -2286,10 +2294,15 @@ export default function POSPage() {
                 <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
               </DialogHeader>
               <DialogBody>
-                <div className="grid gap-2 auto-rows-fr max-h-[32rem] overflow-y-auto scrollbar-thin p-0.5">
+                <div className="flex flex-col gap-2 h-[30rem] overflow-y-auto scrollbar-thin p-0.5">
                   {/* Custom price — special card with an input, kept distinct via primary tint */}
-                  <div className="w-full rounded-xl border-2 border-primary/30 bg-primary-soft/30 p-3.5">
-                    <span className="block text-base font-semibold text-primary">กำหนดราคาเอง</span>
+                  <div className={`w-full shrink-0 rounded-xl border-2 p-3.5 transition-all ${customActive ? 'border-primary bg-primary-soft/50 shadow-card' : 'border-primary/30 bg-primary-soft/30'}`}>
+                    <div className="flex items-start justify-between gap-3 w-full">
+                      <span className="text-base font-semibold text-primary">กำหนดราคาเอง</span>
+                      <span className={`grid place-items-center size-7 rounded-full shrink-0 ${customActive ? 'bg-primary text-primary-foreground' : ''}`}>
+                        {customActive && <Check className="size-4" strokeWidth={3} />}
+                      </span>
+                    </div>
                     <div className="mt-2 flex items-center gap-2">
                       <PriceInput
                         autoFocus
@@ -2297,7 +2310,7 @@ export default function POSPage() {
                         onChange={setCustomPriceInput}
                         onFocus={e => e.currentTarget.select()}
                         onKeyDown={e => { if (e.key === 'Enter') applyCustomPrice() }}
-                        className="w-full flex-1 h-12 text-2xl font-extrabold text-primary bg-card border border-border rounded-lg shadow-sm focus:ring-2 focus:ring-primary outline-none px-3"
+                        className="w-full flex-1 h-12 text-3xl font-extrabold text-primary bg-card border border-border rounded-lg shadow-sm focus:ring-2 focus:ring-primary outline-none px-3"
                       />
                       <Button variant="default" onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-12 px-5 text-base">ตกลง</Button>
                     </div>
@@ -2315,8 +2328,8 @@ export default function POSPage() {
                     return (
                       <Button key={i} variant="elevated"
                         onClick={() => changeCartPrice(priceModalIdx, opt.price)}
-                        className={`w-full h-full flex flex-col items-stretch justify-between gap-2.5 text-left p-3.5 rounded-xl border-2 transition-all ${active ? 'border-primary bg-primary-soft/50 hover:bg-primary-soft/50 shadow-card' : 'hover:border-border-strong'}`}>
-                        {/* Top — label (left) + check (top-right corner); price right-aligned below */}
+                        className={`w-full h-auto shrink-0 flex flex-col items-stretch justify-between gap-2.5 text-left p-3.5 rounded-xl border-2 transition-all ${active ? 'border-primary bg-primary-soft/50 hover:bg-primary-soft/50 shadow-card' : 'hover:border-border-strong'}`}>
+                        {/* Top — label (left) + check (top-right corner); price centered below */}
                         <div className="w-full">
                           <div className="flex items-start justify-between gap-3 w-full">
                             <span className="text-base font-semibold text-muted-foreground">{opt.label}</span>
@@ -2324,7 +2337,7 @@ export default function POSPage() {
                               {active && <Check className="size-4" strokeWidth={3} />}
                             </span>
                           </div>
-                          <span className="block text-right text-3xl font-extrabold text-primary leading-none mt-1.5">{formatCurrency(opt.price)}</span>
+                          <span className="block text-center text-3xl font-extrabold text-primary leading-none mt-1.5">{formatCurrency(opt.price)}</span>
                         </div>
                         {/* Metrics — anchored to the bottom so the row lines up across all cards (justify-between) */}
                         <div className="w-full border-t border-border/60 pt-2 grid grid-cols-3 gap-2 text-sm font-normal">

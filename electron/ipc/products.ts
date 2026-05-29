@@ -547,7 +547,7 @@ export function registerProductHandlers() {
 
       // Simulating movements:
       // 1. Every sale_item row is a 'sale' (or 'sale_return' if RT- bill).
-      // 2. If the sale is voided, we add a balancing 'sale_return' row.
+      // 2. If the sale is voided, we add a balancing 'sale_void' row.
       const innerSelect = `
         SELECT si.id,
                CASE WHEN s.sale_type = 'return' THEN 'sale_return' ELSE 'sale' END as movement_type,
@@ -565,7 +565,7 @@ export function registerProductHandlers() {
 
         UNION ALL
 
-        SELECT si.id, 'sale_return' as movement_type, 'sale' as ref_type, s.id as ref_id,
+        SELECT si.id, 'sale_void' as movement_type, 'sale' as ref_type, s.id as ref_id,
                si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,
                'ยกเลิก: ' || COALESCE(s.void_reason, '') as note, s.updated_at as created_at,
                NULL as lot_id, NULL as lot_number, NULL as expiry_date,
@@ -611,8 +611,12 @@ export function registerProductHandlers() {
       SELECT COUNT(*) AS c FROM stock_movements sm WHERE ${conditions.join(' AND ')}
     `).get(...params) as { c: number }).c
 
-    // pl.invoice_no = the GR (purchase_receipt) the lot belongs to → used for
-    // navigating receive/purchase_return movements to the purchase detail page.
+    // gr_invoice_no drives the "ดูข้อมูล" → purchase-receipt link. Expose it
+    // ONLY for movements that genuinely reference the GR (receive / its cancel).
+    // Every movement on a lot shares pl.invoice_no (the GR that CREATED the lot),
+    // but an adjust/expiry disposal has no documentary tie to that purchase —
+    // surfacing it there made the button wrongly open the original GR. Gate it
+    // by movement_type so those rows resolve to NULL → button stays muted.
     // s.invoice_no = the sale the movement references → only meaningful when
     // ref_type='sale' (covers both 'sale' and 'sale_return' movement_types).
     const rowsSql = `
@@ -620,7 +624,8 @@ export function registerProductHandlers() {
              sm.qty_change, sm.qty_before, sm.qty_after, sm.unit_cost,
              sm.note, sm.created_at,
              sm.lot_id, pl.lot_number, pl.expiry_date,
-             pl.invoice_no AS gr_invoice_no,
+             CASE WHEN sm.movement_type IN ('receive', 'purchase_return')
+                  THEN pl.invoice_no END AS gr_invoice_no,
              s.invoice_no AS sale_invoice_no,
              sm.created_by, u.name AS created_by_name
       FROM stock_movements sm

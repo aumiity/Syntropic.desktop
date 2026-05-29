@@ -1,6 +1,6 @@
 // Shared types and constants for EditProduct tabs.
 import {
-  ArrowDownToLine, ArrowUpFromLine, RotateCcw, SlidersHorizontal, ClockAlert, X,
+  ArrowDownToLine, ArrowUpFromLine, RotateCcw, SlidersHorizontal, ClockAlert, X, Ban,
 } from 'lucide-react'
 import type { Product, ProductUnit, ProductLot, ProductLabel } from '@/types'
 
@@ -33,7 +33,9 @@ export interface StockMovement {
 export type MovementSortKey = 'created_at'
 
 // Movement type → Thai label, icon, badge variant. Keep in sync with the
-// movement_type values written by ipc/products.ts, ipc/purchase.ts, ipc/pos.ts.
+// movement_type values written by ipc/products.ts, ipc/purchase.ts, ipc/pos.ts,
+// ipc/reports.ts. Note sale_return (customer brings goods back, ref_type='return')
+// vs sale_void (whole bill cancelled, ref_type='sale') are distinct types.
 // `expired` and `near_expiry` share label/icon/variant — they're both
 // disposals from /manage/expiry, distinguished only by whether the lot was
 // already past its expiry date when cut. UI merges them as one row in the
@@ -42,13 +44,14 @@ export const MOVEMENT_META: Record<string, {
   label: string
   variant:
     | 'success-outline' | 'destructive-outline' | 'info-outline'
-    | 'warning-outline' | 'violet-outline' | 'muted-outline'
+    | 'warning-outline' | 'violet-outline' | 'muted-outline' | 'brand-outline'
   icon: typeof ArrowDownToLine
 }> = {
   receive:         { label: 'รับเข้า',     variant: 'success-outline',     icon: ArrowDownToLine },
   sale:            { label: 'ขาย',         variant: 'destructive-outline', icon: ArrowUpFromLine },
-  sale_return:     { label: 'คืนสินค้า',  variant: 'violet-outline',      icon: RotateCcw },
-  adjust_in:       { label: 'ปรับเพิ่ม',  variant: 'info-outline',        icon: SlidersHorizontal },
+  sale_return:     { label: 'รับคืนสินค้า', variant: 'violet-outline',      icon: RotateCcw },
+  sale_void:       { label: 'ยกเลิกการขาย', variant: 'muted-outline',       icon: Ban },
+  adjust_in:       { label: 'ปรับเพิ่ม',  variant: 'brand-outline',       icon: SlidersHorizontal },
   adjust_out:      { label: 'ปรับลด',     variant: 'warning-outline',     icon: SlidersHorizontal },
   purchase_return: { label: 'ยกเลิกรับ',  variant: 'muted-outline',       icon: X },
   expired:         { label: 'หมดอายุ',    variant: 'destructive-outline', icon: ClockAlert },
