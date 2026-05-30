@@ -4,7 +4,7 @@ import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
 import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
-import { ClockAlert, PackageX } from 'lucide-react'
+import { ClockAlert, PackageX, Calculator } from 'lucide-react'
 import type { SalesSettings } from '@/types'
 
 // Form keys mirror sales_settings columns 1:1 — settings:saveSalesSettings
@@ -17,6 +17,7 @@ const DEFAULT_FORM: SalesForm = {
   expiry_danger_months: 3,
   expired_alert_enabled: 1,
   low_stock_alert_enabled: 1,
+  qty_multiplier_enabled: 1,
 }
 
 export function SalesTab({ registerSave, saving, setSaving }: {
@@ -37,6 +38,7 @@ export function SalesTab({ registerSave, saving, setSaving }: {
           expiry_danger_months: d.expiry_danger_months,
           expired_alert_enabled: d.expired_alert_enabled,
           low_stock_alert_enabled: d.low_stock_alert_enabled,
+          qty_multiplier_enabled: d.qty_multiplier_enabled,
         })
       }
     })
@@ -138,6 +140,19 @@ export function SalesTab({ registerSave, saving, setSaving }: {
             label={<span className="flex items-center gap-1.5"><PackageX className="size-4 text-destructive" />แจ้งเตือนเมื่อสต๊อกไม่พอขาย</span>}
             checked={!!form.low_stock_alert_enabled}
             onChange={v => setF('low_stock_alert_enabled', v ? 1 : 0)}
+          />
+        </SectionCard>
+
+        <SectionCard
+          icon={Calculator}
+          title="การขายหน้าร้าน (POS)"
+          tint="primary"
+        >
+          <Toggle
+            framed
+            label={<span className="flex items-center gap-1.5"><Calculator className="size-4 text-primary" />เปิดใช้ระบบคูณจำนวน (พิมพ์จำนวนแล้วกด * เช่น 5* ก่อนสแกน)</span>}
+            checked={!!form.qty_multiplier_enabled}
+            onChange={v => setF('qty_multiplier_enabled', v ? 1 : 0)}
           />
         </SectionCard>
 

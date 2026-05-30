@@ -101,6 +101,11 @@ export default function POSPage() {
   const mainInputRef = useRef<HTMLInputElement>(null)
   const activeRowRef = useRef<HTMLDivElement>(null)
 
+  // ── Quantity multiplier (7-Eleven style): พิมพ์ "*" ตามด้วยจำนวน (เช่น *3) ──
+  // เก็บข้อความ "*N" ไว้ใน query ตรงๆ (โชว์ในช่องค้นหาเป็นปกติ) แล้วตีความว่าขึ้นต้นด้วย *
+  // = กำลังตั้งตัวคูณ. multiplier = ค่าที่ "ติดอาวุธ" ไว้ ใช้ครั้งถัดไปครั้งเดียวแล้วรีเซ็ต.
+  const [multiplier, setMultiplier] = useState<number | null>(null)
+
   const [dailyStats, setDailyStats] = useState({ bills: 0, total: 0, latest: '' })
   const [now, setNow] = useState(new Date())
 
@@ -273,7 +278,7 @@ export default function POSPage() {
       if (showQuickAdd) { setShowQuickAdd(false); return }
       if (showCustomerInfo) { setShowCustomerInfo(false); return }
       if (showCustomerSearch) { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]); return }
-      if (searchOpen) { setSearchOpen(false); setQuery(''); setResults([]); return }
+      if (searchOpen) { closeSearch(); return }
       if (showReturn) { closeReturn(); return }
       if (showAdjust) { closeAdjust(); return }
     }
@@ -351,9 +356,14 @@ export default function POSPage() {
     setDailyStats({ bills: stats?.bills ?? 0, total: stats?.total ?? 0, latest: stats?.latest ?? '' })
   }
 
+  // ── Multiplier helpers ──
+  // เปิด/ปิดระบบผ่านการตั้งค่าการขาย (null ระหว่างโหลด = ถือว่าเปิดตาม default DB)
+  const multiplierEnabled = salesSettings?.qty_multiplier_enabled !== 0
+
   const handleSearch = useCallback(async (q: string) => {
     setQuery(q)
-    if (!q.trim()) { setResults([]); setSearchOpen(false); return }
+    // ช่องว่าง: ล้างผลลัพธ์แต่ "ไม่ปิด" modal — ปิดเฉพาะตอนกด Esc หรือเลือกสินค้าเท่านั้น
+    if (!q.trim()) { setResults([]); return }
     if (!searchOpen) setSearchOpen(true)
     setSearching(true)
     try {
@@ -369,7 +379,8 @@ export default function POSPage() {
     setHighlightIdx(0)
   }, [query])
 
-  const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]) }
+  // ปิด search modal — รีเซ็ตตัวคูณทุกครั้ง (ทั้งกรณีเลือกสินค้าแล้วและกด Esc)
+  const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]); setMultiplier(null) }
 
   // Base row first (unit=null → uses product.unit_name + product prices), then non-base variants.
   const flatItems = results.flatMap(p => [
@@ -380,11 +391,29 @@ export default function POSPage() {
   const handleSelectItem = (product: ProductWithDetails, unit: ProductUnit | null) => {
     const price = resolveSalePrice(unit ?? product, cart.saleType)
     const unitName = unit?.unit_name ?? product.unit_name ?? 'ชิ้น'
-    cart.addItem({ product_id: product.id, item_name: product.trade_name, unit_name: unitName, qty: 1, unit_price: price, discount: 0, line_total: price, product, selectedUnit: unit ?? undefined })
-    closeSearch()
+    const qty = multiplier ?? 1
+    cart.addItem({ product_id: product.id, item_name: product.trade_name, unit_name: unitName, qty, unit_price: price, discount: 0, line_total: price * qty, product, selectedUnit: unit ?? undefined })
+    closeSearch() // ปิด modal + รีเซ็ตตัวคูณ (single-use)
+  }
+
+  // กด "*" หลังพิมพ์ตัวเลขล้วน 1..999 (เช่น 5*) = ตั้งตัวคูณ แล้วเคลียร์ช่องให้พร้อมสแกน/เลือก.
+  // ถ้าช่องไม่ใช่ตัวเลขล้วน หรือเกินช่วง (0 / >999) ปล่อย "*" พิมพ์ลงช่องตามปกติ → ค้นชื่อที่มี * ได้.
+  const handleMultiplierKey = (e: React.KeyboardEvent): boolean => {
+    if (!multiplierEnabled || e.key !== '*' || !/^\d+$/.test(query)) return false
+    const n = parseInt(query, 10)
+    if (n < 1 || n > 999) return false
+    e.preventDefault()
+    setMultiplier(n)
+    setQuery(''); setResults([])
+    return true
+  }
+
+  const handleMainInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    handleMultiplierKey(e)
   }
 
   const handleModalKeyDown = (e: React.KeyboardEvent) => {
+    if (handleMultiplierKey(e)) return
     if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIdx(i => Math.min(i + 1, flatItems.length - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightIdx(i => Math.max(i - 1, 0)) }
     else if (e.key === 'Enter') {
@@ -830,6 +859,7 @@ export default function POSPage() {
                 variant="elevated"
                 value={query}
                 onChange={e => handleSearch(e.target.value)}
+                onKeyDown={handleMainInputKeyDown}
                 placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                 autoFocus
                 autoComplete="off"
@@ -1156,6 +1186,10 @@ export default function POSPage() {
               <Button variant="outline" size="icon-xs" onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
                 className="rounded-full text-foreground-subtle"><X className="size-3" strokeWidth={3} /></Button>
             )}
+            {/* ติดอาวุธแล้ว → โชว์แค่ badge (ล้างผ่านการปิด modal แล้วค้นใหม่) */}
+            {multiplier !== null && (
+              <Badge variant="primary-soft" className="shrink-0">ตัวคูณ × {multiplier}</Badge>
+            )}
             <Button variant="outline" size="sm" onClick={closeSearch}
               className="h-7">
               Esc
@@ -1233,6 +1267,7 @@ export default function POSPage() {
           {/* Footer status */}
           <div className="px-4 py-2 bg-muted text-sm text-muted-foreground shrink-0">
             ค้นหา: "{query}" — พบ {results.length} รายการ
+            {multiplier !== null && <span className="text-primary font-semibold"> · ตัวคูณ × {multiplier}</span>}
           </div>
         </DialogContent>
       </Dialog>

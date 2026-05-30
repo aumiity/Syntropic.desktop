@@ -145,6 +145,7 @@ export interface SalesSettings {
   expiry_danger_months: number
   expired_alert_enabled: number
   low_stock_alert_enabled: number
+  qty_multiplier_enabled: number
   updated_at?: string
 }
 

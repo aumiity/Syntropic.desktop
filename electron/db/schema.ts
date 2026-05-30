@@ -461,6 +461,7 @@ export function initializeSchema(db: Database.Database) {
       expiry_danger_months    INTEGER NOT NULL DEFAULT 3,
       expired_alert_enabled   INTEGER NOT NULL DEFAULT 1,
       low_stock_alert_enabled INTEGER NOT NULL DEFAULT 1,
+      qty_multiplier_enabled  INTEGER NOT NULL DEFAULT 1,
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -556,6 +557,8 @@ export function initializeSchema(db: Database.Database) {
   for (const sql of [
     `ALTER TABLE purchase_receipts ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE purchase_receipts ADD COLUMN surcharge_amount REAL NOT NULL DEFAULT 0`,
+    // POS quantity multiplier (*N) feature toggle — default on for existing DBs.
+    `ALTER TABLE sales_settings ADD COLUMN qty_multiplier_enabled INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE product_lots ADD COLUMN is_cancelled INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE product_lots ADD COLUMN cancelled_at TEXT`,
     `ALTER TABLE product_lots ADD COLUMN cancel_note TEXT`,
