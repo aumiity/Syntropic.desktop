@@ -75,7 +75,7 @@ function Switch({
 function Toggle({ checked, onChange, label, size, variant = "default", framed, className }: {
   checked: boolean
   onChange: (v: boolean) => void
-  label?: string
+  label?: React.ReactNode
   size?: "sm" | "default" | "lg"
   variant?: "default" | "destructive" | "warning"
   framed?: boolean | "input"

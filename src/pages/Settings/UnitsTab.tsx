@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
@@ -63,23 +64,29 @@ export function UnitsTab() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12 text-center">#</TableHead>
                 <TableHead className="min-w-[240px]">ชื่อหน่วย</TableHead>
-                <TableHead className="text-right min-w-40">ใช้งานใน</TableHead>
+                <TableHead className="text-right min-w-40">จำนวนสินค้า</TableHead>
                 <TableHead className="text-center min-w-24">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-16">
                     <Ruler className="size-10 mx-auto mb-2 opacity-30" />
                     {q.trim() ? 'ไม่พบข้อมูล' : 'ยังไม่มีหน่วยนับ'}
                   </TableCell>
                 </TableRow>
-              ) : filtered.map(u => (
+              ) : filtered.map((u, i) => (
                 <TableRow key={u.id}>
+                  <TableCell className="text-center text-sm text-muted-foreground">{i + 1}</TableCell>
                   <TableCell className="font-semibold text-sm text-foreground">{u.name}</TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground">{(u.usage_count ?? 0).toLocaleString()} สินค้า</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant={(u.usage_count ?? 0) > 0 ? 'teal-outline' : 'muted-outline'}>
+                      {(u.usage_count ?? 0).toLocaleString()} รายการ
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <div className="flex justify-center">
                       <Button size="icon-lg" variant="elevated" onClick={() => openEdit(u)} title="แก้ไข">

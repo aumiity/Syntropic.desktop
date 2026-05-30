@@ -11,7 +11,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
-import { Save, Eye, Printer } from 'lucide-react'
+import { Save, Printer } from 'lucide-react'
 
 // Only fonts that have actual TTF files bundled in src/assets/fonts/ — these
 // are guaranteed to render in the preview on any OS. System fonts (Tahoma,
@@ -378,7 +378,7 @@ div:first-child { margin-top: 0 !important; }
       {/* Body: preview (LEFT, big) + tabbed settings (RIGHT, compact) */}
       <div className="grid grid-cols-[1fr_360px] gap-4 flex-1 min-h-0">
         {/* LEFT — preview, centered, true 1:1 mm scale, no page scroll */}
-        <SectionCard icon={Eye} title="ตัวอย่างฉลาก" tint="success" className="flex flex-col min-h-0">
+        <SectionCard title="ตัวอย่างฉลาก" tint="success" className="flex flex-col min-h-0">
           {/* Physical-paper preview: bg-white/text-black literals are
               intentional (real-world ink on paper, not themed UI) and exempt
               from the no-color-literal rule. */}

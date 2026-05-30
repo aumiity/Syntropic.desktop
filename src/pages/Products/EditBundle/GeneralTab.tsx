@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FormField } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
 import { SectionCard } from '@/components/ui/card'
 import { Package, ScanBarcode, FileText, Settings, Plus, X } from 'lucide-react'
 import type { ProductCategory, ItemUnit } from '@/types'
@@ -122,15 +123,18 @@ export function GeneralTab({
             </Field>
             <div data-field="unit_id">
               <Field label="หน่วยหลัก" required>
-                <Select value={String(form.unit_id ?? 0)} onValueChange={v => setF('unit_id', Number(v) || null)}>
-                  <SelectTrigger variant="elevated" aria-invalid={errors.has('unit_id')} className="h-10 w-full">
-                    <SelectValue placeholder="— เลือกหน่วย —" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">— เลือกหน่วย —</SelectItem>
-                    {itemUnits.map(u => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  variant="elevated"
+                  items={itemUnits}
+                  value={itemUnits.find(u => u.id === form.unit_id) ?? null}
+                  onChange={u => setF('unit_id', u?.id ?? null)}
+                  getKey={u => u.id}
+                  getLabel={u => u.name}
+                  placeholder="— เลือกหน่วย —"
+                  searchPlaceholder="พิมพ์เพื่อค้นหาหน่วย..."
+                  emptyText="ไม่พบหน่วย"
+                  triggerClassName={errors.has('unit_id') ? 'border-destructive' : undefined}
+                />
               </Field>
             </div>
           </div>
@@ -161,15 +165,15 @@ export function GeneralTab({
       <div className="space-y-4">
 
         <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
-          <div className="space-y-2">
-            <div className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 border ${form.is_disabled ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
+          <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
+            <div className={`flex items-center justify-between gap-2 px-3 py-2.5 ${form.is_disabled ? 'bg-destructive-soft/40' : ''}`}>
               <div>
                 <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
                 <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งชุดสินค้า</div>
               </div>
               <Switch size="lg" variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
             </div>
-            <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
+            <div className="flex items-center justify-between gap-2 px-3 py-2.5">
               <div>
                 <div className="text-sm font-semibold text-foreground">VAT</div>
                 <div className="text-xs text-muted-foreground">คิดภาษีมูลค่าเพิ่ม</div>

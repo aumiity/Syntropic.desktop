@@ -148,7 +148,7 @@ export function Combobox<T>({
           disabled={disabled}
           variant={variant === 'elevated' ? 'elevated' : (hasValue ? 'primary-soft' : 'outline')}
           className={cn(
-            "h-10 w-full justify-between gap-2 px-3 rounded-lg text-sm",
+            "h-10 w-full justify-between gap-2 px-3 rounded-lg text-sm font-normal",
             triggerClassName
           )}
         >
@@ -156,7 +156,7 @@ export function Combobox<T>({
             {Icon ? <Icon className="size-4 shrink-0 opacity-70" /> : null}
             <span
               className={cn(
-                "truncate font-medium",
+                "truncate",
                 !hasValue && "text-foreground-subtle"
               )}
             >
@@ -217,7 +217,7 @@ export function Combobox<T>({
                       )}
                     />
                   ) : null}
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                  <span className="min-w-0 flex-1 truncate text-sm">
                     {emptyLabel}
                   </span>
                   {isSelected ? (
@@ -260,7 +260,7 @@ export function Combobox<T>({
                     />
                   ) : null}
                   <span className="flex min-w-0 flex-1 items-baseline gap-2">
-                    <span className="truncate text-sm font-semibold">
+                    <span className="truncate text-sm">
                       {getLabel(item)}
                     </span>
                     {sub ? (

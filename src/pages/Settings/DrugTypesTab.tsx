@@ -150,21 +150,20 @@ export function DrugTypesTab() {
             </FormField>
             <div className="space-y-2">
               <label className="block text-sm font-semibold uppercase text-foreground">
-                ค่าเริ่มต้นรายงาน อย. สำหรับสินค้าประเภทนี้
+                ค่าเริ่มต้น
               </label>
-              <p className="text-sm text-muted-foreground">
-                เลือกสินค้าเป็นประเภทยานี้ → flags ด้านล่างจะถูกตั้งอัตโนมัติ (แก้รายตัวได้ที่แก้ไขสินค้า)
+              <p className="rounded-lg border border-primary-soft-border bg-primary-soft px-3 py-2 text-xs text-primary">
+                การตั้งค่านี้จะส่งผลต่อทุกสินค้าในประเภท โดยอัตโนมัติ (สามารถแก้ไขเพิ่มเติมได้ที่ การตั้งค่าสินค้ารายตัว)
               </p>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
                 {FDA_FLAGS.map(({ key, label }) => (
-                  <Toggle
+                  <label
                     key={key}
-                    framed
-                    label={label}
-                    checked={!!form[key]}
-                    onChange={v => setF(key, v ? 1 : 0)}
-                    className="justify-between"
-                  />
+                    className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer select-none"
+                  >
+                    <span className="text-sm">{label}</span>
+                    <Checkbox checked={!!form[key]} onCheckedChange={v => setF(key, v ? 1 : 0)} />
+                  </label>
                 ))}
               </div>
             </div>

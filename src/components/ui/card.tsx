@@ -112,7 +112,7 @@ type SectionTint = MetricTint
 function SectionCard({
   icon: Icon, title, tint = 'primary', right, children, className,
 }: {
-  icon: React.ComponentType<{ className?: string }>
+  icon?: React.ComponentType<{ className?: string }>
   title: React.ReactNode
   tint?: SectionTint
   right?: React.ReactNode
@@ -122,7 +122,7 @@ function SectionCard({
   return (
     <div className={cn('bg-card rounded-card p-4 space-y-3 shadow-card border border-border', className)}>
       <div className="flex items-center gap-2.5">
-        <TintIcon icon={Icon} tint={tint as TintIconTint} size="sm" bordered />
+        {Icon && <TintIcon icon={Icon} tint={tint as TintIconTint} size="sm" bordered />}
         <h3 className="text-base font-semibold text-foreground flex-1">{title}</h3>
         {right}
       </div>
