@@ -47,7 +47,7 @@ export function UnitsTab() {
   return (
     <div className="pt-4 h-full flex flex-col min-h-0">
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
-        <div className="px-2 h-14 shrink-0 flex items-center gap-3">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <SearchInput
             variant="elevated"
             value={q}
@@ -93,7 +93,7 @@ export function UnitsTab() {
           </Table>
         </div>
 
-        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
+        <div className="px-4 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
           <span className="text-muted-foreground">
             แสดง <span className="font-semibold text-foreground">{filtered.length.toLocaleString()}</span> รายการ
           </span>

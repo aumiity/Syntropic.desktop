@@ -29,18 +29,18 @@ const tabsListVariants = cva(
   [
     "group/tabs-list inline-flex w-fit items-center justify-center",
     "rounded-lg p-[3px] text-muted-foreground",
-    "group-data-horizontal/tabs:h-8",
-    "group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col",
+    "group-data-[orientation=horizontal]/tabs:h-8",
+    "group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col",
     "data-[variant=line]:rounded-none",
-    "data-[variant=pill]:rounded-none data-[variant=pill]:p-0 data-[variant=pill]:gap-1 data-[variant=pill]:group-data-horizontal/tabs:h-auto",
-    "data-[variant=default]:inline-grid data-[variant=default]:grid-flow-col data-[variant=default]:auto-cols-fr data-[variant=default]:rounded-xl data-[variant=default]:p-1 data-[variant=default]:gap-1 data-[variant=default]:group-data-horizontal/tabs:h-auto",
-    "data-[variant=segmented]:rounded-lg data-[variant=segmented]:p-1 data-[variant=segmented]:gap-1 data-[variant=segmented]:group-data-horizontal/tabs:h-auto",
+    "data-[variant=pill]:rounded-none data-[variant=pill]:p-0 data-[variant=pill]:gap-1 data-[variant=pill]:group-data-[orientation=horizontal]/tabs:h-auto",
+    "data-[variant=default]:inline-grid data-[variant=default]:grid-flow-col data-[variant=default]:auto-cols-fr data-[variant=default]:rounded-xl data-[variant=default]:p-1 data-[variant=default]:gap-1 data-[variant=default]:group-data-[orientation=horizontal]/tabs:h-auto",
+    "data-[variant=segmented]:rounded-lg data-[variant=segmented]:p-1 data-[variant=segmented]:gap-1 data-[variant=segmented]:group-data-[orientation=horizontal]/tabs:h-auto",
   ].join(" "),
   {
     variants: {
       variant: {
         default: "bg-card shadow-card",
-        line: "gap-1 bg-transparent w-full justify-start border-b border-border",
+        line: "gap-0 bg-transparent w-fit justify-start border-b border-border h-auto p-0",
         pill: "bg-transparent",
         segmented: "bg-muted",
       },
@@ -76,7 +76,9 @@ const TabsList = React.forwardRef<
   // default kicks in for undefined but a caller could still pass null. Coerce
   // so the context type stays non-nullable.
   const safeVariant: TabsListVariant = variant ?? "default"
-  const showPill: boolean = safeVariant === "default" || safeVariant === "pill" || safeVariant === "segmented"
+  // All variants now use the framer slider — pill variants get a full-cover pill,
+  // line variant gets a thin underline. Shared layoutId animates between active triggers.
+  const showPill: boolean = safeVariant === "default" || safeVariant === "pill" || safeVariant === "segmented" || safeVariant === "line"
 
   return (
     <TabsListCtx.Provider value={{ pillId, showPill, variant: safeVariant }}>
@@ -123,7 +125,7 @@ function TabsTrigger({
         "text-sm font-medium whitespace-nowrap",
         "text-foreground/60 dark:text-muted-foreground",
         "transition-colors",
-        "group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start",
+        "group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start",
         "hover:text-foreground dark:hover:text-foreground",
         "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring",
         "disabled:pointer-events-none disabled:opacity-50",
@@ -135,17 +137,16 @@ function TabsTrigger({
         "group-data-[variant=pill]/tabs-list:rounded-lg group-data-[variant=pill]/tabs-list:px-4 group-data-[variant=pill]/tabs-list:py-1.5 group-data-[variant=pill]/tabs-list:h-auto",
         "group-data-[variant=pill]/tabs-list:bg-card group-data-[variant=pill]/tabs-list:border-transparent group-data-[variant=pill]/tabs-list:shadow-none",
         "group-data-[variant=pill]/tabs-list:data-[state=active]:text-primary-foreground",
-        // LINE — transparent, primary text + underline (no sliding pill)
+        // LINE — transparent, primary text. Underline lives on TabsList (single continuous
+        // border-b) and the active bar (framer slider) overlaps it. rounded-b-none keeps
+        // the trigger's bottom edge square so it sits flush against the underline.
+        "group-data-[variant=line]/tabs-list:rounded-b-none",
         "group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:text-primary group-data-[variant=line]/tabs-list:data-[state=active]:shadow-none",
         // SEGMENTED — iOS-style: muted track, sliding card pill (via framer) on active,
         // text stays foreground (not primary-foreground).
         // flex-none overrides base flex-1 so triggers are content-width, not equal-fill.
         "group-data-[variant=segmented]/tabs-list:flex-none group-data-[variant=segmented]/tabs-list:rounded-md group-data-[variant=segmented]/tabs-list:px-3 group-data-[variant=segmented]/tabs-list:py-1.5 group-data-[variant=segmented]/tabs-list:h-auto",
         "group-data-[variant=segmented]/tabs-list:data-[state=active]:text-foreground",
-        "after:absolute after:bg-primary after:opacity-0 after:transition-opacity after:z-10",
-        "group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-[-3px] group-data-horizontal/tabs:after:h-[3px] group-data-horizontal/tabs:after:rounded-full",
-        "group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-vertical/tabs:after:w-[3px] group-data-vertical/tabs:after:rounded-full",
-        "group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-100",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
@@ -156,10 +157,11 @@ function TabsTrigger({
           layoutId={pillId}
           aria-hidden
           className={cn(
-            "absolute inset-0",
-            variant === "segmented"
-              ? "rounded-md bg-card shadow-md"
-              : "rounded-lg bg-primary shadow-sm"
+            variant === "line"
+              ? "absolute inset-x-[-1px] bottom-[-2px] h-[2px] bg-primary z-10"
+              : variant === "segmented"
+                ? "absolute inset-0 rounded-md bg-card shadow-md"
+                : "absolute inset-0 rounded-lg bg-primary shadow-sm"
           )}
           transition={{ type: "spring", bounce: 0.18, duration: 0.45 }}
         />
