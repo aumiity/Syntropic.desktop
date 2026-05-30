@@ -404,8 +404,8 @@ export function initializeSchema(db: Database.Database) {
     -- Label Settings (print configuration)
     CREATE TABLE IF NOT EXISTS label_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      width_mm REAL NOT NULL DEFAULT 100,
-      height_mm REAL NOT NULL DEFAULT 75,
+      width_mm REAL NOT NULL DEFAULT 80,
+      height_mm REAL NOT NULL DEFAULT 50,
       pad_top REAL NOT NULL DEFAULT 3,
       pad_right REAL NOT NULL DEFAULT 3,
       pad_bottom REAL NOT NULL DEFAULT 3,
@@ -428,6 +428,8 @@ export function initializeSchema(db: Database.Database) {
       show_notes         INTEGER NOT NULL DEFAULT 1,
       show_lot_expiry    INTEGER NOT NULL DEFAULT 1,
       show_barcode       INTEGER NOT NULL DEFAULT 0,
+      show_header_line   INTEGER NOT NULL DEFAULT 1,
+      show_footer_line   INTEGER NOT NULL DEFAULT 1,
       offset_x_shop       REAL NOT NULL DEFAULT 0,
       offset_y_shop       REAL NOT NULL DEFAULT 0,
       offset_x_product    REAL NOT NULL DEFAULT 0,
@@ -442,6 +444,10 @@ export function initializeSchema(db: Database.Database) {
       offset_y_lot_expiry REAL NOT NULL DEFAULT 0,
       offset_x_barcode    REAL NOT NULL DEFAULT 0,
       offset_y_barcode    REAL NOT NULL DEFAULT 0,
+      offset_x_header_line REAL NOT NULL DEFAULT 0,
+      offset_y_header_line REAL NOT NULL DEFAULT 0,
+      offset_x_footer_line REAL NOT NULL DEFAULT 0,
+      offset_y_footer_line REAL NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -596,6 +602,12 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE label_settings ADD COLUMN offset_y_lot_expiry REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_barcode    REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_barcode    REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN show_header_line    INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN show_footer_line    INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_header_line REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_header_line REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_footer_line REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_footer_line REAL NOT NULL DEFAULT 0`,
   ]) {
     try { db.exec(sql) } catch {}
   }

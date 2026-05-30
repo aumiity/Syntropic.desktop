@@ -171,22 +171,26 @@ export function registerSettingsHandlers() {
     ipcMain.handle('settings:listLabelMealRelations', function () { return getDb().prepare("SELECT * FROM label_meal_relations ORDER BY sort_order").all(); });
     ipcMain.handle('settings:listLabelTimes', function () { return getDb().prepare("SELECT * FROM label_times ORDER BY sort_order").all(); });
     ipcMain.handle('settings:listLabelAdvices', function () { return getDb().prepare("SELECT * FROM label_advices ORDER BY sort_order").all(); });
-    // Label settings
+    // Label settings (singleton). ORDER BY id keeps reads deterministic if a
+    // legacy DB ended up with multiple rows; the seed now guarantees only one.
     ipcMain.handle('settings:getLabelSettings', function () {
-        return getDb().prepare("SELECT * FROM label_settings LIMIT 1").get();
+        return getDb().prepare("SELECT * FROM label_settings ORDER BY id LIMIT 1").get();
     });
     ipcMain.handle('settings:saveLabelSettings', function (_e, data) {
         var db = getDb();
-        var existing = db.prepare("SELECT id FROM label_settings LIMIT 1").get();
+        var existing = db.prepare("SELECT id FROM label_settings ORDER BY id LIMIT 1").get();
         if (existing) {
-            var id = data.id, rest = __rest(data, ["id"]);
+            var _drop = data.id, rest = __rest(data, ["id"]);
             var fields = Object.keys(rest).map(function (k) { return "".concat(k, " = @").concat(k); }).join(', ');
-            db.prepare("UPDATE label_settings SET ".concat(fields, ", updated_at = datetime('now','localtime') WHERE id = ?")).run(__assign(__assign({}, rest), { id: existing.id }));
+            // Bind id as @id (named) — mixing `?` with an object binding throws
+            // "Too few parameter values were provided" in better-sqlite3.
+            db.prepare("UPDATE label_settings SET ".concat(fields, ", updated_at = datetime('now','localtime') WHERE id = @id"))
+                .run(__assign(__assign({}, rest), { id: existing.id }));
         }
         else {
             db.prepare("INSERT INTO label_settings DEFAULT VALUES").run();
         }
-        return db.prepare("SELECT * FROM label_settings LIMIT 1").get();
+        return db.prepare("SELECT * FROM label_settings ORDER BY id LIMIT 1").get();
     });
     // Sales settings (singleton) — POS cart alert thresholds and toggles.
     // First read auto-inserts a default row so the renderer always gets a complete object.

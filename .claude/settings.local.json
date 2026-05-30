@@ -101,7 +101,11 @@
       "PowerShell(npx tsc --noEmit -p tsconfig.json 2>&1 | Select-Object -First 30)",
       "Bash(./node_modules/.bin/tsc -p tsconfig.json --noEmit)",
       "Bash(./node_modules/.bin/tsc -p tsconfig.node.json --noEmit)",
-      "Bash(xargs sed -i '' ' *)"
+      "Bash(xargs sed -i '' ' *)",
+      "WebFetch(domain:pplabelprinting.com)",
+      "WebFetch(domain:easyprinterthailand.com)",
+      "WebFetch(domain:www.thaicopypaperfactory.com)",
+      "WebFetch(domain:www.hygeia-pharmacy.com)"
     ]
   }
 }

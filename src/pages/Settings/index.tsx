@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -12,17 +12,6 @@ import { SalesTab } from './SalesTab'
 
 export default function SettingsPage() {
   const [tab, setTab] = useState('shop')
-  const tabsListRef = useRef<HTMLDivElement>(null)
-  const [tabsWidth, setTabsWidth] = useState<number | null>(null)
-
-  useEffect(() => {
-    const el = tabsListRef.current
-    if (!el) return
-    const ro = new ResizeObserver(() => setTabsWidth(el.offsetWidth))
-    ro.observe(el)
-    setTabsWidth(el.offsetWidth)
-    return () => ro.disconnect()
-  }, [])
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
@@ -30,7 +19,7 @@ export default function SettingsPage() {
 
       <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList ref={tabsListRef} variant="segmented" className="h-10">
+          <TabsList variant="segmented" className="h-10">
             <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
             <TabsTrigger value="categories"><Tag /> หมวดหมู่</TabsTrigger>
             <TabsTrigger value="units"><Ruler /> หน่วยนับ</TabsTrigger>
@@ -42,7 +31,7 @@ export default function SettingsPage() {
       </TabStrip>
 
       <div className="flex-1 min-h-0 overflow-y-auto pb-8 pt-3 [scrollbar-gutter:stable]">
-        {tab === 'shop' && <ShopTab width={tabsWidth} />}
+        {tab === 'shop' && <ShopTab />}
         {tab === 'categories' && <CategoriesTab />}
         {tab === 'units' && <UnitsTab />}
         {tab === 'drugtypes' && <DrugTypesTab />}

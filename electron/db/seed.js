@@ -105,8 +105,11 @@ export function seedDatabase(db) {
         var _f = dosageForms_1[_e], th = _f[0], en = _f[1];
         insDosageForm.run(th, en);
     }
-    // Default label settings
-    db.prepare("INSERT OR IGNORE INTO label_settings DEFAULT VALUES").run();
+    // Default label settings (singleton). `INSERT OR IGNORE DEFAULT VALUES` does
+    // NOT enforce singleton-ness here — `id INTEGER PRIMARY KEY AUTOINCREMENT`
+    // never collides on insert, so OR IGNORE never fires. NOT EXISTS is the only
+    // pattern that's actually idempotent across launches.
+    db.prepare("INSERT INTO label_settings (id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM label_settings)").run();
     // General customer (catch-all). Walk-in is modelled as this real row, never
     // a NULL customer_id — see the walk-in invariant in CLAUDE.md.
     db.prepare("INSERT OR IGNORE INTO customers (code, full_name) VALUES (?, ?)").run('C0000', 'ลูกค้าทั่วไป');

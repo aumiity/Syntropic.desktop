@@ -90,7 +90,7 @@ export function CategoriesTab() {
 
   return (
     <div className="pt-4 h-full flex flex-col min-h-0">
-      <div className="bg-card rounded-card shadow-card overflow-hidden flex-1 min-h-0 flex flex-col">
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-2 h-14 shrink-0 flex items-center gap-3">
           {reorderMode ? (
             <>
@@ -107,6 +107,7 @@ export function CategoriesTab() {
           ) : (
             <>
               <SearchInput
+                variant="elevated"
                 value={q}
                 onChange={e => setQ(e.target.value)}
                 placeholder="ค้นหารหัส, ชื่อหมวดหมู่, คำอธิบาย..."
@@ -121,7 +122,7 @@ export function CategoriesTab() {
           )}
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>

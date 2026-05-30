@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/toast'
 import type { Setting } from '@/types'
 import { Store, Save } from 'lucide-react'
 
-export function ShopTab({ width }: { width?: number | null }) {
+export function ShopTab() {
   const { toast } = useToast()
   const [form, setForm] = useState<Partial<Setting>>({})
   const [saving, setSaving] = useState(false)
@@ -30,7 +30,7 @@ export function ShopTab({ width }: { width?: number | null }) {
   }
 
   return (
-    <div className="pt-4 w-fit" style={width ? { width } : undefined}>
+    <div className="pt-4">
       <SectionCard
         icon={Store}
         title="ข้อมูลร้านค้า / ร้านยา"
@@ -44,12 +44,13 @@ export function ShopTab({ width }: { width?: number | null }) {
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <FormField label="ชื่อร้าน">
-              <Input value={form.shop_name ?? ''} onChange={e => setF('shop_name', e.target.value)} placeholder="ร้านยา..." />
+              <Input variant="elevated" value={form.shop_name ?? ''} onChange={e => setF('shop_name', e.target.value)} placeholder="ร้านยา..." />
             </FormField>
           </div>
           <div className="col-span-2">
             <FormField label="ที่อยู่">
               <Textarea
+                variant="elevated"
                 value={form.shop_address ?? ''}
                 onChange={e => setF('shop_address' as keyof Setting, e.target.value)}
                 rows={3}
@@ -58,16 +59,16 @@ export function ShopTab({ width }: { width?: number | null }) {
             </FormField>
           </div>
           <FormField label="โทรศัพท์">
-            <Input value={form.shop_phone ?? ''} onChange={e => setF('shop_phone', e.target.value)} />
+            <Input variant="elevated" value={form.shop_phone ?? ''} onChange={e => setF('shop_phone', e.target.value)} />
           </FormField>
           <FormField label="LINE ID">
-            <Input value={form.shop_line_id ?? ''} onChange={e => setF('shop_line_id', e.target.value)} />
+            <Input variant="elevated" value={form.shop_line_id ?? ''} onChange={e => setF('shop_line_id', e.target.value)} />
           </FormField>
           <FormField label="เลขใบอนุญาต">
-            <Input value={form.shop_license_no ?? ''} onChange={e => setF('shop_license_no', e.target.value)} />
+            <Input variant="elevated" value={form.shop_license_no ?? ''} onChange={e => setF('shop_license_no', e.target.value)} />
           </FormField>
           <FormField label="เลขผู้เสียภาษี">
-            <Input value={form.shop_tax_id ?? ''} onChange={e => setF('shop_tax_id', e.target.value)} />
+            <Input variant="elevated" value={form.shop_tax_id ?? ''} onChange={e => setF('shop_tax_id', e.target.value)} />
           </FormField>
         </div>
       </SectionCard>

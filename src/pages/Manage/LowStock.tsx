@@ -170,7 +170,7 @@ export default function ManageLowStockPage() {
     const pct = isOut ? 0 : safety > 0 ? Math.min(100, (qty / safety) * 100) : 100
     return (
       <div className="flex flex-col gap-1 min-w-[160px]">
-        <div className="text-xs whitespace-nowrap">
+        <div className="text-sm whitespace-nowrap">
           <span className="font-semibold text-foreground tabular-nums">{qty.toLocaleString()}</span>
           <span className="text-muted-foreground"> {unit}</span>
         </div>
@@ -294,7 +294,7 @@ export default function ManageLowStockPage() {
               <TableRow>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[160px]">ชื่อสินค้า</SortableTableHead>
                 {showColReorder && <TableHead className="text-right min-w-20">จุดสั่งซื้อ</TableHead>}
-                {showColStockBar && <TableHead className="min-w-[160px] pl-6">สต็อก</TableHead>}
+                {showColStockBar && <TableHead className="min-w-[160px] px-4">สต็อก</TableHead>}
                 {showColSafety && <TableHead className="min-w-20">สต็อคปลอดภัย</TableHead>}
                 {showColBuyMore && <TableHead className="min-w-16">ซื้อเพิ่ม</TableHead>}
                 {showColCost && <TableHead className="min-w-16">ทุนเฉลี่ย</TableHead>}
@@ -331,7 +331,7 @@ export default function ManageLowStockPage() {
                       </TableCell>
                     )}
                     {showColStockBar && (
-                      <TableCell className="pl-6">
+                      <TableCell className="px-4">
                         {renderStockCell(r.stock_qty, r.reorder_point, r.safety_stock ?? 0, r.unit_name)}
                       </TableCell>
                     )}

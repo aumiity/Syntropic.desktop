@@ -66,7 +66,7 @@ export function SalesTab() {
   const expiryOn = !!form.expiry_alert_enabled
 
   return (
-    <div className="max-w-3xl pt-4 space-y-4">
+    <div className="pt-4 space-y-4">
       <SectionCard
         icon={BellRing}
         title="การแจ้งเตือนในตะกร้า"
@@ -91,6 +91,7 @@ export function SalesTab() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">เตือนล่วงหน้า</span>
                 <Input
+                  variant="elevated"
                   type="number"
                   min={1}
                   max={36}
@@ -104,6 +105,7 @@ export function SalesTab() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">ระดับอันตราย</span>
                 <Input
+                  variant="elevated"
                   type="number"
                   min={1}
                   max={36}
