@@ -138,14 +138,14 @@ export function DrugTypesTab() {
       </div>
 
       <Dialog open={dialog} onOpenChange={setDialog}>
-        <DialogContent size="sm">
+        <DialogContent size="sm" divided>
           <DialogHeader><DialogTitle className="text-xl">{form.id ? 'แก้ไขประเภทยา' : 'เพิ่มประเภทยา'}</DialogTitle></DialogHeader>
           <DialogBody className="space-y-3">
             <FormField label="รหัส" required>
-              <Input value={form.code ?? ''} onChange={e => setF('code', e.target.value)} placeholder="เช่น GENERAL, OTC" autoFocus />
+              <Input variant="elevated" value={form.code ?? ''} onChange={e => setF('code', e.target.value)} placeholder="เช่น GENERAL, OTC" autoFocus />
             </FormField>
             <FormField label="ชื่อประเภทยา" required>
-              <Input value={form.name_th ?? ''} onChange={e => setF('name_th', e.target.value)} />
+              <Input variant="elevated" value={form.name_th ?? ''} onChange={e => setF('name_th', e.target.value)} />
             </FormField>
             <div className="space-y-2">
               <label className="block text-sm font-semibold uppercase text-foreground">

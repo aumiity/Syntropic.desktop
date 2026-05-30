@@ -99,6 +99,7 @@ export function QuickStockDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o && !saving) onClose() }}>
       <DialogContent
         size="md"
+        divided
         onKeyDown={e => { if (e.key === 'Enter' && !saving) { e.preventDefault(); handleSave() } }}
       >
         <DialogHeader>
@@ -129,6 +130,7 @@ export function QuickStockDialog({
             <div>
               <label className="block text-sm font-medium mb-1.5">จุดสั่งซื้อ</label>
               <Input
+                variant="elevated"
                 type="number"
                 value={reorderPoint}
                 onChange={e => setReorderPoint(e.target.value)}
@@ -139,6 +141,7 @@ export function QuickStockDialog({
             <div>
               <label className="block text-sm font-medium mb-1.5">สต็อกปลอดภัย</label>
               <Input
+                variant="elevated"
                 type="number"
                 value={safetyStock}
                 onChange={e => setSafetyStock(e.target.value)}

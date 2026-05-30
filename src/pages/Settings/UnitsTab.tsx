@@ -100,11 +100,11 @@ export function UnitsTab() {
       </div>
 
       <Dialog open={dialog} onOpenChange={setDialog}>
-        <DialogContent size="sm">
+        <DialogContent size="sm" divided>
           <DialogHeader><DialogTitle className="text-xl">{form.id ? 'แก้ไขหน่วย' : 'เพิ่มหน่วย'}</DialogTitle></DialogHeader>
           <DialogBody className="space-y-3">
             <FormField label="ชื่อหน่วย" required>
-              <Input value={form.name ?? ''} onChange={e => setF('name', e.target.value)} placeholder="เช่น เม็ด, ซอง, ขวด" autoFocus />
+              <Input variant="elevated" value={form.name ?? ''} onChange={e => setF('name', e.target.value)} placeholder="เช่น เม็ด, ซอง, ขวด" autoFocus />
             </FormField>
             <p className="text-sm text-muted-foreground">
               หน่วยนี้เป็นเพียง “ชื่อหน่วย” กลางที่ใช้ร่วมทุกสินค้า — การแปลงจำนวน (เช่น 1 กล่อง = กี่เม็ด)

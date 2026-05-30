@@ -1472,7 +1472,7 @@ export default function POSPage() {
 
       {/* ── PAYMENT DIALOG ── */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent size="full" onClose={() => setShowPayment(false)} className="h-[800px] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="full" divided onClose={() => setShowPayment(false)} className="h-[800px] grid-rows-[auto_1fr_auto]">
           <DialogHeader><DialogTitle className="text-2xl">ชำระเงิน</DialogTitle></DialogHeader>
           <DialogBody className="min-h-0 overflow-hidden">
             {(() => {
@@ -1745,7 +1745,7 @@ export default function POSPage() {
 
       {/* ── ADJUST STOCK DIALOG (System A — multi-item) ── */}
       <Dialog open={showAdjust} onOpenChange={(v) => { if (!v) closeAdjust() }}>
-        <DialogContent size="4xl" onClose={closeAdjust}>
+        <DialogContent size="4xl" divided onClose={closeAdjust}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <TintIcon icon={PackageMinus} tint="warning" size="md" bordered />
@@ -1965,7 +1965,7 @@ export default function POSPage() {
 
       {/* ── RETURN ITEMS DIALOG ── */}
       <Dialog open={showReturn} onOpenChange={(v) => { if (!v) closeReturn() }}>
-        <DialogContent size="4xl" onClose={closeReturn}>
+        <DialogContent size="4xl" divided onClose={closeReturn}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <TintIcon icon={RotateCcw} tint="primary" size="md" bordered />
@@ -2216,7 +2216,7 @@ export default function POSPage() {
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); setShowSuccess(false) } }}
         >
           <DialogTitle className="sr-only">บันทึกบิลสำเร็จ</DialogTitle>
-          <DialogBody className="text-center py-8 space-y-4">
+          <DialogBody className="text-center py-2 space-y-4">
             <CheckCircle2 className="size-16 mx-auto text-success" />
             <div><div className="text-xl font-semibold">บันทึกบิลสำเร็จ</div>
               <div className="text-muted-foreground text-base mt-1">{lastInvoice}</div></div>

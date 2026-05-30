@@ -523,28 +523,28 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
       </div>
 
       <Dialog open={dialog} onOpenChange={setDialog}>
-        <DialogContent size="md" onClose={() => setDialog(false)}>
+        <DialogContent size="md" divided onClose={() => setDialog(false)}>
           <DialogHeader>
             <DialogTitle>{form.id ? 'แก้ไขผู้จำหน่าย' : 'เพิ่มผู้จำหน่าย'}</DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-3" onKeyDown={submitOnEnter(handleSave)}>
             <div className="space-y-1.5">
               <Label>ชื่อบริษัท / ร้านค้า <span className="text-destructive">*</span></Label>
-              <Input value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
+              <Input variant="elevated" value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>โทรศัพท์</Label>
-                <Input value={form.phone ?? ''} onChange={e => setF('phone', e.target.value)} />
+                <Input variant="elevated" value={form.phone ?? ''} onChange={e => setF('phone', e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label>เลขผู้เสียภาษี</Label>
-                <Input value={form.tax_id ?? ''} onChange={e => setF('tax_id', e.target.value)} />
+                <Input variant="elevated" value={form.tax_id ?? ''} onChange={e => setF('tax_id', e.target.value)} />
               </div>
             </div>
             <div className="space-y-1.5">
               <Label>ที่อยู่</Label>
-              <Textarea value={form.address ?? ''} onChange={e => setF('address', e.target.value)} rows={3} className="resize-none" />
+              <Textarea variant="elevated" value={form.address ?? ''} onChange={e => setF('address', e.target.value)} rows={3} className="resize-none" />
             </div>
 
             {editing && (
@@ -784,7 +784,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
       </div>
 
       <Dialog open={dialog} onOpenChange={setDialog}>
-        <DialogContent size="md" onClose={() => setDialog(false)}>
+        <DialogContent size="md" divided onClose={() => setDialog(false)}>
           <DialogHeader>
             <DialogTitle>{form.id ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน'}</DialogTitle>
           </DialogHeader>
@@ -792,11 +792,11 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>ชื่อ <span className="text-destructive">*</span></Label>
-                <Input value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
+                <Input variant="elevated" value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
               </div>
               <div className="space-y-1.5">
                 <Label>อีเมล</Label>
-                <Input type="email" value={form.email ?? ''} onChange={e => setF('email', e.target.value)} />
+                <Input variant="elevated" type="email" value={form.email ?? ''} onChange={e => setF('email', e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label>
@@ -804,12 +804,12 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                     ? <span className="ml-1 font-normal text-muted-foreground">(เว้นว่างถ้าไม่เปลี่ยน)</span>
                     : <span className="text-destructive ml-0.5">*</span>}
                 </Label>
-                <Input type="password" value={form.password ?? ''} onChange={e => setF('password', e.target.value)} />
+                <Input variant="elevated" type="password" value={form.password ?? ''} onChange={e => setF('password', e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label>ตำแหน่ง</Label>
                 <Select value={form.role ?? 'staff'} onValueChange={v => setF('role', v)}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger variant="elevated" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

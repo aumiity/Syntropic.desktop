@@ -1350,7 +1350,7 @@ export default function PurchasePage() {
 
       {/* ── Bill adjustment modal ── */}
       <Dialog open={showBillAdjust} onOpenChange={(o) => { if (!o) closeBillAdjust() }}>
-        <DialogContent size="sm">
+        <DialogContent size="sm" divided>
           {showBillAdjust && (() => {
             const isDisc = billAdjustTab === 'discount'
             const calcNet = (dB: string, sB: string) =>
@@ -1516,7 +1516,7 @@ export default function PurchasePage() {
 
       {/* ── Import paste modal ── */}
       <Dialog open={showImport} onOpenChange={(o) => { if (!o && !importing) { setShowImport(false); setImportText('') } }}>
-        <DialogContent size="2xl">
+        <DialogContent size="2xl" divided>
           <DialogHeader>
             <DialogTitle>นำเข้าข้อมูลจากตาราง (วาง / Paste)</DialogTitle>
           </DialogHeader>
@@ -1603,7 +1603,7 @@ export default function PurchasePage() {
           <DialogHeader className="sr-only">
             <DialogTitle>บันทึกสำเร็จ</DialogTitle>
           </DialogHeader>
-          <DialogBody className="text-center py-8 space-y-4">
+          <DialogBody className="text-center py-2 space-y-4">
             <CheckCircle2 className="size-16 mx-auto text-success" />
             <div>
               <div className="text-lg font-semibold">บันทึกสำเร็จ</div>

@@ -666,7 +666,7 @@ export default function ManagePurchasesPage() {
           when payment_type === 'cash' (the alternative — conditional render —
           made the modal jump and shift the footer buttons). */}
       <Dialog open={showEditModal} onOpenChange={(o) => { if (!editSaving) setShowEditModal(o) }}>
-        <DialogContent size="xl">
+        <DialogContent size="xl" divided>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 flex-wrap">
               <FileText className="size-5 text-muted-foreground" />
@@ -857,7 +857,7 @@ export default function ManagePurchasesPage() {
 
       {/* ── Cancel-bill confirm dialog ── */}
       <Dialog open={showCancelModal} onOpenChange={(o) => { if (!cancelling) setShowCancelModal(o) }}>
-        <DialogContent size="md">
+        <DialogContent size="md" divided>
           <DialogHeader>
             <div className="flex items-start gap-3">
               <span className="grid place-items-center size-10 rounded-xl bg-destructive-soft text-destructive shrink-0">
@@ -876,6 +876,7 @@ export default function ManagePurchasesPage() {
               <div>
                 <label className="block text-base font-medium mb-1">เหตุผล <span className="text-destructive">*</span></label>
                 <Textarea
+                  variant="elevated"
                   value={cancelReason}
                   onChange={e => setCancelReason(e.target.value)}
                   rows={3}

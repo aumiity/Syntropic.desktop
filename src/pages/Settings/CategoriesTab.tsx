@@ -193,17 +193,17 @@ export function CategoriesTab() {
       </div>
 
       <Dialog open={dialog} onOpenChange={setDialog}>
-        <DialogContent size="sm">
+        <DialogContent size="sm" divided>
           <DialogHeader><DialogTitle className="text-xl">{form.id ? 'แก้ไขหมวดหมู่' : 'เพิ่มหมวดหมู่'}</DialogTitle></DialogHeader>
           <DialogBody className="space-y-3">
             <FormField label="รหัส">
-              <Input value={form.code ?? ''} onChange={e => setF('code', e.target.value)} placeholder="เช่น MED, SUP" />
+              <Input variant="elevated" value={form.code ?? ''} onChange={e => setF('code', e.target.value)} placeholder="เช่น MED, SUP" />
             </FormField>
             <FormField label="ชื่อหมวดหมู่" required>
-              <Input value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
+              <Input variant="elevated" value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
             </FormField>
             <FormField label="คำอธิบาย">
-              <Input value={form.description ?? ''} onChange={e => setF('description', e.target.value)} />
+              <Input variant="elevated" value={form.description ?? ''} onChange={e => setF('description', e.target.value)} />
             </FormField>
             {form.id ? (
               <Toggle

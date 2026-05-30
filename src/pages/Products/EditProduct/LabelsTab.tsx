@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
-import { Plus, Trash2, Edit, Pill } from 'lucide-react'
+import { SectionCard } from '@/components/ui/card'
+import { Plus, Trash2, Edit, Pill, Info, Languages, SlidersHorizontal } from 'lucide-react'
 import type { ProductLabel } from '@/types'
 import type { FullProduct } from './shared'
 
@@ -218,100 +219,106 @@ export function LabelsTab({
 
       {/* ======================== LABEL DIALOG ======================== */}
       <Dialog open={labelDialog} onOpenChange={setLabelDialog}>
-        <DialogContent size="xl">
+        <DialogContent size="xl" divided>
           <DialogHeader>
             <DialogTitle>{editingLabel ? 'แก้ไขฉลาก' : 'เพิ่มฉลาก'}</DialogTitle>
           </DialogHeader>
-          <DialogBody className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="ชื่อฉลาก">
-                <Input variant="elevated" value={labelForm.label_name ?? ''} onChange={e => setLF('label_name', e.target.value)} placeholder="เช่น วิธีรับประทานมาตรฐาน" />
-              </Field>
-              <Field label="ลำดับ">
-                <Input variant="elevated" type="number" value={labelForm.sort_order ?? 0} onChange={e => setLF('sort_order', e.target.value)} className="w-24" min={0} />
-              </Field>
-            </div>
+          <DialogBody className="space-y-3">
+            <SectionCard icon={Info} title="ข้อมูลทั่วไป" tint="primary">
+              <div className="grid grid-cols-[1fr_auto] gap-4">
+                <Field label="ชื่อฉลาก">
+                  <Input variant="elevated" value={labelForm.label_name ?? ''} onChange={e => setLF('label_name', e.target.value)} placeholder="เช่น วิธีรับประทานมาตรฐาน" />
+                </Field>
+                <Field label="ลำดับ">
+                  <Input variant="elevated" type="number" value={labelForm.sort_order ?? 0} onChange={e => setLF('sort_order', e.target.value)} className="w-24" min={0} />
+                </Field>
+              </div>
+            </SectionCard>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="ปริมาณยา">
-                <Select value={String(labelForm.dosage_id ?? 0)} onValueChange={v => setLF('dosage_id', v)}>
+            <SectionCard icon={Pill} title="รายละเอียดยา" tint="info-soft">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="ปริมาณยา">
+                  <Select value={String(labelForm.dosage_id ?? 0)} onValueChange={v => setLF('dosage_id', v)}>
+                    <SelectTrigger variant="elevated" className="h-10 w-full">
+                      <SelectValue placeholder="— เลือก —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">— เลือก —</SelectItem>
+                      {labelDosages.map((d: any) => <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="ความถี่">
+                  <Select value={String(labelForm.frequency_id ?? 0)} onValueChange={v => setLF('frequency_id', v)}>
+                    <SelectTrigger variant="elevated" className="h-10 w-full">
+                      <SelectValue placeholder="— เลือก —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">— เลือก —</SelectItem>
+                      {labelFrequencies.map((f: any) => <SelectItem key={f.id} value={String(f.id)}>{f.name_th}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="เวลาเทียบมื้ออาหาร">
+                  <Select value={String(labelForm.timing_id ?? 0)} onValueChange={v => setLF('timing_id', v)}>
+                    <SelectTrigger variant="elevated" className="h-10 w-full">
+                      <SelectValue placeholder="— เลือก —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">— เลือก —</SelectItem>
+                      {labelMealRelations.map((m: any) => <SelectItem key={m.id} value={String(m.id)}>{m.name_th}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="เวลาที่รับประทาน">
+                  <Select value={String(labelForm.label_time_id ?? 0)} onValueChange={v => setLF('label_time_id', v)}>
+                    <SelectTrigger variant="elevated" className="h-10 w-full">
+                      <SelectValue placeholder="— เลือก —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">— เลือก —</SelectItem>
+                      {labelTimes.map((t: any) => <SelectItem key={t.id} value={String(t.id)}>{t.name_th}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+              <Field label="คำแนะนำ">
+                <Select value={String(labelForm.advice_id ?? 0)} onValueChange={v => setLF('advice_id', v)}>
                   <SelectTrigger variant="elevated" className="h-10 w-full">
                     <SelectValue placeholder="— เลือก —" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="0">— เลือก —</SelectItem>
-                    {labelDosages.map((d: any) => <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>)}
+                    {labelAdvices.map((a: any) => <SelectItem key={a.id} value={String(a.id)}>{a.name_th}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="ความถี่">
-                <Select value={String(labelForm.frequency_id ?? 0)} onValueChange={v => setLF('frequency_id', v)}>
-                  <SelectTrigger variant="elevated" className="h-10 w-full">
-                    <SelectValue placeholder="— เลือก —" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">— เลือก —</SelectItem>
-                    {labelFrequencies.map((f: any) => <SelectItem key={f.id} value={String(f.id)}>{f.name_th}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="เวลาเทียบมื้ออาหาร">
-                <Select value={String(labelForm.timing_id ?? 0)} onValueChange={v => setLF('timing_id', v)}>
-                  <SelectTrigger variant="elevated" className="h-10 w-full">
-                    <SelectValue placeholder="— เลือก —" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">— เลือก —</SelectItem>
-                    {labelMealRelations.map((m: any) => <SelectItem key={m.id} value={String(m.id)}>{m.name_th}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="เวลาที่รับประทาน">
-                <Select value={String(labelForm.label_time_id ?? 0)} onValueChange={v => setLF('label_time_id', v)}>
-                  <SelectTrigger variant="elevated" className="h-10 w-full">
-                    <SelectValue placeholder="— เลือก —" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">— เลือก —</SelectItem>
-                    {labelTimes.map((t: any) => <SelectItem key={t.id} value={String(t.id)}>{t.name_th}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
+            </SectionCard>
 
-            <Field label="คำแนะนำ">
-              <Select value={String(labelForm.advice_id ?? 0)} onValueChange={v => setLF('advice_id', v)}>
-                <SelectTrigger variant="elevated" className="h-10 w-full">
-                  <SelectValue placeholder="— เลือก —" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">— เลือก —</SelectItem>
-                  {labelAdvices.map((a: any) => <SelectItem key={a.id} value={String(a.id)}>{a.name_th}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <Field label="สรรพคุณ (ไทย)">
-              <Textarea variant="elevated" value={labelForm.indication_th ?? ''} onChange={e => setLF('indication_th', e.target.value)} rows={2} />
-            </Field>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="สรรพคุณ (ภาษาพม่า)">
-                <Textarea variant="elevated" value={labelForm.indication_mm ?? ''} onChange={e => setLF('indication_mm', e.target.value)} rows={2} />
+            <SectionCard icon={Languages} title="สรรพคุณและหมายเหตุ" tint="success">
+              <Field label="สรรพคุณ (ไทย)">
+                <Textarea variant="elevated" value={labelForm.indication_th ?? ''} onChange={e => setLF('indication_th', e.target.value)} rows={2} />
               </Field>
-              <Field label="สรรพคุณ (ภาษาจีน)">
-                <Textarea variant="elevated" value={labelForm.indication_zh ?? ''} onChange={e => setLF('indication_zh', e.target.value)} rows={2} />
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="สรรพคุณ (ภาษาพม่า)">
+                  <Textarea variant="elevated" value={labelForm.indication_mm ?? ''} onChange={e => setLF('indication_mm', e.target.value)} rows={2} />
+                </Field>
+                <Field label="สรรพคุณ (ภาษาจีน)">
+                  <Textarea variant="elevated" value={labelForm.indication_zh ?? ''} onChange={e => setLF('indication_zh', e.target.value)} rows={2} />
+                </Field>
+              </div>
+              <Field label="หมายเหตุ (ไทย)">
+                <Textarea variant="elevated" value={labelForm.note_th ?? ''} onChange={e => setLF('note_th', e.target.value)} rows={2} />
               </Field>
-            </div>
+            </SectionCard>
 
-            <Field label="หมายเหตุ (ไทย)">
-              <Textarea variant="elevated" value={labelForm.note_th ?? ''} onChange={e => setLF('note_th', e.target.value)} rows={2} />
-            </Field>
-
-            <div className="flex flex-wrap gap-4 pt-1">
-              <Toggle size="lg" checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" />
-              <Toggle size="lg" checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" />
-              <Toggle size="lg" checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" />
-            </div>
+            <SectionCard icon={SlidersHorizontal} title="ตัวเลือก" tint="warm">
+              <div className="grid grid-cols-3 gap-3">
+                <Toggle framed size="lg" checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" className="justify-between w-full" />
+                <Toggle framed size="lg" checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" className="justify-between w-full" />
+                <Toggle framed size="lg" checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" className="justify-between w-full" />
+              </div>
+            </SectionCard>
           </DialogBody>
           <DialogFooter>
             <Button variant="elevated" size="xl" onClick={() => setLabelDialog(false)}>ยกเลิก</Button>

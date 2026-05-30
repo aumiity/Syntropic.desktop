@@ -9,7 +9,6 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
 import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/QuickStockDialog'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
@@ -44,6 +43,8 @@ interface LowStockPrefs {
   sort: SortState
   showSupplier: boolean
   showColStockBar: boolean
+  showColReorder: boolean
+  showColSafety: boolean
   showColBuyMore: boolean
   showColCost: boolean
 }
@@ -52,6 +53,8 @@ const LOWSTOCK_DEFAULTS: LowStockPrefs = {
   sort: { by: 'trade_name', dir: 'asc' },
   showSupplier: false,
   showColStockBar: true,
+  showColReorder: true,
+  showColSafety: true,
   showColBuyMore: true,
   showColCost: true,
 }
@@ -77,6 +80,8 @@ export default function ManageLowStockPage() {
   // "สต็อก" bar consolidates คงเหลือ/จุดสั่งซื้อ/สต็อกปลอดภัย/หน่วย into one cell
   // — same pattern as ProductsList renderStockCell.
   const showColStockBar = prefs.showColStockBar
+  const showColReorder = prefs.showColReorder
+  const showColSafety = prefs.showColSafety
   const showColBuyMore = prefs.showColBuyMore
   const showColCost = prefs.showColCost
   const sort = prefs.sort
@@ -149,60 +154,29 @@ export default function ManageLowStockPage() {
 
   const colCount = 2
     + (showColStockBar ? 1 : 0)
+    + (showColReorder ? 1 : 0)
+    + (showColSafety ? 1 : 0)
     + (showColBuyMore ? 1 : 0)
     + (showColCost ? 1 : 0)
     + (showSupplier ? 1 : 0)
 
-  // Stock cell — qty/unit/status + bar + a meta line under the bar showing
-  // reorder & safety_stock targets.
+  // Stock cell — qty/unit floats above a fill bar. Reorder & safety_stock now
+  // live in dedicated columns.
   const renderStockCell = (qty: number, reorder: number, safety: number, unitName?: string | null) => {
     const unit = unitName || 'หน่วย'
     const isOut = qty <= 0
     const isLow = !isOut && reorder > 0 && qty <= reorder
     const barTone = isOut || isLow ? 'bg-destructive' : 'bg-success'
     const pct = isOut ? 0 : safety > 0 ? Math.min(100, (qty / safety) * 100) : 100
-    const hasMeta = reorder > 0 || safety > 0
     return (
       <div className="flex flex-col gap-1 min-w-[160px]">
-        {/* qty + unit float above the bar at pct% so the label tracks the fill end.
-            Position is clamped to keep the label fully visible at extremes. No
-            status badge — the page itself is the "low stock" context. */}
-        <div className="relative pt-4">
-          <span
-            className="absolute top-0 -translate-x-1/2 text-xs whitespace-nowrap"
-            style={{ left: `${Math.max(8, Math.min(92, pct))}%` }}
-          >
-            <span className="font-semibold text-foreground tabular-nums">{qty.toLocaleString()}</span>
-            <span className="text-muted-foreground"> {unit}</span>
-          </span>
-          <div className="h-1.5 w-full rounded-full bg-muted-hover overflow-hidden">
-            <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
-          </div>
+        <div className="text-xs whitespace-nowrap">
+          <span className="font-semibold text-foreground tabular-nums">{qty.toLocaleString()}</span>
+          <span className="text-muted-foreground"> {unit}</span>
         </div>
-        {hasMeta && (
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>
-              {reorder > 0 ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-foreground cursor-help tabular-nums">{reorder.toLocaleString()}</span>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">จุดสั่งซื้อ</TooltipContent>
-                </Tooltip>
-              ) : null}
-            </span>
-            <span>
-              {safety > 0 ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-foreground cursor-help tabular-nums">{safety.toLocaleString()}</span>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">สต็อคปลอดภัย</TooltipContent>
-                </Tooltip>
-              ) : null}
-            </span>
-          </div>
-        )}
+        <div className="h-1.5 w-full rounded-full bg-muted-hover overflow-hidden">
+          <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
+        </div>
       </div>
     )
   }
@@ -291,6 +265,14 @@ export default function ManageLowStockPage() {
                 <span className="text-sm">สต็อก</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColReorder} onCheckedChange={v => setPrefs({ showColReorder: v === true })} />
+                <span className="text-sm">จุดสั่งซื้อ</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColSafety} onCheckedChange={v => setPrefs({ showColSafety: v === true })} />
+                <span className="text-sm">สต็อคปลอดภัย</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColBuyMore} onCheckedChange={v => setPrefs({ showColBuyMore: v === true })} />
                 <span className="text-sm">ซื้อเพิ่ม</span>
               </label>
@@ -311,9 +293,11 @@ export default function ManageLowStockPage() {
             <TableHeader>
               <TableRow>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[160px]">ชื่อสินค้า</SortableTableHead>
+                {showColReorder && <TableHead className="text-right min-w-20">จุดสั่งซื้อ</TableHead>}
                 {showColStockBar && <TableHead className="min-w-[160px] pl-6">สต็อก</TableHead>}
-                {showColBuyMore && <TableHead className="text-right min-w-16">ซื้อเพิ่ม</TableHead>}
-                {showColCost && <TableHead className="text-right min-w-16">ทุนเฉลี่ย</TableHead>}
+                {showColSafety && <TableHead className="min-w-20">สต็อคปลอดภัย</TableHead>}
+                {showColBuyMore && <TableHead className="min-w-16">ซื้อเพิ่ม</TableHead>}
+                {showColCost && <TableHead className="min-w-16">ทุนเฉลี่ย</TableHead>}
                 {showSupplier && (
                   <TableHead className="text-right min-w-32">ผู้จำหน่าย</TableHead>
                 )}
@@ -339,18 +323,32 @@ export default function ManageLowStockPage() {
                     <TableCell className="max-w-[200px] text-sm truncate" title={r.trade_name}>
                       {r.trade_name}
                     </TableCell>
+                    {showColReorder && (
+                      <TableCell className="text-right text-sm tabular-nums">
+                        {r.reorder_point > 0
+                          ? <span className="text-foreground">{r.reorder_point.toLocaleString()}</span>
+                          : <span className="text-foreground-subtle">—</span>}
+                      </TableCell>
+                    )}
                     {showColStockBar && (
                       <TableCell className="pl-6">
                         {renderStockCell(r.stock_qty, r.reorder_point, r.safety_stock ?? 0, r.unit_name)}
                       </TableCell>
                     )}
+                    {showColSafety && (
+                      <TableCell className="text-sm tabular-nums">
+                        {(r.safety_stock ?? 0) > 0
+                          ? <span className="text-foreground">{(r.safety_stock ?? 0).toLocaleString()}</span>
+                          : <span className="text-foreground-subtle">—</span>}
+                      </TableCell>
+                    )}
                     {showColBuyMore && (
-                      <TableCell className="text-right text-sm font-bold text-destructive">
+                      <TableCell className="text-sm font-bold text-destructive">
                         {Math.max(0, r.buy_more).toLocaleString()}
                       </TableCell>
                     )}
                     {showColCost && (
-                      <TableCell className="text-right text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground">
                         {r.cost_avg != null && r.cost_avg > 0
                           ? r.cost_avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                           : <span className="text-foreground-subtle">—</span>}

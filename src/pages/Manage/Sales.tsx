@@ -307,11 +307,11 @@ export default function ManageSalesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                {showColDate && <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="min-w-24">เวลา</SortableTableHead>}
                 <SortableTableHead field="invoice_no" sort={sort} onToggle={toggleSort} className="min-w-24">เลขบิล</SortableTableHead>
                 {showColCustomer && <TableHead className="min-w-[180px]">ลูกค้า</TableHead>}
                 {showColTotal && <SortableTableHead field="total_amount" sort={sort} onToggle={toggleSort} className="min-w-24">ยอดสุทธิ</SortableTableHead>}
                 {showColStatus && <TableHead className="min-w-[140px]">สถานะ</TableHead>}
-                {showColDate && <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="min-w-24">เวลา</SortableTableHead>}
                 <TableHead className="text-center min-w-14">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
@@ -331,6 +331,7 @@ export default function ManageSalesPage() {
                 const isVoided = s.status === 'voided'
                 return (
                 <TableRow key={s.id} className="[&_td]:py-2.5 [&_td]:font-medium">
+                  {showColDate && <TableCell className="text-sm whitespace-nowrap">{formatDateTime(s.sold_at)}</TableCell>}
                   <TableCell className="text-sm">
                     <div className="text-foreground">{s.invoice_no}</div>
                     {showColItems && (
@@ -370,7 +371,6 @@ export default function ManageSalesPage() {
                       </div>
                     </TableCell>
                   )}
-                  {showColDate && <TableCell className="text-sm whitespace-nowrap">{formatDateTime(s.sold_at)}</TableCell>}
                   <TableCell>
                     <div className="flex justify-center">
                       <Popover>

@@ -223,6 +223,7 @@ export function AdjustStockDialog({
     <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent
         size="2xl"
+        divided
         onClose={onClose}
         className="h-[800px] grid-rows-[auto_1fr_auto]"
       >
@@ -268,6 +269,7 @@ export function AdjustStockDialog({
                         : <><Minus className="size-4" /> ไม่เปลี่ยน</>}
                 </span>
                 <Input
+                  variant="elevated"
                   type="number"
                   value={adjustTarget}
                   onChange={e => setAdjustTarget(e.target.value)}
@@ -355,6 +357,7 @@ export function AdjustStockDialog({
                       <div>
                         <label className="block text-sm font-medium mb-1 text-muted-foreground">หมายเลขล็อต</label>
                         <Input
+                          variant="elevated"
                           value={newLotNumber}
                           onChange={e => setNewLotNumber(e.target.value)}
                           placeholder="ปล่อยว่างเพื่อ auto"
@@ -363,7 +366,7 @@ export function AdjustStockDialog({
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1 text-muted-foreground">วันหมดอายุ</label>
-                        <DateInput className="h-10" value={newLotExpiry} onChange={setNewLotExpiry} placeholder="dd/mm/yyyy" />
+                        <DateInput variant="elevated" className="h-10" value={newLotExpiry} onChange={setNewLotExpiry} placeholder="dd/mm/yyyy" />
                       </div>
                     </div>
                     <div>
@@ -372,6 +375,7 @@ export function AdjustStockDialog({
                         <span className="ml-1 opacity-70">(ฟรี = 0)</span>
                       </label>
                       <PriceInput
+                        variant="elevated"
                         value={newLotCost}
                         onChange={setNewLotCost}
                         className="h-10 rounded-lg text-sm"
@@ -392,7 +396,7 @@ export function AdjustStockDialog({
                           value={targetLotId ? String(targetLotId) : ''}
                           onValueChange={v => setTargetLotId(Number(v))}
                         >
-                          <SelectTrigger className="h-10 w-full rounded-lg text-sm">
+                          <SelectTrigger variant="elevated" className="h-10 w-full rounded-lg text-sm">
                             <SelectValue placeholder="-- เลือกล็อต --" />
                           </SelectTrigger>
                           <SelectContent>
@@ -426,6 +430,7 @@ export function AdjustStockDialog({
                           <span className="opacity-70">(ฟรี = 0)</span>
                         </label>
                         <PriceInput
+                          variant="elevated"
                           value={addedCost}
                           onChange={setAddedCost}
                           className="h-10 rounded-lg text-sm"
@@ -474,6 +479,7 @@ export function AdjustStockDialog({
               ))}
             </div>
             <Input
+              variant="elevated"
               value={adjustNote}
               onChange={e => setAdjustNote(e.target.value)}
               placeholder="เหตุผลการปรับสต็อก หรือเลือกจากปุ่มด้านบน"

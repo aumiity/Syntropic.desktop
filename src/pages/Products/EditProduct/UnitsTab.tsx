@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
+import { Switch, Toggle } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/label'
 import {
@@ -228,7 +228,7 @@ export function UnitsTab({
 
       {/* ======================== UNIT DIALOG ======================== */}
       <Dialog open={unitDialog} onOpenChange={setUnitDialog}>
-        <DialogContent size="4xl">
+        <DialogContent size="4xl" divided>
           <DialogHeader>
             <DialogTitle>{editingUnit ? 'แก้ไขหน่วยนับ' : 'เพิ่มหน่วยนับ'}</DialogTitle>
           </DialogHeader>
@@ -273,20 +273,22 @@ export function UnitsTab({
                     </Field>
 
                     {/* ตัวเลือกการใช้งาน */}
-                    <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
-                      <div>
-                        <div className="text-sm font-semibold text-foreground">ใช้ขาย</div>
-                        <div className="text-xs text-muted-foreground">ใช้หน่วยนี้ในการขาย</div>
-                      </div>
-                      <Switch size="lg" checked={!!unitForm.is_for_sale} onCheckedChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))} />
-                    </div>
-                    <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
-                      <div>
-                        <div className="text-sm font-semibold text-foreground">ใช้ซื้อ</div>
-                        <div className="text-xs text-muted-foreground">ใช้หน่วยนี้ในการรับเข้าสต็อก</div>
-                      </div>
-                      <Switch size="lg" checked={!!unitForm.is_for_purchase} onCheckedChange={v => setUnitForm((f: any) => ({ ...f, is_for_purchase: v ? 1 : 0 }))} />
-                    </div>
+                    <Toggle
+                      framed
+                      size="lg"
+                      label="ใช้ขาย — ใช้หน่วยนี้ในการขาย"
+                      checked={!!unitForm.is_for_sale}
+                      onChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))}
+                      className="justify-between w-full"
+                    />
+                    <Toggle
+                      framed
+                      size="lg"
+                      label="ใช้ซื้อ — ใช้หน่วยนี้ในการรับเข้าสต็อก"
+                      checked={!!unitForm.is_for_purchase}
+                      onChange={v => setUnitForm((f: any) => ({ ...f, is_for_purchase: v ? 1 : 0 }))}
+                      className="justify-between w-full"
+                    />
                   </div>
 
                   {/* ── ขวา: ราคา + รายละเอียด ── */}

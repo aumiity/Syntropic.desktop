@@ -335,7 +335,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
         const lot = editingLotId !== null ? product?.lots?.find(l => l.id === editingLotId) ?? null : null
         return (
           <Dialog open={editingLotId !== null} onOpenChange={open => { if (!open && !lotSaving) setEditingLotId(null) }}>
-            <DialogContent size="lg" onClose={() => { if (!lotSaving) setEditingLotId(null) }}>
+            <DialogContent size="lg" divided onClose={() => { if (!lotSaving) setEditingLotId(null) }}>
               <DialogHeader>
                 <DialogTitle className="text-xl">แก้ไขล็อต</DialogTitle>
               </DialogHeader>
