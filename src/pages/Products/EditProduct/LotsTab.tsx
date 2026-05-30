@@ -9,6 +9,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle,
 } from '@/components/ui/popover'
@@ -396,42 +397,34 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
       })()}
 
       {/* Confirm lot edit — shows diff (before → after) for each changed field */}
-      <Dialog open={!!confirmLot} onOpenChange={open => { if (!open && !lotSaving) setConfirmLot(null) }}>
-        <DialogContent size="sm" onClose={() => { if (!lotSaving) setConfirmLot(null) }}>
-          <DialogHeader>
-            <DialogTitle className="text-xl">ยืนยันการแก้ไขล็อต</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="space-y-3">
-            {confirmLot && (
-              <>
-                <div className="bg-muted rounded-card px-4 py-3">
-                  <div className="text-sm text-muted-foreground">ล็อต</div>
-                  <div className="font-semibold text-sm">{confirmLot.lot_number}</div>
+      <ConfirmDialog
+        open={!!confirmLot}
+        onOpenChange={open => { if (!open && !lotSaving) setConfirmLot(null) }}
+        title="ยืนยันการแก้ไขล็อต"
+        description="การแก้ไขจะถูกบันทึกในประวัติการเคลื่อนไหวสต็อกและไม่สามารถย้อนกลับได้ทันที"
+        cancelLabel="ยกเลิก"
+        confirmLabel={lotSaving ? 'กำลังบันทึก...' : 'ยืนยันการแก้ไข'}
+        busy={lotSaving}
+        onConfirm={confirmSaveLot}
+        content={confirmLot && (
+          <div className="space-y-3">
+            <div className="rounded-card border bg-card shadow-sm px-4 py-3">
+              <div className="text-sm text-muted-foreground">ล็อต</div>
+              <div className="font-semibold text-sm">{confirmLot.lot_number}</div>
+            </div>
+            <div className="space-y-2">
+              {getLotEditChanges(confirmLot).map((c, i) => (
+                <div key={i} className="flex items-baseline gap-2 text-sm">
+                  <span className="w-28 shrink-0 text-muted-foreground">{c.label}</span>
+                  <span className="text-foreground-subtle line-through">{c.before}</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="font-semibold">{c.after}</span>
                 </div>
-                <div className="space-y-2">
-                  {getLotEditChanges(confirmLot).map((c, i) => (
-                    <div key={i} className="flex items-baseline gap-2 text-sm">
-                      <span className="w-28 shrink-0 text-muted-foreground">{c.label}</span>
-                      <span className="text-foreground-subtle line-through">{c.before}</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-semibold">{c.after}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  การแก้ไขจะถูกบันทึกในประวัติการเคลื่อนไหวสต็อกและไม่สามารถย้อนกลับได้ทันที
-                </p>
-              </>
-            )}
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="elevated" size="xl" onClick={() => setConfirmLot(null)} disabled={lotSaving}>ยกเลิก</Button>
-            <Button size="xl" onClick={confirmSaveLot} disabled={lotSaving} autoFocus>
-              {lotSaving ? 'กำลังบันทึก...' : 'ยืนยันการแก้ไข'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              ))}
+            </div>
+          </div>
+        )}
+      />
     </div>
   )
 }

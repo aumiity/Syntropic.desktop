@@ -187,6 +187,8 @@ export default function Theme() {
   const [comboFilterVal, setComboFilterVal] = useState<(typeof comboItems)[number] | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmDestrOpen, setConfirmDestrOpen] = useState(false)
+  const [confirmWarningOpen, setConfirmWarningOpen] = useState(false)
+  const [confirmSuccessOpen, setConfirmSuccessOpen] = useState(false)
   const [confirmReasonOpen, setConfirmReasonOpen] = useState(false)
   const [formModalOpen, setFormModalOpen] = useState(false)
   const [scrollModalOpen, setScrollModalOpen] = useState(false)
@@ -379,7 +381,7 @@ export default function Theme() {
                         <div className="flex flex-wrap gap-2">
                           <Button variant="default">ปุ่มหลัก</Button>
                           <Button variant="secondary">รอง</Button>
-                          <Button variant="tertiary">รอง3</Button>
+                          <Button variant="accent">รอง3</Button>
                           <Button variant="destructive">ลบ</Button>
                         </div>
                         <div className="max-w-xs space-y-4">
@@ -405,22 +407,46 @@ export default function Theme() {
 
               {/* ── BUTTON ── */}
               <Section title="Button" path="src/components/ui/button.tsx" full>
-                <DemoRow label="Variants">
-                  <Button variant="default">Default</Button>
-                  <Button variant="secondary">Secondary</Button>
-                  <Button variant="tertiary">Tertiary</Button>
-                  <Button variant="brand-soft">Brand-soft</Button>
+                <DemoRow label="Status — solid">
+                  <Button variant="default">Primary</Button>
+                  <Button variant="success">Success</Button>
+                  <Button variant="warning">Warning</Button>
+                  <Button variant="destructive">Destructive</Button>
+                  <Button variant="info">Info</Button>
+                </DemoRow>
+                <DemoRow label="Status — soft">
                   <Button variant="primary-soft">Primary-soft</Button>
+                  <Button variant="success-soft">Success-soft</Button>
+                  <Button variant="warm">Warm (= warning-soft)</Button>
+                  <Button variant="destructive2">Destructive2</Button>
                   <Button variant="info-soft">Info-soft</Button>
-                  <Button variant="warm">Warm</Button>
+                </DemoRow>
+                <DemoRow label="Decorative">
+                  <Button variant="accent">Accent</Button>
+                  <Button variant="violet">Violet</Button>
+                  <Button variant="violet-soft">Violet-soft</Button>
+                  <Button variant="teal">Teal</Button>
+                  <Button variant="teal-soft">Teal-soft</Button>
+                </DemoRow>
+                <DemoRow label="Soft + colored border (chip style — matches Badge *-outline)">
+                  <Button variant="primary-outline">Primary-outline</Button>
+                  <Button variant="success-outline">Success-outline</Button>
+                  <Button variant="warning-outline">Warning-outline</Button>
+                  <Button variant="destructive-outline">Destructive-outline</Button>
+                  <Button variant="info-outline">Info-outline</Button>
+                  <Button variant="violet-outline">Violet-outline</Button>
+                  <Button variant="teal-outline">Teal-outline</Button>
+                  <Button variant="accent-outline">Accent-outline</Button>
+                  <Button variant="neutral-outline">Neutral-outline</Button>
+                  <Button variant="muted-outline">Muted-outline</Button>
+                </DemoRow>
+                <DemoRow label="Neutral / surface">
+                  <Button variant="secondary">Secondary</Button>
                   <Button variant="outline">Outline</Button>
                   <Button variant="mutedborder">Mutedborder</Button>
                   <Button variant="ghost">Ghost</Button>
-                  <Button variant="destructive">Destructive</Button>
-                  <Button variant="destructive2">Destructive2</Button>
-                  <Button variant="success">Success</Button>
-                  <Button variant="link">Link</Button>
                   <Button variant="elevated">Elevated</Button>
+                  <Button variant="link">Link</Button>
                 </DemoRow>
                 <DemoRow label="Elevated — white bg + shadow (no border)">
                   <Button variant="elevated"><Filter className="size-4" /> Status</Button>
@@ -456,29 +482,42 @@ export default function Theme() {
 
               {/* ── BADGE ── */}
               <Section title="Badge" path="src/components/ui/badge.tsx">
-                <DemoRow label="Variants">
-                  <Badge variant="default">Default</Badge>
-                  <Badge variant="secondary">Secondary</Badge>
-                  <Badge variant="tertiary">Tertiary</Badge>
-                  <Badge variant="brand-soft">Brand-soft</Badge>
-                  <Badge variant="info-soft">Info-soft</Badge>
-                  <Badge variant="warm">Warm</Badge>
-                  <Badge variant="outline">Outline</Badge>
+                <DemoRow label="Status — solid">
+                  <Badge variant="default">Primary</Badge>
                   <Badge variant="success">Success</Badge>
                   <Badge variant="warning">Warning</Badge>
                   <Badge variant="destructive">Destructive</Badge>
-                  <Badge variant="destructive2">Destructive2</Badge>
-                  <Badge variant="danger">Danger</Badge>
-                  <Badge variant="ghost">Ghost</Badge>
+                  <Badge variant="info">Info</Badge>
                 </DemoRow>
-                <DemoRow label="Status (soft + outline)">
+                <DemoRow label="Status — soft">
+                  <Badge variant="primary-soft">Primary-soft</Badge>
+                  <Badge variant="success-soft">Success-soft</Badge>
+                  <Badge variant="warm">Warm</Badge>
+                  <Badge variant="destructive2">Destructive2</Badge>
+                  <Badge variant="info-soft">Info-soft</Badge>
+                </DemoRow>
+                <DemoRow label="Decorative">
+                  <Badge variant="accent">Accent</Badge>
+                  <Badge variant="violet">Violet</Badge>
+                  <Badge variant="violet-soft">Violet-soft</Badge>
+                  <Badge variant="teal">Teal</Badge>
+                  <Badge variant="teal-soft">Teal-soft</Badge>
+                </DemoRow>
+                <DemoRow label="Neutral / surface">
+                  <Badge variant="secondary">Secondary</Badge>
+                  <Badge variant="outline">Outline</Badge>
+                  <Badge variant="ghost">Ghost</Badge>
+                  <Badge variant="link">Link</Badge>
+                </DemoRow>
+                <DemoRow label="Soft + colored border (chip style)">
+                  <Badge variant="primary-outline">Primary-outline</Badge>
                   <Badge variant="success-outline">Success-outline</Badge>
-                  <Badge variant="info-outline">Info-outline</Badge>
                   <Badge variant="warning-outline">Warning-outline</Badge>
-                  <Badge variant="brand-outline">Brand-outline</Badge>
+                  <Badge variant="destructive-outline">Destructive-outline</Badge>
+                  <Badge variant="info-outline">Info-outline</Badge>
                   <Badge variant="violet-outline">Violet-outline</Badge>
                   <Badge variant="teal-outline">Teal-outline</Badge>
-                  <Badge variant="destructive-outline">Destructive-outline</Badge>
+                  <Badge variant="accent-outline">Accent-outline</Badge>
                   <Badge variant="neutral-outline">Neutral-outline</Badge>
                   <Badge variant="muted-outline">Muted-outline</Badge>
                 </DemoRow>
@@ -1106,15 +1145,39 @@ export default function Theme() {
 
               {/* ── TINT ICON BOX ── */}
               <Section title="TintIcon — tinted icon-box primitive" path="src/components/ui/tint-icon.tsx" full>
-                <DemoRow label="All tints (size=md)">
+                <DemoRow label="Status — soft / strong pairs (size=md)">
                   <div className="flex flex-wrap gap-3">
                     {([
                       'primary', 'primary-strong',
-                      'success', 'warning',
+                      'success', 'success-strong',
+                      'warning', 'warning-strong',
                       'destructive', 'destructive-strong', 'destructive2',
-                      'secondary', 'warm', 'info-soft', 'violet', 'tertiary',
-                      'neutral',
                     ] as TintIconTint[]).map(t => (
+                      <div key={t} className="flex flex-col items-center gap-1.5">
+                        <TintIcon icon={Package} tint={t} size="md" />
+                        <span className="text-xs text-muted-foreground">{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                </DemoRow>
+                <DemoRow label="Info / decorative (size=md)">
+                  <div className="flex flex-wrap gap-3">
+                    {([
+                      'info-soft', 'info',
+                      'warm', 'accent',
+                      'violet', 'violet-strong',
+                      'teal', 'teal-strong',
+                    ] as TintIconTint[]).map(t => (
+                      <div key={t} className="flex flex-col items-center gap-1.5">
+                        <TintIcon icon={Package} tint={t} size="md" />
+                        <span className="text-xs text-muted-foreground">{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                </DemoRow>
+                <DemoRow label="Neutral (size=md)">
+                  <div className="flex flex-wrap gap-3">
+                    {(['secondary', 'neutral'] as TintIconTint[]).map(t => (
                       <div key={t} className="flex flex-col items-center gap-1.5">
                         <TintIcon icon={Package} tint={t} size="md" />
                         <span className="text-xs text-muted-foreground">{t}</span>
@@ -1124,7 +1187,7 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="All sizes (tint=primary)">
                   <div className="flex items-end gap-3">
-                    {(['sm', 'md', 'lg'] as TintIconSize[]).map(s => (
+                    {(['sm', 'md', 'lg', 'xl'] as TintIconSize[]).map(s => (
                       <div key={s} className="flex flex-col items-center gap-1.5">
                         <TintIcon icon={Package} tint="primary" size={s} />
                         <span className="text-xs text-muted-foreground">{s}</span>
@@ -1135,7 +1198,7 @@ export default function Theme() {
                 <DemoRow label="bordered prop — tinted box with matching colored border (used inside SectionCard)">
                   <div className="flex flex-wrap gap-3">
                     {([
-                      'primary', 'success', 'warning', 'destructive', 'secondary', 'warm', 'info-soft', 'violet',
+                      'primary', 'success', 'warning', 'destructive', 'info', 'secondary', 'warm', 'violet', 'teal',
                     ] as TintIconTint[]).map(t => (
                       <TintIcon key={t} icon={Package} tint={t} size="sm" bordered />
                     ))}
@@ -1647,7 +1710,7 @@ export default function Theme() {
                     </DialogHeader>
                     <DialogBody className="space-y-3">
                       <div className="flex gap-3">
-                        <AlertTriangle className="size-10 text-warning-strong shrink-0 mt-0.5" />
+                        <AlertTriangle className="size-10 text-warm-foreground shrink-0 mt-0.5" />
                         <div className="space-y-1">
                           <p className="text-base font-medium">ราคาปลีก, ราคาส่ง 1 ต่ำกว่าราคาทุน</p>
                           <p className="text-base text-muted-foreground">ยืนยันจะบันทึกข้อมูลนี้?</p>
@@ -1992,15 +2055,21 @@ export default function Theme() {
 
               {/* ── CONFIRM DIALOG ── */}
               <Section title="ConfirmDialog" path="src/components/ui/confirm-dialog.tsx">
-                <DemoRow label="Variants">
+                <DemoRow label="Variants — centered alert layout (icon + title + description + buttons)">
                   <Button variant="outline" onClick={() => setConfirmOpen(true)}>
-                    ยืนยันปกติ
+                    default
                   </Button>
                   <Button variant="destructive" onClick={() => setConfirmDestrOpen(true)}>
-                    <Trash2 /> ยืนยันลบ
+                    <Trash2 /> destructive
+                  </Button>
+                  <Button variant="warm" onClick={() => setConfirmWarningOpen(true)}>
+                    warning
+                  </Button>
+                  <Button variant="success" onClick={() => setConfirmSuccessOpen(true)}>
+                    success
                   </Button>
                   <Button variant="ghost" onClick={() => setConfirmReasonOpen(true)}>
-                    <AlertTriangle /> ต้องระบุเหตุผล
+                    + requireReason
                   </Button>
                 </DemoRow>
 
@@ -2014,11 +2083,31 @@ export default function Theme() {
                 <ConfirmDialog
                   open={confirmDestrOpen}
                   onOpenChange={setConfirmDestrOpen}
-                  title="ลบรายการนี้"
-                  description="การลบจะไม่สามารถกู้คืนได้ คุณแน่ใจหรือไม่?"
+                  title="Are you sure?"
+                  description="Are you sure you want to delete this item? This action cannot be undone."
                   variant="destructive"
-                  confirmLabel="ลบ"
+                  cancelLabel="Cancel"
+                  confirmLabel="Confirm"
                   onConfirm={() => { setConfirmDestrOpen(false); toast('ลบแล้ว', 'error') }}
+                />
+                <ConfirmDialog
+                  open={confirmWarningOpen}
+                  onOpenChange={setConfirmWarningOpen}
+                  variant="warning"
+                  title="ตรวจสอบข้อมูลก่อนดำเนินการ"
+                  description="พบรายการที่อาจไม่ถูกต้อง — ต้องการดำเนินการต่อหรือไม่?"
+                  confirmLabel="ดำเนินการต่อ"
+                  onConfirm={() => { setConfirmWarningOpen(false); toast('ดำเนินการแล้ว', 'info') }}
+                />
+                <ConfirmDialog
+                  open={confirmSuccessOpen}
+                  onOpenChange={setConfirmSuccessOpen}
+                  variant="success"
+                  singleButton
+                  title="บันทึกสำเร็จ"
+                  description="INV-2026-00123"
+                  confirmLabel="เสร็จสิ้น"
+                  onConfirm={() => setConfirmSuccessOpen(false)}
                 />
                 <ConfirmDialog
                   open={confirmReasonOpen}
@@ -2027,6 +2116,7 @@ export default function Theme() {
                   description="กรุณาระบุเหตุผลในการยกเลิก"
                   requireReason
                   reasonLabel="เหตุผลการยกเลิก"
+                  reasonPresets={['ลูกค้ายกเลิก', 'สินค้าหมด', 'ผิดพลาด']}
                   confirmLabel="ยกเลิกใบสั่งซื้อ"
                   variant="destructive"
                   onConfirm={reason => {
@@ -2179,7 +2269,7 @@ export default function Theme() {
                       90 วัน
                     </Button>
                     <Button
-                      variant="brand-soft"
+                      variant="primary-soft"
                       size="lg"
                       onClick={() => { setSeedDaysChoice(365); setSeedConfirmOpen(true) }}
                       disabled={seedRunning}
@@ -2221,7 +2311,7 @@ export default function Theme() {
           <>
             จะลบ seed dev เดิม (ถ้ามี) แล้วสร้าง GR + sales ย้อน {seedDaysChoice} วัน พร้อม engineer end-state (หมดสต็อก/ต่ำกว่าจุดสั่งซื้อ/expired/near-expire).
             {seedDaysChoice >= 365 && (
-              <span className="inline-flex items-center gap-1 ml-1 text-warning-strong">
+              <span className="inline-flex items-center gap-1 ml-1 text-warm-foreground">
                 <Clock className="size-3.5" />
                 อาจใช้เวลา 2-5 นาที.
               </span>

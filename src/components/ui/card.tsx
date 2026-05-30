@@ -174,12 +174,12 @@ function MetricCard({
 }) {
   const valColor =
     tint === "success"     ? "text-success"
-    : tint === "warning"     ? "text-warning-strong"
+    : tint === "warning"     ? "text-warm-foreground"
     : tint === "destructive" ? "text-destructive"
     : "text-foreground"
   const accentColor =
     tint === "success"     ? "text-success"
-    : tint === "warning"     ? "text-warning-strong"
+    : tint === "warning"     ? "text-warm-foreground"
     : tint === "destructive" ? "text-destructive"
     : tint === "destructive2" ? "text-destructive"
     : tint === "secondary"   ? "text-muted-foreground"
@@ -335,8 +335,8 @@ function StatCard({
   onClick?: () => void
   className?: string
 }) {
-  // StatCard historically maps `warning` → warm-styled box (different from
-  // MetricCard/SectionCard which map warning → warning-soft). Preserve that.
+  // StatCard maps `warning` → warm-styled icon box (cream/amber) so the card
+  // stays soft even when warning is the alert-orange in other contexts.
   const iconTint: TintIconTint = tint === "warning" ? "warm" : tint
   const activeRing =
     !isActive ? "ring-0"

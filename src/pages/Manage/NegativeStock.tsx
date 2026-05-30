@@ -7,6 +7,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
@@ -227,75 +228,57 @@ export default function NegativeStockPage() {
         </div>
       </div>
 
-      <Dialog
+      <ConfirmDialog
         open={!!confirming}
         onOpenChange={(o) => { if (!o && !busy) setConfirming(null) }}
-      >
-        <DialogContent size="sm" onClose={() => !busy && setConfirming(null)}>
-          {confirming && (
-            <div onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleConfirm() } }}>
-              <DialogHeader>
-                <DialogTitle>
-                  {confirming.kind === 'reconcile' ? 'ยืนยันตัดสต๊อคย้อนหลัง' : 'ยืนยันลบรายการ'}
-                </DialogTitle>
-              </DialogHeader>
-              <DialogBody className="space-y-3 pt-3">
-                <div className="rounded-xl bg-muted/50 p-3 space-y-2 text-sm">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-muted-foreground shrink-0">เลขที่บิล</span>
-                    <span className="font-semibold">{confirming.row.invoice_no}</span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-muted-foreground shrink-0">สินค้า</span>
-                    <span className="font-medium text-right">{confirming.row.trade_name}</span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-muted-foreground shrink-0">จำนวนค้าง</span>
-                    <span className="font-semibold text-destructive">
-                      {confirming.row.qty.toLocaleString()} {confirming.row.unit_name}
-                    </span>
-                  </div>
-                </div>
+        variant={confirming?.kind === 'reconcile' ? 'success' : 'destructive'}
+        title={confirming?.kind === 'reconcile' ? 'ยืนยันตัดสต๊อคย้อนหลัง' : 'ยืนยันลบรายการ'}
+        confirmLabel={confirming?.kind === 'reconcile' ? 'ตัดสต๊อค' : 'ลบรายการ'}
+        cancelLabel="ยกเลิก"
+        busy={busy}
+        onConfirm={handleConfirm}
+        content={confirming && (
+          <div className="space-y-3">
+            <div className="rounded-xl border bg-card shadow-sm p-3 space-y-2 text-sm">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">เลขที่บิล</span>
+                <span className="font-semibold">{confirming.row.invoice_no}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">สินค้า</span>
+                <span className="font-medium text-right">{confirming.row.trade_name}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">จำนวนค้าง</span>
+                <span className="font-semibold text-destructive">
+                  {confirming.row.qty.toLocaleString()} {confirming.row.unit_name}
+                </span>
+              </div>
+            </div>
 
-                {confirming.kind === 'reconcile' ? (
-                  <>
-                    <div className="rounded-xl bg-success-soft p-3 text-sm text-success leading-relaxed">
-                      จะตัดสต๊อก <span className="font-bold">
-                        {Math.min(confirming.row.qty, confirming.row.available_stock).toLocaleString()}
-                      </span> {confirming.row.unit_name} จากล็อตปัจจุบัน (FEFO)
-                    </div>
-                    {confirming.row.available_stock < confirming.row.qty && (
-                      <div className="rounded-xl bg-warning-soft p-3 text-sm text-warning-strong leading-relaxed">
-                        สต๊อกปัจจุบันไม่พอตัดครบ — เหลือค้าง <span className="font-bold">
-                          {(confirming.row.qty - confirming.row.available_stock).toLocaleString()}
-                        </span> {confirming.row.unit_name}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="rounded-xl bg-destructive-soft p-3 text-sm text-destructive leading-relaxed">
-                    จะลบรายการนี้โดยไม่ตัดสต๊อก — สต๊อกในระบบคงอยู่ตามเดิม การกระทำนี้บันทึกในประวัติเพื่อ audit
+            {confirming.kind === 'reconcile' ? (
+              <>
+                <div className="rounded-xl bg-success-soft p-3 text-sm text-success leading-relaxed">
+                  จะตัดสต๊อก <span className="font-bold">
+                    {Math.min(confirming.row.qty, confirming.row.available_stock).toLocaleString()}
+                  </span> {confirming.row.unit_name} จากล็อตปัจจุบัน (FEFO)
+                </div>
+                {confirming.row.available_stock < confirming.row.qty && (
+                  <div className="rounded-xl bg-warm p-3 text-sm text-warm-foreground leading-relaxed">
+                    สต๊อกปัจจุบันไม่พอตัดครบ — เหลือค้าง <span className="font-bold">
+                      {(confirming.row.qty - confirming.row.available_stock).toLocaleString()}
+                    </span> {confirming.row.unit_name}
                   </div>
                 )}
-              </DialogBody>
-              <DialogFooter className="pt-4">
-                <Button variant="elevated" size="xl" className="flex-1" disabled={busy} onClick={() => setConfirming(null)}>
-                  ยกเลิก
-                </Button>
-                <Button
-                  size="xl"
-                  className="flex-1"
-                  variant={confirming.kind === 'reconcile' ? 'success' : 'destructive'}
-                  disabled={busy}
-                  onClick={handleConfirm}
-                >
-                  {confirming.kind === 'reconcile' ? 'ตัดสต๊อค' : 'ลบรายการ'}
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+              </>
+            ) : (
+              <div className="rounded-xl bg-destructive-soft p-3 text-sm text-destructive leading-relaxed">
+                จะลบรายการนี้โดยไม่ตัดสต๊อก — สต๊อกในระบบคงอยู่ตามเดิม การกระทำนี้บันทึกในประวัติเพื่อ audit
+              </div>
+            )}
+          </div>
+        )}
+      />
     </>
   )
 }

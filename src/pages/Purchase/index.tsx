@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { TintIcon } from '@/components/ui/tint-icon'
@@ -22,7 +23,6 @@ import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import {
   Plus, Trash2, Package,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle, Settings2,
-  CheckCircle2,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { motion } from 'framer-motion'
@@ -787,7 +787,7 @@ export default function PurchasePage() {
                             {rows.map((row, i) => {
                               const isPartial = rowIsPartial(row)
                               const isValid = rowIsValid(row)
-                              const rowBg = isPartial ? 'bg-warning-soft/60' : isValid ? 'bg-success-soft/50' : 'bg-card'
+                              const rowBg = isPartial ? 'bg-warm/60' : isValid ? 'bg-success-soft/50' : 'bg-card'
                               return (
                                 <TableRow key={i} className={`border-0 hover:bg-transparent ${rowBg}`}>
 
@@ -980,7 +980,7 @@ export default function PurchasePage() {
                       {/* ── Footer bar — always pinned at bottom of card ── */}
                       <div className="shrink-0">
                         {duplicateNames.length > 0 && (
-                          <div className="bg-warning-soft px-5 py-2 flex items-center gap-2 text-sm text-warning-strong">
+                          <div className="bg-warm px-5 py-2 flex items-center gap-2 text-sm text-warm-foreground">
                             <AlertTriangle className="size-4 text-warning shrink-0" />
                             <span className="font-semibold shrink-0">พบรายการซ้ำ (สินค้า + Lot เดิม):</span>
                             <span className="truncate">{duplicateNames.join(', ')}</span>
@@ -999,7 +999,7 @@ export default function PurchasePage() {
                               </div>
                             )}
                             {adjustSurchargeAmt > 0 && (
-                              <div className="flex items-center justify-end gap-6 text-sm text-warning-strong">
+                              <div className="flex items-center justify-end gap-6 text-sm text-warm-foreground">
                                 <span>ส่วนเพิ่ม</span>
                                 <span className="w-32 text-right">+{formatCurrency(adjustSurchargeAmt)}</span>
                               </div>
@@ -1007,7 +1007,7 @@ export default function PurchasePage() {
                           </div>
                         )}
                         <div className="h-12 px-5 bg-card border-t border-border flex items-center justify-between gap-3">
-                          <Badge variant="brand-soft" className="text-sm rounded-md">{validRows.length}/{rows.length} รายการ</Badge>
+                          <Badge variant="primary-soft" className="text-sm rounded-md">{validRows.length}/{rows.length} รายการ</Badge>
                           <div className="flex items-center gap-6">
                             <span className="text-sm font-semibold text-foreground">มูลค่ารวมทั้งหมด</span>
                             <span className="font-extrabold text-primary text-base w-32 text-right">{formatCurrency(totalCost)}</span>
@@ -1072,7 +1072,7 @@ export default function PurchasePage() {
                           onClick={() => setPaymentType('credit')}
                           className={`relative flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5 hover:bg-transparent ${
                             paymentType === 'credit'
-                              ? 'text-tertiary-foreground hover:text-tertiary-foreground'
+                              ? 'text-accent-foreground hover:text-accent-foreground'
                               : 'text-foreground-subtle hover:text-foreground'
                           }`}
                         >
@@ -1080,7 +1080,7 @@ export default function PurchasePage() {
                             <motion.span
                               layoutId="payment-pill"
                               aria-hidden
-                              className="absolute inset-0 rounded-lg bg-tertiary"
+                              className="absolute inset-0 rounded-lg bg-accent"
                               transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                             />
                           )}
@@ -1122,7 +1122,7 @@ export default function PurchasePage() {
                               <div className="flex gap-1">
                                 <Button
                                   type="button"
-                                  variant="brand-soft"
+                                  variant="primary-soft"
                                   onClick={() => setPaidDate(today)}
                                   className="flex-1 h-8 rounded-lg text-sm font-semibold"
                                 >
@@ -1481,7 +1481,7 @@ export default function PurchasePage() {
                         <span>ส่วนลด</span>
                         <span className="pr-2.5">{previewDisc > 0 ? '−' : ''}{formatCurrency(previewDisc)}</span>
                       </div>
-                      <div className="flex justify-between text-warning-strong">
+                      <div className="flex justify-between text-warm-foreground">
                         <span>ส่วนเพิ่ม</span>
                         <span className="pr-2.5">{previewSur > 0 ? '+' : ''}{formatCurrency(previewSur)}</span>
                       </div>
@@ -1598,23 +1598,16 @@ export default function PurchasePage() {
 
 
       {/* ── Success dialog ── */}
-      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent size="sm">
-          <DialogHeader className="sr-only">
-            <DialogTitle>บันทึกสำเร็จ</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="text-center py-2 space-y-4">
-            <CheckCircle2 className="size-16 mx-auto text-success" />
-            <div>
-              <div className="text-lg font-semibold">บันทึกสำเร็จ</div>
-              <div className="text-muted-foreground text-sm mt-1">{savedInvoice}</div>
-            </div>
-            <Button size="xl" onClick={() => setShowSuccess(false)} className="w-full">
-              เสร็จสิ้น
-            </Button>
-          </DialogBody>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={showSuccess}
+        onOpenChange={setShowSuccess}
+        variant="success"
+        singleButton
+        title="บันทึกสำเร็จ"
+        description={savedInvoice}
+        confirmLabel="เสร็จสิ้น"
+        onConfirm={() => setShowSuccess(false)}
+      />
 
     </div>
   )

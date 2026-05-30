@@ -35,6 +35,7 @@ declare const api: {
         deleteLabel: (id: number) => Promise<any>;
         searchGenericNames: (q: string) => Promise<any>;
         getLots: (productId: number) => Promise<any>;
+        monthlySales: (productId: number) => Promise<any>;
         getBundleItems: (bundleId: number) => Promise<any>;
         saveBundleItems: (bundleId: number, items: Array<{
             component_product_id: number;
@@ -158,6 +159,22 @@ declare const api: {
     printer: {
         printReceipt: (data: any) => Promise<any>;
         openCashDrawer: (data: any) => Promise<any>;
+        listPrinters: () => Promise<Array<{
+            name: string;
+            displayName: string;
+            description: string;
+            status: number;
+            isDefault: boolean;
+        }>>;
+        printLabel: (args: {
+            html: string;
+            printerName: string;
+            paperWidthMm: number;
+            paperHeightMm: number;
+        }) => Promise<{
+            success: boolean;
+            error?: string;
+        }>;
     };
     window: {
         minimize: () => Promise<any>;

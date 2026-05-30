@@ -20,11 +20,12 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 import { ipcMain } from 'electron';
 import { getDb } from '../db';
+import { orderByBucket } from '../db/sortName';
 export function registerReportHandlers() {
     ipcMain.handle('reports:salesList', function (_e, filters) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c;
         var db = getDb();
-        var q = filters.q, date_from = filters.date_from, date_to = filters.date_to, _f = filters.sort_by, sort_by = _f === void 0 ? 'sold_at' : _f, _g = filters.sort_dir, sort_dir = _g === void 0 ? 'DESC' : _g, _h = filters.page, page = _h === void 0 ? 1 : _h, limitOpt = filters.limit, _j = filters.status_filter, status_filter = _j === void 0 ? 'all' : _j;
+        var q = filters.q, date_from = filters.date_from, date_to = filters.date_to, _d = filters.sort_by, sort_by = _d === void 0 ? 'sold_at' : _d, _f = filters.sort_dir, sort_dir = _f === void 0 ? 'DESC' : _f, _g = filters.page, page = _g === void 0 ? 1 : _g, limitOpt = filters.limit, _h = filters.status_filter, status_filter = _h === void 0 ? 'all' : _h;
         var limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 30);
         var offset = limit ? (page - 1) * limit : 0;
         // q/date scope the whole card row; the status filter only narrows the
@@ -54,24 +55,27 @@ export function registerReportHandlers() {
         var rowConditions = statusCond ? __spreadArray(__spreadArray([], baseConditions, true), [statusCond], false) : baseConditions;
         var where = rowConditions.length ? "WHERE ".concat(rowConditions.join(' AND ')) : '';
         var baseWhere = baseConditions.length ? "WHERE ".concat(baseConditions.join(' AND ')) : '';
-        var validSorts = ['sold_at', 'invoice_no', 'subtotal', 'total_discount', 'total_amount', 'item_kinds'];
+        var validSorts = ['sold_at', 'invoice_no', 'subtotal', 'total_discount', 'total_amount', 'item_kinds', 'customer_name'];
         // item_kinds is a computed alias on the SELECT, not a column on s.
+        // customer_name: walk-in sales fall back to s.customer_name_free when no customer_id.
         var sortCol = !validSorts.includes(sort_by) ? 's.sold_at'
             : sort_by === 'item_kinds' ? 'item_kinds'
-                : "s.".concat(sort_by);
+                : sort_by === 'customer_name' ? 'COALESCE(c.full_name, s.customer_name_free)'
+                    : "s.".concat(sort_by);
         var sortDirection = sort_dir === 'ASC' ? 'ASC' : 'DESC';
         var limitClause = limit ? "LIMIT ? OFFSET ?" : '';
         var limitParams = limit ? [limit, offset] : [];
         var rows = (_a = db.prepare("\n      SELECT s.*, c.full_name as customer_name,\n        (SELECT COUNT(DISTINCT si.product_id) FROM sale_items si WHERE si.sale_id = s.id AND si.is_cancelled = 0) as item_kinds\n      FROM sales s\n      LEFT JOIN customers c ON c.id = s.customer_id\n      ".concat(where, "\n      ORDER BY ").concat(sortCol, " ").concat(sortDirection, "\n      ").concat(limitClause, "\n    "))).all.apply(_a, __spreadArray(__spreadArray([], params, false), limitParams, false));
-        var summary = (_b = db.prepare("\n      SELECT\n        COALESCE(SUM(s.subtotal), 0) as total_subtotal,\n        COALESCE(SUM(s.total_discount), 0) as total_discount,\n        COALESCE(SUM(s.total_amount), 0) as total_amount,\n        COALESCE(SUM(\n          (SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)\n           FROM sale_items si2\n           JOIN sale_item_lots sil ON sil.sale_item_id = si2.id\n           JOIN product_lots pl ON pl.id = sil.lot_id\n           WHERE si2.sale_id = s.id AND sil.is_cancelled = 0)\n        ), 0) as total_cost,\n        COUNT(*) as sale_count\n      FROM sales s\n      LEFT JOIN customers c ON c.id = s.customer_id\n      ".concat(where, "\n    "))).get.apply(_b, params);
-        summary.total_profit = summary.total_amount - summary.total_cost;
         // Card counts — partition over the q/date set only (ignores status_filter).
+        // Cost/profit aggregates are NOT computed here: they require a per-sale
+        // subquery over sale_item_lots × product_lots (O(N) bills × O(M) lots = slow
+        // at 2k+ bills) and the list page only renders the count_* fields. Use
+        // /reports → Finance / Dashboard for revenue/cost/profit aggregates.
         // retail + wholesale + rx + return = non-voided; + voided = all. rx has no
         // dedicated card (lives only inside count_all), so the visible cards don't
         // sum to count_all by design; a voided row counts as voided only.
-        var counts = (_c = db.prepare("\n      SELECT\n        COUNT(*) as count_all,\n        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'retail' THEN 1 ELSE 0 END), 0) as count_retail,\n        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'wholesale' THEN 1 ELSE 0 END), 0) as count_wholesale,\n        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'return' THEN 1 ELSE 0 END), 0) as count_return,\n        COALESCE(SUM(CASE WHEN s.status = 'voided' THEN 1 ELSE 0 END), 0) as count_voided\n      FROM sales s\n      LEFT JOIN customers c ON c.id = s.customer_id\n      ".concat(baseWhere, "\n    "))).get.apply(_c, params);
-        Object.assign(summary, counts);
-        var total = (_d = db.prepare("SELECT COUNT(*) as c FROM sales s LEFT JOIN customers c ON c.id = s.customer_id ".concat(where))).get.apply(_d, params).c;
+        var summary = (_b = db.prepare("\n      SELECT\n        COUNT(*) as count_all,\n        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'retail' THEN 1 ELSE 0 END), 0) as count_retail,\n        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'wholesale' THEN 1 ELSE 0 END), 0) as count_wholesale,\n        COALESCE(SUM(CASE WHEN s.status != 'voided' AND s.sale_type = 'return' THEN 1 ELSE 0 END), 0) as count_return,\n        COALESCE(SUM(CASE WHEN s.status = 'voided' THEN 1 ELSE 0 END), 0) as count_voided\n      FROM sales s\n      LEFT JOIN customers c ON c.id = s.customer_id\n      ".concat(baseWhere, "\n    "))).get.apply(_b, params);
+        var total = (_c = db.prepare("SELECT COUNT(*) as c FROM sales s LEFT JOIN customers c ON c.id = s.customer_id ".concat(where))).get.apply(_c, params).c;
         return { rows: rows, summary: summary, total: total, page: page, limit: limit !== null && limit !== void 0 ? limit : total };
     });
     // Deeplink hook for "ดูรายละเอียด" buttons elsewhere in the app (e.g.,
@@ -83,14 +87,14 @@ export function registerReportHandlers() {
         if (!sale)
             return null;
         var items = db.prepare("\n      SELECT si.*,\n        p.is_bundle,\n        COALESCE((\n          SELECT SUM(sil.qty * pl.cost_price) FROM sale_item_lots sil\n          JOIN product_lots pl ON pl.id = sil.lot_id\n          WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0\n        ), 0) as item_cost\n      FROM sale_items si\n      LEFT JOIN products p ON p.id = si.product_id\n      WHERE si.sale_id = ?\n    ").all(sale.id);
-        // For bundle items, attach the component breakdown (sale_item_lots grouped
-        // by product_id with joined component name + lot info). Used by
-        // SaleDetailDialog to render the expandable list under each bundle row.
+        // Attach the lot breakdown (sale_item_lots with joined lot info) to EVERY
+        // line. For a bundle this is the per-component split; for a normal product
+        // it's the FEFO lots that line was dispensed from. SaleDetailDialog uses it
+        // to render the expandable list under each row — letting the operator trace
+        // which lot (and its expiry) was sold, not just for bundles.
         for (var _i = 0, items_1 = items; _i < items_1.length; _i++) {
             var it = items_1[_i];
-            if (it.is_bundle === 1) {
-                it.component_lots = db.prepare("\n          SELECT sil.id, sil.lot_id, sil.product_id, sil.qty, sil.is_cancelled,\n                 c.trade_name as component_name,\n                 u.name as component_unit_name,\n                 pl.lot_number, pl.expiry_date, pl.cost_price\n          FROM sale_item_lots sil\n          LEFT JOIN products c ON c.id = sil.product_id\n          LEFT JOIN item_units u ON u.id = c.unit_id\n          LEFT JOIN product_lots pl ON pl.id = sil.lot_id\n          WHERE sil.sale_item_id = ?\n          ORDER BY c.trade_name, pl.expiry_date\n        ").all(it.id);
-            }
+            it.component_lots = db.prepare("\n        SELECT sil.id, sil.lot_id, sil.product_id, sil.qty, sil.is_cancelled,\n               c.trade_name as component_name,\n               u.name as component_unit_name,\n               pl.lot_number, pl.expiry_date, pl.cost_price\n        FROM sale_item_lots sil\n        LEFT JOIN products c ON c.id = sil.product_id\n        LEFT JOIN item_units u ON u.id = c.unit_id\n        LEFT JOIN product_lots pl ON pl.id = sil.lot_id\n        WHERE sil.sale_item_id = ?\n        ORDER BY ".concat(orderByBucket('c.trade_name'), ", pl.expiry_date\n      ")).all(it.id);
         }
         return __assign(__assign({}, sale), { items: items });
     });
@@ -106,6 +110,11 @@ export function registerReportHandlers() {
             var sale = db.prepare("SELECT * FROM sales WHERE id = ?").get(id);
             if (!sale || sale.status === 'voided')
                 throw new Error('ไม่สามารถยกเลิกรายการนี้ได้');
+            // Return bills (RT-) can't be voided — if the operator wants to "undo"
+            // a return, they sell the item again as a normal sale. Voiding would
+            // also log a confusing 'sale_void' movement with a negative qty.
+            if (sale.sale_type === 'return')
+                throw new Error('ไม่สามารถยกเลิกบิลรับคืนสินค้าได้ — ถ้าต้องการคืนสต็อก ให้ขายออกใหม่');
             // Restore stock for each lot. SELECT sil.* only — sale_item_lots and
             // sale_items BOTH have a product_id column, so `SELECT sil.*, si.product_id`
             // collides at the better-sqlite3 row mapper (last column wins → row.product_id
@@ -124,7 +133,7 @@ export function registerReportHandlers() {
                 var qtyBefore = lot.qty_on_hand;
                 db.prepare("UPDATE product_lots SET qty_on_hand = qty_on_hand + ? WHERE id = ?").run(sil.qty, sil.lot_id);
                 db.prepare("UPDATE sale_item_lots SET is_cancelled = 1 WHERE id = ?").run(sil.id);
-                db.prepare("INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, note)\n          VALUES (?, ?, 'sale_return', 'sale', ?, ?, ?, ?, ?)").run(sil.product_id, sil.lot_id, id, sil.qty, qtyBefore, qtyBefore + sil.qty, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E02\u0E32\u0E22: ".concat(sale.invoice_no));
+                db.prepare("INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, note)\n          VALUES (?, ?, 'sale_void', 'sale', ?, ?, ?, ?, ?)").run(sil.product_id, sil.lot_id, id, sil.qty, qtyBefore, qtyBefore + sil.qty, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E02\u0E32\u0E22: ".concat(sale.invoice_no));
             }
             // Cancel any negative-stock markers (lot_id IS NULL) on this sale so
             // the /manage/negative-stock queue doesn't ghost a voided bill. The
@@ -136,32 +145,60 @@ export function registerReportHandlers() {
         });
         return voidSale();
     });
-    // System C — Expiry report data
+    // System C — Expiry report data.
+    // Returns { rows (paginated, filter-applied), total, counts (cumulative
+    // buckets — same q/category scope, ignores `filter`) }. With 16k+ tracked
+    // lots in long-running stores, returning everything + filtering client-side
+    // froze the UI; the rows query is now LIMIT-paginated and the four card
+    // counts come from a single cheap aggregate. Pass `count_only: true` to
+    // skip the rows query entirely (used by Reports/Dashboard for its KPI cards).
     ipcMain.handle('reports:expiringLots', function (_e, filters) {
-        var _a;
+        var _a, _b, _c;
         var db = getDb();
-        var filter = filters.filter, category_id = filters.category_id, q = filters.q;
-        var conditions = ["pl.qty_on_hand > 0", "pl.is_closed = 0"];
-        var params = [];
-        if (filter === 'expired') {
-            conditions.push("pl.expiry_date IS NOT NULL AND date(pl.expiry_date) < date('now')");
-        }
-        else if (typeof filter === 'number') {
-            conditions.push("pl.expiry_date IS NOT NULL AND date(pl.expiry_date) <= date('now', '+' || ? || ' days')");
-            params.push(filter);
-        }
-        // 'all' → no date condition
+        var filter = filters.filter, category_id = filters.category_id, q = filters.q, _d = filters.page, page = _d === void 0 ? 1 : _d, _f = filters.limit, limit = _f === void 0 ? 50 : _f, sort_by = filters.sort_by, sort_dir = filters.sort_dir, count_only = filters.count_only;
+        // Base = open lots with an expiry date in q/category scope. The four card
+        // counts always reflect this set; only the rows query layers `filter` on top.
+        var baseConds = ["pl.qty_on_hand > 0", "pl.is_closed = 0", "pl.expiry_date IS NOT NULL"];
+        var baseParams = [];
         if (category_id) {
-            conditions.push("p.category_id = ?");
-            params.push(category_id);
+            baseConds.push("p.category_id = ?");
+            baseParams.push(category_id);
         }
         if (q) {
-            conditions.push("(p.trade_name LIKE ? OR pl.lot_number LIKE ?)");
+            baseConds.push("(p.trade_name LIKE ? OR pl.lot_number LIKE ?)");
             var lq = "%".concat(q, "%");
-            params.push(lq, lq);
+            baseParams.push(lq, lq);
         }
-        var where = "WHERE ".concat(conditions.join(' AND '));
-        return (_a = db.prepare("\n      SELECT\n        pl.id          AS lot_id,\n        pl.lot_number,\n        pl.expiry_date,\n        pl.qty_on_hand,\n        pl.cost_price,\n        ROUND(pl.qty_on_hand * pl.cost_price, 2) AS total_cost,\n        p.id           AS product_id,\n        p.trade_name,\n        u.name         AS unit_name,\n        c.name         AS category_name,\n        s.name         AS supplier_name,\n        CAST(julianday(date(pl.expiry_date)) - julianday(date('now')) AS INTEGER) AS days_remaining\n      FROM product_lots pl\n      JOIN products p ON p.id = pl.product_id\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      LEFT JOIN product_categories c ON c.id = p.category_id\n      LEFT JOIN suppliers s ON s.id = pl.supplier_id\n      ".concat(where, "\n      ORDER BY pl.expiry_date ASC, p.trade_name ASC\n    "))).all.apply(_a, params);
+        var baseWhere = "WHERE ".concat(baseConds.join(' AND '));
+        var counts = (_a = db.prepare("\n      SELECT\n        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <  date('now')              THEN 1 ELSE 0 END), 0) AS expired,\n        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <= date('now', '+30 days')  THEN 1 ELSE 0 END), 0) AS d30,\n        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <= date('now', '+90 days')  THEN 1 ELSE 0 END), 0) AS d90,\n        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <= date('now', '+180 days') THEN 1 ELSE 0 END), 0) AS d180\n      FROM product_lots pl\n      JOIN products p ON p.id = pl.product_id\n      ".concat(baseWhere, "\n    "))).get.apply(_a, baseParams);
+        if (count_only)
+            return { rows: [], total: 0, counts: counts };
+        var rowConds = __spreadArray([], baseConds, true);
+        var rowParams = __spreadArray([], baseParams, true);
+        if (filter === 'expired') {
+            rowConds.push("date(pl.expiry_date) < date('now')");
+        }
+        else if (typeof filter === 'number') {
+            rowConds.push("date(pl.expiry_date) <= date('now', '+' || ? || ' days')");
+            rowParams.push(filter);
+        }
+        var rowWhere = "WHERE ".concat(rowConds.join(' AND '));
+        var SORT_COLS = {
+            trade_name: 'p.trade_name',
+            expiry_date: 'pl.expiry_date',
+            total_cost: 'total_cost',
+        };
+        var sortCol = sort_by && SORT_COLS[sort_by] ? SORT_COLS[sort_by] : 'pl.expiry_date';
+        var sortDirSql = sort_dir === 'DESC' ? 'DESC' : 'ASC';
+        var sortClause = sortCol === 'p.trade_name'
+            ? orderByBucket(sortCol, sortDirSql)
+            : "".concat(sortCol, " ").concat(sortDirSql, ", ").concat(orderByBucket('p.trade_name'));
+        var totalAgg = (_b = db.prepare("\n      SELECT COUNT(*) AS c,\n             ROUND(COALESCE(SUM(pl.qty_on_hand * pl.cost_price), 0), 2) AS total_cost\n      FROM product_lots pl\n      JOIN products p ON p.id = pl.product_id\n      ".concat(rowWhere, "\n    "))).get.apply(_b, rowParams);
+        var total = totalAgg.c;
+        var total_cost = totalAgg.total_cost;
+        var offset = (page - 1) * limit;
+        var rows = (_c = db.prepare("\n      SELECT\n        pl.id          AS lot_id,\n        pl.lot_number,\n        pl.expiry_date,\n        pl.qty_on_hand,\n        pl.cost_price,\n        ROUND(pl.qty_on_hand * pl.cost_price, 2) AS total_cost,\n        p.id           AS product_id,\n        p.trade_name,\n        u.name         AS unit_name,\n        c.name         AS category_name,\n        s.name         AS supplier_name,\n        CAST(julianday(date(pl.expiry_date)) - julianday(date('now')) AS INTEGER) AS days_remaining\n      FROM product_lots pl\n      JOIN products p ON p.id = pl.product_id\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      LEFT JOIN product_categories c ON c.id = p.category_id\n      LEFT JOIN suppliers s ON s.id = pl.supplier_id\n      ".concat(rowWhere, "\n      ORDER BY ").concat(sortClause, "\n      LIMIT ? OFFSET ?\n    "))).all.apply(_c, __spreadArray(__spreadArray([], rowParams, false), [limit, offset], false));
+        return { rows: rows, total: total, total_cost: total_cost, counts: counts };
     });
     // ── Phase 4: finance dashboard aggregates ────────────────────────────────
     // Shared SQL fragments. Sale cost = Σ(sold-lot qty × that lot's cost_price)
@@ -338,7 +375,7 @@ export function registerReportHandlers() {
             by === 'profit' ? "profit DESC" :
                 by === 'low_profit' ? "profit ASC" :
                     "revenue DESC");
-        return (_a = db.prepare("\n      SELECT p.id                                        AS product_id,\n             p.trade_name,\n             u.name                                      AS unit_name,\n             COALESCE(SUM(si.qty), 0)                    AS qty,\n             COALESCE(SUM(si.line_total), 0)             AS revenue,\n             COALESCE(SUM((\n               SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)\n               FROM sale_item_lots sil\n               LEFT JOIN product_lots pl ON pl.id = sil.lot_id\n               WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0\n             )), 0)                                      AS cost,\n             COALESCE(SUM(si.line_total), 0) - COALESCE(SUM((\n               SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)\n               FROM sale_item_lots sil\n               LEFT JOIN product_lots pl ON pl.id = sil.lot_id\n               WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0\n             )), 0)                                      AS profit\n      FROM sale_items si\n      JOIN sales s    ON s.id = si.sale_id\n      JOIN products p ON p.id = si.product_id\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      ".concat(where, "\n      GROUP BY p.id\n      ORDER BY ").concat(orderBy, "\n      LIMIT ?\n    "))).all.apply(_a, __spreadArray(__spreadArray([], params, false), [limit], false));
+        return (_a = db.prepare("\n      SELECT p.id                                        AS product_id,\n             p.trade_name,\n             u.name                                      AS unit_name,\n             COALESCE(SUM(si.qty), 0)                    AS qty,\n             COALESCE(SUM(si.line_total), 0)             AS revenue,\n             COALESCE(SUM((\n               SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)\n               FROM sale_item_lots sil\n               LEFT JOIN product_lots pl ON pl.id = sil.lot_id\n               WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0\n             )), 0)                                      AS cost,\n             COALESCE(SUM(si.line_total), 0) - COALESCE(SUM((\n               SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)\n               FROM sale_item_lots sil\n               LEFT JOIN product_lots pl ON pl.id = sil.lot_id\n               WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0\n             )), 0)                                      AS profit\n      FROM sale_items si\n      JOIN sales s    ON s.id = si.sale_id\n      JOIN products p ON p.id = si.product_id\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      ".concat(where, "\n      GROUP BY p.id\n      ORDER BY ").concat(orderBy, ", ").concat(orderByBucket('p.trade_name'), "\n      LIMIT ?\n    "))).all.apply(_a, __spreadArray(__spreadArray([], params, false), [limit], false));
     });
     // Top suppliers by purchase amount in window. Same PURCHASE_NET_SUB logic
     // as financeSummary so totals reconcile.

@@ -404,8 +404,8 @@ export function initializeSchema(db: Database.Database) {
     -- Label Settings (print configuration)
     CREATE TABLE IF NOT EXISTS label_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      width_mm REAL NOT NULL DEFAULT 62,
-      height_mm REAL NOT NULL DEFAULT 0,
+      width_mm REAL NOT NULL DEFAULT 100,
+      height_mm REAL NOT NULL DEFAULT 75,
       pad_top REAL NOT NULL DEFAULT 3,
       pad_right REAL NOT NULL DEFAULT 3,
       pad_bottom REAL NOT NULL DEFAULT 3,
@@ -420,6 +420,28 @@ export function initializeSchema(db: Database.Database) {
       bold_dosage INTEGER NOT NULL DEFAULT 0,
       line_spacing REAL NOT NULL DEFAULT 1.2,
       section_gap REAL NOT NULL DEFAULT 2,
+      printer_name TEXT NOT NULL DEFAULT '',
+      show_shop          INTEGER NOT NULL DEFAULT 1,
+      show_product       INTEGER NOT NULL DEFAULT 1,
+      show_dosage        INTEGER NOT NULL DEFAULT 1,
+      show_indication    INTEGER NOT NULL DEFAULT 1,
+      show_notes         INTEGER NOT NULL DEFAULT 1,
+      show_lot_expiry    INTEGER NOT NULL DEFAULT 1,
+      show_barcode       INTEGER NOT NULL DEFAULT 0,
+      offset_x_shop       REAL NOT NULL DEFAULT 0,
+      offset_y_shop       REAL NOT NULL DEFAULT 0,
+      offset_x_product    REAL NOT NULL DEFAULT 0,
+      offset_y_product    REAL NOT NULL DEFAULT 0,
+      offset_x_dosage     REAL NOT NULL DEFAULT 0,
+      offset_y_dosage     REAL NOT NULL DEFAULT 0,
+      offset_x_indication REAL NOT NULL DEFAULT 0,
+      offset_y_indication REAL NOT NULL DEFAULT 0,
+      offset_x_notes      REAL NOT NULL DEFAULT 0,
+      offset_y_notes      REAL NOT NULL DEFAULT 0,
+      offset_x_lot_expiry REAL NOT NULL DEFAULT 0,
+      offset_y_lot_expiry REAL NOT NULL DEFAULT 0,
+      offset_x_barcode    REAL NOT NULL DEFAULT 0,
+      offset_y_barcode    REAL NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -551,6 +573,29 @@ export function initializeSchema(db: Database.Database) {
     // is_bundle: marks a product as a "ชุดสินค้า" (kit/bundle). Bundle rows
     // hold no lots (is_stock_item=0); stock derived via product_bundle_items.
     `ALTER TABLE products ADD COLUMN is_bundle INTEGER NOT NULL DEFAULT 0`,
+    // label_settings: printer choice + per-section visibility + per-section X/Y nudge (mm)
+    `ALTER TABLE label_settings ADD COLUMN printer_name TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE label_settings ADD COLUMN show_shop          INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN show_product       INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN show_dosage        INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN show_indication    INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN show_notes         INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN show_lot_expiry    INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN show_barcode       INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_shop       REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_shop       REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_product    REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_product    REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_dosage     REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_dosage     REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_indication REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_indication REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_notes      REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_notes      REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_lot_expiry REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_lot_expiry REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_barcode    REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_barcode    REAL NOT NULL DEFAULT 0`,
   ]) {
     try { db.exec(sql) } catch {}
   }

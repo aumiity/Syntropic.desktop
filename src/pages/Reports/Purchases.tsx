@@ -77,10 +77,10 @@ function payRow(label: string, value: number, muted = false) {
 
 function dueBadge(days: number | null) {
   if (days == null) return <Badge variant="secondary">ไม่ระบุกำหนด</Badge>
-  if (days <= 0) return <Badge variant="brand-soft">ยังไม่ครบกำหนด</Badge>
+  if (days <= 0) return <Badge variant="primary-soft">ยังไม่ครบกำหนด</Badge>
   if (days <= 30) return <Badge variant="warning">เกิน {days} วัน</Badge>
   if (days <= 60) return <Badge variant="warm">เกิน {days} วัน</Badge>
-  return <Badge variant="danger">เกิน {days} วัน</Badge>
+  return <Badge variant="destructive">เกิน {days} วัน</Badge>
 }
 
 export default function ReportsPurchasesPage() {
@@ -211,15 +211,15 @@ export default function ReportsPurchasesPage() {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
-              <Clock className="size-3.5 text-warning-strong" /> เกิน 1–30 วัน
+              <Clock className="size-3.5 text-warm-foreground" /> เกิน 1–30 วัน
             </span>
-            <span className="text-sm font-semibold text-warning-strong">{formatCurrency(b.d1_30)}</span>
+            <span className="text-sm font-semibold text-warm-foreground">{formatCurrency(b.d1_30)}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
-              <AlertTriangle className="size-3.5 text-warning-strong" /> เกิน 31–60 วัน
+              <AlertTriangle className="size-3.5 text-warm-foreground" /> เกิน 31–60 วัน
             </span>
-            <span className="text-sm font-semibold text-warning-strong">{formatCurrency(b.d31_60)}</span>
+            <span className="text-sm font-semibold text-warm-foreground">{formatCurrency(b.d31_60)}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground inline-flex items-center gap-1.5">

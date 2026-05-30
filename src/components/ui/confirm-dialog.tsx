@@ -1,12 +1,32 @@
 import { useState, useEffect } from 'react'
-import type { ReactNode } from 'react'
+import type { ReactNode, ComponentType } from 'react'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
+  Dialog, DialogContent, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { TintIcon } from '@/components/ui/tint-icon'
-import { AlertTriangle, HelpCircle } from 'lucide-react'
+import { TintIcon, type TintIconTint } from '@/components/ui/tint-icon'
+import { AlertTriangle, HelpCircle, CheckCircle2 } from 'lucide-react'
+
+export type ConfirmVariant = 'default' | 'destructive' | 'warning' | 'success'
+
+interface VariantSpec {
+  icon: ComponentType<{ className?: string }>
+  tint: TintIconTint
+  confirmVariant:
+    | 'default' | 'destructive' | 'success' | 'warm'
+  cancelVariant:
+    | 'elevated' | 'destructive2'
+}
+
+// `warning` intentionally uses the `warm` palette (cream + amber) instead of
+// the harsh `--warning` yellow — same name in the public API for clarity.
+const VARIANT_SPEC: Record<ConfirmVariant, VariantSpec> = {
+  default:     { icon: HelpCircle,    tint: 'primary-strong',     confirmVariant: 'default',     cancelVariant: 'elevated' },
+  destructive: { icon: AlertTriangle, tint: 'destructive-strong', confirmVariant: 'destructive', cancelVariant: 'destructive2' },
+  warning:     { icon: AlertTriangle, tint: 'warm',               confirmVariant: 'warm',        cancelVariant: 'elevated' },
+  success:     { icon: CheckCircle2,  tint: 'success-strong',     confirmVariant: 'success',     cancelVariant: 'elevated' },
+}
 
 interface ConfirmDialogProps {
   open: boolean
@@ -15,12 +35,20 @@ interface ConfirmDialogProps {
   description?: ReactNode
   confirmLabel?: string
   cancelLabel?: string
-  variant?: 'default' | 'destructive'
+  variant?: ConfirmVariant
+  /** Hide the cancel button — for acknowledgements (e.g. success dialogs). */
+  singleButton?: boolean
   requireReason?: boolean
   reasonLabel?: string
   reasonPlaceholder?: string
   reasonPresets?: string[]
+  /** Override the default icon for the chosen variant. */
+  icon?: ComponentType<{ className?: string }>
+  /** Auxiliary content rendered below the description, before the reason input.
+      Use for structured info (diff lists, info panels). Block is left-aligned. */
+  content?: ReactNode
   onConfirm: (reason?: string) => void
+  busy?: boolean
 }
 
 export function ConfirmDialog({
@@ -29,76 +57,75 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = 'ยืนยัน',
-  // Default to "กลับ" (go back) rather than "ยกเลิก" so the secondary button
-  // never collides with a destructive confirm whose own label is "ยกเลิก..."
-  // (e.g. "ยกเลิกบิล") — two "ยกเลิก" buttons read as ambiguous.
   cancelLabel = 'ยกเลิก',
   variant = 'default',
+  singleButton = false,
   requireReason = false,
   reasonLabel = 'เหตุผล',
   reasonPlaceholder = 'ระบุเหตุผล...',
   reasonPresets,
+  icon,
+  content,
   onConfirm,
+  busy = false,
 }: ConfirmDialogProps) {
   const [reason, setReason] = useState('')
 
-  // Reset reason whenever the dialog is opened
-  useEffect(() => {
-    if (open) setReason('')
-  }, [open])
+  useEffect(() => { if (open) setReason('') }, [open])
 
-  const isDestructive = variant === 'destructive'
+  const spec = VARIANT_SPEC[variant]
+  const Icon = icon ?? spec.icon
   const canConfirm = !requireReason || reason.trim().length > 0
+
+  const presetSelectedCls: Record<ConfirmVariant, string> = {
+    default:     'border-primary bg-primary-soft text-primary',
+    destructive: 'border-destructive bg-destructive-soft text-destructive-strong',
+    warning:     'border-warm-foreground/40 bg-warm text-warm-foreground',
+    success:     'border-success bg-success-soft text-success',
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="sm">
-        {/* Header: tinted icon flags intent (danger vs. neutral) beside the title */}
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <TintIcon
-              icon={isDestructive ? AlertTriangle : HelpCircle}
-              tint={isDestructive ? 'destructive' : 'primary'}
-              size="md"
-            />
-            <DialogTitle>{title}</DialogTitle>
-          </div>
-        </DialogHeader>
+      <DialogContent
+        size="sm"
+        showCloseButton={!singleButton}
+        onClose={() => !busy && onOpenChange(false)}
+      >
+        <DialogBody className="flex flex-col items-center text-center gap-4 pt-2 pb-1">
+          <TintIcon icon={Icon} tint={spec.tint} size="xl" />
 
-        <DialogBody className="space-y-5">
-          {/* Destructive prompts get a soft panel so the consequence reads clearly;
-              neutral prompts stay as plain muted copy. */}
-          {description && (
-            isDestructive ? (
-              <div className="rounded-lg border border-destructive/20 bg-destructive-soft px-4 py-3 text-sm leading-relaxed text-destructive-strong">
+          <div className="space-y-1.5 max-w-sm">
+            <DialogTitle className="justify-center text-2xl font-bold leading-tight">{title}</DialogTitle>
+            {description && (
+              <div className="text-base text-muted-foreground leading-relaxed">
                 {description}
               </div>
-            ) : (
-              <div className="text-sm leading-relaxed text-muted-foreground">{description}</div>
-            )
+            )}
+          </div>
+
+          {content && (
+            <div className="w-full text-left">{content}</div>
           )}
 
           {requireReason && (
-            <div className="space-y-2.5">
-              <label className="block text-sm font-semibold text-foreground">
-                {reasonLabel}
-              </label>
+            <div className="w-full space-y-2.5">
+              {reasonLabel && (
+                <label className="block text-sm font-semibold text-foreground text-center">
+                  {reasonLabel}
+                </label>
+              )}
               {reasonPresets && reasonPresets.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1.5 justify-center">
                   {reasonPresets.map(preset => {
                     const selected = reason === preset
-                    // Selected tint follows the dialog intent so the highlight
-                    // doesn't clash (red for a void, primary for neutral).
-                    const selectedCls = isDestructive
-                      ? 'border-destructive bg-destructive-soft text-destructive-strong'
-                      : 'border-primary bg-primary-soft text-primary'
                     return (
                       <Button
                         key={preset}
                         type="button"
                         variant="elevated"
+                        size="sm"
                         onClick={() => setReason(preset)}
-                        className={`text-sm font-normal ${selected ? selectedCls : ''}`}
+                        className={selected ? presetSelectedCls[variant] : ''}
                       >
                         {preset}
                       </Button>
@@ -113,27 +140,36 @@ export function ConfirmDialog({
                 placeholder={reasonPlaceholder}
                 rows={3}
                 autoFocus
+                className="text-left"
               />
             </div>
           )}
         </DialogBody>
 
-        <DialogFooter>
-          {/* Secondary cancel is always neutral ELEVATED — keeps it visually
-              distinct from the (possibly red) confirm so the safe exit doesn't
-              read as another dangerous action. */}
+        <DialogFooter
+          className={
+            singleButton
+              ? 'sm:flex-col sm:justify-stretch'
+              : 'sm:grid sm:grid-cols-2 sm:gap-3'
+          }
+        >
+          {!singleButton && (
+            <Button
+              size="xl"
+              variant={spec.cancelVariant}
+              disabled={busy}
+              onClick={() => onOpenChange(false)}
+            >
+              {cancelLabel}
+            </Button>
+          )}
           <Button
             size="xl"
-            variant="elevated"
-            onClick={() => onOpenChange(false)}
-          >
-            {cancelLabel}
-          </Button>
-          <Button
-            size="xl"
-            variant={isDestructive ? 'destructive' : 'default'}
-            disabled={!canConfirm}
-            onClick={() => { onConfirm(reason.trim() || undefined) }}
+            variant={spec.confirmVariant}
+            disabled={!canConfirm || busy}
+            onClick={() => onConfirm(reason.trim() || undefined)}
+            autoFocus={singleButton}
+            className={singleButton ? 'w-full h-14 text-lg' : ''}
           >
             {confirmLabel}
           </Button>

@@ -5,11 +5,12 @@ import { Badge } from '@/components/ui/badge'
 import { MetricCard } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
-import { ArrowLeft, FileText, Boxes, Pill, Save, Info, Coins, Package, History, Tag, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, FileText, Boxes, Pill, Save, Info, Coins, Package, History, Tag } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductCategory, ItemUnit } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
@@ -364,7 +365,7 @@ export default function EditBundlePage() {
               <span className="text-muted-foreground truncate">{categoryName ?? 'ไม่ระบุ'}</span>
             </div>
             <div className="flex items-center gap-1 mt-auto min-w-0 flex-wrap">
-              <Badge variant="brand-outline">ชุดสินค้า</Badge>
+              <Badge variant="primary-outline">ชุดสินค้า</Badge>
               {isNew && <Badge variant="warning-outline">ยังไม่บันทึก</Badge>}
               {displayHasVat && <Badge variant="info-outline">VAT</Badge>}
               {displayDisabled && <Badge variant="destructive-outline">ปิดใช้งาน</Badge>}
@@ -457,28 +458,16 @@ export default function EditBundlePage() {
         )}
       </div>
 
-      <Dialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
-        <DialogContent size="sm">
-          <DialogHeader>
-            <DialogTitle className="text-xl">ยังไม่ได้บันทึก</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="space-y-3">
-            <div className="flex gap-3">
-              <AlertTriangle className="size-10 text-warning-strong shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-base font-medium">มีข้อมูลที่กรอกไว้แต่ยังไม่ได้บันทึก</p>
-                <p className="text-base text-muted-foreground">หากออกตอนนี้ ข้อมูลทั้งหมดจะหายไป</p>
-              </div>
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="elevated" size="xl" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
-            <Button variant="destructive" size="xl" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); backToOrigin() }}>
-              ออกจากหน้านี้
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={showLeaveConfirm}
+        onOpenChange={setShowLeaveConfirm}
+        variant="destructive"
+        title="ยังไม่ได้บันทึก"
+        description="มีข้อมูลที่กรอกไว้แต่ยังไม่ได้บันทึก หากออกตอนนี้ข้อมูลทั้งหมดจะหายไป"
+        cancelLabel="กลับไปแก้ไข"
+        confirmLabel="ออกจากหน้านี้"
+        onConfirm={() => { setShowLeaveConfirm(false); setIsDirty(false); backToOrigin() }}
+      />
     </div>
   )
 }

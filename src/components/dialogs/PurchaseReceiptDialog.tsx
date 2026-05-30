@@ -183,14 +183,14 @@ export function PurchaseReceiptDialog({
                         </tr>
                         {discountAmt > 0 && (
                           <tr className={`[&>td]:sticky [&>td]:h-8 ${surchargeAmt > 0 ? '[&>td]:bottom-16' : '[&>td]:bottom-8'} [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
-                            <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-warning-strong">ส่วนลด</td>
-                            <td className="px-2 py-0.5 text-right text-sm text-warning-strong">−{formatCurrency(discountAmt)}</td>
+                            <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-warm-foreground">ส่วนลด</td>
+                            <td className="px-2 py-0.5 text-right text-sm text-warm-foreground">−{formatCurrency(discountAmt)}</td>
                           </tr>
                         )}
                         {surchargeAmt > 0 && (
                           <tr className="[&>td]:sticky [&>td]:h-8 [&>td]:bottom-8 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
-                            <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-warning-strong">ส่วนเพิ่ม</td>
-                            <td className="px-2 py-0.5 text-right text-sm text-warning-strong">+{formatCurrency(surchargeAmt)}</td>
+                            <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-warm-foreground">ส่วนเพิ่ม</td>
+                            <td className="px-2 py-0.5 text-right text-sm text-warm-foreground">+{formatCurrency(surchargeAmt)}</td>
                           </tr>
                         )}
                       </>

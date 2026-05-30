@@ -130,6 +130,11 @@ const api = {
   printer: {
     printReceipt: (data: any) => ipcRenderer.invoke('printer:printReceipt', data),
     openCashDrawer: (data: any) => ipcRenderer.invoke('printer:openCashDrawer', data),
+    listPrinters: () => ipcRenderer.invoke('printer:listPrinters') as Promise<Array<{
+      name: string; displayName: string; description: string; status: number; isDefault: boolean
+    }>>,
+    printLabel: (args: { html: string; printerName: string; paperWidthMm: number; paperHeightMm: number }) =>
+      ipcRenderer.invoke('printer:printLabel', args) as Promise<{ success: boolean; error?: string }>,
   },
   // Window controls
   window: {

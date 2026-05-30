@@ -180,7 +180,7 @@ export default function ReportsSalesPage() {
           {payRow('เงินโอน', sum.transfer_amount)}
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <span className="text-sm text-muted-foreground">บิลเครดิต (ค้างชำระ)</span>
-            <span className="text-sm font-semibold text-warning-strong">{sum.credit_count.toLocaleString()} บิล</span>
+            <span className="text-sm font-semibold text-warm-foreground">{sum.credit_count.toLocaleString()} บิล</span>
           </div>
         </SectionCard>
       </div>

@@ -36,7 +36,7 @@ export interface ComboboxProps<T> {
   triggerClassName?: string
   /**
    * Visual style for the trigger Button.
-   * - `default` (current): outline when empty, brand-soft when a value is selected.
+   * - `default` (current): outline when empty, primary-soft when a value is selected.
    * - `elevated`: matches the filter-strip controls (DateRangePicker / SearchInput
    *   variant="elevated") — white card + shadow regardless of selection state.
    */
@@ -146,7 +146,7 @@ export function Combobox<T>({
         <Button
           type="button"
           disabled={disabled}
-          variant={variant === 'elevated' ? 'elevated' : (hasValue ? 'brand-soft' : 'outline')}
+          variant={variant === 'elevated' ? 'elevated' : (hasValue ? 'primary-soft' : 'outline')}
           className={cn(
             "h-10 w-full justify-between gap-2 px-3 rounded-lg text-sm",
             triggerClassName

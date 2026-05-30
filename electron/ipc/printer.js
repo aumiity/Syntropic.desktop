@@ -34,7 +34,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-import { ipcMain } from 'electron';
+import { ipcMain, BrowserWindow } from 'electron';
 import net from 'net';
 // ESC/POS constants
 var ESC = 0x1b;
@@ -144,6 +144,63 @@ export function registerPrinterHandlers() {
                     err_1 = _a.sent();
                     return [2 /*return*/, { success: false, error: err_1.message }];
                 case 3: return [2 /*return*/];
+            }
+        });
+    }); });
+    ipcMain.handle('printer:listPrinters', function (event) { return __awaiter(_this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, event.sender.getPrintersAsync()];
+                case 1: return [2 /*return*/, _a.sent()];
+            }
+        });
+    }); });
+    ipcMain.handle('printer:printLabel', function (_e, args) { return __awaiter(_this, void 0, void 0, function () {
+        var w, e_1;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!(args.paperWidthMm > 0) || !(args.paperHeightMm > 0)) {
+                        return [2 /*return*/, { success: false, error: 'invalid paper size' }];
+                    }
+                    w = new BrowserWindow({ show: false, webPreferences: { offscreen: false } });
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 5, 6, 7]);
+                    return [4 /*yield*/, w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args.html))
+                        // Wait for webfonts + layout before printing, otherwise Electron may
+                        // snapshot the page with the default font or pre-layout sizing.
+                    ];
+                case 2:
+                    _a.sent();
+                    // Wait for webfonts + layout before printing, otherwise Electron may
+                    // snapshot the page with the default font or pre-layout sizing.
+                    return [4 /*yield*/, w.webContents.executeJavaScript("\n        (async () => {\n          if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }\n          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))\n        })()\n      ")];
+                case 3:
+                    // Wait for webfonts + layout before printing, otherwise Electron may
+                    // snapshot the page with the default font or pre-layout sizing.
+                    _a.sent();
+                    return [4 /*yield*/, new Promise(function (resolve, reject) {
+                            w.webContents.print({
+                                silent: true,
+                                deviceName: args.printerName || undefined,
+                                // Electron pageSize uses microns (1 mm = 1000 µm).
+                                pageSize: { width: Math.round(args.paperWidthMm * 1000), height: Math.round(args.paperHeightMm * 1000) },
+                                margins: { marginType: 'none' },
+                                printBackground: false,
+                                color: false,
+                            }, function (success, failureReason) { return success ? resolve() : reject(new Error(failureReason)); });
+                        })];
+                case 4:
+                    _a.sent();
+                    return [2 /*return*/, { success: true }];
+                case 5:
+                    e_1 = _a.sent();
+                    return [2 /*return*/, { success: false, error: e_1.message }];
+                case 6:
+                    w.destroy();
+                    return [7 /*endfinally*/];
+                case 7: return [2 /*return*/];
             }
         });
     }); });

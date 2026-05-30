@@ -759,7 +759,7 @@ export default function ManagePurchasesPage() {
                   className={cn(
                     'relative flex-1 h-10 rounded-lg text-sm font-semibold gap-1.5 hover:bg-transparent',
                     editPaymentType === 'credit'
-                      ? 'text-tertiary-foreground hover:text-tertiary-foreground'
+                      ? 'text-accent-foreground hover:text-accent-foreground'
                       : 'text-foreground-subtle hover:text-foreground',
                   )}
                 >
@@ -767,7 +767,7 @@ export default function ManagePurchasesPage() {
                     <motion.span
                       layoutId="edit-payment-pill"
                       aria-hidden
-                      className="absolute inset-0 rounded-lg bg-tertiary"
+                      className="absolute inset-0 rounded-lg bg-accent"
                       transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                     />
                   )}
@@ -825,7 +825,7 @@ export default function ManagePurchasesPage() {
                     <div className="flex gap-1">
                       <Button
                         type="button"
-                        variant="brand-soft"
+                        variant="primary-soft"
                         onClick={() => setEditPaidDate(today)}
                         className="flex-1 h-8 text-sm font-semibold"
                       >

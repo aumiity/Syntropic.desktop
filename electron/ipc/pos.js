@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { getDb } from '../db';
-import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes';
+import { walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes';
+import { orderByBucket } from '../db/sortName';
 import dayjs from 'dayjs';
 // FEFO deduction shared by single-product sales and bundle-component sales.
 // Takes BASE-unit qty — the caller multiplies by qty_per_base for non-base
@@ -44,7 +45,7 @@ export function registerPosHandlers() {
         var prefix = "".concat(query, "%");
         var kwMid = "%,".concat(query, "%");
         var kwMidSp = "%, ".concat(query, "%");
-        var products = db.prepare("\n      SELECT p.*, c.name as category_name, dt.name_th as drug_type_name,\n             u.name as unit_name\n      FROM products p\n      LEFT JOIN product_categories c ON c.id = p.category_id\n      LEFT JOIN drug_types dt ON dt.id = p.drug_type_id\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      WHERE p.is_disabled = 0\n        AND (p.trade_name LIKE ? OR p.barcode LIKE ? OR p.barcode2 LIKE ?\n             OR p.barcode3 LIKE ? OR p.barcode4 LIKE ?\n             OR p.code LIKE ? OR p.search_keywords LIKE ?)\n      ORDER BY\n        CASE\n          WHEN p.trade_name LIKE ? THEN 1\n          WHEN p.code LIKE ? THEN 2\n          WHEN p.search_keywords LIKE ? OR p.search_keywords LIKE ? OR p.search_keywords LIKE ? THEN 3\n          ELSE 4\n        END,\n        p.trade_name\n      LIMIT 30\n    ").all(q, q, q, q, q, q, q, prefix, prefix, prefix, kwMid, kwMidSp);
+        var products = db.prepare("\n      SELECT p.*, c.name as category_name, dt.name_th as drug_type_name,\n             u.name as unit_name\n      FROM products p\n      LEFT JOIN product_categories c ON c.id = p.category_id\n      LEFT JOIN drug_types dt ON dt.id = p.drug_type_id\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      WHERE p.is_disabled = 0\n        AND (p.trade_name LIKE ? OR p.barcode LIKE ? OR p.barcode2 LIKE ?\n             OR p.barcode3 LIKE ? OR p.barcode4 LIKE ?\n             OR p.code LIKE ? OR p.search_keywords LIKE ?)\n      ORDER BY\n        CASE\n          WHEN p.trade_name LIKE ? THEN 1\n          WHEN p.code LIKE ? THEN 2\n          WHEN p.search_keywords LIKE ? OR p.search_keywords LIKE ? OR p.search_keywords LIKE ? THEN 3\n          ELSE 4\n        END,\n        ".concat(orderByBucket('p.trade_name'), "\n      LIMIT 30\n    ")).all(q, q, q, q, q, q, q, prefix, prefix, prefix, kwMid, kwMidSp);
         for (var _i = 0, _a = products; _i < _a.length; _i++) {
             var prod = _a[_i];
             prod.lots = db.prepare("\n        SELECT * FROM product_lots\n        WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0\n        ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC\n      ").all(prod.id);
@@ -65,15 +66,7 @@ export function registerPosHandlers() {
     // Search customers
     ipcMain.handle('pos:searchCustomers', function (_e, query) {
         var q = "%".concat(query, "%");
-        return getDb().prepare("\n      SELECT * FROM customers\n      WHERE is_disabled = 0\n        AND code != '".concat(WALKIN_CUSTOMER_CODE, "'\n        AND (full_name LIKE ? OR phone LIKE ? OR code LIKE ?)\n      ORDER BY full_name\n      LIMIT 20\n    ")).all(q, q, q);
-    });
-    // Quick-add customer
-    ipcMain.handle('pos:addCustomer', function (_e, data) {
-        var _a;
-        var db = getDb();
-        var code = nextCustomerCode(db);
-        var result = db.prepare("INSERT INTO customers (code, full_name, phone) VALUES (?, ?, ?)").run(code, data.full_name, (_a = data.phone) !== null && _a !== void 0 ? _a : '');
-        return db.prepare("SELECT * FROM customers WHERE id = ?").get(result.lastInsertRowid);
+        return getDb().prepare("\n      SELECT * FROM customers\n      WHERE is_disabled = 0\n        AND code != '".concat(WALKIN_CUSTOMER_CODE, "'\n        AND (full_name LIKE ? OR phone LIKE ? OR code LIKE ?)\n      ORDER BY ").concat(orderByBucket('full_name'), "\n      LIMIT 20\n    ")).all(q, q, q);
     });
     // Save sale (main POS transaction)
     ipcMain.handle('pos:saveBill', function (_e, payload) {
@@ -120,8 +113,12 @@ export function registerPosHandlers() {
                     deductFefo(db, item.product_id, item.qty * ((_f = item.qty_per_base) !== null && _f !== void 0 ? _f : 1), saleItemId, saleId, invoiceNo, payload.sold_by);
                 }
             }
-            // Daily summary
-            var dailySummary = db.prepare("\n        SELECT COUNT(*) as bills, COALESCE(SUM(total_amount),0) as total,\n               MAX(sold_at) as latest\n        FROM sales WHERE sold_at >= ? AND sold_at < ? AND status = 'completed'\n      ").get("".concat(today, " 00:00:00"), "".concat(today, " 23:59:59"));
+            // Daily summary — sold_at is stored as 'YYYY-MM-DD HH:MM:SS', so the
+            // range must use the dashed date (NOT `today`, which is 'YYYYMMDD' for
+            // invoice numbering — string-comparing it against sold_at excludes every
+            // row because '-' < '0').
+            var dateStr = dayjs().format('YYYY-MM-DD');
+            var dailySummary = db.prepare("\n        SELECT COUNT(*) as bills, COALESCE(SUM(total_amount),0) as total,\n               MAX(sold_at) as latest\n        FROM sales WHERE sold_at >= ? AND sold_at < ? AND status = 'completed'\n      ").get("".concat(dateStr, " 00:00:00"), "".concat(dateStr, " 23:59:59"));
             return { success: true, invoice_no: invoiceNo, daily_bills: dailySummary.bills, daily_total: dailySummary.total, latest_bill_time: dailySummary.latest };
         });
         return saveBill();
@@ -166,7 +163,9 @@ export function registerPosHandlers() {
     // Get daily stats
     ipcMain.handle('pos:getDailyStats', function () {
         var db = getDb();
-        var today = dayjs().format('YYYYMMDD');
-        return db.prepare("\n      SELECT COUNT(*) as bills, COALESCE(SUM(total_amount),0) as total, MAX(sold_at) as latest\n      FROM sales WHERE sold_at >= ? AND sold_at < ? AND status = 'completed'\n    ").get("".concat(today, " 00:00:00"), "".concat(today, " 23:59:59"));
+        // sold_at is 'YYYY-MM-DD HH:MM:SS' — must match that format in the range,
+        // not 'YYYYMMDD' (string-comparing the latter excludes every row).
+        var dateStr = dayjs().format('YYYY-MM-DD');
+        return db.prepare("\n      SELECT COUNT(*) as bills, COALESCE(SUM(total_amount),0) as total, MAX(sold_at) as latest\n      FROM sales WHERE sold_at >= ? AND sold_at < ? AND status = 'completed'\n    ").get("".concat(dateStr, " 00:00:00"), "".concat(dateStr, " 23:59:59"));
     });
 }

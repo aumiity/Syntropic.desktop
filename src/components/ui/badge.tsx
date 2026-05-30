@@ -21,11 +21,11 @@ const badgeVariants = cva(
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         secondary:
           "bg-secondary text-secondary-foreground border-border",
-        tertiary: [
-          "bg-tertiary text-tertiary-foreground",
+        accent: [
+          "bg-accent text-accent-foreground",
         ].join(" "),
-        "brand-soft": [
-          "bg-brand-soft text-brand-soft-foreground",
+        "primary-soft": [
+          "bg-primary-soft text-primary",
         ].join(" "),
         "info-soft": [
           "bg-info-soft text-info-soft-foreground",
@@ -42,15 +42,21 @@ const badgeVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         success: "border-transparent bg-success text-success-foreground",
         warning: "border-transparent bg-warning text-warning-foreground",
-        danger: "border-transparent bg-destructive text-primary-foreground",
+        info: "border-transparent bg-info text-info-foreground",
+        violet: "border-transparent bg-violet text-violet-foreground",
+        teal: "border-transparent bg-teal text-teal-foreground",
+        "success-soft": "border-transparent bg-success-soft text-success",
+        "violet-soft": "border-transparent bg-violet-soft text-violet-strong",
+        "teal-soft": "border-transparent bg-teal-soft text-teal-strong",
         destructive2: "bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive",
         "success-outline": "border-success/40 bg-success-soft text-success",
         "info-outline": "border-info/40 bg-info-soft text-info",
-        "warning-outline": "border-warning-strong/40 bg-warm text-warning-strong",
-        "brand-outline": "border-primary/40 bg-brand-soft text-primary",
+        "warning-outline": "border-warm-foreground/40 bg-warm text-warm-foreground",
+        "primary-outline": "border-primary/40 bg-primary-soft text-primary",
         "destructive-outline": "border-destructive/40 bg-destructive/15 text-destructive",
         "violet-outline": "border-violet/40 bg-violet-soft text-violet-strong",
         "teal-outline": "border-teal/40 bg-teal-soft text-teal-strong",
+        "accent-outline": "border-accent-foreground/30 bg-accent text-accent-foreground",
         "neutral-outline": "border-border bg-card text-foreground",
         "muted-outline": "border-border-strong/30 bg-muted-hover text-muted-foreground",
       },

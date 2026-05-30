@@ -31,13 +31,9 @@ const buttonVariants = cva(
           "bg-secondary border-border border text-secondary-foreground",
           "hover:bg-secondary-hover [a]:hover:bg-secondary/80",
         ].join(" "),
-        tertiary: [
-          "bg-tertiary text-tertiary-foreground",
-          "hover:bg-tertiary-hover [a]:hover:bg-tertiary/80",
-        ].join(" "),
-        "brand-soft": [
-          "bg-brand-soft text-brand-soft-foreground",
-          "hover:bg-brand-soft-hover [a]:hover:bg-brand-soft/80",
+        accent: [
+          "bg-accent text-accent-foreground",
+          "hover:bg-accent/85 [a]:hover:bg-accent/80",
         ].join(" "),
         "primary-soft": [
           "bg-primary-soft text-primary",
@@ -46,10 +42,6 @@ const buttonVariants = cva(
         "info-soft": [
           "bg-info-soft text-info-soft-foreground",
           "hover:bg-info-soft-hover [a]:hover:bg-info-soft/80",
-        ].join(" "),
-        "warning-soft": [
-          "bg-warning-soft text-warning-strong",
-          "hover:bg-warning-soft-hover [a]:hover:bg-warning-soft/80",
         ].join(" "),
         warm: [
           "bg-warm text-warm-foreground",
@@ -81,6 +73,24 @@ const buttonVariants = cva(
         ].join(" "),
         link: "text-primary underline-offset-4 hover:underline",
         success: "bg-success text-success-foreground hover:bg-success-hover",
+        warning: "bg-warning text-warning-foreground hover:bg-warning-hover",
+        info: "bg-info text-info-foreground hover:bg-info/85",
+        violet: "bg-violet text-violet-foreground hover:bg-violet/85",
+        teal: "bg-teal text-teal-foreground hover:bg-teal/85",
+        "success-soft": "bg-success-soft text-success hover:bg-success-soft/80",
+        "violet-soft": "bg-violet-soft text-violet-strong hover:bg-violet-soft/80",
+        "teal-soft": "bg-teal-soft text-teal-strong hover:bg-teal-soft/80",
+        // Soft + colored border — bordered chip look (matches Badge *-outline)
+        "primary-outline":      "border border-primary/40 bg-primary-soft text-primary hover:bg-primary-soft-hover",
+        "success-outline":      "border border-success/40 bg-success-soft text-success hover:bg-success-soft/80",
+        "warning-outline":      "border border-warm-foreground/40 bg-warm text-warm-foreground hover:bg-warm-hover",
+        "destructive-outline":  "border border-destructive/40 bg-destructive/15 text-destructive hover:bg-destructive/25",
+        "info-outline":         "border border-info/40 bg-info-soft text-info-soft-foreground hover:bg-info-soft-hover",
+        "violet-outline":       "border border-violet/40 bg-violet-soft text-violet-strong hover:bg-violet-soft/80",
+        "teal-outline":         "border border-teal/40 bg-teal-soft text-teal-strong hover:bg-teal-soft/80",
+        "accent-outline":       "border border-accent-foreground/30 bg-accent text-accent-foreground hover:bg-accent/85",
+        "neutral-outline":      "border border-border bg-card text-foreground hover:bg-muted",
+        "muted-outline":        "border border-border-strong/30 bg-muted-hover text-muted-foreground hover:bg-muted",
         destructive2: "bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive",
         elevated: [
           "bg-card text-foreground border-border border shadow-sm",
@@ -94,8 +104,8 @@ const buttonVariants = cva(
         ].join(" "),
         "elevated-warning": [
           "bg-card text-foreground border-border border shadow-sm",
-          "hover:bg-warning-soft hover:text-warning-strong hover:shadow-sm",
-          "aria-expanded:bg-warning-soft aria-expanded:text-warning-strong aria-expanded:shadow-sm",
+          "hover:bg-warm hover:text-warm-foreground hover:shadow-sm",
+          "aria-expanded:bg-warm aria-expanded:text-warm-foreground aria-expanded:shadow-sm",
         ].join(" "),
       },
       size: {

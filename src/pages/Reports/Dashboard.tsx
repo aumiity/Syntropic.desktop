@@ -636,7 +636,7 @@ export default function ReportsDashboardPage() {
                 const cover = r.days_cover
                 const coverCls = cover == null ? 'text-muted-foreground'
                   : cover < 7 ? 'text-destructive'
-                  : cover < 30 ? 'text-warning-strong'
+                  : cover < 30 ? 'text-warm-foreground'
                   : 'text-foreground'
                 return (
                   <TableRow key={r.product_id}>
@@ -743,7 +743,7 @@ function divider() {
 function agingTile(label: string, amount: number, tint: MetricTint) {
   const colorCls =
     tint === 'success'     ? 'text-success'
-    : tint === 'warning'   ? 'text-warning-strong'
+    : tint === 'warning'   ? 'text-warm-foreground'
     : tint === 'destructive' ? 'text-destructive'
     : tint === 'info-soft' ? 'text-info-soft-foreground'
     : 'text-foreground'
@@ -762,7 +762,7 @@ function saleTypeBox(label: string, value: number, tint: MetricTint) {
     tint === 'primary'       ? 'text-primary'
     : tint === 'info-soft'   ? 'text-info-soft-foreground'
     : tint === 'warm'        ? 'text-warm-foreground'
-    : tint === 'warning'     ? 'text-warning-strong'
+    : tint === 'warning'     ? 'text-warm-foreground'
     : tint === 'destructive' ? 'text-destructive'
     : 'text-foreground'
   return (

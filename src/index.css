@@ -3,192 +3,223 @@
 @tailwind utilities;
 
 @layer base {
+  /* ──────────────────────────────────────────────────────────────────────────
+     LIGHT MODE
+     Brand: Teal #0F5D56 · Accent: Yellow #F5C24A · Warning: Orange #FF9500
+     ────────────────────────────────────────────────────────────────────────── */
   :root {
-    /* Teal brand — #0F5D56 / Yellow accent — #F5C24A */
-    --background: 0 0% 99%;
-    --foreground: 0 0% 12%;
-    --card: 0 0% 99%;
-    --card-foreground: 0 0% 32%;
-    --popover: 0 0% 99%;
+    /* ── Radii ──────────────────────────────────────────────────────────── */
+    --radius:         0.5rem;          /* base radius */
+    --radius-card:    1rem;             /* card / panel corner */
+    --radius-control: 0.5rem;           /* button / input / select corner */
+
+    /* ── Surfaces (page · card · popover) ───────────────────────────────── */
+    --background:         0 0% 99%;
+    --foreground:         0 0% 12%;
+    --foreground-subtle:  0 0% 40%;
+    --card:               0 0% 99%;
+    --card-foreground:    0 0% 32%;
+    --popover:            0 0% 99%;
     --popover-foreground: 0 0% 12%;
-    --primary: 179 91% 22%;           /* #0F5D56 */
-    --primary-foreground: 0 0% 99%;
-    --primary-hover: 175 72% 17%;
-    --secondary: 0 0% 99%;
-    --secondary-foreground: 0 0% 32%;
-    --secondary-hover: 0 0% 90%;
-    --tertiary: 43 100% 64%;
-    --tertiary-foreground: 0 0% 12%;
-    --tertiary-hover: 43 90% 54%;
-    --brand-soft: 180 20% 90%;
-    --brand-soft-foreground: 179 91% 22%;
-    --brand-soft-hover: 180 20% 85%;
-    --info-soft: 219 100% 94%;
-    --info-soft-foreground: 219 30% 44%;
-    --info-soft-hover: 219 100% 84%;
-    --info: 221 83% 53%;                /* iOS-blue ≈ blue-600 #2563EB */
-    --info-foreground: 0 0% 99%;
-    --warm: 45 96% 90%;
-    --warm-hover: 45 96% 80%;
-    --warm-foreground: 32 88% 33%;
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 12%;
-    --muted-hover: 0 0% 88%;
-    --accent: 43 100% 64%;             /* #F5C24A */
-    --accent-foreground: 44 100% 8%;  /* #2A1F00 */
-    --accent-soft: 45 96% 90%;        /* #FCEFC8 */
-    --destructive: 3 100% 59%;
-    --destructive-foreground: 0 0% 100%;
-    --destructive-hover: 3 100% 39%;
-    --border: 0 0% 87%;
-    --input: 0 0% 95%;
-    --ring: 175 35% 75%;
-    --radius: 0.5rem;
-    --radius-card: 1rem;       /* card / panel corner — single source of truth */
-    --radius-control: 0.5rem;  /* button / input / select corner */
-    --sidebar: 0 0% 99%;
-    --sidebar-foreground: 0 0% 32%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-accent: 43 100% 64%;
-    --sidebar-accent-foreground: 179 91% 22%;
-    --sidebar-ring: 179 91% 22%;
-    --sidebar-primary: 240 5% 96%;
-    --sidebar-primary-foreground: 0 0% 40%;
+    --surface-hover:      240 6% 90%;
 
-    /* Extended semantic tokens */
-    --foreground-subtle: 0 0% 40%;
-    --surface-hover: 240 6% 90%;
+    /* ── Borders · inputs · ring ────────────────────────────────────────── */
+    --border:        0 0% 87%;
     --border-strong: 0 0% 50%;
+    --input:         0 0% 95%;
+    --ring:          175 35% 75%;
 
-    --primary-soft: 180 20% 90%;        /* #E3EDEB */
-    --primary-soft-hover: 168 22% 87%;
-    --primary-soft-border: 175 35% 70%;
-    --primary-strong: 179 91% 12%;
+    /* ── Primary — brand teal ───────────────────────────────────────────── */
+    --primary:              179 91% 22%; /* #0F5D56 */
+    --primary-foreground:   0 0% 99%;
+    --primary-hover:        175 72% 17%;
+    --primary-strong:       179 91% 12%;
+    --primary-soft:         180 20% 90%; /* #E3EDEB */
+    --primary-soft-hover:   168 22% 87%;
+    --primary-soft-border:  175 35% 70%;
 
-    --success: 142 71% 36%;
+    /* ── Secondary ──────────────────────────────────────────────────────── */
+    --secondary:            0 0% 99%;
+    --secondary-foreground: 0 0% 32%;
+    --secondary-hover:      0 0% 90%;
+
+    /* ── Accent — brand yellow ──────────────────────────────────────────── */
+    --accent:            43 100% 64%;    /* #F5C24A */
+    --accent-foreground: 0 0% 12%;
+
+    /* ── Muted (neutral grey surface) ───────────────────────────────────── */
+    --muted:            0 0% 95%;
+    --muted-foreground: 0 0% 12%;
+    --muted-hover:      0 0% 88%;
+
+    /* ── Status: Success (green) ────────────────────────────────────────── */
+    --success:            142 71% 36%;
     --success-foreground: 0 0% 100%;
-    --success-hover: 142 71% 30%;
-    --success-soft: 138 76% 95%;
+    --success-hover:      142 71% 30%;
+    --success-soft:       138 76% 95%;
 
-    --warning: 48 100% 45%;
+    /* ── Status: Warning (orange) ───────────────────────────────────────── */
+    --warning:            35 100% 50%;    /* #FF9500 — iOS warning orange */
     --warning-foreground: 0 0% 100%;
-    --warning-hover: 48 100% 38%;
-    --warning-soft: 48 100% 96%;
-    --warning-soft-hover: 48 100% 86%;
-    --warning-strong: 32 88% 33%;
+    --warning-hover:      35 100% 40%;
 
-    --destructive-soft: 0 86% 97%;
-    --destructive-strong: 0 70% 35%;
+    /* ── Status: Destructive (red) ──────────────────────────────────────── */
+    --destructive:            3 100% 59%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-hover:      3 100% 39%;
+    --destructive-soft:       0 86% 97%;
+    --destructive-strong:     0 70% 35%;
 
-    --violet: 262 83% 58%;
+    /* ── Info (blue) ────────────────────────────────────────────────────── */
+    --info:                 221 83% 53%;   /* iOS-blue ≈ blue-600 #2563EB */
+    --info-foreground:      0 0% 99%;
+    --info-soft:            219 100% 94%;
+    --info-soft-foreground: 219 30% 44%;
+    --info-soft-hover:      219 100% 84%;
+
+    /* ── Warm (cream / amber decorative) ────────────────────────────────── */
+    --warm:            45 96% 90%;     /* #FCEFC8 — soft cream */
+    --warm-hover:      45 96% 80%;
+    --warm-foreground: 32 88% 33%;     /* deep amber/brown text */
+
+    /* ── Decorative palette: Violet ─────────────────────────────────────── */
+    --violet:            262 83% 58%;
     --violet-foreground: 0 0% 100%;
-    --violet-soft: 250 100% 97%;
-    --violet-strong: 263 70% 42%;
+    --violet-soft:       250 100% 97%;
+    --violet-strong:     263 70% 42%;
 
-    --teal: 167 76% 36%;
+    /* ── Decorative palette: Teal ───────────────────────────────────────── */
+    --teal:            167 76% 36%;
     --teal-foreground: 0 0% 100%;
-    --teal-soft: 165 76% 92%;
-    --teal-strong: 167 76% 26%;
+    --teal-soft:       165 76% 92%;
+    --teal-strong:     167 76% 26%;
 
-    --shadow-card: 0 1px 0 rgba(20, 32, 29, 0.04), 0 8px 24px -16px rgba(20, 32, 29, 0.10);
-    --selection-bg: hsl(175 60% 60% / 0.4);
+    /* ── Sidebar (left navigation) ──────────────────────────────────────── */
+    --sidebar:                    0 0% 99%;
+    --sidebar-foreground:         0 0% 32%;
+    --sidebar-border:             0 0% 90%;
+    --sidebar-ring:               179 91% 22%;
+    --sidebar-primary:            240 5% 96%;
+    --sidebar-primary-foreground: 0 0% 40%;
+    --sidebar-accent:             43 100% 64%;
+    --sidebar-accent-foreground:  179 91% 22%;
 
-    /* Font stack — switchable via CSS Theme page. Quoted family names so the
-       var substitutes directly into font-family lists. */
+    /* ── Effects ────────────────────────────────────────────────────────── */
+    --shadow-card:   0 1px 0 rgba(20, 32, 29, 0.04), 0 8px 24px -16px rgba(20, 32, 29, 0.10);
+    --selection-bg:  hsl(175 60% 60% / 0.4);
+
+    /* ── Fonts (swappable via Theme page) ───────────────────────────────── */
     --font-latin: 'Inter';
-    --font-thai: 'IBM Plex Sans Thai';
+    --font-thai:  'IBM Plex Sans Thai';
   }
 
+  /* ──────────────────────────────────────────────────────────────────────────
+     DARK MODE — mirrors LIGHT in structure; only values change.
+     ────────────────────────────────────────────────────────────────────────── */
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 20%;
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 20%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 173 58% 40%;           /* #2BA396 */
-    --primary-foreground: 165 50% 5%; /* #06120F */
-    --secondary: 0 0% 20%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 0 0% 28%;
-    --tertiary: 0 0% 15%;
-    --tertiary-foreground: 0 0% 100%;
-    --tertiary-hover: 0 0% 22%;
-    --brand-soft: 180 20% 95%;
-    --brand-soft-foreground: 179 91% 22%;
-    --brand-soft-hover: 180 20% 80%;
-    --info-soft: 219 100% 94%;
-    --info-soft-foreground: 219 30% 44%;
-    --info-soft-hover: 219 100% 84%;
-    --info: 221 83% 60%;                /* lighter blue for dark mode */
-    --info-foreground: 0 0% 100%;
-    --warm: 43 25% 14%;
-    --warm-hover: 43 20% 22%;
-    --warm-foreground: 45 90% 80%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 6% 10%;
-    --muted-hover: 240 4% 25%;
-    --accent: 43 100% 64%;
-    --accent-foreground: 44 100% 8%;
-    --accent-soft: 43 47% 12%;        /* #2C2410 */
-    --destructive: 3 100% 59%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 10%;
-    --input: 0 0% 20%;
-    --ring: 175 35% 60%;
-    --sidebar: 0 0% 20%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 10%;
-    --sidebar-accent: 43 100% 64%;
-    --sidebar-accent-foreground: 44 100% 8%;
-    --sidebar-ring: 173 58% 40%;
-    --sidebar-primary: 179 91% 22%;
-    --sidebar-primary-foreground: 214 32% 91%;
-    --primary-hover: 173 58% 35%;
-    --destructive-hover: 3 100% 39%;
-    --radius: 0.5rem;
-    --radius-card: 1rem;
+    /* ── Radii ──────────────────────────────────────────────────────────── */
+    --radius:         0.5rem;
+    --radius-card:    1rem;
     --radius-control: 0.5rem;
 
-    /* Extended semantic tokens (dark) */
-    --foreground-subtle: 215 16% 47%;
-    --surface-hover: 215 25% 22%;
+    /* ── Surfaces ───────────────────────────────────────────────────────── */
+    --background:         0 0% 10%;
+    --foreground:         0 0% 100%;
+    --foreground-subtle:  215 16% 47%;
+    --card:               0 0% 20%;
+    --card-foreground:    0 0% 100%;
+    --popover:            0 0% 20%;
+    --popover-foreground: 0 0% 100%;
+    --surface-hover:      215 25% 22%;
+
+    /* ── Borders · inputs · ring ────────────────────────────────────────── */
+    --border:        0 0% 10%;
     --border-strong: 215 25% 35%;
+    --input:         0 0% 20%;
+    --ring:          175 35% 60%;
 
-    --primary-soft: 173 24% 13%;        /* #1A2A28 */
-    --primary-soft-hover: 173 28% 17%;
-    --primary-soft-border: 173 30% 25%;
-    --primary-strong: 173 60% 30%;
+    /* ── Primary — brand teal (brighter for dark) ───────────────────────── */
+    --primary:              173 58% 40%; /* #2BA396 */
+    --primary-foreground:   165 50% 5%;  /* #06120F */
+    --primary-hover:        173 58% 35%;
+    --primary-strong:       173 60% 30%;
+    --primary-soft:         173 24% 13%; /* #1A2A28 */
+    --primary-soft-hover:   173 28% 17%;
+    --primary-soft-border:  173 30% 25%;
 
-    --success: 142 71% 36%;
+    /* ── Secondary ──────────────────────────────────────────────────────── */
+    --secondary:            0 0% 20%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-hover:      0 0% 28%;
+
+    /* ── Accent ─────────────────────────────────────────────────────────── */
+    --accent:            43 100% 64%;
+    --accent-foreground: 44 100% 8%;
+
+    /* ── Muted ──────────────────────────────────────────────────────────── */
+    --muted:            240 5% 96%;
+    --muted-foreground: 240 6% 10%;
+    --muted-hover:      240 4% 25%;
+
+    /* ── Status: Success ────────────────────────────────────────────────── */
+    --success:            142 71% 36%;
     --success-foreground: 0 0% 100%;
-    --success-hover: 142 71% 30%;
-    --success-soft: 142 30% 18%;
+    --success-hover:      142 71% 30%;
+    --success-soft:       142 30% 18%;
 
-    --warning: 48 100% 45%;
+    /* ── Status: Warning ────────────────────────────────────────────────── */
+    --warning:            35 100% 60%;    /* lighter orange for dark mode */
     --warning-foreground: 0 0% 100%;
-    --warning-hover: 48 100% 38%;
-    --warning-soft: 38 30% 18%;
-    --warning-soft-hover: 38 30% 28%;
-    --warning-strong: 26 90% 37%;
+    --warning-hover:      35 100% 45%;
 
-    --destructive-soft: 0 86% 97%;
-    --destructive-strong: 0 70% 35%;
+    /* ── Status: Destructive ────────────────────────────────────────────── */
+    --destructive:            3 100% 59%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-hover:      3 100% 39%;
+    --destructive-soft:       0 86% 97%;
+    --destructive-strong:     0 70% 35%;
 
-    --violet: 262 83% 65%;
+    /* ── Info ───────────────────────────────────────────────────────────── */
+    --info:                 221 83% 60%;   /* lighter blue for dark mode */
+    --info-foreground:      0 0% 100%;
+    --info-soft:            219 100% 94%;
+    --info-soft-foreground: 219 30% 44%;
+    --info-soft-hover:      219 100% 84%;
+
+    /* ── Warm ───────────────────────────────────────────────────────────── */
+    --warm:            43 25% 14%;     /* dark amber surface */
+    --warm-hover:      43 20% 22%;
+    --warm-foreground: 45 90% 80%;     /* pale amber text */
+
+    /* ── Decorative: Violet ─────────────────────────────────────────────── */
+    --violet:            262 83% 65%;
     --violet-foreground: 0 0% 100%;
-    --violet-soft: 263 30% 18%;
-    --violet-strong: 263 80% 75%;
+    --violet-soft:       263 30% 18%;
+    --violet-strong:     263 80% 75%;
 
-    --teal: 167 70% 50%;
+    /* ── Decorative: Teal ───────────────────────────────────────────────── */
+    --teal:            167 70% 50%;
     --teal-foreground: 0 0% 100%;
-    --teal-soft: 167 30% 18%;
-    --teal-strong: 167 70% 75%;
+    --teal-soft:       167 30% 18%;
+    --teal-strong:     167 70% 75%;
 
-    --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 28px -18px rgba(0, 0, 0, 0.6);
-    --selection-bg: hsl(175 60% 60% / 0.4);
+    /* ── Sidebar ────────────────────────────────────────────────────────── */
+    --sidebar:                    0 0% 20%;
+    --sidebar-foreground:         0 0% 100%;
+    --sidebar-border:             0 0% 10%;
+    --sidebar-ring:               173 58% 40%;
+    --sidebar-primary:            179 91% 22%;
+    --sidebar-primary-foreground: 214 32% 91%;
+    --sidebar-accent:             43 100% 64%;
+    --sidebar-accent-foreground:  44 100% 8%;
+
+    /* ── Effects ────────────────────────────────────────────────────────── */
+    --shadow-card:   0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 28px -18px rgba(0, 0, 0, 0.6);
+    --selection-bg:  hsl(175 60% 60% / 0.4);
+
+    /* ── Fonts ──────────────────────────────────────────────────────────── */
     --font-latin: 'Google Sans';
-    --font-thai: 'Sarabun';
+    --font-thai:  'Sarabun';
   }
 }
 

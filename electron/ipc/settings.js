@@ -25,6 +25,7 @@ import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { getDb } from '../db';
+import { orderByBucket } from '../db/sortName';
 function resolveThemeCssPath() {
     var appPath = app.getAppPath();
     var candidates = [
@@ -134,7 +135,7 @@ export function registerSettingsHandlers() {
     });
     // Item units
     ipcMain.handle('settings:listUnits', function () {
-        return getDb().prepare("\n      SELECT u.*, COUNT(DISTINCT pu.product_id) as usage_count\n      FROM item_units u\n      LEFT JOIN product_units pu ON pu.unit_id = u.id\n      GROUP BY u.id ORDER BY u.name\n    ").all();
+        return getDb().prepare("\n      SELECT u.*, COUNT(DISTINCT pu.product_id) as usage_count\n      FROM item_units u\n      LEFT JOIN product_units pu ON pu.unit_id = u.id\n      GROUP BY u.id ORDER BY ".concat(orderByBucket('u.name'), "\n    ")).all();
     });
     ipcMain.handle('settings:saveUnit', function (_e, data) {
         var db = getDb();
@@ -162,7 +163,7 @@ export function registerSettingsHandlers() {
     });
     // Dosage forms
     ipcMain.handle('settings:listDosageForms', function () {
-        return getDb().prepare("SELECT * FROM dosage_forms WHERE is_disabled = 0 ORDER BY name_th").all();
+        return getDb().prepare("SELECT * FROM dosage_forms WHERE is_disabled = 0 ORDER BY ".concat(orderByBucket('name_th'))).all();
     });
     // Label frequencies/dosages/etc.
     ipcMain.handle('settings:listLabelFrequencies', function () { return getDb().prepare("SELECT * FROM label_frequencies ORDER BY sort_order").all(); });
@@ -213,7 +214,7 @@ export function registerSettingsHandlers() {
     });
     // All item units (for dropdowns)
     ipcMain.handle('settings:allUnits', function () {
-        return getDb().prepare("SELECT * FROM item_units ORDER BY name").all();
+        return getDb().prepare("SELECT * FROM item_units ORDER BY ".concat(orderByBucket('name'))).all();
     });
     // All categories (for dropdowns)
     ipcMain.handle('settings:allCategories', function () {
@@ -225,7 +226,7 @@ export function registerSettingsHandlers() {
     });
     // All dosage forms (for dropdowns)
     ipcMain.handle('settings:allDosageForms', function () {
-        return getDb().prepare("SELECT * FROM dosage_forms WHERE is_disabled = 0 ORDER BY name_th").all();
+        return getDb().prepare("SELECT * FROM dosage_forms WHERE is_disabled = 0 ORDER BY ".concat(orderByBucket('name_th'))).all();
     });
     // Theme color tokens in src/index.css
     ipcMain.handle('settings:getThemeColors', function () {

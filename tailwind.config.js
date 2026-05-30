@@ -33,16 +33,6 @@ export default {
           foreground: 'hsl(var(--secondary-foreground))',
           hover: 'hsl(var(--secondary-hover))',
         },
-        tertiary: {
-          DEFAULT: 'hsl(var(--tertiary))',
-          foreground: 'hsl(var(--tertiary-foreground))',
-          hover: 'hsl(var(--tertiary-hover))',
-        },
-        'brand-soft': {
-          DEFAULT: 'hsl(var(--brand-soft))',
-          foreground: 'hsl(var(--brand-soft-foreground))',
-          hover: 'hsl(var(--brand-soft-hover))',
-        },
         'info-soft': {
           DEFAULT: 'hsl(var(--info-soft))',
           foreground: 'hsl(var(--info-soft-foreground))',
@@ -74,9 +64,6 @@ export default {
           DEFAULT: 'hsl(var(--warning))',
           foreground: 'hsl(var(--warning-foreground))',
           hover: 'hsl(var(--warning-hover))',
-          soft: 'hsl(var(--warning-soft))',
-          'soft-hover': 'hsl(var(--warning-soft-hover))',
-          strong: 'hsl(var(--warning-strong))',
         },
         violet: {
           DEFAULT: 'hsl(var(--violet))',
@@ -98,7 +85,6 @@ export default {
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
-          soft: 'hsl(var(--accent-soft))',
         },
         popover: {
           DEFAULT: 'hsl(var(--popover))',

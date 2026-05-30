@@ -26,9 +26,10 @@ export function registerDevHandlers() {
     // dev:seedSalesHistory
     // -------------------
     // Backdates GR + sales across the last N days (default 180) using the REAL
-    // seeded products / suppliers / customers. Every product gets 1-3 lots;
-    // FEFO is enforced; per-SKU on-hand never exceeds safety_stock
-    // (fallback 200 when NULL). Same shape as a user clicking POS + GR by hand.
+    // seeded products / suppliers / customers. Lots accumulate naturally over
+    // the simulation window — no hard cap on lot count per SKU. Per-SKU on-hand
+    // never exceeds safety_stock × STOCK_CAP_MULT (fallback safety = 200 when
+    // NULL). FEFO is enforced. Same shape as a user clicking POS + GR by hand.
     //
     // After the random simulation, a final "end-state engineering" phase
     // guarantees the demo state the user asked for:
@@ -44,13 +45,15 @@ export function registerDevHandlers() {
     ipcMain.handle('dev:seedSalesHistory', function (_e, payload) {
         var _a;
         var db = getDb();
-        var DAYS = Math.max(1, Math.min(720, (_a = payload === null || payload === void 0 ? void 0 : payload.days) !== null && _a !== void 0 ? _a : 90));
+        var DAYS = Math.max(1, Math.min(800, (_a = payload === null || payload === void 0 ? void 0 : payload.days) !== null && _a !== void 0 ? _a : 90));
         // Stock cap = safety_stock × STOCK_CAP_MULT. Larger multiplier means more
         // headroom for opening + refills so we don't drain to zero across DAYS days
         // of sales. Opening qty = safety_stock × OPENING_MULT (must be < cap).
         var STOCK_CAP_MULT = 3;
-        var OPENING_MULT_MIN = 1.5;
-        var OPENING_MULT_MAX = 2.5;
+        // Opening lot qty = safety_stock × [MIN, MAX]. Keep modest so the bootstrap
+        // lot drains within months (not years) and frees a lot-slot for new GRs.
+        var OPENING_MULT_MIN = 0.7;
+        var OPENING_MULT_MAX = 1.3;
         var rand = function (min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;
         };
@@ -129,13 +132,10 @@ export function registerDevHandlers() {
         })();
         // ---- Phase 2: Simulation params ----
         var today = dayjs();
-        var GR_PER_DAY_MIN = 3, GR_PER_DAY_MAX = 5;
+        var GR_PER_DAY_MIN = 3, GR_PER_DAY_MAX = 6;
         var LINES_PER_GR_MIN = 5, LINES_PER_GR_MAX = 30;
         var SALES_PER_DAY_MIN = 80, SALES_PER_DAY_MAX = 100;
         var ITEMS_PER_SALE_MIN = 1, ITEMS_PER_SALE_MAX = 12;
-        var MAX_LOTS_PER_PRODUCT = 3;
-        // Per-SKU lot count (gates GR eligibility — hard cap of 3 lots/SKU)
-        var lotCountByProduct = new Map();
         // Per-SKU running on-hand total (gates GR eligibility — must stay ≤ safety cap)
         var onHandByProduct = new Map();
         var bumpOnHand = function (pid, delta) { var _a; return onHandByProduct.set(pid, ((_a = onHandByProduct.get(pid)) !== null && _a !== void 0 ? _a : 0) + delta); };
@@ -155,14 +155,12 @@ export function registerDevHandlers() {
         var selLotsFEFO = db.prepare("\n      SELECT id, qty_on_hand, cost_price FROM product_lots\n      WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0 AND is_cancelled = 0\n      ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC, id ASC\n    ");
         var updLotAfterSale = db.prepare("\n      UPDATE product_lots\n      SET qty_on_hand = ?,\n          is_closed = CASE WHEN ? <= 0 THEN 1 ELSE is_closed END,\n          closed_at = CASE WHEN ? <= 0 AND closed_at IS NULL THEN ? ELSE closed_at END\n      WHERE id = ?\n    ");
         // Receive one line: insert lot + receipt item + stock_movement, update bookkeeping.
-        // Returns true if succeeded (room under safety cap, lot cap), false if skipped.
+        // Returns true if succeeded (room under safety cap), false if skipped.
         var receiveLine = function (product, supplierId, grNo, dateStr, dtStr, payType, dueDate, isPaid, qtyHint) {
-            var _a, _b, _c;
+            var _a;
             var cap = safetyCap(product);
             var headroom = cap - ((_a = onHandByProduct.get(product.id)) !== null && _a !== void 0 ? _a : 0);
             if (headroom < 1)
-                return false;
-            if (((_b = lotCountByProduct.get(product.id)) !== null && _b !== void 0 ? _b : 0) >= MAX_LOTS_PER_PRODUCT)
                 return false;
             var qty = Math.max(1, Math.min(qtyHint, Math.floor(headroom)));
             var cost = Math.max(0.5, +(product.cost_price * randF(0.85, 1.15)).toFixed(2));
@@ -172,7 +170,6 @@ export function registerDevHandlers() {
             var lotNo = nextLotNo();
             var lotRes = insLot.run(product.id, supplierId, lotNo, mfg, expiry, cost, product.price_retail, qty, qty, grNo, "INV-MOCK-".concat(grNo), dateStr, payType, dueDate, isPaid, isPaid ? dateStr : null, dtStr, dtStr);
             var lotId = Number(lotRes.lastInsertRowid);
-            lotCountByProduct.set(product.id, ((_c = lotCountByProduct.get(product.id)) !== null && _c !== void 0 ? _c : 0) + 1);
             bumpOnHand(product.id, qty);
             insReceiptItem.run(grNo, product.id, lotId, lotNo, mfg, expiry, cost, product.price_retail, qty, dtStr);
             insMove.run(product.id, lotId, 'receive', 'stock_receive', null, qty, 0, qty, cost, "\u0E23\u0E31\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32: ".concat(grNo, " [DEV-SEED]"), users[0], dtStr);
@@ -210,17 +207,16 @@ export function registerDevHandlers() {
                 var day = today.subtract(d, 'day');
                 var dateStr = day.format('YYYY-MM-DD');
                 var yymmdd = day.format('YYYYMMDD');
-                // ---- GRs (3-5 ใบ/วัน) ----
+                // ---- GRs (3-6 ใบ/วัน) ----
                 var grPerDay = rand(GR_PER_DAY_MIN, GR_PER_DAY_MAX);
                 for (var g = 0; g < grPerDay; g++) {
-                    // Candidates = products that still have headroom AND haven't hit
-                    // the 3-lot cap. If everyone is full, stop generating GRs today.
+                    // Candidates = products with on-hand below the safety cap. Lots can
+                    // accumulate freely — no hard lot-count cap. If every SKU is full,
+                    // stop generating GRs today.
                     var candidates = products.filter(function (p) {
-                        var _a, _b;
-                        if (((_a = lotCountByProduct.get(p.id)) !== null && _a !== void 0 ? _a : 0) >= MAX_LOTS_PER_PRODUCT)
-                            return false;
+                        var _a;
                         var cap = safetyCap(p);
-                        return ((_b = onHandByProduct.get(p.id)) !== null && _b !== void 0 ? _b : 0) < cap;
+                        return ((_a = onHandByProduct.get(p.id)) !== null && _a !== void 0 ? _a : 0) < cap;
                     });
                     if (candidates.length === 0)
                         break;
@@ -235,12 +231,18 @@ export function registerDevHandlers() {
                     var paymentType = isPaid ? 'cash' : 'credit';
                     var dueDate = !isPaid ? day.add(30, 'day').format('YYYY-MM-DD') : null;
                     insReceipt.run(grNo, supplierId, "INV-MOCK-".concat(grNo), dateStr, paymentType, dueDate, isPaid, isPaid ? dateStr : null, dtStr);
+                    // Stock-aware refill: prioritize products below reorder_point so they
+                    // get topped up first; healthy products fill any remaining line slots
+                    // for variety.
+                    var low = candidates.filter(function (p) { var _a; return ((_a = onHandByProduct.get(p.id)) !== null && _a !== void 0 ? _a : 0) < reorderOf(p); });
+                    var healthy = candidates.filter(function (p) { var _a; return ((_a = onHandByProduct.get(p.id)) !== null && _a !== void 0 ? _a : 0) >= reorderOf(p); });
                     var lineCount = Math.min(rand(LINES_PER_GR_MIN, LINES_PER_GR_MAX), candidates.length);
-                    var lineProducts = shuffle(candidates).slice(0, lineCount);
+                    var lineProducts = __spreadArray(__spreadArray([], shuffle(low), true), shuffle(healthy), true).slice(0, lineCount);
                     for (var _f = 0, lineProducts_1 = lineProducts; _f < lineProducts_1.length; _f++) {
                         var product = lineProducts_1[_f];
-                        // Per-line qty 20-200, but capped by remaining headroom inside receiveLine.
-                        var qtyHint = rand(20, 200);
+                        // Per-line qty 10-80, capped by remaining headroom inside receiveLine.
+                        // Smaller batches let lots drain and close within a reasonable window.
+                        var qtyHint = rand(10, 80);
                         if (receiveLine(product, supplierId, grNo, dateStr, dtStr, paymentType, dueDate, isPaid, qtyHint)) {
                             lotCount++;
                         }
@@ -262,10 +264,13 @@ export function registerDevHandlers() {
                         ? walkIn.id
                         : (namedCustomers.length ? pick(namedCustomers) : walkIn.id);
                     var userId = pick(users);
-                    // Target bill amount in [20, 2000] — weighted toward mid-range,
-                    // sometimes small or large to mimic real distribution.
+                    // Target bill amount in [50, 2000] — heavily biased to small bills
+                    // so daily total lands in 10k-20k with 80-100 bills/day (avg ~150 b./bill).
                     var targetAmount = weighted([
-                        [rand(20, 200), 35], [rand(200, 800), 45], [rand(800, 2000), 20],
+                        [rand(50, 100), 60],
+                        [rand(100, 200), 30],
+                        [rand(200, 600), 8],
+                        [rand(600, 2000), 2],
                     ]);
                     var maxItems = rand(ITEMS_PER_SALE_MIN, ITEMS_PER_SALE_MAX);
                     var shuffled = shuffle(products);
@@ -472,8 +477,8 @@ export function registerDevHandlers() {
                 recompute.run(pid, pid);
             }
         })();
-        return __assign(__assign({ wiped: wiped }, result), { engineered: engineered, days: DAYS, message: "\u2713 \u0E25\u0E1A\u0E02\u0E2D\u0E07\u0E40\u0E01\u0E48\u0E32 ".concat(wiped.grs, " GR / ").concat(wiped.sales, " sales / ").concat(wiped.lots, " lots\n") +
-                "\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E22\u0E49\u0E2D\u0E19 ".concat(DAYS, " \u0E27\u0E31\u0E19: ").concat(result.grCount, " GR (\u22643 lot/\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32, \u0E23\u0E27\u0E21 ").concat(result.lotCount, " lots), ") +
+        return __assign(__assign({ wiped: wiped }, result), { engineered: engineered, days: DAYS, message: "\u0E25\u0E1A\u0E02\u0E2D\u0E07\u0E40\u0E01\u0E48\u0E32 ".concat(wiped.grs, " GR / ").concat(wiped.sales, " sales / ").concat(wiped.lots, " lots\n") +
+                "\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E22\u0E49\u0E2D\u0E19 ".concat(DAYS, " \u0E27\u0E31\u0E19: ").concat(result.grCount, " GR (\u0E23\u0E27\u0E21 ").concat(result.lotCount, " lots), ") +
                 "".concat(result.saleCount, " sales (").concat(result.saleItemCount, " items)\n") +
                 "End-state: ".concat(engineered.outOfStock, " \u0E2B\u0E21\u0E14\u0E2A\u0E15\u0E47\u0E2D\u0E01 / ").concat(engineered.belowReorder, " \u0E15\u0E48\u0E33\u0E01\u0E27\u0E48\u0E32\u0E08\u0E38\u0E14\u0E2A\u0E31\u0E48\u0E07\u0E0B\u0E37\u0E49\u0E2D / ") +
                 "".concat(engineered.expired, " expired / ").concat(engineered.nearExpire, " near-expire") });

@@ -180,7 +180,7 @@ export function LabelsTab({
                   <TableCell className="text-sm">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{l.label_name || '—'}</span>
-                      {(l as any).is_default ? <Badge variant="brand-outline" className="rounded-md">ค่าเริ่มต้น</Badge> : null}
+                      {(l as any).is_default ? <Badge variant="primary-outline" className="rounded-md">ค่าเริ่มต้น</Badge> : null}
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{l.dosage_name ?? '—'}</TableCell>

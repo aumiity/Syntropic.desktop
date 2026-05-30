@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -31,7 +32,7 @@ import {
   RotateCcw, ChevronRight, ChevronLeft, Tag,
   ShoppingBag, Hourglass, RefreshCcw, HandCoins,
   Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
-  CheckCircle2, Check,
+  Check,
 } from 'lucide-react'
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -736,9 +737,9 @@ export default function POSPage() {
                     </span>
                     <div className="flex items-center w-full">
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant={isActive ? 'warm' : 'tertiary'} className="text-xs rounded-md">ขายส่ง</Badge>
+                        <Badge variant={isActive ? 'warm' : 'accent'} className="text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
-                        <Badge variant={isActive ? 'brand-soft' : 'default'} className="text-xs rounded-md">ขายปลีก</Badge>
+                        <Badge variant={isActive ? 'primary-soft' : 'default'} className="text-xs rounded-md">ขายปลีก</Badge>
                       )}
                     </div>
                   </div>
@@ -811,13 +812,13 @@ export default function POSPage() {
               variant="ghost"
               onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
               className={`relative flex h-9 w-[84px] px-0 rounded-lg text-sm font-semibold shrink-0 justify-center hover:bg-transparent ${
-                cart.saleType === 'wholesale' ? 'text-tertiary-foreground hover:text-tertiary-foreground' : 'text-foreground-subtle hover:text-foreground'
+                cart.saleType === 'wholesale' ? 'text-accent-foreground hover:text-accent-foreground' : 'text-foreground-subtle hover:text-foreground'
               }`}>
               {cart.saleType === 'wholesale' && (
                 <motion.div
                   layoutId="pos-sale-type-pill"
                   aria-hidden
-                  className="absolute inset-0 rounded-lg bg-tertiary"
+                  className="absolute inset-0 rounded-lg bg-accent"
                   transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                 />
               )}
@@ -1025,7 +1026,7 @@ export default function POSPage() {
                     <ClockAlert className="size-3.5 text-destructive" /> หมดอายุ
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <ClockAlert className="size-3.5 text-warning-strong" /> อายุต่ำกว่า {salesSettings?.expiry_danger_months ?? 3} เดือน
+                    <ClockAlert className="size-3.5 text-warm-foreground" /> อายุต่ำกว่า {salesSettings?.expiry_danger_months ?? 3} เดือน
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <ClockAlert className="size-3.5 text-warning" /> อายุต่ำกว่า {salesSettings?.expiry_warn_months ?? 6} เดือน
@@ -1089,7 +1090,7 @@ export default function POSPage() {
               setShowBreakdown(false)
               setShowPayment(true)
             }}
-            className="w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-tertiary-hover  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3 border border-border">
+            className="w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-accent/85  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3 border border-border">
               <HandCoins className="size-9" strokeWidth={2.2} />
               <span className="text-4xl font-bold leading-none">ชำระเงิน</span>
           </Button>
@@ -1295,7 +1296,7 @@ export default function POSPage() {
                   <div className="text-sm font-semibold text-foreground">ลูกค้าทั่วไป</div>
                   <div className="text-sm text-muted-foreground">ขายโดยไม่ระบุลูกค้า</div>
                 </div>
-                <Badge variant="tertiary" className="text-xs rounded-md shrink-0">ค่าเริ่มต้น</Badge>
+                <Badge variant="accent" className="text-xs rounded-md shrink-0">ค่าเริ่มต้น</Badge>
                 <ChevronRight className="size-4 text-foreground-subtle shrink-0 group-hover:text-foreground transition-colors" />
               </div>
 
@@ -1564,7 +1565,7 @@ export default function POSPage() {
                           {cart.saleType === 'wholesale' ? (
                             <Badge variant="warm" className="text-xs rounded-md shrink-0">ขายส่ง</Badge>
                           ) : (
-                            <Badge variant="brand-soft" className="text-sm rounded-md shrink-0">ขายปลีก</Badge>
+                            <Badge variant="primary-soft" className="text-sm rounded-md shrink-0">ขายปลีก</Badge>
                           )}
                         </div>
                       </div>
@@ -1731,7 +1732,7 @@ export default function POSPage() {
                     )}
                   </div>
                   <div className="flex gap-2 mt-auto">
-                        <Button variant="tertiary" className="flex-1 h-20 text-4xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
+                        <Button variant="accent" className="flex-1 h-20 text-4xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
                           <HandCoins className="size-10" /> {saving ? 'กำลังบันทึก...' : ' ชำระเงิน'}
                         </Button>
                    </div>
@@ -1801,7 +1802,7 @@ export default function POSPage() {
                 <div className="flex-1 min-h-0 flex flex-col px-3 pb-3 gap-2.5 overflow-hidden">
                   {/* Selected product hero */}
                   <div className="flex items-center gap-2.5 rounded-lg bg-warm px-2.5 py-1.5 shrink-0">
-                    <TintIcon icon={PackageMinus} tint="tertiary" size="md" />
+                    <TintIcon icon={PackageMinus} tint="accent" size="md" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm text-foreground truncate leading-tight">{adjustSelected.trade_name}</div>
                       <div className="text-sm text-muted-foreground truncate leading-tight">หน่วย: {adjustSelected.unit_name ?? '—'}</div>
@@ -1866,7 +1867,7 @@ export default function POSPage() {
                       </Button>
                     </div>
                     <Button
-                      variant="tertiary"
+                      variant="accent"
                       onClick={handleAddAdjustItem}
                       disabled={!adjustQtyInput || parseFloat(adjustQtyInput) <= 0 || (adjustSelected.lots?.length ?? 0) === 0}
                       className="w-full h-10 gap-1.5"
@@ -1903,7 +1904,7 @@ export default function POSPage() {
                         <span className="">×{item.qty}</span>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-warning-strong shrink-0">{formatCurrency(item.line_total)}</div>
+                    <div className="text-sm font-bold text-warm-foreground shrink-0">{formatCurrency(item.line_total)}</div>
                     <Button variant="ghost" size="icon-sm"
                       onClick={() => setAdjustList(list => list.filter((_, i) => i !== idx))}
                       className="shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive-soft">
@@ -1916,8 +1917,8 @@ export default function POSPage() {
               <div className="p-3 shrink-0 space-y-2.5 bg-card border-t border-border">
                 {adjustList.length > 0 && (
                   <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-warm">
-                    <span className="text-sm font-semibold text-warning-strong">มูลค่าทุนรวม</span>
-                    <span className="text-lg font-extrabold text-warning-strong">
+                    <span className="text-sm font-semibold text-warm-foreground">มูลค่าทุนรวม</span>
+                    <span className="text-lg font-extrabold text-warm-foreground">
                       {formatCurrency(adjustList.reduce((s, i) => s + i.line_total, 0))}
                     </span>
                   </div>
@@ -1929,7 +1930,7 @@ export default function POSPage() {
                   <div className="flex flex-wrap gap-1.5">
                     {['ใช้ภายใน', 'เสียหาย/แตกหัก', 'สูญหาย'].map(reason => (
                       <Button key={reason}
-                        variant={adjustReason === reason ? 'tertiary' : 'secondary'}
+                        variant={adjustReason === reason ? 'accent' : 'secondary'}
                         size="sm"
                         onClick={() => setAdjustReason(r => r === reason ? '' : reason)}
                         className="h-8 rounded-md">
@@ -1953,7 +1954,7 @@ export default function POSPage() {
             <Button variant="elevated" size="xl" onClick={closeAdjust}>ยกเลิก</Button>
             <Button
               size="xl"
-              variant="tertiary"
+              variant="accent"
               onClick={handleConfirmAdjust}
               disabled={adjustList.length === 0 || !adjustReason.trim() || adjustSaving}
             >
@@ -2129,7 +2130,7 @@ export default function POSPage() {
               <div className="px-3 py-2.5 shrink-0 flex items-center justify-between bg-card border-b border-border">
                 <span className="text-sm font-semibold text-foreground">รายการที่จะคืน</span>
                 {returnList.length > 0 && (
-                  <Badge variant="brand-outline">{returnList.length} รายการ</Badge>
+                  <Badge variant="primary-outline">{returnList.length} รายการ</Badge>
                 )}
               </div>
 
@@ -2209,21 +2210,16 @@ export default function POSPage() {
       </Dialog>
 
       {/* ── SUCCESS DIALOG ── */}
-      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent
-          size="sm"
-          onClose={() => setShowSuccess(false)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); setShowSuccess(false) } }}
-        >
-          <DialogTitle className="sr-only">บันทึกบิลสำเร็จ</DialogTitle>
-          <DialogBody className="text-center py-2 space-y-4">
-            <CheckCircle2 className="size-16 mx-auto text-success" />
-            <div><div className="text-xl font-semibold">บันทึกบิลสำเร็จ</div>
-              <div className="text-muted-foreground text-base mt-1">{lastInvoice}</div></div>
-            <Button autoFocus onClick={() => setShowSuccess(false)} className="w-full h-12 text-xl">ตกลง</Button>
-          </DialogBody>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={showSuccess}
+        onOpenChange={setShowSuccess}
+        variant="success"
+        singleButton
+        title="บันทึกบิลสำเร็จ"
+        description={lastInvoice}
+        confirmLabel="ตกลง"
+        onConfirm={() => setShowSuccess(false)}
+      />
 
       {/* ── UNIT DIALOG ── */}
       {unitModalIdx !== null && (() => {

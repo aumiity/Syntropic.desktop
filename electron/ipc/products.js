@@ -32,6 +32,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 import { ipcMain } from 'electron';
 import { getDb } from '../db';
 import { assertNotBundle, recomputeAvgCost, recomputeBundleCost, propagateCostToBundles } from '../db/pricing';
+import { orderByBucket } from '../db/sortName';
 // Stock expression aware of bundles: regular products sum open lots,
 // bundles derive MIN(component_open_stock / qty_per_bundle). Used by
 // products:list (sort + filter), stockStats, and anywhere else that
@@ -115,16 +116,16 @@ export function registerProductHandlers() {
             var prefix = "".concat(q, "%");
             var kwMid = "%,".concat(q, "%");
             var kwMidSp = "%, ".concat(q, "%");
-            orderBy = "\n        CASE\n          WHEN p.trade_name LIKE ? THEN 1\n          WHEN p.code LIKE ? THEN 2\n          WHEN p.search_keywords LIKE ? OR p.search_keywords LIKE ? OR p.search_keywords LIKE ? THEN 3\n          ELSE 4\n        END,\n        p.trade_name ".concat(orderDir, "\n      ");
+            orderBy = "\n        CASE\n          WHEN p.trade_name LIKE ? THEN 1\n          WHEN p.code LIKE ? THEN 2\n          WHEN p.search_keywords LIKE ? OR p.search_keywords LIKE ? OR p.search_keywords LIKE ? THEN 3\n          ELSE 4\n        END,\n        ".concat(orderByBucket('p.trade_name', orderDir), "\n      ");
             orderParams.push(prefix, prefix, prefix, kwMid, kwMidSp);
         }
         else if (orderCol === 'p.trade_name') {
-            orderBy = "".concat(orderCol, " ").concat(orderDir);
+            orderBy = orderByBucket(orderCol, orderDir);
         }
         else {
             // Always tie-break on trade_name so paginated results are stable when the
             // primary sort column has duplicates (e.g. many products with cost_price=0).
-            orderBy = "".concat(orderCol, " ").concat(orderDir, ", p.trade_name ASC");
+            orderBy = "".concat(orderCol, " ").concat(orderDir, ", ").concat(orderByBucket('p.trade_name'));
         }
         var total = (_a = db.prepare("SELECT COUNT(*) as c FROM products p ".concat(where))).get.apply(_a, params).c;
         var limitClause = limit ? "LIMIT ? OFFSET ?" : '';
@@ -160,16 +161,23 @@ export function registerProductHandlers() {
             params.push(is_bundle);
         }
         var where = conditions.length ? "WHERE ".concat(conditions.join(' AND ')) : '';
+        // out/low only make sense for stock-tracked rows. Bundles
+        // (is_stock_item=0) would otherwise inflate "out" because STOCK_EXPR
+        // returns 0 for them — making every bundle look stockless. Pin
+        // is_stock_item=1 here so callers don't need to remember to pass
+        // is_bundle=0.
         var andStock = function (extra) { return where
-            ? "".concat(where, " AND ").concat(extra)
-            : "WHERE ".concat(extra); };
+            ? "".concat(where, " AND p.is_stock_item = 1 AND ").concat(extra)
+            : "WHERE p.is_stock_item = 1 AND ".concat(extra); };
         var out = (_a = db.prepare("SELECT COUNT(*) as c FROM products p ".concat(andStock("(".concat(STOCK_EXPR, ") <= 0"))))).get.apply(_a, params).c;
         var low = (_b = db.prepare("SELECT COUNT(*) as c FROM products p ".concat(andStock("(".concat(STOCK_EXPR, ") > 0 AND p.reorder_point > 0 AND (").concat(STOCK_EXPR, ") <= p.reorder_point"))))).get.apply(_b, params).c;
-        // Total — used by "สินค้าทั้งหมด" stat card. Always counts every product
-        // (enabled + disabled); only "is_bundle" applies so bundles don't inflate
-        // the count. Ignores search/category/drug-type and the include_disabled
-        // toggle — "ทั้งหมด" must literally mean all.
-        var totalCond = [];
+        // Total / disabled — for the products dashboard we pin is_stock_item=1 so
+        // all 4 cards (total / low / out / disabled) report against the same
+        // population. EXCEPT when the caller specifically asks for bundles
+        // (is_bundle=1): bundles have is_stock_item=0, so applying that filter
+        // would zero out the count. In that case skip is_stock_item entirely.
+        var stockItemFilter = is_bundle === 1 ? [] : ['is_stock_item = 1'];
+        var totalCond = __spreadArray([], stockItemFilter, true);
         var totalParams = [];
         if (is_bundle === 0 || is_bundle === 1) {
             totalCond.push('is_bundle = ?');
@@ -177,10 +185,7 @@ export function registerProductHandlers() {
         }
         var totalWhere = totalCond.length ? "WHERE ".concat(totalCond.join(' AND ')) : '';
         var total_all = (_c = db.prepare("SELECT COUNT(*) as c FROM products ".concat(totalWhere))).get.apply(_c, totalParams).c;
-        // Disabled — global count of disabled products (force is_disabled=1, respects
-        // is_bundle only). Mirrors total_all's "ignore search filters" semantics so
-        // the "ปิดการใช้งาน" card always shows the total disabled count.
-        var disabledCond = ['is_disabled = 1'];
+        var disabledCond = __spreadArray(__spreadArray([], stockItemFilter, true), ['is_disabled = 1'], false);
         var disabledParams = [];
         if (is_bundle === 0 || is_bundle === 1) {
             disabledCond.push('is_bundle = ?');
@@ -227,7 +232,7 @@ export function registerProductHandlers() {
         // per row, and the outer set is already pruned to low-stock products.
         var cheapestWhere = "pl.product_id = p.id\n        AND pl.supplier_id IS NOT NULL\n        AND pl.is_cancelled = 0\n        AND pl.created_at >= date('now','-3 months')";
         var cheapestOrder = "ORDER BY pl.cost_price ASC, pl.created_at DESC LIMIT 1";
-        var rows = (_a = db.prepare("\n      SELECT p.id as product_id, p.code, p.trade_name,\n             p.reorder_point, p.safety_stock,\n             p.cost_price as cost_avg,\n             u.name as unit_name,\n             ".concat(stockExpr, " as stock_qty,\n             ").concat(buyMoreExpr, " as buy_more,\n             (SELECT s.name FROM product_lots pl\n                JOIN suppliers s ON s.id = pl.supplier_id\n                WHERE ").concat(cheapestWhere, "\n                ").concat(cheapestOrder, ") as cheapest_supplier_name,\n             (SELECT pl.cost_price FROM product_lots pl\n                WHERE ").concat(cheapestWhere, "\n                ").concat(cheapestOrder, ") as cheapest_supplier_cost\n      FROM products p\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      ").concat(where, "\n      ORDER BY buy_more DESC, p.trade_name ASC\n    "))).all.apply(_a, params);
+        var rows = (_a = db.prepare("\n      SELECT p.id as product_id, p.code, p.trade_name,\n             p.reorder_point, p.safety_stock,\n             p.cost_price as cost_avg,\n             u.name as unit_name,\n             ".concat(stockExpr, " as stock_qty,\n             ").concat(buyMoreExpr, " as buy_more,\n             (SELECT s.name FROM product_lots pl\n                JOIN suppliers s ON s.id = pl.supplier_id\n                WHERE ").concat(cheapestWhere, "\n                ").concat(cheapestOrder, ") as cheapest_supplier_name,\n             (SELECT pl.cost_price FROM product_lots pl\n                WHERE ").concat(cheapestWhere, "\n                ").concat(cheapestOrder, ") as cheapest_supplier_cost\n      FROM products p\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      ").concat(where, "\n      ORDER BY buy_more DESC, ").concat(orderByBucket('p.trade_name'), "\n    "))).all.apply(_a, params);
         var out_count = rows.filter(function (r) { return r.stock_qty <= 0; }).length;
         var total_buy_more = rows.reduce(function (s, r) { return s + (r.buy_more || 0); }, 0);
         return { rows: rows, count: rows.length, out_count: out_count, total_buy_more: total_buy_more };
@@ -380,16 +385,22 @@ export function registerProductHandlers() {
         if (limit === void 0) { limit = 10; }
         return getDb().prepare("\n      SELECT id, price_type, old_price, new_price, note, created_at\n      FROM price_logs\n      WHERE product_id = ?\n      ORDER BY created_at DESC, id DESC\n      LIMIT ?\n    ").all(productId, limit);
     });
-    // Stock movement audit log for a single product. Returns rows from
-    // stock_movements joined with lot + user info for display. Ordered newest
-    // first. movement_type values: receive, sale, sale_return, adjust_in,
-    // adjust_out, purchase_return, expired, near_expiry. Note often contains a referencing
-    // invoice/GR number (frontend extracts for navigation).
+    // Stock movement audit log for a single product. Returns `{ rows, total }`
+    // where `total` is the unpaginated count under the active filters — used by
+    // the UI to render Pagination.
+    //
+    // Filters are server-side: movement_types, date_from, date_to. Pagination
+    // is offset/limit; `pageSize <= 0` means "no limit" (avoid for large stores,
+    // memory-bound on the renderer side).
     ipcMain.handle('products:stockMovements', function (_e, productId, opts) {
-        var _a, _b;
-        var _c, _d;
+        var _a, _b, _c, _d, _f, _g;
+        var _h, _j, _k;
         var db = getDb();
-        var limit = (_c = opts === null || opts === void 0 ? void 0 : opts.limit) !== null && _c !== void 0 ? _c : 200;
+        var page = Math.max(1, (_h = opts === null || opts === void 0 ? void 0 : opts.page) !== null && _h !== void 0 ? _h : 1);
+        var pageSize = (_j = opts === null || opts === void 0 ? void 0 : opts.pageSize) !== null && _j !== void 0 ? _j : 50;
+        var useLimit = pageSize > 0;
+        var offset = (page - 1) * pageSize;
+        var orderDir = (opts === null || opts === void 0 ? void 0 : opts.sort_dir) === 'asc' ? 'ASC' : 'DESC';
         // Bundles (is_bundle=1) have no rows in stock_movements because they don't
         // hold stock (only components do). We simulate movements by querying
         // sale_items joined with sales to show the bill history.
@@ -408,11 +419,18 @@ export function registerProductHandlers() {
             var typesFilter = (opts === null || opts === void 0 ? void 0 : opts.movement_types) && opts.movement_types.length > 0
                 ? "WHERE movement_type IN (".concat(opts.movement_types.map(function () { return '?'; }).join(','), ")")
                 : '';
-            var typeParams = (_d = opts === null || opts === void 0 ? void 0 : opts.movement_types) !== null && _d !== void 0 ? _d : [];
+            var typeParams = (_k = opts === null || opts === void 0 ? void 0 : opts.movement_types) !== null && _k !== void 0 ? _k : [];
             // Simulating movements:
             // 1. Every sale_item row is a 'sale' (or 'sale_return' if RT- bill).
-            // 2. If the sale is voided, we add a balancing 'sale_return' row.
-            return (_a = db.prepare("\n        SELECT * FROM (\n          SELECT si.id,\n                 CASE WHEN s.sale_type = 'return' THEN 'sale_return' ELSE 'sale' END as movement_type,\n                 'sale' as ref_type, s.id as ref_id,\n                 -si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,\n                 COALESCE(NULLIF(si.item_note, ''), '\u0E02\u0E32\u0E22: ' || s.invoice_no) as note, s.sold_at as created_at,\n                 NULL as lot_id, NULL as lot_number, NULL as expiry_date,\n                 NULL AS gr_invoice_no,\n                 s.invoice_no AS sale_invoice_no,\n                 s.sold_by as created_by, u.name AS created_by_name\n          FROM sale_items si\n          JOIN sales s ON s.id = si.sale_id\n          LEFT JOIN users u ON u.id = s.sold_by\n          WHERE ".concat(siConds.join(' AND '), "\n\n          UNION ALL\n\n          SELECT si.id, 'sale_return' as movement_type, 'sale' as ref_type, s.id as ref_id,\n                 si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,\n                 '\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01: ' || COALESCE(s.void_reason, '') as note, s.updated_at as created_at,\n                 NULL as lot_id, NULL as lot_number, NULL as expiry_date,\n                 NULL AS gr_invoice_no,\n                 s.invoice_no AS sale_invoice_no,\n                 s.sold_by as created_by, u.name AS created_by_name\n          FROM sale_items si\n          JOIN sales s ON s.id = si.sale_id\n          LEFT JOIN users u ON u.id = s.sold_by\n          WHERE ").concat(siConds.join(' AND '), " AND s.status = 'voided'\n        )\n        ").concat(typesFilter, "\n        ORDER BY created_at DESC, id DESC\n        LIMIT ?\n      "))).all.apply(_a, __spreadArray(__spreadArray(__spreadArray(__spreadArray([], siParams, false), siParams, false), typeParams, false), [limit], false));
+            // 2. If the sale is voided, we add a balancing 'sale_void' row.
+            var innerSelect = "\n        SELECT si.id,\n               CASE WHEN s.sale_type = 'return' THEN 'sale_return' ELSE 'sale' END as movement_type,\n               'sale' as ref_type, s.id as ref_id,\n               -si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,\n               COALESCE(NULLIF(si.item_note, ''), '\u0E02\u0E32\u0E22: ' || s.invoice_no) as note, s.sold_at as created_at,\n               NULL as lot_id, NULL as lot_number, NULL as expiry_date,\n               NULL AS gr_invoice_no,\n               s.invoice_no AS sale_invoice_no,\n               s.sold_by as created_by, u.name AS created_by_name\n        FROM sale_items si\n        JOIN sales s ON s.id = si.sale_id\n        LEFT JOIN users u ON u.id = s.sold_by\n        WHERE ".concat(siConds.join(' AND '), "\n\n        UNION ALL\n\n        SELECT si.id, 'sale_void' as movement_type, 'sale' as ref_type, s.id as ref_id,\n               si.qty as qty_change, 0 as qty_before, 0 as qty_after, si.unit_price as unit_cost,\n               '\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01: ' || COALESCE(s.void_reason, '') as note, s.updated_at as created_at,\n               NULL as lot_id, NULL as lot_number, NULL as expiry_date,\n               NULL AS gr_invoice_no,\n               s.invoice_no AS sale_invoice_no,\n               s.sold_by as created_by, u.name AS created_by_name\n        FROM sale_items si\n        JOIN sales s ON s.id = si.sale_id\n        LEFT JOIN users u ON u.id = s.sold_by\n        WHERE ").concat(siConds.join(' AND '), " AND s.status = 'voided'\n      ");
+            var innerParams = __spreadArray(__spreadArray([], siParams, true), siParams, true);
+            var filterParams = __spreadArray(__spreadArray([], innerParams, true), typeParams, true);
+            var total_1 = (_a = db.prepare("\n        SELECT COUNT(*) AS c FROM (".concat(innerSelect, ") ").concat(typesFilter, "\n      "))).get.apply(_a, filterParams).c;
+            var rowsSql_1 = "\n        SELECT * FROM (".concat(innerSelect, ")\n        ").concat(typesFilter, "\n        ORDER BY created_at ").concat(orderDir, ", id ").concat(orderDir, "\n        ").concat(useLimit ? 'LIMIT ? OFFSET ?' : '', "\n      ");
+            var rows_1 = useLimit
+                ? (_b = db.prepare(rowsSql_1)).all.apply(_b, __spreadArray(__spreadArray([], filterParams, false), [pageSize, offset], false)) : (_c = db.prepare(rowsSql_1)).all.apply(_c, filterParams);
+            return { rows: rows_1, total: total_1 };
         }
         var conditions = ['sm.product_id = ?'];
         var params = [productId];
@@ -428,11 +446,19 @@ export function registerProductHandlers() {
             conditions.push('date(sm.created_at) <= ?');
             params.push(opts.date_to);
         }
-        // pl.invoice_no = the GR (purchase_receipt) the lot belongs to → used for
-        // navigating receive/purchase_return movements to the purchase detail page.
+        var total = (_d = db.prepare("\n      SELECT COUNT(*) AS c FROM stock_movements sm WHERE ".concat(conditions.join(' AND '), "\n    "))).get.apply(_d, params).c;
+        // gr_invoice_no drives the "ดูข้อมูล" → purchase-receipt link. Expose it
+        // ONLY for movements that genuinely reference the GR (receive / its cancel).
+        // Every movement on a lot shares pl.invoice_no (the GR that CREATED the lot),
+        // but an adjust/expiry disposal has no documentary tie to that purchase —
+        // surfacing it there made the button wrongly open the original GR. Gate it
+        // by movement_type so those rows resolve to NULL → button stays muted.
         // s.invoice_no = the sale the movement references → only meaningful when
         // ref_type='sale' (covers both 'sale' and 'sale_return' movement_types).
-        return (_b = db.prepare("\n      SELECT sm.id, sm.movement_type, sm.ref_type, sm.ref_id,\n             sm.qty_change, sm.qty_before, sm.qty_after, sm.unit_cost,\n             sm.note, sm.created_at,\n             sm.lot_id, pl.lot_number, pl.expiry_date,\n             pl.invoice_no AS gr_invoice_no,\n             s.invoice_no AS sale_invoice_no,\n             sm.created_by, u.name AS created_by_name\n      FROM stock_movements sm\n      LEFT JOIN product_lots pl ON pl.id = sm.lot_id\n      LEFT JOIN sales s ON sm.ref_type = 'sale' AND s.id = sm.ref_id\n      LEFT JOIN users u ON u.id = sm.created_by\n      WHERE ".concat(conditions.join(' AND '), "\n      ORDER BY sm.created_at DESC, sm.id DESC\n      LIMIT ?\n    "))).all.apply(_b, __spreadArray(__spreadArray([], params, false), [limit], false));
+        var rowsSql = "\n      SELECT sm.id, sm.movement_type, sm.ref_type, sm.ref_id,\n             sm.qty_change, sm.qty_before, sm.qty_after, sm.unit_cost,\n             sm.note, sm.created_at,\n             sm.lot_id, pl.lot_number, pl.expiry_date,\n             CASE WHEN sm.movement_type IN ('receive', 'purchase_return')\n                  THEN pl.invoice_no END AS gr_invoice_no,\n             s.invoice_no AS sale_invoice_no,\n             sm.created_by, u.name AS created_by_name\n      FROM stock_movements sm\n      LEFT JOIN product_lots pl ON pl.id = sm.lot_id\n      LEFT JOIN sales s ON sm.ref_type = 'sale' AND s.id = sm.ref_id\n      LEFT JOIN users u ON u.id = sm.created_by\n      WHERE ".concat(conditions.join(' AND '), "\n      ORDER BY sm.created_at ").concat(orderDir, ", sm.id ").concat(orderDir, "\n      ").concat(useLimit ? 'LIMIT ? OFFSET ?' : '', "\n    ");
+        var rows = useLimit
+            ? (_f = db.prepare(rowsSql)).all.apply(_f, __spreadArray(__spreadArray([], params, false), [pageSize, offset], false)) : (_g = db.prepare(rowsSql)).all.apply(_g, params);
+        return { rows: rows, total: total };
     });
     // Stock adjustment from Products list. Three modes — operator picks one
     // based on the situation:
@@ -628,6 +654,30 @@ export function registerProductHandlers() {
     // Search generic names
     ipcMain.handle('products:searchGenericNames', function (_e, q) {
         return getDb().prepare("SELECT * FROM drug_generic_names WHERE name LIKE ? AND is_disabled=0 LIMIT 10").all("%".concat(q, "%"));
+    });
+    // Monthly sold-qty for a product: current month + last 6 completed months + avg.
+    // Drives the safety-stock guide in EditProduct → General tab. Excludes voided
+    // sales and cancelled line items. qty is summed raw (whichever unit it was
+    // sold in) — pharmacy sells most products in the base unit so this is a
+    // useful rough guide; pack-unit sales will inflate counts proportionally,
+    // which the operator can read past.
+    ipcMain.handle('products:monthlySales', function (_e, productId) {
+        var _a;
+        var db = getDb();
+        var rows = db.prepare("\n      SELECT strftime('%Y-%m', s.sold_at) AS ym, COALESCE(SUM(si.qty), 0) AS qty\n      FROM sale_items si\n      JOIN sales s ON s.id = si.sale_id\n      WHERE si.product_id = ?\n        AND si.is_cancelled = 0\n        AND s.status = 'completed'\n        AND date(s.sold_at) >= date('now','localtime','start of month','-6 months')\n      GROUP BY ym\n    ").all(productId);
+        var qtyByYm = new Map(rows.map(function (r) { return [r.ym, Number(r.qty) || 0]; }));
+        var now = new Date();
+        var months = [];
+        for (var i = 0; i <= 6; i++) {
+            var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            var ym = "".concat(d.getFullYear(), "-").concat(String(d.getMonth() + 1).padStart(2, '0'));
+            months.push(ym);
+        }
+        var current_month = { ym: months[0], qty: (_a = qtyByYm.get(months[0])) !== null && _a !== void 0 ? _a : 0 };
+        var history = months.slice(1).map(function (ym) { var _a; return ({ ym: ym, qty: (_a = qtyByYm.get(ym)) !== null && _a !== void 0 ? _a : 0 }); });
+        var total6 = history.reduce(function (s, h) { return s + h.qty; }, 0);
+        var avg_per_month = total6 / 6;
+        return { current_month: current_month, history: history, avg_per_month: avg_per_month };
     });
     // Lots for a product. Bundles have no lots — return empty rather than throw
     // (less surprising for callers that defensively call this on any product id).

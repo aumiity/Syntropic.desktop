@@ -32,6 +32,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 import { ipcMain } from 'electron';
 import { getDb } from '../db';
 import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes';
+import { orderByBucket } from '../db/sortName';
 export function registerPeopleHandlers() {
     // --- CUSTOMERS ---
     ipcMain.handle('people:listCustomers', function (_e, filters) {
@@ -105,7 +106,7 @@ export function registerPeopleHandlers() {
         var where = conds.length ? "WHERE ".concat(conds.join(' AND ')) : '';
         var limitClause = limit ? "LIMIT ? OFFSET ?" : '';
         var limitParams = limit ? [limit, offset] : [];
-        var rows = (_a = db.prepare("SELECT * FROM suppliers ".concat(where, " ORDER BY name ").concat(limitClause))).all.apply(_a, __spreadArray(__spreadArray([], params, false), limitParams, false));
+        var rows = (_a = db.prepare("SELECT * FROM suppliers ".concat(where, " ORDER BY ").concat(orderByBucket('name'), " ").concat(limitClause))).all.apply(_a, __spreadArray(__spreadArray([], params, false), limitParams, false));
         var total = (_b = db.prepare("SELECT COUNT(*) as c FROM suppliers ".concat(where))).get.apply(_b, params).c;
         return { rows: rows, total: total, page: page, limit: limit !== null && limit !== void 0 ? limit : total };
     });
@@ -134,7 +135,7 @@ export function registerPeopleHandlers() {
     ipcMain.handle('people:listStaff', function (_e, filters) {
         var _a = (filters !== null && filters !== void 0 ? filters : {}).includeDisabled, includeDisabled = _a === void 0 ? false : _a;
         var where = includeDisabled ? '' : "WHERE is_disabled = 0";
-        return getDb().prepare("SELECT id, name, email, role, is_disabled, created_at FROM users ".concat(where, " ORDER BY name")).all();
+        return getDb().prepare("SELECT id, name, email, role, is_disabled, created_at FROM users ".concat(where, " ORDER BY ").concat(orderByBucket('name'))).all();
     });
     ipcMain.handle('people:saveStaff', function (_e, data) {
         var db = getDb();
@@ -154,6 +155,6 @@ export function registerPeopleHandlers() {
     });
     // All suppliers (for dropdowns) — always filters disabled.
     ipcMain.handle('people:allSuppliers', function () {
-        return getDb().prepare("SELECT id, code, name FROM suppliers WHERE is_disabled = 0 ORDER BY name").all();
+        return getDb().prepare("SELECT id, code, name FROM suppliers WHERE is_disabled = 0 ORDER BY ".concat(orderByBucket('name'))).all();
     });
 }

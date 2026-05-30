@@ -7,6 +7,7 @@ import { MetricCard } from '@/components/ui/card'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AdjustStockDialog } from '@/components/dialogs/AdjustStockDialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
@@ -15,7 +16,7 @@ import type { ProductCategory, DrugType, ItemUnit } from '@/types'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import {
-  ArrowLeft, Save, AlertTriangle,
+  ArrowLeft, Save,
   Package, Tag, Pill, FileText, Coins, Info,
   History, PackageOpen, Blocks,
 } from 'lucide-react'
@@ -406,7 +407,7 @@ export default function EditProductPage() {
                 </div>
                 <div className="flex items-center gap-1 mt-auto min-w-0 flex-wrap">
                   {!isNew && !!product.is_drug && <Badge variant="success-outline">ยา</Badge>}
-                  {!isNew && !!product.is_fda9 && <Badge variant="brand-outline">ข.ย.9</Badge>}
+                  {!isNew && !!product.is_fda9 && <Badge variant="primary-outline">ข.ย.9</Badge>}
                   {!isNew && !!product.is_fda10 && <Badge variant="warning-outline">ข.ย.10</Badge>}
                   {!isNew && !!product.is_fda11 && <Badge variant="destructive-outline">ข.ย.11</Badge>}
                   {!isNew && !!product.is_fda13 && <Badge variant="info-outline">ข.ย.13</Badge>}
@@ -540,52 +541,29 @@ export default function EditProductPage() {
       />
 
       {/* ======================== PRICE WARNING DIALOG ======================== */}
-      <Dialog open={priceWarning.length > 0} onOpenChange={() => setPriceWarning([])}>
-        <DialogContent size="sm">
-          <DialogHeader>
-            <DialogTitle className="text-xl">ราคาขายผิดปกติ</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="space-y-3">
-            <div className="flex gap-3">
-              <AlertTriangle className="size-10 text-destructive shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-base font-medium">{priceWarning.join(', ')} ต่ำกว่าราคาทุน</p>
-                <p className="text-base text-muted-foreground">ยืนยันจะบันทึกข้อมูลนี้?</p>
-              </div>
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="elevated" size="xl" onClick={() => setPriceWarning([])}>กลับไปแก้ไข</Button>
-            <Button variant="destructive" size="xl" onClick={doSave} disabled={saving}>
-              {saving ? 'กำลังบันทึก...' : 'บันทึก'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={priceWarning.length > 0}
+        onOpenChange={(o) => { if (!o) setPriceWarning([]) }}
+        variant="destructive"
+        title="ราคาขายผิดปกติ"
+        description={<>{priceWarning.join(', ')} ต่ำกว่าราคาทุน — ยืนยันจะบันทึกข้อมูลนี้?</>}
+        cancelLabel="กลับไปแก้ไข"
+        confirmLabel={saving ? 'กำลังบันทึก...' : 'บันทึก'}
+        busy={saving}
+        onConfirm={doSave}
+      />
 
       {/* ======================== LEAVE CONFIRM DIALOG ======================== */}
-      <Dialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
-        <DialogContent size="sm">
-          <DialogHeader>
-            <DialogTitle className="text-xl">ยังไม่ได้บันทึก</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="space-y-3">
-            <div className="flex gap-3">
-              <AlertTriangle className="size-10 text-warning-strong shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-base font-medium">มีข้อมูลที่กรอกไว้แต่ยังไม่ได้บันทึก</p>
-                <p className="text-base text-muted-foreground">หากออกตอนนี้ ข้อมูลทั้งหมดจะหายไป</p>
-              </div>
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="elevated" size="xl" onClick={() => setShowLeaveConfirm(false)}>กลับไปแก้ไข</Button>
-            <Button variant="destructive" size="xl" onClick={() => { setShowLeaveConfirm(false); setIsDirty(false); backToOrigin() }}>
-              ออกจากหน้านี้
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={showLeaveConfirm}
+        onOpenChange={setShowLeaveConfirm}
+        variant="destructive"
+        title="ยังไม่ได้บันทึก"
+        description="มีข้อมูลที่กรอกไว้แต่ยังไม่ได้บันทึก หากออกตอนนี้ข้อมูลทั้งหมดจะหายไป"
+        cancelLabel="กลับไปแก้ไข"
+        confirmLabel="ออกจากหน้านี้"
+        onConfirm={() => { setShowLeaveConfirm(false); setIsDirty(false); backToOrigin() }}
+      />
 
     </div>
   )

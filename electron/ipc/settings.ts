@@ -172,21 +172,25 @@ export function registerSettingsHandlers() {
   ipcMain.handle('settings:listLabelTimes', () => getDb().prepare(`SELECT * FROM label_times ORDER BY sort_order`).all())
   ipcMain.handle('settings:listLabelAdvices', () => getDb().prepare(`SELECT * FROM label_advices ORDER BY sort_order`).all())
 
-  // Label settings
+  // Label settings (singleton). ORDER BY id keeps reads deterministic if a
+  // legacy DB ended up with multiple rows; the seed now guarantees only one.
   ipcMain.handle('settings:getLabelSettings', () => {
-    return getDb().prepare(`SELECT * FROM label_settings LIMIT 1`).get()
+    return getDb().prepare(`SELECT * FROM label_settings ORDER BY id LIMIT 1`).get()
   })
   ipcMain.handle('settings:saveLabelSettings', (_e, data: any) => {
     const db = getDb()
-    const existing = db.prepare(`SELECT id FROM label_settings LIMIT 1`).get() as any
+    const existing = db.prepare(`SELECT id FROM label_settings ORDER BY id LIMIT 1`).get() as any
     if (existing) {
-      const { id, ...rest } = data
+      const { id: _drop, ...rest } = data
       const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
-      db.prepare(`UPDATE label_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = ?`).run({ ...rest, id: existing.id })
+      // Bind id as @id (named) — mixing `?` with an object binding throws
+      // "Too few parameter values were provided" in better-sqlite3.
+      db.prepare(`UPDATE label_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`)
+        .run({ ...rest, id: existing.id })
     } else {
       db.prepare(`INSERT INTO label_settings DEFAULT VALUES`).run()
     }
-    return db.prepare(`SELECT * FROM label_settings LIMIT 1`).get()
+    return db.prepare(`SELECT * FROM label_settings ORDER BY id LIMIT 1`).get()
   })
 
   // Sales settings (singleton) — POS cart alert thresholds and toggles.

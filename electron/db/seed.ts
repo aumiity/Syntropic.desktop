@@ -108,8 +108,11 @@ export function seedDatabase(db: Database.Database) {
   const insDosageForm = db.prepare(`INSERT OR IGNORE INTO dosage_forms (name_th, name_en) VALUES (?, ?)`)
   for (const [th, en] of dosageForms) insDosageForm.run(th, en)
 
-  // Default label settings
-  db.prepare(`INSERT OR IGNORE INTO label_settings DEFAULT VALUES`).run()
+  // Default label settings (singleton). `INSERT OR IGNORE DEFAULT VALUES` does
+  // NOT enforce singleton-ness here — `id INTEGER PRIMARY KEY AUTOINCREMENT`
+  // never collides on insert, so OR IGNORE never fires. NOT EXISTS is the only
+  // pattern that's actually idempotent across launches.
+  db.prepare(`INSERT INTO label_settings (id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM label_settings)`).run()
 
   // General customer (catch-all). Walk-in is modelled as this real row, never
   // a NULL customer_id — see the walk-in invariant in CLAUDE.md.

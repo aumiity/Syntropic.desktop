@@ -239,12 +239,12 @@ export default function PurchaseIntake() {
     if (tier === 'alias') return <Badge variant="success">เคยจับคู่</Badge>
     if (score >= AUTO_CONFIRM) return <Badge variant="success">{Math.round(score * 100)}%</Badge>
     if (score >= 0.7) return <Badge variant="warning">{Math.round(score * 100)}%</Badge>
-    return <Badge variant="danger">ตรวจสอบ</Badge>
+    return <Badge variant="destructive">ตรวจสอบ</Badge>
   }
 
   const cellTint = (tier: Tier, score: number) => {
     if (tier === 'alias' || score >= AUTO_CONFIRM) return 'bg-success-soft/40'
-    if (score >= 0.7) return 'bg-warning-soft/40'
+    if (score >= 0.7) return 'bg-warm/40'
     return 'bg-destructive-soft/40'
   }
 

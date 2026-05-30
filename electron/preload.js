@@ -4,7 +4,6 @@ var api = {
     pos: {
         searchProducts: function (q) { return ipcRenderer.invoke('pos:searchProducts', q); },
         searchCustomers: function (q) { return ipcRenderer.invoke('pos:searchCustomers', q); },
-        addCustomer: function (data) { return ipcRenderer.invoke('pos:addCustomer', data); },
         saveBill: function (payload) { return ipcRenderer.invoke('pos:saveBill', payload); },
         getDailyStats: function () { return ipcRenderer.invoke('pos:getDailyStats'); },
         returnItems: function (payload) { return ipcRenderer.invoke('pos:returnItems', payload); },
@@ -28,6 +27,7 @@ var api = {
         deleteLabel: function (id) { return ipcRenderer.invoke('products:deleteLabel', id); },
         searchGenericNames: function (q) { return ipcRenderer.invoke('products:searchGenericNames', q); },
         getLots: function (productId) { return ipcRenderer.invoke('products:getLots', productId); },
+        monthlySales: function (productId) { return ipcRenderer.invoke('products:monthlySales', productId); },
         getBundleItems: function (bundleId) { return ipcRenderer.invoke('products:getBundleItems', bundleId); },
         saveBundleItems: function (bundleId, items) {
             return ipcRenderer.invoke('products:saveBundleItems', bundleId, items);
@@ -128,6 +128,10 @@ var api = {
     printer: {
         printReceipt: function (data) { return ipcRenderer.invoke('printer:printReceipt', data); },
         openCashDrawer: function (data) { return ipcRenderer.invoke('printer:openCashDrawer', data); },
+        listPrinters: function () { return ipcRenderer.invoke('printer:listPrinters'); },
+        printLabel: function (args) {
+            return ipcRenderer.invoke('printer:printLabel', args);
+        },
     },
     // Window controls
     window: {
@@ -169,7 +173,7 @@ var api = {
     },
     // Dev (only registered when isDev=true in main.ts; will reject otherwise)
     dev: {
-        seedSalesHistory: function () { return ipcRenderer.invoke('dev:seedSalesHistory'); },
+        seedSalesHistory: function (days) { return ipcRenderer.invoke('dev:seedSalesHistory', { days: days }); },
     },
 };
 contextBridge.exposeInMainWorld('api', api);

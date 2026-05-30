@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, BrowserWindow } from 'electron'
 import net from 'net'
 
 // ESC/POS constants
@@ -109,6 +109,49 @@ export function registerPrinterHandlers() {
       return { success: true }
     } catch (err: any) {
       return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('printer:listPrinters', async (event) => {
+    return await event.sender.getPrintersAsync()
+  })
+
+  ipcMain.handle('printer:printLabel', async (_e, args: {
+    html: string
+    printerName: string
+    paperWidthMm: number
+    paperHeightMm: number
+  }) => {
+    if (!(args.paperWidthMm > 0) || !(args.paperHeightMm > 0)) {
+      return { success: false, error: 'invalid paper size' }
+    }
+    const w = new BrowserWindow({ show: false, webPreferences: { offscreen: false } })
+    try {
+      await w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args.html))
+      // Wait for webfonts + layout before printing, otherwise Electron may
+      // snapshot the page with the default font or pre-layout sizing.
+      await w.webContents.executeJavaScript(`
+        (async () => {
+          if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+        })()
+      `)
+      await new Promise<void>((resolve, reject) => {
+        w.webContents.print({
+          silent: true,
+          deviceName: args.printerName || undefined,
+          // Electron pageSize uses microns (1 mm = 1000 µm).
+          pageSize: { width: Math.round(args.paperWidthMm * 1000), height: Math.round(args.paperHeightMm * 1000) },
+          margins: { marginType: 'none' },
+          printBackground: false,
+          color: false,
+        }, (success, failureReason) => success ? resolve() : reject(new Error(failureReason)))
+      })
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    } finally {
+      w.destroy()
     }
   })
 
