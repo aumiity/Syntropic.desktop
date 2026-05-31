@@ -105,7 +105,23 @@
       "WebFetch(domain:pplabelprinting.com)",
       "WebFetch(domain:easyprinterthailand.com)",
       "WebFetch(domain:www.thaicopypaperfactory.com)",
-      "WebFetch(domain:www.hygeia-pharmacy.com)"
+      "WebFetch(domain:www.hygeia-pharmacy.com)",
+      "Bash(rm -f /tmp/syntropic-dev.log)",
+      "Bash(unset ELECTRON_RUN_AS_NODE)",
+      "Bash(pkill -f \"wait-on tcp:5173\")",
+      "Bash(pkill -f \"dist-electron/main.js\")",
+      "Bash(pkill -f \"Electron\")",
+      "Bash(pkill -f \"concurrently\")",
+      "Bash(pkill -f \"vite\")",
+      "Bash(rm -f /tmp/vite.log)",
+      "Bash(pkill -f \"npx vite\\\\|node_modules/.bin/vite\")",
+      "Bash(NODE_PATH=\"/Users/anya/Documents/GitHub/Syntropic.desktop/node_modules\" node /tmp/vat-e2e.cjs)",
+      "Bash(tmux -V)",
+      "Bash(claude --version)",
+      "Bash(brew install *)",
+      "Bash(zsh -ic 'type ccr >/dev/null 2>&1 && echo \"ccr: OK โหลดได้\" || echo \"ccr: ERROR\"')",
+      "Bash(tmux new-session *)",
+      "Bash(tmux kill-session *)"
     ]
   }
 }

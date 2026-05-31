@@ -76,7 +76,7 @@ export function registerPosHandlers() {
         // NULL — see walk-in invariant in CLAUDE.md.
         var customerId = (_a = payload.customer_id) !== null && _a !== void 0 ? _a : walkInCustomerId(db);
         var saveBill = db.transaction(function () {
-            var _a, _b, _c, _d, _f;
+            var _a, _b, _c, _d, _f, _g, _h;
             // Generate invoice number — LIKE prefix already encodes today's date.
             // (Don't filter by sold_at: it stores 'YYYY-MM-DD HH:MM:SS' but `today`
             // is 'YYYYMMDD', so a string-range comparison silently excludes every row.)
@@ -84,11 +84,11 @@ export function registerPosHandlers() {
             var countRow = db.prepare("SELECT COUNT(*) as c FROM sales WHERE invoice_no LIKE ?")
                 .get("RC-".concat(today, "-%"));
             var invoiceNo = "RC-".concat(today, "-").concat(String(countRow.c + 1).padStart(4, '0'));
-            var saleResult = db.prepare("\n        INSERT INTO sales (invoice_no, sale_type, customer_id, customer_name_free,\n          sold_by, sold_at, subtotal, total_discount, total_amount,\n          cash_amount, card_amount, transfer_amount, change_amount,\n          symptom_note, age_range, note, status)\n        VALUES (?, ?, ?, ?, ?, datetime('now','localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed')\n      ").run(invoiceNo, payload.sale_type, customerId, payload.customer_name_free, payload.sold_by, payload.subtotal, payload.total_discount, payload.total_amount, payload.cash_amount, payload.card_amount, payload.transfer_amount, payload.change_amount, (_a = payload.symptom_note) !== null && _a !== void 0 ? _a : '', (_b = payload.age_range) !== null && _b !== void 0 ? _b : '', (_c = payload.note) !== null && _c !== void 0 ? _c : '');
+            var saleResult = db.prepare("\n        INSERT INTO sales (invoice_no, sale_type, customer_id, customer_name_free,\n          sold_by, sold_at, subtotal, total_discount, total_vat, total_amount,\n          cash_amount, card_amount, transfer_amount, change_amount,\n          symptom_note, age_range, note, status)\n        VALUES (?, ?, ?, ?, ?, datetime('now','localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed')\n      ").run(invoiceNo, payload.sale_type, customerId, payload.customer_name_free, payload.sold_by, payload.subtotal, payload.total_discount, (_a = payload.total_vat) !== null && _a !== void 0 ? _a : 0, payload.total_amount, payload.cash_amount, payload.card_amount, payload.transfer_amount, payload.change_amount, (_b = payload.symptom_note) !== null && _b !== void 0 ? _b : '', (_c = payload.age_range) !== null && _c !== void 0 ? _c : '', (_d = payload.note) !== null && _d !== void 0 ? _d : '');
             var saleId = saleResult.lastInsertRowid;
-            for (var _i = 0, _g = payload.items; _i < _g.length; _i++) {
-                var item = _g[_i];
-                var itemResult = db.prepare("\n          INSERT INTO sale_items (sale_id, product_id, item_name, unit_name, qty, unit_price, discount, line_total, item_note)\n          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)\n        ").run(saleId, item.product_id, item.item_name, item.unit_name, item.qty, item.unit_price, item.discount, item.line_total, (_d = item.item_note) !== null && _d !== void 0 ? _d : '');
+            for (var _i = 0, _j = payload.items; _i < _j.length; _i++) {
+                var item = _j[_i];
+                var itemResult = db.prepare("\n          INSERT INTO sale_items (sale_id, product_id, item_name, unit_name, qty, unit_price, discount, unit_vat, line_total, item_note)\n          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n        ").run(saleId, item.product_id, item.item_name, item.unit_name, item.qty, item.unit_price, item.discount, (_f = item.unit_vat) !== null && _f !== void 0 ? _f : 0, item.line_total, (_g = item.item_note) !== null && _g !== void 0 ? _g : '');
                 var saleItemId = itemResult.lastInsertRowid;
                 // Resolve bundle status from authoritative source — payload could be
                 // stale (the client may have searched before the product was flipped).
@@ -102,15 +102,15 @@ export function registerPosHandlers() {
                     // own product automatically — no special-case there.
                     var components = db.prepare("\n            SELECT component_product_id, qty_per_bundle\n            FROM product_bundle_items\n            WHERE bundle_id = ?\n          ").all(item.product_id);
                     // qty_per_base is irrelevant for v1 bundles (always sold in base unit).
-                    for (var _h = 0, components_1 = components; _h < components_1.length; _h++) {
-                        var comp = components_1[_h];
+                    for (var _k = 0, components_1 = components; _k < components_1.length; _k++) {
+                        var comp = components_1[_k];
                         var componentBaseQty = Number(comp.qty_per_bundle) * item.qty;
                         deductFefo(db, comp.component_product_id, componentBaseQty, saleItemId, saleId, invoiceNo, payload.sold_by);
                     }
                 }
                 else {
                     // Regular product — qty_per_base converts sold-unit qty into base qty.
-                    deductFefo(db, item.product_id, item.qty * ((_f = item.qty_per_base) !== null && _f !== void 0 ? _f : 1), saleItemId, saleId, invoiceNo, payload.sold_by);
+                    deductFefo(db, item.product_id, item.qty * ((_h = item.qty_per_base) !== null && _h !== void 0 ? _h : 1), saleItemId, saleId, invoiceNo, payload.sold_by);
                 }
             }
             // Daily summary — sold_at is stored as 'YYYY-MM-DD HH:MM:SS', so the

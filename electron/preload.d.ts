@@ -175,6 +175,15 @@ declare const api: {
             success: boolean;
             error?: string;
         }>;
+        previewLabelPdf: (args: {
+            html: string;
+            paperWidthMm: number;
+            paperHeightMm: number;
+        }) => Promise<{
+            success: boolean;
+            error?: string;
+            path?: string;
+        }>;
     };
     window: {
         minimize: () => Promise<any>;

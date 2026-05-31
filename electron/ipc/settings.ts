@@ -206,14 +206,21 @@ export function registerSettingsHandlers() {
   })
   ipcMain.handle('settings:saveSalesSettings', (_e, data: any) => {
     const db = getDb()
-    const existing = db.prepare(`SELECT id FROM sales_settings LIMIT 1`).get() as any
-    if (existing) {
+    db.transaction(() => {
+      // Ensure the singleton row exists, then UPDATE with the submitted form —
+      // so a first-ever save (no row yet) still persists the values instead of
+      // silently inserting bare defaults.
+      let row = db.prepare(`SELECT id FROM sales_settings LIMIT 1`).get() as any
+      if (!row) {
+        const r = db.prepare(`INSERT INTO sales_settings DEFAULT VALUES`).run()
+        row = { id: r.lastInsertRowid }
+      }
       const { id, updated_at, ...rest } = data
       const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
-      db.prepare(`UPDATE sales_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = ?`).run({ ...rest, id: existing.id })
-    } else {
-      db.prepare(`INSERT INTO sales_settings DEFAULT VALUES`).run()
-    }
+      if (fields) {
+        db.prepare(`UPDATE sales_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...rest, id: row.id })
+      }
+    })()
     return db.prepare(`SELECT * FROM sales_settings LIMIT 1`).get()
   })
 

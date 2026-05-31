@@ -96,14 +96,16 @@ for r in kept:
         cost_price(r, idx), n(r[idx["SalePrice"]]),
         n(r[idx["Wholesale1"]]), n(r[idx["Wholesale2"]]),
         b(r[idx["IsDisabled"]]), b(r[idx["IsHidden"]]),
-        b(r[idx["IsStockItem"]]), b(r[idx["IsTax"]]),
+        b(r[idx["IsStockItem"]]),
+        # has_vat (IsTax) dropped — VAT is now an all-or-nothing global switch
+        # (sales_settings.vat_enabled); products carry no per-item VAT flag.
         1 if r[idx["DrugACPCKey"]] is not None else 0,
         s(r[idx["TMTID"]]), s(r[idx["Note"]]),
         n(r[idx["ReorderPoint"]]), n(r[idx["QtyReq"]]),
     ])
 
 T = ("[string, string, string, string, string, string, string, string, "
-     "number, number, number, number, number, number, number, number, "
+     "number, number, number, number, number, number, number, "
      "number, string, string, number, number]")
 
 body = (
@@ -113,7 +115,7 @@ body = (
     "//   [trade_name, name_for_print, search_keywords,\n"
     "//    barcode, barcode2, barcode3, barcode4,\n"
     "//    unit_name, cost_price, price_retail, price_wholesale1, price_wholesale2,\n"
-    "//    is_disabled, is_hidden, is_stock_item, has_vat, is_drug,\n"
+    "//    is_disabled, is_hidden, is_stock_item, is_drug,\n"
     "//    tmt_id, note, reorder_point, safety_stock]\n"
     f"const PRODUCTS: {T}[] = "
     + json.dumps(tuples, ensure_ascii=False, separators=(",", ":"))

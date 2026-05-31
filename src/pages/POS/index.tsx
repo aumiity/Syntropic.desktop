@@ -26,6 +26,7 @@ import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSett
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
+import { extractVat, VAT_RATE_DEFAULT } from '@/lib/vat'
 import {
   Search, User, Trash2, Plus, Minus,
   Banknote, AlertTriangle, PackageX,
@@ -656,6 +657,17 @@ export default function POSPage() {
     : cart.items.map(i => i.discount)
   const pendingTotalDiscount = pendingEffectiveDiscounts.reduce((s, d) => s + d, 0)
   const pendingNet = cart.subtotal() - pendingTotalDiscount
+  // VAT-inclusive & all-or-nothing: the single sales_settings.vat_enabled switch
+  // is authoritative — when on, VAT applies to EVERY line (there is no per-product
+  // VAT flag). Prices already contain VAT, so we back it out of each line's net
+  // amount (rate/(100+rate)); pendingNet is unchanged — this is only the breakdown
+  // shown/recorded.
+  const vatEnabled = salesSettings?.vat_enabled === 1
+  const vatRate = salesSettings?.vat_rate ?? VAT_RATE_DEFAULT
+  const pendingVat = vatEnabled
+    ? cart.items.reduce((sum, i, idx) =>
+        sum + extractVat(i.qty * i.unit_price - pendingEffectiveDiscounts[idx], vatRate), 0)
+    : 0
   const totalPaid = (parseFloat(cashAmount) || 0) + (parseFloat(cardAmount) || 0) + (parseFloat(transferAmount) || 0)
   const change = totalPaid - pendingNet
 
@@ -670,9 +682,15 @@ export default function POSPage() {
         sale_type: cart.saleType, customer_id: cart.customer?.id ?? null, customer_name_free: cart.customerNameFree,
         items: cart.items.map((i, idx) => {
           const d = pendingEffectiveDiscounts[idx]
-          return { product_id: i.product_id, item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, qty_per_base: i.selectedUnit?.qty_per_base ?? 1, unit_price: i.unit_price, discount: d, line_total: i.qty * i.unit_price - d, item_note: i.item_note }
+          const line_total = i.qty * i.unit_price - d
+          // Per-unit VAT is backed out of the DISCOUNTED line, then divided by qty,
+          // so Σ(unit_vat × qty) reconciles exactly with total_vat (which is also
+          // computed on the discounted net). Using the raw unit_price here would
+          // overstate VAT on discounted lines.
+          const unit_vat = vatEnabled && i.qty > 0 ? extractVat(line_total, vatRate) / i.qty : 0
+          return { product_id: i.product_id, item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, qty_per_base: i.selectedUnit?.qty_per_base ?? 1, unit_price: i.unit_price, discount: d, unit_vat, line_total, item_note: i.item_note }
         }),
-        subtotal: cart.subtotal(), total_discount: pendingTotalDiscount, total_amount: pendingNet,
+        subtotal: cart.subtotal(), total_discount: pendingTotalDiscount, total_vat: pendingVat, total_amount: pendingNet,
         cash_amount: parseFloat(cashAmount) || 0, card_amount: parseFloat(cardAmount) || 0, transfer_amount: parseFloat(transferAmount) || 0,
         change_amount: Math.max(0, change), symptom_note: cart.symptomNote, age_range: cart.ageRange, sold_by: getCurrentUserId(),
       }) as any
@@ -1677,6 +1695,21 @@ export default function POSPage() {
                       />
                     </div>
                   </div>
+
+                  {/* VAT breakdown — VAT-inclusive, so it splits the net total,
+                      it does not add to it. */}
+                  {vatEnabled && pendingVat > 0 && (
+                    <div className="rounded-xl border border-border bg-info-soft p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-base font-medium text-muted-foreground">มูลค่าก่อนภาษี</span>
+                        <span className="text-xl font-semibold pr-2.5">{formatCurrency(net - pendingVat)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-base font-medium text-muted-foreground">{`ภาษีมูลค่าเพิ่ม ${vatRate}%`}</span>
+                        <span className="text-xl font-semibold pr-2.5">{formatCurrency(pendingVat)}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Section 2 — Net total */}
                   <div className={`rounded-xl border border-border p-4 ${netNegative

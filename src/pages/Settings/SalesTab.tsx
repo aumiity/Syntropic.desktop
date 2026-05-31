@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { SectionCard } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
-import { ClockAlert, PackageX, Calculator, Info, Bell } from 'lucide-react'
+import { ClockAlert, PackageX, Calculator, Info, Bell, ReceiptText } from 'lucide-react'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
 import type { SalesSettings } from '@/types'
 
@@ -17,6 +18,8 @@ const DEFAULT_FORM: SalesForm = {
   expired_alert_enabled: 1,
   low_stock_alert_enabled: 1,
   qty_multiplier_enabled: 1,
+  vat_enabled: 0,
+  vat_rate: 7,
 }
 
 export function SalesTab({ registerSave, saving, setSaving }: {
@@ -26,6 +29,9 @@ export function SalesTab({ registerSave, saving, setSaving }: {
 }) {
   const { toast } = useToast()
   const [form, setForm] = useState<SalesForm>(DEFAULT_FORM)
+  // Raw text for the VAT rate so decimals (e.g. "7.5") and a transient empty
+  // field can be typed without each keystroke being reparsed/clamped.
+  const [vatRateStr, setVatRateStr] = useState<string>(String(DEFAULT_FORM.vat_rate))
 
   useEffect(() => {
     window.api.settings.getSalesSettings().then(data => {
@@ -36,7 +42,10 @@ export function SalesTab({ registerSave, saving, setSaving }: {
           expired_alert_enabled: d.expired_alert_enabled,
           low_stock_alert_enabled: d.low_stock_alert_enabled,
           qty_multiplier_enabled: d.qty_multiplier_enabled,
+          vat_enabled: d.vat_enabled,
+          vat_rate: d.vat_rate,
         })
+        setVatRateStr(String(d.vat_rate))
       }
     })
   }, [])
@@ -59,6 +68,7 @@ export function SalesTab({ registerSave, saving, setSaving }: {
   useEffect(() => { registerSave(handleSave) }, [handleSave, registerSave])
 
   const expiryOn = !!form.expiry_alert_enabled
+  const vatOn = !!form.vat_enabled
 
   return (
     <div className="pt-4 space-y-4">
@@ -128,6 +138,49 @@ export function SalesTab({ registerSave, saving, setSaving }: {
             checked={!!form.qty_multiplier_enabled}
             onChange={v => setF('qty_multiplier_enabled', v ? 1 : 0)}
           />
+        </SectionCard>
+
+        <SectionCard
+          icon={ReceiptText}
+          title="ภาษีมูลค่าเพิ่ม (VAT)"
+          tint="info-soft"
+        >
+          <div className="space-y-3">
+            <Toggle
+              framed
+              className="justify-between w-full"
+              label="เปิดใช้ระบบภาษีมูลค่าเพิ่ม (VAT)"
+              checked={vatOn}
+              onChange={v => setF('vat_enabled', v ? 1 : 0)}
+            />
+
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card shadow-sm h-10 px-3">
+              <span className="text-sm font-medium text-foreground">อัตราภาษี</span>
+              <div className="flex items-center gap-2">
+                <Input
+                  variant="elevated"
+                  type="text"
+                  inputMode="decimal"
+                  value={vatRateStr}
+                  onChange={e => {
+                    const raw = e.target.value
+                    setVatRateStr(raw)
+                    const n = parseFloat(raw)
+                    setF('vat_rate', Number.isNaN(n) ? 0 : Math.min(100, Math.max(0, n)))
+                  }}
+                  onBlur={() => setVatRateStr(String(form.vat_rate))}
+                  disabled={!vatOn}
+                  className="h-8 w-16 text-right"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+            </div>
+
+            <div className="rounded-lg border bg-muted/50 px-3 py-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+              <Info className="size-3.5 shrink-0 mt-0.5" />
+              <span>ราคาสินค้าที่ตั้งไว้ถือว่า<span className="font-medium text-foreground">รวม VAT แล้ว</span> — ระบบจะถอดภาษีออกมาแสดงในใบเสร็จ ยอดที่ลูกค้าจ่ายไม่เปลี่ยน. เมื่อเปิดใช้งาน VAT จะคิดกับ<span className="font-medium text-foreground">สินค้าทุกรายการ</span> (ทั้งร้านเปิด/ปิดพร้อมกัน ไม่มีการตั้งรายตัว)</span>
+            </div>
+          </div>
         </SectionCard>
 
       </div>

@@ -111,7 +111,7 @@ export default function EditProductPage() {
           drug_type_id: 0, drug_generic_name_id: 0, tmt_id: '',
           price_retail: '', price_wholesale1: '', price_wholesale2: '', cost_price: '',
           has_wholesale1: 0, has_wholesale2: 0,
-          is_vat: 0, is_drug: 0, is_stock_item: 1,
+          is_drug: 0, is_stock_item: 1,
           reorder_point: 0, safety_stock: 0,
           is_antibiotic: 0,
           is_fda9: 0, is_fda10: 0, is_fda11: 0, is_fda13: 0,
@@ -152,7 +152,6 @@ export default function EditProductPage() {
         cost_price: prod.last_cost_price ?? 0,
         has_wholesale1: prod.has_wholesale1 ?? 0,
         has_wholesale2: prod.has_wholesale2 ?? 0,
-        is_vat: prod.has_vat ?? 0,
         is_drug: prod.is_drug ?? 0,
         is_stock_item: prod.is_stock_item ?? 1,
         reorder_point: prod.reorder_point ?? 0,
@@ -263,7 +262,6 @@ export default function EditProductPage() {
       // reference and must land in last_cost_price, NEVER overwrite the
       // auto-managed weighted-avg cost_price column.
       const {
-        is_vat,
         drug_generic_name_id, has_wholesale1, has_wholesale2,
         cost_price: _editedCost,
         ...rest
@@ -283,7 +281,6 @@ export default function EditProductPage() {
         barcode3: form.barcode3 || null,
         barcode4: form.barcode4 || null,
         code: form.code || null,
-        has_vat: is_vat ? 1 : 0,
         // 0 = "— เลือกหน่วย —" placeholder; coerce to null so the FK doesn't reject the save
         unit_id: form.unit_id || null,
       }

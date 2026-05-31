@@ -7,7 +7,6 @@ export interface Product {
   price_retail: number; price_wholesale1: number; price_wholesale2: number; cost_price: number; last_cost_price: number
   has_wholesale1: number; has_wholesale2: number
   unit_id?: number
-  has_vat: number
   is_drug: number
   reorder_point?: number; safety_stock?: number
   drug_type_id?: number
@@ -144,6 +143,8 @@ export interface SalesSettings {
   expired_alert_enabled: number
   low_stock_alert_enabled: number
   qty_multiplier_enabled: number
+  vat_enabled: number
+  vat_rate: number
   updated_at?: string
 }
 

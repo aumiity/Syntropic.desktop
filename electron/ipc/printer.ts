@@ -16,6 +16,8 @@ function buildReceipt(data: {
   items: Array<{ name: string; unit: string; qty: number; price: number; discount: number; total: number }>
   subtotal: number
   discount: number
+  vatEnabled?: boolean
+  vat?: number
   total: number
   cashAmount: number
   changeAmount: number
@@ -61,6 +63,15 @@ function buildReceipt(data: {
   if (data.discount > 0) {
     const discStr = data.discount.toFixed(2).padStart(8, ' ')
     push(`ส่วนลด:-${discStr.padStart(24, ' ')}\n`)
+  }
+  // VAT-inclusive breakdown: the total already contains VAT, so we show the
+  // pre-tax goods value and the VAT portion split out of it.
+  if (data.vatEnabled && (data.vat ?? 0) > 0) {
+    const vat = data.vat ?? 0
+    const exVatStr = (data.total - vat).toFixed(2).padStart(8, ' ')
+    const vatStr = vat.toFixed(2).padStart(8, ' ')
+    push(`มูลค่าก่อนภาษี:${exVatStr.padStart(18, ' ')}\n`)
+    push(`ภาษีมูลค่าเพิ่ม:${vatStr.padStart(17, ' ')}\n`)
   }
 
   // Double height for total

@@ -173,13 +173,6 @@ export function GeneralTab({
               </div>
               <Switch size="lg" variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
             </div>
-            <div className="flex items-center justify-between gap-2 px-3 py-2.5">
-              <div>
-                <div className="text-sm font-semibold text-foreground">VAT</div>
-                <div className="text-xs text-muted-foreground">คิดภาษีมูลค่าเพิ่ม</div>
-              </div>
-              <Switch size="lg" checked={!!form.has_vat} onCheckedChange={v => setF('has_vat', v ? 1 : 0)} />
-            </div>
           </div>
         </SectionCard>
 

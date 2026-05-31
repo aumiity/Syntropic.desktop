@@ -34,12 +34,15 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, shell, app } from 'electron';
 import net from 'net';
+import { promises as fs } from 'fs';
+import path from 'path';
 // ESC/POS constants
 var ESC = 0x1b;
 var GS = 0x1d;
 function buildReceipt(data) {
+    var _a, _b;
     var encoder = new TextEncoder();
     var chunks = [];
     var push = function (text) { return chunks.push(encoder.encode(text)); };
@@ -68,8 +71,8 @@ function buildReceipt(data) {
     if (data.customerName)
         push("\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32: ".concat(data.customerName, "\n"));
     push('--------------------------------\n');
-    for (var _i = 0, _a = data.items; _i < _a.length; _i++) {
-        var item = _a[_i];
+    for (var _i = 0, _c = data.items; _i < _c.length; _i++) {
+        var item = _c[_i];
         var name_1 = item.name.substring(0, 20).padEnd(20, ' ');
         var qty = "".concat(item.qty);
         var price = item.price.toFixed(2);
@@ -85,6 +88,15 @@ function buildReceipt(data) {
     if (data.discount > 0) {
         var discStr = data.discount.toFixed(2).padStart(8, ' ');
         push("\u0E2A\u0E48\u0E27\u0E19\u0E25\u0E14:-".concat(discStr.padStart(24, ' '), "\n"));
+    }
+    // VAT-inclusive breakdown: the total already contains VAT, so we show the
+    // pre-tax goods value and the VAT portion split out of it.
+    if (data.vatEnabled && ((_a = data.vat) !== null && _a !== void 0 ? _a : 0) > 0) {
+        var vat = (_b = data.vat) !== null && _b !== void 0 ? _b : 0;
+        var exVatStr = (data.total - vat).toFixed(2).padStart(8, ' ');
+        var vatStr = vat.toFixed(2).padStart(8, ' ');
+        push("\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E01\u0E48\u0E2D\u0E19\u0E20\u0E32\u0E29\u0E35:".concat(exVatStr.padStart(18, ' '), "\n"));
+        push("\u0E20\u0E32\u0E29\u0E35\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E40\u0E1E\u0E34\u0E48\u0E21:".concat(vatStr.padStart(17, ' '), "\n"));
     }
     // Double height for total
     pushBytes(ESC, 0x21, 0x10);
@@ -105,8 +117,8 @@ function buildReceipt(data) {
     var totalLen = chunks.reduce(function (a, c) { return a + c.length; }, 0);
     var result = new Uint8Array(totalLen);
     var offset = 0;
-    for (var _b = 0, chunks_1 = chunks; _b < chunks_1.length; _b++) {
-        var chunk = chunks_1[_b];
+    for (var _d = 0, chunks_1 = chunks; _d < chunks_1.length; _d++) {
+        var chunk = chunks_1[_d];
         result.set(chunk, offset);
         offset += chunk.length;
     }
@@ -201,6 +213,68 @@ export function registerPrinterHandlers() {
                     w.destroy();
                     return [7 /*endfinally*/];
                 case 7: return [2 /*return*/];
+            }
+        });
+    }); });
+    // Render the same label HTML to a PDF (true paper-size page) and open it in
+    // the OS default viewer — a "what will actually print" preview that doesn't
+    // need a physical label printer attached.
+    ipcMain.handle('printer:previewLabelPdf', function (_e, args) { return __awaiter(_this, void 0, void 0, function () {
+        var w, pdf, file, err, e_2;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!(args.paperWidthMm > 0) || !(args.paperHeightMm > 0)) {
+                        return [2 /*return*/, { success: false, error: 'invalid paper size' }];
+                    }
+                    w = new BrowserWindow({ show: false, webPreferences: { offscreen: false } });
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 7, 8, 9]);
+                    return [4 /*yield*/, w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args.html))
+                        // Wait for webfonts + layout before snapshotting, otherwise the PDF may
+                        // capture the default font or pre-layout sizing (same race as printLabel).
+                    ];
+                case 2:
+                    _a.sent();
+                    // Wait for webfonts + layout before snapshotting, otherwise the PDF may
+                    // capture the default font or pre-layout sizing (same race as printLabel).
+                    return [4 /*yield*/, w.webContents.executeJavaScript("\n        (async () => {\n          if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }\n          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))\n        })()\n      ")
+                        // preferCSSPageSize honors the @page { size } rule in the HTML; pageSize
+                        // (microns) is the fallback for engines that ignore it.
+                    ];
+                case 3:
+                    // Wait for webfonts + layout before snapshotting, otherwise the PDF may
+                    // capture the default font or pre-layout sizing (same race as printLabel).
+                    _a.sent();
+                    return [4 /*yield*/, w.webContents.printToPDF({
+                            printBackground: true,
+                            preferCSSPageSize: true,
+                            pageSize: {
+                                width: Math.round(args.paperWidthMm * 1000),
+                                height: Math.round(args.paperHeightMm * 1000),
+                            },
+                            margins: { top: 0, bottom: 0, left: 0, right: 0 },
+                        })];
+                case 4:
+                    pdf = _a.sent();
+                    file = path.join(app.getPath('temp'), "label-preview-".concat(Date.now(), ".pdf"));
+                    return [4 /*yield*/, fs.writeFile(file, pdf)];
+                case 5:
+                    _a.sent();
+                    return [4 /*yield*/, shell.openPath(file)];
+                case 6:
+                    err = _a.sent();
+                    if (err)
+                        return [2 /*return*/, { success: false, error: err }];
+                    return [2 /*return*/, { success: true, path: file }];
+                case 7:
+                    e_2 = _a.sent();
+                    return [2 /*return*/, { success: false, error: e_2.message }];
+                case 8:
+                    w.destroy();
+                    return [7 /*endfinally*/];
+                case 9: return [2 /*return*/];
             }
         });
     }); });

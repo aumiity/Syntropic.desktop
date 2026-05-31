@@ -56,7 +56,7 @@ export default function EditBundlePage() {
         barcode: '', barcode2: '', barcode3: '', barcode4: '',
         category_id: 0, unit_id: 0,
         price_retail: 0, price_wholesale1: 0, price_wholesale2: 0,
-        has_vat: 0, search_keywords: '', note: '', is_disabled: 0,
+        search_keywords: '', note: '', is_disabled: 0,
       }
     : {})
   const [errors, setErrors] = useState<Set<string>>(new Set())
@@ -132,7 +132,6 @@ export default function EditBundlePage() {
         price_retail: prod.price_retail ?? 0,
         price_wholesale1: prod.price_wholesale1 ?? 0,
         price_wholesale2: prod.price_wholesale2 ?? 0,
-        has_vat: prod.has_vat ?? 0,
         search_keywords: prod.search_keywords ?? '',
         note: prod.note ?? '',
         is_disabled: prod.is_disabled ?? 0,
@@ -225,7 +224,6 @@ export default function EditBundlePage() {
         price_retail: parseFloat(form.price_retail) || 0,
         price_wholesale1: parseFloat(form.price_wholesale1) || 0,
         price_wholesale2: parseFloat(form.price_wholesale2) || 0,
-        has_vat: form.has_vat ? 1 : 0,
         search_keywords: form.search_keywords || null,
         note: form.note || null,
         is_disabled: form.is_disabled ? 1 : 0,
@@ -295,7 +293,6 @@ export default function EditBundlePage() {
 
   const displayName = isNew ? (form.trade_name || 'ชุดสินค้าใหม่') : (product!.trade_name)
   const displayCode = isNew ? null : product!.code
-  const displayHasVat = isNew ? !!form.has_vat : !!product!.has_vat
   const displayDisabled = isNew ? !!form.is_disabled : !!product!.is_disabled
 
   return (
@@ -367,7 +364,6 @@ export default function EditBundlePage() {
             <div className="flex items-center gap-1 mt-auto min-w-0 flex-wrap">
               <Badge variant="primary-outline">ชุดสินค้า</Badge>
               {isNew && <Badge variant="warning-outline">ยังไม่บันทึก</Badge>}
-              {displayHasVat && <Badge variant="info-outline">VAT</Badge>}
               {displayDisabled && <Badge variant="destructive-outline">ปิดใช้งาน</Badge>}
             </div>
           </div>

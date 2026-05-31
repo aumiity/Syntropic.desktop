@@ -132,6 +132,9 @@ var api = {
         printLabel: function (args) {
             return ipcRenderer.invoke('printer:printLabel', args);
         },
+        previewLabelPdf: function (args) {
+            return ipcRenderer.invoke('printer:previewLabelPdf', args);
+        },
     },
     // Window controls
     window: {

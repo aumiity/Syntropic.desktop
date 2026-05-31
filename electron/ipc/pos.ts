@@ -156,11 +156,13 @@ export function registerPosHandlers() {
       qty_per_base?: number
       unit_price: number
       discount: number
+      unit_vat?: number
       line_total: number
       item_note?: string
     }>
     subtotal: number
     total_discount: number
+    total_vat?: number
     total_amount: number
     cash_amount: number
     card_amount: number
@@ -188,13 +190,13 @@ export function registerPosHandlers() {
 
       const saleResult = db.prepare(`
         INSERT INTO sales (invoice_no, sale_type, customer_id, customer_name_free,
-          sold_by, sold_at, subtotal, total_discount, total_amount,
+          sold_by, sold_at, subtotal, total_discount, total_vat, total_amount,
           cash_amount, card_amount, transfer_amount, change_amount,
           symptom_note, age_range, note, status)
-        VALUES (?, ?, ?, ?, ?, datetime('now','localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed')
+        VALUES (?, ?, ?, ?, ?, datetime('now','localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed')
       `).run(
         invoiceNo, payload.sale_type, customerId, payload.customer_name_free,
-        payload.sold_by, payload.subtotal, payload.total_discount, payload.total_amount,
+        payload.sold_by, payload.subtotal, payload.total_discount, payload.total_vat ?? 0, payload.total_amount,
         payload.cash_amount, payload.card_amount, payload.transfer_amount, payload.change_amount,
         payload.symptom_note ?? '', payload.age_range ?? '', payload.note ?? ''
       )
@@ -202,9 +204,9 @@ export function registerPosHandlers() {
 
       for (const item of payload.items) {
         const itemResult = db.prepare(`
-          INSERT INTO sale_items (sale_id, product_id, item_name, unit_name, qty, unit_price, discount, line_total, item_note)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(saleId, item.product_id, item.item_name, item.unit_name, item.qty, item.unit_price, item.discount, item.line_total, item.item_note ?? '')
+          INSERT INTO sale_items (sale_id, product_id, item_name, unit_name, qty, unit_price, discount, unit_vat, line_total, item_note)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(saleId, item.product_id, item.item_name, item.unit_name, item.qty, item.unit_price, item.discount, item.unit_vat ?? 0, item.line_total, item.item_note ?? '')
         const saleItemId = itemResult.lastInsertRowid
 
         // Resolve bundle status from authoritative source — payload could be
