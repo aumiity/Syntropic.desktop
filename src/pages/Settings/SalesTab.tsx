@@ -1,20 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Input } from '@/components/ui/input'
 import { SectionCard } from '@/components/ui/card'
-import { FormField } from '@/components/ui/label'
 import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
-import { ClockAlert, PackageX, Calculator } from 'lucide-react'
+import { ClockAlert, PackageX, Calculator, Info, Bell } from 'lucide-react'
+import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
 import type { SalesSettings } from '@/types'
 
 // Form keys mirror sales_settings columns 1:1 — settings:saveSalesSettings
 // builds dynamic SQL from Object.keys(), so any renamed key throws "no such column".
+// Note: expiry warn/danger months are NOT here — they're fixed constants in
+// '@/lib/expiry', not settings columns. See that file.
 type SalesForm = Omit<SalesSettings, 'id' | 'updated_at'>
 
 const DEFAULT_FORM: SalesForm = {
   expiry_alert_enabled: 1,
-  expiry_warn_months: 6,
-  expiry_danger_months: 3,
   expired_alert_enabled: 1,
   low_stock_alert_enabled: 1,
   qty_multiplier_enabled: 1,
@@ -34,8 +33,6 @@ export function SalesTab({ registerSave, saving, setSaving }: {
         const d = data as SalesSettings
         setForm({
           expiry_alert_enabled: d.expiry_alert_enabled,
-          expiry_warn_months: d.expiry_warn_months,
-          expiry_danger_months: d.expiry_danger_months,
           expired_alert_enabled: d.expired_alert_enabled,
           low_stock_alert_enabled: d.low_stock_alert_enabled,
           qty_multiplier_enabled: d.qty_multiplier_enabled,
@@ -48,14 +45,6 @@ export function SalesTab({ registerSave, saving, setSaving }: {
     setForm(f => ({ ...f, [k]: v }))
 
   const handleSave = useCallback(async () => {
-    if (form.expiry_warn_months < form.expiry_danger_months) {
-      toast({
-        title: 'ค่าไม่ถูกต้อง',
-        description: 'เดือนแจ้งเตือน (warn) ต้องมากกว่าหรือเท่ากับเดือน danger',
-        variant: 'error',
-      })
-      return
-    }
     setSaving(true)
     try {
       await window.api.settings.saveSalesSettings(form)
@@ -76,71 +65,55 @@ export function SalesTab({ registerSave, saving, setSaving }: {
       <div className="grid grid-cols-2 gap-4 items-start">
 
         <SectionCard
-          icon={ClockAlert}
-          title="การแจ้งเตือนหมดอายุ"
+          icon={Bell}
+          title="การแจ้งเตือนการขาย"
           tint="warning"
         >
           <div className="space-y-3">
-            <Toggle
-              framed
-              label={<span className="flex items-center gap-1.5"><ClockAlert className="size-4 text-warning" />แจ้งเตือนเมื่อสินค้าใกล้หมดอายุ</span>}
-              checked={expiryOn}
-              onChange={v => setF('expiry_alert_enabled', v ? 1 : 0)}
-            />
+            <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
+              <Toggle
+                className="justify-between w-full h-11 px-3"
+                label="แจ้งเตือนเมื่อสินค้าใกล้หมดอายุ"
+                checked={expiryOn}
+                onChange={v => setF('expiry_alert_enabled', v ? 1 : 0)}
+              />
+              <Toggle
+                className="justify-between w-full h-11 px-3"
+                label="แจ้งเตือนสินค้าที่หมดอายุแล้ว"
+                checked={!!form.expired_alert_enabled}
+                onChange={v => setF('expired_alert_enabled', v ? 1 : 0)}
+              />
+              <Toggle
+                className="justify-between w-full h-11 px-3"
+                label="แจ้งเตือนเมื่อสต๊อกไม่พอขาย"
+                checked={!!form.low_stock_alert_enabled}
+                onChange={v => setF('low_stock_alert_enabled', v ? 1 : 0)}
+              />
+            </div>
 
-            <FormField label="เกณฑ์การแจ้งเตือนใกล้หมดอายุ">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground w-24 shrink-0">เตือนล่วงหน้า</span>
-                  <Input
-                    variant="elevated"
-                    type="number"
-                    min={1}
-                    max={36}
-                    value={form.expiry_warn_months}
-                    onChange={e => setF('expiry_warn_months', Number(e.target.value))}
-                    className="w-20"
-                    disabled={!expiryOn}
-                  />
-                  <span className="text-sm text-muted-foreground flex items-center gap-1"><ClockAlert className="size-4 text-warning" />เดือน</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground w-24 shrink-0">ระดับอันตราย</span>
-                  <Input
-                    variant="elevated"
-                    type="number"
-                    min={1}
-                    max={36}
-                    value={form.expiry_danger_months}
-                    onChange={e => setF('expiry_danger_months', Number(e.target.value))}
-                    className="w-20"
-                    disabled={!expiryOn}
-                  />
-                  <span className="text-sm text-muted-foreground flex items-center gap-1"><ClockAlert className="size-4 text-warm-foreground" />เดือน</span>
-                </div>
+            <div className="rounded-lg border bg-muted/50 px-3 py-2 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Info className="size-3.5 shrink-0" />
+                <span className="font-medium text-foreground">ความหมายของการแจ้งเตือน</span>
               </div>
-            </FormField>
-
-            <Toggle
-              framed
-              label={<span className="flex items-center gap-1.5"><ClockAlert className="size-4 text-destructive" />แจ้งเตือนสินค้าที่หมดอายุแล้ว</span>}
-              checked={!!form.expired_alert_enabled}
-              onChange={v => setF('expired_alert_enabled', v ? 1 : 0)}
-            />
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ClockAlert className="size-3.5 shrink-0 text-warning" />
+                <span><span className="font-medium text-warning">เตือนล่วงหน้า</span> — เหลือไม่ถึง {EXPIRY_WARN_MONTHS} เดือน แสดงป้ายสีเหลือง</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ClockAlert className="size-3.5 shrink-0 text-warm-foreground" />
+                <span><span className="font-medium text-warm-foreground">ระดับอันตราย</span> — เหลือไม่ถึง {EXPIRY_DANGER_MONTHS} เดือน แสดงป้ายสีส้ม</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ClockAlert className="size-3.5 shrink-0 text-destructive" />
+                <span><span className="font-medium text-destructive">หมดอายุแล้ว</span> — เลยวันหมดอายุ แสดงป้ายสีแดง</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <PackageX className="size-3.5 shrink-0 text-destructive" />
+                <span><span className="font-medium text-destructive">สต๊อกไม่พอขาย</span> — จำนวนคงเหลือไม่พอต่อการขาย</span>
+              </div>
+            </div>
           </div>
-        </SectionCard>
-
-        <SectionCard
-          icon={PackageX}
-          title="การแจ้งเตือนสต๊อก"
-          tint="destructive"
-        >
-          <Toggle
-            framed
-            label={<span className="flex items-center gap-1.5"><PackageX className="size-4 text-destructive" />แจ้งเตือนเมื่อสต๊อกไม่พอขาย</span>}
-            checked={!!form.low_stock_alert_enabled}
-            onChange={v => setF('low_stock_alert_enabled', v ? 1 : 0)}
-          />
         </SectionCard>
 
         <SectionCard
@@ -150,7 +123,8 @@ export function SalesTab({ registerSave, saving, setSaving }: {
         >
           <Toggle
             framed
-            label={<span className="flex items-center gap-1.5"><Calculator className="size-4 text-primary" />เปิดใช้ระบบคูณจำนวน (พิมพ์จำนวนแล้วกด * เช่น 5* ก่อนสแกน)</span>}
+            className="justify-between w-full"
+            label="เปิดใช้ระบบคูณจำนวน (พิมพ์จำนวนแล้วกด * เช่น 5* ก่อนสแกน)"
             checked={!!form.qty_multiplier_enabled}
             onChange={v => setF('qty_multiplier_enabled', v ? 1 : 0)}
           />

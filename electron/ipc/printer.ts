@@ -1,5 +1,7 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, shell, app } from 'electron'
 import net from 'net'
+import { promises as fs } from 'fs'
+import path from 'path'
 
 // ESC/POS constants
 const ESC = 0x1b
@@ -148,6 +150,51 @@ export function registerPrinterHandlers() {
         }, (success, failureReason) => success ? resolve() : reject(new Error(failureReason)))
       })
       return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    } finally {
+      w.destroy()
+    }
+  })
+
+  // Render the same label HTML to a PDF (true paper-size page) and open it in
+  // the OS default viewer — a "what will actually print" preview that doesn't
+  // need a physical label printer attached.
+  ipcMain.handle('printer:previewLabelPdf', async (_e, args: {
+    html: string
+    paperWidthMm: number
+    paperHeightMm: number
+  }) => {
+    if (!(args.paperWidthMm > 0) || !(args.paperHeightMm > 0)) {
+      return { success: false, error: 'invalid paper size' }
+    }
+    const w = new BrowserWindow({ show: false, webPreferences: { offscreen: false } })
+    try {
+      await w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args.html))
+      // Wait for webfonts + layout before snapshotting, otherwise the PDF may
+      // capture the default font or pre-layout sizing (same race as printLabel).
+      await w.webContents.executeJavaScript(`
+        (async () => {
+          if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+        })()
+      `)
+      // preferCSSPageSize honors the @page { size } rule in the HTML; pageSize
+      // (microns) is the fallback for engines that ignore it.
+      const pdf = await w.webContents.printToPDF({
+        printBackground: true,
+        preferCSSPageSize: true,
+        pageSize: {
+          width: Math.round(args.paperWidthMm * 1000),
+          height: Math.round(args.paperHeightMm * 1000),
+        },
+        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+      })
+      const file = path.join(app.getPath('temp'), `label-preview-${Date.now()}.pdf`)
+      await fs.writeFile(file, pdf)
+      const err = await shell.openPath(file)
+      if (err) return { success: false, error: err }
+      return { success: true, path: file }
     } catch (e: any) {
       return { success: false, error: e.message }
     } finally {

@@ -96,10 +96,10 @@ export function CategoriesTab() {
               <div className="flex-1 min-w-0 pl-2 text-sm text-muted-foreground">
                 กำลังจัดลำดับ — ลากแถวเพื่อเรียงใหม่
               </div>
-              <Button size="lg" className="h-10 px-2 shrink-0" variant="elevated" onClick={cancelReorder}>
+              <Button size="lg" className="h-9 px-2 shrink-0" variant="elevated" onClick={cancelReorder}>
                 <X className="size-4" /> ยกเลิก
               </Button>
-              <Button size="lg" className="h-10 px-2 shrink-0" variant="success" onClick={saveReorder}>
+              <Button size="lg" className="h-9 px-2 shrink-0" variant="success" onClick={saveReorder}>
                 <Check className="size-4" /> เสร็จสิ้น
               </Button>
             </>
@@ -111,10 +111,10 @@ export function CategoriesTab() {
                 onChange={e => setQ(e.target.value)}
                 placeholder="ค้นหารหัส, ชื่อหมวดหมู่..."
               />
-              <Button size="lg" className="h-10 px-2 shrink-0 ml-auto" variant="elevated" onClick={enterReorder} disabled={rows.length < 2}>
+              <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" variant="elevated" onClick={enterReorder} disabled={rows.length < 2}>
                 <ArrowUpDown className="size-4" /> จัดลำดับ
               </Button>
-              <Button size="lg" className="h-10 px-2 shrink-0" onClick={openAdd}>
+              <Button size="lg" className="h-9 px-2 shrink-0" onClick={openAdd}>
                 <Plus className="size-4" /> เพิ่มหมวดหมู่
               </Button>
             </>

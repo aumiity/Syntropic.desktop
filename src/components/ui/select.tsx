@@ -45,7 +45,7 @@ function SelectTrigger({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "group flex w-fit items-center justify-between gap-1.5",
+        "group flex h-9 w-fit items-center justify-between gap-1.5",
         "rounded-control",
         variant === "elevated"
           ? "bg-card border border-border shadow-sm hover:shadow-sm hover:bg-muted"

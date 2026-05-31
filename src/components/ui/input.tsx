@@ -16,7 +16,7 @@ const Input = React.forwardRef<
       data-slot="input"
       data-variant={variant}
       className={cn(
-        "h-10 w-full min-w-0",
+        "h-9 w-full min-w-0",
         "rounded-lg",
         "px-2.5 py-1",
         "text-sm outline-none transition-all",

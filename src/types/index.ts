@@ -141,8 +141,6 @@ export interface Setting {
 export interface SalesSettings {
   id: number
   expiry_alert_enabled: number
-  expiry_warn_months: number
-  expiry_danger_months: number
   expired_alert_enabled: number
   low_stock_alert_enabled: number
   qty_multiplier_enabled: number

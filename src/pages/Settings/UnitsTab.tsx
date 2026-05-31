@@ -55,7 +55,7 @@ export function UnitsTab() {
             onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาชื่อหน่วย..."
           />
-          <Button size="lg" className="h-10 px-2 shrink-0 ml-auto" onClick={openAdd}>
+          <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" onClick={openAdd}>
             <Plus className="size-4" /> เพิ่มหน่วย
           </Button>
         </div>

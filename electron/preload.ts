@@ -135,6 +135,8 @@ const api = {
     }>>,
     printLabel: (args: { html: string; printerName: string; paperWidthMm: number; paperHeightMm: number }) =>
       ipcRenderer.invoke('printer:printLabel', args) as Promise<{ success: boolean; error?: string }>,
+    previewLabelPdf: (args: { html: string; paperWidthMm: number; paperHeightMm: number }) =>
+      ipcRenderer.invoke('printer:previewLabelPdf', args) as Promise<{ success: boolean; error?: string; path?: string }>,
   },
   // Window controls
   window: {

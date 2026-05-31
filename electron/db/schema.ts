@@ -454,11 +454,11 @@ export function initializeSchema(db: Database.Database) {
     -- POS / Sales Settings (singleton). Columns map 1:1 to SalesTab form keys —
     -- the IPC upsert builds dynamic SQL from Object.keys(), so any renamed key
     -- would throw "no such column".
+    -- Note: expiry warn/danger month thresholds are NOT stored here — they're
+    -- fixed policy constants in src/lib/expiry.ts (single source of truth).
     CREATE TABLE IF NOT EXISTS sales_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       expiry_alert_enabled    INTEGER NOT NULL DEFAULT 1,
-      expiry_warn_months      INTEGER NOT NULL DEFAULT 6,
-      expiry_danger_months    INTEGER NOT NULL DEFAULT 3,
       expired_alert_enabled   INTEGER NOT NULL DEFAULT 1,
       low_stock_alert_enabled INTEGER NOT NULL DEFAULT 1,
       qty_multiplier_enabled  INTEGER NOT NULL DEFAULT 1,
@@ -611,6 +611,10 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE label_settings ADD COLUMN offset_y_header_line REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_footer_line REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_footer_line REAL NOT NULL DEFAULT 0`,
+    // Expiry thresholds moved to fixed constants in src/lib/expiry.ts — drop the
+    // now-unused settings columns from existing DBs.
+    `ALTER TABLE sales_settings DROP COLUMN expiry_warn_months`,
+    `ALTER TABLE sales_settings DROP COLUMN expiry_danger_months`,
   ]) {
     try { db.exec(sql) } catch {}
   }

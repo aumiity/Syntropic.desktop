@@ -4,14 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
-import { Switch, Toggle } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TintIcon } from '@/components/ui/tint-icon'
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
-import { Save, Printer } from 'lucide-react'
+import { Save, Printer, Bold, FileText } from 'lucide-react'
 
 // Only fonts that have actual TTF files bundled in src/assets/fonts/ — these
 // are guaranteed to render in the preview on any OS. System fonts (Tahoma,
@@ -249,6 +249,7 @@ export function LabelSettingsTab() {
   const [form, setForm] = useState<LabelSettingsForm>(LABEL_DEFAULTS)
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
   const [subTab, setSubTab] = useState<'paper' | 'font' | 'lines' | 'spacing'>('paper')
 
@@ -287,18 +288,23 @@ export function LabelSettingsTab() {
     } finally { setSaving(false) }
   }
 
-  const handleTestPrint = async () => {
-    if (printing) return
+  // Validate paper size + margins, toasting on failure. Shared by print + PDF.
+  const validatePaper = (): boolean => {
     if (!(form.width_mm > 0) || !(form.height_mm > 0)) {
       toast({ title: 'กรุณาตั้งขนาดกระดาษ (กว้าง × สูง > 0)', variant: 'error' })
-      return
+      return false
     }
     for (const k of ['pad_top', 'pad_right', 'pad_bottom', 'pad_left'] as const) {
       if (!(form[k] >= 0) || !Number.isFinite(form[k])) {
-        toast({ title: 'ระยะขอบไม่ถูกต้อง', variant: 'error' }); return
+        toast({ title: 'ระยะขอบไม่ถูกต้อง', variant: 'error' }); return false
       }
     }
+    return true
+  }
 
+  // Build the full label HTML (with embedded @font-face) used for both silent
+  // print and the PDF preview — single source so they render identically.
+  const buildLabelHtml = async (): Promise<string> => {
     const sectionsHtml = SECTIONS
       .filter(s => form[`show_${s.key}` as keyof LabelSettingsForm])
       .map(s => {
@@ -310,7 +316,7 @@ export function LabelSettingsTab() {
       .join('')
 
     const fontFaceCss = await buildPrintFontFaceCss(form.font_family)
-    const html = `<!doctype html><html><head><meta charset="utf-8">
+    return `<!doctype html><html><head><meta charset="utf-8">
 <style>
 ${fontFaceCss}
 @page { size: ${form.width_mm}mm ${form.height_mm}mm; margin: 0; }
@@ -325,6 +331,29 @@ body {
 }
 div:first-child { margin-top: 0 !important; }
 </style></head><body>${sectionsHtml}</body></html>`
+  }
+
+  const handlePreviewPdf = async () => {
+    if (pdfLoading) return
+    if (!validatePaper()) return
+    const html = await buildLabelHtml()
+    setPdfLoading(true)
+    try {
+      const res = await window.api.printer.previewLabelPdf({
+        html,
+        paperWidthMm: form.width_mm,
+        paperHeightMm: form.height_mm,
+      })
+      if (!res.success) toast({ title: 'สร้าง PDF ไม่สำเร็จ', description: res.error, variant: 'error' })
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
+  const handleTestPrint = async () => {
+    if (printing) return
+    if (!validatePaper()) return
+    const html = await buildLabelHtml()
 
     setPrinting(true)
     try {
@@ -355,7 +384,7 @@ div:first-child { margin-top: 0 !important; }
         <div className="flex-1" />
 
         <Select value={form.printer_name || '__default__'} onValueChange={v => setF('printer_name', v === '__default__' ? '' : v)}>
-          <SelectTrigger variant="elevated" className="h-10 w-64">
+          <SelectTrigger variant="elevated" className="h-9 w-64">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -367,16 +396,19 @@ div:first-child { margin-top: 0 !important; }
           </SelectContent>
         </Select>
 
-        <Button onClick={handleTestPrint} disabled={printing} variant="elevated">
+        <Button className="h-9" onClick={handlePreviewPdf} disabled={pdfLoading} variant="elevated">
+          <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
+        </Button>
+        <Button className="h-9" onClick={handleTestPrint} disabled={printing} variant="elevated">
           <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
         </Button>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button className="h-9" onClick={handleSave} disabled={saving}>
           <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
         </Button>
       </div>
 
       {/* Body: preview (LEFT, big) + tabbed settings (RIGHT, compact) */}
-      <div className="grid grid-cols-[1fr_360px] gap-4 flex-1 min-h-0">
+      <div className="grid grid-cols-[3fr_2fr] gap-4 flex-1 min-h-0">
         {/* LEFT — preview, centered, true 1:1 mm scale, no page scroll */}
         <SectionCard title="ตัวอย่างฉลาก" tint="success" className="flex flex-col min-h-0">
           {/* Physical-paper preview: bg-white/text-black literals are
@@ -488,12 +520,17 @@ div:first-child { margin-top: 0 !important; }
                             className="w-20" min={6} max={30}
                           />
                           {boldKey && (
-                            <Toggle
-                              label="ตัวหนา"
-                              checked={!!form[boldKey]}
-                              onChange={v => setF(boldKey, v ? 1 : 0)}
-                              size="sm"
-                            />
+                            <Button
+                              type="button"
+                              size="icon-lg"
+                              variant={form[boldKey] ? 'default' : 'elevated'}
+                              onClick={() => setF(boldKey, form[boldKey] ? 0 : 1)}
+                              aria-pressed={!!form[boldKey]}
+                              title="ตัวหนา"
+                              className="size-9"
+                            >
+                              <Bold />
+                            </Button>
                           )}
                         </div>
                       ))}
@@ -512,10 +549,9 @@ div:first-child { margin-top: 0 !important; }
                       const visible = !!form[showKey]
                       return (
                         <div key={def.key} className="flex items-center gap-2 py-1">
-                          <Switch
+                          <Checkbox
                             checked={visible}
                             onCheckedChange={v => setF(showKey, (v ? 1 : 0) as never)}
-                            size="sm"
                           />
                           <span className="flex-1 text-sm text-foreground">{def.label}</span>
                           <span className="text-xs text-muted-foreground">X</span>

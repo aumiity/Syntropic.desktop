@@ -1,5 +1,6 @@
 import dayjs, { type Dayjs } from 'dayjs'
 import type { CartItem, ProductLot, SalesSettings } from '@/types'
+import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
 
 export type AlertLevel = 'expired' | 'low_stock' | 'danger' | 'warn'
 export type CartAlert = { level: AlertLevel; reason: string } | null
@@ -41,10 +42,10 @@ const evalExpiry = (
     return { level: 'expired', date: lot.expiry_date }
   }
   if (s.expiry_alert_enabled) {
-    if (exp.isBefore(today.add(s.expiry_danger_months, 'month'), 'day')) {
+    if (exp.isBefore(today.add(EXPIRY_DANGER_MONTHS, 'month'), 'day')) {
       return { level: 'danger', date: lot.expiry_date }
     }
-    if (exp.isBefore(today.add(s.expiry_warn_months, 'month'), 'day')) {
+    if (exp.isBefore(today.add(EXPIRY_WARN_MONTHS, 'month'), 'day')) {
       return { level: 'warn', date: lot.expiry_date }
     }
   }
@@ -91,8 +92,8 @@ export function getCartItemAlert(
           ex.level === 'expired'
             ? `${name} หมดอายุแล้ว (${fmt(ex.date)})`
             : ex.level === 'danger'
-              ? `${name} อายุต่ำกว่า ${settings.expiry_danger_months} เดือน (${fmt(ex.date)})`
-              : `${name} อายุต่ำกว่า ${settings.expiry_warn_months} เดือน (${fmt(ex.date)})`
+              ? `${name} อายุต่ำกว่า ${EXPIRY_DANGER_MONTHS} เดือน (${fmt(ex.date)})`
+              : `${name} อายุต่ำกว่า ${EXPIRY_WARN_MONTHS} เดือน (${fmt(ex.date)})`
         const candidate: CartAlert = { level: ex.level, reason }
         if (!worst || SEVERITY[candidate.level] > SEVERITY[worst.level]) worst = candidate
       }
@@ -119,8 +120,8 @@ export function getCartItemAlert(
       ex.level === 'expired'
         ? `สินค้าหมดอายุแล้ว (${fmt(ex.date)})`
         : ex.level === 'danger'
-          ? `อายุต่ำกว่า ${settings.expiry_danger_months} เดือน (${fmt(ex.date)})`
-          : `อายุต่ำกว่า ${settings.expiry_warn_months} เดือน (${fmt(ex.date)})`
+          ? `อายุต่ำกว่า ${EXPIRY_DANGER_MONTHS} เดือน (${fmt(ex.date)})`
+          : `อายุต่ำกว่า ${EXPIRY_WARN_MONTHS} เดือน (${fmt(ex.date)})`
     return { level: ex.level, reason }
   }
   return null

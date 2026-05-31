@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings } from '@/types'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
+import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
 import {
   Search, User, Trash2, Plus, Minus,
   Banknote, AlertTriangle, PackageX,
@@ -1056,10 +1057,10 @@ export default function POSPage() {
                     <ClockAlert className="size-3.5 text-destructive" /> หมดอายุ
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <ClockAlert className="size-3.5 text-warm-foreground" /> อายุต่ำกว่า {salesSettings?.expiry_danger_months ?? 3} เดือน
+                    <ClockAlert className="size-3.5 text-warm-foreground" /> อายุต่ำกว่า {EXPIRY_DANGER_MONTHS} เดือน
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <ClockAlert className="size-3.5 text-warning" /> อายุต่ำกว่า {salesSettings?.expiry_warn_months ?? 6} เดือน
+                    <ClockAlert className="size-3.5 text-warning" /> อายุต่ำกว่า {EXPIRY_WARN_MONTHS} เดือน
                   </span>
                 </div>
                 {cart.totalDiscount() > 0 && (
