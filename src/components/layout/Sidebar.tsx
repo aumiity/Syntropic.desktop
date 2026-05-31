@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
   ShoppingCart, Pill, PackagePlus, Users, ClipboardList, Settings,
-  Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen, ScanLine, LineChart,
+  Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen, ScanLine, LineChart, FileText,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
@@ -12,6 +12,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 
 const mainNavItems = [
   { to: '/', label: 'การขาย', icon: ShoppingCart, exact: true },
+  { to: '/quotation', label: 'ใบเสนอราคา', icon: FileText },
   { to: '/purchase', label: 'การซื้อ', icon: PackagePlus },
   { to: '/products', label: 'สินค้า', icon: Pill },
   { to: '/manage', label: 'ประวัติ & สต็อก', icon: ClipboardList },

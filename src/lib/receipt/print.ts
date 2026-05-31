@@ -1,6 +1,7 @@
-import type { ReceiptSettings, SaleForPrint, Setting, TaxInvoice } from '@/types'
+import type { QuotationForPrint, ReceiptSettings, SaleForPrint, Setting, TaxInvoice } from '@/types'
 import { buildSlipHtml, type SlipMode } from './buildSlipHtml'
 import { buildTaxInvoiceHtml } from './buildTaxInvoiceHtml'
+import { buildQuotationHtml } from './buildQuotationHtml'
 
 type PrintResult = { success: boolean; error?: string }
 
@@ -64,5 +65,25 @@ export async function previewTaxInvoice(
   copy: boolean,
 ): Promise<PrintResult> {
   const html = await buildTaxInvoiceHtml(sale, shop, tax, { copy })
+  return window.api.printer.previewHtmlPdf({ html, pageFormat: 'A4' })
+}
+
+// Quotation (ใบเสนอราคา) — A4. Loads shop info itself unless provided.
+export async function printQuotation(
+  quote: QuotationForPrint,
+  shop?: Partial<Setting>,
+  printerName = '',
+): Promise<PrintResult> {
+  const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
+  const html = await buildQuotationHtml(quote, s)
+  return window.api.printer.printHtml({ html, printerName, paperWidthMm: 210, heightMm: 297, copies: 1 })
+}
+
+export async function previewQuotation(
+  quote: QuotationForPrint,
+  shop?: Partial<Setting>,
+): Promise<PrintResult> {
+  const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
+  const html = await buildQuotationHtml(quote, s)
   return window.api.printer.previewHtmlPdf({ html, pageFormat: 'A4' })
 }

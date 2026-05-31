@@ -194,6 +194,53 @@ export interface SaleForPrint {
   change_amount: number
 }
 
+// Quotation (ใบเสนอราคา) — pre-sale price offer, never touches stock.
+export interface QuotationItem {
+  id?: number
+  quotation_id?: number
+  product_id: number | null
+  item_name: string
+  unit_name: string
+  qty: number
+  unit_price: number
+  discount: number
+  line_total: number
+  sort_order?: number
+}
+
+export interface Quotation {
+  id: number
+  quote_no: string
+  customer_id?: number | null
+  customer_name: string
+  customer_address: string
+  customer_tax_id: string
+  issue_date: string
+  valid_until?: string | null
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted'
+  vat_enabled: number
+  vat_rate: number
+  subtotal: number
+  total_discount: number
+  total_vat: number
+  total_amount: number
+  note: string
+  created_by?: number
+  created_at?: string
+  updated_at?: string
+  // joined / computed (list + get)
+  customer_display?: string
+  customer_full_name?: string
+  created_by_name?: string
+  item_count?: number
+  items?: QuotationItem[]
+}
+
+// Shape passed to buildQuotationHtml (header + items, already loaded).
+export interface QuotationForPrint extends Quotation {
+  items: QuotationItem[]
+}
+
 // POS / Sales settings (singleton). Keys MUST match sales_settings columns 1:1
 // — SalesTab form state is saved verbatim via a dynamic Object.keys() UPDATE.
 export interface SalesSettings {

@@ -144,6 +144,14 @@ var api = {
             return ipcRenderer.invoke('printer:previewHtmlPdf', args);
         },
     },
+    // Quotations (ใบเสนอราคา)
+    quotation: {
+        save: function (payload) { return ipcRenderer.invoke('quotation:save', payload); },
+        list: function (filters) { return ipcRenderer.invoke('quotation:list', filters); },
+        get: function (id) { return ipcRenderer.invoke('quotation:get', id); },
+        setStatus: function (payload) { return ipcRenderer.invoke('quotation:setStatus', payload); },
+        delete: function (id) { return ipcRenderer.invoke('quotation:delete', id); },
+    },
     // Tax invoices (ใบกำกับภาษีเต็มรูป)
     tax: {
         get: function (saleId) { return ipcRenderer.invoke('tax:get', saleId); },

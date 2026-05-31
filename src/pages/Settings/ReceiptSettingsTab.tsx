@@ -172,7 +172,7 @@ export function ReceiptSettingsTab() {
               title="receipt-preview"
               srcDoc={previewHtml}
               className="bg-white shadow-card shrink-0 border-0"
-              style={{ width: `${form.paper_width_mm || 80}mm`, height: '100%', minHeight: '300px' }}
+              style={{ width: `${form.paper_width_mm || 80}mm`, height: '100%', minHeight: '500px' }}
             />
           </div>
         </SectionCard>

@@ -14,6 +14,8 @@ const BundlesList = lazy(() => import('./pages/Products/BundlesList'))
 const EditProduct = lazy(() => import('./pages/Products/EditProduct'))
 const EditBundle = lazy(() => import('./pages/Products/EditBundle'))
 const People = lazy(() => import('./pages/People'))
+const QuotationList = lazy(() => import('./pages/Quotation/QuotationList'))
+const EditQuotation = lazy(() => import('./pages/Quotation/EditQuotation'))
 const ManageLayout = lazy(() => import('./pages/Manage'))
 const ManageSales = lazy(() => import('./pages/Manage/Sales'))
 const ManagePurchases = lazy(() => import('./pages/Manage/Purchases'))
@@ -62,6 +64,9 @@ export default function App() {
               <Route path="products/bundles/new" element={<EditBundle />} />
               <Route path="products/bundles/:id/edit" element={<EditBundle />} />
               <Route path="people" element={<People />} />
+              <Route path="quotation" element={<QuotationList />} />
+              <Route path="quotation/new" element={<EditQuotation />} />
+              <Route path="quotation/:id/edit" element={<EditQuotation />} />
               <Route path="manage" element={<ManageLayout />}>
                 <Route index element={<ManageSales />} />
                 <Route path="purchases" element={<ManagePurchases />} />

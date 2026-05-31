@@ -144,6 +144,14 @@ const api = {
     previewHtmlPdf: (args: { html: string; paperWidthMm?: number; heightMm?: number | 'auto'; pageFormat?: 'A4' | 'A5' }) =>
       ipcRenderer.invoke('printer:previewHtmlPdf', args) as Promise<{ success: boolean; error?: string; path?: string }>,
   },
+  // Quotations (ใบเสนอราคา)
+  quotation: {
+    save: (payload: any) => ipcRenderer.invoke('quotation:save', payload),
+    list: (filters: any) => ipcRenderer.invoke('quotation:list', filters),
+    get: (id: number) => ipcRenderer.invoke('quotation:get', id),
+    setStatus: (payload: { id: number; status: string }) => ipcRenderer.invoke('quotation:setStatus', payload),
+    delete: (id: number) => ipcRenderer.invoke('quotation:delete', id),
+  },
   // Tax invoices (ใบกำกับภาษีเต็มรูป)
   tax: {
     get: (saleId: number) => ipcRenderer.invoke('tax:get', saleId),

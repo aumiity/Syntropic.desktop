@@ -505,6 +505,47 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    -- Quotations (ใบเสนอราคา). Pre-sale price offers — NEVER touch stock/lots.
+    -- quote_no = QT-YYYYMMDD-NNNN (generated with retry-on-unique-collision).
+    -- Customer fields are a snapshot at issue time so a reprint stays stable.
+    -- issue_date is set once on create and immutable on update; valid_until is
+    -- user-editable. vat_enabled/vat_rate are snapshotted so a later rate change
+    -- doesn't alter an issued quote. Edit/delete is gated to status='draft'.
+    CREATE TABLE IF NOT EXISTS quotations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quote_no TEXT NOT NULL UNIQUE,
+      customer_id INTEGER REFERENCES customers(id),
+      customer_name TEXT NOT NULL DEFAULT '',
+      customer_address TEXT NOT NULL DEFAULT '',
+      customer_tax_id TEXT NOT NULL DEFAULT '',
+      issue_date TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      valid_until TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      vat_enabled INTEGER NOT NULL DEFAULT 0,
+      vat_rate REAL NOT NULL DEFAULT 7,
+      subtotal REAL NOT NULL DEFAULT 0,
+      total_discount REAL NOT NULL DEFAULT 0,
+      total_vat REAL NOT NULL DEFAULT 0,
+      total_amount REAL NOT NULL DEFAULT 0,
+      note TEXT NOT NULL DEFAULT '',
+      created_by INTEGER REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
+    CREATE TABLE IF NOT EXISTS quotation_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quotation_id INTEGER NOT NULL REFERENCES quotations(id) ON DELETE CASCADE,
+      product_id INTEGER REFERENCES products(id),
+      item_name TEXT NOT NULL DEFAULT '',
+      unit_name TEXT NOT NULL DEFAULT '',
+      qty REAL NOT NULL DEFAULT 1,
+      unit_price REAL NOT NULL DEFAULT 0,
+      discount REAL NOT NULL DEFAULT 0,
+      line_total REAL NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+
     -- Purchase receipt headers (GR-level metadata, one row per invoice_no).
     -- Authoritative source for supplier / payment / dates of a GR.
     -- product_lots also stores some of these for stock display, but is last-write-wins.
@@ -591,6 +632,9 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON stock_movements(movement_type);
     CREATE INDEX IF NOT EXISTS idx_stock_movements_created ON stock_movements(created_at);
     CREATE INDEX IF NOT EXISTS idx_price_logs_product ON price_logs(product_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_quotations_no ON quotations(quote_no);
+    CREATE INDEX IF NOT EXISTS idx_quotations_issued ON quotations(issue_date);
+    CREATE INDEX IF NOT EXISTS idx_quotation_items_q ON quotation_items(quotation_id);
   `)
 
   // Safe column migrations for existing databases
