@@ -205,25 +205,51 @@ export function registerSettingsHandlers() {
     });
     ipcMain.handle('settings:saveSalesSettings', function (_e, data) {
         var db = getDb();
-        var existing = db.prepare("SELECT id, vat_enabled FROM sales_settings LIMIT 1").get();
         db.transaction(function () {
-            if (existing) {
-                var id = data.id, updated_at = data.updated_at, rest = __rest(data, ["id", "updated_at"]);
-                var fields = Object.keys(rest).map(function (k) { return "".concat(k, " = @").concat(k); }).join(', ');
-                db.prepare("UPDATE sales_settings SET ".concat(fields, ", updated_at = datetime('now','localtime') WHERE id = ?")).run(__assign(__assign({}, rest), { id: existing.id }));
-                // First time VAT is turned on (off→on): flag every product as VATable so
-                // the operator opts products OUT rather than IN. Only on the transition,
-                // never on subsequent saves — otherwise it would clobber per-product
-                // toggles the operator set afterwards.
-                if (existing.vat_enabled === 0 && data.vat_enabled === 1) {
-                    db.prepare("UPDATE products SET has_vat = 1").run();
-                }
+            // Ensure the singleton row exists, then UPDATE with the submitted form —
+            // so a first-ever save (no row yet) still persists the values instead of
+            // silently inserting bare defaults.
+            var row = db.prepare("SELECT id FROM sales_settings LIMIT 1").get();
+            if (!row) {
+                var r = db.prepare("INSERT INTO sales_settings DEFAULT VALUES").run();
+                row = { id: r.lastInsertRowid };
             }
-            else {
-                db.prepare("INSERT INTO sales_settings DEFAULT VALUES").run();
+            var id = data.id, updated_at = data.updated_at, rest = __rest(data, ["id", "updated_at"]);
+            var fields = Object.keys(rest).map(function (k) { return "".concat(k, " = @").concat(k); }).join(', ');
+            if (fields) {
+                db.prepare("UPDATE sales_settings SET ".concat(fields, ", updated_at = datetime('now','localtime') WHERE id = @id")).run(__assign(__assign({}, rest), { id: row.id }));
             }
         })();
         return db.prepare("SELECT * FROM sales_settings LIMIT 1").get();
+    });
+    // Receipt / cash-slip settings (singleton). Uses the ensure-row-then-UPDATE
+    // pattern (NOT label_settings' INSERT-DEFAULT-then-skip-payload bug) so a
+    // first-ever save persists the submitted values instead of bare defaults.
+    ipcMain.handle('settings:getReceiptSettings', function () {
+        var db = getDb();
+        var row = db.prepare("SELECT * FROM receipt_settings ORDER BY id LIMIT 1").get();
+        if (!row) {
+            db.prepare("INSERT INTO receipt_settings DEFAULT VALUES").run();
+            row = db.prepare("SELECT * FROM receipt_settings ORDER BY id LIMIT 1").get();
+        }
+        return row;
+    });
+    ipcMain.handle('settings:saveReceiptSettings', function (_e, data) {
+        var db = getDb();
+        db.transaction(function () {
+            var row = db.prepare("SELECT id FROM receipt_settings ORDER BY id LIMIT 1").get();
+            if (!row) {
+                var r = db.prepare("INSERT INTO receipt_settings DEFAULT VALUES").run();
+                row = { id: r.lastInsertRowid };
+            }
+            var id = data.id, updated_at = data.updated_at, rest = __rest(data, ["id", "updated_at"]);
+            var fields = Object.keys(rest).map(function (k) { return "".concat(k, " = @").concat(k); }).join(', ');
+            if (fields) {
+                db.prepare("UPDATE receipt_settings SET ".concat(fields, ", updated_at = datetime('now','localtime') WHERE id = @id"))
+                    .run(__assign(__assign({}, rest), { id: row.id }));
+            }
+        })();
+        return db.prepare("SELECT * FROM receipt_settings ORDER BY id LIMIT 1").get();
     });
     // All item units (for dropdowns)
     ipcMain.handle('settings:allUnits', function () {

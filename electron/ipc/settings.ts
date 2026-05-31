@@ -224,6 +224,36 @@ export function registerSettingsHandlers() {
     return db.prepare(`SELECT * FROM sales_settings LIMIT 1`).get()
   })
 
+  // Receipt / cash-slip settings (singleton). Uses the ensure-row-then-UPDATE
+  // pattern (NOT label_settings' INSERT-DEFAULT-then-skip-payload bug) so a
+  // first-ever save persists the submitted values instead of bare defaults.
+  ipcMain.handle('settings:getReceiptSettings', () => {
+    const db = getDb()
+    let row = db.prepare(`SELECT * FROM receipt_settings ORDER BY id LIMIT 1`).get()
+    if (!row) {
+      db.prepare(`INSERT INTO receipt_settings DEFAULT VALUES`).run()
+      row = db.prepare(`SELECT * FROM receipt_settings ORDER BY id LIMIT 1`).get()
+    }
+    return row
+  })
+  ipcMain.handle('settings:saveReceiptSettings', (_e, data: any) => {
+    const db = getDb()
+    db.transaction(() => {
+      let row = db.prepare(`SELECT id FROM receipt_settings ORDER BY id LIMIT 1`).get() as any
+      if (!row) {
+        const r = db.prepare(`INSERT INTO receipt_settings DEFAULT VALUES`).run()
+        row = { id: r.lastInsertRowid }
+      }
+      const { id, updated_at, ...rest } = data
+      const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
+      if (fields) {
+        db.prepare(`UPDATE receipt_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`)
+          .run({ ...rest, id: row.id })
+      }
+    })()
+    return db.prepare(`SELECT * FROM receipt_settings ORDER BY id LIMIT 1`).get()
+  })
+
   // All item units (for dropdowns)
   ipcMain.handle('settings:allUnits', () => {
     return getDb().prepare(`SELECT * FROM item_units ORDER BY ${orderByBucket('name')}`).all()

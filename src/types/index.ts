@@ -133,6 +133,65 @@ export interface CartItem {
 export interface Setting {
   id: number; shop_name: string; shop_address: string; shop_phone: string
   shop_license_no: string; shop_tax_id: string; shop_line_id: string
+  shop_branch?: string
+}
+
+// Receipt / cash-slip print settings (singleton). Keys MUST match
+// receipt_settings columns 1:1 — saved verbatim via a dynamic Object.keys() UPDATE.
+export interface ReceiptSettings {
+  id: number
+  printer_name: string
+  paper_width_mm: number
+  paper_height_mm: number   // 0 = auto (measure content height)
+  auto_print: number
+  copies: number
+  font_family: string
+  font_size: number
+  header_note: string
+  footer_note: string
+  abbrev_tax_invoice: number
+  updated_at?: string
+}
+
+// Full tax invoice issuance record (ใบกำกับภาษีเต็มรูป, ม.86/4).
+export interface TaxInvoice {
+  id: number
+  sale_id: number
+  doc_no: string
+  buyer_name: string
+  buyer_address: string
+  buyer_tax_id: string
+  buyer_branch: string
+  original_printed: number
+  issued_by?: number
+  issued_at: string
+  updated_at?: string
+}
+
+// Normalized shape consumed by the receipt/tax-invoice HTML builders. Built from
+// either a freshly-completed POS sale (cart data) or a fetched historical sale,
+// so both print paths render identically.
+export interface SaleForPrint {
+  invoice_no: string
+  sold_at: string
+  sale_type: string
+  status: string
+  customer_name?: string | null
+  items: Array<{
+    item_name: string
+    unit_name: string
+    qty: number
+    unit_price: number
+    discount: number
+    unit_vat: number
+    line_total: number
+  }>
+  subtotal: number
+  total_discount: number
+  total_vat: number
+  total_amount: number
+  cash_amount: number
+  change_amount: number
 }
 
 // POS / Sales settings (singleton). Keys MUST match sales_settings columns 1:1

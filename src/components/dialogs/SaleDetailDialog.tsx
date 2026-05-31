@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
-import { Ban, ChevronRight, Boxes } from 'lucide-react'
+import { Ban, ChevronRight, Boxes, Printer, FileText } from 'lucide-react'
+import { useToast } from '@/components/ui/toast'
+import { printSlip } from '@/lib/receipt/print'
+import { saleDetailToPrint } from '@/lib/receipt/normalizeSale'
+import { TaxInvoiceBuyerDialog } from '@/components/dialogs/TaxInvoiceBuyerDialog'
 import type { Sale, SaleItem } from '@/types'
 
 // One sale_item_lots row exposed to the renderer. Joined fields come from
@@ -58,9 +62,23 @@ export function SaleDetailDialog({
   invoiceNo: string | null
   onVoidRequest?: (sale: SaleDetail) => void
 }) {
+  const { toast } = useToast()
   const [detail, setDetail] = useState<SaleDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [taxOpen, setTaxOpen] = useState(false)
+
+  const reprintReceipt = async (d: SaleDetail) => {
+    const sale = saleDetailToPrint(d)
+    const rs = await window.api.settings.getReceiptSettings()
+    const abbrev = (rs as any)?.abbrev_tax_invoice === 1
+    const mode = d.status === 'voided' ? 'void'
+      : d.sale_type === 'return' ? 'return'
+      : (abbrev && sale.total_vat > 0) ? 'abbrevTax'
+      : 'receipt'
+    const res = await printSlip(sale, mode)
+    if (!res.success) toast({ title: 'พิมพ์ใบเสร็จไม่สำเร็จ', description: res.error, variant: 'error' })
+  }
 
   const fetchDetail = (inv: string) => {
     setLoading(true)
@@ -308,11 +326,28 @@ export function SaleDetailDialog({
                   <Ban className="size-4 mr-1.5" /> ยกเลิกบิล
                 </Button>
               )}
+              <Button size="xl" variant="elevated" onClick={() => reprintReceipt(detail)}>
+                <Printer className="size-4 mr-1.5" /> พิมพ์ใบเสร็จ
+              </Button>
+              {detail.status !== 'voided' && detail.sale_type !== 'return' && (
+                <Button size="xl" variant="elevated" onClick={() => setTaxOpen(true)}>
+                  <FileText className="size-4 mr-1.5" /> ใบกำกับภาษี
+                </Button>
+              )}
               <Button size="xl" variant="default" onClick={() => onOpenChange(false)}>ปิด</Button>
             </DialogFooter>
           </>
         )}
       </DialogContent>
+      {detail && (
+        <TaxInvoiceBuyerDialog
+          open={taxOpen}
+          onOpenChange={setTaxOpen}
+          saleId={detail.id}
+          sale={saleDetailToPrint(detail)}
+          customerPrefill={detail.customer_name ? { name: detail.customer_name } : undefined}
+        />
+      )}
     </Dialog>
   )
 }

@@ -466,6 +466,45 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    -- Receipt / cash-slip print settings (singleton). Columns map 1:1 to the
+    -- ReceiptSettingsTab form keys — the IPC upsert builds dynamic SQL from
+    -- Object.keys(), so any renamed key would throw "no such column".
+    -- paper_height_mm = 0 means auto (measure content height); a positive value
+    -- forces a fixed page for thermal drivers that reject custom long pages.
+    CREATE TABLE IF NOT EXISTS receipt_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      printer_name       TEXT NOT NULL DEFAULT '',
+      paper_width_mm     REAL NOT NULL DEFAULT 80,
+      paper_height_mm    REAL NOT NULL DEFAULT 0,
+      auto_print         INTEGER NOT NULL DEFAULT 0,
+      copies             INTEGER NOT NULL DEFAULT 1,
+      font_family        TEXT NOT NULL DEFAULT 'Bai Jamjuree',
+      font_size          REAL NOT NULL DEFAULT 11,
+      header_note        TEXT NOT NULL DEFAULT '',
+      footer_note        TEXT NOT NULL DEFAULT 'ขอบคุณที่ใช้บริการ',
+      abbrev_tax_invoice INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
+    -- Full tax invoices (ใบกำกับภาษีเต็มรูป, ม.86/4). One row per sale issued.
+    -- doc_no reuses the sale's invoice_no (RC-) as the running serial number.
+    -- Buyer fields are a snapshot taken at issue time (the customer record may
+    -- change later). original_printed gates the "ต้นฉบับ" vs "สำเนา" header:
+    -- the first print stamps ต้นฉบับ and sets the flag; every reprint = สำเนา.
+    CREATE TABLE IF NOT EXISTS tax_invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sale_id INTEGER NOT NULL UNIQUE REFERENCES sales(id) ON DELETE CASCADE,
+      doc_no TEXT NOT NULL,
+      buyer_name TEXT NOT NULL DEFAULT '',
+      buyer_address TEXT NOT NULL DEFAULT '',
+      buyer_tax_id TEXT NOT NULL DEFAULT '',
+      buyer_branch TEXT NOT NULL DEFAULT '',
+      original_printed INTEGER NOT NULL DEFAULT 0,
+      issued_by INTEGER REFERENCES users(id),
+      issued_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     -- Purchase receipt headers (GR-level metadata, one row per invoice_no).
     -- Authoritative source for supplier / payment / dates of a GR.
     -- product_lots also stores some of these for stock display, but is last-write-wins.
@@ -621,6 +660,8 @@ export function initializeSchema(db: Database.Database) {
     // now-unused settings columns from existing DBs.
     `ALTER TABLE sales_settings DROP COLUMN expiry_warn_months`,
     `ALTER TABLE sales_settings DROP COLUMN expiry_danger_months`,
+    // Seller branch for tax invoices (ม.86/4 requires "สำนักงานใหญ่"/branch no.).
+    `ALTER TABLE settings ADD COLUMN shop_branch TEXT NOT NULL DEFAULT 'สำนักงานใหญ่'`,
   ]) {
     try { db.exec(sql) } catch {}
   }

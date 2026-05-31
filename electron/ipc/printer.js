@@ -124,6 +124,27 @@ function buildReceipt(data) {
     }
     return Buffer.from(result);
 }
+// Wait for webfonts + images + layout to settle before snapshotting/printing a
+// `data:` URL page. Without this Electron may capture the default font or
+// pre-layout sizing (same race the label handlers guard against).
+var WAIT_FOR_RENDER_JS = "\n  (async () => {\n    if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }\n    try { await Promise.all([...document.images].map(img => img.decode().catch(() => {}))) } catch {}\n    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))\n  })()\n";
+// Measure the rendered content height (px) → mm, clamped to a sane range with a
+// small bottom bleed. Used for continuous-roll slips where the page height is
+// not known ahead of time (1 CSS px = 1/96 inch).
+function measureContentHeightMm(wc) {
+    return __awaiter(this, void 0, void 0, function () {
+        var px, mm;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, wc.executeJavaScript("Math.ceil(document.documentElement.getBoundingClientRect().height)")];
+                case 1:
+                    px = _a.sent();
+                    mm = (px * 25.4) / 96;
+                    return [2 /*return*/, Math.min(2000, Math.max(40, Math.ceil(mm) + 3))];
+            }
+        });
+    });
+}
 export function registerPrinterHandlers() {
     var _this = this;
     ipcMain.handle('printer:printReceipt', function (_e, data) { return __awaiter(_this, void 0, void 0, function () {
@@ -275,6 +296,149 @@ export function registerPrinterHandlers() {
                     w.destroy();
                     return [7 /*endfinally*/];
                 case 9: return [2 /*return*/];
+            }
+        });
+    }); });
+    // Generic silent HTML print for receipts/slips/tax invoices. Same mechanism
+    // as printLabel (render HTML in a hidden window → webContents.print silent)
+    // but supports continuous-roll auto height and N copies.
+    //   heightMm = 'auto' (default) → measure content, set a tall single page
+    //   heightMm = number          → fixed page (fallback for thermal drivers
+    //                                 that reject custom long pages)
+    ipcMain.handle('printer:printHtml', function (_e, args) { return __awaiter(_this, void 0, void 0, function () {
+        var w, heightMm_1, _a, copies, i, e_3;
+        var _b;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
+                case 0:
+                    if (!(args.paperWidthMm > 0))
+                        return [2 /*return*/, { success: false, error: 'invalid paper width' }];
+                    w = new BrowserWindow({ show: false, webPreferences: { offscreen: false } });
+                    _c.label = 1;
+                case 1:
+                    _c.trys.push([1, 11, 12, 13]);
+                    return [4 /*yield*/, w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args.html))];
+                case 2:
+                    _c.sent();
+                    return [4 /*yield*/, w.webContents.executeJavaScript(WAIT_FOR_RENDER_JS)];
+                case 3:
+                    _c.sent();
+                    if (!(args.heightMm == null || args.heightMm === 'auto')) return [3 /*break*/, 5];
+                    return [4 /*yield*/, measureContentHeightMm(w.webContents)];
+                case 4:
+                    _a = _c.sent();
+                    return [3 /*break*/, 6];
+                case 5:
+                    _a = args.heightMm;
+                    _c.label = 6;
+                case 6:
+                    heightMm_1 = _a;
+                    if (!(heightMm_1 > 0))
+                        return [2 /*return*/, { success: false, error: 'invalid paper height' }];
+                    copies = Math.max(1, Math.min(20, Math.floor((_b = args.copies) !== null && _b !== void 0 ? _b : 1)));
+                    i = 0;
+                    _c.label = 7;
+                case 7:
+                    if (!(i < copies)) return [3 /*break*/, 10];
+                    // Sequential — wait for each job to be spooled before the next, so the
+                    // driver doesn't drop/merge concurrent jobs.
+                    return [4 /*yield*/, new Promise(function (resolve, reject) {
+                            w.webContents.print({
+                                silent: true,
+                                deviceName: args.printerName || undefined,
+                                pageSize: { width: Math.round(args.paperWidthMm * 1000), height: Math.round(heightMm_1 * 1000) },
+                                margins: { marginType: 'none' },
+                                printBackground: true,
+                                color: false,
+                            }, function (success, failureReason) { return success ? resolve() : reject(new Error(failureReason)); });
+                        })];
+                case 8:
+                    // Sequential — wait for each job to be spooled before the next, so the
+                    // driver doesn't drop/merge concurrent jobs.
+                    _c.sent();
+                    _c.label = 9;
+                case 9:
+                    i++;
+                    return [3 /*break*/, 7];
+                case 10: return [2 /*return*/, { success: true }];
+                case 11:
+                    e_3 = _c.sent();
+                    return [2 /*return*/, { success: false, error: e_3.message }];
+                case 12:
+                    w.destroy();
+                    return [7 /*endfinally*/];
+                case 13: return [2 /*return*/];
+            }
+        });
+    }); });
+    // Render receipt/tax-invoice HTML to a PDF and open it — "what will print"
+    // preview without a physical printer. pageFormat ('A4'/'A5') for full tax
+    // invoices; otherwise width + auto/fixed height like a slip.
+    ipcMain.handle('printer:previewHtmlPdf', function (_e, args) { return __awaiter(_this, void 0, void 0, function () {
+        var w, pdfOpts, widthMm, heightMm, _a, pdf, file, err, e_4;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    w = new BrowserWindow({ show: false, webPreferences: { offscreen: false } });
+                    _b.label = 1;
+                case 1:
+                    _b.trys.push([1, 12, 13, 14]);
+                    return [4 /*yield*/, w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args.html))];
+                case 2:
+                    _b.sent();
+                    return [4 /*yield*/, w.webContents.executeJavaScript(WAIT_FOR_RENDER_JS)];
+                case 3:
+                    _b.sent();
+                    pdfOpts = void 0;
+                    if (!args.pageFormat) return [3 /*break*/, 4];
+                    // Page margin is baked into the HTML body padding, so use zero PDF
+                    // margins to avoid double margins.
+                    pdfOpts = {
+                        printBackground: true,
+                        preferCSSPageSize: true,
+                        pageSize: args.pageFormat,
+                        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+                    };
+                    return [3 /*break*/, 8];
+                case 4:
+                    widthMm = args.paperWidthMm && args.paperWidthMm > 0 ? args.paperWidthMm : 80;
+                    if (!(args.heightMm == null || args.heightMm === 'auto')) return [3 /*break*/, 6];
+                    return [4 /*yield*/, measureContentHeightMm(w.webContents)];
+                case 5:
+                    _a = _b.sent();
+                    return [3 /*break*/, 7];
+                case 6:
+                    _a = args.heightMm;
+                    _b.label = 7;
+                case 7:
+                    heightMm = _a;
+                    pdfOpts = {
+                        printBackground: true,
+                        preferCSSPageSize: true,
+                        pageSize: { width: Math.round(widthMm * 1000), height: Math.round(heightMm * 1000) },
+                        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+                    };
+                    _b.label = 8;
+                case 8: return [4 /*yield*/, w.webContents.printToPDF(pdfOpts)];
+                case 9:
+                    pdf = _b.sent();
+                    file = path.join(app.getPath('temp'), "receipt-preview-".concat(Date.now(), ".pdf"));
+                    return [4 /*yield*/, fs.writeFile(file, pdf)];
+                case 10:
+                    _b.sent();
+                    return [4 /*yield*/, shell.openPath(file)];
+                case 11:
+                    err = _b.sent();
+                    if (err)
+                        return [2 /*return*/, { success: false, error: err }];
+                    return [2 /*return*/, { success: true, path: file }];
+                case 12:
+                    e_4 = _b.sent();
+                    return [2 /*return*/, { success: false, error: e_4.message }];
+                case 13:
+                    w.destroy();
+                    return [7 /*endfinally*/];
+                case 14: return [2 /*return*/];
             }
         });
     }); });

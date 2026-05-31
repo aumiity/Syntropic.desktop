@@ -13,35 +13,9 @@ import {
 import { useToast } from '@/components/ui/toast'
 import { Save, Printer, Bold, FileText } from 'lucide-react'
 
-// Only fonts that have actual TTF files bundled in src/assets/fonts/ — these
-// are guaranteed to render in the preview on any OS. System fonts (Tahoma,
-// Angsana, Cordia, etc.) were removed because they silently fall back to the
-// app's default when not installed locally, making the dropdown look broken.
-//
-// For the test-print path we additionally inline @font-face declarations with
-// base64-embedded TTF data so the hidden print BrowserWindow (which loads a
-// `data:` URL with its own origin) can resolve these families too.
-import baiJamjureeRegular from '@/assets/fonts/BaiJamjuree-Regular.ttf?url'
-import baiJamjureeBold from '@/assets/fonts/BaiJamjuree-Bold.ttf?url'
-import anuphanRegular from '@/assets/fonts/Anuphan-Regular.ttf?url'
-import sfThonburiRegular from '@/assets/fonts/SF Thonburi Regular.ttf?url'
-import sfThonburiBold from '@/assets/fonts/SF Thonburi Bold.ttf?url'
-import ibmPlexThaiRegular from '@/assets/fonts/IBMPlexSansThai-Regular.ttf?url'
-import ibmPlexThaiBold from '@/assets/fonts/IBMPlexSansThai-Bold.ttf?url'
-import ibmPlexThaiLoopedRegular from '@/assets/fonts/IBMPlexSansThaiLooped-Regular.ttf?url'
-import ibmPlexThaiLoopedBold from '@/assets/fonts/IBMPlexSansThaiLooped-Bold.ttf?url'
-import notoSansThaiVariable from '@/assets/fonts/NotoSansThai-Variable.ttf?url'
-
-interface FontFile { weight: string | number; url: string }
-const FONT_REGISTRY: Record<string, FontFile[]> = {
-  'Bai Jamjuree':             [{ weight: 400, url: baiJamjureeRegular }, { weight: 700, url: baiJamjureeBold }],
-  'Anuphan':                  [{ weight: '100 700', url: anuphanRegular }],
-  'SF Thonburi':              [{ weight: 400, url: sfThonburiRegular }, { weight: 700, url: sfThonburiBold }],
-  'IBM Plex Sans Thai':       [{ weight: 400, url: ibmPlexThaiRegular }, { weight: 700, url: ibmPlexThaiBold }],
-  'IBM Plex Sans Thai Looped':[{ weight: 400, url: ibmPlexThaiLoopedRegular }, { weight: 700, url: ibmPlexThaiLoopedBold }],
-  'Noto Sans Thai':           [{ weight: '100 900', url: notoSansThaiVariable }],
-}
-const FONTS = Object.keys(FONT_REGISTRY)
+// Bundled fonts + the @font-face/esc helpers are shared with the receipt/tax
+// print paths — see src/lib/print/fonts.ts for why base64 embedding is needed.
+import { FONTS, esc, buildPrintFontFaceCss } from '@/lib/print/fonts'
 
 // Common label sticker sizes sold by Thai suppliers (thermal roll). 80×50 mm is
 // the GPP-recommended pharmacy standard (used as default by Hygeia / EasyPrint).
@@ -177,31 +151,6 @@ function styleToCss(s: React.CSSProperties): string {
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .map(([k, v]) => `${k.replace(/[A-Z]/g, m => '-' + m.toLowerCase())}:${v}`)
     .join(';')
-}
-
-const esc = (s: string) => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!))
-
-// Build a `@font-face` CSS block for the selected family, with each weight's
-// TTF base64-embedded so the print HTML (data: URL, separate origin) can
-// resolve the family. Without this, print silently falls back to the OS
-// default and the printed sticker looks nothing like the preview.
-async function buildPrintFontFaceCss(family: string): Promise<string> {
-  const files = FONT_REGISTRY[family]
-  if (!files) return ''
-  const faces = await Promise.all(files.map(async f => {
-    try {
-      const resp = await fetch(f.url)
-      const blob = await resp.blob()
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = () => reject(reader.error)
-        reader.readAsDataURL(blob)
-      })
-      return `@font-face { font-family: '${family}'; src: url('${dataUrl}') format('truetype'); font-weight: ${f.weight}; font-style: normal; }`
-    } catch { return '' }
-  }))
-  return faces.filter(Boolean).join('\n')
 }
 
 // Number input with a local string buffer — fixes the "can't delete the 0"

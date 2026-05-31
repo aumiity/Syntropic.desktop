@@ -133,6 +133,8 @@ declare const api: {
         saveLabelSettings: (data: any) => Promise<any>;
         getSalesSettings: () => Promise<any>;
         saveSalesSettings: (data: any) => Promise<any>;
+        getReceiptSettings: () => Promise<any>;
+        saveReceiptSettings: (data: any) => Promise<any>;
         listLabelFrequencies: () => Promise<any>;
         listLabelDosages: () => Promise<any>;
         listLabelMealRelations: () => Promise<any>;
@@ -184,6 +186,37 @@ declare const api: {
             error?: string;
             path?: string;
         }>;
+        printHtml: (args: {
+            html: string;
+            printerName: string;
+            paperWidthMm: number;
+            heightMm?: number | "auto";
+            copies?: number;
+        }) => Promise<{
+            success: boolean;
+            error?: string;
+        }>;
+        previewHtmlPdf: (args: {
+            html: string;
+            paperWidthMm?: number;
+            heightMm?: number | "auto";
+            pageFormat?: "A4" | "A5";
+        }) => Promise<{
+            success: boolean;
+            error?: string;
+            path?: string;
+        }>;
+    };
+    tax: {
+        get: (saleId: number) => Promise<any>;
+        issueOrGet: (payload: {
+            sale_id: number;
+            buyer_name: string;
+            buyer_address: string;
+            buyer_tax_id?: string;
+            buyer_branch?: string;
+            issued_by?: number | null;
+        }) => Promise<any>;
     };
     window: {
         minimize: () => Promise<any>;

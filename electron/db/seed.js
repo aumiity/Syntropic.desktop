@@ -110,6 +110,8 @@ export function seedDatabase(db) {
     // never collides on insert, so OR IGNORE never fires. NOT EXISTS is the only
     // pattern that's actually idempotent across launches.
     db.prepare("INSERT INTO label_settings (id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM label_settings)").run();
+    // Default receipt/slip settings (singleton) — same NOT EXISTS idempotency.
+    db.prepare("INSERT INTO receipt_settings (id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM receipt_settings)").run();
     // General customer (catch-all). Walk-in is modelled as this real row, never
     // a NULL customer_id — see the walk-in invariant in CLAUDE.md.
     db.prepare("INSERT OR IGNORE INTO customers (code, full_name) VALUES (?, ?)").run('C0000', 'ลูกค้าทั่วไป');
@@ -144,7 +146,7 @@ export function seedDatabase(db) {
     var unitRows = db.prepare("SELECT id, name FROM item_units").all();
     var unitMap = new Map(unitRows.map(function (r) { return [r.name, r.id]; }));
     var fallbackUnitId = unitMap.get('ชิ้น');
-    var insProduct = db.prepare("\n    INSERT INTO products (\n      code, trade_name, name_for_print, search_keywords,\n      barcode, barcode2, barcode3, barcode4,\n      unit_id, cost_price, price_retail, price_wholesale1, price_wholesale2,\n      is_disabled, is_hidden, is_stock_item, has_vat, is_drug,\n      tmt_id, note, reorder_point, safety_stock\n    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n  ");
+    var insProduct = db.prepare("\n    INSERT INTO products (\n      code, trade_name, name_for_print, search_keywords,\n      barcode, barcode2, barcode3, barcode4,\n      unit_id, cost_price, price_retail, price_wholesale1, price_wholesale2,\n      is_disabled, is_hidden, is_stock_item, is_drug,\n      tmt_id, note, reorder_point, safety_stock\n    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n  ");
     var nz = function (v) { return (v ? v : null); };
     db.transaction(function () {
         var _a;
@@ -153,9 +155,9 @@ export function seedDatabase(db) {
         var codeSeq = 0;
         for (var _i = 0, PRODUCTS_1 = PRODUCTS; _i < PRODUCTS_1.length; _i++) {
             var p = PRODUCTS_1[_i];
-            var trade_name = p[0], name_for_print = p[1], search_keywords = p[2], barcode = p[3], barcode2 = p[4], barcode3 = p[5], barcode4 = p[6], unit_name = p[7], cost_price = p[8], price_retail = p[9], price_wholesale1 = p[10], price_wholesale2 = p[11], is_disabled = p[12], is_hidden = p[13], is_stock_item = p[14], has_vat = p[15], is_drug = p[16], tmt_id = p[17], note = p[18], reorder_point = p[19], safety_stock = p[20];
+            var trade_name = p[0], name_for_print = p[1], search_keywords = p[2], barcode = p[3], barcode2 = p[4], barcode3 = p[5], barcode4 = p[6], unit_name = p[7], cost_price = p[8], price_retail = p[9], price_wholesale1 = p[10], price_wholesale2 = p[11], is_disabled = p[12], is_hidden = p[13], is_stock_item = p[14], is_drug = p[15], tmt_id = p[16], note = p[17], reorder_point = p[18], safety_stock = p[19];
             var code = "P".concat(String(++codeSeq).padStart(4, '0'));
-            insProduct.run(code, trade_name, nz(name_for_print), nz(search_keywords), nz(barcode), nz(barcode2), nz(barcode3), nz(barcode4), (_a = unitMap.get(unit_name)) !== null && _a !== void 0 ? _a : fallbackUnitId, cost_price, price_retail, price_wholesale1, price_wholesale2, is_disabled, is_hidden, is_stock_item, has_vat, is_drug, nz(tmt_id), nz(note), reorder_point > 0 ? reorder_point : null, safety_stock > 0 ? safety_stock : null);
+            insProduct.run(code, trade_name, nz(name_for_print), nz(search_keywords), nz(barcode), nz(barcode2), nz(barcode3), nz(barcode4), (_a = unitMap.get(unit_name)) !== null && _a !== void 0 ? _a : fallbackUnitId, cost_price, price_retail, price_wholesale1, price_wholesale2, is_disabled, is_hidden, is_stock_item, is_drug, nz(tmt_id), nz(note), reorder_point > 0 ? reorder_point : null, safety_stock > 0 ? safety_stock : null);
         }
     })();
     // Customers — seeded from Hygeia Person export (docs/Person.xlsx →

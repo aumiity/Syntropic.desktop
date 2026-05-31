@@ -264,7 +264,7 @@ export function registerProductHandlers() {
         var code = "P".concat(String(nextNum).padStart(4, '0'));
         // Fallback unit if caller didn't pick one (shouldn't happen via the UI, but defends against legacy callers).
         var fallbackUnitId = (_b = (_a = db.prepare("SELECT id FROM item_units WHERE name = '\u0E0A\u0E34\u0E49\u0E19'").get()) === null || _a === void 0 ? void 0 : _a.id) !== null && _b !== void 0 ? _b : db.prepare("INSERT INTO item_units (name) VALUES ('\u0E0A\u0E34\u0E49\u0E19')").run().lastInsertRowid;
-        var insProduct = db.prepare("\n      INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,\n        category_id, is_stock_item, is_bundle,\n        price_retail, price_wholesale1, price_wholesale2, cost_price, last_cost_price,\n        unit_id,\n        has_vat, reorder_point, safety_stock,\n        drug_type_id, tmt_id,\n        is_drug, is_antibiotic,\n        indication_note, side_effect_note,\n        is_fda9, is_fda10, is_fda11, is_fda13,\n        search_keywords, note)\n      VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,\n        @category_id, @is_stock_item, @is_bundle,\n        @price_retail, @price_wholesale1, @price_wholesale2, @cost_price, @last_cost_price,\n        @unit_id,\n        @has_vat, @reorder_point, @safety_stock,\n        @drug_type_id, @tmt_id,\n        @is_drug, @is_antibiotic,\n        @indication_note, @side_effect_note,\n        @is_fda9, @is_fda10, @is_fda11, @is_fda13,\n        @search_keywords, @note)\n    ");
+        var insProduct = db.prepare("\n      INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,\n        category_id, is_stock_item, is_bundle,\n        price_retail, price_wholesale1, price_wholesale2, cost_price, last_cost_price,\n        unit_id,\n        reorder_point, safety_stock,\n        drug_type_id, tmt_id,\n        is_drug, is_antibiotic,\n        indication_note, side_effect_note,\n        is_fda9, is_fda10, is_fda11, is_fda13,\n        search_keywords, note)\n      VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,\n        @category_id, @is_stock_item, @is_bundle,\n        @price_retail, @price_wholesale1, @price_wholesale2, @cost_price, @last_cost_price,\n        @unit_id,\n        @reorder_point, @safety_stock,\n        @drug_type_id, @tmt_id,\n        @is_drug, @is_antibiotic,\n        @indication_note, @side_effect_note,\n        @is_fda9, @is_fda10, @is_fda11, @is_fda13,\n        @search_keywords, @note)\n    ");
         // New product has no lots yet: seed both costs from the entered value.
         // cost_price (weighted avg) will be recomputed once lots exist;
         // last_cost_price is the pricing reference until the first paid receive.
@@ -282,7 +282,6 @@ export function registerProductHandlers() {
             is_stock_item: 1,
             price_retail: 0, price_wholesale1: 0, price_wholesale2: 0,
             cost_price: 0, last_cost_price: 0,
-            has_vat: 0,
             reorder_point: null, safety_stock: null,
             drug_type_id: null, tmt_id: null,
             is_drug: 0, is_antibiotic: 0,
@@ -338,7 +337,6 @@ export function registerProductHandlers() {
                 category_id: null,
                 price_retail: 0, price_wholesale1: 0, price_wholesale2: 0,
                 cost_price: 0, last_cost_price: 0,
-                has_vat: 0,
                 reorder_point: null, safety_stock: null,
                 drug_type_id: null, tmt_id: null,
                 is_drug: 0, is_antibiotic: 0,
@@ -347,7 +345,7 @@ export function registerProductHandlers() {
                 search_keywords: null, note: null,
             };
             var params = __assign(__assign(__assign({}, defaults), data), { code: code, unit_id: (_c = data.unit_id) !== null && _c !== void 0 ? _c : fallbackUnitId, is_bundle: 1, is_stock_item: 0 });
-            var r = db.prepare("\n        INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,\n          category_id, is_stock_item, is_bundle,\n          price_retail, price_wholesale1, price_wholesale2, cost_price, last_cost_price,\n          unit_id,\n          has_vat, reorder_point, safety_stock,\n          drug_type_id, tmt_id,\n          is_drug, is_antibiotic,\n          indication_note, side_effect_note,\n          is_fda9, is_fda10, is_fda11, is_fda13,\n          search_keywords, note)\n        VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,\n          @category_id, @is_stock_item, @is_bundle,\n          @price_retail, @price_wholesale1, @price_wholesale2, @cost_price, @last_cost_price,\n          @unit_id,\n          @has_vat, @reorder_point, @safety_stock,\n          @drug_type_id, @tmt_id,\n          @is_drug, @is_antibiotic,\n          @indication_note, @side_effect_note,\n          @is_fda9, @is_fda10, @is_fda11, @is_fda13,\n          @search_keywords, @note)\n      ").run(params);
+            var r = db.prepare("\n        INSERT INTO products (barcode, barcode2, barcode3, barcode4, code, trade_name, name_for_print,\n          category_id, is_stock_item, is_bundle,\n          price_retail, price_wholesale1, price_wholesale2, cost_price, last_cost_price,\n          unit_id,\n          reorder_point, safety_stock,\n          drug_type_id, tmt_id,\n          is_drug, is_antibiotic,\n          indication_note, side_effect_note,\n          is_fda9, is_fda10, is_fda11, is_fda13,\n          search_keywords, note)\n        VALUES (@barcode, @barcode2, @barcode3, @barcode4, @code, @trade_name, @name_for_print,\n          @category_id, @is_stock_item, @is_bundle,\n          @price_retail, @price_wholesale1, @price_wholesale2, @cost_price, @last_cost_price,\n          @unit_id,\n          @reorder_point, @safety_stock,\n          @drug_type_id, @tmt_id,\n          @is_drug, @is_antibiotic,\n          @indication_note, @side_effect_note,\n          @is_fda9, @is_fda10, @is_fda11, @is_fda13,\n          @search_keywords, @note)\n      ").run(params);
             var bundleId = r.lastInsertRowid;
             var ins = db.prepare("\n        INSERT INTO product_bundle_items (bundle_id, component_product_id, qty_per_bundle, sort_order)\n        VALUES (?, ?, ?, ?)\n      ");
             items.forEach(function (it, i) { return ins.run(bundleId, it.component_product_id, Number(it.qty_per_bundle), i + 1); });

@@ -70,6 +70,9 @@ export function ShopTab() {
           <FormField label="เลขผู้เสียภาษี">
             <Input variant="elevated" value={form.shop_tax_id ?? ''} onChange={e => setF('shop_tax_id', e.target.value)} />
           </FormField>
+          <FormField label="สาขา (สำหรับใบกำกับภาษี)">
+            <Input variant="elevated" value={form.shop_branch ?? ''} onChange={e => setF('shop_branch' as keyof Setting, e.target.value)} placeholder="สำนักงานใหญ่" />
+          </FormField>
         </div>
       </SectionCard>
     </div>

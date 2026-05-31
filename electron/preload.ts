@@ -108,6 +108,8 @@ const api = {
     saveLabelSettings: (data: any) => ipcRenderer.invoke('settings:saveLabelSettings', data),
     getSalesSettings: () => ipcRenderer.invoke('settings:getSalesSettings'),
     saveSalesSettings: (data: any) => ipcRenderer.invoke('settings:saveSalesSettings', data),
+    getReceiptSettings: () => ipcRenderer.invoke('settings:getReceiptSettings'),
+    saveReceiptSettings: (data: any) => ipcRenderer.invoke('settings:saveReceiptSettings', data),
     listLabelFrequencies: () => ipcRenderer.invoke('settings:listLabelFrequencies'),
     listLabelDosages: () => ipcRenderer.invoke('settings:listLabelDosages'),
     listLabelMealRelations: () => ipcRenderer.invoke('settings:listLabelMealRelations'),
@@ -137,6 +139,22 @@ const api = {
       ipcRenderer.invoke('printer:printLabel', args) as Promise<{ success: boolean; error?: string }>,
     previewLabelPdf: (args: { html: string; paperWidthMm: number; paperHeightMm: number }) =>
       ipcRenderer.invoke('printer:previewLabelPdf', args) as Promise<{ success: boolean; error?: string; path?: string }>,
+    printHtml: (args: { html: string; printerName: string; paperWidthMm: number; heightMm?: number | 'auto'; copies?: number }) =>
+      ipcRenderer.invoke('printer:printHtml', args) as Promise<{ success: boolean; error?: string }>,
+    previewHtmlPdf: (args: { html: string; paperWidthMm?: number; heightMm?: number | 'auto'; pageFormat?: 'A4' | 'A5' }) =>
+      ipcRenderer.invoke('printer:previewHtmlPdf', args) as Promise<{ success: boolean; error?: string; path?: string }>,
+  },
+  // Tax invoices (ใบกำกับภาษีเต็มรูป)
+  tax: {
+    get: (saleId: number) => ipcRenderer.invoke('tax:get', saleId),
+    issueOrGet: (payload: {
+      sale_id: number
+      buyer_name: string
+      buyer_address: string
+      buyer_tax_id?: string
+      buyer_branch?: string
+      issued_by?: number | null
+    }) => ipcRenderer.invoke('tax:issueOrGet', payload),
   },
   // Window controls
   window: {

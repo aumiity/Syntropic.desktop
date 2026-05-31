@@ -8,6 +8,7 @@ import { registerPeopleHandlers } from './ipc/people'
 import { registerReportHandlers } from './ipc/reports'
 import { registerSettingsHandlers } from './ipc/settings'
 import { registerPrinterHandlers } from './ipc/printer'
+import { registerTaxHandlers } from './ipc/tax'
 import { registerAuthHandlers } from './ipc/auth'
 import { registerDevHandlers } from './ipc/dev'
 import { registerMatcherHandlers } from './ipc/matcher'
@@ -75,6 +76,7 @@ registerPeopleHandlers()
 registerReportHandlers()
 registerSettingsHandlers()
 registerPrinterHandlers()
+registerTaxHandlers()
 registerAuthHandlers()
 registerMatcherHandlers()
 registerNegativeStockHandlers()

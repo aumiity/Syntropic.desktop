@@ -121,7 +121,18 @@
       "Bash(brew install *)",
       "Bash(zsh -ic 'type ccr >/dev/null 2>&1 && echo \"ccr: OK โหลดได้\" || echo \"ccr: ERROR\"')",
       "Bash(tmux new-session *)",
-      "Bash(tmux kill-session *)"
+      "Bash(tmux kill-session *)",
+      "Bash(xargs -0 ls -lt)",
+      "Bash(python3 -)",
+      "Bash(echo \"vite pid $!\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(lsof -iTCP:5173 -sTCP:LISTEN)",
+      "Bash(env -u ELECTRON_RUN_AS_NODE nohup npx vite --config vite.e2e.config.ts --port 5173)",
+      "Bash(echo \"started, pid $!\")",
+      "Bash(env -u ELECTRON_RUN_AS_NODE node /tmp/syn-e2e.cjs)",
+      "Bash(sips -g pixelWidth -g pixelHeight /tmp/slip_full.png)",
+      "Bash(pkill -f \"vite.e2e.config\")",
+      "Bash(pkill -f \"vite --config\")"
     ]
   }
 }

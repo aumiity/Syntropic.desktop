@@ -15,13 +15,16 @@ import { VoidBillDialog } from '@/components/dialogs/VoidBillDialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
+import { TaxInvoiceBuyerDialog } from '@/components/dialogs/TaxInvoiceBuyerDialog'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
-import type { Sale } from '@/types'
+import { printSlip } from '@/lib/receipt/print'
+import { saleDetailToPrint } from '@/lib/receipt/normalizeSale'
+import type { Sale, SaleForPrint } from '@/types'
 import type { ManageOutletContext } from './index'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye } from 'lucide-react'
+import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye, Printer, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Money lives in the table rows; the summary slot now carries only the count
@@ -118,6 +121,40 @@ export default function ManageSalesPage() {
   const [detailOpen, setDetailOpen] = useState(false)
 
   const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
+
+  // Full tax-invoice issuance dialog (ใบกำกับภาษีเต็มรูป).
+  const [taxTarget, setTaxTarget] = useState<{ saleId: number; sale: SaleForPrint; prefillName?: string } | null>(null)
+
+  // Reprint a slip from history. Voided bills print stamped VOID; returns print
+  // as a refund document; VAT bills reprint as an abbreviated tax invoice when
+  // that option is on. Cancelled line items are filtered out by the normalizer.
+  const reprintReceipt = async (s: SaleRow) => {
+    try {
+      const detail = await window.api.reports.getSaleByInvoice(s.invoice_no)
+      if (!detail) { toast({ title: 'ไม่พบข้อมูลบิล', variant: 'error' }); return }
+      const sale = saleDetailToPrint(detail)
+      const rs = await window.api.settings.getReceiptSettings()
+      const abbrev = (rs as any)?.abbrev_tax_invoice === 1
+      const mode = s.status === 'voided' ? 'void'
+        : s.sale_type === 'return' ? 'return'
+        : (abbrev && sale.total_vat > 0) ? 'abbrevTax'
+        : 'receipt'
+      const res = await printSlip(sale, mode)
+      if (!res.success) toast({ title: 'พิมพ์ใบเสร็จไม่สำเร็จ', description: res.error, variant: 'error' })
+    } catch (e: any) {
+      toast({ title: 'พิมพ์ใบเสร็จไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
+  }
+
+  const openTaxInvoice = async (s: SaleRow) => {
+    try {
+      const detail = await window.api.reports.getSaleByInvoice(s.invoice_no)
+      if (!detail) { toast({ title: 'ไม่พบข้อมูลบิล', variant: 'error' }); return }
+      setTaxTarget({ saleId: s.id, sale: saleDetailToPrint(detail), prefillName: detail.customer_name ?? undefined })
+    } catch (e: any) {
+      toast({ title: 'เปิดใบกำกับภาษีไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
+  }
 
   // Column visibility (เลขบิล + จัดการ always shown)
   const showColDate = prefs.showColDate
@@ -384,6 +421,16 @@ export default function ManageSalesPage() {
                             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                             <Eye className="size-4" /> ดูรายละเอียด
                           </button>
+                          <button type="button" onClick={() => reprintReceipt(s)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                            <Printer className="size-4" /> พิมพ์ใบเสร็จ
+                          </button>
+                          {!isVoided && s.sale_type !== 'return' && (
+                            <button type="button" onClick={() => openTaxInvoice(s)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                              <FileText className="size-4" /> ใบกำกับภาษี
+                            </button>
+                          )}
                           {!isVoided && s.sale_type !== 'return' && (
                             <button type="button" onClick={() => setVoidTarget({ id: s.id, invoice_no: s.invoice_no })}
                               className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
@@ -444,6 +491,14 @@ export default function ManageSalesPage() {
         target={voidTarget}
         onClose={() => setVoidTarget(null)}
         onConfirm={handleVoid}
+      />
+
+      <TaxInvoiceBuyerDialog
+        open={taxTarget !== null}
+        onOpenChange={(o) => { if (!o) setTaxTarget(null) }}
+        saleId={taxTarget?.saleId ?? null}
+        sale={taxTarget?.sale ?? null}
+        customerPrefill={taxTarget?.prefillName ? { name: taxTarget.prefillName } : undefined}
       />
     </>
   )

@@ -22,7 +22,10 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency, formatThaiDateHeader } from '@/lib/utils'
 import dayjs from 'dayjs'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings } from '@/types'
+import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings, ReceiptSettings, Setting, SaleForPrint } from '@/types'
+import { Checkbox } from '@/components/ui/checkbox'
+import { printSlip } from '@/lib/receipt/print'
+import { Printer } from 'lucide-react'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
@@ -142,6 +145,14 @@ export default function POSPage() {
 
   // Sales settings (alert thresholds + toggles) — loaded once on mount.
   const [salesSettings, setSalesSettings] = useState<SalesSettings | null>(null)
+  const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null)
+  const [shopInfo, setShopInfo] = useState<Partial<Setting>>({})
+  // Whether to print a slip after this sale. Initialized from auto_print once
+  // settings load; operator can override per-sale via the payment-modal checkbox.
+  const [printReceiptChecked, setPrintReceiptChecked] = useState(false)
+  // Snapshot of the just-completed sale, captured BEFORE the cart is cleared so
+  // the success dialog's "พิมพ์ซ้ำ" button can reprint without a refetch.
+  const [lastSaleForPrint, setLastSaleForPrint] = useState<SaleForPrint | null>(null)
 
   // Bundle row expansion: tracks cart row indices whose component list is open.
   // Keyed by idx because CartItem has no stable id — keep the Set in sync when
@@ -201,6 +212,18 @@ export default function POSPage() {
     window.api.settings.getSalesSettings()
       .then(data => { if (data) setSalesSettings(data as SalesSettings) })
       .catch(() => { /* keep defaults / no-alert mode */ })
+    window.api.settings.getReceiptSettings()
+      .then(data => {
+        if (data) {
+          const rs = data as ReceiptSettings
+          setReceiptSettings(rs)
+          setPrintReceiptChecked(rs.auto_print === 1)
+        }
+      })
+      .catch(() => { /* printing simply unavailable */ })
+    window.api.settings.getShop()
+      .then(data => { if (data) setShopInfo(data as Setting) })
+      .catch(() => {})
   }, [])
 
   const toggleBundleExpand = useCallback((idx: number) => {
@@ -671,6 +694,17 @@ export default function POSPage() {
   const totalPaid = (parseFloat(cashAmount) || 0) + (parseFloat(cardAmount) || 0) + (parseFloat(transferAmount) || 0)
   const change = totalPaid - pendingNet
 
+  // Print a completed sale's slip. Isolated from the save flow — a print
+  // failure must never roll back a committed sale; it just toasts so the
+  // operator can retry from the success dialog. VAT-on sales print the slip as
+  // an abbreviated tax invoice when that option is enabled.
+  const printCompletedSale = useCallback(async (sale: SaleForPrint) => {
+    if (!receiptSettings) { toast('ยังไม่ได้ตั้งค่าการพิมพ์ใบเสร็จ', 'error'); return }
+    const mode = receiptSettings.abbrev_tax_invoice && sale.total_vat > 0 ? 'abbrevTax' : 'receipt'
+    const res = await printSlip(sale, mode, { shop: shopInfo, settings: receiptSettings })
+    if (!res.success) toast(`พิมพ์ใบเสร็จไม่สำเร็จ: ${res.error ?? ''}`, 'error')
+  }, [receiptSettings, shopInfo, toast])
+
   const handleCompleteSale = async () => {
     if (saving) return
     if (cart.items.length === 0) { toast('กรุณาเพิ่มสินค้าในตะกร้า', 'error'); return }
@@ -678,23 +712,42 @@ export default function POSPage() {
     if (change < 0) { toast('รับเงินไม่พอ กรุณาตรวจสอบ', 'error'); return }
     setSaving(true)
     try {
+      // Build line items once — reused for both the saveBill payload and the
+      // print snapshot (so the slip matches exactly what was persisted).
+      const billItems = cart.items.map((i, idx) => {
+        const d = pendingEffectiveDiscounts[idx]
+        const line_total = i.qty * i.unit_price - d
+        // Per-unit VAT is backed out of the DISCOUNTED line, then divided by qty,
+        // so Σ(unit_vat × qty) reconciles exactly with total_vat (which is also
+        // computed on the discounted net). Using the raw unit_price here would
+        // overstate VAT on discounted lines.
+        const unit_vat = vatEnabled && i.qty > 0 ? extractVat(line_total, vatRate) / i.qty : 0
+        return { product_id: i.product_id, item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, qty_per_base: i.selectedUnit?.qty_per_base ?? 1, unit_price: i.unit_price, discount: d, unit_vat, line_total, item_note: i.item_note }
+      })
       const result = await window.api.pos.saveBill({
         sale_type: cart.saleType, customer_id: cart.customer?.id ?? null, customer_name_free: cart.customerNameFree,
-        items: cart.items.map((i, idx) => {
-          const d = pendingEffectiveDiscounts[idx]
-          const line_total = i.qty * i.unit_price - d
-          // Per-unit VAT is backed out of the DISCOUNTED line, then divided by qty,
-          // so Σ(unit_vat × qty) reconciles exactly with total_vat (which is also
-          // computed on the discounted net). Using the raw unit_price here would
-          // overstate VAT on discounted lines.
-          const unit_vat = vatEnabled && i.qty > 0 ? extractVat(line_total, vatRate) / i.qty : 0
-          return { product_id: i.product_id, item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, qty_per_base: i.selectedUnit?.qty_per_base ?? 1, unit_price: i.unit_price, discount: d, unit_vat, line_total, item_note: i.item_note }
-        }),
+        items: billItems,
         subtotal: cart.subtotal(), total_discount: pendingTotalDiscount, total_vat: pendingVat, total_amount: pendingNet,
         cash_amount: parseFloat(cashAmount) || 0, card_amount: parseFloat(cardAmount) || 0, transfer_amount: parseFloat(transferAmount) || 0,
         change_amount: Math.max(0, change), symptom_note: cart.symptomNote, age_range: cart.ageRange, sold_by: getCurrentUserId(),
       }) as any
+      // Snapshot for printing — taken before clearCart wipes the cart.
+      const snapshot: SaleForPrint = {
+        invoice_no: result.invoice_no,
+        sold_at: new Date().toISOString(),
+        sale_type: cart.saleType,
+        status: 'completed',
+        customer_name: cart.customer?.full_name ?? cart.customerNameFree ?? null,
+        items: billItems.map(b => ({
+          item_name: b.item_name, unit_name: b.unit_name, qty: b.qty,
+          unit_price: b.unit_price, discount: b.discount, unit_vat: b.unit_vat, line_total: b.line_total,
+        })),
+        subtotal: cart.subtotal(), total_discount: pendingTotalDiscount, total_vat: pendingVat, total_amount: pendingNet,
+        cash_amount: parseFloat(cashAmount) || 0, change_amount: Math.max(0, change),
+      }
+      const wantPrint = printReceiptChecked
       setLastInvoice(result.invoice_no)
+      setLastSaleForPrint(snapshot)
       setDailyStats({ bills: result.daily_bills, total: result.daily_total, latest: result.latest_bill_time })
       cart.clearCart(); setExpandedBundles(new Set()); setShowPayment(false); setShowSuccess(true)
       setCashAmount(''); setCardAmount(''); setTransferAmount('')
@@ -702,6 +755,8 @@ export default function POSPage() {
       // rows when stock runs out). Refresh the sidebar badge so the operator
       // sees the queue grow.
       useNegativeStockBadge.getState().refresh()
+      // Fire-and-forget print after the sale is committed.
+      if (wantPrint) void printCompletedSale(snapshot)
     } catch (err: any) { toast(err.message ?? 'เกิดข้อผิดพลาด', 'error') }
     finally { setSaving(false) }
   }
@@ -1800,11 +1855,18 @@ export default function POSPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2 mt-auto">
+                  <div className="mt-auto space-y-3">
+                    <label className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-4 h-12 cursor-pointer select-none">
+                      <Checkbox checked={printReceiptChecked} onCheckedChange={v => setPrintReceiptChecked(v === true)} />
+                      <Printer className="size-5 text-muted-foreground" />
+                      <span className="text-lg font-medium text-foreground">พิมพ์ใบเสร็จหลังชำระเงิน</span>
+                    </label>
+                    <div className="flex gap-2">
                         <Button variant="accent" className="flex-1 h-20 text-4xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
                           <HandCoins className="size-10" /> {saving ? 'กำลังบันทึก...' : ' ชำระเงิน'}
                         </Button>
-                   </div>
+                    </div>
+                  </div>
                   </div>
                 </div>
               )
@@ -2288,6 +2350,16 @@ export default function POSPage() {
         description={lastInvoice}
         confirmLabel="ตกลง"
         onConfirm={() => setShowSuccess(false)}
+        content={lastSaleForPrint ? (
+          <div className="flex justify-center">
+            <Button
+              variant="elevated"
+              onClick={() => { if (lastSaleForPrint) void printCompletedSale(lastSaleForPrint) }}
+            >
+              <Printer className="size-4" /> พิมพ์ใบเสร็จ
+            </Button>
+          </div>
+        ) : undefined}
       />
 
       {/* ── UNIT DIALOG ── */}

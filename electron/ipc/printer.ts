@@ -101,6 +101,28 @@ function buildReceipt(data: {
   return Buffer.from(result)
 }
 
+// Wait for webfonts + images + layout to settle before snapshotting/printing a
+// `data:` URL page. Without this Electron may capture the default font or
+// pre-layout sizing (same race the label handlers guard against).
+const WAIT_FOR_RENDER_JS = `
+  (async () => {
+    if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }
+    try { await Promise.all([...document.images].map(img => img.decode().catch(() => {}))) } catch {}
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+  })()
+`
+
+// Measure the rendered content height (px) → mm, clamped to a sane range with a
+// small bottom bleed. Used for continuous-roll slips where the page height is
+// not known ahead of time (1 CSS px = 1/96 inch).
+async function measureContentHeightMm(wc: Electron.WebContents): Promise<number> {
+  const px = await wc.executeJavaScript(
+    `Math.ceil(document.documentElement.getBoundingClientRect().height)`
+  ) as number
+  const mm = (px * 25.4) / 96
+  return Math.min(2000, Math.max(40, Math.ceil(mm) + 3))
+}
+
 export function registerPrinterHandlers() {
   ipcMain.handle('printer:printReceipt', async (_e, data: any) => {
     try {
@@ -202,6 +224,102 @@ export function registerPrinterHandlers() {
         margins: { top: 0, bottom: 0, left: 0, right: 0 },
       })
       const file = path.join(app.getPath('temp'), `label-preview-${Date.now()}.pdf`)
+      await fs.writeFile(file, pdf)
+      const err = await shell.openPath(file)
+      if (err) return { success: false, error: err }
+      return { success: true, path: file }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    } finally {
+      w.destroy()
+    }
+  })
+
+  // Generic silent HTML print for receipts/slips/tax invoices. Same mechanism
+  // as printLabel (render HTML in a hidden window → webContents.print silent)
+  // but supports continuous-roll auto height and N copies.
+  //   heightMm = 'auto' (default) → measure content, set a tall single page
+  //   heightMm = number          → fixed page (fallback for thermal drivers
+  //                                 that reject custom long pages)
+  ipcMain.handle('printer:printHtml', async (_e, args: {
+    html: string
+    printerName: string
+    paperWidthMm: number
+    heightMm?: number | 'auto'
+    copies?: number
+  }) => {
+    if (!(args.paperWidthMm > 0)) return { success: false, error: 'invalid paper width' }
+    const w = new BrowserWindow({ show: false, webPreferences: { offscreen: false } })
+    try {
+      await w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args.html))
+      await w.webContents.executeJavaScript(WAIT_FOR_RENDER_JS)
+
+      const heightMm = (args.heightMm == null || args.heightMm === 'auto')
+        ? await measureContentHeightMm(w.webContents)
+        : args.heightMm
+      if (!(heightMm > 0)) return { success: false, error: 'invalid paper height' }
+
+      const copies = Math.max(1, Math.min(20, Math.floor(args.copies ?? 1)))
+      for (let i = 0; i < copies; i++) {
+        // Sequential — wait for each job to be spooled before the next, so the
+        // driver doesn't drop/merge concurrent jobs.
+        await new Promise<void>((resolve, reject) => {
+          w.webContents.print({
+            silent: true,
+            deviceName: args.printerName || undefined,
+            pageSize: { width: Math.round(args.paperWidthMm * 1000), height: Math.round(heightMm * 1000) },
+            margins: { marginType: 'none' },
+            printBackground: true,
+            color: false,
+          }, (success, failureReason) => success ? resolve() : reject(new Error(failureReason)))
+        })
+      }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    } finally {
+      w.destroy()
+    }
+  })
+
+  // Render receipt/tax-invoice HTML to a PDF and open it — "what will print"
+  // preview without a physical printer. pageFormat ('A4'/'A5') for full tax
+  // invoices; otherwise width + auto/fixed height like a slip.
+  ipcMain.handle('printer:previewHtmlPdf', async (_e, args: {
+    html: string
+    paperWidthMm?: number
+    heightMm?: number | 'auto'
+    pageFormat?: 'A4' | 'A5'
+  }) => {
+    const w = new BrowserWindow({ show: false, webPreferences: { offscreen: false } })
+    try {
+      await w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args.html))
+      await w.webContents.executeJavaScript(WAIT_FOR_RENDER_JS)
+
+      let pdfOpts: Electron.PrintToPDFOptions
+      if (args.pageFormat) {
+        // Page margin is baked into the HTML body padding, so use zero PDF
+        // margins to avoid double margins.
+        pdfOpts = {
+          printBackground: true,
+          preferCSSPageSize: true,
+          pageSize: args.pageFormat,
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        }
+      } else {
+        const widthMm = args.paperWidthMm && args.paperWidthMm > 0 ? args.paperWidthMm : 80
+        const heightMm = (args.heightMm == null || args.heightMm === 'auto')
+          ? await measureContentHeightMm(w.webContents)
+          : args.heightMm
+        pdfOpts = {
+          printBackground: true,
+          preferCSSPageSize: true,
+          pageSize: { width: Math.round(widthMm * 1000), height: Math.round(heightMm * 1000) },
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        }
+      }
+      const pdf = await w.webContents.printToPDF(pdfOpts)
+      const file = path.join(app.getPath('temp'), `receipt-preview-${Date.now()}.pdf`)
       await fs.writeFile(file, pdf)
       const err = await shell.openPath(file)
       if (err) return { success: false, error: err }

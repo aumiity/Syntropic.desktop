@@ -114,6 +114,9 @@ export function seedDatabase(db: Database.Database) {
   // pattern that's actually idempotent across launches.
   db.prepare(`INSERT INTO label_settings (id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM label_settings)`).run()
 
+  // Default receipt/slip settings (singleton) — same NOT EXISTS idempotency.
+  db.prepare(`INSERT INTO receipt_settings (id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM receipt_settings)`).run()
+
   // General customer (catch-all). Walk-in is modelled as this real row, never
   // a NULL customer_id — see the walk-in invariant in CLAUDE.md.
   db.prepare(`INSERT OR IGNORE INTO customers (code, full_name) VALUES (?, ?)`).run('C0000', 'ลูกค้าทั่วไป')

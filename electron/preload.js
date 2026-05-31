@@ -104,6 +104,8 @@ var api = {
         saveLabelSettings: function (data) { return ipcRenderer.invoke('settings:saveLabelSettings', data); },
         getSalesSettings: function () { return ipcRenderer.invoke('settings:getSalesSettings'); },
         saveSalesSettings: function (data) { return ipcRenderer.invoke('settings:saveSalesSettings', data); },
+        getReceiptSettings: function () { return ipcRenderer.invoke('settings:getReceiptSettings'); },
+        saveReceiptSettings: function (data) { return ipcRenderer.invoke('settings:saveReceiptSettings', data); },
         listLabelFrequencies: function () { return ipcRenderer.invoke('settings:listLabelFrequencies'); },
         listLabelDosages: function () { return ipcRenderer.invoke('settings:listLabelDosages'); },
         listLabelMealRelations: function () { return ipcRenderer.invoke('settings:listLabelMealRelations'); },
@@ -135,6 +137,17 @@ var api = {
         previewLabelPdf: function (args) {
             return ipcRenderer.invoke('printer:previewLabelPdf', args);
         },
+        printHtml: function (args) {
+            return ipcRenderer.invoke('printer:printHtml', args);
+        },
+        previewHtmlPdf: function (args) {
+            return ipcRenderer.invoke('printer:previewHtmlPdf', args);
+        },
+    },
+    // Tax invoices (ใบกำกับภาษีเต็มรูป)
+    tax: {
+        get: function (saleId) { return ipcRenderer.invoke('tax:get', saleId); },
+        issueOrGet: function (payload) { return ipcRenderer.invoke('tax:issueOrGet', payload); },
     },
     // Window controls
     window: {
