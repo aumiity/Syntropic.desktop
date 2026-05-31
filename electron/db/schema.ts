@@ -528,6 +528,7 @@ export function initializeSchema(db: Database.Database) {
       total_vat REAL NOT NULL DEFAULT 0,
       total_amount REAL NOT NULL DEFAULT 0,
       note TEXT NOT NULL DEFAULT '',
+      converted_invoice_no TEXT,
       created_by INTEGER REFERENCES users(id),
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -706,6 +707,8 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE sales_settings DROP COLUMN expiry_danger_months`,
     // Seller branch for tax invoices (ม.86/4 requires "สำนักงานใหญ่"/branch no.).
     `ALTER TABLE settings ADD COLUMN shop_branch TEXT NOT NULL DEFAULT 'สำนักงานใหญ่'`,
+    // Quotation → sale conversion: link to the resulting sale invoice.
+    `ALTER TABLE quotations ADD COLUMN converted_invoice_no TEXT`,
   ]) {
     try { db.exec(sql) } catch {}
   }

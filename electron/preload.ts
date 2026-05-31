@@ -4,6 +4,7 @@ const api = {
   // POS
   pos: {
     searchProducts: (q: string) => ipcRenderer.invoke('pos:searchProducts', q),
+    getProductsByIds: (ids: number[]) => ipcRenderer.invoke('pos:getProductsByIds', ids),
     searchCustomers: (q: string) => ipcRenderer.invoke('pos:searchCustomers', q),
     saveBill: (payload: any) => ipcRenderer.invoke('pos:saveBill', payload),
     getDailyStats: () => ipcRenderer.invoke('pos:getDailyStats'),
@@ -151,6 +152,9 @@ const api = {
     get: (id: number) => ipcRenderer.invoke('quotation:get', id),
     setStatus: (payload: { id: number; status: string }) => ipcRenderer.invoke('quotation:setStatus', payload),
     delete: (id: number) => ipcRenderer.invoke('quotation:delete', id),
+    beginConversion: (id: number) => ipcRenderer.invoke('quotation:beginConversion', id),
+    releaseConversion: (id: number) => ipcRenderer.invoke('quotation:releaseConversion', id),
+    markConverted: (payload: { id: number; invoice_no: string }) => ipcRenderer.invoke('quotation:markConverted', payload),
   },
   // Tax invoices (ใบกำกับภาษีเต็มรูป)
   tax: {

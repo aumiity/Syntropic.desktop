@@ -217,7 +217,8 @@ export interface Quotation {
   customer_tax_id: string
   issue_date: string
   valid_until?: string | null
-  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted'
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'converting' | 'converted'
+  converted_invoice_no?: string | null
   vat_enabled: number
   vat_rate: number
   subtotal: number

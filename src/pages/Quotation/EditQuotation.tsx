@@ -16,19 +16,20 @@ import { SearchInput } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
 import { QuotationProductSearchDialog, type PickedProduct } from '@/components/dialogs/QuotationProductSearchDialog'
 import { printQuotation, previewQuotation } from '@/lib/receipt/print'
+import { useQuotationConvert } from '@/lib/quotation/useConvert'
 import { extractVat } from '@/lib/vat'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { getCurrentUserId } from '@/stores/userStore'
 import type { QuotationForPrint, QuotationItem } from '@/types'
-import { ArrowLeft, Save, Printer, FileText, Plus, Trash2, UserSearch } from 'lucide-react'
+import { ArrowLeft, Save, Printer, FileText, Plus, Trash2, UserSearch, ShoppingCart, Play, X } from 'lucide-react'
 
 interface LineRow extends QuotationItem {}
 
 const STATUS_LABEL: Record<string, string> = {
-  draft: 'ร่าง', sent: 'ส่งแล้ว', accepted: 'ตอบรับ', rejected: 'ปฏิเสธ', converted: 'แปลงเป็นบิลแล้ว',
+  draft: 'ร่าง', sent: 'ส่งแล้ว', accepted: 'ตอบรับ', rejected: 'ปฏิเสธ', converting: 'กำลังแปลง', converted: 'แปลงเป็นบิลแล้ว',
 }
 const STATUS_VARIANT: Record<string, any> = {
-  draft: 'neutral-outline', sent: 'info-outline', accepted: 'success-outline', rejected: 'destructive-outline', converted: 'violet-outline',
+  draft: 'neutral-outline', sent: 'info-outline', accepted: 'success-outline', rejected: 'destructive-outline', converting: 'warning-outline', converted: 'violet-outline',
 }
 
 // Inline customer picker — searches via pos:searchCustomers and returns the
@@ -75,6 +76,7 @@ export default function EditQuotation() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
+  const convert = useQuotationConvert()
 
   const [quoteId, setQuoteId] = useState<number | null>(id ? Number(id) : null)
   const [quoteNo, setQuoteNo] = useState<string>('')
@@ -86,6 +88,7 @@ export default function EditQuotation() {
   const [customerTaxId, setCustomerTaxId] = useState('')
   const [validUntil, setValidUntil] = useState<string>(dayjs().add(30, 'day').format('YYYY-MM-DD'))
   const [note, setNote] = useState('')
+  const [convertedInvoiceNo, setConvertedInvoiceNo] = useState<string | null>(null)
   const [items, setItems] = useState<LineRow[]>([])
   const [vatEnabled, setVatEnabled] = useState(false)
   const [vatRate, setVatRate] = useState(7)
@@ -107,6 +110,7 @@ export default function EditQuotation() {
         setCustomerName(q.customer_name ?? ''); setCustomerAddress(q.customer_address ?? ''); setCustomerTaxId(q.customer_tax_id ?? '')
         setValidUntil(q.valid_until?.slice(0, 10) ?? '')
         setNote(q.note ?? ''); setItems(q.items ?? [])
+        setConvertedInvoiceNo(q.converted_invoice_no ?? null)
         setVatEnabled(q.vat_enabled === 1); setVatRate(q.vat_rate ?? 7)
       })
     } else {
@@ -188,6 +192,15 @@ export default function EditQuotation() {
     } finally { setBusyPrint(false) }
   }
 
+  const cancelConversion = async () => {
+    if (!quoteId) return
+    try {
+      await window.api.quotation.releaseConversion(quoteId)
+      toast({ title: 'ยกเลิกการแปลงแล้ว', variant: 'success' })
+      setStatus('accepted')
+    } catch (e: any) { toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }) }
+  }
+
   const canPrint = !!quoteId && items.length > 0
 
   return (
@@ -205,6 +218,21 @@ export default function EditQuotation() {
             <Button variant="elevated" className="h-10" onClick={handlePrint} disabled={!canPrint || busyPrint}>
               <Printer className="size-4" /> พิมพ์
             </Button>
+            {status === 'accepted' && quoteId && (
+              <Button className="h-10" onClick={() => convert.start(quoteId)}>
+                <ShoppingCart className="size-4" /> แปลงเป็นการขาย
+              </Button>
+            )}
+            {status === 'converting' && quoteId && (
+              <>
+                <Button className="h-10" onClick={() => convert.start(quoteId)}>
+                  <Play className="size-4" /> ดำเนินการขายต่อ
+                </Button>
+                <Button variant="elevated" className="h-10" onClick={cancelConversion}>
+                  <X className="size-4" /> ยกเลิกการแปลง
+                </Button>
+              </>
+            )}
             {!readOnly && (
               <Button className="h-10" onClick={handleSave} disabled={saving}>
                 <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : 'บันทึก'}
@@ -216,7 +244,10 @@ export default function EditQuotation() {
 
       <div className="flex items-center gap-2 shrink-0">
         <Badge variant={STATUS_VARIANT[status] ?? 'secondary'}>{STATUS_LABEL[status] ?? status}</Badge>
-        {readOnly && <span className="text-sm text-muted-foreground">ใบนี้พ้นสถานะร่างแล้ว — แก้ไขไม่ได้ (ดู/พิมพ์ได้)</span>}
+        {status === 'converted' && convertedInvoiceNo && (
+          <span className="text-sm text-muted-foreground">แปลงเป็นบิล <span className="font-medium text-foreground">{convertedInvoiceNo}</span></span>
+        )}
+        {readOnly && status !== 'converted' && <span className="text-sm text-muted-foreground">ใบนี้พ้นสถานะร่างแล้ว — แก้ไขไม่ได้ (ดู/พิมพ์ได้)</span>}
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto pb-4 [scrollbar-gutter:stable] space-y-4">
@@ -310,6 +341,7 @@ export default function EditQuotation() {
 
       <QuotationProductSearchDialog open={productOpen} onOpenChange={setProductOpen} onPick={addPicked} />
       <CustomerPickDialog open={customerOpen} onOpenChange={setCustomerOpen} onPick={pickCustomer} />
+      {convert.dialogs}
     </div>
   )
 }

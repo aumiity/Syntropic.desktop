@@ -132,7 +132,14 @@
       "Bash(env -u ELECTRON_RUN_AS_NODE node /tmp/syn-e2e.cjs)",
       "Bash(sips -g pixelWidth -g pixelHeight /tmp/slip_full.png)",
       "Bash(pkill -f \"vite.e2e.config\")",
-      "Bash(pkill -f \"vite --config\")"
+      "Bash(pkill -f \"vite --config\")",
+      "Bash(echo \"pid $!\")",
+      "Bash(rm -f /tmp/cv-*.png)",
+      "Bash(env -u ELECTRON_RUN_AS_NODE node /tmp/syn-convert-e2e.cjs)",
+      "Bash(cd /Users/anya/Documents/GitHub/Syntropic.desktop *)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
     ]
   }
 }

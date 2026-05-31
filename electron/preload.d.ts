@@ -1,6 +1,7 @@
 declare const api: {
     pos: {
         searchProducts: (q: string) => Promise<any>;
+        getProductsByIds: (ids: number[]) => Promise<any>;
         searchCustomers: (q: string) => Promise<any>;
         saveBill: (payload: any) => Promise<any>;
         getDailyStats: () => Promise<any>;
@@ -216,6 +217,12 @@ declare const api: {
             status: string;
         }) => Promise<any>;
         delete: (id: number) => Promise<any>;
+        beginConversion: (id: number) => Promise<any>;
+        releaseConversion: (id: number) => Promise<any>;
+        markConverted: (payload: {
+            id: number;
+            invoice_no: string;
+        }) => Promise<any>;
     };
     tax: {
         get: (saleId: number) => Promise<any>;

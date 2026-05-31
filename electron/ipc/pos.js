@@ -37,6 +37,23 @@ function deductFefo(db, productId, baseQty, saleItemId, saleId, invoiceNo, soldB
             .run(saleItemId, productId, remaining);
     }
 }
+// Attach the POS-facing detail to a product row: open lots (expiry-ASC),
+// sellable non-base units, and (for bundles) composition + component lots.
+// Shared by pos:searchProducts and pos:getProductsByIds so a cart line rebuilt
+// from a quotation is identical to one added via the POS search.
+function enrichProduct(db, prod) {
+    prod.lots = db.prepare("\n    SELECT * FROM product_lots\n    WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0\n    ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC\n  ").all(prod.id);
+    prod.units = db.prepare("\n    SELECT pu.*, u.name as unit_name FROM product_units pu\n    JOIN item_units u ON u.id = pu.unit_id\n    WHERE pu.product_id = ? AND pu.is_disabled = 0 AND pu.is_for_sale = 1\n    ORDER BY pu.qty_per_base ASC\n  ").all(prod.id);
+    if (prod.is_bundle === 1) {
+        var items = db.prepare("\n      SELECT bi.*,\n             c.trade_name as component_name,\n             u.name as component_unit_name,\n             c.cost_price as component_cost\n      FROM product_bundle_items bi\n      JOIN products c ON c.id = bi.component_product_id\n      LEFT JOIN item_units u ON u.id = c.unit_id\n      WHERE bi.bundle_id = ?\n      ORDER BY bi.sort_order, bi.id\n    ").all(prod.id);
+        for (var _i = 0, items_1 = items; _i < items_1.length; _i++) {
+            var it = items_1[_i];
+            it.lots = db.prepare("\n        SELECT * FROM product_lots\n        WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0\n        ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC\n      ").all(it.component_product_id);
+        }
+        prod.bundle_items = items;
+    }
+    return prod;
+}
 export function registerPosHandlers() {
     // Search products for POS
     ipcMain.handle('pos:searchProducts', function (_e, query) {
@@ -48,18 +65,25 @@ export function registerPosHandlers() {
         var products = db.prepare("\n      SELECT p.*, c.name as category_name, dt.name_th as drug_type_name,\n             u.name as unit_name\n      FROM products p\n      LEFT JOIN product_categories c ON c.id = p.category_id\n      LEFT JOIN drug_types dt ON dt.id = p.drug_type_id\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      WHERE p.is_disabled = 0\n        AND (p.trade_name LIKE ? OR p.barcode LIKE ? OR p.barcode2 LIKE ?\n             OR p.barcode3 LIKE ? OR p.barcode4 LIKE ?\n             OR p.code LIKE ? OR p.search_keywords LIKE ?)\n      ORDER BY\n        CASE\n          WHEN p.trade_name LIKE ? THEN 1\n          WHEN p.code LIKE ? THEN 2\n          WHEN p.search_keywords LIKE ? OR p.search_keywords LIKE ? OR p.search_keywords LIKE ? THEN 3\n          ELSE 4\n        END,\n        ".concat(orderByBucket('p.trade_name'), "\n      LIMIT 30\n    ")).all(q, q, q, q, q, q, q, prefix, prefix, prefix, kwMid, kwMidSp);
         for (var _i = 0, _a = products; _i < _a.length; _i++) {
             var prod = _a[_i];
-            prod.lots = db.prepare("\n        SELECT * FROM product_lots\n        WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0\n        ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC\n      ").all(prod.id);
-            prod.units = db.prepare("\n        SELECT pu.*, u.name as unit_name FROM product_units pu\n        JOIN item_units u ON u.id = pu.unit_id\n        WHERE pu.product_id = ? AND pu.is_disabled = 0 AND pu.is_for_sale = 1\n        ORDER BY pu.qty_per_base ASC\n      ").all(prod.id);
-            // Bundles carry composition + per-component lots so POS can FEFO-cost
-            // the preview without a second round-trip.
-            if (prod.is_bundle === 1) {
-                var items = db.prepare("\n          SELECT bi.*,\n                 c.trade_name as component_name,\n                 u.name as component_unit_name,\n                 c.cost_price as component_cost\n          FROM product_bundle_items bi\n          JOIN products c ON c.id = bi.component_product_id\n          LEFT JOIN item_units u ON u.id = c.unit_id\n          WHERE bi.bundle_id = ?\n          ORDER BY bi.sort_order, bi.id\n        ").all(prod.id);
-                for (var _b = 0, items_1 = items; _b < items_1.length; _b++) {
-                    var it = items_1[_b];
-                    it.lots = db.prepare("\n            SELECT * FROM product_lots\n            WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0\n            ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC\n          ").all(it.component_product_id);
-                }
-                prod.bundle_items = items;
-            }
+            enrichProduct(db, prod);
+        }
+        return products;
+    });
+    // Fetch enabled products by ids in the same enriched shape as searchProducts.
+    // Used to rebuild POS cart lines when converting a quotation to a sale.
+    // Disabled/missing products are simply omitted — the caller treats any id it
+    // asked for but didn't get back as "cannot sell" and blocks the conversion.
+    ipcMain.handle('pos:getProductsByIds', function (_e, ids) {
+        var _a;
+        var db = getDb();
+        var unique = Array.from(new Set((ids !== null && ids !== void 0 ? ids : []).filter(function (n) { return Number.isInteger(n); })));
+        if (unique.length === 0)
+            return [];
+        var placeholders = unique.map(function () { return '?'; }).join(',');
+        var products = (_a = db.prepare("\n      SELECT p.*, c.name as category_name, dt.name_th as drug_type_name, u.name as unit_name\n      FROM products p\n      LEFT JOIN product_categories c ON c.id = p.category_id\n      LEFT JOIN drug_types dt ON dt.id = p.drug_type_id\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      WHERE p.is_disabled = 0 AND p.id IN (".concat(placeholders, ")\n    "))).all.apply(_a, unique);
+        for (var _i = 0, products_1 = products; _i < products_1.length; _i++) {
+            var prod = products_1[_i];
+            enrichProduct(db, prod);
         }
         return products;
     });

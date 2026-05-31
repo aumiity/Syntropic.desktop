@@ -15,12 +15,13 @@ import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { printQuotation, previewQuotation } from '@/lib/receipt/print'
+import { useQuotationConvert } from '@/lib/quotation/useConvert'
 import type { Quotation } from '@/types'
-import { FileText, Plus, MoreHorizontal, Pencil, Printer, Trash2, Check, Filter, Send, ThumbsUp, ThumbsDown, Undo2 } from 'lucide-react'
+import { FileText, Plus, MoreHorizontal, Pencil, Printer, Trash2, Check, Filter, Send, ThumbsUp, ThumbsDown, Undo2, ShoppingCart, Play, X } from 'lucide-react'
 
 type StatusFilter = 'all' | 'draft' | 'sent' | 'accepted' | 'rejected'
-const STATUS_LABEL: Record<string, string> = { draft: 'ร่าง', sent: 'ส่งแล้ว', accepted: 'ตอบรับ', rejected: 'ปฏิเสธ', converted: 'แปลงแล้ว', expired: 'หมดอายุ' }
-const STATUS_VARIANT: Record<string, any> = { draft: 'neutral-outline', sent: 'info-outline', accepted: 'success-outline', rejected: 'destructive-outline', converted: 'violet-outline', expired: 'warning-outline' }
+const STATUS_LABEL: Record<string, string> = { draft: 'ร่าง', sent: 'ส่งแล้ว', accepted: 'ตอบรับ', rejected: 'ปฏิเสธ', converting: 'กำลังแปลง', converted: 'แปลงแล้ว', expired: 'หมดอายุ' }
+const STATUS_VARIANT: Record<string, any> = { draft: 'neutral-outline', sent: 'info-outline', accepted: 'success-outline', rejected: 'destructive-outline', converting: 'warning-outline', converted: 'violet-outline', expired: 'warning-outline' }
 
 // Allowed transitions mirror the IPC guard (quotation:setStatus).
 const TRANSITIONS: Record<string, { to: string; label: string; icon: any }[]> = {
@@ -46,6 +47,7 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 export default function QuotationList() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const convert = useQuotationConvert()
   const today = new Date().toISOString().slice(0, 10)
 
   const [q, setQ] = useState('')
@@ -100,6 +102,13 @@ export default function QuotationList() {
       toast({ title: 'เปลี่ยนสถานะแล้ว', variant: 'success' })
       load(page)
     } catch (e: any) { toast({ title: 'เปลี่ยนสถานะไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }) }
+  }
+  const cancelConversion = async (id: number) => {
+    try {
+      await window.api.quotation.releaseConversion(id)
+      toast({ title: 'ยกเลิกการแปลงแล้ว', variant: 'success' })
+      load(page)
+    } catch (e: any) { toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }) }
   }
   const doDelete = async () => {
     if (!deleteTarget) return
@@ -179,7 +188,12 @@ export default function QuotationList() {
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">{qrow.valid_until ? formatDate(qrow.valid_until) : '—'}</TableCell>
                     <TableCell className="text-sm text-right text-foreground">{formatCurrency(qrow.total_amount)}</TableCell>
-                    <TableCell><Badge variant={STATUS_VARIANT[st] ?? 'secondary'}>{STATUS_LABEL[st] ?? st}</Badge></TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_VARIANT[st] ?? 'secondary'}>{STATUS_LABEL[st] ?? st}</Badge>
+                      {qrow.status === 'converted' && qrow.converted_invoice_no && (
+                        <div className="text-xs font-normal text-muted-foreground mt-0.5">{qrow.converted_invoice_no}</div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex justify-center">
                         <Popover>
@@ -196,6 +210,19 @@ export default function QuotationList() {
                             <button type="button" onClick={() => doPreview(qrow.id)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                               <FileText className="size-4" /> ดูตัวอย่าง PDF
                             </button>
+                            {qrow.status === 'accepted' && (
+                              <button type="button" onClick={() => convert.start(qrow.id)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-primary hover:bg-primary/10 transition-colors">
+                                <ShoppingCart className="size-4" /> แปลงเป็นการขาย
+                              </button>
+                            )}
+                            {qrow.status === 'converting' && (<>
+                              <button type="button" onClick={() => convert.start(qrow.id)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-primary hover:bg-primary/10 transition-colors">
+                                <Play className="size-4" /> ดำเนินการขายต่อ
+                              </button>
+                              <button type="button" onClick={() => cancelConversion(qrow.id)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                                <X className="size-4" /> ยกเลิกการแปลง
+                              </button>
+                            </>)}
                             {trans.map(t => (
                               <button key={t.to} type="button" onClick={() => changeStatus(qrow.id, t.to)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                                 <t.icon className="size-4" /> {t.label}
@@ -238,6 +265,7 @@ export default function QuotationList() {
         confirmLabel="ลบ"
         onConfirm={doDelete}
       />
+      {convert.dialogs}
     </div>
   )
 }

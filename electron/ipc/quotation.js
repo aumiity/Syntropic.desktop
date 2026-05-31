@@ -154,6 +154,9 @@ export function registerQuotationHandlers() {
         return quote;
     });
     // Status transitions: draft→sent, sent→accepted|rejected, sent→draft (revert).
+    // NOTE: 'converting'/'converted' are NOT reachable here — conversion has its
+    // own dedicated, atomic handlers below so 'converted' always carries an
+    // invoice link (single write path).
     ipcMain.handle('quotation:setStatus', function (_e, payload) {
         var _a;
         var db = getDb();
@@ -165,12 +168,42 @@ export function registerQuotationHandlers() {
             sent: ['accepted', 'rejected', 'draft'],
             accepted: [],
             rejected: [],
+            converting: [],
             converted: [],
         };
         if (!((_a = allowed[cur.status]) !== null && _a !== void 0 ? _a : []).includes(payload.status)) {
             throw new Error("\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E08\u0E32\u0E01 ".concat(cur.status, " \u0E40\u0E1B\u0E47\u0E19 ").concat(payload.status, " \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49"));
         }
         db.prepare("UPDATE quotations SET status = ?, updated_at = datetime('now','localtime') WHERE id = ?").run(payload.status, payload.id);
+        return db.prepare("SELECT * FROM quotations WHERE id = ?").get(payload.id);
+    });
+    // ── Conversion to a sale (exclusive claim → sell → mark) ──
+    // Atomically claim an accepted quote (accepted→converting) BEFORE the cart is
+    // populated, so the same quote can't be sold twice from two windows/terminals.
+    ipcMain.handle('quotation:beginConversion', function (_e, id) {
+        var db = getDb();
+        var res = db.prepare("UPDATE quotations SET status='converting', updated_at=datetime('now','localtime') WHERE id=? AND status='accepted'").run(id);
+        if (res.changes === 0) {
+            var cur = db.prepare("SELECT status FROM quotations WHERE id = ?").get(id);
+            if (!cur)
+                throw new Error('ไม่พบใบเสนอราคา');
+            throw new Error('ใบนี้ถูกแปลงหรือกำลังแปลงอยู่แล้ว');
+        }
+        return db.prepare("SELECT * FROM quotations WHERE id = ?").get(id);
+    });
+    // Release a claim back to accepted (operator cancelled the conversion).
+    ipcMain.handle('quotation:releaseConversion', function (_e, id) {
+        var db = getDb();
+        db.prepare("UPDATE quotations SET status='accepted', updated_at=datetime('now','localtime') WHERE id=? AND status='converting'").run(id);
+        return db.prepare("SELECT * FROM quotations WHERE id = ?").get(id);
+    });
+    // The ONLY path that writes 'converted' — always records the linked invoice.
+    ipcMain.handle('quotation:markConverted', function (_e, payload) {
+        var db = getDb();
+        var res = db.prepare("UPDATE quotations SET status='converted', converted_invoice_no=?, updated_at=datetime('now','localtime') WHERE id=? AND status='converting'")
+            .run(payload.invoice_no, payload.id);
+        if (res.changes === 0)
+            throw new Error('ใบเสนอราคาไม่อยู่ในสถานะกำลังแปลง');
         return db.prepare("SELECT * FROM quotations WHERE id = ?").get(payload.id);
     });
     // Delete — draft only (items cascade).

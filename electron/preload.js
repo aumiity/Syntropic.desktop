@@ -3,6 +3,7 @@ var api = {
     // POS
     pos: {
         searchProducts: function (q) { return ipcRenderer.invoke('pos:searchProducts', q); },
+        getProductsByIds: function (ids) { return ipcRenderer.invoke('pos:getProductsByIds', ids); },
         searchCustomers: function (q) { return ipcRenderer.invoke('pos:searchCustomers', q); },
         saveBill: function (payload) { return ipcRenderer.invoke('pos:saveBill', payload); },
         getDailyStats: function () { return ipcRenderer.invoke('pos:getDailyStats'); },
@@ -151,6 +152,9 @@ var api = {
         get: function (id) { return ipcRenderer.invoke('quotation:get', id); },
         setStatus: function (payload) { return ipcRenderer.invoke('quotation:setStatus', payload); },
         delete: function (id) { return ipcRenderer.invoke('quotation:delete', id); },
+        beginConversion: function (id) { return ipcRenderer.invoke('quotation:beginConversion', id); },
+        releaseConversion: function (id) { return ipcRenderer.invoke('quotation:releaseConversion', id); },
+        markConverted: function (payload) { return ipcRenderer.invoke('quotation:markConverted', payload); },
     },
     // Tax invoices (ใบกำกับภาษีเต็มรูป)
     tax: {

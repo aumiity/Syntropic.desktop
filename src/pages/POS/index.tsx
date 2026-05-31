@@ -25,7 +25,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings, ReceiptSettings, Setting, SaleForPrint } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { printSlip } from '@/lib/receipt/print'
-import { Printer } from 'lucide-react'
+import { Printer, FileText } from 'lucide-react'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
@@ -746,6 +746,9 @@ export default function POSPage() {
         cash_amount: parseFloat(cashAmount) || 0, change_amount: Math.max(0, change),
       }
       const wantPrint = printReceiptChecked
+      // Capture the source quotation before clearCart wipes it — mark it
+      // converted after the sale is committed (best-effort).
+      const srcQuote = cart.sourceQuotation
       setLastInvoice(result.invoice_no)
       setLastSaleForPrint(snapshot)
       setDailyStats({ bills: result.daily_bills, total: result.daily_total, latest: result.latest_bill_time })
@@ -757,6 +760,11 @@ export default function POSPage() {
       useNegativeStockBadge.getState().refresh()
       // Fire-and-forget print after the sale is committed.
       if (wantPrint) void printCompletedSale(snapshot)
+      // Mark the source quotation converted — must not fail the (committed) sale.
+      if (srcQuote) {
+        window.api.quotation.markConverted({ id: srcQuote.id, invoice_no: result.invoice_no })
+          .catch((e: any) => toast(`อัปเดตใบเสนอราคาไม่สำเร็จ: ${e?.message ?? ''}`, 'error'))
+      }
     } catch (err: any) { toast(err.message ?? 'เกิดข้อผิดพลาด', 'error') }
     finally { setSaving(false) }
   }
@@ -786,6 +794,27 @@ export default function POSPage() {
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
 
       <PageHeader title="หน้าจอการขายสินค้า" />
+
+      {cart.sourceQuotation && (
+        <div className="shrink-0 flex items-center gap-2 rounded-lg border border-info/30 bg-info-soft px-3 h-10 text-sm">
+          <FileText className="size-4 text-info-foreground" />
+          <span className="text-foreground">กำลังขายจากใบเสนอราคา <span className="font-semibold">{cart.sourceQuotation.quote_no}</span> — ปิดการขายเพื่อยืนยัน</span>
+          <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              const src = cart.sourceQuotation
+              if (!src) return
+              try { await window.api.quotation.releaseConversion(src.id) } catch { /* ignore */ }
+              cart.setSourceQuotation(null)
+              toast('ยกเลิกการแปลงจากใบเสนอราคาแล้ว', 'success')
+            }}
+          >
+            <X className="size-4" /> ยกเลิกการแปลง
+          </Button>
+        </div>
+      )}
 
       <div className="flex gap-3 flex-1 min-h-0">
 

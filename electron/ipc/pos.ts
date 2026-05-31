@@ -55,6 +55,48 @@ function deductFefo(
   }
 }
 
+// Attach the POS-facing detail to a product row: open lots (expiry-ASC),
+// sellable non-base units, and (for bundles) composition + component lots.
+// Shared by pos:searchProducts and pos:getProductsByIds so a cart line rebuilt
+// from a quotation is identical to one added via the POS search.
+function enrichProduct(db: any, prod: any): any {
+  prod.lots = db.prepare(`
+    SELECT * FROM product_lots
+    WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0
+    ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC
+  `).all(prod.id)
+
+  prod.units = db.prepare(`
+    SELECT pu.*, u.name as unit_name FROM product_units pu
+    JOIN item_units u ON u.id = pu.unit_id
+    WHERE pu.product_id = ? AND pu.is_disabled = 0 AND pu.is_for_sale = 1
+    ORDER BY pu.qty_per_base ASC
+  `).all(prod.id)
+
+  if (prod.is_bundle === 1) {
+    const items = db.prepare(`
+      SELECT bi.*,
+             c.trade_name as component_name,
+             u.name as component_unit_name,
+             c.cost_price as component_cost
+      FROM product_bundle_items bi
+      JOIN products c ON c.id = bi.component_product_id
+      LEFT JOIN item_units u ON u.id = c.unit_id
+      WHERE bi.bundle_id = ?
+      ORDER BY bi.sort_order, bi.id
+    `).all(prod.id) as any[]
+    for (const it of items) {
+      it.lots = db.prepare(`
+        SELECT * FROM product_lots
+        WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0
+        ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC
+      `).all(it.component_product_id)
+    }
+    prod.bundle_items = items
+  }
+  return prod
+}
+
 export function registerPosHandlers() {
   // Search products for POS
   ipcMain.handle('pos:searchProducts', (_e, query: string) => {
@@ -85,45 +127,29 @@ export function registerPosHandlers() {
       LIMIT 30
     `).all(q, q, q, q, q, q, q, prefix, prefix, prefix, kwMid, kwMidSp)
 
-    for (const prod of products as any[]) {
-      prod.lots = db.prepare(`
-        SELECT * FROM product_lots
-        WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0
-        ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC
-      `).all(prod.id)
+    for (const prod of products as any[]) enrichProduct(db, prod)
 
-      prod.units = db.prepare(`
-        SELECT pu.*, u.name as unit_name FROM product_units pu
-        JOIN item_units u ON u.id = pu.unit_id
-        WHERE pu.product_id = ? AND pu.is_disabled = 0 AND pu.is_for_sale = 1
-        ORDER BY pu.qty_per_base ASC
-      `).all(prod.id)
+    return products
+  })
 
-      // Bundles carry composition + per-component lots so POS can FEFO-cost
-      // the preview without a second round-trip.
-      if (prod.is_bundle === 1) {
-        const items = db.prepare(`
-          SELECT bi.*,
-                 c.trade_name as component_name,
-                 u.name as component_unit_name,
-                 c.cost_price as component_cost
-          FROM product_bundle_items bi
-          JOIN products c ON c.id = bi.component_product_id
-          LEFT JOIN item_units u ON u.id = c.unit_id
-          WHERE bi.bundle_id = ?
-          ORDER BY bi.sort_order, bi.id
-        `).all(prod.id) as any[]
-        for (const it of items) {
-          it.lots = db.prepare(`
-            SELECT * FROM product_lots
-            WHERE product_id = ? AND qty_on_hand > 0 AND is_closed = 0
-            ORDER BY CASE WHEN expiry_date IS NULL THEN '9999-99-99' ELSE expiry_date END ASC
-          `).all(it.component_product_id)
-        }
-        prod.bundle_items = items
-      }
-    }
-
+  // Fetch enabled products by ids in the same enriched shape as searchProducts.
+  // Used to rebuild POS cart lines when converting a quotation to a sale.
+  // Disabled/missing products are simply omitted — the caller treats any id it
+  // asked for but didn't get back as "cannot sell" and blocks the conversion.
+  ipcMain.handle('pos:getProductsByIds', (_e, ids: number[]) => {
+    const db = getDb()
+    const unique = Array.from(new Set((ids ?? []).filter(n => Number.isInteger(n))))
+    if (unique.length === 0) return []
+    const placeholders = unique.map(() => '?').join(',')
+    const products = db.prepare(`
+      SELECT p.*, c.name as category_name, dt.name_th as drug_type_name, u.name as unit_name
+      FROM products p
+      LEFT JOIN product_categories c ON c.id = p.category_id
+      LEFT JOIN drug_types dt ON dt.id = p.drug_type_id
+      LEFT JOIN item_units u ON u.id = p.unit_id
+      WHERE p.is_disabled = 0 AND p.id IN (${placeholders})
+    `).all(...unique) as any[]
+    for (const prod of products) enrichProduct(db, prod)
     return products
   })
 
