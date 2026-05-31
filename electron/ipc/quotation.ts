@@ -154,13 +154,21 @@ export function registerQuotationHandlers() {
     const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 50)
     const offset = limit ? (page - 1) * limit : 0
 
-    const conditions: string[] = []
-    const params: any[] = []
-    if (q) { conditions.push(`(qt.quote_no LIKE ? OR c.full_name LIKE ? OR qt.customer_name LIKE ?)`); const lq = `%${q}%`; params.push(lq, lq, lq) }
-    if (date_from) { conditions.push(`date(qt.issue_date) >= ?`); params.push(date_from) }
-    if (date_to) { conditions.push(`date(qt.issue_date) <= ?`); params.push(date_to) }
-    if (['draft', 'sent', 'accepted', 'rejected'].includes(status_filter)) { conditions.push(`qt.status = ?`); params.push(status_filter) }
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+    // Base scope = search + date. The status filter narrows the table rows and
+    // the paginated total, but NOT the summary cards — the cards always show the
+    // full status breakdown for the current search/date scope (so picking the
+    // "ร่าง" tab doesn't zero out the other count cards).
+    const baseConditions: string[] = []
+    const baseParams: any[] = []
+    if (q) { baseConditions.push(`(qt.quote_no LIKE ? OR c.full_name LIKE ? OR qt.customer_name LIKE ?)`); const lq = `%${q}%`; baseParams.push(lq, lq, lq) }
+    if (date_from) { baseConditions.push(`date(qt.issue_date) >= ?`); baseParams.push(date_from) }
+    if (date_to) { baseConditions.push(`date(qt.issue_date) <= ?`); baseParams.push(date_to) }
+    const baseWhere = baseConditions.length ? `WHERE ${baseConditions.join(' AND ')}` : ''
+
+    const rowConditions = [...baseConditions]
+    const rowParams = [...baseParams]
+    if (['draft', 'sent', 'accepted', 'rejected'].includes(status_filter)) { rowConditions.push(`qt.status = ?`); rowParams.push(status_filter) }
+    const where = rowConditions.length ? `WHERE ${rowConditions.join(' AND ')}` : ''
 
     const validSorts = ['issue_date', 'quote_no', 'valid_until', 'total_amount', 'customer_name']
     const sortCol = !validSorts.includes(sort_by) ? 'qt.issue_date'
@@ -178,7 +186,7 @@ export function registerQuotationHandlers() {
       ${where}
       ORDER BY ${sortCol} ${sortDirection}
       ${limitClause}
-    `).all(...params, ...limitParams)
+    `).all(...rowParams, ...limitParams)
 
     const summary = db.prepare(`
       SELECT
@@ -189,10 +197,10 @@ export function registerQuotationHandlers() {
         COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) AS count_rejected
       FROM quotations qt
       LEFT JOIN customers c ON c.id = qt.customer_id
-      ${where}
-    `).get(...params)
+      ${baseWhere}
+    `).get(...baseParams)
 
-    const total = (db.prepare(`SELECT COUNT(*) AS c FROM quotations qt LEFT JOIN customers c ON c.id = qt.customer_id ${where}`).get(...params) as any).c
+    const total = (db.prepare(`SELECT COUNT(*) AS c FROM quotations qt LEFT JOIN customers c ON c.id = qt.customer_id ${where}`).get(...rowParams) as any).c
     return { rows, summary, total, page, limit: limit ?? total }
   })
 

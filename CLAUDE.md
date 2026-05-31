@@ -86,6 +86,11 @@ Each line is the headline of a rule with an incident behind it. The full context
 - **Frameless Electron window** — custom `TitleBar.tsx`, IPC via `window.api.window.*`.
 - **Toast notifications** via `useToast()` hook.
 
+## Before a production build — remove DEV-only code
+These exist for development convenience and MUST be stripped before compiling a real build:
+- **Setup-wizard preview in `src/pages/Settings/ShopTab.tsx`** — the "ดูตัวอย่าง Setup (DEV)" button + the full-screen overlay block + the `SetupWizard` import (3 spots, each tagged `DEV ONLY`). The `dryRun` prop on `SetupWizard` itself can stay (defaults false, no prod effect).
+- **Seed test data in `electron/db/seed.ts`** — the `PRODUCTS` + `CUSTOMERS` imports and their insert blocks (Hygeia exports, tagged "Temporary dev seed … remove before compiling a production build").
+
 ## Known harmless warnings
 - `postcss.config.js` ESM warning
 - DevTools Autofill errors (Chromium noise)

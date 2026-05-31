@@ -99,6 +99,66 @@ export function registerSettingsHandlers() {
     return db.prepare(`SELECT * FROM settings LIMIT 1`).get()
   })
 
+  // First-run setup: atomically write shop identity + the one-time VAT decision
+  // and flip the setup_completed gate, all in ONE transaction so onboarding can
+  // never half-complete. Columns are listed explicitly (not a dynamic Object.keys
+  // spread) per the allow-list invariant. Payload shape:
+  //   { shop: {shop_name, shop_address, shop_phone, shop_license_no, shop_line_id,
+  //            shop_tax_id, shop_branch, vat_registered_date},
+  //     vat:  {vat_enabled, vat_rate} }
+  ipcMain.handle('settings:completeSetup', (_e, payload: any) => {
+    const db = getDb()
+    const shop = payload?.shop ?? {}
+    const vat = payload?.vat ?? {}
+    const shopData = {
+      shop_name: shop.shop_name ?? '',
+      shop_address: shop.shop_address ?? '',
+      shop_phone: shop.shop_phone ?? '',
+      shop_license_no: shop.shop_license_no ?? '',
+      shop_line_id: shop.shop_line_id ?? '',
+      shop_tax_id: shop.shop_tax_id ?? '',
+      shop_branch: shop.shop_branch ?? 'สำนักงานใหญ่',
+      vat_registered_date: shop.vat_registered_date ?? null,
+    }
+    db.transaction(() => {
+      const existing = db.prepare(`SELECT id FROM settings LIMIT 1`).get() as any
+      if (existing) {
+        db.prepare(`
+          UPDATE settings SET
+            shop_name = @shop_name, shop_address = @shop_address, shop_phone = @shop_phone,
+            shop_license_no = @shop_license_no, shop_line_id = @shop_line_id,
+            shop_tax_id = @shop_tax_id, shop_branch = @shop_branch,
+            vat_registered_date = @vat_registered_date,
+            setup_completed = 1, setup_completed_at = datetime('now','localtime'),
+            updated_at = datetime('now','localtime')
+          WHERE id = @id
+        `).run({ ...shopData, id: existing.id })
+      } else {
+        db.prepare(`
+          INSERT INTO settings (
+            shop_name, shop_address, shop_phone, shop_license_no, shop_line_id,
+            shop_tax_id, shop_branch, vat_registered_date,
+            setup_completed, setup_completed_at
+          ) VALUES (
+            @shop_name, @shop_address, @shop_phone, @shop_license_no, @shop_line_id,
+            @shop_tax_id, @shop_branch, @vat_registered_date,
+            1, datetime('now','localtime')
+          )
+        `).run(shopData)
+      }
+      // VAT decision → sales_settings (ensure-row-then-UPDATE singleton, mirrors
+      // saveSalesSettings so a first-ever write persists instead of bare defaults).
+      let srow = db.prepare(`SELECT id FROM sales_settings LIMIT 1`).get() as any
+      if (!srow) {
+        const r = db.prepare(`INSERT INTO sales_settings DEFAULT VALUES`).run()
+        srow = { id: r.lastInsertRowid }
+      }
+      db.prepare(`UPDATE sales_settings SET vat_enabled = @vat_enabled, vat_rate = @vat_rate, updated_at = datetime('now','localtime') WHERE id = @id`)
+        .run({ vat_enabled: vat.vat_enabled ? 1 : 0, vat_rate: Number(vat.vat_rate) || 7, id: srow.id })
+    })()
+    return db.prepare(`SELECT * FROM settings LIMIT 1`).get()
+  })
+
   // Categories
   ipcMain.handle('settings:listCategories', () => {
     return getDb().prepare(`SELECT * FROM product_categories ORDER BY sort_order, id`).all()

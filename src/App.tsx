@@ -1,9 +1,11 @@
-import React, { Suspense, lazy, useEffect } from 'react'
+import React, { Suspense, lazy, useEffect, useState, useCallback } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { ToastProvider } from './components/ui/toast'
 import { TooltipProvider } from './components/ui/tooltip'
 import { useUserStore } from './stores/userStore'
+
+const SetupWizard = lazy(() => import('./pages/Setup/SetupWizard').then(m => ({ default: m.SetupWizard })))
 
 const POS = lazy(() => import('./pages/POS'))
 const Purchase = lazy(() => import('./pages/Purchase'))
@@ -41,6 +43,30 @@ function PageLoader() {
   )
 }
 
+// Gates the whole app behind the first-run setup wizard. Until the shop's
+// settings.setup_completed === 1, the wizard replaces the router entirely so the
+// operator cannot reach the POS without entering essential shop data + the VAT
+// decision. Existing installs are backfilled to completed in the DB migration.
+function SetupGate({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<'loading' | 'setup' | 'ready'>('loading')
+  const check = useCallback(() => {
+    window.api.settings.getShop()
+      .then((d: any) => setState(d?.setup_completed === 1 ? 'ready' : 'setup'))
+      .catch(() => setState('setup'))
+  }, [])
+  useEffect(() => { check() }, [check])
+
+  if (state === 'loading') return <PageLoader />
+  if (state === 'setup') {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <SetupWizard onComplete={check} />
+      </Suspense>
+    )
+  }
+  return <>{children}</>
+}
+
 export default function App() {
   const hydrateUser = useUserStore(s => s.hydrate)
   useEffect(() => { hydrateUser() }, [hydrateUser])
@@ -48,6 +74,7 @@ export default function App() {
   return (
     <ToastProvider>
      <TooltipProvider>
+      <SetupGate>
       <HashRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -92,6 +119,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </HashRouter>
+      </SetupGate>
      </TooltipProvider>
     </ToastProvider>
   )

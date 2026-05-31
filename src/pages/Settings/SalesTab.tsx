@@ -71,7 +71,7 @@ export function SalesTab({ registerSave, saving, setSaving }: {
   const vatOn = !!form.vat_enabled
 
   return (
-    <div className="pt-4 space-y-4">
+    <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4 items-start">
 
         <SectionCard

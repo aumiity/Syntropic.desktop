@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { TabStrip } from '@/components/layout/TabStrip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
@@ -204,53 +205,54 @@ export default function EditQuotation() {
   const canPrint = !!quoteId && items.length > 0
 
   return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-3">
-      <PageHeader
-        title={quoteNo || 'ใบเสนอราคาใหม่'}
-        right={
-          <div className="flex items-center gap-2">
-            <Button variant="elevated" className="h-10" onClick={() => navigate('/quotation')}>
-              <ArrowLeft className="size-4" /> กลับ
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
+      <PageHeader title={quoteNo || 'ใบเสนอราคาใหม่'} />
+
+      {/* Action bar: status (left) + back/print/save buttons (right). Buttons
+          live here — NOT in PageHeader's floating right slot — so they sit a row
+          below the title instead of colliding with the window controls. */}
+      <TabStrip className="-mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Badge variant={STATUS_VARIANT[status] ?? 'secondary'}>{STATUS_LABEL[status] ?? status}</Badge>
+          {status === 'converted' && convertedInvoiceNo && (
+            <span className="text-sm text-muted-foreground truncate">แปลงเป็นบิล <span className="font-medium text-foreground">{convertedInvoiceNo}</span></span>
+          )}
+          {readOnly && status !== 'converted' && <span className="text-sm text-muted-foreground truncate">ใบนี้พ้นสถานะร่างแล้ว — แก้ไขไม่ได้ (ดู/พิมพ์ได้)</span>}
+        </div>
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          <Button variant="elevated" className="h-10" onClick={() => navigate('/quotation')}>
+            <ArrowLeft className="size-4" /> กลับ
+          </Button>
+          <Button variant="elevated" className="h-10" onClick={handlePreview} disabled={!canPrint || busyPrint}>
+            <FileText className="size-4" /> ดูตัวอย่าง PDF
+          </Button>
+          <Button variant="elevated" className="h-10" onClick={handlePrint} disabled={!canPrint || busyPrint}>
+            <Printer className="size-4" /> พิมพ์
+          </Button>
+          {status === 'accepted' && quoteId && (
+            <Button className="h-10" onClick={() => convert.start(quoteId)}>
+              <ShoppingCart className="size-4" /> แปลงเป็นการขาย
             </Button>
-            <Button variant="elevated" className="h-10" onClick={handlePreview} disabled={!canPrint || busyPrint}>
-              <FileText className="size-4" /> ดูตัวอย่าง PDF
-            </Button>
-            <Button variant="elevated" className="h-10" onClick={handlePrint} disabled={!canPrint || busyPrint}>
-              <Printer className="size-4" /> พิมพ์
-            </Button>
-            {status === 'accepted' && quoteId && (
+          )}
+          {status === 'converting' && quoteId && (
+            <>
               <Button className="h-10" onClick={() => convert.start(quoteId)}>
-                <ShoppingCart className="size-4" /> แปลงเป็นการขาย
+                <Play className="size-4" /> ดำเนินการขายต่อ
               </Button>
-            )}
-            {status === 'converting' && quoteId && (
-              <>
-                <Button className="h-10" onClick={() => convert.start(quoteId)}>
-                  <Play className="size-4" /> ดำเนินการขายต่อ
-                </Button>
-                <Button variant="elevated" className="h-10" onClick={cancelConversion}>
-                  <X className="size-4" /> ยกเลิกการแปลง
-                </Button>
-              </>
-            )}
-            {!readOnly && (
-              <Button className="h-10" onClick={handleSave} disabled={saving}>
-                <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+              <Button variant="elevated" className="h-10" onClick={cancelConversion}>
+                <X className="size-4" /> ยกเลิกการแปลง
               </Button>
-            )}
-          </div>
-        }
-      />
+            </>
+          )}
+          {!readOnly && (
+            <Button className="h-10" onClick={handleSave} disabled={saving}>
+              <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+            </Button>
+          )}
+        </div>
+      </TabStrip>
 
-      <div className="flex items-center gap-2 shrink-0">
-        <Badge variant={STATUS_VARIANT[status] ?? 'secondary'}>{STATUS_LABEL[status] ?? status}</Badge>
-        {status === 'converted' && convertedInvoiceNo && (
-          <span className="text-sm text-muted-foreground">แปลงเป็นบิล <span className="font-medium text-foreground">{convertedInvoiceNo}</span></span>
-        )}
-        {readOnly && status !== 'converted' && <span className="text-sm text-muted-foreground">ใบนี้พ้นสถานะร่างแล้ว — แก้ไขไม่ได้ (ดู/พิมพ์ได้)</span>}
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto pb-4 [scrollbar-gutter:stable] space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto pt-3 pb-4 [scrollbar-gutter:stable] space-y-4">
         <div className="grid grid-cols-2 gap-4 items-start">
           <SectionCard icon={UserSearch} title="ลูกค้า" tint="primary"
             right={!readOnly && <Button variant="elevated" size="sm" onClick={() => setCustomerOpen(true)}><UserSearch className="size-4" /> ค้นหา</Button>}>

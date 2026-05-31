@@ -13,7 +13,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 const mainNavItems = [
   { to: '/', label: 'การขาย', icon: ShoppingCart, exact: true },
   { to: '/quotation', label: 'ใบเสนอราคา', icon: FileText },
-  { to: '/purchase', label: 'การซื้อ', icon: PackagePlus },
+  { to: '/purchase', label: 'การรับสินค้า', icon: PackagePlus },
   { to: '/products', label: 'สินค้า', icon: Pill },
   { to: '/manage', label: 'ประวัติ & สต็อก', icon: ClipboardList },
   { to: '/reports', label: 'รายงาน', icon: LineChart },

@@ -98,6 +98,7 @@ const api = {
   settings: {
     getShop: () => ipcRenderer.invoke('settings:getShop'),
     saveShop: (data: any) => ipcRenderer.invoke('settings:saveShop', data),
+    completeSetup: (data: any) => ipcRenderer.invoke('settings:completeSetup', data),
     listCategories: () => ipcRenderer.invoke('settings:listCategories'),
     saveCategory: (data: any) => ipcRenderer.invoke('settings:saveCategory', data),
     reorderCategories: (ids: number[]) => ipcRenderer.invoke('settings:reorderCategories', ids),

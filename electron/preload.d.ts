@@ -123,6 +123,7 @@ declare const api: {
     settings: {
         getShop: () => Promise<any>;
         saveShop: (data: any) => Promise<any>;
+        completeSetup: (data: any) => Promise<any>;
         listCategories: () => Promise<any>;
         saveCategory: (data: any) => Promise<any>;
         reorderCategories: (ids: number[]) => Promise<any>;

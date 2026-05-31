@@ -44,7 +44,7 @@ const SEVERITY_LABELS: Record<string, string> = {
   mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต',
 }
 const SEVERITY_VARIANTS: Record<string, any> = {
-  mild: 'secondary', moderate: 'warning', severe: 'danger', life_threatening: 'destructive',
+  mild: 'secondary', moderate: 'warning', severe: 'warm', life_threatening: 'destructive',
 }
 
 const stripCommas = (v: string) => v.replace(/,/g, '')

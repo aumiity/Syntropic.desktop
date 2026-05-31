@@ -26,6 +26,9 @@ export function initializeSchema(db: Database.Database) {
       shop_license_no TEXT NOT NULL DEFAULT '',
       shop_tax_id TEXT NOT NULL DEFAULT '',
       shop_line_id TEXT NOT NULL DEFAULT '',
+      setup_completed INTEGER NOT NULL DEFAULT 0,
+      setup_completed_at TEXT,
+      vat_registered_date TEXT,
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -709,6 +712,24 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE settings ADD COLUMN shop_branch TEXT NOT NULL DEFAULT 'สำนักงานใหญ่'`,
     // Quotation → sale conversion: link to the resulting sale invoice.
     `ALTER TABLE quotations ADD COLUMN converted_invoice_no TEXT`,
+    // First-run setup gate. setup_completed=0 forces the setup wizard before the
+    // app is usable. ALTERs MUST precede the backfill UPDATE below (same array,
+    // ordered) so the column exists when the UPDATE references it on first run.
+    `ALTER TABLE settings ADD COLUMN setup_completed INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE settings ADD COLUMN setup_completed_at TEXT`,
+    `ALTER TABLE settings ADD COLUMN vat_registered_date TEXT`,
+    // Backfill: mark pre-existing LIVE installs (anything with a sale) as already
+    // set up so the wizard never blocks them. Migrations run before seed
+    // (electron/db/index.ts) and on every launch with errors swallowed, so this
+    // must be self-idempotent via its WHERE:
+    //  - existing install w/ sales → set to 1 once, re-runs no-op (already 1)
+    //  - fresh install → no settings row yet at migration time → 0 rows; seed
+    //    later inserts the row with default 0 → wizard shows
+    //  - fresh install reopened before finishing the wizard (row exists,
+    //    setup_completed=0, still no sales) → EXISTS sales false → stays 0 →
+    //    wizard reappears (no false-complete)
+    `UPDATE settings SET setup_completed = 1, setup_completed_at = datetime('now','localtime')
+       WHERE setup_completed = 0 AND EXISTS (SELECT 1 FROM sales LIMIT 1)`,
   ]) {
     try { db.exec(sql) } catch {}
   }

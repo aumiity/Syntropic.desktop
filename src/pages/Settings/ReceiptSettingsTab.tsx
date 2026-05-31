@@ -165,7 +165,7 @@ export function ReceiptSettingsTab() {
 
       {/* Body: preview (LEFT) + settings (RIGHT) */}
       <div className="grid grid-cols-[3fr_2fr] gap-4 flex-1 min-h-0">
-        <SectionCard title="ตัวอย่างใบเสร็จ" icon={Receipt} tint="success" className="flex flex-col min-h-0">
+        <SectionCard title="ตัวอย่างใบเสร็จ" tint="success" className="flex flex-col min-h-0">
           <div className="flex-1 min-h-0 flex items-start justify-center bg-muted/30 rounded-lg p-6 overflow-auto">
             {/* True render via the real builder so the preview matches print. */}
             <iframe

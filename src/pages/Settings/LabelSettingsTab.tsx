@@ -73,9 +73,9 @@ const LABEL_DEFAULTS: LabelSettingsForm = {
   width_mm: 80, height_mm: 50,  // GPP-recommended pharmacy standard
   pad_top: 3, pad_right: 3, pad_bottom: 3, pad_left: 3,
   font_family: 'Bai Jamjuree',
-  font_size_shop: 13, font_size_product: 14, font_size_dosage: 16, font_size_small: 10,
+  font_size_shop: 10, font_size_product: 10, font_size_dosage: 10, font_size_small: 10,
   bold_shop: 1, bold_product: 1, bold_dosage: 1,
-  line_spacing: 1.4, section_gap: 4,
+  line_spacing: 1.5, section_gap: 2,
   show_shop: 1, show_product: 1, show_dosage: 1, show_indication: 1,
   show_notes: 1, show_lot_expiry: 1, show_barcode: 0,
   show_header_line: 1, show_footer_line: 1,

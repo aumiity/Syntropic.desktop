@@ -52,9 +52,12 @@ export function seedDatabase(db: Database.Database) {
     'Admin', 'admin@syntropic.local', 'admin', 'admin'
   )
 
-  // Default settings
+  // Default settings — blank shop identity on purpose: setup_completed defaults
+  // to 0, so the first-run setup wizard fires and forces the operator to enter a
+  // real shop name/address/phone (a pre-filled placeholder name would let them
+  // click straight past the required-field validation).
   db.prepare(`INSERT INTO settings (shop_name, shop_address, shop_phone) VALUES (?, ?, ?)`).run(
-    'ร้านยา Syntropic', '', ''
+    '', '', ''
   )
 
   // Product categories

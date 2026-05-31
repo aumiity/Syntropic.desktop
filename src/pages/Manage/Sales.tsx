@@ -55,7 +55,7 @@ const SALE_TYPE_LABELS: Record<string, string> = {
 // STATUS (soft + outline) family — matches success-outline / warning-outline /
 // destructive-outline on the "สถานะ" column so all status pills share a tone.
 const SALE_TYPE_VARIANTS: Record<string, any> = {
-  retail: 'brand-outline', wholesale: 'warning-outline', rx: 'success-outline', return: 'violet-outline',
+  retail: 'primary-outline', wholesale: 'warning-outline', rx: 'success-outline', return: 'violet-outline',
 }
 
 type SortField = 'invoice_no' | 'sold_at' | 'total_amount'

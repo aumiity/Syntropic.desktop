@@ -4,6 +4,29 @@
 ## Last updated: 2026-05-31
 ## Run: `npm run electron:dev`
 
+## ✅ DONE 2026-05-31 (later): **First-run Setup Wizard (Phase 1 — VAT/NO-VAT foundation)** — plan→Gemini audit (PASS, no critical)→impl→tsc-clean. **NOT click-tested yet.**
+### Why
+VAT was a free toggle in Settings → an operator could disable it to ring up one bill without VAT then re-enable, leaving an auditable gap in the continuous RC- invoice sequence (สรรพากร red flag). Decision with operator: **do NOT fork the app**; VAT becomes a **one-time decision at install**, not a daily toggle. Also fixed: app booted straight into POS with placeholder shop data (`'ร้านยา Syntropic'`, blank address/phone) → labels/receipts printed wrong shop identity.
+### What shipped (Phase 1 = the foundation only)
+- **Mandatory first-run wizard** (`src/pages/Setup/SetupWizard.tsx`, 3 steps): (1) shop identity — name/address/phone **required** (they print on drug labels), license/LINE optional; (2) VAT decision — two ChoiceCards จด/ไม่จด, VAT=yes reveals required 13-digit tax id (reuses `TaxInvoiceBuyerDialog` rule `replace(/\D/g,'')`+`/^\d{13}$/`), branch (default สำนักงานใหญ่), rate (default 7), `DateInput` registration date + a warning that turning VAT off later needs a special procedure; (3) confirm summary → "เริ่มใช้งาน". Pre-fills from existing settings (edge case: existing install re-onboarded); VAT pre-selected only when already on, else `vatChoice` stays null to force an explicit pick.
+- **Gate** `SetupGate` in `src/App.tsx` wraps the router: reads `settings.getShop()`, if `setup_completed !== 1` renders the wizard full-screen (no sidebar, own `TitleBar`) — POS unreachable until done. `onComplete` re-checks → flips to the app.
+- **Data model** `electron/db/schema.ts`: `settings` += `setup_completed INTEGER DEFAULT 0`, `setup_completed_at TEXT`, `vat_registered_date TEXT` (both in CREATE TABLE + migration array; ALTERs precede the backfill). **Backfill** `UPDATE settings SET setup_completed=1 ... WHERE setup_completed=0 AND EXISTS(SELECT 1 FROM sales)` — the crux: migrations run before seed (`db/index.ts:17-18`) + every launch w/ swallowed errors, so the WHERE makes it self-idempotent (existing-live→1 once; fresh→0 rows then seed default 0; fresh reopened pre-finish→stays 0, no false-complete). `sales` (schema:234) is created before the migration loop (schema:645) — safe.
+- **Seed** `electron/db/seed.ts`: fresh settings row now inserts blank shop_name `''` (was `'ร้านยา Syntropic'`) so required-field validation actually bites.
+- **Atomic IPC** `settings:completeSetup` (`electron/ipc/settings.ts`) — one transaction writes shop identity + setup flags (explicit column list, NOT dynamic Object.keys spread) + UPSERTs `sales_settings.vat_enabled`/`vat_rate` (ensure-row-then-UPDATE, mirrors saveSalesSettings). Wired in `preload.ts` + `preload.d.ts`; `Setting` type extended in `src/types/index.ts`.
+### Deferred (NOT in this phase)
+- **Phase 2** — hide ALL VAT UI throughout when shop is NO-VAT mode (currently `vat_enabled=0` already suppresses VAT math, but UI cleanup pass pending).
+- **Phase 3** — lock/remove the Settings VAT toggle + a guarded "upgrade to VAT" flow (re-enter registration data + effective date + audit log) so VAT can never be flipped off mid-stream.
+- Per-product VAT-exempt: NOT doing (operator confirmed all goods taxable).
+### Carry-forward / click-test queue (next)
+- **Fresh DB**: rename `%APPDATA%/<app>/database/syntropic.db` → `npm run electron:dev` → wizard blocks POS; blank-required Next blocked; VAT=yes → 13-digit validation; finish → app loads, Settings shows data, `sales_settings.vat_enabled` set; relaunch → no wizard. **Existing DB w/ sales** → no wizard (`SELECT setup_completed FROM settings`=1). **NO-VAT path** → finish "ไม่จด" → `vat_enabled=0`, POS VAT-free.
+- Plan: `docs/plans/first-run-setup.md`. Audit: `docs/audits/first-run-setup-audit.md` (Gemini PASS).
+### Post-impl tweaks (same session, operator-driven)
+- **DEV preview hook** in `src/pages/Settings/ShopTab.tsx` — "ดูตัวอย่าง Setup (DEV)" button opens the wizard full-screen (overlay `z-[100]` + "ปิดตัวอย่าง" button) for styling iteration. Wizard gained a `dryRun` prop: when set (preview passes it) "เริ่มใช้งาน" validates but does **NOT** write the DB. **3 `DEV ONLY`-tagged spots to delete before prod** (import + button + overlay); `dryRun` prop itself stays (default false).
+- **CLAUDE.md** — new "Before a production build — remove DEV-only code" checklist (the ShopTab preview + the `seed.ts` PRODUCTS/CUSTOMERS test data).
+- **ChoiceCard (VAT/no-VAT)** — added a corner checkmark (filled primary circle + Check when selected, empty ring otherwise) + `ring-2 ring-primary/25` on the selected frame.
+- **VAT warning copy** finalized to "เมื่อเปิดการใช้งาน VAT แล้ว การดำเนินการนี้จะย้อนกลับไม่ได้" (operator chose the strong/irreversible wording for now; the Phase-3 lock-vs-deregister-flow decision — "A vs B" — is **parked**, see [[project_vat_phasing]]).
+- **Memory note added:** purchase-side VAT (input/ภาษีซื้อ) is NOT built — only sales/output VAT exists today, so ภ.พ.30 + ภาษีซื้อ reports are an outstanding TODO (`project_vat_phasing.md`).
+
 ## ✅ DONE 2026-05-31: **Receipt/Tax-invoice printing + Quotation system + Quotation→Sale convert** (3 features, all plan→audit→impl→Playwright E2E)
 
 ### A) พิมพ์ใบเสร็จ/สลิปเงินสด + ใบกำกับภาษี

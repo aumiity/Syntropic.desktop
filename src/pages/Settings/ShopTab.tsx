@@ -6,12 +6,17 @@ import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
 import type { Setting } from '@/types'
-import { Store, Save } from 'lucide-react'
+import { Store, Save, Eye, X } from 'lucide-react'
+// DEV ONLY — preview hook for the first-run wizard. Remove this import + the
+// preview button + the overlay block before shipping a production build.
+import { SetupWizard } from '@/pages/Setup/SetupWizard'
 
 export function ShopTab() {
   const { toast } = useToast()
   const [form, setForm] = useState<Partial<Setting>>({})
   const [saving, setSaving] = useState(false)
+  // DEV ONLY — toggles the setup-wizard preview overlay.
+  const [previewSetup, setPreviewSetup] = useState(false)
 
   useEffect(() => {
     window.api.settings.getShop().then(data => setForm((data as Setting) ?? {}))
@@ -30,15 +35,22 @@ export function ShopTab() {
   }
 
   return (
-    <div className="pt-4">
+    <div>
       <SectionCard
         icon={Store}
         title="ข้อมูลร้านค้า / ร้านยา"
         tint="primary"
         right={
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* DEV ONLY — open the first-run setup wizard for styling/tweaks.
+                Remove this button before a production build. */}
+            <Button variant="elevated" onClick={() => setPreviewSetup(true)}>
+              <Eye className="size-4" />ดูตัวอย่าง Setup (DEV)
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
+            </Button>
+          </div>
         }
       >
         <div className="grid grid-cols-2 gap-3">
@@ -75,6 +87,24 @@ export function ShopTab() {
           </FormField>
         </div>
       </SectionCard>
+
+      {/* DEV ONLY — full-screen preview of the first-run setup wizard for
+          styling/tweaks. dryRun=true so "เริ่มใช้งาน" validates but does NOT
+          write the DB; onComplete just closes the overlay.
+          Remove this whole block before a production build. */}
+      {previewSetup && (
+        <div className="fixed inset-0 z-[100] bg-background">
+          <SetupWizard dryRun onComplete={() => setPreviewSetup(false)} />
+          <Button
+            variant="elevated"
+            size="lg"
+            onClick={() => setPreviewSetup(false)}
+            className="fixed bottom-4 right-4 z-[110] shadow-lg"
+          >
+            <X className="size-4" />ปิดตัวอย่าง
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

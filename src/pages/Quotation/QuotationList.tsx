@@ -1,23 +1,26 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { TabStrip } from '@/components/layout/TabStrip'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { MetricCard, type MetricTint } from '@/components/ui/card'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
-import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
-import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { printQuotation, previewQuotation } from '@/lib/receipt/print'
 import { useQuotationConvert } from '@/lib/quotation/useConvert'
 import type { Quotation } from '@/types'
-import { FileText, Plus, MoreHorizontal, Pencil, Printer, Trash2, Check, Filter, Send, ThumbsUp, ThumbsDown, Undo2, ShoppingCart, Play, X } from 'lucide-react'
+import { FileText, Plus, MoreHorizontal, Pencil, Printer, Trash2, Send, ThumbsUp, ThumbsDown, Undo2, ShoppingCart, Play, X, FilePen } from 'lucide-react'
 
 type StatusFilter = 'all' | 'draft' | 'sent' | 'accepted' | 'rejected'
 const STATUS_LABEL: Record<string, string> = { draft: 'ร่าง', sent: 'ส่งแล้ว', accepted: 'ตอบรับ', rejected: 'ปฏิเสธ', converting: 'กำลังแปลง', converted: 'แปลงแล้ว', expired: 'หมดอายุ' }
@@ -39,10 +42,19 @@ const displayStatus = (q: Quotation): string =>
   (q.status === 'draft' || q.status === 'sent') && q.valid_until && q.valid_until.slice(0, 10) < new Date().toISOString().slice(0, 10)
     ? 'expired' : q.status
 
-const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'ทั้งหมด' }, { value: 'draft', label: 'ร่าง' }, { value: 'sent', label: 'ส่งแล้ว' },
-  { value: 'accepted', label: 'ตอบรับ' }, { value: 'rejected', label: 'ปฏิเสธ' },
+// Status tabs double as the list filter (replaces the old Filter popover).
+const STATUS_TABS: { value: StatusFilter; label: string; icon: any }[] = [
+  { value: 'all', label: 'ทั้งหมด', icon: FileText },
+  { value: 'draft', label: 'ร่าง', icon: FilePen },
+  { value: 'sent', label: 'ส่งแล้ว', icon: Send },
+  { value: 'accepted', label: 'ตอบรับ', icon: ThumbsUp },
+  { value: 'rejected', label: 'ปฏิเสธ', icon: ThumbsDown },
 ]
+
+interface QuoteSummary {
+  count_all: number; count_draft: number; count_sent: number; count_accepted: number; count_rejected: number
+}
+const EMPTY_SUMMARY: QuoteSummary = { count_all: 0, count_draft: 0, count_sent: 0, count_accepted: 0, count_rejected: 0 }
 
 export default function QuotationList() {
   const navigate = useNavigate()
@@ -56,6 +68,7 @@ export default function QuotationList() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [pageSize, setPageSize] = useState<PageSize>(50)
   const [rows, setRows] = useState<(Quotation & { customer_display?: string; item_count?: number })[]>([])
+  const [summary, setSummary] = useState<QuoteSummary>(EMPTY_SUMMARY)
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -71,7 +84,7 @@ export default function QuotationList() {
         q: q.trim() || undefined, date_from: dateFrom || undefined, date_to: dateTo || undefined,
         status_filter: statusFilter, page: p, limit: pageSize,
       }) as any
-      setRows(res.rows); setTotal(res.total); setPage(p)
+      setRows(res.rows); setSummary(res.summary ?? EMPTY_SUMMARY); setTotal(res.total); setPage(p)
     } finally { setLoading(false) }
   }, [q, dateFrom, dateTo, statusFilter, pageSize])
 
@@ -119,12 +132,37 @@ export default function QuotationList() {
     } catch (e: any) { toast({ title: 'ลบไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }); setDeleteTarget(null) }
   }
 
+  const metrics = [
+    { label: 'ทั้งหมด', value: summary.count_all.toLocaleString(),      icon: FileText,   tint: 'primary'      as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground' },
+    { label: 'ร่าง',    value: summary.count_draft.toLocaleString(),    icon: FilePen,    tint: 'secondary'    as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+    { label: 'ส่งแล้ว', value: summary.count_sent.toLocaleString(),     icon: Send,       tint: 'info-soft'    as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground' },
+    { label: 'ตอบรับ',  value: summary.count_accepted.toLocaleString(), icon: ThumbsUp,   tint: 'success'      as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+    { label: 'ปฏิเสธ',  value: summary.count_rejected.toLocaleString(), icon: ThumbsDown, tint: 'destructive2' as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground' },
+  ]
+
   return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-3">
-      <PageHeader
-        title="ใบเสนอราคา"
-        right={<Button className="h-10" onClick={() => navigate('/quotation/new')}><Plus className="size-4" /> สร้างใบเสนอราคา</Button>}
-      />
+    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
+      <PageHeader title="ใบเสนอราคา" />
+
+      {/* Top row: status filter tabs (left) + create button (right) */}
+      <TabStrip className="-mb-2">
+        <Tabs value={statusFilter} onValueChange={v => setStatusFilter(v as StatusFilter)}>
+          <TabsList variant="segmented" className="h-10">
+            {STATUS_TABS.map(({ value, label, icon: Icon }) => (
+              <TabsTrigger key={value} value={value}><Icon /> {label}</TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <Button onClick={() => navigate('/quotation/new')} className="ml-auto h-10 px-3">
+          <Plus className="size-4" /> สร้างใบเสนอราคา
+        </Button>
+      </TabStrip>
+
+      <div className="shrink-0 pt-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 p-0.5">
+          {metrics.map((c, i) => <MetricCard key={i} {...c} />)}
+        </div>
+      </div>
 
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
@@ -135,21 +173,6 @@ export default function QuotationList() {
           </div>
           <SearchInput variant="elevated" wrapperClassName="w-72 shrink-0 ml-auto" className="h-10" value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาเลขที่, ชื่อลูกค้า..." />
           <DateRangePicker variant="elevated" from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t) }} className="h-10 w-60 shrink-0" />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="elevated" className="h-10 w-10 p-0 shrink-0" title="ตัวกรองสถานะ"><Filter className="size-4" /></Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-56 p-1 gap-0">
-              <PopoverHeader className="px-2"><PopoverTitle>สถานะ</PopoverTitle></PopoverHeader>
-              {STATUS_OPTIONS.map(o => (
-                <button key={o.value} type="button" onClick={() => setStatusFilter(o.value)}
-                  className={cn('w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors', statusFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted')}>
-                  <Check className={cn('size-4', statusFilter === o.value ? 'opacity-100' : 'opacity-0')} />
-                  <span className="flex-1 text-left">{o.label}</span>
-                </button>
-              ))}
-            </PopoverContent>
-          </Popover>
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
