@@ -76,6 +76,15 @@ const DialogContent = React.forwardRef<
 >(({ className, children, showCloseButton = true, size, onClose, divided, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
+    {/* Flex-centering wrapper instead of `top-1/2 left-1/2 -translate-1/2` on
+        the content: a transform-centered box lands on a half-pixel whenever its
+        width/height is odd, which strips sub-pixel anti-aliasing from any
+        composited descendant (notably `position: sticky` table headers) and
+        makes their text look blurry. Flex centering snaps to whole pixels, so
+        sticky headers stay crisp. The wrapper is click-through
+        (`pointer-events-none`) so the overlay beneath still receives clicks;
+        the content re-enables pointer events on itself. */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
     <DialogPrimitive.Content
       ref={ref}
       aria-describedby={undefined}
@@ -86,8 +95,7 @@ const DialogContent = React.forwardRef<
       onPointerDownOutside={(e) => e.preventDefault()}
       onInteractOutside={(e) => e.preventDefault()}
       className={cn(
-        "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)]",
-        "-translate-x-1/2 -translate-y-1/2",
+        "relative grid w-full max-w-[calc(100%-2rem)] pointer-events-auto",
         "gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground",
         "duration-100 outline-none",
         "sm:max-w-sm",
@@ -120,6 +128,7 @@ const DialogContent = React.forwardRef<
         </DialogPrimitive.Close>
       )}
     </DialogPrimitive.Content>
+    </div>
   </DialogPortal>
 ))
 DialogContent.displayName = "DialogContent"

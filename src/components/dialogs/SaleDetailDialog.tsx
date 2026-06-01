@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -114,11 +115,28 @@ export function SaleDetailDialog({
         ) : (
           <>
             <DialogHeader className="border-b border-border pb-3">
-              <DialogTitle className="flex items-center gap-3">
+              <DialogTitle className="flex items-center gap-3 pr-10">
                 <span>{detail.invoice_no}</span>
                 {detail.status === 'voided'
                   ? <Badge variant="destructive-outline">ยกเลิกแล้ว</Badge>
                   : <Badge variant="success-outline">สำเร็จ</Badge>}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="elevated" size="icon-sm" className="h-8 w-8 ml-auto" title="พิมพ์">
+                      <Printer />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" sideOffset={4} className="w-52 p-1 gap-0">
+                    <button type="button" onClick={() => reprintReceipt(detail)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                      <Printer className="size-4" /> พิมพ์ใบเสร็จ
+                    </button>
+                    {detail.status !== 'voided' && detail.sale_type !== 'return' && (
+                      <button type="button" onClick={() => setTaxOpen(true)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                        <FileText className="size-4" /> พิมพ์ใบกำกับภาษี
+                      </button>
+                    )}
+                  </PopoverContent>
+                </Popover>
               </DialogTitle>
             </DialogHeader>
             <DialogBody className="space-y-4">
@@ -322,16 +340,8 @@ export function SaleDetailDialog({
                 </div>
               )}
               {onVoidRequest && detail.status !== 'voided' && detail.sale_type !== 'return' && (
-                <Button size="xl" variant="destructive" onClick={() => onVoidRequest(detail)}>
+                <Button size="xl" variant="destructive" className="mr-auto" onClick={() => onVoidRequest(detail)}>
                   <Ban className="size-4 mr-1.5" /> ยกเลิกบิล
-                </Button>
-              )}
-              <Button size="xl" variant="elevated" onClick={() => reprintReceipt(detail)}>
-                <Printer className="size-4 mr-1.5" /> พิมพ์ใบเสร็จ
-              </Button>
-              {detail.status !== 'voided' && detail.sale_type !== 'return' && (
-                <Button size="xl" variant="elevated" onClick={() => setTaxOpen(true)}>
-                  <FileText className="size-4 mr-1.5" /> ใบกำกับภาษี
                 </Button>
               )}
               <Button size="xl" variant="default" onClick={() => onOpenChange(false)}>ปิด</Button>

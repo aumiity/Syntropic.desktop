@@ -23,7 +23,7 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import type { ManageOutletContext } from './index'
 import {
-  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Check, Settings2, Eye, Edit3, Filter,
+  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Check, Settings2, Eye, Filter, MoreHorizontal,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -123,6 +123,12 @@ export default function ManagePurchasesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null)
   const [receiptItems, setReceiptItems] = useState<ReceiptDetail[]>([])
   const [receiptRefresh, setReceiptRefresh] = useState(0)
+
+  // Invoice targeted by the edit/cancel modals. Kept separate from
+  // selectedInvoice (which drives the receipt dialog's open state) so those
+  // modals can be triggered straight from a row's จัดการ menu without first
+  // opening the receipt dialog.
+  const [actionInvoice, setActionInvoice] = useState<string | null>(null)
 
   // Cancel-GR modal
   const [showCancelModal, setShowCancelModal] = useState(false)
@@ -258,9 +264,9 @@ export default function ManagePurchasesPage() {
     setSelectedInvoice(invoice_no)
   }
 
-  const openEditBill = () => {
-    if (!selectedInvoice || receiptItems.length === 0) return
-    const first = receiptItems[0]
+  // Populate the edit-bill form from a receipt header row and open the modal.
+  const populateEditFromHeader = (first: ReceiptDetail, invoice_no: string) => {
+    setActionInvoice(invoice_no)
     setEditSupplierId((first as any).supplier_id ?? 0)
     setEditSupplierInvoiceNo(first.supplier_invoice_no ?? '')
     setEditOrderDate(first.order_date ?? '')
@@ -273,8 +279,22 @@ export default function ManagePurchasesPage() {
     setShowEditModal(true)
   }
 
+  // From the receipt dialog — items are already loaded.
+  const openEditBill = () => {
+    if (!selectedInvoice || receiptItems.length === 0) return
+    populateEditFromHeader(receiptItems[0], selectedInvoice)
+  }
+
+  // Open the cancel-bill confirm modal for a given invoice (row menu or dialog).
+  const openCancelForInvoice = (invoice_no: string) => {
+    setActionInvoice(invoice_no)
+    setCancelReason('')
+    setCancelBlockers([])
+    setShowCancelModal(true)
+  }
+
   const handleSaveEdit = async () => {
-    if (!selectedInvoice) return
+    if (!actionInvoice) return
     if (!editSupplierId) { toast('กรุณาเลือกผู้จัดจำหน่าย', 'error'); return }
     if (!editSupplierInvoiceNo.trim()) { toast('กรุณาระบุเลขที่ใบกำกับสินค้า', 'error'); return }
     if (!editReceiveDate) { toast('กรุณาระบุวันที่รับสินค้า', 'error'); return }
@@ -282,7 +302,7 @@ export default function ManagePurchasesPage() {
     setEditSaving(true)
     try {
       const res = await window.api.purchase.updateHeader({
-        invoice_no: selectedInvoice,
+        invoice_no: actionInvoice,
         supplier_id: editSupplierId,
         supplier_invoice_no: editSupplierInvoiceNo.trim(),
         order_date: editOrderDate || undefined,
@@ -312,13 +332,13 @@ export default function ManagePurchasesPage() {
     }
   }
 
-  const handleQuickPay = async () => {
-    if (!selectedInvoice || receiptItems.length === 0) return
-    const first = receiptItems[0]
+  // Mark a credit bill paid today. Core takes a loaded header; the two entry
+  // points feed it from the dialog (items already loaded) or a row (fetch first).
+  const quickPayFromHeader = async (first: ReceiptDetail, invoice_no: string) => {
     setQuickPaying(true)
     try {
       const res = await window.api.purchase.updateHeader({
-        invoice_no: selectedInvoice,
+        invoice_no,
         supplier_id: (first as any).supplier_id ?? 0,
         supplier_invoice_no: first.supplier_invoice_no ?? '',
         order_date: first.order_date || undefined,
@@ -347,14 +367,31 @@ export default function ManagePurchasesPage() {
     }
   }
 
+  // From the receipt dialog footer — items already loaded.
+  const handleQuickPay = () => {
+    if (!selectedInvoice || receiptItems.length === 0) return
+    quickPayFromHeader(receiptItems[0], selectedInvoice)
+  }
+
+  // From a row's จัดการ menu — fetch the header first.
+  const quickPayForInvoice = async (invoice_no: string) => {
+    try {
+      const items = await window.api.purchase.getReceipt(invoice_no) as ReceiptDetail[]
+      if (!items || items.length === 0) { toast('ไม่พบบิล', 'error'); return }
+      await quickPayFromHeader(items[0], invoice_no)
+    } catch (e: any) {
+      toast(e?.message ? `เปิดบิลไม่สำเร็จ: ${e.message}` : 'เปิดบิลไม่สำเร็จ', 'error')
+    }
+  }
+
   const handleCancelBill = async () => {
-    if (!selectedInvoice) return
+    if (!actionInvoice) return
     const reason = cancelReason.trim()
     if (!reason) { toast('กรุณาระบุเหตุผล', 'error'); return }
     setCancelling(true)
     try {
       const res = await window.api.purchase.cancel({
-        invoice_no: selectedInvoice,
+        invoice_no: actionInvoice,
         reason,
         userId: getCurrentUserId(),
       }) as any
@@ -576,14 +613,31 @@ export default function ManagePurchasesPage() {
                     )}
                     <TableCell>
                       <div className="flex justify-center">
-                        <Button
-                          size="icon-lg"
-                          variant="elevated"
-                          title="ดูรายละเอียด"
-                          onClick={() => openReceipt(h.invoice_no)}
-                        >
-                          <Eye />
-                        </Button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
+                              <MoreHorizontal />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
+                            <button type="button" onClick={() => openReceipt(h.invoice_no)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                              <Eye className="size-4" /> ดูรายละเอียด
+                            </button>
+                            {!isCancelled && h.payment_type === 'credit' && !h.is_paid && (
+                              <button type="button" onClick={() => quickPayForInvoice(h.invoice_no)} disabled={quickPaying}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-success hover:bg-success/10 transition-colors disabled:opacity-50">
+                                <Check className="size-4" /> ชำระวันนี้
+                              </button>
+                            )}
+                            {!isCancelled && (
+                              <button type="button" onClick={() => openCancelForInvoice(h.invoice_no)}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                                <Ban className="size-4" /> ยกเลิกบิล
+                              </button>
+                            )}
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -637,24 +691,26 @@ export default function ManagePurchasesPage() {
             invoiceNo={selectedInvoice}
             refreshKey={receiptRefresh}
             onLoad={(items) => setReceiptItems(items as ReceiptDetail[])}
-            footerLeft={canQuickPay && (
-              <Button variant="success" size="xl" onClick={handleQuickPay} disabled={quickPaying}>
-                <Check className="size-4" />
-                {quickPaying ? 'กำลังบันทึก...' : 'ชำระวันนี้'}
-              </Button>
-            )}
-            actions={
-              <>
-                <Button variant="elevated" size="xl" onClick={openEditBill}>แก้ไขบิล</Button>
+            footerLeft={!receiptCancelled && (
+              <div className="flex items-center gap-2">
                 <Button
                   variant="destructive"
                   size="xl"
-                  onClick={() => { setCancelReason(''); setCancelBlockers([]); setShowCancelModal(true) }}
+                  onClick={() => selectedInvoice && openCancelForInvoice(selectedInvoice)}
                 >
                   <X className="size-4" />
                   ยกเลิกบิล
                 </Button>
-              </>
+                <Button variant="elevated" size="xl" onClick={openEditBill}>แก้ไขบิล</Button>
+              </div>
+            )}
+            actions={
+              canQuickPay && (
+                <Button variant="success" size="xl" onClick={handleQuickPay} disabled={quickPaying}>
+                  <Check className="size-4" />
+                  {quickPaying ? 'กำลังบันทึก...' : 'ชำระวันนี้'}
+                </Button>
+              )
             }
           />
         )
@@ -671,7 +727,7 @@ export default function ManagePurchasesPage() {
             <DialogTitle className="flex items-center gap-2 flex-wrap">
               <FileText className="size-5 text-muted-foreground" />
               <span>แก้ไขรายละเอียดบิล</span>
-              <span className="text-sm text-muted-foreground font-normal">{selectedInvoice}</span>
+              <span className="text-sm text-muted-foreground font-normal">{actionInvoice}</span>
             </DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-4">
@@ -865,7 +921,7 @@ export default function ManagePurchasesPage() {
               </span>
               <div className="min-w-0">
                 <DialogTitle className="text-xl">ยกเลิกบิลรับสินค้า</DialogTitle>
-                <div className="text-sm text-muted-foreground mt-0.5">{selectedInvoice}</div>
+                <div className="text-sm text-muted-foreground mt-0.5">{actionInvoice}</div>
               </div>
             </div>
           </DialogHeader>

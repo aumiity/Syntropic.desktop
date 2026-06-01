@@ -136,7 +136,9 @@
       "Bash(echo \"pid $!\")",
       "Bash(rm -f /tmp/cv-*.png)",
       "Bash(env -u ELECTRON_RUN_AS_NODE node /tmp/syn-convert-e2e.cjs)",
-      "Bash(cd /Users/anya/Documents/GitHub/Syntropic.desktop *)"
+      "Bash(cd /Users/anya/Documents/GitHub/Syntropic.desktop *)",
+      "Bash(Select-String -Pattern \"Purchases.tsx\" -Context 0,1)",
+      "Bash(echo \"---exit:$?---done---\")"
     ],
     "additionalDirectories": [
       "/tmp"
