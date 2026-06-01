@@ -49,16 +49,18 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
 
 ## ELEVATED — the primary surface treatment (HARD)
 
-After the elevated-UI rollout, **`variant="elevated"` is the house style for controls and panels**: `bg-card` + `border border-border` + `shadow-sm`. It reads as a raised card sitting on the background. Reach for it by default; the bare filled `default`/`bg-input` look is now the *exception*, used only where a recessed/inset field is deliberately wanted.
+The house style for controls and panels is the elevated look: `bg-card` + `border border-border` + `shadow-sm`. It reads as a raised card sitting on the background.
 
-Apply `variant="elevated"` to:
-- **Every Input / Textarea / SearchInput / Select(Trigger)** inside a form, dialog, or filter strip.
-- **Secondary action Buttons** — the one paired *next to* a primary action (e.g. "ยกเลิก/กลับ" beside "บันทึก"). See [[dialog-button-convention]]. **`elevated` is never used as the only button** — a lone footer button takes the primary role (`default` for neutral/close/OK, `destructive` for negative).
-- Filter-strip controls (the `h-9 elevated` cluster — search + category select + filter/column popovers).
+**This is now the DEFAULT for inputs — `Input` / `Textarea` / `SelectTrigger` render elevated when you pass no variant.** The migration flipped each primitive's `default` code to the elevated styling and added a separate `variant="filled"` for the old flat `bg-input`/`bg-muted` look. So:
+- A bare `<Input>` / `<Textarea>` / `<SelectTrigger>` (and `SearchInput`) is already correct — **do NOT hand-add `variant="elevated"`** any more (it's a kept alias, identical to default; redundant on new code, harmless on old).
+- The bare flat look is the *exception*, opt in with `variant="filled"`, only where a recessed/inset field is deliberately wanted (e.g. dense inline-edit cells). When you spot a field that looks wrong after the flip (was intentionally flat), add `variant="filled"`.
+- Why flip the `default` value instead of deleting the `"default"` token? Non-breaking: no call site hardcoded `variant="default"` on these three (all bare inputs just omit the variant), and `"default"`/`"elevated"` both still compile. See [[input-elevated-default-flip]].
 
-**The live reference is `src/pages/Products/EditProduct/GeneralTab.tsx`** — every field there is `variant="elevated"`. Match it, not the showcase Modal demo (which is currently stale, still showing default-variant inputs — fix it when you next touch that Section).
+Secondary action **Buttons** (the one paired *next to* a primary action, e.g. "ยกเลิก/กลับ" beside "บันทึก") still use `variant="elevated"` explicitly — Button was NOT part of the flip. See [[dialog-button-convention]]. **`elevated` is never used as the only button** — a lone footer button takes the primary role (`default` for neutral/close/OK, `destructive` for negative). Filter-strip controls are the `h-9` cluster (search + category select + filter/column popovers).
 
-**The one exception — Button `default`.** Button's `default` variant is the primary teal CTA (save / confirm / pay) and must stay that way. "Elevated as primary" is about *surfaces and inputs*, not action buttons. Do NOT swap Button defaults to elevated.
+**The live reference is `src/pages/Products/EditProduct/GeneralTab.tsx`.**
+
+**The one exception — Button `default`.** Button's `default` variant is the primary teal CTA (save / confirm / pay) and must stay that way. The default-flip above is about *inputs/surfaces*, not action buttons. Do NOT swap Button defaults to elevated.
 
 > **Why not just make `elevated` the literal default value of the variant prop?** Considered and rejected: (1) Button's default can't move (it's the CTA). (2) Flipping Input/Select/Textarea defaults would silently restyle every existing call site that relies on `bg-input`, with no type-checker to catch regressions — you'd have to audit and re-tag every inset field by hand. The convention + showcase + copying from EditProduct is the lower-risk enforcement. If the codebase ever reaches ~95% elevated, revisit as a deliberate migration (rename `default`→`inset`/`filled`, flip the default value, sweep call sites).
 

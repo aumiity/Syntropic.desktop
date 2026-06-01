@@ -561,7 +561,7 @@ export default function Theme() {
 
               {/* ── INPUT ── */}
               <Section title="Input" path="src/components/ui/input.tsx">
-                <DemoRow label="Default">
+                <DemoRow label="Default — ELEVATED house look (bg-card + border + shadow); 'elevated' is a kept alias">
                   <Input
                     className="max-w-xs"
                     placeholder="พิมพ์ข้อความ..."
@@ -578,9 +578,9 @@ export default function Theme() {
                   <Input className="max-w-[180px]" placeholder="Disabled" disabled />
                   <Input className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
                 </DemoRow>
-                <DemoRow label="Elevated — white bg + shadow (no border)">
-                  <Input variant="elevated" className="max-w-[220px]" placeholder="พิมพ์ข้อความ..." />
-                  <SearchInput variant="elevated" wrapperClassName="w-[260px]" placeholder="Search transactions.." />
+                <DemoRow label="Filled — flat bg-input (opt-in via variant='filled'; the old default look)">
+                  <Input variant="filled" className="max-w-[220px]" placeholder="พิมพ์ข้อความ..." />
+                  <SearchInput variant="filled" wrapperClassName="w-[260px]" placeholder="Search transactions.." />
                 </DemoRow>
               </Section>
 
@@ -605,21 +605,21 @@ export default function Theme() {
 
               {/* ── TEXTAREA ── */}
               <Section title="Textarea" path="src/components/ui/textarea.tsx">
-                <DemoRow label="Default">
+                <DemoRow label="Default — ELEVATED house look (bg-card + border + shadow); 'elevated' is a kept alias">
                   <Textarea className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
                 </DemoRow>
                 <DemoRow label="States">
                   <Textarea className="max-w-[180px]" placeholder="Disabled" disabled />
                   <Textarea className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
                 </DemoRow>
-                <DemoRow label="Elevated — white bg + shadow (no border)">
-                  <Textarea variant="elevated" className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
+                <DemoRow label="Filled — flat bg-input (opt-in via variant='filled'; the old default look)">
+                  <Textarea variant="filled" className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
                 </DemoRow>
               </Section>
 
               {/* ── SELECT ── */}
               <Section title="Select" path="src/components/ui/select.tsx">
-                <DemoRow label="Default">
+                <DemoRow label="Default — ELEVATED house look (bg-card + border + shadow); 'elevated' is a kept alias">
                   <Select value={selectVal} onValueChange={setSelectVal}>
                     <SelectTrigger className="w-52">
                       <SelectValue placeholder="เลือกประเภทยา..." />
@@ -658,9 +658,9 @@ export default function Theme() {
                     </SelectContent>
                   </Select>
                 </DemoRow>
-                <DemoRow label="Elevated — white bg + shadow (no border)">
+                <DemoRow label="Filled — flat bg-muted (opt-in via variant='filled'; the old default look)">
                   <Select>
-                    <SelectTrigger variant="elevated" className="w-32">
+                    <SelectTrigger variant="filled" className="w-32">
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
