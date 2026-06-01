@@ -15,7 +15,7 @@ export async function buildTaxInvoiceHtml(
   tax: TaxInvoice,
   opts: { copy: boolean; fontFamily?: string } = { copy: false },
 ): Promise<string> {
-  const fontFamily = opts.fontFamily || 'Bai Jamjuree'
+  const fontFamily = opts.fontFamily || 'Sarabun'
   const fontFaceCss = await buildPrintFontFaceCss(fontFamily)
   const money = (n: number) => formatCurrency(n)
 

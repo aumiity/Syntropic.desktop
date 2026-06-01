@@ -12,7 +12,7 @@ export async function buildQuotationHtml(
   shop: Partial<Setting>,
   opts: { fontFamily?: string } = {},
 ): Promise<string> {
-  const fontFamily = opts.fontFamily || 'Bai Jamjuree'
+  const fontFamily = opts.fontFamily || 'Sarabun'
   const fontFaceCss = await buildPrintFontFaceCss(fontFamily)
   const money = (n: number) => formatCurrency(n)
 

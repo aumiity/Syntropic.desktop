@@ -6,6 +6,8 @@
 //
 // Only fonts with actual TTF files bundled in src/assets/fonts/ are listed —
 // guaranteed to render on any OS.
+import sarabunRegular from '@/assets/fonts/Sarabun-Regular.ttf?url'
+import sarabunBold from '@/assets/fonts/Sarabun-Bold.ttf?url'
 import baiJamjureeRegular from '@/assets/fonts/BaiJamjuree-Regular.ttf?url'
 import baiJamjureeBold from '@/assets/fonts/BaiJamjuree-Bold.ttf?url'
 import anuphanRegular from '@/assets/fonts/Anuphan-Regular.ttf?url'
@@ -20,6 +22,10 @@ import notoSansThaiVariable from '@/assets/fonts/NotoSansThai-Variable.ttf?url'
 interface FontFile { weight: string | number; url: string }
 
 export const FONT_REGISTRY: Record<string, FontFile[]> = {
+  // Sarabun is the house default for printed docs (matches the UI Thai font and
+  // label_settings). Bundled here so the print window embeds it as base64 and
+  // renders identically on Windows AND macOS (where Sarabun isn't a system font).
+  'Sarabun':                  [{ weight: 400, url: sarabunRegular }, { weight: 700, url: sarabunBold }],
   'Bai Jamjuree':             [{ weight: 400, url: baiJamjureeRegular }, { weight: 700, url: baiJamjureeBold }],
   'Anuphan':                  [{ weight: '100 700', url: anuphanRegular }],
   'SF Thonburi':              [{ weight: 400, url: sfThonburiRegular }, { weight: 700, url: sfThonburiBold }],

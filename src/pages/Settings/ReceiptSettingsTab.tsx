@@ -25,7 +25,7 @@ const DEFAULTS: ReceiptForm = {
   paper_height_mm: 0,
   auto_print: 0,
   copies: 1,
-  font_family: 'Bai Jamjuree',
+  font_family: 'Sarabun',
   font_size: 11,
   header_note: '',
   footer_note: 'ขอบคุณที่ใช้บริการ',

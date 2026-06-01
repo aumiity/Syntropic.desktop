@@ -26,7 +26,7 @@ export async function buildSlipHtml(
   opts: { mode?: SlipMode } = {},
 ): Promise<string> {
   const mode = opts.mode ?? 'receipt'
-  const fontFamily = settings.font_family || 'Bai Jamjuree'
+  const fontFamily = settings.font_family || 'Sarabun'
   const base = settings.font_size || 11
   const widthMm = settings.paper_width_mm || 80
   const fontFaceCss = await buildPrintFontFaceCss(fontFamily)

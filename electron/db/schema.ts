@@ -481,7 +481,7 @@ export function initializeSchema(db: Database.Database) {
       paper_height_mm    REAL NOT NULL DEFAULT 0,
       auto_print         INTEGER NOT NULL DEFAULT 0,
       copies             INTEGER NOT NULL DEFAULT 1,
-      font_family        TEXT NOT NULL DEFAULT 'Bai Jamjuree',
+      font_family        TEXT NOT NULL DEFAULT 'Sarabun',
       font_size          REAL NOT NULL DEFAULT 11,
       header_note        TEXT NOT NULL DEFAULT '',
       footer_note        TEXT NOT NULL DEFAULT 'ขอบคุณที่ใช้บริการ',
@@ -733,6 +733,19 @@ export function initializeSchema(db: Database.Database) {
   ]) {
     try { db.exec(sql) } catch {}
   }
+
+  // One-time: Sarabun is now the default receipt font (matches label_settings
+  // and the UI Thai font). Flip installs still holding the OLD 'Bai Jamjuree'
+  // default to Sarabun. Guarded by user_version (this is the first use of it in
+  // the app — claim version 1) so a later *deliberate* re-selection of Bai
+  // Jamjuree in Settings is NOT reverted on the next launch.
+  try {
+    const fontVer = db.pragma('user_version', { simple: true }) as number
+    if (!fontVer || fontVer < 1) {
+      db.exec(`UPDATE receipt_settings SET font_family = 'Sarabun' WHERE font_family = 'Bai Jamjuree'`)
+      db.pragma('user_version = 1')
+    }
+  } catch {}
 
   // Migration: drop the vestigial item_units.multiply column. Never read by any
   // business logic — per-product conversion lives in product_units.qty_per_base.
