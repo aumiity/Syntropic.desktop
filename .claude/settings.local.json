@@ -151,7 +151,9 @@
       "Bash(echo \"EXIT_WEB=$?\")",
       "Bash(gh auth *)",
       "Bash(gh repo *)",
-      "PowerShell(git config *)"
+      "PowerShell(git config *)",
+      "WebFetch(domain:impeccable.style)",
+      "Bash(npx --yes impeccable --help)"
     ],
     "additionalDirectories": [
       "/tmp"
