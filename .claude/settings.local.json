@@ -148,7 +148,10 @@
       "Bash(ls Syntropic.studio)",
       "Bash(npm -v)",
       "Bash(echo \"EXIT_SERVER=$?\")",
-      "Bash(echo \"EXIT_WEB=$?\")"
+      "Bash(echo \"EXIT_WEB=$?\")",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "PowerShell(git config *)"
     ],
     "additionalDirectories": [
       "/tmp"
