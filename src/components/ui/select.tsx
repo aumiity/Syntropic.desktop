@@ -37,7 +37,8 @@ function SelectTrigger({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default"
-  variant?: "default" | "elevated"
+  // See input.tsx — "default" is now ELEVATED; "filled" is the old flat look.
+  variant?: "default" | "elevated" | "filled"
 }) {
   return (
     <SelectPrimitive.Trigger
@@ -47,9 +48,9 @@ function SelectTrigger({
       className={cn(
         "group flex h-9 w-fit items-center justify-between gap-1.5",
         "rounded-control",
-        variant === "elevated"
-          ? "bg-card border border-border shadow-sm hover:shadow-sm hover:bg-muted"
-          : "bg-muted dark:bg-input/30",
+        variant === "filled"
+          ? "bg-muted dark:bg-input/30"
+          : "bg-card border border-border shadow-sm hover:shadow-sm hover:bg-muted",
         "py-2 pr-2 pl-2.5",
         "text-sm whitespace-nowrap",
         "transition-colors outline-none select-none",

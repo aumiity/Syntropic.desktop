@@ -1,5 +1,10 @@
 # Syntropic Desktop — Claude Context
 
+## Project memory
+@.claude/memory/MEMORY.md
+
+Project knowledge lives in `.claude/memory/` (repo-tracked → travels with git to every machine: MacBook / PC / Mac mini). The line above imports the index into every session — normal `claude` AND Studio. **Write project/convention memory there** (relative path, never the per-machine OS auto-memory dir). Only personal cross-project prefs (Thai language, น้องสาว pronoun) stay in OS/global auto-memory.
+
 ## Project
 Pharmacy POS desktop app. Electron 31 + React 18 + Vite 5 + TypeScript + better-sqlite3 + Tailwind + Zustand.
 Rebuilt from a Laravel/Blade/MySQL PHP original at `D:\Syntropic.Project\Syntropic.php` (authoritative SQL: `syntropic_rx.sql`).

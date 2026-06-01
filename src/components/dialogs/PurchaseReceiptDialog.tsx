@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Printer } from 'lucide-react'
+import { useToast } from '@/components/ui/toast'
+import { printGoodsReceipt } from '@/lib/receipt/print'
 import type { ProductLot } from '@/types'
 
 interface ReceiptItem extends ProductLot {
@@ -33,6 +35,7 @@ export function PurchaseReceiptDialog({
   onLoad?: (items: ReceiptItem[]) => void
   refreshKey?: number
 }) {
+  const { toast } = useToast()
   const [items, setItems] = useState<ReceiptItem[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -60,6 +63,31 @@ export function PurchaseReceiptDialog({
   const isCancelled = header?.status === 'cancelled'
   const isOverdue = !!header && !isCancelled && header.payment_type === 'credit' && !header.is_paid && !!header.due_date && header.due_date < today
 
+  const handlePrint = async () => {
+    if (!header || !invoiceNo) return
+    const res = await printGoodsReceipt({
+      invoice_no: invoiceNo,
+      supplier_name: header.supplier_name,
+      supplier_invoice_no: header.supplier_invoice_no,
+      order_date: header.order_date,
+      received_date: header.created_at,
+      payment_type: header.payment_type,
+      due_date: header.due_date,
+      discount_amount: discountAmt,
+      surcharge_amount: surchargeAmt,
+      lines: items.map(i => ({
+        trade_name: i.trade_name,
+        product_code: i.product_code,
+        lot_number: i.lot_number,
+        expiry_date: i.expiry_date,
+        unit_name: i.unit_name,
+        qty_received: i.qty_received,
+        cost_price: i.cost_price,
+      })),
+    })
+    if (!res.success) toast({ title: 'พิมพ์ใบรับสินค้าไม่สำเร็จ', description: res.error, variant: 'error' })
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="4xl" divided className="h-[85vh] flex flex-col">
@@ -86,6 +114,9 @@ export function PurchaseReceiptDialog({
                         ? <Badge variant="destructive-outline">เกินกำหนด</Badge>
                         : <Badge variant="warning-outline">เครดิต</Badge>
                     : <Badge variant="info-outline">เงินสด</Badge>}
+                <Button variant="elevated" size="icon-sm" className="h-8 w-8 ml-auto" title="พิมพ์ใบรับสินค้า" onClick={handlePrint}>
+                  <Printer />
+                </Button>
               </DialogTitle>
             </DialogHeader>
             <DialogBody className="flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">

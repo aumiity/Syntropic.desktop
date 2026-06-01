@@ -138,7 +138,12 @@
       "Bash(env -u ELECTRON_RUN_AS_NODE node /tmp/syn-convert-e2e.cjs)",
       "Bash(cd /Users/anya/Documents/GitHub/Syntropic.desktop *)",
       "Bash(Select-String -Pattern \"Purchases.tsx\" -Context 0,1)",
-      "Bash(echo \"---exit:$?---done---\")"
+      "Bash(echo \"---exit:$?---done---\")",
+      "Bash(Select-String -Pattern \"PurchaseReceiptDialog|buildGoodsReceipt|receipt/print\")",
+      "Bash(Select-Object -First 20)",
+      "Bash(grep -n \"claude\" .gitignore)",
+      "Bash(git check-ignore *)",
+      "Bash(ls .claude)"
     ],
     "additionalDirectories": [
       "/tmp"

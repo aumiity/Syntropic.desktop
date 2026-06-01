@@ -2,6 +2,7 @@ import type { QuotationForPrint, ReceiptSettings, SaleForPrint, Setting, TaxInvo
 import { buildSlipHtml, type SlipMode } from './buildSlipHtml'
 import { buildTaxInvoiceHtml } from './buildTaxInvoiceHtml'
 import { buildQuotationHtml } from './buildQuotationHtml'
+import { buildGoodsReceiptHtml, type GoodsReceiptForPrint } from './buildGoodsReceiptHtml'
 
 type PrintResult = { success: boolean; error?: string }
 
@@ -85,5 +86,25 @@ export async function previewQuotation(
 ): Promise<PrintResult> {
   const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
   const html = await buildQuotationHtml(quote, s)
+  return window.api.printer.previewHtmlPdf({ html, pageFormat: 'A4' })
+}
+
+// Goods receipt (ใบรับสินค้า) — A4. Loads shop info itself unless provided.
+export async function printGoodsReceipt(
+  gr: GoodsReceiptForPrint,
+  shop?: Partial<Setting>,
+  printerName = '',
+): Promise<PrintResult> {
+  const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
+  const html = await buildGoodsReceiptHtml(gr, s)
+  return window.api.printer.printHtml({ html, printerName, paperWidthMm: 210, heightMm: 297, copies: 1 })
+}
+
+export async function previewGoodsReceipt(
+  gr: GoodsReceiptForPrint,
+  shop?: Partial<Setting>,
+): Promise<PrintResult> {
+  const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
+  const html = await buildGoodsReceiptHtml(gr, s)
   return window.api.printer.previewHtmlPdf({ html, pageFormat: 'A4' })
 }

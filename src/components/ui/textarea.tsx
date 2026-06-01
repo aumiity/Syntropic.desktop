@@ -2,7 +2,8 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-type TextareaVariant = "default" | "elevated"
+// See input.tsx — "default" is now ELEVATED; "filled" is the old flat look.
+type TextareaVariant = "default" | "elevated" | "filled"
 
 function Textarea({
   className,
@@ -23,9 +24,9 @@ function Textarea({
         "focus-visible:border-ring focus-visible:ring-[2px] focus-visible:ring-ring",
         "disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 dark:disabled:bg-input/80",
         "aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-        variant === "elevated"
-          ? "bg-card border border-border shadow-sm"
-          : "bg-input dark:bg-input/30",
+        variant === "filled"
+          ? "bg-input dark:bg-input/30"
+          : "bg-card border border-border shadow-sm",
         className
       )}
       {...props}

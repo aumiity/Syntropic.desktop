@@ -3,7 +3,11 @@ import { Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-type InputVariant = "default" | "elevated"
+// "default" is now the house ELEVATED treatment (bg-card + border + shadow) so
+// a bare <Input> is correct by default. "elevated" is kept as an explicit alias
+// for the ~existing call sites. "filled" is the old flat bg-input look — opt in
+// only where the flat treatment is genuinely wanted (e.g. dense inline edits).
+type InputVariant = "default" | "elevated" | "filled"
 
 const Input = React.forwardRef<
   HTMLInputElement,
@@ -25,7 +29,7 @@ const Input = React.forwardRef<
         "focus:ring-[1px] focus:ring-ring focus:border-ring",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "aria-invalid:border-destructive aria-invalid:ring-[2px] aria-invalid:ring-destructive/40",
-        variant === "elevated" ? "bg-card border border-border shadow-sm" : "bg-input",
+        variant === "filled" ? "bg-input" : "bg-card border border-border shadow-sm",
         className
       )}
       {...props}

@@ -37,10 +37,11 @@ Syntropic.desktop/             ← POS เดิม ไม่แตะโคร�
     └── assassin.md
 
 Syntropic.studio/              ← repo ใหม่ แยกชัด
-├── server/                    ← Fastify + node-pty + JSONL watcher
+├── server/                    ← Fastify + child_process + stream-json
 │   ├── index.ts
-│   ├── pty.ts                 ← spawn claude (cwd=Syntropic.desktop)
-│   ├── watcher.ts             ← tail ~/.claude/projects/-Users-anya.../*.jsonl
+│   ├── engine.ts              ← child_process.spawn `claude -p` (stream-json, cwd=repo root)
+│   ├── machines.ts            ← resolve repo root จาก os.hostname() (auto, ไม่ถาม)
+│   ├── machines.json          ← ทะเบียนเครื่อง { hostname → {label, root} } (ตาม git)
 │   ├── ws.ts                  ← WebSocket → web
 │   └── routes.ts              ← REST: quests CRUD
 ├── web/                       ← Vite + React + Tailwind
@@ -50,10 +51,32 @@ Syntropic.studio/              ← repo ใหม่ แยกชัด
 └── package.json
 
 Tailscale (มีแล้วทุก device):
-  laptop → 0.0.0.0:3000 → iPhone Safari → http://anya-mac.tail-net.ts.net:3000
+  active machine → 0.0.0.0:3000 → iPhone Safari → http://<tailscale-name>:3000
 ```
 
-ตรง `~/.claude/projects/-Users-anya-Documents-GitHub-Syntropic-desktop/` คือที่ claude เขียน JSONL transcript ไว้ — watcher อ่านที่นี่ขับ UI state
+**Engine = headless stream-json (ไม่ใช่ pty + JSONL tail):** server spawn `claude -p --output-format stream-json --input-format stream-json --verbose` ผ่าน `child_process.spawn` → event โครงสร้าง (tool_use, agent dispatch, text, permission) ออกมาทาง **stdout เป็น JSON line** ตรงๆ และส่ง input กลับ (ตอบ permission/คำถาม) ทาง stdin ด้วย stream-json — ไม่ต้อง tail ไฟล์ JSONL ที่ path เพี้ยนตามเครื่อง, ไม่ต้องมี node-pty/conpty, ข้าม OS ได้ทันที
+
+---
+
+## Cross-platform (MacBook / PC / Mac mini) — ย้ายเครื่องบ่อย
+
+เป้าหมาย: pull git เครื่องไหนก็ทำงานได้ทันที **โดยไม่ต้องถามว่าวันนี้ใช้เครื่องไหน** — เครื่องบอกตัวเองได้ (`os.hostname()`, `process.platform`, `process.cwd()`)
+
+**กฎพกพา 3 ข้อ:**
+
+1. **Agent files path-free** — ห้าม hardcode absolute path ใน prompt. Sub-agent รัน cwd เดียวกับ session แม่ → ใช้ relative path + `npx tsc --noEmit` (ไม่มี `cd /Users/...`, ไม่มี bash-ism)
+2. **Memory ตาม git** — project/convention memory อยู่ `Syntropic.desktop/.claude/memory/` (repo, import ผ่าน `@.claude/memory/MEMORY.md` ใน CLAUDE.md). Kafra เขียนที่นี่. Personal pref (ภาษาไทย, น้องสาว) อยู่ OS/global เท่านั้น
+3. **Studio server หา root อัตโนมัติ** — `machines.ts` อ่าน `os.hostname()` → lookup `machines.json` → ใช้ root ของเครื่องนั้นเลย ถ้าไม่เจอ hostname (เครื่องใหม่) ค่อยถามครั้งเดียว แล้วเขียนลง `machines.json` → push git → เครื่องอื่นรู้ตาม **ไม่มี prompt ในการใช้งานปกติ**
+
+```jsonc
+// server/machines.json (ตาม git)
+{
+  "ZEMA-PC":      { "label": "PC",        "root": "D:/Syntropic.Project/Syntropic.desktop" },
+  "<macbook>":    { "label": "MacBook",   "root": "/Users/anya/.../Syntropic.desktop" },
+  "<mac-mini>":   { "label": "Mac mini",  "root": "/Users/anya/.../Syntropic.desktop" }
+}
+```
+> hostname เครื่อง PC ปัจจุบัน = `ZEMA-PC`. เติม hostname ของ MacBook/Mac mini ตอนรันครั้งแรกบนเครื่องนั้น Dashboard โชว์ป้าย "กำลังทำงาน: <label>" ให้เห็นว่า detect ถูกเครื่อง
 
 ---
 
@@ -103,7 +126,7 @@ tools: Bash, Read
 model: haiku
 ---
 ```
-Body: รัน `cd /Users/anya/Documents/GitHub/Syntropic.desktop && tsc --noEmit` → ถ้าเป็น UI สำคัญ → แนะนำใช้ skill `/verify` หรือ `/run`. รายงาน pass/fail + log สั้น
+Body: รัน `npx tsc --noEmit` (cwd = session แม่ อยู่แล้ว — **ห้าม hardcode path / ห้าม `cd`**, ทำงานได้ทุก OS) → ถ้าเป็น UI สำคัญ → แนะนำใช้ skill `/verify` หรือ `/run`. รายงาน pass/fail + log สั้น
 
 ### `kafra.md`
 ```yaml
@@ -114,7 +137,7 @@ tools: Read, Write, Edit
 model: haiku
 ---
 ```
-Body: เกณฑ์เก็บ — invariant ใหม่, pattern ใช้ซ้ำได้, pitfall ที่จะเจอซ้ำ, decision rationale ที่โค้ดไม่บอก. ไม่เก็บ — รายละเอียดงานครั้งเดียว, สิ่งที่ git log มี. เขียนเข้า `~/.claude/projects/-Users-anya-Documents-GitHub-Syntropic-desktop/memory/` ตาม convention auto memory (frontmatter + body + MEMORY.md index)
+Body: เกณฑ์เก็บ — invariant ใหม่, pattern ใช้ซ้ำได้, pitfall ที่จะเจอซ้ำ, decision rationale ที่โค้ดไม่บอก. ไม่เก็บ — รายละเอียดงานครั้งเดียว, สิ่งที่ git log มี. เขียนเข้า `.claude/memory/` **ในรีโป** (relative path → ตาม git ทุกเครื่อง, อ่านได้ทั้ง normal session + Studio ผ่าน `@import` ใน CLAUDE.md) ตาม convention (frontmatter + body + อัปเดต MEMORY.md index). **ห้ามเขียนลง OS auto-memory dir** — นั่นไม่ตาม git
 
 ### `assassin.md`
 ```yaml
@@ -151,7 +174,7 @@ Briefing each sub-agent: exact file paths + the specific docs/claude/*.md to loa
 ### Phase 0 verification (terminal-only)
 
 ```bash
-cd /Users/anya/Documents/GitHub/Syntropic.desktop
+# cd เข้ารีโป Syntropic.desktop บนเครื่องไหนก็ได้ (path ต่างกันได้ ไม่กระทบ agent)
 claude
 # ทดลอง 3 cases:
 > ช่วยเปลี่ยนสี border ของ filter strip ทุกหน้าให้เป็น muted-darker
@@ -172,23 +195,23 @@ claude
 
 ### Server (`Syntropic.studio/server/`)
 
-**Stack:** Fastify (HTTP) + ws (WebSocket) + node-pty (spawn claude pty) + better-sqlite3 (quest persistence)
+**Stack:** Fastify (HTTP) + ws (WebSocket) + child_process (spawn `claude -p` headless) + better-sqlite3 (quest persistence). **ไม่ใช้ node-pty** — stream-json ให้ event โครงสร้างทาง stdout อยู่แล้ว ไม่ต้องแกะ ANSI/TTY และข้าม OS ได้ฟรี
 
-**`pty.ts`** — wrapper รอบ node-pty:
-- `spawnSession(prompt)`: spawn `claude` ด้วย `cwd: /Users/anya/Documents/GitHub/Syntropic.desktop`, ขนาด 120×30
-- `writeToSession(id, text)`: ส่ง stdin
-- `getSessionOutput(id)`: stream stdout buffer
-- เก็บ map ของ active sessions in-memory + session-id ผูกกับ JSONL path
+**`machines.ts`** — resolve repo root แบบ auto (ดู section Cross-platform):
+- `repoRoot()`: อ่าน `os.hostname()` → lookup `machines.json` → คืน root ของเครื่องนี้
+- hostname ไม่เจอ → throw พร้อมข้อความให้เติม machines.json (ถามครั้งเดียวตอน setup เครื่องใหม่)
 
-**`watcher.ts`** — tail JSONL ของ session:
-- watch `~/.claude/projects/-Users-anya-Documents-GitHub-Syntropic-desktop/*.jsonl`
-- parse แต่ละบรรทัด → emit event types:
-  - `agent_dispatch` (Task tool spawn) — รู้ชื่อ subagent_type → ใส่ใน lane นั้น
-  - `agent_return` (Task complete) — move card ออกจาก lane
+**`engine.ts`** — wrapper รอบ `child_process.spawn`:
+- `spawnSession(prompt)`: spawn `claude -p --output-format stream-json --input-format stream-json --verbose` ด้วย `cwd: repoRoot()`
+- `writeToSession(id, json)`: ส่ง stream-json message ทาง stdin (ตอบ permission/คำถาม)
+- parse stdout ทีละบรรทัด (JSON) → emit event types:
+  - `agent_dispatch` (sub-agent spawn) — รู้ชื่อ subagent_type → ใส่ใน lane นั้น
+  - `agent_return` (sub-agent complete) — move card ออกจาก lane
   - `tool_use` (Edit/Write/Bash) — update card status
   - `text_block` (assistant message) — append to transcript
   - `permission_request` — surface ใน UI
 - State machine ต่อ session: `pending → dispatched(<agent>) → ... → done`
+- เก็บ map ของ active child processes in-memory ผูกกับ quest id + `--session-id` สำหรับ resume
 
 **`routes.ts`** — REST:
 - `GET /api/quests` — list (จาก SQLite)
@@ -289,6 +312,7 @@ URL pattern: `http://<machine-tailscale-name>:3000` — bookmark บน iPhone S
 
 ## Open questions (เก็บไว้แก้ทีหลัง)
 
-- `node-pty` + claude CLI บน macOS — ทดสอบช่วงต้น Phase 1 เผื่อ ANSI escape / TTY คุยกันแปลกๆ
+- ~~`node-pty` + claude CLI บน macOS — ANSI/TTY~~ → **ตัดทิ้งแล้ว** ใช้ `claude -p` stream-json ผ่าน child_process แทน (ไม่มี TTY ให้กังวล, ข้าม OS ฟรี). เหลือทดสอบแค่ว่า stdout JSON line parse ได้ครบ event types ที่ต้องใช้
+- `--input-format stream-json` schema สำหรับตอบ permission — เช็ค shape จริงตอน Phase 1 (รัน `claude -p` มือเปล่าดู event ก่อน)
 - Permission prompt บน mobile — ถ้า UX ยากเกินไป Phase 1 เริ่มเป็น read-only บน mobile, approve จาก laptop เท่านั้น
 - Multi-user / multi-machine — เก็บไว้ก่อน, single-user single-machine pattern เพียงพอ
