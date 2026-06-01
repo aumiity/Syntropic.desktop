@@ -143,7 +143,12 @@
       "Bash(Select-Object -First 20)",
       "Bash(grep -n \"claude\" .gitignore)",
       "Bash(git check-ignore *)",
-      "Bash(ls .claude)"
+      "Bash(ls .claude)",
+      "Read(//d/Syntropic.Project/**)",
+      "Bash(ls Syntropic.studio)",
+      "Bash(npm -v)",
+      "Bash(echo \"EXIT_SERVER=$?\")",
+      "Bash(echo \"EXIT_WEB=$?\")"
     ],
     "additionalDirectories": [
       "/tmp"
