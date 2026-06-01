@@ -84,6 +84,21 @@ Each line is the headline of a rule with an incident behind it. The full context
 
 ---
 
+## Studio dispatch
+
+When a quest comes in, the main session is the orchestrator — dispatch sub-agents (from `.claude/agents/`) by complexity:
+
+1. **Trivial** (≤5 lines, no schema/IPC/invariant impact — e.g. "change color X to Y", "fix typo")
+   → spawn `assassin` only.
+
+2. **Normal feature/fix** (default)
+   → `wizard` → `blacksmith` → `priest` → `hunter` → `kafra`, in sequence. Feed each the previous agent's output. If the Priest returns NEEDS-FIX, loop back to `blacksmith` before continuing.
+
+3. **Parallel work** (disjoint files, independent changes)
+   → run multiple `blacksmith` agents in the background, then a single sequential `priest` → `hunter` → `kafra` over the combined diff.
+
+When briefing a sub-agent, give it: the exact file paths, the specific `docs/claude/*.md` to load, and the expected output shape. Agents run in the repo cwd — never hand them absolute paths.
+
 ## Quick reference
 
 - **Thai UI language throughout.** Inter + Sarabun fonts (Noto Sans Thai fallback); base 15px.
