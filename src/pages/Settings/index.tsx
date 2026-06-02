@@ -3,11 +3,10 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Store, Package, Printer, ShoppingCart, Save, Receipt } from 'lucide-react'
+import { Store, Package, Printer, ShoppingCart, Save } from 'lucide-react'
 import { ShopTab } from './ShopTab'
 import { ProductMgmtTab } from './ProductMgmtTab'
-import { LabelSettingsTab } from './LabelSettingsTab'
-import { ReceiptSettingsTab } from './ReceiptSettingsTab'
+import { PrintersTab } from './PrintersTab'
 import { SalesTab } from './SalesTab'
 
 export default function SettingsPage() {
@@ -25,8 +24,7 @@ export default function SettingsPage() {
             <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
             <TabsTrigger value="product-mgmt"><Package /> จัดการสินค้า</TabsTrigger>
             <TabsTrigger value="sales"><ShoppingCart /> การขาย</TabsTrigger>
-            <TabsTrigger value="labels"><Printer /> การพิมพ์ฉลาก</TabsTrigger>
-            <TabsTrigger value="receipts"><Receipt /> การพิมพ์ใบเสร็จ</TabsTrigger>
+            <TabsTrigger value="printers"><Printer /> เครื่องพิมพ์</TabsTrigger>
           </TabsList>
         </Tabs>
         {tab === 'sales' && (
@@ -46,8 +44,7 @@ export default function SettingsPage() {
             setSaving={setSalesSaving}
           />
         )}
-        {tab === 'labels' && <LabelSettingsTab />}
-        {tab === 'receipts' && <ReceiptSettingsTab />}
+        {tab === 'printers' && <PrintersTab />}
       </div>
     </div>
   )

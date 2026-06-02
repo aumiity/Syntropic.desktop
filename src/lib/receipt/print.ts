@@ -1,4 +1,4 @@
-import type { QuotationForPrint, ReceiptSettings, SaleForPrint, Setting, TaxInvoice } from '@/types'
+import type { DocumentSettings, QuotationForPrint, ReceiptSettings, SaleForPrint, Setting, TaxInvoice } from '@/types'
 import { buildSlipHtml, type SlipMode } from './buildSlipHtml'
 import { buildTaxInvoiceHtml } from './buildTaxInvoiceHtml'
 import { buildQuotationHtml } from './buildQuotationHtml'
@@ -16,6 +16,17 @@ async function loadConfig(): Promise<{ shop: Partial<Setting>; settings: Receipt
     window.api.settings.getReceiptSettings() as Promise<ReceiptSettings>,
   ])
   return { shop: shop ?? {}, settings }
+}
+
+// A4 documents (tax invoice / goods receipt / quotation) share one configured
+// printer + copies (document_settings). printer_name '' = OS default printer.
+// An explicit non-empty printerName arg still wins, for one-off overrides.
+async function docConfig(printerName?: string): Promise<{ printerName: string; copies: number }> {
+  const s = (await window.api.settings.getDocumentSettings()) as DocumentSettings | undefined
+  return {
+    printerName: printerName || s?.printer_name || '',
+    copies: Math.max(1, Number(s?.copies) || 1),
+  }
 }
 
 // Print a cash slip / receipt. Pass a preloaded config to avoid a round-trip
@@ -56,7 +67,8 @@ export async function printTaxInvoice(
   printerName = '',
 ): Promise<PrintResult> {
   const html = await buildTaxInvoiceHtml(sale, shop, tax, { copy })
-  return window.api.printer.printHtml({ html, printerName, paperWidthMm: 210, heightMm: 297, copies: 1 })
+  const cfg = await docConfig(printerName)
+  return window.api.printer.printHtml({ html, printerName: cfg.printerName, paperWidthMm: 210, heightMm: 297, copies: cfg.copies })
 }
 
 export async function previewTaxInvoice(
@@ -77,7 +89,8 @@ export async function printQuotation(
 ): Promise<PrintResult> {
   const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
   const html = await buildQuotationHtml(quote, s)
-  return window.api.printer.printHtml({ html, printerName, paperWidthMm: 210, heightMm: 297, copies: 1 })
+  const cfg = await docConfig(printerName)
+  return window.api.printer.printHtml({ html, printerName: cfg.printerName, paperWidthMm: 210, heightMm: 297, copies: cfg.copies })
 }
 
 export async function previewQuotation(
@@ -97,7 +110,8 @@ export async function printGoodsReceipt(
 ): Promise<PrintResult> {
   const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
   const html = await buildGoodsReceiptHtml(gr, s)
-  return window.api.printer.printHtml({ html, printerName, paperWidthMm: 210, heightMm: 297, copies: 1 })
+  const cfg = await docConfig(printerName)
+  return window.api.printer.printHtml({ html, printerName: cfg.printerName, paperWidthMm: 210, heightMm: 297, copies: cfg.copies })
 }
 
 export async function previewGoodsReceipt(

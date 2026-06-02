@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Label } from '@/components/ui/label'
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
+import { CustomerSearchDialog } from '@/components/dialogs/CustomerSearchDialog'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -128,11 +129,6 @@ export default function POSPage() {
 
   // Customer
   const [showCustomerSearch, setShowCustomerSearch] = useState(false)
-  const [customerQuery, setCustomerQuery] = useState('')
-  const [customerResults, setCustomerResults] = useState<Customer[]>([])
-  const [customerHighlightIdx, setCustomerHighlightIdx] = useState(-1)
-  const customerInputRef = useRef<HTMLInputElement>(null)
-  const activeCustomerRowRef = useRef<HTMLDivElement>(null)
   const [showCustomerInfo, setShowCustomerInfo] = useState(false)
   const [customerDetails, setCustomerDetails] = useState<(Customer & { allergies?: DrugAllergy[] }) | null>(null)
 
@@ -250,10 +246,6 @@ export default function POSPage() {
   }, [searchOpen])
 
   useEffect(() => {
-    if (showCustomerSearch) { setCustomerQuery(''); handleSearchCustomer('') }
-  }, [showCustomerSearch])
-
-  useEffect(() => {
     if (showCustomerInfo && cart.customer?.id) {
       let cancelled = false
       window.api.people.getCustomer(cart.customer.id).then((d: any) => {
@@ -286,12 +278,6 @@ export default function POSPage() {
     activeRowRef.current?.scrollIntoView({ block: 'nearest' })
   }, [highlightIdx])
 
-  useEffect(() => { setCustomerHighlightIdx(-1) }, [customerQuery])
-
-  useEffect(() => {
-    if (customerHighlightIdx >= 0) activeCustomerRowRef.current?.scrollIntoView({ block: 'nearest' })
-  }, [customerHighlightIdx])
-
   // Global ESC handler for all modals (closes the top-most one)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -302,7 +288,7 @@ export default function POSPage() {
       if (unitModalIdx !== null) { setUnitModalIdx(null); return }
       if (showQuickAdd) { setShowQuickAdd(false); return }
       if (showCustomerInfo) { setShowCustomerInfo(false); return }
-      if (showCustomerSearch) { setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([]); return }
+      if (showCustomerSearch) { setShowCustomerSearch(false); return }
       if (searchOpen) { closeSearch(); return }
       if (showReturn) { closeReturn(); return }
       if (showAdjust) { closeAdjust(); return }
@@ -446,16 +432,6 @@ export default function POSPage() {
       const sel = flatItems[highlightIdx]
       if (sel) handleSelectItem(sel.product, sel.unit)
     }
-  }
-
-  const handleSearchCustomer = async (q: string) => {
-    setCustomerQuery(q)
-    const data = await window.api.pos.searchCustomers(q)
-    setCustomerResults(data as Customer[])
-  }
-
-  const closeCustomerSearch = () => {
-    setShowCustomerSearch(false); setCustomerQuery(''); setCustomerResults([])
   }
 
   const closeReturn = () => {
@@ -922,40 +898,42 @@ export default function POSPage() {
 
           {/* Sale type + search + clear-all header */}
           <div className="flex items-center gap-2 px-4 h-14 shrink-0 border-0">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
-              className={`relative flex h-9 w-[84px] px-0 rounded-lg text-sm font-semibold shrink-0 justify-center hover:bg-transparent ${
-                cart.saleType === 'retail' ? 'text-primary-foreground hover:text-primary-foreground' : 'text-foreground-subtle hover:text-foreground'
-              }`}>
-              {cart.saleType === 'retail' && (
-                <motion.div
-                  layoutId="pos-sale-type-pill"
-                  aria-hidden
-                  className="absolute inset-0 rounded-lg bg-primary"
-                  transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
-                />
-              )}
-              <span className="relative z-10">ขายปลีก</span>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
-              className={`relative flex h-9 w-[84px] px-0 rounded-lg text-sm font-semibold shrink-0 justify-center hover:bg-transparent ${
-                cart.saleType === 'wholesale' ? 'text-accent-foreground hover:text-accent-foreground' : 'text-foreground-subtle hover:text-foreground'
-              }`}>
-              {cart.saleType === 'wholesale' && (
-                <motion.div
-                  layoutId="pos-sale-type-pill"
-                  aria-hidden
-                  className="absolute inset-0 rounded-lg bg-accent"
-                  transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
-                />
-              )}
-              <span className="relative z-10">ขายส่ง</span>
-            </Button>
+            <div className="flex h-9 items-stretch gap-0.5 rounded-lg border border-border bg-muted/40 p-0.5 shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
+                className={`relative flex h-full w-[70px] px-0 rounded-md text-sm font-semibold justify-center hover:bg-transparent ${
+                  cart.saleType === 'retail' ? 'text-primary-foreground hover:text-primary-foreground' : 'text-foreground-subtle hover:text-foreground'
+                }`}>
+                {cart.saleType === 'retail' && (
+                  <motion.div
+                    layoutId="pos-sale-type-pill"
+                    aria-hidden
+                    className="absolute inset-0 rounded-md bg-primary"
+                    transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                  />
+                )}
+                <span className="relative z-10">ขายปลีก</span>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
+                className={`relative flex h-full w-[70px] px-0 rounded-md text-sm font-semibold justify-center hover:bg-transparent ${
+                  cart.saleType === 'wholesale' ? 'text-accent-foreground hover:text-accent-foreground' : 'text-foreground-subtle hover:text-foreground'
+                }`}>
+                {cart.saleType === 'wholesale' && (
+                  <motion.div
+                    layoutId="pos-sale-type-pill"
+                    aria-hidden
+                    className="absolute inset-0 rounded-md bg-accent"
+                    transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                  />
+                )}
+                <span className="relative z-10">ขายส่ง</span>
+              </Button>
+            </div>
             <div className="relative flex-1 min-w-0">
               <Input
                 ref={mainInputRef}
@@ -1375,129 +1353,13 @@ export default function POSPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── CUSTOMER SEARCH DIALOG ── */}
-      <Dialog open={showCustomerSearch} onOpenChange={(v) => { if (!v) closeCustomerSearch() }}>
-        <DialogContent
-          showCloseButton={false}
-          onClose={closeCustomerSearch}
-          className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
-          style={{ width: '560px', maxWidth: 'calc(100vw - 2rem)', height: '620px', maxHeight: 'calc(100vh - 4rem)' }}
-        >
-          <DialogTitle className="sr-only">เลือกลูกค้า</DialogTitle>
-
-          {/* Search input row */}
-          <div className="flex items-center gap-2 px-4 py-3 shrink-0 border-b border-border">
-            <Search className="size-5 text-primary shrink-0" />
-            <Input
-              ref={customerInputRef}
-              value={customerQuery}
-              autoFocus
-              onChange={e => handleSearchCustomer(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'ArrowDown') { e.preventDefault(); setCustomerHighlightIdx(i => Math.min(i + 1, customerResults.length - 1)) }
-                else if (e.key === 'ArrowUp') { e.preventDefault(); setCustomerHighlightIdx(i => Math.max(i - 1, -1)) }
-                else if (e.key === 'Enter') {
-                  e.preventDefault()
-                  const idx = customerHighlightIdx < 0 ? 0 : customerHighlightIdx
-                  const sel = customerResults[idx]
-                  if (sel) { cart.setCustomer(sel); closeCustomerSearch() }
-                }
-              }}
-              placeholder="ค้นหา ชื่อ, เบอร์โทร, รหัส..."
-              className="flex-1 text-lg outline-none bg-transparent border-0 shadow-none text-sm focus-visible:ring-0 focus-visible:border-0 h-auto px-0"
-              autoComplete="off"
-            />
-            {customerQuery && (
-              <Button variant="elevated" size="icon-xs" onClick={() => { setCustomerQuery(''); setCustomerResults([]); customerInputRef.current?.focus() }}
-                className="rounded-full text-foreground-subtle"><X className="size-3" strokeWidth={3} /></Button>
-            )}
-            <Button variant="elevated" size="sm" onClick={closeCustomerSearch} className="h-7">Esc</Button>
-          </div>
-
-          {/* Section label */}
-          <div className="px-5 pt-3 pb-1.5 text-sm font-semibold text-muted-foreground shrink-0">
-            {customerQuery ? `ผลการค้นหา (${customerResults.length})` : 'ลูกค้าทั้งหมด'}
-          </div>
-
-          {/* Results — scrolls internally. Walk-in is pinned as the first row of the list. */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin px-2" tabIndex={-1}>
-            <div className="divide-y divide-border">
-              {/* Walk-in shortcut — pinned first, styled as a list row */}
-              <div
-                onClick={() => { cart.setCustomer(null); closeCustomerSearch() }}
-                className="group flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors hover:bg-primary-soft/60"
-              >
-                <span className="grid place-items-center size-11 rounded-xl shrink-0 bg-primary text-primary-foreground">
-                  <Users className="size-6" />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-foreground">ลูกค้าทั่วไป</div>
-                  <div className="text-sm text-muted-foreground">ขายโดยไม่ระบุลูกค้า</div>
-                </div>
-                <Badge variant="accent" className="text-xs rounded-md shrink-0">ค่าเริ่มต้น</Badge>
-                <ChevronRight className="size-4 text-foreground-subtle shrink-0 group-hover:text-foreground transition-colors" />
-              </div>
-
-              {customerResults.map((c, i) => {
-                const active = i === customerHighlightIdx
-                const hasAlert = !!(c.is_alert && c.alert_note)
-                return (
-                  <div
-                    key={c.id}
-                    ref={active ? activeCustomerRowRef : undefined}
-                    onClick={() => { cart.setCustomer(c); closeCustomerSearch() }}
-                    className={`group flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft/60'}`}
-                  >
-                      <span className="grid place-items-center size-11 rounded-xl shrink-0 bg-primary text-primary-foreground">
-                        <User className="size-6" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-semibold text-foreground truncate">{c.full_name}</span>
-                          {hasAlert ? (
-                            <Badge variant="destructive" className="gap-1 shrink-0">
-                              <AlertTriangle className="size-3" /> แจ้งเตือน
-                            </Badge>
-                          ) : null}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span className="text-sm">{c.code}</span>
-                          {c.phone ? <><span className="text-foreground-subtle">·</span><Phone className="size-3 shrink-0" /><span className="truncate">{c.phone}</span></> : null}
-                        </div>
-                      </div>
-                      <ChevronRight className={`size-4 shrink-0 transition-colors ${active ? 'text-primary' : 'text-foreground-subtle group-hover:text-foreground'}`} />
-                    </div>
-                  )
-              })}
-            </div>
-
-            {customerResults.length === 0 && (
-              <div className="py-12 text-center text-foreground-subtle">
-                {customerQuery ? (
-                  <>
-                    <UserPlus className="size-10 mx-auto mb-2 opacity-40" />
-                    <p className="text-base">ไม่พบลูกค้า "{customerQuery}"</p>
-                    <p className="text-sm mt-1">ลองเพิ่มลูกค้าใหม่จากปุ่ม "เพิ่มลูกค้า"</p>
-                  </>
-                ) : (
-                  <>
-                    <Search className="size-10 mx-auto mb-2 opacity-40" />
-                    <p className="text-base">พิมพ์เพื่อค้นหาลูกค้า</p>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Footer hint */}
-          <div className="flex items-center justify-between gap-3 px-4 py-2 bg-muted border-t border-border text-xs text-muted-foreground shrink-0">
-            <span>
-              <kbd>↑↓</kbd> เลื่อน · <kbd>Enter</kbd> เลือก · <kbd>Esc</kbd> ปิด
-            </span>
-            <span>พบ {customerResults.length} รายการ</span>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* ── CUSTOMER SEARCH DIALOG (shared with the Quotation editor) ── */}
+      <CustomerSearchDialog
+        open={showCustomerSearch}
+        onOpenChange={setShowCustomerSearch}
+        onSelect={(c) => cart.setCustomer(c)}
+        showWalkIn
+      />
 
       {/* ── CUSTOMER INFO DIALOG ── */}
       <Dialog open={showCustomerInfo} onOpenChange={setShowCustomerInfo}>
@@ -2055,7 +1917,7 @@ export default function POSPage() {
                     <p className="text-sm">ยังไม่มีรายการที่จะตัด</p>
                   </div>
                 ) : adjustList.map((item, idx) => (
-                  <div key={idx} className="bg-card rounded-lg px-3 py-2 flex items-center gap-2 shadow-card">
+                  <div key={idx} className="bg-card rounded-lg border border-border px-3 py-2 flex items-center gap-2 shadow-card">
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm truncate text-foreground">{item.product_name}</div>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -2301,7 +2163,7 @@ export default function POSPage() {
                     <p className="text-sm">ยังไม่มีรายการที่จะคืน</p>
                   </div>
                 ) : returnList.map((item, idx) => (
-                  <div key={idx} className="bg-card rounded-lg px-3 py-2 flex items-center gap-2 shadow-card">
+                  <div key={idx} className="bg-card rounded-lg border border-border px-3 py-2 flex items-center gap-2 shadow-card">
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm truncate text-foreground">{item.product_name}</div>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">

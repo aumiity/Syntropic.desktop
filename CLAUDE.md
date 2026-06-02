@@ -106,6 +106,9 @@ When briefing a sub-agent, give it: the exact file paths, the specific `docs/cla
 - **Frameless Electron window** — custom `TitleBar.tsx`, IPC via `window.api.window.*`.
 - **Toast notifications** via `useToast()` hook.
 
+## Hidden / parked features
+- **Quotation (ใบเสนอราคา) — built but HIDDEN from nav as of 2026-06-02.** Full module still lives in the repo: pages `src/pages/Quotation/*`, IPC `electron/ipc/quotation.ts`, schema tables `quotations`/`quotation_items`, print builder `src/lib/receipt/buildQuotationHtml.ts`, convert flow `src/lib/quotation/useConvert.tsx`. Routes are still registered in `App.tsx` (reachable by URL); only the Sidebar link is commented out. **Reason:** sales-document work (quotation/invoice) is being offloaded to **FlowAccount** (cloud accounting) via its Open API — the app keeps POS + cash bill + tax invoice + financial summaries only. The in-app Invoice subsystem (was Phase B/C) is therefore **cancelled**. FlowAccount integration is **not started** (no account yet). Re-enable the quotation menu by uncommenting the line in `Sidebar.tsx`. Full context: `.claude/memory/project_sales_documents.md`.
+
 ## Before a production build — remove DEV-only code
 These exist for development convenience and MUST be stripped before compiling a real build:
 - **Setup-wizard preview in `src/pages/Settings/ShopTab.tsx`** — the "ดูตัวอย่าง Setup (DEV)" button + the full-screen overlay block + the `SetupWizard` import (3 spots, each tagged `DEV ONLY`). The `dryRun` prop on `SetupWizard` itself can stay (defaults false, no prod effect).

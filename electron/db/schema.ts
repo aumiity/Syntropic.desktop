@@ -489,6 +489,18 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    -- A4 document printing (singleton). Covers every full-page document that
+    -- shares the A4 printer: ใบกำกับภาษีเต็มรูป, ใบรับสินค้า, ใบเสนอราคา, ฯลฯ.
+    -- One physical printer for all of them (operator decision) — page size is
+    -- fixed A4 in the print helpers (210×297 mm), so only the printer + copies
+    -- are configurable. printer_name = '' falls back to the OS default printer.
+    CREATE TABLE IF NOT EXISTS document_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      printer_name TEXT NOT NULL DEFAULT '',
+      copies       INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     -- Full tax invoices (ใบกำกับภาษีเต็มรูป, ม.86/4). One row per sale issued.
     -- doc_no reuses the sale's invoice_no (RC-) as the running serial number.
     -- Buyer fields are a snapshot taken at issue time (the customer record may

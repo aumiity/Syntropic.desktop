@@ -68,14 +68,14 @@ export default function ReportsFdaPage() {
           <Link
             key={code}
             to={to}
-            className="bg-card rounded-card shadow-card hover:bg-primary-soft/40 hover:shadow-md transition-all"
+            className="bg-card rounded-card border border-border shadow-card hover:bg-primary-soft/40 hover:shadow-md transition-all"
           >
             {content}
           </Link>
         ) : (
           <div
             key={code}
-            className="bg-card rounded-card shadow-card opacity-60 cursor-not-allowed"
+            className="bg-card rounded-card border border-border shadow-card opacity-60 cursor-not-allowed"
             aria-disabled="true"
           >
             {content}

@@ -809,7 +809,7 @@ export default function PurchasePage() {
                                       autoComplete="off"
                                     />
                                     {activeSuggRow === i && (suggestions[i]?.length ?? 0) > 0 && (
-                                      <div className="absolute left-2 top-full mt-0.5 z-50 w-64 bg-card rounded-card shadow-card overflow-hidden">
+                                      <div className="absolute left-2 top-full mt-0.5 z-50 w-64 bg-card rounded-card border border-border shadow-card overflow-hidden">
                                         {suggestions[i].map((p, si) => (
                                           <Button
                                             key={p.id}
@@ -1043,7 +1043,7 @@ export default function PurchasePage() {
                     {/* Payment type */}
                     <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-3">
                       <div className="text-sm font-bold text-foreground uppercase tracking-wide">การชำระเงิน</div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
                         <Button
                           type="button"
                           variant="ghost"
@@ -1058,7 +1058,7 @@ export default function PurchasePage() {
                             <motion.span
                               layoutId="payment-pill"
                               aria-hidden
-                              className="absolute inset-0 rounded-lg bg-primary"
+                              className="absolute inset-0 rounded-lg bg-primary shadow-sm"
                               transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                             />
                           )}
@@ -1080,7 +1080,7 @@ export default function PurchasePage() {
                             <motion.span
                               layoutId="payment-pill"
                               aria-hidden
-                              className="absolute inset-0 rounded-lg bg-accent"
+                              className="absolute inset-0 rounded-lg bg-accent shadow-sm"
                               transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                             />
                           )}
@@ -1122,7 +1122,7 @@ export default function PurchasePage() {
                               <div className="flex gap-1">
                                 <Button
                                   type="button"
-                                  variant="primary-soft"
+                                  variant={paidDate === today ? 'default' : 'primary-soft'}
                                   onClick={() => setPaidDate(today)}
                                   className="flex-1 h-8 rounded-lg text-sm font-semibold"
                                 >
@@ -1130,7 +1130,7 @@ export default function PurchasePage() {
                                 </Button>
                                 <Button
                                   type="button"
-                                  variant="warm"
+                                  variant={dueDate && paidDate === dueDate ? 'default' : 'primary-soft'}
                                   onClick={() => dueDate && setPaidDate(dueDate)}
                                   disabled={!dueDate}
                                   className="flex-1 h-8 rounded-lg text-sm font-semibold"

@@ -256,7 +256,7 @@ export default function PurchaseIntake() {
 
       <div className="flex flex-1 min-h-0 gap-3">
         {/* Left column — input */}
-        <div className="w-[380px] shrink-0 flex flex-col gap-3 bg-card rounded-card shadow-card p-5">
+        <div className="w-[380px] shrink-0 flex flex-col gap-3 bg-card rounded-card border border-border shadow-card p-5">
           <div className="space-y-1.5">
             <span className="text-sm font-semibold text-muted-foreground">ผู้ขาย</span>
             <Select
@@ -295,7 +295,7 @@ export default function PurchaseIntake() {
         </div>
 
         {/* Right column — results table-card */}
-        <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card overflow-hidden">
+        <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card border border-border shadow-card overflow-hidden">
           <div className="px-5 h-12 text-sm font-semibold text-muted-foreground shrink-0 flex items-center justify-between">
             <span>
               {rows.length

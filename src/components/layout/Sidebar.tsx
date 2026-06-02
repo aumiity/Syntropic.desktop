@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
   ShoppingCart, Pill, PackagePlus, Users, ClipboardList, Settings,
-  Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen, ScanLine, LineChart, FileText,
+  Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen, ScanLine, LineChart,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
@@ -12,7 +12,10 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 
 const mainNavItems = [
   { to: '/', label: 'การขาย', icon: ShoppingCart, exact: true },
-  { to: '/quotation', label: 'ใบเสนอราคา', icon: FileText },
+  // ใบเสนอราคา — HIDDEN from nav 2026-06-02. Module/code kept (routes still live in
+  // App.tsx, reachable by URL); sales documents are being offloaded to FlowAccount.
+  // See CLAUDE.md "Hidden / parked features". Re-enable by uncommenting this line.
+  // { to: '/quotation', label: 'ใบเสนอราคา', icon: FileText },
   { to: '/purchase', label: 'การรับสินค้า', icon: PackagePlus },
   { to: '/products', label: 'สินค้า', icon: Pill },
   { to: '/manage', label: 'ประวัติ & สต็อก', icon: ClipboardList },

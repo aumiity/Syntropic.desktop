@@ -314,6 +314,37 @@ export function registerSettingsHandlers() {
     return db.prepare(`SELECT * FROM receipt_settings ORDER BY id LIMIT 1`).get()
   })
 
+  // A4 document settings (singleton) — printer + copies shared by every
+  // full-page document (tax invoice, goods receipt, quotation). Same
+  // ensure-row-then-UPDATE pattern as receipt_settings so a first-ever save
+  // persists the submitted values instead of bare defaults.
+  ipcMain.handle('settings:getDocumentSettings', () => {
+    const db = getDb()
+    let row = db.prepare(`SELECT * FROM document_settings ORDER BY id LIMIT 1`).get()
+    if (!row) {
+      db.prepare(`INSERT INTO document_settings DEFAULT VALUES`).run()
+      row = db.prepare(`SELECT * FROM document_settings ORDER BY id LIMIT 1`).get()
+    }
+    return row
+  })
+  ipcMain.handle('settings:saveDocumentSettings', (_e, data: any) => {
+    const db = getDb()
+    db.transaction(() => {
+      let row = db.prepare(`SELECT id FROM document_settings ORDER BY id LIMIT 1`).get() as any
+      if (!row) {
+        const r = db.prepare(`INSERT INTO document_settings DEFAULT VALUES`).run()
+        row = { id: r.lastInsertRowid }
+      }
+      const { id, updated_at, ...rest } = data
+      const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
+      if (fields) {
+        db.prepare(`UPDATE document_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`)
+          .run({ ...rest, id: row.id })
+      }
+    })()
+    return db.prepare(`SELECT * FROM document_settings ORDER BY id LIMIT 1`).get()
+  })
+
   // All item units (for dropdowns)
   ipcMain.handle('settings:allUnits', () => {
     return getDb().prepare(`SELECT * FROM item_units ORDER BY ${orderByBucket('name')}`).all()

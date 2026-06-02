@@ -154,6 +154,17 @@ export interface ReceiptSettings {
   updated_at?: string
 }
 
+// A4 document printing (singleton). Keys MUST match document_settings columns
+// 1:1 — DocumentSettingsTab form state is saved verbatim via a dynamic
+// Object.keys() UPDATE. One printer for every A4 document (tax invoice, goods
+// receipt, quotation); printer_name = '' falls back to the OS default printer.
+export interface DocumentSettings {
+  id: number
+  printer_name: string
+  copies: number
+  updated_at?: string
+}
+
 // Full tax invoice issuance record (ใบกำกับภาษีเต็มรูป, ม.86/4).
 export interface TaxInvoice {
   id: number
@@ -218,7 +229,9 @@ export interface Quotation {
   customer_tax_id: string
   issue_date: string
   valid_until?: string | null
-  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'converting' | 'converted'
+  // 'expired' is NOT stored — it's derived for display when a draft/sent quote
+  // passes its valid_until (ครบกำหนด). 'canceled' is a real, terminal status.
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'converting' | 'converted' | 'canceled'
   converted_invoice_no?: string | null
   vat_enabled: number
   vat_rate: number

@@ -20,22 +20,25 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { printQuotation, previewQuotation } from '@/lib/receipt/print'
 import { useQuotationConvert } from '@/lib/quotation/useConvert'
 import type { Quotation } from '@/types'
-import { FileText, Plus, MoreHorizontal, Pencil, Printer, Trash2, Send, ThumbsUp, ThumbsDown, Undo2, ShoppingCart, Play, X, FilePen } from 'lucide-react'
+import { FileText, Plus, MoreHorizontal, Pencil, Printer, Trash2, Send, ThumbsUp, ThumbsDown, Undo2, ShoppingCart, Play, X, FilePen, Clock, Ban } from 'lucide-react'
 
-type StatusFilter = 'all' | 'draft' | 'sent' | 'accepted' | 'rejected'
-const STATUS_LABEL: Record<string, string> = { draft: 'ร่าง', sent: 'ส่งแล้ว', accepted: 'ตอบรับ', rejected: 'ปฏิเสธ', converting: 'กำลังแปลง', converted: 'แปลงแล้ว', expired: 'หมดอายุ' }
-const STATUS_VARIANT: Record<string, any> = { draft: 'neutral-outline', sent: 'info-outline', accepted: 'success-outline', rejected: 'destructive-outline', converting: 'warning-outline', converted: 'violet-outline', expired: 'warning-outline' }
+type StatusFilter = 'all' | 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'canceled'
+const STATUS_LABEL: Record<string, string> = { draft: 'ร่าง', sent: 'รอตอบรับ', accepted: 'ยอมรับ', rejected: 'ปฏิเสธ', expired: 'พ้นกำหนด', canceled: 'ยกเลิก', converting: 'กำลังแปลง', converted: 'แปลงเป็นบิลแล้ว' }
+const STATUS_VARIANT: Record<string, any> = { draft: 'neutral-outline', sent: 'info-outline', accepted: 'success-outline', rejected: 'destructive-outline', expired: 'warning-outline', canceled: 'muted-outline', converting: 'warning-outline', converted: 'violet-outline' }
 
-// Allowed transitions mirror the IPC guard (quotation:setStatus).
+// Allowed transitions mirror the IPC guard (quotation:setStatus). Cancel is
+// handled separately (confirm dialog) — see CANCELABLE below.
 const TRANSITIONS: Record<string, { to: string; label: string; icon: any }[]> = {
   draft: [{ to: 'sent', label: 'ทำเครื่องหมายว่าส่งแล้ว', icon: Send }],
   sent: [
-    { to: 'accepted', label: 'ลูกค้าตอบรับ', icon: ThumbsUp },
+    { to: 'accepted', label: 'ลูกค้ายอมรับ', icon: ThumbsUp },
     { to: 'rejected', label: 'ลูกค้าปฏิเสธ', icon: ThumbsDown },
     { to: 'draft', label: 'กลับเป็นร่าง', icon: Undo2 },
   ],
-  accepted: [], rejected: [], converted: [],
+  accepted: [], rejected: [], converted: [], canceled: [],
 }
+// Statuses from which the document can be canceled (terminal).
+const CANCELABLE = ['draft', 'sent', 'accepted']
 
 // valid_until in the past while still draft/sent → display as expired.
 const displayStatus = (q: Quotation): string =>
@@ -46,15 +49,18 @@ const displayStatus = (q: Quotation): string =>
 const STATUS_TABS: { value: StatusFilter; label: string; icon: any }[] = [
   { value: 'all', label: 'ทั้งหมด', icon: FileText },
   { value: 'draft', label: 'ร่าง', icon: FilePen },
-  { value: 'sent', label: 'ส่งแล้ว', icon: Send },
-  { value: 'accepted', label: 'ตอบรับ', icon: ThumbsUp },
+  { value: 'sent', label: 'รอตอบรับ', icon: Send },
+  { value: 'accepted', label: 'ยอมรับ', icon: ThumbsUp },
   { value: 'rejected', label: 'ปฏิเสธ', icon: ThumbsDown },
+  { value: 'expired', label: 'พ้นกำหนด', icon: Clock },
+  { value: 'canceled', label: 'ยกเลิก', icon: Ban },
 ]
 
 interface QuoteSummary {
-  count_all: number; count_draft: number; count_sent: number; count_accepted: number; count_rejected: number
+  count_all: number; count_draft: number; count_sent: number; count_accepted: number
+  count_rejected: number; count_expired: number; count_canceled: number
 }
-const EMPTY_SUMMARY: QuoteSummary = { count_all: 0, count_draft: 0, count_sent: 0, count_accepted: 0, count_rejected: 0 }
+const EMPTY_SUMMARY: QuoteSummary = { count_all: 0, count_draft: 0, count_sent: 0, count_accepted: 0, count_rejected: 0, count_expired: 0, count_canceled: 0 }
 
 export default function QuotationList() {
   const navigate = useNavigate()
@@ -73,6 +79,7 @@ export default function QuotationList() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; quote_no: string } | null>(null)
+  const [cancelTarget, setCancelTarget] = useState<{ id: number; quote_no: string } | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
 
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(total / pageSize)
@@ -131,12 +138,20 @@ export default function QuotationList() {
       setDeleteTarget(null); load(page)
     } catch (e: any) { toast({ title: 'ลบไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }); setDeleteTarget(null) }
   }
+  const doCancel = async () => {
+    if (!cancelTarget) return
+    try {
+      await window.api.quotation.setStatus({ id: cancelTarget.id, status: 'canceled' })
+      toast({ title: 'ยกเลิกเอกสารแล้ว', variant: 'success' })
+      setCancelTarget(null); load(page)
+    } catch (e: any) { toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }); setCancelTarget(null) }
+  }
 
   const metrics = [
     { label: 'ทั้งหมด', value: summary.count_all.toLocaleString(),      icon: FileText,   tint: 'primary'      as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground' },
     { label: 'ร่าง',    value: summary.count_draft.toLocaleString(),    icon: FilePen,    tint: 'secondary'    as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-    { label: 'ส่งแล้ว', value: summary.count_sent.toLocaleString(),     icon: Send,       tint: 'info-soft'    as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground' },
-    { label: 'ตอบรับ',  value: summary.count_accepted.toLocaleString(), icon: ThumbsUp,   tint: 'success'      as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+    { label: 'รอตอบรับ', value: summary.count_sent.toLocaleString(),    icon: Send,       tint: 'info-soft'    as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground' },
+    { label: 'ยอมรับ',  value: summary.count_accepted.toLocaleString(), icon: ThumbsUp,   tint: 'success'      as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     { label: 'ปฏิเสธ',  value: summary.count_rejected.toLocaleString(), icon: ThumbsDown, tint: 'destructive2' as MetricTint, sub: 'ใบ', subClassName: 'text-base text-foreground' },
   ]
 
@@ -182,7 +197,7 @@ export default function QuotationList() {
                 <TableHead className="min-w-28">เลขที่</TableHead>
                 <TableHead className="min-w-24">วันที่ออก</TableHead>
                 <TableHead className="min-w-[180px]">ลูกค้า</TableHead>
-                <TableHead className="min-w-24">ยืนราคาถึง</TableHead>
+                <TableHead className="min-w-24">ครบกำหนด</TableHead>
                 <TableHead className="min-w-24 text-right">ยอดรวม</TableHead>
                 <TableHead className="min-w-28">สถานะ</TableHead>
                 <TableHead className="text-center min-w-14">จัดการ</TableHead>
@@ -251,6 +266,11 @@ export default function QuotationList() {
                                 <t.icon className="size-4" /> {t.label}
                               </button>
                             ))}
+                            {CANCELABLE.includes(qrow.status) && (
+                              <button type="button" onClick={() => setCancelTarget({ id: qrow.id, quote_no: qrow.quote_no })} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                                <Ban className="size-4" /> ยกเลิกเอกสาร
+                              </button>
+                            )}
                             {qrow.status === 'draft' && (
                               <button type="button" onClick={() => setDeleteTarget({ id: qrow.id, quote_no: qrow.quote_no })} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
                                 <Trash2 className="size-4" /> ลบ
@@ -287,6 +307,16 @@ export default function QuotationList() {
         description={deleteTarget?.quote_no}
         confirmLabel="ลบ"
         onConfirm={doDelete}
+      />
+      <ConfirmDialog
+        open={cancelTarget !== null}
+        onOpenChange={o => { if (!o) setCancelTarget(null) }}
+        variant="destructive"
+        title="ยกเลิกเอกสารนี้?"
+        description={`${cancelTarget?.quote_no ?? ''} — ยกเลิกแล้วจะนำกลับมาใช้งานไม่ได้`}
+        confirmLabel="ยกเลิกเอกสาร"
+        cancelLabel="ย้อนกลับ"
+        onConfirm={doCancel}
       />
       {convert.dialogs}
     </div>

@@ -147,7 +147,7 @@ export function registerQuotationHandlers() {
     q?: string; date_from?: string; date_to?: string
     sort_by?: string; sort_dir?: string; page?: number
     limit?: number | 'all'
-    status_filter?: 'all' | 'draft' | 'sent' | 'accepted' | 'rejected'
+    status_filter?: 'all' | 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'canceled'
   }) => {
     const db = getDb()
     const { q, date_from, date_to, sort_by = 'issue_date', sort_dir = 'DESC', page = 1, limit: limitOpt, status_filter = 'all' } = filters
@@ -165,9 +165,17 @@ export function registerQuotationHandlers() {
     if (date_to) { baseConditions.push(`date(qt.issue_date) <= ?`); baseParams.push(date_to) }
     const baseWhere = baseConditions.length ? `WHERE ${baseConditions.join(' AND ')}` : ''
 
+    // 'expired' is derived, not stored: a draft/sent quote whose valid_until
+    // (ครบกำหนด) is in the past. Draft/sent filters EXCLUDE expired rows so the
+    // status buckets stay mutually exclusive (an expired quote shows only under
+    // the พ้นกำหนด tab, never under ร่าง/รอตอบรับ).
+    const EXPIRED = `qt.status IN ('draft','sent') AND qt.valid_until IS NOT NULL AND date(qt.valid_until) < date('now','localtime')`
+
     const rowConditions = [...baseConditions]
     const rowParams = [...baseParams]
-    if (['draft', 'sent', 'accepted', 'rejected'].includes(status_filter)) { rowConditions.push(`qt.status = ?`); rowParams.push(status_filter) }
+    if (status_filter === 'expired') { rowConditions.push(`(${EXPIRED})`) }
+    else if (status_filter === 'draft' || status_filter === 'sent') { rowConditions.push(`qt.status = ? AND NOT (${EXPIRED})`); rowParams.push(status_filter) }
+    else if (['accepted', 'rejected', 'canceled'].includes(status_filter)) { rowConditions.push(`qt.status = ?`); rowParams.push(status_filter) }
     const where = rowConditions.length ? `WHERE ${rowConditions.join(' AND ')}` : ''
 
     const validSorts = ['issue_date', 'quote_no', 'valid_until', 'total_amount', 'customer_name']
@@ -191,10 +199,12 @@ export function registerQuotationHandlers() {
     const summary = db.prepare(`
       SELECT
         COUNT(*) AS count_all,
-        COALESCE(SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END), 0) AS count_draft,
-        COALESCE(SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END), 0) AS count_sent,
-        COALESCE(SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END), 0) AS count_accepted,
-        COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) AS count_rejected
+        COALESCE(SUM(CASE WHEN qt.status = 'draft' AND NOT (${EXPIRED}) THEN 1 ELSE 0 END), 0) AS count_draft,
+        COALESCE(SUM(CASE WHEN qt.status = 'sent'  AND NOT (${EXPIRED}) THEN 1 ELSE 0 END), 0) AS count_sent,
+        COALESCE(SUM(CASE WHEN (${EXPIRED}) THEN 1 ELSE 0 END), 0) AS count_expired,
+        COALESCE(SUM(CASE WHEN qt.status = 'accepted' THEN 1 ELSE 0 END), 0) AS count_accepted,
+        COALESCE(SUM(CASE WHEN qt.status = 'rejected' THEN 1 ELSE 0 END), 0) AS count_rejected,
+        COALESCE(SUM(CASE WHEN qt.status = 'canceled' THEN 1 ELSE 0 END), 0) AS count_canceled
       FROM quotations qt
       LEFT JOIN customers c ON c.id = qt.customer_id
       ${baseWhere}
@@ -227,12 +237,13 @@ export function registerQuotationHandlers() {
     const cur = db.prepare(`SELECT status FROM quotations WHERE id = ?`).get(payload.id) as { status: string } | undefined
     if (!cur) throw new Error('ไม่พบใบเสนอราคา')
     const allowed: Record<string, string[]> = {
-      draft: ['sent'],
-      sent: ['accepted', 'rejected', 'draft'],
-      accepted: [],
+      draft: ['sent', 'canceled'],
+      sent: ['accepted', 'rejected', 'draft', 'canceled'],
+      accepted: ['canceled'],
       rejected: [],
       converting: [],
       converted: [],
+      canceled: [],
     }
     if (!(allowed[cur.status] ?? []).includes(payload.status)) {
       throw new Error(`เปลี่ยนสถานะจาก ${cur.status} เป็น ${payload.status} ไม่ได้`)

@@ -84,7 +84,7 @@ export default function KhorYor9Page() {
   return (
     <div className="flex flex-1 flex-col min-h-0 gap-3">
       {/* Filter strip — hidden when printing */}
-      <div className="no-print h-14 px-2 bg-card rounded-card shadow-card flex items-center gap-2 shrink-0">
+      <div className="no-print h-14 px-2 bg-card rounded-card border border-border shadow-card flex items-center gap-2 shrink-0">
         <Button asChild variant="outline" size="icon-lg" title="ย้อนกลับ">
           <Link to="/reports/fda"><ArrowLeft /></Link>
         </Button>

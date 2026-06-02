@@ -233,7 +233,7 @@ export function AdjustStockDialog({
         <DialogBody className="flex flex-col overflow-y-auto min-h-0 scrollbar-thin">
           <div className="space-y-4">
             {target && (
-              <div className="bg-muted rounded-card px-4 py-3">
+              <div className="bg-muted rounded-card border border-border px-4 py-3">
                 <div className="font-semibold text-base truncate">{target.trade_name}</div>
                 <div className="flex gap-2 text-sm text-muted-foreground mt-1">
                   สต็อกปัจจุบัน :{' '}

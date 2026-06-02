@@ -2,76 +2,43 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { TabStrip } from '@/components/layout/TabStrip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Textarea } from '@/components/ui/textarea'
-import { SectionCard } from '@/components/ui/card'
-import { FormField } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { DateInput } from '@/components/ui/date-input'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog'
-import { SearchInput } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { QuotationProductSearchDialog, type PickedProduct } from '@/components/dialogs/QuotationProductSearchDialog'
+import { CustomerSearchDialog } from '@/components/dialogs/CustomerSearchDialog'
+import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
 import { printQuotation, previewQuotation } from '@/lib/receipt/print'
 import { useQuotationConvert } from '@/lib/quotation/useConvert'
 import { extractVat } from '@/lib/vat'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { getCurrentUserId } from '@/stores/userStore'
-import type { QuotationForPrint, QuotationItem } from '@/types'
-import { ArrowLeft, Save, Printer, FileText, Plus, Trash2, UserSearch, ShoppingCart, Play, X } from 'lucide-react'
+import type { Customer, QuotationForPrint, QuotationItem } from '@/types'
+import { ArrowLeft, Save, Printer, FileText, Plus, Trash2, UserSearch, UserPlus, User, ShoppingCart, Play, X, Package, Ban } from 'lucide-react'
+
+// Statuses from which the document can be canceled (terminal). Mirrors the IPC guard.
+const CANCELABLE = ['draft', 'sent', 'accepted']
 
 interface LineRow extends QuotationItem {}
 
 const STATUS_LABEL: Record<string, string> = {
-  draft: 'ร่าง', sent: 'ส่งแล้ว', accepted: 'ตอบรับ', rejected: 'ปฏิเสธ', converting: 'กำลังแปลง', converted: 'แปลงเป็นบิลแล้ว',
+  draft: 'ร่าง', sent: 'รอตอบรับ', accepted: 'ยอมรับ', rejected: 'ปฏิเสธ', expired: 'พ้นกำหนด', canceled: 'ยกเลิก', converting: 'กำลังแปลง', converted: 'แปลงเป็นบิลแล้ว',
 }
 const STATUS_VARIANT: Record<string, any> = {
-  draft: 'neutral-outline', sent: 'info-outline', accepted: 'success-outline', rejected: 'destructive-outline', converting: 'warning-outline', converted: 'violet-outline',
+  draft: 'neutral-outline', sent: 'info-outline', accepted: 'success-outline', rejected: 'destructive-outline', expired: 'warning-outline', canceled: 'muted-outline', converting: 'warning-outline', converted: 'violet-outline',
 }
 
-// Inline customer picker — searches via pos:searchCustomers and returns the
-// full row (full_name / address / id_card) for prefill.
-function CustomerPickDialog({ open, onOpenChange, onPick }: {
-  open: boolean; onOpenChange: (o: boolean) => void; onPick: (c: any) => void
-}) {
-  const [q, setQ] = useState('')
-  const [rows, setRows] = useState<any[]>([])
-  useEffect(() => { if (open) { setQ(''); setRows([]) } }, [open])
-  useEffect(() => {
-    if (!open) return
-    const t = setTimeout(async () => {
-      const term = q.trim()
-      if (!term) { setRows([]); return }
-      setRows((await window.api.pos.searchCustomers(term)) as any[])
-    }, 250)
-    return () => clearTimeout(t)
-  }, [q, open])
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="md" divided onClose={() => onOpenChange(false)}>
-        <DialogHeader><DialogTitle>เลือกลูกค้า</DialogTitle></DialogHeader>
-        <DialogBody className="space-y-3">
-          <SearchInput variant="elevated" value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาชื่อ / เบอร์ / รหัสลูกค้า..." className="h-10" autoFocus />
-          <div className="h-72 overflow-y-auto scrollbar-thin rounded-lg border border-border divide-y divide-border">
-            {q.trim() && rows.length === 0 ? (
-              <div className="py-12 text-center text-sm text-muted-foreground">ไม่พบลูกค้า</div>
-            ) : rows.map(c => (
-              <button key={c.id} type="button" onClick={() => { onPick(c); onOpenChange(false) }}
-                className="w-full text-left px-3 py-2.5 hover:bg-muted transition-colors">
-                <div className="text-sm font-medium text-foreground">{c.full_name}</div>
-                <div className="text-xs text-muted-foreground">{[c.code, c.phone].filter(Boolean).join(' · ')}</div>
-              </button>
-            ))}
-          </div>
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
-  )
-}
+// valid_until in the past while still draft/sent → display as expired (พ้นกำหนด).
+const effectiveStatus = (status: string, validUntil: string | null | undefined): string =>
+  (status === 'draft' || status === 'sent') && validUntil && validUntil.slice(0, 10) < dayjs().format('YYYY-MM-DD')
+    ? 'expired' : status
 
 export default function EditQuotation() {
   const { id } = useParams<{ id: string }>()
@@ -98,8 +65,11 @@ export default function EditQuotation() {
   const [busyPrint, setBusyPrint] = useState(false)
   const [productOpen, setProductOpen] = useState(false)
   const [customerOpen, setCustomerOpen] = useState(false)
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
 
   const readOnly = status !== 'draft'
+  const disp = effectiveStatus(status, validUntil)   // shows พ้นกำหนด when past ครบกำหนด
 
   // Load existing quote, or seed VAT snapshot from sales_settings for a new one.
   useEffect(() => {
@@ -136,7 +106,8 @@ export default function EditQuotation() {
   const addPicked = (p: PickedProduct) =>
     setItems(arr => [...arr, recalcLine({ product_id: p.product_id, item_name: p.item_name, unit_name: p.unit_name, qty: 1, unit_price: p.unit_price, discount: 0, line_total: 0 })])
 
-  const pickCustomer = (c: any) => {
+  const pickCustomer = (c: Customer | null) => {
+    if (!c) return
     setCustomerId(c.id); setCustomerName(c.full_name ?? '')
     setCustomerAddress(c.address ?? ''); setCustomerTaxId(c.id_card ?? '')
   }
@@ -202,147 +173,260 @@ export default function EditQuotation() {
     } catch (e: any) { toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }) }
   }
 
+  // Cancel the whole document (terminal). Allowed from draft/sent/accepted.
+  const doCancelDoc = async () => {
+    if (!quoteId) return
+    try {
+      await window.api.quotation.setStatus({ id: quoteId, status: 'canceled' })
+      toast({ title: 'ยกเลิกเอกสารแล้ว', variant: 'success' })
+      setStatus('canceled')
+    } catch (e: any) { toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }) }
+  }
+
   const canPrint = !!quoteId && items.length > 0
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title={quoteNo || 'ใบเสนอราคาใหม่'} />
 
-      {/* Action bar: status (left) + back/print/save buttons (right). Buttons
-          live here — NOT in PageHeader's floating right slot — so they sit a row
-          below the title instead of colliding with the window controls. */}
-      <TabStrip className="-mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <Badge variant={STATUS_VARIANT[status] ?? 'secondary'}>{STATUS_LABEL[status] ?? status}</Badge>
-          {status === 'converted' && convertedInvoiceNo && (
-            <span className="text-sm text-muted-foreground truncate">แปลงเป็นบิล <span className="font-medium text-foreground">{convertedInvoiceNo}</span></span>
-          )}
-          {readOnly && status !== 'converted' && <span className="text-sm text-muted-foreground truncate">ใบนี้พ้นสถานะร่างแล้ว — แก้ไขไม่ได้ (ดู/พิมพ์ได้)</span>}
-        </div>
-        <div className="ml-auto flex items-center gap-2 shrink-0">
-          <Button variant="elevated" className="h-10" onClick={() => navigate('/quotation')}>
-            <ArrowLeft className="size-4" /> กลับ
-          </Button>
-          <Button variant="elevated" className="h-10" onClick={handlePreview} disabled={!canPrint || busyPrint}>
-            <FileText className="size-4" /> ดูตัวอย่าง PDF
-          </Button>
-          <Button variant="elevated" className="h-10" onClick={handlePrint} disabled={!canPrint || busyPrint}>
-            <Printer className="size-4" /> พิมพ์
-          </Button>
-          {status === 'accepted' && quoteId && (
-            <Button className="h-10" onClick={() => convert.start(quoteId)}>
-              <ShoppingCart className="size-4" /> แปลงเป็นการขาย
-            </Button>
-          )}
-          {status === 'converting' && quoteId && (
-            <>
-              <Button className="h-10" onClick={() => convert.start(quoteId)}>
-                <Play className="size-4" /> ดำเนินการขายต่อ
-              </Button>
-              <Button variant="elevated" className="h-10" onClick={cancelConversion}>
-                <X className="size-4" /> ยกเลิกการแปลง
-              </Button>
-            </>
-          )}
-          {!readOnly && (
-            <Button className="h-10" onClick={handleSave} disabled={saving}>
-              <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : 'บันทึก'}
-            </Button>
-          )}
-        </div>
-      </TabStrip>
+      {/* Two-column working layout (mirrors the GR/Purchase page): left = header
+          fields + full-height line-items table; right = summary + note + actions.
+          Only the table body scrolls; the total bar stays pinned. */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex gap-4 items-stretch flex-1 min-h-0">
 
-      <div className="flex-1 min-h-0 overflow-y-auto pt-3 pb-4 [scrollbar-gutter:stable] space-y-4">
-        <div className="grid grid-cols-2 gap-4 items-start">
-          <SectionCard icon={UserSearch} title="ลูกค้า" tint="primary"
-            right={!readOnly && <Button variant="elevated" size="sm" onClick={() => setCustomerOpen(true)}><UserSearch className="size-4" /> ค้นหา</Button>}>
-            <div className="space-y-3">
-              <FormField label="ชื่อลูกค้า">
-                <Input variant="elevated" value={customerName} onChange={e => setCustomerName(e.target.value)} disabled={readOnly} placeholder="ชื่อบุคคล / นิติบุคคล" />
-              </FormField>
-              <FormField label="ที่อยู่">
-                <Textarea variant="elevated" rows={2} className="resize-none" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} disabled={readOnly} />
-              </FormField>
-              <FormField label="เลขประจำตัวผู้เสียภาษี">
-                <Input variant="elevated" value={customerTaxId} onChange={e => setCustomerTaxId(e.target.value)} disabled={readOnly} />
-              </FormField>
-            </div>
-          </SectionCard>
+          {/* ── Left: customer/doc fields + line items ── */}
+          <div className="flex-1 min-w-0 flex flex-col gap-3 min-h-0">
 
-          <SectionCard icon={FileText} title="รายละเอียดเอกสาร" tint="info-soft">
-            <div className="space-y-3">
-              <FormField label="วันที่ออก">
-                <Input variant="elevated" value={issueDate ? formatDate(issueDate) : 'วันนี้ (เมื่อบันทึก)'} readOnly disabled />
-              </FormField>
-              <FormField label="ยืนราคาถึง">
-                <DateInput variant="elevated" value={validUntil} onChange={setValidUntil} disabled={readOnly} />
-              </FormField>
-              <FormField label="หมายเหตุ">
-                <Textarea variant="elevated" rows={2} className="resize-none" value={note} onChange={e => setNote(e.target.value)} disabled={readOnly} />
-              </FormField>
-            </div>
-          </SectionCard>
-        </div>
-
-        <SectionCard icon={Plus} title="รายการสินค้า" tint="success"
-          right={!readOnly && <Button variant="elevated" size="sm" onClick={() => setProductOpen(true)}><Plus className="size-4" /> เพิ่มสินค้า</Button>}>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10 text-center">#</TableHead>
-                <TableHead>รายการ</TableHead>
-                <TableHead className="w-24 text-center">หน่วย</TableHead>
-                <TableHead className="w-28 text-right">จำนวน</TableHead>
-                <TableHead className="w-32 text-right">ราคา/หน่วย</TableHead>
-                <TableHead className="w-28 text-right">ส่วนลด</TableHead>
-                <TableHead className="w-32 text-right">รวม</TableHead>
-                {!readOnly && <TableHead className="w-12 text-center">ลบ</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.length === 0 ? (
-                <TableRow><TableCell colSpan={readOnly ? 7 : 8} className="text-center text-muted-foreground py-10">ยังไม่มีรายการ</TableCell></TableRow>
-              ) : items.map((it, i) => (
-                <TableRow key={i} className="[&_td]:py-1.5">
-                  <TableCell className="text-center text-xs text-muted-foreground">{i + 1}</TableCell>
-                  <TableCell className="text-sm font-medium">{it.item_name}</TableCell>
-                  <TableCell className="text-center text-sm">{it.unit_name}</TableCell>
-                  <TableCell className="text-right">
-                    <PriceInput value={it.qty} decimals={0} onChange={v => updateItem(i, { qty: parseFloat(v) || 0 })} disabled={readOnly} className="h-9 w-24 text-right ml-auto" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <PriceInput value={it.unit_price} onChange={v => updateItem(i, { unit_price: parseFloat(v) || 0 })} disabled={readOnly} className="h-9 w-28 text-right ml-auto" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <PriceInput value={it.discount} onChange={v => updateItem(i, { discount: parseFloat(v) || 0 })} disabled={readOnly} className="h-9 w-24 text-right ml-auto" />
-                  </TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(it.line_total)}</TableCell>
+            {/* Header fields */}
+            <div className="bg-card rounded-card shadow-card border border-border p-4 shrink-0">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Customer — read-only display; chosen via search / created via add */}
+                <div className="space-y-2">
+                  <label className="block text-base font-semibold text-muted-foreground">ลูกค้า</label>
+                  <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5 min-h-[72px]">
+                    <span className="grid place-items-center size-10 rounded-full shrink-0 bg-primary text-primary-foreground">
+                      <User className="size-5" />
+                    </span>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <div className={`text-sm truncate ${customerName ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                        {customerName || 'ยังไม่ได้เลือกลูกค้า'}
+                      </div>
+                      {customerAddress && <div className="text-sm text-muted-foreground line-clamp-2">{customerAddress}</div>}
+                      {customerTaxId && <div className="text-sm text-muted-foreground truncate">เลขผู้เสียภาษี {customerTaxId}</div>}
+                    </div>
+                  </div>
                   {!readOnly && (
-                    <TableCell className="text-center">
-                      <Button variant="destructive2" size="icon-lg" onClick={() => removeItem(i)}><Trash2 /></Button>
-                    </TableCell>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="elevated" onClick={() => setCustomerOpen(true)} className="h-10 gap-1.5">
+                        <UserSearch className="size-4" /> เลือกลูกค้า
+                      </Button>
+                      <Button onClick={() => setQuickAddOpen(true)} className="h-10 gap-1.5">
+                        <UserPlus className="size-4" /> เพิ่มลูกค้า
+                      </Button>
+                    </div>
                   )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          <div className="mt-4 flex justify-end">
-            <div className="w-72 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">ยอดรวม</span><span>{formatCurrency(totals.subtotal)}</span></div>
-              {totals.totalDiscount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">ส่วนลด</span><span className="text-warm-foreground">-{formatCurrency(totals.totalDiscount)}</span></div>}
-              {vatEnabled && (<>
-                <div className="flex justify-between"><span className="text-muted-foreground">มูลค่าก่อนภาษี</span><span>{formatCurrency(totals.exVat)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">ภาษีมูลค่าเพิ่ม {vatRate}%</span><span>{formatCurrency(totals.totalVat)}</span></div>
-              </>)}
-              <div className="flex justify-between border-t border-border pt-1.5 text-base font-bold"><span>รวมทั้งสิ้น</span><span className="text-primary">{formatCurrency(totals.totalAmount)}</span></div>
+                </div>
+                {/* Document */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-base font-semibold text-muted-foreground mb-1.5">วันที่ออก</label>
+                    <Input variant="elevated" value={issueDate ? formatDate(issueDate) : 'วันนี้ (เมื่อบันทึก)'} readOnly disabled className="h-10 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-base font-semibold text-muted-foreground mb-1.5">ครบกำหนด</label>
+                    <DateInput variant="elevated" value={validUntil} onChange={setValidUntil} disabled={readOnly} className="h-10 text-sm" />
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </SectionCard>
+
+            {/* Line items */}
+            <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
+              <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
+                  <TintIcon icon={Package} tint="neutral" size="sm" />
+                  <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
+                  <Badge variant="neutral-outline">{items.length.toLocaleString()}</Badge>
+                </div>
+                <div className="flex items-center gap-2 ml-auto">
+                  {!readOnly && (
+                    <Button size="lg" variant="elevated" onClick={() => setProductOpen(true)} className="h-9 rounded-lg text-sm gap-1.5">
+                      <Plus className="size-3.5" /> เพิ่มสินค้า
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+                <Table className="table-fixed">
+                  <TableHeader>
+                    <TableRow className="border-0 hover:bg-transparent">
+                      <TableHead className="px-3 text-center w-10">#</TableHead>
+                      <TableHead className="px-3 w-[34%]">รายการ</TableHead>
+                      <TableHead className="px-3 text-center w-[12%]">หน่วย</TableHead>
+                      <TableHead className="px-3 text-right w-[12%]">จำนวน</TableHead>
+                      <TableHead className="px-3 text-right w-[14%]">ราคา/หน่วย</TableHead>
+                      <TableHead className="px-3 text-right w-[12%]">ส่วนลด</TableHead>
+                      <TableHead className="px-3 text-right w-[13%]">รวม</TableHead>
+                      {!readOnly && <TableHead className="w-10" />}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.length === 0 ? (
+                      <TableRow className="border-0 hover:bg-transparent">
+                        <TableCell colSpan={readOnly ? 7 : 8} className="text-center text-muted-foreground py-10">ยังไม่มีรายการ</TableCell>
+                      </TableRow>
+                    ) : items.map((it, i) => (
+                      <TableRow key={i} className="border-0 hover:bg-transparent">
+                        <TableCell className="px-3 py-1.5 text-sm text-foreground-subtle text-center">{i + 1}</TableCell>
+                        <TableCell className="px-3 py-1.5 text-sm font-medium truncate">{it.item_name}</TableCell>
+                        <TableCell className="px-3 py-1.5 text-center text-sm">{it.unit_name}</TableCell>
+                        <TableCell className="px-2 py-1.5 text-right">
+                          <PriceInput value={it.qty} decimals={0} onChange={v => updateItem(i, { qty: parseFloat(v) || 0 })} disabled={readOnly} className="h-8 w-full text-right" />
+                        </TableCell>
+                        <TableCell className="px-2 py-1.5 text-right">
+                          <PriceInput value={it.unit_price} onChange={v => updateItem(i, { unit_price: parseFloat(v) || 0 })} disabled={readOnly} className="h-8 w-full text-right" />
+                        </TableCell>
+                        <TableCell className="px-2 py-1.5 text-right">
+                          <PriceInput value={it.discount} onChange={v => updateItem(i, { discount: parseFloat(v) || 0 })} disabled={readOnly} className="h-8 w-full text-right" />
+                        </TableCell>
+                        <TableCell className="px-3 py-1.5 text-right text-sm font-medium">{formatCurrency(it.line_total)}</TableCell>
+                        {!readOnly && (
+                          <TableCell className="px-1 py-1.5">
+                            <Button variant="elevated" size="icon" onClick={() => removeItem(i)} className="size-7 rounded text-foreground-subtle hover:text-destructive">
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* ── Footer bar — pinned at bottom of the card ── */}
+              <div className="shrink-0">
+                {(totals.totalDiscount > 0 || vatEnabled) && (
+                  <div className="bg-card px-5 py-1 space-y-0.5">
+                    <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
+                      <span>ยอดรวม</span><span className="w-32 text-right">{formatCurrency(totals.subtotal)}</span>
+                    </div>
+                    {totals.totalDiscount > 0 && (
+                      <div className="flex items-center justify-end gap-6 text-sm text-warm-foreground">
+                        <span>ส่วนลด</span><span className="w-32 text-right">−{formatCurrency(totals.totalDiscount)}</span>
+                      </div>
+                    )}
+                    {vatEnabled && (<>
+                      <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
+                        <span>มูลค่าก่อนภาษี</span><span className="w-32 text-right">{formatCurrency(totals.exVat)}</span>
+                      </div>
+                      <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
+                        <span>ภาษีมูลค่าเพิ่ม {vatRate}%</span><span className="w-32 text-right">{formatCurrency(totals.totalVat)}</span>
+                      </div>
+                    </>)}
+                  </div>
+                )}
+                <div className="h-12 px-5 bg-card border-t border-border flex items-center justify-between gap-3">
+                  <Badge variant="primary-soft" className="text-sm rounded-md">{items.length} รายการ</Badge>
+                  <div className="flex items-center gap-6">
+                    <span className="text-sm font-semibold text-foreground">รวมทั้งสิ้น</span>
+                    <span className="font-extrabold text-primary text-base w-32 text-right">{formatCurrency(totals.totalAmount)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>{/* end left */}
+
+          {/* ── Right sidebar ── */}
+          <div className="w-64 shrink-0 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] space-y-3 pr-1">
+
+            {/* Summary */}
+            <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2.5">
+              <div className="text-sm font-bold text-foreground uppercase tracking-wide">สรุปใบเสนอราคา</div>
+              <div>
+                <div className="text-sm text-foreground-subtle mb-0.5">เลขที่เอกสาร</div>
+                <div className="text-sm font-bold text-primary">{quoteNo || '—'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-foreground-subtle mb-1">สถานะ</div>
+                <Badge variant={STATUS_VARIANT[disp] ?? 'secondary'}>{STATUS_LABEL[disp] ?? disp}</Badge>
+              </div>
+              {status === 'converted' && convertedInvoiceNo && (
+                <div className="text-sm text-muted-foreground">แปลงเป็นบิล <span className="font-medium text-foreground">{convertedInvoiceNo}</span></div>
+              )}
+              {status === 'canceled' && (
+                <div className="text-sm text-muted-foreground">เอกสารถูกยกเลิกแล้ว — ใช้งานต่อไม่ได้</div>
+              )}
+              {readOnly && status !== 'converted' && status !== 'canceled' && (
+                <div className="text-sm text-muted-foreground">ใบนี้พ้นสถานะร่างแล้ว — แก้ไขไม่ได้ (ดู/พิมพ์ได้)</div>
+              )}
+            </div>
+
+            {/* Note */}
+            <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2">
+              <div className="text-sm font-bold text-foreground uppercase tracking-wide">หมายเหตุ</div>
+              <Textarea variant="elevated" value={note} onChange={e => setNote(e.target.value)} disabled={readOnly} placeholder="บันทึกเพิ่มเติม..." rows={3} className="resize-none text-sm" />
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-2">
+              {!readOnly && (
+                <Button onClick={handleSave} disabled={saving} className="w-full h-12 rounded-xl text-base font-bold gap-1.5">
+                  <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+                </Button>
+              )}
+              {status === 'accepted' && quoteId && (
+                <Button onClick={() => convert.start(quoteId)} className="w-full h-12 rounded-xl text-base font-bold gap-1.5">
+                  <ShoppingCart className="size-4" /> แปลงเป็นการขาย
+                </Button>
+              )}
+              {status === 'converting' && quoteId && (
+                <>
+                  <Button onClick={() => convert.start(quoteId)} className="w-full h-12 rounded-xl text-base font-bold gap-1.5">
+                    <Play className="size-4" /> ดำเนินการขายต่อ
+                  </Button>
+                  <Button variant="elevated" onClick={cancelConversion} className="w-full h-10 rounded-xl text-sm gap-1.5">
+                    <X className="size-4" /> ยกเลิกการแปลง
+                  </Button>
+                </>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="elevated" onClick={handlePreview} disabled={!canPrint || busyPrint} className="h-10 rounded-xl text-sm gap-1.5">
+                  <FileText className="size-4" /> ตัวอย่าง
+                </Button>
+                <Button variant="elevated" onClick={handlePrint} disabled={!canPrint || busyPrint} className="h-10 rounded-xl text-sm gap-1.5">
+                  <Printer className="size-4" /> พิมพ์
+                </Button>
+              </div>
+              <Button variant="elevated" onClick={() => navigate('/quotation')} className="w-full h-10 rounded-xl text-sm gap-1.5">
+                <ArrowLeft className="size-4" /> กลับ
+              </Button>
+              {quoteId && CANCELABLE.includes(status) && (
+                <Button variant="destructive2" onClick={() => setCancelOpen(true)} className="w-full h-10 rounded-xl text-sm gap-1.5">
+                  <Ban className="size-4" /> ยกเลิกเอกสาร
+                </Button>
+              )}
+            </div>
+
+          </div>{/* end sidebar */}
+        </div>{/* end flex row */}
       </div>
 
       <QuotationProductSearchDialog open={productOpen} onOpenChange={setProductOpen} onPick={addPicked} />
-      <CustomerPickDialog open={customerOpen} onOpenChange={setCustomerOpen} onPick={pickCustomer} />
+      <CustomerSearchDialog open={customerOpen} onOpenChange={setCustomerOpen} onSelect={pickCustomer} />
+      <CustomerFormDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} onSaved={pickCustomer} />
+      <ConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        variant="destructive"
+        title="ยกเลิกเอกสารนี้?"
+        description={`${quoteNo} — ยกเลิกแล้วจะนำกลับมาใช้งานไม่ได้`}
+        confirmLabel="ยกเลิกเอกสาร"
+        cancelLabel="ย้อนกลับ"
+        onConfirm={doCancelDoc}
+      />
       {convert.dialogs}
     </div>
   )

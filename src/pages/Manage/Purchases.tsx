@@ -784,7 +784,7 @@ export default function ManagePurchasesPage() {
               {/* Sliding pill toggle — same `layoutId` on both motion.spans
                   makes framer-motion animate the active background between
                   them. Pattern ported from the Purchase (รับสินค้า) page. */}
-              <div className="flex gap-2">
+              <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
                 <Button
                   type="button"
                   variant="ghost"
@@ -800,7 +800,7 @@ export default function ManagePurchasesPage() {
                     <motion.span
                       layoutId="edit-payment-pill"
                       aria-hidden
-                      className="absolute inset-0 rounded-lg bg-primary"
+                      className="absolute inset-0 rounded-lg bg-primary shadow-sm"
                       transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                     />
                   )}
@@ -823,7 +823,7 @@ export default function ManagePurchasesPage() {
                     <motion.span
                       layoutId="edit-payment-pill"
                       aria-hidden
-                      className="absolute inset-0 rounded-lg bg-accent"
+                      className="absolute inset-0 rounded-lg bg-accent shadow-sm"
                       transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                     />
                   )}
@@ -835,7 +835,7 @@ export default function ManagePurchasesPage() {
             </div>
 
             <div className={cn(
-              'rounded-card bg-muted/50 p-4 space-y-3 transition-opacity',
+              'rounded-card border border-border bg-muted/50 p-4 space-y-3 transition-opacity',
               editPaymentType !== 'credit' && 'opacity-40 pointer-events-none',
             )}>
               {/* Two-column layout — left: due date + day-offset shortcuts,
@@ -881,7 +881,7 @@ export default function ManagePurchasesPage() {
                     <div className="flex gap-1">
                       <Button
                         type="button"
-                        variant="primary-soft"
+                        variant={editPaidDate === today ? 'default' : 'primary-soft'}
                         onClick={() => setEditPaidDate(today)}
                         className="flex-1 h-8 text-sm font-semibold"
                       >
@@ -889,7 +889,7 @@ export default function ManagePurchasesPage() {
                       </Button>
                       <Button
                         type="button"
-                        variant="warm"
+                        variant={editDueDate && editPaidDate === editDueDate ? 'default' : 'primary-soft'}
                         onClick={() => editDueDate && setEditPaidDate(editDueDate)}
                         disabled={!editDueDate}
                         className="flex-1 h-8 text-sm font-semibold"
