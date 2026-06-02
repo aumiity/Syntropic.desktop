@@ -15,9 +15,9 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
-import { Textarea } from '@/components/ui/textarea'
 import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialog'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
@@ -132,7 +132,6 @@ export default function ManagePurchasesPage() {
 
   // Cancel-GR modal
   const [showCancelModal, setShowCancelModal] = useState(false)
-  const [cancelReason, setCancelReason] = useState('')
   const [cancelling, setCancelling] = useState(false)
   const [cancelBlockers, setCancelBlockers] = useState<Array<{ trade_name: string; product_code: string; lot_number: string; need: number; have: number }>>([])
 
@@ -288,7 +287,6 @@ export default function ManagePurchasesPage() {
   // Open the cancel-bill confirm modal for a given invoice (row menu or dialog).
   const openCancelForInvoice = (invoice_no: string) => {
     setActionInvoice(invoice_no)
-    setCancelReason('')
     setCancelBlockers([])
     setShowCancelModal(true)
   }
@@ -384,9 +382,9 @@ export default function ManagePurchasesPage() {
     }
   }
 
-  const handleCancelBill = async () => {
+  const handleCancelBill = async (reasonArg?: string) => {
     if (!actionInvoice) return
-    const reason = cancelReason.trim()
+    const reason = (reasonArg ?? '').trim()
     if (!reason) { toast('กรุณาระบุเหตุผล', 'error'); return }
     setCancelling(true)
     try {
@@ -398,7 +396,6 @@ export default function ManagePurchasesPage() {
       if (res?.success) {
         toast('ยกเลิกบิลสำเร็จ', 'success')
         setShowCancelModal(false)
-        setCancelReason('')
         setCancelBlockers([])
         await loadHistory(histPage)
         setReceiptRefresh(n => n + 1)
@@ -911,60 +908,38 @@ export default function ManagePurchasesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Cancel-bill confirm dialog ── */}
-      <Dialog open={showCancelModal} onOpenChange={(o) => { if (!cancelling) setShowCancelModal(o) }}>
-        <DialogContent size="md" divided>
-          <DialogHeader>
-            <div className="flex items-start gap-3">
-              <span className="grid place-items-center size-10 rounded-xl bg-destructive-soft text-destructive shrink-0">
-                <AlertTriangle className="size-5" />
-              </span>
-              <div className="min-w-0">
-                <DialogTitle className="text-xl">ยกเลิกบิลรับสินค้า</DialogTitle>
-                <div className="text-sm text-muted-foreground mt-0.5">{actionInvoice}</div>
-              </div>
+      {/* ── Cancel-bill confirm dialog (shared centered ConfirmDialog) ── */}
+      <ConfirmDialog
+        open={showCancelModal}
+        onOpenChange={(o) => { if (!cancelling) setShowCancelModal(o) }}
+        variant="destructive"
+        title="ยกเลิกบิลรับสินค้า"
+        description={actionInvoice ?? undefined}
+        confirmLabel={cancelling ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิก'}
+        cancelLabel="ยกเลิก"
+        busy={cancelling}
+        requireReason
+        reasonLabel="เหตุผล"
+        reasonPlaceholder="ระบุเหตุผลในการยกเลิก..."
+        onConfirm={handleCancelBill}
+        content={
+          <div className="space-y-4">
+            <div className="rounded-xl bg-destructive-soft/40 border border-destructive-soft p-3 text-sm text-destructive leading-relaxed">
+              การยกเลิกจะคืนสต็อกที่รับเข้ามาของบิลนี้ออกจากคลัง และไม่สามารถย้อนกลับได้ หากสินค้าบางส่วนถูกขายไปแล้ว ระบบจะไม่อนุญาตให้ยกเลิก
             </div>
-          </DialogHeader>
-          <DialogBody className="space-y-4">
-              <div className="rounded-xl bg-destructive-soft/40 border border-destructive-soft p-3 text-sm text-destructive leading-relaxed">
-                การยกเลิกจะคืนสต็อกที่รับเข้ามาของบิลนี้ออกจากคลัง และไม่สามารถย้อนกลับได้ หากสินค้าบางส่วนถูกขายไปแล้ว ระบบจะไม่อนุญาตให้ยกเลิก
+            {cancelBlockers.length > 0 && (
+              <div className="rounded-xl bg-destructive-soft border border-destructive/30 p-3">
+                <div className="text-sm font-semibold text-destructive mb-1.5">สินค้าต่อไปนี้ถูกขายไปแล้ว ไม่สามารถยกเลิกบิลได้:</div>
+                <ul className="text-sm text-destructive space-y-0.5 list-disc pl-4">
+                  {Array.from(new Set(cancelBlockers.map(b => b.trade_name))).map((name, i) => (
+                    <li key={i} className="font-medium">{name}</li>
+                  ))}
+                </ul>
               </div>
-              <div>
-                <label className="block text-base font-medium mb-1">เหตุผล <span className="text-destructive">*</span></label>
-                <Textarea
-                  variant="elevated"
-                  value={cancelReason}
-                  onChange={e => setCancelReason(e.target.value)}
-                  rows={3}
-                  placeholder="ระบุเหตุผลในการยกเลิก..."
-                  className="rounded-xl text-sm"
-                  autoFocus
-                />
-              </div>
-              {cancelBlockers.length > 0 && (
-                <div className="rounded-xl bg-destructive-soft p-3">
-                  <div className="text-sm font-semibold text-destructive mb-1.5">สินค้าต่อไปนี้ถูกขายไปแล้ว ไม่สามารถยกเลิกบิลได้:</div>
-                  <ul className="text-sm text-destructive space-y-0.5 list-disc pl-4">
-                    {Array.from(new Set(cancelBlockers.map(b => b.trade_name))).map((name, i) => (
-                      <li key={i} className="font-medium">{name}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="elevated" size="xl" onClick={() => setShowCancelModal(false)} disabled={cancelling}>ยกเลิก</Button>
-            <Button
-              variant="destructive"
-              size="xl"
-              onClick={handleCancelBill}
-              disabled={cancelling || !cancelReason.trim()}
-            >
-              {cancelling ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิก'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            )}
+          </div>
+        }
+      />
     </>
   )
 }

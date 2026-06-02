@@ -140,7 +140,7 @@ export function SaleDetailDialog({
               </DialogTitle>
             </DialogHeader>
             <DialogBody className="space-y-4">
-              <div className="relative grid grid-cols-2 gap-3 text-sm bg-muted/30 rounded-lg p-3">
+              <div className="relative grid grid-cols-2 gap-3 text-sm bg-muted/30 border border-border rounded-lg p-3">
                 <div className="absolute top-3 right-3 flex items-center gap-1.5">
                   {([
                     detail.cash_amount > 0 && { label: 'เงินสด', variant: 'success-outline' as const },

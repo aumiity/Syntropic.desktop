@@ -110,12 +110,12 @@ export function ConfirmDialog({
           {requireReason && (
             <div className="w-full space-y-2.5">
               {reasonLabel && (
-                <label className="block text-sm font-semibold text-foreground text-center">
+                <label className="block text-sm font-semibold text-foreground text-left">
                   {reasonLabel}
                 </label>
               )}
               {reasonPresets && reasonPresets.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 justify-center">
+                <div className="flex flex-wrap gap-1.5 justify-start">
                   {reasonPresets.map(preset => {
                     const selected = reason === preset
                     return (

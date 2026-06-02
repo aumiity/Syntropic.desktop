@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { Search, Trash2, Boxes, Save, X } from 'lucide-react'
@@ -74,6 +75,11 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   }
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
+
+  // Confirm-before-remove — guards against a misclick on the trash button
+  // wiping a component. Holds the row index + a snapshot for the dialog copy;
+  // the index stays valid because the modal blocks all other interaction.
+  const [deleteTarget, setDeleteTarget] = useState<{ idx: number; item: DraftItem } | null>(null)
 
   // Per-row edit strings for the qty input — keyed by component_product_id.
   // Decouples the displayed string from the parsed number so the user can clear
@@ -258,6 +264,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
 
   const removeAt = (idx: number) => {
     const removed = items[idx]
+    const nextLen = items.length - 1
     setItems(prev => prev.filter((_, i) => i !== idx))
     if (removed) {
       setQtyDrafts(prev => {
@@ -267,6 +274,16 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
       })
     }
     setDirty(true)
+    // Warn the moment removal drops the bundle below the 2-item minimum — the
+    // user needs to know the list can't be saved until they add another item,
+    // otherwise the Save button just silently greys out with no explanation.
+    if (nextLen < 2) {
+      toast({
+        title: 'ชุดสินค้าต้องมีรายการอย่างน้อย 2 รายการ',
+        description: 'เพิ่มสินค้าให้ครบก่อนบันทึก',
+        variant: 'warning',
+      })
+    }
   }
 
   const updateQty = (componentId: number, v: string) => {
@@ -348,7 +365,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
             <Button
               size="lg"
               onClick={handleSave}
-              disabled={saving || !dirty || items.length < 2}
+              disabled={saving || !dirty}
               className="h-10 px-2 shrink-0"
               title={items.length < 2 ? 'ต้องมีรายการอย่างน้อย 2 รายการ' : undefined}
             >
@@ -411,7 +428,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                       <Button
                         size="icon-lg"
                         variant="elevated-destructive"
-                        onClick={() => removeAt(i)}
+                        onClick={() => setDeleteTarget({ idx: i, item: it })}
                         title="ลบรายการ"
                       >
                         <Trash2 />
@@ -427,7 +444,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
 
       <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
         <span className="text-muted-foreground">
-          {items.length > 0 && items.length < 2
+          {items.length < 2
             ? <span className="text-destructive">ต้องมีรายการอย่างน้อย 2 รายการ ({items.length}/2)</span>
             : dirty
               ? <span className="text-warm-foreground">มีการเปลี่ยนแปลงที่ยังไม่บันทึก</span>
@@ -532,6 +549,26 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm before removing a component from the bundle — prevents an
+          accidental trash-button click from silently dropping a line. */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => { if (!v) setDeleteTarget(null) }}
+        variant="destructive"
+        title="ลบรายการออกจากชุด"
+        description={deleteTarget && (
+          <span>
+            ต้องการลบ <span className="font-semibold text-foreground">"{deleteTarget.item.component_name}"</span> ออกจากชุดสินค้าใช่หรือไม่?
+          </span>
+        )}
+        confirmLabel="ยืนยันลบ"
+        cancelLabel="ยกเลิก"
+        onConfirm={() => {
+          if (deleteTarget) removeAt(deleteTarget.idx)
+          setDeleteTarget(null)
+        }}
+      />
     </div>
   )
 }

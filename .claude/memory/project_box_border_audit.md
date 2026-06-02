@@ -12,14 +12,13 @@ metadata:
 - `bg-warm/50` box → `border border-warm-foreground/25` (warm itself is too light to show; use warm-foreground)
 - 2-column boxes also get `divide-x divide-{accent}/30`; move `px-3 py-2` from the container ONTO each cell so the divider has equal padding both sides.
 
-**DONE:** profit box (กำไร | กำไร% — 2 col, border + divider) and cost box (ต้นทุน/ทุนเฉลี่ย — border only, not 2-col) in BOTH:
-- `src/pages/Products/EditProduct/PriceSection.tsx`
-- `src/pages/Products/EditBundle/PriceSection.tsx`
+**DONE so far:**
+- PriceSection (both EditProduct + EditBundle): profit box (2-col, border + divide-x) + cost box (border).
+- `EditProduct/GeneralTab.tsx`: two `bg-warm/50` stat boxes (สต็อกและการแจ้งเตือน).
+- Full app sweep "groups 1+2": `EditProduct/UnitsTab.tsx` (warm cost box + 2× success-soft per-unit profit boxes), `components/dialogs/QuickStockDialog.tsx` (muted + 2× warm), `Purchase/index.tsx` L1475 (primary-soft total), `dialogs/SaleDetailDialog.tsx` + `dialogs/PurchaseReceiptDialog.tsx` (muted info-grids — border only, NOT divider; they're wrapped key-value grids not 2 equal cols), `PurchaseReceiptDialog` cancelled-banner (destructive-soft), `Manage/NegativeStock.tsx` 3 callouts (success/warm/destructive), `Manage/Purchases.tsx` cancel-blockers (destructive-soft).
+- Muted boxes use `border border-border` (no accent to tint).
 (EditProduct & EditBundle keep TWIN copies of PriceSection/GeneralTab etc — always change both, see [[project_edit_parity_pass]].)
 
-**Candidates still to check (borderless tinted boxes seen nearby):**
-- `EditProduct/GeneralTab.tsx` ~L235-248: two `bg-warm/50` stat boxes (เฉลี่ย/เดือน, เดือนปัจจุบัน) — no border yet.
-- `GeneralTab.tsx` sales-history dialog `bg-muted/40` list (L500).
-- Sweep other pages (POS, Reports, Manage, Settings) for `bg-*-soft/` or `bg-warm/` / `bg-muted/` boxes without `border`.
+**Deliberately NOT touched (judged intentional):** POS chips/pills/summary tiles (`bg-warm`/`bg-primary-soft` rows in `POS/index.tsx`), Settings preview stages (`bg-muted/30 p-6` in Label/Receipt/DocumentSettingsTab), skeleton loaders, inline badges, `bg-accent` selection-highlight layers, popover hover menu buttons. Revisit only if user asks.
 
-**Uncommitted** as of pause: the 2 PriceSection files above (not yet committed — user said save progress, not commit). Also still uncommitted from earlier today, separate task: quotation print template iteration may be ongoing.
+Sweep regex used: `bg-(warm|success-soft|info-soft|primary-soft|warning-soft|...|muted/[0-9]|...)` + `rounded`, minus lines containing `border`. Re-run to catch newly-added boxes.

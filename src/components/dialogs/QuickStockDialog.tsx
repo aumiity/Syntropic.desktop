@@ -117,7 +117,7 @@ export function QuickStockDialog({
 
         <DialogBody className="space-y-4">
           {/* Current stock summary */}
-          <div className="rounded-lg bg-muted/40 px-3 py-2 flex items-center justify-between">
+          <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 flex items-center justify-between">
             <span className="text-sm text-muted-foreground">คงเหลือ</span>
             <span className="text-base font-bold text-foreground">
               {target?.stock_qty.toLocaleString()}
@@ -153,13 +153,13 @@ export function QuickStockDialog({
           {/* Monthly sales tiles */}
           <div className="space-y-3 pt-3 border-t border-border">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
+              <div className="rounded-lg bg-warm/50 border border-warm-foreground/25 px-3 py-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">เฉลี่ย / เดือน</span>
                 {monthlySales
                   ? <span className="text-base font-bold text-warm-foreground">{monthlySales.avg_per_month.toFixed(2)}</span>
                   : <span className="text-sm text-foreground-subtle">—</span>}
               </div>
-              <div className="rounded-lg bg-warm/50 px-3 py-2 flex items-center justify-between">
+              <div className="rounded-lg bg-warm/50 border border-warm-foreground/25 px-3 py-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
                   {monthlySales ? formatThaiMonth(monthlySales.current_month.ym) : 'เดือนปัจจุบัน'}
                 </span>

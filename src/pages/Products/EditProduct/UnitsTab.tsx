@@ -294,7 +294,7 @@ export function UnitsTab({
                   {/* ── ขวา: ราคา + รายละเอียด ── */}
                   <div className="space-y-3">
                     {/* ราคาทุน — รวมหน่วยฐาน + หน่วยใหม่ ในกรอบเดียว */}
-                    <div className="rounded-lg bg-warm/50 px-3 py-2 space-y-1">
+                    <div className="rounded-lg bg-warm/50 border border-warm-foreground/25 px-3 py-2 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">ราคาทุน ({baseUnit})</span>
                         <span className="text-sm font-bold text-warm-foreground">{formatCurrency(baseCost)}</span>
@@ -309,7 +309,7 @@ export function UnitsTab({
                     <Field label={<>ราคาปลีก{unitSuffix(newUnit)}</>}>
                       <PriceInput variant="elevated" value={unitForm.price_retail} onChange={v => setUnitForm((f: any) => ({ ...f, price_retail: v }))} />
                     </Field>
-                    <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-2">
+                    <div className="rounded-lg bg-success-soft/50 border border-success/30 px-3 py-2 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">คิดเป็น ({baseUnit})</span>
                         <span className="text-sm font-bold text-foreground">{formatCurrency(retail.perPiece)}</span>
@@ -335,7 +335,7 @@ export function UnitsTab({
                         <Field label={<>{label}{unitSuffix(newUnit)}</>}>
                           <PriceInput variant="elevated" value={value} onChange={v => setUnitForm((f: any) => ({ ...f, [key]: v }))} />
                         </Field>
-                        <div className="rounded-lg bg-success-soft/50 px-3 py-2 space-y-2">
+                        <div className="rounded-lg bg-success-soft/50 border border-success/30 px-3 py-2 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">คิดเป็น ({baseUnit})</span>
                             <span className="text-sm font-bold text-foreground">{formatCurrency(d.perPiece)}</span>

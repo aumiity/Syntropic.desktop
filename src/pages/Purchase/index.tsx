@@ -1472,7 +1472,7 @@ export default function PurchasePage() {
                     </div>
 
                     {/* Total preview */}
-                    <div className="rounded-lg bg-primary-soft/50 px-4 py-3 space-y-1.5 text-sm">
+                    <div className="rounded-lg bg-primary-soft/50 border border-primary/30 px-4 py-3 space-y-1.5 text-sm">
                       <div className="flex justify-between text-muted-foreground">
                         <span>ยอดรวมเดิม</span>
                         <span className="pr-2.5">{formatCurrency(adjustModalSum)}</span>

@@ -14,9 +14,10 @@ import {
   Layers, FolderInput, Info,
 } from 'lucide-react'
 
+// 'สินค้าหมดอายุ' is intentionally NOT here — expired goods go through the
+// dedicated หน้าสินค้าหมดอายุ flow, not this manual stock adjustment.
 const QUICK_REASONS = [
   'ปรับยอดให้ตรงระบบ',
-  'สินค้าหมดอายุ',
   'สินค้าเสียหาย',
   'สินค้าสูญหาย',
   'ของแถม',
@@ -79,6 +80,15 @@ export function AdjustStockDialog({
       setTargetLotId(defaultTarget)
     }).finally(() => setLotsLoading(false))
   }, [target])
+
+  // Prefill ต้นทุน/หน่วย with the selected lot's current cost when merging into an
+  // existing lot — the operator usually adds stock at the same cost, then tweaks
+  // only if it differs. Re-runs when the picked lot (or mode) changes.
+  useEffect(() => {
+    if (increaseMode !== 'existing' || !targetLotId) return
+    const lot = productLots.find(l => l.id === targetLotId)
+    if (lot) setAddedCost(String(lot.cost_price ?? 0))
+  }, [targetLotId, increaseMode, productLots])
 
   // Compute delta = target − current. Returns null when target is empty / invalid.
   const adjustDelta = (() => {
@@ -158,6 +168,28 @@ export function AdjustStockDialog({
       })
   }, [productLots])
 
+  // Current weighted-average cost across on-hand lots (matches products.cost_price
+  // valuation basis) + the on-hand qty it's averaged over.
+  const currentAvg = useMemo(() => {
+    const lots = productLots.filter(l => !l.is_cancelled && l.qty_on_hand > 0)
+    const qty = lots.reduce((s, l) => s + l.qty_on_hand, 0)
+    if (qty <= 0) return null
+    return { qty, avg: lots.reduce((s, l) => s + l.qty_on_hand * (l.cost_price ?? 0), 0) / qty }
+  }, [productLots])
+
+  // For "create new lot" mode — preview how the product-level weighted-average
+  // cost moves once this new lot is added (old → new), mirroring mergedLotPreview.
+  const newLotAvgPreview = useMemo(() => {
+    if (adjustDelta === null || adjustDelta <= 0 || increaseMode !== 'new') return null
+    const addedC = parseFloat(newLotCost)
+    if (Number.isNaN(addedC) || addedC < 0) return null
+    const curQty = currentAvg?.qty ?? 0
+    const curAvg = currentAvg?.avg ?? 0
+    const newQty = curQty + adjustDelta
+    const newAvg = newQty > 0 ? (curQty * curAvg + adjustDelta * addedC) / newQty : addedC
+    return { curAvg, newAvg, hasCurrent: currentAvg !== null }
+  }, [adjustDelta, increaseMode, newLotCost, currentAvg])
+
   const handleAdjust = async () => {
     if (!target) return
     if (adjustDelta === null) { toast({ title: 'กรุณาระบุจำนวนที่ถูกต้อง', variant: 'error' }); return }
@@ -222,27 +254,21 @@ export function AdjustStockDialog({
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent
-        size="2xl"
+        size="xl"
         divided
         onClose={onClose}
-        className="h-[800px] grid-rows-[auto_1fr_auto]"
+        className="h-[660px] grid-rows-[auto_1fr_auto]"
       >
         <DialogHeader>
           <DialogTitle className="text-xl">ปรับสต็อก</DialogTitle>
+          {target && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground truncate max-w-[60%]">{target.trade_name}</span>
+            </div>
+          )}
         </DialogHeader>
         <DialogBody className="flex flex-col overflow-y-auto min-h-0 scrollbar-thin">
-          <div className="space-y-4">
-            {target && (
-              <div className="bg-muted rounded-card border border-border px-4 py-3">
-                <div className="font-semibold text-base truncate">{target.trade_name}</div>
-                <div className="flex gap-2 text-sm text-muted-foreground mt-1">
-                  สต็อกปัจจุบัน :{' '}
-                  <span className="font-semibold text-foreground">{target.stock_qty.toLocaleString()}</span>{' '}
-                  {target.unit_name ?? 'ชิ้น'} | จำนวน
-                  <span className="font-semibold">{openLotsSummary.length}</span> ล็อต
-                </div>
-              </div>
-            )}
+          <div className="space-y-3">
 
             <div>
               <label className="block text-base font-medium mb-1">
@@ -250,14 +276,14 @@ export function AdjustStockDialog({
               </label>
               <div className="flex items-center gap-3">
                 <span
-                  className={`inline-flex flex-1 basis-0 items-center justify-center gap-1.5 rounded-lg px-3 h-10 text-base font-semibold ${
+                  className={`inline-flex flex-1 basis-0 items-center justify-center gap-1.5 rounded-lg border px-3 h-10 text-base font-semibold ${
                     adjustDelta === null
-                      ? 'bg-muted text-muted-foreground/60'
+                      ? 'bg-card text-muted-foreground/60 border-border'
                       : adjustDelta > 0
-                        ? 'bg-success-soft text-success'
+                        ? 'bg-success-soft text-success border-success/30'
                         : adjustDelta < 0
-                          ? 'bg-destructive-soft text-destructive'
-                          : 'bg-muted text-muted-foreground'
+                          ? 'bg-destructive-soft text-destructive border-destructive/30'
+                          : 'bg-card text-muted-foreground border-border'
                   }`}
                 >
                   {adjustDelta === null
@@ -283,16 +309,17 @@ export function AdjustStockDialog({
 
             {/* DECREASE — FEFO preview */}
             {adjustDelta !== null && adjustDelta < 0 && (
-              <div className="rounded-card border border-destructive-soft bg-destructive-soft p-3 space-y-2">
+              <div className="rounded-card border border-destructive/30 bg-destructive-soft p-3 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
                   <Info className="size-4" />
                   ระบบจะหักด้วย FEFO (ล็อตใกล้หมดอายุก่อน)
                 </div>
                 {fefoPreview.length > 0 ? (
                   <div className="space-y-1.5">
-                    {fefoPreview.map(({ lot, deduct, qtyAfter }) => (
+                    {fefoPreview.map(({ lot, deduct, qtyAfter }, i) => (
                       <div key={lot.id} className="flex items-center justify-between text-sm bg-destructive-soft rounded-lg px-3 py-2">
                         <span className="flex items-center gap-2 min-w-0">
+                          <span className="grid size-5 shrink-0 place-items-center rounded-full bg-destructive/15 text-xs font-bold text-destructive">{i + 1}</span>
                           <span className="font-semibold text-foreground truncate">{lot.lot_number}</span>
                           <span className="text-muted-foreground shrink-0">exp {formatExp(lot.expiry_date)}</span>
                         </span>
@@ -327,32 +354,26 @@ export function AdjustStockDialog({
                   <div className="grid grid-cols-2 gap-2">
                     <Button
                       type="button"
-                      variant={increaseMode === 'new' ? 'success' : 'outline'}
+                      variant={increaseMode === 'new' ? 'success' : 'elevated'}
                       onClick={() => setIncreaseMode('new')}
-                      className="h-14 flex-col gap-0.5 items-start px-3 py-1.5"
+                      className="h-10"
                     >
-                      <span className="flex items-center gap-1.5 text-sm font-semibold">
-                        <Layers className="size-4" /> สร้างล็อตใหม่
-                      </span>
-                      <span className="text-sm opacity-80 font-normal">ของจากที่อื่น / exp ต่างกัน</span>
+                      <Layers className="size-4" /> สร้างล็อตใหม่
                     </Button>
                     <Button
                       type="button"
-                      variant={increaseMode === 'existing' ? 'success' : 'outline'}
+                      variant={increaseMode === 'existing' ? 'success' : 'elevated'}
                       onClick={() => setIncreaseMode('existing')}
                       disabled={mergeCandidates.length === 0}
-                      className="h-14 flex-col gap-0.5 items-start px-3 py-1.5"
+                      className="h-10"
                     >
-                      <span className="flex items-center gap-1.5 text-sm font-semibold">
-                        <FolderInput className="size-4" /> เพิ่มเข้าล็อตเดิม
-                      </span>
-                      <span className="text-sm opacity-80 font-normal">ของแถม batch เดียวกัน</span>
+                      <FolderInput className="size-4" /> เพิ่มเข้าล็อตเดิม
                     </Button>
                   </div>
                 </div>
 
                 {increaseMode === 'new' && (
-                  <div className="rounded-card border border-success-soft bg-success-soft/30 p-3 space-y-3">
+                  <div className="rounded-card border border-success/30 bg-success-soft/30 p-3 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium mb-1 text-muted-foreground">หมายเลขล็อต</label>
@@ -366,32 +387,53 @@ export function AdjustStockDialog({
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1 text-muted-foreground">วันหมดอายุ</label>
-                        <DateInput variant="elevated" className="h-10" value={newLotExpiry} onChange={setNewLotExpiry} placeholder="dd/mm/yyyy" />
+                        <DateInput variant="elevated" className="h-10 w-full" value={newLotExpiry} onChange={setNewLotExpiry} placeholder="dd/mm/yyyy" />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-muted-foreground">
-                        ต้นทุน/หน่วย <span className="text-destructive">*</span>
-                        <span className="ml-1 opacity-70">(ฟรี = 0)</span>
-                      </label>
-                      <PriceInput
-                        variant="elevated"
-                        value={newLotCost}
-                        onChange={setNewLotCost}
-                        className="h-10 rounded-lg text-sm"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="flex items-center gap-1 text-sm font-medium mb-1 text-muted-foreground h-5">
+                          <span>ต้นทุน/หน่วย</span>
+                          <span className="text-destructive">*</span>
+                          <span className="opacity-70">(ฟรี = 0)</span>
+                        </label>
+                        <PriceInput
+                          variant="elevated"
+                          value={newLotCost}
+                          onChange={setNewLotCost}
+                          className="h-10 rounded-lg text-sm text-left"
+                        />
+                      </div>
+                      <div>
+                        <label className="flex items-center gap-1.5 text-sm font-medium mb-1 text-muted-foreground h-5">
+                          <Info className="size-3.5" />
+                          <span>ต้นทุนเฉลี่ยใหม่</span>
+                        </label>
+                        <div className="h-10 px-3 flex items-center bg-card border border-border rounded-lg text-sm">
+                          {newLotAvgPreview ? (
+                            <span>
+                              {newLotAvgPreview.hasCurrent && (
+                                <><span className="text-muted-foreground">{formatCurrency(newLotAvgPreview.curAvg)}</span>{' → '}</>
+                              )}
+                              <span className="font-semibold text-foreground">{formatCurrency(newLotAvgPreview.newAvg)}</span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {increaseMode === 'existing' && (
-                  <div className="rounded-card border border-success-soft bg-success-soft/30 p-3 space-y-3">
+                  <div className="rounded-card border border-success/30 bg-success-soft/30 p-3 space-y-3">
                     {/* Lot picker — dropdown shows only lot_number; details live beside */}
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-muted-foreground">
-                        เลือกล็อต <span className="text-destructive">*</span>
-                      </label>
-                      <div className="grid grid-cols-[240px_1fr] gap-3">
+                    <div className="grid grid-cols-2 gap-3 items-stretch">
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-muted-foreground">
+                          เลือกล็อต <span className="text-destructive">*</span>
+                        </label>
                         <Select
                           value={targetLotId ? String(targetLotId) : ''}
                           onValueChange={v => setTargetLotId(Number(v))}
@@ -407,22 +449,24 @@ export function AdjustStockDialog({
                             ))}
                           </SelectContent>
                         </Select>
-                        <div className="h-10 px-3 flex items-center gap-3 bg-muted rounded-lg text-sm text-muted-foreground flex-wrap">
-                          {selectedTargetLot ? (
-                            <>
-                              <span><span className="font-medium">หมดอายุ :</span> {formatExp(selectedTargetLot.expiry_date)}</span>
-                              <span className=""><span className="font-medium">คงเหลือ :</span> {selectedTargetLot.qty_on_hand.toLocaleString()}</span>
-                              <span className=""><span className="font-medium">ต้นทุน :</span> {formatCurrency(selectedTargetLot.cost_price)}</span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground/60">—</span>
-                          )}
-                        </div>
+                      </div>
+                      <div className="min-h-10 px-3 py-1.5 flex flex-col justify-center gap-0.5 bg-card border border-border rounded-lg text-sm text-muted-foreground">
+                        {selectedTargetLot ? (
+                          <>
+                            <div><span className="font-medium">หมดอายุ :</span> {formatExp(selectedTargetLot.expiry_date)}</div>
+                            <div className="flex flex-wrap gap-x-4">
+                              <span><span className="font-medium">คงเหลือ :</span> {selectedTargetLot.qty_on_hand.toLocaleString()}</span>
+                              <span><span className="font-medium">ต้นทุน :</span> {formatCurrency(selectedTargetLot.cost_price)}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground/60">—</span>
+                        )}
                       </div>
                     </div>
 
                     {/* Cost input + new-avg preview on the same row */}
-                    <div className="grid grid-cols-[240px_1fr] gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="flex items-center gap-1 text-sm font-medium mb-1 text-muted-foreground h-5">
                           <span>ต้นทุน/หน่วย</span>
@@ -433,7 +477,7 @@ export function AdjustStockDialog({
                           variant="elevated"
                           value={addedCost}
                           onChange={setAddedCost}
-                          className="h-10 rounded-lg text-sm"
+                          className="h-10 rounded-lg text-sm text-left"
                         />
                       </div>
                       <div>
@@ -441,7 +485,7 @@ export function AdjustStockDialog({
                           <Info className="size-3.5" />
                           <span>ต้นทุนเฉลี่ยใหม่</span>
                         </label>
-                        <div className="h-10 px-3 flex items-center bg-muted rounded-lg text-sm">
+                        <div className="h-10 px-3 flex items-center bg-card border border-border rounded-lg text-sm">
                           {mergedLotPreview ? (
                             <span>
                               <span className="text-muted-foreground">{formatCurrency(mergedLotPreview.lot.cost_price)}</span>
@@ -460,10 +504,10 @@ export function AdjustStockDialog({
             )}
           </div>
 
-          {/* Note section — pinned to bottom via mt-auto so modal height stays
-              fixed at the tallest mode (increase + existing lot). White space
-              appears in shorter modes; that's intentional. */}
-          <div className="mt-auto pt-4">
+          {/* Note section — pinned to the bottom (mt-auto) so its position stays
+              put across modes. Dialog height is fixed; shorter modes show the gap
+              above the note, taller content scrolls within the body. */}
+          <div className="mt-auto pt-3">
             <label className="block text-base font-medium mb-2">หมายเหตุ <span className="text-destructive">*</span></label>
             <div className="flex flex-wrap gap-2 mb-2">
               {QUICK_REASONS.map(r => (
@@ -471,7 +515,7 @@ export function AdjustStockDialog({
                   key={r}
                   type="button"
                   size="lg"
-                  variant={adjustNote === r ? 'info-soft' : 'outline'}
+                  variant={adjustNote === r ? 'info-soft' : 'elevated'}
                   onClick={() => setAdjustNote(r)}
                 >
                   {r}

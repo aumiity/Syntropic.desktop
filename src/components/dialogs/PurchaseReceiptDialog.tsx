@@ -121,7 +121,7 @@ export function PurchaseReceiptDialog({
             </DialogHeader>
             <DialogBody className="flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
               {isCancelled && (
-                <div className="px-4 py-2.5 bg-destructive-soft rounded-lg shrink-0">
+                <div className="px-4 py-2.5 bg-destructive-soft border border-destructive/30 rounded-lg shrink-0">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="size-4 text-destructive shrink-0 mt-0.5" />
                     <div className="min-w-0">
@@ -136,7 +136,7 @@ export function PurchaseReceiptDialog({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3 text-sm bg-muted/30 rounded-lg p-3 shrink-0">
+              <div className="grid grid-cols-2 gap-3 text-sm bg-muted/30 border border-border rounded-lg p-3 shrink-0">
                 <div><span className="text-muted-foreground">ผู้จัดจำหน่าย:</span> <span className="font-medium">{header.supplier_name ?? '—'}</span></div>
                 <div><span className="text-muted-foreground">เลขที่ใบกำกับ:</span> <span className="font-medium">{header.supplier_invoice_no || '—'}</span></div>
                 <div><span className="text-muted-foreground">วันที่สั่งซื้อ:</span> <span className="font-medium">{header.order_date ? formatDate(header.order_date) : '—'}</span></div>
