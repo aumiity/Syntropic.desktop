@@ -69,12 +69,12 @@ export function PriceSection({
     const valCls = `text-sm font-bold ${d.pos ? 'text-success' : 'text-destructive'}`
     const dash = <span className="text-sm text-foreground-subtle">—</span>
     return (
-      <div className="rounded-lg bg-success-soft/50 px-3 py-2 grid grid-cols-2 gap-3">
-        <div className="space-y-0.5 min-w-0">
+      <div className="rounded-lg bg-success-soft/50 border border-success/30 grid grid-cols-2 divide-x divide-success/30">
+        <div className="space-y-0.5 min-w-0 px-3 py-2">
           <div className={labelCls}>กำไร</div>
           {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)}</div>}
         </div>
-        <div className="space-y-0.5 min-w-0">
+        <div className="space-y-0.5 min-w-0 px-3 py-2">
           <div className={labelCls}>กำไร (%)</div>
           {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.pct.toFixed(0)}%</div>}
         </div>
@@ -118,7 +118,7 @@ export function PriceSection({
                   className="text-left"
                 />
               </Field>
-              <div className="rounded-lg bg-warm/50 px-3 py-2 space-y-0.5">
+              <div className="rounded-lg bg-warm/50 border border-warm-foreground/25 px-3 py-2 space-y-0.5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">ทุนเฉลี่ย</span>
                   {avgCost > 0

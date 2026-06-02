@@ -73,12 +73,12 @@ export function PriceSection({ form, setF, errors, product, baseUnit, isNew, onO
     const valCls = `text-sm font-bold ${d.pos ? 'text-success' : 'text-destructive'}`
     const dash = <span className="text-sm text-foreground-subtle">—</span>
     return (
-      <div className="rounded-lg bg-success-soft/50 px-3 py-2 grid grid-cols-2 gap-3">
-        <div className="space-y-0.5 min-w-0">
+      <div className="rounded-lg bg-success-soft/50 border border-success/30 grid grid-cols-2 divide-x divide-success/30">
+        <div className="space-y-0.5 min-w-0 px-3 py-2">
           <div className={labelCls}>กำไร</div>
           {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)}</div>}
         </div>
-        <div className="space-y-0.5 min-w-0">
+        <div className="space-y-0.5 min-w-0 px-3 py-2">
           <div className={labelCls}>กำไร (%)</div>
           {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.pct.toFixed(0)}%</div>}
         </div>
@@ -122,7 +122,7 @@ export function PriceSection({ form, setF, errors, product, baseUnit, isNew, onO
                   className="text-left"
                 />
               </Field>
-              <div className="rounded-lg bg-warm/50 px-3 py-2 flex-1 flex items-center">
+              <div className="rounded-lg bg-warm/50 border border-warm-foreground/25 px-3 py-2 flex-1 flex items-center">
                 <div className="text-sm text-muted-foreground flex items-center gap-1.5">
                   <Info className="size-3.5 shrink-0" />
                   <span>คำนวณอัตโนมัติจากทุนของส่วนประกอบ</span>
