@@ -529,6 +529,7 @@ export default function EditProductPage() {
           trade_name: product.trade_name,
           stock_qty: totalStock,
           unit_name: baseUnit,
+          last_cost_price: product.last_cost_price,
         } : null}
         onClose={() => setAdjustOpen(false)}
         onSaved={async () => {

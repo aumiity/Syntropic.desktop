@@ -21,6 +21,7 @@ These are copied from `CLAUDE.md` and `docs/claude/ui-*.md`. Each has an inciden
 11. **No emojis in shipped UI / source / runtime strings.** Use lucide-react icons for iconography and Badge variants + semantic tokens for status.
 12. **Thai UI language throughout.** All visible strings are Thai. Respect Thai-script line-height (stacked diacritics clip under tight line-heights — `.truncate`/`line-clamp-*` carry `line-height: 1.65`).
 13. **Use the FULL palette by role — don't default everything to primary/secondary/destructive.** Reach for `tertiary`, `brand-soft`, `info-soft`, `warm`, `success`, `outline`, `ghost`, `destructive2` where the role fits.
+14. **Scrollbars are THIN (6px) everywhere — one size, no exceptions.** The global `::-webkit-scrollbar` is 6px (`src/index.css`) and the `scrollbar-thin` utility matches it. Never define a different scrollbar width or a custom `::-webkit-scrollbar` size anywhere.
 
 ### Where your skill's generic rules need adjustment for this repo
 

@@ -392,6 +392,7 @@ export default function ProductsList() {
                                 trade_name: row.trade_name,
                                 stock_qty: row.stock_qty,
                                 unit_name: row.unit_name,
+                                last_cost_price: row.last_cost_price,
                               })}
                               className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
                             >

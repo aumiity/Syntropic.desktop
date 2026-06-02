@@ -47,6 +47,8 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - **`text-xs` = ข้อความที่ *รองจากเนื้อหา*** — อนุญาตให้ใช้ได้กับ: คำอธิบายย่อย/helper text, caption, status bar แสดงสถานะ, meta/timestamp, chip & status ใน `<Badge>`. อย่าใช้ `text-xs` กับเนื้อหาหลักหรือหัวข้อ.
    - ห้ามใช้เล็กกว่า `text-xs` (เช่น `text-[10px]`, `text-[11px]`, `text-[13px]`) — `text-xs` คือเล็กสุด.
 
+10. **Scrollbar — บาง(6px) ทั้งโปรแกรม ขนาดเดียว ห้ามมีขนาดอื่น (HARD).** global `::-webkit-scrollbar` ใน `src/index.css` ตั้งเป็น `w-[6px] h-[6px]` แล้ว ทั้งแอปจึงบางโดยอัตโนมัติ — ไม่ต้องคอยใส่คลาสเอง. utility `.scrollbar-thin` (6px เท่ากัน, ใช้อยู่ ~40 จุด) ใช้ต่อได้เพื่อความชัดเจน. **ห้าม** กำหนดความกว้าง scrollbar อื่น หรือเขียน `::-webkit-scrollbar` ขนาดอื่นที่ใดก็ตาม.
+
 ## ELEVATED — the primary surface treatment (HARD)
 
 The house style for controls and panels is the elevated look: `bg-card` + `border border-border` + `shadow-sm`. It reads as a raised card sitting on the background.
