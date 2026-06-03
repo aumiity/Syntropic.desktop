@@ -1,8 +1,36 @@
 # Syntropic Desktop - Build Progress
 
-## Status: ✅ Runnable — **Receipt/tax-invoice printing + full Quotation system (incl. convert-to-sale) shipped** (Session 2026-05-31). Three features landed this session, each via plan→external-audit→rev-2→impl→Playwright E2E: (1) **Receipt/cash-slip + tax-invoice printing** reusing the silent-HTML-print path (80mm thermal slip via OS driver, abbreviated tax invoice ม.86/6 on the slip, full A4 tax invoice ม.86/4 with buyer dialog + ต้นฉบับ/สำเนา tracking in a new `tax_invoices` table); (2) **Quotation system (เฟส 1)** — `quotations`/`quotation_items`, QT-numbering with retry-on-collision, draft-only edit/delete, A4 print, list+builder pages, sidebar "ใบเสนอราคา" under การขาย; (3) **Quotation → Sale convert (เฟส 2)** — `accepted→converting→converted` state machine (atomic claim guards against double-sell), loads quoted lines+customer into the POS cart, reuses `saveBill` (FEFO/VAT), marks the quote converted + links the invoice. Type-clean both configs; all three Playwright-verified end-to-end (slip PDF, A4 quotation, accepted→convert→pay→converted+RC-link). Earlier baseline: Negative-stock sales + reconciliation (Session 2026-05-21b). `deductFefo()` already supported oversell (writes `sale_item_lots.lot_id=NULL` markers) — feature wraps that with detection on GR receive + a new `/manage/negative-stock` tab to reconcile (FEFO-deduct against current open lots) or dismiss (mark `is_cancelled=1`, audit row written). Sidebar gets a tiny warning dot on `/manage`; the page tab itself gets the same dot suffix. Two-pass audit (GPT + Gemini) — GPT caught the critical `stock_movements.product_id` omission, void-sale orphan markers, FEFO cancelled-lot exclusion, and float-qty epsilon — all folded into rev-2 plan before coding. Both auditors **PASS** post-impl. Earlier today: POS cart alert system + bundle expansion shipped. **Phase 5 / ขย.9** + Bundle (Phase 1 + 2 + 6 audit fixes + min-2 atomic) still standing. Type-clean across the board. **Negative-stock + POS alerts + bundle expand + Bundle min-2 + ขย.9 + Bundle base + Manage/Reports Phase 1–4 + h-10 sweep all NOT click-tested yet.**
-## Last updated: 2026-05-31
+## Status: ✅ Runnable — **Expenses (bookkeeping) system shipped** (Session 2026-06-03). Shop expenses entry/reporting: new /reports/expenses tab (between ซื้อ and รายงาน อย.), `expense_categories` (9 seeded: rent/utilities/payroll/etc.) + `expenses` tables (running EX-YYYYMMDD-NNNN code), admin entry/edit/delete (hard delete), staff read-only + 7-day clamp, Finance integration (now 6 KPIs: เรื่องเบ็ด + ค่าใช้จ่าย + กำไรสุทธิ + อื่น 3), all tsc-clean both configs + Priest PASS. **NOT click-tested yet.** Earlier: Receipt/tax-invoice printing + full Quotation system + Quotation→Sale convert (Session 2026-05-31). Three features landed that session: (1) **Receipt/cash-slip + tax-invoice printing** (80mm slip + abbreviated ม.86/6 + full A4 ม.86/4 + `tax_invoices` table); (2) **Quotation system (เฟส 1)** (QT-YYYYMMDD-NNNN, draft-only edit/delete, A4 print, sidebar under การขาย); (3) **Quotation → Sale convert (เฟส 2)** (state machine accepted→converting→converted, atomic claim, loads to POS cart, reuses saveBill). Earlier baseline: Negative-stock sales + reconciliation (Session 2026-05-21b). POS cart alert system + bundle expansion + EditBundle parity + input ELEVATED default flip also shipped in May. **Negative-stock + POS alerts + bundle expand + Bundle min-2 + ขย.9 + Bundle base + Manage/Reports Phase 1–4 + h-10 sweep + Receipt/tax-invoice + Quotation (both phases) all NOT click-tested yet.**
+## Last updated: 2026-06-03
 ## Run: `npm run electron:dev`
+
+## ✅ DONE 2026-06-03: **Expenses (bookkeeping) system** — shop expenses entry + Finance KPI integration. Code-complete, tsc-clean both configs, Priest PASS. **NOT click-tested yet.**
+### Why
+Finance reports showed gross profit only; operator needs to track shop running costs (rent, utilities, payroll, transport, etc.) so net-profit calculations are accurate. This is a hybrid report+entry page, not a top-level nav item.
+
+### What shipped
+- **New tab in `/reports`** ("ค่าใช้จ่าย", route `/reports/expenses`, positioned between ซื้อ and รายงาน อย.)
+- **Two new tables:**
+  - `expense_categories` (lookup): columns `id`, `name`, `sort_order`, `is_active` (NO `code` column unlike product_categories; uses `is_active` not `is_disabled`). Seeded 9 categories via `COUNT===0` guard (won't resurrect deleted): ค่าเช่า / ค่าน้ำ / ค่าไฟ / เงินเดือน-ค่าแรง / ค่าการตลาด / ค่าขนส่ง / ค่าอุปกรณ์ / ภาษี-ค่าธรรมเนียม / อื่นๆ
+  - `expenses` (running ledger): columns `id`, `expense_date`, `category_id`, `amount`, `payment_method`, `vendor`, `reference_no`, `note`, `created_at`, `updated_at`. Running code **`EX-YYYYMMDD-NNNN`** via MAX-suffix + retry-on-UNIQUE-collision (SUBSTR offset 13, same pattern as Quotations)
+- **Access control:** Add/edit/delete admin-only (`isOwner`); staff read-only + 7-day range clamp (mirrors Finance role gate)
+- **UX decisions:**
+  - Delete = hard delete + confirm Dialog (bookkeeping transaction, not a legal doc — no soft void/cancel)
+  - Amount field uses `Input type="number"` (NOT PriceInput, which silently coerces blank→0 and breaks the never-blank invariant)
+- **Finance integration:**
+  - `computeFinanceWindow` in `electron/ipc/reports.ts` sums `expense_total` over `expense_date` within the reporting window
+  - Flows into both current AND previous window (PoP comparison enabled)
+  - `/reports/finance` gained 2 new KPI cards → now 6 total:
+    - **ค่าใช้จ่าย** (warm badge)
+    - **กำไรสุทธิ** = sales_profit − expense_total (success-soft if positive, destructive-soft if negative)
+  - "กำไร" on the overview report is now **net profit** (after expenses), not gross
+- **Key files modified:**
+  - New: `src/pages/Reports/Expenses.tsx`, `src/components/dialogs/ExpenseFormDialog.tsx`, `src/pages/Settings/ExpenseCategoriesTab.tsx`, `electron/ipc/expenses.ts`
+  - Updated: `electron/db/schema.ts`, `electron/db/seed.ts`, `electron/ipc/main.ts`, `electron/preload.ts`, `src/types/index.ts`, `src/pages/Reports/index.tsx`, `src/pages/Settings/index.tsx`, `electron/ipc/reports.ts`, `src/pages/Reports/Finance.tsx`
+### Future hook
+The `expenses` table is the natural home for **purchase-side VAT (ภาษีซื้อ / ภ.พ.30)** later. v1 stores a flat `amount`; can add `vat_amount` / `has_vat` columns in Phase 2 (see [[project_vat_phasing]]).
+### Carry-forward / click-test queue
+- **Operator live click-test:** add expense → verify code format + date/category/amount entry + Finance KPI updates; edit/delete flows; staff read-only gate.
 
 ## ✅ DONE 2026-05-31 (later): **First-run Setup Wizard (Phase 1 — VAT/NO-VAT foundation)** — plan→Gemini audit (PASS, no critical)→impl→tsc-clean. **NOT click-tested yet.**
 ### Why
@@ -62,11 +90,11 @@ VAT was a free toggle in Settings → an operator could disable it to ring up on
 ##   - **Sales-setting toggle `qty_multiplier_enabled`** (INTEGER, DEFAULT 1 = on): added to `SalesSettings` type, `sales_settings` table (CREATE TABLE col + safe `ALTER TABLE ... ADD COLUMN` migration so existing DBs default-on), and `SalesTab.tsx` (new **"การขายหน้าร้าน (POS)"** SectionCard `tint="primary"` + `Toggle`, icon `Calculator`). POS reads `salesSettings?.qty_multiplier_enabled !== 0` → `multiplierEnabled` gate (null while loading = treated on). **IPC untouched** — `settings:saveSalesSettings` builds SQL from `Object.keys()`, new field flows through; **only `.ts` files edited** (vite-plugin-electron bundles from `electron/*.ts`, the committed `electron/**/*.js` are stale artifacts, NOT runtime). `tsc` clean both configs.
 ##   - **NOT formally click-tested** — built live this session, operator iterated on the UX (badge placement, no-close-on-empty, the `5*` convention, `*`-in-names, >999 passthrough) but no full checklist run. Plan file: `C:\Users\ANYA\.claude\plans\src-pages-pos-index-tsx-linear-finch.md` (note: plan documents the SCRAPPED `*N` design — code is the source of truth, not the plan).
 ##
-## 📋 BACKLOG (operator noted 2026-05-30 "เหลืองานอีกหลายระบบ"; updated 2026-05-31)
+## 📋 BACKLOG (operator noted 2026-05-30 "เหลืองานอีกหลายระบบ"; updated 2026-06-03)
 ##   - ✅ **ระบบ VAT** — DONE (commit `357514d`, 2026-05-30). VAT-inclusive, all-or-nothing `sales_settings.vat_enabled` + `vat_rate`; extracted into `sales.total_vat`/`sale_items.unit_vat`. (`products.has_vat` dropped — per-product VAT removed.)
 ##   - ✅ **พิมพ์สลิป/บิลการขาย + ใบกำกับภาษี** — DONE 2026-05-31 (see block above). Cash slip 80mm + abbreviated tax invoice (ม.86/6) + full A4 tax invoice (ม.86/4). Live click-test by operator still pending.
 ##   - ✅ **ระบบออกใบเสนอราคา + แปลงเป็นการขาย** — DONE 2026-05-31 (เฟส 1 + เฟส 2, see block above). Live click-test by operator still pending.
-##   - ⬜ **ระบบ Finance** — record OTHER shop expenses beyond drug purchases (rent, utilities, etc.). `/reports/finance` currently shows aggregates only; this is expense *entry/bookkeeping*. **NEXT candidate.**
+##   - ✅ **ระบบ Finance (expenses/bookkeeping)** — DONE 2026-06-03 (see "✅ DONE 2026-06-03" block above). shop running costs entry, Finance KPI integration (6 cards: now includes เงินสด/ค่าใช้จ่าย/กำไรสุทธิ). tsc-clean + Priest PASS. Not click-tested yet.
 ##   - ⬜ **ฉลากยา UX/UI ยังไม่ถูกใจ** — drug-label UI still unsatisfactory even after the LabelSettingsTab redesign. Collect specifics from operator before reworking.
 ##   - ⬜ **Dashboard rebuild** — `/reports/dashboard` functions but operator NOT satisfied with UX/design (PARKED per 2026-05-29 block L9). Full rework still pending; collect what's off first.
 

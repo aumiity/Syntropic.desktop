@@ -14,6 +14,7 @@ import { registerAuthHandlers } from './ipc/auth'
 import { registerDevHandlers } from './ipc/dev'
 import { registerMatcherHandlers } from './ipc/matcher'
 import { registerNegativeStockHandlers } from './ipc/negativeStock'
+import { registerExpenseHandlers } from './ipc/expenses'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -82,6 +83,7 @@ registerQuotationHandlers()
 registerAuthHandlers()
 registerMatcherHandlers()
 registerNegativeStockHandlers()
+registerExpenseHandlers()
 if (isDev) registerDevHandlers()
 
 // App event

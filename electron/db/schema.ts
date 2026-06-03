@@ -562,6 +562,30 @@ export function initializeSchema(db: Database.Database) {
       sort_order INTEGER NOT NULL DEFAULT 0
     );
 
+    -- Shop expenses (ค่าใช้จ่าย) — manual operating-cost entries (rent, utilities,
+    -- salaries, …) used by the Finance net-profit calc + the ค่าใช้จ่าย report.
+    CREATE TABLE IF NOT EXISTS expense_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+    CREATE TABLE IF NOT EXISTS expenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      expense_no TEXT NOT NULL UNIQUE,
+      expense_date TEXT NOT NULL,
+      category_id INTEGER REFERENCES expense_categories(id),
+      amount REAL NOT NULL,
+      payment_method TEXT,
+      vendor TEXT,
+      reference_no TEXT,
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     -- Purchase receipt headers (GR-level metadata, one row per invoice_no).
     -- Authoritative source for supplier / payment / dates of a GR.
     -- product_lots also stores some of these for stock display, but is last-write-wins.
@@ -651,6 +675,9 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_quotations_no ON quotations(quote_no);
     CREATE INDEX IF NOT EXISTS idx_quotations_issued ON quotations(issue_date);
     CREATE INDEX IF NOT EXISTS idx_quotation_items_q ON quotation_items(quotation_id);
+    CREATE INDEX IF NOT EXISTS idx_expenses_no ON expenses(expense_no);
+    CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date);
+    CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category_id);
   `)
 
   // Safe column migrations for existing databases

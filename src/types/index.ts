@@ -273,6 +273,25 @@ export interface ProductCategory {
   id: number; code: string; name: string; description?: string; sort_order: number; is_disabled: number
 }
 
+export interface ExpenseCategory {
+  id: number; name: string; is_active: number; sort_order: number
+}
+
+export interface Expense {
+  id: number
+  expense_no: string
+  expense_date: string
+  category_id: number | null
+  category_name?: string
+  amount: number
+  payment_method?: string
+  vendor?: string
+  reference_no?: string
+  note?: string
+  created_at?: string
+  updated_at?: string
+}
+
 export interface ItemUnit {
   id: number; name: string; usage_count?: number
 }

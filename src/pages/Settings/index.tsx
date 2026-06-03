@@ -3,11 +3,12 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Store, Package, Printer, ShoppingCart, Save } from 'lucide-react'
+import { Store, Package, Printer, ShoppingCart, Save, ReceiptText } from 'lucide-react'
 import { ShopTab } from './ShopTab'
 import { ProductMgmtTab } from './ProductMgmtTab'
 import { PrintersTab } from './PrintersTab'
 import { SalesTab } from './SalesTab'
+import { ExpenseCategoriesTab } from './ExpenseCategoriesTab'
 
 export default function SettingsPage() {
   const [tab, setTab] = useState('shop')
@@ -24,6 +25,7 @@ export default function SettingsPage() {
             <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
             <TabsTrigger value="product-mgmt"><Package /> จัดการสินค้า</TabsTrigger>
             <TabsTrigger value="sales"><ShoppingCart /> การขาย</TabsTrigger>
+            <TabsTrigger value="expenses"><ReceiptText /> หมวดค่าใช้จ่าย</TabsTrigger>
             <TabsTrigger value="printers"><Printer /> เครื่องพิมพ์</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -44,6 +46,7 @@ export default function SettingsPage() {
             setSaving={setSalesSaving}
           />
         )}
+        {tab === 'expenses' && <ExpenseCategoriesTab />}
         {tab === 'printers' && <PrintersTab />}
       </div>
     </div>

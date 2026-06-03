@@ -362,7 +362,17 @@ export function registerReportHandlers() {
       FROM purchase_receipts pr ${pWhere}
     `).get(...pParams) as any
 
-    return { ...sales, ...purchases }
+    // Shop expenses (ค่าใช้จ่าย) over the same window — feeds net-profit display.
+    const eCond: string[] = []
+    const eParams: any[] = []
+    if (date_from) { eCond.push(`date(e.expense_date) >= ?`); eParams.push(date_from) }
+    if (date_to) { eCond.push(`date(e.expense_date) <= ?`); eParams.push(date_to) }
+    const eWhere = eCond.length ? `WHERE ${eCond.join(' AND ')}` : ''
+    const expenses = db.prepare(`
+      SELECT COALESCE(SUM(e.amount), 0) AS expense_total FROM expenses e ${eWhere}
+    `).get(...eParams) as any
+
+    return { ...sales, ...purchases, expense_total: expenses.expense_total }
   }
 
   // Same-length window immediately before [date_from, date_to]. e.g. May 1–23

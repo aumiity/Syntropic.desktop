@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { LineChart, ShoppingBag, Wallet, ShieldCheck, LayoutDashboard } from 'lucide-react'
+import { LineChart, ShoppingBag, Wallet, ShieldCheck, LayoutDashboard, ReceiptText } from 'lucide-react'
 
 // Phase 4: finance dashboard split into ภาพรวม / ขาย / ซื้อ (each with its own
 // DateRangePicker). Phase 5: รายงาน อย. — placeholder. See PROGRESS.md.
@@ -17,6 +17,7 @@ const TABS = [
   { value: 'finance',   to: '/reports',           label: 'ภาพรวม',    icon: LineChart },
   { value: 'sales',     to: '/reports/sales',     label: 'ขาย',        icon: ShoppingBag },
   { value: 'purchases', to: '/reports/purchases', label: 'ซื้อ',       icon: Wallet },
+  { value: 'expenses',  to: '/reports/expenses',  label: 'ค่าใช้จ่าย', icon: ReceiptText },
   { value: 'fda',       to: '/reports/fda',       label: 'รายงาน อย.', icon: ShieldCheck },
 ] as const
 
@@ -26,6 +27,7 @@ function resolveTab(pathname: string): TabValue {
   if (pathname.startsWith('/reports/dashboard')) return 'dashboard'
   if (pathname.startsWith('/reports/sales')) return 'sales'
   if (pathname.startsWith('/reports/purchases')) return 'purchases'
+  if (pathname.startsWith('/reports/expenses')) return 'expenses'
   if (pathname.startsWith('/reports/fda')) return 'fda'
   return 'finance'
 }

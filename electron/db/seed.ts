@@ -72,6 +72,15 @@ export function seedDatabase(db: Database.Database) {
   const insCategory = db.prepare(`INSERT OR IGNORE INTO product_categories (code, name, sort_order) VALUES (?, ?, ?)`)
   for (const [code, name, sort] of categories) insCategory.run(code, name, sort)
 
+  // Expense categories — seeded once (only when the table is empty) so an
+  // operator who renames/removes them doesn't get them re-added on restart.
+  const expCount = db.prepare(`SELECT COUNT(*) AS c FROM expense_categories`).get() as { c: number }
+  if (expCount.c === 0) {
+    const insExp = db.prepare(`INSERT INTO expense_categories (name, sort_order) VALUES (?, ?)`)
+    ;['ค่าเช่า', 'ค่าน้ำ', 'ค่าไฟ', 'เงินเดือน/ค่าแรง', 'ค่าการตลาด', 'ค่าขนส่ง', 'ค่าอุปกรณ์', 'ภาษี/ค่าธรรมเนียม', 'อื่นๆ']
+      .forEach((name, i) => insExp.run(name, i + 1))
+  }
+
   // Item units — superset of what's referenced by seeded products (32 names from
   // the Hygeia Item export) plus a handful of common ones we want available
   // even on a minimal install. INSERT OR IGNORE = safe to re-run.

@@ -18,6 +18,7 @@ import { CompareBarChart, type CompareDatum } from '@/components/ui/charts/compa
 import {
   Banknote, CreditCard, ArrowLeftRight, TrendingUp,
   Wallet, ShoppingBag, LineChart, Receipt, BarChart3,
+  ReceiptText, Scale,
 } from 'lucide-react'
 
 interface FinanceWindow {
@@ -35,6 +36,7 @@ interface FinanceWindow {
   purchase_cash: number
   purchase_credit: number
   purchase_count: number
+  expense_total: number
 }
 
 interface FinanceSummary extends FinanceWindow {
@@ -47,6 +49,7 @@ const EMPTY_WINDOW: FinanceWindow = {
   sales_subtotal: 0, sales_discount: 0, sales_net: 0, sales_cost: 0, sales_profit: 0,
   cash_amount: 0, card_amount: 0, transfer_amount: 0, credit_count: 0, sale_count: 0,
   purchase_total: 0, purchase_cash: 0, purchase_credit: 0, purchase_count: 0,
+  expense_total: 0,
 }
 
 const EMPTY: FinanceSummary = {
@@ -177,6 +180,10 @@ export default function ReportsFinancePage() {
     const dSales = delta(sum.sales_net, sum.previous?.sales_net)
     const dProfit = delta(sum.sales_profit, sum.previous?.sales_profit)
     const dPurchase = delta(sum.purchase_total, sum.previous?.purchase_total)
+    const dExpense = delta(sum.expense_total, sum.previous?.expense_total)
+    const net = sum.sales_profit - sum.expense_total
+    const prevNet = sum.previous ? sum.previous.sales_profit - sum.previous.expense_total : undefined
+    const dNet = delta(net, prevNet)
     setSummary([
       {
         label: 'ยอดขายสุทธิ',
@@ -214,6 +221,26 @@ export default function ReportsFinancePage() {
         sub: `${sum.payable_count.toLocaleString()} บิล`,
         icon: CreditCard,
         tint: sum.payable_total > 0 ? 'warning' : 'success',
+      },
+      {
+        label: 'ค่าใช้จ่าย',
+        value: formatCurrency(sum.expense_total),
+        sub: dExpense?.sub,
+        subClassName: dExpense?.cls,
+        subIcon: dExpense?.icon ?? undefined,
+        subTitle: dExpense ? prevHint : undefined,
+        icon: ReceiptText,
+        tint: 'warm',
+      },
+      {
+        label: 'กำไรสุทธิ',
+        value: formatCurrency(net),
+        sub: dNet?.sub,
+        subClassName: dNet?.cls,
+        subIcon: dNet?.icon ?? undefined,
+        subTitle: dNet ? prevHint : undefined,
+        icon: Scale,
+        tint: net >= 0 ? 'success' : 'destructive',
       },
     ])
   }, [sum, margin, mode, setSummary])

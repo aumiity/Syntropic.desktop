@@ -208,6 +208,17 @@ const api = {
     dismiss: (payload: { id: number; userId: number }) =>
       ipcRenderer.invoke('negativeStock:dismiss', payload),
   },
+  // Shop expenses (ค่าใช้จ่าย)
+  expenses: {
+    list: (filters?: any) => ipcRenderer.invoke('expenses:list', filters),
+    summary: (filters?: any) => ipcRenderer.invoke('expenses:summary', filters),
+    save: (payload: any) => ipcRenderer.invoke('expenses:save', payload),
+    delete: (id: number) => ipcRenderer.invoke('expenses:delete', id),
+    listCategories: () => ipcRenderer.invoke('expenses:listCategories'),
+    activeCategories: () => ipcRenderer.invoke('expenses:activeCategories'),
+    saveCategory: (data: any) => ipcRenderer.invoke('expenses:saveCategory', data),
+    reorderCategories: (ids: number[]) => ipcRenderer.invoke('expenses:reorderCategories', ids),
+  },
   // Auth (placeholder until proper login)
   auth: {
     getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
