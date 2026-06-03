@@ -57,6 +57,27 @@ function resolveBarcode(p: any): string | null {
   return null
 }
 
+// Accepts dd/mm/yyyy, d/m/yy(yy), yyyy-mm-dd; converts Buddhist year > 2500.
+// Returns ISO yyyy-mm-dd or '' if unparseable (caller decides whether to skip).
+function parseExpiryToIso(s: string): string {
+  const t = s.trim()
+  if (!t) return ''
+  const iso = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (iso) {
+    const [, y, m, d] = iso
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+  }
+  const dmy = t.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/)
+  if (dmy) {
+    const [, d, m, yRaw] = dmy
+    let y = parseInt(yRaw, 10)
+    if (yRaw.length === 2) y += y > 50 ? 1900 : 2000
+    if (y > 2500) y -= 543
+    return `${String(y).padStart(4, '0')}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+  }
+  return ''
+}
+
 export default function PurchaseIntake() {
   const { toast } = useToast()
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -135,6 +156,34 @@ export default function PurchaseIntake() {
 
   const patchRow = (i: number, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+
+  // Spreadsheet-style paste: if clipboard text has line breaks, distribute
+  // each line down the column starting at row `i`. Extra lines past the
+  // last row are dropped silently. Single-line pastes fall through to the
+  // browser default so users can still paste one value normally.
+  const handleSpillPaste = (
+    i: number,
+    field: 'qty' | 'lineTotal' | 'expiry',
+    e: React.ClipboardEvent,
+  ) => {
+    const text = e.clipboardData.getData('text')
+    if (!text || !/[\r\n]/.test(text)) return
+    const values = text.split(/\r?\n/).map((v) => v.trim()).filter((v) => v.length > 0)
+    if (values.length === 0) return
+    e.preventDefault()
+    setRows((rs) =>
+      rs.map((r, idx) => {
+        const offset = idx - i
+        if (offset < 0 || offset >= values.length) return r
+        const raw = values[offset]
+        if (field === 'expiry') {
+          const iso = parseExpiryToIso(raw)
+          return iso ? { ...r, expiry: iso } : r
+        }
+        return { ...r, [field]: raw }
+      }),
+    )
+  }
 
   // ── per-row product override search ──────────────────────────────────────
   const openSearch = (i: number) => {
@@ -305,16 +354,16 @@ export default function PurchaseIntake() {
           </div>
 
           <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card">
-            <Table className="table-fixed">
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
-                  <TableHead className="w-[24%]">ข้อความจากผู้ขาย</TableHead>
-                  <TableHead className="w-[30%]">สินค้า</TableHead>
-                  <TableHead className="w-[12%] text-right">จำนวน</TableHead>
-                  <TableHead className="w-[11%] text-center">ล็อต</TableHead>
-                  <TableHead className="w-[13%]">วันหมดอายุ</TableHead>
-                  <TableHead className="w-[12%] text-right">ราคารวม</TableHead>
+                  <TableHead className="min-w-[200px]">ข้อความจากผู้ขาย</TableHead>
+                  <TableHead className="min-w-[260px]">สินค้า</TableHead>
+                  <TableHead className="w-[110px] text-right">จำนวน</TableHead>
+                  <TableHead className="w-[80px] text-center">ล็อต</TableHead>
+                  <TableHead className="w-[150px]">วันหมดอายุ</TableHead>
+                  <TableHead className="w-[130px] text-right">ราคารวม</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -360,7 +409,7 @@ export default function PurchaseIntake() {
                                       className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-primary-soft"
                                     >
                                       <span className="font-medium">{p.trade_name}</span>
-                                      <span className="text-muted-foreground">
+                                      <span className="text-xs text-muted-foreground">
                                         {p.code ?? '—'} · {resolveBarcode(p) ?? 'ไม่มีบาร์โค้ด'}
                                       </span>
                                     </button>
@@ -396,6 +445,7 @@ export default function PurchaseIntake() {
                           <Input
                             value={r.qty}
                             onChange={(e) => patchRow(i, { qty: e.target.value })}
+                            onPaste={(e) => handleSpillPaste(i, 'qty', e)}
                             inputMode="decimal"
                             className="h-9 rounded-lg text-sm text-right"
                           />
@@ -407,12 +457,14 @@ export default function PurchaseIntake() {
                           <DateInput
                             value={r.expiry}
                             onChange={(iso) => patchRow(i, { expiry: iso })}
+                            onPaste={(e) => handleSpillPaste(i, 'expiry', e)}
                           />
                         </TableCell>
                         <TableCell>
                           <Input
                             value={r.lineTotal}
                             onChange={(e) => patchRow(i, { lineTotal: e.target.value })}
+                            onPaste={(e) => handleSpillPaste(i, 'lineTotal', e)}
                             inputMode="decimal"
                             className="h-9 rounded-lg text-sm text-right"
                           />
