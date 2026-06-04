@@ -157,7 +157,8 @@
       "Bash(echo \"exit:$?\")",
       "WebFetch(domain:developers.flowaccount.com)",
       "WebFetch(domain:github.com)",
-      "Skill(impeccable)"
+      "Skill(impeccable)",
+      "Skill(update-config)"
     ],
     "additionalDirectories": [
       "/tmp"
