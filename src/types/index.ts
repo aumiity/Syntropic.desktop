@@ -284,8 +284,6 @@ export interface Expense {
   category_id: number | null
   category_name?: string
   amount: number
-  payment_method?: string
-  vendor?: string
   reference_no?: string
   note?: string
   created_at?: string

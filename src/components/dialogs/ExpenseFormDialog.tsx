@@ -9,13 +9,6 @@ import { FormField } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
 import type { Expense, ExpenseCategory } from '@/types'
 
-// Optional payment-method choices — Thai labels, stored as cash/transfer/card.
-const PAYMENT_METHODS: { value: string; label: string }[] = [
-  { value: 'cash', label: 'เงินสด' },
-  { value: 'transfer', label: 'เงินโอน' },
-  { value: 'card', label: 'บัตร' },
-]
-
 // Enter on a working input fires the primary OK action (modal contract).
 // Textarea is exempted so multi-line input keeps newline behaviour.
 const submitOnEnter = (fn: () => void) => (e: React.KeyboardEvent) => {
@@ -31,8 +24,6 @@ const blankForm = () => ({
   expense_date: today(),
   category_id: '' as string,
   amount: '',
-  payment_method: '' as string,
-  vendor: '',
   reference_no: '',
   note: '',
 })
@@ -68,8 +59,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Expe
         expense_date: expense.expense_date ?? today(),
         category_id: expense.category_id != null ? String(expense.category_id) : '',
         amount: expense.amount != null ? String(expense.amount) : '',
-        payment_method: expense.payment_method ?? '',
-        vendor: expense.vendor ?? '',
         reference_no: expense.reference_no ?? '',
         note: expense.note ?? '',
       })
@@ -95,8 +84,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Expe
         expense_date: form.expense_date,
         category_id: Number(form.category_id),
         amount,
-        payment_method: form.payment_method || null,
-        vendor: form.vendor?.trim() || null,
         reference_no: form.reference_no?.trim() || null,
         note: form.note?.trim() || null,
       })
@@ -143,21 +130,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Expe
                 placeholder="0.00"
                 className="text-right"
               />
-            </FormField>
-            <FormField label="ช่องทางชำระ">
-              <Select value={form.payment_method} onValueChange={v => setF('payment_method', v)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="ไม่ระบุ" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map(p => (
-                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-            <FormField label="ผู้รับเงิน / ร้านค้า">
-              <Input value={form.vendor ?? ''} onChange={e => setF('vendor', e.target.value)} placeholder="เช่น การไฟฟ้าฯ" />
             </FormField>
             <FormField label="เลขที่อ้างอิง">
               <Input value={form.reference_no ?? ''} onChange={e => setF('reference_no', e.target.value)} placeholder="เลขที่ใบเสร็จ/บิล" />

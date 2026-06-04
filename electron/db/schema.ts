@@ -578,8 +578,6 @@ export function initializeSchema(db: Database.Database) {
       expense_date TEXT NOT NULL,
       category_id INTEGER REFERENCES expense_categories(id),
       amount REAL NOT NULL,
-      payment_method TEXT,
-      vendor TEXT,
       reference_no TEXT,
       note TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),

@@ -15,14 +15,20 @@ import {
 import { TopListCard, type TopListCardItem } from '@/components/ui/top-list-card'
 import { GranularityTabs, type Granularity } from '@/components/ui/charts/granularity-tabs'
 import { TrendChart, type TrendDatum } from '@/components/ui/charts/trend-chart'
-import { formatCurrency, cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { TintIcon } from '@/components/ui/tint-icon'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { ExpenseFormDialog } from '@/components/dialogs/ExpenseFormDialog'
+import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { delta } from '@/lib/delta'
+import type { Expense } from '@/types'
 import {
   ShoppingBag, TrendingUp, Wallet,
   LineChart as LineChartIcon, Users, UserCircle, Activity, Trophy,
   Truck, AlertTriangle, Boxes,
   BarChart3,
-  ReceiptText,
+  ReceiptText, Layers, Plus, Edit, Trash2,
 } from 'lucide-react'
 import type { ReportsOutletContext } from './index'
 
@@ -100,6 +106,22 @@ const EMPTY_STATS: SalesStats = {
 }
 const EMPTY_TRAFFIC: TrafficResponse = { mode: 'aggregated', points: [] }
 
+interface CategoryBreakdown {
+  category_id: number | null
+  category_name: string
+  total: number
+  count: number
+}
+interface ExpenseSummary {
+  expense_total: number
+  expense_count: number
+  by_category: CategoryBreakdown[]
+  top_category: string | null
+}
+const EMPTY_EXPENSE_SUMMARY: ExpenseSummary = {
+  expense_total: 0, expense_count: 0, by_category: [], top_category: null,
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 function inclusiveDayCount(from: string, to: string): number {
   const ms = new Date(to).getTime() - new Date(from).getTime()
@@ -166,6 +188,14 @@ export default function ReportsDashboardPage() {
   const [inactive, setInactive] = useState<InactiveRow[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Expenses (folded in from the old ค่าใช้จ่าย tab — shares this page's date range)
+  const [expenseRows, setExpenseRows] = useState<Expense[]>([])
+  const [expenseSummary, setExpenseSummary] = useState<ExpenseSummary>(EMPTY_EXPENSE_SUMMARY)
+  const [expenseFormOpen, setExpenseFormOpen] = useState(false)
+  const [expenseEditTarget, setExpenseEditTarget] = useState<Expense | null>(null)
+  const [expenseDeleteTarget, setExpenseDeleteTarget] = useState<Expense | null>(null)
+  const [expenseDeleting, setExpenseDeleting] = useState(false)
+
   // Auto-pick granularity when date range changes. The user can still
   // override via the tabs; the next date change re-applies the auto pick.
   useEffect(() => {
@@ -183,6 +213,7 @@ export default function ReportsDashboardPage() {
         rev, pro, low,
         sup, csh, ss,
         inact,
+        expList, expSum,
       ] = await Promise.all([
         r.financeSummary({ ...args, with_compare: true }),
         r.salesPurchaseTrend({ ...args, granularity }),
@@ -194,6 +225,8 @@ export default function ReportsDashboardPage() {
         r.cashierLeaderboard({ ...args, limit: 10 }),
         r.salesStats(args),
         r.inactiveProducts({ ...args, limit: 30 }),
+        window.api.expenses.list({ date_from: dateFrom, date_to: dateTo, pageSize: 0 }),
+        window.api.expenses.summary({ date_from: dateFrom, date_to: dateTo }),
       ])
       setFin(f ?? EMPTY_FIN)
       setTrend(t ?? [])
@@ -202,6 +235,8 @@ export default function ReportsDashboardPage() {
       setSuppliers(sup ?? []); setCashiers(csh ?? [])
       setStats(ss ?? EMPTY_STATS)
       setInactive(inact ?? [])
+      setExpenseRows(((expList as any)?.rows ?? []) as Expense[])
+      setExpenseSummary((expSum as ExpenseSummary) ?? EMPTY_EXPENSE_SUMMARY)
     } catch (e: any) {
       toast(e?.message ?? 'โหลดข้อมูลไม่สำเร็จ', 'error')
     } finally {
@@ -325,6 +360,25 @@ export default function ReportsDashboardPage() {
     sub: `${c.bill_count.toLocaleString()} บิล · กำไร ${formatCurrency(c.profit)}`,
     value: formatCurrency(c.total_amount),
   })), [cashiers])
+
+  // ── Expense CRUD ───────────────────────────────────────────────────────
+  const openExpenseAdd = () => { setExpenseEditTarget(null); setExpenseFormOpen(true) }
+  const openExpenseEdit = (e: Expense) => { setExpenseEditTarget(e); setExpenseFormOpen(true) }
+
+  const handleExpenseDelete = async () => {
+    if (!expenseDeleteTarget) return
+    setExpenseDeleting(true)
+    try {
+      await window.api.expenses.delete(expenseDeleteTarget.id)
+      toast('ลบรายการสำเร็จ', 'success')
+      setExpenseDeleteTarget(null)
+      await load()
+    } catch (e: any) {
+      toast(e?.message ?? 'ลบไม่สำเร็จ', 'error')
+    } finally {
+      setExpenseDeleting(false)
+    }
+  }
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
@@ -512,6 +566,121 @@ export default function ReportsDashboardPage() {
           {saleTypeBox('ยกเลิก', stats.counts.voided, 'destructive')}
         </div>
       </SectionCard>
+
+      {/* Section 6 — Expenses (folded in from the old ค่าใช้จ่าย tab) */}
+      <div className="flex flex-col bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+          <TintIcon icon={ReceiptText} tint="neutral" size="sm" />
+          <h3 className="text-lg font-semibold text-foreground">รายการค่าใช้จ่าย</h3>
+          <Badge variant="neutral-outline">{expenseRows.length.toLocaleString()}</Badge>
+          <Button size="lg" className="ml-auto h-9 px-3" onClick={openExpenseAdd}>
+            <Plus className="size-4" /> เพิ่มค่าใช้จ่าย
+          </Button>
+        </div>
+
+        <div className="[&>[data-slot=table-container]]:max-h-[480px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-24">วันที่</TableHead>
+                <TableHead className="min-w-32">เลขที่</TableHead>
+                <TableHead className="min-w-32">หมวด</TableHead>
+                <TableHead className="min-w-28 text-right">จำนวนเงิน</TableHead>
+                <TableHead className="min-w-20 text-center">จัดการ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                </TableRow>
+              ) : expenseRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
+                    <ReceiptText className="size-10 mx-auto mb-2 opacity-30" />
+                    ไม่มีรายการค่าใช้จ่ายในช่วงเวลานี้
+                  </TableCell>
+                </TableRow>
+              ) : expenseRows.map(r => (
+                <TableRow key={r.id} className="[&_td]:py-2.5 [&_td]:font-medium">
+                  <TableCell className="whitespace-nowrap text-sm">{formatDate(r.expense_date)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{r.expense_no}</TableCell>
+                  <TableCell className="text-sm text-foreground">{r.category_name ?? '—'}</TableCell>
+                  <TableCell className="text-right text-sm text-foreground">{formatCurrency(r.amount)}</TableCell>
+                  <TableCell>
+                    <div className="flex justify-center gap-1.5">
+                      <Button size="icon-lg" variant="outline" onClick={() => openExpenseEdit(r)} title="แก้ไข">
+                        <Edit />
+                      </Button>
+                      <Button size="icon-lg" variant="destructive2" onClick={() => setExpenseDeleteTarget(r)} title="ลบ">
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between text-sm shrink-0">
+          <span className="text-muted-foreground">
+            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{expenseRows.length.toLocaleString()}</span> รายการ</>}
+          </span>
+          <span className="text-muted-foreground">
+            รวม <span className="font-semibold text-foreground">{formatCurrency(expenseSummary.expense_total)}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Per-category expense breakdown */}
+      <SectionCard icon={Layers} title="สรุปค่าใช้จ่ายตามหมวด" tint="warm">
+        {expenseSummary.by_category.length === 0 ? (
+          <div className="py-6 text-center text-sm text-muted-foreground">ไม่มีข้อมูล</div>
+        ) : (
+          <div className="space-y-1.5">
+            {expenseSummary.by_category.map(c => (
+              <div key={c.category_id ?? 'none'} className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {c.category_name}
+                  <span className="ml-1.5 text-foreground-subtle">· {c.count.toLocaleString()} รายการ</span>
+                </span>
+                <span className="text-sm font-semibold text-foreground">{formatCurrency(c.total)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <ExpenseFormDialog
+        open={expenseFormOpen}
+        onOpenChange={setExpenseFormOpen}
+        expense={expenseEditTarget}
+        onSaved={load}
+      />
+
+      <Dialog open={!!expenseDeleteTarget} onOpenChange={(o) => { if (!expenseDeleting && !o) setExpenseDeleteTarget(null) }}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>ลบรายการค่าใช้จ่าย</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <p className="text-sm text-muted-foreground">
+              ต้องการลบรายการ{' '}
+              <span className="font-semibold text-foreground">{expenseDeleteTarget?.expense_no}</span>
+              {' '}จำนวน{' '}
+              <span className="font-semibold text-foreground">{expenseDeleteTarget ? formatCurrency(expenseDeleteTarget.amount) : ''}</span>
+              {' '}ใช่หรือไม่? การลบไม่สามารถย้อนกลับได้
+            </p>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="destructive2" size="xl" onClick={() => setExpenseDeleteTarget(null)} disabled={expenseDeleting}>ยกเลิก</Button>
+            <Button variant="destructive" size="xl" onClick={handleExpenseDelete} disabled={expenseDeleting}>
+              {expenseDeleting ? 'กำลังลบ...' : 'ลบรายการ'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   )

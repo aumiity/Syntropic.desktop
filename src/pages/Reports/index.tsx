@@ -5,22 +5,21 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { ShieldCheck, LayoutDashboard, ReceiptText } from 'lucide-react'
+import { ShieldCheck, LayoutDashboard } from 'lucide-react'
 
 // Reports = แดชบอร์ด (operational + financial overview, the /reports index) +
-// ค่าใช้จ่าย + รายงาน อย. The old ภาพรวม / ขาย / ซื้อ tabs were folded into the
-// แดชบอร์ด since they duplicated its KPIs (ค่าใช้จ่าย + กำไรสุทธิ moved onto it);
-// per-bill purchase/payable detail lives in ประวัติการซื้อ (/manage/purchases).
+// รายงาน อย. The old ภาพรวม / ขาย / ซื้อ tabs were folded into the แดชบอร์ด since
+// they duplicated its KPIs; ค่าใช้จ่าย (table + add/edit/delete + per-category
+// breakdown) was likewise folded onto the แดชบอร์ด as its bottom section.
+// Per-bill purchase/payable detail lives in ประวัติการซื้อ (/manage/purchases).
 const TABS = [
   { value: 'dashboard', to: '/reports',           label: 'แดชบอร์ด',   icon: LayoutDashboard },
-  { value: 'expenses',  to: '/reports/expenses',  label: 'ค่าใช้จ่าย', icon: ReceiptText },
   { value: 'fda',       to: '/reports/fda',       label: 'รายงาน อย.', icon: ShieldCheck },
 ] as const
 
 type TabValue = typeof TABS[number]['value']
 
 function resolveTab(pathname: string): TabValue {
-  if (pathname.startsWith('/reports/expenses')) return 'expenses'
   if (pathname.startsWith('/reports/fda')) return 'fda'
   return 'dashboard'
 }

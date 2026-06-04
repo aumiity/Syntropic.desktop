@@ -16,7 +16,7 @@ import dayjs from 'dayjs'
 
 // Allow-listed editable columns (shared by create + update). expense_no /
 // created_at are never in here — they're set once on create.
-const EXPENSE_COLS = ['expense_date', 'category_id', 'amount', 'payment_method', 'vendor', 'reference_no', 'note'] as const
+const EXPENSE_COLS = ['expense_date', 'category_id', 'amount', 'reference_no', 'note'] as const
 
 function validateExpense(payload: any) {
   const amount = Number(payload.amount)
@@ -32,8 +32,6 @@ function pickExpenseCols(payload: any) {
     expense_date: payload.expense_date,
     category_id: payload.category_id ?? null,
     amount: Number(payload.amount),
-    payment_method: payload.payment_method ?? null,
-    vendor: payload.vendor ?? null,
     reference_no: payload.reference_no ?? null,
     note: payload.note ?? null,
   }
@@ -144,8 +142,8 @@ export function registerExpenseHandlers() {
         const expenseNo = `EX-${today}-${String(next).padStart(4, '0')}`
         try {
           const res = db.prepare(`
-            INSERT INTO expenses (expense_no, expense_date, category_id, amount, payment_method, vendor, reference_no, note, created_at, updated_at)
-            VALUES (@expense_no, @expense_date, @category_id, @amount, @payment_method, @vendor, @reference_no, @note, datetime('now','localtime'), datetime('now','localtime'))
+            INSERT INTO expenses (expense_no, expense_date, category_id, amount, reference_no, note, created_at, updated_at)
+            VALUES (@expense_no, @expense_date, @category_id, @amount, @reference_no, @note, datetime('now','localtime'), datetime('now','localtime'))
           `).run({ expense_no: expenseNo, ...cols })
           return res.lastInsertRowid
         } catch (e: any) {
