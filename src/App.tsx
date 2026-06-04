@@ -26,9 +26,6 @@ const ManageExpiry = lazy(() => import('./pages/Manage/Expiry'))
 const ManageNegativeStock = lazy(() => import('./pages/Manage/NegativeStock'))
 const ReportsLayout = lazy(() => import('./pages/Reports'))
 const ReportsDashboard = lazy(() => import('./pages/Reports/Dashboard'))
-const ReportsFinance = lazy(() => import('./pages/Reports/Finance'))
-const ReportsSales = lazy(() => import('./pages/Reports/Sales'))
-const ReportsPurchases = lazy(() => import('./pages/Reports/Purchases'))
 const ReportsExpenses = lazy(() => import('./pages/Reports/Expenses'))
 const ReportsFda = lazy(() => import('./pages/Reports/FdaReports'))
 const ReportsKhorYor9 = lazy(() => import('./pages/Reports/KhorYor9'))
@@ -104,10 +101,7 @@ export default function App() {
               </Route>
               {/* Phase 4: Reports rebuilt as finance dashboard (Phase 5 adds อย.). */}
               <Route path="reports" element={<ReportsLayout />}>
-                <Route index element={<ReportsFinance />} />
-                <Route path="dashboard" element={<ReportsDashboard />} />
-                <Route path="sales" element={<ReportsSales />} />
-                <Route path="purchases" element={<ReportsPurchases />} />
+                <Route index element={<ReportsDashboard />} />
                 <Route path="expenses" element={<ReportsExpenses />} />
                 <Route path="fda">
                   <Route index element={<ReportsFda />} />

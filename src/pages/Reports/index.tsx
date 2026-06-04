@@ -5,18 +5,14 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { LineChart, ShoppingBag, Wallet, ShieldCheck, LayoutDashboard, ReceiptText } from 'lucide-react'
+import { ShieldCheck, LayoutDashboard, ReceiptText } from 'lucide-react'
 
-// Phase 4: finance dashboard split into ภาพรวม / ขาย / ซื้อ (each with its own
-// DateRangePicker). Phase 5: รายงาน อย. — placeholder. See PROGRESS.md.
-// Dashboard tab added later as an operational view (top sellers, stock risk,
-// safety-stock helper) — kept first so it's the primary entry; Finance stays
-// the /reports index route so the existing URL keeps working.
+// Reports = แดชบอร์ด (operational + financial overview, the /reports index) +
+// ค่าใช้จ่าย + รายงาน อย. The old ภาพรวม / ขาย / ซื้อ tabs were folded into the
+// แดชบอร์ด since they duplicated its KPIs (ค่าใช้จ่าย + กำไรสุทธิ moved onto it);
+// per-bill purchase/payable detail lives in ประวัติการซื้อ (/manage/purchases).
 const TABS = [
-  { value: 'dashboard', to: '/reports/dashboard', label: 'แดชบอร์ด',   icon: LayoutDashboard },
-  { value: 'finance',   to: '/reports',           label: 'ภาพรวม',    icon: LineChart },
-  { value: 'sales',     to: '/reports/sales',     label: 'ขาย',        icon: ShoppingBag },
-  { value: 'purchases', to: '/reports/purchases', label: 'ซื้อ',       icon: Wallet },
+  { value: 'dashboard', to: '/reports',           label: 'แดชบอร์ด',   icon: LayoutDashboard },
   { value: 'expenses',  to: '/reports/expenses',  label: 'ค่าใช้จ่าย', icon: ReceiptText },
   { value: 'fda',       to: '/reports/fda',       label: 'รายงาน อย.', icon: ShieldCheck },
 ] as const
@@ -24,12 +20,9 @@ const TABS = [
 type TabValue = typeof TABS[number]['value']
 
 function resolveTab(pathname: string): TabValue {
-  if (pathname.startsWith('/reports/dashboard')) return 'dashboard'
-  if (pathname.startsWith('/reports/sales')) return 'sales'
-  if (pathname.startsWith('/reports/purchases')) return 'purchases'
   if (pathname.startsWith('/reports/expenses')) return 'expenses'
   if (pathname.startsWith('/reports/fda')) return 'fda'
-  return 'finance'
+  return 'dashboard'
 }
 
 export interface ReportsSummaryCard {
@@ -55,6 +48,8 @@ const COLS_BY_COUNT: Record<number, string> = {
   4: 'xl:grid-cols-4',
   5: 'xl:grid-cols-5',
   6: 'xl:grid-cols-6',
+  // 8 KPI cards (Dashboard) wrap to two rows of four — cleaner than one thin row.
+  8: 'xl:grid-cols-4',
 }
 
 export default function ReportsLayout() {
