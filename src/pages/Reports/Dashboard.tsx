@@ -13,6 +13,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, SortableTableHead,
 } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TopListCard, type TopListCardItem } from '@/components/ui/top-list-card'
 import { type Granularity } from '@/components/ui/charts/granularity-tabs'
 import { TrendChart, type TrendDatum } from '@/components/ui/charts/trend-chart'
@@ -206,6 +207,8 @@ export default function ReportsDashboardPage() {
   const [expenseDeleting, setExpenseDeleting] = useState(false)
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([])
   const [expenseCatFilter, setExpenseCatFilter] = useState<string>('all')
+  // Dead-stock window — own period, decoupled from the page (last N months up to today).
+  const [inactiveMonths, setInactiveMonths] = useState<number>(6)
 
   // Client-side sort for the two in-page tables (data already in memory).
   const [inactiveSort, setInactiveSort] = useState<{ by: InactiveSortField; dir: SortDir }>({ by: 'cost_value', dir: 'desc' })
@@ -227,6 +230,9 @@ export default function ReportsDashboardPage() {
     try {
       const r = window.api.reports as any
       const args = { date_from: dateFrom, date_to: dateTo }
+      // Dead-stock uses its own trailing window (last N months → today), NOT the page period.
+      const inactiveFrom = dayjs().subtract(inactiveMonths, 'month').format('YYYY-MM-DD')
+      const inactiveTo = dayjs().format('YYYY-MM-DD')
       const [
         f, t, tr,
         rev, pro, low,
@@ -243,7 +249,7 @@ export default function ReportsDashboardPage() {
         r.topSuppliers({ ...args, limit: 10 }),
         r.cashierLeaderboard({ ...args, limit: 10 }),
         r.salesStats(args),
-        r.inactiveProducts({ ...args, limit: 30 }),
+        r.inactiveProducts({ date_from: inactiveFrom, date_to: inactiveTo, limit: 30 }),
         window.api.expenses.list({ date_from: dateFrom, date_to: dateTo, pageSize: 0 }),
       ])
       setFin(f ?? EMPTY_FIN)
@@ -259,7 +265,7 @@ export default function ReportsDashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [dateFrom, dateTo, trendWin, toast])
+  }, [dateFrom, dateTo, trendWin, inactiveMonths, toast])
 
   const handlePeriodChange = useCallback((m: PeriodMode, f: string, t: string) => {
     setMode(m); setDateFrom(f); setDateTo(t)
@@ -421,8 +427,16 @@ export default function ReportsDashboardPage() {
   // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-3">
+      <Tabs defaultValue="overview" className="flex flex-col gap-3">
+        <TabsList variant="line">
+          <TabsTrigger value="overview">ภาพรวม</TabsTrigger>
+          <TabsTrigger value="sales">การขาย</TabsTrigger>
+          <TabsTrigger value="stock">สินค้าคงคลัง</TabsTrigger>
+          <TabsTrigger value="expense">ค่าใช้จ่าย</TabsTrigger>
+        </TabsList>
 
-      {/* Section 1 — Trend + Hourly traffic */}
+        {/* ── Tab: ภาพรวม — Trend + Hourly traffic ── */}
+        <TabsContent value="overview" className="flex flex-col gap-3">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <SectionCard
           icon={LineChartIcon}
@@ -509,6 +523,10 @@ export default function ReportsDashboardPage() {
         </SectionCard>
       </div>
 
+        </TabsContent>
+
+        {/* ── Tab: การขาย — Top products + people ── */}
+        <TabsContent value="sales" className="flex flex-col gap-3">
       {/* Section 2 — Top products */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <SectionCard icon={Trophy} title="ขายดีที่สุด" tint="primary">
@@ -546,11 +564,27 @@ export default function ReportsDashboardPage() {
         </SectionCard>
       </div>
 
-      {/* Section 4 — Inactive products in window */}
+        </TabsContent>
+
+        {/* ── Tab: สินค้าคงคลัง — dead stock ── */}
+        <TabsContent value="stock" className="flex flex-col gap-3">
+      {/* Section 4 — Inactive products (own trailing window) */}
       <div className="flex flex-col bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <TintIcon icon={Box} tint="neutral" size="sm" bordered />
-          <h3 className="text-lg font-semibold text-foreground">สินค้าค้างสต็อก (ไม่ขายในช่วงนี้)</h3>
+          <h3 className="text-lg font-semibold text-foreground">สินค้าค้างสต็อก</h3>
+          <span className="text-sm text-muted-foreground ml-auto">ไม่ขายเกิน</span>
+          <Select value={String(inactiveMonths)} onValueChange={(v) => setInactiveMonths(Number(v))}>
+            <SelectTrigger variant="elevated" className="h-9 w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="w-auto min-w-32">
+              <SelectItem value="1" className="whitespace-nowrap">1 เดือน</SelectItem>
+              <SelectItem value="3" className="whitespace-nowrap">3 เดือน</SelectItem>
+              <SelectItem value="6" className="whitespace-nowrap">6 เดือน</SelectItem>
+              <SelectItem value="12" className="whitespace-nowrap">12 เดือน</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="[&>[data-slot=table-container]]:h-[320px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
@@ -574,7 +608,7 @@ export default function ReportsDashboardPage() {
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
                     <Box className="size-10 mx-auto mb-2 opacity-30" />
-                    ทุกสินค้ามีการขายในช่วงนี้
+                    ทุกสินค้ามีการขายภายใน {inactiveMonths} เดือน
                   </TableCell>
                 </TableRow>
               ) : sortedInactive.map((r) => (
@@ -614,7 +648,11 @@ export default function ReportsDashboardPage() {
         </div>
       </div>
 
-      {/* Section 5 — Expenses (folded in from the old ค่าใช้จ่าย tab) */}
+        </TabsContent>
+
+        {/* ── Tab: ค่าใช้จ่าย — expense register ── */}
+        <TabsContent value="expense" className="flex flex-col gap-3">
+      {/* Section 5 — Expenses */}
       <div className="flex flex-col bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-14 shrink-0 flex items-center gap-3">
           <TintIcon icon={ReceiptText} tint="neutral" size="sm" bordered />
@@ -700,6 +738,8 @@ export default function ReportsDashboardPage() {
           </span>
         </div>
       </div>
+        </TabsContent>
+      </Tabs>
 
       <ExpenseFormDialog
         open={expenseFormOpen}
