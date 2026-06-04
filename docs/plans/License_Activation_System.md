@@ -46,23 +46,30 @@ LicenseGate (ชั้น A) ──valid──▶ SetupGate (ชั้น B) ─
   "shop": "ร้านยาตัวอย่าง",        // ชื่อร้าน (โชว์ในแอป + กันแชร์)
   "license_id": "SYN-2026-000123",// รหัสใบอนุญาต (พี่ออก)
   "edition": "standard",          // เผื่อมี edition ต่างราคา
-  "machine": "<fingerprint hash>",// ผูกเครื่อง (ดูข้อ 3)
+  "machine": {                    // ผูกเครื่อง — เก็บ 3 สัญญาณ "แยกกัน" (audit G4)
+    "guid": "<sha256 machine GUID>",
+    "disk": "<sha256 disk serial>",
+    "host": "<sha256 hostname>"
+  },
   "issued_at": "2026-06-04",
   "expires_at": null,             // null = ขายขาด · มีวันที่ = subscription
   "grace_days": 14                // ผ่อนผันหลังหมดอายุ/ติดต่อ server ไม่ได้
 }
 ```
 - เก็บเป็น `base64(payload).base64(signature)` ในไฟล์/ตาราง (ข้อ 4)
-- ตรวจ 3 ชั้นทุกครั้งที่เปิดแอป: **(a) ลายเซ็นถูก → (b) machine ตรงเครื่องนี้ → (c) ยังไม่หมดอายุ (รวม grace)**
+- ตรวจ 3 ชั้นทุกครั้งที่เปิดแอป: **(a) ลายเซ็นถูก → (b) machine ตรง ≥2 ใน 3 สัญญาณ → (c) ยังไม่หมดอายุ (รวม grace)**
+
+> **audit G4:** เดิมเก็บ fingerprint เป็น hash ก้อนเดียวแต่อ้าง "2-of-3 tolerance" — ขัดกันเอง (hash ก้อนเดียวจับคู่บางส่วนไม่ได้). แก้เป็น**เก็บ 3 hash แยก** แล้วจับคู่ ≥2 → ลูกค้าเปลี่ยน SSD/อัปฮาร์ดแวร์ 1 อย่าง license ยังผ่าน
 
 ---
 
 ## 3. Machine fingerprint (ผูกเครื่อง)
 
-- รวม stable hardware ids: **machine GUID + disk serial + hostname** → `sha256` → เก็บใน token เป็น `machine`
-- **อย่าผูกแน่นเกินไป** — ใช้ "ตรงอย่างน้อย 2 ใน 3 สัญญาณ" ก็พอ ป้องกันลูกค้าอัป RAM/เปลี่ยน SSD แล้ว license พังกะทันหัน (เคสจริงที่ทำให้ลูกค้าโกรธ)
+- เก็บ **3 สัญญาณแยกกันใน payload** (ข้อ 2): `sha256(machine GUID)`, `sha256(disk serial)`, `sha256(hostname)`
+- ตอนตรวจ: นับว่าตรงกี่สัญญาณ → **ตรง ≥2 ใน 3 = ผ่าน** ป้องกันลูกค้าอัป RAM/เปลี่ยน SSD แล้ว license พังกะทันหัน (เคสจริงที่ทำให้ลูกค้าโกรธ)
 - macOS / Windows ดึง id คนละทาง → helper แยก platform ใน main process
 - มีอยู่แล้วบางส่วน: `machines.json` auto-detect ด้วย `os.hostname()` (ดู memory `project_studio_architecture`) — ใช้ hostname เป็นหนึ่งในสัญญาณได้
+- **VM clone / re-image:** fingerprint เดียวกันบนสองเครื่อง = แชร์ได้ — เฟสแรก (ออก key เอง) จับด้วยมือ/ความสัมพันธ์, ยังไม่ทำ auto-detect. การย้ายเครื่องถูกกฎหมาย = ผู้ขายออก token ใหม่ให้ (กระบวนการ support)
 
 ---
 
@@ -85,6 +92,10 @@ LicenseGate (ชั้น A) ──valid──▶ SetupGate (ชั้น B) ─
 
 **หลักเหล็ก:** expired/invalid **ห้ามลบหรือทำลายข้อมูลร้าน** — แค่ gate การเข้าใช้ ลูกค้าจ่ายแล้วกลับมาใช้ต่อได้เลย (ไม่งั้นกลายเป็น ransomware รู้สึก)
 
+### ขีดจำกัดที่ต้องซื่อสัตย์ (audit B3/R3 — อย่า oversell)
+- **กันเวลาถอยหลังไม่ได้สมบูรณ์:** verify ใช้นาฬิกาเครื่อง → ถ้าทำ subscription (`expires_at` มีค่า) ลูกค้าหมุนนาฬิกาย้อนแล้วใช้ฟรีได้. บรรเทา: เก็บ `last_validated_at` แล้ว **ปฏิเสธถ้านาฬิกาปัจจุบันเร็วกว่า `last_validated_at`** (จับ rollback) — แต่ยังเลี่ยงได้. **เฟสแรกขายขาด (`expires_at:null`) ไม่มีอะไรให้ย้อน = เลี่ยงปัญหานี้ทั้งหมด** การบังคับ subscription จริงต้องพึ่ง server re-check (Phase 3)
+- **แกะ public key ในแอปได้:** ผู้โจมตี patch public key ใน `.asar` (ไม่ obfuscate) เป็น key ตัวเองแล้วออก license เองได้ — นี่คือจุดแตกจริงของ offline DRM ทุกตัว. **ยอมรับ** ว่าโมเดลนี้กันก๊อป casual + อาศัยความสัมพันธ์/บริการ ไม่ใช่ DRM ที่แกะไม่ได้ (เหมาะตลาดร้านยาที่ขายแบบ trust-based)
+
 ---
 
 ## 6. Flow การ activate
@@ -95,6 +106,7 @@ LicenseGate (ชั้น A) ──valid──▶ SetupGate (ชั้น B) ─
 3. หน้า Activation ในแอป: ลูกค้าวางสตริง/เลือกไฟล์ → แอปตรวจลายเซ็น → ผ่าน → เข้าแอป
 
 > เครื่องมือฝั่งพี่: สคริปต์ Node สั้น ๆ แยกนอก repo แอป (มี private key) — **ห้าม commit private key เข้า repo เด็ดขาด**
+> สคริปต์/คีย์เดียวกันนี้ยังใช้เซ็น **vendor password-reset token** (ผูก fingerprint + หมดอายุไว) ให้ระบบกู้รหัสชั้น 2 ของ Login — ดู `User_Login_System.md` §4.5
 
 ### 6.2 เฟสสอง — activation online อัตโนมัติ (เมื่อลูกค้าเยอะ)
 - มี endpoint เล็ก ๆ (serverless ก็พอ): แอปส่ง `license_id + fingerprint` → server เซ็น token ส่งกลับ

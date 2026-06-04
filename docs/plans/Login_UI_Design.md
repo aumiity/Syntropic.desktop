@@ -1,6 +1,6 @@
-# Design Brief — หน้า Login (เลือกผู้ใช้ + PIN)
+# Design Brief — หน้า Login (เลือกผู้ใช้ + Password)
 
-> สถานะ: **SHAPE / รอยืนยัน direction** — เขียน 2026-06-04 (ผ่าน impeccable shape)
+> สถานะ: **SHAPE v2 (เปลี่ยนเป็น password + ซึมซับ audit)** — เขียน 2026-06-04 (ผ่าน impeccable shape)
 > ขอบเขต: ออกแบบ UX/UI หน้าเข้าสู่ระบบ (ชั้น C) — ยังไม่เขียนโค้ด
 > ยึด: `/theme` เป็น source of truth, `src/components/ui/*` เท่านั้น, DESIGN.md/CLAUDE.md invariants, ไทยทั้งหมด
 > เกี่ยวข้อง: `User_Login_System.md` (logic), `License_Activation_System.md` (gate ชั้นนอก)
@@ -8,107 +8,96 @@
 ---
 
 ## 1. Feature Summary
-หน้าจอเต็ม (frameless + TitleBar) ที่คั่นก่อนเข้าแอป หลังผ่าน License + Setup แล้ว พนักงานในร้าน 1–5 คน **เลือกชื่อตัวเองจากรายการ แล้วกด PIN** เพื่อยืนยันตัวตน — เพื่อให้ทุกบิล/ใบรับเข้าผูกกับคนที่ทำจริง และ gate สิทธิ์ตาม role ใช้ในสองจังหวะ: เปิดแอป และ "ล็อกหน้าจอ/สลับผู้ใช้" ระหว่างวัน
+หน้าจอเต็ม (frameless + TitleBar) คั่นก่อนเข้าแอป หลังผ่าน License + Setup พนักงาน 1–5 คน **เลือกชื่อตัวเองจากรายการ แล้วใส่ password** เพื่อยืนยันตัวตน — ให้ทุกบิล/ใบรับเข้าผูกกับคนที่ทำจริง และ gate สิทธิ์ตาม role ใช้สองจังหวะ: เปิดแอป + "ล็อกหน้าจอ/สลับผู้ใช้" ระหว่างวัน
 
 ## 2. Primary User Action
-**เลือกตัวเอง → กด PIN 6 หลัก → เข้า** ให้จบใน ~2 วินาที โดยไม่ต้องแตะคีย์บอร์ดถ้าไม่อยากแตะ (รองรับทั้งเมาส์/จอสัมผัสที่เคาน์เตอร์ และพิมพ์เลขจากคีย์บอร์ด)
+**เลือกตัวเอง → พิมพ์ password → Enter → เข้า** เคาน์เตอร์มีคีย์บอร์ด (เครื่องสแกน) อยู่แล้ว การพิมพ์จึงไม่เป็นภาระ; คนเดียวในร้านข้ามหน้าเลือก โฟกัสที่ช่อง password ทันที
 
-> **ตัดสินใจหลัก (assert):** ใช้ **PIN** ไม่ใช่ email+password — เพราะ PRODUCT.md ระบุบริบทเคาน์เตอร์ "fast, zero-misclick, มีคิวรอ" การพิมพ์อีเมลทุกครั้งคือ friction ที่ผิดงาน → **ข้อนี้รอยืนยัน (ดู Open Questions Q1)**
+> **ตัดสินใจแล้ว (2026-06-04):** ใช้ **password** ไม่ใช่ PIN — ตรงกับคอลัมน์ `users.password` ที่มีอยู่, แข็งแรงกว่า, แก้ bootstrap วันแรก (seed plaintext พิมพ์เข้าได้), และ **ไม่ต้องสร้าง PinPad primitive** (ใช้ `Input type=password`). `email` เป็นแค่ identifier ไม่ต้องพิมพ์
 
 ## 3. Design Direction
-- **Color strategy: Restrained** (ตาม product default) — พื้น near-white neutral, teal เป็น accent เฉพาะ "ผู้ใช้ที่เลือก" + ปุ่มยืนยัน, ที่เหลือ neutral ทั้งหมด ไม่มีสีฉูดฉาด
-- **Scene sentence:** "ผู้ช่วยเภสัชยืนอยู่หลังเคาน์เตอร์ใต้ไฟ LED ขาวของร้านยา เปิดเครื่องตอนเช้า/สลับกะ อยากกดเข้าให้ไวที่สุดเพื่อรับลูกค้าคนแรก" → บริบทสว่าง, รีบ, โฟกัส → **light mode เป็นค่าเริ่ม** (เคารพ theme ที่ผู้ใช้ตั้งไว้; ไม่บังคับ dark)
-- **Anchor references:** (1) **iPadOS lock screen** — เลือก user + เลขกลม ๆ, นิ่ง เชื่อถือได้ (2) **เครื่อง POS Square/Loyverse** ตอนสลับพนักงาน — เร็ว เป็นงาน (3) **SetupWizard ของเราเอง** (`src/pages/Setup/SetupWizard.tsx`) — โครง full-screen + TitleBar + SectionCard กลางจอ ใช้ภาษาภาพเดียวกันเป๊ะ
-- ปฏิเสธ: ภาพ illustration เล่น ๆ, blob มน ๆ, gradient, glassmorphism, การ์ดซ้อนการ์ด (ตรง anti-references ของโปรเจกต์)
+- **Color strategy: Restrained** — พื้น near-white neutral, teal เป็น accent เฉพาะ "ผู้ใช้ที่เลือก" + ปุ่มเข้าสู่ระบบ, ที่เหลือ neutral
+- **Scene sentence:** "ผู้ช่วยเภสัชยืนหลังเคาน์เตอร์ใต้ไฟ LED ขาว เปิดเครื่องตอนเช้า/สลับกะ อยากกดเข้าให้ไวเพื่อรับลูกค้าคนแรก" → สว่าง, รีบ, โฟกัส → **light เป็นค่าเริ่ม** (เคารพ theme ที่ตั้งไว้)
+- **Anchor references:** (1) **iPadOS / macOS login** — เลือก user + ช่องรหัส, นิ่ง เชื่อถือได้ (2) **เครื่อง POS ตอนสลับพนักงาน** — เร็ว เป็นงาน (3) **SetupWizard ของเราเอง** (`src/pages/Setup/SetupWizard.tsx`) — โครง full-screen + TitleBar + SectionCard กลางจอ ใช้ภาษาภาพเดียวกันเป๊ะ
+- ปฏิเสธ: illustration เล่น ๆ, blob มน, gradient, glassmorphism, การ์ดซ้อนการ์ด
 
 ## 4. Scope
-- **Fidelity:** production-ready (จะใช้จริง ไม่ใช่ sketch)
-- **Breadth:** 2 surface — (ก) หน้า Login เต็มจอ, (ข) เมนูผู้ใช้/ล็อก/สลับ ใน TitleBar; + (ค) dialog "ขอสิทธิ์ผู้ดูแล" (manager override) แชร์กับ flow อื่น
-- **Interactivity:** shipped component จริง
-- ไม่รวม: หน้าจัดการพนักงาน (มีแล้วใน People → StaffTab), การตั้ง/รีเซ็ต PIN (เฟสหลัง)
+- **Fidelity:** production-ready
+- **Breadth:** (ก) หน้า Login เต็มจอ, (ข) เมนูผู้ใช้/ล็อก/สลับ ใน TitleBar, (ค) dialog "ขอสิทธิ์ผู้ดูแล" (manager override)
+- ไม่รวม: หน้าจัดการพนักงาน (มีแล้ว StaffTab), การตั้ง/เปลี่ยน password (ผูกกับ StaffTab/Phase หลัง), bootstrap password เจ้าของ (อยู่ใน Setup wizard — ดู logic plan Phase 0)
 
 ## 5. Layout Strategy
-หน้า Login = **คอลัมน์เดียว จัดกึ่งกลางจอ** บนพื้น `bg-background` (มี `TitleBar` ลอยบนสุดเหมือน SetupWizard):
+คอลัมน์เดียว จัดกึ่งกลางจอ บน `bg-background` (TitleBar ลอยบนสุดเหมือน SetupWizard):
 
 ```
 ┌──────────────────── TitleBar (frameless, drag) ────────────────────┐
-│                                                                     │
-│                      [ โลโก้/ชื่อร้าน  ·  teal ]                      │
+│                      [ ชื่อร้าน · teal ]                             │
 │                         เข้าสู่ระบบ                                   │
-│                                                                     │
 │   ┌─────────── การ์ดกลาง (rounded-card, shadow-card, max-w-md) ───┐  │
-│   │  สถานะ A: เลือกผู้ใช้        |  สถานะ B: ใส่ PIN              │  │
-│   │  ┌─ avatar grid ─┐          |   ← Avatar + ชื่อ คนที่เลือก    │  │
-│   │  │ [A] อุ้ม  admin│          |   ● ● ● ○ ○ ○  (PIN dots)      │  │
-│   │  │ [B] บี   staff │          |   ┌───┬───┬───┐                │  │
-│   │  │ [+] อื่น ๆ...  │          |   │ 1 │ 2 │ 3 │  numpad        │  │
-│   │  └───────────────┘          |   │ 4 │ 5 │ 6 │                │  │
-│   │                             |   │ 7 │ 8 │ 9 │                │  │
-│   │                             |   │ ← │ 0 │ ⏎ │                │  │
+│   │  สถานะ A: เลือกผู้ใช้        |  สถานะ B: ใส่ password           │  │
+│   │  ┌─ avatar list ─┐          |   [Avatar] อุ้ม  · ผู้ดูแล        │  │
+│   │  │ [A] อุ้ม  ผู้ดูแล│          |   ┌─────────────────────────┐   │  │
+│   │  │ [B] บี   พนักงาน│          |   │ รหัสผ่าน      [Input]  👁 │   │  │
+│   │  │ [+] อื่น ๆ...   │          |   └─────────────────────────┘   │  │
+│   │  └───────────────┘          |   [ ← เปลี่ยนผู้ใช้ ] [ เข้าสู่ระบบ ] │  │
 │   └─────────────────────────────────────────────────────────────┘  │
 │                  ปุ่ม "ตั้งค่า" / สลับ theme (มุมล่าง, ghost)         │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-**ลำดับความสำคัญ:** ผู้ใช้ที่เลือก + numpad ใหญ่สุด/กลางจอ; ชื่อร้านรอง; chrome อื่น (theme/ตั้งค่า) จาง `ghost` มุมจอ
-**Rhythm:** สองสเต็ป A→B สไลด์แทนที่กันใน card เดียว (ไม่เด้ง modal ใหม่) — ลื่น, โฟกัสไม่หลุด
+**ลำดับความสำคัญ:** ผู้ใช้ที่เลือก + ช่อง password กลางจอ; ชื่อร้านรอง; chrome อื่นจาง `ghost` มุมจอ
+**Rhythm:** สองสเต็ป A→B สไลด์แทนที่กันใน card เดียว (ไม่เด้ง modal ใหม่) — โฟกัสไม่หลุด, auto-focus ช่อง password เมื่อเข้าสเต็ป B
 
 ## 6. Key States
 | state | ผู้ใช้เห็น/รู้สึก |
 |-------|------------------|
-| **เลือกผู้ใช้ (default)** | grid avatar ของ user ที่เปิดใช้งาน + ชื่อ + badge role; คนเดียวในร้าน → ข้ามไปหน้า PIN เลย |
-| **ใส่ PIN** | avatar+ชื่อคนที่เลือกอยู่บนสุด, PIN dots เติมทีละจุด, numpad; ปุ่ม "← เปลี่ยนผู้ใช้" กลับ |
-| **กำลังตรวจ** | dots เต็ม → spinner สั้น ๆ บนปุ่มยืนยัน (150–250ms feel) ไม่ block ทั้งจอ |
-| **PIN ผิด** | dots **สั่นแนวนอน (shake)** + ล้างเป็นว่าง + ข้อความ `text-destructive` "PIN ไม่ถูกต้อง"; ไม่เด้ง toast (อยู่ในที่เดียว) |
-| **ล็อก/ลองถี่เกิน** | หลังผิด N ครั้ง (เช่น 5) → หน่วงเวลา + ข้อความ "ลองใหม่ใน Xs" (กันสุ่ม PIN) |
-| **สำเร็จ** | เช็คเขียวสั้น ๆ → fade เข้าแอป |
-| **ไม่มี user เลย / โหลด** | skeleton avatar (ไม่ใช่ spinner กลางจอ); ถ้า DB ไม่มี user → ข้อความนำไปหน้าตั้งค่าพนักงาน |
-| **Manager override (dialog)** | Dialog มาตรฐาน: หัวข้อ "ต้องการสิทธิ์ผู้ดูแล", mini numpad/ช่อง PIN, ปุ่ม [ยกเลิก `elevated`] [ยืนยัน `default`] |
+| **เลือกผู้ใช้ (default)** | list avatar ของ user ที่เปิดใช้งาน + ชื่อ + badge role; คนเดียว → ข้ามไปสเต็ป B เลย |
+| **ใส่ password** | avatar+ชื่อคนที่เลือกบนสุด, `Input type=password` (auto-focus) + ปุ่มสลับแสดง/ซ่อน, ปุ่ม "← เปลี่ยนผู้ใช้" |
+| **กำลังตรวจ** | spinner สั้นบนปุ่ม "เข้าสู่ระบบ" (150–250ms feel) ไม่ block ทั้งจอ |
+| **password ผิด** | ช่อง **สั่นแนวนอน (shake)** + ขอบ `border-destructive` + ข้อความ `text-destructive` "รหัสผ่านไม่ถูกต้อง"; ไม่เด้ง toast |
+| **lockout** | หลังผิด N ครั้ง (เช่น 5, นับฝั่ง main process) → ปุ่ม disabled + "ลองใหม่ใน Xs" |
+| **สำเร็จ** | เช็คเขียวสั้น → fade เข้าแอป |
+| **โหลด** | skeleton avatar list (ไม่ใช่ spinner กลางจอ) |
+| **ไม่มี user เลย** | ปกติไม่เกิด (Setup wizard ตั้ง admin แล้ว); เผื่อไว้: ข้อความ + ปุ่ม `default` ไปตั้งค่าพนักงาน |
+| **Manager override (dialog)** | Dialog มาตรฐาน: "ต้องการสิทธิ์ผู้ดูแล" + ช่อง password admin, ปุ่ม [ยกเลิก `elevated`] [ยืนยัน `default`]; **ผลลัพธ์ไปทำรายการผ่าน IPC ที่ยืนยันแล้ว ไม่ใช่แค่ปลดล็อกปุ่ม** (audit R2); ใช้ lockout เดียวกับ login (G3) |
+| **ลืมรหัสผ่าน (ชั้น 1)** | จากลิงก์ "ลืมรหัสผ่าน" → ช่องใส่ **recovery code** → ถูก → ฟอร์มตั้ง password ใหม่ + โชว์ recovery code ใหม่ครั้งเดียว |
+| **ลืมรหัสผ่าน (ชั้น 2, vendor reset)** | ลิงก์ "ลืม recovery code ด้วย?" → โชว์ **machine code + license id** (อ่านให้ผู้ขาย) + ช่องกรอก "รหัสปลดล็อก" จากผู้ขาย → verify → ตั้ง password ใหม่ |
 
 ## 7. Interaction Model
-- **คีย์บอร์ด + เมาส์/สัมผัส เท่ากัน:** เลข 0–9 = กดปุ่ม, Backspace = ลบ, Enter = ยืนยันเมื่อครบ, Esc = กลับเลือกผู้ใช้
-- **auto-submit เมื่อครบ 6 หลัก** (ไม่ต้องกด Enter) — ลด 1 จังหวะ; ปุ่ม ⏎ ใน numpad ไว้เผื่อ PIN < 6 หลัก (Q3)
-- PIN เป็น **dots ไม่โชว์ตัวเลข** (มีคนยืนข้างหลังที่เคาน์เตอร์) — ไม่มีปุ่ม "แสดง PIN"
-- **เข้าจาก TitleBar ระหว่างวัน:** ปุ่ม avatar+ชื่อผู้ใช้ปัจจุบันด้านขวาของ TitleBar → popover เมนู: **ล็อกหน้าจอ / สลับผู้ใช้ / ออกจากระบบ** (ใช้ `Popover` ที่ TitleBar มีอยู่แล้ว)
-- **ล็อกหน้าจอ** = กลับหน้า Login โดยไม่ปิดแอป/ไม่ล้าง state งานที่ค้าง (cart ไม่หาย)
-- **reduced-motion:** shake/slide/fade → crossfade หรือทันที
+- **คีย์บอร์ดเป็นหลัก:** สเต็ป A เลือกด้วยลูกศร/คลิก; สเต็ป B พิมพ์ password, **Enter = เข้าสู่ระบบ**, Esc = กลับเลือกผู้ใช้
+- ปุ่ม **แสดง/ซ่อน password** (lucide `Eye`/`EyeOff`, `size-N`) — ระวังคนยืนข้างหลัง default ซ่อน
+- **TitleBar ระหว่างวัน:** ปุ่ม avatar+ชื่อผู้ใช้ปัจจุบันขวาของ TitleBar → Popover: **ล็อกหน้าจอ / สลับผู้ใช้ / ออกจากระบบ**
+- **ล็อกหน้าจอ** = กลับหน้า Login ไม่ปิดแอป/ไม่ล้าง cart
+- **reduced-motion:** shake/slide/fade → crossfade/ทันที
 
-## 8. Content Requirements (ไทย, ตาม no-emoji + lucide icons)
-- หัวข้อ: **"เข้าสู่ระบบ"** · ใต้ชื่อร้าน (ดึงจาก `settings.shop_name`)
-- หน้าเลือก: ไม่ต้องมี label ฟุ่มเฟือย — avatar + ชื่อ + Badge role (`admin` = badge `brand-soft` "ผู้ดูแล", `staff` = badge `secondary` "พนักงาน")
-- หน้า PIN: "ใส่ PIN ของ {ชื่อ}" (helper `text-xs text-muted-foreground`)
-- error: "PIN ไม่ถูกต้อง" / "ลองใหม่อีกครั้งใน {n} วินาที"
-- override dialog: title "ต้องการสิทธิ์ผู้ดูแล", body "รายการนี้ต้องให้ผู้ดูแลยืนยัน — ใส่ PIN ผู้ดูแล", ปุ่ม "ยืนยัน"
-- empty: "ยังไม่มีผู้ใช้ในระบบ" + ปุ่ม `default` "ไปตั้งค่าพนักงาน"
-- avatar fallback: อักษรแรกของชื่อบนพื้น token (ใช้ `avatar` primitive ที่มีอยู่)
+## 8. Content Requirements (ไทย, no-emoji + lucide icons)
+- หัวข้อ **"เข้าสู่ระบบ"** · ใต้ชื่อร้าน (จาก `settings.shop_name`)
+- หน้าเลือก: avatar + ชื่อ + Badge role (`admin`=badge `brand-soft` "ผู้ดูแล", `staff`=badge `secondary` "พนักงาน")
+- หน้า password: label "รหัสผ่าน", helper "เข้าสู่ระบบในชื่อ {ชื่อ}" (`text-xs text-muted-foreground`)
+- error: "รหัสผ่านไม่ถูกต้อง" / "ลองใหม่อีกครั้งใน {n} วินาที"
+- override dialog: title "ต้องการสิทธิ์ผู้ดูแล", body "รายการนี้ต้องให้ผู้ดูแลยืนยัน — ใส่รหัสผ่านผู้ดูแล", ปุ่ม "ยืนยัน"
+- avatar fallback: อักษรแรกของชื่อบนพื้น token (`avatar` primitive)
 
-## 9. การ map ลง design system (ห้ามสร้าง primitive ใหม่ถ้าเลี่ยงได้)
+## 9. การ map ลง design system (ไม่ต้องสร้าง primitive ใหม่แล้ว)
 | ส่วน UI | ใช้ของที่มี |
 |---------|-------------|
-| โครงเต็มจอ + TitleBar | mirror `SetupWizard.tsx` (import `TitleBar`, พื้น `bg-background`) |
-| การ์ดกลาง | `SectionCard` หรือ `Card` (`rounded-card` `shadow-card`) |
+| โครงเต็มจอ + TitleBar | mirror `SetupWizard.tsx` |
+| การ์ดกลาง | `SectionCard` / `Card` (`rounded-card` `shadow-card`) |
 | avatar ผู้ใช้ | `avatar` primitive |
-| badge role | `Badge` variant `brand-soft` / `secondary` |
-| ปุ่มเลข numpad | **primitive ใหม่ `PinPad` ใน `src/components/ui/`** (ไม่มีของเดิม) — ปุ่มในนั้นคือ `Button` variant `elevated`/`outline` `size` ใหญ่; demo ใน `/theme` ในการเปลี่ยนเดียวกัน (HARD invariant #1) |
-| PIN dots | element เล็ก ๆ ใน `PinPad` (วงกลม token `foreground`/`border`) |
+| badge role | `Badge` `brand-soft` / `secondary` |
+| **ช่องรหัสผ่าน** | **`Input type="password"`** (ELEVATED default, มีอยู่แล้ว) + ปุ่มแสดง/ซ่อน `ghost` icon |
+| ปุ่มแสดง/ซ่อน | `Button` `ghost` + lucide `Eye`/`EyeOff` (`size-N`) |
 | override | `Dialog` มาตรฐาน (Header/Body/Footer ครบ ตาม modal contract) |
 | เมนู TitleBar | `Popover` (มีใน TitleBar แล้ว) + ปุ่ม `ghost` |
-| ปุ่มยืนยัน/CTA | `Button` `default` (teal) |
-| สลับ theme/ตั้งค่ามุมจอ | `Button` `ghost` + lucide icon (`size-N`) |
+| ปุ่มเข้าสู่ระบบ/CTA | `Button` `default` (teal) |
 
-> **สิ่งเดียวที่ต้องเพิ่มเข้า design system:** `PinPad` primitive (+ showcase ใน `/theme`). ที่เหลือประกอบจากของเดิมล้วน
+> **ไม่ต้องเพิ่ม primitive ใหม่เลย** (เดิมเคยต้องทำ `PinPad` — ตัดทิ้งเพราะเปลี่ยนเป็น password) ประกอบจากของเดิมล้วน → งานเบาลง, ไม่ต้องแตะ /theme showcase
 
 ## 10. Recommended references (impeccable) ตอน implement
-- `layout.md` — จัด grid avatar + numpad ให้ได้จังหวะ
-- `animate.md` — shake error, slide A→B, fade success (พร้อม reduced-motion)
-- `clarify.md` — ขัด microcopy error/empty
-- `harden.md` — edge case: 0 user, lockout, ล็อกหน้าจอตอน cart ค้าง
+- `animate.md` — shake error, slide A→B, fade success (+ reduced-motion)
+- `clarify.md` — microcopy error/lockout
+- `harden.md` — edge: lockout (main-process), ล็อกจอตอน cart ค้าง, session re-verify
 
-## 11. Open Questions (ต้องยืนยันก่อน craft)
-- **Q1 — PIN หรือ password?** *assert: PIN 6 หลัก.* ถ้าพี่อยากได้ password เต็มสำหรับ admin (เช่นเข้า Settings/Finance) บอกได้ จะเพิ่มเป็น hybrid
-- **Q2 — จำนวนหลัก PIN:** 6 (assert) หรือ 4? 4 เร็วกว่าแต่เดาง่ายกว่า
-- **Q3 — auto-submit:** ครบหลักแล้วเข้าเลย (assert) หรือบังคับกด ⏎?
-- **Q4 — auto-lock:** ล็อกอัตโนมัติเมื่อไม่ใช้งาน N นาทีไหม? (assert: มี, default ปิด, ตั้งได้ใน Settings ภายหลัง)
-- **Q5 — คนเดียวในร้าน:** ข้ามหน้าเลือกผู้ใช้ไปหน้า PIN เลย (assert: ใช่)
-- **Q6 — avatar:** ใช้อักษรแรก+สี token พอ (assert) หรืออยากให้อัปโหลดรูป? (เฟสหลัง)
-```
+## 11. Open Questions — เหลือข้อเดียว
+- ✅ credential = เลือกชื่อ + password · ✅ ปุ่มแสดง/ซ่อน password = มี · ✅ ไม่มี auto-lock · ✅ login ใหม่ทุกครั้งเปิดโปรแกรม · ✅ ลืมรหัส = recovery code + vendor reset
+- **Q (เหลือ) — avatar:** อักษรแรก+สี token พอ (assert) หรืออัปโหลดรูปทีหลัง (เฟสหลัง)
