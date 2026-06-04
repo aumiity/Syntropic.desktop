@@ -20,7 +20,7 @@ export function GranularityTabs({
 }) {
   return (
     <Tabs value={value} onValueChange={(v) => onChange(v as Granularity)}>
-      <TabsList variant="pill" className="h-8">
+      <TabsList variant="segmented" className="h-9">
         {ORDER.map(g => (
           <TabsTrigger key={g} value={g} className="text-sm px-3">{LABELS[g]}</TabsTrigger>
         ))}

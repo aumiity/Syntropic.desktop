@@ -25,6 +25,9 @@ interface TopListCardProps {
   emptyText?: string
   /** Cap on inner scroll. Default 280px. Pass 0 to disable. */
   maxHeight?: number
+  /** Fixed inner height — list neither grows nor shrinks with item count
+   *  (scrolls past it, whitespace below when underfilled). Overrides `maxHeight`. */
+  height?: number
   /** Override on the outer ul (rare — mostly for spacing tweaks). */
   className?: string
 }
@@ -34,18 +37,24 @@ export function TopListCard({
   emptyIcon: EmptyIcon = Inbox,
   emptyText = 'ไม่มีข้อมูล',
   maxHeight = 280,
+  height,
   className,
 }: TopListCardProps) {
+  const fixed = height != null && height > 0
+
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-sm text-muted-foreground py-16">
+      <div
+        className="flex flex-col items-center justify-center text-sm text-muted-foreground py-16"
+        style={fixed ? { height } : undefined}
+      >
         <EmptyIcon className="size-10 mb-2 opacity-30" />
         {emptyText}
       </div>
     )
   }
 
-  const scrollStyle = maxHeight > 0 ? { maxHeight } : undefined
+  const scrollStyle = fixed ? { height } : (maxHeight > 0 ? { maxHeight } : undefined)
 
   return (
     <ul

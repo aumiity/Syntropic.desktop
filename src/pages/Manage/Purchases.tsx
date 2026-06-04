@@ -924,11 +924,11 @@ export default function ManagePurchasesPage() {
         onConfirm={handleCancelBill}
         content={
           <div className="space-y-4">
-            <div className="rounded-xl bg-destructive-soft/40 border border-destructive-soft p-3 text-sm text-destructive leading-relaxed">
+            <div className="rounded-xl bg-destructive-soft/40 p-3 text-sm text-destructive leading-relaxed">
               การยกเลิกจะคืนสต็อกที่รับเข้ามาของบิลนี้ออกจากคลัง และไม่สามารถย้อนกลับได้ หากสินค้าบางส่วนถูกขายไปแล้ว ระบบจะไม่อนุญาตให้ยกเลิก
             </div>
             {cancelBlockers.length > 0 && (
-              <div className="rounded-xl bg-destructive-soft border border-destructive/30 p-3">
+              <div className="rounded-xl bg-destructive-soft p-3">
                 <div className="text-sm font-semibold text-destructive mb-1.5">สินค้าต่อไปนี้ถูกขายไปแล้ว ไม่สามารถยกเลิกบิลได้:</div>
                 <ul className="text-sm text-destructive space-y-0.5 list-disc pl-4">
                   {Array.from(new Set(cancelBlockers.map(b => b.trade_name))).map((name, i) => (

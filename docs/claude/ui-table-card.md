@@ -23,6 +23,8 @@ Rule of thumb: only the column-header band is muted. The bottom status bar gets 
 
 `h-12 px-5 text-sm font-semibold text-muted-foreground flex items-center justify-between` — left = description/count, right = Add button. **The bar is `h-12`; any button inside is `h-9`** — use `<Button size="lg" className="px-2">` (lg = h-9 with proper text-sm). Do NOT hand-size with `h-9` className overrides on `size="sm"` (that gave us h-9 with small text).
 
+**Leading icon (HARD):** a table-card header's `<TintIcon>` is always `tint="neutral"` + `bordered` (the elevated, colorless look) — NEVER a colored tint. Colored/role tints are for `SectionCard` headers only. Canonical: `Reports/Dashboard.tsx` (รายการค่าใช้จ่าย + สินค้าค้างสต็อก headers).
+
 ### Filter strip / topbar (HARD): `h-14 px-2`, every control inside = `h-10`
 
 This is the strip with search + filters (Sales/Purchases/Products/People/etc.) — **not** the h-12 inner header bar above. Every control in this strip is `h-10`:
@@ -56,16 +58,14 @@ A grid whose cells are editable `<Input>`/`<DateInput>`/`<Button>` with keyboard
 
 `hover:bg-primary-soft/60 transition-colors`
 
-### Action buttons in rows = the square icon-button style (HARD)
+### Action buttons in rows = the square `elevated` icon button (HARD)
 
-Use `<Button size="icon-lg" variant="...">` with a single lucide icon and **no width override** — a square, NOT a wide `w-16` rectangle and NOT `size="sm" variant="ghost"`. One button → on its own; multiple in a cell → `flex gap-1.5 justify-center`. Always give an action-only icon button a `title` for the tooltip/aria. Differentiate by role-tint:
+Use `<Button size="icon-lg" variant="elevated">` with a single lucide icon and **no width override** — a square, NOT a wide `w-16` rectangle and NOT `size="sm" variant="ghost"`. Always give it a `title` for the tooltip/aria. `elevated` is the variant for ALL row-action triggers — do not role-tint them (the old edit→outline / view→warm / open→primary-soft scheme is dead).
 
-- **แก้ไข (edit)** → `outline`
-- **info / ดูรายละเอียด icon** (e.g. `Info`) → `warm`
-- **external-link / open-in icon** (e.g. `ExternalLink`) → `primary-soft`
-- delete → `destructive`, toggle-on/disable → `destructive2`, toggle-off/enable → `info-soft`, confirm → `success`
+- **Standard:** a single `MoreHorizontal` ("ตัวเลือก") button that opens a `<Popover>` menu listing the row's actions. Menu items are plain `<button>`s (`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors`); a destructive item uses `text-destructive hover:bg-destructive/10` instead.
+- **Single action:** skip the menu — use a direct `elevated` icon button (e.g. `Eye` for ดูรายละเอียด) whose `onClick` runs the action.
 
-Canonical: the "ดูรายการ" button in `Manage/Sales.tsx`. (Legacy `w-16` rectangles in `Products/index.tsx`, `EditProduct/LotsTab.tsx`, `EditProduct/HistoryTab.tsx` predate this rule — migrate to square when you touch them.)
+Canonical: the "ตัวเลือก" button in `Manage/Sales.tsx` (also `Manage/Purchases.tsx`, `Manage/NegativeStock.tsx`, `Reports/Dashboard.tsx`). (Legacy `w-16` rectangles in `Products/index.tsx`, `EditProduct/LotsTab.tsx`, `EditProduct/HistoryTab.tsx` predate this rule — migrate to square `elevated` when you touch them.)
 
 ### Empty state
 

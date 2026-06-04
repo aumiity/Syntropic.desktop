@@ -258,13 +258,13 @@ export default function NegativeStockPage() {
 
             {confirming.kind === 'reconcile' ? (
               <>
-                <div className="rounded-xl bg-success-soft border border-success/30 p-3 text-sm text-success leading-relaxed">
+                <div className="rounded-xl bg-success-soft p-3 text-sm text-success leading-relaxed">
                   จะตัดสต๊อก <span className="font-bold">
                     {Math.min(confirming.row.qty, confirming.row.available_stock).toLocaleString()}
                   </span> {confirming.row.unit_name} จากล็อตปัจจุบัน (FEFO)
                 </div>
                 {confirming.row.available_stock < confirming.row.qty && (
-                  <div className="rounded-xl bg-warm border border-warm-foreground/25 p-3 text-sm text-warm-foreground leading-relaxed">
+                  <div className="rounded-xl bg-warm p-3 text-sm text-warm-foreground leading-relaxed">
                     สต๊อกปัจจุบันไม่พอตัดครบ — เหลือค้าง <span className="font-bold">
                       {(confirming.row.qty - confirming.row.available_stock).toLocaleString()}
                     </span> {confirming.row.unit_name}
@@ -272,7 +272,7 @@ export default function NegativeStockPage() {
                 )}
               </>
             ) : (
-              <div className="rounded-xl bg-destructive-soft border border-destructive/30 p-3 text-sm text-destructive leading-relaxed">
+              <div className="rounded-xl bg-destructive-soft p-3 text-sm text-destructive leading-relaxed">
                 จะลบรายการนี้โดยไม่ตัดสต๊อก — สต๊อกในระบบคงอยู่ตามเดิม การกระทำนี้บันทึกในประวัติเพื่อ audit
               </div>
             )}

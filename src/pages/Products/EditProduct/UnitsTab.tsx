@@ -371,20 +371,25 @@ export function UnitsTab({
         onOpenChange={(v) => { if (!v && !unitSaving) setDeletingUnit(null) }}
         variant="destructive"
         title="ลบหน่วยนับ"
-        description={deletingUnit && (
+        content={deletingUnit && (
           <div className="space-y-3">
-            <div className="rounded-lg bg-muted px-3 py-2.5 space-y-1.5">
-              <div className="text-sm font-semibold text-foreground">{deletingUnit.unit_name ?? `Unit #${deletingUnit.unit_id}`}</div>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-                <dt className="text-muted-foreground">ขนาดบรรจุ</dt>
-                <dd>{deletingUnit.qty_per_base}</dd>
-                <dt className="text-muted-foreground">ราคาปลีก</dt>
-                <dd>{formatCurrency(deletingUnit.price_retail)}</dd>
-              </dl>
+            <div className="rounded-xl border bg-card shadow-sm p-3 space-y-2 text-sm">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">หน่วย</span>
+                <span className="font-semibold text-right">{deletingUnit.unit_name ?? `Unit #${deletingUnit.unit_id}`}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">ขนาดบรรจุ</span>
+                <span className="font-semibold">{deletingUnit.qty_per_base}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">ราคาปลีก</span>
+                <span className="font-semibold">{formatCurrency(deletingUnit.price_retail)}</span>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <div className="rounded-xl bg-muted p-3 text-sm text-muted-foreground leading-relaxed">
               ประวัติการขายเก่ายังคงแสดงชื่อหน่วยถูกต้อง — หากต้องการซ่อนชั่วคราว ให้ใช้ <span className="font-medium text-foreground">"ปิดการใช้งานหน่วยนี้"</span> แทน
-            </p>
+            </div>
           </div>
         )}
         confirmLabel={unitSaving ? 'กำลังลบ...' : 'ยืนยันลบ'}

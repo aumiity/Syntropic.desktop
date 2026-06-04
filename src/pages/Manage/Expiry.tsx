@@ -449,20 +449,29 @@ export default function ManageExpiryPage() {
         onOpenChange={(v) => { if (!v && !expiring) setConfirmingLot(null) }}
         variant="destructive"
         title="ยืนยันการตัดออก"
-        description={confirmingLot && (
+        content={confirmingLot && (
           <div className="space-y-3">
-            <div className="rounded-lg bg-muted px-3 py-2.5 space-y-1.5">
-              <div className="text-sm font-semibold text-foreground">{confirmingLot.trade_name}</div>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-                <dt className="text-muted-foreground">ล็อต</dt>
-                <dd>{confirmingLot.lot_number || '—'}</dd>
-                <dt className="text-muted-foreground">จำนวน</dt>
-                <dd className="">{confirmingLot.qty_on_hand.toLocaleString()} {confirmingLot.unit_name || ''}</dd>
-                <dt className="text-muted-foreground">มูลค่าทุน</dt>
-                <dd className="">฿{formatCurrency(confirmingLot.total_cost)}</dd>
-              </dl>
+            <div className="rounded-xl border bg-card shadow-sm p-3 space-y-2 text-sm">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">สินค้า</span>
+                <span className="font-semibold text-right">{confirmingLot.trade_name}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">ล็อต</span>
+                <span className="font-semibold">{confirmingLot.lot_number || '—'}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">จำนวน</span>
+                <span className="font-semibold">{confirmingLot.qty_on_hand.toLocaleString()} {confirmingLot.unit_name || ''}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">มูลค่าทุน</span>
+                <span className="font-semibold">฿{formatCurrency(confirmingLot.total_cost)}</span>
+              </div>
             </div>
-            <p className="text-destructive font-medium">การดำเนินการนี้ย้อนกลับไม่ได้</p>
+            <div className="rounded-xl bg-destructive-soft p-3 text-sm text-destructive-strong leading-relaxed">
+              การดำเนินการนี้ย้อนกลับไม่ได้
+            </div>
           </div>
         )}
         confirmLabel={expiring ? 'กำลังตัด...' : 'ยืนยัน'}
