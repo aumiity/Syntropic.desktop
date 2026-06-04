@@ -11,12 +11,16 @@ export function Layout() {
   // don't replay the full-page transition — only major section switches do.
   const sectionKey = location.pathname.split('/')[1] || 'home'
   // POS owns its own layout (full-width cart + product grid). Purchase (รับสินค้า)
-  // and Purchase Intake (จับคู่ใบส่งของ) are wide data-entry grids that should
-  // stretch with the screen too. Every other page is constrained to 1280px so
-  // form fields don't stretch on large monitors.
+  // and Purchase Intake (จับคู่ใบส่งของ) are wide data-entry grids, and รายงาน
+  // (dashboard + charts/tables) is analytics-heavy — all should stretch with the
+  // screen. Every other page is constrained to 1280px so form fields don't
+  // stretch on large monitors.
   const isPOS = location.pathname === '/' || location.pathname === ''
   const isFullWidth =
-    isPOS || location.pathname === '/purchase' || location.pathname === '/purchase-intake'
+    isPOS ||
+    location.pathname === '/purchase' ||
+    location.pathname === '/purchase-intake' ||
+    location.pathname.startsWith('/reports')
   const widthClass = isFullWidth ? 'h-full' : 'h-full w-full max-w-7xl mx-auto'
 
   return (
