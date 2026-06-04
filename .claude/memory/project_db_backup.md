@@ -1,13 +1,15 @@
 ---
 name: project_db_backup
-description: Full-DB backup/export/restore feature with WAL-safe online API and stage-then-relaunch restore mechanism
+description: Full-DB backup/export/restore feature — stage-then-relaunch restore, on-quit (sync VACUUM INTO) + midnight auto-backup, user-selectable folder
 metadata:
   type: project
 ---
 
 ## Feature scope (decided 2026-06-04)
 
-Settings → "ฐานข้อมูล" tab. Full `.db`-file backup/export, restore/import, and once-per-day auto-backup. Scope is **full DB file only** (no CSV/JSON per-table export — user explicitly chose this).
+Settings → "ฐานข้อมูล" tab. Full `.db`-file backup/export, restore/import, and daily auto-backup. Scope is **full DB file only** (no CSV/JSON per-table export — user explicitly chose this).
+
+**Auto-backup TIMING was revised same day** (do NOT re-add startup backup): backup ON QUIT + a midnight timer — NOT on startup. See "Auto-backup triggers" below. The user-selectable destination folder was added in the same revision.
 
 ## Restore mechanism (the critical non-obvious part)
 
@@ -61,29 +63,38 @@ Settings → "ฐานข้อมูล" tab. Full `.db`-file backup/export, r
 | `userData/database/syntropic.db.incoming` | Staged restore candidate (swapped in at next boot) |
 | `userData/database/syntropic.db-wal` | Write-ahead log (deleted before restore swap) |
 | `userData/database/syntropic.db-shm` | Shared memory file (deleted before restore swap) |
-| `userData/backups/auto-YYYYMMDD-HHmmss.db` | Once-per-day auto-backup (pruned to retention_count, default 7) |
-| `userData/backups/pre-restore-YYYYMMDD-HHmmss.db` | Pre-restore safety snapshot (also pruned to retention_count) |
+| `<backupsDir>/auto-YYYYMMDD.db` | Daily auto-backup — **DATE-named** so same-day repeats overwrite into one file (≤1/day). Pruned to retention_count (default 7) |
+| `<backupsDir>/auto-YYYYMMDD.db.tmp` | In-progress write; promoted via atomic rename only when complete (interrupted kill leaves a harmless .tmp, never a 0-byte .db). Swept by pruneBackups |
+| `<backupsDir>/pre-restore-YYYYMMDD-HHmmss.db` | Pre-restore safety snapshot (also pruned to retention_count) |
 | User-chosen location | Manual exports (not in backups dir) |
+
+`<backupsDir>` = the user-chosen `backup_dir` if set+writable, else `userData/backups` (resolved by `resolveBackupsDir()`, falls back to default when the chosen folder is gone — USB unplugged). User picks it via `backup:pickFolder` / clears via `backup:resetFolder`.
 
 ## Settings singleton: `backup_settings` table
 
 | Column | Type | Default | Mutable | Purpose |
 |--------|------|---------|---------|---------|
-| id | INTEGER PK | — | No | Singleton (always id=1) |
-| auto_enabled | INTEGER | 1 | Yes | Gates once-per-day backup on app launch |
+| id | INTEGER PK | — | No | Singleton (resolve by `ORDER BY id LIMIT 1`, NOT hardcoded id=1) |
+| auto_enabled | INTEGER | 1 | Yes | Gates BOTH the on-quit and midnight backups |
 | retention_count | INTEGER | 7 | Yes | Max files to keep per prefix (auto-* and pre-restore-*) |
-| last_auto_backup_at | TEXT | NULL | No (internal) | Set by `runAutoBackup()`; checked daily to prevent double-runs |
+| backup_dir | TEXT | NULL | Via pickFolder | User-chosen destination; NULL = default userData/backups. Added by migration (ALTER in schema.ts array) |
+| last_auto_backup_at | TEXT | NULL | No (internal) | Set after each auto-backup; day-gates the midnight timer |
 | updated_at | TEXT | now | No (internal) | Updated by saveSettings |
 
-**Allow-list on saveSettings()** (line 138 in backup.ts): only `auto_enabled` + `retention_count` from renderer. `last_auto_backup_at` and `id` cannot be clobbered.
+**Allow-list on saveSettings()**: only `auto_enabled` + `retention_count` from renderer. `backup_dir` is written only via `saveBackupDir()` (pickFolder/resetFolder). `last_auto_backup_at`/`id` cannot be clobbered.
 
-## Auto-backup (fire-and-forget)
+## Auto-backup triggers (revised model — NOT on startup)
 
-- Runs once at startup via `runAutoBackup()` (line 188 in backup.ts)
-- **Never blocks window show** (called after `createWindow()` returns, exceptions caught)
-- Checks if enabled AND if today's backup already exists (compares `last_auto_backup_at` date)
-- If due, backs up to `auto-YYYYMMDD-HHmmss.db`, updates `last_auto_backup_at`, prunes old backups
-- Pruning keeps only newest `retention_count` files per prefix (auto-* and pre-restore-* tracked separately)
+Two triggers, both gated by `auto_enabled`. Files are date-named so the two never produce >1/day in normal use; retention pruning bounds the rest.
+
+1. **On quit** — `runCloseBackup()`, wired in `main.ts` `before-quit` (runs, then `closeDb()`). This is the PRIMARY backup (captures end-of-day state for a shop that closes the app daily).
+   - **SYNCHRONOUS** `VACUUM INTO` (NOT async `db.backup()`) — async can't reliably finish before the process exits. VACUUM INTO is WAL-safe and captures committed data WITHOUT a checkpoint (verified empirically on the real 20MB DB; a prepended `wal_checkpoint` makes ZERO difference — do not add one).
+   - Self-guards via `closeBackupDone` to run once. During restore, `getDb()` throws (lockDb) → caught → skipped, leaving the staged `.incoming` untouched.
+2. **Midnight timer** — `scheduleDailyBackup()` (setTimeout to next 00:00, `.unref()`, re-arms in `.finally()`). Only matters for an always-on terminal left running across midnight (on-quit never fires there). Uses async `db.backup()` (app is alive). Day-gated by `last_auto_backup_at`.
+
+**Write-to-temp-then-rename** (`promote()`): every auto-backup writes `<target>.tmp` first, then atomically renames. An interrupted/abrupt kill leaves only a stray `.tmp` (excluded from listing + swept by pruneBackups) — NEVER a 0-byte `.db` that pruning would keep while discarding good older backups. This is the fix for the real failure mode (an interrupted VACUUM), NOT the checkpoint red herring.
+
+Manual export + pre-restore still use async `db.backup()` (called while app is alive / awaited).
 
 ## Related memories
 
@@ -92,10 +103,10 @@ Settings → "ฐานข้อมูล" tab. Full `.db`-file backup/export, r
 
 ## Files involved
 
-- `electron/ipc/backup.ts` (NEW) — all IPC handlers + restore logic + prune + validate
+- `electron/ipc/backup.ts` (NEW) — IPC handlers + restore + prune + validate + `runCloseBackup()`/`scheduleDailyBackup()` + `resolveBackupsDir()`/`promote()`
 - `electron/db/index.ts` — `lockDb()`, `applyPendingRestore()`, `getDbPath()`
-- `electron/db/schema.ts` — `backup_settings` table definition (lines 504–513)
-- `electron/main.ts` — `applyPendingRestore()` call before getDb() (line 96), `runAutoBackup()` after window show (line 99)
-- `electron/preload.ts` — `window.api.backup.*` namespace (lines 202–220)
-- `src/pages/Settings/DatabaseTab.tsx` — UI: export/restore/auto-backup controls + file list
-- `src/types/index.ts` — BackupFileInfo type
+- `electron/db/schema.ts` — `backup_settings` table + `backup_dir` migration ALTER (in the try/catch migration array)
+- `electron/main.ts` — `applyPendingRestore()` before getDb(); `scheduleDailyBackup()` after createWindow(); `before-quit` → `runCloseBackup()` then `closeDb()` (closeDb removed from window-all-closed)
+- `electron/preload.ts` — `window.api.backup.*` (export/restore/getSettings/saveSettings/pickFolder/resetFolder/listAuto/openFolder)
+- `src/pages/Settings/DatabaseTab.tsx` — UI: export/restore/auto-backup + folder picker + file list
+- `src/types/index.ts` — BackupSettings (incl. backup_dir) + BackupFileInfo

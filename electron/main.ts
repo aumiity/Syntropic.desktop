@@ -15,7 +15,7 @@ import { registerDevHandlers } from './ipc/dev'
 import { registerMatcherHandlers } from './ipc/matcher'
 import { registerNegativeStockHandlers } from './ipc/negativeStock'
 import { registerExpenseHandlers } from './ipc/expenses'
-import { registerBackupHandlers, runAutoBackup } from './ipc/backup'
+import { registerBackupHandlers, runCloseBackup, scheduleDailyBackup } from './ipc/backup'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -95,12 +95,13 @@ app.whenReady().then(() => {
   // Swap in a restored database BEFORE getDb() opens anything (no-op if none pending).
   applyPendingRestore()
   createWindow()
-  // Fire-and-forget — never block window show on the backup.
-  runAutoBackup().catch(err => console.error('auto-backup failed', err))
+  // Daily 00:00 backup — only fires if the app is left running across midnight.
+  scheduleDailyBackup()
 })
 
 app.on('window-all-closed', () => {
-  closeDb()
+  // The on-quit backup + closeDb run in before-quit; here we only trigger quit
+  // on non-mac so that flow runs once.
   if (process.platform !== 'darwin') app.quit()
 })
 
@@ -108,4 +109,9 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
 
-app.on('before-quit', () => closeDb())
+// Back up the end-of-session state, then release the DB. runCloseBackup is sync
+// (VACUUM INTO) so it completes before the process exits; it self-guards to run once.
+app.on('before-quit', () => {
+  runCloseBackup()
+  closeDb()
+})

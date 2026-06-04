@@ -501,13 +501,15 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
-    -- Database backup settings (singleton). auto_enabled gates the once-per-day
-    -- backup-on-launch; retention_count caps how many auto-*.db files are kept.
-    -- last_auto_backup_at is set by runAutoBackup() (NULL until the first run).
+    -- Database backup settings (singleton). auto_enabled gates the on-close +
+    -- midnight auto-backups; retention_count caps how many auto-*.db files are
+    -- kept. backup_dir is the user-chosen destination folder (NULL = default
+    -- userData/backups). last_auto_backup_at is set after each auto-backup.
     CREATE TABLE IF NOT EXISTS backup_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       auto_enabled    INTEGER NOT NULL DEFAULT 1,
       retention_count INTEGER NOT NULL DEFAULT 7,
+      backup_dir      TEXT,
       last_auto_backup_at TEXT,
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
@@ -760,6 +762,8 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE settings ADD COLUMN shop_branch TEXT NOT NULL DEFAULT 'สำนักงานใหญ่'`,
     // Quotation → sale conversion: link to the resulting sale invoice.
     `ALTER TABLE quotations ADD COLUMN converted_invoice_no TEXT`,
+    // User-chosen auto-backup destination folder (NULL = default userData/backups).
+    `ALTER TABLE backup_settings ADD COLUMN backup_dir TEXT`,
     // First-run setup gate. setup_completed=0 forces the setup wizard before the
     // app is usable. ALTERs MUST precede the backfill UPDATE below (same array,
     // ordered) so the column exists when the UPDATE references it on first run.

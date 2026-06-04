@@ -347,6 +347,7 @@ export interface BackupSettings {
   id: number
   auto_enabled: number          // 0/1 (SQLite boolean)
   retention_count: number
+  backup_dir: string | null     // user-chosen folder; null = default userData/backups
   last_auto_backup_at: string | null
 }
 

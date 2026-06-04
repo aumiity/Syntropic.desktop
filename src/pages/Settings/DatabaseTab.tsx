@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import { formatDateTime } from '@/lib/utils'
 import type { BackupFileInfo } from '@/types'
-import { Download, Upload, History, FolderOpen, DatabaseBackup } from 'lucide-react'
+import { Download, Upload, History, FolderOpen, DatabaseBackup, Folder, RotateCcw } from 'lucide-react'
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -21,6 +21,8 @@ export function DatabaseTab() {
   const [autoEnabled, setAutoEnabled] = useState(true)
   const [retention, setRetention] = useState(7)
   const [lastAuto, setLastAuto] = useState<string | null>(null)
+  const [backupDir, setBackupDir] = useState<string | null>(null)
+  const [defaultDir, setDefaultDir] = useState('')
   const [files, setFiles] = useState<BackupFileInfo[]>([])
   const [exporting, setExporting] = useState(false)
   const [confirmRestore, setConfirmRestore] = useState(false)
@@ -30,14 +32,36 @@ export function DatabaseTab() {
     setFiles(await window.api.backup.listAuto())
   }, [])
 
+  const loadSettings = useCallback(async () => {
+    const s = await window.api.backup.getSettings()
+    setAutoEnabled(!!s.auto_enabled)
+    setRetention(s.retention_count)
+    setLastAuto(s.last_auto_backup_at)
+    setBackupDir(s.backup_dir)
+    setDefaultDir(s.default_dir)
+  }, [])
+
   useEffect(() => {
-    window.api.backup.getSettings().then(s => {
-      setAutoEnabled(!!s.auto_enabled)
-      setRetention(s.retention_count)
-      setLastAuto(s.last_auto_backup_at)
-    })
+    loadSettings()
     loadFiles()
-  }, [loadFiles])
+  }, [loadSettings, loadFiles])
+
+  const handlePickFolder = async () => {
+    const res = await window.api.backup.pickFolder()
+    if (res.canceled) return
+    if (res.ok) {
+      toast({ title: 'เปลี่ยนโฟลเดอร์สำรองแล้ว', description: res.path, variant: 'success' })
+      loadSettings(); loadFiles()
+    } else {
+      toast({ title: 'เปลี่ยนโฟลเดอร์ไม่สำเร็จ', description: res.error ?? '', variant: 'error' })
+    }
+  }
+
+  const handleResetFolder = async () => {
+    await window.api.backup.resetFolder()
+    toast({ title: 'ใช้โฟลเดอร์เริ่มต้นแล้ว', variant: 'success' })
+    loadSettings(); loadFiles()
+  }
 
   const persist = useCallback(
     async (auto_enabled: boolean, retention_count: number) => {
@@ -120,7 +144,8 @@ export function DatabaseTab() {
       {/* Auto-backup */}
       <SectionCard icon={DatabaseBackup} title="สำรองอัตโนมัติ" tint="info-soft">
         <p className="text-sm text-muted-foreground leading-relaxed">
-          สำรองข้อมูลให้อัตโนมัติเมื่อเปิดโปรแกรม (วันละครั้ง) และเก็บไฟล์ล่าสุดตามจำนวนที่กำหนด
+          สำรองข้อมูลให้อัตโนมัติ <span className="text-foreground font-medium">เมื่อปิดโปรแกรม</span> (เก็บสถานะล่าสุดของวัน)
+          และตอนเที่ยงคืนหากเปิดโปรแกรมค้างไว้ข้ามวัน — ได้วันละ 1 ไฟล์ เก็บย้อนหลังตามจำนวนที่กำหนด
         </p>
 
         <Toggle
@@ -142,6 +167,29 @@ export function DatabaseTab() {
             onBlur={() => persist(autoEnabled, retention)}
           />
         </FormField>
+
+        <FormField label="โฟลเดอร์เก็บไฟล์สำรอง">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 h-10 px-3 rounded-lg border border-border bg-card flex-1 min-w-0">
+              <Folder className="size-4 text-muted-foreground shrink-0" />
+              <span className="font-mono text-xs truncate" title={backupDir ?? defaultDir}>
+                {backupDir ?? defaultDir}
+              </span>
+              {!backupDir && <span className="text-xs text-muted-foreground shrink-0">(ค่าเริ่มต้น)</span>}
+            </div>
+            <Button variant="elevated" size="lg" className="h-10 shrink-0" onClick={handlePickFolder}>
+              <Folder className="size-4" /> เปลี่ยน
+            </Button>
+            {backupDir && (
+              <Button variant="ghost" size="lg" className="h-10 shrink-0" onClick={handleResetFolder} title="ใช้โฟลเดอร์เริ่มต้น">
+                <RotateCcw className="size-4" />
+              </Button>
+            )}
+          </div>
+        </FormField>
+        <p className="text-xs text-muted-foreground -mt-1">
+          แนะนำให้ชี้ไปที่ USB หรือโฟลเดอร์คลาวด์ (OneDrive/Google Drive) เพื่อให้สำรองออกนอกเครื่อง — ปลอดภัยกว่าหากดิสก์เสีย
+        </p>
 
         <div className="flex items-center justify-between pt-1">
           <span className="text-xs text-muted-foreground">

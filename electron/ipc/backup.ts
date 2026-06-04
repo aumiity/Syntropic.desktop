@@ -5,15 +5,88 @@ import dayjs from 'dayjs'
 import Database from 'better-sqlite3'
 import { getDb, getDbPath, closeDb, lockDb } from '../db'
 
-// Where auto + pre-restore backups live. Created on demand because
-// db.backup() throws if the destination directory doesn't exist yet.
-function getBackupsDir(): string {
-  const dir = path.join(app.getPath('userData'), 'backups')
-  fs.mkdirSync(dir, { recursive: true })
-  return dir
+interface BackupConfig {
+  id: number
+  auto_enabled: number
+  retention_count: number
+  backup_dir: string | null
+  last_auto_backup_at: string | null
 }
 
-const stamp = () => dayjs().format('YYYYMMDD-HHmmss')
+function defaultBackupsDir(): string {
+  return path.join(app.getPath('userData'), 'backups')
+}
+
+// Resolve the active auto-backup folder: the user-chosen backup_dir if set and
+// writable, else the default. Falls back silently when the chosen folder is gone
+// (USB unplugged, network share offline) so an auto-backup still lands somewhere.
+function resolveBackupsDir(): string {
+  const def = defaultBackupsDir()
+  let dir = def
+  try {
+    const row = getDb()
+      .prepare(`SELECT backup_dir FROM backup_settings ORDER BY id LIMIT 1`)
+      .get() as { backup_dir: string | null } | undefined
+    if (row?.backup_dir) dir = row.backup_dir
+  } catch {
+    /* fall back to default */
+  }
+  try {
+    fs.mkdirSync(dir, { recursive: true })
+    fs.accessSync(dir, fs.constants.W_OK)
+    return dir
+  } catch {
+    fs.mkdirSync(def, { recursive: true })
+    return def
+  }
+}
+
+const fullStamp = () => dayjs().format('YYYYMMDD-HHmmss')
+// Auto backups are named by DATE only, so repeated backups on the same day
+// (e.g. a lunch-close then an evening-close) overwrite into one file — at most
+// one auto-*.db per calendar day, always holding the latest state.
+const autoTarget = (dir: string) => path.join(dir, `auto-${dayjs().format('YYYYMMDD')}.db`)
+
+function readConfig(db: Database.Database): BackupConfig {
+  let s = db.prepare(`SELECT * FROM backup_settings ORDER BY id LIMIT 1`).get() as BackupConfig | undefined
+  if (!s) {
+    db.prepare(`INSERT INTO backup_settings DEFAULT VALUES`).run()
+    s = db.prepare(`SELECT * FROM backup_settings ORDER BY id LIMIT 1`).get() as BackupConfig
+  }
+  return s
+}
+
+// Promote a fully-written temp file to its final name. Writing to <target>.tmp
+// first means an interrupted/abrupt kill (force-quit, power loss) leaves only a
+// stray .tmp — never a 0-byte "latest" backup that pruning would keep while
+// discarding good older ones. .tmp files are excluded from listing + pruning
+// (they don't end in .db). Rm-then-rename keeps it cross-platform (Windows
+// renameSync refuses to overwrite).
+function promote(tmp: string, target: string) {
+  fs.rmSync(target, { force: true })
+  fs.renameSync(tmp, target)
+}
+
+function finalize(db: Database.Database, dir: string, retention: number) {
+  db.prepare(
+    `UPDATE backup_settings SET last_auto_backup_at = datetime('now','localtime')
+      WHERE id = (SELECT id FROM backup_settings ORDER BY id LIMIT 1)`,
+  ).run()
+  pruneBackups(dir, retention)
+}
+
+function saveBackupDir(dir: string | null) {
+  const db = getDb()
+  db.transaction(() => {
+    let row = db.prepare(`SELECT id FROM backup_settings ORDER BY id LIMIT 1`).get() as any
+    if (!row) {
+      const r = db.prepare(`INSERT INTO backup_settings DEFAULT VALUES`).run()
+      row = { id: r.lastInsertRowid }
+    }
+    db.prepare(`UPDATE backup_settings SET backup_dir = @dir, updated_at = datetime('now','localtime') WHERE id = @id`)
+      .run({ dir, id: row.id })
+  })()
+}
 
 // Validate a candidate .db before letting it overwrite the live database.
 // Opens read-only (fileMustExist so a non-existent path fails instead of
@@ -51,8 +124,15 @@ function safeMtime(file: string): number | null {
 }
 
 // Keep only the newest `keep` files within each backup prefix group
-// (auto-*.db AND pre-restore-*.db), so neither grows unbounded.
+// (auto-*.db AND pre-restore-*.db), so neither grows unbounded. Also sweeps
+// orphan .tmp/.tmp-journal left by an interrupted backup — runs in finalize,
+// after a successful promote, so nothing in flight is removed.
 function pruneBackups(dir: string, keep: number) {
+  for (const f of fs.readdirSync(dir)) {
+    if (f.startsWith('auto-') && (f.endsWith('.tmp') || f.endsWith('.tmp-journal'))) {
+      fs.rmSync(path.join(dir, f), { force: true })
+    }
+  }
   for (const prefix of ['auto-', 'pre-restore-']) {
     const files = fs
       .readdirSync(dir)
@@ -72,7 +152,7 @@ export function registerBackupHandlers() {
   ipcMain.handle('backup:export', async () => {
     const { canceled, filePath } = await dialog.showSaveDialog({
       title: 'สำรองฐานข้อมูล',
-      defaultPath: `syntropic-backup-${stamp()}.db`,
+      defaultPath: `syntropic-backup-${fullStamp()}.db`,
       filters: [{ name: 'Database', extensions: ['db'] }],
     })
     if (canceled || !filePath) return { ok: false, canceled: true }
@@ -103,8 +183,8 @@ export function registerBackupHandlers() {
 
     try {
       // Safety net: snapshot the live db before replacing it.
-      const dir = getBackupsDir()
-      await getDb().backup(path.join(dir, `pre-restore-${stamp()}.db`))
+      const dir = resolveBackupsDir()
+      await getDb().backup(path.join(dir, `pre-restore-${fullStamp()}.db`))
       // Stage — do NOT touch the live file here (avoids reopen race + Windows lock).
       fs.copyFileSync(picked, getDbPath() + '.incoming')
     } catch (e: any) {
@@ -121,18 +201,16 @@ export function registerBackupHandlers() {
     return { ok: true }
   })
 
+  // Returns the settings row plus the resolved default dir so the UI can label
+  // "ค่าเริ่มต้น" without knowing the userData path.
   ipcMain.handle('backup:getSettings', () => {
-    const db = getDb()
-    let row = db.prepare(`SELECT * FROM backup_settings ORDER BY id LIMIT 1`).get()
-    if (!row) {
-      db.prepare(`INSERT INTO backup_settings DEFAULT VALUES`).run()
-      row = db.prepare(`SELECT * FROM backup_settings ORDER BY id LIMIT 1`).get()
-    }
-    return row
+    const row = readConfig(getDb())
+    return { ...row, default_dir: defaultBackupsDir() }
   })
 
-  // Allow-list: only the two user-editable columns are written, so the renderer
-  // can never clobber last_auto_backup_at / id via a stray payload key.
+  // Allow-list: only the two user-editable columns are written here, so the
+  // renderer can never clobber backup_dir / last_auto_backup_at / id via a
+  // stray payload key. (backup_dir is set through pickFolder/resetFolder.)
   ipcMain.handle(
     'backup:saveSettings',
     (_e, data: { auto_enabled: boolean; retention_count: number }) => {
@@ -153,14 +231,38 @@ export function registerBackupHandlers() {
             WHERE id = @id`,
         ).run({ auto_enabled, retention_count, id: row.id })
       })()
-      return db.prepare(`SELECT * FROM backup_settings ORDER BY id LIMIT 1`).get()
+      return { ...readConfig(db), default_dir: defaultBackupsDir() }
     },
   )
 
-  // Lists every backup in the folder (auto-* and pre-restore-*). Both groups are
-  // bounded by pruneBackups(); manual exports go to user-chosen locations, not here.
+  // Pick + persist the auto-backup destination folder. Rejects a non-writable
+  // choice so a backup never silently fails later.
+  ipcMain.handle('backup:pickFolder', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'เลือกโฟลเดอร์สำรองข้อมูล',
+      properties: ['openDirectory', 'createDirectory'],
+    })
+    if (canceled || !filePaths?.length) return { ok: false, canceled: true }
+    const dir = filePaths[0]
+    try {
+      fs.mkdirSync(dir, { recursive: true })
+      fs.accessSync(dir, fs.constants.W_OK)
+    } catch {
+      return { ok: false, error: 'โฟลเดอร์นี้เขียนไม่ได้ กรุณาเลือกที่อื่น' }
+    }
+    saveBackupDir(dir)
+    return { ok: true, path: dir }
+  })
+
+  ipcMain.handle('backup:resetFolder', () => {
+    saveBackupDir(null)
+    return { ok: true, path: defaultBackupsDir() }
+  })
+
+  // Lists every backup in the active folder (auto-* and pre-restore-*). Both
+  // groups are bounded by pruneBackups(); manual exports go elsewhere.
   ipcMain.handle('backup:listAuto', () => {
-    const dir = getBackupsDir()
+    const dir = resolveBackupsDir()
     return fs
       .readdirSync(dir)
       .filter(f => f.endsWith('.db'))
@@ -178,32 +280,67 @@ export function registerBackupHandlers() {
   })
 
   ipcMain.handle('backup:openFolder', async () => {
-    const err = await shell.openPath(getBackupsDir())
+    const err = await shell.openPath(resolveBackupsDir())
     return err ? { ok: false, error: err } : { ok: true }
   })
 }
 
-// Fire-and-forget auto-backup, called once at startup. Self-contained
-// (try/catch) so a failure can never block the app from opening.
-export async function runAutoBackup(): Promise<void> {
+// ── Auto-backup triggers ──────────────────────────────────────────────────
+// Model: back up when the program CLOSES (the end-of-day state), plus a midnight
+// timer that only matters when the terminal is left running across midnight.
+// A shop that closes the app daily gets exactly one backup/day from the close;
+// an always-on terminal gets one/day from the timer. Auto files are date-named
+// so same-day repeats overwrite into a single file.
+
+// On-quit backup. SYNCHRONOUS (VACUUM INTO) because async db.backup() can't
+// reliably finish before the process exits. Runs once per process.
+let closeBackupDone = false
+export function runCloseBackup(): void {
+  if (closeBackupDone) return
+  closeBackupDone = true
+  try {
+    const db = getDb() // throws if locked (restore in progress) → caught → skipped
+    const s = readConfig(db)
+    if (!s.auto_enabled) return
+    const dir = resolveBackupsDir()
+    const target = autoTarget(dir)
+    const tmp = target + '.tmp'
+    fs.rmSync(tmp, { force: true }) // VACUUM INTO refuses to overwrite an existing file
+    db.exec(`VACUUM INTO '${tmp.replace(/'/g, "''")}'`)
+    promote(tmp, target) // only a fully-written file becomes the day's backup
+    finalize(db, dir, s.retention_count)
+  } catch (err) {
+    console.error('close-backup failed', err)
+  }
+}
+
+// Midnight scheduler — fires at 00:00 local each day while the app runs, so an
+// always-on terminal still gets a daily backup. Re-arms itself after each fire.
+let dailyTimer: NodeJS.Timeout | null = null
+export function scheduleDailyBackup(): void {
+  if (dailyTimer) clearTimeout(dailyTimer)
+  const ms = Math.max(1000, dayjs().add(1, 'day').startOf('day').diff(dayjs()))
+  dailyTimer = setTimeout(() => {
+    runScheduledBackup().finally(() => scheduleDailyBackup())
+  }, ms)
+  dailyTimer.unref?.() // never keep the process alive just for the timer
+}
+
+async function runScheduledBackup(): Promise<void> {
   try {
     const db = getDb()
-    let s = db.prepare(`SELECT * FROM backup_settings ORDER BY id LIMIT 1`).get() as
-      | { id: number; auto_enabled: number; retention_count: number; last_auto_backup_at: string | null }
-      | undefined
-    if (!s) {
-      db.prepare(`INSERT INTO backup_settings DEFAULT VALUES`).run()
-      s = db.prepare(`SELECT * FROM backup_settings ORDER BY id LIMIT 1`).get() as any
-    }
-    if (!s || !s.auto_enabled) return
+    const s = readConfig(db)
+    if (!s.auto_enabled) return
     const today = dayjs().format('YYYY-MM-DD')
     if (s.last_auto_backup_at && dayjs(s.last_auto_backup_at).format('YYYY-MM-DD') === today) return
-
-    const dir = getBackupsDir()
-    await db.backup(path.join(dir, `auto-${stamp()}.db`))
-    db.prepare(`UPDATE backup_settings SET last_auto_backup_at = datetime('now','localtime') WHERE id = ?`).run(s.id)
-    pruneBackups(dir, s.retention_count || 7)
+    const dir = resolveBackupsDir()
+    const target = autoTarget(dir)
+    const tmp = target + '.tmp'
+    fs.rmSync(tmp, { force: true })
+    await db.backup(tmp)
+    promote(tmp, target)
+    finalize(db, dir, s.retention_count)
   } catch (err) {
-    console.error('auto-backup failed', err)
+    console.error('scheduled-backup failed', err)
   }
 }

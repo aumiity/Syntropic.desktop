@@ -207,10 +207,18 @@ const api = {
       ipcRenderer.invoke('backup:restore') as Promise<{ ok: boolean; canceled?: boolean; error?: string }>,
     getSettings: () =>
       ipcRenderer.invoke('backup:getSettings') as Promise<{
-        id: number; auto_enabled: number; retention_count: number; last_auto_backup_at: string | null
+        id: number; auto_enabled: number; retention_count: number
+        backup_dir: string | null; last_auto_backup_at: string | null; default_dir: string
       }>,
     saveSettings: (s: { auto_enabled: boolean; retention_count: number }) =>
-      ipcRenderer.invoke('backup:saveSettings', s),
+      ipcRenderer.invoke('backup:saveSettings', s) as Promise<{
+        id: number; auto_enabled: number; retention_count: number
+        backup_dir: string | null; last_auto_backup_at: string | null; default_dir: string
+      }>,
+    pickFolder: () =>
+      ipcRenderer.invoke('backup:pickFolder') as Promise<{ ok: boolean; path?: string; canceled?: boolean; error?: string }>,
+    resetFolder: () =>
+      ipcRenderer.invoke('backup:resetFolder') as Promise<{ ok: boolean; path: string }>,
     listAuto: () =>
       ipcRenderer.invoke('backup:listAuto') as Promise<
         Array<{ name: string; path: string; size: number; mtime: string }>
