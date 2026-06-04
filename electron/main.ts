@@ -1,6 +1,6 @@
 import { app, BrowserWindow, shell, ipcMain } from 'electron'
 import path from 'path'
-import { closeDb } from './db'
+import { closeDb, applyPendingRestore } from './db'
 import { registerPosHandlers } from './ipc/pos'
 import { registerProductHandlers } from './ipc/products'
 import { registerPurchaseHandlers } from './ipc/purchase'
@@ -15,6 +15,7 @@ import { registerDevHandlers } from './ipc/dev'
 import { registerMatcherHandlers } from './ipc/matcher'
 import { registerNegativeStockHandlers } from './ipc/negativeStock'
 import { registerExpenseHandlers } from './ipc/expenses'
+import { registerBackupHandlers, runAutoBackup } from './ipc/backup'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -84,12 +85,19 @@ registerAuthHandlers()
 registerMatcherHandlers()
 registerNegativeStockHandlers()
 registerExpenseHandlers()
+registerBackupHandlers()
 if (isDev) registerDevHandlers()
 
 // App event
 ipcMain.handle('app:getVersion', () => app.getVersion())
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  // Swap in a restored database BEFORE getDb() opens anything (no-op if none pending).
+  applyPendingRestore()
+  createWindow()
+  // Fire-and-forget — never block window show on the backup.
+  runAutoBackup().catch(err => console.error('auto-backup failed', err))
+})
 
 app.on('window-all-closed', () => {
   closeDb()

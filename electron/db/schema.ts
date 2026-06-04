@@ -501,6 +501,17 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    -- Database backup settings (singleton). auto_enabled gates the once-per-day
+    -- backup-on-launch; retention_count caps how many auto-*.db files are kept.
+    -- last_auto_backup_at is set by runAutoBackup() (NULL until the first run).
+    CREATE TABLE IF NOT EXISTS backup_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      auto_enabled    INTEGER NOT NULL DEFAULT 1,
+      retention_count INTEGER NOT NULL DEFAULT 7,
+      last_auto_backup_at TEXT,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     -- Full tax invoices (ใบกำกับภาษีเต็มรูป, ม.86/4). One row per sale issued.
     -- doc_no reuses the sale's invoice_no (RC-) as the running serial number.
     -- Buyer fields are a snapshot taken at issue time (the customer record may

@@ -341,3 +341,18 @@ export interface NegativeStockAlert {
   marker_count: number
   total_qty: number
 }
+
+// Database backup feature (Settings → ฐานข้อมูล)
+export interface BackupSettings {
+  id: number
+  auto_enabled: number          // 0/1 (SQLite boolean)
+  retention_count: number
+  last_auto_backup_at: string | null
+}
+
+export interface BackupFileInfo {
+  name: string
+  path: string
+  size: number                  // bytes
+  mtime: string                 // ISO timestamp
+}

@@ -199,6 +199,25 @@ const api = {
       rows: Array<{ barcode: string; qty: number | string; expiry: string; lineTotal: number | string }>,
     ) => ipcRenderer.invoke('matcher:exportCSV', rows),
   },
+  // Database backup / export / restore
+  backup: {
+    export: () =>
+      ipcRenderer.invoke('backup:export') as Promise<{ ok: boolean; path?: string; canceled?: boolean; error?: string }>,
+    restore: () =>
+      ipcRenderer.invoke('backup:restore') as Promise<{ ok: boolean; canceled?: boolean; error?: string }>,
+    getSettings: () =>
+      ipcRenderer.invoke('backup:getSettings') as Promise<{
+        id: number; auto_enabled: number; retention_count: number; last_auto_backup_at: string | null
+      }>,
+    saveSettings: (s: { auto_enabled: boolean; retention_count: number }) =>
+      ipcRenderer.invoke('backup:saveSettings', s),
+    listAuto: () =>
+      ipcRenderer.invoke('backup:listAuto') as Promise<
+        Array<{ name: string; path: string; size: number; mtime: string }>
+      >,
+    openFolder: () =>
+      ipcRenderer.invoke('backup:openFolder') as Promise<{ ok: boolean; error?: string }>,
+  },
   // Negative-stock reconciliation
   negativeStock: {
     list: () => ipcRenderer.invoke('negativeStock:list'),
