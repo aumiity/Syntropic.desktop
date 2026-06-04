@@ -105,6 +105,7 @@ statusLine ถูกตั้งไว้ **2 ที่** ด้วยเหต�
 | layout / ลำดับบรรทัด / label / emoji | ส่วน `// ---------- compose ----------` ล่างสุด |
 | ฟอร์แมตเวลา reset (5H = `2:30`, WK = `Wed 10:00 AM`) | function `remHM()` / `atTime()` |
 | แปลงชื่อโมเดล (`claude-opus-4-8` → `Opus 4.8`) | function `prettyModel()` |
+| ป้ายแพ็กเกจ (`Max(5x)`) | const `PLAN` — **auto-detect ไม่ได้** (JSON ไม่มี field plan) ตั้ง default ที่นี่ หรือ override ต่อเครื่องด้วย env `CLAUDE_PLAN` (เช่น `CLAUDE_PLAN=Max(20x)`) โดยไม่ต้องแก้ไฟล์ที่ commit |
 
 ข้อมูลที่ใช้ได้ทั้งหมด (context %, cost, rate_limits ฯลฯ) ดู spec ที่
 <https://code.claude.com/docs/en/statusline>

@@ -26,6 +26,10 @@ const GREEN = [158, 206, 106];
 const GOLD  = [224, 175, 104];
 const PIPE  = fg([72, 80, 116]) + ' | ' + RST;
 
+// subscription plan label. The statusline JSON has NO plan/tier field, so it can't be
+// auto-detected — set it per machine via the CLAUDE_PLAN env var, or fall back to this default.
+const PLAN = process.env.CLAUDE_PLAN || 'Max(5x)';
+
 // gradient green -> yellow -> red
 const lerp = (a, b, t) => Math.round(a + (b - a) * t);
 function grad(t) {
@@ -108,6 +112,7 @@ const l1 = [];
 l1.push(fg(GOLD) + '📁⏵ ' + RST + fg(TEXT) + bold(dirName) + RST);
 l1.push(fg(GOLD) + '🧠⏵ ' + RST + fg(TEXT) + model + RST + (effort ? fg(MUTE) + ` (${effort})` + RST : ''));
 if (usd != null) l1.push(fg(GOLD) + '💵⏵ ' + RST + fg(TEXT) + '$' + usd.toFixed(2) + RST);
+if (PLAN) l1.push(fg(GOLD) + '💎⏵ ' + RST + fg(TEXT) + PLAN + RST);
 out.push(l1.join(PIPE));
 
 
