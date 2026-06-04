@@ -9,5 +9,11 @@
       "Bash(git rm *)",
       "Bash(git commit *)"
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node .claude/statusline.mjs",
+    "padding": 0,
+    "refreshInterval": 10
   }
 }
