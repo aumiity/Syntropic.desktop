@@ -572,7 +572,7 @@ export default function POSPage() {
     if ((product as any).is_bundle === 1) {
       toast({
         title: 'คืนชุดสินค้าให้ทำผ่านหน้าบิล',
-        description: 'เปิด ประวัติ & สต็อก → ประวัติการขาย → คลิกบิล → ปุ่ม "คืนชุดนี้"',
+        description: 'เปิด การจัดการ → ประวัติการขาย → คลิกบิล → ปุ่ม "คืนชุดนี้"',
       })
       return
     }

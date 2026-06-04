@@ -21,12 +21,12 @@ const EditQuotation = lazy(() => import('./pages/Quotation/EditQuotation'))
 const ManageLayout = lazy(() => import('./pages/Manage'))
 const ManageSales = lazy(() => import('./pages/Manage/Sales'))
 const ManagePurchases = lazy(() => import('./pages/Manage/Purchases'))
+const ManageExpenses = lazy(() => import('./pages/Manage/Expenses'))
 const ManageLowStock = lazy(() => import('./pages/Manage/LowStock'))
 const ManageExpiry = lazy(() => import('./pages/Manage/Expiry'))
 const ManageNegativeStock = lazy(() => import('./pages/Manage/NegativeStock'))
 const ReportsLayout = lazy(() => import('./pages/Reports'))
-const ReportsDashboard = lazy(() => import('./pages/Reports/Dashboard'))
-const ReportsNewDashboard = lazy(() => import('./pages/Reports/NewDashboard'))
+const ReportsDashboard = lazy(() => import('./pages/Reports/NewDashboard'))
 const ReportsFda = lazy(() => import('./pages/Reports/FdaReports'))
 const ReportsKhorYor9 = lazy(() => import('./pages/Reports/KhorYor9'))
 const Settings = lazy(() => import('./pages/Settings'))
@@ -95,6 +95,7 @@ export default function App() {
               <Route path="manage" element={<ManageLayout />}>
                 <Route index element={<ManageSales />} />
                 <Route path="purchases" element={<ManagePurchases />} />
+                <Route path="expenses" element={<ManageExpenses />} />
                 <Route path="low-stock" element={<ManageLowStock />} />
                 <Route path="expiry" element={<ManageExpiry />} />
                 <Route path="negative-stock" element={<ManageNegativeStock />} />
@@ -102,7 +103,6 @@ export default function App() {
               {/* Phase 4: Reports rebuilt as finance dashboard (Phase 5 adds อย.). */}
               <Route path="reports" element={<ReportsLayout />}>
                 <Route index element={<ReportsDashboard />} />
-                <Route path="new" element={<ReportsNewDashboard />} />
                 <Route path="fda">
                   <Route index element={<ReportsFda />} />
                   <Route path="khor-yor-9" element={<ReportsKhorYor9 />} />

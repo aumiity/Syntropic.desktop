@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
-import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus } from 'lucide-react'
+import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus, Wallet } from 'lucide-react'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 
 // Phase 1: ประวัติการขาย + ใกล้หมดอายุ. Phase 2: + ประวัติการซื้อ.
@@ -16,6 +16,7 @@ const TABS = [
   { value: 'low-stock',      to: '/manage/low-stock',      label: 'ต่ำกว่าจุดสั่งซื้อ', icon: PackageX },
   { value: 'expiry',         to: '/manage/expiry',         label: 'วันหมดอายุ',   icon: CalendarClock },
   { value: 'negative-stock', to: '/manage/negative-stock', label: 'สต๊อคติดลบ',    icon: PackageMinus },
+  { value: 'expenses',       to: '/manage/expenses',       label: 'ค่าใช้จ่าย',    icon: Wallet },
 ] as const
 
 type TabValue = typeof TABS[number]['value']
@@ -23,6 +24,7 @@ type TabValue = typeof TABS[number]['value']
 function resolveTab(pathname: string): TabValue {
   if (pathname.startsWith('/manage/expiry')) return 'expiry'
   if (pathname.startsWith('/manage/purchases')) return 'purchases'
+  if (pathname.startsWith('/manage/expenses')) return 'expenses'
   if (pathname.startsWith('/manage/low-stock')) return 'low-stock'
   if (pathname.startsWith('/manage/negative-stock')) return 'negative-stock'
   return 'sales'
@@ -79,7 +81,7 @@ export default function ManageLayout() {
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
-      <PageHeader title="ประวัติ & สต็อก" />
+      <PageHeader title="การจัดการ" />
 
       <TabStrip className="-mb-2">
         <Tabs

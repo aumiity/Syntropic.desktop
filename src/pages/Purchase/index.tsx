@@ -571,7 +571,7 @@ export default function PurchasePage() {
         const head = alerts[0].trade_name
         const more = alerts.length > 1 ? ` (+${alerts.length - 1})` : ''
         toast(
-          `สินค้า ${head}${more} มีสต็อคติดลบกรุณาตัดจ่ายย้อนหลัง — กดเมนู "ประวัติ & สต็อก" เพื่อตรวจสอบ`,
+          `สินค้า ${head}${more} มีสต็อคติดลบกรุณาตัดจ่ายย้อนหลัง — กดเมนู "การจัดการ" เพื่อตรวจสอบ`,
           'info',
           10000,
         )

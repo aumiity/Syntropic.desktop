@@ -18,7 +18,7 @@ const mainNavItems = [
   // { to: '/quotation', label: 'ใบเสนอราคา', icon: FileText },
   { to: '/purchase', label: 'การรับสินค้า', icon: PackagePlus },
   { to: '/products', label: 'สินค้า', icon: Pill },
-  { to: '/manage', label: 'ประวัติ & สต็อก', icon: ClipboardList },
+  { to: '/manage', label: 'การจัดการ', icon: ClipboardList },
   { to: '/reports', label: 'รายงาน', icon: LineChart },
   { to: '/people', label: 'บุคคล', icon: Users },
   { to: '/settings', label: 'ตั้งค่า', icon: Settings },

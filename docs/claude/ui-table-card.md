@@ -23,7 +23,7 @@ Rule of thumb: only the column-header band is muted. The bottom status bar gets 
 
 `h-12 px-5 text-sm font-semibold text-muted-foreground flex items-center justify-between` — left = description/count, right = Add button. **The bar is `h-12`; any button inside is `h-9`** — use `<Button size="lg" className="px-2">` (lg = h-9 with proper text-sm). Do NOT hand-size with `h-9` className overrides on `size="sm"` (that gave us h-9 with small text).
 
-**Leading icon (HARD):** a table-card header's `<TintIcon>` is always `tint="neutral"` + `bordered` (the elevated, colorless look) — NEVER a colored tint. Colored/role tints are for `SectionCard` headers only. Canonical: `Reports/Dashboard.tsx` (รายการค่าใช้จ่าย + สินค้าค้างสต็อก headers).
+**Leading icon (HARD):** a table-card header's `<TintIcon>` is always `tint="neutral"` + `bordered` (the elevated, colorless look) — NEVER a colored tint. Colored/role tints are for `SectionCard` headers only. Canonical: `Manage/Expenses.tsx` (รายการค่าใช้จ่าย header) and `Reports/NewDashboard.tsx` (สินค้าค้างสต็อก header).
 
 ### Filter strip / topbar (HARD): `h-14 px-2`, every control inside = `h-10`
 
@@ -65,7 +65,7 @@ Use `<Button size="icon-lg" variant="elevated">` with a single lucide icon and *
 - **Standard:** a single `MoreHorizontal` ("ตัวเลือก") button that opens a `<Popover>` menu listing the row's actions. Menu items are plain `<button>`s (`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors`); a destructive item uses `text-destructive hover:bg-destructive/10` instead.
 - **Single action:** skip the menu — use a direct `elevated` icon button (e.g. `Eye` for ดูรายละเอียด) whose `onClick` runs the action.
 
-Canonical: the "ตัวเลือก" button in `Manage/Sales.tsx` (also `Manage/Purchases.tsx`, `Manage/NegativeStock.tsx`, `Reports/Dashboard.tsx`). (Legacy `w-16` rectangles in `Products/index.tsx`, `EditProduct/LotsTab.tsx`, `EditProduct/HistoryTab.tsx` predate this rule — migrate to square `elevated` when you touch them.)
+Canonical: the "ตัวเลือก" button in `Manage/Sales.tsx` (also `Manage/Purchases.tsx`, `Manage/NegativeStock.tsx`, `Manage/Expenses.tsx`). (Legacy `w-16` rectangles in `Products/index.tsx`, `EditProduct/LotsTab.tsx`, `EditProduct/HistoryTab.tsx` predate this rule — migrate to square `elevated` when you touch them.)
 
 ### Empty state
 
