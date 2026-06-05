@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hygeia → Syntropic — แผน Mapping นำเข้าข้อมูล</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .src{color:var(--slate)}
+  .dst{color:var(--teal-d);font-weight:600}
+  .note{font-size:12.5px;color:var(--muted)}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:10px 0}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>แผน Mapping นำเข้าข้อมูล Hygeia → Syntropic</h1>
+  <p>จาก <code style="background:rgba(255,255,255,.2);color:#fff">hygeia.data.mdb</code> (MS Access, 478 MB, ไม่เข้ารหัส) → SQLite ของเรา · เอกสารตรวจสอบก่อนเขียน importer</p>
+  <div class="pillrow">
+    <span class="pill">ขาย/ซื้อ 3 ปีล่าสุด (ตั้งแต่ 2023-06-05)</span>
+    <span class="pill">ข้อมูลดิบ: ขาย · ซื้อ · ราคา · เงิน · สต็อก</span>
+    <span class="pill">code generate ใหม่ทั้งหมด</span>
+    <span class="pill">ข้ามตารางที่เราไม่มี/ไม่ใช้</span>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="stat"><div class="v">2,430</div><div class="l">สินค้า (Item)</div></div>
+  <div class="stat"><div class="v">39,811</div><div class="l">ล็อต (Lot)</div></div>
+  <div class="stat"><div class="v">169</div><div class="l">ลูกค้า</div></div>
+  <div class="stat"><div class="v">149</div><div class="l">ซัพพลายเออร์</div></div>
+  <div class="stat"><div class="v">~342k</div><div class="l">บิลขาย (ก่อนกรอง)</div></div>
+  <div class="stat"><div class="v">6,850</div><div class="l">ใบรับซื้อ</div></div>
+</div>
+
+<div class="legend">
+  <span><span class="tag t-keep">นำเข้า</span> map เข้าตารางเรา</span>
+  <span><span class="tag t-opt">ทางเลือก</span> รอพี่ตัดสินใจ</span>
+  <span><span class="tag t-gen">generate</span> สร้างใหม่ตอน import</span>
+  <span><span class="tag t-skip">ข้าม</span> ไม่นำเข้า</span>
+</div>
+
+<!-- ============ STRATEGY ============ -->
+<h2><span class="n">0</span>หลักการนำเข้า</h2>
+<div class="card">
+<ul class="clean">
+  <li><b>One-off script</b> — สคริปต์นำเข้าครั้งเดียว (เช่น <code>scripts/import-hygeia.ts</code>) ไม่แตะ runtime ของแอป รันบน DB เปล่า</li>
+  <li><b>Key crosswalk</b> — เก็บ map <code>HygeiaKey → SyntropicId</code> ในหน่วยความจำระหว่าง import (เช่น <code>ItemKey 1536 → products.id 1</code>) แล้วใช้ผูก foreign key ต่อ ๆ ไป</li>
+  <li><b>Code ใหม่ทั้งหมด</b> — ไม่เก็บ <code>IT-xxxx / CT-xxxx</code> เดิม แต่ generate รหัสตามรูปแบบเรา (เก็บรหัสเดิมไว้ใน note ได้ถ้าต้องการ)</li>
+  <li><b>ลำดับ import</b>: หน่วย/หมวด/ประเภท → สินค้า → ล็อต → ลูกค้า/ซัพ → รับซื้อ → ขาย (เคารพ FK)</li>
+  <li><b>กรอง 3 ปี</b>: <code>SaleBasicHeader.DocDT &gt;= 2023-06-05</code> (รูปแบบวันที่ใน mdb = <code>MM/DD/YY</code>) ทั้งฝั่งขายและซื้อ</li>
+</ul>
+</div>
+
+<!-- ============ SPECIAL CASES ============ -->
+<h2><span class="n">★</span>เคสพิเศษที่ตรวจแล้ว (ตามที่พี่เตือน)</h2>
+
+<div class="callout teal">
+  <h4>① หน่วยใหญ่ (กล่อง / โหล / แพ็ค) — ตรวจครบ ✓</h4>
+  Hygeia เก็บหน่วยฐานบนตัวสินค้า (<code>Item.SaleUnitName</code>) ส่วนหน่วยใหญ่อยู่ใน <code>ItemUnit</code> พร้อม <code>Multiply</code>
+  (เช่น กล่อง×10, โหล×12, TYLENOL กล่อง×20) — <b>ตรงปรัชญาเราเป๊ะ</b>: หน่วยฐานบน <code>products.unit_id</code>, หน่วยย่อยใน <code>product_units.qty_per_base</code>.<br>
+  เวลาขาย: <code>SaleBasic.UnitName + Multiply + UnitQty</code> → จำนวนฐาน = <code>UnitQty × Multiply</code>, และ <code>SaleBasicLot.BaseQty</code> คือยอดตัดสต็อกจริงต่อล็อต (FEFO)
+</div>
+
+<div class="callout">
+  <h4>② สินค้าจัดชุด (ItemSet) — ตรวจครบ ✓ มี 33,803 บรรทัดขายแบบชุด</h4>
+  Hygeia <b>ไม่เก็บชุดเป็นบรรทัดเดียว</b> — ตอนขายมัน <b>แตกออกเป็นบรรทัดสินค้าจริงทีละตัว</b> ทุกบรรทัด tag ด้วย <code>ItemSetKey / ItemSetCode</code>
+  (เช่นชุด IS-0000005 = PHEMINE + TERCO-D + BROMCOLEX → 3 บรรทัด).<br>
+  <b>ผลต่อการนำเข้า:</b> ประวัติขายแต่ละบรรทัด = สินค้าจริง 1 ตัว → ลง <code>sale_items</code> ตรง ๆ (qty/ราคาครบ). "ชุด" เป็นแค่ป้ายจัดกลุ่ม — เก็บรหัสชุดไว้ใน <code>sale_items.item_note</code> ได้ถ้าอยากรู้ที่มา.<br>
+  ส่วน <b>นิยามชุด</b> (<code>ItemSet</code> 93 ชุด / <code>ItemSetItem</code> 311) → map เป็น <code>products(is_bundle=1)</code> + <code>product_bundle_items</code> ได้ <span class="tag t-opt">ทางเลือก</span> (ไว้ขายชุดต่อในอนาคต) — แยกจากประวัติขาย
+</div>
+
+<!-- ============ MAPPINGS ============ -->
+<h2><span class="n">1</span>สินค้า · หน่วย · หมวด</h2>
+
+<h3>Item <span class="arrow">→</span> products <span class="tag t-keep">นำเข้า</span></h3>
+<div class="card"><table>
+<tr><th>Hygeia</th><th></th><th>Syntropic</th><th>หมายเหตุ</th></tr>
+<tr><td class="src">Code</td><td class="arrow">→</td><td class="dst">code</td><td class="note"><span class="tag t-gen">generate</span> รหัสใหม่; เก็บ Code เดิมใน note</td></tr>
+<tr><td class="src">Name</td><td class="arrow">→</td><td class="dst">trade_name</td><td></td></tr>
+<tr><td class="src">NameForPrint</td><td class="arrow">→</td><td class="dst">name_for_print</td><td></td></tr>
+<tr><td class="src">BarCode / BarCode2 / BarCode3 / BarCode4</td><td class="arrow">→</td><td class="dst">barcode / barcode2 / barcode3 / barcode4</td><td class="note">เรามี 4 ช่อง (Hygeia มี 6 — เกินตัด)</td></tr>
+<tr><td class="src">SalePrice</td><td class="arrow">→</td><td class="dst">price_retail</td><td></td></tr>
+<tr><td class="src">Wholesale1 / Wholesale2</td><td class="arrow">→</td><td class="dst">price_wholesale1 / price_wholesale2</td><td class="note">เรามี 2 ช่อง (Hygeia มี 5 — เกินตัด)</td></tr>
+<tr><td class="src">MovAvgPrice</td><td class="arrow">→</td><td class="dst">cost_price</td><td class="note">ต้นทุนเฉลี่ยถ่วงน้ำหนัก (ตรง 3-cost model เรา)</td></tr>
+<tr><td class="src">UnitPriceCheapest / UnitPrice</td><td class="arrow">→</td><td class="dst">last_cost_price</td><td class="note">ราคาทุนล่าสุดอ้างอิง</td></tr>
+<tr><td class="src">SaleUnitName</td><td class="arrow">→</td><td class="dst">unit_id</td><td class="note">หน่วยฐาน → upsert เข้า item_units แล้วผูก id</td></tr>
+<tr><td class="src">ReorderPoint</td><td class="arrow">→</td><td class="dst">reorder_point</td><td></td></tr>
+<tr><td class="src">ItemTypeKey</td><td class="arrow">→</td><td class="dst">category_id</td><td class="note">ผ่าน crosswalk ItemType</td></tr>
+<tr><td class="src">IsStockItem / IsDisabled / IsHidden</td><td class="arrow">→</td><td class="dst">is_stock_item / is_disabled / is_hidden</td><td></td></tr>
+<tr><td class="src">TMTID / TMTName</td><td class="arrow">→</td><td class="dst">tmt_id</td><td></td></tr>
+<tr><td class="src">Note</td><td class="arrow">→</td><td class="dst">note</td><td></td></tr>
+<tr><td class="src">CodeSearch / SearchKeyword</td><td class="arrow">→</td><td class="dst">search_keywords</td><td></td></tr>
+</table>
+<p class="note">ข้ามฟิลด์ที่เราไม่ใช้: Wholesale3-5, WholesaleAutoAdd*, ItemScore, ProductConsultant, IsSaleControl, ExpDayNum*, IsItemService ฯลฯ</p>
+</div>
+
+<h3>ItemUnit <span class="arrow">→</span> product_units + item_units <span class="tag t-keep">นำเข้า</span></h3>
+<div class="card"><table>
+<tr><th>Hygeia</th><th></th><th>Syntropic</th><th>หมายเหตุ</th></tr>
+<tr><td class="src">Name</td><td class="arrow">→</td><td class="dst">item_units.name + product_units.unit_id</td><td class="note">upsert ชื่อหน่วยลง item_units</td></tr>
+<tr><td class="src">ItemKey</td><td class="arrow">→</td><td class="dst">product_units.product_id</td><td class="note">ผ่าน crosswalk</td></tr>
+<tr><td class="src">Multiply</td><td class="arrow">→</td><td class="dst">qty_per_base</td><td class="note">เช่น กล่อง = 10</td></tr>
+<tr><td class="src">SalePrice / Wholesale1-2</td><td class="arrow">→</td><td class="dst">price_retail / price_wholesale1-2</td><td></td></tr>
+<tr><td class="src">IsForPR</td><td class="arrow">→</td><td class="dst">is_for_purchase</td><td></td></tr>
+<tr><td class="src">IsDisabled</td><td class="arrow">→</td><td class="dst">is_disabled</td><td></td></tr>
+</table></div>
+
+<h3>ItemType <span class="arrow">→</span> product_categories <span class="tag t-keep">นำเข้า</span></h3>
+<div class="card">
+<p class="note">12 ประเภท: ยา · เวชภัณฑ์ · อาหารเสริม &amp; วิตามิน · เครื่องสำอาง · สมุนไพร · นมผง · ผ้าอ้อม · อุปกรณ์เด็ก · ยาคุม · ขนม · อื่นๆ · (System01).
+<code>Name → name</code>, code generate ใหม่.</p>
+</div>
+
+<!-- ============ LOTS / STOCK ============ -->
+<h2><span class="n">2</span>ล็อต · สต็อก</h2>
+
+<h3>Lot <span class="arrow">→</span> product_lots <span class="tag t-keep">นำเข้า</span></h3>
+<div class="card"><table>
+<tr><th>Hygeia</th><th></th><th>Syntropic</th><th>หมายเหตุ</th></tr>
+<tr><td class="src">Name</td><td class="arrow">→</td><td class="dst">lot_number</td><td></td></tr>
+<tr><td class="src">EfdDate / ExpDate</td><td class="arrow">→</td><td class="dst">manufactured_date / expiry_date</td><td class="note">แปลง MM/DD/YY → ISO</td></tr>
+<tr><td class="src">UnitAmt</td><td class="arrow">→</td><td class="dst">cost_price</td><td class="note">ต้นทุน/หน่วยฐานของล็อต</td></tr>
+<tr><td class="src">BaseQty</td><td class="arrow">→</td><td class="dst">qty_on_hand</td><td class="note">คงเหลือปัจจุบัน (= qty_received สำหรับยอดยกมา)</td></tr>
+<tr><td class="src">IsClose / CloseDate</td><td class="arrow">→</td><td class="dst">is_closed / closed_at</td><td class="note">auto-toggle ตอน qty=0 (ตรงเรา)</td></tr>
+<tr><td class="src">ItemKey</td><td class="arrow">→</td><td class="dst">product_id</td><td class="note">ผ่าน crosswalk</td></tr>
+</table>
+<div class="callout teal" style="margin-top:12px">
+  <h4>การกระทบยอดสต็อก</h4>
+  <code>StockCurrentBalance.Qty</code> (ยอดรวมต่อสินค้า) ใช้เป็น <b>ตัวตรวจสอบ</b>ว่า Σ(qty_on_hand ของล็อต) ตรงกับยอดรวม — ไม่ import เป็นตารางแยก (เราไม่มี) แต่ใช้ validate ตอน import
+</div>
+</div>
+
+<!-- ============ PEOPLE ============ -->
+<h2><span class="n">3</span>ลูกค้า · ซัพพลายเออร์</h2>
+
+<h3>Customer + Person (1:1) <span class="arrow">→</span> customers <span class="tag t-keep">นำเข้า</span></h3>
+<div class="card"><table>
+<tr><th>Hygeia</th><th></th><th>Syntropic</th><th>หมายเหตุ</th></tr>
+<tr><td class="src">Person.FullName</td><td class="arrow">→</td><td class="dst">full_name</td><td></td></tr>
+<tr><td class="src">Person.Cid</td><td class="arrow">→</td><td class="dst">id_card</td><td></td></tr>
+<tr><td class="src">Person.BirthDate</td><td class="arrow">→</td><td class="dst">dob</td><td></td></tr>
+<tr><td class="src">Person.MobilePhone / Phone</td><td class="arrow">→</td><td class="dst">phone</td><td></td></tr>
+<tr><td class="src">Person.Address (+Province/District/Subdistrict)</td><td class="arrow">→</td><td class="dst">address</td><td class="note">รวมเป็น text เดียว (lookup จังหวัด/อำเภอ/ตำบล)</td></tr>
+<tr><td class="src">Customer.CHCDetail</td><td class="arrow">→</td><td class="dst">chronic_diseases</td><td></td></tr>
+<tr><td class="src">Customer.IsAlertNote / AlertNote</td><td class="arrow">→</td><td class="dst">is_alert / alert_note</td><td></td></tr>
+<tr><td class="src">Customer.IsHidden</td><td class="arrow">→</td><td class="dst">is_disabled</td><td></td></tr>
+<tr><td class="src">Customer.Code</td><td class="arrow">→</td><td class="dst">code</td><td class="note"><span class="tag t-gen">generate</span> ใหม่; walk-in key −10 → C0000</td></tr>
+</table>
+<p class="note"><b>Walk-in:</b> Hygeia key −10 = "ลูกค้าทั่วไป" (row จริง) → map เป็น C0000 ของเรา (ตรง invariant "walk-in = real row")</p>
+</div>
+
+<h3>LegalEntity (IsVendor) <span class="arrow">→</span> suppliers <span class="tag t-keep">นำเข้า</span></h3>
+<div class="card"><table>
+<tr><th>Hygeia</th><th></th><th>Syntropic</th><th>หมายเหตุ</th></tr>
+<tr><td class="src">Name</td><td class="arrow">→</td><td class="dst">name</td><td></td></tr>
+<tr><td class="src">TaxID</td><td class="arrow">→</td><td class="dst">tax_id</td><td></td></tr>
+<tr><td class="src">Phone1 / MobilePhone1</td><td class="arrow">→</td><td class="dst">phone</td><td></td></tr>
+<tr><td class="src">Address (+Province/District +ZipCode)</td><td class="arrow">→</td><td class="dst">address</td><td class="note">รวมเป็น text</td></tr>
+<tr><td class="src">IsDisabled / IsHidden</td><td class="arrow">→</td><td class="dst">is_disabled</td><td></td></tr>
+<tr><td class="src">Code</td><td class="arrow">→</td><td class="dst">code</td><td class="note"><span class="tag t-gen">generate</span> ใหม่</td></tr>
+</table>
+<p class="note">กรองเฉพาะ <code>IsVendor=1</code> (149 ราย); LegalEntity ที่เป็นโรงพยาบาล/คลินิกล้วน ๆ ข้าม</p>
+</div>
+
+<!-- ============ SALES ============ -->
+<h2><span class="n">4</span>ประวัติการขาย (3 ปี)</h2>
+
+<h3>SaleBasicHeader <span class="arrow">→</span> sales <span class="tag t-keep">นำเข้า</span> · กรอง DocDT ≥ 2023-06-05</h3>
+<div class="card"><table>
+<tr><th>Hygeia</th><th></th><th>Syntropic</th><th>หมายเหตุ</th></tr>
+<tr><td class="src">Code</td><td class="arrow">→</td><td class="dst">invoice_no</td><td class="note"><span class="tag t-gen">generate</span> เลขใหม่; เก็บเดิมใน note</td></tr>
+<tr><td class="src">DocDT</td><td class="arrow">→</td><td class="dst">sold_at</td><td></td></tr>
+<tr><td class="src">CustomerKey</td><td class="arrow">→</td><td class="dst">customer_id</td><td class="note">ผ่าน crosswalk; −10 → C0000</td></tr>
+<tr><td class="src">CustomerNameFreeText</td><td class="arrow">→</td><td class="dst">customer_name_free</td><td></td></tr>
+<tr><td class="src">TotalPrice</td><td class="arrow">→</td><td class="dst">subtotal / total_amount</td><td></td></tr>
+<tr><td class="src">TotalDiscount</td><td class="arrow">→</td><td class="dst">total_discount</td><td></td></tr>
+<tr><td class="src">TotalVat</td><td class="arrow">→</td><td class="dst">total_vat</td><td></td></tr>
+<tr><td class="src">CashAmt / CreditCardAmt / (transfer)</td><td class="arrow">→</td><td class="dst">cash_amount / card_amount / transfer_amount</td><td></td></tr>
+<tr><td class="src">BankChangeAmt</td><td class="arrow">→</td><td class="dst">change_amount</td><td></td></tr>
+<tr><td class="src">IsCredit / DueDate</td><td class="arrow">→</td><td class="dst">is_credit / due_date</td><td></td></tr>
+<tr><td class="src">IsCanceled</td><td class="arrow">→</td><td class="dst">status</td><td class="note">1 → 'voided', 0 → 'completed'</td></tr>
+<tr><td class="src">IsWholesale</td><td class="arrow">→</td><td class="dst">sale_type</td><td class="note">1 → 'wholesale', 0 → 'retail'</td></tr>
+<tr><td class="src">SymptomNote / AgeRange / IsFDA13Report</td><td class="arrow">→</td><td class="dst">symptom_note / age_range / is_fda13_report</td><td></td></tr>
+</table></div>
+
+<h3>SaleBasic <span class="arrow">→</span> sale_items <span class="tag t-keep">นำเข้า</span></h3>
+<div class="card"><table>
+<tr><th>Hygeia</th><th></th><th>Syntropic</th><th>หมายเหตุ</th></tr>
+<tr><td class="src">ItemKey</td><td class="arrow">→</td><td class="dst">product_id</td><td class="note">ผ่าน crosswalk (บรรทัดชุดก็ = สินค้าจริง)</td></tr>
+<tr><td class="src">ItemName</td><td class="arrow">→</td><td class="dst">item_name</td><td></td></tr>
+<tr><td class="src">UnitName</td><td class="arrow">→</td><td class="dst">unit_name</td><td></td></tr>
+<tr><td class="src">UnitQty</td><td class="arrow">→</td><td class="dst">qty</td><td class="note">จำนวนตามหน่วยที่ขาย</td></tr>
+<tr><td class="src">UnitPrice</td><td class="arrow">→</td><td class="dst">unit_price</td><td></td></tr>
+<tr><td class="src">Discount</td><td class="arrow">→</td><td class="dst">discount</td><td></td></tr>
+<tr><td class="src">UnitVat</td><td class="arrow">→</td><td class="dst">unit_vat</td><td></td></tr>
+<tr><td class="src">IsCanceled</td><td class="arrow">→</td><td class="dst">is_cancelled</td><td></td></tr>
+<tr><td class="src">ItemSetCode</td><td class="arrow">→</td><td class="dst">item_note</td><td class="note">เก็บรหัสชุด (ถ้ามี) ไว้อ้างอิง</td></tr>
+</table></div>
+
+<h3>SaleBasicLot <span class="arrow">→</span> sale_item_lots <span class="tag t-keep">นำเข้า</span></h3>
+<div class="card"><table>
+<tr><th>Hygeia</th><th></th><th>Syntropic</th><th>หมายเหตุ</th></tr>
+<tr><td class="src">SaleBasicKey</td><td class="arrow">→</td><td class="dst">sale_item_id</td><td class="note">ผ่าน crosswalk</td></tr>
+<tr><td class="src">LotKey</td><td class="arrow">→</td><td class="dst">lot_id</td><td class="note">ผ่าน crosswalk; ล็อตนอก 3 ปี → ยังต้อง import ล็อตที่ถูกอ้างอิง</td></tr>
+<tr><td class="src">ItemKey</td><td class="arrow">→</td><td class="dst">product_id</td><td></td></tr>
+<tr><td class="src">BaseQty</td><td class="arrow">→</td><td class="dst">qty</td><td class="note">ยอดตัดสต็อกจริง (หน่วยฐาน)</td></tr>
+<tr><td class="src">IsCanceled</td><td class="arrow">→</td><td class="dst">is_cancelled</td><td></td></tr>
+</table></div>
+
+<!-- ============ PURCHASE ============ -->
+<h2><span class="n">5</span>ประวัติการซื้อ/รับเข้า (3 ปี)</h2>
+
+<h3>PurchaseReceiveHeader <span class="arrow">→</span> purchase_receipts <span class="tag t-keep">นำเข้า</span> · กรอง DocDT ≥ 2023-06-05</h3>
+<div class="card"><table>
+<tr><th>Hygeia</th><th></th><th>Syntropic</th><th>หมายเหตุ</th></tr>
+<tr><td class="src">Code</td><td class="arrow">→</td><td class="dst">invoice_no</td><td class="note"><span class="tag t-gen">generate</span> ใหม่</td></tr>
+<tr><td class="src">CodeRef</td><td class="arrow">→</td><td class="dst">supplier_invoice_no</td><td></td></tr>
+<tr><td class="src">VendorKey</td><td class="arrow">→</td><td class="dst">supplier_id</td><td class="note">ผ่าน crosswalk</td></tr>
+<tr><td class="src">DocDT</td><td class="arrow">→</td><td class="dst">order_date</td><td></td></tr>
+<tr><td class="src">CashTypeKey</td><td class="arrow">→</td><td class="dst">payment_type</td><td class="note">เงินสด/เครดิต</td></tr>
+<tr><td class="src">DueDate / IsPay / PayDate</td><td class="arrow">→</td><td class="dst">due_date / is_paid / paid_date</td><td></td></tr>
+<tr><td class="src">TotalDiscount</td><td class="arrow">→</td><td class="dst">discount_amount</td><td></td></tr>
+<tr><td class="src">IsCanceled</td><td class="arrow">→</td><td class="dst">status</td><td class="note">1 → 'cancelled'</td></tr>
+<tr><td class="src">Note</td><td class="arrow">→</td><td class="dst">note</td><td></td></tr>
+</table></div>
+
+<h3>PurchaseReceive (+PurchaseReceiveLot) <span class="arrow">→</span> purchase_receipt_items <span class="tag t-keep">นำเข้า</span></h3>
+<div class="card"><table>
+<tr><th>Hygeia</th><th></th><th>Syntropic</th><th>หมายเหตุ</th></tr>
+<tr><td class="src">ItemKey</td><td class="arrow">→</td><td class="dst">product_id</td><td class="note">ผ่าน crosswalk</td></tr>
+<tr><td class="src">ItemName</td><td class="arrow">→</td><td class="dst">(ผูกกับ product)</td><td></td></tr>
+<tr><td class="src">UnitQty × Multiply</td><td class="arrow">→</td><td class="dst">qty</td><td class="note">แปลงเป็นหน่วยฐาน</td></tr>
+<tr><td class="src">UnitPrice ÷ Multiply</td><td class="arrow">→</td><td class="dst">cost_price</td><td class="note">ต้นทุน/หน่วยฐาน</td></tr>
+<tr><td class="src">PurchaseReceiveLot.LotKey</td><td class="arrow">→</td><td class="dst">lot_id / lot_number</td><td class="note">เชื่อมล็อตที่รับ + วันผลิต/หมดอายุ</td></tr>
+<tr><td class="src">IsGive</td><td class="arrow">→</td><td class="dst">note ("ของแถม")</td><td class="note">ของแถม cost=0</td></tr>
+</table></div>
+
+<!-- ============ SKIP ============ -->
+<h2><span class="n">6</span>ตารางที่ <span style="color:var(--red)">ไม่นำเข้า</span> (เราไม่มี / ไม่ใช้)</h2>
+<div class="card">
+<p>จาก 138 ตารางใน Hygeia เราใช้จริงราว 15 ตาราง ที่เหลือข้ามตามที่พี่สั่ง ("อันไหนเราไม่มีและไม่ได้ใช้ ไม่เอา"):</p>
+<table>
+<tr><th>กลุ่ม</th><th>ตาราง (ตัวอย่าง)</th><th>เหตุผล</th></tr>
+<tr><td>คลินิก/เวชระเบียน</td><td class="src">Prescription, Dispensing, Triage, Lab, ICD, PE, DPR, BloodPressure, BloodSugar, Vaccine, Naranjo</td><td><span class="tag t-skip">ข้าม</span> เราไม่มีระบบคลินิก</td></tr>
+<tr><td>ปฏิสัมพันธ์ยา</td><td class="src">DrugInteraction, DrugAllergyCross, DrugACPC, DrugGenericName, DrugGroup*</td><td><span class="tag t-skip">ข้าม</span> ไม่ใช่ข้อมูลดิบขาย/ซื้อ</td></tr>
+<tr><td>ฉลากยา</td><td class="src">ItemLabel1, ItemLabelMain, ItemLabelHelp, SaleLabelMain</td><td><span class="tag t-skip">ข้าม</span> รูปแบบฉลากเราต่างกัน (ตั้งใหม่ในแอป)</td></tr>
+<tr><td>โปรโมชัน</td><td class="src">SalePromotion*, PurchasePromotion*</td><td><span class="tag t-skip">ข้าม</span> ไม่ใช่ข้อมูลดิบที่ขอ</td></tr>
+<tr><td>เครดิต/ลูกหนี้ละเอียด</td><td class="src">SaleCredit* (Clear/Receive/Transection/Summary)</td><td><span class="tag t-opt">ทางเลือก</span> สรุปยอดเครดิตอยู่ใน sales แล้ว</td></tr>
+<tr><td>ฮาร์ดแวร์/ระบบ</td><td class="src">Computer, Printer, Hardware, Session, Module, Permission, SystemLog, Sequence</td><td><span class="tag t-skip">ข้าม</span> config เฉพาะเครื่องเก่า</td></tr>
+<tr><td>บัญชี/รายงานเก่า</td><td class="src">BalanceMonthly, CalBalance, ReportAccountTrading, OtherRevenue*, OtherCosts*</td><td><span class="tag t-opt">ทางเลือก</span> คำนวณใหม่จากข้อมูลดิบได้</td></tr>
+<tr><td>ปรับสต็อกเก่า</td><td class="src">StockAdj*, StockTransection, StockReturnLog</td><td><span class="tag t-opt">ทางเลือก</span> ยอดล่าสุดอยู่ใน Lot แล้ว</td></tr>
+<tr><td>lookup ที่ generate เองได้</td><td class="src">Province, District, Subdistrict, Country, Title, Gender, Bank</td><td><span class="tag t-gen">generate</span> ใช้ของเรา / lookup ตอนรวม address</td></tr>
+</table>
+</div>
+
+<!-- ============ OPEN QUESTIONS ============ -->
+<h2><span class="n">7</span>ขอยืนยัน 4 ข้อก่อนเขียน importer</h2>
+<div class="callout red">
+<ol class="clean" style="padding-left:18px">
+  <li><b>นิยามชุด (ItemSet 93 ชุด)</b> — import เป็นสินค้าจัดชุด (is_bundle) ไว้ขายต่อไหม? หรือเอาแค่ประวัติขายที่แตกบรรทัดแล้วพอ?</li>
+  <li><b>บิลที่ถูกยกเลิก (IsCanceled=1)</b> ในช่วง 3 ปี — เก็บไว้เป็น status 'voided' หรือข้ามทิ้ง?</li>
+  <li><b>เครดิต/ลูกหนี้ค้างชำระ</b> — เอาแค่ยอดสรุปในบิล (พอ) หรืออยากได้ตาราง SaleCredit ละเอียดด้วย?</li>
+  <li><b>เป้าหมาย DB</b> — สร้างไฟล์ <code>.db</code> ใหม่สำหรับทดสอบ (แนะนำ) หรือเขียนทับ DB ที่ใช้อยู่?</li>
+</ol>
+</div>
+
+<footer>
+  สร้างโดยการสำรวจ <code>hygeia.data.mdb</code> ด้วย mdbtools · เทียบกับ <code>electron/db/schema.ts</code><br>
+  เอกสารตรวจสอบ — ยังไม่มีการเขียนข้อมูลใด ๆ
+</footer>
+
+</div>
+</body>
+</html>
