@@ -16,6 +16,7 @@ import { registerMatcherHandlers } from './ipc/matcher'
 import { registerNegativeStockHandlers } from './ipc/negativeStock'
 import { registerExpenseHandlers } from './ipc/expenses'
 import { registerBackupHandlers, runCloseBackup, scheduleDailyBackup } from './ipc/backup'
+import { clearSessionById } from './auth/session'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -54,6 +55,16 @@ function createWindow() {
   })
 
   mainWindow.on('closed', () => { mainWindow = null })
+
+  // Drop the main-side session whenever the renderer reloads / navigates the
+  // main frame or is torn down — a fresh page must start unauthenticated so a
+  // stale role can never be replayed (matches the renderer no-persist model).
+  const wc = mainWindow.webContents
+  const senderId = wc.id
+  wc.on('destroyed', () => clearSessionById(senderId))
+  wc.on('did-start-navigation', (details) => {
+    if (details.isMainFrame && !details.isSameDocument) clearSessionById(senderId)
+  })
 }
 
 // Window control IPC

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
+import { usePermission } from '@/hooks/usePermission'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
@@ -645,7 +646,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
-  const ROLES: Record<string, string> = { admin: 'ผู้ดูแลระบบ', pharmacist: 'เภสัชกร', staff: 'พนักงาน' }
+  const ROLES: Record<string, string> = { admin: 'ผู้ดูแลระบบ', staff: 'พนักงาน' }
 
   // Client-side search — staff list is small, no need for round-trip per keystroke.
   const filtered = q.trim()
@@ -814,7 +815,6 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
-                    <SelectItem value="pharmacist">เภสัชกร</SelectItem>
                     <SelectItem value="staff">พนักงาน</SelectItem>
                   </SelectContent>
                 </Select>
@@ -854,6 +854,7 @@ const ADD_BUTTON: Record<string, string> = {
 }
 
 export default function PeoplePage() {
+  const { isAdmin } = usePermission()
   const [tab, setTab] = useState('customers')
   const [stats, setStats] = useState<PeopleStats>({ customers_active: 0, customers_disabled: 0, suppliers: 0, staff: 0 })
   // Trigger nonce — incremented by shell when it wants the active tab to open
@@ -861,11 +862,13 @@ export default function PeoplePage() {
   const [addNonce, setAddNonce] = useState(0)
 
   const refreshStats = useCallback(async () => {
+    // listStaff is admin-only — staff users skip it (and the staff stat) so the
+    // page doesn't fire a FORBIDDEN call.
     const [activeC, allC, sup, st] = await Promise.all([
       window.api.people.listCustomers({ limit: 1, includeDisabled: false }) as Promise<{ total: number }>,
       window.api.people.listCustomers({ limit: 1, includeDisabled: true })  as Promise<{ total: number }>,
       window.api.people.listSuppliers({ limit: 1, includeDisabled: true })  as Promise<{ total: number }>,
-      window.api.people.listStaff({ includeDisabled: true }) as Promise<any[]>,
+      isAdmin ? (window.api.people.listStaff({ includeDisabled: true }) as Promise<any[]>) : Promise.resolve([]),
     ])
     setStats({
       customers_active: activeC.total,
@@ -873,7 +876,7 @@ export default function PeoplePage() {
       suppliers: sup.total,
       staff: st.length,
     })
-  }, [])
+  }, [isAdmin])
 
   useEffect(() => { refreshStats() }, [refreshStats])
 
@@ -881,8 +884,11 @@ export default function PeoplePage() {
     { label: 'ลูกค้าที่ใช้งาน',     value: stats.customers_active.toLocaleString(),   icon: Users,     tint: 'primary'   as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground' },
     { label: 'ลูกค้าที่ปิดใช้งาน',  value: stats.customers_disabled.toLocaleString(), icon: Ban,       tint: 'destructive2' as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground' },
     { label: 'ผู้จัดจำหน่าย',      value: stats.suppliers.toLocaleString(),          icon: Building2, tint: 'info-soft' as MetricTint, sub: 'ราย', subClassName: 'text-base text-foreground' },
-    { label: 'พนักงาน',           value: stats.staff.toLocaleString(),              icon: UserCog,   tint: 'success'   as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-  ], [stats])
+    ...(isAdmin ? [{ label: 'พนักงาน', value: stats.staff.toLocaleString(), icon: UserCog, tint: 'success' as MetricTint, sub: 'คน', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' }] : []),
+  ], [stats, isAdmin])
+
+  // Staff management is admin-only — kick a staff user off that tab if reached.
+  useEffect(() => { if (!isAdmin && tab === 'staff') setTab('customers') }, [isAdmin, tab])
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
@@ -894,7 +900,7 @@ export default function PeoplePage() {
           <TabsList variant="segmented" className="h-10">
             <TabsTrigger value="customers"><Users /> ลูกค้า</TabsTrigger>
             <TabsTrigger value="suppliers"><Building2 /> ผู้จัดจำหน่าย</TabsTrigger>
-            <TabsTrigger value="staff"><UserCog /> พนักงาน</TabsTrigger>
+            {isAdmin && <TabsTrigger value="staff"><UserCog /> พนักงาน</TabsTrigger>}
           </TabsList>
         </Tabs>
         <Button onClick={() => setAddNonce(n => n + 1)} className="ml-auto h-10 px-3">
@@ -916,7 +922,7 @@ export default function PeoplePage() {
       <div className="flex-1 min-h-0 flex flex-col">
         {tab === 'customers' && <CustomersTab refreshStats={refreshStats} addNonce={addNonce} />}
         {tab === 'suppliers' && <SuppliersTab refreshStats={refreshStats} addNonce={addNonce} />}
-        {tab === 'staff'     && <StaffTab     refreshStats={refreshStats} addNonce={addNonce} />}
+        {tab === 'staff' && isAdmin && <StaffTab refreshStats={refreshStats} addNonce={addNonce} />}
       </div>
     </div>
   )

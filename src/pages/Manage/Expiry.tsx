@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { getCurrentUserId } from '@/stores/userStore'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { ManageOutletContext } from './index'
@@ -121,6 +122,7 @@ export default function ManageExpiryPage() {
 
   const [confirmingLot, setConfirmingLot] = useState<ExpiringLot | null>(null)
   const [expiring, setExpiring] = useState(false)
+  const overrideExpire = useManagerOverride()
 
   // Column visibility (ชื่อสินค้า + จัดการ always shown) — persisted
   const showColLot = prefs.showColLot
@@ -190,17 +192,27 @@ export default function ManageExpiryPage() {
     const lot = confirmingLot
     if (!lot) return
     setExpiring(true)
-    try {
-      const res = await window.api.products.expireLot(lot.lot_id, getCurrentUserId()) as { classification: 'expired' | 'near_expiry' }
-      const label = res?.classification === 'near_expiry' ? 'ใกล้หมดอายุ' : 'หมดอายุ'
-      toast(`ตัดออกล็อต ${lot.lot_number} (${lot.trade_name}) — ${label} สำเร็จ`, 'success')
-      setConfirmingLot(null)
-      load(page)
-    } catch (e: any) {
-      toast(e?.message ?? 'ตัดออกไม่สำเร็จ', 'error')
-    } finally {
-      setExpiring(false)
-    }
+    let res: { classification: 'expired' | 'near_expiry' } | undefined
+    overrideExpire.run(
+      async (ov) => {
+        res = await window.api.products.expireLot(lot.lot_id, getCurrentUserId(), ov) as { classification: 'expired' | 'near_expiry' }
+      },
+      {
+        title: 'ตัดออกล็อตหมดอายุ',
+        onDone: () => {
+          setExpiring(false)
+          const label = res?.classification === 'near_expiry' ? 'ใกล้หมดอายุ' : 'หมดอายุ'
+          toast(`ตัดออกล็อต ${lot.lot_number} (${lot.trade_name}) — ${label} สำเร็จ`, 'success')
+          setConfirmingLot(null)
+          load(page)
+        },
+        onError: (e: any) => {
+          setExpiring(false)
+          toast(e?.message ?? 'ตัดออกไม่สำเร็จ', 'error')
+        },
+      },
+    )
+    if (!overrideExpire.isAdmin) setExpiring(false)
   }
 
   // Passive MetricCard snapshot of the q/category set. The time-range filter
@@ -478,6 +490,7 @@ export default function ManageExpiryPage() {
         cancelLabel="ยกเลิก"
         onConfirm={handleExpire}
       />
+      {overrideExpire.dialog}
     </>
   )
 }

@@ -2,6 +2,8 @@ import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes'
 import { orderByBucket } from '../db/sortName'
+import { hashSecret } from '../auth/hash'
+import { requireAdmin } from '../auth/session'
 
 export function registerPeopleHandlers() {
   // --- CUSTOMERS ---
@@ -119,24 +121,41 @@ export function registerPeopleHandlers() {
 
   // --- STAFF ---
   ipcMain.handle('people:listStaff', (_e, filters?: { includeDisabled?: boolean }) => {
+    requireAdmin(_e)
     const { includeDisabled = false } = filters ?? {}
     const where = includeDisabled ? '' : `WHERE is_disabled = 0`
     return getDb().prepare(`SELECT id, name, email, role, is_disabled, created_at FROM users ${where} ORDER BY ${orderByBucket('name')}`).all()
   })
 
   ipcMain.handle('people:saveStaff', (_e, data: any) => {
+    requireAdmin(_e)
     const db = getDb()
+    // HARD: allow-list columns — never spread Object.keys(data) (footgun: a stray
+    // key throws "no such column"; a renderer-supplied hash must never be trusted).
+    // The renderer always sends plaintext; we hash here.
+    const ALLOWED = ['name', 'email', 'role', 'is_disabled'] as const
     if (data.id) {
-      const { id, ...rest } = data
-      const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
-      db.prepare(`UPDATE users SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run(data)
-      return db.prepare(`SELECT id, name, email, role, is_disabled FROM users WHERE id = ?`).get(id)
+      const params: Record<string, any> = { id: data.id }
+      const sets: string[] = []
+      for (const k of ALLOWED) {
+        if (k in data) { sets.push(`${k} = @${k}`); params[k] = data[k] }
+      }
+      // Password is conditional — only touched when a non-empty value is sent.
+      if (data.password) { sets.push(`password = @password`); params.password = hashSecret(data.password) }
+      db.prepare(`UPDATE users SET ${sets.join(', ')}, updated_at = datetime('now','localtime') WHERE id = @id`).run(params)
+      return db.prepare(`SELECT id, name, email, role, is_disabled FROM users WHERE id = ?`).get(data.id)
     }
-    const result = db.prepare(`INSERT INTO users (name, email, password, role) VALUES (@name, @email, @password, @role)`).run(data)
+    const result = db.prepare(`INSERT INTO users (name, email, password, role) VALUES (@name, @email, @password, @role)`).run({
+      name: data.name,
+      email: data.email,
+      password: hashSecret(data.password ?? ''),
+      role: data.role ?? 'staff',
+    })
     return db.prepare(`SELECT id, name, email, role, is_disabled FROM users WHERE id = ?`).get(result.lastInsertRowid)
   })
 
   ipcMain.handle('people:setStaffStatus', (_e, payload: { id: number; disabled: boolean }) => {
+    requireAdmin(_e)
     getDb().prepare(`UPDATE users SET is_disabled = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
       .run(payload.disabled ? 1 : 0, payload.id)
     return true

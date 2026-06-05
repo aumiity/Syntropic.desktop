@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '@/stores/cartStore'
 import { getCurrentUserId } from '@/stores/userStore'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
@@ -193,6 +194,7 @@ export default function POSPage() {
   const [adjustList, setAdjustList] = useState<AdjustLineItem[]>([])
   const [adjustReason, setAdjustReason] = useState('')
   const [adjustSaving, setAdjustSaving] = useState(false)
+  const overrideAdjust = useManagerOverride()
   const adjustInputRef = useRef<HTMLInputElement>(null)
   const adjustQtyRef = useRef<HTMLInputElement>(null)
 
@@ -533,21 +535,30 @@ export default function POSPage() {
 
   const handleConfirmAdjust = async () => {
     if (adjustList.length === 0 || !adjustReason.trim()) return
-    setAdjustSaving(true)
-    try {
-      await window.api.products.adjustLotBatch({
-        items: adjustList.map(i => ({ product_id: i.product_id, lot_id: i.lot_id, qty: i.qty })),
-        reason: adjustReason.trim(),
-        user_id: getCurrentUserId(),
-      })
-      toast(`ตัดสต็อก ${adjustList.length} รายการสำเร็จ`, 'success')
-      closeAdjust()
-      refocusSearch()
-    } catch (e: any) {
-      toast(e?.message ?? 'ตัดสต็อกไม่สำเร็จ', 'error')
-    } finally {
-      setAdjustSaving(false)
+    const count = adjustList.length
+    const payload = {
+      items: adjustList.map(i => ({ product_id: i.product_id, lot_id: i.lot_id, qty: i.qty })),
+      reason: adjustReason.trim(),
+      user_id: getCurrentUserId(),
     }
+    setAdjustSaving(true)
+    overrideAdjust.run(
+      async (ov) => { await window.api.products.adjustLotBatch(payload, ov) },
+      {
+        title: 'ตัดสต็อก',
+        onDone: () => {
+          setAdjustSaving(false)
+          toast(`ตัดสต็อก ${count} รายการสำเร็จ`, 'success')
+          closeAdjust()
+          refocusSearch()
+        },
+        onError: (e: any) => {
+          setAdjustSaving(false)
+          toast(e?.message ?? 'ตัดสต็อกไม่สำเร็จ', 'error')
+        },
+      },
+    )
+    if (!overrideAdjust.isAdmin) setAdjustSaving(false)
   }
 
   const handleReturnSearch = useCallback(async (q: string) => {
@@ -2621,6 +2632,7 @@ export default function POSPage() {
         })()}
       </Dialog>
 
+      {overrideAdjust.dialog}
     </div>
   )
 }

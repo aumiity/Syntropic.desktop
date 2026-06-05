@@ -14,6 +14,7 @@ import { VoidBillDialog } from '@/components/dialogs/VoidBillDialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { formatDateTime, cn } from '@/lib/utils'
 import {
   History, RotateCcw, Info, StickyNote, Filter,
@@ -75,6 +76,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
   const [saleDetailInvoice, setSaleDetailInvoice] = useState<string | null>(null)
   const [saleDetailOpen, setSaleDetailOpen] = useState(false)
   const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
+  const overrideVoid = useManagerOverride()
 
   const loadMovements = useCallback(async () => {
     if (!productId || isNew) return
@@ -124,18 +126,25 @@ export function HistoryTab({ productId, isNew, active }: Props) {
 
   const handleVoidBill = async (reason: string) => {
     if (!voidTarget) return
-    try {
-      await window.api.reports.voidSale(voidTarget.id, reason)
-      toast({ title: 'ยกเลิกบิลสำเร็จ', variant: 'success' })
-      setVoidTarget(null)
-      setSaleDetailOpen(false)
-      setSaleDetailInvoice(null)
-      reloadMovements()
-      useNegativeStockBadge.getState().refresh()
-    } catch (e: any) {
-      toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? String(e), variant: 'error' })
-      setVoidTarget(null)
-    }
+    const target = voidTarget
+    overrideVoid.run(
+      async (ov) => { await window.api.reports.voidSale(target.id, reason, ov) },
+      {
+        title: 'ยกเลิกบิล',
+        onDone: () => {
+          toast({ title: 'ยกเลิกบิลสำเร็จ', variant: 'success' })
+          setVoidTarget(null)
+          setSaleDetailOpen(false)
+          setSaleDetailInvoice(null)
+          reloadMovements()
+          useNegativeStockBadge.getState().refresh()
+        },
+        onError: (e: any) => {
+          toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? String(e), variant: 'error' })
+          setVoidTarget(null)
+        },
+      },
+    )
   }
 
   const openMovementDetail = (m: StockMovement) => {
@@ -399,6 +408,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
         onClose={() => setVoidTarget(null)}
         onConfirm={handleVoidBill}
       />
+      {overrideVoid.dialog}
     </div>
   )
 }

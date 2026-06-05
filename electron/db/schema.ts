@@ -13,6 +13,11 @@ export function initializeSchema(db: Database.Database) {
       password TEXT NOT NULL DEFAULT '',
       role TEXT NOT NULL DEFAULT 'staff',
       is_disabled INTEGER NOT NULL DEFAULT 0,
+      recovery_code_hash TEXT,
+      failed_attempts INTEGER NOT NULL DEFAULT 0,
+      locked_until TEXT,
+      recovery_failed_attempts INTEGER NOT NULL DEFAULT 0,
+      recovery_locked_until TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
@@ -782,6 +787,13 @@ export function initializeSchema(db: Database.Database) {
     //    wizard reappears (no false-complete)
     `UPDATE settings SET setup_completed = 1, setup_completed_at = datetime('now','localtime')
        WHERE setup_completed = 0 AND EXISTS (SELECT 1 FROM sales LIMIT 1)`,
+    // Login/auth columns on users (slice 1): recovery code + brute-force lockout.
+    `ALTER TABLE users ADD COLUMN recovery_code_hash TEXT`,
+    `ALTER TABLE users ADD COLUMN failed_attempts INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN locked_until TEXT`,
+    // Recovery-code lockout — a separate counter from login (Phase 2.5).
+    `ALTER TABLE users ADD COLUMN recovery_failed_attempts INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN recovery_locked_until TEXT`,
   ]) {
     try { db.exec(sql) } catch {}
   }

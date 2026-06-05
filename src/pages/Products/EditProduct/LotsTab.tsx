@@ -19,6 +19,7 @@ import { FormField } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { getCurrentUserId } from '@/stores/userStore'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { formatCurrency, formatDate, formatExpiry, cn } from '@/lib/utils'
 import dayjs from 'dayjs'
 import { Edit, Package, Filter, Check, Clock, ClockFading, ClockAlert } from 'lucide-react'
@@ -71,6 +72,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
     qty_on_hand: string; cost_price: string
   }>({ lot_number: '', expiry_date: '', manufactured_date: '', qty_on_hand: '', cost_price: '' })
   const [lotSaving, setLotSaving] = useState(false)
+  const overrideLot = useManagerOverride()
   // Lot edit confirm modal — extra step to prevent accidental saves
   const [confirmLot, setConfirmLot] = useState<ProductLot | null>(null)
 
@@ -181,25 +183,34 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
 
   const confirmSaveLot = async () => {
     if (!editingLotId) return
-    setLotSaving(true)
-    try {
-      await window.api.products.updateLot(editingLotId, {
-        lot_number: lotEditForm.lot_number || undefined,
-        expiry_date: lotEditForm.expiry_date || null,
-        manufactured_date: lotEditForm.manufactured_date || null,
-        qty_on_hand: parseFloat(lotEditForm.qty_on_hand),
-        cost_price: parseFloat(lotEditForm.cost_price),
-        user_id: getCurrentUserId(),
-      })
-      toast({ title: 'บันทึกล็อตสำเร็จ', variant: 'success' })
-      setConfirmLot(null)
-      setEditingLotId(null)
-      await onRefresh()
-    } catch (e: any) {
-      toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-    } finally {
-      setLotSaving(false)
+    const lotId = editingLotId
+    const data = {
+      lot_number: lotEditForm.lot_number || undefined,
+      expiry_date: lotEditForm.expiry_date || null,
+      manufactured_date: lotEditForm.manufactured_date || null,
+      qty_on_hand: parseFloat(lotEditForm.qty_on_hand),
+      cost_price: parseFloat(lotEditForm.cost_price),
+      user_id: getCurrentUserId(),
     }
+    setLotSaving(true)
+    overrideLot.run(
+      async (ov) => { await window.api.products.updateLot(lotId, data, ov) },
+      {
+        title: 'แก้ไขล็อต',
+        onDone: async () => {
+          setLotSaving(false)
+          toast({ title: 'บันทึกล็อตสำเร็จ', variant: 'success' })
+          setConfirmLot(null)
+          setEditingLotId(null)
+          await onRefresh()
+        },
+        onError: (e: any) => {
+          setLotSaving(false)
+          toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+        },
+      },
+    )
+    if (!overrideLot.isAdmin) setLotSaving(false)
   }
 
   return (
@@ -425,6 +436,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
           </div>
         )}
       />
+      {overrideLot.dialog}
     </div>
   )
 }

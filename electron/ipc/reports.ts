@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { orderByBucket } from '../db/sortName'
+import { requireAdmin, getSessionRole, type Override } from '../auth/session'
 
 export function registerReportHandlers() {
   ipcMain.handle('reports:salesList', (_e, filters: {
@@ -150,7 +151,8 @@ export function registerReportHandlers() {
     return { ...(sale as any), items }
   })
 
-  ipcMain.handle('reports:voidSale', (_e, id: number, reason: string) => {
+  ipcMain.handle('reports:voidSale', (_e, id: number, reason: string, override?: Override) => {
+    requireAdmin(_e, override)
     const db = getDb()
     const voidSale = db.transaction(() => {
       const sale = db.prepare(`SELECT * FROM sales WHERE id = ?`).get(id) as any
@@ -390,6 +392,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:financeSummary', (_e, filters: {
     date_from?: string; date_to?: string; with_compare?: boolean
   }) => {
+    requireAdmin(_e)
     const db = getDb()
     const { date_from, date_to, with_compare } = filters
     const current = computeFinanceWindow(date_from, date_to)
@@ -418,6 +421,7 @@ export function registerReportHandlers() {
     date_from?: string; date_to?: string;
     granularity?: 'hour' | 'day' | 'week' | 'month' | 'year';
   }) => {
+    requireAdmin(_e)
     const db = getDb()
     const { date_from, date_to } = filters
     const granularity = filters.granularity ?? 'day'
@@ -480,7 +484,8 @@ export function registerReportHandlers() {
     return Array.from(map.values()).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
   })
 
-  ipcMain.handle('reports:accountsPayable', () => {
+  ipcMain.handle('reports:accountsPayable', (_e) => {
+    requireAdmin(_e)
     const db = getDb()
     const rows = db.prepare(`
       SELECT pr.invoice_no, pr.supplier_invoice_no, pr.created_at AS received_at,
@@ -519,6 +524,7 @@ export function registerReportHandlers() {
     by?: 'qty' | 'revenue' | 'profit' | 'low_profit' | 'margin'
     limit?: number
   }) => {
+    requireAdmin(_e)
     const db = getDb()
     const { date_from, date_to } = filters
     const by = filters.by ?? 'revenue'
@@ -579,6 +585,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:topSuppliers', (_e, filters: {
     date_from?: string; date_to?: string; limit?: number
   }) => {
+    requireAdmin(_e)
     const db = getDb()
     const { date_from, date_to } = filters
     const limit = filters.limit ?? 10
@@ -611,6 +618,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:hourlyTraffic', (_e, filters: {
     date_from?: string; date_to?: string
   }) => {
+    requireAdmin(_e) // hourly sales = revenue → admin-only (staff never see money)
     const db = getDb()
     const { date_from, date_to } = filters
     const mode: 'single_day' | 'aggregated' =
@@ -644,6 +652,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:cashierLeaderboard', (_e, filters: {
     date_from?: string; date_to?: string; limit?: number
   }) => {
+    requireAdmin(_e)
     const db = getDb()
     const { date_from, date_to } = filters
     const limit = filters.limit ?? 10
@@ -677,6 +686,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:salesStats', (_e, filters: {
     date_from?: string; date_to?: string
   }) => {
+    requireAdmin(_e)
     const db = getDb()
     const { date_from, date_to } = filters
     const sCond: string[] = []
@@ -795,6 +805,7 @@ export function registerReportHandlers() {
     date_from?: string; date_to?: string; limit?: number
   }) => {
     const db = getDb()
+    const isAdmin = getSessionRole(_e) === 'admin'
     const { date_from, date_to } = filters
     const limit = filters.limit ?? 50
     const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
@@ -810,7 +821,7 @@ export function registerReportHandlers() {
       WHERE si.product_id = p.id AND ${sCond.join(' AND ')}
     )`
 
-    return db.prepare(`
+    const rows = db.prepare(`
       SELECT p.id                                  AS product_id,
              p.trade_name,
              u.name                                AS unit_name,
@@ -839,7 +850,46 @@ export function registerReportHandlers() {
         AND ${inactiveCondition}
       ORDER BY cost_value DESC
       LIMIT ?
-    `).all(...sParams, limit)
+    `).all(...sParams, limit) as Array<Record<string, any>>
+
+    // R1: cost is finance — staff never see per-row cost value. Strip on the
+    // main side so it can't leak via DevTools; admin keeps the full figure.
+    if (!isAdmin) return rows.map(r => ({ ...r, cost_value: null }))
+    return rows
+  })
+
+  // Counts of "dead stock" SKUs (stock on hand, no sale within N months) for
+  // the 1/3/6/12-month threshold cards. Counts are nested by construction
+  // (m1 >= m3 >= m6 >= m12). "Not sold within N months" ⟺ last sale older than
+  // now-N (or never sold), matching the NOT EXISTS window in inactiveProducts.
+  ipcMain.handle('reports:inactiveCounts', () => {
+    const db = getDb()
+    const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
+    const row = db.prepare(`
+      SELECT
+        SUM(CASE WHEN last_sold IS NULL OR last_sold < date('now','-1 months')  THEN 1 ELSE 0 END) AS m1,
+        SUM(CASE WHEN last_sold IS NULL OR last_sold < date('now','-3 months')  THEN 1 ELSE 0 END) AS m3,
+        SUM(CASE WHEN last_sold IS NULL OR last_sold < date('now','-6 months')  THEN 1 ELSE 0 END) AS m6,
+        SUM(CASE WHEN last_sold IS NULL OR last_sold < date('now','-12 months') THEN 1 ELSE 0 END) AS m12
+      FROM (
+        SELECT (
+          SELECT MAX(date(s.sold_at))
+          FROM sale_items si
+          JOIN sales s ON s.id = si.sale_id
+          WHERE si.product_id = p.id AND s.status != 'voided' AND si.is_cancelled = 0
+        ) AS last_sold
+        FROM products p
+        WHERE p.is_disabled = 0
+          AND p.is_bundle   = 0
+          AND ${stockExpr} > 0
+      )
+    `).get() as { m1: number | null; m3: number | null; m6: number | null; m12: number | null }
+    return {
+      m1: row.m1 ?? 0,
+      m3: row.m3 ?? 0,
+      m6: row.m6 ?? 0,
+      m12: row.m12 ?? 0,
+    }
   })
 
   // Sales velocity per product (6-month rolling base, not affected by date
@@ -855,6 +905,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:productVelocity', (_e, filters: {
     q?: string; limit?: number; sort_by?: 'days_cover' | 'avg_monthly'
   }) => {
+    requireAdmin(_e)
     const db = getDb()
     const limit = filters.limit ?? 50
     const sort_by = filters.sort_by ?? 'days_cover'

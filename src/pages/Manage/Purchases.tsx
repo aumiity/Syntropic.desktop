@@ -4,6 +4,7 @@ import { useOutletContext } from 'react-router-dom'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { getCurrentUserId } from '@/stores/userStore'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
@@ -133,6 +134,7 @@ export default function ManagePurchasesPage() {
   // Cancel-GR modal
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const overrideCancel = useManagerOverride()
   const [cancelBlockers, setCancelBlockers] = useState<Array<{ trade_name: string; product_code: string; lot_number: string; need: number; have: number }>>([])
 
   // Quick-paid (mark unpaid credit bill as paid today, one-click from the
@@ -384,36 +386,43 @@ export default function ManagePurchasesPage() {
 
   const handleCancelBill = async (reasonArg?: string) => {
     if (!actionInvoice) return
+    const invoiceNo = actionInvoice
     const reason = (reasonArg ?? '').trim()
     if (!reason) { toast('กรุณาระบุเหตุผล', 'error'); return }
     setCancelling(true)
-    try {
-      const res = await window.api.purchase.cancel({
-        invoice_no: actionInvoice,
-        reason,
-        userId: getCurrentUserId(),
-      }) as any
-      if (res?.success) {
-        toast('ยกเลิกบิลสำเร็จ', 'success')
-        setShowCancelModal(false)
-        setCancelBlockers([])
-        await loadHistory(histPage)
-        setReceiptRefresh(n => n + 1)
-      } else if (res?.error === 'stock_consumed') {
-        setCancelBlockers(res.blockers ?? [])
-        toast('ไม่สามารถยกเลิกได้ — สินค้าบางรายการถูกขายแล้ว', 'error')
-      } else if (res?.error === 'already_cancelled') {
-        toast('บิลนี้ถูกยกเลิกไปแล้ว', 'error')
-      } else if (res?.error === 'not_found') {
-        toast('ไม่พบบิล', 'error')
-      } else {
-        toast('ยกเลิกไม่สำเร็จ', 'error')
-      }
-    } catch (e: any) {
-      toast(e?.message ? `ยกเลิกไม่สำเร็จ: ${e.message}` : 'ยกเลิกไม่สำเร็จ', 'error')
-    } finally {
-      setCancelling(false)
-    }
+    let res: any
+    overrideCancel.run(
+      async (ov) => {
+        res = await window.api.purchase.cancel({ invoice_no: invoiceNo, reason, userId: getCurrentUserId() }, ov)
+      },
+      {
+        title: 'ยกเลิกการรับสินค้า',
+        onDone: async () => {
+          setCancelling(false)
+          if (res?.success) {
+            toast('ยกเลิกบิลสำเร็จ', 'success')
+            setShowCancelModal(false)
+            setCancelBlockers([])
+            await loadHistory(histPage)
+            setReceiptRefresh(n => n + 1)
+          } else if (res?.error === 'stock_consumed') {
+            setCancelBlockers(res.blockers ?? [])
+            toast('ไม่สามารถยกเลิกได้ — สินค้าบางรายการถูกขายแล้ว', 'error')
+          } else if (res?.error === 'already_cancelled') {
+            toast('บิลนี้ถูกยกเลิกไปแล้ว', 'error')
+          } else if (res?.error === 'not_found') {
+            toast('ไม่พบบิล', 'error')
+          } else {
+            toast('ยกเลิกไม่สำเร็จ', 'error')
+          }
+        },
+        onError: (e: any) => {
+          setCancelling(false)
+          toast(e?.message ? `ยกเลิกไม่สำเร็จ: ${e.message}` : 'ยกเลิกไม่สำเร็จ', 'error')
+        },
+      },
+    )
+    if (!overrideCancel.isAdmin) setCancelling(false)
   }
 
   const histSupplier = suppliers.find(s => s.id === histSupplierId) ?? null
@@ -940,6 +949,7 @@ export default function ManagePurchasesPage() {
           </div>
         }
       />
+      {overrideCancel.dialog}
     </>
   )
 }

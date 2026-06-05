@@ -6,15 +6,13 @@ import {
 import dayjs from 'dayjs'
 import { useToast } from '@/components/ui/toast'
 import {
-  PeriodPicker, defaultPeriodFor, type PeriodMode,
+  PeriodPicker, defaultPeriodFor, allowedModesFor, type PeriodMode,
 } from '@/components/ui/period-picker'
+import { usePermission } from '@/hooks/usePermission'
 import { MetricCard, SectionCard } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow, SortableTableHead,
-} from '@/components/ui/table'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { TopListCard, type TopListCardItem } from '@/components/ui/top-list-card'
 import { Badge } from '@/components/ui/badge'
@@ -26,7 +24,7 @@ import {
   ShoppingBag, TrendingUp, ReceiptText, Users, PackageX,
   LineChart as LineChartIcon, PieChart as PieChartIcon, BellRing,
   Trophy, UserCircle, Wallet, PackageMinus, Clock, Hourglass, RefreshCw,
-  Truck, Box, Eye, ChevronRight, ArrowLeftRight,
+  Truck, ChevronRight, ArrowLeftRight,
 } from 'lucide-react'
 import type { ReportsOutletContext } from './index'
 
@@ -69,25 +67,6 @@ interface TopSupplierRow {
 interface CashierRow {
   user_id: number; user_name: string; bill_count: number; total_amount: number; profit: number
 }
-interface InactiveRow {
-  product_id: number; trade_name: string; unit_name: string
-  qty_on_hand: number; cost_value: number; last_sold_at: string | null
-  avg_monthly_6m: number
-}
-type SortDir = 'asc' | 'desc'
-type InactiveSortField = 'trade_name' | 'qty_on_hand' | 'cost_value' | 'avg_monthly_6m' | 'last_sold_at'
-
-// Generic value comparator for client-side table sort. Nulls sort last; strings
-// use Thai-aware localeCompare, numbers compare numerically.
-function sortCmp(a: string | number | null, b: string | number | null, dir: SortDir): number {
-  const mul = dir === 'asc' ? 1 : -1
-  if (a == null && b == null) return 0
-  if (a == null) return 1
-  if (b == null) return -1
-  if (typeof a === 'number' && typeof b === 'number') return (a - b) * mul
-  return String(a).localeCompare(String(b), 'th') * mul
-}
-
 function formatPercent(v: number): string {
   return `${(v * 100).toFixed(1)}%`
 }
@@ -164,7 +143,8 @@ export default function DashboardPage() {
   const { toast } = useToast()
   const { setToolbar } = useOutletContext<ReportsOutletContext>()
 
-  const initial = defaultPeriodFor(true)
+  const { isAdmin } = usePermission()
+  const initial = defaultPeriodFor(isAdmin)
   const [mode, setMode] = useState<PeriodMode>(initial.mode)
   const [dateFrom, setDateFrom] = useState(initial.from)
   const [dateTo, setDateTo] = useState(initial.to)
@@ -191,31 +171,21 @@ export default function DashboardPage() {
   const [cashiers, setCashiers] = useState<CashierRow[]>([])
   const [lowStock, setLowStock] = useState<LowStockRow[]>([])
   const [expiryCounts, setExpiryCounts] = useState<ExpiryCounts>({ expired: 0, d30: 0, d90: 0, d180: 0 })
-  const [inactive, setInactive] = useState<InactiveRow[]>([])
+  // Dead-stock now lives in /manage/dead-stock; the dashboard keeps only the
+  // 6-month count for the alert tile.
+  const [deadStockCount, setDeadStockCount] = useState(0)
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [prevExpenseTotal, setPrevExpenseTotal] = useState(0)
   const [expenseMode, setExpenseMode] = useState<ExpenseMode>('this_month')
   const [expLoading, setExpLoading] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // Dead-stock — its own trailing window (last N months → today), decoupled
-  // from the page period; client-side sortable like the other in-page tables.
-  const [inactiveMonths, setInactiveMonths] = useState(6)
-  const [inactiveSort, setInactiveSort] = useState<{ by: InactiveSortField; dir: SortDir }>({ by: 'cost_value', dir: 'desc' })
-  const toggleInactiveSort = (f: InactiveSortField) =>
-    setInactiveSort(s => s.by === f ? { by: f, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { by: f, dir: 'asc' })
-
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const r = window.api.reports as any
       const args = { date_from: dateFrom, date_to: dateTo }
-      // Dead-stock uses its own trailing window (last N months → today), like
-      // the canonical dashboard — it isn't bound to the page period. The same
-      // rows feed both the dead-stock table and the alert count.
-      const inactiveFrom = dayjs().subtract(inactiveMonths, 'month').format('YYYY-MM-DD')
-      const inactiveTo = dayjs().format('YYYY-MM-DD')
-      const [f, ss, tr, rev, pro, sup, csh, low, exp, inact] = await Promise.all([
+      const [f, ss, tr, rev, pro, sup, csh, low, exp, deadCounts] = await Promise.all([
         r.financeSummary({ ...args, with_compare: true }),
         r.salesStats(args),
         r.salesPurchaseTrend({ date_from: trendWin.from, date_to: trendWin.to, granularity: trendWin.gran }),
@@ -225,7 +195,7 @@ export default function DashboardPage() {
         r.cashierLeaderboard({ ...args, limit: 6 }),
         window.api.products.lowStock({}),
         r.expiringLots({ count_only: true }),
-        r.inactiveProducts({ date_from: inactiveFrom, date_to: inactiveTo, limit: 500 }),
+        r.inactiveCounts(),
       ])
       setFin(f ?? EMPTY_FIN)
       setStats(ss ?? EMPTY_STATS)
@@ -236,13 +206,13 @@ export default function DashboardPage() {
       setCashiers(csh ?? [])
       setLowStock(((low as any)?.rows ?? []) as LowStockRow[])
       setExpiryCounts(((exp as any)?.counts ?? { expired: 0, d30: 0, d90: 0, d180: 0 }) as ExpiryCounts)
-      setInactive(((inact as any[]) ?? []) as InactiveRow[])
+      setDeadStockCount(((deadCounts as any)?.m6 ?? 0) as number)
     } catch (e: any) {
       toast(e?.message ?? 'โหลดข้อมูลไม่สำเร็จ', 'error')
     } finally {
       setLoading(false)
     }
-  }, [dateFrom, dateTo, trendWin, inactiveMonths, topSortBy, profitMode, toast])
+  }, [dateFrom, dateTo, trendWin, topSortBy, profitMode, toast])
 
   const handlePeriodChange = useCallback((m: PeriodMode, f: string, t: string) => {
     setMode(m); setDateFrom(f); setDateTo(t)
@@ -278,14 +248,14 @@ export default function DashboardPage() {
   useEffect(() => {
     setToolbar(
       <>
-        <PeriodPicker mode={mode} from={dateFrom} to={dateTo} onChange={handlePeriodChange} align="end" />
+        <PeriodPicker mode={mode} from={dateFrom} to={dateTo} onChange={handlePeriodChange} align="end" allowedModes={allowedModesFor(isAdmin)} />
         <Button variant="elevated" size="lg" className="h-10 px-3" onClick={() => load()} disabled={loading} title="โหลดข้อมูลใหม่">
           <RefreshCw className={loading ? 'animate-spin' : undefined} /> รีเฟรช
         </Button>
       </>,
     )
     return () => setToolbar(null)
-  }, [mode, dateFrom, dateTo, handlePeriodChange, setToolbar, load, loading])
+  }, [mode, dateFrom, dateTo, handlePeriodChange, setToolbar, load, loading, isAdmin])
 
   // ── Derived view models ──────────────────────────────────────────────────
   const dSales = delta(fin.sales_net, fin.previous?.sales_net)
@@ -338,15 +308,6 @@ export default function DashboardPage() {
     value: baht(s.total_amount),
   })), [suppliers])
 
-  const sortedInactive = useMemo(
-    () => [...inactive].sort((a, b) => sortCmp(a[inactiveSort.by], b[inactiveSort.by], inactiveSort.dir)),
-    [inactive, inactiveSort],
-  )
-  const inactiveCostTotal = useMemo(
-    () => inactive.reduce((s, r) => s + (r.cost_value ?? 0), 0),
-    [inactive],
-  )
-
   const staffItems: TopListCardItem[] = useMemo(() => cashiers.map((c, i) => ({
     rank: i + 1,
     label: c.user_name,
@@ -380,9 +341,9 @@ export default function DashboardPage() {
       { key: 'neg',  icon: PackageMinus, title: 'สต็อกติดลบ',          unit: 'รายการ', count: negCount,         tone: 'destructive', onClick: () => navigate('/manage/negative-stock') },
       { key: 'low',  icon: PackageX,     title: 'ต่ำกว่าจุดสั่งซื้อ',    unit: 'รายการ', count: belowReorder,     tone: 'warning',     onClick: () => navigate('/manage/low-stock') },
       { key: 'near', icon: Clock,     title: 'ใกล้หมดอายุใน 30 วัน', unit: 'ล็อต',   count: expiryCounts.d30,  tone: 'warm',       onClick: () => navigate('/manage/expiry') },
-      { key: 'dead', icon: Hourglass, title: `คงค้างเกิน ${inactiveMonths} เดือน`, unit: 'รายการ', count: inactive.length, tone: 'info', onClick: () => navigate('/reports') },
+      { key: 'dead', icon: Hourglass, title: 'คงค้างเกิน 6 เดือน', unit: 'รายการ', count: deadStockCount, tone: 'info', onClick: () => navigate('/manage/dead-stock') },
     ] as const
-  }, [lowStock, expiryCounts.d30, inactive.length, inactiveMonths, navigate])
+  }, [lowStock, expiryCounts.d30, deadStockCount, navigate])
   const alertTotal = useMemo(() => alerts.reduce((s, a) => s + a.count, 0), [alerts])
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -673,86 +634,6 @@ export default function DashboardPage() {
           {payRow('ใช้ส่วนลด', formatPercent(stats.discount_rate))}
           {payRow('ส่วนแบ่งจากชุด (bundle)', formatPercent(stats.bundle_share))}
         </SectionCard>
-      </div>
-
-      {/* 5 — Dead-stock table (own trailing window) */}
-      <div className="flex flex-col bg-card rounded-card shadow-card border border-border overflow-hidden">
-        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
-          <TintIcon icon={Box} tint="neutral" size="sm" bordered />
-          <h3 className="text-lg font-semibold text-foreground">สินค้าค้างสต็อก</h3>
-          <span className="text-sm text-muted-foreground ml-auto">ไม่ขายเกิน</span>
-          <Select value={String(inactiveMonths)} onValueChange={(v) => setInactiveMonths(Number(v))}>
-            <SelectTrigger variant="elevated" className="h-9 w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="w-auto min-w-32">
-              <SelectItem value="1" className="whitespace-nowrap">1 เดือน</SelectItem>
-              <SelectItem value="3" className="whitespace-nowrap">3 เดือน</SelectItem>
-              <SelectItem value="6" className="whitespace-nowrap">6 เดือน</SelectItem>
-              <SelectItem value="12" className="whitespace-nowrap">12 เดือน</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="[&>[data-slot=table-container]]:h-[320px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <SortableTableHead field="trade_name" sort={inactiveSort} onToggle={toggleInactiveSort} className="min-w-[260px]">สินค้า</SortableTableHead>
-                <SortableTableHead field="qty_on_hand" align="right" sort={inactiveSort} onToggle={toggleInactiveSort} className="min-w-24">คงเหลือ</SortableTableHead>
-                <SortableTableHead field="cost_value" align="right" sort={inactiveSort} onToggle={toggleInactiveSort} className="min-w-28">มูลค่าทุน</SortableTableHead>
-                <SortableTableHead field="avg_monthly_6m" align="right" sort={inactiveSort} onToggle={toggleInactiveSort} className="min-w-28">เฉลี่ย 6 ด.</SortableTableHead>
-                <SortableTableHead field="last_sold_at" align="right" sort={inactiveSort} onToggle={toggleInactiveSort} className="min-w-32">ขายล่าสุด</SortableTableHead>
-                <TableHead className="min-w-20 text-center">จัดการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
-                </TableRow>
-              ) : sortedInactive.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
-                    <Box className="size-10 mx-auto mb-2 opacity-30" />
-                    ทุกสินค้ามีการขายภายใน {inactiveMonths} เดือน
-                  </TableCell>
-                </TableRow>
-              ) : sortedInactive.map((r) => (
-                <TableRow key={r.product_id} className="[&_td]:py-1">
-                  <TableCell className="text-sm font-medium">{r.trade_name}</TableCell>
-                  <TableCell className="text-right">
-                    {(r.qty_on_hand ?? 0).toLocaleString()} {r.unit_name ?? ''}
-                  </TableCell>
-                  <TableCell className="text-right">{baht(r.cost_value ?? 0)}</TableCell>
-                  <TableCell className="text-right">
-                    {r.avg_monthly_6m > 0 ? `${r.avg_monthly_6m.toFixed(1)}` : '—'}
-                  </TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground">
-                    {r.last_sold_at ? dayjs(r.last_sold_at).format('D MMM BB') : 'ไม่เคยขาย'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-center">
-                      <Button size="icon-lg" variant="elevated" title="ดูรายละเอียดสินค้า"
-                        onClick={() => navigate(`/products/${r.product_id}/edit`)}>
-                        <Eye />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between text-sm shrink-0">
-          <span className="text-muted-foreground">
-            {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{inactive.length.toLocaleString()}</span> รายการ</>}
-          </span>
-          <span className="text-muted-foreground">
-            มูลค่าทุนรวม <span className="font-semibold text-foreground">{baht(inactiveCostTotal)}</span>
-          </span>
-        </div>
       </div>
     </div>
   )

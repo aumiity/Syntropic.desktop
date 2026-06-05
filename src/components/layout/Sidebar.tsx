@@ -8,8 +8,12 @@ import {
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
+import { usePermission } from '@/hooks/usePermission'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
+// adminOnly items are hidden from staff (the finance reports landing page is
+// entirely admin-gated IPC; settings is all writes). This is UX — the IPC layer
+// enforces the same boundary regardless (R1/R2).
 const mainNavItems = [
   { to: '/', label: 'การขาย', icon: ShoppingCart, exact: true },
   // ใบเสนอราคา — HIDDEN from nav 2026-06-02. Module/code kept (routes still live in
@@ -19,9 +23,9 @@ const mainNavItems = [
   { to: '/purchase', label: 'การรับสินค้า', icon: PackagePlus },
   { to: '/products', label: 'สินค้า', icon: Pill },
   { to: '/manage', label: 'การจัดการ', icon: ClipboardList },
-  { to: '/reports', label: 'รายงาน', icon: LineChart },
+  { to: '/reports', label: 'รายงาน', icon: LineChart, adminOnly: true },
   { to: '/people', label: 'บุคคล', icon: Users },
-  { to: '/settings', label: 'ตั้งค่า', icon: Settings },
+  { to: '/settings', label: 'ตั้งค่า', icon: Settings, adminOnly: true },
 ]
 
 const bottomNavItems = [
@@ -99,6 +103,8 @@ export function Sidebar() {
   const { theme, toggleTheme, isSidebarCollapsed, toggleSidebar } = useThemeStore()
   const isDark = theme === 'dark'
   const collapsed = isSidebarCollapsed
+  const { isAdmin } = usePermission()
+  const visibleNavItems = mainNavItems.filter(item => isAdmin || !item.adminOnly)
 
   // Hydrate the negative-stock badge once on mount; every mutation site
   // (POS save, GR save, void, reconcile, dismiss) calls refresh() too.
@@ -145,7 +151,7 @@ export function Sidebar() {
 
       {/* Main Nav */}
       <nav className="flex-1 flex flex-col py-3 px-1.5 gap-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
-        {mainNavItems.map((item) => (
+        {visibleNavItems.map(({ adminOnly: _adminOnly, ...item }) => (
           <NavItem
             key={item.to}
             {...item}

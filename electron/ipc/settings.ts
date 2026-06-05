@@ -4,6 +4,8 @@ import fs from 'fs'
 import path from 'path'
 import { getDb } from '../db'
 import { orderByBucket } from '../db/sortName'
+import { hashSecret, genRecoveryCode } from '../auth/hash'
+import { requireAdmin } from '../auth/session'
 
 type ThemeColorPayload = {
   token: string
@@ -88,6 +90,7 @@ export function registerSettingsHandlers() {
     return getDb().prepare(`SELECT * FROM settings LIMIT 1`).get()
   })
   ipcMain.handle('settings:saveShop', (_e, data: any) => {
+    requireAdmin(_e)
     const db = getDb()
     const existing = db.prepare(`SELECT id FROM settings LIMIT 1`).get() as any
     if (existing) {
@@ -120,6 +123,7 @@ export function registerSettingsHandlers() {
       shop_branch: shop.shop_branch ?? 'สำนักงานใหญ่',
       vat_registered_date: shop.vat_registered_date ?? null,
     }
+    let recoveryCode: string | null = null
     db.transaction(() => {
       const existing = db.prepare(`SELECT id FROM settings LIMIT 1`).get() as any
       if (existing) {
@@ -155,8 +159,19 @@ export function registerSettingsHandlers() {
       }
       db.prepare(`UPDATE sales_settings SET vat_enabled = @vat_enabled, vat_rate = @vat_rate, updated_at = datetime('now','localtime') WHERE id = @id`)
         .run({ vat_enabled: vat.vat_enabled ? 1 : 0, vat_rate: Number(vat.vat_rate) || 7, id: srow.id })
+
+      // Phase 0 bootstrap: set the admin password + a one-time recovery code.
+      // Only the hashes are stored; the plaintext code is returned once.
+      if (payload?.adminPassword) {
+        recoveryCode = genRecoveryCode()
+        db.prepare(`
+          UPDATE users SET password = @password, recovery_code_hash = @recovery, updated_at = datetime('now','localtime')
+          WHERE email = 'admin@syntropic.local'
+        `).run({ password: hashSecret(payload.adminPassword), recovery: hashSecret(recoveryCode) })
+      }
     })()
-    return db.prepare(`SELECT * FROM settings LIMIT 1`).get()
+    const settingsRow = db.prepare(`SELECT * FROM settings LIMIT 1`).get() as any
+    return { ...settingsRow, recoveryCode }
   })
 
   // Categories
@@ -164,6 +179,7 @@ export function registerSettingsHandlers() {
     return getDb().prepare(`SELECT * FROM product_categories ORDER BY sort_order, id`).all()
   })
   ipcMain.handle('settings:saveCategory', (_e, data: any) => {
+    requireAdmin(_e)
     const db = getDb()
     if (data.id) {
       const { id, ...rest } = data
@@ -177,6 +193,7 @@ export function registerSettingsHandlers() {
   // Drag-and-drop reorder: renumber sort_order to 1..n by the given id order,
   // in one transaction so listCategories (ORDER BY sort_order, id) is stable.
   ipcMain.handle('settings:reorderCategories', (_e, ids: number[]) => {
+    requireAdmin(_e)
     const db = getDb()
     const upd = db.prepare(`UPDATE product_categories SET sort_order = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
     db.transaction((order: number[]) => {
@@ -195,6 +212,7 @@ export function registerSettingsHandlers() {
     `).all()
   })
   ipcMain.handle('settings:saveUnit', (_e, data: any) => {
+    requireAdmin(_e)
     const db = getDb()
     if (data.id) {
       db.prepare(`UPDATE item_units SET name = ? WHERE id = ?`).run(data.name, data.id)
@@ -209,6 +227,7 @@ export function registerSettingsHandlers() {
     return getDb().prepare(`SELECT * FROM drug_types ORDER BY id`).all()
   })
   ipcMain.handle('settings:saveDrugType', (_e, data: any) => {
+    requireAdmin(_e)
     const db = getDb()
     if (data.id) {
       const { id, ...rest } = data
@@ -238,6 +257,7 @@ export function registerSettingsHandlers() {
     return getDb().prepare(`SELECT * FROM label_settings ORDER BY id LIMIT 1`).get()
   })
   ipcMain.handle('settings:saveLabelSettings', (_e, data: any) => {
+    requireAdmin(_e)
     const db = getDb()
     const existing = db.prepare(`SELECT id FROM label_settings ORDER BY id LIMIT 1`).get() as any
     if (existing) {
@@ -265,6 +285,7 @@ export function registerSettingsHandlers() {
     return row
   })
   ipcMain.handle('settings:saveSalesSettings', (_e, data: any) => {
+    requireAdmin(_e)
     const db = getDb()
     db.transaction(() => {
       // Ensure the singleton row exists, then UPDATE with the submitted form —
@@ -297,6 +318,7 @@ export function registerSettingsHandlers() {
     return row
   })
   ipcMain.handle('settings:saveReceiptSettings', (_e, data: any) => {
+    requireAdmin(_e)
     const db = getDb()
     db.transaction(() => {
       let row = db.prepare(`SELECT id FROM receipt_settings ORDER BY id LIMIT 1`).get() as any
@@ -328,6 +350,7 @@ export function registerSettingsHandlers() {
     return row
   })
   ipcMain.handle('settings:saveDocumentSettings', (_e, data: any) => {
+    requireAdmin(_e)
     const db = getDb()
     db.transaction(() => {
       let row = db.prepare(`SELECT id FROM document_settings ORDER BY id LIMIT 1`).get() as any
@@ -380,6 +403,7 @@ export function registerSettingsHandlers() {
   })
 
   ipcMain.handle('settings:saveThemeColors', (_e, payload: ThemeColorPayload[]) => {
+    requireAdmin(_e)
     const cssPath = resolveThemeCssPath()
     const css = fs.readFileSync(cssPath, 'utf8')
 
@@ -410,6 +434,7 @@ export function registerSettingsHandlers() {
   })
 
   ipcMain.handle('settings:saveThemeFontSize', (_e, fontSize: string) => {
+    requireAdmin(_e)
     const value = String(fontSize ?? '').trim()
     if (!/^\d+(\.\d+)?px$/i.test(value)) {
       throw new Error('รูปแบบขนาดฟอนต์ไม่ถูกต้อง (ตัวอย่าง: 18px)')
@@ -433,6 +458,7 @@ export function registerSettingsHandlers() {
   })
 
   ipcMain.handle('settings:saveThemeFonts', (_e, payload: { latin: string; thai: string }) => {
+    requireAdmin(_e)
     const latin = String(payload?.latin ?? '').trim()
     const thai = String(payload?.thai ?? '').trim()
     if (!latin || !thai) {

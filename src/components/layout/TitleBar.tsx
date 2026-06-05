@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Minus, Plus, X, Maximize2 } from 'lucide-react'
+import { Minus, Plus, X, Maximize2, Lock, LogOut } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { InitialAvatar } from '@/components/ui/avatar'
+import { useUserStore } from '@/stores/userStore'
 
 const trafficLight =
   'flex items-center justify-center w-4 h-4 rounded-full transition-colors shrink-0'
@@ -26,6 +28,10 @@ export function TitleBar() {
   const [maximized, setMaximized] = useState(false)
   const [hovered, setHovered] = useState<'close' | 'minimize' | 'maximize' | null>(null)
   const [resizeOpen, setResizeOpen] = useState(false)
+  const [userOpen, setUserOpen] = useState(false)
+  // Read the store directly — TitleBar mounts outside the LoginGate (Setup wizard
+  // + login screen render it too), so getCurrentUserId() would throw. Guard null.
+  const current = useUserStore(s => s.current)
 
   useEffect(() => {
     window.api.window.isMaximized().then(setMaximized)
@@ -91,11 +97,48 @@ export function TitleBar() {
         </Popover>
       </div>
 
-      {/* Right: traffic-light controls */}
+      {/* Right: user menu + traffic-light controls */}
       <div
         className="flex items-center gap-2 px-3 h-full"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
+        {current && (
+          <Popover open={userOpen} onOpenChange={setUserOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                title="บัญชีผู้ใช้"
+                className="inline-flex items-center gap-1.5 h-6 pl-1 pr-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-colors"
+              >
+                <InitialAvatar name={current.name} size="xs" />
+                <span className="max-w-32 truncate">{current.name}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              sideOffset={6}
+              className="w-48 p-1.5"
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            >
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => { setUserOpen(false); useUserStore.getState().lock() }}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-primary-soft/60 transition-colors"
+                >
+                  <Lock className="size-4" />ล็อกหน้าจอ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUserOpen(false); useUserStore.getState().logout() }}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive-soft transition-colors"
+                >
+                  <LogOut className="size-4" />ออกจากระบบ
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
 
         {/* Minimize — yellow */}
         <button

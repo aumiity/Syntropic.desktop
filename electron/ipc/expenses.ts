@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import dayjs from 'dayjs'
+import { requireAdmin } from '../auth/session'
 
 // Shop expenses (ค่าใช้จ่าย). Manual operating-cost entries feed the Finance
 // net-profit calc and the dedicated ค่าใช้จ่าย report. Category CRUD lives here
@@ -44,6 +45,7 @@ export function registerExpenseHandlers() {
     date_from?: string; date_to?: string; category_id?: number
     page?: number; pageSize?: number; sort_by?: string; sort_dir?: string
   } = {}) => {
+    requireAdmin(_e)
     const db = getDb()
     const { date_from, date_to, category_id, page = 1, pageSize = 50, sort_by = 'expense_date', sort_dir = 'DESC' } = filters
 
@@ -80,6 +82,7 @@ export function registerExpenseHandlers() {
 
   // Aggregate rollup for a window — used by the report summary cards.
   ipcMain.handle('expenses:summary', (_e, filters: { date_from?: string; date_to?: string } = {}) => {
+    requireAdmin(_e)
     const db = getDb()
     const { date_from, date_to } = filters
     const conditions: string[] = []
@@ -113,6 +116,7 @@ export function registerExpenseHandlers() {
 
   // Create (no id) or update (id present). Allow-listed columns only.
   ipcMain.handle('expenses:save', (_e, payload: any) => {
+    requireAdmin(_e)
     const db = getDb()
     validateExpense(payload)
     const cols = pickExpenseCols(payload)
@@ -158,19 +162,23 @@ export function registerExpenseHandlers() {
   })
 
   ipcMain.handle('expenses:delete', (_e, id: number) => {
+    requireAdmin(_e)
     const db = getDb()
     db.prepare(`DELETE FROM expenses WHERE id = ?`).run(id)
     return { success: true }
   })
 
   // ── Categories ──
-  ipcMain.handle('expenses:listCategories', () => {
+  ipcMain.handle('expenses:listCategories', (_e) => {
+    requireAdmin(_e)
     return getDb().prepare(`SELECT * FROM expense_categories ORDER BY sort_order, id`).all()
   })
-  ipcMain.handle('expenses:activeCategories', () => {
+  ipcMain.handle('expenses:activeCategories', (_e) => {
+    requireAdmin(_e)
     return getDb().prepare(`SELECT * FROM expense_categories WHERE is_active = 1 ORDER BY sort_order, id`).all()
   })
   ipcMain.handle('expenses:saveCategory', (_e, data: any) => {
+    requireAdmin(_e)
     const db = getDb()
     if (data.id) {
       const cols = {
@@ -189,6 +197,7 @@ export function registerExpenseHandlers() {
   // Drag-and-drop reorder: renumber sort_order to 1..n by the given id order, in
   // one transaction so listCategories (ORDER BY sort_order, id) is stable.
   ipcMain.handle('expenses:reorderCategories', (_e, ids: number[]) => {
+    requireAdmin(_e)
     const db = getDb()
     const upd = db.prepare(`UPDATE expense_categories SET sort_order = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
     db.transaction((order: number[]) => {

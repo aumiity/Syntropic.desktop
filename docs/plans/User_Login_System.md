@@ -1,6 +1,8 @@
 # แผนระบบ User & Login — Syntropic Desktop
 
-> สถานะ: **DRAFT v3 (ซึมซับ wizard pass 2026-06-05 — sync กับโค้ดจริง + ตัด vertical slice)** — เขียน 2026-06-04, แก้ 2026-06-05
+> สถานะ: **IMPLEMENTED v3 — Phase 0+1+2 + Phase 3 + Phase 2.5(recovery-code) DONE 2026-06-05** (pipeline wizard→blacksmith→priest→hunter, tsc-clean, Priest PASS, ยังไม่ click-test ในแอป). เขียน 2026-06-04, แก้ 2026-06-05
+>
+> **เหลือ (blocked):** Phase 2.5 vendor reset (Ed25519) + License ชั้น A ทั้งระบบ — block เพราะ License infra (`electron/license/*`, Ed25519 keys, key management) ยังไม่เริ่ม; ต้องตัดสิน key management ก่อน. LoginScreen มีลิงก์ "ติดต่อผู้ขาย" placeholder รออยู่. ดู `License_Activation_System.md`.
 > ขอบเขต: ระบบเข้าสู่ระบบ (login) + การจัดการผู้ใช้/พนักงาน + สิทธิ์ (roles) ของแอป POS ร้านยา
 > เกี่ยวข้อง: `Login_UI_Design.md` (UI), `License_Activation_System.md` (gate ชั้นนอก A)
 
@@ -170,12 +172,12 @@ LicenseGate (A) ──valid──▶ SetupGate (B) ──done──▶ LoginGate
 
 ## 6. งานที่ต้องทำ (Phase)
 
-### Phase 0 — bootstrap admin ใน Setup wizard (audit B1, ต้องมาก่อน)
+### Phase 0 — bootstrap admin ใน Setup wizard (audit B1, ต้องมาก่อน) — ✅ DONE 2026-06-05
 - [ ] เพิ่มสเต็ปใน **Setup wizard**: เจ้าของ**ตั้ง password เอง** (+ ยืนยัน) → เขียน hash ลงบัญชี seed admin (`admin@syntropic.local`, role `admin` เสมอ)
 - [ ] สเต็ปเดียวกันสร้าง + โชว์ **recovery code** ครั้งเดียว (เก็บ hash) — ดู §4.5
 - [ ] **จัดการ seed `Staff Test`** (`staff@syntropic.local` รหัส `staff` — รหัสที่รู้กันทั้งโลก = ช่องโหว่): เอาออกจาก production seed หรือบังคับตั้งรหัส; ใส่เข้า checklist "DEV-only ลบก่อน build" ใน CLAUDE.md
 
-### Phase 1 — auth backend
+### Phase 1 — auth backend — ✅ DONE 2026-06-05
 - [ ] **schema:** เพิ่ม 3 คอลัมน์ใน `users` (CREATE TABLE `schema.ts:9-18` + migration array ~`:695`):
   - `recovery_code_hash TEXT` — hash ของ recovery code (§4.5 ชั้น1)
   - `failed_attempts INTEGER NOT NULL DEFAULT 0` — นับ lockout (§5)
@@ -188,21 +190,22 @@ LicenseGate (A) ──valid──▶ SetupGate (B) ──done──▶ LoginGate
 - [ ] **ลบ role `pharmacist`** ออกจาก `People/index.tsx:648` (`ROLES`) ให้เหลือ `admin`/`staff` ตรงโมเดล 2-role (มติ 2026-06-05, audit S-4)
 - [ ] preload `window.api.auth.*` (แทน `auth.getCurrentUser` ด้วย `listLoginUsers`+`login`) + `docs/claude/ipc-api.md`
 
-### Phase 2 — Session + Login UI (ดู `Login_UI_Design.md`)
+### Phase 2 — Session + Login UI (ดู `Login_UI_Design.md`) — ✅ DONE 2026-06-05
 - [ ] `userStore`: `login()/logout()/lock()` ใน-หน่วยความจำ — **ตัด `persist` ทิ้ง**, เลิก hardcode hydrate
 - [ ] `src/pages/Auth/LoginScreen.tsx` (เลือกชื่อ + ช่อง password + ลิงก์ "ลืมรหัสผ่าน")
 - [ ] flow กู้รหัส: หน้าใส่ recovery code → ตั้ง password ใหม่ + หน้า vendor reset (โชว์ machine code, รับ token) — §4.5
 - [ ] `LoginGate` ใน `App.tsx`
 - [ ] ปุ่มผู้ใช้/ล็อก/สลับ/ออก ใน `TitleBar.tsx`
 
-### Phase 2.5 — recovery backend
-- [ ] hash/verify recovery code (scrypt) + regenerate หลังใช้
-- [ ] verify vendor reset token (Ed25519 + fingerprint + expiry) — reuse `electron/license/*`
-- [ ] `auth:resetAdminPassword` (ผ่าน recovery code หรือ vendor token เท่านั้น)
+### Phase 2.5 — recovery backend — 🟡 recovery-code DONE 2026-06-05; vendor reset BLOCKED
+- [x] hash/verify recovery code (scrypt) + regenerate หลังใช้ — `auth:resetAdminPassword`, counter แยก (`recovery_failed_attempts`/`recovery_locked_until`)
+- [ ] verify vendor reset token (Ed25519 + fingerprint + expiry) — **BLOCKED:** `electron/license/*` ยังไม่มี (License infra ไม่เริ่ม) → LoginScreen มีลิงก์ "ติดต่อผู้ขาย" placeholder
+- [x] `auth:resetAdminPassword` (ผ่าน recovery code) — vendor-token path รอ License infra
 
-### Phase 3 — Permissions + cleanup
-- [ ] helper `usePermission()` / รวม `role==='admin'` กระจาย; **+ enforce role ใน IPC** (R1)
-- [ ] Dialog manager-override (ทำรายการผ่าน IPC ยืนยันแล้ว — R2)
+### Phase 3 — Permissions + cleanup — ✅ DONE 2026-06-05
+> main-side session (`electron/auth/session.ts`, BL-1) ทำแล้ว = prerequisite ที่ปลดล็อก role-check ทุกตัว. Policy เจ้าของล็อก 2026-06-05: ดู PROGRESS.md / `.claude/memory/ipc-role-enforcement.md`. (admin-only+override: voidSale/updatePrice/stock-lot/cancel; ซ่อนสนิท: finance/expenses/settings-writes/staff-CRUD/backup; DeadStock cost-strip ฝั่ง main)
+- [x] helper `usePermission()` (UX) + **enforce role ใน IPC ด้วย `requireAdmin(e,override?)`** (R1) — gate ครบทุก sensitive handler
+- [x] Dialog manager-override — inline credential verify ฝั่ง main (R2), `src/components/ui/manager-override-dialog.tsx` + `src/hooks/useManagerOverride.tsx`
 - [ ] ~~ลบปุ่ม DEV สลับ role `Finance.tsx`~~ **ตัดทิ้ง — ไม่มี `Finance.tsx` แล้ว** (audit §0.5#3)
 - [ ] เพิ่ม seed plaintext passwords เข้า checklist "DEV-only ลบก่อน build" ใน CLAUDE.md (audit N4)
 - [ ] (ออปชัน) auto-lock — Q4

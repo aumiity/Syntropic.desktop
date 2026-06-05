@@ -17,14 +17,14 @@ const api = {
     get: (id: number) => ipcRenderer.invoke('products:get', id),
     create: (data: any) => ipcRenderer.invoke('products:create', data),
     update: (id: number, data: any) => ipcRenderer.invoke('products:update', id, data),
-    updatePrice: (id: number, data: { price_type?: 'retail' | 'wholesale1' | 'wholesale2'; new_price: number; note?: string }) => ipcRenderer.invoke('products:updatePrice', id, data),
+    updatePrice: (id: number, data: { price_type?: 'retail' | 'wholesale1' | 'wholesale2'; new_price: number; note?: string }, override?: { userId: number; password: string }) => ipcRenderer.invoke('products:updatePrice', id, data, override),
     priceHistory: (id: number, limit?: number) => ipcRenderer.invoke('products:priceHistory', id, limit),
     stockMovements: (productId: number, opts?: {
       page?: number; pageSize?: number;
       movement_types?: string[]; date_from?: string; date_to?: string;
       sort_dir?: 'asc' | 'desc'
     }) => ipcRenderer.invoke('products:stockMovements', productId, opts),
-    adjustStock: (productId: number, data: any) => ipcRenderer.invoke('products:adjustStock', productId, data),
+    adjustStock: (productId: number, data: any, override?: { userId: number; password: string }) => ipcRenderer.invoke('products:adjustStock', productId, data, override),
     addUnit: (data: any) => ipcRenderer.invoke('products:addUnit', data),
     updateUnit: (id: number, data: any) => ipcRenderer.invoke('products:updateUnit', id, data),
     deleteUnit: (id: number) => ipcRenderer.invoke('products:deleteUnit', id),
@@ -39,15 +39,15 @@ const api = {
       ipcRenderer.invoke('products:saveBundleItems', bundleId, items),
     createBundle: (payload: { product: any; items: Array<{ component_product_id: number; qty_per_bundle: number }> }) =>
       ipcRenderer.invoke('products:createBundle', payload),
-    adjustLot: (payload: { product_id: number; qty: number; note?: string; user_id: number }) =>
-      ipcRenderer.invoke('products:adjustLot', payload),
+    adjustLot: (payload: { product_id: number; qty: number; note?: string; user_id: number }, override?: { userId: number; password: string }) =>
+      ipcRenderer.invoke('products:adjustLot', payload, override),
     adjustLotBatch: (payload: {
       items: Array<{ product_id: number; lot_id: number; qty: number }>
       reason: string
       user_id: number
-    }) => ipcRenderer.invoke('products:adjustLotBatch', payload),
-    updateLot: (id: number, data: any) => ipcRenderer.invoke('products:updateLot', id, data),
-    expireLot: (lotId: number, userId: number) => ipcRenderer.invoke('products:expireLot', lotId, userId),
+    }, override?: { userId: number; password: string }) => ipcRenderer.invoke('products:adjustLotBatch', payload, override),
+    updateLot: (id: number, data: any, override?: { userId: number; password: string }) => ipcRenderer.invoke('products:updateLot', id, data, override),
+    expireLot: (lotId: number, userId: number, override?: { userId: number; password: string }) => ipcRenderer.invoke('products:expireLot', lotId, userId, override),
     stockStats: (filters: { q?: string; category_id?: number; drug_type_id?: number; include_disabled?: boolean; is_bundle?: 0 | 1 }) =>
       ipcRenderer.invoke('products:stockStats', filters),
   },
@@ -57,8 +57,8 @@ const api = {
     save: (payload: any) => ipcRenderer.invoke('purchase:save', payload),
     history: (filters: any) => ipcRenderer.invoke('purchase:history', filters),
     getReceipt: (invoiceNo: string) => ipcRenderer.invoke('purchase:getReceipt', invoiceNo),
-    cancel: (payload: { invoice_no: string; reason: string; userId: number }) =>
-      ipcRenderer.invoke('purchase:cancel', payload),
+    cancel: (payload: { invoice_no: string; reason: string; userId: number }, override?: { userId: number; password: string }) =>
+      ipcRenderer.invoke('purchase:cancel', payload, override),
     updateHeader: (payload: any) => ipcRenderer.invoke('purchase:updateHeader', payload),
   },
   // People
@@ -80,7 +80,7 @@ const api = {
     salesList: (filters: any) => ipcRenderer.invoke('reports:salesList', filters),
     getSale: (id: number) => ipcRenderer.invoke('reports:getSale', id),
     getSaleByInvoice: (invoiceNo: string) => ipcRenderer.invoke('reports:getSaleByInvoice', invoiceNo),
-    voidSale: (id: number, reason: string) => ipcRenderer.invoke('reports:voidSale', id, reason),
+    voidSale: (id: number, reason: string, override?: { userId: number; password: string }) => ipcRenderer.invoke('reports:voidSale', id, reason, override),
     expiringLots: (filters: any) => ipcRenderer.invoke('reports:expiringLots', filters),
     financeSummary: (filters: any) => ipcRenderer.invoke('reports:financeSummary', filters),
     salesPurchaseTrend: (filters: any) => ipcRenderer.invoke('reports:salesPurchaseTrend', filters),
@@ -92,6 +92,7 @@ const api = {
     cashierLeaderboard: (filters: any) => ipcRenderer.invoke('reports:cashierLeaderboard', filters),
     salesStats:         (filters: any) => ipcRenderer.invoke('reports:salesStats', filters),
     inactiveProducts:   (filters: any) => ipcRenderer.invoke('reports:inactiveProducts', filters),
+    inactiveCounts:     () => ipcRenderer.invoke('reports:inactiveCounts'),
     productVelocity:    (filters: any) => ipcRenderer.invoke('reports:productVelocity', filters),
   },
   // Settings
@@ -246,9 +247,13 @@ const api = {
     saveCategory: (data: any) => ipcRenderer.invoke('expenses:saveCategory', data),
     reorderCategories: (ids: number[]) => ipcRenderer.invoke('expenses:reorderCategories', ids),
   },
-  // Auth (placeholder until proper login)
+  // Auth — login picker + password verify (no session persisted)
   auth: {
-    getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
+    listLoginUsers: () => ipcRenderer.invoke('auth:listLoginUsers'),
+    login: (userId: number, password: string) => ipcRenderer.invoke('auth:login', { userId, password }),
+    logout: () => ipcRenderer.invoke('auth:logout'),
+    resetAdminPassword: (recoveryCode: string, newPassword: string) =>
+      ipcRenderer.invoke('auth:resetAdminPassword', { recoveryCode, newPassword }) as Promise<{ recoveryCode: string }>,
   },
   // Dev (only registered when isDev=true in main.ts; will reject otherwise)
   dev: {

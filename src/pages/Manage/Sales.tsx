@@ -22,6 +22,7 @@ import { saleDetailToPrint } from '@/lib/receipt/normalizeSale'
 import type { Sale, SaleForPrint } from '@/types'
 import type { ManageOutletContext } from './index'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye, Printer, FileText } from 'lucide-react'
@@ -121,6 +122,7 @@ export default function ManageSalesPage() {
   const [detailOpen, setDetailOpen] = useState(false)
 
   const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
+  const overrideVoid = useManagerOverride()
 
   // Full tax-invoice issuance dialog (ใบกำกับภาษีเต็มรูป).
   const [taxTarget, setTaxTarget] = useState<{ saleId: number; sale: SaleForPrint; prefillName?: string } | null>(null)
@@ -204,20 +206,29 @@ export default function ManageSalesPage() {
 
   const handleVoid = async (reason: string) => {
     if (!voidTarget) return
-    try {
-      await window.api.reports.voidSale(voidTarget.id, reason)
-      toast({ title: 'ยกเลิกบิลสำเร็จ', variant: 'success' })
-      const wasOpenInDialog = detailInvoice === voidTarget.invoice_no
-      setVoidTarget(null)
-      if (wasOpenInDialog) setDetailOpen(false)
-      // Void also cancels any negative-stock markers on this sale (see
-      // electron/ipc/reports.ts voidSale), so refresh the sidebar badge.
-      useNegativeStockBadge.getState().refresh()
-      load(page)
-    } catch (e: any) {
-      toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-      setVoidTarget(null)
-    }
+    const target = voidTarget
+    const wasOpenInDialog = detailInvoice === target.invoice_no
+    // Admin-only action: admins run directly, staff get a manager-override prompt
+    // (the credential is verified server-side in reports:voidSale).
+    overrideVoid.run(
+      async (ov) => { await window.api.reports.voidSale(target.id, reason, ov) },
+      {
+        title: 'ยกเลิกบิล',
+        onDone: () => {
+          toast({ title: 'ยกเลิกบิลสำเร็จ', variant: 'success' })
+          setVoidTarget(null)
+          if (wasOpenInDialog) setDetailOpen(false)
+          // Void also cancels any negative-stock markers on this sale (see
+          // electron/ipc/reports.ts voidSale), so refresh the sidebar badge.
+          useNegativeStockBadge.getState().refresh()
+          load(page)
+        },
+        onError: (e: any) => {
+          toast({ title: 'ยกเลิกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+          setVoidTarget(null)
+        },
+      },
+    )
   }
 
   // Passive MetricCard snapshot of the q/date set. The status filter lives in
@@ -492,6 +503,7 @@ export default function ManageSalesPage() {
         onClose={() => setVoidTarget(null)}
         onConfirm={handleVoid}
       />
+      {overrideVoid.dialog}
 
       <TaxInvoiceBuyerDialog
         open={taxTarget !== null}

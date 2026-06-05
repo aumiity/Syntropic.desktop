@@ -10,6 +10,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AdjustStockDialog } from '@/components/dialogs/AdjustStockDialog'
 import { useToast } from '@/components/ui/toast'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductCategory, DrugType, ItemUnit } from '@/types'
@@ -51,6 +52,7 @@ export default function EditProductPage() {
   const [product, setProduct] = useState<FullProduct | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const overridePrice = useManagerOverride()
   const [priceWarning, setPriceWarning] = useState<string[]>([])
   const [errors, setErrors] = useState<Set<string>>(new Set())
   const [isDirty, setIsDirty] = useState(false)
@@ -300,20 +302,42 @@ export default function EditProductPage() {
       }
       // Audit price changes BEFORE the generic update. products:update does a
       // raw UPDATE with no logging; products:updatePrice writes a price_logs
-      // row and self-dedupes (reads current DB value, skips when unchanged) —
-      // so it must run while the column still holds the old price.
+      // row and self-dedupes — so it must run while the column still holds the
+      // old price. updatePrice is admin-only (override): only call it for prices
+      // that ACTUALLY changed, so a staff edit of non-price fields never trips
+      // the override prompt unnecessarily.
       const priceNote = 'แก้ไขจากหน้าสินค้า'
-      await Promise.all([
-        window.api.products.updatePrice(productId, { price_type: 'retail', new_price: payload.price_retail, note: priceNote }),
-        window.api.products.updatePrice(productId, { price_type: 'wholesale1', new_price: payload.price_wholesale1, note: priceNote }),
-        window.api.products.updatePrice(productId, { price_type: 'wholesale2', new_price: payload.price_wholesale2, note: priceNote }),
-      ])
+      const priceChanges: Array<{ price_type: 'retail' | 'wholesale1' | 'wholesale2'; new_price: number }> = []
+      if ((Number(product?.price_retail) || 0) !== payload.price_retail) priceChanges.push({ price_type: 'retail', new_price: payload.price_retail })
+      if ((Number(product?.price_wholesale1) || 0) !== payload.price_wholesale1) priceChanges.push({ price_type: 'wholesale1', new_price: payload.price_wholesale1 })
+      if ((Number(product?.price_wholesale2) || 0) !== payload.price_wholesale2) priceChanges.push({ price_type: 'wholesale2', new_price: payload.price_wholesale2 })
+
+      const finishSave = async () => {
+        setIsDirty(false)
+        toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
+        const updated = await window.api.products.get(productId) as FullProduct
+        setProduct(updated)
+      }
+
+      if (priceChanges.length > 0) {
+        overridePrice.run(
+          async (ov) => {
+            await Promise.all(priceChanges.map(c =>
+              window.api.products.updatePrice(productId, { ...c, note: priceNote }, ov)))
+            await window.api.products.update(productId, payload)
+          },
+          {
+            title: 'แก้ไขราคาขาย',
+            onDone: () => { setSaving(false); finishSave() },
+            onError: (e: any) => { setSaving(false); toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }) },
+          },
+        )
+        if (!overridePrice.isAdmin) setSaving(false)
+        return
+      }
+
       await window.api.products.update(productId, payload)
-      setIsDirty(false)
-      toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
-      // Refresh product
-      const updated = await window.api.products.get(productId) as FullProduct
-      setProduct(updated)
+      await finishSave()
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     } finally {
@@ -562,6 +586,7 @@ export default function EditProductPage() {
         confirmLabel="ออกจากหน้านี้"
         onConfirm={() => { setShowLeaveConfirm(false); setIsDirty(false); backToOrigin() }}
       />
+      {overridePrice.dialog}
 
     </div>
   )

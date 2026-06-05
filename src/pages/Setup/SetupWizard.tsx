@@ -8,7 +8,7 @@ import { FormField } from '@/components/ui/label'
 import { DateInput } from '@/components/ui/date-input'
 import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
-import { Store, ReceiptText, CheckCircle2, ArrowLeft, ArrowRight, AlertTriangle, Check } from 'lucide-react'
+import { Store, ReceiptText, CheckCircle2, ArrowLeft, ArrowRight, AlertTriangle, Check, KeyRound, Copy } from 'lucide-react'
 
 // First-run setup wizard. Rendered by the SetupGate in App.tsx whenever
 // settings.setup_completed !== 1, replacing the whole app until the operator
@@ -31,8 +31,15 @@ const focusField = (name: string) => {
 // so the wizard can be clicked through safely without committing setup).
 export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => void; dryRun?: boolean }) {
   const { toast } = useToast()
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [busy, setBusy] = useState(false)
+
+  // Step 3 — admin password (Phase 0 bootstrap)
+  const [adminPw, setAdminPw] = useState('')
+  const [adminPw2, setAdminPw2] = useState('')
+
+  // Recovery code returned by completeSetup — shown once before handing off.
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null)
 
   // Step 1 — shop identity
   const [shopName, setShopName] = useState('')
@@ -91,24 +98,34 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
     return true
   }
 
+  const validateStep3 = (): boolean => {
+    if (!adminPw) { toast({ title: 'กรุณาตั้งรหัสผ่านผู้ดูแล', variant: 'error' }); focusField('admin_pw'); return false }
+    if (adminPw.length < 4) { toast({ title: 'รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร', variant: 'error' }); focusField('admin_pw'); return false }
+    if (adminPw !== adminPw2) { toast({ title: 'รหัสผ่านยืนยันไม่ตรงกัน', variant: 'error' }); focusField('admin_pw2'); return false }
+    return true
+  }
+
   const next = () => {
     if (step === 1 && !validateStep1()) return
     if (step === 2 && !validateStep2()) return
-    setStep(s => (Math.min(3, s + 1) as 1 | 2 | 3))
+    if (step === 3 && !validateStep3()) return
+    setStep(s => (Math.min(4, s + 1) as 1 | 2 | 3 | 4))
   }
-  const back = () => setStep(s => (Math.max(1, s - 1) as 1 | 2 | 3))
+  const back = () => setStep(s => (Math.max(1, s - 1) as 1 | 2 | 3 | 4))
 
   const finish = async () => {
     if (busy) return
-    if (!validateStep1() || !validateStep2()) return
+    if (!validateStep1() || !validateStep2() || !validateStep3()) return
     if (dryRun) {
+      // DEV preview — never writes the password; just shows the wizard works.
       toast({ title: '(ตัวอย่าง) ผ่านการตรวจสอบ ไม่ได้บันทึกข้อมูล', variant: 'success' })
       onComplete()
       return
     }
     setBusy(true)
     try {
-      await window.api.settings.completeSetup({
+      const res: any = await window.api.settings.completeSetup({
+        adminPassword: adminPw,
         shop: {
           shop_name: shopName.trim(),
           shop_address: shopAddress.trim(),
@@ -124,13 +141,58 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
           vat_rate: vatChoice === 'yes' ? parseFloat(vatRate) : 7,
         },
       })
-      toast({ title: 'ตั้งค่าร้านสำเร็จ เริ่มใช้งานได้เลย', variant: 'success' })
-      onComplete()
+      toast({ title: 'ตั้งค่าร้านสำเร็จ', variant: 'success' })
+      // Show the recovery code once before handing off. If the backend didn't
+      // return one (defensive), proceed straight to the app.
+      if (res?.recoveryCode) setRecoveryCode(res.recoveryCode)
+      else onComplete()
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     } finally {
       setBusy(false)
     }
+  }
+
+  const copyRecovery = async () => {
+    if (!recoveryCode) return
+    try { await navigator.clipboard.writeText(recoveryCode); toast({ title: 'คัดลอกรหัสกู้คืนแล้ว', variant: 'success' }) }
+    catch { toast({ title: 'คัดลอกไม่สำเร็จ', variant: 'error' }) }
+  }
+
+  if (recoveryCode) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden bg-background">
+        <TitleBar />
+        <div className="flex-1 overflow-auto">
+          <div className="mx-auto w-full max-w-xl px-6 py-8 space-y-5">
+            <SectionCard icon={KeyRound} title="รหัสกู้คืน (Recovery Code)" tint="warm">
+              <p className="text-sm text-muted-foreground">
+                เก็บรหัสนี้ไว้ในที่ปลอดภัย ใช้สำหรับกู้คืนรหัสผ่านผู้ดูแลหากลืม
+                <span className="text-warning font-medium"> ระบบจะแสดงรหัสนี้เพียงครั้งเดียวเท่านั้น</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 rounded-lg border bg-card px-4 py-3 text-center text-lg font-semibold tracking-widest text-foreground">
+                  {recoveryCode}
+                </div>
+                <Button variant="elevated" size="lg" onClick={copyRecovery}>
+                  <Copy className="size-4" />คัดลอก
+                </Button>
+              </div>
+              <div className="rounded-lg border border-warning bg-warning-soft px-3 py-2 flex items-start gap-2 text-xs text-foreground">
+                <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                <span>กรุณาจดหรือพิมพ์รหัสนี้เก็บไว้ก่อนดำเนินการต่อ เมื่อปิดหน้านี้แล้วจะไม่สามารถเรียกดูได้อีก</span>
+              </div>
+            </SectionCard>
+            <div className="flex items-center">
+              <div className="flex-1" />
+              <Button size="lg" onClick={() => onComplete()}>
+                <CheckCircle2 className="size-4" />จดรหัสแล้ว เริ่มใช้งาน
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -212,6 +274,20 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
           )}
 
           {step === 3 && (
+            <SectionCard icon={KeyRound} title="ตั้งรหัสผ่านผู้ดูแล" tint="warm">
+              <p className="text-sm text-muted-foreground">
+                ตั้งรหัสผ่านสำหรับบัญชีผู้ดูแลระบบ (admin) เพื่อใช้เข้าสู่ระบบ
+              </p>
+              <FormField label="รหัสผ่าน">
+                <Input data-field="admin_pw" type="password" value={adminPw} onChange={e => setAdminPw(e.target.value)} placeholder="อย่างน้อย 4 ตัวอักษร" />
+              </FormField>
+              <FormField label="ยืนยันรหัสผ่าน">
+                <Input data-field="admin_pw2" type="password" value={adminPw2} onChange={e => setAdminPw2(e.target.value)} />
+              </FormField>
+            </SectionCard>
+          )}
+
+          {step === 4 && (
             <SectionCard icon={CheckCircle2} title="ยืนยันข้อมูล" tint="success">
               <dl className="text-sm divide-y divide-border">
                 <SummaryRow label="ชื่อร้าน" value={shopName} />
@@ -233,7 +309,7 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
               </Button>
             )}
             <div className="flex-1" />
-            {step < 3 ? (
+            {step < 4 ? (
               <Button size="lg" onClick={next}>
                 ถัดไป<ArrowRight className="size-4" />
               </Button>
@@ -249,8 +325,8 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
   )
 }
 
-function StepHeader({ step }: { step: 1 | 2 | 3 }) {
-  const labels = ['ข้อมูลร้าน', 'ภาษี (VAT)', 'ยืนยัน']
+function StepHeader({ step }: { step: 1 | 2 | 3 | 4 }) {
+  const labels = ['ข้อมูลร้าน', 'ภาษี (VAT)', 'รหัสผ่าน', 'ยืนยัน']
   return (
     <div className="space-y-3">
       <div>
@@ -259,7 +335,7 @@ function StepHeader({ step }: { step: 1 | 2 | 3 }) {
       </div>
       <div className="flex items-center gap-2">
         {labels.map((l, i) => {
-          const n = (i + 1) as 1 | 2 | 3
+          const n = (i + 1) as 1 | 2 | 3 | 4
           const active = n === step
           const done = n < step
           return (

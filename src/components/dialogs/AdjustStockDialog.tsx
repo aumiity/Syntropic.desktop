@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { formatCurrency, cn } from '@/lib/utils'
 import type { ProductLot } from '@/types'
 import {
@@ -50,6 +51,7 @@ export function AdjustStockDialog({
   const [adjustTarget, setAdjustTarget] = useState('')
   const [adjustNote, setAdjustNote] = useState('')
   const [adjusting, setAdjusting] = useState(false)
+  const override = useManagerOverride()
   const [productLots, setProductLots] = useState<ProductLot[]>([])
   const [lotsLoading, setLotsLoading] = useState(false)
   const [lotQuery, setLotQuery] = useState('')
@@ -243,16 +245,25 @@ export function AdjustStockDialog({
     }
 
     setAdjusting(true)
-    try {
-      await window.api.products.adjustStock(target.id, payload)
-      toast({ title: 'ปรับสต็อกสำเร็จ', variant: 'success' })
-      onClose()
-      onSaved?.()
-    } catch (e: any) {
-      toast({ title: 'ปรับสต็อกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-    } finally {
-      setAdjusting(false)
-    }
+    override.run(
+      async (ov) => { await window.api.products.adjustStock(target.id, payload, ov) },
+      {
+        title: 'ปรับสต็อก',
+        onDone: () => {
+          setAdjusting(false)
+          toast({ title: 'ปรับสต็อกสำเร็จ', variant: 'success' })
+          onClose()
+          onSaved?.()
+        },
+        onError: (e: any) => {
+          setAdjusting(false)
+          toast({ title: 'ปรับสต็อกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+        },
+      },
+    )
+    // Staff path: the override dialog is now open; clear the busy flag so the
+    // underlying form isn't stuck disabled while they enter the credential.
+    if (!override.isAdmin) setAdjusting(false)
   }
 
   const formatExp = (iso?: string | null) => {
@@ -514,6 +525,7 @@ export function AdjustStockDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {override.dialog}
     </Dialog>
   )
 }

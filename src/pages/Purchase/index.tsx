@@ -20,6 +20,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, NegativeStockAlert } from '@/types'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import {
   Plus, Trash2, Package,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle, Settings2,
@@ -150,6 +151,7 @@ export default function PurchasePage() {
   const [priceDraft, setPriceDraft] = useState('')
   const [priceNote, setPriceNote] = useState('')
   const [priceSaving, setPriceSaving] = useState(false)
+  const overridePrice = useManagerOverride()
   const [priceHistory, setPriceHistory] = useState<Array<{ id: number; price_type: string; old_price: number; new_price: number; note?: string; created_at: string }>>([])
   const [prevCost, setPrevCost] = useState<number | null>(null)
 
@@ -455,20 +457,29 @@ export default function PurchasePage() {
     if (!row?.product_id) return
     const newPrice = parseFloat(priceDraft)
     if (!isFinite(newPrice) || newPrice < 0) { toast('ราคาไม่ถูกต้อง', 'error'); return }
+    const targetId = row.product_id
     setPriceSaving(true)
-    try {
-      await window.api.products.updatePrice(row.product_id, {
-        price_type: 'retail', new_price: newPrice, note: priceNote || undefined,
-      })
-      const targetId = row.product_id
-      setRows(rs => rs.map(r => r.product_id === targetId ? { ...r, default_sell_price: newPrice } : r))
-      toast('อัปเดตราคาขายแล้ว', 'success')
-      closePriceModal()
-    } catch (e: any) {
-      toast(e?.message ?? 'อัปเดตราคาไม่สำเร็จ', 'error')
-    } finally {
-      setPriceSaving(false)
-    }
+    overridePrice.run(
+      async (ov) => {
+        await window.api.products.updatePrice(targetId, {
+          price_type: 'retail', new_price: newPrice, note: priceNote || undefined,
+        }, ov)
+      },
+      {
+        title: 'แก้ไขราคาขาย',
+        onDone: () => {
+          setPriceSaving(false)
+          setRows(rs => rs.map(r => r.product_id === targetId ? { ...r, default_sell_price: newPrice } : r))
+          toast('อัปเดตราคาขายแล้ว', 'success')
+          closePriceModal()
+        },
+        onError: (e: any) => {
+          setPriceSaving(false)
+          toast(e?.message ?? 'อัปเดตราคาไม่สำเร็จ', 'error')
+        },
+      },
+    )
+    if (!overridePrice.isAdmin) setPriceSaving(false)
   }
 
   const changeRowUnit = (i: number, u: ProductUnitOption) => {
@@ -1608,6 +1619,7 @@ export default function PurchasePage() {
         confirmLabel="เสร็จสิ้น"
         onConfirm={() => setShowSuccess(false)}
       />
+      {overridePrice.dialog}
 
     </div>
   )

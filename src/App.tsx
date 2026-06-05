@@ -6,6 +6,7 @@ import { TooltipProvider } from './components/ui/tooltip'
 import { useUserStore } from './stores/userStore'
 
 const SetupWizard = lazy(() => import('./pages/Setup/SetupWizard').then(m => ({ default: m.SetupWizard })))
+const LoginScreen = lazy(() => import('./pages/Auth/LoginScreen').then(m => ({ default: m.LoginScreen })))
 
 const POS = lazy(() => import('./pages/POS'))
 const Purchase = lazy(() => import('./pages/Purchase'))
@@ -22,6 +23,7 @@ const ManageLayout = lazy(() => import('./pages/Manage'))
 const ManageSales = lazy(() => import('./pages/Manage/Sales'))
 const ManagePurchases = lazy(() => import('./pages/Manage/Purchases'))
 const ManageExpenses = lazy(() => import('./pages/Manage/Expenses'))
+const ManageDeadStock = lazy(() => import('./pages/Manage/DeadStock'))
 const ManageLowStock = lazy(() => import('./pages/Manage/LowStock'))
 const ManageExpiry = lazy(() => import('./pages/Manage/Expiry'))
 const ManageNegativeStock = lazy(() => import('./pages/Manage/NegativeStock'))
@@ -65,14 +67,29 @@ function SetupGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-export default function App() {
-  const hydrateUser = useUserStore(s => s.hydrate)
-  useEffect(() => { hydrateUser() }, [hydrateUser])
+// Gates every route behind login. Session is in-memory only (no persist) so
+// `current` starts null on every launch → the login screen shows until a
+// successful auth sets `current`, after which the gate passes through. Must wrap
+// the router so no route that calls getCurrentUserId() mounts before a user
+// exists.
+function LoginGate({ children }: { children: React.ReactNode }) {
+  const current = useUserStore(s => s.current)
+  if (!current) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <LoginScreen />
+      </Suspense>
+    )
+  }
+  return <>{children}</>
+}
 
+export default function App() {
   return (
     <ToastProvider>
      <TooltipProvider>
       <SetupGate>
+      <LoginGate>
       <HashRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -96,6 +113,7 @@ export default function App() {
                 <Route index element={<ManageSales />} />
                 <Route path="purchases" element={<ManagePurchases />} />
                 <Route path="expenses" element={<ManageExpenses />} />
+                <Route path="dead-stock" element={<ManageDeadStock />} />
                 <Route path="low-stock" element={<ManageLowStock />} />
                 <Route path="expiry" element={<ManageExpiry />} />
                 <Route path="negative-stock" element={<ManageNegativeStock />} />
@@ -115,6 +133,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </HashRouter>
+      </LoginGate>
       </SetupGate>
      </TooltipProvider>
     </ToastProvider>

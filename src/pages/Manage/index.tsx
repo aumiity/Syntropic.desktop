@@ -5,18 +5,21 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
-import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus, Wallet } from 'lucide-react'
+import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus, Wallet, Box } from 'lucide-react'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
+import { usePermission } from '@/hooks/usePermission'
 
 // Phase 1: ประวัติการขาย + ใกล้หมดอายุ. Phase 2: + ประวัติการซื้อ.
 // Phase 3: + ต่ำกว่าจุดสั่งซื้อ. See PROGRESS.md.
+// adminOnly tabs are hidden from staff (ค่าใช้จ่าย is all expenses:* — admin-gated IPC).
 const TABS = [
   { value: 'sales',          to: '/manage',                label: 'ประวัติการขาย', icon: Receipt },
   { value: 'purchases',      to: '/manage/purchases',      label: 'ประวัติการซื้อ', icon: PackagePlus },
+  { value: 'dead-stock',     to: '/manage/dead-stock',     label: 'สินค้าค้างสต็อก', icon: Box },
   { value: 'low-stock',      to: '/manage/low-stock',      label: 'ต่ำกว่าจุดสั่งซื้อ', icon: PackageX },
   { value: 'expiry',         to: '/manage/expiry',         label: 'วันหมดอายุ',   icon: CalendarClock },
   { value: 'negative-stock', to: '/manage/negative-stock', label: 'สต๊อคติดลบ',    icon: PackageMinus },
-  { value: 'expenses',       to: '/manage/expenses',       label: 'ค่าใช้จ่าย',    icon: Wallet },
+  { value: 'expenses',       to: '/manage/expenses',       label: 'ค่าใช้จ่าย',    icon: Wallet, adminOnly: true },
 ] as const
 
 type TabValue = typeof TABS[number]['value']
@@ -25,6 +28,7 @@ function resolveTab(pathname: string): TabValue {
   if (pathname.startsWith('/manage/expiry')) return 'expiry'
   if (pathname.startsWith('/manage/purchases')) return 'purchases'
   if (pathname.startsWith('/manage/expenses')) return 'expenses'
+  if (pathname.startsWith('/manage/dead-stock')) return 'dead-stock'
   if (pathname.startsWith('/manage/low-stock')) return 'low-stock'
   if (pathname.startsWith('/manage/negative-stock')) return 'negative-stock'
   return 'sales'
@@ -60,6 +64,8 @@ const COLS_BY_COUNT: Record<number, string> = {
 export default function ManageLayout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { isAdmin } = usePermission()
+  const visibleTabs = useMemo(() => TABS.filter(t => isAdmin || !('adminOnly' in t && t.adminOnly)), [isAdmin])
   const current = resolveTab(location.pathname)
   const [summaryState, setSummaryState] = useState<{ tab: TabValue; cards: ManageSummaryCard[] } | null>(null)
   // overflow-hidden is required during height animation to clip collapsing
@@ -92,7 +98,7 @@ export default function ManageLayout() {
           }}
         >
           <TabsList variant="segmented" className="h-10">
-            {TABS.map(({ value, label, icon: Icon }) => {
+            {visibleTabs.map(({ value, label, icon: Icon }) => {
               const showBadge = value === 'negative-stock' && negativeStockCount > 0
               return (
                 <TabsTrigger key={value} value={value}>
