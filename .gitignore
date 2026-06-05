@@ -22,6 +22,11 @@ electron/db/Hygeia.sql
 hygeia-export/
 scripts/import-report.txt
 
+# Electron test user-data dirs (Cache/database/blobs — created when testing the
+# app against a prepped DB; not source). Catches the misnamed dir from a path
+# bug in prep-app-db.mjs too.
+*-test-userdata/
+
 # Logs
 *.log
 npm-debug.log*
