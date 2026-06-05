@@ -30,9 +30,9 @@ import {
 } from 'lucide-react'
 import type { ReportsOutletContext } from './index'
 
-// NewDashboard — an experimental "modern SaaS analytics" layout (KPI row →
-// trend + donut → alerts → bottom 4-card grid) wired to the SAME reports IPC
-// the canonical แดชบอร์ด uses. No new backend: the "ยอดขายตามหมวด" donut is
+// Dashboard — the app's single analytics surface: a "modern SaaS analytics"
+// layout (KPI row → trend + donut → alerts → bottom 4-card grid) wired to the
+// reports IPC. No new backend: the "ยอดขายตามหมวด" donut is
 // drawn from salesStats bill-type counts (retail/wholesale/rx), not a per-
 // category revenue query. The global PeriodPicker drives every metric; the
 // trend chart overrides locally with a trailing 7/30/90-day window.
@@ -114,7 +114,7 @@ function trendGranularity(days: number): Granularity {
 }
 
 // ── Page ────────────────────────────────────────────────────────────────────
-export default function NewDashboardPage() {
+export default function DashboardPage() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const { setToolbar } = useOutletContext<ReportsOutletContext>()
@@ -432,7 +432,7 @@ export default function NewDashboardPage() {
                       <li key={d.name} className="flex items-center gap-2 text-sm">
                         <span className="size-3 rounded-sm shrink-0" style={{ backgroundColor: d.color }} />
                         <span className="text-foreground truncate">{d.name}</span>
-                        <span className="ml-auto font-semibold text-foreground tabular-nums">{pct}%</span>
+                        <span className="ml-auto font-semibold text-foreground">{pct}%</span>
                       </li>
                     )
                   })}
@@ -466,7 +466,7 @@ export default function NewDashboardPage() {
                         className="w-full text-left flex items-center gap-3 py-2.5 px-1 hover:bg-primary-soft/60 transition-colors rounded-md">
                         <Icon className={`size-5 shrink-0 ${tone}`} />
                         <span className="flex-1 min-w-0 text-sm text-foreground truncate">{a.label}</span>
-                        <Badge variant={badgeVariant} className="tabular-nums shrink-0">{a.count.toLocaleString()}</Badge>
+                        <Badge variant={badgeVariant} className="shrink-0">{a.count.toLocaleString()}</Badge>
                       </button>
                     </li>
                   )
@@ -508,7 +508,7 @@ export default function NewDashboardPage() {
                   <li key={r.name} className="space-y-1">
                     <div className="flex items-baseline justify-between gap-2 text-sm">
                       <span className="text-foreground truncate">{r.name}</span>
-                      <span className="font-semibold text-foreground tabular-nums shrink-0">{formatCurrency(r.amount)}</span>
+                      <span className="font-semibold text-foreground shrink-0">{formatCurrency(r.amount)}</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
                       <div className="h-full rounded-full bg-warm-foreground" style={{ width: `${pct}%` }} />

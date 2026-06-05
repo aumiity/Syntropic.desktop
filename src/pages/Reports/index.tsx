@@ -8,7 +8,7 @@ import { MetricCard, type MetricTint } from '@/components/ui/card'
 import { ShieldCheck, LayoutDashboard } from 'lucide-react'
 
 // Reports = แดชบอร์ด (operational + financial overview, the /reports index) +
-// รายงาน อย. The dashboard is the single analytics surface (NewDashboard): KPIs,
+// รายงาน อย. The dashboard is the single analytics surface (Dashboard): KPIs,
 // trend, donut, alerts, top lists, supplier/customer rollups, dead stock, and a
 // read-only ค่าใช้จ่าย breakdown. The ค่าใช้จ่าย *register* (add/edit/delete)
 // lives in การจัดการ (/manage/expenses); per-bill purchase/payable detail lives
