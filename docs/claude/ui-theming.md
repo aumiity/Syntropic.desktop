@@ -39,7 +39,7 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - **Esc closes** (Radix default — leave on).
    - **Enter triggers the primary OK action** when the modal has one. For multi-step modals where Enter on a working input advances to the next step (e.g. POS return/adjust qty → "เพิ่มในรายการ"), that's fine; the final confirm still needs a click.
    - When adding a new modal, wire Enter on the primary input or via `onKeyDown` on the dialog body — call the same handler the OK button calls.
-7. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`, `tabular-nums`) are encouraged — only **color literals** are banned.
+7. Tailwind utilities for layout/spacing/typography (`flex`, `gap-2`, `text-sm`, `rounded-xl`) are encouraged — only **color literals** are banned. **Do NOT use `tabular-nums`** (project decision — fully removed from the codebase as of 2026-06-05; don't reintroduce it).
 8. **Icon sizing inside `<Button>` — use `size-N`, never `h-N w-N`.** `button.tsx` has `[&_svg:not([class*='size-'])]:size-4`, which silently snaps any descendant svg without `size-` in its className to 16px. `h-7 w-7` does not contain `size-`, so the rule still matches and — being more specific — overrides your value. Always write `<Icon className="size-7" />`, including arbitrary values (`size-[22px]`, not `h-[22px] w-[22px]`). Doesn't apply to icons in `<Input>`/`<Label>`/`<DialogTitle>`/plain `<div>`/raw `<button>` (not the Button component), or to the Button element's own outer dimensions.
 9. **ขนาดตัวอักษร — ลำดับชั้นตามบทบาท (ไม่ใช่ห้าม `text-xs` อีกต่อไป).** ใช้ขนาดตามบทบาทของข้อความ ไม่ใช่ตาม "อันไหนดูดี":
    - **หัวข้อ / title → `text-base` ขึ้นไป** (`text-base`, `text-lg`, `text-xl`, …)
@@ -70,33 +70,47 @@ Secondary action **Buttons** (the one paired *next to* a primary action, e.g. "�
 
 We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don't default to those three everywhere — the app should feel colorful and varied.** Pick variants by *role*, not "what's the most neutral option."
 
-### `<Button>` variants (`button.tsx`)
+### `<Button>` variants (`button.tsx`) — current set
 
+Solid / primary roles:
 - `default` — primary teal · main CTA, save, confirm
-- `secondary` — white/gray · cancel, dismiss
-- `tertiary` — yellow `#F5C24A` · accent CTA, attention
-- `brand-soft` — light teal soft · subtle brand emphasis (was `quaternary`)
-- `info-soft` — light blue · info-style action, e.g. "ปรับสต็อก" (was `quinary`)
-- `warm` — soft amber/yellow · warm secondary (was `senary`)
-- `outline` — muted bg with border · neutral icon buttons · **the standard for row "แก้ไข" (edit) action buttons**
-- `ghost` — transparent · tertiary minor actions
-- `destructive` — solid red · delete, void
-- `destructive2` — soft red tint · destructive secondary (the secondary slot next to a `destructive` primary)
+- `secondary` — white/gray with border · cancel, dismiss
+- `accent` — yellow `#F5C24A` · accent CTA, attention (this is the variant formerly called `tertiary`)
 - `success` — green · positive confirm (e.g. "เพิ่มสต็อก")
+- `warning` — solid orange · caution CTA
+- `info` — solid blue
+- `destructive` — solid red · delete, void
+- `violet` / `teal` — decorative solids
+
+Soft / tinted:
+- `primary-soft` — light teal soft · subtle brand emphasis (this absorbed the old `brand-soft`)
+- `info-soft` — light blue · info-style action, e.g. "ปรับสต็อก"
+- `warm` — soft amber/yellow · warm secondary
+- `destructive2` — soft red tint · destructive secondary (the slot next to a `destructive` primary)
+- `success-soft` / `violet-soft` / `teal-soft`
+
+Outline family (soft fill + role-colored hairline border) — `primary-outline`, `accent-outline`, `success-outline`, `info-outline`, `warning-outline`, `destructive-outline`, `violet-outline`, `teal-outline`, `neutral-outline`, `muted-outline`.
+
+Neutral / low-emphasis:
+- `outline` — muted bg, transparent border · neutral icon buttons · **the standard for row "แก้ไข" (edit) action buttons**
+- `mutedborder` — muted bg with a stronger border
+- `ghost` — transparent · minor actions
 - `link` — text-only
 
-> **No more ordinal names.** `quaternary/quinary/senary` were renamed by *role* → `brand-soft/info-soft/warm`. The Button `warning` variant was removed (unused); use `warm` for caution-ish CTAs or `Badge variant="warning"` for status. Token values are unchanged.
+Elevated (the house raised look — only as the **secondary** beside a primary, never lone): `elevated`, `elevated-destructive`, `elevated-warning`.
+
+> **Renames (do not use the old names):** `tertiary` → `accent`; `brand-soft` → `primary-soft`; the old ordinals `quaternary/quinary/senary` → `primary-soft/info-soft/warm`. Token values are unchanged.
 
 ### `<Badge>` variants (`badge.tsx`)
 
-Same names as Button, **plus** `warning` (status) and `danger` (solid destructive) — both Badge-only. Use for tags, statuses, FDA labels (`ข.ย.13`), tier markers.
+Badge shares the same role names as Button (minus the `elevated*` / `mutedborder` button-only ones), including the full `*-soft` and `*-outline` families and `neutral-outline` / `muted-outline`. Use for tags, statuses, FDA labels (`ข.ย.13`), tier markers.
 
 ### Semantic color tokens (`index.css` — defined in both `:root` and `.dark`)
 
 - Brand: `primary`, `primary-soft`, `primary-soft-hover`, `primary-soft-border`, `primary-strong`, `primary-hover`, `primary-foreground`
-- Accent (yellow): `tertiary`, `accent`, `accent-soft`
+- Accent (yellow): `accent`, `accent-foreground` (no `tertiary`/`accent-soft` — those names are gone)
 - Neutrals: `background`, `card`, `muted`, `muted-hover`, `popover`, `secondary`
-- Decorative surfaces: `brand-soft` (light teal), `info-soft` (light blue), `warm` (warm amber) — each with `-foreground` / `-hover`
+- Decorative surfaces: `primary-soft` (light teal), `info-soft` (light blue), `warm` (warm amber) — each with `-foreground` / `-hover`
 - Radius: `--radius-card` (→ `rounded-card`, the single source of truth for card/panel corners) and `--radius-control` (→ `rounded-control`, buttons/inputs). Change card roundness app-wide by editing `--radius-card` in `index.css` only.
 - Status: `success`/`success-soft`, `warning`/`warning-soft`/`warning-strong`, `destructive`/`destructive-soft`/`destructive-strong`
 - Text: `foreground`, `muted-foreground`, `foreground-subtle`
@@ -104,10 +118,10 @@ Same names as Button, **plus** `warning` (status) and `danger` (solid destructiv
 
 ### When writing new UI — guidelines
 
-1. **Differentiate actions by tint.** "Edit" `outline`, info/details icon `warm`, external-link icon `primary-soft`, "Adjust stock" `info-soft`, "Delete" `destructive`, primary save `default`, secondary toggle `tertiary`. See the row-action rule in `ui-table-card.md` for the canonical square icon-button pattern.
-2. **Decorative chips/status badges** → reach for `tertiary`/`brand-soft`/`info-soft`/`warm` before falling back to `secondary` or grey.
+1. **Differentiate actions by tint.** "Edit" `outline`, info/details icon `warm`, external-link icon `primary-soft`, "Adjust stock" `info-soft`, "Delete" `destructive`, primary save `default`, secondary toggle `accent`. See the row-action rule in `ui-table-card.md` for the canonical square icon-button pattern.
+2. **Decorative chips/status badges** → reach for `accent`/`primary-soft`/`info-soft`/`warm` before falling back to `secondary` or grey.
 3. **Section accents / soft backgrounds** → `bg-primary-soft`, `bg-info-soft`, `bg-warm` (NOT `bg-muted` for everything).
-4. **Hover states** → use the matching `-hover` token (`primary-hover`, `brand-soft-hover`, etc.) — already wired into the Button variants.
+4. **Hover states** → use the matching `-hover` token (`primary-hover`, `primary-soft-hover`, etc.) — already wired into the Button variants.
 5. **Missing role?** Add a new variant to `buttonVariants`/`badgeVariants` AND a matching token to `:root` + `.dark` in `index.css`. Never hardcode hex or Tailwind palette literals.
 
 ## Canonical primitive defaults

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Syntropic — คู่มือ Design (ภาษาไทย)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#0F5D56; --teal-dark:#2BA396; --teal-soft:#E3F0EE;
+    --yellow:#F5C24A; --warm:#FCEFC8; --warm-fg:#8A6D1B;
+    --green:#1FA971; --green-soft:#E4F5EC;
+    --orange:#FF9500; --red:#E5484D; --red-soft:#FBE7E7;
+    --blue:#2563EB; --blue-soft:#E5EDFD; --violet:#7C5CFC;
+    --bg:#F7F8F8; --card:#FFFFFF; --muted:#F0F2F2;
+    --fg:#1A2421; --fg-2:#5A6763; --fg-3:#8A938F;
+    --border:#E3E7E6; --border-strong:#CDD4D2;
+    --radius-card:16px; --radius-ctl:10px;
+    --shadow-card:0 1px 3px rgba(16,40,34,.06),0 4px 16px rgba(16,40,34,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'IBM Plex Sans Thai',system-ui,sans-serif;
+    background:var(--bg); color:var(--fg); line-height:1.65;
+    font-size:15px; padding:0 0 80px;
+  }
+  code,.mono{font-family:'JetBrains Mono',monospace;font-size:.86em}
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px}
+
+  /* Header */
+  header.hero{
+    background:linear-gradient(135deg,var(--teal),#0a4a44);
+    color:#fff;padding:56px 0 48px;margin-bottom:40px;
+    box-shadow:var(--shadow-card);
+  }
+  header.hero .wrap{display:flex;flex-direction:column;gap:14px}
+  .hero h1{font-size:34px;font-weight:700;letter-spacing:-.5px}
+  .hero p{font-size:16px;opacity:.92;max-width:640px}
+  .hero .pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .hero .pill{background:rgba(255,255,255,.16);padding:5px 13px;border-radius:999px;font-size:13px;font-weight:500}
+  .hero .pill.y{background:var(--yellow);color:#3d2f08}
+
+  /* TOC */
+  nav.toc{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);
+    box-shadow:var(--shadow-card);padding:20px 24px;margin-bottom:40px;
+  }
+  nav.toc h2{font-size:14px;color:var(--fg-2);font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+  nav.toc ol{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 20px;counter-reset:t}
+  nav.toc a{counter-increment:t;text-decoration:none;color:var(--fg);font-size:14px;display:flex;gap:8px;padding:5px 0;border-radius:6px;align-items:baseline}
+  nav.toc a::before{content:counter(t,decimal-leading-zero);color:var(--teal);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;flex-shrink:0}
+  nav.toc a:hover{color:var(--teal)}
+
+  section{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);
+    box-shadow:var(--shadow-card);padding:32px;margin-bottom:24px;
+  }
+  section > h2{
+    font-size:22px;font-weight:700;color:var(--teal);margin-bottom:6px;
+    display:flex;align-items:center;gap:12px;
+  }
+  section > h2 .n{
+    font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;
+    background:var(--teal-soft);color:var(--teal);padding:3px 9px;border-radius:8px;
+  }
+  section > .lead{color:var(--fg-2);margin:4px 0 22px;font-size:15px}
+  h3{font-size:16px;font-weight:600;margin:24px 0 10px;color:var(--fg)}
+  h3:first-of-type{margin-top:8px}
+  p{margin-bottom:12px}
+  ul{margin:0 0 14px;padding-left:0;list-style:none}
+  ul li{position:relative;padding-left:20px;margin-bottom:8px}
+  ul li::before{content:'';position:absolute;left:4px;top:11px;width:6px;height:6px;border-radius:50%;background:var(--teal-dark)}
+  strong{font-weight:600;color:var(--fg)}
+  code{background:var(--muted);padding:2px 6px;border-radius:6px;color:#0a4a44;border:1px solid var(--border);white-space:nowrap}
+
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;vertical-align:middle;letter-spacing:.3px}
+  .tag.hard{background:var(--red-soft);color:#b3261e}
+  .tag.tip{background:var(--blue-soft);color:#1b4fd6}
+
+  /* Callout */
+  .callout{border-radius:var(--radius-ctl);padding:14px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+  .callout.warn{background:var(--warm);border-color:#e8d9a8;color:var(--warm-fg)}
+  .callout.danger{background:var(--red-soft);border-color:#f3c9c9;color:#a3231f}
+  .callout.ok{background:var(--green-soft);border-color:#bfe6d2;color:#15784f}
+  .callout.info{background:var(--blue-soft);border-color:#cbd9fb;color:#1b4fd6}
+  .callout b{display:block;margin-bottom:3px}
+
+  /* Swatches */
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:16px 0}
+  .sw{border:1px solid var(--border);border-radius:var(--radius-ctl);overflow:hidden;background:var(--card)}
+  .sw .chip{height:54px}
+  .sw .meta{padding:8px 10px}
+  .sw .meta .nm{font-size:13px;font-weight:600}
+  .sw .meta .hx{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fg-3)}
+
+  /* Variant chips */
+  .vrow{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
+  .vchip{font-size:13px;padding:6px 13px;border-radius:var(--radius-ctl);border:1px solid var(--border);display:inline-flex;align-items:center;gap:7px}
+  .vchip .dot{width:10px;height:10px;border-radius:3px}
+  .vchip code{background:transparent;border:none;padding:0;color:inherit}
+
+  /* Tables */
+  table.t{width:100%;border-collapse:collapse;margin:10px 0 18px;font-size:14px}
+  table.t th{background:var(--muted);text-align:left;padding:9px 12px;color:var(--fg-2);font-weight:600;border-bottom:1px solid var(--border);font-size:13px}
+  table.t td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  table.t tr:last-child td{border-bottom:none}
+  table.t code{font-size:12px}
+
+  /* Zone diagram */
+  .zones{border:1px solid var(--border-strong);border-radius:var(--radius-card);overflow:hidden;margin:14px 0}
+  .zone{padding:13px 18px;font-size:13.5px;border-bottom:1px solid var(--border)}
+  .zone:last-child{border-bottom:none}
+  .zone .z-l{font-weight:600}
+  .zone .z-d{color:var(--fg-2);font-size:12.5px}
+  .zone.white{background:#fff}
+  .zone.muted{background:var(--muted)}
+  .zone.footer{background:#fff;border-top:2px solid var(--border-strong)}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media(max-width:680px){.two{grid-template-columns:1fr}.hero h1{font-size:27px}}
+  footer.pg{text-align:center;color:var(--fg-3);font-size:13px;margin-top:30px}
+  footer.pg code{font-size:12px}
+  a.src{color:var(--teal);text-decoration:none;border-bottom:1px dashed var(--border-strong)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Syntropic — คู่มือระบบดีไซน์</h1>
+    <p>เครื่องมือ POS ร้านยา สไตล์ “คลินิกแต่อบอุ่น” พื้นผิวขาวนวล แบรนด์สี <strong>เขียวเทล (teal)</strong> เน้นด้วย <strong>เหลือง</strong> และสีสถานะแบบ iOS รองรับ dark mode เต็มรูปแบบ ความหนาแน่นข้อมูลสูง (ตาราง/ล็อต/ราคา) แต่ยังอ่านง่าย หน้าต่าง Electron ไร้ขอบ + TitleBar ที่ทำเอง</p>
+    <div class="pills">
+      <span class="pill">Electron 31</span>
+      <span class="pill">React 18 + Vite 5</span>
+      <span class="pill">Tailwind v3.4</span>
+      <span class="pill y">ภาษาไทยทั้งระบบ</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h2>สารบัญ</h2>
+    <ol>
+      <li><a href="#sot">เอกสารอยู่ที่ไหน (แหล่งความจริง)</a></li>
+      <li><a href="#hard">กฎห้ามแตะ (HARD)</a></li>
+      <li><a href="#color">สี &amp; Token</a></li>
+      <li><a href="#variants">ปุ่ม &amp; Badge</a></li>
+      <li><a href="#type">ตัวอักษร &amp; ฟอนต์</a></li>
+      <li><a href="#radius">มุมโค้ง &amp; เงา</a></li>
+      <li><a href="#elevated">ELEVATED (พื้นผิวหลัก)</a></li>
+      <li><a href="#tablecard">เลย์เอาต์ Table-Card</a></li>
+      <li><a href="#filter">แถบกรอง &amp; ระยะ</a></li>
+      <li><a href="#sortable">ตารางจัดลำดับ</a></li>
+      <li><a href="#dialog">Dialog / Modal</a></li>
+      <li><a href="#pos">กฎหน้า POS</a></li>
+      <li><a href="#motion">การเคลื่อนไหว</a></li>
+      <li><a href="#impeccable">หมายเหตุสำหรับ skill impeccable</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <section id="sot">
+    <h2><span class="n">01</span> เอกสารอยู่ที่ไหน — แหล่งความจริง</h2>
+    <p class="lead">กฎดีไซน์มี “บ้านเดียวต่อหนึ่งเรื่อง” เพื่อไม่ให้เขียนซ้ำแล้วเพี้ยนกัน เวลาต้องการกฎ ให้เปิดเจ้าของจริง อย่าเดาเอง</p>
+    <table class="t">
+      <tr><th>ชั้น</th><th>เจ้าของจริง</th><th>มีอะไร</th></tr>
+      <tr>
+        <td><strong>Token / variant</strong><br><span style="color:var(--fg-3);font-size:12px">รันได้จริง เพี้ยนไม่ได้</span></td>
+        <td><code>src/index.css</code><br><code>tailwind.config.js</code><br>หน้าโชว์เคส <code>/theme</code></td>
+        <td>ทุกสี ทุกมุมโค้ง เงา และ variant ของคอมโพเนนต์ — เรนเดอร์ออกมาให้เห็นจริง จะแก้ดีฟอลต์ ต้องอัปเดต demo ในหน้าโชว์เคสพร้อมกัน</td>
+      </tr>
+      <tr>
+        <td><strong>หัวข้อย่อ</strong><br><span style="color:var(--fg-3);font-size:12px">โหลดทุก session</span></td>
+        <td><code>CLAUDE.md</code></td>
+        <td>กฎละหนึ่งบรรทัด + ลิงก์ไปเอกสารลึก</td>
+      </tr>
+      <tr>
+        <td><strong>คำอธิบายลึก</strong><br><span style="color:var(--fg-3);font-size:12px">เหตุผล + เคยพังยังไง</span></td>
+        <td><code>docs/claude/ui-*.md</code></td>
+        <td>เอกสารอ้างอิงตัวจริง (ui-theming, ui-components, ui-table-card, pos)</td>
+      </tr>
+      <tr>
+        <td><strong>Bridge สำหรับ skill</strong></td>
+        <td><code>DESIGN.md</code> (root)</td>
+        <td>ไฟล์บางๆ ชี้ไปที่อื่น + ส่วนปรับ generic rule ของ skill impeccable ให้เข้ากับ repo เท่านั้น (ห้ามก๊อปกฎกลับมาที่นี่)</td>
+      </tr>
+    </table>
+    <div class="callout info">
+      <b>ทำไมเคยสับสน</b> claude ปกติอ่าน <code>CLAUDE.md</code>+<code>docs/claude</code> แต่ skill impeccable อ่าน <code>DESIGN.md</code> — สองสายอ่านคนละไฟล์ กฎเลยเคยถูกเขียนซ้ำ 3 ที่ ตอนนี้ยุบให้ docs/claude เป็นบ้านหลักแล้ว
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="hard">
+    <h2><span class="n">02</span> กฎห้ามแตะ <span class="tag hard">HARD</span></h2>
+    <p class="lead">แต่ละข้อมี “เหตุการณ์พัง” อยู่เบื้องหลัง — ห้ามฝ่าฝืน</p>
+    <ul>
+      <li><strong>หน้า <code>/theme</code> คือแหล่งความจริง</strong> — ก่อนเพิ่ม/แก้ UI ให้เปิดดูแล้วหาแพตเทิร์นที่ตรง ลอกมา ห้ามคิดลายใหม่เอง</li>
+      <li><strong>ใช้ semantic token เท่านั้น ห้ามใส่สีดิบของ Tailwind</strong> — ห้าม <code>bg-blue-500</code>, <code>text-slate-600</code> ฯลฯ ใช้ <code>bg-primary</code>, <code>text-foreground</code>, <code>bg-success-soft</code> ขาด token ไหนให้เพิ่มใน <code>:root</code>+<code>.dark</code> ที่ <code>index.css</code> แล้วลงทะเบียนใน <code>tailwind.config.js</code></li>
+      <li><strong>ห้ามเขียน HTML element ดิบ</strong> — ใช้ <code>src/components/ui/</code> เสมอ (<code>&lt;Button&gt;</code>, <code>&lt;Input&gt;</code>, <code>&lt;Switch&gt;</code>, <code>&lt;Dialog&gt;</code>…) ขาด variant ให้เพิ่มในไฟล์คอมโพเนนต์ ห้ามเลี่ยงด้วย element ดิบ</li>
+      <li><strong>ห้ามสร้าง helper component ในโฟลเดอร์ <code>src/pages/</code></strong> — ถ้าใช้ซ้ำได้ ให้ย้ายไป <code>src/components/ui/</code> (มีให้แล้ว: <code>SectionCard</code>, <code>FormField</code>, <code>NativeSelect</code>, <code>Toggle</code>)</li>
+      <li><strong>Input เป็น ELEVATED โดยดีฟอลต์</strong> — <code>&lt;Input&gt;</code> เปล่าๆ ถูกต้องอยู่แล้ว ไม่ต้องเติม <code>variant="elevated"</code> อีก (ดูข้อ 07)</li>
+      <li><strong>ไอคอนใน <code>&lt;Button&gt;</code> ใช้ <code>size-N</code> ห้าม <code>h-N w-N</code></strong> — มีกฎ <code>:not([class*='size-'])</code> บังคับไอคอนที่ไม่มี <code>size-</code> ให้เป็น 16px เงียบๆ ใช้กับค่า arbitrary ด้วย (<code>size-[22px]</code>)</li>
+      <li><strong>Tailwind v3 — CSS var ต้องใช้วงเล็บเหลี่ยม</strong> — <code>w-[var(--x)]</code> ถูก / <code>w-(--x)</code> ผิด (ไวยากรณ์ v4 ถูกทิ้งเงียบๆ ไม่มี error)</li>
+      <li><strong>ลำดับขนาดตัวอักษรตามบทบาท</strong> — หัวข้อ ≥ <code>text-base</code> / เนื้อหา-ตาราง-label-ปุ่ม = <code>text-sm</code> / helper-caption-badge = <code>text-xs</code> เล็กกว่า <code>text-xs</code> ห้าม</li>
+      <li><strong>ห้าม emoji ในของที่ส่งถึงผู้ใช้</strong> — source / UI string / runtime text ใช้ไอคอน lucide + Badge variant + token สีแทน</li>
+      <li><strong>Scrollbar บาง 6px ทั้งแอป ขนาดเดียว</strong> — ห้ามกำหนดความกว้างอื่นที่ใดก็ตาม</li>
+      <li><strong>ใช้สีให้ครบจาน อย่าใช้แต่ primary/secondary/destructive</strong> — เลือกตามบทบาท: <code>accent</code> (เหลือง), <code>primary-soft</code>, <code>info-soft</code>, <code>warm</code>, <code>success</code>, <code>outline</code>, <code>ghost</code>, <code>destructive2</code> และตระกูล <code>*-outline</code> ที่มีครบทุกสี (<strong>ไม่มี</strong> <code>tertiary</code>/<code>brand-soft</code> แล้ว — เปลี่ยนเป็น <code>accent</code>/<code>primary-soft</code>)</li>
+      <li><strong>ภาษาไทยทั้งระบบ</strong> — ข้อความที่เห็นทั้งหมดเป็นไทย ระวัง line-height สคริปต์ไทย (วรรณยุกต์ซ้อนจะถูกตัดถ้า line-height แน่นไป)</li>
+    </ul>
+  </section>
+
+  <!-- 3 -->
+  <section id="color">
+    <h2><span class="n">03</span> สี &amp; Token</h2>
+    <p class="lead">นิยามเป็นตัวแปร HSL ใน <code>src/index.css</code> (<code>:root</code>=สว่าง, <code>.dark</code>=มืด) เปิดให้ Tailwind ผ่าน <code>tailwind.config.js</code> — <strong>อ้างชื่อ token เสมอ ห้ามใส่ค่า hex/HSL ตรงๆ</strong> token ตั้งชื่อตาม “บทบาท” ไม่ใช่เฉดสี</p>
+
+    <h3>แบรนด์ &amp; เน้น</h3>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#0F5D56"></div><div class="meta"><div class="nm">primary (teal)</div><div class="hx">#0F5D56 · มืด #2BA396</div></div></div>
+      <div class="sw"><div class="chip" style="background:#F5C24A"></div><div class="meta"><div class="nm">accent (เหลือง)</div><div class="hx">#F5C24A · ปุ่ม accent</div></div></div>
+      <div class="sw"><div class="chip" style="background:#FCEFC8"></div><div class="meta"><div class="nm">warm (ครีม/อำพัน)</div><div class="hx">#FCEFC8</div></div></div>
+    </div>
+    <p style="font-size:13.5px;color:var(--fg-2)">โทน primary: <code>primary</code>, <code>primary-hover</code>, <code>primary-strong</code>, <code>primary-soft</code>, <code>primary-soft-hover</code>, <code>primary-soft-border</code>, <code>primary-foreground</code> — ใช้กับ CTA หลัก/บันทึก/ยืนยัน/จ่ายเงิน</p>
+
+    <h3>สถานะ (สไตล์ iOS)</h3>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#1FA971"></div><div class="meta"><div class="nm">success (เขียว)</div><div class="hx">success / -soft</div></div></div>
+      <div class="sw"><div class="chip" style="background:#FF9500"></div><div class="meta"><div class="nm">warning (ส้ม)</div><div class="hx">#FF9500 / -strong</div></div></div>
+      <div class="sw"><div class="chip" style="background:#E5484D"></div><div class="meta"><div class="nm">destructive (แดง)</div><div class="hx">/ -soft / -strong</div></div></div>
+      <div class="sw"><div class="chip" style="background:#2563EB"></div><div class="meta"><div class="nm">info (น้ำเงิน)</div><div class="hx">#2563EB / -soft</div></div></div>
+    </div>
+
+    <h3>ตกแต่ง (ชาร์ต/ชิป/แท็ก)</h3>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#7C5CFC"></div><div class="meta"><div class="nm">violet</div><div class="hx">/ -soft / -strong</div></div></div>
+      <div class="sw"><div class="chip" style="background:#2BA396"></div><div class="meta"><div class="nm">teal</div><div class="hx">/ -soft / -strong</div></div></div>
+    </div>
+
+    <h3>พื้นผิว &amp; ตัวอักษร</h3>
+    <ul>
+      <li><strong>พื้นผิว:</strong> <code>background</code>, <code>card</code>, <code>popover</code>, <code>muted</code>, <code>surface-hover</code>, <code>secondary</code></li>
+      <li><strong>เส้นขอบ:</strong> <code>border</code>, <code>border-strong</code> · ช่องกรอก <code>input</code> · โฟกัส <code>ring</code></li>
+      <li><strong>ตัวอักษร:</strong> <code>foreground</code> (เข้ม), <code>muted-foreground</code> (รอง), <code>foreground-subtle</code> (placeholder/ปิดใช้งาน)</li>
+      <li><strong>Sidebar</strong> มี token ชุดของตัวเอง: <code>sidebar</code>, <code>sidebar-foreground</code>, <code>sidebar-border</code>, <code>sidebar-accent</code>, <code>sidebar-primary</code>, <code>sidebar-ring</code></li>
+    </ul>
+    <div class="callout ok"><b>ใส่ความโปร่งได้</b> ปรับ opacity บน token ได้ เช่น <code>bg-primary/30</code>, <code>border-warning/40</code>, <code>text-destructive/80</code></div>
+  </section>
+
+  <!-- 4 -->
+  <section id="variants">
+    <h2><span class="n">04</span> ปุ่ม &amp; Badge variant</h2>
+    <p class="lead">เลือก variant ตาม “บทบาท” ของปุ่ม ไม่ใช่ “อันไหนดูกลางๆ สุด” — แอปควรดูมีสีสันหลากหลาย</p>
+
+    <h3>ปุ่ม <code>&lt;Button&gt;</code> (<code>button.tsx</code>)</h3>
+    <div class="vrow">
+      <span class="vchip" style="background:#0F5D56;color:#fff"><code>default</code> · CTA หลัก/บันทึก</span>
+      <span class="vchip"><span class="dot" style="background:#E3E7E6"></span><code>secondary</code> · ยกเลิก</span>
+      <span class="vchip" style="background:#F5C24A;color:#3d2f08"><code>accent</code> · เน้นด้วยเหลือง (เดิม tertiary)</span>
+      <span class="vchip" style="background:#E3F0EE;color:#0a4a44"><code>primary-soft</code> · เน้นแบรนด์อ่อน (เดิม brand-soft)</span>
+      <span class="vchip" style="background:#E5EDFD;color:#1b4fd6"><code>info-soft</code> · เช่น “ปรับสต็อก”</span>
+      <span class="vchip" style="background:#FCEFC8;color:#8A6D1B"><code>warm</code> · รองโทนอุ่น</span>
+      <span class="vchip"><span class="dot" style="background:#fff;border:1px solid #CDD4D2"></span><code>outline</code> · ปุ่มไอคอนกลางๆ / “แก้ไข”</span>
+      <span class="vchip"><span class="dot" style="background:transparent;border:1px dashed #8A938F"></span><code>ghost</code> · รองสุด</span>
+      <span class="vchip" style="background:#E5484D;color:#fff"><code>destructive</code> · ลบ/ยกเลิกบิล</span>
+      <span class="vchip" style="background:#FBE7E7;color:#b3261e"><code>destructive2</code> · รองข้างปุ่มลบ</span>
+      <span class="vchip" style="background:#1FA971;color:#fff"><code>success</code> · ยืนยันเชิงบวก</span>
+      <span class="vchip"><span class="dot" style="background:#0F5D56"></span><code>elevated</code> · รองข้างปุ่มหลัก (ไม่ใช้เดี่ยว)</span>
+      <span class="vchip"><code>link</code> · ข้อความล้วน</span>
+    </div>
+    <div class="callout info"><b>การเปลี่ยนชื่อ (อย่าใช้ชื่อเก่า)</b> <code>tertiary</code> → <code>accent</code> · <code>brand-soft</code> → <code>primary-soft</code> · ออร์ดินัลเก่า <code>quaternary/quinary/senary</code> → <code>primary-soft/info-soft/warm</code> (ค่าสีเท่าเดิม) · ยังมีตระกูล <code>*-outline</code> ครบทุกสี + <code>neutral-outline</code>/<code>muted-outline</code> และ <code>elevated</code>/<code>elevated-destructive</code>/<code>elevated-warning</code></div>
+
+    <h3>Badge <code>&lt;Badge&gt;</code> (<code>badge.tsx</code>)</h3>
+    <p>ชื่อเดียวกับปุ่ม <strong>บวกเพิ่ม</strong> <code>warning</code> (สถานะ) และ <code>danger</code> (แดงทึบ) — เฉพาะ Badge ใช้กับแท็ก สถานะ ป้าย อย. (เช่น <code>ข.ย.13</code>) เครื่องหมายระดับ</p>
+
+    <h3>คำแนะนำเวลาทำ UI ใหม่</h3>
+    <ul>
+      <li><strong>แยกปุ่มด้วยสีตามงาน:</strong> แก้ไข=<code>outline</code>, ข้อมูล/รายละเอียด=<code>warm</code>, เปิดลิงก์นอก=<code>primary-soft</code>, ปรับสต็อก=<code>info-soft</code>, ลบ=<code>destructive</code>, บันทึกหลัก=<code>default</code></li>
+      <li><strong>ชิป/badge ตกแต่ง:</strong> หยิบ <code>accent</code>/<code>primary-soft</code>/<code>info-soft</code>/<code>warm</code> ก่อนจะตกไปใช้ <code>secondary</code> หรือเทา</li>
+      <li><strong>พื้นหลังอ่อนของ section:</strong> <code>bg-primary-soft</code>, <code>bg-info-soft</code>, <code>bg-warm</code> (อย่าใช้ <code>bg-muted</code> กับทุกอย่าง)</li>
+      <li><strong>ขาด role?</strong> เพิ่ม variant ใน <code>buttonVariants</code>/<code>badgeVariants</code> + token ใน <code>:root</code>+<code>.dark</code> — ห้าม hardcode hex</li>
+    </ul>
+  </section>
+
+  <!-- 5 -->
+  <section id="type">
+    <h2><span class="n">05</span> ตัวอักษร &amp; ฟอนต์</h2>
+    <p class="lead">ลำดับฟอนต์: <code>var(--font-latin), var(--font-thai), sans-serif</code> — สลับได้จากหน้า <code>/theme</code></p>
+    <div class="two">
+      <div>
+        <h3>ดีฟอลต์ตามธีม</h3>
+        <ul>
+          <li><strong>สว่าง:</strong> Latin = Inter / ไทย = IBM Plex Sans Thai</li>
+          <li><strong>มืด:</strong> Latin = Google Sans / ไทย = Sarabun</li>
+          <li><strong>เอกสารพิมพ์</strong> ใช้ Sarabun เป็นค่าเริ่ม (ฟอร์ม ข.ย. ทางการ)</li>
+        </ul>
+      </div>
+      <div>
+        <h3>ฟอนต์ไทยสำรองที่มากับแอป</h3>
+        <ul>
+          <li>IBM Plex Sans Thai (Looped), Sarabun, SF Thonburi, Bai Jamjuree, Anuphan, Noto Sans Thai (+ Looped)</li>
+          <li>ฟอนต์ไทยถูกจำกัด <code>unicode-range</code> ที่ U+0E00–0E7F → ข้อความที่เป็นตัวเลขล้วนจะเรนเดอร์ด้วยฟอนต์ Latin</li>
+        </ul>
+      </div>
+    </div>
+    <h3>ขนาด</h3>
+    <ul>
+      <li><code>html { font-size:16px }</code> (ฐาน UI ที่เห็นจริง ~15px) · <strong>ห้ามใช้ <code>tabular-nums</code></strong> (มติโปรเจกต์ — เลิกใช้กับโค้ดใหม่)</li>
+      <li><strong>ลำดับชั้น:</strong> หัวข้อ ≥ <code>text-base</code> · เนื้อหา/ตาราง/label/ปุ่ม = <code>text-sm</code> · helper/caption/badge = <code>text-xs</code> · เล็กกว่านี้ห้าม</li>
+    </ul>
+  </section>
+
+  <!-- 6 -->
+  <section id="radius">
+    <h2><span class="n">06</span> มุมโค้ง &amp; เงา</h2>
+    <ul>
+      <li><code>--radius-card</code> = <code>1rem</code> → <code>rounded-card</code> — มุมของการ์ด/แผงลอยทุกอัน (แหล่งเดียว)</li>
+      <li><code>--radius-control</code> / <code>--radius</code> = <code>0.5rem</code> → <code>rounded-control</code> / <code>rounded-lg</code> — ปุ่ม/ช่องกรอก/แผง select/popover</li>
+      <li>ห้ามใช้ <code>rounded-xl</code>/<code>rounded-2xl</code> ดิบๆ — ใช้ token</li>
+      <li><code>--shadow-card</code> → <code>shadow-card</code> · ปุ่ม/ช่องกรอกใช้ <code>shadow-sm</code> เป็นส่วนหนึ่งของลุค elevated</li>
+    </ul>
+  </section>
+
+  <!-- 7 -->
+  <section id="elevated">
+    <h2><span class="n">07</span> ELEVATED — พื้นผิวหลักของระบบ <span class="tag hard">HARD</span></h2>
+    <p class="lead">ลุคประจำบ้านของ control/แผง คือ “ยกลอย”: <code>bg-card</code> + <code>border border-border</code> + <code>shadow-sm</code> เหมือนการ์ดยกตัวลอยเหนือพื้นหลัง</p>
+    <ul>
+      <li><strong>เป็นดีฟอลต์ของ Input แล้ว</strong> — <code>Input</code>/<code>Textarea</code>/<code>SelectTrigger</code> ที่ไม่ใส่ variant จะ elevated เอง → <strong>เลิกเติม</strong> <code>variant="elevated"</code> ด้วยมือ (เป็น alias ที่เหมือนดีฟอลต์)</li>
+      <li><strong>ลุคแบนเก่า</strong> (<code>bg-input</code>/<code>bg-muted</code>) เป็นของเสริม เปิดด้วย <code>variant="filled"</code> เฉพาะที่ตั้งใจอยากได้ช่องจมเข้าไป</li>
+      <li><strong>ข้อยกเว้น — Button</strong> ดีฟอลต์ของปุ่มคือ CTA teal หลัก ต้องคงไว้ ห้ามสลับเป็น elevated</li>
+      <li>อ้างอิงของจริง: <code>src/pages/Products/EditProduct/GeneralTab.tsx</code></li>
+    </ul>
+    <div class="callout warn"><b>ปุ่ม footer ใน Dialog ตามบทบาท</b> ปุ่มเดี่ยว = บทบาทหลัก → <code>default</code> (กลาง/บวก: ปิด/ตกลง/บันทึก) หรือ <code>destructive</code> (ลบ) · สองปุ่ม = หลัก + รอง <code>elevated</code> (ยกเลิก/กลับ) · <code>elevated</code> ห้ามเป็นปุ่มเดี่ยว · <code>destructive2</code> = ปุ่มรองข้างปุ่มลบ</div>
+  </section>
+
+  <!-- 8 -->
+  <section id="tablecard">
+    <h2><span class="n">08</span> เลย์เอาต์ Table-Card <span class="tag hard">HARD</span></h2>
+    <p class="lead">มาตรฐานของหน้ารายการ (Products, EditProduct, Manage…) กรอบนอก: <code>bg-card rounded-card shadow-card overflow-hidden</code></p>
+
+    <h3>4 โซนพื้นหลัง — สีคือสิ่งที่แยกโซน</h3>
+    <div class="zones">
+      <div class="zone white"><div class="z-l">1 · แถบหัวข้อบน (ชื่อ/จำนวน + ปุ่มเพิ่ม)</div><div class="z-d">bg-card ขาว · ไม่มีเส้นขอบ — แถบ muted ข้างล่างทำหน้าที่แบ่งเอง</div></div>
+      <div class="zone muted"><div class="z-l">2 · แถวหัวคอลัมน์ (thead)</div><div class="z-d">bg-muted · เป็นแถบ muted แถบเดียวในการ์ด · sticky</div></div>
+      <div class="zone white"><div class="z-l">3 · แถวข้อมูล (tbody)</div><div class="z-d">bg-card ขาว</div></div>
+      <div class="zone footer"><div class="z-l">4 · แถบสถานะ/ยอดรวมล่าง</div><div class="z-d">bg-card + border-t border-border · เป็นแถบเดียวที่มีเส้นขอบ (บน) · h-12</div></div>
+    </div>
+    <div class="callout danger"><b>จำง่ายๆ</b> มีแค่แถบหัวคอลัมน์ที่เป็น muted · แถบล่างได้เส้นขอบบน · แถบหัวบนไม่มีเส้นขอบ</div>
+
+    <h3>ไอคอนนำหน้าหัวการ์ด <span class="tag hard">HARD</span></h3>
+    <p><code>&lt;TintIcon&gt;</code> ของหัว table-card เป็น <code>tint="neutral"</code> + <code>bordered</code> เสมอ (ลุคยกลอย ไม่มีสี) — ห้ามใส่สี tint สีตามบทบาทสงวนไว้ให้หัว <code>SectionCard</code> เท่านั้น</p>
+
+    <h3>ความกว้างคอลัมน์ <span class="tag hard">HARD</span></h3>
+    <table class="t">
+      <tr><th>ชนิดตาราง</th><th>วิธี</th></tr>
+      <tr><td>ตาราง <strong>แสดงผล/รายการ</strong></td><td>ทุก <code>&lt;TableHead&gt;</code> ใส่ <code>min-w-XX</code> และ <strong>ไม่</strong>ใส่ <code>table-fixed</code> — คอลัมน์ยืดหดได้แต่ไม่ยุบต่ำกว่าขั้นต่ำ</td></tr>
+      <tr><td>กริด <strong>กรอกข้อมูลแบบสเปรดชีต</strong> (ช่องแก้ไขได้ + เดินด้วยคีย์บอร์ด)</td><td><code>table-fixed</code> + <code>w-[N%]</code> (เปอร์เซ็นต์ ยังตอบสนองได้) · คุมขนาด <code>&lt;Input&gt;</code> ข้างในด้วย <code>min-w-/max-w-</code> · อ้างอิง: <code>Purchase/index.tsx</code></td></tr>
+    </table>
+
+    <h3>ปุ่ม action ในแถว <span class="tag hard">HARD</span></h3>
+    <ul>
+      <li>ใช้ <code>&lt;Button size="icon-lg" variant="elevated"&gt;</code> ทรงสี่เหลี่ยมจัตุรัส ไอคอน lucide อันเดียว ไม่ override ความกว้าง · ใส่ <code>title</code> เสมอ · <strong>ห้าม</strong> ใส่สี tint ตามบทบาท</li>
+      <li><strong>มาตรฐาน:</strong> ปุ่ม <code>MoreHorizontal</code> (“ตัวเลือก”) เปิด <code>&lt;Popover&gt;</code> เมนู — รายการเมนูเป็น <code>&lt;button&gt;</code> ธรรมดา รายการลบใช้ <code>text-destructive hover:bg-destructive/10</code></li>
+      <li><strong>มีแอ็กชันเดียว:</strong> ข้ามเมนู ใช้ปุ่มไอคอน elevated ตรงๆ (เช่น <code>Eye</code> ดูรายละเอียด)</li>
+    </ul>
+
+    <h3>หัวตาราง sticky + อื่นๆ</h3>
+    <ul>
+      <li>sticky: ใส่ <code>sticky top-0 z-10 bg-muted</code> ที่ <code>&lt;th&gt;</code> (ไม่ใช่ <code>&lt;thead&gt;</code>) + เส้นบางที่เลื่อนตามด้วย <code>shadow-[0_1px_0_var(--border)]</code></li>
+      <li>hover แถว: <code>hover:bg-primary-soft/60 transition-colors</code></li>
+      <li>สถานะว่าง: ไอคอน lucide <code>size-10 opacity-30</code> + ข้อความไทย + <code>py-16</code></li>
+    </ul>
+  </section>
+
+  <!-- 9 -->
+  <section id="filter">
+    <h2><span class="n">09</span> แถบกรอง &amp; ระยะห่าง <span class="tag hard">HARD</span></h2>
+    <p class="lead">แยกให้ออกระหว่าง 2 แถบที่ความสูงต่างกัน</p>
+    <table class="t">
+      <tr><th>แถบ</th><th>ความสูงแถบ</th><th>control ข้างใน</th></tr>
+      <tr><td><strong>แถบกรอง/topbar</strong> (search + ตัวกรอง)</td><td><code>h-14 px-2</code></td><td>ทุกตัว <code>h-10</code> (Input/SelectTrigger/Button ต้องใส่เอง · DateInput/DateRangePicker/Combobox มีมาแล้ว — ห้าม override เป็น <code>h-9</code> จะทำปุ่มปฏิทินเพี้ยน)</td></tr>
+      <tr><td><strong>แถบหัวบน / footer-pagination</strong></td><td><code>h-12</code></td><td>ปุ่ม <code>h-9</code> (Button <code>size="lg"</code>)</td></tr>
+    </table>
+    <div class="callout warn"><b>อย่าปนกัน</b> ห้ามเอา control <code>h-9</code> ไปใส่ในแถบ <code>h-14</code> — ทำให้ไม่ตรงแนวกับ DateRangePicker (เป็นแพตเทิร์นเก่าที่เลิกแล้ว)</div>
+    <p style="font-size:13.5px;color:var(--fg-2)">พื้นที่ตารางมีขอบข้าง <code>border-l-8 border-r-8 border-card</code> (สีเท่าพื้นการ์ด = เว้นระยะ 8px โดยไม่ใช้ padding)</p>
+  </section>
+
+  <!-- 10 -->
+  <section id="sortable">
+    <h2><span class="n">10</span> ตารางจัดลำดับ (ลากเรียง) <span class="tag hard">HARD</span></h2>
+    <p class="lead">สร้างบน <code>framer-motion</code> <code>Reorder</code> (มีอยู่แล้ว ห้ามเพิ่มไลบรารี DnD) · <code>src/components/ui/sortable.tsx</code></p>
+    <ul>
+      <li><strong>ต้องเปิดโหมดก่อนถึงจะลากได้</strong> — ห้ามปล่อยให้ลากได้ตลอด หัวแถบมีปุ่ม “จัดลำดับ” (<code>variant="info-soft"</code>, ปิดเมื่อมีน้อยกว่า 2 แถว)</li>
+      <li><strong>ร่างเก็บในเครื่อง, ยืนยัน/ยกเลิกชัดเจน</strong> — อย่าบันทึกทุกครั้งที่ปล่อย (<code>onDragEnd</code>) เข้าโหมดแล้ว snapshot ลำดับเดิมไว้ · “ยกเลิก” (<code>destructive2</code>) คืนค่าเดิมไม่ยิง IPC · “เสร็จสิ้น” (<code>success</code>) บันทึกแล้วโหลดใหม่</li>
+      <li><strong>backend เป็นคนเลขลำดับใหม่</strong> — IPC รับ array id ที่เรียงแล้ว เขียน <code>sort_order = 1..n</code> ใน transaction เดียว</li>
+      <li>ใช้ได้เฉพาะตารางที่มีคอลัมน์ <code>sort_order</code> — <code>product_categories</code> มี / <code>drug_types</code> ไม่มี (ต้อง migrate schema ก่อน)</li>
+    </ul>
+  </section>
+
+  <!-- 11 -->
+  <section id="dialog">
+    <h2><span class="n">11</span> Dialog / Modal <span class="tag hard">HARD</span></h2>
+    <h3>สัญญาการโต้ตอบ (ทุก modal ไม่มีข้อยกเว้น)</h3>
+    <ul>
+      <li><strong>คลิกข้างนอกไม่ปิด</strong> — บังคับใน <code>dialog.tsx</code> แล้ว ห้าม bypass</li>
+      <li><strong>Esc ปิด</strong> (ดีฟอลต์ Radix — เปิดไว้)</li>
+      <li><strong>Enter = สั่งปุ่มหลัก OK</strong> — ต่อ Enter ที่ช่องกรอกหลักหรือผ่าน <code>onKeyDown</code> เรียก handler เดียวกับปุ่ม OK</li>
+    </ul>
+    <h3>โครงสร้างบังคับ</h3>
+    <p>ทุก <code>&lt;DialogContent&gt;</code> ต้องมี <code>&lt;DialogHeader&gt;</code> + <code>&lt;DialogTitle&gt;</code> + <code>&lt;DialogBody&gt;</code> + <code>&lt;DialogFooter&gt;</code></p>
+    <ul>
+      <li><code>DialogTitle</code> = <code>text-xl</code> · ปุ่ม footer มัก <code>size="xl"</code> · <code>Switch</code> ใน modal = <code>size="lg"</code></li>
+      <li><strong>Dialog ยืนยัน/ลบ</strong> ใช้การ์ดข้อมูลแบบมีโครง (<code>rounded-xl border bg-card shadow-sm</code> + แถว label/value + กล่องเตือน tinted-soft) ใน slot <code>content</code> — ไม่ใช่ข้อความยาวๆ ใน <code>description</code> · อ้างอิง: <code>NegativeStock.tsx</code> / <code>Expenses.tsx</code></li>
+    </ul>
+  </section>
+
+  <!-- 12 -->
+  <section id="pos">
+    <h2><span class="n">12</span> กฎหน้า POS <span class="tag hard">HARD</span></h2>
+    <h3>การค้นหา</h3>
+    <ul>
+      <li><strong>ช่องค้นหาโฟกัสตลอด</strong> — มี global <code>click</code> listener ดึงโฟกัสกลับเมื่อคลิกพื้นที่ที่ไม่ใช่ปุ่ม · เคารพ dialog ที่เปิดอยู่</li>
+      <li><strong>Modal ขนาดคงที่</strong> 600×480 · header/หัวคอลัมน์/footer = <code>shrink-0</code> · ลิสต์ผลลัพธ์ = <code>flex-1 overflow-y-auto</code> · ที่ว่างคงว่าง ไม่ reflow</li>
+      <li><strong>ไฮไลต์เป็นของคีย์บอร์ดเท่านั้น</strong> — <code>highlightIdx</code> รีเซ็ตเฉพาะตอน <code>query</code> เปลี่ยน · <strong>ห้าม</strong>ใส่ <code>onMouseEnter</code> ที่แถว (<code>scrollIntoView</code> ทำให้เมาส์ลั่นแล้วรีเซ็ตไฮไลต์) · hover ใช้ CSS อย่างเดียว</li>
+      <li>ลูกศรขึ้น/ลง เรียก <code>e.preventDefault()</code> กันพฤติกรรมดีฟอลต์</li>
+    </ul>
+    <h3>การเลือกหน่วย — หน่วยหลักอยู่บนสุดเสมอ</h3>
+    <ul>
+      <li>หน่วยฐาน (“หลัก”) ต้องเป็นตัวเลือกแรกทั้งใน cart unit dialog และ search modal · สถานะการเลือกห้ามมีผลต่อลำดับ</li>
+      <li><strong>สังเคราะห์หน่วยฐานจาก <code>product.unit_name</code> เท่านั้น</strong> — ห้าม fallback ไป <code>item.unit_name</code> (นั่นคือหน่วยที่เลือกอยู่ จะทำให้ติดป้าย “หลัก” ผิดตัว)</li>
+      <li>หน่วยฐานอยู่ที่ <code>products.unit_id</code> · <code>product_units</code> เก็บเฉพาะหน่วยที่ไม่ใช่ฐาน · POS สังเคราะห์แถวฐาน <code>id: -1</code> · search modal ส่ง <code>{product, unit: null}</code> เป็นตัวแรก</li>
+    </ul>
+  </section>
+
+  <!-- 13 -->
+  <section id="motion">
+    <h2><span class="n">13</span> การเคลื่อนไหว / แอนิเมชัน</h2>
+    <div class="callout ok"><b>แอนิเมชันใช้ได้ — ไม่ห้าม</b> ถ้ามันทำให้ UI สวยขึ้นและเหมาะสม สนับสนุนให้ใส่ · เพิ่มไลบรารี motion ใหม่ก็ได้เมื่อเหมาะ — <strong>ขอแค่บอกแผนกับผู้ใช้ก่อนลงมือจริง</strong> แล้วได้ OK ก่อน</div>
+    <ul>
+      <li>ที่มีอยู่แล้ว: <code>framer-motion</code> (pill ของ Tabs เลื่อน) และ <code>tailwindcss-animate</code> — หยิบใช้ได้เลย</li>
+      <li>จะเพิ่ม gsap/lenis/anime.js ฯลฯ ได้ตามความเหมาะสม/ความสวย — แค่แจ้งก่อน (และอย่ารัน <code>npm install</code> เปล่าๆ ใช้ <code>--ignore-scripts</code> ไม่งั้น better-sqlite3 พัง)</li>
+      <li>ยังคงทำทางเลือกสำหรับ <code>prefers-reduced-motion: reduce</code> เพื่อ accessibility</li>
+    </ul>
+  </section>
+
+  <!-- 14 -->
+  <section id="impeccable">
+    <h2><span class="n">14</span> หมายเหตุสำหรับ skill <code>impeccable</code></h2>
+    <p class="lead">ส่วนนี้คือสะพานเชื่อม “playbook ทั่วไปของ skill ภายนอก” กับ “โค้ดเบสนี้” — เมื่อกฎทั่วไปขัดกับ House Invariant ให้ House Invariant ชนะ</p>
+    <ul>
+      <li><strong>“การ์ดคือคำตอบขี้เกียจ / การ์ดซ้อนการ์ดผิดเสมอ”</strong> → ใช้ไม่ได้ที่นี่ นี่คือเครื่องมือ operator ข้อมูลหนาแน่น · table-card 4 โซน + <code>SectionCard</code>/<code>MetricCard</code>/<code>StatCard</code> เป็นแพตเทิร์นตั้งใจ · POS ใช้การ์ดมีขอบโดยจงใจ — อย่าไปรื้อ</li>
+      <li><strong>จานสี</strong> → จานปัจจุบันเป็น token HSL ใน <code>src/index.css</code> และเป็นค่าตั้งต้น (รักษาอัตลักษณ์เดิมเป็นปกติ อย่าสลับสีแบรนด์เงียบๆ) · <strong>แต่เสนอจานสีใหม่ได้</strong> ถ้ามีความจำเป็นจริงและสวย/เหมาะกว่า — เสนอผู้ใช้ก่อนแล้วได้ตกลงค่อยทำ · ยังต้องอ้าง token เสมอ (เพิ่ม token ใหม่ใน <code>:root</code>+<code>.dark</code>) ห้าม hardcode สีดิบของ Tailwind</li>
+      <li><strong>สอดคล้องอยู่แล้ว:</strong> การห้าม side-stripe border, gradient text, glassmorphism ตกแต่ง, เทมเพลต hero-metric, eyebrow ตัวพิมพ์ใหญ่, em dash, คำตลาด — ตรงกับโปรเจกต์นี้ บังคับต่อไปได้</li>
+    </ul>
+  </section>
+
+  <footer class="pg">
+    เอกสารนี้รวมจาก <code>DESIGN.md</code> + <code>docs/claude/ui-theming.md</code> · <code>ui-components.md</code> · <code>ui-table-card.md</code> · <code>pos.md</code><br>
+    แหล่งความจริงตัวจริงคือไฟล์เหล่านั้น + หน้า <code>/theme</code> — ถ้าขัดกัน ให้ยึดไฟล์ต้นทาง
+  </footer>
+
+</div>
+</body>
+</html>

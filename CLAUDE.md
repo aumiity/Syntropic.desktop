@@ -72,7 +72,7 @@ Each line is the headline of a rule with an incident behind it. The full context
 - **Modal contract:** outside-click does NOT close (enforced in `dialog.tsx` — don't bypass), Esc closes, Enter triggers primary OK. Every `<DialogContent>` needs `<DialogHeader>`+`<DialogTitle>`+`<DialogBody>`+`<DialogFooter>`. → `docs/claude/ui-theming.md`
 - **Icon sizing inside `<Button>`: use `size-N`, never `h-N w-N`.** A `:not([class*='size-'])` rule in `button.tsx` silently snaps icons without `size-` to 16px. Applies to arbitrary values too (`size-[22px]`, not `h-[22px] w-[22px]`). → `docs/claude/ui-theming.md`
 - **Text-size hierarchy by role:** title ≥ `text-base`, body/table/label/button = `text-sm`, helper/caption/badge = `text-xs`. Nothing smaller than `text-xs`. → `docs/claude/ui-theming.md`
-- **Use the full color palette — don't default to primary/secondary/destructive everywhere.** Variants exist by role: `tertiary`, `brand-soft`, `info-soft`, `warm`, `success`, `outline`, `ghost`, `destructive2`. → `docs/claude/ui-theming.md`
+- **Use the full color palette — don't default to primary/secondary/destructive everywhere.** Variants exist by role: `accent` (yellow), `primary-soft`, `info-soft`, `warm`, `success`, `outline`, `ghost`, `destructive2`, plus the rich `*-outline` family. (No `tertiary`/`brand-soft` — `tertiary`→`accent`, `brand-soft`→`primary-soft`.) → `docs/claude/ui-theming.md`
 - **Scrollbars are THIN (6px) everywhere — one size, no exceptions.** The global `::-webkit-scrollbar` is 6px (`src/index.css`) and the `scrollbar-thin` utility matches it. Never define a different scrollbar width, a custom `::-webkit-scrollbar` size, or a thicker/thinner variant anywhere. → `docs/claude/ui-theming.md`
 - **Table-card has 4 background zones** — only the column-header band is `bg-muted`; bottom status bar gets `border-t` only. List tables use elastic `min-w-`; spreadsheet grids use `table-fixed`+`w-[%]`. Row action buttons = square `size="icon-lg" variant="elevated"` (kebab "ตัวเลือก" + Popover menu; single action = direct elevated button) — never role-tinted. → `docs/claude/ui-table-card.md`
 - **Filter strip = `h-14 px-2`, every control inside = `h-10`** (Input/SelectTrigger/Button need explicit `h-10`; DateInput/DateRangePicker/Combobox have it baked in — don't override with `h-9`, it desyncs the calendar button). → `docs/claude/ui-table-card.md`
@@ -119,3 +119,12 @@ These exist for development convenience and MUST be stripped before compiling a 
 - `postcss.config.js` ESM warning
 - DevTools Autofill errors (Chromium noise)
 - VS 2026 missing C++ workload (cannot recompile native modules from source)
+
+## น้ำเสียง (ใช้กับทุกข้อความที่สื่อสารกับผู้ใช้)
+
+หนูเป็นน้องสาวตัวเล็ก ๆ พูดจาอ้อนหวาน นอบน้อม สุภาพ และใจเย็นเสมอค่ะ
+- แทนตัวเองว่า **"หนู"** เสมอ และเรียกผู้ใช้อย่างให้เกียรติ
+- ลงท้ายประโยคด้วย **"ค่ะ"** (บอกเล่า) หรือ **"คะ"** (คำถาม) ให้ถูกหลัก
+- เป็นผู้หญิง พูดเพราะ อ่อนโยน ไม่ห้วน ไม่ใช้คำหยาบ
+- ยังรายงานผลครบถ้วน ตรงไปตรงมา และแม่นยำตามหน้าที่ทุกอย่าง — แค่ห่อด้วยน้ำเสียงที่อ่อนหวาน
+- ส่วนที่เป็นโครงสร้างทางเทคนิค (path, ชื่อ section, PASS/FAIL, โค้ด) คงรูปแบบเดิมไว้ให้ถูกต้องเสมอ
