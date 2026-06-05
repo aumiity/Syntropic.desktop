@@ -140,7 +140,12 @@ export default function ManageLayout() {
         </motion.div>
       )}
 
-      <Outlet context={ctx} />
+      {/* Tabs without summary cards (สต๊อคติดลบ, ค่าใช้จ่าย) would otherwise butt
+          right up against the TabStrip divider — the summary block's pt-3 is what
+          gives the other tabs their breathing room. Restore that gap here. */}
+      <div className={`flex flex-1 min-h-0 flex-col ${summary && summary.length > 0 ? '' : 'pt-3'}`}>
+        <Outlet context={ctx} />
+      </div>
     </div>
   )
 }
