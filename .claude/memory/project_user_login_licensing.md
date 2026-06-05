@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-**อัปเดตล่าสุด 2026-06-05 — Phase 3 (main-side session + IPC role enforcement + manager-override) + Phase 2.5 (recovery-code self-service) DONE; ผ่าน priest + hunter + tsc PASS.**
+**อัปเดตล่าสุด 2026-06-05 — Phase 3 (main-side session + IPC role enforcement + manager-override) + Phase 2.5 (recovery-code self-service) DONE; ผ่าน priest + hunter + tsc PASS; + Real-Electron e2e 24/24 PASS (`tests/e2e/login-security.mjs`).**
 
 **โมเดล identity 3 ชั้น (เคลียร์ความสับสน "มีสอง user แยกยังไง"):**
 - ชั้น A — **License/สิทธิ์ใช้โปรแกรม** (ผู้ขายคุม) = "ขายโปรแกรม"
@@ -70,7 +70,8 @@ metadata:
 - **ปุ่ม "สลับผู้ใช้"** — รอ lock-state แยกพร้อม
 - **B-2 upgrade path** — พึ่ง fresh install ไปก่อน
 
-**สิ่งที่ต้องทดสอบใน Electron จริง (hunter รัน Electron ไม่ได้):** session isolation (admin lock→staff login→sensitive IPC = FORBIDDEN), session อยู่รอดการเปลี่ยนหน้า HashRouter, override dialog (staff ใส่รหัส admin ผ่าน/รหัสผิดไม่ผ่าน), DeadStock cost-strip (staff cost_value=null), recovery flow + counter แยก
+**Real-Electron verification — DONE 2026-06-05 (24/24 PASS):** เขียน e2e ที่ขับ Electron จริงผ่าน Playwright `_electron` → `tests/e2e/login-security.mjs` (เรียก `window.api.*` ตรงผ่าน preload เลย session-binding/role-enforce/navigation-clear ถูก exercise จริง). ครอบคลุม: listLoginUsers ไม่ leak email; completeSetup ออก recovery code ครั้งเดียว; login คืน {id,name,role} ไม่มี email; **session isolation** (admin→ผ่าน, logout→FORBIDDEN, staff→financeSummary/listStaff FORBIDDEN); **override** (admin pw ผ่าน=ตกที่ "ไม่พบ sale", รหัสผิด/non-admin=รหัสผ่านไม่ถูกต้อง, ไม่มี override=FORBIDDEN); **DeadStock cost-strip** (staff cost_value=null, admin=250); **HashRouter same-doc nav ไม่ล้าง session**; **recovery** (ออก code ใหม่ ≠ เดิม, login รหัสใหม่ได้, code เก่า invalid); **full reload ล้าง session** (FORBIDDEN). 
+  - **วิธีรัน:** ต้องมี `npm run dev` รันบน :5173 ก่อน (build dist-electron + serve renderer) แล้ว `node tests/e2e/login-security.mjs`. Playwright = `playwright-core` ติดตั้งใน prefix แยกนอก repo (`D:\Syntropic.Project\.pw-tools`, **ห้ามลง playwright ใน node_modules โปรเจกต์** กัน npm reconcile ทำ better-sqlite3 prebuilt พัง); resolver ในไฟล์ลองตาม env `PLAYWRIGHT_CORE` → `playwright-core` → sibling `.pw-tools`. ทดสอบแล้ว native module คงเดิม (1911296 bytes). `_electron` ไม่ต้องโหลด browser binaries. test ใช้ `--user-data-dir` temp แยก ไม่แตะ DB dev.
 
 **License (ชั้น A):** signed **Ed25519 token** (Node crypto built-in, ห้าม npm install), ผูกเครื่อง — เก็บ **3 fingerprint hash แยก (guid/disk/host) จับคู่ ≥2-of-3**. expired/invalid = ล็อกทางเข้าแต่**ห้ามลบข้อมูล**. Private key ห้ามเข้า repo/แอป. เริ่ม **ขายขาด** (`expires_at:null`). **ยังไม่เริ่ม**.
 
