@@ -113,6 +113,7 @@ When briefing a sub-agent, give it: the exact file paths, the specific `docs/cla
 ## Before a production build — remove DEV-only code
 These exist for development convenience and MUST be stripped before compiling a real build:
 - **Setup-wizard preview in `src/pages/Settings/ShopTab.tsx`** — the "ดูตัวอย่าง Setup (DEV)" button + the full-screen overlay block + the `SetupWizard` import (3 spots, each tagged `DEV ONLY`). The `dryRun` prop on `SetupWizard` itself can stay (defaults false, no prod effect).
+- **Login-screen mockup preview in `src/pages/Settings/ShopTab.tsx`** — the "ดูตัวอย่าง Login (DEV)" button + the `previewLogin` overlay block + the `LoginScreen` import (3 spots, each tagged `DEV ONLY`). `LoginScreen.tsx` itself stays (becomes the real login in Phase 2); only the Settings preview wiring is DEV. The `preview` prop / `PREVIEW_USERS` / `PREVIEW_PASSWORD` mock inside `LoginScreen` are placeholders until Phase 2 wires `window.api.auth.*`.
 - **Seed test data in `electron/db/seed.ts`** — the `PRODUCTS` + `CUSTOMERS` imports and their insert blocks (Hygeia exports, tagged "Temporary dev seed … remove before compiling a production build").
 
 ## Known harmless warnings

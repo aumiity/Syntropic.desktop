@@ -72,7 +72,7 @@
 
 ## 8. Content Requirements (ไทย, no-emoji + lucide icons)
 - หัวข้อ **"เข้าสู่ระบบ"** · ใต้ชื่อร้าน (จาก `settings.shop_name`)
-- หน้าเลือก: avatar + ชื่อ + Badge role (`admin`=badge `brand-soft` "ผู้ดูแล", `staff`=badge `secondary` "พนักงาน")
+- หน้าเลือก: avatar + ชื่อ + Badge role (`admin`=badge `primary-soft` "ผู้ดูแล", `staff`=badge `secondary` "พนักงาน")
 - หน้า password: label "รหัสผ่าน", helper "เข้าสู่ระบบในชื่อ {ชื่อ}" (`text-xs text-muted-foreground`)
 - error: "รหัสผ่านไม่ถูกต้อง" / "ลองใหม่อีกครั้งใน {n} วินาที"
 - override dialog: title "ต้องการสิทธิ์ผู้ดูแล", body "รายการนี้ต้องให้ผู้ดูแลยืนยัน — ใส่รหัสผ่านผู้ดูแล", ปุ่ม "ยืนยัน"
@@ -84,7 +84,7 @@
 | โครงเต็มจอ + TitleBar | mirror `SetupWizard.tsx` |
 | การ์ดกลาง | `SectionCard` / `Card` (`rounded-card` `shadow-card`) |
 | avatar ผู้ใช้ | `avatar` primitive |
-| badge role | `Badge` `brand-soft` / `secondary` |
+| badge role | `Badge` `primary-soft` / `secondary` |
 | **ช่องรหัสผ่าน** | **`Input type="password"`** (ELEVATED default, มีอยู่แล้ว) + ปุ่มแสดง/ซ่อน `ghost` icon |
 | ปุ่มแสดง/ซ่อน | `Button` `ghost` + lucide `Eye`/`EyeOff` (`size-N`) |
 | override | `Dialog` มาตรฐาน (Header/Body/Footer ครบ ตาม modal contract) |

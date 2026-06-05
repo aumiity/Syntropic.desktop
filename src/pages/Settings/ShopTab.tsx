@@ -10,6 +10,9 @@ import { Store, Save, Eye, X } from 'lucide-react'
 // DEV ONLY — preview hook for the first-run wizard. Remove this import + the
 // preview button + the overlay block before shipping a production build.
 import { SetupWizard } from '@/pages/Setup/SetupWizard'
+// DEV ONLY — preview hook for the login screen (mockup, no real auth/DB).
+// Remove this import + its button + overlay block before a production build.
+import { LoginScreen } from '@/pages/Auth/LoginScreen'
 
 export function ShopTab() {
   const { toast } = useToast()
@@ -17,6 +20,8 @@ export function ShopTab() {
   const [saving, setSaving] = useState(false)
   // DEV ONLY — toggles the setup-wizard preview overlay.
   const [previewSetup, setPreviewSetup] = useState(false)
+  // DEV ONLY — toggles the login-screen mockup overlay.
+  const [previewLogin, setPreviewLogin] = useState(false)
 
   useEffect(() => {
     window.api.settings.getShop().then(data => setForm((data as Setting) ?? {}))
@@ -46,6 +51,10 @@ export function ShopTab() {
                 Remove this button before a production build. */}
             <Button variant="elevated" onClick={() => setPreviewSetup(true)}>
               <Eye className="size-4" />ดูตัวอย่าง Setup (DEV)
+            </Button>
+            {/* DEV ONLY — open the login-screen mockup for styling/tweaks. */}
+            <Button variant="elevated" onClick={() => setPreviewLogin(true)}>
+              <Eye className="size-4" />ดูตัวอย่าง Login (DEV)
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
@@ -99,6 +108,23 @@ export function ShopTab() {
             variant="elevated"
             size="lg"
             onClick={() => setPreviewSetup(false)}
+            className="fixed bottom-4 right-4 z-[110] shadow-lg"
+          >
+            <X className="size-4" />ปิดตัวอย่าง
+          </Button>
+        </div>
+      )}
+
+      {/* DEV ONLY — full-screen mockup of the login screen for styling/tweaks.
+          preview=true uses sample users + password "1234"; no real auth/DB call.
+          Remove this whole block before a production build. */}
+      {previewLogin && (
+        <div className="fixed inset-0 z-[100] bg-background">
+          <LoginScreen preview onComplete={() => setPreviewLogin(false)} />
+          <Button
+            variant="elevated"
+            size="lg"
+            onClick={() => setPreviewLogin(false)}
             className="fixed bottom-4 right-4 z-[110] shadow-lg"
           >
             <X className="size-4" />ปิดตัวอย่าง

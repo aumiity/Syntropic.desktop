@@ -1,8 +1,22 @@
 # แผนระบบ User & Login — Syntropic Desktop
 
-> สถานะ: **DRAFT v2 (ซึมซับ audit 2026-06-04 + เปลี่ยนเป็น password)** — เขียน 2026-06-04
+> สถานะ: **DRAFT v3 (ซึมซับ wizard pass 2026-06-05 — sync กับโค้ดจริง + ตัด vertical slice)** — เขียน 2026-06-04, แก้ 2026-06-05
 > ขอบเขต: ระบบเข้าสู่ระบบ (login) + การจัดการผู้ใช้/พนักงาน + สิทธิ์ (roles) ของแอป POS ร้านยา
 > เกี่ยวข้อง: `Login_UI_Design.md` (UI), `License_Activation_System.md` (gate ชั้นนอก A)
+
+---
+
+## 0.5 Drift corrections (wizard pass 2026-06-05 — ของจริงในโค้ด ณ วันนี้)
+
+ก่อนเริ่ม craft — จุดที่ plan v2 เขียนไว้ไม่ตรงโค้ดจริงแล้ว ยืนยันด้วยการสำรวจ:
+
+1. **`userStore.ts` ชื่อเมธอดคนละแบบกับ plan** — โค้ดจริงคือ `setCurrent(u)` + `hydrate()` (ไม่ใช่ `hydrateUser()`). `App.tsx:69` ทำ `const hydrateUser = useUserStore(s => s.hydrate)` แล้วเรียก `hydrateUser()` (ตัวแปร local ชื่อ `hydrateUser` แต่เมธอด store จริงชื่อ `hydrate`). ต้องแก้ทั้งสองที่
+2. **`auth.ts` ไม่ได้ hardcode object ดิบ** — เป็น query จริงจาก DB (`staff@syntropic.local`) มี fallback. ยังต้อง **ลบทั้ง handler** แทนด้วย `login`/`listLoginUsers`
+3. **`Finance.tsx` ไม่มีอยู่จริงแล้ว** — `src/pages/Reports/` มีแค่ `Dashboard.tsx, FdaReports.tsx, KhorYor9.tsx, index.tsx`. **ไม่มีปุ่ม DEV สลับ role ให้ลบ** (ถูกลบไปก่อนหน้าแล้ว) → Phase 3 cleanup ข้อนี้ **ตัดทิ้งได้**
+4. **avatar primitive = `InitialAvatar`** (ไม่ใช่ `<Avatar>`) — render เป็น User icon + พื้น token hash จากชื่อ. props: `name`, `size?: 'xs'|'sm'|'default'`, `className?`. Login UI/TitleBar ใช้ตัวนี้
+5. **migration array แรกจบที่ ~`schema.ts:785`** (loop `try { db.exec(sql) } catch {}` ที่ `:786`) แล้วมี migration block ตามหลังอีกหลายชุด (ถึง ~`:899+`). คอลัมน์ users ใหม่ใส่ใน CREATE TABLE (`:9-18`) + array แรก (~`:695`)
+6. **`completeSetup` payload** (`SetupWizard.tsx:111`) ส่ง `{ shop, vat }` — Phase 0 ต้องขยายเป็น `{ shop, vat, adminPassword }`; handler `settings.ts:109` รับเพิ่ม
+7. **StaffTab payload** (`People/index.tsx:620`) ส่ง `password` ดิบ ตรงเข้า `saveStaff`; backend `people.ts:135` insert ดิบ + `:131-132` UPDATE จาก `Object.keys` (footgun ยืนยันแล้ว — ต้อง allow-list + hash)
 
 ---
 
@@ -27,6 +41,26 @@
 
 ---
 
+## 0.6 Audit resolutions (รอบ 2 — 2026-06-05, ก่อน craft)
+
+audit รอบ 2 เจอ 3 BLOCKER + SHOULD-FIX — มติ/ทางแก้ที่ fold เข้า plan แล้ว:
+
+| # | ประเด็น | มติ |
+|---|---------|-----|
+| **B-1** | `TitleBar` mount **นอก** LoginGate ด้วย (`SetupWizard.tsx:138` + หน้า Login เอง) → ปุ่มผู้ใช้จะ crash ตอน `current===null` | ปุ่มผู้ใช้ใน TitleBar **render แบบมีเงื่อนไข** (`current && <UserButton/>`), อ่าน `useUserStore(s=>s.current)` + guard null — **ห้ามเรียก `getCurrentUserId()`** ใน TitleBar (มัน throw). ดู §6.5 ข้อ 10 |
+| **B-2** | Phase 0 ตั้ง password ไม่รันบน existing install (`setup_completed` backfill=1 → SetupWizard ไม่เด้ง) → admin ติด `admin`/`admin` | **ยอมรับ — ไม่ใช่ปัญหาตอนนี้** (มติ 2026-06-05: เป็น test data, ลบ DB ติดตั้งใหม่ → fresh install → SetupWizard Phase 0 รันปกติ). **ไม่ทำ upgrade path สำหรับ existing install ในรอบนี้** (ไม่เพิ่มงาน). บันทึกหนี้: ถ้าวันหน้าต้อง ship ทับ DB จริง ค่อยเพิ่ม path ตั้งรหัสนอก SetupWizard |
+| **B-3** | `must_change_password` มีคอลัมน์แต่ไม่มี flow | **ถอดคอลัมน์ออกจาก slice แรก** (มติ 2026-06-05 — ไม่เพิ่มงาน). ไม่มี flow บังคับเปลี่ยนรหัสในรอบนี้ |
+| **S-1** | admin คนเดียวโดน lockout 5 ครั้ง = ล็อกตัวเองถาวร (vendor reset ยังไม่มี) | `locked_until` = **หน่วงเวลา** (ปลดเองเมื่อพ้น backoff) ไม่ใช่ล็อกถาวร; recovery code counter แยกจาก login counter (เฟส 2.5) |
+| **S-3** | `saveStaff` footgun + หน้า People ไม่ gate role → staff escalate เป็น admin ได้ | **เฟส 1 ทำแค่ allow-list + hash + password-conditional** (ปิด SQL footgun ตาม HARD invariant). **role-check เลื่อนไป Phase 3** (มติ audit รอบ 2, 2026-06-05 — BL-1) |
+| **BL-1** (audit รอบ 2) | มติ S-3 เดิมสั่ง "verify role=admin ใน main เฟส 1" แต่ **IPC ไม่มี caller identity** (handler รับแค่ `(_e, data)`, session อยู่ฝั่ง renderer ล้วน) → ทำตามตัวอักษรไม่ได้ + allow-list ยังให้ส่ง `role:'admin'` ได้ (กันแค่ SQL footgun ไม่กัน escalation) | **เลื่อน role enforcement ไป Phase 3** (มติ 2026-06-05 — test build, ลงใหม่เสมอ, owner เป็น user จริงคนเดียว, escalation ไม่ใช่ภัยจริงช่วง test). Phase 3 จะทำ **main-side session** (เก็บ current id+role ตอน `auth:login` ผูก webContents) เป็น prerequisite ของ role-check ทุกตัว — ปลดล็อก S-5 (void) ไปพร้อมกัน |
+| **S-4** | โค้ดมี role `pharmacist` (`People/index.tsx:648`) แต่ plan เป็น 2-role | **เอา `pharmacist` ออก** เหลือ admin/staff (มติ 2026-06-05) |
+| **N-1** | `listLoginUsers` คืน email (PII โผล่หน้า Login) | คืนแค่ `id,name,role` — Login UI ไม่ใช้ email |
+| แก้ขัดแย้งใน plan | §6 บรรทัด "ลบปุ่ม DEV `Finance.tsx`" ขัด §0.5#3 (ไม่มีไฟล์แล้ว) | ลบรายการนั้นทิ้ง (ดู Phase 3) |
+
+> **ยังเป็นหนี้ยอมรับได้ (เฟสถัดไป):** **role enforcement ทั้งหมด (saveStaff/void/finance/settings) → Phase 3** หลังทำ main-side session (BL-1) — ช่วง test staff escalate เป็น admin ได้, ยอมรับ; S-2 (locked_until เทียบ client clock — ถอยนาฬิกาปลดได้, ความเสี่ยงต่ำ); S-5 (void/ยกเลิกบิล) ปลดล็อกพร้อม main-side session; Phase 2.5 recovery backend (รวม recovery-code counter แยกจาก login counter — เฟส 1 มี login counter ตัวเดียว)
+
+---
+
 ## 1. สถานะปัจจุบัน (ของจริงในโค้ด)
 
 | ส่วน | ไฟล์ | สภาพ |
@@ -34,9 +68,9 @@
 | ตาราง users | `electron/db/schema.ts:9` | `id, name, email (unique), password TEXT (plaintext!), role default 'staff', is_disabled, timestamps`; มี safe column-migration array ที่ `schema.ts:683+` |
 | Auth IPC | `electron/ipc/auth.ts` | `auth:getCurrentUser` **hardcode** คืน `staff@syntropic.local` — ไม่มี login จริง |
 | จัดการพนักงาน | `electron/ipc/people.ts:120+` + `src/pages/People/index.tsx:578` (`StaffTab`) | CRUD ครบ; **`saveStaff` insert password ดิบ + สร้าง UPDATE จาก `Object.keys` (footgun allow-list)** |
-| Session | `src/stores/userStore.ts` | `getCurrentUserId()` **throw** ถ้า `current` null (`:34`); persist ลง localStorage; `App.tsx:72` เรียก `hydrateUser()` ตอน mount |
+| Session | `src/stores/userStore.ts` | `getCurrentUserId()` **throw** ถ้า `current` null; เมธอดจริง = `setCurrent()`+`hydrate()` (ดู §0.5#1); persist ลง localStorage; `App.tsx:69` เรียก `hydrate()` (ผ่าน local alias `hydrateUser`) ตอน mount |
 | Attribution | ทั่วแอป | `getCurrentUserId()` ใส่ `sold_by/created_by/issued_by/user_id` |
-| Role gate | `src/pages/Reports/*` | `role==='admin'`=isOwner **(renderer ล้วน — ปลอมได้)**; ปุ่ม DEV สลับ role `Finance.tsx:117-123` รอลบ |
+| Role gate | `src/pages/Reports/*` | `role==='admin'`=isOwner **(renderer ล้วน — ปลอมได้)**; ~~ปุ่ม DEV สลับ role `Finance.tsx`~~ ลบไปแล้ว ไม่มี `Finance.tsx` (ดู §0.5#3) |
 | Seed | `electron/db/seed.ts:14,51` | Admin (`admin@syntropic.local`/`admin`/admin) + Staff Test (`staff@syntropic.local`/`staff`/staff) — **plaintext** |
 | App gate | `src/App.tsx:50` `SetupGate` | gate แค่ first-run — ยังไม่มี License/Login gate |
 
@@ -56,6 +90,7 @@
 | `staff` | ผู้ช่วย/แคชเชียร์ | POS, ดูสินค้า/สต็อก, รับเข้า; **ไม่เห็น**เงิน/กำไร/รายงานการเงิน, แก้ตั้งค่า/พนักงานไม่ได้, ยกเลิกบิลต้องขอ override |
 
 > เผื่ออนาคต `manager` — `role` เป็น string เปิดทางไว้ แต่ยังไม่สร้าง
+> **`pharmacist` ที่ค้างใน `People/index.tsx:648` ต้องเอาออก** (เหลือ admin/staff) — มติ 2026-06-05, audit S-4
 
 ---
 
@@ -141,10 +176,17 @@ LicenseGate (A) ──valid──▶ SetupGate (B) ──done──▶ LoginGate
 - [ ] **จัดการ seed `Staff Test`** (`staff@syntropic.local` รหัส `staff` — รหัสที่รู้กันทั้งโลก = ช่องโหว่): เอาออกจาก production seed หรือบังคับตั้งรหัส; ใส่เข้า checklist "DEV-only ลบก่อน build" ใน CLAUDE.md
 
 ### Phase 1 — auth backend
-- [ ] `electron/auth/hash.ts` — scrypt (params ตาม §5) + legacy plaintext fallback
-- [ ] `electron/ipc/auth.ts` ใหม่: `listLoginUsers`, `login(userId, password)` (verify + upgrade hash + คืน safe fields), main-process lockout; ลบ `getCurrentUser`
-- [ ] `people.saveStaff` — hash + allow-list UPDATE columns
-- [ ] preload `window.api.auth.*` + `docs/claude/ipc-api.md`
+- [ ] **schema:** เพิ่ม 3 คอลัมน์ใน `users` (CREATE TABLE `schema.ts:9-18` + migration array ~`:695`):
+  - `recovery_code_hash TEXT` — hash ของ recovery code (§4.5 ชั้น1)
+  - `failed_attempts INTEGER NOT NULL DEFAULT 0` — นับ lockout (§5)
+  - `locked_until TEXT` — timestamp ปลดล็อก (null = ไม่ล็อก); **เป็นการหน่วงเวลา ไม่ใช่ล็อกถาวร** (audit S-1)
+  - ~~`must_change_password`~~ **ถอดออกจาก slice แรก** (มติ 2026-06-05 audit B-3 — test data, fresh install ผ่าน SetupWizard Phase 0 พอ, ไม่เพิ่มงาน; ดู §0.6)
+- [ ] `electron/auth/hash.ts` — `hashSecret(plain)`→`scrypt$16384$8$1$<salt>$<hash>`; `verifySecret(plain, stored)` (ไม่มี prefix `scrypt$` = legacy → เทียบตรง → คืน flag ให้ caller upgrade); `genRecoveryCode()` (base32 `XXXX-XXXX-XXXX`)
+- [ ] `electron/auth/lockout.ts` — `recordFailure`/`clearFailures`/`checkLocked` ใช้คอลัมน์ `failed_attempts`+`locked_until` (อยู่รอด restart); เกิน 5 → **หน่วงเวลา** (`locked_until = now + backoff`, ปลดเองเมื่อพ้นเวลา — กัน admin คนเดียวล็อกตัวเองถาวร, audit S-1)
+- [ ] `electron/ipc/auth.ts` ใหม่: `listLoginUsers` (SELECT **id,name,role** WHERE is_disabled=0 — **ไม่คืน email**, audit N-1), `login(userId, password)` (checkLocked → verify + legacy upgrade hash + clearFailures + คืน safe fields | fail → recordFailure → throw); ลบ `getCurrentUser`
+- [ ] `people.saveStaff` — hash ก่อนเก็บ (INSERT+UPDATE) + **allow-list คอลัมน์** (`['name','email','role','is_disabled']`, ห้าม `Object.keys` ดิบ); **password เป็น conditional** — UPDATE เฉพาะเมื่อ renderer ส่งค่ามา (ไม่ส่ง = ไม่แตะรหัสเดิม, audit S-3); ห้ามรับ hash สำเร็จรูปจาก renderer. **role-check ของผู้เรียกเลื่อนไป Phase 3** (เฟส 1 ยังไม่มี main-side session — ดู §0.6 BL-1; staff escalation ยังเปิดอยู่ในเฟส 1 = หนี้ที่ยอมรับช่วง test)
+- [ ] **ลบ role `pharmacist`** ออกจาก `People/index.tsx:648` (`ROLES`) ให้เหลือ `admin`/`staff` ตรงโมเดล 2-role (มติ 2026-06-05, audit S-4)
+- [ ] preload `window.api.auth.*` (แทน `auth.getCurrentUser` ด้วย `listLoginUsers`+`login`) + `docs/claude/ipc-api.md`
 
 ### Phase 2 — Session + Login UI (ดู `Login_UI_Design.md`)
 - [ ] `userStore`: `login()/logout()/lock()` ใน-หน่วยความจำ — **ตัด `persist` ทิ้ง**, เลิก hardcode hydrate
@@ -161,9 +203,33 @@ LicenseGate (A) ──valid──▶ SetupGate (B) ──done──▶ LoginGate
 ### Phase 3 — Permissions + cleanup
 - [ ] helper `usePermission()` / รวม `role==='admin'` กระจาย; **+ enforce role ใน IPC** (R1)
 - [ ] Dialog manager-override (ทำรายการผ่าน IPC ยืนยันแล้ว — R2)
-- [ ] **ลบปุ่ม DEV สลับ role** `Finance.tsx:117-123,230-235`
+- [ ] ~~ลบปุ่ม DEV สลับ role `Finance.tsx`~~ **ตัดทิ้ง — ไม่มี `Finance.tsx` แล้ว** (audit §0.5#3)
 - [ ] เพิ่ม seed plaintext passwords เข้า checklist "DEV-only ลบก่อน build" ใน CLAUDE.md (audit N4)
 - [ ] (ออปชัน) auto-lock — Q4
+
+---
+
+## 6.5 Vertical slice แรก (wizard 2026-06-05) — login ใช้ได้จริง end-to-end
+
+**Slice แรก = Phase 0 + 1 + 2 เต็ม** (ทำเรียงลำดับ implementable):
+
+1. schema — เพิ่ม 4 คอลัมน์ users (CREATE TABLE + migration array)
+2. `electron/auth/hash.ts` — `hashSecret`/`verifySecret` (legacy fallback)/`genRecoveryCode`
+3. `electron/auth/lockout.ts` — `recordFailure`/`clearFailures`/`checkLocked`
+4. `electron/ipc/auth.ts` — `listLoginUsers` + `login` (เขียนใหม่ ลบ `getCurrentUser`)
+5. `people.ts:saveStaff` — allow-list + hash
+6. `preload.ts` — แก้ `auth` namespace
+7. `userStore.ts` — ตัด `persist` + `login/logout/lock`
+8. `src/pages/Auth/LoginScreen.tsx` — UI (เลือกผู้ใช้ → password → shake error → lockout) ตาม `Login_UI_Design.md`
+9. `src/App.tsx` — `LoginGate` ครอบ `<HashRouter>` **หลัง** `SetupGate`; ลบ `hydrate()` mount call
+10. `src/components/layout/TitleBar.tsx` — ปุ่ม `InitialAvatar`+ชื่อ + Popover (ล็อก/สลับ/ออก). **render เฉพาะเมื่อ `current` ไม่ null** (TitleBar mount นอก LoginGate ด้วยที่ `SetupWizard.tsx:138` + หน้า Login → guard กัน crash, audit B-1); อ่าน `useUserStore(s=>s.current)` ห้ามเรียก `getCurrentUserId()`
+11. Phase 0 — `SetupWizard.tsx` step ตั้ง password admin + `completeSetup` hash + โชว์ recovery code
+
+**กันไว้เฟสถัดไป (บันทึกเป็นหนี้ ห้ามลืม):**
+- **Phase 2.5 recovery backend** — vendor reset ผูก License infra ที่**ยังไม่เริ่มทำเลย** (ไม่มี `electron/license/*`/Ed25519 keys) → block อยู่แล้ว. Slice แรกทำแค่ลิงก์ "ลืมรหัสผ่าน" ใน UI, backend ทีหลัง
+- **Phase 3 permissions (IPC role enforcement)** — งานใหญ่แยก ต้องไล่ทุก sensitive IPC; ไม่ block การ login แต่ **invariant R1 ยังไม่ครบจนกว่าจะทำ** (renderer role = UX เท่านั้น ของจริงยัง enforce ไม่ครบ)
+
+> เหตุผลที่ slice แรก**ต้องรวม Phase 0**: ถ้าข้าม จะ login ได้แค่ด้วย seed `admin`/`admin` ตลอด = ช่องโหว่ที่ plan เตือน. Phase 0 คือทางที่เจ้าของตั้ง password จริง + ได้ recovery code
 
 ---
 
@@ -183,7 +249,7 @@ LicenseGate (A) ──valid──▶ SetupGate (B) ──done──▶ LoginGate
 - **ห้ามส่ง password/hash ออก renderer** — `listLoginUsers` คืนเฉพาะ id/name/role/email
 - **renderer role = UX เท่านั้น; งาน sensitive verify role ใน IPC** (R1/R2)
 - **lockout อยู่ main process, อยู่รอด restart** (G3)
-- **boot ต้อง re-verify session กับ DB** (B2); LoginGate render ก่อน route ที่เรียก `getCurrentUserId()`
+- **LoginGate render ก่อนทุก route ที่เรียก `getCurrentUserId()`** (B2). *(ไม่มี re-verify session ตอน boot แล้ว — no-persist → `current` เริ่ม null เสมอ → ไป Login, ไม่มี stale session ให้ตรวจ; ดู §4.1, audit SF-1)*
 - **`people.saveStaff` ต้อง allow-list คอลัมน์** (R4, ตาม CLAUDE.md database rule)
 - **ห้าม `npm install` ปกติ** — `crypto` built-in เท่านั้น
 - attribution เดิมชี้ `users.id` — อย่าเปลี่ยน semantics

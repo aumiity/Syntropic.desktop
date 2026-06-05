@@ -62,6 +62,8 @@
     --warning:            35 100% 50%;    /* #FF9500 — iOS warning orange */
     --warning-foreground: 0 0% 100%;
     --warning-hover:      35 100% 40%;
+    --warning-soft:            34 100% 92%;    /* pale orange surface */
+    --warning-soft-foreground: 27 90% 40%;     /* deep orange text */
 
     /* ── Status: Destructive (red) ──────────────────────────────────────── */
     --destructive:            3 100% 59%;
@@ -171,6 +173,8 @@
     --warning:            35 100% 60%;    /* lighter orange for dark mode */
     --warning-foreground: 0 0% 100%;
     --warning-hover:      35 100% 45%;
+    --warning-soft:            30 30% 15%;     /* dark orange surface */
+    --warning-soft-foreground: 32 95% 72%;     /* pale orange text */
 
     /* ── Status: Destructive ────────────────────────────────────────────── */
     --destructive:            3 100% 59%;

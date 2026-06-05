@@ -7,6 +7,8 @@ export interface TopListCardItem {
   rank?: number
   /** Primary label (left). */
   label: string
+  /** Extra class on the label (e.g. "font-semibold" to emphasise a name). */
+  labelClassName?: string
   /** Optional secondary line under the label (e.g. "x 120 ชิ้น"). */
   sub?: string
   /** Right-side value (already-formatted string like "฿1,234" or a number). */
@@ -70,7 +72,7 @@ export function TopListCard({
               </span>
             )}
             <div className="flex-1 min-w-0">
-              <div className="text-sm text-foreground truncate">{it.label}</div>
+              <div className={cn('text-sm text-foreground truncate', it.labelClassName)}>{it.label}</div>
               {it.sub && (
                 <div className="text-xs text-muted-foreground truncate">{it.sub}</div>
               )}

@@ -11,17 +11,23 @@ export interface DeltaResult {
 }
 
 // Convention: TrendingUp + success when curr ≥ prev, TrendingDown + destructive
-// when curr < prev. Caller can flip for cost-style metrics where lower is better
-// — none of the current callers do (sales/profit are "higher = better").
-export function delta(curr: number, prev: number | undefined | null): DeltaResult | null {
+// when curr < prev. Pass `invert: true` for cost-style metrics where lower is
+// better (e.g. expenses) — the arrow still tracks real direction, only the
+// color flips so a rise reads red and a drop reads green.
+export function delta(
+  curr: number,
+  prev: number | undefined | null,
+  opts?: { invert?: boolean },
+): DeltaResult | null {
   if (prev == null) return null
   if (prev === 0 && curr === 0) return null
-  if (prev === 0) return { sub: 'ใหม่ในช่วงนี้', cls: 'text-success', icon: null }
+  if (prev === 0) return { sub: 'ใหม่ในช่วงนี้', cls: opts?.invert ? 'text-destructive' : 'text-success', icon: null }
   const pct = ((curr - prev) / Math.abs(prev)) * 100
   const up = pct >= 0
+  const good = opts?.invert ? !up : up
   return {
     sub: `${Math.abs(pct).toFixed(1)}%`,
-    cls: up ? 'text-success' : 'text-destructive',
+    cls: good ? 'text-success' : 'text-destructive',
     icon: up ? TrendingUp : TrendingDown,
   }
 }

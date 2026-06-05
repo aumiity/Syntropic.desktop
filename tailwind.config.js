@@ -64,6 +64,8 @@ export default {
           DEFAULT: 'hsl(var(--warning))',
           foreground: 'hsl(var(--warning-foreground))',
           hover: 'hsl(var(--warning-hover))',
+          soft: 'hsl(var(--warning-soft))',
+          'soft-foreground': 'hsl(var(--warning-soft-foreground))',
         },
         violet: {
           DEFAULT: 'hsl(var(--violet))',
@@ -117,6 +119,17 @@ export default {
       },
       boxShadow: {
         card: 'var(--shadow-card)',
+      },
+      keyframes: {
+        // Horizontal shake for an invalid-password field (login screen).
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '20%, 60%': { transform: 'translateX(-5px)' },
+          '40%, 80%': { transform: 'translateX(5px)' },
+        },
+      },
+      animation: {
+        shake: 'shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both',
       },
     },
   },

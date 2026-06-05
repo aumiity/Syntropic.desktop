@@ -516,7 +516,7 @@ export function registerReportHandlers() {
   // (lowest margin first; surfaces loss-leaders / mispriced SKUs).
   ipcMain.handle('reports:topProducts', (_e, filters: {
     date_from?: string; date_to?: string
-    by?: 'qty' | 'revenue' | 'profit' | 'low_profit'
+    by?: 'qty' | 'revenue' | 'profit' | 'low_profit' | 'margin'
     limit?: number
   }) => {
     const db = getDb()
@@ -531,38 +531,45 @@ export function registerReportHandlers() {
 
     // cost = Σ(lot qty × lot cost_price), matched per sale_item. Same expression
     // as salesList's total_cost subquery but pivoted by product instead of sale.
+    // `margin` = profit/revenue; NULLIF guards divide-by-zero so zero-revenue
+    // rows sort last. Wrapped in an outer SELECT so the ORDER BY can reference
+    // the aggregate aliases inside an expression (bare aliases alone are safe,
+    // but `profit / revenue` is not guaranteed without the wrapper).
     const orderBy = (
       by === 'qty'        ? `qty DESC` :
       by === 'profit'     ? `profit DESC` :
       by === 'low_profit' ? `profit ASC` :
+      by === 'margin'     ? `CAST(profit AS REAL) / NULLIF(revenue, 0) DESC` :
       `revenue DESC`
     )
 
     return db.prepare(`
-      SELECT p.id                                        AS product_id,
-             p.trade_name,
-             u.name                                      AS unit_name,
-             COALESCE(SUM(si.qty), 0)                    AS qty,
-             COALESCE(SUM(si.line_total), 0)             AS revenue,
-             COALESCE(SUM((
-               SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)
-               FROM sale_item_lots sil
-               LEFT JOIN product_lots pl ON pl.id = sil.lot_id
-               WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0
-             )), 0)                                      AS cost,
-             COALESCE(SUM(si.line_total), 0) - COALESCE(SUM((
-               SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)
-               FROM sale_item_lots sil
-               LEFT JOIN product_lots pl ON pl.id = sil.lot_id
-               WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0
-             )), 0)                                      AS profit
-      FROM sale_items si
-      JOIN sales s    ON s.id = si.sale_id
-      JOIN products p ON p.id = si.product_id
-      LEFT JOIN item_units u ON u.id = p.unit_id
-      ${where}
-      GROUP BY p.id
-      ORDER BY ${orderBy}, ${orderByBucket('p.trade_name')}
+      SELECT * FROM (
+        SELECT p.id                                      AS product_id,
+               p.trade_name,
+               u.name                                    AS unit_name,
+               COALESCE(SUM(si.qty), 0)                  AS qty,
+               COALESCE(SUM(si.line_total), 0)           AS revenue,
+               COALESCE(SUM((
+                 SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)
+                 FROM sale_item_lots sil
+                 LEFT JOIN product_lots pl ON pl.id = sil.lot_id
+                 WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0
+               )), 0)                                    AS cost,
+               COALESCE(SUM(si.line_total), 0) - COALESCE(SUM((
+                 SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)
+                 FROM sale_item_lots sil
+                 LEFT JOIN product_lots pl ON pl.id = sil.lot_id
+                 WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0
+               )), 0)                                    AS profit
+        FROM sale_items si
+        JOIN sales s    ON s.id = si.sale_id
+        JOIN products p ON p.id = si.product_id
+        LEFT JOIN item_units u ON u.id = p.unit_id
+        ${where}
+        GROUP BY p.id
+      )
+      ORDER BY ${orderBy}, ${orderByBucket('trade_name')}
       LIMIT ?
     `).all(...params, limit)
   })

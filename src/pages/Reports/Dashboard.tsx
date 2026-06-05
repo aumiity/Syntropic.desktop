@@ -25,8 +25,8 @@ import { delta } from '@/lib/delta'
 import {
   ShoppingBag, TrendingUp, ReceiptText, Users, PackageX,
   LineChart as LineChartIcon, PieChart as PieChartIcon, BellRing,
-  Trophy, UserCircle, Wallet, Boxes, Clock, AlertTriangle, Hourglass, RefreshCw,
-  Truck, Box, Eye,
+  Trophy, UserCircle, Wallet, PackageMinus, Clock, Hourglass, RefreshCw,
+  Truck, Box, Eye, ChevronRight, ArrowLeftRight,
 } from 'lucide-react'
 import type { ReportsOutletContext } from './index'
 
@@ -106,11 +106,56 @@ const EMPTY_STATS: SalesStats = {
   return_rate: 0, void_rate: 0, discount_rate: 0, bundle_share: 0,
 }
 
+// Dashboard prefixes the ฿ symbol on money — this page only; the shared
+// formatCurrency stays bare so other pages are unaffected.
+const baht = (v: number) => `฿${formatCurrency(v)}`
+
+// Alert-card soft tones — borderless soft fill + a matching foreground that the
+// icon, heading, count, and chevron all inherit via currentColor. Tokens only.
+const ALERT_TONE: Record<'destructive' | 'warning' | 'warm' | 'info', string> = {
+  destructive: 'bg-destructive-soft text-destructive',
+  warning:     'bg-warning-soft text-warning-soft-foreground',
+  warm:        'bg-warm text-warm-foreground',
+  info:        'bg-info-soft text-info-soft-foreground',
+}
+
 // Trailing-window granularity for the trend chart's local override.
 function trendGranularity(days: number): Granularity {
   if (days <= 31) return 'day'
   if (days <= 180) return 'week'
   return 'month'
+}
+
+// The expense card carries its OWN period (decoupled from the page picker). Each
+// mode yields the current window + an equal-length comparison window for the
+// delta, plus the Thai label that names what we're comparing against.
+type ExpenseMode = 'this_month' | 'last_month' | 'this_year'
+interface ExpenseWindow { from: string; to: string; prevFrom: string; prevTo: string; compareLabel: string }
+function expenseWindow(mode: ExpenseMode): ExpenseWindow {
+  const fmt = (d: dayjs.Dayjs) => d.format('YYYY-MM-DD')
+  const now = dayjs()
+  if (mode === 'last_month') {
+    const m = now.subtract(1, 'month'); const p = now.subtract(2, 'month')
+    return { from: fmt(m.startOf('month')), to: fmt(m.endOf('month')), prevFrom: fmt(p.startOf('month')), prevTo: fmt(p.endOf('month')), compareLabel: 'เทียบกับเดือนก่อนหน้า' }
+  }
+  if (mode === 'this_year') {
+    return { from: fmt(now.startOf('year')), to: fmt(now), prevFrom: fmt(now.subtract(1, 'year').startOf('year')), prevTo: fmt(now.subtract(1, 'year')), compareLabel: 'เทียบกับปีที่แล้ว' }
+  }
+  // this_month — current month-to-date vs the same span of last month
+  return { from: fmt(now.startOf('month')), to: fmt(now), prevFrom: fmt(now.subtract(1, 'month').startOf('month')), prevTo: fmt(now.subtract(1, 'month')), compareLabel: 'เทียบกับเดือนที่แล้ว' }
+}
+
+const EXPENSE_MODE_LABEL: Record<ExpenseMode, string> = {
+  this_month: 'เดือนนี้',
+  last_month: 'เดือนที่แล้ว',
+  this_year: 'ปีนี้',
+}
+
+// Best-seller card — sortable by sales value or unit count via its own dropdown.
+type TopSortBy = 'revenue' | 'qty'
+const TOP_SORT_LABEL: Record<TopSortBy, string> = {
+  revenue: 'ตามยอดขาย',
+  qty: 'ตามจำนวนชิ้น',
 }
 
 // ── Page ────────────────────────────────────────────────────────────────────
@@ -123,6 +168,11 @@ export default function DashboardPage() {
   const [mode, setMode] = useState<PeriodMode>(initial.mode)
   const [dateFrom, setDateFrom] = useState(initial.from)
   const [dateTo, setDateTo] = useState(initial.to)
+
+  // Best-seller sort metric (the card's own dropdown).
+  const [topSortBy, setTopSortBy] = useState<TopSortBy>('revenue')
+  // Top-profit card — show the profit as baht or as margin % (display toggle).
+  const [profitMode, setProfitMode] = useState<'baht' | 'pct'>('baht')
 
   // Trend chart overrides the page period with its own trailing window.
   const [trendDays, setTrendDays] = useState(30)
@@ -143,6 +193,9 @@ export default function DashboardPage() {
   const [expiryCounts, setExpiryCounts] = useState<ExpiryCounts>({ expired: 0, d30: 0, d90: 0, d180: 0 })
   const [inactive, setInactive] = useState<InactiveRow[]>([])
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
+  const [prevExpenseTotal, setPrevExpenseTotal] = useState(0)
+  const [expenseMode, setExpenseMode] = useState<ExpenseMode>('this_month')
+  const [expLoading, setExpLoading] = useState(false)
   const [loading, setLoading] = useState(false)
 
   // Dead-stock — its own trailing window (last N months → today), decoupled
@@ -162,18 +215,17 @@ export default function DashboardPage() {
       // rows feed both the dead-stock table and the alert count.
       const inactiveFrom = dayjs().subtract(inactiveMonths, 'month').format('YYYY-MM-DD')
       const inactiveTo = dayjs().format('YYYY-MM-DD')
-      const [f, ss, tr, rev, pro, sup, csh, low, exp, inact, expList] = await Promise.all([
+      const [f, ss, tr, rev, pro, sup, csh, low, exp, inact] = await Promise.all([
         r.financeSummary({ ...args, with_compare: true }),
         r.salesStats(args),
         r.salesPurchaseTrend({ date_from: trendWin.from, date_to: trendWin.to, granularity: trendWin.gran }),
-        r.topProducts({ ...args, by: 'revenue', limit: 8 }),
-        r.topProducts({ ...args, by: 'profit', limit: 8 }),
+        r.topProducts({ ...args, by: topSortBy, limit: 10 }),
+        r.topProducts({ ...args, by: profitMode === 'pct' ? 'margin' : 'profit', limit: 10 }),
         r.topSuppliers({ ...args, limit: 8 }),
         r.cashierLeaderboard({ ...args, limit: 6 }),
         window.api.products.lowStock({}),
         r.expiringLots({ count_only: true }),
         r.inactiveProducts({ date_from: inactiveFrom, date_to: inactiveTo, limit: 500 }),
-        window.api.expenses.list({ date_from: dateFrom, date_to: dateTo, pageSize: 0 }),
       ])
       setFin(f ?? EMPTY_FIN)
       setStats(ss ?? EMPTY_STATS)
@@ -185,13 +237,12 @@ export default function DashboardPage() {
       setLowStock(((low as any)?.rows ?? []) as LowStockRow[])
       setExpiryCounts(((exp as any)?.counts ?? { expired: 0, d30: 0, d90: 0, d180: 0 }) as ExpiryCounts)
       setInactive(((inact as any[]) ?? []) as InactiveRow[])
-      setExpenses(((expList as any)?.rows ?? []) as ExpenseRow[])
     } catch (e: any) {
       toast(e?.message ?? 'โหลดข้อมูลไม่สำเร็จ', 'error')
     } finally {
       setLoading(false)
     }
-  }, [dateFrom, dateTo, trendWin, inactiveMonths, toast])
+  }, [dateFrom, dateTo, trendWin, inactiveMonths, topSortBy, profitMode, toast])
 
   const handlePeriodChange = useCallback((m: PeriodMode, f: string, t: string) => {
     setMode(m); setDateFrom(f); setDateTo(t)
@@ -201,6 +252,27 @@ export default function DashboardPage() {
     const tid = setTimeout(() => { load() }, 250)
     return () => clearTimeout(tid)
   }, [load])
+
+  // Expenses load on their own period (the card's dropdown), independent of the
+  // page picker — fetches the current window + its comparison window for the delta.
+  const expWin = useMemo(() => expenseWindow(expenseMode), [expenseMode])
+  const loadExpenses = useCallback(async () => {
+    setExpLoading(true)
+    try {
+      const [cur, prev] = await Promise.all([
+        window.api.expenses.list({ date_from: expWin.from, date_to: expWin.to, pageSize: 0 }),
+        window.api.expenses.list({ date_from: expWin.prevFrom, date_to: expWin.prevTo, pageSize: 0 }),
+      ])
+      setExpenses(((cur as any)?.rows ?? []) as ExpenseRow[])
+      setPrevExpenseTotal(((((prev as any)?.rows ?? []) as ExpenseRow[]).reduce((s, e) => s + (e.amount ?? 0), 0)))
+    } catch (e: any) {
+      toast(e?.message ?? 'โหลดค่าใช้จ่ายไม่สำเร็จ', 'error')
+    } finally {
+      setExpLoading(false)
+    }
+  }, [expWin, toast])
+
+  useEffect(() => { loadExpenses() }, [loadExpenses])
 
   // Toolbar — period picker + manual refresh.
   useEffect(() => {
@@ -232,31 +304,38 @@ export default function DashboardPage() {
   }, [stats])
   const donutTotal = useMemo(() => donut.reduce((s, d) => s + d.value, 0), [donut])
 
-  const topItems: TopListCardItem[] = useMemo(() => topRev.map((p, i) => ({
-    rank: i + 1,
-    label: p.trade_name,
-    sub: `${(p.qty ?? 0).toLocaleString()} ${p.unit_name ?? 'ชิ้น'}`,
-    value: formatCurrency(p.revenue),
-    onClick: () => navigate(`/products/${p.product_id}/edit`),
-  })), [topRev, navigate])
-
-  const profitItems: TopListCardItem[] = useMemo(() => topPro.map((p, i) => {
-    const isNeg = p.profit < 0
+  const topItems: TopListCardItem[] = useMemo(() => topRev.map((p, i) => {
+    const qtyStr = `${(p.qty ?? 0).toLocaleString()} ${p.unit_name ?? 'ชิ้น'}`
+    const revStr = baht(p.revenue)
     return {
       rank: i + 1,
       label: p.trade_name,
-      sub: `${(p.qty ?? 0).toLocaleString()} ${p.unit_name ?? 'ชิ้น'} · ขาย ${formatCurrency(p.revenue)}`,
-      value: formatCurrency(p.profit),
-      valueClassName: isNeg ? 'text-destructive' : 'text-success',
-      onClick: () => navigate(`/products/${p.product_id}/edit`),
+      labelClassName: 'font-semibold',
+      // Sort metric on the right; the other metric on the sub line under the name.
+      sub: topSortBy === 'qty' ? revStr : qtyStr,
+      value: topSortBy === 'qty' ? qtyStr : revStr,
     }
-  }), [topPro, navigate])
+  }), [topRev, topSortBy])
+
+  const profitItems: TopListCardItem[] = useMemo(() => topPro.map((p, i) => {
+    const isNeg = p.profit < 0
+    const margin = p.revenue > 0 ? (p.profit / p.revenue) * 100 : 0
+    return {
+      rank: i + 1,
+      label: p.trade_name,
+      labelClassName: 'font-semibold',
+      sub: `ยอดขาย ${baht(p.revenue)}`,
+      // Single value = the ranked metric (฿ profit, or margin % when toggled).
+      value: profitMode === 'pct' ? `${margin.toFixed(1)}%` : baht(p.profit),
+      valueClassName: isNeg ? 'text-destructive' : 'text-success',
+    }
+  }), [topPro, profitMode])
 
   const supplierItems: TopListCardItem[] = useMemo(() => suppliers.map((s, i) => ({
     rank: i + 1,
     label: s.supplier_name,
     sub: `${s.receipt_count.toLocaleString()} ใบ`,
-    value: formatCurrency(s.total_amount),
+    value: baht(s.total_amount),
   })), [suppliers])
 
   const sortedInactive = useMemo(
@@ -271,8 +350,8 @@ export default function DashboardPage() {
   const staffItems: TopListCardItem[] = useMemo(() => cashiers.map((c, i) => ({
     rank: i + 1,
     label: c.user_name,
-    sub: `${c.bill_count.toLocaleString()} บิล · กำไร ${formatCurrency(c.profit)}`,
-    value: formatCurrency(c.total_amount),
+    sub: `${c.bill_count.toLocaleString()} บิล · กำไร ${baht(c.profit)}`,
+    value: baht(c.total_amount),
   })), [cashiers])
 
   // Expense breakdown — group by category, sort desc, keep a share for the bar.
@@ -284,35 +363,26 @@ export default function DashboardPage() {
     }
     const rows = [...byCat.entries()].map(([name, amount]) => ({ name, amount }))
       .sort((a, b) => b.amount - a.amount)
-    const max = rows.reduce((m, r) => Math.max(m, r.amount), 0)
-    return { rows, max, total: rows.reduce((s, r) => s + r.amount, 0) }
+    return { rows, total: rows.reduce((s, r) => s + r.amount, 0) }
   }, [expenses])
+  // Expense delta vs the comparison window — cost-style, so a rise reads red (invert).
+  const dExpense = delta(expenseBreakdown.total, prevExpenseTotal, { invert: true })
 
-  const lowItems: TopListCardItem[] = useMemo(() => lowStock.slice(0, 30).map(r => {
-    const out = r.stock_qty <= 0
-    return {
-      label: r.trade_name,
-      sub: out ? 'หมดสต็อก' : `เหลือ ${r.stock_qty.toLocaleString()} (จุดสั่ง ${r.reorder_point.toLocaleString()})`,
-      value: `+${(r.buy_more ?? 0).toLocaleString()} ${r.unit_name ?? ''}`.trim(),
-      valueClassName: out ? 'text-destructive' : 'text-warm-foreground',
-      onClick: () => navigate(`/products/${r.product_id}/edit`),
-    }
-  }), [lowStock, navigate])
-
-  // Alerts — a health summary: one row per category with its item COUNT, not a
-  // per-item dump. `danger` = solid problem (out / expired), else caution.
+  // Alerts — a health summary: one soft-color card per category with a heading
+  // (line 1) + item COUNT (line 2), not a per-item dump. `tone` is a severity
+  // gradient: destructive (red) = negative stock, warning (orange) = below
+  // reorder, warm (yellow) = nearing expiry, info (blue) = long-idle stock.
+  // Cards always render their tone, count 0 included.
   const alerts = useMemo(() => {
-    const outCount = lowStock.filter(l => l.stock_qty <= 0).length
-    const lowCount = lowStock.length - outCount               // low but still in stock
-    const nearExpiry = Math.max(0, expiryCounts.d30 - expiryCounts.expired) // ≤30d, not yet expired
+    const negCount = lowStock.filter(l => l.stock_qty < 0).length   // stock below zero
+    const belowReorder = lowStock.length - negCount                 // ≥0 but under reorder point
     return [
-      { key: 'out',     icon: PackageX,      label: 'หมดสต็อก',            count: outCount,             danger: true,  onClick: () => navigate('/manage/low-stock') },
-      { key: 'low',     icon: Boxes,         label: 'ใกล้หมดสต็อก',        count: lowCount,             danger: false, onClick: () => navigate('/manage/low-stock') },
-      { key: 'expired', icon: AlertTriangle, label: 'หมดอายุแล้ว',         count: expiryCounts.expired, danger: true,  onClick: () => navigate('/manage/expiry') },
-      { key: 'near',    icon: Clock,         label: 'ใกล้หมดอายุ (≤30 วัน)', count: nearExpiry,         danger: false, onClick: () => navigate('/manage/expiry') },
-      { key: 'dead',    icon: Hourglass,     label: `คงค้างนาน (${inactiveMonths} เดือน)`, count: inactive.length, danger: false, onClick: () => navigate('/reports') },
-    ]
-  }, [lowStock, expiryCounts, inactive.length, inactiveMonths, navigate])
+      { key: 'neg',  icon: PackageMinus, title: 'สต็อกติดลบ',          unit: 'รายการ', count: negCount,         tone: 'destructive', onClick: () => navigate('/manage/negative-stock') },
+      { key: 'low',  icon: PackageX,     title: 'ต่ำกว่าจุดสั่งซื้อ',    unit: 'รายการ', count: belowReorder,     tone: 'warning',     onClick: () => navigate('/manage/low-stock') },
+      { key: 'near', icon: Clock,     title: 'ใกล้หมดอายุใน 30 วัน', unit: 'ล็อต',   count: expiryCounts.d30,  tone: 'warm',       onClick: () => navigate('/manage/expiry') },
+      { key: 'dead', icon: Hourglass, title: `คงค้างเกิน ${inactiveMonths} เดือน`, unit: 'รายการ', count: inactive.length, tone: 'info', onClick: () => navigate('/reports') },
+    ] as const
+  }, [lowStock, expiryCounts.d30, inactive.length, inactiveMonths, navigate])
   const alertTotal = useMemo(() => alerts.reduce((s, a) => s + a.count, 0), [alerts])
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -323,14 +393,14 @@ export default function DashboardPage() {
       {/* 1 — KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 p-0.5">
         <MetricCard
-          label="ยอดขายรวม" value={formatCurrency(fin.sales_net)}
+          label="ยอดขายรวม" value={baht(fin.sales_net)}
           sub={dSales?.sub ?? `${fin.sale_count.toLocaleString()} บิล`}
           subIcon={dSales?.icon ?? undefined} subClassName={dSales?.cls}
           subTitle={dSales ? 'เทียบช่วงก่อนหน้า' : undefined}
           icon={ShoppingBag} tint="primary"
         />
         <MetricCard
-          label="กำไรสุทธิ" value={formatCurrency(fin.sales_profit)}
+          label="กำไรสุทธิ" value={baht(fin.sales_profit)}
           sub={dProfit?.sub} subIcon={dProfit?.icon ?? undefined} subClassName={dProfit?.cls}
           subTitle={dProfit ? 'เทียบช่วงก่อนหน้า' : undefined}
           icon={TrendingUp} tint={fin.sales_profit >= 0 ? 'success' : 'destructive'}
@@ -355,12 +425,12 @@ export default function DashboardPage() {
       </div>
 
       {/* 2 — Trend (large) + Donut + Alerts, all on one row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-9 gap-3">
         <SectionCard
           icon={LineChartIcon}
           title="แนวโน้มยอดขาย-กำไร"
           tint="primary"
-          className="lg:col-span-2"
+          className="lg:col-span-4"
           right={
             <Tabs value={String(trendDays)} onValueChange={(v) => setTrendDays(Number(v))}>
               <TabsList variant="segmented" className="h-9">
@@ -387,6 +457,7 @@ export default function DashboardPage() {
           icon={PieChartIcon}
           title="สัดส่วนการขาย"
           tint="info-soft"
+          className="lg:col-span-3"
           right={<span className="text-xs text-muted-foreground">{rangeLabel}</span>}
         >
             {loading ? (
@@ -443,73 +514,132 @@ export default function DashboardPage() {
         <SectionCard
           icon={BellRing}
           title="แจ้งเตือน"
-          tint="warm"
+          tint="destructive"
+          fill
+          className="lg:col-span-2"
             right={
-              <span className="text-xs text-muted-foreground">
-                {loading ? '' : alertTotal > 0 ? `${alertTotal.toLocaleString()} รายการ` : 'ปกติ'}
-              </span>
+              loading ? null : (
+                <Badge variant="neutral-outline">
+                  {alertTotal > 0 ? `${alertTotal.toLocaleString()} รายการ` : 'ปกติ'}
+                </Badge>
+              )
             }
           >
             {loading ? (
-              <div className="h-[180px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
+              <div className="h-full min-h-[180px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
             ) : (
-              <ul className="divide-y divide-border">
+              <div className="flex flex-col gap-2 h-full">
                 {alerts.map(a => {
                   const Icon = a.icon
-                  const tone = a.count === 0 ? 'text-muted-foreground'
-                    : a.danger ? 'text-destructive' : 'text-warm-foreground'
-                  const badgeVariant = a.count === 0 ? 'secondary' : a.danger ? 'destructive' : 'warning'
                   return (
-                    <li key={a.key}>
-                      <button type="button" onClick={a.onClick}
-                        className="w-full text-left flex items-center gap-3 py-2.5 px-1 hover:bg-primary-soft/60 transition-colors rounded-md">
-                        <Icon className={`size-5 shrink-0 ${tone}`} />
-                        <span className="flex-1 min-w-0 text-sm text-foreground truncate">{a.label}</span>
-                        <Badge variant={badgeVariant} className="shrink-0">{a.count.toLocaleString()}</Badge>
-                      </button>
-                    </li>
+                    <button key={a.key} type="button" onClick={a.onClick}
+                      className={`w-full flex-1 flex items-center gap-4 rounded-xl px-3 py-2.5 text-left cursor-pointer ring-inset ring-0 hover:ring-2 hover:ring-current transition-all ${ALERT_TONE[a.tone]}`}>
+                      <Icon className="size-8 shrink-0" />
+                      <div className="flex-1 min-w-0 overflow-x-clip overflow-y-visible">
+                        <div className="text-sm font-semibold whitespace-nowrap">{a.title}</div>
+                        <div className="text-xs opacity-80 whitespace-nowrap">{a.count.toLocaleString()} {a.unit}</div>
+                      </div>
+                      <ChevronRight className="size-5 shrink-0 opacity-60" />
+                    </button>
                   )
                 })}
-              </ul>
+              </div>
             )}
         </SectionCard>
       </div>
 
-      {/* 3 — Bottom 4-card grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-        <SectionCard icon={Trophy} title="สินค้าขายดี" tint="primary">
+      {/* 3 — Bottom 3-card grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <SectionCard
+          icon={Trophy}
+          title="สินค้าขายดี"
+          tint="primary"
+          right={
+            <Button
+              variant="elevated"
+              className="h-9 w-9"
+              onClick={() => setTopSortBy(m => m === 'revenue' ? 'qty' : 'revenue')}
+              title={`สลับเกณฑ์เรียง (${TOP_SORT_LABEL[topSortBy]})`}
+            >
+              <ArrowLeftRight />
+            </Button>
+          }
+        >
           <TopListCard items={topItems} height={300} emptyText="ยังไม่มีการขายในช่วงนี้" />
         </SectionCard>
 
-        <SectionCard icon={UserCircle} title="พนักงานขาย" tint="violet">
-          <TopListCard items={staffItems} height={300} emptyText="ยังไม่มีบิลในช่วงนี้" />
+        <SectionCard
+          icon={TrendingUp}
+          title="กำไรสูงสุด"
+          tint="success"
+          right={
+            <Button
+              variant="elevated"
+              className="h-9 w-9"
+              onClick={() => setProfitMode(m => m === 'baht' ? 'pct' : 'baht')}
+              title={`สลับการแสดงกำไร (${profitMode === 'baht' ? 'บาท' : '%'})`}
+            >
+              <ArrowLeftRight />
+            </Button>
+          }
+        >
+          <TopListCard items={profitItems} height={300} emptyText="ยังไม่มีรายการขายในช่วงนี้" />
         </SectionCard>
 
         <SectionCard
           icon={Wallet}
           title="ค่าใช้จ่าย"
           tint="warm"
-          right={<span className="text-xs text-muted-foreground">{formatCurrency(expenseBreakdown.total)}</span>}
+          right={
+            <Select value={expenseMode} onValueChange={(v) => setExpenseMode(v as ExpenseMode)}>
+              <SelectTrigger variant="elevated" className="h-9 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="w-auto min-w-32">
+                <SelectItem value="this_month" className="whitespace-nowrap">{EXPENSE_MODE_LABEL.this_month}</SelectItem>
+                <SelectItem value="last_month" className="whitespace-nowrap">{EXPENSE_MODE_LABEL.last_month}</SelectItem>
+                <SelectItem value="this_year" className="whitespace-nowrap">{EXPENSE_MODE_LABEL.this_year}</SelectItem>
+              </SelectContent>
+            </Select>
+          }
         >
-          {loading ? (
-            <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
+          {/* Summary — big total + delta vs the comparison window */}
+          <div>
+            <div className="text-sm text-muted-foreground">รวมค่าใช้จ่าย</div>
+            <div className="flex items-baseline gap-2 flex-wrap mt-0.5">
+              <span className="text-3xl font-bold text-foreground leading-none">{baht(expenseBreakdown.total)}</span>
+              {dExpense && (
+                <span className={`inline-flex items-center gap-0.5 text-sm font-semibold ${dExpense.cls}`}>
+                  {dExpense.icon && <dExpense.icon className="size-4" />}{dExpense.sub}
+                </span>
+              )}
+              <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">{expWin.compareLabel}</span>
+            </div>
+          </div>
+
+          {expLoading ? (
+            <div className="h-[232px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
           ) : expenseBreakdown.rows.length === 0 ? (
-            <div className="h-[300px] flex flex-col items-center justify-center text-sm text-muted-foreground">
+            <div className="h-[232px] flex flex-col items-center justify-center text-sm text-muted-foreground">
               <Wallet className="size-10 mb-2 opacity-30" />
               ไม่มีค่าใช้จ่ายในช่วงนี้
             </div>
           ) : (
-            <ul className="space-y-3 overflow-y-auto scrollbar-thin" style={{ maxHeight: 300 }}>
+            <ul className="space-y-3 overflow-y-auto scrollbar-thin pr-1" style={{ maxHeight: 232 }}>
               {expenseBreakdown.rows.map(r => {
-                const pct = expenseBreakdown.max > 0 ? (r.amount / expenseBreakdown.max) * 100 : 0
+                // Gauge = share of the total (matches the % shown on the right).
+                const sharePct = expenseBreakdown.total > 0 ? (r.amount / expenseBreakdown.total) * 100 : 0
                 return (
-                  <li key={r.name} className="space-y-1">
+                  <li key={r.name} className="space-y-1.5">
                     <div className="flex items-baseline justify-between gap-2 text-sm">
                       <span className="text-foreground truncate">{r.name}</span>
-                      <span className="font-semibold text-foreground shrink-0">{formatCurrency(r.amount)}</span>
+                      <div className="flex items-baseline gap-3 shrink-0">
+                        <span className="font-semibold text-foreground">{baht(r.amount)}</span>
+                        <span className="text-xs text-muted-foreground w-12 text-right">{sharePct.toFixed(1)}%</span>
+                      </div>
                     </div>
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full bg-warm-foreground" style={{ width: `${pct}%` }} />
+                      <div className="h-full rounded-full bg-gradient-to-r from-violet to-info" style={{ width: `${sharePct}%` }} />
                     </div>
                   </li>
                 )
@@ -517,16 +647,12 @@ export default function DashboardPage() {
             </ul>
           )}
         </SectionCard>
-
-        <SectionCard icon={PackageX} title="สินค้าต้องสั่งซื้อ" tint="destructive">
-          <TopListCard items={lowItems} height={300} emptyIcon={Boxes} emptyText="สต็อกอยู่ในเกณฑ์ปกติ" />
-        </SectionCard>
       </div>
 
       {/* 4 — Profit / supplier / customer rollups */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        <SectionCard icon={TrendingUp} title="ทำกำไรสูงสุด" tint="success">
-          <TopListCard items={profitItems} height={300} emptyText="ยังไม่มีรายการขายในช่วงนี้" />
+        <SectionCard icon={UserCircle} title="พนักงานขาย" tint="violet">
+          <TopListCard items={staffItems} height={300} emptyText="ยังไม่มีบิลในช่วงนี้" />
         </SectionCard>
 
         <SectionCard icon={Truck} title="ผู้จัดจำหน่ายยอดซื้อสูงสุด" tint="info-soft">
@@ -538,7 +664,7 @@ export default function DashboardPage() {
           {payRow('ลูกค้าใหม่', `${stats.new_customers.toLocaleString()} ราย`)}
           {payRow('ลูกค้าเก่า', `${stats.returning_customers.toLocaleString()} ราย`)}
           {divider()}
-          {payRow('ยอดเฉลี่ย/บิล', formatCurrency(stats.avg_basket))}
+          {payRow('ยอดเฉลี่ย/บิล', baht(stats.avg_basket))}
           {payRow('ชนิดสินค้า/บิล', `${stats.avg_item_kinds.toFixed(1)} รายการ`)}
           {payRow('จำนวน/บิล', `${stats.avg_units_per_bill.toFixed(1)} ชิ้น`)}
           {divider()}
@@ -598,7 +724,7 @@ export default function DashboardPage() {
                   <TableCell className="text-right">
                     {(r.qty_on_hand ?? 0).toLocaleString()} {r.unit_name ?? ''}
                   </TableCell>
-                  <TableCell className="text-right">{formatCurrency(r.cost_value ?? 0)}</TableCell>
+                  <TableCell className="text-right">{baht(r.cost_value ?? 0)}</TableCell>
                   <TableCell className="text-right">
                     {r.avg_monthly_6m > 0 ? `${r.avg_monthly_6m.toFixed(1)}` : '—'}
                   </TableCell>
@@ -624,7 +750,7 @@ export default function DashboardPage() {
             {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{inactive.length.toLocaleString()}</span> รายการ</>}
           </span>
           <span className="text-muted-foreground">
-            มูลค่าทุนรวม <span className="font-semibold text-foreground">{formatCurrency(inactiveCostTotal)}</span>
+            มูลค่าทุนรวม <span className="font-semibold text-foreground">{baht(inactiveCostTotal)}</span>
           </span>
         </div>
       </div>
