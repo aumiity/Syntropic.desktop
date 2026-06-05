@@ -1,6 +1,6 @@
 ---
 name: project_hygeia_import
-description: Hygeia .mdb → Syntropic data migration — plan+audit done, checklist cleared, ready to code importer
+description: Hygeia .mdb → Syntropic data migration — importer Phase 0-9 DONE + all reconciles clean (money/stock/orphan = 0) on Windows via access_parser + electron-as-node
 metadata:
   type: project
 ---
@@ -35,12 +35,19 @@ metadata:
 - Customer.CustomerKey = Person.PersonKey (1:1); ชื่อ/ที่อยู่อยู่ใน Person
 - runner: ไม่มี tsx/ts-node → เขียน **plain Node ESM `.mjs`** รัน `node` (มี better-sqlite3 + esbuild + typescript)
 
-## ความคืบหน้าโค้ด
-- **Phase 0–6 DONE + verified 2026-06-05** — `scripts/import-hygeia.mjs` (Stage B). ผล: categories 12, products 2430, product_units 567, bundles 93 (recipe 301, skip 10 component หาย E4/E7), lots 39811→**32479 merged** (LotKey map ครบ 39811), customers 169, suppliers 44. **reconcile สต็อก mismatch = 0** (Σ qty_on_hand = StockCurrentBalance.Qty ทุกตัว), orphan lots/recipe = 0
-- **รันยังไง (สำคัญ):** better-sqlite3 prebuilt = ABI 125 (electron31) → **plain node 24 (ABI 137) รันไม่ได้** ต้องรันผ่าน electron-as-node: `ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron.exe scripts/import-hygeia.mjs`. schema.ts โหลดด้วย `esbuild.transformSync(loader:ts)` → temp .mjs → dynamic import → `initializeSchema(db)` (เลี่ยง tsx)
-- **เกร็ด:** plan เขียน "ซัพ 149" = จริง ๆ คือ LegalEntity ทั้งหมด 149 row; IsVendor=True จริง = **44**. products.code = ใช้ Hygeia Code ตรง ๆ (nullable, traceable) ไม่ gen ใหม่. NO-VAT ตั้ง sales_settings ใน Phase 0
+## ความคืบหน้าโค้ด — **Phase 0–9 DONE + verified ครบ 2026-06-05**
+`scripts/import-hygeia.mjs` (Stage B) ทำครบทุก phase + reconcile สะอาดหมด:
+- **Phase 1–6** categories 12, products 2430, product_units 567, bundles 93 (recipe 301, skip 10 component หาย), lots 39811→**32479 merged** (LotKey map ครบ 39811), customers 169, **suppliers 89**
+- **Phase 7 (ซื้อ 3 ปี)** 2310 ใบรับ, 13150 items (skip 0). **no-supplier 331 = VendorKey null ในต้นทางทั้งหมด (orphan 0)** → supplier_id NULL faithful
+- **Phase 8 (ขาย 3 ปี)** 117,619 บิล / 231,973 items / 234,783 lots (skip 0 ทั้งหมด). returns 369, voided 76
+- **reconcile (Phase 9) สะอาดหมด:** เงิน Σtotal_amount = expected **diff 0.00** (22.68M); สต็อก **mismatch 0**; orphan sale_items/sale_item_lots/lots/recipe = **0**; sale_item_lots ที่ lot_id NULL = **0**
+- บิล line≠total 90/117619 = voided 76 (ทั้งหมด) + completed 14 (แก้ราคา, 0.012%) → total_amount ใช้ header authoritative = faithful
 
-## ขั้นต่อไป
-**Phase 7–8** (ซื้อ/ขาย 3 ปี, DocDT≥2023-06-05): export `PurchaseReceiveHeader/PurchaseReceive/PurchaseReceiveLot` + `SaleBasicHeader/SaleBasic/SaleBasicLot` (กรองวันที่ใน python ก่อน dump — ตารางใหญ่ ~635k) → load + reconcile ยอดเงิน (§9: total_amount=TotalPrice−TotalDiscount, NO-VAT). resolve FK: sale_item_lots.LotKey→lotKeyToLotId, product_id→itemToProduct (skip+cascade ถ้าหาย P1-A6), purchase supplier→legalEntityToSupplier (ระวัง VendorKey อาจชี้ LegalEntity ที่ IsVendor=False)
+**รันยังไง (สำคัญ):** better-sqlite3 prebuilt = ABI 125 (electron31) → plain node 24 (ABI 137) รันไม่ได้ ต้อง **`NODE_OPTIONS="--max-old-space-size=8192" ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron.exe scripts/import-hygeia.mjs`** (heap ใหญ่เพราะ SaleBasicHeader.json 170MB). schema.ts โหลดด้วย `esbuild.transformSync(loader:ts)`→temp.mjs→dynamic import→`initializeSchema(db)`. export ซื้อ/ขาย: `python scripts/hygeia_export.py purchase sales` (กรอง DocDT≥2023-06-05 ที่ header แล้ว cascade)
+
+**Decisions ที่ลงจริง:** suppliers = IsVendor=True + LegalEntity ที่ถูก purchase VendorKey อ้าง (รวม 89); products.code = Hygeia Code ตรง ๆ; sale invoice `RC-YYYYMMDD-NNNN`, purchase `GR-YYYYMMDD-NNNN` (counter ต่อวัน); NO-VAT ตั้ง sales_settings Phase 0; sales filter = ตัด IsQuotation/IsSaleOrder; IsReturn→sale_type return; lot qty = current balance ไม่ replay transaction
+
+## ขั้นต่อไป (เลือกเมื่อ resume)
+importer เสร็จแล้ว — ผลคือ `D:\Syntropic.Project\hygeia-import-test.db`. ที่เหลือเป็น **decision การเอาไปใช้จริง** (ยังไม่ทำ): (1) จะ merge/ใช้ DB นี้เป็น DB จริงของร้านยังไง (seed vs swap), (2) refine ที่ deferred ได้: drug_type_id/is_drug mapping (ตอนนี้ null/0), products.code ให้ตรง format แอป, customer code prefix; (3) เปิด test.db ในแอปจริงดูหน้า POS/สินค้า/รายงานว่าข้อมูลแสดงถูก
 
 เกี่ยวข้อง: [[project_cost_model]] (3-cost), [[project_vat_phasing]] (NO-VAT), [[project_db_backup]]

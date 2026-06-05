@@ -43,17 +43,77 @@ def export_table(db, name):
     return nrows, len(cols)
 
 
+CUTOFF = "2023-06-05"  # D1: last 3 years (DocDT >= this)
+
+
+def _rows(db, name):
+    """parse_table -> list[dict] (raw string/None values)."""
+    data = db.parse_table(name)
+    cols = list(data.keys())
+    n = len(data[cols[0]]) if cols else 0
+    out = []
+    for i in range(n):
+        out.append({c: (None if data[c][i] is None else
+                        (data[c][i] if isinstance(data[c][i], (int, float, bool)) else str(data[c][i])))
+                    for c in cols})
+    return out
+
+
+def _write(name, rows):
+    with open(os.path.join(OUT_DIR, name + ".json"), "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False, default=str)
+    print(f"OK   {name}: {len(rows)} rows -> {name}.json")
+
+
+def _date_ok(v):
+    return v is not None and str(v)[:10] >= CUTOFF
+
+
+def export_sales(db):
+    """Phase 8: 3-year sales. Filter at the header (DocDT, exclude quotation /
+    sale-order docs), then cascade the keep-set down to lines and lots."""
+    hdr = [r for r in _rows(db, "SaleBasicHeader")
+           if _date_ok(r.get("DocDT")) and r.get("IsQuotation") != "True" and r.get("IsSaleOrder") != "True"]
+    keep_hdr = {r["SaleBasicHeaderKey"] for r in hdr}
+    _write("SaleBasicHeader", hdr)
+
+    lines = [r for r in _rows(db, "SaleBasic") if r.get("SaleBasicHeaderKey") in keep_hdr]
+    keep_line = {r["SaleBasicKey"] for r in lines}
+    _write("SaleBasic", lines)
+
+    lots = [r for r in _rows(db, "SaleBasicLot") if r.get("SaleBasicKey") in keep_line]
+    _write("SaleBasicLot", lots)
+
+
+def export_purchase(db):
+    """Phase 7: 3-year purchase, same header-filter cascade."""
+    hdr = [r for r in _rows(db, "PurchaseReceiveHeader") if _date_ok(r.get("DocDT"))]
+    keep_hdr = {r["PurchaseReceiveHeaderKey"] for r in hdr}
+    _write("PurchaseReceiveHeader", hdr)
+
+    lines = [r for r in _rows(db, "PurchaseReceive") if r.get("PurchaseReceiveHeaderKey") in keep_hdr]
+    keep_line = {r["PurchaseReceiveKey"] for r in lines}
+    _write("PurchaseReceive", lines)
+
+    lots = [r for r in _rows(db, "PurchaseReceiveLot") if r.get("PurchaseReceiveKey") in keep_line]
+    _write("PurchaseReceiveLot", lots)
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
-    tables = sys.argv[1:] or DEFAULT_TABLES
+    args = sys.argv[1:] or DEFAULT_TABLES
     db = AccessParser(MDB)
     available = set(db.catalog.keys())
-    for t in tables:
-        if t not in available:
-            print(f"SKIP {t}: not in mdb")
-            continue
-        n, c = export_table(db, t)
-        print(f"OK   {t}: {n} rows, {c} cols -> {t}.json")
+    for a in args:
+        if a == "sales":
+            export_sales(db)
+        elif a == "purchase":
+            export_purchase(db)
+        elif a in available:
+            n, c = export_table(db, a)
+            print(f"OK   {a}: {n} rows, {c} cols -> {a}.json")
+        else:
+            print(f"SKIP {a}: not in mdb")
     print("DONE ->", OUT_DIR)
 
 

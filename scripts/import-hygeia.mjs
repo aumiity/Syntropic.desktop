@@ -276,6 +276,15 @@ async function main() {
     })()
 
     const legals = load('LegalEntity')
+    // VendorKey on purchase headers often points to a LegalEntity whose IsVendor
+    // flag is False — import those referenced entities too so no GR is left
+    // supplier-less (memory: ระวัง VendorKey ชี้ IsVendor=False).
+    const referencedVendors = new Set()
+    if (existsSync(path.join(EXPORT_DIR, 'PurchaseReceiveHeader.json'))) {
+      for (const h of load('PurchaseReceiveHeader')) {
+        const vk = s(h.VendorKey); if (vk) referencedVendors.add(vk)
+      }
+    }
     const insSup = db.prepare(`
       INSERT INTO suppliers (code, name, tax_id, phone, address, is_disabled)
       VALUES (@code, @name, @tax_id, @phone, @address, @is_disabled)`)
@@ -283,7 +292,7 @@ async function main() {
     let j = 0, vendors = 0
     db.transaction(() => {
       for (const e of legals) {
-        if (!bool(e.IsVendor)) continue
+        if (!bool(e.IsVendor) && !referencedVendors.has(String(e.LegalEntityKey))) continue
         vendors++
         let code = s(e.Code) ?? ('S' + String(++j).padStart(4, '0'))
         while (supCode.has(code)) code = 'S' + String(++j).padStart(4, '0')
@@ -297,6 +306,154 @@ async function main() {
       }
     })()
     report.push(`Phase 6 customers: ${custs.length}, suppliers: ${vendors}`)
+  }
+
+  // ---- Phase 7: purchase (3-year) -------------------------------------------
+  if (existsSync(path.join(EXPORT_DIR, 'PurchaseReceiveHeader.json'))) {
+    const hdrs = load('PurchaseReceiveHeader')
+    const insPR = db.prepare(`
+      INSERT INTO purchase_receipts (invoice_no, supplier_id, supplier_invoice_no, order_date,
+        payment_type, due_date, is_paid, paid_date, note, discount_amount, status, created_at)
+      VALUES (@invoice_no, @supplier_id, @supplier_invoice_no, @order_date,
+        @payment_type, @due_date, @is_paid, @paid_date, @note, @discount_amount, @status, @created_at)`)
+    const prHeaderToInvoice = new Map()
+    const grCounter = new Map()
+    let noSupplier = 0
+    db.transaction(() => {
+      for (const h of hdrs) {
+        const d = dOnly(h.DocDT)
+        const ymd = d ? d.replace(/-/g, '') : '00000000'
+        const n = (grCounter.get(ymd) || 0) + 1; grCounter.set(ymd, n)
+        const invoice = `GR-${ymd}-${String(n).padStart(4, '0')}`   // C5
+        const sup = legalEntityToSupplier.get(String(h.VendorKey)) ?? null
+        if (!sup) noSupplier++
+        insPR.run({
+          invoice_no: invoice, supplier_id: sup, supplier_invoice_no: s(h.CodeRef),
+          order_date: d, payment_type: s(h.DueDate) ? 'credit' : 'cash',
+          due_date: dOnly(h.DueDate), is_paid: bool(h.IsPay), paid_date: dOnly(h.PayDate),
+          note: s(h.Note) ?? '', discount_amount: num(h.TotalDiscount),
+          status: bool(h.IsCanceled) ? 'cancelled' : 'completed', created_at: dFull(h.DocDT),
+        })
+        prHeaderToInvoice.set(String(h.PurchaseReceiveHeaderKey), invoice)
+      }
+    })()
+    // line items: PurchaseReceiveLot (lot/qty) joined to PurchaseReceive (UnitPrice). C2:
+    // base qty = Qty × Multiply ; cost/base = UnitPrice ÷ Multiply (use one, no double-count).
+    const prLines = new Map(load('PurchaseReceive').map((r) => [String(r.PurchaseReceiveKey), r]))
+    const insItem = db.prepare(`
+      INSERT INTO purchase_receipt_items (invoice_no, product_id, lot_id, lot_number,
+        manufactured_date, expiry_date, cost_price, sell_price, qty, note)
+      VALUES (@invoice_no, @product_id, @lot_id, @lot_number, @mfd, @exp, @cost, 0, @qty, NULL)`)
+    let skip = 0, n = 0
+    db.transaction(() => {
+      for (const L of load('PurchaseReceiveLot')) {
+        const line = prLines.get(String(L.PurchaseReceiveKey))
+        if (!line) { skip++; continue }
+        const invoice = prHeaderToInvoice.get(String(line.PurchaseReceiveHeaderKey))
+        const pid = itemToProduct.get(String(L.ItemKey))
+        if (!invoice || !pid) { skip++; continue }
+        insItem.run({
+          invoice_no: invoice, product_id: pid, lot_id: lotKeyToLotId.get(String(L.LotKey)) ?? null,
+          lot_number: s(L.Lot) ?? 'ไม่ระบุล็อต', mfd: dOnly(L.EfdDate), exp: dOnly(L.ExpDate),
+          cost: num(line.UnitPrice) / (num(line.Multiply) || 1),
+          qty: num(L.Qty) * (num(L.Multiply) || 1),
+        })
+        n++
+      }
+    })()
+    report.push(`Phase 7 purchase: ${hdrs.length} receipts (no-supplier ${noSupplier}), ${n} items (skip ${skip})`)
+  }
+
+  // ---- Phase 8: sales (3-year) ----------------------------------------------
+  if (existsSync(path.join(EXPORT_DIR, 'SaleBasicHeader.json'))) {
+    const hdrs = load('SaleBasicHeader')
+    const insSale = db.prepare(`
+      INSERT INTO sales (invoice_no, sale_type, customer_id, customer_name_free, sold_at,
+        age_range, symptom_note, subtotal, total_discount, total_vat, total_amount,
+        cash_amount, card_amount, is_credit, due_date, status, note)
+      VALUES (@invoice_no, @sale_type, @customer_id, @customer_name_free, @sold_at,
+        @age_range, @symptom_note, @subtotal, @total_discount, 0, @total_amount,
+        @cash_amount, @card_amount, @is_credit, @due_date, @status, @note)`)
+    const headerToSaleId = new Map()
+    const rcCounter = new Map()
+    let expectedNet = 0
+    db.transaction(() => {
+      for (const h of hdrs) {
+        const full = dFull(h.DocDT); const d = full ? full.slice(0, 10) : null
+        const ymd = d ? d.replace(/-/g, '') : '00000000'
+        const n = (rcCounter.get(ymd) || 0) + 1; rcCounter.set(ymd, n)
+        const invoice = `RC-${ymd}-${String(n).padStart(4, '0')}`   // C5 (pos.ts:215)
+        const gross = num(h.TotalPrice), disc = num(h.TotalDiscount)
+        expectedNet += gross - disc
+        const info = insSale.run({
+          invoice_no: invoice,
+          sale_type: bool(h.IsReturn) ? 'return' : (bool(h.IsWholesale) ? 'wholesale' : 'retail'),  // C4
+          customer_id: customerKeyToId.get(String(h.CustomerKey)) ?? null,
+          customer_name_free: s(h.CustomerNameFreeText),
+          sold_at: full, age_range: s(h.AgeRange), symptom_note: s(h.SymptomNote),
+          subtotal: gross, total_discount: disc, total_amount: gross - disc,   // §9: net = gross − disc
+          cash_amount: num(h.CashAmt), card_amount: num(h.CreditCardAmt),
+          is_credit: bool(h.IsCredit), due_date: dOnly(h.DueDate),
+          status: bool(h.IsCanceled) ? 'voided' : 'completed', note: s(h.Note),
+        })
+        headerToSaleId.set(String(h.SaleBasicHeaderKey), Number(info.lastInsertRowid))
+      }
+    })()
+
+    const saleBasicToItemId = new Map()
+    const insItem = db.prepare(`
+      INSERT INTO sale_items (sale_id, product_id, item_name, unit_name, qty, unit_price,
+        discount, unit_vat, line_total, item_note, is_cancelled)
+      VALUES (@sale_id, @product_id, @item_name, @unit_name, @qty, @unit_price,
+        @discount, 0, @line_total, @item_note, @is_cancelled)`)
+    let skipLine = 0, nLine = 0
+    db.transaction(() => {
+      for (const L of load('SaleBasic')) {
+        const saleId = headerToSaleId.get(String(L.SaleBasicHeaderKey))
+        const pid = itemToProduct.get(String(L.ItemKey))
+        if (!saleId || !pid) { skipLine++; continue }   // E4 (+ lots cascade-skip via missing map)
+        const qty = num(L.UnitQty), price = num(L.UnitPrice), disc = num(L.Discount)
+        const info = insItem.run({
+          sale_id: saleId, product_id: pid, item_name: s(L.ItemName) ?? '', unit_name: s(L.UnitName) ?? '',
+          qty, unit_price: price, discount: disc, line_total: price * qty - disc,
+          item_note: s(L.ItemNote) ?? s(L.ItemSetCode), is_cancelled: bool(L.IsCanceled),
+        })
+        saleBasicToItemId.set(String(L.SaleBasicKey), Number(info.lastInsertRowid))
+        nLine++
+      }
+    })()
+
+    const insLot = db.prepare(`
+      INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty, is_cancelled)
+      VALUES (@sale_item_id, @lot_id, @product_id, @qty, @is_cancelled)`)
+    let skipLot = 0, nLot = 0
+    db.transaction(() => {
+      for (const L of load('SaleBasicLot')) {
+        const siId = saleBasicToItemId.get(String(L.SaleBasicKey))
+        const pid = itemToProduct.get(String(L.ItemKey))
+        if (!siId || !pid) { skipLot++; continue }   // P1-A6: cascade from a skipped line
+        insLot.run({
+          sale_item_id: siId, lot_id: lotKeyToLotId.get(String(L.LotKey)) ?? null,
+          product_id: pid, qty: num(L.BaseQty), is_cancelled: bool(L.IsCanceled),
+        })
+        nLot++
+      }
+    })()
+    report.push(`Phase 8 sales: ${hdrs.length} bills, ${nLine} items (skip ${skipLine}), ${nLot} lots (skip ${skipLot})`)
+
+    // money reconcile (§6.3): DB Σtotal_amount must equal Σ(TotalPrice−TotalDiscount) over the
+    // same filtered headers (validates no bill dropped); per-bill line vs total flags transform drift.
+    const t = db.prepare(`SELECT COUNT(*) c, COALESCE(SUM(total_amount),0) ta FROM sales`).get()
+    report.push(`Reconcile sales money: Σtotal_amount ${t.ta.toFixed(2)} vs expected ${expectedNet.toFixed(2)} (diff ${(t.ta - expectedNet).toFixed(2)})`)
+    const billDiff = db.prepare(`
+      SELECT COUNT(*) c FROM (
+        SELECT s.id FROM sales s LEFT JOIN sale_items si ON si.sale_id = s.id
+        GROUP BY s.id HAVING ABS(s.total_amount - COALESCE(SUM(si.line_total),0)) > 1
+      )`).get().c
+    report.push(`Bills where |Σline_total − total_amount| > 1 baht: ${billDiff} / ${t.c} (expected: bills with a skipped line)`)
+    const orphanSIL = db.prepare(`SELECT COUNT(*) c FROM sale_item_lots WHERE sale_item_id NOT IN (SELECT id FROM sale_items)`).get().c
+    const orphanSI = db.prepare(`SELECT COUNT(*) c FROM sale_items WHERE sale_id NOT IN (SELECT id FROM sales)`).get().c
+    report.push(`Orphan check sales: sale_items ${orphanSI}, sale_item_lots ${orphanSIL}`)
   }
 
   // ---- Reconcile: StockCurrentBalance.Qty vs Σ product_lots.qty_on_hand ------
