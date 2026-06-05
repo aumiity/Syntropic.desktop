@@ -252,6 +252,9 @@ const api = {
     listLoginUsers: () => ipcRenderer.invoke('auth:listLoginUsers'),
     login: (userId: number, password: string) => ipcRenderer.invoke('auth:login', { userId, password }),
     logout: () => ipcRenderer.invoke('auth:logout'),
+    getMyProfile: () => ipcRenderer.invoke('auth:getMyProfile'),
+    changePassword: (currentPassword: string, newPassword: string) =>
+      ipcRenderer.invoke('auth:changePassword', { currentPassword, newPassword }) as Promise<{ ok: true }>,
     resetAdminPassword: (recoveryCode: string, newPassword: string) =>
       ipcRenderer.invoke('auth:resetAdminPassword', { recoveryCode, newPassword }) as Promise<{ recoveryCode: string }>,
   },

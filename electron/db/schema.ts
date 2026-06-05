@@ -9,6 +9,10 @@ export function initializeSchema(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
+      first_name TEXT NOT NULL DEFAULT '',
+      last_name TEXT NOT NULL DEFAULT '',
+      username TEXT,
+      phone TEXT,
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL DEFAULT '',
       role TEXT NOT NULL DEFAULT 'staff',
@@ -794,6 +798,15 @@ export function initializeSchema(db: Database.Database) {
     // Recovery-code lockout — a separate counter from login (Phase 2.5).
     `ALTER TABLE users ADD COLUMN recovery_failed_attempts INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN recovery_locked_until TEXT`,
+    // Profile fields: structured name + login username + phone. `name` is kept
+    // as an auto-composed display string (first+last) so the many report joins on
+    // users.name stay populated. username is the login identity (unique via index
+    // below); "required" is enforced in saveStaff, not at the column level (ALTER
+    // can only add it nullable).
+    `ALTER TABLE users ADD COLUMN first_name TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE users ADD COLUMN last_name TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE users ADD COLUMN username TEXT`,
+    `ALTER TABLE users ADD COLUMN phone TEXT`,
   ]) {
     try { db.exec(sql) } catch {}
   }
@@ -810,6 +823,47 @@ export function initializeSchema(db: Database.Database) {
       db.pragma('user_version = 1')
     }
   } catch {}
+
+  // Migration (user_version 2): backfill the new users profile fields.
+  //   - first_name  ← existing display name (so users.name stays meaningful and
+  //     report joins on users.name keep working; last_name stays '').
+  //   - username    ← 'admin' for the owner admin (email-keyed, the load-bearing
+  //     account), else the email local-part sanitized; de-duped IN JS (a numeric
+  //     suffix on collision) because a per-group unique suffix can't be expressed
+  //     in a single SQL UPDATE. Done row-by-row inside one transaction.
+  // The UNIQUE index is created AFTER de-dup guarantees uniqueness, so it can't
+  // throw on legacy dirty data. Guarded by user_version so it runs exactly once.
+  try {
+    const ver = db.pragma('user_version', { simple: true }) as number
+    if (!ver || ver < 2) {
+      db.transaction(() => {
+        db.exec(`UPDATE users SET first_name = name WHERE first_name = ''`)
+
+        const rows = db.prepare(`SELECT id, email FROM users`).all() as { id: number; email: string | null }[]
+        const taken = new Set<string>()
+        const setUsername = db.prepare(`UPDATE users SET username = ? WHERE id = ?`)
+        for (const r of rows) {
+          let base: string
+          if (r.email === 'admin@syntropic.local') {
+            base = 'admin'
+          } else {
+            const local = (r.email ?? '').split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '')
+            base = local || `user${r.id}`
+          }
+          let candidate = base
+          let n = 1
+          while (taken.has(candidate)) { n += 1; candidate = `${base}${n}` }
+          taken.add(candidate)
+          setUsername.run(candidate, r.id)
+        }
+      })()
+      db.pragma('user_version = 2')
+    }
+  } catch {}
+
+  // De-dup above guarantees uniqueness; create the index defensively (never
+  // hard-crash boot — keep the file's swallow convention).
+  try { db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)`) } catch {}
 
   // Migration: drop the vestigial item_units.multiply column. Never read by any
   // business logic — per-product conversion lives in product_units.qty_per_base.

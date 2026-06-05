@@ -20,12 +20,12 @@ import { Eye, EyeOff, LogIn, ArrowLeft, ChevronRight, ShieldCheck, Check, Sun, M
 // ยืนยันด้วย window.api.auth.login — lockout จริงนับฝั่ง main; ตัวนับ/นาฬิกาใน UI
 // เป็นแค่ feedback ระหว่างรอ. (Phase 2.5 จะเพิ่ม flow กู้รหัสจริง)
 
-type LoginUser = { id: number; name: string; role: 'admin' | 'staff' }
+type LoginUser = { id: number; name: string; username: string; email: string; role: 'admin' | 'staff' }
 
 const PREVIEW_USERS: LoginUser[] = [
-  { id: 1, name: 'อุ้ม', role: 'admin' },
-  { id: 2, name: 'บี', role: 'staff' },
-  { id: 3, name: 'มินต์', role: 'staff' },
+  { id: 1, name: 'อุ้ม', username: 'aum', email: 'aum@syntropic.local', role: 'admin' },
+  { id: 2, name: 'บี', username: 'bee', email: 'bee@syntropic.local', role: 'staff' },
+  { id: 3, name: 'มินต์', username: 'mint', email: 'mint@syntropic.local', role: 'staff' },
 ]
 const PREVIEW_PASSWORD = '1234'
 const LOCK_THRESHOLD = 5
@@ -336,7 +336,8 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
                   >
                     <InitialAvatar name={u.name} size="default" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-foreground">{u.name}</div>
+                      <div className="text-sm font-medium text-foreground truncate">@{u.username}</div>
+                      <div className="text-xs text-muted-foreground truncate">{u.email}</div>
                     </div>
                     <RoleBadge role={u.role} />
                     <ChevronRight className="size-4 text-muted-foreground" />
@@ -349,8 +350,8 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
                 <div className="flex items-center gap-3">
                   <InitialAvatar name={selected?.name} size="default" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground">{selected?.name}</div>
-                    <div className="text-xs text-muted-foreground">เข้าสู่ระบบในชื่อ {selected?.name}</div>
+                    <div className="text-sm font-medium text-foreground truncate">@{selected?.username}</div>
+                    <div className="text-xs text-muted-foreground truncate">{selected?.email}</div>
                   </div>
                   {selected && <RoleBadge role={selected.role} />}
                 </div>

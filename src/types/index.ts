@@ -101,6 +101,7 @@ export interface Supplier {
 
 export interface User {
   id: number; name: string; email: string; role: string; is_disabled: number
+  username?: string; first_name?: string; last_name?: string; phone?: string
 }
 
 export interface Sale {

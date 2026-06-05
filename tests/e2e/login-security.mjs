@@ -83,13 +83,16 @@ try {
   page = await getMainPage(app)
 
   // T0 — login picker -------------------------------------------------------
-  setGroup('T0 listLoginUsers (no email leak)')
+  // The picker now shows @username + email by product decision (was name-only).
+  // The security line that still matters: NEVER expose password/hash.
+  setGroup('T0 listLoginUsers (no password/hash leak)')
   const users = (await api(page, 'auth.listLoginUsers')).value || []
   const admin = users.find((u) => u.role === 'admin')
   const staff = users.find((u) => u.role === 'staff')
   check('admin user present', !!admin, admin && `id=${admin.id} ${admin.name}`)
   check('staff user present', !!staff, staff && `id=${staff.id} ${staff.name}`)
-  check('rows expose only id/name/role (no email)', users.every((u) => !('email' in u) && !('password' in u)))
+  check('rows never expose password/hash', users.every((u) => !('password' in u) && !('recovery_code_hash' in u)))
+  check('picker exposes username + email (by design)', users.every((u) => 'username' in u && 'email' in u))
   const adminId = admin?.id
   const staffId = staff?.id
 
@@ -189,6 +192,21 @@ try {
   check('admin can log in with the new password', loginNew.ok && loginNew.value?.role === 'admin', loginNew.ok ? '' : loginNew.error)
   const reuseOld = await api(page, 'auth.resetAdminPassword', code1, 'whatever')
   check('old recovery code no longer valid', errHas(reuseOld, 'รหัสกู้คืนไม่ถูกต้อง'), reuseOld.error)
+
+  // T8b — self-service changePassword (own password only, session-scoped) ----
+  setGroup('T8b changePassword (self-service)')
+  await api(page, 'auth.login', staffId, 'staff')                 // bind staff (pw upgraded in T4)
+  const cpWrong = await api(page, 'auth.changePassword', 'wrong-current', 'staffNew1')
+  check('wrong current password rejected', errHas(cpWrong, 'รหัสผ่านปัจจุบันไม่ถูกต้อง'), cpWrong.error)
+  const cpOk = await api(page, 'auth.changePassword', 'staff', 'staffNew1')
+  check('correct current → change succeeds', cpOk.ok && cpOk.value?.ok === true, cpOk.ok ? '' : cpOk.error)
+  await api(page, 'auth.logout')
+  const reLoginNew = await api(page, 'auth.login', staffId, 'staffNew1')
+  check('staff can log in with the new password', reLoginNew.ok, reLoginNew.ok ? '' : reLoginNew.error)
+  await api(page, 'auth.logout')
+  const cpNoSess = await api(page, 'auth.changePassword', 'x', 'yyyy')
+  check('no session → changePassword FORBIDDEN', errHas(cpNoSess, 'FORBIDDEN'), cpNoSess.error)
+  await api(page, 'auth.login', adminId, 'newpw99')               // restore admin session for T9
 
   // T9 — full reload clears the main-side session ---------------------------
   setGroup('T9 full reload clears session (no stale role replay)')
