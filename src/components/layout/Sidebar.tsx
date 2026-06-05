@@ -25,7 +25,9 @@ const mainNavItems = [
 ]
 
 const bottomNavItems = [
-  { to: '/purchase-intake', label: 'จับคู่ใบส่งของ', icon: ScanLine },
+  // จับคู่ใบส่งของ — HIDDEN from nav 2026-06-05, ยังไม่ได้ใช้. Page/code kept (route
+  // still live in App.tsx, reachable by URL). Re-enable by uncommenting this line.
+  // { to: '/purchase-intake', label: 'จับคู่ใบส่งของ', icon: ScanLine },
   { to: '/css', label: 'CSS', icon: Braces },
   { to: '/theme', label: 'Appearance', icon: Palette },
 ]
