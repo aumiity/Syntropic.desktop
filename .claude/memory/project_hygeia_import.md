@@ -47,7 +47,12 @@ metadata:
 
 **Decisions ที่ลงจริง:** suppliers = IsVendor=True + LegalEntity ที่ถูก purchase VendorKey อ้าง (รวม 89); products.code = Hygeia Code ตรง ๆ; sale invoice `RC-YYYYMMDD-NNNN`, purchase `GR-YYYYMMDD-NNNN` (counter ต่อวัน); NO-VAT ตั้ง sales_settings Phase 0; sales filter = ตัด IsQuotation/IsSaleOrder; IsReturn→sale_type return; lot qty = current balance ไม่ replay transaction
 
-## ขั้นต่อไป (เลือกเมื่อ resume)
-importer เสร็จแล้ว — ผลคือ `D:\Syntropic.Project\hygeia-import-test.db`. ที่เหลือเป็น **decision การเอาไปใช้จริง** (ยังไม่ทำ): (1) จะ merge/ใช้ DB นี้เป็น DB จริงของร้านยังไง (seed vs swap), (2) refine ที่ deferred ได้: drug_type_id/is_drug mapping (ตอนนี้ null/0), products.code ให้ตรง format แอป, customer code prefix; (3) เปิด test.db ในแอปจริงดูหน้า POS/สินค้า/รายงานว่าข้อมูลแสดงถูก
+## ทดสอบในแอปจริง — DONE 2026-06-06
+เปิด test.db ในแอปได้ ข้อมูลแสดงครบ. วิธี: `scripts/prep-app-db.mjs` (ELECTRON_RUN_AS_NODE) stage `hygeia-import-test.db` → `D:\Syntropic.Project\hygeia-test-userdata\database\syntropic.db` + ใส่ admin user (password `admin`) + settings.setup_completed=1 (กัน seedDatabase ลง dev-seed ทับ + ข้าม Setup/Login gate). เปิด: **`NODE_ENV=development node_modules/electron/dist/electron.exe --user-data-dir=D:/Syntropic.Project/hygeia-test-userdata .`** — **สำคัญ: `--user-data-dir` ต้องอยู่ก่อน `.` (app path) + ใช้ forward slash** ไม่งั้น Electron ตีเป็น app-arg แล้วเปิด DB default แทน. ต้องมี `npm run dev` (:5173) ก่อน. ยืนยัน: 2025 มี 38,087 บิล, ยอด 3 ปี 22.68M — 69MB ปกติ (mdb 475MB เพราะ history ตั้งแต่ 2012 + 144 ตาราง + Access overhead)
+
+## ขั้นต่อไป — DECISION ค้าง (เจ้าของกำลังคิด 2026-06-06): **fresh start vs import ของเก่า**
+- **หนูแนะนำ import** — ตัวตัดสินคือสต็อก/ล็อต/ต้นทุนปัจจุบัน 2500 ตัว (คีย์มือวันเปิดร้านเป็นไปไม่ได้, importer reconcile ตรง 0 แล้ว) + ลูกค้า/ซัพ/เจ้าหนี้/ประวัติ. ของเก่ารกแก้ทีหลังในแอปได้ (DeadStock ปิดตัวตาย). fresh คุ้มเฉพาะถ้า catalog รกจนอยากรื้อ — ไม่จำเป็นเพราะ reconcile สะอาด
+- ถ้าเลือก import: cutover = import สดตอน fresh install บนเครื่องร้าน (vs swap ไฟล์), + refine deferred: drug_type_id/is_drug (จาก Hygeia DrugType/HardDrugType/ControlledDrugType — สำคัญกับฉลาก+ข.ย.), products.code format
+- `scripts/prep-app-db.mjs` ยังไม่ commit (เครื่องมือ test, path เครื่องนี้)
 
 เกี่ยวข้อง: [[project_cost_model]] (3-cost), [[project_vat_phasing]] (NO-VAT), [[project_db_backup]]
