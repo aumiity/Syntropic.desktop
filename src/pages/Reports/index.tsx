@@ -136,7 +136,13 @@ export default function ReportsLayout() {
         </motion.div>
       )}
 
-      <Outlet context={ctx} />
+      {/* When a tab provides no summary cards (e.g. แดชบอร์ด draws its own KPI
+          row), the content would sit right up against the TabStrip divider —
+          the summary block's pt-3 is what normally provides that gap, so mirror
+          it here. (Same pattern as Manage/index.tsx.) */}
+      <div className={summary && summary.length > 0 ? '' : 'pt-3'}>
+        <Outlet context={ctx} />
+      </div>
     </div>
   )
 }

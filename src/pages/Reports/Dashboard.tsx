@@ -354,8 +354,8 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* 2 — Trend (left, large) + Donut & Alerts (right column) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {/* 2 — Trend (large) + Donut + Alerts, all on one row */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
         <SectionCard
           icon={LineChartIcon}
           title="แนวโน้มยอดขาย-กำไร"
@@ -383,13 +383,12 @@ export default function DashboardPage() {
           )}
         </SectionCard>
 
-        <div className="flex flex-col gap-3">
-          <SectionCard
-            icon={PieChartIcon}
-            title="สัดส่วนการขาย"
-            tint="info-soft"
-            right={<span className="text-xs text-muted-foreground">{rangeLabel}</span>}
-          >
+        <SectionCard
+          icon={PieChartIcon}
+          title="สัดส่วนการขาย"
+          tint="info-soft"
+          right={<span className="text-xs text-muted-foreground">{rangeLabel}</span>}
+        >
             {loading ? (
               <div className="h-[180px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
             ) : donutTotal === 0 ? (
@@ -439,12 +438,12 @@ export default function DashboardPage() {
                 </ul>
               </div>
             )}
-          </SectionCard>
+        </SectionCard>
 
-          <SectionCard
-            icon={BellRing}
-            title="แจ้งเตือน"
-            tint="warm"
+        <SectionCard
+          icon={BellRing}
+          title="แจ้งเตือน"
+          tint="warm"
             right={
               <span className="text-xs text-muted-foreground">
                 {loading ? '' : alertTotal > 0 ? `${alertTotal.toLocaleString()} รายการ` : 'ปกติ'}
@@ -473,8 +472,7 @@ export default function DashboardPage() {
                 })}
               </ul>
             )}
-          </SectionCard>
-        </div>
+        </SectionCard>
       </div>
 
       {/* 3 — Bottom 4-card grid */}
