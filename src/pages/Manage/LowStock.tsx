@@ -171,7 +171,7 @@ export default function ManageLowStockPage() {
     return (
       <div className="flex flex-col gap-1 min-w-[160px]">
         <div className="text-sm whitespace-nowrap">
-          <span className="font-semibold text-foreground tabular-nums">{qty.toLocaleString()}</span>
+          <span className="font-semibold text-foreground">{qty.toLocaleString()}</span>
           <span className="text-muted-foreground"> {unit}</span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-muted-hover overflow-hidden">
@@ -324,7 +324,7 @@ export default function ManageLowStockPage() {
                       {r.trade_name}
                     </TableCell>
                     {showColReorder && (
-                      <TableCell className="text-right text-sm tabular-nums">
+                      <TableCell className="text-right text-sm">
                         {r.reorder_point > 0
                           ? <span className="text-foreground">{r.reorder_point.toLocaleString()}</span>
                           : <span className="text-foreground-subtle">—</span>}
@@ -336,7 +336,7 @@ export default function ManageLowStockPage() {
                       </TableCell>
                     )}
                     {showColSafety && (
-                      <TableCell className="text-sm tabular-nums">
+                      <TableCell className="text-sm">
                         {(r.safety_stock ?? 0) > 0
                           ? <span className="text-foreground">{(r.safety_stock ?? 0).toLocaleString()}</span>
                           : <span className="text-foreground-subtle">—</span>}

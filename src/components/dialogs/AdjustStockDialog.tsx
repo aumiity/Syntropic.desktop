@@ -451,7 +451,7 @@ export function AdjustStockDialog({
                               </span>
                             </TableCell>
                             <TableCell>{formatExp(l.expiry_date)}</TableCell>
-                            <TableCell className="text-right tabular-nums">{l.qty_on_hand.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">{l.qty_on_hand.toLocaleString()}</TableCell>
                             <TableCell>
                               {depleted
                                 ? <Badge variant="destructive">หมด</Badge>
