@@ -17,6 +17,11 @@ out/
 # Large source SQL dump (206MB — exceeds GitHub 100MB limit, keep local only)
 electron/db/Hygeia.sql
 
+# Hygeia migration — real shop data + generated artifacts must never enter git
+*.mdb
+hygeia-export/
+scripts/import-report.txt
+
 # Logs
 *.log
 npm-debug.log*
