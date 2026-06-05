@@ -158,7 +158,12 @@
       "WebFetch(domain:developers.flowaccount.com)",
       "WebFetch(domain:github.com)",
       "Skill(impeccable)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Bash(du -h /Users/CYUT/Documents/GitHub/hygeia.data.mdb)",
+      "Bash(echo \"=== header ===\")",
+      "Bash(xxd -l 32 /Users/CYUT/Documents/GitHub/hygeia.data.mdb)",
+      "Bash(echo \"=== tables ===\")",
+      "Bash(mdb-tables -1 /Users/CYUT/Documents/GitHub/hygeia.data.mdb)"
     ],
     "additionalDirectories": [
       "/tmp"
