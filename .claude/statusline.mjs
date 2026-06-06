@@ -4,6 +4,10 @@
 // and prints an ANSI status bar. Falls back gracefully on missing fields.
 import { readFileSync, existsSync } from 'fs';
 import { join, basename, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// directory this script lives in (.claude/) — used to read repo-tracked sidecar files
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 
 // ---------- read stdin ----------
 let raw = '';
@@ -29,6 +33,24 @@ const PIPE  = fg([72, 80, 116]) + ' | ' + RST;
 // subscription plan label. The statusline JSON has NO plan/tier field, so it can't be
 // auto-detected — set it per machine via the CLAUDE_PLAN env var, or fall back to this default.
 const PLAN = process.env.CLAUDE_PLAN || 'Max(5x)';
+
+// subscription expiry. The statusline JSON has NO billing/expiry field, so the renew date
+// is read from .claude/sub-expiry.txt (format YYYY-MM-DD) — repo-tracked, so it travels via
+// git to every machine (same subscription everywhere). Update that file when it renews.
+function subExpiry() {
+  try {
+    const f = join(SCRIPT_DIR, 'sub-expiry.txt');
+    if (!existsSync(f)) return null;
+    const m = readFileSync(f, 'utf8').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const exp = new Date(+m[1], +m[2] - 1, +m[3]);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const days = Math.round((exp - today) / 86400000);
+    const pretty = exp.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+    const label = days < 0 ? 'expired' : days === 0 ? 'today' : `${days}d`;
+    return { label, pretty, days };
+  } catch { return null; }
+}
 
 // gradient green -> yellow -> red
 const lerp = (a, b, t) => Math.round(a + (b - a) * t);
@@ -113,6 +135,11 @@ l1.push(fg(GOLD) + '📁⏵ ' + RST + fg(TEXT) + bold(dirName) + RST);
 l1.push(fg(GOLD) + '🧠⏵ ' + RST + fg(TEXT) + model + RST + (effort ? fg(MUTE) + ` (${effort})` + RST : ''));
 if (usd != null) l1.push(fg(GOLD) + '💵⏵ ' + RST + fg(TEXT) + '$' + usd.toFixed(2) + RST);
 if (PLAN) l1.push(fg(GOLD) + '💎⏵ ' + RST + fg(TEXT) + PLAN + RST);
+const sub = subExpiry();
+if (sub) {
+  const col = sub.days <= 3 ? [247, 118, 142] : sub.days <= 7 ? GOLD : GREEN;
+  l1.push(fg(GOLD) + '♻️⏵ ' + RST + fg(col) + `Renew on ${sub.label} (${sub.pretty})` + RST);
+}
 out.push(l1.join(PIPE));
 
 
