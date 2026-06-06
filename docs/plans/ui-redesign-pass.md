@@ -78,6 +78,14 @@
   - **โลโก้ Syntropic จริง** = ใบไม้ใน docs/Logo/**Logo_adobe.svg** (path เดียว สะอาด 4KB) → `src/components/ui/logo-mark.tsx` (`LogoMark`, fill=currentColor themeable). **ไม่ใช้** `LOGO_TRANS_VEC_edge1color.svg` (1.3MB traced raster). ใช้ที่ BrandMark/BrandLogo (Setup+Login) + Sidebar. avatar เพิ่ม size `lg`
   - tsc ผ่านทั้ง 2 config. commit checkpoint. **ถัดไป: แวะทำ Logo (app icon/favicon/showcase) ก่อนไป #3 POS**
 
+- **2026-06-06** — **แวะทำ Logo + DEV auto-login**
+  - โลโก้จริง = `Logo_adobe.svg` (ไม่ใช่ edge1color 1.3MB) → `logo-mark.tsx`. **trim viewBox เป็นจัตุรัสครอบใบไม้** (เดิมมีขอบว่าง ~20% ในกรอบ 1024² → เล็ก/ห่าง) ตอนนี้เต็ม ~96%
+  - refine `BrandMark`: prop `orientation` (horizontal/vertical) + size `sm/md/lg`; gap โลโก้-ข้อความ = **gap-2** ทั้งแอป (BrandMark + Sidebar)
+  - **showcase "Brand / Logo"** ใน `/theme` (LogoMark หลายสี/ขนาด, BrandMark h/v, b+teal panel)
+  - **pin font wordmark**: token `--font-brand: 'Inter'` (ไม่ override .dark, ไม่โดน Theme swap) + utility `font-brand` → "Rx Desktop" เป็น Inter เสมอ (ฟอนต์ทั้งแอป bundle local แล้ว ไม่พึ่ง CDN/ระบบ)
+  - **DEV auto-login** กัน refresh แล้วเด้ง login ตอน dev: `auth:devLogin` (bind admin คนแรกไม่ใช้รหัส, gate `!app.isPackaged`) + LoginGate เรียกเมื่อ `import.meta.env.DEV` (prod strip). session in-memory no-persist = ตั้งใจ (security) ไม่แตะ. **main+preload เปลี่ยน → ต้อง restart electron:dev ครั้งเดียว**
+  - tsc ผ่านทั้ง 2 config. commit. **ถัดไป: Wave 2 #3 POS**
+
 ## โน้ตต่อหน้า (เก็บ decision/ของที่เจอระหว่างทำ)
 - **โลโก้ Syntropic:** ยังไม่มี asset จริง → ใช้ SVG logomark ใน `brand.tsx` (3 แท่งไล่ระดับ = growth/syntropy + จุด accent เหลือง). เปลี่ยนเป็นโลโก้จริงได้ที่ `LogoGlyph` ใน `brand.tsx` ที่เดียว
 - **BrandPanel/BrandMark = ใช้ซ้ำ:** Setup + Login (Wave 1) ต้องหน้าตาเดียวกัน — แก้ที่ `brand.tsx` กระทบทั้งคู่

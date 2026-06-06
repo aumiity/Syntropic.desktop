@@ -23,6 +23,8 @@ import {
   SectionCard, MetricCard, StatCard,
 } from '@/components/ui/card'
 import { TintIcon, type TintIconTint, type TintIconSize } from '@/components/ui/tint-icon'
+import { LogoMark } from '@/components/ui/logo-mark'
+import { BrandMark, BrandLogo } from '@/components/ui/brand'
 import {
   Table, TableHeader, TableBody, TableRow,
   TableHead, TableCell, SortableTableHead,
@@ -1071,6 +1073,33 @@ export default function Theme() {
                       <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">ผู้จัดจำหน่าย</div>
                     </TabsContent>
                   </Tabs>
+                </DemoRow>
+              </Section>
+
+              {/* ── BRAND / LOGO ── */}
+              <Section title="Brand / Logo" path="src/components/ui/{logo-mark,brand}.tsx" full>
+                <DemoRow label="LogoMark — symbol only (fill=currentColor, themeable)">
+                  <LogoMark className="size-8 text-primary" />
+                  <LogoMark className="size-12 text-primary" />
+                  <LogoMark className="size-16 text-primary" />
+                  <LogoMark className="size-12 text-foreground" />
+                  <LogoMark className="size-12 text-muted-foreground" />
+                </DemoRow>
+                <DemoRow label="BrandMark — horizontal lockup (sm / md / lg)">
+                  <BrandMark size="sm" />
+                  <BrandMark size="md" />
+                  <BrandMark size="lg" tagline="ระบบขายหน้าร้าน สำหรับร้านยา" />
+                </DemoRow>
+                <DemoRow label="BrandMark — vertical · BrandLogo — bare centered mark">
+                  <BrandMark orientation="vertical" tagline="ระบบขายหน้าร้าน" />
+                  <div className="w-px self-stretch bg-border mx-2" />
+                  <BrandLogo className="size-16" />
+                </DemoRow>
+                <DemoRow label="On teal — tone=light (brand panel context)">
+                  <div className="w-full rounded-card bg-gradient-to-br from-primary to-primary-strong p-6 flex flex-wrap items-center gap-6">
+                    <LogoMark className="size-12 text-primary-foreground" />
+                    <BrandMark tone="light" tagline="ระบบขายหน้าร้าน สำหรับร้านยา" />
+                  </div>
                 </DemoRow>
               </Section>
 

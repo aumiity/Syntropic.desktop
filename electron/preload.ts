@@ -251,6 +251,8 @@ const api = {
   auth: {
     listLoginUsers: () => ipcRenderer.invoke('auth:listLoginUsers'),
     login: (userId: number, password: string) => ipcRenderer.invoke('auth:login', { userId, password }),
+    // DEV-only auto-login (no password) — main rejects when packaged. See auth.ts.
+    devLogin: () => ipcRenderer.invoke('auth:devLogin') as Promise<{ id: number; name: string; role: string } | null>,
     logout: () => ipcRenderer.invoke('auth:logout'),
     getMyProfile: () => ipcRenderer.invoke('auth:getMyProfile'),
     changePassword: (currentPassword: string, newPassword: string) =>

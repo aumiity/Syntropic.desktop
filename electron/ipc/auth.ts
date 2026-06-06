@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, app } from 'electron'
 import { getDb } from '../db'
 import { hashSecret, verifySecret, genRecoveryCode } from '../auth/hash'
 import {
@@ -55,6 +55,20 @@ export function registerAuthHandlers() {
     bindSession(_e, row.id, row.role)
     // Return only what the session/UI needs — email stays in main (defence-in-depth).
     return { id: row.id, name: row.name, role: row.role }
+  })
+
+  // DEV-ONLY auto-login — binds a session for the first admin WITHOUT a password
+  // so a hard refresh during development doesn't bounce you to the login screen.
+  // Hard-gated on !app.isPackaged: a packaged production build returns null (no
+  // bypass). The renderer call site is also stripped via import.meta.env.DEV.
+  ipcMain.handle('auth:devLogin', (_e) => {
+    if (app.isPackaged) return null
+    const row = getDb()
+      .prepare(`SELECT id, name, role FROM users WHERE role = 'admin' AND is_disabled = 0 ORDER BY id LIMIT 1`)
+      .get() as { id: number; name: string; role: string } | undefined
+    if (!row) return null
+    bindSession(_e, row.id, row.role)
+    return row
   })
 
   // Clear the main-side session for this renderer (logout / lock screen).

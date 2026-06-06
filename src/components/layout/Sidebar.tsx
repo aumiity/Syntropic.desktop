@@ -154,10 +154,10 @@ export function Sidebar() {
       </Tooltip>
 
       {/* Logo */}
-      <div className="flex items-center gap-2.5 mt-4 h-20 bg-sidebar justify-center overflow-hidden px-2">
+      <div className="flex items-center gap-2 mt-4 h-20 bg-sidebar justify-center overflow-hidden px-2">
         <LogoMark className="size-10 shrink-0 text-sidebar-accent-foreground" />
         {!collapsed && (
-          <div className="text-sidebar-accent-foreground text-2xl font-bold leading-none tracking-tight">
+          <div className="font-brand text-sidebar-accent-foreground text-2xl font-bold leading-none tracking-tight">
             Rx <span className="font-medium opacity-80">Desktop</span>
           </div>
         )}

@@ -116,6 +116,7 @@ export default {
       },
       fontFamily: {
         sans: ['var(--font-latin)', 'var(--font-thai)', 'sans-serif'],
+        brand: ['var(--font-brand)', 'sans-serif'],
       },
       boxShadow: {
         card: 'var(--shadow-card)',

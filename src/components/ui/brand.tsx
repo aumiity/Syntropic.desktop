@@ -13,32 +13,41 @@ import { LogoMark } from '@/components/ui/logo-mark'
 
 type BrandTone = 'light' | 'dark'
 
+type BrandSize = 'sm' | 'md' | 'lg'
+
+const BRAND_SIZES: Record<BrandSize, { logo: string; word: string }> = {
+  sm: { logo: 'size-10', word: 'text-lg' },
+  md: { logo: 'size-12', word: 'text-xl' },
+  lg: { logo: 'size-14', word: 'text-2xl' },
+}
+
+// The logo lockup: leaf mark + "Rx Desktop" wordmark (+ optional tagline).
+// orientation 'horizontal' (mark beside text) or 'vertical' (mark above, centred).
 export function BrandMark({
   tone = 'dark',
   tagline,
   size = 'md',
+  orientation = 'horizontal',
   className,
 }: {
   tone?: BrandTone
   tagline?: string
-  size?: 'md' | 'lg'
+  size?: BrandSize
+  orientation?: 'horizontal' | 'vertical'
   className?: string
 }) {
-  const lg = size === 'lg'
+  const s = BRAND_SIZES[size]
+  const vertical = orientation === 'vertical'
   return (
-    <div className={cn('flex items-center gap-3', className)}>
+    <div className={cn('flex', vertical ? 'flex-col items-center text-center gap-2.5' : 'items-center gap-2', className)}>
       <LogoMark
-        className={cn(
-          'shrink-0',
-          lg ? 'size-14' : 'size-12',
-          tone === 'light' ? 'text-primary-foreground' : 'text-primary',
-        )}
+        className={cn('shrink-0', s.logo, tone === 'light' ? 'text-primary-foreground' : 'text-primary')}
       />
       <div className="leading-tight">
         <div
           className={cn(
-            'font-bold tracking-tight',
-            lg ? 'text-2xl' : 'text-xl',
+            'font-brand font-bold tracking-tight',
+            s.word,
             tone === 'light' ? 'text-primary-foreground' : 'text-foreground',
           )}
         >

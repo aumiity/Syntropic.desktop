@@ -113,6 +113,9 @@
     /* ── Fonts (swappable via Theme page) ───────────────────────────────── */
     --font-latin: 'Inter';
     --font-thai:  'IBM Plex Sans Thai';
+    /* Brand wordmark font — pinned, NOT overridden in .dark and NOT swapped by the
+       Theme page, so "Rx Desktop" always renders in the same typeface. */
+    --font-brand: 'Inter';
   }
 
   /* ──────────────────────────────────────────────────────────────────────────

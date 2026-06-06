@@ -74,7 +74,23 @@ function SetupGate({ children }: { children: React.ReactNode }) {
 // exists.
 function LoginGate({ children }: { children: React.ReactNode }) {
   const current = useUserStore(s => s.current)
+
+  // DEV-only: auto-login as the first admin so a hard refresh doesn't bounce you
+  // back to the login screen. Stripped from production builds by import.meta.env.DEV;
+  // the main handler is independently gated on !app.isPackaged. Do not remove either.
+  const [devTrying, setDevTrying] = useState(import.meta.env.DEV)
+  useEffect(() => {
+    if (!import.meta.env.DEV || useUserStore.getState().current) { setDevTrying(false); return }
+    let alive = true
+    window.api?.auth?.devLogin?.()
+      .then(u => { if (alive && u) useUserStore.getState().login(u) })
+      .catch(() => {})
+      .finally(() => { if (alive) setDevTrying(false) })
+    return () => { alive = false }
+  }, [])
+
   if (!current) {
+    if (devTrying) return <PageLoader />
     return (
       <Suspense fallback={<PageLoader />}>
         <LoginScreen />
