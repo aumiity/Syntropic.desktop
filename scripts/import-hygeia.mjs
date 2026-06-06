@@ -186,6 +186,11 @@ async function main() {
   // ---- Phase 2: Item -> products (+ base unit upsert) -----------------------
   const itemToProduct = new Map()
   const itemBaseUnitName = new Map()  // ItemKey -> base unit name (for Phase 3 skip)
+  // Regenerate product codes in OUR house format (P0001, P0002, …) instead of
+  // Hygeia's auto IT-####### running ids. Shared with Phase-4 bundles so codes
+  // stay unique and products:create (products.ts:318) continues from the max.
+  let productCodeSeq = 0
+  const nextCode = () => `P${String(++productCodeSeq).padStart(4, '0')}`
   {
     const rows = load('Item')
     const insProd = db.prepare(`
@@ -221,15 +226,18 @@ async function main() {
           if (cid !== categoryId) overrodeCat++
           categoryId = cid
         }
+        // keep the old Hygeia code searchable (POS/list search hits search_keywords)
+        // so legacy IT-####### lookups still resolve, without showing as the code.
+        const keywords = [s(r.OtherName), s(r.Code)].filter(Boolean).join(' ') || null
         const info = insProd.run({
           barcode: s(r.BarCode), barcode2: s(r.BarCode2), barcode3: s(r.BarCode3), barcode4: s(r.BarCode4),
-          code: s(r.Code), trade_name: tradeName, name_for_print: nameForPrint,
+          code: nextCode(), trade_name: tradeName, name_for_print: nameForPrint,
           category_id: categoryId,
           is_stock_item: bool(r.IsStockItem), is_disabled: bool(r.IsDisabled), is_hidden: bool(r.IsHidden),
           price_retail: num(r.SalePrice), price_wholesale1: num(r.Wholesale1), price_wholesale2: num(r.Wholesale2),
           cost_price: num(r.MovAvgPrice), last_cost_price: num(r.UnitPrice),
           unit_id: unitId, reorder_point: rp > 0 ? rp : null, tmt_id: s(r.TMTID),
-          search_keywords: s(r.OtherName), note: s(r.Note),
+          search_keywords: keywords, note: s(r.Note),
         })
         itemToProduct.set(key, Number(info.lastInsertRowid))
       }
@@ -275,9 +283,9 @@ async function main() {
     db.transaction(() => {
       for (const r of sets) {
         const info = insBundle.run({
-          code: s(r.Code), trade_name: s(r.Name) ?? '(ชุดไม่ระบุชื่อ)',
+          code: nextCode(), trade_name: s(r.Name) ?? '(ชุดไม่ระบุชื่อ)',
           is_disabled: bool(r.IsDisabled), is_hidden: bool(r.IsHidden),
-          price_retail: num(r.TotalSalePrice), note: `hygeia:ItemSetKey=${r.ItemSetKey}`,
+          price_retail: num(r.TotalSalePrice), note: `hygeia:ItemSetKey=${r.ItemSetKey} code=${s(r.Code) ?? ''}`,
         })
         itemSetToProduct.set(String(r.ItemSetKey), Number(info.lastInsertRowid))
       }

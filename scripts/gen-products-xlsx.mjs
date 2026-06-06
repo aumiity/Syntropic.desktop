@@ -36,6 +36,8 @@ export const HEADERS = {
   unit: 'หน่วย',
   stock: 'สต็อก',
   price: 'ราคาขายปลีก',
+  stockValue: 'มูลค่าสต็อก',
+  disabled: 'ปิดใช้งาน(เดิม)',
   debt: 'สถานะหนี้',
 }
 
@@ -102,17 +104,21 @@ function main() {
     { header: HEADERS.unit, key: 'unit', width: 10, ref: true },
     { header: HEADERS.stock, key: 'stock', width: 10, ref: true },
     { header: HEADERS.price, key: 'price', width: 12, ref: true },
+    { header: HEADERS.stockValue, key: 'stockValue', width: 13, ref: true },
+    { header: HEADERS.disabled, key: 'disabled', width: 13, ref: true },
     { header: HEADERS.debt, key: 'debt', width: 12, ref: true },
   ]
   ws.columns = cols.map((c) => ({ header: c.header, key: c.key, width: c.width }))
 
   // ---- rows ------------------------------------------------------------------
   const items = load('Item')
-  let debtRows = 0
+  let debtRows = 0, disabledRows = 0
   for (const r of items) {
     const k = String(r.ItemKey)
     const isDebt = debtItemKeys.has(k)
     if (isDebt) debtRows++
+    if (bool(r.IsDisabled)) disabledRows++
+    const stockQty = stockByItem.get(k) || 0
     ws.addRow({
       itemKey: r.ItemKey,
       code: s(r.Code),
@@ -120,8 +126,10 @@ function main() {
       nameForPrint: s(r.NameForPrint),
       category: catName.get(String(r.ItemTypeKey)) || '',
       unit: s(r.SaleUnitName),
-      stock: stockByItem.get(k) || 0,
+      stock: stockQty,
       price: num(r.SalePrice),
+      stockValue: Math.round(stockQty * num(r.MovAvgPrice) * 100) / 100,  // สต็อก × ทุนเฉลี่ย
+      disabled: bool(r.IsDisabled) ? 'ปิด' : '',
       debt: isDebt ? 'ค้างชำระ' : '',
     })
   }
@@ -146,8 +154,14 @@ function main() {
     }
   })
   // right-align numeric reference columns
-  for (const key of ['stock', 'price']) {
+  for (const key of ['stock', 'price', 'stockValue']) {
     const col = ws.getColumn(key); col.alignment = { horizontal: 'right' }
+  }
+  // disabled flag -> muted red text so it stands out when filtering
+  const disCol = ws.getColumn('disabled')
+  for (let r = 2; r <= lastRow; r++) {
+    const cell = ws.getCell(r, disCol.number)
+    if (cell.value) cell.font = { color: { argb: 'FF9A3412' } }
   }
   // debt warning column -> red text
   const debtCol = ws.getColumn('debt')
@@ -177,6 +191,8 @@ function main() {
     console.log(`OK -> ${OUT_XLSX}`)
     console.log(`  ${items.length} products, ${catList.length} categories (dropdown)`)
     console.log(`  ${debtRows} products flagged ค้างชำระ (force-kept by importer)`)
+    console.log(`  ${disabledRows} products flagged ปิด (disabled in Hygeia — filter to triage)`)
+    console.log(`  filter/reference cols: สต็อก / มูลค่าสต็อก / ปิดใช้งาน(เดิม) / สถานะหนี้`)
     console.log(`  Edit: ${HEADERS.tradeName} / ${HEADERS.nameForPrint} / ${HEADERS.category}`)
     console.log(`  Delete a row = that product is NOT imported (debt rows are force-kept anyway)`)
   })
