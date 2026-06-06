@@ -38,15 +38,18 @@ metadata:
 - Alert: avatar primary, no dot/badge — full alert banner below does the messaging
 - Medical SectionCard preserved (domain-critical: chronic diseases + allergy list)
 
+## Done 2026-06-06 (commit `374b2cc`, part of [[project_ui_redesign_pass]] #3)
+- **Right rail DONE:** quick-action 5 ปุ่ม `variant="outline"`+ad-hoc → **`variant="elevated"`** (ได้ shadow-sm + hover/active จริง); ไอคอนสีตามบทบาท (เปิดลิ้นชัก=primary, พิมพ์ฉลาก/ตัดสต็อก=info-soft-foreground, รับคืน=warm-foreground, ยกเลิกบิล=destructive); เอา `border border-border` ออกจากกล่องยอดสุทธิ (bg-primary) + ปุ่มชำระเงิน (bg-accent)
+- **Cart row inline buttons DONE:** หน่วย/จำนวน/ราคา → **`variant="primary-soft"`**, ส่วนลด(มีค่า+0) → **`variant="destructive2"`** (เดิม outline+ad-hoc soft-bg ที่ hover ไม่เปลี่ยน → ตอนนี้ hover ถูกต้อง); ล้าง double-bg ปุ่มส่วนลด 0. **ค้าง: ปุ่มส่วนลด 0 ยังแดงอ่อน** — เจ้าของอาจอยากให้จาง/นิ่งกว่านี้ตอนยังไม่มีส่วนลด (ถามได้)
+
 ## Pending — POS sections NOT touched
 
-- Right rail: total card (bg-primary), Pay button (bg-accent), quick-action buttons (เปิดลิ้นชัก/พิมพ์ฉลาก/ตัดสต็อก/รับคืน/ยกเลิกบิล) — `variant="outline"` with `bg-card` ad-hoc styling; may want elevated pattern
+- (Right rail + cart inline buttons = DONE ด้านบนแล้ว)
 - Payment dialog (`showPayment`) — large, complex, has its own muted-bg cards
 - Quick-add customer dialog (`showQuickAdd`) — simple but uses bare Inputs/Labels (no elevated, no convention polish)
 - Return dialog (`showReturn`), adjust-stock dialog (`showAdjust`) — both spreadsheet-y
 - Product search dialog (`searchOpen`, 1000×800) — palette-style like customer search; may need same divider/elevated polish pass
 - Unit picker / qty modal / price modal / discount modal — various small modals
-- Cart row inline buttons (unit/qty/price/discount) — still use ad-hoc soft-bg styling; may want elevated parity with rest of app
 
 ## How to apply
 
