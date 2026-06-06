@@ -63,6 +63,8 @@
   - tsc ผ่าน (app config EXIT 0). **รอเจ้าของดูจริง** (ดูผ่านปุ่ม DEV "ดูตัวอย่าง Setup (DEV)" ใน Settings > ร้าน)
   - **ค้าง/follow-up:** ยังไม่เพิ่ม showcase ของ primitive ใหม่ใน `/theme` (รอ look ผ่านก่อน), Login (#2) จะใช้ BrandPanel/BrandMark ชุดเดียวกัน
 
+- **2026-06-06** — **merge `feat/user-profile-schema` เข้า main** (งานที่ค้างนอก main: ย้ายเมนูบัญชี titlebar→sidebar = `SidebarUser.tsx`, + username login + profile schema + self-password-change + hygeia prep). resolve conflict `MEMORY.md` ที่เดียว, tsc ผ่านทั้ง 2 config. **ผลต่อ redesign:** LoginScreen (#2) ตอนนี้เป็น username login แล้ว (เดิม name-select) → redesign บนฐานนี้; เมนู user ย้ายไป Sidebar (`SidebarUser.tsx`) แล้ว — ไม่ต้องทำซ้ำ. **ยังไม่ push origin** (รอเจ้าของสั่ง). ควร re-test login รอบใหม่
+
 ## โน้ตต่อหน้า (เก็บ decision/ของที่เจอระหว่างทำ)
 - **โลโก้ Syntropic:** ยังไม่มี asset จริง → ใช้ SVG logomark ใน `brand.tsx` (3 แท่งไล่ระดับ = growth/syntropy + จุด accent เหลือง). เปลี่ยนเป็นโลโก้จริงได้ที่ `LogoGlyph` ใน `brand.tsx` ที่เดียว
 - **BrandPanel/BrandMark = ใช้ซ้ำ:** Setup + Login (Wave 1) ต้องหน้าตาเดียวกัน — แก้ที่ `brand.tsx` กระทบทั้งคู่
