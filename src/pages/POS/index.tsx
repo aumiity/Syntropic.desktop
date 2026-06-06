@@ -952,19 +952,19 @@ export default function POSPage() {
 
           {/* Sale type + search + clear-all header */}
           <div className="flex items-center gap-2 px-4 h-14 shrink-0 border-0">
-            <div className="flex h-9 items-stretch gap-0.5 rounded-lg border border-border bg-muted/40 p-0.5 shrink-0">
+            <div className="flex h-9 items-stretch gap-0.5 rounded-lg bg-muted/40 shrink-0">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
-                className={`relative flex h-full w-[70px] px-0 rounded-md text-sm font-semibold justify-center hover:bg-transparent ${
+                className={`relative flex h-full w-[70px] px-0 rounded-lg text-sm font-semibold justify-center hover:bg-transparent ${
                   cart.saleType === 'retail' ? 'text-primary-foreground hover:text-primary-foreground' : 'text-foreground-subtle hover:text-foreground'
                 }`}>
                 {cart.saleType === 'retail' && (
                   <motion.div
                     layoutId="pos-sale-type-pill"
                     aria-hidden
-                    className="absolute inset-0 rounded-md bg-primary"
+                    className="absolute inset-0 rounded-lg bg-primary"
                     transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                   />
                 )}
@@ -974,14 +974,14 @@ export default function POSPage() {
                 type="button"
                 variant="ghost"
                 onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
-                className={`relative flex h-full w-[70px] px-0 rounded-md text-sm font-semibold justify-center hover:bg-transparent ${
+                className={`relative flex h-full w-[70px] px-0 rounded-lg text-sm font-semibold justify-center hover:bg-transparent ${
                   cart.saleType === 'wholesale' ? 'text-accent-foreground hover:text-accent-foreground' : 'text-foreground-subtle hover:text-foreground'
                 }`}>
                 {cart.saleType === 'wholesale' && (
                   <motion.div
                     layoutId="pos-sale-type-pill"
                     aria-hidden
-                    className="absolute inset-0 rounded-md bg-accent"
+                    className="absolute inset-0 rounded-lg bg-accent"
                     transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                   />
                 )}
@@ -2466,8 +2466,8 @@ export default function POSPage() {
           return (
             <DialogContent size="sm" divided onClose={() => setQtyModalIdx(null)}>
               <DialogHeader>
-                <DialogTitle>จำนวน</DialogTitle>
-                <div className="text-sm font-medium text-muted-foreground overflow-x-clip overflow-y-visible">{item?.item_name}</div>
+                <DialogTitle className="text-2xl">จำนวน</DialogTitle>
+                <div className="text-base font-semibold text-foreground overflow-x-clip overflow-y-visible">{item?.item_name}</div>
               </DialogHeader>
               <DialogBody className="space-y-4">
                 {/* Summary strip — stock on hand + running line total */}
@@ -2556,15 +2556,15 @@ export default function POSPage() {
             setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
           }
           return (
-            <DialogContent size="lg" divided onClose={() => setDiscountModalIdx(null)}>
+            <DialogContent size="md" divided onClose={() => setDiscountModalIdx(null)}>
               <DialogHeader>
-                <DialogTitle>ส่วนลด</DialogTitle>
-                <div className="text-sm font-medium text-muted-foreground overflow-x-clip overflow-y-visible">{item?.item_name}</div>
+                <DialogTitle className="text-2xl">ส่วนลด</DialogTitle>
+                <div className="text-base font-semibold text-foreground overflow-x-clip overflow-y-visible">{item?.item_name}</div>
               </DialogHeader>
               <DialogBody className="space-y-4">
                 {/* Reference total — the one value with no editable input below */}
                 <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-2.5">
-                  <span className="text-sm font-medium text-muted-foreground">ราคารวม</span>
+                  <span className="text-base font-medium text-muted-foreground">ราคารวม</span>
                   <span className="text-3xl font-bold text-foreground">{formatCurrency(totalPrice)}</span>
                 </div>
 

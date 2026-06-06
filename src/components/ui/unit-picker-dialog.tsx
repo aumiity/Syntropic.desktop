@@ -33,7 +33,7 @@ export function UnitPickerDialog<T extends UnitPickerOption>({
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
       {open && (
-        <DialogContent size="md" divided onClose={onClose}>
+        <DialogContent size="sm" divided onClose={onClose}>
           <DialogHeader>
             <DialogTitle className="text-2xl">เลือกหน่วย</DialogTitle>
             <div className="text-base font-semibold text-foreground">{productName || '-'}</div>
@@ -59,7 +59,7 @@ export function UnitPickerDialog<T extends UnitPickerOption>({
                     {/* Header — unit name + base/packaging subtitle, selected check on the right */}
                     <div className="flex items-start gap-3 w-full">
                       <div className="flex-1 min-w-0 space-y-0.5">
-                        <span className="block text-xl font-bold text-foreground">{u.unit_name ?? '-'}</span>
+                        <span className="block text-2xl font-bold text-foreground">{u.unit_name ?? '-'}</span>
                         <div className={cn("text-sm font-medium", isBase ? "text-warm-foreground" : "text-primary")}>
                           {isBase ? 'หน่วยหลัก' : `บรรจุ ${qpb} ${baseUnitName}`}
                         </div>
