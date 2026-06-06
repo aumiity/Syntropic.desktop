@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '@/stores/cartStore'
 import { getCurrentUserId } from '@/stores/userStore'
@@ -137,6 +137,26 @@ export default function POSPage() {
   // editCustomerId = null → add mode; a customer id → edit mode.
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [editCustomerId, setEditCustomerId] = useState<number | null>(null)
+
+  // Net-total number auto-fits its card: measured at the max size, then scaled
+  // down so any total (up to millions) fits the w-80 card without overflowing.
+  const TOTAL_FONT_MAX = 66
+  const totalCardRef = useRef<HTMLDivElement>(null)
+  const totalNumRef = useRef<HTMLDivElement>(null)
+  const [totalFont, setTotalFont] = useState(TOTAL_FONT_MAX)
+  const totalAmount = cart.totalAmount()
+  useLayoutEffect(() => {
+    const num = totalNumRef.current
+    const card = totalCardRef.current
+    if (!num || !card) return
+    const cs = getComputedStyle(card)
+    const avail = card.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+    // Measure intrinsic text width at the max size, then scale to fit.
+    num.style.fontSize = `${TOTAL_FONT_MAX}px`
+    const w = num.scrollWidth
+    const next = w > avail ? Math.floor(TOTAL_FONT_MAX * (avail / w)) : TOTAL_FONT_MAX
+    setTotalFont(Math.max(20, Math.min(TOTAL_FONT_MAX, next)))
+  }, [totalAmount])
 
   // Success
   const [lastInvoice, setLastInvoice] = useState('')
@@ -1215,11 +1235,13 @@ export default function POSPage() {
 
         {/* Right column */}
         <div className="w-80 flex flex-col gap-2.5 min-w-0">
-          {/* Total card */}
-          <div className="h-40 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0">
+          {/* Total card — number auto-fits via useLayoutEffect (see totalFont) */}
+          <div ref={totalCardRef} className="h-40 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0 overflow-hidden">
             <div className="text-right text-md font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
-            <div className="mt-6 text-right font-bold leading-[1.05] tracking-tight text-right" style={{ fontSize: '66px', letterSpacing: '-1.5px' }}>
-              {formatCurrency(cart.totalAmount())}
+            <div ref={totalNumRef}
+              className="mt-6 text-right font-bold leading-[1.05] tracking-tight whitespace-nowrap"
+              style={{ fontSize: `${totalFont}px`, letterSpacing: '-1.5px' }}>
+              {formatCurrency(totalAmount)}
             </div>
           </div>
 
