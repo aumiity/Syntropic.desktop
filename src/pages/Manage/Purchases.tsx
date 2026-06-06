@@ -790,13 +790,13 @@ export default function ManagePurchasesPage() {
               {/* Sliding pill toggle — same `layoutId` on both motion.spans
                   makes framer-motion animate the active background between
                   them. Pattern ported from the Purchase (รับสินค้า) page. */}
-              <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
+              <div className="flex h-10 items-stretch gap-0.5 rounded-lg bg-muted/40">
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={() => setEditPaymentType('cash')}
                   className={cn(
-                    'relative flex-1 h-10 rounded-lg text-sm font-semibold gap-1.5 hover:bg-transparent',
+                    'relative flex flex-1 h-full px-0 rounded-lg text-sm font-semibold justify-center gap-1.5 hover:bg-transparent',
                     editPaymentType === 'cash'
                       ? 'text-primary-foreground hover:text-primary-foreground'
                       : 'text-foreground-subtle hover:text-foreground',
@@ -806,7 +806,7 @@ export default function ManagePurchasesPage() {
                     <motion.span
                       layoutId="edit-payment-pill"
                       aria-hidden
-                      className="absolute inset-0 rounded-lg bg-primary shadow-sm"
+                      className="absolute inset-0 rounded-lg bg-primary"
                       transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                     />
                   )}
@@ -819,7 +819,7 @@ export default function ManagePurchasesPage() {
                   variant="ghost"
                   onClick={() => setEditPaymentType('credit')}
                   className={cn(
-                    'relative flex-1 h-10 rounded-lg text-sm font-semibold gap-1.5 hover:bg-transparent',
+                    'relative flex flex-1 h-full px-0 rounded-lg text-sm font-semibold justify-center gap-1.5 hover:bg-transparent',
                     editPaymentType === 'credit'
                       ? 'text-accent-foreground hover:text-accent-foreground'
                       : 'text-foreground-subtle hover:text-foreground',
@@ -829,7 +829,7 @@ export default function ManagePurchasesPage() {
                     <motion.span
                       layoutId="edit-payment-pill"
                       aria-hidden
-                      className="absolute inset-0 rounded-lg bg-accent shadow-sm"
+                      className="absolute inset-0 rounded-lg bg-accent"
                       transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                     />
                   )}

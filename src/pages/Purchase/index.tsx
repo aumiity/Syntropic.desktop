@@ -1054,12 +1054,12 @@ export default function PurchasePage() {
                     {/* Payment type */}
                     <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-3">
                       <div className="text-sm font-bold text-foreground uppercase tracking-wide">การชำระเงิน</div>
-                      <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
+                      <div className="flex h-9 items-stretch gap-0.5 rounded-lg bg-muted/40">
                         <Button
                           type="button"
                           variant="ghost"
                           onClick={() => setPaymentType('cash')}
-                          className={`relative flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5 hover:bg-transparent ${
+                          className={`relative flex flex-1 h-full px-0 rounded-lg text-sm font-semibold justify-center gap-1.5 hover:bg-transparent ${
                             paymentType === 'cash'
                               ? 'text-primary-foreground hover:text-primary-foreground'
                               : 'text-foreground-subtle hover:text-foreground'
@@ -1069,7 +1069,7 @@ export default function PurchasePage() {
                             <motion.span
                               layoutId="payment-pill"
                               aria-hidden
-                              className="absolute inset-0 rounded-lg bg-primary shadow-sm"
+                              className="absolute inset-0 rounded-lg bg-primary"
                               transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                             />
                           )}
@@ -1081,7 +1081,7 @@ export default function PurchasePage() {
                           type="button"
                           variant="ghost"
                           onClick={() => setPaymentType('credit')}
-                          className={`relative flex-1 h-9 rounded-lg text-sm font-semibold gap-1.5 hover:bg-transparent ${
+                          className={`relative flex flex-1 h-full px-0 rounded-lg text-sm font-semibold justify-center gap-1.5 hover:bg-transparent ${
                             paymentType === 'credit'
                               ? 'text-accent-foreground hover:text-accent-foreground'
                               : 'text-foreground-subtle hover:text-foreground'
@@ -1091,7 +1091,7 @@ export default function PurchasePage() {
                             <motion.span
                               layoutId="payment-pill"
                               aria-hidden
-                              className="absolute inset-0 rounded-lg bg-accent shadow-sm"
+                              className="absolute inset-0 rounded-lg bg-accent"
                               transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                             />
                           )}
