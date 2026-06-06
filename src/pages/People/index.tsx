@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { usePermission } from '@/hooks/usePermission'
@@ -569,11 +570,13 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
 // ========================
 interface StaffPrefs {
   showDisabled: boolean
+  showColUsername: boolean
   showColEmail: boolean
+  showColPhone: boolean
   showColRole: boolean
 }
 const STAFF_DEFAULTS: StaffPrefs = {
-  showDisabled: false, showColEmail: true, showColRole: true,
+  showDisabled: false, showColUsername: true, showColEmail: true, showColPhone: false, showColRole: true,
 }
 
 function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNonce: number }) {
@@ -583,7 +586,9 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
   const [q, setQ] = useState('')
   const showDisabled = prefs.showDisabled
   // Column visibility (ชื่อ + สถานะ + จัดการ always shown)
+  const showColUsername = prefs.showColUsername
   const showColEmail = prefs.showColEmail
+  const showColPhone = prefs.showColPhone
   const showColRole = prefs.showColRole
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
@@ -603,22 +608,43 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
 
   const openAdd = () => {
     setEditing(null)
-    setForm({ name: '', email: '', password: '', role: 'staff', is_disabled: 0 })
+    setForm({ first_name: '', last_name: '', username: '', phone: '', email: '', password: '', role: 'staff', is_disabled: 0 })
     setDialog(true)
   }
 
   const openEdit = (u: User) => {
     setEditing(u)
-    setForm({ id: u.id, name: u.name, email: u.email, password: '', role: u.role ?? 'staff', is_disabled: u.is_disabled ?? 0 })
+    setForm({
+      id: u.id,
+      first_name: u.first_name ?? '', last_name: u.last_name ?? '',
+      username: u.username ?? '', phone: u.phone ?? '', email: u.email,
+      password: '', role: u.role ?? 'staff', is_disabled: u.is_disabled ?? 0,
+    })
     setDialog(true)
   }
 
+  // Owner admin's username is locked server-side; reflect that in the UI.
+  const isOwnerAdmin = editing?.email === 'admin@syntropic.local'
+
+  // Auto-suggest a username from the email local-part when the field is empty.
+  const suggestUsername = () => {
+    if (form.username?.trim() || !form.email?.trim()) return
+    const local = form.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '')
+    if (local) setF('username', local)
+  }
+
   const handleSave = async () => {
-    if (!form.name?.trim()) { toast({ title: 'กรุณาระบุชื่อ', variant: 'error' }); return }
+    if (!form.first_name?.trim()) { toast({ title: 'กรุณาระบุชื่อจริง', variant: 'error' }); return }
+    if (!form.username?.trim()) { toast({ title: 'กรุณาระบุชื่อผู้ใช้ (username)', variant: 'error' }); return }
+    if (!form.email?.trim()) { toast({ title: 'กรุณาระบุอีเมล', variant: 'error' }); return }
     if (!form.id && !form.password?.trim()) { toast({ title: 'กรุณาระบุรหัสผ่าน', variant: 'error' }); return }
     setSaving(true)
     try {
-      const payload: any = { name: form.name, email: form.email, role: form.role, is_disabled: form.is_disabled ?? 0 }
+      const payload: any = {
+        first_name: form.first_name, last_name: form.last_name ?? '',
+        username: form.username, phone: form.phone ?? '', email: form.email,
+        role: form.role, is_disabled: form.is_disabled ?? 0,
+      }
       if (form.id) payload.id = form.id
       if (form.password?.trim()) payload.password = form.password
       await window.api.people.saveStaff(payload)
@@ -652,7 +678,9 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
   const filtered = q.trim()
     ? rows.filter(u => {
         const needle = q.trim().toLowerCase()
-        return u.name.toLowerCase().includes(needle) || u.email.toLowerCase().includes(needle)
+        return u.name.toLowerCase().includes(needle)
+          || u.email.toLowerCase().includes(needle)
+          || (u.username ?? '').toLowerCase().includes(needle)
       })
     : rows
 
@@ -703,8 +731,16 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                 <PopoverTitle>จัดการตาราง</PopoverTitle>
               </PopoverHeader>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColUsername} onCheckedChange={v => setPrefs({ showColUsername: v === true })} />
+                <span className="text-sm">ชื่อผู้ใช้</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColEmail} onCheckedChange={v => setPrefs({ showColEmail: v === true })} />
                 <span className="text-sm">อีเมล</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                <Checkbox checked={showColPhone} onCheckedChange={v => setPrefs({ showColPhone: v === true })} />
+                <span className="text-sm">เบอร์โทร</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
                 <Checkbox checked={showColRole} onCheckedChange={v => setPrefs({ showColRole: v === true })} />
@@ -718,8 +754,10 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[240px]">ชื่อ</TableHead>
+                <TableHead className="min-w-[200px]">ชื่อ-นามสกุล</TableHead>
+                {showColUsername && <TableHead className="min-w-36">ชื่อผู้ใช้</TableHead>}
                 {showColEmail && <TableHead className="min-w-56">อีเมล</TableHead>}
+                {showColPhone && <TableHead className="min-w-32">เบอร์โทร</TableHead>}
                 {showColRole && <TableHead className="min-w-28 text-center">ตำแหน่ง</TableHead>}
                 <TableHead className="min-w-24 text-center">สถานะ</TableHead>
                 <TableHead className="min-w-16 text-center">จัดการ</TableHead>
@@ -727,10 +765,10 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={3 + (showColEmail ? 1 : 0) + (showColRole ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3 + (showColUsername ? 1 : 0) + (showColEmail ? 1 : 0) + (showColPhone ? 1 : 0) + (showColRole ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3 + (showColEmail ? 1 : 0) + (showColRole ? 1 : 0)} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={3 + (showColUsername ? 1 : 0) + (showColEmail ? 1 : 0) + (showColPhone ? 1 : 0) + (showColRole ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <UserCog className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบข้อมูลพนักงาน
                   </TableCell>
@@ -739,7 +777,9 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                 return (
                 <TableRow key={u.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                   <TableCell className="text-sm truncate">{u.name}</TableCell>
+                  {showColUsername && <TableCell className="text-sm text-muted-foreground truncate">@{u.username}</TableCell>}
                   {showColEmail && <TableCell className="text-sm text-muted-foreground truncate">{u.email}</TableCell>}
+                  {showColPhone && <TableCell className="text-sm text-muted-foreground truncate">{u.phone || '-'}</TableCell>}
                   {showColRole && (
                     <TableCell className="text-center">
                       <Badge variant="secondary">{ROLES[u.role] ?? u.role}</Badge>
@@ -792,20 +832,29 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
           <DialogBody className="space-y-4" onKeyDown={submitOnEnter(handleSave)}>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>ชื่อ <span className="text-destructive">*</span></Label>
-                <Input variant="elevated" value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
+                <Label>ชื่อจริง <span className="text-destructive">*</span></Label>
+                <Input variant="elevated" value={form.first_name ?? ''} onChange={e => setF('first_name', e.target.value)} autoFocus />
               </div>
               <div className="space-y-1.5">
-                <Label>อีเมล</Label>
-                <Input variant="elevated" type="email" value={form.email ?? ''} onChange={e => setF('email', e.target.value)} />
+                <Label>นามสกุล</Label>
+                <Input variant="elevated" value={form.last_name ?? ''} onChange={e => setF('last_name', e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label>
-                  รหัสผ่าน{form.id
-                    ? <span className="ml-1 font-normal text-muted-foreground">(เว้นว่างถ้าไม่เปลี่ยน)</span>
-                    : <span className="text-destructive ml-0.5">*</span>}
+                  ชื่อผู้ใช้ (username) <span className="text-destructive">*</span>
+                  {isOwnerAdmin && <span className="ml-1 font-normal text-muted-foreground">(ของผู้ดูแลระบบ แก้ไม่ได้)</span>}
                 </Label>
-                <Input variant="elevated" type="password" value={form.password ?? ''} onChange={e => setF('password', e.target.value)} />
+                <Input variant="elevated" value={form.username ?? ''} disabled={isOwnerAdmin}
+                  onChange={e => setF('username', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>อีเมล <span className="text-destructive">*</span></Label>
+                <Input variant="elevated" type="email" value={form.email ?? ''}
+                  onChange={e => setF('email', e.target.value)} onBlur={suggestUsername} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>เบอร์โทร</Label>
+                <Input variant="elevated" value={form.phone ?? ''} onChange={e => setF('phone', e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label>ตำแหน่ง</Label>
@@ -818,6 +867,14 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                     <SelectItem value="staff">พนักงาน</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label>
+                  รหัสผ่าน{form.id
+                    ? <span className="ml-1 font-normal text-muted-foreground">(เว้นว่างถ้าไม่เปลี่ยน)</span>
+                    : <span className="text-destructive ml-0.5">*</span>}
+                </Label>
+                <Input variant="elevated" type="password" value={form.password ?? ''} onChange={e => setF('password', e.target.value)} />
               </div>
             </div>
 
@@ -853,9 +910,22 @@ const ADD_BUTTON: Record<string, string> = {
   staff:     'เพิ่มพนักงาน',
 }
 
+const VALID_TABS = ['customers', 'suppliers', 'staff'] as const
+
 export default function PeoplePage() {
   const { isAdmin } = usePermission()
-  const [tab, setTab] = useState('customers')
+  // Deep-linkable tab via ?tab= (e.g. sidebar "แก้ไขโปรไฟล์" → /people?tab=staff).
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState(() => {
+    const t = searchParams.get('tab')
+    return (VALID_TABS as readonly string[]).includes(t ?? '') ? (t as string) : 'customers'
+  })
+
+  // Keep tab in sync if the ?tab= param changes while already on this page.
+  useEffect(() => {
+    const t = searchParams.get('tab')
+    if (t && (VALID_TABS as readonly string[]).includes(t)) setTab(t)
+  }, [searchParams])
   const [stats, setStats] = useState<PeopleStats>({ customers_active: 0, customers_disabled: 0, suppliers: 0, staff: 0 })
   // Trigger nonce — incremented by shell when it wants the active tab to open
   // its "add" dialog. Children watch the nonce in an effect to react.

@@ -4,12 +4,13 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
   ShoppingCart, Pill, PackagePlus, Users, ClipboardList, Settings,
-  Palette, Sun, Moon, Braces, PanelLeftClose, PanelLeftOpen, ScanLine, LineChart,
+  Palette, Sun, Moon, Braces, ChevronLeft, ChevronRight, ScanLine, LineChart,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { usePermission } from '@/hooks/usePermission'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { SidebarUser } from './SidebarUser'
 
 // adminOnly items are hidden from staff (the finance reports landing page is
 // entirely admin-gated IPC; settings is all writes). This is UX — the IPC layer
@@ -123,22 +124,34 @@ export function Sidebar() {
     </button>
   )
 
-  const collapseBtn = (
-    <button onClick={toggleSidebar} className={btnClass}>
-      {collapsed
-        ? <PanelLeftOpen className="h-5 w-5 shrink-0" />
-        : <PanelLeftClose className="h-5 w-5 shrink-0" />}
-    </button>
-  )
-
   return (
     <aside
       className={cn(
-        'no-print flex flex-col h-screen bg-sidebar shrink-0 border-r border-sidebar-border',
+        'no-print relative z-10 flex flex-col h-screen bg-sidebar shrink-0 border-r border-sidebar-border',
         'transition-[width] duration-200',
         collapsed ? 'w-20' : 'w-48'
       )}
     >
+      {/* Collapse toggle — floats on the sidebar's right border seam */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={toggleSidebar}
+            className={cn(
+              'absolute -right-3 top-1/2 -translate-y-1/2 z-20 grid place-items-center',
+              'size-6 rounded-full border border-sidebar-border bg-sidebar shadow-sm',
+              'text-sidebar-primary-foreground transition-colors',
+              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+            )}
+          >
+            {collapsed
+              ? <ChevronRight className="size-4 shrink-0" />
+              : <ChevronLeft className="size-4 shrink-0" />}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right">{collapsed ? 'ขยาย sidebar' : 'ยุบ sidebar'}</TooltipContent>
+      </Tooltip>
+
       {/* Logo */}
       <div className="flex items-center mt-4 h-20 bg-sidebar justify-center overflow-hidden">
         <div className="text-sidebar-accent-foreground font-extrabold text-6xl leading-none">
@@ -175,12 +188,9 @@ export function Sidebar() {
           </Tooltip>
         ) : themeBtn}
 
-        {collapsed ? (
-          <Tooltip>
-            <TooltipTrigger asChild>{collapseBtn}</TooltipTrigger>
-            <TooltipContent>ขยาย sidebar</TooltipContent>
-          </Tooltip>
-        ) : collapseBtn}
+        <div className="mt-1 pt-1 border-t border-sidebar-border">
+          <SidebarUser collapsed={collapsed} />
+        </div>
       </nav>
     </aside>
   )

@@ -124,34 +124,65 @@ export function registerPeopleHandlers() {
     requireAdmin(_e)
     const { includeDisabled = false } = filters ?? {}
     const where = includeDisabled ? '' : `WHERE is_disabled = 0`
-    return getDb().prepare(`SELECT id, name, email, role, is_disabled, created_at FROM users ${where} ORDER BY ${orderByBucket('name')}`).all()
+    return getDb().prepare(`SELECT id, name, first_name, last_name, username, phone, email, role, is_disabled, created_at FROM users ${where} ORDER BY ${orderByBucket('name')}`).all()
   })
 
   ipcMain.handle('people:saveStaff', (_e, data: any) => {
     requireAdmin(_e)
     const db = getDb()
+
+    // Required identity fields. username is app-required (the column is nullable +
+    // UNIQUE-indexed, so enforcement lives here, not in the schema).
+    const email = String(data.email ?? '').trim()
+    const username = String(data.username ?? '').trim()
+    if (!email) throw new Error('กรุณาระบุอีเมล')
+    if (!username) throw new Error('กรุณาระบุชื่อผู้ใช้ (username)')
+
+    // The owner admin's username is locked to 'admin' (avoids confusion; admin
+    // lookups elsewhere are email-keyed).
+    let finalUsername = username
+    if (data.id) {
+      const existing = db.prepare(`SELECT email FROM users WHERE id = ?`).get(data.id) as { email: string } | undefined
+      if (existing?.email === 'admin@syntropic.local') finalUsername = 'admin'
+    }
+
+    // Unique username (excluding self).
+    const clash = db.prepare(`SELECT id FROM users WHERE username = ? AND id <> ?`).get(finalUsername, data.id ?? 0)
+    if (clash) throw new Error('ชื่อผู้ใช้นี้ถูกใช้แล้ว')
+
+    // Compose the display name — users.name is NOT NULL and is what every report
+    // join (sold_by_name / created_by_name / cashier) reads. Never let it be ''.
+    const first = String(data.first_name ?? '').trim()
+    const last = String(data.last_name ?? '').trim()
+    const composedName = [first, last].filter(Boolean).join(' ').trim() || finalUsername || email.split('@')[0]
+
     // HARD: allow-list columns — never spread Object.keys(data) (footgun: a stray
     // key throws "no such column"; a renderer-supplied hash must never be trusted).
-    // The renderer always sends plaintext; we hash here.
-    const ALLOWED = ['name', 'email', 'role', 'is_disabled'] as const
+    // The renderer always sends plaintext; we hash here. `name` and `username` are
+    // injected explicitly (composed / normalized), not taken from the allow-list.
+    const ALLOWED = ['first_name', 'last_name', 'phone', 'role', 'is_disabled'] as const
     if (data.id) {
-      const params: Record<string, any> = { id: data.id }
-      const sets: string[] = []
+      const params: Record<string, any> = { id: data.id, name: composedName, username: finalUsername, email }
+      const sets: string[] = ['name = @name', 'username = @username', 'email = @email']
       for (const k of ALLOWED) {
         if (k in data) { sets.push(`${k} = @${k}`); params[k] = data[k] }
       }
       // Password is conditional — only touched when a non-empty value is sent.
       if (data.password) { sets.push(`password = @password`); params.password = hashSecret(data.password) }
       db.prepare(`UPDATE users SET ${sets.join(', ')}, updated_at = datetime('now','localtime') WHERE id = @id`).run(params)
-      return db.prepare(`SELECT id, name, email, role, is_disabled FROM users WHERE id = ?`).get(data.id)
+      return db.prepare(`SELECT id, name, first_name, last_name, username, phone, email, role, is_disabled FROM users WHERE id = ?`).get(data.id)
     }
-    const result = db.prepare(`INSERT INTO users (name, email, password, role) VALUES (@name, @email, @password, @role)`).run({
-      name: data.name,
-      email: data.email,
+    const result = db.prepare(`INSERT INTO users (name, first_name, last_name, username, phone, email, password, role) VALUES (@name, @first_name, @last_name, @username, @phone, @email, @password, @role)`).run({
+      name: composedName,
+      first_name: first,
+      last_name: last,
+      username: finalUsername,
+      phone: data.phone ?? null,
+      email,
       password: hashSecret(data.password ?? ''),
       role: data.role ?? 'staff',
     })
-    return db.prepare(`SELECT id, name, email, role, is_disabled FROM users WHERE id = ?`).get(result.lastInsertRowid)
+    return db.prepare(`SELECT id, name, first_name, last_name, username, phone, email, role, is_disabled FROM users WHERE id = ?`).get(result.lastInsertRowid)
   })
 
   ipcMain.handle('people:setStaffStatus', (_e, payload: { id: number; disabled: boolean }) => {

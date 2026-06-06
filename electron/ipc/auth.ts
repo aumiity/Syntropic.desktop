@@ -5,14 +5,16 @@ import {
   checkLocked, recordFailure, clearFailures,
   checkRecoveryLocked, recordRecoveryFailure, clearRecoveryFailures,
 } from '../auth/lockout'
-import { bindSession, clearSession } from '../auth/session'
+import { bindSession, clearSession, getSession } from '../auth/session'
 
 export function registerAuthHandlers() {
-  // Users shown on the Login picker. Never expose email/password/hash — only
-  // what the picker renders (audit N-1).
+  // Users shown on the Login picker. The picker now displays @username + email
+  // by product decision (was previously name-only to avoid exposing email; that
+  // posture was deliberately reversed — see docs/plans + e2e T0). Still NEVER
+  // expose password/hash.
   ipcMain.handle('auth:listLoginUsers', () => {
     return getDb()
-      .prepare(`SELECT id, name, role FROM users WHERE is_disabled = 0 ORDER BY name`)
+      .prepare(`SELECT id, name, username, email, role FROM users WHERE is_disabled = 0 ORDER BY username`)
       .all()
   })
 
@@ -58,6 +60,53 @@ export function registerAuthHandlers() {
   // Clear the main-side session for this renderer (logout / lock screen).
   ipcMain.handle('auth:logout', (_e) => {
     clearSession(_e)
+  })
+
+  // Read the CALLER'S OWN profile (for the sidebar profile card). Identity comes
+  // from the main-side session, never from the renderer — so a caller can only
+  // ever read their own row. No password/hash returned.
+  ipcMain.handle('auth:getMyProfile', (_e) => {
+    const s = getSession(_e.sender.id)
+    if (!s) throw new Error('FORBIDDEN')
+    return getDb()
+      .prepare(`SELECT id, name, first_name, last_name, username, email, phone, role FROM users WHERE id = ?`)
+      .get(s.userId)
+  })
+
+  // Self-service password change. userId comes from the session (NOT the
+  // renderer) so a user can only change their OWN password. Verifies the current
+  // password (with the same login lockout backoff) before setting the new one.
+  ipcMain.handle('auth:changePassword', (_e, { currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
+    const s = getSession(_e.sender.id)
+    if (!s) throw new Error('FORBIDDEN')
+    const db = getDb()
+    const userId = s.userId
+
+    const lock = checkLocked(db, userId)
+    if (lock.locked) {
+      const err = new Error('LOCKED') as Error & { remainingMs?: number }
+      err.remainingMs = lock.remainingMs
+      throw err
+    }
+
+    const row = db
+      .prepare(`SELECT password FROM users WHERE id = ?`)
+      .get(userId) as { password: string } | undefined
+    if (!row) throw new Error('ไม่พบบัญชีผู้ใช้งาน')
+
+    const { ok } = verifySecret(currentPassword ?? '', row.password)
+    if (!ok) {
+      recordFailure(db, userId)
+      throw new Error('รหัสผ่านปัจจุบันไม่ถูกต้อง')
+    }
+
+    const pw = (newPassword ?? '').trim()
+    if (pw.length < 4) throw new Error('รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร')
+
+    clearFailures(db, userId)
+    db.prepare(`UPDATE users SET password = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+      .run(hashSecret(pw), userId)
+    return { ok: true }
   })
 
   // Self-service password reset via the recovery code. Resets ONLY the admin's

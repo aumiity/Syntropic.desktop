@@ -11,8 +11,10 @@ import CUSTOMERS from './seed-data/customers'
 export function seedDatabase(db: Database.Database) {
   // Idempotent staff test user — added to every install so audit trail has a non-admin actor
   // until proper login lands. Keyed by unique email.
-  db.prepare(`INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`).run(
-    'Staff Test', 'staff@syntropic.local', 'staff', 'staff'
+  // username MUST be set: a UNIQUE index on users(username) exists after the
+  // migration, so two seed rows with the default '' would collide.
+  db.prepare(`INSERT OR IGNORE INTO users (name, first_name, username, email, password, role) VALUES (?, ?, ?, ?, ?, ?)`).run(
+    'Staff Test', 'Staff Test', 'staff', 'staff@syntropic.local', 'staff', 'staff'
   )
 
   // Label lookups + drug generic names — sourced from docs/*.json via
@@ -48,8 +50,8 @@ export function seedDatabase(db: Database.Database) {
   if (userCount > 0) return
 
   // Default admin user
-  db.prepare(`INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`).run(
-    'Admin', 'admin@syntropic.local', 'admin', 'admin'
+  db.prepare(`INSERT INTO users (name, first_name, username, email, password, role) VALUES (?, ?, ?, ?, ?, ?)`).run(
+    'ผู้ดูแลระบบ', 'ผู้ดูแลระบบ', 'admin', 'admin@syntropic.local', 'admin', 'admin'
   )
 
   // Default settings — blank shop identity on purpose: setup_completed defaults
