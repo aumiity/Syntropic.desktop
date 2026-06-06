@@ -33,7 +33,7 @@
 - [x] **2. Login Screen** — `src/pages/Auth/LoginScreen.tsx` — **DONE (เจ้าของเคาะ 2026-06-06):** 2-pane BrandPanel + Apple-style user list (avatar lg, ชื่อ+email, ติ๊กถูกตอนเลือก, ไม่มีกรอบนอก), โลโก้ใบไม้จริง + "เข้าสู่ระบบ" ใหญ่, admin-first, ปุ่มลืมรหัส elevated, ชื่อร้านจริง. พ่วง: username UPPERCASE+charset (people.ts/seed), avatar size lg, **โลโก้ Syntropic จริง** (logo-mark.tsx) ใช้ทั้ง Setup/Login/Sidebar
 
 ### Wave 2 — หัวใจที่ใช้ทุกวัน (frequency สูงสุด)
-- [~] **3. POS** — `src/pages/POS/index.tsx` — **ทำทีละโซน (ดู [[project-pos-redesign]]).** เสร็จ: Right rail (ปุ่ม action→elevated + ไอคอนสีตามบทบาท + เอา border teal/accent ออก), ปุ่ม inline cart (หน่วย/จำนวน/ราคา→primary-soft, ส่วนลด→destructive2). ค้าง: payment dialog, dialogs อื่น (product search/quick-add/return/adjust), unit/qty/price modals
+- [~] **3. POS** — `src/pages/POS/index.tsx` — **ทำทีละโซน (ดู [[project-pos-redesign]]).** เสร็จ: Right rail (ปุ่ม action→elevated + ไอคอนสีตามบทบาท + เอา border teal/accent ออก), ปุ่ม inline cart (หน่วย/จำนวน/ราคา→primary-soft, ส่วนลด→destructive2), **Avatar consistency pass** (raw `<span>`+`<User>` 3 จุด → `InitialAvatar` primitive: cart slot lg, payment header lg, customer-info hero xl; + ลบ `variant="elevated"` ซ้ำซ้อนบน Input 13 จุด). ค้าง: payment dialog ภาพรวม, adjust/return (4xl), product search/quick-add modals, unit/qty/price modals (รีวิวแล้ว = คุณภาพดี แทบไม่ต้องแตะ)
 - [ ] **4. Products list** — `src/pages/Products/ProductsList.tsx` + `BundlesList.tsx`
 - [ ] **5. Edit Product / Bundle** — EditProduct (tabs) + EditBundle
 
@@ -86,7 +86,24 @@
   - **DEV auto-login** กัน refresh แล้วเด้ง login ตอน dev: `auth:devLogin` (bind admin คนแรกไม่ใช้รหัส, gate `!app.isPackaged`) + LoginGate เรียกเมื่อ `import.meta.env.DEV` (prod strip). session in-memory no-persist = ตั้งใจ (security) ไม่แตะ. **main+preload เปลี่ยน → ต้อง restart electron:dev ครั้งเดียว**
   - tsc ผ่านทั้ง 2 config. commit. **ถัดไป: Wave 2 #3 POS**
 
+- **2026-06-06** — **#3 POS · Avatar consistency pass** (เจ้าของเคาะ "Avatar consistency pass")
+  - เพิ่ม size `xl` (size-24/icon size-12) ใน `src/components/ui/avatar.tsx` (`InitialAvatar`) รองรับ hero — เดิมสูงสุดแค่ `lg`
+  - แปลง raw `<span>`+`<User>` avatar 3 จุดใน POS → `InitialAvatar` (ตินต์ soft hash จากชื่อ = สีเดียวกับ login/sidebar): cart customer slot (`lg`, ห่อ wrapper เก็บ alert badge ไว้), payment header (`lg`, เดิมเป็น rounded-xl square → ตอนนี้วงกลม), customer-info hero (`xl`). ลบ `User` import ที่ค้างใน POS
+  - **เก็บกวาด `variant="elevated"` ซ้ำซ้อนบน `<Input>` 13 จุด** (Input default = elevated แล้ว) — คง 2 จุดที่เป็น `<Button variant="elevated">` (variant จริง)
+  - เพิ่ม **showcase "Avatar"** ใน `/theme` (sizes xs→xl, stable color per name, in-context row) — เดิมไม่มี showcase เลย
+  - tsc app config EXIT 0. **ถัดไป: เลือกโซน POS ต่อ — payment ภาพรวม / adjust+return / search modals**
+
+- **2026-06-06** — **#3 POS · Payment dialog ฝั่งซ้าย = Live receipt preview** (เจ้าของชี้ว่า "สรุปรายการฝั่งซ้ายซ้ำกับ cart")
+  - **วินิจฉัย:** ฝั่งซ้ายเดิม (customer header + รายการสินค้า) ไม่ได้ให้ข้อมูลใหม่จาก cart เลย — เป็นสำเนาที่ "จางกว่า" (ตัด ราคา/หน่วย + ส่วนลดรายตัว ที่ cart มีออก) เพิ่มจริงแค่ วันที่/เวลา + code
+  - **แก้:** แทนด้วย **ตัวอย่างใบเสร็จสด (WYSIWYG)** — ประกอบ `SaleForPrint` จาก cart + pending (mirror snapshot ของ `handleCompleteSale` เป๊ะ: ส่วนลด redistribute + unit_vat backed-out) → `buildSlipHtml()` **ตัวเดียวกับ print path + `ReceiptSettingsTab`** → `<iframe srcDoc>` กระดาษ 80mm บนพื้น desk (mirror pattern หน้าตั้งค่า). Live rebuild แบบ debounce 120ms, gate ที่ `showPayment`+มีสินค้า. เลขบิลโชว์ `(ตัวอย่าง)` (ยังไม่ออกจน save)
+  - **+ re-fetch `getReceiptSettings`+`getShop` ทุกครั้งที่เปิด dialog ชำระเงิน** → preview *และ* การพิมพ์จริงดึง setting ล่าสุดเสมอ (เดิม POS โหลดแค่ตอน mount — comment เขียน "out of scope")
+  - **cleanup:** ลบ clock ticker `now`/`setNow`/`setInterval 1s` + `dateStr`/`timeStr` + import `formatThaiDateHeader` (เดิมมีไว้โชว์เวลาใน header ฝั่งซ้ายที่ถูกแทน) → เลิก re-render POS ทั้งหน้าทุกวินาที
+  - tsc app config EXIT 0.
+  - **PIVOT (เจ้าของดูจริงแล้วบอก iframe ใบจริง "ทางการไป"):** เปลี่ยนจาก iframe+`buildSlipHtml` → **receipt JSX ออกแบบเองเข้าธีมแอป** (กระดาษ `bg-card` 300px, หัวร้าน, chip "ใบเสร็จรับเงิน", เส้นประ, บาร์โค้ดปลอม `repeating-linear-gradient(hsl(var(--foreground)))`, รอยฉีกซิกแซกล่าง `clip-path polygon`, ขอบคุณท้ายบิล). ดึงข้อมูลจาก `previewSale` (useMemo เดิม คงไว้ใช้เป็น data source) → track live. **ถอด** `receiptPreviewHtml` state + build-effect + `buildSlipHtml` import. **คง** re-fetch settings effect (ยังดีต่อ print จริง). **หมายเหตุ: นี่ไม่ใช่ WYSIWYG ของสลิปจริงแล้ว** — เป็น mockup เข้าธีม; การพิมพ์จริงยังผ่าน `buildSlipHtml` เหมือนเดิม. **ถัดไป: เจ้าของดู look ผ่าน hot-reload + เก็บโซน POS ที่เหลือ (adjust/return, search modals)**
+
 ## โน้ตต่อหน้า (เก็บ decision/ของที่เจอระหว่างทำ)
+- **Payment ฝั่งซ้าย = receipt JSX ออกแบบเองเข้าธีม** (ไม่ใช่ iframe สลิปจริง — เจ้าของว่า "ทางการไป"). ดึง `previewSale` (mirror snapshot ของ handleCompleteSale). **ไม่ใช่ WYSIWYG** — print จริงยังผ่าน `buildSlipHtml`. อย่ากลับไปทำ list สรุปรายการเปล่า ๆ (ซ้ำ cart). settings re-fetch ตอนเปิด dialog (ดีต่อ print)
+- **Avatar = `InitialAvatar` primitive ที่เดียว** (`src/components/ui/avatar.tsx`) — ตินต์ soft จาก hash ของชื่อ (ชื่อเดียว = สีเดิมทั้งแอป), icon-only User. อย่าปั้น `<span>`+`<User>` เองอีก. sizes: xs/sm/default/lg/xl (xl=size-24 สำหรับ hero)
 - **โลโก้ Syntropic:** ยังไม่มี asset จริง → ใช้ SVG logomark ใน `brand.tsx` (3 แท่งไล่ระดับ = growth/syntropy + จุด accent เหลือง). เปลี่ยนเป็นโลโก้จริงได้ที่ `LogoGlyph` ใน `brand.tsx` ที่เดียว
 - **BrandPanel/BrandMark = ใช้ซ้ำ:** Setup + Login (Wave 1) ต้องหน้าตาเดียวกัน — แก้ที่ `brand.tsx` กระทบทั้งคู่
 - **gradient แบรนด์:** `from-primary to-primary-strong` (token มีครบ light/dark)

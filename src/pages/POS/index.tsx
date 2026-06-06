@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '@/stores/cartStore'
 import { getCurrentUserId } from '@/stores/userStore'
@@ -18,22 +18,23 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { InitialAvatar } from '@/components/ui/avatar'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { formatCurrency, formatThaiDateHeader } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import dayjs from 'dayjs'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings, ReceiptSettings, Setting, SaleForPrint } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { printSlip } from '@/lib/receipt/print'
-import { Printer, FileText } from 'lucide-react'
+import { Printer, FileText, Receipt } from 'lucide-react'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
 import { extractVat, VAT_RATE_DEFAULT } from '@/lib/vat'
 import {
-  Search, User, Trash2, Plus, Minus,
+  Search, Trash2, Plus, Minus,
   Banknote, AlertTriangle, PackageX,
   X, UserPlus, Info,
   RotateCcw, ChevronRight, ChevronLeft, Tag,
@@ -114,7 +115,6 @@ export default function POSPage() {
   const [multiplier, setMultiplier] = useState<number | null>(null)
 
   const [dailyStats, setDailyStats] = useState({ bills: 0, total: 0, latest: '' })
-  const [now, setNow] = useState(new Date())
 
   // Payment
   const [showPayment, setShowPayment] = useState(false)
@@ -200,8 +200,6 @@ export default function POSPage() {
 
   useEffect(() => {
     loadDailyStats()
-    const tick = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(tick)
   }, [])
 
   // Load POS alert thresholds on mount. Settings changes during a POS session
@@ -681,6 +679,40 @@ export default function POSPage() {
   const totalPaid = (parseFloat(cashAmount) || 0) + (parseFloat(cardAmount) || 0) + (parseFloat(transferAmount) || 0)
   const change = totalPaid - pendingNet
 
+  // Live receipt preview — assembled to MIRROR handleCompleteSale's print
+  // snapshot exactly (redistributed per-line discount + per-unit VAT backed out
+  // of the discounted line), so what the operator sees here equals what prints.
+  // invoice_no isn't assigned until the sale is committed, hence the placeholder.
+  const previewSale: SaleForPrint = useMemo(() => ({
+    invoice_no: '(ตัวอย่าง)',
+    sold_at: new Date().toISOString(),
+    sale_type: cart.saleType,
+    status: 'completed',
+    customer_name: cart.customer?.full_name ?? cart.customerNameFree ?? null,
+    items: cart.items.map((i, idx) => {
+      const d = pendingEffectiveDiscounts[idx] ?? 0
+      const line_total = i.qty * i.unit_price - d
+      const unit_vat = vatEnabled && i.qty > 0 ? extractVat(line_total, vatRate) / i.qty : 0
+      return { item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, unit_price: i.unit_price, discount: d, unit_vat, line_total }
+    }),
+    subtotal: cart.subtotal(),
+    total_discount: pendingTotalDiscount,
+    total_vat: pendingVat,
+    total_amount: pendingNet,
+    cash_amount: parseFloat(cashAmount) || 0,
+    change_amount: Math.max(0, change),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [cart.items, cart.saleType, cart.customer, cart.customerNameFree, pendingEffectiveDiscounts, pendingTotalDiscount, pendingVat, pendingNet, cashAmount, change, vatEnabled, vatRate])
+
+  // Re-pull receipt settings + shop each time the payment dialog opens, so both
+  // the in-dialog receipt preview AND the actual print reflect the latest saved
+  // settings without a full POS refresh (POS otherwise loads them once on mount).
+  useEffect(() => {
+    if (!showPayment) return
+    window.api.settings.getReceiptSettings().then(d => { if (d) setReceiptSettings(d as ReceiptSettings) }).catch(() => {})
+    window.api.settings.getShop().then(d => { if (d) setShopInfo(d as Setting) }).catch(() => {})
+  }, [showPayment])
+
   // Print a completed sale's slip. Isolated from the save flow — a print
   // failure must never roll back a committed sale; it just toasts so the
   // operator can retry from the success dialog. VAT-on sales print the slip as
@@ -774,9 +806,6 @@ export default function POSPage() {
     refocusSearch()
   }
 
-  const dateStr = formatThaiDateHeader(now)
-  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
 
@@ -869,8 +898,8 @@ export default function POSPage() {
               <Button variant="ghost"
                 onClick={() => setShowCustomerSearch(true)}
                 className="relative flex items-center gap-2 flex-1 min-h-0 p-1 rounded-xl hover:bg-transparent text-left">
-                <span className="relative grid place-items-center w-10 h-10 rounded-full shrink-0 bg-primary text-primary-foreground">
-                  <User className="size-6" />
+                <span className="relative shrink-0">
+                  <InitialAvatar name={cart.customer?.full_name} size="lg" />
                   {cart.customer?.is_alert && cart.customer.alert_note ? (
                     <span
                       title={cart.customer.alert_note}
@@ -948,7 +977,6 @@ export default function POSPage() {
             <div className="relative flex-1 min-w-0">
               <Input
                 ref={mainInputRef}
-                variant="elevated"
                 value={query}
                 onChange={e => handleSearch(e.target.value)}
                 onKeyDown={handleMainInputKeyDown}
@@ -1393,9 +1421,7 @@ export default function POSPage() {
                 <>
                   {/* Hero — centered avatar + name + code */}
                   <div className="flex flex-col items-center gap-3 pt-2">
-                    <span className="grid place-items-center size-24 rounded-full bg-primary text-primary-foreground">
-                      <User className="size-12" />
-                    </span>
+                    <InitialAvatar name={c.full_name} size="xl" />
                     <div className="text-center space-y-1.5">
                       <div className="text-2xl font-bold leading-tight">{c.full_name}</div>
                       <div className="flex items-center justify-center">
@@ -1484,7 +1510,7 @@ export default function POSPage() {
 
       {/* ── PAYMENT DIALOG ── */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent size="full" divided onClose={() => setShowPayment(false)} className="h-[800px] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="4xl" divided onClose={() => setShowPayment(false)} className="h-[800px] grid-rows-[auto_1fr_auto]">
           <DialogHeader><DialogTitle className="text-2xl">ชำระเงิน</DialogTitle></DialogHeader>
           <DialogBody className="min-h-0 overflow-hidden">
             {(() => {
@@ -1558,67 +1584,92 @@ export default function POSPage() {
 
               return (
                 <div className="grid grid-cols-2 gap-4 h-full min-h-0">
-                  {/* LEFT COLUMN — customer info + transaction details */}
-                  <div className="flex flex-col gap-3 min-h-0 h-full">
-                    {/* Customer header */}
-                    <div className="flex items-center gap-3 px-1">
-                      <span className="grid place-items-center w-12 h-12 rounded-xl shrink-0 bg-primary text-primary-foreground">
-                        <User className="size-8" />
-                      </span>
-                      <div className="flex flex-col gap-1 min-w-0 flex-1">
-                        <span className="text-base font-bold truncate">
-                          {cart.customer ? cart.customer.full_name : 'ลูกค้าทั่วไป'}
-                        </span>
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {cart.customer?.code ? (
-                            <span className="text-sm text-muted-foreground truncate">{cart.customer.code}</span>
-                          ) : null}
-                          {cart.saleType === 'wholesale' ? (
-                            <Badge variant="warm" className="text-xs rounded-md shrink-0">ขายส่ง</Badge>
-                          ) : (
-                            <Badge variant="primary-soft" className="text-sm rounded-md shrink-0">ขายปลีก</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end shrink-0 text-sm">
-                        <span className="font-semibold whitespace-nowrap">{dateStr}</span>
-                        <span className="text-muted-foreground">{timeStr}</span>
-                      </div>
+                  {/* LEFT COLUMN — designed receipt preview (themed paper, NOT the
+                      literal thermal slip — fed by previewSale so it tracks live) */}
+                  <div className="flex flex-col gap-2 min-h-0 h-full">
+                    <div className="shrink-0 flex items-center gap-2 px-1 text-base font-semibold text-muted-foreground">
+                      <Receipt className="size-4" /> ตัวอย่างใบเสร็จ
                     </div>
-
-                    {/* Transaction details */}
-                    <div className="rounded-xl border border-border bg-muted/40 p-4 flex flex-col min-h-0 flex-1">
-                      <div className="text-base font-semibold mb-2 shrink-0 flex items-center justify-between">
-                        <span>รายการสินค้า</span>
-                        <span className="text-base font-semibold text-muted-foreground">{cart.items.length} รายการ</span>
-                      </div>
-                      <div className="overflow-y-auto scrollbar-thin -mr-2 pr-2 flex-1 min-h-0">
-                        {cart.items.length === 0 ? (
-                          <div className="text-sm text-muted-foreground py-8 text-center">ไม่มีสินค้า</div>
-                        ) : (
-                          <ul className="divide-y divide-border">
-                            {cart.items.map((item, idx) => (
-                              <li key={idx} className="flex items-start justify-between gap-3 py-2.5">
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-base font-semibold truncate">{item.item_name}</div>
-                                  <div className="text-sm text-muted-foreground">{formatCurrency(item.line_total)}</div>
-                                  {item.product?.is_bundle && item.product.bundle_items?.length ? (
-                                    <div className="text-xs text-muted-foreground truncate">
-                                      ประกอบด้วย: {item.product.bundle_items
-                                        .map(b => `${b.component_name} ×${b.qty_per_bundle}`)
-                                        .join(', ')}
-                                    </div>
+                    <div className="flex-1 min-h-0 flex items-start justify-center rounded-xl border border-border bg-muted/30 p-6 overflow-auto scrollbar-thin">
+                      {cart.items.length === 0 ? (
+                        <div className="self-center text-sm text-muted-foreground">ไม่มีสินค้า</div>
+                      ) : (
+                        <div className="w-[300px] shrink-0" style={{ filter: 'drop-shadow(0 4px 5px rgb(0 0 0 / 0.20)) drop-shadow(0 12px 14px rgb(0 0 0 / 0.16))' }}>
+                          <div className="bg-card text-foreground rounded-t-md px-6 pt-6 pb-6" style={{
+                            WebkitMaskImage: 'linear-gradient(#000,#000), radial-gradient(circle 12px at 50% 100%, transparent 12px, #000 12px)',
+                            WebkitMaskSize: '100% calc(100% - 12px), 10% 12px',
+                            WebkitMaskPosition: 'top, left bottom',
+                            WebkitMaskRepeat: 'no-repeat, repeat-x',
+                            maskImage: 'linear-gradient(#000,#000), radial-gradient(circle 12px at 50% 100%, transparent 12px, #000 12px)',
+                            maskSize: '100% calc(100% - 12px), 10% 12px',
+                            maskPosition: 'top, left bottom',
+                            maskRepeat: 'no-repeat, repeat-x',
+                          }}>
+                            {/* Shop header */}
+                            <div className="text-center space-y-0.5">
+                              <div className="text-base font-bold leading-tight">{shopInfo.shop_name || 'ร้านขายยา'}</div>
+                              {shopInfo.shop_address ? <div className="text-xs text-muted-foreground leading-snug">{shopInfo.shop_address}</div> : null}
+                              {shopInfo.shop_phone ? <div className="text-xs text-muted-foreground">โทร. {shopInfo.shop_phone}</div> : null}
+                            </div>
+                            <div className="my-3 flex justify-center">
+                              <span className="inline-flex items-center rounded-full border border-dashed border-border px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">ใบเสร็จรับเงิน</span>
+                            </div>
+                            {/* Meta */}
+                            <div className="border-t border-dashed border-border pt-2 space-y-1 text-xs">
+                              <div className="flex justify-between text-muted-foreground"><span>เลขที่</span><span className="font-medium text-foreground">(ตัวอย่าง)</span></div>
+                              <div className="flex justify-between text-muted-foreground"><span>วันที่</span><span className="font-medium text-foreground">{new Date().toLocaleString('th-TH', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span></div>
+                              {previewSale.customer_name ? <div className="flex justify-between text-muted-foreground"><span>ลูกค้า</span><span className="font-medium text-foreground truncate max-w-[60%] text-right">{previewSale.customer_name}</span></div> : null}
+                            </div>
+                            {/* Items */}
+                            <div className="border-t border-dashed border-border mt-2 pt-2 space-y-2">
+                              {previewSale.items.map((it, i) => (
+                                <div key={i} className="text-sm">
+                                  <div className="font-semibold leading-snug">{it.item_name}</div>
+                                  <div className="flex justify-between gap-2 text-muted-foreground">
+                                    <span>{it.qty} {it.unit_name} × {formatCurrency(it.unit_price)}</span>
+                                    <span className="text-foreground whitespace-nowrap">{formatCurrency(it.qty * it.unit_price)}</span>
+                                  </div>
+                                  {it.discount > 0 ? (
+                                    <div className="flex justify-between text-xs text-destructive"><span>ส่วนลด</span><span>-{formatCurrency(it.discount)}</span></div>
                                   ) : null}
                                 </div>
-                                <div className="shrink-0 text-right text-sm whitespace-nowrap">
-                                  {item.qty}{item.unit_name ? ` ${item.unit_name}` : ''}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
+                              ))}
+                            </div>
+                            {/* Totals */}
+                            <div className="border-t border-dashed border-border mt-2 pt-2 space-y-1 text-sm">
+                              <div className="flex justify-between text-muted-foreground"><span>ยอดรวม</span><span className="text-foreground">{formatCurrency(previewSale.subtotal)}</span></div>
+                              {previewSale.total_discount > 0 ? <div className="flex justify-between text-destructive"><span>ส่วนลดรวม</span><span>-{formatCurrency(previewSale.total_discount)}</span></div> : null}
+                              {previewSale.total_vat > 0 ? (
+                                <>
+                                  <div className="flex justify-between text-muted-foreground"><span>มูลค่าก่อนภาษี</span><span className="text-foreground">{formatCurrency(previewSale.total_amount - previewSale.total_vat)}</span></div>
+                                  <div className="flex justify-between text-muted-foreground"><span>ภาษีมูลค่าเพิ่ม {vatRate}%</span><span className="text-foreground">{formatCurrency(previewSale.total_vat)}</span></div>
+                                </>
+                              ) : null}
+                            </div>
+                            {/* Grand total */}
+                            <div className="border-t-2 border-foreground/70 mt-2 pt-2 flex items-end justify-between gap-2">
+                              <span className="text-sm font-bold">รวมทั้งสิ้น</span>
+                              <span className="text-xl font-extrabold whitespace-nowrap">{formatCurrency(previewSale.total_amount)}</span>
+                            </div>
+                            {/* Cash / change */}
+                            {previewSale.cash_amount > 0 ? (
+                              <div className="mt-2 space-y-1 text-sm">
+                                <div className="flex justify-between text-muted-foreground"><span>รับเงิน</span><span className="text-foreground">{formatCurrency(previewSale.cash_amount)}</span></div>
+                                <div className="flex justify-between text-muted-foreground"><span>เงินทอน</span><span className="text-foreground">{formatCurrency(previewSale.change_amount)}</span></div>
+                              </div>
+                            ) : null}
+                            {/* Footer */}
+                            <div className="mt-4 text-center text-xs text-muted-foreground">{receiptSettings?.footer_note || 'ขอบคุณที่ใช้บริการค่ะ'}</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                    {/* Print toggle — sits with the receipt it controls */}
+                    <label className="shrink-0 flex items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-4 h-12 cursor-pointer select-none">
+                      <Checkbox checked={printReceiptChecked} onCheckedChange={v => setPrintReceiptChecked(v === true)} />
+                      <Printer className="size-5 text-muted-foreground" />
+                      <span className="text-sm font-medium text-foreground">พิมพ์ใบเสร็จหลังชำระเงิน</span>
+                    </label>
                   </div>
 
                   {/* RIGHT COLUMN — existing payment controls */}
@@ -1632,7 +1683,6 @@ export default function POSPage() {
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xl font-semibold text-muted-foreground">ส่วนลดรวม</span>
                       <Input
-                        variant="elevated"
                         type="number"
                         inputMode="decimal"
                         value={totalDiscountInput}
@@ -1685,7 +1735,6 @@ export default function POSPage() {
                       <Banknote className="size-7 text-success" /> รับเงินมา
                     </span>
                     <Input
-                      variant="elevated"
                       type="number"
                       value={cashAmount}
                       onFocus={e => e.currentTarget.select()}
@@ -1757,17 +1806,10 @@ export default function POSPage() {
                       </div>
                     )}
                   </div>
-                  <div className="mt-auto space-y-3">
-                    <label className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-4 h-12 cursor-pointer select-none">
-                      <Checkbox checked={printReceiptChecked} onCheckedChange={v => setPrintReceiptChecked(v === true)} />
-                      <Printer className="size-5 text-muted-foreground" />
-                      <span className="text-lg font-medium text-foreground">พิมพ์ใบเสร็จหลังชำระเงิน</span>
-                    </label>
-                    <div className="flex gap-2">
-                        <Button variant="accent" className="flex-1 h-20 text-4xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
-                          <HandCoins className="size-10" /> {saving ? 'กำลังบันทึก...' : ' ชำระเงิน'}
-                        </Button>
-                    </div>
+                  <div className="mt-auto">
+                    <Button variant="accent" className="w-full h-20 text-4xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
+                      <HandCoins className="size-10" /> {saving ? 'กำลังบันทึก...' : ' ชำระเงิน'}
+                    </Button>
                   </div>
                   </div>
                 </div>
@@ -1795,7 +1837,6 @@ export default function POSPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     ref={adjustInputRef}
-                    variant="elevated"
                     placeholder="สแกนหรือค้นหาชื่อ / บาร์โค้ด / รหัสสินค้า..."
                     value={adjustQuery}
                     onChange={e => handleAdjustSearch(e.target.value)}
@@ -1882,7 +1923,6 @@ export default function POSPage() {
                       </Button>
                       <Input
                         ref={adjustQtyRef}
-                        variant="elevated"
                         type="number"
                         value={adjustQtyInput}
                         min={1}
@@ -1972,7 +2012,6 @@ export default function POSPage() {
                     ))}
                   </div>
                   <Input
-                    variant="elevated"
                     placeholder="ระบุสาเหตุ..."
                     value={adjustReason}
                     onChange={e => setAdjustReason(e.target.value)}
@@ -2015,7 +2054,6 @@ export default function POSPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     ref={returnInputRef}
-                    variant="elevated"
                     placeholder="สแกนหรือค้นหาชื่อ / บาร์โค้ด / รหัสสินค้า..."
                     value={returnQuery}
                     onChange={e => handleReturnSearch(e.target.value)}
@@ -2128,7 +2166,6 @@ export default function POSPage() {
                       </Button>
                       <Input
                         ref={returnQtyRef}
-                        variant="elevated"
                         type="number"
                         value={returnQtyInput}
                         min={1}
@@ -2218,7 +2255,6 @@ export default function POSPage() {
                     ))}
                   </div>
                   <Input
-                    variant="elevated"
                     placeholder="ระบุสาเหตุ..."
                     value={returnReason}
                     onChange={e => setReturnReason(e.target.value)}
@@ -2445,7 +2481,6 @@ export default function POSPage() {
                       <Minus className="size-5" />
                     </Button>
                     <Input
-                      variant="elevated"
                       type="number"
                       autoFocus
                       value={qtyInput}
@@ -2548,7 +2583,6 @@ export default function POSPage() {
                     <Label>ส่วนลด (%)</Label>
                     <div className="relative">
                       <Input
-                        variant="elevated"
                         type="text"
                         inputMode="decimal"
                         value={discountFocus === 'pct' ? discountPctInput : formatNumWithCommas(discountPctInput)}
@@ -2575,7 +2609,6 @@ export default function POSPage() {
                   <div className="space-y-1.5">
                     <Label>ส่วนลด (บาท)</Label>
                     <Input
-                      variant="elevated"
                       type="text"
                       inputMode="decimal"
                       autoFocus
@@ -2600,7 +2633,6 @@ export default function POSPage() {
                 <div className="space-y-1.5">
                   <Label>ราคาสุดท้าย (บาท)</Label>
                   <Input
-                    variant="elevated"
                     type="text"
                     inputMode="decimal"
                     value={discountFocus === 'final' ? finalPriceInput : formatNumWithCommas(finalPriceInput, true)}

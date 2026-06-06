@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/toast'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { InitialAvatar } from '@/components/ui/avatar'
 import { Input, SearchInput } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -535,6 +536,38 @@ export default function Theme() {
                   <div className="flex items-center gap-2 text-sm">
                     <span>ประเภท:</span>
                     <Badge variant="outline">ยาอันตราย</Badge>
+                  </div>
+                </DemoRow>
+              </Section>
+
+              {/* ── AVATAR ── */}
+              <Section title="Avatar" path="src/components/ui/avatar.tsx">
+                <DemoRow label="Sizes — icon-only, soft tint hashed from the name (same name → same color everywhere)">
+                  <div className="flex items-end gap-4">
+                    <InitialAvatar name="สมชาย ใจดี" size="xs" />
+                    <InitialAvatar name="สมชาย ใจดี" size="sm" />
+                    <InitialAvatar name="สมชาย ใจดี" size="default" />
+                    <InitialAvatar name="สมชาย ใจดี" size="lg" />
+                    <InitialAvatar name="สมชาย ใจดี" size="xl" />
+                  </div>
+                </DemoRow>
+                <DemoRow label="Stable color per name">
+                  <div className="flex items-center gap-2">
+                    <InitialAvatar name="สมชาย" size="lg" />
+                    <InitialAvatar name="สมหญิง" size="lg" />
+                    <InitialAvatar name="วิชัย" size="lg" />
+                    <InitialAvatar name="ADMIN" size="lg" />
+                    <InitialAvatar name="ลูกค้าทั่วไป" size="lg" />
+                    <InitialAvatar name={null} size="lg" />
+                  </div>
+                </DemoRow>
+                <DemoRow label="In context — list row">
+                  <div className="flex items-center gap-3">
+                    <InitialAvatar name="สมชาย ใจดี" size="default" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold">สมชาย ใจดี</span>
+                      <span className="text-xs text-muted-foreground">089-123-4567</span>
+                    </div>
                   </div>
                 </DemoRow>
               </Section>
