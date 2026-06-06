@@ -297,6 +297,20 @@ export default function POSPage() {
     return () => window.removeEventListener('keydown', handler)
   }, [qtyModalIdx, discountModalIdx, priceModalIdx, unitModalIdx, searchOpen, showQuickAdd, showCustomerInfo, showCustomerSearch, showReturn, showAdjust])
 
+  // F4 toggles the "print receipt after payment" option while the payment
+  // dialog is open. A function key is used so it never collides with typing
+  // the cash amount (the cash input holds focus throughout).
+  useEffect(() => {
+    if (!showPayment) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'F4') return
+      e.preventDefault()
+      setPrintReceiptChecked(v => !v)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [showPayment])
+
   const refocusSearch = useCallback(() => {
     setTimeout(() => {
       if (anyModalOpenRef.current) return
@@ -1565,7 +1579,6 @@ export default function POSPage() {
               const profit = net - totalCost
               const margin = net > 0 ? (profit / net) * 100 : 0
               const netNegative = net < 0
-              const needsCheck = netNegative || change < 0
 
               const applyTotalDiscount = (raw: string) => {
                 const parsed = parseFloat(raw)
@@ -1669,6 +1682,7 @@ export default function POSPage() {
                       <Checkbox checked={printReceiptChecked} onCheckedChange={v => setPrintReceiptChecked(v === true)} />
                       <Printer className="size-5 text-muted-foreground" />
                       <span className="text-sm font-medium text-foreground">พิมพ์ใบเสร็จหลังชำระเงิน</span>
+                      <span className="ml-auto inline-flex items-center rounded-md border border-border bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground">F4</span>
                     </label>
                   </div>
 
@@ -1678,7 +1692,7 @@ export default function POSPage() {
                   <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-semibold text-muted-foreground">ราคาขายรวม</span>
-                      <span className="text-3xl font-semibold pr-2.5">{formatCurrency(subtotal)}</span>
+                      <span className="text-4xl font-semibold pr-2.5">{formatCurrency(subtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xl font-semibold text-muted-foreground">ส่วนลดรวม</span>
@@ -1698,38 +1712,33 @@ export default function POSPage() {
                         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                         placeholder="0.00"
                         disabled={cart.items.length === 0 || subtotal <= 0}
-                        className="text-right w-52 h-12 text-3xl font-semibold text-destructive focus-visible:ring-destructive/30"
+                        className="text-right w-52 h-12 text-4xl font-semibold text-destructive focus-visible:ring-destructive/30"
                       />
                     </div>
-                  </div>
 
-                  {/* VAT breakdown — VAT-inclusive, so it splits the net total,
-                      it does not add to it. */}
-                  {vatEnabled && pendingVat > 0 && (
-                    <div className="rounded-xl border border-border bg-info-soft p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-base font-medium text-muted-foreground">มูลค่าก่อนภาษี</span>
-                        <span className="text-xl font-semibold pr-2.5">{formatCurrency(net - pendingVat)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-base font-medium text-muted-foreground">{`ภาษีมูลค่าเพิ่ม ${vatRate}%`}</span>
-                        <span className="text-xl font-semibold pr-2.5">{formatCurrency(pendingVat)}</span>
-                      </div>
-                    </div>
-                  )}
+                    {/* VAT breakdown — VAT-inclusive: splits the net total, does not add to it */}
+                    {vatEnabled && pendingVat > 0 && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-base font-medium text-muted-foreground">มูลค่าก่อนภาษี</span>
+                          <span className="text-xl font-semibold pr-2.5">{formatCurrency(net - pendingVat)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-base font-medium text-muted-foreground">{`ภาษีมูลค่าเพิ่ม ${vatRate}%`}</span>
+                          <span className="text-xl font-semibold pr-2.5">{formatCurrency(pendingVat)}</span>
+                        </div>
+                      </>
+                    )}
 
-                  {/* Section 2 — Net total */}
-                  <div className={`rounded-xl border border-border p-4 ${netNegative
-                    ? 'bg-destructive-soft'
-                    : 'bg-primary-soft'}`}>
-                    <div className="text-xl text-muted-foreground font-semibold mb-1">เป็นเงินทั้งสิ้น</div>
-                    <div className={`pr-2 text-6xl font-extrabold text-right leading-none ${netNegative ? 'text-destructive' : 'text-success'}`}>
-                      {formatCurrency(net)}
+                    {/* Net total — the bottom line of this bill block */}
+                    <div className="flex items-end justify-between gap-2 border-t border-border pt-3">
+                      <span className="text-xl font-semibold text-muted-foreground">เป็นเงินทั้งสิ้น</span>
+                      <span className={`text-4xl font-extrabold pr-2.5 leading-none ${netNegative ? 'text-destructive' : 'text-success'}`}>{formatCurrency(net)}</span>
                     </div>
                   </div>
 
                   {/* Cash input */}
-                <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3 h-36">
+                <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3 h-40">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-xl font-semibold text-muted-foreground flex items-center gap-1.5">
                       <Banknote className="size-7 text-success" /> รับเงินมา
@@ -1763,14 +1772,14 @@ export default function POSPage() {
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-xl font-semibold text-muted-foreground flex items-center gap-1.5"><RefreshCcw className="size-7 text-warning" /> เงินทอน</span>
                       
-                    {needsCheck ? (
-                      <span className="flex items-center justify-end gap-2 w-80 h-12 text-4xl font-semibold text-destructive">
-                        <AlertTriangle className="size-7" />
+                    {netNegative ? (
+                      <span className="flex items-center justify-end gap-2 text-2xl font-semibold text-destructive whitespace-nowrap">
+                        <AlertTriangle className="size-6 shrink-0" />
                         กรุณาตรวจสอบ
                       </span>
                     ) : (
-                      <span className="text-right w-52 h-12 text-4xl font-semibold text-warning pr-2.5">
-                        {formatCurrency(Math.max(0, change))}
+                      <span className={`text-right text-5xl font-extrabold pr-2.5 leading-none ${change < 0 ? 'text-destructive' : 'text-warning'}`}>
+                        {formatCurrency(change)}
                       </span>
                     )}
                   </div>
@@ -1807,7 +1816,7 @@ export default function POSPage() {
                     )}
                   </div>
                   <div className="mt-auto">
-                    <Button variant="accent" className="w-full h-20 text-4xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
+                    <Button variant="accent" className="w-full h-24 text-4xl font-bold" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
                       <HandCoins className="size-10" /> {saving ? 'กำลังบันทึก...' : ' ชำระเงิน'}
                     </Button>
                   </div>
