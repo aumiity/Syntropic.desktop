@@ -1225,7 +1225,7 @@ export default function POSPage() {
           <div className="flex flex-col gap-1.5 flex-1 min-h-0">
             <Button variant="elevated" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
-              <Banknote className="size-6 text-primary" /> เปิดลิ้นชัก
+              <Banknote className="size-6 text-info" /> เปิดลิ้นชัก
             </Button>
             <Button variant="elevated" disabled
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
@@ -1233,11 +1233,11 @@ export default function POSPage() {
             </Button>
             <Button variant="elevated" onClick={() => setShowAdjust(true)}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
-              <PackageMinus className="size-6 text-info-soft-foreground" /> ตัดสต็อก
+              <PackageMinus className="size-6 text-accent" /> ตัดสต็อก
             </Button>
             <Button variant="elevated" onClick={() => setShowReturn(true)}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
-              <RotateCcw className="size-6 text-warm-foreground" /> รับคืนสินค้า
+              <RotateCcw className="size-6 text-primary" /> รับคืนสินค้า
             </Button>
             <Button variant="elevated" onClick={() => navigate('/manage')}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
@@ -1833,7 +1833,7 @@ export default function POSPage() {
         <DialogContent size="4xl" divided onClose={closeAdjust}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
-              <TintIcon icon={PackageMinus} tint="warning" size="md" bordered />
+              <TintIcon icon={PackageMinus} tint="accent" size="md" bordered />
               ตัดสต็อก
             </DialogTitle>
           </DialogHeader>
