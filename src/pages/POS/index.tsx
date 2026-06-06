@@ -2514,7 +2514,7 @@ export default function POSPage() {
                     return (
                       <Button key={n} variant="ghost" size="sm"
                         onClick={() => setQtyInput(String(n))}
-                        className={`relative w-full h-9 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${active ? 'text-primary-foreground' : 'text-foreground'}`}>
+                        className={`relative w-full h-9 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${active ? 'hover:text-primary-foreground text-primary-foreground' : 'text-foreground'}`}>
                         {active && (
                           <motion.div layoutId="qty-preset-pill" aria-hidden
                             className="absolute inset-0 rounded-md bg-primary shadow-sm"
@@ -2574,7 +2574,7 @@ export default function POSPage() {
                     const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
                     return (
                       <Button key={pct} variant="ghost" size="sm" onClick={() => applyPercent(pct)}
-                        className={`relative w-full h-9 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'text-destructive-foreground' : 'text-destructive'}`}>
+                        className={`relative w-full h-9 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'hover:text-destructive-foreground text-destructive-foreground' : 'text-foreground'}`}>
                         {isActive && (
                           <motion.div layoutId="discount-pct-pill" aria-hidden
                             className="absolute inset-0 rounded-md bg-destructive shadow-sm"
