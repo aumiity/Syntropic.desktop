@@ -29,8 +29,8 @@
 ## ลำดับงาน
 
 ### Wave 1 — ประตูทางเข้า (เล็ก, เจอครั้งแรก, วอร์มภาษาดีไซน์ใหม่)
-- [~] **1. Setup Wizard** — `src/pages/Setup/SetupWizard.tsx` (4 ขั้น: shop / VAT / admin password / confirm) — **redesign Split brand panel เสร็จ, tsc ผ่าน, รอเจ้าของดูจริง**
-- [ ] **2. Login Screen** — `src/pages/Auth/LoginScreen.tsx` (เลือกชื่อ + password + ลืมรหัส flow) — จะใช้ BrandPanel/BrandMark ชุดเดียวกัน
+- [x] **1. Setup Wizard** — `src/pages/Setup/SetupWizard.tsx` — **DONE (เจ้าของเคาะ 2026-06-06):** Split brand panel + rebrand "Rx Desktop" + base Card border default + required asterisks (ชื่อ/ที่อยู่/เบอร์) + เบอร์โทรตัวเลขเท่านั้น + บล็อก VAT registration (Phase 2/3 ยังไม่พร้อม)
+- [~] **2. Login Screen** — `src/pages/Auth/LoginScreen.tsx` (หลัง merge = **username login** แล้ว + ลืมรหัส flow) — จะใช้ BrandPanel/BrandMark ชุดเดียวกัน — **กำลังเริ่ม**
 
 ### Wave 2 — หัวใจที่ใช้ทุกวัน (frequency สูงสุด)
 - [ ] **3. POS** — `src/pages/POS/index.tsx` (+ search modal, cart, payment, unit/qty dialogs)
@@ -64,6 +64,13 @@
   - **ค้าง/follow-up:** ยังไม่เพิ่ม showcase ของ primitive ใหม่ใน `/theme` (รอ look ผ่านก่อน), Login (#2) จะใช้ BrandPanel/BrandMark ชุดเดียวกัน
 
 - **2026-06-06** — **merge `feat/user-profile-schema` เข้า main** (งานที่ค้างนอก main: ย้ายเมนูบัญชี titlebar→sidebar = `SidebarUser.tsx`, + username login + profile schema + self-password-change + hygeia prep). resolve conflict `MEMORY.md` ที่เดียว, tsc ผ่านทั้ง 2 config. **ผลต่อ redesign:** LoginScreen (#2) ตอนนี้เป็น username login แล้ว (เดิม name-select) → redesign บนฐานนี้; เมนู user ย้ายไป Sidebar (`SidebarUser.tsx`) แล้ว — ไม่ต้องทำซ้ำ. **ยังไม่ push origin** (รอเจ้าของสั่ง). ควร re-test login รอบใหม่
+
+- **2026-06-06** — **#1 SetupWizard DONE + rebrand ทั้งแอป**
+  - rebrand: **โปรแกรมชื่อ "Rx Desktop"** (Syntropic = บริษัท, สาย product = Rx Desktop/Web/CLI/Code แบบ Anthropic→Claude). แก้ `productName`+`description` (package.json), `<title>` (index.html), window title (main.ts), Sidebar wordmark (Rx + "Desktop"), brand.tsx wordmark "Rx Desktop" + โลโก้ placeholder = "Rx" serif italic. คงไว้: appId `com.syntropic.desktop`, footer `© Syntropic`. รอ logo asset จริง → สลับที่ `LogoGlyph`/tile ใน brand.tsx
+  - **base Card ได้ border เป็น default** (card.tsx) — [[card-border-default]]; ถอด border ซ้ำใน SetupWizard
+  - step "ข้อมูลร้าน": required asterisk (FormField `required`) + เบอร์โทร digits-only (`replace(/\D/g,'')` + inputMode numeric)
+  - step "ภาษี VAT": **บล็อกการเลือกจด VAT** (validateStep2 reject 'yes' + toast "ระบบยังไม่สามารถใช้งานได้" + กล่อง warning แทนช่อง) — [[project_vat_phasing]]; โค้ดเดิมเก็บไว้ re-enable ง่าย
+  - tsc ผ่านทั้ง 2 config. commit checkpoint.
 
 ## โน้ตต่อหน้า (เก็บ decision/ของที่เจอระหว่างทำ)
 - **โลโก้ Syntropic:** ยังไม่มี asset จริง → ใช้ SVG logomark ใน `brand.tsx` (3 แท่งไล่ระดับ = growth/syntropy + จุด accent เหลือง). เปลี่ยนเป็นโลโก้จริงได้ที่ `LogoGlyph` ใน `brand.tsx` ที่เดียว

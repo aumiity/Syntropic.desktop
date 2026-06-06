@@ -1,7 +1,7 @@
 {
   "name": "syntropic-desktop",
   "version": "1.0.0",
-  "description": "Syntropic RX - Pharmacy POS Desktop App",
+  "description": "Rx Desktop - Pharmacy POS Desktop App by Syntropic",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -54,7 +54,7 @@
   },
   "build": {
     "appId": "com.syntropic.desktop",
-    "productName": "Syntropic RX",
+    "productName": "Rx Desktop",
     "directories": {
       "output": "release"
     },

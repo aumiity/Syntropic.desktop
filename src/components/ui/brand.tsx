@@ -1,7 +1,8 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-// Brand identity primitives — the Syntropic logomark + wordmark, and the
+// Brand identity primitives — the "Rx Desktop" logomark + wordmark (Syntropic =
+// company), and the
 // gradient "brand panel" used on the gateway screens (Setup wizard, Login).
 // Kept here (not in a page) so both screens render the exact same brand.
 //
@@ -11,17 +12,8 @@ import { cn } from '@/lib/utils'
 
 type BrandTone = 'light' | 'dark'
 
-// Abstract growth mark — three ascending rounded bars (syntropy = order/growth,
-// also reads as POS/data). Uses currentColor so the parent controls the color.
-function LogoGlyph({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect x="3.5" y="13.5" width="3.6" height="6.5" rx="1.8" fill="currentColor" opacity="0.6" />
-      <rect x="10.2" y="9" width="3.6" height="11" rx="1.8" fill="currentColor" opacity="0.82" />
-      <rect x="16.9" y="4" width="3.6" height="16" rx="1.8" fill="currentColor" />
-    </svg>
-  )
-}
+// Placeholder logomark — the "Rx" prescription lettermark (serif italic).
+// TODO: swap for the real logo asset when provided (only this tile changes).
 
 export function BrandMark({
   tone = 'dark',
@@ -46,7 +38,7 @@ export function BrandMark({
             : 'bg-primary text-primary-foreground',
         )}
       >
-        <LogoGlyph className={lg ? 'size-8' : 'size-7'} />
+        <span className={cn('font-serif font-bold italic leading-none', lg ? 'text-2xl' : 'text-xl')}>Rx</span>
         <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-accent" />
       </div>
       <div className="leading-tight">
@@ -57,7 +49,7 @@ export function BrandMark({
             tone === 'light' ? 'text-primary-foreground' : 'text-foreground',
           )}
         >
-          Syntropic
+          Rx <span className="font-medium opacity-80">Desktop</span>
         </div>
         {tagline && (
           <div

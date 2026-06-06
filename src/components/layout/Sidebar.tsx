@@ -158,7 +158,7 @@ export function Sidebar() {
           R<span className="text-sidebar-accent font-extrabold text-4xl leading-none">x</span>
         </div>
         {!collapsed && (
-          <div className="text-sidebar-accent-foreground text-2xl font-medium leading-none">Syntropic</div>
+          <div className="text-sidebar-accent-foreground text-2xl font-medium leading-none">Desktop</div>
         )}
       </div>
 

@@ -28,7 +28,7 @@ function createWindow() {
     height: 900,
     minWidth: 1366,
     minHeight: 800,
-    title: 'Syntropic RX',
+    title: 'Rx Desktop',
     backgroundColor: '#065f46',
     frame: false,
     webPreferences: {

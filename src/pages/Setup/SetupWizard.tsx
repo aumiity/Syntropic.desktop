@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
-import { DateInput } from '@/components/ui/date-input'
 import { BrandPanel, BrandMark } from '@/components/ui/brand'
 import { Stepper } from '@/components/ui/stepper'
 import { ChoiceCard } from '@/components/ui/choice-card'
@@ -101,11 +100,13 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
 
   const validateStep2 = (): boolean => {
     if (vatChoice === null) { toast({ title: 'กรุณาเลือกสถานะภาษีมูลค่าเพิ่ม (VAT)', variant: 'error' }); return false }
+    // VAT-registered path is intentionally blocked for now — the VAT subsystem
+    // (Phase 2/3) isn't ready, so an operator can't onboard as a VAT shop yet.
+    // Re-enable by restoring the field validation below + the fields in step 2.
+    // See .claude/memory/project_vat_phasing.md
     if (vatChoice === 'yes') {
-      if (!/^\d{13}$/.test(taxId.trim())) { toast({ title: 'เลขประจำตัวผู้เสียภาษีต้องมี 13 หลัก', variant: 'error' }); focusField('tax_id'); return false }
-      const r = parseFloat(vatRate)
-      if (Number.isNaN(r) || r <= 0 || r > 100) { toast({ title: 'อัตราภาษีไม่ถูกต้อง', variant: 'error' }); focusField('vat_rate'); return false }
-      if (!vatDate) { toast({ title: 'กรุณาระบุวันที่จดทะเบียน VAT', variant: 'error' }); focusField('vat_date'); return false }
+      toast({ title: 'ระบบยังไม่สามารถใช้งานได้', description: 'โหมดจดทะเบียน VAT ยังไม่เปิดให้ใช้งาน กรุณาเลือก "ไม่จดทะเบียน VAT"', variant: 'error' })
+      return false
     }
     return true
   }
@@ -243,15 +244,15 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
             {step === 1 && (
               <Card>
                 <CardContent className="space-y-3">
-                  <FormField label="ชื่อร้าน">
+                  <FormField label="ชื่อร้าน" required>
                     <Input data-field="shop_name" value={shopName} onChange={e => setShopName(e.target.value)} placeholder="ร้านยา..." />
                   </FormField>
-                  <FormField label="ที่อยู่">
+                  <FormField label="ที่อยู่" required>
                     <Textarea data-field="shop_address" rows={3} className="resize-none" value={shopAddress} onChange={e => setShopAddress(e.target.value)} />
                   </FormField>
                   <div className="grid grid-cols-2 gap-3">
-                    <FormField label="เบอร์โทร">
-                      <Input data-field="shop_phone" inputMode="tel" value={shopPhone} onChange={e => setShopPhone(e.target.value)} />
+                    <FormField label="เบอร์โทร" required>
+                      <Input data-field="shop_phone" inputMode="numeric" value={shopPhone} onChange={e => setShopPhone(e.target.value.replace(/\D/g, ''))} />
                     </FormField>
                     <FormField label="LINE ID (ไม่บังคับ)">
                       <Input value={shopLine} onChange={e => setShopLine(e.target.value)} />
@@ -284,29 +285,15 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
                     />
                   </div>
 
+                  {/* VAT-registered mode is blocked at setup for now (Phase 2/3 not ready);
+                      validateStep2 rejects 'yes'. Restore the tax-id/branch/rate/date fields
+                      here to re-enable. See .claude/memory/project_vat_phasing.md */}
                   {vatChoice === 'yes' && (
-                    <div className="space-y-3 pt-1">
-                      <FormField label="เลขประจำตัวผู้เสียภาษี (13 หลัก)">
-                        <Input data-field="tax_id" inputMode="numeric" maxLength={13} value={taxId} onChange={e => setTaxId(e.target.value.replace(/\D/g, ''))} />
-                      </FormField>
-                      <div className="grid grid-cols-2 gap-3">
-                        <FormField label="สาขา">
-                          <Input value={branch} onChange={e => setBranch(e.target.value)} placeholder="สำนักงานใหญ่" />
-                        </FormField>
-                        <FormField label="อัตราภาษี (%)">
-                          <Input data-field="vat_rate" inputMode="decimal" className="text-right" value={vatRate} onChange={e => setVatRate(e.target.value)} />
-                        </FormField>
-                        <div className="col-span-2">
-                          <FormField label="วันที่จดทะเบียน VAT">
-                            <div data-field="vat_date">
-                              <DateInput value={vatDate} onChange={setVatDate} placeholder="วว/ดด/ปปปป" />
-                            </div>
-                          </FormField>
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-warning bg-warning-soft px-3 py-2 flex items-start gap-2 text-xs text-foreground">
-                        <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
-                        <span>เมื่อเปิดการใช้งาน VAT แล้ว การดำเนินการนี้จะย้อนกลับไม่ได้</span>
+                    <div className="rounded-lg border border-warning bg-warning-soft px-3 py-2.5 flex items-start gap-2 text-sm text-foreground">
+                      <AlertTriangle className="size-4 shrink-0 mt-0.5 text-warning-strong" />
+                      <div className="space-y-0.5">
+                        <p className="font-medium">ระบบยังไม่สามารถใช้งานได้</p>
+                        <p className="text-xs text-muted-foreground">โหมดจดทะเบียน VAT ยังไม่เปิดให้ใช้งานในขณะนี้ กรุณาเลือก "ไม่จดทะเบียน VAT" เพื่อดำเนินการต่อ</p>
                       </div>
                     </div>
                   )}

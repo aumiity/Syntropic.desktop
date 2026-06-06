@@ -15,6 +15,7 @@ VAT is being reworked because the old free on/off toggle in Settings let an oper
 
 **Phasing:**
 - **Phase 1 — DONE 2026-05-31:** first-run setup wizard forces shop identity (name/address/phone required — print on labels) + the one-time VAT choice, gated in `App.tsx` via `settings.setup_completed`. See PROGRESS.md block + [[project_next_systems_backlog]]. Plan `docs/plans/first-run-setup.md`, audit `docs/audits/first-run-setup-audit.md`. **NOT click-tested yet.**
+- **VAT-registered path BLOCKED at setup (2026-06-06):** ในระหว่าง [[project_ui_redesign_pass]] เจ้าของสั่ง — ขั้น "ภาษี (VAT)" ของ `SetupWizard.tsx` เลือก "จดทะเบียน VAT" **ไม่ผ่าน**: `validateStep2` คืน false + toast "ระบบยังไม่สามารถใช้งานได้" และ UI แทนช่อง tax-id/branch/rate/date ด้วยกล่อง warning. เหตุผล: VAT subsystem (Phase 2/3) ยังไม่พร้อม ร้านจึง onboard เป็น VAT ไม่ได้ตอนนี้ (ใช้ร้านตัวเอง = NO-VAT ก่อน). **state vars (taxId/branch/vatRate/vatDate) + payload completeSetup คงไว้** (vatChoice='yes' เป็น dead path) → re-enable = เอา field กลับ + ปลด early-return ใน validateStep2 (มี comment ชี้ทางในไฟล์)
 - **Phase 2 — pending:** hide ALL VAT UI throughout when shop is NO-VAT mode.
 - **Phase 3 — pending:** lock/remove the Settings VAT toggle + a guarded "upgrade to VAT" flow (re-enter registration data + effective date + audit log) so VAT can never be flipped off mid-stream.
 
