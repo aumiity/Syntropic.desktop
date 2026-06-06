@@ -50,6 +50,13 @@ metadata:
 ## ทดสอบในแอปจริง — DONE 2026-06-06
 เปิด test.db ในแอปได้ ข้อมูลแสดงครบ. วิธี: `scripts/prep-app-db.mjs` (ELECTRON_RUN_AS_NODE) stage `hygeia-import-test.db` → `D:\Syntropic.Project\hygeia-test-userdata\database\syntropic.db` + ใส่ admin user (password `admin`) + settings.setup_completed=1 (กัน seedDatabase ลง dev-seed ทับ + ข้าม Setup/Login gate). เปิด: **`NODE_ENV=development node_modules/electron/dist/electron.exe --user-data-dir=D:/Syntropic.Project/hygeia-test-userdata .`** — **สำคัญ: `--user-data-dir` ต้องอยู่ก่อน `.` (app path) + ใช้ forward slash** ไม่งั้น Electron ตีเป็น app-arg แล้วเปิด DB default แทน. ต้องมี `npm run dev` (:5173) ก่อน. ยืนยัน: 2025 มี 38,087 บิล, ยอด 3 ปี 22.68M — 69MB ปกติ (mdb 475MB เพราะ history ตั้งแต่ 2012 + 144 ตาราง + Access overhead)
 
+## ⏸️ PAUSED 2026-06-06 — เครื่องมือพร้อม รอแอป production-ready ค่อย import จริง
+**สถานะ:** เครื่องมือ selective import + cleanup workbook **เสร็จ + commit แล้ว** (commit `611178c` ขึ้น main: P-codes + triage columns; ก่อนหน้า `4588f3a`: selective import core). ทดสอบ round-trip ผ่านครบ (สต็อก mismatch 0, payable 1.3M, P-code ไม่ชน).
+**เจ้าของพักไว้ตรงนี้** — รอโปรแกรมพร้อมรัน (production build / ใช้งานจริง) **แล้วค่อย:**
+1. import DB ตัวล่าสุดที่ใช้จริง (รัน importer → stage ด้วย `prep-app-db.mjs` หรือ cutover ตอน fresh install)
+2. **กรองรายการที่ไม่เอาออก *ภายหลัง*** (แก้ `products-edit.xlsx` — กรอง "ปิดใช้งาน(เดิม)"=ปิด 902 ตัว / มูลค่าสต็อก 0 / ลบ row ที่ไม่เอา) แล้ว re-import
+**อย่าเริ่ม import จริงเชิงรุก** — รอเจ้าของกลับมาสั่งเมื่อแอปพร้อม. `products-edit.xlsx` ปัจจุบันยังเป็น raw (ยังไม่ได้แก้)
+
 ## SELECTIVE IMPORT + cleanup workbook — DONE 2026-06-06 (มติเจ้าของ)
 ขอบเขต import รอบ clean-start (decision LOCKED 2026-06-06):
 - **สินค้า/สต็อก/lot/exp/ราคา = ดึงครบ** (snapshot Phase 5 เหมือนเดิม)
