@@ -420,7 +420,8 @@ export default function Theme() {
                 <DemoRow label="Status — soft">
                   <Button variant="primary-soft">Primary-soft</Button>
                   <Button variant="success-soft">Success-soft</Button>
-                  <Button variant="warm">Warm (= warning-soft)</Button>
+                  <Button variant="warning-soft">Warning-soft</Button>
+                  <Button variant="warm">Warm</Button>
                   <Button variant="destructive2">Destructive2</Button>
                   <Button variant="info-soft">Info-soft</Button>
                 </DemoRow>
@@ -1212,7 +1213,7 @@ export default function Theme() {
                     {([
                       'primary', 'primary-strong',
                       'success', 'success-strong',
-                      'warning', 'warning-strong',
+                      'warning-soft', 'warning', 'warning-strong',
                       'destructive', 'destructive-strong', 'destructive2',
                     ] as TintIconTint[]).map(t => (
                       <div key={t} className="flex flex-col items-center gap-1.5">

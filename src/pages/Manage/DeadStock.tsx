@@ -10,11 +10,12 @@ import { useToast } from '@/components/ui/toast'
 import { usePermission } from '@/hooks/usePermission'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { Badge } from '@/components/ui/badge'
-import { formatCurrency } from '@/lib/utils'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { formatCurrency, cn } from '@/lib/utils'
 import { compareNameBuckets } from '@/lib/sortName'
 import type { MetricTint } from '@/components/ui/card'
 import type { ManageOutletContext } from './index'
-import { PackageSearch, Box, Eye, Hourglass, CalendarX } from 'lucide-react'
+import { PackageSearch, Box, Eye, Hourglass, Filter, Check } from 'lucide-react'
 
 const baht = (v: number) => `฿${formatCurrency(v)}`
 
@@ -38,11 +39,11 @@ interface InactiveCounts { m1: number; m3: number; m6: number; m12: number }
 const EMPTY_COUNTS: InactiveCounts = { m1: 0, m3: 0, m6: 0, m12: 0 }
 
 // Severity rises with the threshold — the longer a SKU sits unsold, the louder
-// its card. All four tints have an active-ring mapping in StatCard.
+// its card. Four distinct tints (teal → blue → cream → red).
 const THRESHOLDS: { months: Months; key: keyof InactiveCounts; tint: MetricTint }[] = [
-  { months: 1,  key: 'm1',  tint: 'info-soft' },
-  { months: 3,  key: 'm3',  tint: 'warm' },
-  { months: 6,  key: 'm6',  tint: 'warning' },
+  { months: 1,  key: 'm1',  tint: 'primary' },
+  { months: 3,  key: 'm3',  tint: 'info-soft' },
+  { months: 6,  key: 'm6',  tint: 'warm' },
   { months: 12, key: 'm12', tint: 'destructive' },
 ]
 
@@ -118,18 +119,20 @@ export default function ManageDeadStockPage() {
     [filteredRows],
   )
 
-  // Clickable threshold cards (StatCard via onClick) — selecting one drives the
-  // table window. Counts are nested (m1 >= m3 >= m6 >= m12) by construction.
+  // Passive MetricCard snapshot of the threshold counts. The active window
+  // filter lives in the filter strip's Filter popover (no onClick → ManageLayout
+  // renders MetricCard instead of the clickable StatCard). Counts are nested
+  // (m1 >= m3 >= m6 >= m12) by construction.
   useEffect(() => {
     setSummary(THRESHOLDS.map(t => ({
       label: `ไม่ขายเกิน ${t.months} เดือน`,
       value: counts[t.key].toLocaleString(),
-      icon: t.months >= 12 ? CalendarX : Hourglass,
+      icon: Hourglass,
       tint: t.tint,
-      onClick: () => setMonths(t.months),
-      isActive: months === t.months,
+      sub: 'รายการ',
+      subClassName: 'text-base text-foreground',
     })))
-  }, [counts, months, setSummary])
+  }, [counts, setSummary])
 
   // Clear slot summary on unmount so cards don't leak into the next tab.
   useEffect(() => {
@@ -156,6 +159,34 @@ export default function ManageDeadStockPage() {
           onChange={e => setQ(e.target.value)}
           placeholder="ชื่อสินค้า..."
         />
+
+        {/* Threshold-window filter popover — was previously the clickable summary cards */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรองช่วงเวลา">
+              <Filter className="size-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-1 gap-0">
+            <PopoverHeader className="px-2">
+              <PopoverTitle>ช่วงเวลา</PopoverTitle>
+            </PopoverHeader>
+            {THRESHOLDS.map(t => (
+              <button
+                key={t.months}
+                type="button"
+                onClick={() => setMonths(t.months)}
+                className={cn(
+                  'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                  months === t.months ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
+                )}
+              >
+                <Check className={cn('size-4', months === t.months ? 'opacity-100' : 'opacity-0')} />
+                <span className="flex-1 text-left">ไม่ขายเกิน {t.months} เดือน</span>
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">

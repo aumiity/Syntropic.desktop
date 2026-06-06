@@ -9,6 +9,7 @@ export type TintIconTint =
   | "success-strong"
   | "warning"
   | "warning-strong"
+  | "warning-soft"
   | "destructive"
   | "destructive-strong"
   | "destructive2"
@@ -47,6 +48,7 @@ const BOX_BY_TINT: Record<TintIconTint, string> = {
   "success-strong":      "bg-success text-success-foreground",
   warning:               "bg-warm text-warm-foreground",
   "warning-strong":      "bg-warning text-warning-foreground",
+  "warning-soft":        "bg-warning-soft text-warning-soft-foreground",
   destructive:           "bg-destructive-soft text-destructive",
   "destructive-strong":  "bg-destructive text-destructive-foreground",
   destructive2:          "bg-destructive/15 text-destructive",
@@ -72,6 +74,7 @@ const BORDER_BY_TINT: Record<Exclude<TintIconTint, "neutral">, string> = {
   "success-strong":      "border border-success/40",
   warning:               "border border-warning/40",
   "warning-strong":      "border border-warning/40",
+  "warning-soft":        "border border-warning-soft-foreground/30",
   destructive:           "border border-destructive/40",
   "destructive-strong":  "border border-destructive/40",
   destructive2:          "border border-destructive/40",

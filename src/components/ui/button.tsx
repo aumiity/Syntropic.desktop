@@ -78,6 +78,8 @@ const buttonVariants = cva(
         violet: "bg-violet text-violet-foreground hover:bg-violet/85",
         teal: "bg-teal text-teal-foreground hover:bg-teal/85",
         "success-soft": "bg-success-soft text-success hover:bg-success-soft/80",
+        // warning-soft = pale ORANGE (distinct from `warm` which is cream)
+        "warning-soft": "bg-warning-soft text-warning-soft-foreground hover:bg-warning-soft/80",
         "violet-soft": "bg-violet-soft text-violet-strong hover:bg-violet-soft/80",
         "teal-soft": "bg-teal-soft text-teal-strong hover:bg-teal-soft/80",
         // Soft + colored border — bordered chip look (matches Badge *-outline)

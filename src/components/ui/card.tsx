@@ -106,7 +106,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-type MetricTint = "primary" | "success" | "warning" | "destructive" | "destructive2" | "secondary" | "warm" | "info-soft" | "violet"
+type MetricTint = "primary" | "success" | "warning" | "warning-soft" | "destructive" | "destructive2" | "secondary" | "warm" | "info-soft" | "info" | "violet"
 type SectionTint = MetricTint
 
 function SectionCard({
@@ -186,7 +186,9 @@ function MetricCard({
     : tint === "destructive2" ? "text-destructive"
     : tint === "secondary"   ? "text-muted-foreground"
     : tint === "warm"        ? "text-warm-foreground"
+    : tint === "warning-soft" ? "text-warning-soft-foreground"
     : tint === "info-soft"   ? "text-info-soft-foreground"
+    : tint === "info"        ? "text-info-soft-foreground"
     : tint === "violet"      ? "text-violet-strong"
     : "text-primary"
 
