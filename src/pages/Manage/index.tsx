@@ -68,9 +68,9 @@ export default function ManageLayout() {
   const visibleTabs = useMemo(() => TABS.filter(t => isAdmin || !('adminOnly' in t && t.adminOnly)), [isAdmin])
   const current = resolveTab(location.pathname)
   const [summaryState, setSummaryState] = useState<{ tab: TabValue; cards: ManageSummaryCard[] } | null>(null)
-  // overflow-hidden is required during height animation to clip collapsing
-  // content, but it also clips the StatCard active-ring (extends 2px outside).
-  // Flip overflow back to visible once the enter animation settles.
+  // overflow-hidden is required during the enter/exit height animation to clip
+  // the collapsing content, but it also clips the StatCard active-ring (extends
+  // 2px outside). Flip overflow back to visible once the animation settles.
   const [animatingSummary, setAnimatingSummary] = useState(true)
   const negativeStockCount = useNegativeStockBadge(s => s.count)
 
@@ -119,32 +119,45 @@ export default function ManageLayout() {
         </Tabs>
       </TabStrip>
 
-      {summary && summary.length > 0 && (
-        <motion.div
-          key={`manage-summary-${current}`}
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
-          onAnimationStart={() => setAnimatingSummary(true)}
-          onAnimationComplete={() => setAnimatingSummary(false)}
-          className={`shrink-0 pt-3 ${animatingSummary ? 'overflow-hidden' : ''}`}
-        >
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
-              className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
-            >
-              {summary.map((c, i) => c.onClick
-                ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
-                : <MetricCard key={i} {...c} />)}
-            </motion.div>
-          </AnimatePresence>
-        </motion.div>
-      )}
+      {/* The summary block animates its HEIGHT on both enter and exit (wrapped
+          in AnimatePresence with a stable key), so switching to a tab without
+          cards (สต๊อคติดลบ / ค่าใช้จ่าย) makes the cards collapse upward and the
+          table below stretch in to fill — and the reverse on the way back —
+          instead of popping in/out. pt-3 lives on the inner wrapper so the
+          breathing room collapses together with the card row. The inner
+          AnimatePresence still cross-fades the card set when moving between two
+          tabs that both have cards. */}
+      <AnimatePresence initial={false}>
+        {summary && summary.length > 0 && (
+          <motion.div
+            key="manage-summary"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            onAnimationStart={() => setAnimatingSummary(true)}
+            onAnimationComplete={() => setAnimatingSummary(false)}
+            className={`shrink-0 ${animatingSummary ? 'overflow-hidden' : ''}`}
+          >
+            <div className="pt-3">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.div
+                  key={location.pathname}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
+                >
+                  {summary.map((c, i) => c.onClick
+                    ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
+                    : <MetricCard key={i} {...c} />)}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tabs without summary cards (สต๊อคติดลบ, ค่าใช้จ่าย) would otherwise butt
           right up against the TabStrip divider — the summary block's pt-3 is what
