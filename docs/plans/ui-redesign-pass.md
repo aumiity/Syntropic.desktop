@@ -29,8 +29,8 @@
 ## ลำดับงาน
 
 ### Wave 1 — ประตูทางเข้า (เล็ก, เจอครั้งแรก, วอร์มภาษาดีไซน์ใหม่)
-- [ ] **1. Setup Wizard** — `src/pages/Setup/SetupWizard.tsx` (4 ขั้น: shop / VAT / admin password / confirm)
-- [ ] **2. Login Screen** — `src/pages/Auth/LoginScreen.tsx` (เลือกชื่อ + password + ลืมรหัส flow)
+- [~] **1. Setup Wizard** — `src/pages/Setup/SetupWizard.tsx` (4 ขั้น: shop / VAT / admin password / confirm) — **redesign Split brand panel เสร็จ, tsc ผ่าน, รอเจ้าของดูจริง**
+- [ ] **2. Login Screen** — `src/pages/Auth/LoginScreen.tsx` (เลือกชื่อ + password + ลืมรหัส flow) — จะใช้ BrandPanel/BrandMark ชุดเดียวกัน
 
 ### Wave 2 — หัวใจที่ใช้ทุกวัน (frequency สูงสุด)
 - [ ] **3. POS** — `src/pages/POS/index.tsx` (+ search modal, cart, payment, unit/qty dialogs)
@@ -56,7 +56,14 @@
 ## บันทึกการทำงาน (session log)
 > ลงทุกครั้งที่ทำ: วันที่ · หน้าที่แตะ · เปลี่ยนอะไร · commit
 
-- **2026-06-06** — สร้างแผนนี้ + จัดลำดับ Wave 1–4. ยังไม่เริ่มเจาะหน้าแรก.
+- **2026-06-06** — สร้างแผนนี้ + จัดลำดับ Wave 1–4.
+- **2026-06-06** — **#1 SetupWizard redesign (Split brand panel)** — เจ้าของเลือกทิศทาง Split brand panel.
+  - สร้าง primitive ใหม่ 3 ตัวใน `src/components/ui/`: `brand.tsx` (`BrandMark` + `BrandPanel` + logomark SVG), `stepper.tsx` (`Stepper` แนวตั้ง tone light/dark), `choice-card.tsx` (`ChoiceCard` ย้ายออกจาก page)
+  - รื้อ `SetupWizard.tsx`: 2-pane (BrandPanel ซ้าย teal gradient + โลโก้ Syntropic + tagline + Stepper / ฟอร์มขวา), header แบบ eyebrow+title+desc, ฟอร์มใน `Card`, ลบ local helper (StepHeader/ChoiceCard/SummaryRow) ตามรูล, summary เป็น inline map, cleanup `variant="elevated"` ที่ซ้ำซ้อน
+  - tsc ผ่าน (app config EXIT 0). **รอเจ้าของดูจริง** (ดูผ่านปุ่ม DEV "ดูตัวอย่าง Setup (DEV)" ใน Settings > ร้าน)
+  - **ค้าง/follow-up:** ยังไม่เพิ่ม showcase ของ primitive ใหม่ใน `/theme` (รอ look ผ่านก่อน), Login (#2) จะใช้ BrandPanel/BrandMark ชุดเดียวกัน
 
 ## โน้ตต่อหน้า (เก็บ decision/ของที่เจอระหว่างทำ)
-- _(ว่าง — เติมเมื่อเริ่มเจาะแต่ละหน้า)_
+- **โลโก้ Syntropic:** ยังไม่มี asset จริง → ใช้ SVG logomark ใน `brand.tsx` (3 แท่งไล่ระดับ = growth/syntropy + จุด accent เหลือง). เปลี่ยนเป็นโลโก้จริงได้ที่ `LogoGlyph` ใน `brand.tsx` ที่เดียว
+- **BrandPanel/BrandMark = ใช้ซ้ำ:** Setup + Login (Wave 1) ต้องหน้าตาเดียวกัน — แก้ที่ `brand.tsx` กระทบทั้งคู่
+- **gradient แบรนด์:** `from-primary to-primary-strong` (token มีครบ light/dark)

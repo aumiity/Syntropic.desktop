@@ -3,12 +3,15 @@ import { TitleBar } from '@/components/layout/TitleBar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { SectionCard } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
 import { DateInput } from '@/components/ui/date-input'
+import { BrandPanel, BrandMark } from '@/components/ui/brand'
+import { Stepper } from '@/components/ui/stepper'
+import { ChoiceCard } from '@/components/ui/choice-card'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { useToast } from '@/components/ui/toast'
-import { cn } from '@/lib/utils'
-import { Store, ReceiptText, CheckCircle2, ArrowLeft, ArrowRight, AlertTriangle, Check, KeyRound, Copy } from 'lucide-react'
+import { CheckCircle2, ArrowLeft, ArrowRight, AlertTriangle, KeyRound, Copy } from 'lucide-react'
 
 // First-run setup wizard. Rendered by the SetupGate in App.tsx whenever
 // settings.setup_completed !== 1, replacing the whole app until the operator
@@ -21,6 +24,15 @@ import { Store, ReceiptText, CheckCircle2, ArrowLeft, ArrowRight, AlertTriangle,
 // an auditable gap in the invoice sequence. The decision belongs at onboarding.
 
 type VatChoice = 'yes' | 'no' | null
+
+const STEP_LABELS = ['ข้อมูลร้าน', 'ภาษี (VAT)', 'รหัสผ่าน', 'ยืนยัน']
+
+const STEP_META: Record<1 | 2 | 3 | 4, { title: string; desc: string }> = {
+  1: { title: 'ข้อมูลร้าน', desc: 'ชื่อ ที่อยู่ และเบอร์โทร จะถูกพิมพ์บนฉลากยาและใบเสร็จ' },
+  2: { title: 'ภาษีมูลค่าเพิ่ม (VAT)', desc: 'เลือกสถานะภาษีของร้าน — ตัดสินใจครั้งเดียวตอนติดตั้ง' },
+  3: { title: 'ตั้งรหัสผ่านผู้ดูแล', desc: 'รหัสผ่านสำหรับบัญชีผู้ดูแลระบบ (admin) เพื่อเข้าสู่ระบบ' },
+  4: { title: 'ยืนยันข้อมูล', desc: 'ตรวจสอบความถูกต้องอีกครั้งก่อนเริ่มใช้งาน' },
+}
 
 const focusField = (name: string) => {
   // Defer so a step that just mounted has its inputs in the DOM.
@@ -164,229 +176,192 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
       <div className="flex flex-col h-screen overflow-hidden bg-background">
         <TitleBar />
         <div className="flex-1 overflow-auto">
-          <div className="mx-auto w-full max-w-xl px-6 py-8 space-y-5">
-            <SectionCard icon={KeyRound} title="รหัสกู้คืน (Recovery Code)" tint="warm">
-              <p className="text-sm text-muted-foreground">
-                เก็บรหัสนี้ไว้ในที่ปลอดภัย ใช้สำหรับกู้คืนรหัสผ่านผู้ดูแลหากลืม
-                <span className="text-warning font-medium"> ระบบจะแสดงรหัสนี้เพียงครั้งเดียวเท่านั้น</span>
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 rounded-lg border bg-card px-4 py-3 text-center text-lg font-semibold tracking-widest text-foreground">
-                  {recoveryCode}
+          <div className="mx-auto w-full max-w-md px-6 py-12 space-y-6">
+            <BrandMark tone="dark" tagline="ตั้งค่าร้านเสร็จแล้ว" />
+            <Card>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <TintIcon icon={KeyRound} tint="warm" size="sm" bordered />
+                  <h1 className="text-base font-semibold text-foreground">รหัสกู้คืน (Recovery Code)</h1>
                 </div>
-                <Button variant="elevated" size="lg" onClick={copyRecovery}>
-                  <Copy className="size-4" />คัดลอก
-                </Button>
-              </div>
-              <div className="rounded-lg border border-warning bg-warning-soft px-3 py-2 flex items-start gap-2 text-xs text-foreground">
-                <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
-                <span>กรุณาจดหรือพิมพ์รหัสนี้เก็บไว้ก่อนดำเนินการต่อ เมื่อปิดหน้านี้แล้วจะไม่สามารถเรียกดูได้อีก</span>
-              </div>
-            </SectionCard>
-            <div className="flex items-center">
-              <div className="flex-1" />
-              <Button size="lg" onClick={() => onComplete()}>
-                <CheckCircle2 className="size-4" />จดรหัสแล้ว เริ่มใช้งาน
-              </Button>
-            </div>
+                <p className="text-sm text-muted-foreground">
+                  เก็บรหัสนี้ไว้ในที่ปลอดภัย ใช้สำหรับกู้คืนรหัสผ่านผู้ดูแลหากลืม
+                  <span className="text-warning-strong font-medium"> ระบบจะแสดงรหัสนี้เพียงครั้งเดียวเท่านั้น</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 rounded-lg border bg-muted/40 px-4 py-3 text-center text-lg font-semibold tracking-widest text-foreground">
+                    {recoveryCode}
+                  </div>
+                  <Button variant="elevated" size="lg" onClick={copyRecovery}>
+                    <Copy className="size-4" />คัดลอก
+                  </Button>
+                </div>
+                <div className="rounded-lg border border-warning bg-warning-soft px-3 py-2 flex items-start gap-2 text-xs text-foreground">
+                  <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                  <span>กรุณาจดหรือพิมพ์รหัสนี้เก็บไว้ก่อนดำเนินการต่อ เมื่อปิดหน้านี้แล้วจะไม่สามารถเรียกดูได้อีก</span>
+                </div>
+              </CardContent>
+            </Card>
+            <Button size="lg" className="w-full" onClick={() => onComplete()}>
+              <CheckCircle2 className="size-4" />จดรหัสแล้ว เริ่มใช้งาน
+            </Button>
           </div>
         </div>
       </div>
     )
   }
 
+  const meta = STEP_META[step]
+
+  // Step 4 summary rows (built inline — no module-scope helper component).
+  const summaryRows: [string, string][] = [
+    ['ชื่อร้าน', shopName],
+    ['ที่อยู่', shopAddress],
+    ['เบอร์โทร', shopPhone],
+    ...(shopLicense.trim() ? [['เลขใบอนุญาต', shopLicense] as [string, string]] : []),
+    ...(shopLine.trim() ? [['LINE ID', shopLine] as [string, string]] : []),
+    ['ภาษีมูลค่าเพิ่ม', vatChoice === 'yes' ? `จดทะเบียน VAT (${vatRate}%)` : 'ไม่จดทะเบียน VAT'],
+    ...(vatChoice === 'yes' ? [['เลขผู้เสียภาษี', taxId] as [string, string], ['สาขา', branch] as [string, string]] : []),
+  ]
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <TitleBar />
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto w-full max-w-xl px-6 py-8 space-y-5">
-          <StepHeader step={step} />
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+        <BrandPanel tagline="ระบบขายหน้าร้าน สำหรับร้านยา">
+          <Stepper tone="light" steps={STEP_LABELS} current={step} />
+        </BrandPanel>
 
-          {step === 1 && (
-            <SectionCard icon={Store} title="ข้อมูลร้าน" tint="primary">
-              <FormField label="ชื่อร้าน">
-                <Input data-field="shop_name" variant="elevated" value={shopName} onChange={e => setShopName(e.target.value)} placeholder="ร้านยา..." />
-              </FormField>
-              <FormField label="ที่อยู่">
-                <Textarea data-field="shop_address" variant="elevated" rows={3} className="resize-none" value={shopAddress} onChange={e => setShopAddress(e.target.value)} />
-              </FormField>
-              <div className="grid grid-cols-2 gap-3">
-                <FormField label="เบอร์โทร">
-                  <Input data-field="shop_phone" variant="elevated" inputMode="tel" value={shopPhone} onChange={e => setShopPhone(e.target.value)} />
-                </FormField>
-                <FormField label="LINE ID (ไม่บังคับ)">
-                  <Input variant="elevated" value={shopLine} onChange={e => setShopLine(e.target.value)} />
-                </FormField>
-                <div className="col-span-2">
-                  <FormField label="เลขใบอนุญาต (ไม่บังคับ)">
-                    <Input variant="elevated" value={shopLicense} onChange={e => setShopLicense(e.target.value)} />
+        <div className="flex-1 overflow-auto">
+          <div className="mx-auto w-full max-w-lg px-8 py-10 space-y-6">
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium uppercase tracking-wide text-primary">ขั้นที่ {step} จาก 4</div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{meta.title}</h1>
+              <p className="text-sm text-muted-foreground">{meta.desc}</p>
+            </div>
+
+            {step === 1 && (
+              <Card>
+                <CardContent className="space-y-3">
+                  <FormField label="ชื่อร้าน">
+                    <Input data-field="shop_name" value={shopName} onChange={e => setShopName(e.target.value)} placeholder="ร้านยา..." />
                   </FormField>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">ชื่อ ที่อยู่ และเบอร์โทร จะถูกพิมพ์บนฉลากยาและใบเสร็จ</p>
-            </SectionCard>
-          )}
-
-          {step === 2 && (
-            <SectionCard icon={ReceiptText} title="ภาษีมูลค่าเพิ่ม (VAT)" tint="info-soft">
-              <div className="grid grid-cols-2 gap-3">
-                <ChoiceCard
-                  title="จดทะเบียน VAT"
-                  desc="ออกใบกำกับภาษีได้ เก็บ VAT ทุกบิล"
-                  selected={vatChoice === 'yes'}
-                  onClick={() => setVatChoice('yes')}
-                />
-                <ChoiceCard
-                  title="ไม่จดทะเบียน VAT"
-                  desc="ขายปกติ ไม่มีภาษีมูลค่าเพิ่ม"
-                  selected={vatChoice === 'no'}
-                  onClick={() => setVatChoice('no')}
-                />
-              </div>
-
-              {vatChoice === 'yes' && (
-                <div className="space-y-3 pt-1">
-                  <FormField label="เลขประจำตัวผู้เสียภาษี (13 หลัก)">
-                    <Input data-field="tax_id" variant="elevated" inputMode="numeric" maxLength={13} value={taxId} onChange={e => setTaxId(e.target.value.replace(/\D/g, ''))} />
+                  <FormField label="ที่อยู่">
+                    <Textarea data-field="shop_address" rows={3} className="resize-none" value={shopAddress} onChange={e => setShopAddress(e.target.value)} />
                   </FormField>
                   <div className="grid grid-cols-2 gap-3">
-                    <FormField label="สาขา">
-                      <Input variant="elevated" value={branch} onChange={e => setBranch(e.target.value)} placeholder="สำนักงานใหญ่" />
+                    <FormField label="เบอร์โทร">
+                      <Input data-field="shop_phone" inputMode="tel" value={shopPhone} onChange={e => setShopPhone(e.target.value)} />
                     </FormField>
-                    <FormField label="อัตราภาษี (%)">
-                      <Input data-field="vat_rate" variant="elevated" inputMode="decimal" className="text-right" value={vatRate} onChange={e => setVatRate(e.target.value)} />
+                    <FormField label="LINE ID (ไม่บังคับ)">
+                      <Input value={shopLine} onChange={e => setShopLine(e.target.value)} />
                     </FormField>
                     <div className="col-span-2">
-                      <FormField label="วันที่จดทะเบียน VAT">
-                        <div data-field="vat_date">
-                          <DateInput variant="elevated" value={vatDate} onChange={setVatDate} placeholder="วว/ดด/ปปปป" />
-                        </div>
+                      <FormField label="เลขใบอนุญาต (ไม่บังคับ)">
+                        <Input value={shopLicense} onChange={e => setShopLicense(e.target.value)} />
                       </FormField>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-warning bg-warning-soft px-3 py-2 flex items-start gap-2 text-xs text-foreground">
-                    <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
-                    <span>เมื่อเปิดการใช้งาน VAT แล้ว การดำเนินการนี้จะย้อนกลับไม่ได้</span>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 2 && (
+              <Card>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <ChoiceCard
+                      title="จดทะเบียน VAT"
+                      desc="ออกใบกำกับภาษีได้ เก็บ VAT ทุกบิล"
+                      selected={vatChoice === 'yes'}
+                      onClick={() => setVatChoice('yes')}
+                    />
+                    <ChoiceCard
+                      title="ไม่จดทะเบียน VAT"
+                      desc="ขายปกติ ไม่มีภาษีมูลค่าเพิ่ม"
+                      selected={vatChoice === 'no'}
+                      onClick={() => setVatChoice('no')}
+                    />
                   </div>
-                </div>
+
+                  {vatChoice === 'yes' && (
+                    <div className="space-y-3 pt-1">
+                      <FormField label="เลขประจำตัวผู้เสียภาษี (13 หลัก)">
+                        <Input data-field="tax_id" inputMode="numeric" maxLength={13} value={taxId} onChange={e => setTaxId(e.target.value.replace(/\D/g, ''))} />
+                      </FormField>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField label="สาขา">
+                          <Input value={branch} onChange={e => setBranch(e.target.value)} placeholder="สำนักงานใหญ่" />
+                        </FormField>
+                        <FormField label="อัตราภาษี (%)">
+                          <Input data-field="vat_rate" inputMode="decimal" className="text-right" value={vatRate} onChange={e => setVatRate(e.target.value)} />
+                        </FormField>
+                        <div className="col-span-2">
+                          <FormField label="วันที่จดทะเบียน VAT">
+                            <div data-field="vat_date">
+                              <DateInput value={vatDate} onChange={setVatDate} placeholder="วว/ดด/ปปปป" />
+                            </div>
+                          </FormField>
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-warning bg-warning-soft px-3 py-2 flex items-start gap-2 text-xs text-foreground">
+                        <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                        <span>เมื่อเปิดการใช้งาน VAT แล้ว การดำเนินการนี้จะย้อนกลับไม่ได้</span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 3 && (
+              <Card>
+                <CardContent className="space-y-3">
+                  <FormField label="รหัสผ่าน">
+                    <Input data-field="admin_pw" type="password" value={adminPw} onChange={e => setAdminPw(e.target.value)} placeholder="อย่างน้อย 4 ตัวอักษร" />
+                  </FormField>
+                  <FormField label="ยืนยันรหัสผ่าน">
+                    <Input data-field="admin_pw2" type="password" value={adminPw2} onChange={e => setAdminPw2(e.target.value)} />
+                  </FormField>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 4 && (
+              <Card>
+                <CardContent>
+                  <dl className="text-sm divide-y divide-border">
+                    {summaryRows.map(([label, value]) => (
+                      <div key={label} className="flex items-start justify-between gap-4 py-2">
+                        <dt className="text-muted-foreground shrink-0">{label}</dt>
+                        <dd className="text-foreground text-right break-words">{value || '-'}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="flex items-center gap-2">
+              {step > 1 && (
+                <Button variant="elevated" size="lg" onClick={back} disabled={busy}>
+                  <ArrowLeft className="size-4" />ย้อนกลับ
+                </Button>
               )}
-            </SectionCard>
-          )}
-
-          {step === 3 && (
-            <SectionCard icon={KeyRound} title="ตั้งรหัสผ่านผู้ดูแล" tint="warm">
-              <p className="text-sm text-muted-foreground">
-                ตั้งรหัสผ่านสำหรับบัญชีผู้ดูแลระบบ (admin) เพื่อใช้เข้าสู่ระบบ
-              </p>
-              <FormField label="รหัสผ่าน">
-                <Input data-field="admin_pw" type="password" value={adminPw} onChange={e => setAdminPw(e.target.value)} placeholder="อย่างน้อย 4 ตัวอักษร" />
-              </FormField>
-              <FormField label="ยืนยันรหัสผ่าน">
-                <Input data-field="admin_pw2" type="password" value={adminPw2} onChange={e => setAdminPw2(e.target.value)} />
-              </FormField>
-            </SectionCard>
-          )}
-
-          {step === 4 && (
-            <SectionCard icon={CheckCircle2} title="ยืนยันข้อมูล" tint="success">
-              <dl className="text-sm divide-y divide-border">
-                <SummaryRow label="ชื่อร้าน" value={shopName} />
-                <SummaryRow label="ที่อยู่" value={shopAddress} />
-                <SummaryRow label="เบอร์โทร" value={shopPhone} />
-                {shopLicense.trim() && <SummaryRow label="เลขใบอนุญาต" value={shopLicense} />}
-                {shopLine.trim() && <SummaryRow label="LINE ID" value={shopLine} />}
-                <SummaryRow label="ภาษีมูลค่าเพิ่ม" value={vatChoice === 'yes' ? `จดทะเบียน VAT (${vatRate}%)` : 'ไม่จดทะเบียน VAT'} />
-                {vatChoice === 'yes' && <SummaryRow label="เลขผู้เสียภาษี" value={taxId} />}
-                {vatChoice === 'yes' && <SummaryRow label="สาขา" value={branch} />}
-              </dl>
-            </SectionCard>
-          )}
-
-          <div className="flex items-center gap-2">
-            {step > 1 && (
-              <Button variant="elevated" size="lg" onClick={back} disabled={busy}>
-                <ArrowLeft className="size-4" />ย้อนกลับ
-              </Button>
-            )}
-            <div className="flex-1" />
-            {step < 4 ? (
-              <Button size="lg" onClick={next}>
-                ถัดไป<ArrowRight className="size-4" />
-              </Button>
-            ) : (
-              <Button size="lg" onClick={finish} disabled={busy}>
-                <CheckCircle2 className="size-4" />{busy ? 'กำลังบันทึก...' : 'เริ่มใช้งาน'}
-              </Button>
-            )}
+              <div className="flex-1" />
+              {step < 4 ? (
+                <Button size="lg" onClick={next}>
+                  ถัดไป<ArrowRight className="size-4" />
+                </Button>
+              ) : (
+                <Button size="lg" onClick={finish} disabled={busy}>
+                  <CheckCircle2 className="size-4" />{busy ? 'กำลังบันทึก...' : 'เริ่มใช้งาน'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-function StepHeader({ step }: { step: 1 | 2 | 3 | 4 }) {
-  const labels = ['ข้อมูลร้าน', 'ภาษี (VAT)', 'รหัสผ่าน', 'ยืนยัน']
-  return (
-    <div className="space-y-3">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">ตั้งค่าร้านครั้งแรก</h1>
-        <p className="text-sm text-muted-foreground">กรอกข้อมูลที่จำเป็นเพื่อเริ่มใช้งานโปรแกรม</p>
-      </div>
-      <div className="flex items-center gap-2">
-        {labels.map((l, i) => {
-          const n = (i + 1) as 1 | 2 | 3 | 4
-          const active = n === step
-          const done = n < step
-          return (
-            <div key={l} className="flex items-center gap-2 flex-1">
-              <div className={cn(
-                'flex items-center justify-center size-7 rounded-full text-xs font-semibold shrink-0 border',
-                active && 'bg-primary text-primary-foreground border-primary',
-                done && 'bg-success text-success-foreground border-success',
-                !active && !done && 'bg-card text-muted-foreground border-border',
-              )}>
-                {done ? <CheckCircle2 className="size-4" /> : n}
-              </div>
-              <span className={cn('text-sm', active ? 'text-foreground font-medium' : 'text-muted-foreground')}>{l}</span>
-              {i < labels.length - 1 && <div className="flex-1 h-px bg-border" />}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function ChoiceCard({ title, desc, selected, onClick }: { title: string; desc: string; selected: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'relative rounded-card border-2 p-4 pr-9 text-left transition-colors',
-        selected ? 'border-primary bg-primary/5 ring-2 ring-primary/25' : 'border-border bg-card hover:border-primary/40',
-      )}
-    >
-      <span
-        className={cn(
-          'absolute top-3 right-3 flex items-center justify-center size-5 rounded-full border transition-colors',
-          selected ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/40 text-transparent',
-        )}
-      >
-        <Check className="size-3.5" />
-      </span>
-      <div className="text-sm font-semibold text-foreground">{title}</div>
-      <div className="text-xs text-muted-foreground mt-1">{desc}</div>
-    </button>
-  )
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-4 py-2">
-      <dt className="text-muted-foreground shrink-0">{label}</dt>
-      <dd className="text-foreground text-right break-words">{value || '-'}</dd>
     </div>
   )
 }
