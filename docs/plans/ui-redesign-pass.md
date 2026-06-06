@@ -33,7 +33,7 @@
 - [x] **2. Login Screen** — `src/pages/Auth/LoginScreen.tsx` — **DONE (เจ้าของเคาะ 2026-06-06):** 2-pane BrandPanel + Apple-style user list (avatar lg, ชื่อ+email, ติ๊กถูกตอนเลือก, ไม่มีกรอบนอก), โลโก้ใบไม้จริง + "เข้าสู่ระบบ" ใหญ่, admin-first, ปุ่มลืมรหัส elevated, ชื่อร้านจริง. พ่วง: username UPPERCASE+charset (people.ts/seed), avatar size lg, **โลโก้ Syntropic จริง** (logo-mark.tsx) ใช้ทั้ง Setup/Login/Sidebar
 
 ### Wave 2 — หัวใจที่ใช้ทุกวัน (frequency สูงสุด)
-- [ ] **3. POS** — `src/pages/POS/index.tsx` (+ search modal, cart, payment, unit/qty dialogs)
+- [~] **3. POS** — `src/pages/POS/index.tsx` — **ทำทีละโซน (ดู [[project-pos-redesign]]).** เสร็จ: Right rail (ปุ่ม action→elevated + ไอคอนสีตามบทบาท + เอา border teal/accent ออก), ปุ่ม inline cart (หน่วย/จำนวน/ราคา→primary-soft, ส่วนลด→destructive2). ค้าง: payment dialog, dialogs อื่น (product search/quick-add/return/adjust), unit/qty/price modals
 - [ ] **4. Products list** — `src/pages/Products/ProductsList.tsx` + `BundlesList.tsx`
 - [ ] **5. Edit Product / Bundle** — EditProduct (tabs) + EditBundle
 

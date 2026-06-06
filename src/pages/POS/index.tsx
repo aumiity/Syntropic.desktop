@@ -1057,39 +1057,39 @@ export default function POSPage() {
                             <span className="truncate">{item.unit_name}</span>
                           </div>
                         ) : (
-                          <Button variant="outline" size="sm" onClick={() => setUnitModalIdx(idx)}
-                            className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md bg-primary-soft text-primary text-sm font-semibold hover:bg-primary-soft transition-colors">
+                          <Button variant="primary-soft" size="sm" onClick={() => setUnitModalIdx(idx)}
+                            className="flex items-center w-full justify-center h-8 px-2 overflow-hidden rounded-md text-sm font-semibold">
                             <span className="truncate">{item.unit_name}</span>
                           </Button>
                         )}
                       </TableCell>
 
                       <TableCell className="text-center">
-                        <Button variant="outline" size="sm"
+                        <Button variant="primary-soft" size="sm"
                           onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
-                          className="flex items-center w-full justify-center h-8 rounded-md bg-primary-soft text-primary text-sm font-semibold hover:bg-primary-soft transition-colors ">
+                          className="flex items-center w-full justify-center h-8 rounded-md text-sm font-semibold">
                           <span className="flex-1 text-center">{item.qty}</span>
                         </Button>
                       </TableCell>
 
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
-                          className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 overflow-hidden rounded-md bg-primary-soft text-primary text-sm font-semibold hover:bg-primary-soft transition-colors">
+                        <Button variant="primary-soft" size="sm" onClick={() => { setCustomPriceInput(String(item.unit_price)); setPriceModalIdx(idx) }}
+                          className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 overflow-hidden rounded-md text-sm font-semibold">
                           <span className="text-right truncate">{formatCurrency(item.unit_price)}</span>
                         </Button>
                       </TableCell>
 
                       <TableCell className="text-right">
                         {item.discount ? (
-                          <Button variant="outline" size="sm"
+                          <Button variant="destructive2" size="sm"
                             onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
-                            className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md bg-destructive-soft text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors">
+                            className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md text-sm font-semibold">
                             <span className="leading-none">{formatCurrency(item.discount)}</span>
                           </Button>
                         ) : (
-                          <Button variant="outline" size="sm"
+                          <Button variant="destructive2" size="sm"
                             onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
-                            className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md bg-card text-destructive text-sm font-medium bg-destructive-soft hover:bg-destructive-soft hover:text-destructive transition-colors">
+                            className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md text-sm font-medium">
                             <span className="text-right">0</span>
                           </Button>
                         )}
@@ -1172,7 +1172,7 @@ export default function POSPage() {
         {/* Right column */}
         <div className="w-80 flex flex-col gap-2.5 min-w-0">
           {/* Total card */}
-          <div className="h-40 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0 border border-border">
+          <div className="h-40 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0">
             <div className="text-right text-md font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
             <div className="mt-6 text-right font-bold leading-[1.05] tracking-tight text-right" style={{ fontSize: '66px', letterSpacing: '-1.5px' }}>
               {formatCurrency(cart.totalAmount())}
@@ -1181,25 +1181,25 @@ export default function POSPage() {
 
           {/* Quick actions (vertical stack) */}
           <div className="flex flex-col gap-1.5 flex-1 min-h-0">
-            <Button variant="outline" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium border border-border">
-              <Banknote className="size-6 text-foreground-subtle" /> เปิดลิ้นชัก
+            <Button variant="elevated" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              <Banknote className="size-6 text-primary" /> เปิดลิ้นชัก
             </Button>
-            <Button variant="outline" disabled
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium border border-border">
-              <Tag className="size-6 text-foreground-subtle" /> พิมพ์ฉลาก
+            <Button variant="elevated" disabled
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              <Tag className="size-6 text-info-soft-foreground" /> พิมพ์ฉลาก
             </Button>
-            <Button variant="outline" onClick={() => setShowAdjust(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium border border-border">
-              <PackageMinus className="size-6 text-foreground-subtle" /> ตัดสต็อก
+            <Button variant="elevated" onClick={() => setShowAdjust(true)}
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              <PackageMinus className="size-6 text-info-soft-foreground" /> ตัดสต็อก
             </Button>
-            <Button variant="outline" onClick={() => setShowReturn(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium border border-border">
-              <RotateCcw className="size-6 text-foreground-subtle" /> รับคืนสินค้า
+            <Button variant="elevated" onClick={() => setShowReturn(true)}
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              <RotateCcw className="size-6 text-warm-foreground" /> รับคืนสินค้า
             </Button>
-            <Button variant="outline" onClick={() => navigate('/manage')}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto bg-card text-foreground hover:bg-muted text-xl font-medium border border-border">
-              <Trash2 className="size-6 text-foreground-subtle" /> ยกเลิกบิล
+            <Button variant="elevated" onClick={() => navigate('/manage')}
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              <Trash2 className="size-6 text-destructive" /> ยกเลิกบิล
             </Button>
           </div>
 
@@ -1212,7 +1212,7 @@ export default function POSPage() {
               setShowBreakdown(false)
               setShowPayment(true)
             }}
-            className="w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-accent/85  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3 border border-border">
+            className="w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-accent/85  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3">
               <HandCoins className="size-9" strokeWidth={2.2} />
               <span className="text-4xl font-bold leading-none">ชำระเงิน</span>
           </Button>
