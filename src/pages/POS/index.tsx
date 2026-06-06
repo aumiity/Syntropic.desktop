@@ -1814,7 +1814,7 @@ export default function POSPage() {
                     )}
                   </div>
                   <div className="mt-auto">
-                    <Button variant="accent" className="w-full h-24 text-4xl font-bold rounded-2xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
+                    <Button variant="accent" className="w-full h-32 text-4xl font-bold rounded-2xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
                       <HandCoins className="size-10" /> {saving ? 'กำลังบันทึก...' : ' ชำระเงิน'}
                     </Button>
                   </div>
