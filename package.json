@@ -17,6 +17,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.11",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.39.0",
     "lucide-react": "^1.16.0",
     "radix-ui": "^1.4.3",

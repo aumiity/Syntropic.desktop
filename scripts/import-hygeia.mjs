@@ -16,10 +16,18 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const require = createRequire(import.meta.url)
 const Database = require('better-sqlite3')
 const esbuild = require('esbuild')
+const ExcelJS = require('exceljs')
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const EXPORT_DIR = 'D:\\Syntropic.Project\\hygeia-export'
 const OUT_DB = 'D:\\Syntropic.Project\\hygeia-import-test.db'
+// Operator's edited cleanup workbook (scripts/gen-products-xlsx.mjs output). When
+// present it becomes an override layer keyed by ItemKey: edits win, DELETED ROWS
+// are excluded from the import. Absent -> import every product unchanged.
+const EDIT_XLSX = 'D:\\Syntropic.Project\\products-edit.xlsx'
+// Clean start (decision 2026-06-06): no sales history. Purchases are imported but
+// ONLY the unpaid, not-cancelled credit bills (accounts payable). Flip to re-enable.
+const IMPORT_SALES = false
 
 // ---- helpers -----------------------------------------------------------------
 const load = (t) => JSON.parse(readFileSync(path.join(EXPORT_DIR, t + '.json'), 'utf8'))
@@ -68,6 +76,66 @@ function makeUnitResolver(db) {
 
 const log = (...a) => console.log(...a)
 
+// exceljs cell.value may be a plain string/number, a rich-text object, a
+// formula {result}, or a hyperlink {text}. Flatten to a trimmed string.
+function cellText(v) {
+  if (v === null || v === undefined) return ''
+  if (typeof v === 'object') {
+    if (Array.isArray(v.richText)) return v.richText.map((p) => p.text).join('').trim()
+    if (v.text !== undefined) return String(v.text).trim()
+    if (v.result !== undefined) return String(v.result).trim()
+    return String(v).trim()
+  }
+  return String(v).trim()
+}
+
+// Read the operator's edited workbook back into an override layer.
+// Returns { keepKeys:Set<ItemKey>, overrides:Map<ItemKey,{tradeName,nameForPrint,categoryName}> }
+// or null when the file is absent (-> import everything, no overrides).
+async function loadEdits() {
+  if (!existsSync(EDIT_XLSX)) return null
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.readFile(EDIT_XLSX)
+  const ws = wb.getWorksheet('สินค้า') || wb.worksheets[0]
+  const colOf = {}
+  ws.getRow(1).eachCell((cell, c) => { colOf[cellText(cell.value)] = c })
+  const need = (label) => { const c = colOf[label]; if (!c) throw new Error(`xlsx missing column: ${label}`); return c }
+  const cKey = need('ItemKey'), cName = need('ชื่อการค้า'), cPrint = need('ชื่อบนใบเสร็จ/ฉลาก'), cCat = need('หมวดหมู่')
+  const keepKeys = new Set()
+  const overrides = new Map()
+  for (let r = 2; r <= ws.rowCount; r++) {
+    const key = cellText(ws.getCell(r, cKey).value)
+    if (!key) continue   // blank/deleted row
+    keepKeys.add(key)
+    overrides.set(key, {
+      tradeName: cellText(ws.getCell(r, cName).value),
+      nameForPrint: cellText(ws.getCell(r, cPrint).value),
+      categoryName: cellText(ws.getCell(r, cCat).value),
+    })
+  }
+  return { keepKeys, overrides }
+}
+
+// ItemKeys that appear on an unpaid, not-cancelled purchase bill. These products
+// are force-kept even if the operator deleted their row, so the accounts-payable
+// total stays correct. (Joins PurchaseReceiveLot -> PurchaseReceive -> Header.)
+function computeDebtItemKeys() {
+  const debt = new Set()
+  if (!existsSync(path.join(EXPORT_DIR, 'PurchaseReceiveHeader.json'))) return debt
+  const unpaidHeaders = new Set()
+  for (const h of load('PurchaseReceiveHeader')) {
+    if (!bool(h.IsPay) && !bool(h.IsCanceled)) unpaidHeaders.add(String(h.PurchaseReceiveHeaderKey))
+  }
+  const unpaidReceive = new Set()
+  for (const r of load('PurchaseReceive')) {
+    if (unpaidHeaders.has(String(r.PurchaseReceiveHeaderKey))) unpaidReceive.add(String(r.PurchaseReceiveKey))
+  }
+  for (const L of load('PurchaseReceiveLot')) {
+    if (unpaidReceive.has(String(L.PurchaseReceiveKey))) debt.add(String(L.ItemKey))
+  }
+  return debt
+}
+
 async function main() {
   const t0 = Date.now()
   const db = initDb()
@@ -82,8 +150,21 @@ async function main() {
   const unit = makeUnitResolver(db)
   const report = []
 
+  // ---- cleanup workbook overrides + keep gating -----------------------------
+  const edits = await loadEdits()
+  const editKeep = edits ? edits.keepKeys : null         // null = no xlsx -> keep all
+  const debtKeep = editKeep ? computeDebtItemKeys() : new Set()  // force-keep payable products
+  // an item is imported when: no workbook, OR kept in workbook, OR on an unpaid bill
+  const shouldImport = (key) => !editKeep || editKeep.has(key) || debtKeep.has(key)
+  if (edits) {
+    report.push(`Edit workbook: ${editKeep.size} rows kept, ${debtKeep.size} debt products force-kept`)
+  } else {
+    report.push(`Edit workbook: none (${EDIT_XLSX} absent) -> import all products unchanged`)
+  }
+
   // ---- Phase 1: ItemType -> product_categories ------------------------------
   const itemTypeToCat = new Map()
+  const catNameToId = new Map()   // category name -> id (resolves workbook overrides)
   {
     const rows = load('ItemType')
     const insCat = db.prepare(`INSERT INTO product_categories (code, name, description, sort_order, is_disabled) VALUES (?, ?, ?, ?, ?)`)
@@ -91,9 +172,12 @@ async function main() {
       let i = 0
       for (const r of rows) {
         const code = `CAT-${String(++i).padStart(4, '0')}`
+        const name = s(r.Name) ?? '(ไม่ระบุ)'
         const desc = `hygeia:ItemTypeKey=${r.ItemTypeKey} code=${s(r.Code) ?? ''}`
-        const info = insCat.run(code, s(r.Name) ?? '(ไม่ระบุ)', desc, i, bool(r.IsDisabled))
-        itemTypeToCat.set(String(r.ItemTypeKey), Number(info.lastInsertRowid))
+        const info = insCat.run(code, name, desc, i, bool(r.IsDisabled))
+        const id = Number(info.lastInsertRowid)
+        itemTypeToCat.set(String(r.ItemTypeKey), id)
+        catNameToId.set(name, id)
       }
     })()
     report.push(`Phase 1 categories: ${rows.length}`)
@@ -116,26 +200,42 @@ async function main() {
         @price_retail, @price_wholesale1, @price_wholesale2, @cost_price, @last_cost_price,
         @unit_id, 0, @reorder_point, @tmt_id, @search_keywords, @note
       )`)
+    let excluded = 0, forceKept = 0, overrodeName = 0, overrodeCat = 0
     db.transaction(() => {
       for (const r of rows) {
+        const key = String(r.ItemKey)
+        if (!shouldImport(key)) { excluded++; continue }   // row deleted in workbook -> skip
+        if (editKeep && !editKeep.has(key)) forceKept++     // on an unpaid bill, kept anyway
+        const ov = edits ? edits.overrides.get(key) : null
         const baseUnitName = s(r.SaleUnitName)
         const unitId = unit(baseUnitName)
-        itemBaseUnitName.set(String(r.ItemKey), baseUnitName)
+        itemBaseUnitName.set(key, baseUnitName)
         const rp = num(r.ReorderPoint)
+        // workbook overrides win; blank cells fall back to the Hygeia value
+        const tradeName = (ov && ov.tradeName) ? ov.tradeName : (s(r.Name) ?? '(ไม่ระบุชื่อ)')
+        if (ov && ov.tradeName && ov.tradeName !== (s(r.Name) ?? '(ไม่ระบุชื่อ)')) overrodeName++
+        const nameForPrint = (ov && ov.nameForPrint) ? ov.nameForPrint : s(r.NameForPrint)
+        let categoryId = itemTypeToCat.get(String(r.ItemTypeKey)) ?? null
+        if (ov && ov.categoryName && catNameToId.has(ov.categoryName)) {
+          const cid = catNameToId.get(ov.categoryName)
+          if (cid !== categoryId) overrodeCat++
+          categoryId = cid
+        }
         const info = insProd.run({
           barcode: s(r.BarCode), barcode2: s(r.BarCode2), barcode3: s(r.BarCode3), barcode4: s(r.BarCode4),
-          code: s(r.Code), trade_name: s(r.Name) ?? '(ไม่ระบุชื่อ)', name_for_print: s(r.NameForPrint),
-          category_id: itemTypeToCat.get(String(r.ItemTypeKey)) ?? null,
+          code: s(r.Code), trade_name: tradeName, name_for_print: nameForPrint,
+          category_id: categoryId,
           is_stock_item: bool(r.IsStockItem), is_disabled: bool(r.IsDisabled), is_hidden: bool(r.IsHidden),
           price_retail: num(r.SalePrice), price_wholesale1: num(r.Wholesale1), price_wholesale2: num(r.Wholesale2),
           cost_price: num(r.MovAvgPrice), last_cost_price: num(r.UnitPrice),
           unit_id: unitId, reorder_point: rp > 0 ? rp : null, tmt_id: s(r.TMTID),
           search_keywords: s(r.OtherName), note: s(r.Note),
         })
-        itemToProduct.set(String(r.ItemKey), Number(info.lastInsertRowid))
+        itemToProduct.set(key, Number(info.lastInsertRowid))
       }
     })()
-    report.push(`Phase 2 products: ${rows.length}`)
+    report.push(`Phase 2 products: ${rows.length} source -> ${itemToProduct.size} imported (excluded ${excluded}, force-kept ${forceKept})`)
+    if (edits) report.push(`  overrides applied: trade_name ${overrodeName}, category ${overrodeCat}`)
   }
 
   // ---- Phase 3: ItemUnit -> product_units (non-base variants) ----------------
@@ -317,10 +417,15 @@ async function main() {
       VALUES (@invoice_no, @supplier_id, @supplier_invoice_no, @order_date,
         @payment_type, @due_date, @is_paid, @paid_date, @note, @discount_amount, @status, @created_at)`)
     const prHeaderToInvoice = new Map()
+    const prInvoiceNet = new Map()   // invoice -> Hygeia header (TotalPrice−TotalDiscount), for data-quality cross-check
     const grCounter = new Map()
-    let noSupplier = 0
+    let noSupplier = 0, skippedHeaders = 0
+    let expectedOwed = 0
     db.transaction(() => {
       for (const h of hdrs) {
+        // Accounts-payable only: keep unpaid, not-cancelled bills; drop paid/cash/cancelled.
+        if (bool(h.IsPay) || bool(h.IsCanceled)) { skippedHeaders++; continue }
+        expectedOwed += num(h.TotalPrice) - num(h.TotalDiscount)
         const d = dOnly(h.DocDT)
         const ymd = d ? d.replace(/-/g, '') : '00000000'
         const n = (grCounter.get(ymd) || 0) + 1; grCounter.set(ymd, n)
@@ -335,6 +440,7 @@ async function main() {
           status: bool(h.IsCanceled) ? 'cancelled' : 'completed', created_at: dFull(h.DocDT),
         })
         prHeaderToInvoice.set(String(h.PurchaseReceiveHeaderKey), invoice)
+        prInvoiceNet.set(invoice, num(h.TotalPrice) - num(h.TotalDiscount))
       }
     })()
     // line items: PurchaseReceiveLot (lot/qty) joined to PurchaseReceive (UnitPrice). C2:
@@ -361,11 +467,36 @@ async function main() {
         n++
       }
     })()
-    report.push(`Phase 7 purchase: ${hdrs.length} receipts (no-supplier ${noSupplier}), ${n} items (skip ${skip})`)
+    const kept = prHeaderToInvoice.size
+    report.push(`Phase 7 purchase (unpaid credit only): ${hdrs.length} source -> ${kept} receipts kept (skip paid/cancelled ${skippedHeaders}, no-supplier ${noSupplier}), ${n} items (skip ${skip})`)
+
+    // Drop any GR left with zero line items (header kept but every line skipped).
+    const emptied = db.prepare(`
+      DELETE FROM purchase_receipts
+      WHERE invoice_no NOT IN (SELECT DISTINCT invoice_no FROM purchase_receipt_items)`).run().changes
+    report.push(`  empty GRs removed: ${emptied} -> ${kept - emptied} receipts remain`)
+
+    // Payable = Σ line items (cost×qty). This is AUTHORITATIVE: Hygeia's header
+    // TotalPrice is buggy on most old bills (it stores the unit price and forgets
+    // ×quantity — verified 259/351 mismatch; line & header discounts are both 0).
+    // Per-bill Σ(UnitPrice×UnitQty) is internally consistent (it ties out with the
+    // Phase-5 stock snapshot), so line detail drives what is owed.
+    const owed = db.prepare(`SELECT COALESCE(SUM(cost_price * qty),0) AS c FROM purchase_receipt_items`).get().c
+    report.push(`  payable owed (from line items, AUTHORITATIVE): ${owed.toFixed(2)}`)
+    report.push(`  (Hygeia header Σ(TotalPrice−TotalDiscount) = ${expectedOwed.toFixed(2)} — UNRELIABLE, header drops ×qty on old bills)`)
+    const perInv = db.prepare(`SELECT invoice_no, SUM(cost_price * qty) AS s FROM purchase_receipt_items GROUP BY invoice_no`).all()
+    let hdrBad = 0
+    for (const r of perInv) { const hn = prInvoiceNet.get(r.invoice_no); if (hn !== undefined && Math.abs(hn - r.s) > 1) hdrBad++ }
+    report.push(`  data-quality: header total disagrees with line sum on ${hdrBad}/${perInv.length} bills (Hygeia bug; line items used)`)
+    const orphanPRI = db.prepare(`SELECT COUNT(*) c FROM purchase_receipt_items WHERE product_id NOT IN (SELECT id FROM products)`).get().c
+    report.push(`  orphan purchase items: ${orphanPRI}`)
   }
 
   // ---- Phase 8: sales (3-year) ----------------------------------------------
-  if (existsSync(path.join(EXPORT_DIR, 'SaleBasicHeader.json'))) {
+  // Skipped under clean-start (IMPORT_SALES=false). Stock is a Phase-5 snapshot,
+  // independent of sales, so dropping sales does NOT affect on-hand quantities.
+  if (!IMPORT_SALES) report.push('Phase 8 sales: SKIPPED (clean start, IMPORT_SALES=false)')
+  if (IMPORT_SALES && existsSync(path.join(EXPORT_DIR, 'SaleBasicHeader.json'))) {
     const hdrs = load('SaleBasicHeader')
     const insSale = db.prepare(`
       INSERT INTO sales (invoice_no, sale_type, customer_id, customer_name_free, sold_at,

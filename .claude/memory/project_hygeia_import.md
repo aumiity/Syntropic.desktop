@@ -50,9 +50,16 @@ metadata:
 ## ทดสอบในแอปจริง — DONE 2026-06-06
 เปิด test.db ในแอปได้ ข้อมูลแสดงครบ. วิธี: `scripts/prep-app-db.mjs` (ELECTRON_RUN_AS_NODE) stage `hygeia-import-test.db` → `D:\Syntropic.Project\hygeia-test-userdata\database\syntropic.db` + ใส่ admin user (password `admin`) + settings.setup_completed=1 (กัน seedDatabase ลง dev-seed ทับ + ข้าม Setup/Login gate). เปิด: **`NODE_ENV=development node_modules/electron/dist/electron.exe --user-data-dir=D:/Syntropic.Project/hygeia-test-userdata .`** — **สำคัญ: `--user-data-dir` ต้องอยู่ก่อน `.` (app path) + ใช้ forward slash** ไม่งั้น Electron ตีเป็น app-arg แล้วเปิด DB default แทน. ต้องมี `npm run dev` (:5173) ก่อน. ยืนยัน: 2025 มี 38,087 บิล, ยอด 3 ปี 22.68M — 69MB ปกติ (mdb 475MB เพราะ history ตั้งแต่ 2012 + 144 ตาราง + Access overhead)
 
-## ขั้นต่อไป — DECISION ค้าง (เจ้าของกำลังคิด 2026-06-06): **fresh start vs import ของเก่า**
-- **หนูแนะนำ import** — ตัวตัดสินคือสต็อก/ล็อต/ต้นทุนปัจจุบัน 2500 ตัว (คีย์มือวันเปิดร้านเป็นไปไม่ได้, importer reconcile ตรง 0 แล้ว) + ลูกค้า/ซัพ/เจ้าหนี้/ประวัติ. ของเก่ารกแก้ทีหลังในแอปได้ (DeadStock ปิดตัวตาย). fresh คุ้มเฉพาะถ้า catalog รกจนอยากรื้อ — ไม่จำเป็นเพราะ reconcile สะอาด
-- ถ้าเลือก import: cutover = import สดตอน fresh install บนเครื่องร้าน (vs swap ไฟล์), + refine deferred: drug_type_id/is_drug (จาก Hygeia DrugType/HardDrugType/ControlledDrugType — สำคัญกับฉลาก+ข.ย.), products.code format
-- `scripts/prep-app-db.mjs` ยังไม่ commit (เครื่องมือ test, path เครื่องนี้)
+## SELECTIVE IMPORT + cleanup workbook — DONE 2026-06-06 (มติเจ้าของ)
+ขอบเขต import รอบ clean-start (decision LOCKED 2026-06-06):
+- **สินค้า/สต็อก/lot/exp/ราคา = ดึงครบ** (snapshot Phase 5 เหมือนเดิม)
+- **ขาย = ไม่ดึง** (`IMPORT_SALES=false` ใน import-hygeia.mjs) — สำคัญ: **สต็อกเป็น snapshot Phase 5 ล้วน ไม่ขึ้นกับ Phase 7/8 เลย** (ซื้อ/ขายแค่ ledger ประวัติ ไม่ +/− qty_on_hand) → ตัดขายแล้วสต็อกยัง mismatch 0
+- **ซื้อ = เฉพาะบิลเครดิตค้างชำระ** (`!IsPay && !IsCanceled`) = เจ้าหนี้การค้า. Phase 7 กรอง header กลุ่มนี้ (351 ใบ) + ลบ GR เปล่า. บิลจ่ายแล้ว/เงินสด/ยกเลิก ตัดทิ้ง (1959 ใบ)
+- **เครื่องมือแก้สินค้า = Excel round-trip:** `scripts/gen-products-xlsx.mjs` → `D:\Syntropic.Project\products-edit.xlsx` (นอก repo). แก้ได้ `ชื่อการค้า`/`ชื่อบนใบเสร็จ`/`หมวดหมู่`(dropdown 12 หมวด ผ่าน data validation + hidden `_cats` sheet); **ลบ row = ไม่ import** (ไม่ใช่ disable). importer อ่านกลับเป็น override layer keyed by ItemKey (match คอลัมน์ด้วย header string ใน `loadEdits()`; ค่าใน xlsx ชนะ Hygeia, cell ว่าง = fallback). ใช้ `exceljs@4.4.0` (ลงด้วย `npm install exceljs --ignore-scripts`, pure JS ไม่แตะ better-sqlite3)
+- **FORCE-KEEP กันยอดหนี้ขาด:** สินค้า 275 ตัวที่อยู่บนบิลค้างชำระ ถูก import เสมอแม้เผลอลบ row (`computeDebtItemKeys()`); xlsx โชว์คอลัมน์ `สถานะหนี้`="ค้างชำระ" เตือน. report บอก excluded/force-kept/override counts ให้เช็ค
+- ⚠️⚠️ **บั๊กข้อมูล Hygeia — `PurchaseReceiveHeader.TotalPrice` เชื่อไม่ได้:** บิลเก่าหลายใบ (verified **259/351** บิลค้างชำระ) เก็บ TotalPrice = ราคาต่อหน่วย **ลืมคูณจำนวน** (เช่น 30 กล่อง×72 → header เก็บ 72 แทน 2160; 30 ใบ TotalPrice=0). **ยอดจริงต้องคำนวณจาก line items** `Σ(PurchaseReceive.UnitPrice × UnitQty)` ซึ่งตรงกับ stock snapshot. **คอลัมน์คือ `UnitQty` ไม่ใช่ `Qty`** (Qty อยู่ใน PurchaseReceiveLot). ส่วนลด line+header = 0 ทุกบิล. **payable ค้างชำระจริง = ฿1,300,167.45** (ไม่ใช่ 95,070 จาก header). `purchase_receipts` ไม่มีคอลัมน์ total → owed มาจาก Σ(line cost×qty)
+- ทดสอบ round-trip ผ่านแล้ว (ลบ non-debt→excluded, ลบ debt→force-kept คืน, rename/recat→DB ตรง, payable คงที่). reconcile: สต็อก mismatch 0, orphan 0
+- ⛔ **ยังไม่ commit:** `scripts/gen-products-xlsx.mjs`, แก้ `import-hygeia.mjs`, `package.json`(exceljs), `prep-app-db.mjs` — รอเจ้าของสั่ง
+- refine deferred (ถ้าจะทำ): drug_type_id/is_drug (จาก Hygeia DrugType/HardDrugType/ControlledDrugType — สำคัญกับฉลาก+ข.ย.)
 
 เกี่ยวข้อง: [[project_cost_model]] (3-cost), [[project_vat_phasing]] (NO-VAT), [[project_db_backup]]
