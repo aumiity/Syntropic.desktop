@@ -3,8 +3,9 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { InitialAvatar } from '@/components/ui/avatar'
 import type { Customer } from '@/types'
-import { Search, X, Users, User, ChevronRight, AlertTriangle, Phone, UserPlus } from 'lucide-react'
+import { Search, X, Users, ChevronRight, AlertTriangle, Phone, UserPlus } from 'lucide-react'
 
 interface CustomerSearchDialogProps {
   open: boolean
@@ -63,7 +64,7 @@ export function CustomerSearchDialog({ open, onOpenChange, onSelect, showWalkIn 
         <DialogTitle className="sr-only">เลือกลูกค้า</DialogTitle>
 
         {/* Search input row */}
-        <div className="flex items-center gap-2 px-4 py-3 shrink-0 border-b border-border">
+        <div className="flex items-center gap-2 px-4 py-3 shrink-0">
           <Search className="size-5 text-primary shrink-0" />
           <Input
             ref={inputRef}
@@ -81,7 +82,7 @@ export function CustomerSearchDialog({ open, onOpenChange, onSelect, showWalkIn 
               }
             }}
             placeholder="ค้นหา ชื่อ, เบอร์โทร, รหัส..."
-            className="flex-1 text-lg outline-none bg-transparent border-0 shadow-none text-sm focus-visible:ring-0 focus-visible:border-0 h-auto px-0"
+            className="flex-1 text-lg outline-none bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 h-auto px-0"
             autoComplete="off"
           />
           {query && (
@@ -92,7 +93,7 @@ export function CustomerSearchDialog({ open, onOpenChange, onSelect, showWalkIn 
         </div>
 
         {/* Section label */}
-        <div className="px-5 pt-3 pb-1.5 text-sm font-semibold text-muted-foreground shrink-0">
+        <div className="px-4 py-2 bg-muted border-b border-border text-sm font-semibold text-muted-foreground shrink-0">
           {query ? `ผลการค้นหา (${results.length})` : 'ลูกค้าทั้งหมด'}
         </div>
 
@@ -105,7 +106,7 @@ export function CustomerSearchDialog({ open, onOpenChange, onSelect, showWalkIn 
                 onClick={() => pick(null)}
                 className="group flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors hover:bg-primary-soft/60"
               >
-                <span className="grid place-items-center size-11 rounded-xl shrink-0 bg-primary text-primary-foreground">
+                <span className="inline-grid place-items-center size-12 rounded-full shrink-0 bg-primary-soft text-primary">
                   <Users className="size-6" />
                 </span>
                 <div className="flex-1 min-w-0">
@@ -127,9 +128,7 @@ export function CustomerSearchDialog({ open, onOpenChange, onSelect, showWalkIn 
                   onClick={() => pick(c)}
                   className={`group flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft/60'}`}
                 >
-                  <span className="grid place-items-center size-11 rounded-xl shrink-0 bg-primary text-primary-foreground">
-                    <User className="size-6" />
-                  </span>
+                  <InitialAvatar name={c.full_name} size="lg" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-semibold text-foreground truncate">{c.full_name}</span>
@@ -139,9 +138,9 @@ export function CustomerSearchDialog({ open, onOpenChange, onSelect, showWalkIn 
                         </Badge>
                       ) : null}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span className="text-sm">{c.code}</span>
-                      {c.phone ? <><span className="text-foreground-subtle">·</span><Phone className="size-3 shrink-0" /><span className="truncate">{c.phone}</span></> : null}
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Phone className="size-3 shrink-0" />
+                      <span className={`truncate ${c.phone ? '' : 'text-foreground-subtle'}`}>{c.phone || '-'}</span>
                     </div>
                   </div>
                   <ChevronRight className={`size-4 shrink-0 transition-colors ${active ? 'text-primary' : 'text-foreground-subtle group-hover:text-foreground'}`} />

@@ -40,7 +40,7 @@ import {
   RotateCcw, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Tag,
   ShoppingBag, Hourglass, RefreshCcw, HandCoins,
   Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
-  Check,
+  Check, SquarePen,
 } from 'lucide-react'
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -133,8 +133,10 @@ export default function POSPage() {
   const [showCustomerInfo, setShowCustomerInfo] = useState(false)
   const [customerDetails, setCustomerDetails] = useState<(Customer & { allergies?: DrugAllergy[] }) | null>(null)
 
-  // Add customer (shared dialog with the People page)
+  // Add/edit customer (shared dialog with the People page).
+  // editCustomerId = null → add mode; a customer id → edit mode.
   const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [editCustomerId, setEditCustomerId] = useState<number | null>(null)
 
   // Success
   const [lastInvoice, setLastInvoice] = useState('')
@@ -939,7 +941,7 @@ export default function POSPage() {
                   <Info className="size-3.5" /> ดูข้อมูล
                 </Button>
                 <Button variant="default"
-                  onClick={() => setShowQuickAdd(true)}
+                  onClick={() => { setEditCustomerId(null); setShowQuickAdd(true) }}
                   className="h-8 rounded-lg text-xs gap-1">
                   <UserPlus className="size-3.5" /> เพิ่มลูกค้า
                 </Button>
@@ -1305,7 +1307,7 @@ export default function POSPage() {
           <DialogTitle className="sr-only">ค้นหาสินค้า</DialogTitle>
           {/* Search input */}
           <div className="flex items-center gap-2 px-4 py-3 shrink-0">
-            <Search className="h-5 w-5 text-primary shrink-0" />
+            <Search className="size-5 text-primary shrink-0" />
             <Input
               ref={modalInputRef}
               value={query}
@@ -1317,21 +1319,21 @@ export default function POSPage() {
               autoComplete="off"
             />
             {query && (
-              <Button variant="outline" size="icon-xs" onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
+              <Button variant="elevated" size="icon-xs" onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
                 className="rounded-full text-foreground-subtle"><X className="size-3" strokeWidth={3} /></Button>
             )}
             {/* ติดอาวุธแล้ว → โชว์แค่ badge (ล้างผ่านการปิด modal แล้วค้นใหม่) */}
             {multiplier !== null && (
               <Badge variant="primary-soft" className="shrink-0">ตัวคูณ × {multiplier}</Badge>
             )}
-            <Button variant="outline" size="sm" onClick={closeSearch}
+            <Button variant="elevated" size="sm" onClick={closeSearch}
               className="h-7">
               Esc
             </Button>
           </div>
 
           {/* Column header */}
-          <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0"
+          <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0 border-b border-border"
             style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}>
             <div>ชื่อสินค้า</div>
             <div className="text-center">หน่วย</div>
@@ -1347,11 +1349,12 @@ export default function POSPage() {
               <div className="py-12 text-center text-foreground-subtle text-base">ไม่พบสินค้า "{query}"</div>
             ) : !query ? (
               <div className="py-12 text-center text-foreground-subtle">
-                <Search className="h-10 w-10 mx-auto mb-2 opacity-40" />
+                <Search className="size-10 mx-auto mb-2 opacity-40" />
                 <p className="text-base">พิมพ์เพื่อค้นหาสินค้า</p>
               </div>
             ) : (
-              flatItems.map((it, i) => {
+              <div className="divide-y divide-border">
+              {flatItems.map((it, i) => {
                 // Bundles have no own lots — derive stock from components
                 // (MIN of floor(component_qty / qty_per_bundle)). Expiry warn
                 // also scans across all component lots. Regular products read
@@ -1376,7 +1379,7 @@ export default function POSPage() {
                     key={`${it.product.id}-${it.unit?.id ?? 'base'}`}
                     ref={active ? activeRowRef : undefined}
                     onClick={() => handleSelectItem(it.product, it.unit)}
-                    className={`grid items-center px-4 py-2.5 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft'}`}
+                    className={`grid items-center px-4 py-2.5 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft/60'}`}
                     style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
                   >
                     <div className="min-w-0 pr-2">
@@ -1394,14 +1397,18 @@ export default function POSPage() {
                     <div className={`text-right text-base font-semibold ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock}</div>
                   </div>
                 )
-              })
+              })}
+              </div>
             )}
           </div>
 
           {/* Footer status */}
-          <div className="px-4 py-2 bg-muted text-sm text-muted-foreground shrink-0">
-            ค้นหา: "{query}" — พบ {results.length} รายการ
-            {multiplier !== null && <span className="text-primary font-semibold"> · ตัวคูณ × {multiplier}</span>}
+          <div className="flex items-center justify-between gap-3 px-4 py-2 bg-muted border-t border-border text-xs text-muted-foreground shrink-0">
+            <span>
+              <kbd>↑↓</kbd> เลื่อน · <kbd>Enter</kbd> เลือก · <kbd>Esc</kbd> ปิด
+              {multiplier !== null && <span className="text-primary font-semibold"> · ตัวคูณ × {multiplier}</span>}
+            </span>
+            <span>พบ {results.length} รายการ</span>
           </div>
         </DialogContent>
       </Dialog>
@@ -1510,6 +1517,15 @@ export default function POSPage() {
             })()}
           </DialogBody>
           <DialogFooter>
+            <Button variant="elevated" size="xl"
+              onClick={() => {
+                const id = (customerDetails ?? cart.customer)?.id ?? null
+                setShowCustomerInfo(false)
+                setEditCustomerId(id)
+                setShowQuickAdd(true)
+              }}>
+              <SquarePen className="size-4" /> แก้ไข
+            </Button>
             <Button autoFocus variant="default" size="xl" onClick={() => setShowCustomerInfo(false)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
@@ -1519,6 +1535,7 @@ export default function POSPage() {
       <CustomerFormDialog
         open={showQuickAdd}
         onOpenChange={setShowQuickAdd}
+        customerId={editCustomerId}
         onSaved={(c) => cart.setCustomer(c)}
       />
 
