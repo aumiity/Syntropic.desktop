@@ -14,7 +14,7 @@ export function seedDatabase(db: Database.Database) {
   // username MUST be set: a UNIQUE index on users(username) exists after the
   // migration, so two seed rows with the default '' would collide.
   db.prepare(`INSERT OR IGNORE INTO users (name, first_name, username, email, password, role) VALUES (?, ?, ?, ?, ?, ?)`).run(
-    'Staff Test', 'Staff Test', 'staff', 'staff@syntropic.local', 'staff', 'staff'
+    'Staff Test', 'Staff Test', 'STAFF', 'staff@syntropic.local', 'staff', 'staff'
   )
 
   // Label lookups + drug generic names — sourced from docs/*.json via
@@ -51,7 +51,7 @@ export function seedDatabase(db: Database.Database) {
 
   // Default admin user
   db.prepare(`INSERT INTO users (name, first_name, username, email, password, role) VALUES (?, ?, ?, ?, ?, ?)`).run(
-    'ผู้ดูแลระบบ', 'ผู้ดูแลระบบ', 'admin', 'admin@syntropic.local', 'admin', 'admin'
+    'ผู้ดูแลระบบ', 'ผู้ดูแลระบบ', 'ADMIN', 'admin@syntropic.local', 'admin', 'admin'
   )
 
   // Default settings — blank shop identity on purpose: setup_completed defaults

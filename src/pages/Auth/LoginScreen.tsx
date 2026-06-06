@@ -3,11 +3,11 @@ import { TitleBar } from '@/components/layout/TitleBar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FormField } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { useToast } from '@/components/ui/toast'
 import { useThemeStore } from '@/stores/themeStore'
 import { useUserStore } from '@/stores/userStore'
+import { BrandPanel, BrandLogo } from '@/components/ui/brand'
 import { cn } from '@/lib/utils'
 import { Eye, EyeOff, LogIn, ArrowLeft, ChevronRight, ShieldCheck, Check, Sun, Moon, KeyRound, Copy } from 'lucide-react'
 
@@ -31,20 +31,23 @@ const PREVIEW_PASSWORD = '1234'
 const LOCK_THRESHOLD = 5
 const LOCK_SECONDS = 30
 
-function RoleBadge({ role }: { role: 'admin' | 'staff' }) {
-  return role === 'admin'
-    ? <Badge variant="primary-soft">ผู้ดูแล</Badge>
-    : <Badge variant="secondary">พนักงาน</Badge>
-}
+// Admin accounts always sort to the top of the picker; same-role order is
+// preserved (Array.prototype.sort is stable).
+const adminFirst = (list: LoginUser[]) =>
+  [...list].sort((a, b) => (a.role === b.role ? 0 : a.role === 'admin' ? -1 : 1))
 
 export function LoginScreen({ onComplete, preview = false }: { onComplete?: () => void; preview?: boolean }) {
   const { toast } = useToast()
   const toggleTheme = useThemeStore(s => s.toggleTheme)
   const theme = useThemeStore(s => s.theme)
 
-  const [users, setUsers] = useState<LoginUser[]>(preview ? PREVIEW_USERS : [])
+  const [users, setUsers] = useState<LoginUser[]>(preview ? adminFirst(PREVIEW_USERS) : [])
   const [loadingUsers, setLoadingUsers] = useState(!preview)
   const single = users.length === 1
+
+  // Shop name shown above the login card — pulled from settings in both real and
+  // preview mode (a read-only fetch, so the DEV preview looks like the real thing).
+  const [shopName, setShopName] = useState('')
 
   const [selected, setSelected] = useState<LoginUser | null>(null)
   const [pw, setPw] = useState('')
@@ -78,11 +81,16 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
     if (preview) return
     let alive = true
     window.api.auth.listLoginUsers()
-      .then((list: LoginUser[]) => { if (alive) setUsers(list ?? []) })
+      .then((list: LoginUser[]) => { if (alive) setUsers(adminFirst(list ?? [])) })
       .catch(() => { if (alive) setUsers([]) })
       .finally(() => { if (alive) setLoadingUsers(false) })
     return () => { alive = false }
   }, [preview])
+
+  // Load the shop name for the heading (read-only — runs in preview too).
+  useEffect(() => {
+    window.api.settings.getShop().then((d: any) => setShopName(d?.shop_name || '')).catch(() => {})
+  }, [])
 
   // A single user skips the picker — jump straight to the password stage.
   // Guarded by `!selected` so re-running on `selected` change can't re-select.
@@ -223,16 +231,28 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <TitleBar />
-      <div className="flex-1 overflow-auto">
-        <div className="min-h-full flex flex-col items-center justify-center px-6 py-12">
-          {/* ชื่อร้าน + หัวข้อ */}
-          <div className="text-center mb-6">
-            <div className="text-sm font-medium text-primary">ร้านยาตัวอย่าง</div>
-            <h1 className="text-2xl font-semibold text-foreground mt-1">เข้าสู่ระบบ</h1>
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+        <BrandPanel tagline="ระบบขายหน้าร้าน สำหรับร้านยา">
+          <div className="space-y-1.5">
+            <h2 className="text-2xl font-bold tracking-tight text-primary-foreground">ยินดีต้อนรับ</h2>
+            <p className="text-sm text-primary-foreground/70">เข้าสู่ระบบเพื่อเริ่มต้นการทำงาน</p>
           </div>
+        </BrandPanel>
 
-          {/* การ์ดกลาง */}
-          <div className="w-full max-w-md rounded-card border bg-card shadow-card p-6">
+        <div className="flex-1 overflow-auto">
+          <div className="min-h-full flex flex-col items-center justify-center px-6 py-12">
+          {/* content กลาง — ไม่มีกรอบนอก (วางบนพื้นตรง ๆ) */}
+          <div className="w-full max-w-md">
+            {/* หัวข้อ — ซ่อนตอน recover/success ที่มีหัวข้อของตัวเอง */}
+            {!recoverView && !success && (
+              <div className="text-center mb-6">
+                <BrandLogo className="size-16" />
+                <h1 className="text-3xl font-bold tracking-tight text-foreground mt-3">เข้าสู่ระบบ</h1>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  {stage === 'select' ? 'เลือกผู้ใช้ที่ต้องการเข้าสู่ระบบ' : (shopName || ' ')}
+                </p>
+              </div>
+            )}
             {recoverView === 'form' ? (
               <div className="space-y-4 animate-in fade-in slide-in-from-right-3 duration-200 motion-reduce:animate-none">
                 <div className="space-y-1">
@@ -312,18 +332,19 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
                 <div className="text-sm text-muted-foreground">เข้าสู่ระบบในชื่อ {selected?.name}</div>
               </div>
             ) : loadingUsers ? (
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground px-1 pb-1">เลือกผู้ใช้</div>
+              <div className="space-y-2.5">
                 {[0, 1, 2].map(i => (
-                  <div key={i} className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5">
-                    <div className="size-9 rounded-full bg-muted animate-pulse motion-reduce:animate-none" />
-                    <div className="flex-1 h-4 rounded bg-muted animate-pulse motion-reduce:animate-none" />
+                  <div key={i} className="flex items-center gap-3.5 rounded-2xl border bg-card px-4 py-3.5 shadow-sm">
+                    <div className="size-12 rounded-full bg-muted animate-pulse motion-reduce:animate-none" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-4 w-1/2 rounded bg-muted animate-pulse motion-reduce:animate-none" />
+                      <div className="h-3 w-2/3 rounded bg-muted animate-pulse motion-reduce:animate-none" />
+                    </div>
                   </div>
                 ))}
               </div>
             ) : stage === 'select' ? (
-              <div className="space-y-2 animate-in fade-in slide-in-from-left-3 duration-200 motion-reduce:animate-none">
-                <div className="text-sm text-muted-foreground px-1 pb-1">เลือกผู้ใช้</div>
+              <div className="space-y-2.5 animate-in fade-in slide-in-from-left-3 duration-200 motion-reduce:animate-none">
                 {users.length === 0 && (
                   <div className="text-sm text-muted-foreground px-1 py-4 text-center">ไม่พบผู้ใช้งานที่เปิดใช้งาน</div>
                 )}
@@ -332,28 +353,29 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
                     key={u.id}
                     type="button"
                     onClick={() => pickUser(u)}
-                    className="w-full flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+                    className="group w-full flex items-center gap-3.5 rounded-2xl border bg-card px-4 py-3.5 text-left shadow-sm transition-colors hover:bg-muted/60"
                   >
-                    <InitialAvatar name={u.name} size="default" />
+                    <InitialAvatar name={u.name} size="lg" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-foreground truncate">@{u.username}</div>
-                      <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                      <div className="text-base font-semibold text-foreground truncate">{u.name}</div>
+                      <div className="text-sm text-muted-foreground truncate">{u.email}</div>
                     </div>
-                    <RoleBadge role={u.role} />
-                    <ChevronRight className="size-4 text-muted-foreground" />
+                    <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                   </button>
                 ))}
               </div>
             ) : (
               <div className="space-y-4 animate-in fade-in slide-in-from-right-3 duration-200 motion-reduce:animate-none">
                 {/* ผู้ใช้ที่เลือก */}
-                <div className="flex items-center gap-3">
-                  <InitialAvatar name={selected?.name} size="default" />
+                <div className="flex items-center gap-3.5 rounded-2xl border px-4 py-3">
+                  <InitialAvatar name={selected?.name} size="lg" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground truncate">@{selected?.username}</div>
-                    <div className="text-xs text-muted-foreground truncate">{selected?.email}</div>
+                    <div className="text-base font-semibold text-foreground truncate">{selected?.name}</div>
+                    <div className="text-sm text-muted-foreground truncate">{selected?.email}</div>
                   </div>
-                  {selected && <RoleBadge role={selected.role} />}
+                  <span className="flex items-center justify-center size-6 rounded-full bg-primary text-primary-foreground shrink-0">
+                    <Check className="size-4" />
+                  </span>
                 </div>
 
                 {/* ช่องรหัสผ่าน */}
@@ -407,7 +429,7 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
                 {/* ลืมรหัสผ่าน */}
                 <div className="text-center pt-1">
                   <Button
-                    variant="link"
+                    variant="elevated"
                     size="sm"
                     onClick={openRecover}
                   >
@@ -431,6 +453,7 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
               <ShieldCheck className="size-3.5" />ตัวอย่าง UI — ไม่กระทบข้อมูลจริง
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

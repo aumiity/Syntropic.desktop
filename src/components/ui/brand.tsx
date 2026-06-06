@@ -1,19 +1,17 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { LogoMark } from '@/components/ui/logo-mark'
 
-// Brand identity primitives — the "Rx Desktop" logomark + wordmark (Syntropic =
-// company), and the
+// Brand identity primitives — the Syntropic leaf logomark ([[LogoMark]]) + the
+// "Rx Desktop" wordmark (Syntropic = company, Rx Desktop = product), and the
 // gradient "brand panel" used on the gateway screens (Setup wizard, Login).
 // Kept here (not in a page) so both screens render the exact same brand.
 //
 // tone:
-//   'light' — sits on the teal brand panel / dark surfaces → frosted tile + white text
-//   'dark'  — sits on a normal light surface → solid teal tile + foreground text
+//   'light' — sits on the teal brand panel / dark surfaces → white logo + text
+//   'dark'  — sits on a normal light surface → primary (teal) logo + foreground text
 
 type BrandTone = 'light' | 'dark'
-
-// Placeholder logomark — the "Rx" prescription lettermark (serif italic).
-// TODO: swap for the real logo asset when provided (only this tile changes).
 
 export function BrandMark({
   tone = 'dark',
@@ -29,18 +27,13 @@ export function BrandMark({
   const lg = size === 'lg'
   return (
     <div className={cn('flex items-center gap-3', className)}>
-      <div
+      <LogoMark
         className={cn(
-          'relative flex items-center justify-center rounded-2xl shrink-0 shadow-sm',
+          'shrink-0',
           lg ? 'size-14' : 'size-12',
-          tone === 'light'
-            ? 'bg-primary-foreground/10 ring-1 ring-primary-foreground/20 text-primary-foreground'
-            : 'bg-primary text-primary-foreground',
+          tone === 'light' ? 'text-primary-foreground' : 'text-primary',
         )}
-      >
-        <span className={cn('font-serif font-bold italic leading-none', lg ? 'text-2xl' : 'text-xl')}>Rx</span>
-        <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-accent" />
-      </div>
+      />
       <div className="leading-tight">
         <div
           className={cn(
@@ -64,6 +57,12 @@ export function BrandMark({
       </div>
     </div>
   )
+}
+
+// The bare leaf logomark for centered hero use — e.g. the Login screen. Defaults
+// to primary (teal); size it with a size-N class. Centred via mx-auto.
+export function BrandLogo({ className }: { className?: string }) {
+  return <LogoMark className={cn('mx-auto text-primary', className)} />
 }
 
 // The left brand rail for gateway screens. Hidden on narrow widths (the form

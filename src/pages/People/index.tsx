@@ -629,7 +629,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
   // Auto-suggest a username from the email local-part when the field is empty.
   const suggestUsername = () => {
     if (form.username?.trim() || !form.email?.trim()) return
-    const local = form.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '')
+    const local = form.email.split('@')[0].toUpperCase().replace(/[^A-Z0-9_.-]/g, '')
     if (local) setF('username', local)
   }
 
@@ -845,7 +845,8 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                   {isOwnerAdmin && <span className="ml-1 font-normal text-muted-foreground">(ของผู้ดูแลระบบ แก้ไม่ได้)</span>}
                 </Label>
                 <Input variant="elevated" value={form.username ?? ''} disabled={isOwnerAdmin}
-                  onChange={e => setF('username', e.target.value)} />
+                  autoCapitalize="characters" autoCorrect="off" spellCheck={false} placeholder="เช่น SOMCHAI_01"
+                  onChange={e => setF('username', e.target.value.toUpperCase().replace(/[^A-Z0-9_.-]/g, ''))} />
               </div>
               <div className="space-y-1.5">
                 <Label>อีเมล <span className="text-destructive">*</span></Label>

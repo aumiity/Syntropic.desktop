@@ -30,7 +30,7 @@
 
 ### Wave 1 — ประตูทางเข้า (เล็ก, เจอครั้งแรก, วอร์มภาษาดีไซน์ใหม่)
 - [x] **1. Setup Wizard** — `src/pages/Setup/SetupWizard.tsx` — **DONE (เจ้าของเคาะ 2026-06-06):** Split brand panel + rebrand "Rx Desktop" + base Card border default + required asterisks (ชื่อ/ที่อยู่/เบอร์) + เบอร์โทรตัวเลขเท่านั้น + บล็อก VAT registration (Phase 2/3 ยังไม่พร้อม)
-- [~] **2. Login Screen** — `src/pages/Auth/LoginScreen.tsx` (หลัง merge = **username login** แล้ว + ลืมรหัส flow) — จะใช้ BrandPanel/BrandMark ชุดเดียวกัน — **กำลังเริ่ม**
+- [x] **2. Login Screen** — `src/pages/Auth/LoginScreen.tsx` — **DONE (เจ้าของเคาะ 2026-06-06):** 2-pane BrandPanel + Apple-style user list (avatar lg, ชื่อ+email, ติ๊กถูกตอนเลือก, ไม่มีกรอบนอก), โลโก้ใบไม้จริง + "เข้าสู่ระบบ" ใหญ่, admin-first, ปุ่มลืมรหัส elevated, ชื่อร้านจริง. พ่วง: username UPPERCASE+charset (people.ts/seed), avatar size lg, **โลโก้ Syntropic จริง** (logo-mark.tsx) ใช้ทั้ง Setup/Login/Sidebar
 
 ### Wave 2 — หัวใจที่ใช้ทุกวัน (frequency สูงสุด)
 - [ ] **3. POS** — `src/pages/POS/index.tsx` (+ search modal, cart, payment, unit/qty dialogs)
@@ -71,6 +71,12 @@
   - step "ข้อมูลร้าน": required asterisk (FormField `required`) + เบอร์โทร digits-only (`replace(/\D/g,'')` + inputMode numeric)
   - step "ภาษี VAT": **บล็อกการเลือกจด VAT** (validateStep2 reject 'yes' + toast "ระบบยังไม่สามารถใช้งานได้" + กล่อง warning แทนช่อง) — [[project_vat_phasing]]; โค้ดเดิมเก็บไว้ re-enable ง่าย
   - tsc ผ่านทั้ง 2 config. commit checkpoint.
+
+- **2026-06-06** — **#2 Login DONE + โลโก้จริง + username UPPERCASE**
+  - Login: 2-pane (คง BrandPanel เทลซ้าย) + การ์ดผู้ใช้สไตล์ Apple "Choose an account" (avatar `lg` size-12, ชื่อหนา+email, ติ๊กถูกวงเทลตอนเลือก, hover เทาอ่อน), เอากรอบนอกออก (content วางบนพื้น), โลโก้ใหญ่กลาง + "เข้าสู่ระบบ" text-3xl + subtitle, admin-first sort, ปุ่มลืมรหัส `elevated`, ชื่อร้านดึงจริงจาก getShop (preview ด้วย)
+  - **username = UPPERCASE บังคับ + [A-Z0-9_.-] เท่านั้น** (people.ts save + People form input + suggestUsername + seed ADMIN/STAFF + owner lock 'ADMIN'); uniqueness กลายเป็น case-insensitive
+  - **โลโก้ Syntropic จริง** = ใบไม้ใน docs/Logo/**Logo_adobe.svg** (path เดียว สะอาด 4KB) → `src/components/ui/logo-mark.tsx` (`LogoMark`, fill=currentColor themeable). **ไม่ใช้** `LOGO_TRANS_VEC_edge1color.svg` (1.3MB traced raster). ใช้ที่ BrandMark/BrandLogo (Setup+Login) + Sidebar. avatar เพิ่ม size `lg`
+  - tsc ผ่านทั้ง 2 config. commit checkpoint. **ถัดไป: แวะทำ Logo (app icon/favicon/showcase) ก่อนไป #3 POS**
 
 ## โน้ตต่อหน้า (เก็บ decision/ของที่เจอระหว่างทำ)
 - **โลโก้ Syntropic:** ยังไม่มี asset จริง → ใช้ SVG logomark ใน `brand.tsx` (3 แท่งไล่ระดับ = growth/syntropy + จุด accent เหลือง). เปลี่ยนเป็นโลโก้จริงได้ที่ `LogoGlyph` ใน `brand.tsx` ที่เดียว

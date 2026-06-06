@@ -22,18 +22,20 @@ function hashString(s: string): number {
   return Math.abs(h)
 }
 
-type AvatarSize = "xs" | "sm" | "default"
+type AvatarSize = "xs" | "sm" | "default" | "lg"
 
 const SIZE_CLASSES: Record<AvatarSize, string> = {
   xs:      "size-6",
   sm:      "size-7",
   default: "size-9",
+  lg:      "size-12",
 }
 
 const ICON_SIZE: Record<AvatarSize, string> = {
   xs:      "size-3.5",
   sm:      "size-4",
   default: "size-5",
+  lg:      "size-6",
 }
 
 // Renders a circle avatar with a User icon, tinted by a stable hash of the

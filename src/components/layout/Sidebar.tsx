@@ -10,6 +10,7 @@ import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { usePermission } from '@/hooks/usePermission'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { LogoMark } from '@/components/ui/logo-mark'
 import { SidebarUser } from './SidebarUser'
 
 // adminOnly items are hidden from staff (the finance reports landing page is
@@ -153,12 +154,12 @@ export function Sidebar() {
       </Tooltip>
 
       {/* Logo */}
-      <div className="flex items-center mt-4 h-20 bg-sidebar justify-center overflow-hidden">
-        <div className="text-sidebar-accent-foreground font-extrabold text-6xl leading-none">
-          R<span className="text-sidebar-accent font-extrabold text-4xl leading-none">x</span>
-        </div>
+      <div className="flex items-center gap-2.5 mt-4 h-20 bg-sidebar justify-center overflow-hidden px-2">
+        <LogoMark className="size-10 shrink-0 text-sidebar-accent-foreground" />
         {!collapsed && (
-          <div className="text-sidebar-accent-foreground text-2xl font-medium leading-none">Desktop</div>
+          <div className="text-sidebar-accent-foreground text-2xl font-bold leading-none tracking-tight">
+            Rx <span className="font-medium opacity-80">Desktop</span>
+          </div>
         )}
       </div>
 

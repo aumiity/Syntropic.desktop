@@ -134,16 +134,20 @@ export function registerPeopleHandlers() {
     // Required identity fields. username is app-required (the column is nullable +
     // UNIQUE-indexed, so enforcement lives here, not in the schema).
     const email = String(data.email ?? '').trim()
-    const username = String(data.username ?? '').trim()
+    // Usernames are forced UPPERCASE, English alphanumerics + _ . - only (anything
+    // else — Thai, spaces, symbols — is stripped). They're case-insensitive
+    // identifiers, so this also makes the uniqueness check below case-insensitive
+    // (SQLite's default text compare is case-sensitive) and avoids AUM/Aum/aum dupes.
+    const username = String(data.username ?? '').trim().toUpperCase().replace(/[^A-Z0-9_.-]/g, '')
     if (!email) throw new Error('กรุณาระบุอีเมล')
     if (!username) throw new Error('กรุณาระบุชื่อผู้ใช้ (username)')
 
-    // The owner admin's username is locked to 'admin' (avoids confusion; admin
+    // The owner admin's username is locked to 'ADMIN' (avoids confusion; admin
     // lookups elsewhere are email-keyed).
     let finalUsername = username
     if (data.id) {
       const existing = db.prepare(`SELECT email FROM users WHERE id = ?`).get(data.id) as { email: string } | undefined
-      if (existing?.email === 'admin@syntropic.local') finalUsername = 'admin'
+      if (existing?.email === 'admin@syntropic.local') finalUsername = 'ADMIN'
     }
 
     // Unique username (excluding self).
