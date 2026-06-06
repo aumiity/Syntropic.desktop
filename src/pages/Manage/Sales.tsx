@@ -254,7 +254,7 @@ export default function ManageSalesPage() {
     <>
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
-        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+        <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={ReceiptText} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติการขาย</h3>

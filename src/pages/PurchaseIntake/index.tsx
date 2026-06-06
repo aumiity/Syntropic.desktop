@@ -410,7 +410,7 @@ export default function PurchaseIntake() {
                                     >
                                       <span className="font-medium">{p.trade_name}</span>
                                       <span className="text-xs text-muted-foreground">
-                                        {p.code ?? '—'} · {resolveBarcode(p) ?? 'ไม่มีบาร์โค้ด'}
+                                        {resolveBarcode(p) ?? 'ไม่มีบาร์โค้ด'}
                                       </span>
                                     </button>
                                   ))}

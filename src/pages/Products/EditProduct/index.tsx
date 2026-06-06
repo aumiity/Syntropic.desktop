@@ -368,7 +368,7 @@ export default function EditProductPage() {
 
       <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="segmented" className="h-10">
+          <TabsList variant="segmented" className="h-9">
             <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
             <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
               <Blocks /> หน่วยนับ ({(product.units?.length ?? 0) + 1})
@@ -385,11 +385,11 @@ export default function EditProductPage() {
           </TabsList>
         </Tabs>
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={goBack}>
+          <Button variant="primary-soft" size="lg" className="h-9 px-2" onClick={goBack}>
             <ArrowLeft className="size-4" /> ย้อนกลับ
           </Button>
           {tab === 'general' && (
-            <Button size="lg" className="h-10 px-3" onClick={handleSave} disabled={saving}>
+            <Button size="lg" className="h-9 px-3" onClick={handleSave} disabled={saving}>
               <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : isNew ? 'เพิ่มสินค้า' : 'บันทึก'}
             </Button>
           )}

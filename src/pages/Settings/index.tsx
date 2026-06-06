@@ -22,7 +22,7 @@ export default function SettingsPage() {
 
       <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="segmented" className="h-10">
+          <TabsList variant="segmented" className="h-9">
             <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
             <TabsTrigger value="product-mgmt"><Package /> จัดการสินค้า</TabsTrigger>
             <TabsTrigger value="sales"><ShoppingCart /> การขาย</TabsTrigger>
@@ -32,7 +32,7 @@ export default function SettingsPage() {
           </TabsList>
         </Tabs>
         {tab === 'sales' && (
-          <Button className="h-10 ml-auto" onClick={() => salesSaveFn.current?.()} disabled={salesSaving}>
+          <Button className="h-9 ml-auto" onClick={() => salesSaveFn.current?.()} disabled={salesSaving}>
             <Save className="size-4" />{salesSaving ? 'กำลังบันทึก...' : 'บันทึก'}
           </Button>
         )}

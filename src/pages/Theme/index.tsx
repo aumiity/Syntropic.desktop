@@ -726,7 +726,7 @@ export default function Theme() {
                     />
                   </div>
                 </DemoRow>
-                <DemoRow label="With empty/all row (filter mode) — h-10 เท่ากับ Input / DateInput / DateRangePicker">
+                <DemoRow label="With empty/all row (filter mode) — h-9 เท่ากับ Input / DateInput / DateRangePicker">
                   <div className="w-72">
                     <Combobox
                       items={comboItems}
@@ -847,14 +847,14 @@ export default function Theme() {
                 <DemoRow label="Toggle (label + switch) — label on left, switch on right (iOS settings style)">
                   <Toggle size="lg" checked={switchOn} onChange={setSwitchOn} label="พื้นฐาน" />
                 </DemoRow>
-                <DemoRow label="Toggle framed — pill for dialogs / tinted bg (h-10, bg-card, border, rounded-lg)">
+                <DemoRow label="Toggle framed — pill for dialogs / tinted bg (h-9, bg-card, border, rounded-lg)">
                   <Toggle framed size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่พักใช้งาน" />
                 </DemoRow>
-                <DemoRow label='Toggle framed="input" — top-bar variant: borderless h-10 bg-input, blends with the search Input beside it'>
+                <DemoRow label='Toggle framed="input" — top-bar variant: borderless h-9 bg-input, blends with the search Input beside it'>
                   <div className="flex items-center gap-3 w-80 rounded-card bg-card p-2">
                     <div className="relative flex-1 min-w-0">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                      <Input placeholder="ค้นหา..." className="h-10 pl-9 rounded-lg text-sm bg-input" />
+                      <Input placeholder="ค้นหา..." className="h-9 pl-9 rounded-lg text-sm bg-input" />
                     </div>
                     <Toggle framed="input" size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่ปิดใช้งาน" className="shrink-0 text-muted-foreground" />
                   </div>
@@ -1344,7 +1344,7 @@ export default function Theme() {
                 <p className="text-sm text-muted-foreground">
                   รูปแบบมาตรฐานของ Products list / EditProduct tabs — Card (bg-card + border-border + shadow-card + rounded-card) ครอบ 3 แถบ:
                   <br />
-                  <strong>แถบบน (h-14 px-4)</strong> — px-4 ตรงกับ inset 16px ของตาราง:
+                  <strong>แถบบน (h-12 px-4)</strong> — px-4 ตรงกับ inset 16px ของตาราง:
                   ซ้าย = <strong>title</strong> (icon-in-box: <code>size-8 rounded-lg border bg-card shadow-sm</code> + h3 text-lg + Badge <code>neutral-outline</code> นับจำนวน) · ขวา (ชิดผ่าน <code>ml-auto</code>) = SearchInput + Select หมวด + <strong>ปุ่มตัวกรอง</strong> (icon-only Popover) + <strong>ปุ่มคอลัมน์</strong> (Settings2 Popover) — controls ทั้งหมดใช้ <strong>h-9</strong> + <code>variant="elevated"</code> (bg-card + border-border + shadow-sm)
                   <br />
                   <strong>ตาราง</strong> — wrap ด้วย <code>border-l-[16px] border-r-[16px] border-card</code> เพื่อ inset column header จากขอบ card · header แถบ muted + <code>border-b</code> + <code>text-foreground</code> · row hover = <code>bg-muted</code> (เดียวกับ header) · row divider = <code>border-border</code> · max-h-[440px] + <code>scrollbar-thin</code> (header sticky + 10 rows ≈ 40px แต่ละแถว)
@@ -1358,7 +1358,7 @@ export default function Theme() {
                 <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
                   {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px]
                       inset so filter-strip controls align with column edges. */}
-                  <div className="h-14 px-4 flex items-center gap-3">
+                  <div className="h-12 px-4 flex items-center gap-3">
                     {/* Table title (left): icon-in-box + title + count badge.
                         Filter strip controls cluster on the right via ml-auto
                         on the first control. */}

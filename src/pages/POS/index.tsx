@@ -12,15 +12,18 @@ import { PriceInput } from '@/components/ui/price-input'
 import { Label } from '@/components/ui/label'
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
 import { CustomerSearchDialog } from '@/components/dialogs/CustomerSearchDialog'
+import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
+import { QtyDialog } from '@/components/ui/qty-dialog'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency } from '@/lib/utils'
 import dayjs from 'dayjs'
@@ -62,14 +65,23 @@ const formatNumWithCommas = (raw: string, forceTwoDecimals = false): string => {
 
 interface ReturnLineItem {
   product_id: number
-  lot_id: number
   product_name: string
+  /** Kept for the inline unit picker (base + variants) and base pricing. */
+  product: ProductWithDetails
+  /** Chosen unit: -1 = base unit (price/name from product.*). */
+  unit_id: number
   unit_name: string
+  /** Conversion factor of the chosen unit → base (1 for base). */
+  qty_per_base: number
+  /** Refund price per chosen unit (retail of that unit). */
+  unit_price: number
+  qty: number
+  line_total: number
+  lot_id: number
   lot_number: string
   expiry_date: string | null
-  qty: number
-  sell_price: number
-  line_total: number
+  /** All lots for this product, so the row can switch lot inline. */
+  lots: ProductLot[]
 }
 
 interface AdjustLineItem {
@@ -104,10 +116,9 @@ export default function POSPage() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ProductWithDetails[]>([])
   const [searching, setSearching] = useState(false)
-  const [highlightIdx, setHighlightIdx] = useState(0)
+  // highlight nav + scroll now live inside <ProductSearchDialog>.
   const modalInputRef = useRef<HTMLInputElement>(null)
   const mainInputRef = useRef<HTMLInputElement>(null)
-  const activeRowRef = useRef<HTMLDivElement>(null)
 
   // ── Quantity multiplier (7-Eleven style): พิมพ์ "*" ตามด้วยจำนวน (เช่น *3) ──
   // เก็บข้อความ "*N" ไว้ใน query ตรงๆ (โชว์ในช่องค้นหาเป็นปกติ) แล้วตีความว่าขึ้นต้นด้วย *
@@ -188,23 +199,22 @@ export default function POSPage() {
   const [discountFocus, setDiscountFocus] = useState<'pct' | 'baht' | 'final' | null>(null)
   const [finalPriceInput, setFinalPriceInput] = useState<string>('')
   const [qtyModalIdx, setQtyModalIdx] = useState<number | null>(null)
-  const [qtyInput, setQtyInput] = useState<string>('')
 
-  // Return items dialog
+  // Return items dialog — cart-table "mini POS": ProductSearchDialog adds a
+  // product (qty 1, base unit, default lot); each row edits unit / qty / lot
+  // inline via the shared UnitPickerDialog / QtyDialog / a lot popover.
   const [showReturn, setShowReturn] = useState(false)
+  const [returnSearchOpen, setReturnSearchOpen] = useState(false)
   const [returnQuery, setReturnQuery] = useState('')
   const [returnResults, setReturnResults] = useState<ProductWithDetails[]>([])
   const [returnSearching, setReturnSearching] = useState(false)
-  const [returnSelectedProduct, setReturnSelectedProduct] = useState<ProductWithDetails | null>(null)
-  const [returnProductLots, setReturnProductLots] = useState<ProductLot[]>([])
-  const [returnSelectedLotId, setReturnSelectedLotId] = useState<number | null>(null)
-  const [returnQtyInput, setReturnQtyInput] = useState('1')
   const [returnList, setReturnList] = useState<ReturnLineItem[]>([])
   const [returnReason, setReturnReason] = useState('')
   const [returnSaving, setReturnSaving] = useState(false)
+  const [returnUnitRowIdx, setReturnUnitRowIdx] = useState<number | null>(null)
+  const [returnQtyRowIdx, setReturnQtyRowIdx] = useState<number | null>(null)
   const returnInputRef = useRef<HTMLInputElement>(null)
-  const returnQtyRef = useRef<HTMLInputElement>(null)
-  const returnLotRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const returnSearchInputRef = useRef<HTMLInputElement>(null)
 
   // Adjust stock dialog (System A — multi-item, mirrors return modal)
   const [showAdjust, setShowAdjust] = useState(false)
@@ -294,11 +304,6 @@ export default function POSPage() {
     }
     prevAnyModalOpen.current = anyModalOpen
   }, [anyModalOpen])
-
-  // Keep highlighted row visible as user navigates with arrow keys
-  useEffect(() => {
-    activeRowRef.current?.scrollIntoView({ block: 'nearest' })
-  }, [highlightIdx])
 
   // Global ESC handler for all modals (closes the top-most one)
   useEffect(() => {
@@ -421,11 +426,6 @@ export default function POSPage() {
     }
   }, [searchOpen])
 
-  // Reset highlight ONLY when the query text changes — never on scroll/focus/hover
-  useEffect(() => {
-    setHighlightIdx(0)
-  }, [query])
-
   // ปิด search modal — รีเซ็ตตัวคูณทุกครั้ง (ทั้งกรณีเลือกสินค้าแล้วและกด Esc)
   const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]); setMultiplier(null) }
 
@@ -459,22 +459,12 @@ export default function POSPage() {
     handleMultiplierKey(e)
   }
 
-  const handleModalKeyDown = (e: React.KeyboardEvent) => {
-    if (handleMultiplierKey(e)) return
-    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIdx(i => Math.min(i + 1, flatItems.length - 1)) }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightIdx(i => Math.max(i - 1, 0)) }
-    else if (e.key === 'Enter') {
-      e.preventDefault()
-      const sel = flatItems[highlightIdx]
-      if (sel) handleSelectItem(sel.product, sel.unit)
-    }
-  }
-
   const closeReturn = () => {
     setShowReturn(false)
-    setReturnQuery(''); setReturnResults([]); setReturnSelectedProduct(null)
-    setReturnProductLots([]); setReturnSelectedLotId(null)
-    setReturnQtyInput('1'); setReturnList([]); setReturnReason('')
+    setReturnSearchOpen(false)
+    setReturnQuery(''); setReturnResults([])
+    setReturnList([]); setReturnReason('')
+    setReturnUnitRowIdx(null); setReturnQtyRowIdx(null)
   }
 
   const closeAdjust = () => {
@@ -595,11 +585,12 @@ export default function POSPage() {
     if (!overrideAdjust.isAdmin) setAdjustSaving(false)
   }
 
+  // Typing in either input (return header or the ProductSearchDialog input)
+  // drives the same query — opens the search modal when there's text.
   const handleReturnSearch = useCallback(async (q: string) => {
     setReturnQuery(q)
-    setReturnSelectedProduct(null)
-    setReturnProductLots([]); setReturnSelectedLotId(null)
     if (!q.trim()) { setReturnResults([]); return }
+    setReturnSearchOpen(true)
     setReturnSearching(true)
     try {
       const data = await window.api.pos.searchProducts(q)
@@ -609,7 +600,12 @@ export default function POSPage() {
     }
   }, [])
 
-  const handleReturnSelectProduct = async (product: ProductWithDetails) => {
+  const closeReturnSearch = () => { setReturnSearchOpen(false); setReturnQuery(''); setReturnResults([]) }
+
+  // Add a product into the return list at its BASE unit, qty 1, default lot
+  // (first = FEFO order from getLots). Unit/qty/lot are edited inline after.
+  // Merge when the same product+unit+lot is already listed.
+  const addReturnProduct = async (product: ProductWithDetails) => {
     // Bundles can't be returned through the manual product-pick flow — there
     // are no own lots and selecting components individually loses the
     // "whole bundle" semantics + the original lot trace. Direct the operator
@@ -621,52 +617,57 @@ export default function POSPage() {
       })
       return
     }
-    setReturnSelectedProduct(product)
-    setReturnQuery(product.trade_name)
-    setReturnResults([])
-    setReturnSelectedLotId(null)
-    setReturnQtyInput('1')
     const lots = await (window.api.products as any).getLots(product.id) as ProductLot[]
-    setReturnProductLots(lots)
-    if (lots.length > 0) setReturnSelectedLotId(lots[0].id)
-    returnLotRefs.current = []
-    setTimeout(() => {
-      returnInputRef.current?.blur()
-      returnLotRefs.current[0]?.focus()
-    }, 50)
-  }
-
-  const handleAddReturnItem = () => {
-    if (!returnSelectedProduct || !returnSelectedLotId) return
-    const qty = parseFloat(returnQtyInput)
-    if (!qty || qty <= 0) return
-    const lot = returnProductLots.find(l => l.id === returnSelectedLotId)
-    if (!lot) return
-    const sellPrice = lot.sell_price
-    const existingIdx = returnList.findIndex(i => i.product_id === returnSelectedProduct.id && i.lot_id === returnSelectedLotId)
-    if (existingIdx >= 0) {
-      setReturnList(list => list.map((item, idx) => {
-        if (idx !== existingIdx) return item
-        const newQty = item.qty + qty
-        return { ...item, qty: newQty, line_total: newQty * item.sell_price }
-      }))
-    } else {
-      setReturnList(list => [...list, {
-        product_id: returnSelectedProduct.id,
-        lot_id: returnSelectedLotId,
-        product_name: returnSelectedProduct.trade_name,
-        unit_name: returnSelectedProduct.unit_name ?? 'ชิ้น',
+    if (!lots || lots.length === 0) { toast('ไม่พบล็อตสำหรับสินค้านี้', 'error'); return }
+    const lot = lots[0]
+    const unitPrice = product.price_retail ?? 0
+    setReturnList(list => {
+      const idx = list.findIndex(i => i.product_id === product.id && i.unit_id === -1 && i.lot_id === lot.id)
+      if (idx >= 0) {
+        return list.map((item, i) => i === idx
+          ? { ...item, qty: item.qty + 1, line_total: (item.qty + 1) * item.unit_price }
+          : item)
+      }
+      return [...list, {
+        product_id: product.id,
+        product_name: product.trade_name,
+        product,
+        unit_id: -1,
+        unit_name: product.unit_name ?? 'ชิ้น',
+        qty_per_base: 1,
+        unit_price: unitPrice,
+        qty: 1,
+        line_total: unitPrice,
+        lot_id: lot.id,
         lot_number: lot.lot_number ?? '',
         expiry_date: lot.expiry_date ?? null,
-        qty,
-        sell_price: sellPrice,
-        line_total: qty * sellPrice,
-      }])
-    }
-    setReturnQuery(''); setReturnResults([]); setReturnSelectedProduct(null)
-    setReturnProductLots([]); setReturnSelectedLotId(null); setReturnQtyInput('1')
+        lots,
+      }]
+    })
+    closeReturnSearch()
     setTimeout(() => returnInputRef.current?.focus(), 50)
   }
+
+  // Inline row edits.
+  const setReturnRowUnit = (idx: number, u: { id: number; unit_name?: string; qty_per_base?: number; price_retail?: number }) => {
+    const isBase = u.id === -1
+    const qpb = isBase ? 1 : (u.qty_per_base ?? 1)
+    const price = u.price_retail ?? 0
+    setReturnList(list => list.map((item, i) =>
+      i === idx ? { ...item, unit_id: u.id, unit_name: u.unit_name ?? '', qty_per_base: qpb, unit_price: price, line_total: item.qty * price } : item))
+  }
+  const setReturnRowQty = (idx: number, qty: number) => {
+    if (!Number.isFinite(qty) || qty < 1) return
+    setReturnList(list => list.map((item, i) =>
+      i === idx ? { ...item, qty, line_total: qty * item.unit_price } : item))
+  }
+  const setReturnRowLot = (idx: number, lot: ProductLot) => {
+    setReturnList(list => list.map((item, i) =>
+      i === idx
+        ? { ...item, lot_id: lot.id, lot_number: lot.lot_number ?? '', expiry_date: lot.expiry_date ?? null }
+        : item))
+  }
+  const removeReturnRow = (idx: number) => setReturnList(list => list.filter((_, i) => i !== idx))
 
   const handleConfirmReturn = async () => {
     if (returnList.length === 0 || !returnReason.trim()) return
@@ -676,7 +677,8 @@ export default function POSPage() {
         items: returnList.map(i => ({
           product_id: i.product_id, lot_id: i.lot_id,
           product_name: i.product_name, unit_name: i.unit_name,
-          qty: i.qty, unit_price: i.sell_price, line_total: i.line_total,
+          qty_per_base: i.qty_per_base,
+          qty: i.qty, unit_price: i.unit_price, line_total: i.line_total,
           reason: returnReason.trim(),
         })),
         customer_id: cart.customer?.id ?? null,
@@ -973,7 +975,7 @@ export default function POSPage() {
           <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden border border-border">
 
           {/* Sale type + search + clear-all header */}
-          <div className="flex items-center gap-2 px-4 h-14 shrink-0 border-0">
+          <div className="flex items-center gap-2 px-4 h-12 shrink-0 border-0">
             <div className="flex h-9 items-stretch gap-0.5 rounded-lg bg-muted/40 shrink-0">
               <Button
                 type="button"
@@ -1130,7 +1132,7 @@ export default function POSPage() {
 
                       <TableCell className="text-center">
                         <Button variant="primary-soft" size="sm"
-                          onClick={() => { setQtyInput(String(item.qty)); setQtyModalIdx(idx) }}
+                          onClick={() => setQtyModalIdx(idx)}
                           className="flex items-center w-full justify-center h-8 rounded-md text-sm font-semibold">
                           <span className="flex-1 text-center">{item.qty}</span>
                         </Button>
@@ -1318,43 +1320,24 @@ export default function POSPage() {
         </div>
       </div>
 
-      {/* ── PRODUCT SEARCH DIALOG (1000×800) ── */}
-      <Dialog open={searchOpen} onOpenChange={(v) => { if (!v) closeSearch() }}>
-        <DialogContent
-          showCloseButton={false}
-          onClose={closeSearch}
-          className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
-          style={{ width: '1000px', maxWidth: 'calc(100vw - 2rem)', height: '800px', maxHeight: 'calc(100vh - 4rem)' }}
-        >
-          <DialogTitle className="sr-only">ค้นหาสินค้า</DialogTitle>
-          {/* Search input */}
-          <div className="flex items-center gap-2 px-4 py-3 shrink-0">
-            <Search className="size-5 text-primary shrink-0" />
-            <Input
-              ref={modalInputRef}
-              value={query}
-              autoFocus
-              onChange={e => handleSearch(e.target.value)}
-              onKeyDown={handleModalKeyDown}
-              placeholder="ค้นหารหัส, ชื่อยา หรือสแกนบาร์โค้ด..."
-              className="flex-1 text-lg outline-none bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 h-auto px-0"
-              autoComplete="off"
-            />
-            {query && (
-              <Button variant="elevated" size="icon-xs" onClick={() => { setQuery(''); setResults([]); modalInputRef.current?.focus() }}
-                className="rounded-full text-foreground-subtle"><X className="size-3" strokeWidth={3} /></Button>
-            )}
-            {/* ติดอาวุธแล้ว → โชว์แค่ badge (ล้างผ่านการปิด modal แล้วค้นใหม่) */}
-            {multiplier !== null && (
-              <Badge variant="primary-soft" className="shrink-0">ตัวคูณ × {multiplier}</Badge>
-            )}
-            <Button variant="elevated" size="sm" onClick={closeSearch}
-              className="h-7">
-              Esc
-            </Button>
-          </div>
-
-          {/* Column header */}
+      {/* ── PRODUCT SEARCH DIALOG (shared component) ── */}
+      <ProductSearchDialog
+        open={searchOpen}
+        onClose={closeSearch}
+        query={query}
+        onQueryChange={handleSearch}
+        searching={searching}
+        rows={flatItems}
+        resultCount={results.length}
+        inputRef={modalInputRef}
+        onInputKeyDown={handleMultiplierKey}
+        rowKey={(it) => `${it.product.id}-${it.unit?.id ?? 'base'}`}
+        rowClassName="grid items-center px-4 py-2.5"
+        rowStyle={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
+        onPick={(it) => handleSelectItem(it.product, it.unit)}
+        headerRight={multiplier !== null ? <Badge variant="primary-soft" className="shrink-0">ตัวคูณ × {multiplier}</Badge> : undefined}
+        footerExtra={multiplier !== null ? <span className="text-primary font-semibold"> · ตัวคูณ × {multiplier}</span> : undefined}
+        header={
           <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0 border-b border-border"
             style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}>
             <div>ชื่อสินค้า</div>
@@ -1362,78 +1345,44 @@ export default function POSPage() {
             <div className="text-right">ราคาขาย</div>
             <div className="text-right">คงเหลือ</div>
           </div>
-
-          {/* Results — flex-1, scrolls internally, empty space stays empty */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
-            {searching && flatItems.length === 0 ? (
-              <div className="py-12 text-center text-foreground-subtle text-base">กำลังค้นหา...</div>
-            ) : query && flatItems.length === 0 ? (
-              <div className="py-12 text-center text-foreground-subtle text-base">ไม่พบสินค้า "{query}"</div>
-            ) : !query ? (
-              <div className="py-12 text-center text-foreground-subtle">
-                <Search className="size-10 mx-auto mb-2 opacity-40" />
-                <p className="text-base">พิมพ์เพื่อค้นหาสินค้า</p>
+        }
+        renderRow={(it) => {
+          // Bundles have no own lots — derive stock from components
+          // (MIN of floor(component_qty / qty_per_bundle)). Expiry warn also
+          // scans across all component lots. Regular products read own lots.
+          const isBundle = !!it.product.is_bundle
+          const stock = isBundle
+            ? (() => {
+                const items = it.product.bundle_items ?? []
+                if (items.length === 0) return 0
+                return Math.min(...items.map(bi => {
+                  const compStock = (bi.lots ?? []).reduce((s, l) => s + (l.qty_on_hand ?? 0), 0)
+                  return Math.floor(compStock / (bi.qty_per_bundle || 1))
+                }))
+              })()
+            : (it.product.lots?.reduce((s, l) => s + l.qty_on_hand, 0) ?? 0)
+          const price = it.unit ? it.unit.price_retail : it.product.price_retail
+          const unitName = it.unit?.unit_name ?? it.product.unit_name ?? '-'
+          const expiryLevel = getProductExpiryLevel(it.product, salesSettings)
+          return (
+            <>
+              <div className="min-w-0 pr-2">
+                <div className="font-semibold text-base flex items-center gap-1.5 truncate">
+                  {/* Same ClockAlert + severity colour as the cart table (alertColorClass). */}
+                  {expiryLevel && (
+                    <ClockAlert className={`size-4 shrink-0 ${alertColorClass(expiryLevel)}`} />
+                  )}
+                  <span className="truncate">{it.product.trade_name}</span>
+                  {stock === 0 && <Badge variant="destructive-outline" className="shrink-0">หมด</Badge>}
+                </div>
               </div>
-            ) : (
-              <div className="divide-y divide-border">
-              {flatItems.map((it, i) => {
-                // Bundles have no own lots — derive stock from components
-                // (MIN of floor(component_qty / qty_per_bundle)). Expiry warn
-                // also scans across all component lots. Regular products read
-                // their own lots as before.
-                const isBundle = !!it.product.is_bundle
-                const stock = isBundle
-                  ? (() => {
-                      const items = it.product.bundle_items ?? []
-                      if (items.length === 0) return 0
-                      return Math.min(...items.map(bi => {
-                        const compStock = (bi.lots ?? []).reduce((s, l) => s + (l.qty_on_hand ?? 0), 0)
-                        return Math.floor(compStock / (bi.qty_per_bundle || 1))
-                      }))
-                    })()
-                  : (it.product.lots?.reduce((s, l) => s + l.qty_on_hand, 0) ?? 0)
-                const price = it.unit ? it.unit.price_retail : it.product.price_retail
-                const unitName = it.unit?.unit_name ?? it.product.unit_name ?? '-'
-                const active = i === highlightIdx
-                const expiryLevel = getProductExpiryLevel(it.product, salesSettings)
-                return (
-                  <div
-                    key={`${it.product.id}-${it.unit?.id ?? 'base'}`}
-                    ref={active ? activeRowRef : undefined}
-                    onClick={() => handleSelectItem(it.product, it.unit)}
-                    className={`grid items-center px-4 py-2.5 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft/60'}`}
-                    style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
-                  >
-                    <div className="min-w-0 pr-2">
-                      <div className="font-semibold text-base flex items-center gap-1.5 truncate">
-                        {/* Same ClockAlert + severity colour as the cart table (alertColorClass). */}
-                        {expiryLevel && (
-                          <ClockAlert className={`size-4 shrink-0 ${alertColorClass(expiryLevel)}`} />
-                        )}
-                        <span className="truncate">{it.product.trade_name}</span>
-                        {stock === 0 && <Badge variant="destructive-outline" className="shrink-0">หมด</Badge>}
-                      </div>
-                    </div>
-                    <div className="text-center text-base text-muted-foreground truncate">{unitName}</div>
-                    <div className="text-right font-bold text-primary text-base">{formatCurrency(price)}</div>
-                    <div className={`text-right text-base font-semibold ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock}</div>
-                  </div>
-                )
-              })}
-              </div>
-            )}
-          </div>
-
-          {/* Footer status */}
-          <div className="flex items-center justify-between gap-3 px-4 py-2 bg-muted border-t border-border text-xs text-muted-foreground shrink-0">
-            <span>
-              <kbd>↑↓</kbd> เลื่อน · <kbd>Enter</kbd> เลือก · <kbd>Esc</kbd> ปิด
-              {multiplier !== null && <span className="text-primary font-semibold"> · ตัวคูณ × {multiplier}</span>}
-            </span>
-            <span>พบ {results.length} รายการ</span>
-          </div>
-        </DialogContent>
-      </Dialog>
+              <div className="text-center text-base text-muted-foreground truncate">{unitName}</div>
+              <div className="text-right font-bold text-primary text-base">{formatCurrency(price)}</div>
+              <div className={`text-right text-base font-semibold ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock}</div>
+            </>
+          )
+        }}
+      />
 
       {/* ── CUSTOMER SEARCH DIALOG (shared with the Quotation editor) ── */}
       <CustomerSearchDialog
@@ -1910,7 +1859,7 @@ export default function POSPage() {
                           className="group flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer transition-colors hover:bg-warm">
                           <div className="min-w-0 flex-1">
                             <div className="font-semibold text-sm truncate">{p.trade_name}</div>
-                            <div className="text-sm text-muted-foreground truncate">{p.unit_name} · {p.barcode || p.code || '—'}</div>
+                            <div className="text-sm text-muted-foreground truncate">{p.unit_name} · {p.barcode || '—'}</div>
                           </div>
                           <ChevronRight className="size-4 text-foreground-subtle group-hover:text-foreground shrink-0 transition-colors" />
                         </div>
@@ -2082,9 +2031,9 @@ export default function POSPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── RETURN ITEMS DIALOG ── */}
+      {/* ── RETURN ITEMS DIALOG (cart-table) ── */}
       <Dialog open={showReturn} onOpenChange={(v) => { if (!v) closeReturn() }}>
-        <DialogContent size="4xl" divided onClose={closeReturn}>
+        <DialogContent size="4xl" divided onClose={closeReturn} className="h-[760px] grid-rows-[auto_1fr_auto]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <TintIcon icon={RotateCcw} tint="primary" size="md" bordered />
@@ -2092,221 +2041,150 @@ export default function POSPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <DialogBody className="flex gap-0 p-0 overflow-hidden rounded-xl" style={{ height: '520px' }}>
-            {/* Left column — search + product results / lot picker */}
-            <div className="flex flex-col basis-1/2 min-w-0 overflow-hidden">
-              <div className="p-3 shrink-0">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    ref={returnInputRef}
-                    placeholder="สแกนหรือค้นหาชื่อ / บาร์โค้ด / รหัสสินค้า..."
-                    value={returnQuery}
-                    onChange={e => handleReturnSearch(e.target.value)}
-                    className="h-10 pl-9"
-                    autoComplete="off"
-                  />
-                </div>
+          <DialogBody className="flex flex-col p-0 gap-0 overflow-hidden min-h-0">
+            {/* Add-product search bar — opens the shared ProductSearchDialog */}
+            <div className="px-4 py-3 shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  ref={returnInputRef}
+                  placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อ/รหัสสินค้าเพื่อเพิ่ม..."
+                  value={returnQuery}
+                  onChange={e => handleReturnSearch(e.target.value)}
+                  onFocus={() => { if (returnQuery.trim()) setReturnSearchOpen(true) }}
+                  className="h-11 pl-9 text-base"
+                  autoComplete="off"
+                />
               </div>
-
-              {!returnSelectedProduct ? (
-                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
-                  {returnSearching ? (
-                    <div className="py-10 text-center text-muted-foreground text-sm">กำลังค้นหา...</div>
-                  ) : returnQuery && returnResults.length === 0 ? (
-                    <div className="py-10 text-center text-muted-foreground text-sm">ไม่พบสินค้า "{returnQuery}"</div>
-                  ) : !returnQuery ? (
-                    <div className="h-full flex flex-col items-center justify-center text-foreground-subtle gap-2 px-6 text-center">
-                      <Search className="size-10 opacity-30" />
-                      <p className="text-sm">พิมพ์ชื่อ, บาร์โค้ด หรือรหัสสินค้า</p>
-                    </div>
-                  ) : (
-                    <div className="px-2 pb-2 space-y-1">
-                      {returnResults.map(p => (
-                        <div key={p.id} onClick={() => handleReturnSelectProduct(p)}
-                          className="group flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer transition-colors hover:bg-primary-soft/60">
-                          <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-sm truncate">{p.trade_name}</div>
-                            <div className="text-sm text-muted-foreground truncate">{p.unit_name} · {p.barcode || p.code || '—'}</div>
-                          </div>
-                          <ChevronRight className="size-4 text-foreground-subtle group-hover:text-foreground shrink-0 transition-colors" />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex-1 min-h-0 flex flex-col px-3 pb-3 gap-2.5 overflow-hidden">
-                  {/* Selected product hero */}
-                  <div className="flex items-center gap-2.5 rounded-lg bg-primary-soft px-2.5 py-1.5 shrink-0">
-                    <TintIcon icon={RotateCcw} tint="primary-strong" size="md" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm text-foreground truncate leading-tight">{returnSelectedProduct.trade_name}</div>
-                      <div className="text-sm text-muted-foreground truncate leading-tight">หน่วย: {returnSelectedProduct.unit_name ?? '—'}</div>
-                    </div>
-                    <Button variant="secondary" size="sm"
-                      onClick={() => { setReturnSelectedProduct(null); setReturnQuery(''); setReturnProductLots([]); setReturnSelectedLotId(null); setTimeout(() => returnInputRef.current?.focus(), 50) }}
-                      className="h-7 gap-1 shrink-0">
-                      <ChevronLeft className="size-3.5" /> เปลี่ยน
-                    </Button>
-                  </div>
-
-                  {/* Lot picker — flexible, only this scrolls */}
-                  <div className="flex-1 min-h-0 flex flex-col">
-                    <div className="flex items-center justify-between mb-1.5 shrink-0">
-                      <div className="text-sm font-semibold text-foreground">เลือกล็อต</div>
-                      <span className="text-sm text-muted-foreground">↑↓ เลื่อน</span>
-                    </div>
-                    {returnProductLots.length === 0 ? (
-                      <div className="text-sm text-muted-foreground py-3 text-center bg-muted rounded-lg shrink-0">ไม่พบล็อตสำหรับสินค้านี้</div>
-                    ) : (
-                      <div className="flex-1 min-h-0 space-y-1.5 overflow-y-auto scrollbar-thin pr-0.5">
-                        {returnProductLots.map((lot, idx) => {
-                          const selected = returnSelectedLotId === lot.id
-                          return (
-                            <button
-                              key={lot.id}
-                              ref={el => { returnLotRefs.current[idx] = el }}
-                              onClick={() => setReturnSelectedLotId(lot.id)}
-                              onFocus={() => setReturnSelectedLotId(lot.id)}
-                              onKeyDown={e => {
-                                if (e.key === 'ArrowDown') { e.preventDefault(); returnLotRefs.current[idx + 1]?.focus() }
-                                else if (e.key === 'ArrowUp') { e.preventDefault(); returnLotRefs.current[idx - 1]?.focus() }
-                                else if (e.key === 'Enter') {
-                                  e.preventDefault()
-                                  returnQtyRef.current?.focus()
-                                  returnQtyRef.current?.select()
-                                }
-                              }}
-                              className={`w-full text-left px-3 py-1.5 rounded-lg transition-colors focus:outline-none ${selected ? 'bg-primary-soft ring-2 ring-inset ring-primary' : 'bg-muted hover:bg-primary-soft/60'}`}
-                            >
-                              <div className="flex justify-between items-center gap-2">
-                                <span className={`font-semibold text-sm truncate ${selected ? 'text-primary' : 'text-foreground'}`}><span className="text-muted-foreground font-normal">Lot : </span>{lot.lot_number || '—'}</span>
-                                <span className="text-sm font-bold text-foreground shrink-0">{formatCurrency(lot.sell_price)}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-2 mt-0.5">
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 truncate">
-                                  <ClockAlert className="size-3.5 shrink-0" />
-                                  <span className="truncate">
-                                    {lot.expiry_date ? dayjs(lot.expiry_date).format('DD/MM/YYYY') : '—'}
-                                    {lot.supplier_name ? ` · ${lot.supplier_name}` : ''}
-                                  </span>
-                                </div>
-                                <Badge variant={selected ? 'default' : 'secondary'} className="shrink-0">คงเหลือ {lot.qty_on_hand}</Badge>
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Qty section — pinned at bottom */}
-                  <div className="space-y-2 shrink-0">
-                    <Label className="text-sm font-semibold text-foreground block">จำนวนที่คืน ({returnSelectedProduct.unit_name})</Label>
-                    <div className="flex items-center gap-2">
-                      <Button variant="elevated" size="icon-xl"
-                        onClick={() => setReturnQtyInput(v => String(Math.max(1, (parseFloat(v) || 1) - 1)))}
-                        className="shrink-0">
-                        <Minus className="size-5" />
-                      </Button>
-                      <Input
-                        ref={returnQtyRef}
-                        type="number"
-                        value={returnQtyInput}
-                        min={1}
-                        style={{ MozAppearance: 'textfield' }}
-                        onFocus={e => e.currentTarget.select()}
-                        onChange={e => setReturnQtyInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleAddReturnItem() }}
-                        placeholder="1"
-                        className="h-12 flex-1 text-center text-3xl font-bold"
-                      />
-                      <Button variant="elevated" size="icon-xl"
-                        onClick={() => setReturnQtyInput(v => String((parseFloat(v) || 0) + 1))}
-                        className="shrink-0">
-                        <Plus className="size-5" />
-                      </Button>
-                    </div>
-                    <Button
-                      variant="default"
-                      onClick={handleAddReturnItem}
-                      disabled={!returnSelectedLotId || !returnQtyInput || parseFloat(returnQtyInput) <= 0}
-                      className="w-full h-10 gap-1.5"
-                    >
-                      <Plus className="size-4" /> เพิ่มในรายการคืน
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Right column — return list + total + reason */}
-            <div className="flex flex-col basis-1/2 shrink-0 overflow-hidden bg-muted/40 border-l border-border">
-              <div className="px-3 py-2.5 shrink-0 flex items-center justify-between bg-card border-b border-border">
-                <span className="text-sm font-semibold text-foreground">รายการที่จะคืน</span>
-                {returnList.length > 0 && (
-                  <Badge variant="primary-outline">{returnList.length} รายการ</Badge>
-                )}
-              </div>
+            {/* Cart-style table — the scroll zone */}
+            <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-center w-12">#</TableHead>
+                    <TableHead className="min-w-[200px]">รายการ</TableHead>
+                    <TableHead className="text-center min-w-24">หน่วย</TableHead>
+                    <TableHead className="text-center min-w-20">จำนวน</TableHead>
+                    <TableHead className="min-w-[180px]">ล็อต / วันหมดอายุ</TableHead>
+                    <TableHead className="text-right min-w-24">ราคา/หน่วย</TableHead>
+                    <TableHead className="text-right min-w-24">รวม</TableHead>
+                    <TableHead className="text-center w-14" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {returnList.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
+                        <PackageX className="size-10 mx-auto mb-2 opacity-30" />
+                        ยังไม่มีรายการคืน — สแกนหรือค้นหาสินค้าด้านบนเพื่อเพิ่ม
+                      </TableCell>
+                    </TableRow>
+                  ) : returnList.map((item, idx) => {
+                    const expiry = item.expiry_date ? dayjs(item.expiry_date).format('DD/MM/YYYY') : null
+                    const multiLot = item.lots.length > 1
+                    return (
+                      <TableRow key={`${item.product_id}-${item.unit_id}-${item.lot_id}`} className="[&_td]:py-2.5">
+                        <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
+                        <TableCell className="font-semibold text-sm text-foreground">{item.product_name}</TableCell>
+                        <TableCell className="text-center">
+                          <Button variant="primary-soft" size="sm" onClick={() => setReturnUnitRowIdx(idx)}
+                            className="h-8 gap-1 rounded-md">
+                            {item.unit_name} <ChevronDown className="size-3" />
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button variant="primary-soft" size="sm" onClick={() => setReturnQtyRowIdx(idx)}
+                            className="h-8 min-w-[3rem] rounded-md font-semibold">
+                            {item.qty}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          {multiLot ? (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="elevated" size="sm" className="h-8 max-w-full gap-1 text-xs font-normal text-muted-foreground">
+                                  <span className="truncate">Lot {item.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}</span>
+                                  <ChevronDown className="size-3 shrink-0" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent align="start" className="w-80 p-1.5">
+                                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">เลือกล็อตที่จะคืนเข้า</div>
+                                <div className="space-y-0.5 max-h-64 overflow-y-auto scrollbar-thin">
+                                  {item.lots.map(lot => {
+                                    const sel = lot.id === item.lot_id
+                                    return (
+                                      <button key={lot.id} onClick={() => setReturnRowLot(idx, lot)}
+                                        className={`w-full text-left rounded-lg px-2.5 py-1.5 transition-colors focus:outline-none ${sel ? 'bg-primary-soft' : 'hover:bg-primary-soft/60'}`}>
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className={`text-sm font-semibold truncate ${sel ? 'text-primary' : 'text-foreground'}`}>Lot {lot.lot_number || '—'}</span>
+                                          <Badge variant={sel ? 'default' : 'secondary'} className="shrink-0">คงเหลือ {lot.qty_on_hand}</Badge>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5 truncate">
+                                          <ClockAlert className="size-3 shrink-0" />
+                                          {lot.expiry_date ? dayjs(lot.expiry_date).format('DD/MM/YYYY') : '—'}
+                                          {lot.supplier_name ? ` · ${lot.supplier_name}` : ''}
+                                        </div>
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                              <ClockAlert className="size-3 shrink-0" />
+                              Lot {item.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell className="text-right text-sm font-bold text-foreground">{formatCurrency(item.line_total)}</TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            <Button size="icon-lg" variant="elevated-destructive" onClick={() => removeReturnRow(idx)} title="ลบรายการ">
+                              <Trash2 />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
 
-              <div className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-1.5">
-                {returnList.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-foreground-subtle gap-2 px-6 text-center">
-                    <RotateCcw className="size-10 opacity-30" />
-                    <p className="text-sm">ยังไม่มีรายการที่จะคืน</p>
-                  </div>
-                ) : returnList.map((item, idx) => (
-                  <div key={idx} className="bg-card rounded-lg border border-border px-3 py-2 flex items-center gap-2 shadow-card">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate text-foreground">{item.product_name}</div>
-                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <span className="truncate">Lot : {item.lot_number || '—'}</span>
-                        <span className="text-foreground-subtle">·</span>
-                        <span className="">×{item.qty}</span>
-                      </div>
-                    </div>
-                    <div className="text-sm font-bold text-foreground shrink-0">{formatCurrency(item.line_total)}</div>
-                    <Button variant="ghost" size="icon-sm"
-                      onClick={() => setReturnList(list => list.filter((_, i) => i !== idx))}
-                      className="shrink-0 text-foreground-subtle hover:text-destructive hover:bg-destructive-soft">
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
+            {/* Footer status bar — count + total */}
+            <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
+              <span className="text-muted-foreground">{returnList.length.toLocaleString()} รายการ</span>
+              <span className="text-muted-foreground">
+                ยอดคืนรวม
+                <span className="text-lg font-extrabold text-foreground ml-2">
+                  {formatCurrency(returnList.reduce((s, i) => s + i.line_total, 0))}
+                </span>
+              </span>
+            </div>
+
+            {/* Reason band */}
+            <div className="shrink-0 border-t border-border bg-muted/30 px-4 py-3 space-y-2">
+              <span className="text-sm font-semibold text-foreground">สาเหตุการคืน <span className="text-destructive">*</span></span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {['ลูกค้าเปลี่ยนใจ', 'สินค้าเสียหาย', 'หมดอายุ'].map(reason => (
+                  <Button key={reason}
+                    variant={returnReason === reason ? 'default' : 'elevated'}
+                    size="sm"
+                    onClick={() => setReturnReason(r => r === reason ? '' : reason)}
+                    className="h-8 rounded-md">
+                    {reason}
+                  </Button>
                 ))}
-              </div>
-
-              <div className="p-3 shrink-0 space-y-2.5 bg-card border-t border-border">
-                {returnList.length > 0 && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-primary-soft">
-                    <span className="text-sm font-semibold text-foreground">ยอดคืนรวม</span>
-                    <span className="text-lg font-extrabold text-foreground">
-                      {formatCurrency(returnList.reduce((s, i) => s + i.line_total, 0))}
-                    </span>
-                  </div>
-                )}
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-foreground block">
-                    สาเหตุการคืน <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {['ลูกค้าเปลี่ยนใจ', 'สินค้าเสียหาย', 'หมดอายุ'].map(reason => (
-                      <Button key={reason}
-                        variant={returnReason === reason ? 'default' : 'secondary'}
-                        size="sm"
-                        onClick={() => setReturnReason(r => r === reason ? '' : reason)}
-                        className="h-8 rounded-md">
-                        {reason}
-                      </Button>
-                    ))}
-                  </div>
-                  <Input
-                    placeholder="ระบุสาเหตุ..."
-                    value={returnReason}
-                    onChange={e => setReturnReason(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </div>
+                <Input
+                  placeholder="หรือระบุสาเหตุเอง..."
+                  value={returnReason}
+                  onChange={e => setReturnReason(e.target.value)}
+                  className="h-8 flex-1 min-w-[140px] text-sm"
+                />
               </div>
             </div>
           </DialogBody>
@@ -2318,11 +2196,86 @@ export default function POSPage() {
               onClick={handleConfirmReturn}
               disabled={returnList.length === 0 || !returnReason.trim() || returnSaving}
             >
-              {returnSaving ? 'กำลังบันทึก...' : 'ยืนยัน'}
+              {returnSaving ? 'กำลังบันทึก...' : 'ยืนยันการคืน'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Return — shared product search (adds a product into the return list) */}
+      <ProductSearchDialog
+        open={returnSearchOpen}
+        onClose={closeReturnSearch}
+        query={returnQuery}
+        onQueryChange={handleReturnSearch}
+        searching={returnSearching}
+        rows={returnResults}
+        inputRef={returnSearchInputRef}
+        rowKey={(p) => String(p.id)}
+        rowClassName="grid items-center px-4 py-2.5"
+        rowStyle={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
+        onPick={(p) => void addReturnProduct(p)}
+        header={
+          <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0 border-b border-border"
+            style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}>
+            <div>ชื่อสินค้า</div>
+            <div className="text-center">หน่วย</div>
+            <div className="text-right">ราคาขาย</div>
+            <div className="text-right">คงเหลือ</div>
+          </div>
+        }
+        renderRow={(p) => {
+          const stock = p.lots?.reduce((s, l) => s + l.qty_on_hand, 0) ?? 0
+          return (
+            <>
+              <div className="min-w-0 pr-2">
+                <div className="font-semibold text-base truncate">{p.trade_name}</div>
+              </div>
+              <div className="text-center text-base text-muted-foreground truncate">{p.unit_name ?? '-'}</div>
+              <div className="text-right font-bold text-primary text-base">{formatCurrency(p.price_retail)}</div>
+              <div className={`text-right text-base font-semibold ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock}</div>
+            </>
+          )
+        }}
+      />
+
+      {/* Return — inline unit picker (shared) */}
+      {returnUnitRowIdx !== null && (() => {
+        const row = returnList[returnUnitRowIdx]
+        if (!row) return null
+        const product = row.product
+        const baseUnit = { id: -1, unit_name: product.unit_name ?? '', price_retail: product.price_retail } as ProductUnit
+        const allUnits = [baseUnit, ...(product.units ?? [])]
+        return (
+          <UnitPickerDialog
+            open
+            onClose={() => setReturnUnitRowIdx(null)}
+            productName={row.product_name}
+            units={allUnits}
+            activeUnitName={row.unit_name}
+            onSelect={(u) => { setReturnRowUnit(returnUnitRowIdx, u); setReturnUnitRowIdx(null) }}
+          />
+        )
+      })()}
+
+      {/* Return — inline qty (shared) */}
+      {returnQtyRowIdx !== null && (() => {
+        const row = returnList[returnQtyRowIdx]
+        if (!row) return null
+        const lot = row.lots.find(l => l.id === row.lot_id)
+        return (
+          <QtyDialog
+            open
+            onClose={() => setReturnQtyRowIdx(null)}
+            itemName={row.product_name}
+            unitName={row.unit_name}
+            initialQty={row.qty}
+            unitPrice={row.unit_price}
+            stockQty={lot?.qty_on_hand}
+            onApply={(qty) => setReturnRowQty(returnQtyRowIdx, qty)}
+          />
+        )
+      })()}
 
       {/* ── SUCCESS DIALOG ── */}
       <ConfirmDialog
@@ -2480,97 +2433,26 @@ export default function POSPage() {
         })()}
       </Dialog>
 
-      {/* ── QTY DIALOG ── */}
-      <Dialog open={qtyModalIdx !== null} onOpenChange={(v) => { if (!v) setQtyModalIdx(null) }}>
-        {qtyModalIdx !== null && (() => {
-          const item = cart.items[qtyModalIdx]
-          const q = Math.max(1, parseFloat(qtyInput) || 0)
-          const lineTotal = Math.max(0, (item?.unit_price ?? 0) * q - (item?.discount ?? 0))
-          const product = item?.product as ProductWithDetails | undefined
-          const stockQty = product?.lots?.reduce((s, l) => s + l.qty_on_hand, 0) ?? 0
-          const applyQty = (val: number) => {
-            if (!item) return
-            const safe = Math.max(1, val)
-            cart.updateItem(qtyModalIdx, { qty: safe })
-            setQtyModalIdx(null)
-            refocusSearch()
-          }
-          const bump = (delta: number) => {
-            const cur = parseFloat(qtyInput) || 0
-            const next = Math.max(1, cur + delta)
-            setQtyInput(String(next))
-          }
-          return (
-            <DialogContent size="sm" divided onClose={() => setQtyModalIdx(null)}>
-              <DialogHeader>
-                <DialogTitle className="text-2xl">จำนวน</DialogTitle>
-                <div className="text-base font-semibold text-foreground overflow-x-clip overflow-y-visible">{item?.item_name}</div>
-              </DialogHeader>
-              <DialogBody className="space-y-4">
-                {/* Summary strip — stock on hand + running line total */}
-                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2.5">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-foreground-subtle">คงเหลือ</span>
-                    <span className={`text-sm font-semibold ${stockQty > 0 ? 'text-foreground' : 'text-destructive'}`}>{stockQty} {item?.unit_name}</span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs text-foreground-subtle">รวม</span>
-                    <span className="text-base font-semibold text-foreground">{formatCurrency(lineTotal)}</span>
-                  </div>
-                </div>
-
-                {/* Stepper */}
-                <div className="space-y-1.5">
-                  <Label>จำนวน ({item?.unit_name})</Label>
-                  <div className="flex items-center gap-2">
-                    <Button variant="elevated" size="icon-xl" onClick={() => bump(-1)} className="shrink-0">
-                      <Minus className="size-5" />
-                    </Button>
-                    <Input
-                      type="number"
-                      autoFocus
-                      value={qtyInput}
-                      min={1}
-                      style={{ MozAppearance: 'textfield' }}
-                      onFocus={e => e.currentTarget.select()}
-                      onChange={e => setQtyInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') applyQty(q) }}
-                      placeholder="1"
-                      className="h-11 flex-1 text-center text-3xl font-bold"
-                    />
-                    <Button variant="elevated" size="icon-xl" onClick={() => bump(1)} className="shrink-0">
-                      <Plus className="size-5" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Quick presets — segmented track with a sliding pill (shared-layout) */}
-                <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
-                  {[1, 5, 10, 20, 50].map(n => {
-                    const active = (parseFloat(qtyInput) || 0) === n
-                    return (
-                      <Button key={n} variant="ghost" size="sm"
-                        onClick={() => setQtyInput(String(n))}
-                        className={`relative w-full h-9 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${active ? 'hover:text-primary-foreground text-primary-foreground' : 'text-foreground'}`}>
-                        {active && (
-                          <motion.div layoutId="qty-preset-pill" aria-hidden
-                            className="absolute inset-0 rounded-md bg-primary shadow-sm"
-                            transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />
-                        )}
-                        <span className="relative z-10">{n}</span>
-                      </Button>
-                    )
-                  })}
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <Button variant="elevated" size="xl" onClick={() => setQtyModalIdx(null)}>ยกเลิก</Button>
-                <Button size="xl" onClick={() => applyQty(q)}>ตกลง</Button>
-              </DialogFooter>
-            </DialogContent>
-          )
-        })()}
-      </Dialog>
+      {/* ── QTY DIALOG (shared) ── */}
+      {qtyModalIdx !== null && (() => {
+        const item = cart.items[qtyModalIdx]
+        if (!item) return null
+        const product = item.product as ProductWithDetails | undefined
+        const stockQty = product?.lots?.reduce((s, l) => s + l.qty_on_hand, 0) ?? 0
+        return (
+          <QtyDialog
+            open
+            onClose={() => setQtyModalIdx(null)}
+            itemName={item.item_name}
+            unitName={item.unit_name}
+            initialQty={item.qty}
+            unitPrice={item.unit_price}
+            discount={item.discount}
+            stockQty={stockQty}
+            onApply={(qty) => { cart.updateItem(qtyModalIdx, { qty: Math.max(1, qty) }); refocusSearch() }}
+          />
+        )
+      })()}
 
       {/* ── DISCOUNT DIALOG ── */}
       <Dialog open={discountModalIdx !== null} onOpenChange={(v) => { if (!v) setDiscountModalIdx(null) }}>

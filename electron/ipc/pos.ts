@@ -287,6 +287,10 @@ export function registerPosHandlers() {
       lot_id: number
       product_name: string
       unit_name: string
+      // Conversion factor of the RETURNED unit → base unit (1 for base-unit
+      // returns). sale_items.qty stays in the returned unit; the lot restock /
+      // movements use qty * qty_per_base in base units — mirrors saveBill.
+      qty_per_base?: number
       qty: number
       unit_price: number
       line_total: number
@@ -328,7 +332,11 @@ export function registerPosHandlers() {
         const lot = db.prepare(`SELECT * FROM product_lots WHERE id = ?`).get(item.lot_id) as any
         if (!lot) throw new Error(`Lot not found: ${item.lot_id}`)
 
-        // Negative sale_items row
+        // Returned qty is in the chosen unit; the lot/movements work in base
+        // units (qty * qty_per_base). sale_items.qty stays in the chosen unit.
+        const baseQty = item.qty * (item.qty_per_base ?? 1)
+
+        // Negative sale_items row (qty in the returned unit)
         const saleItemResult = db.prepare(`
           INSERT INTO sale_items (sale_id, product_id, item_name, unit_name, qty, unit_price, discount, line_total, item_note)
           VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
@@ -336,23 +344,23 @@ export function registerPosHandlers() {
           -item.qty, item.unit_price, -item.line_total, item.reason)
         const saleItemId = saleItemResult.lastInsertRowid
 
-        // Lot tracing — negative qty mirrors sale_items
+        // Lot tracing — negative BASE qty mirrors how sales record sale_item_lots
         db.prepare(`
           INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty)
           VALUES (?, ?, ?, ?)
-        `).run(saleItemId, item.lot_id, item.product_id, -item.qty)
+        `).run(saleItemId, item.lot_id, item.product_id, -baseQty)
 
-        // Restore stock
+        // Restore stock (base units)
         const qtyBefore = lot.qty_on_hand
-        const qtyAfter = qtyBefore + item.qty
-        db.prepare(`UPDATE product_lots SET qty_on_hand = qty_on_hand + ? WHERE id = ?`).run(item.qty, item.lot_id)
+        const qtyAfter = qtyBefore + baseQty
+        db.prepare(`UPDATE product_lots SET qty_on_hand = qty_on_hand + ? WHERE id = ?`).run(baseQty, item.lot_id)
 
         // Stock movement — ref_id links back to the return sales record
         db.prepare(`
           INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, unit_cost, note, created_by)
           VALUES (?, ?, 'sale_return', 'return', ?, ?, ?, ?, ?, ?, ?)
         `).run(item.product_id, item.lot_id, saleId,
-          item.qty, qtyBefore, qtyAfter, lot.cost_price, item.reason, payload.created_by)
+          baseQty, qtyBefore, qtyAfter, lot.cost_price, item.reason, payload.created_by)
       }
 
       return { success: true, invoice_no: invoiceNo, count: payload.items.length, total_amount: totalAmount }

@@ -230,7 +230,7 @@ function NativeSelect({ value, onChange, children, className, selectClassName }:
     <div className={cn('relative', className)}>
       <select
         className={cn(
-          'w-full h-10 rounded-xl bg-input px-3 pr-9 text-sm appearance-none outline-none transition-all focus:ring-[2px] focus:ring-ring',
+          'w-full h-9 rounded-xl bg-input px-3 pr-9 text-sm appearance-none outline-none transition-all focus:ring-[2px] focus:ring-ring',
           selectClassName,
         )}
         value={value}

@@ -97,7 +97,7 @@ export default function ManageLayout() {
             if (tab) navigate(tab.to)
           }}
         >
-          <TabsList variant="segmented" className="h-10">
+          <TabsList variant="segmented" className="h-9">
             {visibleTabs.map(({ value, label, icon: Icon }) => {
               const showBadge = value === 'negative-stock' && negativeStockCount > 0
               return (

@@ -162,13 +162,13 @@ export default function QuotationList() {
       {/* Top row: status filter tabs (left) + create button (right) */}
       <TabStrip className="-mb-2">
         <Tabs value={statusFilter} onValueChange={v => setStatusFilter(v as StatusFilter)}>
-          <TabsList variant="segmented" className="h-10">
+          <TabsList variant="segmented" className="h-9">
             {STATUS_TABS.map(({ value, label, icon: Icon }) => (
               <TabsTrigger key={value} value={value}><Icon /> {label}</TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
-        <Button onClick={() => navigate('/quotation/new')} className="ml-auto h-10 px-3">
+        <Button onClick={() => navigate('/quotation/new')} className="ml-auto h-9 px-3">
           <Plus className="size-4" /> สร้างใบเสนอราคา
         </Button>
       </TabStrip>
@@ -180,14 +180,14 @@ export default function QuotationList() {
       </div>
 
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
-        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+        <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={FileText} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายการใบเสนอราคา</h3>
             <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
           </div>
-          <SearchInput variant="elevated" wrapperClassName="w-72 shrink-0 ml-auto" className="h-10" value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาเลขที่, ชื่อลูกค้า..." />
-          <DateRangePicker variant="elevated" from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t) }} className="h-10 w-60 shrink-0" />
+          <SearchInput variant="elevated" wrapperClassName="w-72 shrink-0 ml-auto" className="h-9" value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาเลขที่, ชื่อลูกค้า..." />
+          <DateRangePicker variant="elevated" from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t) }} className="w-60 shrink-0" />
         </div>
 
         <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">

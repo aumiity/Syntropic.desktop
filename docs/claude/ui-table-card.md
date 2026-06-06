@@ -25,18 +25,24 @@ Rule of thumb: only the column-header band is muted. The bottom status bar gets 
 
 **Leading icon (HARD):** a table-card header's `<TintIcon>` is always `tint="neutral"` + `bordered` (the elevated, colorless look) — NEVER a colored tint. Colored/role tints are for `SectionCard` headers only. Canonical: `Manage/Expenses.tsx` (รายการค่าใช้จ่าย header) and `Reports/NewDashboard.tsx` (สินค้าค้างสต็อก header).
 
-### Filter strip / topbar (HARD): `h-14 px-2`, every control inside = `h-10`
+### ONE bar height rule (HARD): EVERY bar = `h-12`, EVERY control inside = `h-9`
 
-This is the strip with search + filters (Sales/Purchases/Products/People/etc.) — **not** the h-12 inner header bar above. Every control in this strip is `h-10`:
+**There is no longer a separate "filter strip" height.** Whatever the bar holds — a title + count + Add button, OR a search field + a row of filters, OR a status/total footer — the bar is **`h-12`** and *every* control sitting in it is **`h-9`**. No exceptions, no `h-14`, no `h-10` in a bar. The old filter-strip split (`h-14` strip / `h-10` controls) is DEAD — do not reintroduce it.
 
-- Input (`className="h-10 pl-9 rounded-lg text-sm bg-input"`)
-- Select/SelectTrigger (`h-10`)
-- Combobox (default `h-10` — no override)
-- DateInput / DateRangePicker (default `h-10` — **do not pass `h-9`**, it desyncs the calendar button)
-- Toggle `framed="input"` (primitive baked-in `h-10`)
-- Button (`size="lg" className="h-10 px-2 shrink-0"` — `lg` is `h-9` so the `h-10` override is required until a new size lands)
+Every control in a bar is `h-9`:
 
-The `h-10` matches the baked defaults of DateInput / DateRangePicker / Combobox — so most controls need no height class at all; only Input / SelectTrigger / Button still need it. **Don't mix `h-9` controls into a `h-14` strip** — that was the legacy pattern and breaks visual alignment with DateRangePicker. Pagination/footer at the bottom of the card stays `h-12` with `h-9` controls (separate rule above).
+- Input (`className="h-9 pl-9 rounded-lg text-sm bg-input"`)
+- Select / SelectTrigger (`h-9` — primitive default already)
+- Combobox (`h-9`)
+- DateInput / DateRangePicker (`h-9`)
+- Toggle `framed` / `framed="input"` (`h-9`)
+- NativeSelect (`h-9`)
+- Button (`size="lg"` — already `h-9`; add only `px-2 shrink-0`, never an `h-` override)
+- Icon-only button (`size="lg" className="h-9 w-9 p-0 shrink-0"` + a `title`)
+
+**Primitive defaults must be `h-9`.** These primitives historically baked `h-10` for the old filter strip and must now read `h-9` so the rule holds without per-call overrides: `combobox.tsx`, `date-input.tsx` (incl. its inner calendar button so it doesn't desync), `date-range-picker.tsx`, `switch.tsx` (framed pills), `select.tsx` NativeSelect. After fixing the default, **never** pass an `h-` override to them in a bar.
+
+Padding: bars use `px-5` (inner header / status bar) or `px-2` (filter strip with a leading search Input) — height is the invariant, horizontal padding follows the existing per-bar convention.
 
 ### Table area
 

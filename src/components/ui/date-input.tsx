@@ -63,7 +63,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
     const selectedDate = isoToDate(value)
 
     return (
-      <div className={cn("relative h-10", className)}>
+      <div className={cn("relative h-9", className)}>
         <Input
           ref={ref}
           type="text"

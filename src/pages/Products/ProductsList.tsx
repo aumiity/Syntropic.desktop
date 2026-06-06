@@ -171,7 +171,7 @@ export default function ProductsList() {
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px] inset
             so filter-strip controls align with column edges. */}
-        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+        <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           {/* Title cluster (left): icon-in-box + heading + count badge */}
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Package} tint="neutral" size="sm" />

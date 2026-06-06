@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
-import { Search, Trash2, Boxes, Save, X } from 'lucide-react'
+import { Plus, Trash2, Boxes, Save } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductBundleItem } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
@@ -50,16 +50,9 @@ interface SearchRow {
   stock_qty: number
 }
 
-// Search/picker mirrors POS exactly:
-//  - main search input lives permanently in the card header (always focused);
-//  - typing opens a 1000×800 modal whose input shares the same query state;
-//  - Enter on a highlighted row adds the item and CLOSES the modal — the main
-//    input refocuses so the next search is one keystroke away;
-//  - mouse clicks on non-interactive areas snap focus back to the active
-//    input (main when closed, modal when open) so scanning never misses keys.
-//
-// Backend rejects nested bundles + qty<=0 + disabled components; the filter
-// here (is_bundle=0, include_disabled=false) just hides them from the picker.
+// A "+ เพิ่มรายการ" button opens the shared ProductSearchDialog (same picker as
+// POS). Backend rejects nested bundles + qty<=0 + disabled components; the
+// filter here (is_bundle=0, include_disabled=false) just hides them.
 export function ComponentsTab({ product, productId, onRefresh, controlledItems, onControlledItemsChange }: Props) {
   const { toast } = useToast()
   const isControlled = controlledItems !== undefined && onControlledItemsChange !== undefined
@@ -89,20 +82,12 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   // state) would otherwise leave the typed "01" stuck in the input forever.
   const [qtyDrafts, setQtyDrafts] = useState<Record<number, string>>({})
 
-  // Component picker — shared query between main input and modal input.
+  // Component picker — a "+ เพิ่มรายการ" button opens the shared search dialog,
+  // which owns its own input focus + keyboard nav.
   const [searchOpen, setSearchOpen] = useState(false)
   const [q, setQ] = useState('')
   const [results, setResults] = useState<SearchRow[]>([])
   const [searching, setSearching] = useState(false)
-  const [highlightIdx, setHighlightIdx] = useState(0)
-  const mainInputRef = useRef<HTMLInputElement>(null)
-  const modalInputRef = useRef<HTMLInputElement>(null)
-  const activeRowRef = useRef<HTMLDivElement>(null)
-
-  // Ref mirror so the persistent-focus listener (registered once) always sees
-  // the latest value without re-binding on every render — same pattern as POS.
-  const searchOpenRef = useRef(searchOpen)
-  searchOpenRef.current = searchOpen
 
   // Seed from server payload on mount / refresh. In controlled (new) mode the
   // parent owns items — skip seeding entirely.
@@ -122,29 +107,6 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
     setDirty(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.bundle_items, isControlled])
-
-  // Focus modal input when search opens.
-  useEffect(() => {
-    if (searchOpen) setTimeout(() => modalInputRef.current?.focus(), 50)
-  }, [searchOpen])
-
-  // Refocus main input after the modal closes.
-  const prevSearchOpen = useRef(false)
-  useEffect(() => {
-    if (prevSearchOpen.current && !searchOpen) {
-      setTimeout(() => mainInputRef.current?.focus(), 150)
-    }
-    prevSearchOpen.current = searchOpen
-  }, [searchOpen])
-
-  // Keep highlighted row visible during arrow-key nav.
-  useEffect(() => {
-    activeRowRef.current?.scrollIntoView({ block: 'nearest' })
-  }, [highlightIdx])
-
-  // Reset highlight ONLY when the query text changes (mirrors POS — never on
-  // scroll/hover, which would fight scrollIntoView).
-  useEffect(() => { setHighlightIdx(0) }, [q])
 
   // Debounced search — products:list with is_bundle=0 filter, excluding items
   // already in the bundle and the bundle product itself.
@@ -173,55 +135,14 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, existingIds, productId])
 
-  // Keep the search input permanently focused (mirrors POS). Registered once;
-  // reads modal state via ref to avoid stale closures.
-  useEffect(() => {
-    // Note: excludes [tabindex] because Chromium auto-adds tabindex=0 to
-    // overflow:auto containers — treating them as focusable would let the
-    // table-scroll wrapper "steal" focus from the search input.
-    const INTERACTIVE = 'input, button, select, textarea, a, [role="button"], [contenteditable="true"]'
-
-    const onMouseDown = (e: MouseEvent) => {
-      const t = e.target as HTMLElement | null
-      if (!t || t.closest(INTERACTIVE)) return
-      e.preventDefault()
-      const inp = searchOpenRef.current ? modalInputRef.current : mainInputRef.current
-      inp?.focus()
-    }
-
-    // Safety net via focusout (bubbles, so one listener catches both inputs).
-    const onFocusOut = (e: FocusEvent) => {
-      const lost = e.target as HTMLElement | null
-      const isOurInput = lost === mainInputRef.current || lost === modalInputRef.current
-      if (!isOurInput) return
-      setTimeout(() => {
-        const active = document.activeElement as HTMLElement | null
-        if (active && active.matches(INTERACTIVE)) return
-        const inp = searchOpenRef.current ? modalInputRef.current : mainInputRef.current
-        inp?.focus()
-      }, 0)
-    }
-
-    document.addEventListener('mousedown', onMouseDown)
-    document.addEventListener('focusout', onFocusOut)
-    return () => {
-      document.removeEventListener('mousedown', onMouseDown)
-      document.removeEventListener('focusout', onFocusOut)
-    }
-  }, [])
-
-  // Typing in either input drives the same flow: empty → close modal & clear
-  // results; non-empty → open modal if not already open. handleSearch is the
-  // single entry point for both main and modal inputs (mirrors POS).
+  // The dialog's input drives the query; clearing it just empties the results
+  // (the dialog stays open — it's opened/closed by the button + Esc, not text).
   const handleSearch = (val: string) => {
     setQ(val)
-    if (!val.trim()) {
-      setSearchOpen(false)
-      setResults([])
-      return
-    }
-    if (!searchOpenRef.current) setSearchOpen(true)
+    if (!val.trim()) setResults([])
   }
+
+  const openSearch = () => { setQ(''); setResults([]); setSearchOpen(true) }
 
   const closeSearch = useCallback(() => {
     setSearchOpen(false)
@@ -250,16 +171,6 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
     // Close after add (POS pattern) — main input auto-refocuses via the
     // searchOpen→false effect above, so the next search is one keystroke away.
     closeSearch()
-  }
-
-  const handleModalKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIdx(i => Math.min(i + 1, results.length - 1)) }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightIdx(i => Math.max(i - 1, 0)) }
-    else if (e.key === 'Enter') {
-      e.preventDefault()
-      const sel = results[highlightIdx]
-      if (sel) addComponent(sel)
-    }
   }
 
   const removeAt = (idx: number) => {
@@ -334,30 +245,19 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   return (
     <div className="pt-4 flex-1 min-h-0 flex flex-col">
       <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
-        {/* Card header bar — icon+title+count cluster on the left (canonical
-            LotsTab/LabelsTab/HistoryTab pattern), search Input fills the
-            middle (POS-style: border-0 shadow-none so it blends; the cluster
-            and Save button frame it), Save button on the right. The search
-            Input stays as the always-focused entry point — typing/scanning
-            opens the picker modal. */}
-        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+        {/* Card header bar — icon+title+count cluster on the left, a
+            "+ เพิ่มรายการ" button opens the shared search dialog, Save on the
+            right (uncontrolled mode only). */}
+        <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Boxes} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายการ</h3>
             <Badge variant="neutral-outline">{items.length}</Badge>
           </div>
-          <div className="relative flex-1 min-w-0">
-            <Input
-              ref={mainInputRef}
-              value={q}
-              onChange={e => handleSearch(e.target.value)}
-              placeholder="ค้นหาสินค้าเพื่อเพิ่ม / สแกนบาร์โค้ด / รหัสสินค้า"
-              autoFocus
-              autoComplete="off"
-              className="h-10 py-2 pl-3 pr-9 text-sm rounded-lg border-0 shadow-none"
-            />
-            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none" />
-          </div>
+          <div className="flex-1" />
+          <Button variant="elevated" size="lg" onClick={openSearch} className="px-2 shrink-0 gap-1.5">
+            <Plus className="size-4" /> เพิ่มรายการ
+          </Button>
           {/* Controlled mode: parent's main "สร้างชุดสินค้า" button commits
               atomically — no per-tab save here (would be a no-op since there's
               no DB row yet). */}
@@ -366,10 +266,10 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
               size="lg"
               onClick={handleSave}
               disabled={saving || !dirty}
-              className="h-10 px-2 shrink-0"
-              title={items.length < 2 ? 'ต้องมีรายการอย่างน้อย 2 รายการ' : undefined}
+              className="h-9 w-9 p-0 shrink-0"
+              title={items.length < 2 ? 'ต้องมีรายการอย่างน้อย 2 รายการ' : (saving ? 'กำลังบันทึก...' : 'บันทึกรายการ')}
             >
-              <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : 'บันทึกรายการ'}
+              <Save className="size-4" />
             </Button>
           )}
         </div>
@@ -394,7 +294,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
                   <Boxes className="size-10 mx-auto mb-2 opacity-30" />
-                  ยังไม่มีรายการ — พิมพ์ในช่องค้นหาเพื่อเพิ่ม
+                  ยังไม่มีรายการ — กดปุ่ม "เพิ่มรายการ" เพื่อเพิ่ม
                 </TableCell>
               </TableRow>
             ) : items.map((it, i) => {
@@ -461,94 +361,45 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
       </div>
       </div>
 
-      {/* ── POS-STYLE SEARCH DIALOG (1000×800) ──
-          Sits as a sibling of the card, inside the pt-4 outer wrapper, to
-          match the LotsTab/LabelsTab structure (dialogs outside the card div
-          so the card's overflow-hidden never clips them — moot for portaled
-          Radix Dialog content, but kept consistent with the rest of the app). */}
-      <Dialog open={searchOpen} onOpenChange={(v) => { if (!v) closeSearch() }}>
-        <DialogContent
-          showCloseButton={false}
-          onClose={closeSearch}
-          className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
-          style={{ width: '1000px', maxWidth: 'calc(100vw - 2rem)', height: '800px', maxHeight: 'calc(100vh - 4rem)' }}
-        >
-          <DialogTitle className="sr-only">ค้นหาสินค้า</DialogTitle>
-
-          {/* Search input */}
-          <div className="flex items-center gap-2 px-4 py-3 shrink-0">
-            <Search className="h-5 w-5 text-primary shrink-0" />
-            <Input
-              ref={modalInputRef}
-              value={q}
-              autoFocus
-              onChange={e => handleSearch(e.target.value)}
-              onKeyDown={handleModalKeyDown}
-              placeholder="ค้นหารหัส, ชื่อสินค้า หรือสแกนบาร์โค้ด..."
-              className="flex-1 text-lg outline-none bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 h-auto px-0"
-              autoComplete="off"
-            />
-            {q && (
-              <Button variant="outline" size="icon-xs" onClick={() => { setQ(''); setResults([]); modalInputRef.current?.focus() }}
-                className="rounded-full text-foreground-subtle"><X className="size-3" strokeWidth={3} /></Button>
-            )}
-            <Button variant="outline" size="sm" onClick={closeSearch} className="h-7">Esc</Button>
-          </div>
-
-          {/* Column header */}
-          <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0"
+      {/* ── PRODUCT SEARCH DIALOG (shared component) ── */}
+      <ProductSearchDialog
+        open={searchOpen}
+        onClose={closeSearch}
+        query={q}
+        onQueryChange={handleSearch}
+        searching={searching}
+        rows={results}
+        rowKey={(p) => String(p.id)}
+        rowClassName="grid items-center px-4 py-2.5"
+        rowStyle={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
+        onPick={(p) => addComponent(p)}
+        placeholder="ค้นหารหัส, ชื่อสินค้า หรือสแกนบาร์โค้ด..."
+        header={
+          <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0 border-b border-border"
             style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}>
             <div>ชื่อสินค้า</div>
             <div className="text-center">หน่วย</div>
             <div className="text-right">ราคาทุน</div>
             <div className="text-right">คงเหลือ</div>
           </div>
-
-          {/* Results — flex-1, scrolls internally, empty space stays empty */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
-            {searching && results.length === 0 ? (
-              <div className="py-12 text-center text-foreground-subtle text-base">กำลังค้นหา...</div>
-            ) : q && results.length === 0 ? (
-              <div className="py-12 text-center text-foreground-subtle text-base">ไม่พบสินค้า "{q}" (หรือถูกเพิ่มไปแล้ว)</div>
-            ) : !q ? (
-              <div className="py-12 text-center text-foreground-subtle">
-                <Search className="h-10 w-10 mx-auto mb-2 opacity-40" />
-                <p className="text-base">พิมพ์เพื่อค้นหาสินค้า</p>
+        }
+        renderRow={(p) => {
+          const stock = Number(p.stock_qty ?? 0)
+          return (
+            <>
+              <div className="min-w-0 pr-2">
+                <div className="font-semibold text-base flex items-center gap-1.5 truncate">
+                  <span className="truncate">{p.trade_name}</span>
+                  {stock === 0 && <Badge variant="destructive-outline" className="shrink-0">หมด</Badge>}
+                </div>
               </div>
-            ) : (
-              results.map((p, i) => {
-                const active = i === highlightIdx
-                const stock = Number(p.stock_qty ?? 0)
-                return (
-                  <div
-                    key={p.id}
-                    ref={active ? activeRowRef : undefined}
-                    onClick={() => addComponent(p)}
-                    className={`grid items-center px-4 py-2.5 cursor-pointer transition-colors ${active ? 'bg-primary-soft' : 'hover:bg-primary-soft'}`}
-                    style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
-                  >
-                    <div className="min-w-0 pr-2">
-                      <div className="font-semibold text-base flex items-center gap-1.5 truncate">
-                        <span className="truncate">{p.trade_name}</span>
-                        {stock === 0 && <span className="text-xs bg-destructive/20 text-destructive px-1.5 py-0.5 rounded font-medium shrink-0">หมด</span>}
-                      </div>
-                      {p.code && <div className="text-xs text-muted-foreground truncate">{p.code}</div>}
-                    </div>
-                    <div className="text-center text-base text-muted-foreground truncate">{p.unit_name ?? '—'}</div>
-                    <div className="text-right font-bold text-foreground text-base">{formatCurrency(p.cost_price)}</div>
-                    <div className={`text-right text-base font-semibold ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock.toLocaleString()}</div>
-                  </div>
-                )
-              })
-            )}
-          </div>
-
-          {/* Footer status */}
-          <div className="px-4 py-2 bg-muted text-sm text-muted-foreground shrink-0">
-            ค้นหา: "{q}" — พบ {results.length} รายการ
-          </div>
-        </DialogContent>
-      </Dialog>
+              <div className="text-center text-base text-muted-foreground truncate">{p.unit_name ?? '—'}</div>
+              <div className="text-right font-bold text-foreground text-base">{formatCurrency(p.cost_price)}</div>
+              <div className={`text-right text-base font-semibold ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock.toLocaleString()}</div>
+            </>
+          )
+        }}
+      />
 
       {/* Confirm before removing a component from the bundle — prevents an
           accidental trash-button click from silently dropping a line. */}

@@ -84,7 +84,7 @@ export default function KhorYor9Page() {
   return (
     <div className="flex flex-1 flex-col min-h-0 gap-3">
       {/* Filter strip — hidden when printing */}
-      <div className="no-print h-14 px-2 bg-card rounded-card border border-border shadow-card flex items-center gap-2 shrink-0">
+      <div className="no-print h-12 px-2 bg-card rounded-card border border-border shadow-card flex items-center gap-2 shrink-0">
         <Button asChild variant="outline" size="icon-lg" title="ย้อนกลับ">
           <Link to="/reports/fda"><ArrowLeft /></Link>
         </Button>
@@ -95,7 +95,7 @@ export default function KhorYor9Page() {
           className="w-60 shrink-0 bg-input hover:bg-surface-hover"
         />
         <div className="flex-1" />
-        <Button size="lg" className="h-10 px-4" onClick={() => window.print()}>
+        <Button size="lg" className="h-9 px-4" onClick={() => window.print()}>
           <Printer className="size-4" /> พิมพ์
         </Button>
       </div>

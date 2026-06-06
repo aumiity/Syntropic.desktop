@@ -736,7 +736,7 @@ export default function PurchasePage() {
                     <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
                       {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px] inset
                           so strip controls align with column edges. */}
-                      <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+                      <div className="px-4 h-12 shrink-0 flex items-center gap-3">
                         <div className="flex items-center gap-3 shrink-0">
                           <TintIcon icon={Package} tint="neutral" size="sm" />
                           <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>

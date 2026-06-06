@@ -87,7 +87,7 @@ export default function ProductsLayout() {
             if (t) navigate(t.path)
           }}
         >
-          <TabsList variant="segmented" className="h-10">
+          <TabsList variant="segmented" className="h-9">
             {TABS.map(t => (
               <TabsTrigger key={t.value} value={t.value}>
                 <t.icon /> {t.label}
@@ -97,7 +97,7 @@ export default function ProductsLayout() {
         </Tabs>
         <Button
           onClick={() => navigate(tab === 'bundles' ? '/products/bundles/new' : '/products/new')}
-          className="ml-auto h-10 px-3"
+          className="ml-auto h-9 px-3"
         >
           <Plus className="size-4" /> {tab === 'bundles' ? 'เพิ่มชุดสินค้า' : 'เพิ่มสินค้า'}
         </Button>

@@ -98,7 +98,7 @@ export default function ReportsLayout() {
               if (tab) navigate(tab.to)
             }}
           >
-            <TabsList variant="segmented" className="h-10">
+            <TabsList variant="segmented" className="h-9">
               {TABS.map(({ value, label, icon: Icon }) => (
                 <TabsTrigger key={value} value={value}>
                   <Icon /> {label}

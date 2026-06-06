@@ -112,7 +112,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
     <div className="flex flex-col flex-1 min-h-0">
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
-        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+        <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           {/* Title cluster (left): icon-in-box + heading + count badge */}
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Users} tint="neutral" size="sm" />
@@ -382,7 +382,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
-        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+        <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Building2} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อผู้จำหน่าย</h3>
@@ -687,7 +687,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
-        <div className="px-4 h-14 shrink-0 flex items-center gap-3">
+        <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={UserCog} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อพนักงาน</h3>
@@ -968,13 +968,13 @@ export default function PeoplePage() {
       {/* Tabs + Add button (mirrors ProductsLayout: tabs left, add right). */}
       <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="segmented" className="h-10">
+          <TabsList variant="segmented" className="h-9">
             <TabsTrigger value="customers"><Users /> ลูกค้า</TabsTrigger>
             <TabsTrigger value="suppliers"><Building2 /> ผู้จัดจำหน่าย</TabsTrigger>
             {isAdmin && <TabsTrigger value="staff"><UserCog /> พนักงาน</TabsTrigger>}
           </TabsList>
         </Tabs>
-        <Button onClick={() => setAddNonce(n => n + 1)} className="ml-auto h-10 px-3">
+        <Button onClick={() => setAddNonce(n => n + 1)} className="ml-auto h-9 px-3">
           <Plus className="size-4" /> {ADD_BUTTON[tab]}
         </Button>
       </TabStrip>
