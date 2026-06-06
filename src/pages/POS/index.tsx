@@ -28,7 +28,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings, ReceiptSettings, Setting, SaleForPrint } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { printSlip } from '@/lib/receipt/print'
-import { Printer, FileText, Receipt } from 'lucide-react'
+import { Printer, FileText } from 'lucide-react'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
@@ -37,7 +37,7 @@ import {
   Search, Trash2, Plus, Minus,
   Banknote, AlertTriangle, PackageX,
   X, UserPlus, Info,
-  RotateCcw, ChevronRight, ChevronLeft, Tag,
+  RotateCcw, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Tag,
   ShoppingBag, Hourglass, RefreshCcw, HandCoins,
   Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
   Check,
@@ -1600,9 +1600,6 @@ export default function POSPage() {
                   {/* LEFT COLUMN — designed receipt preview (themed paper, NOT the
                       literal thermal slip — fed by previewSale so it tracks live) */}
                   <div className="flex flex-col gap-2 min-h-0 h-full">
-                    <div className="shrink-0 flex items-center gap-2 px-1 text-base font-semibold text-muted-foreground">
-                      <Receipt className="size-4" /> ตัวอย่างใบเสร็จ
-                    </div>
                     <div className="flex-1 min-h-0 flex items-start justify-center rounded-xl border border-border bg-muted/30 p-6 overflow-auto scrollbar-thin">
                       {cart.items.length === 0 ? (
                         <div className="self-center text-sm text-muted-foreground">ไม่มีสินค้า</div>
@@ -1691,11 +1688,11 @@ export default function POSPage() {
                   {/* Section 1 — Gross + editable discount */}
                   <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xl font-semibold text-muted-foreground">ราคาขายรวม</span>
+                      <span className="text-xl font-medium text-muted-foreground">ราคาขายรวม</span>
                       <span className="text-4xl font-semibold pr-2.5">{formatCurrency(subtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-xl font-semibold text-muted-foreground">ส่วนลดรวม</span>
+                      <span className="text-xl font-medium text-muted-foreground">ส่วนลดรวม</span>
                       <Input
                         type="number"
                         inputMode="decimal"
@@ -1732,15 +1729,15 @@ export default function POSPage() {
 
                     {/* Net total — the bottom line of this bill block */}
                     <div className="flex items-end justify-between gap-2 border-t border-border pt-3">
-                      <span className="text-xl font-semibold text-muted-foreground">เป็นเงินทั้งสิ้น</span>
+                      <span className="text-xl font-medium text-muted-foreground">เป็นเงินทั้งสิ้น</span>
                       <span className={`text-4xl font-extrabold pr-2.5 leading-none ${netNegative ? 'text-destructive' : 'text-success'}`}>{formatCurrency(net)}</span>
                     </div>
                   </div>
 
                   {/* Cash input */}
-                <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3 h-40">
+                <div className="rounded-xl border border-success/30 bg-success-soft/40 p-4 space-y-3 h-40">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-xl font-semibold text-muted-foreground flex items-center gap-1.5">
+                    <span className="text-xl font-medium text-muted-foreground flex items-center gap-1.5">
                       <Banknote className="size-7 text-success" /> รับเงินมา
                     </span>
                     <Input
@@ -1770,7 +1767,7 @@ export default function POSPage() {
 
                   {/* Change */}
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-xl font-semibold text-muted-foreground flex items-center gap-1.5"><RefreshCcw className="size-7 text-warning" /> เงินทอน</span>
+                    <span className="text-xl font-medium text-muted-foreground flex items-center gap-1.5"><RefreshCcw className="size-7 text-warning" /> เงินทอน</span>
                       
                     {netNegative ? (
                       <span className="flex items-center justify-end gap-2 text-2xl font-semibold text-destructive whitespace-nowrap">
@@ -1790,8 +1787,9 @@ export default function POSPage() {
                       type="button"
                       variant="elevated"
                       onClick={() => setShowBreakdown(v => !v)}
-                      className="shrink-0 text-base"
+                      className="gap-2 text-sm"
                     >
+                      {showBreakdown ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
                       {showBreakdown ? 'ซ่อนรายละเอียด' : 'รายละเอียด'}
                     </Button>
                     {showBreakdown && (
@@ -1816,7 +1814,7 @@ export default function POSPage() {
                     )}
                   </div>
                   <div className="mt-auto">
-                    <Button variant="accent" className="w-full h-24 text-4xl font-bold" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
+                    <Button variant="accent" className="w-full h-24 text-4xl font-bold rounded-2xl" disabled={saving || cart.items.length === 0 || change < 0 || pendingNet < 0} onClick={handleCompleteSale}>
                       <HandCoins className="size-10" /> {saving ? 'กำลังบันทึก...' : ' ชำระเงิน'}
                     </Button>
                   </div>
