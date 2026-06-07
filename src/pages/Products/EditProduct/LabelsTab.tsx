@@ -14,7 +14,7 @@ import {
 import { useToast } from '@/components/ui/toast'
 import { SectionCard } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { Plus, Trash2, Edit, Pill, Info, Languages, SlidersHorizontal, List } from 'lucide-react'
+import { Plus, Trash2, Edit, Pill, Info, Languages, SlidersHorizontal, List, Printer, FileText } from 'lucide-react'
 import type { ProductLabel } from '@/types'
 import type { FullProduct } from './shared'
 // Label anatomy (settings shape / defaults) — SSOT shared with the Settings
@@ -22,6 +22,7 @@ import type { FullProduct } from './shared'
 // actual rendering; composeLabelContent maps this product's label → text.
 import { LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
 import { composeLabelContent, todayBE } from '@/lib/label/content'
+import { buildLabelHtml } from '@/lib/label/html'
 import { LabelPaper } from '@/components/label/LabelPaper'
 
 const Field = FormField
@@ -56,6 +57,8 @@ export function LabelsTab({
   // sticker 1:1. Shop info feeds the preview's top (หัวร้าน) section.
   const [labelSettings, setLabelSettings] = useState<LabelSettingsForm>(LABEL_DEFAULTS)
   const [shop, setShop] = useState<any>(null)
+  const [printing, setPrinting] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   const setLF = (key: string, v: any) => setLabelForm((f: any) => ({ ...f, [key]: v }))
 
@@ -177,12 +180,82 @@ export function LabelsTab({
     }
   }
 
+  // Build print-ready HTML for the currently-selected label, via the SAME
+  // shared builder the Settings designer uses (so print === preview).
+  const selectedLabelHtml = () =>
+    buildLabelHtml(
+      labelSettings,
+      composeLabelContent(selected as any, product, shop, { labelTimes, labelAdvices }),
+      todayBE(),
+    )
+
+  // Gate print/PDF: need a selected label + a configured paper size (set in
+  // ตั้งค่า > ฉลากยา). Toasts and returns false on failure.
+  const canPrint = (): boolean => {
+    if (!selected) { toast({ title: 'เลือกฉลากก่อนพิมพ์', variant: 'error' }); return false }
+    if (!(labelSettings.width_mm > 0) || !(labelSettings.height_mm > 0)) {
+      toast({ title: 'ยังไม่ได้ตั้งขนาดกระดาษฉลาก', description: 'ไปที่ ตั้งค่า > ฉลากยา เพื่อกำหนดขนาดกระดาษก่อน', variant: 'error' })
+      return false
+    }
+    return true
+  }
+
+  const handlePrintLabel = async () => {
+    if (printing || !canPrint()) return
+    setPrinting(true)
+    try {
+      const res = await window.api.printer.printLabel({
+        html: await selectedLabelHtml(),
+        printerName: labelSettings.printer_name,
+        paperWidthMm: labelSettings.width_mm,
+        paperHeightMm: labelSettings.height_mm,
+      })
+      if (res.success) toast({ title: 'ส่งงานพิมพ์แล้ว', variant: 'success' })
+      else             toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'error' })
+    } catch (e: any) {
+      toast({ title: 'พิมพ์ไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally {
+      setPrinting(false)
+    }
+  }
+
+  const handlePreviewPdf = async () => {
+    if (pdfLoading || !canPrint()) return
+    setPdfLoading(true)
+    try {
+      const res = await window.api.printer.previewLabelPdf({
+        html: await selectedLabelHtml(),
+        paperWidthMm: labelSettings.width_mm,
+        paperHeightMm: labelSettings.height_mm,
+      })
+      if (!res.success) toast({ title: 'สร้าง PDF ไม่สำเร็จ', description: res.error, variant: 'error' })
+    } catch (e: any) {
+      toast({ title: 'สร้าง PDF ไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
   return (
     <>
       <div className="grid grid-cols-[3fr_2fr] gap-4 pt-4 items-start">
 
         {/* LEFT — faithful 1:1 preview of the selected label */}
-        <SectionCard icon={Pill} title="ตัวอย่างฉลาก" tint="success">
+        <SectionCard
+          icon={Pill}
+          title="ตัวอย่างฉลาก"
+          tint="success"
+          right={
+            <div className="flex items-center gap-2">
+              <Button variant="elevated" onClick={handlePreviewPdf} disabled={!selected || pdfLoading} className="h-9 px-3">
+                <FileText className="size-4" /> {pdfLoading ? 'กำลังสร้าง...' : 'ดู PDF'}
+              </Button>
+              <Button onClick={handlePrintLabel} disabled={!selected || printing} className="h-9 px-3">
+                <Printer className="size-4" /> {printing ? 'กำลังพิมพ์...' : 'พิมพ์ฉลาก'}
+              </Button>
+            </div>
+          }
+        >
           {/* The label paper is rendered by the shared LabelPaper component
               (also used by the Settings designer preview) so this matches the
               printed sticker 1:1. composeLabelContent maps this label → text. */}

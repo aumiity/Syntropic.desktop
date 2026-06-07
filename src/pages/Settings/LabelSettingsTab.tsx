@@ -15,12 +15,13 @@ import { Save, Printer, Bold, FileText } from 'lucide-react'
 
 // Bundled fonts + the @font-face/esc helpers are shared with the receipt/tax
 // print paths — see src/lib/print/fonts.ts for why base64 embedding is needed.
-import { FONTS, esc, buildPrintFontFaceCss } from '@/lib/print/fonts'
+import { FONTS } from '@/lib/print/fonts'
 
 // Label anatomy (sections / per-section style / form shape / defaults) is the
 // SSOT shared with the per-product LabelsTab preview — see src/lib/label/sections.ts
-import { SECTIONS, buildSectionStyle, LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
+import { SECTIONS, LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
 import { SAMPLE_CONTENT, todayBE } from '@/lib/label/content'
+import { buildLabelHtml } from '@/lib/label/html'
 import { LabelPaper } from '@/components/label/LabelPaper'
 
 // Common label sticker sizes sold by Thai suppliers (thermal roll). 80×50 mm is
@@ -47,13 +48,6 @@ const FONT_ROWS = [
   { key: 'font_size_dosage',  label: 'วิธีใช้',     boldKey: 'bold_dosage' as const },
   { key: 'font_size_small',   label: 'ข้อความเล็ก', boldKey: null },
 ] as const
-
-function styleToCss(s: React.CSSProperties): string {
-  return Object.entries(s)
-    .filter(([, v]) => v !== undefined && v !== null && v !== '')
-    .map(([k, v]) => `${k.replace(/[A-Z]/g, m => '-' + m.toLowerCase())}:${v}`)
-    .join(';')
-}
 
 // Number input with a local string buffer — fixes the "can't delete the 0"
 // problem that controlled `value={number}` inputs have. Strategy: hold the
@@ -153,51 +147,10 @@ export function LabelSettingsTab() {
     return true
   }
 
-  // Build the full label HTML (with embedded @font-face) used for both silent
-  // print and the PDF preview — single source so they render identically.
-  const buildLabelHtml = async (): Promise<string> => {
-    const dateStr = todayBE()
-    const sectionsHtml = SECTIONS
-      .filter(s => form[`show_${s.key}` as keyof LabelSettingsForm])
-      .map(s => {
-        if (s.kind === 'line') {
-          return `<div style="${styleToCss(buildSectionStyle(s, form))}"></div>`
-        }
-        const text = SAMPLE_CONTENT[s.key] ?? ''
-        if (s.key === 'shop') {
-          // Special: shop name left + print date right on one flex row.
-          if (!text && !dateStr) return ''
-          const style = { ...buildSectionStyle(s, form), whiteSpace: 'normal', display: 'flex', justifyContent: 'space-between', gap: '4mm' } as React.CSSProperties
-          return `<div style="${styleToCss(style)}"><span>${esc(text)}</span><span>${esc(dateStr)}</span></div>`
-        }
-        if (!text) return ''
-        const body = esc(text).replace(/\n/g, '<br>')
-        return `<div style="${styleToCss(buildSectionStyle(s, form))}">${body}</div>`
-      })
-      .join('')
-
-    const fontFaceCss = await buildPrintFontFaceCss(form.font_family)
-    return `<!doctype html><html><head><meta charset="utf-8">
-<style>
-${fontFaceCss}
-@page { size: ${form.width_mm}mm ${form.height_mm}mm; margin: 0; }
-html, body { margin: 0; padding: 0; }
-body {
-  width: ${form.width_mm}mm; height: ${form.height_mm}mm;
-  padding: ${form.pad_top}mm ${form.pad_right}mm ${form.pad_bottom}mm ${form.pad_left}mm;
-  font-family: '${form.font_family}', sans-serif;
-  line-height: ${form.line_spacing};
-  color: #000; background: #fff;
-  box-sizing: border-box;
-}
-div:first-child { margin-top: 0 !important; }
-</style></head><body>${sectionsHtml}</body></html>`
-  }
-
   const handlePreviewPdf = async () => {
     if (pdfLoading) return
     if (!validatePaper()) return
-    const html = await buildLabelHtml()
+    const html = await buildLabelHtml(form, SAMPLE_CONTENT, todayBE())
     setPdfLoading(true)
     try {
       const res = await window.api.printer.previewLabelPdf({
@@ -214,7 +167,7 @@ div:first-child { margin-top: 0 !important; }
   const handleTestPrint = async () => {
     if (printing) return
     if (!validatePaper()) return
-    const html = await buildLabelHtml()
+    const html = await buildLabelHtml(form, SAMPLE_CONTENT, todayBE())
 
     setPrinting(true)
     try {
