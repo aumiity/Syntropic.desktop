@@ -27,7 +27,7 @@ export default function SettingsPage() {
             <TabsTrigger value="product-mgmt"><Package /> จัดการสินค้า</TabsTrigger>
             <TabsTrigger value="sales"><ShoppingCart /> การขาย</TabsTrigger>
             <TabsTrigger value="expenses"><ReceiptText /> หมวดค่าใช้จ่าย</TabsTrigger>
-            <TabsTrigger value="printers"><Printer /> เครื่องพิมพ์</TabsTrigger>
+            <TabsTrigger value="printers"><Printer /> การพิมพ์</TabsTrigger>
             <TabsTrigger value="database"><Database /> ฐานข้อมูล</TabsTrigger>
           </TabsList>
         </Tabs>

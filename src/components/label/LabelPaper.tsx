@@ -22,6 +22,13 @@ export function LabelPaper({ settings, content, date }: Props) {
   // rule).
   const visible = SECTIONS.filter(s => settings[`show_${s.key}` as keyof LabelSettingsForm])
 
+  // The configured family. Multi-word names (e.g. "Bai Jamjuree") MUST be
+  // quoted in CSS. We re-apply this on EVERY text element below — not just the
+  // root — because the global `* { font-family }` rule in index.css sets the
+  // family directly on each child, overriding inheritance from the root div.
+  // Without re-applying inline, the preview silently falls back to the app font.
+  const fontFamily = `'${settings.font_family}', sans-serif`
+
   let first = true
   return (
     // Physical-paper preview: bg-white/text-black literals are intentional
@@ -46,16 +53,18 @@ export function LabelPaper({ settings, content, date }: Props) {
           if (first) { style.marginTop = 0; first = false }
           return <div key={s.key} style={style} />
         }
+        style.fontFamily = fontFamily
         const text = content[s.key] ?? ''
         if (s.key === 'shop') {
           // Special: shop name left + print date right on one flex row.
           if (!text && !date) return null
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'
+          // Spans need the family too — the `*` rule hits them directly.
           return (
             <div key={s.key} style={{ ...style, display: 'flex', justifyContent: 'space-between', gap: '4mm' }}>
-              <span>{text}</span>
-              {date ? <span>{date}</span> : null}
+              <span style={{ fontFamily }}>{text}</span>
+              {date ? <span style={{ fontFamily }}>{date}</span> : null}
             </div>
           )
         }
