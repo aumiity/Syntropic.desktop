@@ -11,7 +11,7 @@ Operator's stated backlog of next systems to build (noted 2026-05-30, before sle
 
 - **ระบบ VAT** — proper VAT calc/display/reporting. Schema groundwork exists but unused: `sales.total_vat`, `sale_items.unit_vat`, `products.has_vat`.
 - **พิมพ์สลิป/บิลการขาย** — receipt printing, two forms: full ใบกำกับภาษี (tax invoice) + short สลิปเงินสด (cash slip). Printer infra partial (`window.api.printer.*`).
-- **ฉลากยา UX/UI** — still unsatisfactory after the LabelSettingsTab redesign; collect specifics before reworking.
+- **ฉลากยา UX/UI** — restructure DONE 2026-06-07 (section SSOT, dual-render, per-product preview); per-product PRINTING not yet wired; "ชื่อสามัญ" section deferred (needs DB column). Full detail: [[project_drug_label]].
 - **ระบบ Finance** — record OTHER shop expenses beyond drug purchases (rent/utilities/etc.); `/reports/finance` is aggregates only, this is expense entry/bookkeeping.
 - **ระบบออกใบเสนอราคา** — quotation generation/printing.
 - **Dashboard rebuild** — `/reports/dashboard` works but operator not satisfied with UX/design (PARKED). Collect what's off first.

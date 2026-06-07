@@ -898,9 +898,11 @@ export function registerProductHandlers() {
     }
     const result = db.prepare(`
       INSERT INTO product_labels (product_id, label_name, dose_qty, dosage_id, frequency_id, timing_id,
-        indication_th, indication_mm, indication_zh, note_th, note_mm, note_zh, sort_order)
+        label_time_id, advice_id, indication_th, indication_mm, indication_zh, note_th, note_mm, note_zh,
+        show_barcode, is_default, is_active, sort_order)
       VALUES (@product_id, @label_name, @dose_qty, @dosage_id, @frequency_id, @timing_id,
-        @indication_th, @indication_mm, @indication_zh, @note_th, @note_mm, @note_zh, @sort_order)
+        @label_time_id, @advice_id, @indication_th, @indication_mm, @indication_zh, @note_th, @note_mm, @note_zh,
+        @show_barcode, @is_default, @is_active, @sort_order)
     `).run(data)
     return db.prepare(`SELECT * FROM product_labels WHERE id = ?`).get(result.lastInsertRowid)
   })

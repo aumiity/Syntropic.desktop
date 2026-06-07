@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -9,17 +9,20 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import {
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-} from '@/components/ui/table'
-import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
-import { TintIcon } from '@/components/ui/tint-icon'
 import { SectionCard } from '@/components/ui/card'
-import { Plus, Trash2, Edit, Pill, Info, Languages, SlidersHorizontal } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Plus, Trash2, Edit, Pill, Info, Languages, SlidersHorizontal, List } from 'lucide-react'
 import type { ProductLabel } from '@/types'
 import type { FullProduct } from './shared'
+// Label anatomy (settings shape / defaults) — SSOT shared with the Settings
+// label-designer, so this preview matches the print 1:1. LabelPaper does the
+// actual rendering; composeLabelContent maps this product's label → text.
+import { LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
+import { composeLabelContent, todayBE } from '@/lib/label/content'
+import { LabelPaper } from '@/components/label/LabelPaper'
 
 const Field = FormField
 
@@ -46,7 +49,40 @@ export function LabelsTab({
   const [labelForm, setLabelForm] = useState<any>({})
   const [labelSaving, setLabelSaving] = useState(false)
 
+  // Selected label drives the LEFT preview. Falls back to the default label
+  // (else the first) and follows the list as labels are added / removed.
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  // Label paper/font settings — loaded once so the preview matches the printed
+  // sticker 1:1. Shop info feeds the preview's top (หัวร้าน) section.
+  const [labelSettings, setLabelSettings] = useState<LabelSettingsForm>(LABEL_DEFAULTS)
+  const [shop, setShop] = useState<any>(null)
+
   const setLF = (key: string, v: any) => setLabelForm((f: any) => ({ ...f, [key]: v }))
+
+  useEffect(() => {
+    // Per-key overwrite so stale UI-only keys never poison the settings shape.
+    window.api.settings.getLabelSettings().then((data: any) => {
+      if (!data) return
+      setLabelSettings(prev => {
+        const next = { ...prev }
+        for (const k of Object.keys(prev) as (keyof LabelSettingsForm)[]) {
+          const val = (data as any)[k]
+          if (val !== undefined && val !== null) (next as any)[k] = val
+        }
+        return next
+      })
+    }).catch(() => {})
+    window.api.settings.getShop().then((s: any) => setShop(s)).catch(() => {})
+  }, [])
+
+  const labels = product.labels ?? []
+  const selected = useMemo(() => {
+    if (selectedId != null) {
+      const hit = labels.find(l => l.id === selectedId)
+      if (hit) return hit
+    }
+    return labels.find(l => (l as any).is_default) ?? labels[0] ?? null
+  }, [selectedId, labels])
 
   const openAddLabel = () => {
     setEditingLabel(null)
@@ -142,176 +178,187 @@ export function LabelsTab({
   }
 
   return (
-    <div className="pt-4">
-      <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
-        <div className="px-4 h-12 shrink-0 flex items-center gap-3">
-          <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={Pill} tint="neutral" size="sm" />
-            <h3 className="text-lg font-semibold text-foreground">ฉลากยา</h3>
-            <Badge variant="neutral-outline">{product.labels?.length ?? 0}</Badge>
+    <>
+      <div className="grid grid-cols-[3fr_2fr] gap-4 pt-4 items-start">
+
+        {/* LEFT — faithful 1:1 preview of the selected label */}
+        <SectionCard icon={Pill} title="ตัวอย่างฉลาก" tint="success">
+          {/* The label paper is rendered by the shared LabelPaper component
+              (also used by the Settings designer preview) so this matches the
+              printed sticker 1:1. composeLabelContent maps this label → text. */}
+          <div className="flex items-center justify-center bg-muted/30 rounded-lg p-6 min-h-[360px] overflow-auto">
+            {selected ? (
+              <LabelPaper
+                settings={labelSettings}
+                content={composeLabelContent(selected as any, product, shop, { labelTimes, labelAdvices })}
+                date={todayBE()}
+              />
+            ) : (
+              <div
+                className="border-2 border-dashed border-border bg-card text-foreground-subtle flex flex-col items-center justify-center gap-2 shrink-0"
+                style={{ width: `${labelSettings.width_mm}mm`, height: `${labelSettings.height_mm}mm` }}
+              >
+                <Pill className="size-8 opacity-40" />
+                <span className="text-sm">เลือกฉลากเพื่อดูตัวอย่าง</span>
+              </div>
+            )}
           </div>
-          <Button variant="elevated" onClick={openAddLabel} className="h-9 px-3 ml-auto shrink-0">
-            <Plus className="size-4" /> เพิ่มฉลาก
-          </Button>
-        </div>
-        <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[200px]">ชื่อฉลาก</TableHead>
-                <TableHead className="min-w-24">ปริมาณ</TableHead>
-                <TableHead className="min-w-28">ความถี่</TableHead>
-                <TableHead className="min-w-24">เวลา</TableHead>
-                <TableHead className="min-w-[200px]">สรรพคุณ</TableHead>
-                <TableHead className="min-w-24">สถานะ</TableHead>
-                <TableHead className="min-w-24">จัดการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(product.labels?.length ?? 0) === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-16">
-                    <Pill className="size-10 mx-auto mb-2 opacity-30" />
-                    ยังไม่มีฉลาก
-                  </TableCell>
-                </TableRow>
-              ) : product.labels.map(l => (
-                <TableRow key={l.id} className={`[&_td]:py-2.5 [&_td]:font-medium ${!l.is_active ? 'opacity-60' : ''}`}>
-                  <TableCell className="text-sm">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold">{l.label_name || '—'}</span>
-                      {(l as any).is_default ? <Badge variant="primary-outline" className="rounded-md">ค่าเริ่มต้น</Badge> : null}
+        </SectionCard>
+
+        {/* RIGHT — label list: ชื่อ + สถานะ + ปุ่มจัดการ (รายละเอียดดูจาก preview) */}
+        <SectionCard
+          icon={List}
+          title="รายการฉลาก"
+          tint="secondary"
+          right={
+            <Button variant="elevated" onClick={openAddLabel} className="h-9 px-3">
+              <Plus className="size-4" /> เพิ่มฉลาก
+            </Button>
+          }
+        >
+          {labels.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
+              <Pill className="size-10 opacity-30" />
+              <span className="text-sm">ยังไม่มีฉลาก — กด เพิ่มฉลาก เพื่อเริ่ม</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {labels.map(l => {
+                const isSel = selected?.id === l.id
+                return (
+                  <div
+                    key={l.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedId(l.id)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(l.id) } }}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors',
+                      isSel ? 'border-primary ring-2 ring-primary/30 bg-primary-soft/40' : 'border-border hover:bg-primary-soft/30',
+                      !l.is_active && 'opacity-60',
+                    )}
+                  >
+                    <div className="min-w-0 flex-1 flex items-center gap-2">
+                      <span className="text-sm font-semibold overflow-x-clip overflow-y-visible whitespace-nowrap">
+                        {l.label_name || 'ฉลากไม่มีชื่อ'}
+                      </span>
+                      {(l as any).is_default ? <Badge variant="primary-outline" className="rounded-md shrink-0">ค่าเริ่มต้น</Badge> : null}
+                      {!l.is_active ? <Badge variant="neutral-outline" className="rounded-md shrink-0">ปิด</Badge> : null}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{l.dosage_name ?? '—'}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{l.frequency_name ?? '—'}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{l.timing_name ?? '—'}</TableCell>
-                  <TableCell className="text-sm">
-                    <span className="line-clamp-2" title={l.indication_th ?? undefined}>
-                      {l.indication_th || '—'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {l.is_active
-                      ? <Badge variant="success-outline" className="rounded-md">เปิด</Badge>
-                      : <Badge variant="neutral-outline" className="rounded-md">ปิด</Badge>}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      <Button size="icon-lg" variant="outline" onClick={() => openEditLabel(l)} title="แก้ไข">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button size="icon-lg" variant="elevated" onClick={e => { e.stopPropagation(); openEditLabel(l) }} title="แก้ไข">
                         <Edit />
                       </Button>
-                      <Button size="icon-lg" variant="destructive2" onClick={() => handleDeleteLabel(l.id)} title="ลบ">
+                      <Button size="icon-lg" variant="elevated-destructive" onClick={e => { e.stopPropagation(); handleDeleteLabel(l.id) }} title="ลบ">
                         <Trash2 />
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="px-5 h-12 bg-card border-t border-border text-sm text-muted-foreground shrink-0 flex items-center justify-end gap-3">
-          <span>เปิดใช้งาน <span className="font-semibold text-success">{product.labels?.filter(l => l.is_active).length ?? 0}</span></span>
-          <span>ปิดใช้งาน <span className="font-semibold text-foreground">{product.labels?.filter(l => !l.is_active).length ?? 0}</span></span>
-        </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </SectionCard>
       </div>
 
       {/* ======================== LABEL DIALOG ======================== */}
       <Dialog open={labelDialog} onOpenChange={setLabelDialog}>
-        <DialogContent size="xl" divided>
+        <DialogContent size="2xl" divided className="max-h-[90vh] grid-rows-[auto_1fr_auto]">
           <DialogHeader>
             <DialogTitle>{editingLabel ? 'แก้ไขฉลาก' : 'เพิ่มฉลาก'}</DialogTitle>
           </DialogHeader>
-          <DialogBody className="space-y-3">
-            <SectionCard icon={Info} title="ข้อมูลทั่วไป" tint="primary">
-              <div className="grid grid-cols-[1fr_auto] gap-4">
-                <Field label="ชื่อฉลาก">
-                  <Input variant="elevated" value={labelForm.label_name ?? ''} onChange={e => setLF('label_name', e.target.value)} placeholder="เช่น วิธีรับประทานมาตรฐาน" />
-                </Field>
-                <Field label="ลำดับ">
-                  <Input variant="elevated" type="number" value={labelForm.sort_order ?? 0} onChange={e => setLF('sort_order', e.target.value)} className="w-24" min={0} />
-                </Field>
-              </div>
-            </SectionCard>
+          <DialogBody className="space-y-3 overflow-y-auto min-h-0 scrollbar-thin">
+            <div className="grid grid-cols-2 gap-3 items-start">
 
-            <SectionCard icon={Pill} title="รายละเอียดยา" tint="info-soft">
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="ปริมาณยา">
-                  <Select value={String(labelForm.dosage_id ?? 0)} onValueChange={v => setLF('dosage_id', v)}>
-                    <SelectTrigger variant="elevated" className="w-full">
-                      <SelectValue placeholder="— เลือก —" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">— เลือก —</SelectItem>
-                      {labelDosages.map((d: any) => <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="ความถี่">
-                  <Select value={String(labelForm.frequency_id ?? 0)} onValueChange={v => setLF('frequency_id', v)}>
-                    <SelectTrigger variant="elevated" className="w-full">
-                      <SelectValue placeholder="— เลือก —" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">— เลือก —</SelectItem>
-                      {labelFrequencies.map((f: any) => <SelectItem key={f.id} value={String(f.id)}>{f.name_th}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="เวลาเทียบมื้ออาหาร">
-                  <Select value={String(labelForm.timing_id ?? 0)} onValueChange={v => setLF('timing_id', v)}>
-                    <SelectTrigger variant="elevated" className="w-full">
-                      <SelectValue placeholder="— เลือก —" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">— เลือก —</SelectItem>
-                      {labelMealRelations.map((m: any) => <SelectItem key={m.id} value={String(m.id)}>{m.name_th}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="เวลาที่รับประทาน">
-                  <Select value={String(labelForm.label_time_id ?? 0)} onValueChange={v => setLF('label_time_id', v)}>
-                    <SelectTrigger variant="elevated" className="w-full">
-                      <SelectValue placeholder="— เลือก —" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">— เลือก —</SelectItem>
-                      {labelTimes.map((t: any) => <SelectItem key={t.id} value={String(t.id)}>{t.name_th}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-              <Field label="คำแนะนำ">
-                <Select value={String(labelForm.advice_id ?? 0)} onValueChange={v => setLF('advice_id', v)}>
-                  <SelectTrigger variant="elevated" className="w-full">
-                    <SelectValue placeholder="— เลือก —" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">— เลือก —</SelectItem>
-                    {labelAdvices.map((a: any) => <SelectItem key={a.id} value={String(a.id)}>{a.name_th}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </SectionCard>
+              {/* LEFT — ข้อมูลทั่วไป + รายละเอียดยา */}
+              <div className="space-y-3">
+                <SectionCard icon={Info} title="ข้อมูลทั่วไป" tint="primary">
+                  <div className="grid grid-cols-[1fr_auto] gap-3">
+                    <Field label="ชื่อฉลาก">
+                      <Input variant="elevated" value={labelForm.label_name ?? ''} onChange={e => setLF('label_name', e.target.value)} placeholder="เช่น วิธีรับประทานมาตรฐาน" />
+                    </Field>
+                    <Field label="ลำดับ">
+                      <Input variant="elevated" type="number" value={labelForm.sort_order ?? 0} onChange={e => setLF('sort_order', e.target.value)} className="w-24" min={0} />
+                    </Field>
+                  </div>
+                </SectionCard>
 
-            <SectionCard icon={Languages} title="สรรพคุณและหมายเหตุ" tint="success">
-              <Field label="สรรพคุณ (ไทย)">
-                <Textarea variant="elevated" value={labelForm.indication_th ?? ''} onChange={e => setLF('indication_th', e.target.value)} rows={2} />
-              </Field>
-              <div className="grid grid-cols-2 gap-4">
+                <SectionCard icon={Pill} title="รายละเอียดยา" tint="info-soft">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="ปริมาณยา">
+                      <Select value={String(labelForm.dosage_id ?? 0)} onValueChange={v => setLF('dosage_id', v)}>
+                        <SelectTrigger variant="elevated" className="w-full">
+                          <SelectValue placeholder="— เลือก —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">— เลือก —</SelectItem>
+                          {labelDosages.map((d: any) => <SelectItem key={d.id} value={String(d.id)}>{d.name_th}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field label="ความถี่">
+                      <Select value={String(labelForm.frequency_id ?? 0)} onValueChange={v => setLF('frequency_id', v)}>
+                        <SelectTrigger variant="elevated" className="w-full">
+                          <SelectValue placeholder="— เลือก —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">— เลือก —</SelectItem>
+                          {labelFrequencies.map((f: any) => <SelectItem key={f.id} value={String(f.id)}>{f.name_th}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field label="เวลาเทียบมื้ออาหาร">
+                      <Select value={String(labelForm.timing_id ?? 0)} onValueChange={v => setLF('timing_id', v)}>
+                        <SelectTrigger variant="elevated" className="w-full">
+                          <SelectValue placeholder="— เลือก —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">— เลือก —</SelectItem>
+                          {labelMealRelations.map((m: any) => <SelectItem key={m.id} value={String(m.id)}>{m.name_th}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field label="เวลาที่รับประทาน">
+                      <Select value={String(labelForm.label_time_id ?? 0)} onValueChange={v => setLF('label_time_id', v)}>
+                        <SelectTrigger variant="elevated" className="w-full">
+                          <SelectValue placeholder="— เลือก —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">— เลือก —</SelectItem>
+                          {labelTimes.map((t: any) => <SelectItem key={t.id} value={String(t.id)}>{t.name_th}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </div>
+                  <Field label="คำแนะนำ">
+                    <Select value={String(labelForm.advice_id ?? 0)} onValueChange={v => setLF('advice_id', v)}>
+                      <SelectTrigger variant="elevated" className="w-full">
+                        <SelectValue placeholder="— เลือก —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">— เลือก —</SelectItem>
+                        {labelAdvices.map((a: any) => <SelectItem key={a.id} value={String(a.id)}>{a.name_th}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </SectionCard>
+              </div>
+
+              {/* RIGHT — สรรพคุณ (หลายภาษา) */}
+              <SectionCard icon={Languages} title="สรรพคุณ" tint="success">
+                <Field label="สรรพคุณ (ไทย)">
+                  <Textarea variant="elevated" value={labelForm.indication_th ?? ''} onChange={e => setLF('indication_th', e.target.value)} rows={2} />
+                </Field>
                 <Field label="สรรพคุณ (ภาษาพม่า)">
                   <Textarea variant="elevated" value={labelForm.indication_mm ?? ''} onChange={e => setLF('indication_mm', e.target.value)} rows={2} />
                 </Field>
                 <Field label="สรรพคุณ (ภาษาจีน)">
                   <Textarea variant="elevated" value={labelForm.indication_zh ?? ''} onChange={e => setLF('indication_zh', e.target.value)} rows={2} />
                 </Field>
-              </div>
-              <Field label="หมายเหตุ (ไทย)">
-                <Textarea variant="elevated" value={labelForm.note_th ?? ''} onChange={e => setLF('note_th', e.target.value)} rows={2} />
-              </Field>
-            </SectionCard>
+              </SectionCard>
+            </div>
 
+            {/* ตัวเลือก — เต็มความกว้างด้านล่าง */}
             <SectionCard icon={SlidersHorizontal} title="ตัวเลือก" tint="warm">
               <div className="grid grid-cols-3 gap-3">
                 <Toggle framed size="lg" checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" className="justify-between w-full" />
@@ -326,6 +373,6 @@ export function LabelsTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }

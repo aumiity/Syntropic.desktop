@@ -17,6 +17,12 @@ import { Save, Printer, Bold, FileText } from 'lucide-react'
 // print paths — see src/lib/print/fonts.ts for why base64 embedding is needed.
 import { FONTS, esc, buildPrintFontFaceCss } from '@/lib/print/fonts'
 
+// Label anatomy (sections / per-section style / form shape / defaults) is the
+// SSOT shared with the per-product LabelsTab preview — see src/lib/label/sections.ts
+import { SECTIONS, buildSectionStyle, LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
+import { SAMPLE_CONTENT, todayBE } from '@/lib/label/content'
+import { LabelPaper } from '@/components/label/LabelPaper'
+
 // Common label sticker sizes sold by Thai suppliers (thermal roll). 80×50 mm is
 // the GPP-recommended pharmacy standard (used as default by Hygeia / EasyPrint).
 // Smaller sizes are typical barcode/price labels; larger sizes are prescription
@@ -41,110 +47,6 @@ const FONT_ROWS = [
   { key: 'font_size_dosage',  label: 'วิธีใช้',     boldKey: 'bold_dosage' as const },
   { key: 'font_size_small',   label: 'ข้อความเล็ก', boldKey: null },
 ] as const
-
-// Form keys are canonical DB column names — `Object.keys(form)` flows straight
-// into the dynamic-SQL UPDATE in `settings:saveLabelSettings`, so any key here
-// must be a real column on `label_settings`.
-interface LabelSettingsForm {
-  printer_name: string
-  width_mm: number
-  height_mm: number
-  pad_top: number; pad_right: number; pad_bottom: number; pad_left: number
-  font_family: string
-  font_size_shop: number; font_size_product: number; font_size_dosage: number; font_size_small: number
-  bold_shop: number; bold_product: number; bold_dosage: number
-  line_spacing: number; section_gap: number
-  show_shop: number; show_product: number; show_dosage: number
-  show_indication: number; show_notes: number; show_lot_expiry: number; show_barcode: number
-  show_header_line: number; show_footer_line: number
-  offset_x_shop: number; offset_y_shop: number
-  offset_x_product: number; offset_y_product: number
-  offset_x_dosage: number; offset_y_dosage: number
-  offset_x_indication: number; offset_y_indication: number
-  offset_x_notes: number; offset_y_notes: number
-  offset_x_lot_expiry: number; offset_y_lot_expiry: number
-  offset_x_barcode: number; offset_y_barcode: number
-  offset_x_header_line: number; offset_y_header_line: number
-  offset_x_footer_line: number; offset_y_footer_line: number
-}
-
-const LABEL_DEFAULTS: LabelSettingsForm = {
-  printer_name: '',
-  width_mm: 80, height_mm: 50,  // GPP-recommended pharmacy standard
-  pad_top: 3, pad_right: 3, pad_bottom: 3, pad_left: 3,
-  font_family: 'Bai Jamjuree',
-  font_size_shop: 10, font_size_product: 10, font_size_dosage: 10, font_size_small: 10,
-  bold_shop: 1, bold_product: 1, bold_dosage: 1,
-  line_spacing: 1.5, section_gap: 2,
-  show_shop: 1, show_product: 1, show_dosage: 1, show_indication: 1,
-  show_notes: 1, show_lot_expiry: 1, show_barcode: 0,
-  show_header_line: 1, show_footer_line: 1,
-  offset_x_shop: 0, offset_y_shop: 0,
-  offset_x_product: 0, offset_y_product: 0,
-  offset_x_dosage: 0, offset_y_dosage: 0,
-  offset_x_indication: 0, offset_y_indication: 0,
-  offset_x_notes: 0, offset_y_notes: 0,
-  offset_x_lot_expiry: 0, offset_y_lot_expiry: 0,
-  offset_x_barcode: 0, offset_y_barcode: 0,
-  offset_x_header_line: 0, offset_y_header_line: 0,
-  offset_x_footer_line: 0, offset_y_footer_line: 0,
-}
-
-type SectionKey =
-  | 'shop' | 'product' | 'dosage' | 'indication' | 'notes' | 'lot_expiry' | 'barcode'
-  | 'header_line' | 'footer_line'
-
-// Text sections carry font + bold + sample; line sections are horizontal rules
-// (no text, no font), but share the same show/X/Y controls so the user edits
-// them uniformly with text rows.
-type SectionDef =
-  | {
-      key: SectionKey
-      label: string
-      kind: 'text'
-      fontSizeKey: 'font_size_shop' | 'font_size_product' | 'font_size_dosage' | 'font_size_small'
-      boldKey: 'bold_shop' | 'bold_product' | 'bold_dosage' | null
-      sample: string
-    }
-  | {
-      key: SectionKey
-      label: string
-      kind: 'line'
-    }
-
-// Single source of truth: drives the "บรรทัด" sub-tab, the preview, and the
-// print-HTML builder. Lines sit between visual groups (header / body / footer)
-// and are nudgeable like any other section.
-const SECTIONS: SectionDef[] = [
-  { kind: 'text', key: 'shop',         label: 'ส่วนหัวร้าน',     fontSizeKey: 'font_size_shop',    boldKey: 'bold_shop',    sample: 'ร้านยา ซินโทรปิก เภสัช\n123/4 ถ.สุขุมวิท กรุงเทพ โทร. 02-xxx-xxxx' },
-  { kind: 'line', key: 'header_line',  label: 'เส้นคั่นส่วนหัว' },
-  { kind: 'text', key: 'product',      label: 'ชื่อสินค้า',      fontSizeKey: 'font_size_product', boldKey: 'bold_product', sample: 'Paracetamol 500mg tablets' },
-  { kind: 'text', key: 'dosage',       label: 'วิธีใช้',         fontSizeKey: 'font_size_dosage',  boldKey: 'bold_dosage',  sample: 'รับประทาน 1–2 เม็ด วันละ 3 ครั้ง หลังอาหาร' },
-  { kind: 'text', key: 'indication',   label: 'สรรพคุณ',        fontSizeKey: 'font_size_small',   boldKey: null,           sample: 'บรรเทาอาการปวด ลดไข้' },
-  { kind: 'text', key: 'notes',        label: 'หมายเหตุ',       fontSizeKey: 'font_size_small',   boldKey: null,           sample: 'หากแพ้ยา หยุดใช้ทันที' },
-  { kind: 'line', key: 'footer_line',  label: 'เส้นคั่นส่วนท้าย' },
-  { kind: 'text', key: 'lot_expiry',   label: 'Lot / หมดอายุ',  fontSizeKey: 'font_size_small',   boldKey: null,           sample: 'Lot: ABC001 · หมดอายุ: 12/2027' },
-  { kind: 'text', key: 'barcode',      label: 'บาร์โค้ด',       fontSizeKey: 'font_size_small',   boldKey: null,           sample: '8851234567890' },
-]
-
-function buildSectionStyle(def: SectionDef, form: LabelSettingsForm): React.CSSProperties {
-  const ox = form[`offset_x_${def.key}` as keyof LabelSettingsForm] as number
-  const oy = form[`offset_y_${def.key}` as keyof LabelSettingsForm] as number
-  const base: React.CSSProperties = {
-    transform: `translate(${ox}mm, ${oy}mm)`,
-    marginTop: `${form.section_gap}pt`,
-    position:  'relative',
-  }
-  if (def.kind === 'line') {
-    return { ...base, borderTop: '0.5pt solid #000', width: '100%' }
-  }
-  return {
-    ...base,
-    fontSize:   `${form[def.fontSizeKey]}pt`,
-    fontWeight: def.boldKey && form[def.boldKey] ? 'bold' : 'normal',
-    whiteSpace: 'pre-line',
-  }
-}
 
 function styleToCss(s: React.CSSProperties): string {
   return Object.entries(s)
@@ -254,13 +156,23 @@ export function LabelSettingsTab() {
   // Build the full label HTML (with embedded @font-face) used for both silent
   // print and the PDF preview — single source so they render identically.
   const buildLabelHtml = async (): Promise<string> => {
+    const dateStr = todayBE()
     const sectionsHtml = SECTIONS
       .filter(s => form[`show_${s.key}` as keyof LabelSettingsForm])
       .map(s => {
-        const styleStr = styleToCss(buildSectionStyle(s, form))
-        if (s.kind === 'line') return `<div style="${styleStr}"></div>`
-        const body = esc(s.sample).replace(/\n/g, '<br>')
-        return `<div style="${styleStr}">${body}</div>`
+        if (s.kind === 'line') {
+          return `<div style="${styleToCss(buildSectionStyle(s, form))}"></div>`
+        }
+        const text = SAMPLE_CONTENT[s.key] ?? ''
+        if (s.key === 'shop') {
+          // Special: shop name left + print date right on one flex row.
+          if (!text && !dateStr) return ''
+          const style = { ...buildSectionStyle(s, form), whiteSpace: 'normal', display: 'flex', justifyContent: 'space-between', gap: '4mm' } as React.CSSProperties
+          return `<div style="${styleToCss(style)}"><span>${esc(text)}</span><span>${esc(dateStr)}</span></div>`
+        }
+        if (!text) return ''
+        const body = esc(text).replace(/\n/g, '<br>')
+        return `<div style="${styleToCss(buildSectionStyle(s, form))}">${body}</div>`
       })
       .join('')
 
@@ -360,37 +272,11 @@ div:first-child { margin-top: 0 !important; }
       <div className="grid grid-cols-[3fr_2fr] gap-4 flex-1 min-h-0">
         {/* LEFT — preview, centered, true 1:1 mm scale, no page scroll */}
         <SectionCard title="ตัวอย่างฉลาก" tint="success" className="flex flex-col min-h-0">
-          {/* Physical-paper preview: bg-white/text-black literals are
-              intentional (real-world ink on paper, not themed UI) and exempt
-              from the no-color-literal rule. */}
+          {/* The label paper itself is rendered by the shared LabelPaper
+              component (also used by the per-product LabelsTab preview), so the
+              designer preview and the printed sticker stay 1:1. */}
           <div className="flex-1 min-h-0 flex items-center justify-center bg-muted/30 rounded-lg p-6 overflow-auto">
-            <div
-              className="border-2 border-dashed border-border bg-white text-black shrink-0"
-              style={{
-                width:      `${form.width_mm}mm`,
-                height:     `${form.height_mm}mm`,
-                padding:    `${form.pad_top}mm ${form.pad_right}mm ${form.pad_bottom}mm ${form.pad_left}mm`,
-                // Multi-word family names (e.g. "Bai Jamjuree", "Noto Sans Thai")
-                // MUST be quoted in CSS — otherwise the browser parses each word
-                // as a separate fallback family ("Bai", "Jamjuree") and falls
-                // through to the system default. React inline-style doesn't add
-                // the quotes for us.
-                fontFamily: `'${form.font_family}', sans-serif`,
-                lineHeight: form.line_spacing,
-                boxSizing:  'border-box',
-              }}
-            >
-              {SECTIONS
-                .filter(s => form[`show_${s.key}` as keyof LabelSettingsForm])
-                .map((s, i) => {
-                  const style = buildSectionStyle(s, form)
-                  // First-rendered element: kill top margin so it sits at the
-                  // padding edge (matches `div:first-child` rule in print HTML).
-                  if (i === 0) style.marginTop = 0
-                  if (s.kind === 'line') return <div key={s.key} style={style} />
-                  return <div key={s.key} style={style}>{s.sample}</div>
-                })}
-            </div>
+            <LabelPaper settings={form} content={SAMPLE_CONTENT} date={todayBE()} />
           </div>
         </SectionCard>
 

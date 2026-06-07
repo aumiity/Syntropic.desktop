@@ -71,8 +71,10 @@ export interface ProductLot {
 export interface ProductLabel {
   id: number; product_id: number; label_name?: string
   dose_qty?: number; dosage_id?: number; frequency_id?: number; timing_id?: number
+  label_time_id?: number; advice_id?: number
   indication_th?: string; indication_mm?: string; indication_zh?: string
   note_th?: string; note_mm?: string; note_zh?: string
+  show_barcode?: number; is_default?: number
   is_active: number; sort_order: number
   frequency_name?: string; dosage_name?: string; timing_name?: string
 }
