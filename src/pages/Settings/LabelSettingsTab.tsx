@@ -6,7 +6,6 @@ import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { TintIcon } from '@/components/ui/tint-icon'
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
@@ -92,7 +91,7 @@ function NumInput({
 
 interface PrinterInfo { name: string; displayName: string; isDefault: boolean }
 
-export function LabelSettingsTab() {
+export function LabelSettingsTab({ onActions }: { onActions?: (node: React.ReactNode) => void }) {
   const { toast } = useToast()
   const [form, setForm] = useState<LabelSettingsForm>(LABEL_DEFAULTS)
   const [saving, setSaving] = useState(false)
@@ -240,62 +239,68 @@ export function LabelSettingsTab() {
     [printers]
   )
 
-  return (
-    <div className="flex flex-col gap-3 h-full min-h-0">
-      {/* Top action bar — always visible, never scrolls */}
-      <div className="flex items-center gap-2 shrink-0">
-        <TintIcon icon={Printer} tint="primary" size="sm" bordered />
-        <h3 className="text-base font-semibold text-foreground">การพิมพ์ฉลาก</h3>
-        <div className="flex-1" />
-
-        <Select value={form.printer_name || '__default__'} onValueChange={v => setF('printer_name', v === '__default__' ? '' : v)}>
-          <SelectTrigger variant="elevated" className="h-9 w-64">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {printerOptions.map(p => (
-              <SelectItem key={p.name || '__default__'} value={p.name || '__default__'}>
-                {p.displayName}{p.isDefault ? ' (default)' : ''}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Button className="h-9" onClick={handlePreviewPdf} disabled={pdfLoading} variant="elevated">
+  // Lift the action buttons up to the shared sub-tab strip (PrintersTab) —
+  // handlers via a ref so the node never goes stale without re-registering on
+  // every render. The printer picker lives in the "ขนาดกระดาษ" card below.
+  const actRef = React.useRef({ handlePreviewPdf, handleTestPrint, handleSave, setF })
+  actRef.current = { handlePreviewPdf, handleTestPrint, handleSave, setF }
+  React.useEffect(() => {
+    onActions?.(
+      <>
+        <Button className="h-9" onClick={() => actRef.current.handlePreviewPdf()} disabled={pdfLoading} variant="elevated">
           <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
         </Button>
-        <Button className="h-9" onClick={handleTestPrint} disabled={printing} variant="elevated">
+        <Button className="h-9" onClick={() => actRef.current.handleTestPrint()} disabled={printing} variant="elevated">
           <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
         </Button>
-        <Button className="h-9" onClick={handleSave} disabled={saving}>
+        <Button className="h-9" onClick={() => actRef.current.handleSave()} disabled={saving}>
           <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
         </Button>
-      </div>
+      </>
+    )
+    return () => onActions?.(null)
+  }, [onActions, pdfLoading, printing, saving])
 
+  return (
+    <div className="flex flex-col gap-3">
       {/* Body: preview (LEFT, big) + tabbed settings (RIGHT, compact) */}
-      <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
-        {/* LEFT — preview, centered, true 1:1 mm scale, no page scroll */}
-        <SectionCard title="ตัวอย่างฉลาก" tint="success" className="flex flex-col min-h-0">
+      <div className="grid grid-cols-[3fr_2fr] gap-4 items-start">
+        {/* LEFT — preview, centered, true 1:1 mm scale */}
+        <SectionCard title="ตัวอย่างฉลาก" tint="success">
           {/* The label paper itself is rendered by the shared LabelPaper
               component (also used by the per-product LabelsTab preview), so the
               designer preview and the printed sticker stay 1:1. */}
-          <div className="flex-1 min-h-0 flex items-center justify-center bg-muted/30 rounded-lg p-6 overflow-auto">
+          <div className="flex items-center justify-center bg-muted/30 rounded-lg p-6 overflow-auto">
             <LabelPaper settings={form} content={previewContent} date={todayBE()} />
           </div>
         </SectionCard>
 
         {/* RIGHT — sub-tabs: กระดาษ / ฟอนต์ & บรรทัด / ช่วง */}
-        <div className="flex flex-col min-h-0">
-          <Tabs value={subTab} onValueChange={v => setSubTab(v as typeof subTab)} className="flex flex-col flex-1 min-h-0 gap-3">
-            <TabsList variant="segmented" className="w-full shrink-0">
+        <div className="flex flex-col">
+          <Tabs value={subTab} onValueChange={v => setSubTab(v as typeof subTab)} className="flex flex-col gap-3">
+            <TabsList variant="line" className="w-full shrink-0">
               <TabsTrigger value="paper">กระดาษ</TabsTrigger>
               <TabsTrigger value="sections">ฟอนต์ &amp; บรรทัด</TabsTrigger>
               <TabsTrigger value="spacing">ช่วง</TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+            <div className="pr-1">
               <TabsContent value="paper" className="space-y-3 mt-0">
                 <SectionCard icon={Printer} title="ขนาดกระดาษ" tint="primary">
+                  <FormField label="เครื่องพิมพ์">
+                    <Select value={form.printer_name || '__default__'} onValueChange={v => setF('printer_name', v === '__default__' ? '' : v)}>
+                      <SelectTrigger variant="elevated" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {printerOptions.map(p => (
+                          <SelectItem key={p.name || '__default__'} value={p.name || '__default__'}>
+                            {p.displayName}{p.isDefault ? ' (default)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
                   <FormField label="ขนาดมาตรฐาน">
                     <Select
                       value={PAPER_PRESETS.some(p => p.w === form.width_mm && p.h === form.height_mm)

@@ -13,9 +13,14 @@ export async function buildTaxInvoiceHtml(
   sale: SaleForPrint,
   shop: Partial<Setting>,
   tax: TaxInvoice,
-  opts: { copy: boolean; fontFamily?: string } = { copy: false },
+  opts: { copy: boolean; fontFamily?: string; paperSize?: 'A4' | 'A5' } = { copy: false },
 ): Promise<string> {
   const fontFamily = opts.fontFamily || 'Sarabun'
+  const paperSize = opts.paperSize || 'A4'
+  // A5 = A4 scaled by 1/√2 in EACH linear dimension (it's half the AREA, not
+  // half the side), so the whole A4-tuned layout — fonts, margins, mm widths —
+  // is zoomed by the page ratio (148/210 ≈ 0.705) to fit A5 like a shrunk A4.
+  const zoom = paperSize === 'A5' ? 148 / 210 : 1
   const fontFaceCss = await buildPrintFontFaceCss(fontFamily)
   const money = (n: number) => formatCurrency(n)
 
@@ -45,8 +50,9 @@ export async function buildTaxInvoiceHtml(
 ${fontFaceCss}
 /* Margin lives on the body as padding (not @page) so the silent-print path,
    which forces margins:none, still gets the page margin. */
-@page { size: A4; margin: 0; }
+@page { size: ${paperSize}; margin: 0; }
 html, body { margin: 0; }
+html { zoom: ${zoom}; }
 body { padding: 12mm; font-family: '${fontFamily}', sans-serif; font-size: 11pt; color: #000; background: #fff; }
 .head { display: flex; justify-content: space-between; align-items: flex-start; }
 .title { text-align: right; }

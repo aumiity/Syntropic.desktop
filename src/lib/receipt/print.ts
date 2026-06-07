@@ -18,14 +18,27 @@ async function loadConfig(): Promise<{ shop: Partial<Setting>; settings: Receipt
   return { shop: shop ?? {}, settings }
 }
 
+// Physical page dimensions (mm) for the supported document page sizes.
+const PAGE_MM: Record<'A4' | 'A5', { w: number; h: number }> = {
+  A4: { w: 210, h: 297 },
+  A5: { w: 148, h: 210 },
+}
+
 // A4 documents (tax invoice / goods receipt / quotation) share one configured
-// printer + copies (document_settings). printer_name '' = OS default printer.
-// An explicit non-empty printerName arg still wins, for one-off overrides.
-async function docConfig(printerName?: string): Promise<{ printerName: string; copies: number }> {
+// printer + copies + page size (document_settings). printer_name '' = OS default
+// printer. An explicit non-empty printerName arg still wins, for one-off overrides.
+async function docConfig(printerName?: string): Promise<{
+  printerName: string; copies: number; paperSize: 'A4' | 'A5'; widthMm: number; heightMm: number
+}> {
   const s = (await window.api.settings.getDocumentSettings()) as DocumentSettings | undefined
+  const paperSize: 'A4' | 'A5' = s?.paper_size === 'A5' ? 'A5' : 'A4'
+  const dims = PAGE_MM[paperSize]
   return {
     printerName: printerName || s?.printer_name || '',
     copies: Math.max(1, Number(s?.copies) || 1),
+    paperSize,
+    widthMm: dims.w,
+    heightMm: dims.h,
   }
 }
 
@@ -66,9 +79,9 @@ export async function printTaxInvoice(
   copy: boolean,
   printerName = '',
 ): Promise<PrintResult> {
-  const html = await buildTaxInvoiceHtml(sale, shop, tax, { copy })
   const cfg = await docConfig(printerName)
-  return window.api.printer.printHtml({ html, printerName: cfg.printerName, paperWidthMm: 210, heightMm: 297, copies: cfg.copies })
+  const html = await buildTaxInvoiceHtml(sale, shop, tax, { copy, paperSize: cfg.paperSize })
+  return window.api.printer.printHtml({ html, printerName: cfg.printerName, paperWidthMm: cfg.widthMm, heightMm: cfg.heightMm, copies: cfg.copies })
 }
 
 export async function previewTaxInvoice(
@@ -77,8 +90,9 @@ export async function previewTaxInvoice(
   tax: TaxInvoice,
   copy: boolean,
 ): Promise<PrintResult> {
-  const html = await buildTaxInvoiceHtml(sale, shop, tax, { copy })
-  return window.api.printer.previewHtmlPdf({ html, pageFormat: 'A4' })
+  const cfg = await docConfig()
+  const html = await buildTaxInvoiceHtml(sale, shop, tax, { copy, paperSize: cfg.paperSize })
+  return window.api.printer.previewHtmlPdf({ html, pageFormat: cfg.paperSize })
 }
 
 // Quotation (ใบเสนอราคา) — A4. Loads shop info itself unless provided.
@@ -88,9 +102,9 @@ export async function printQuotation(
   printerName = '',
 ): Promise<PrintResult> {
   const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
-  const html = await buildQuotationHtml(quote, s)
   const cfg = await docConfig(printerName)
-  return window.api.printer.printHtml({ html, printerName: cfg.printerName, paperWidthMm: 210, heightMm: 297, copies: cfg.copies })
+  const html = await buildQuotationHtml(quote, s, { paperSize: cfg.paperSize })
+  return window.api.printer.printHtml({ html, printerName: cfg.printerName, paperWidthMm: cfg.widthMm, heightMm: cfg.heightMm, copies: cfg.copies })
 }
 
 export async function previewQuotation(
@@ -98,8 +112,9 @@ export async function previewQuotation(
   shop?: Partial<Setting>,
 ): Promise<PrintResult> {
   const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
-  const html = await buildQuotationHtml(quote, s)
-  return window.api.printer.previewHtmlPdf({ html, pageFormat: 'A4' })
+  const cfg = await docConfig()
+  const html = await buildQuotationHtml(quote, s, { paperSize: cfg.paperSize })
+  return window.api.printer.previewHtmlPdf({ html, pageFormat: cfg.paperSize })
 }
 
 // Goods receipt (ใบรับสินค้า) — A4. Loads shop info itself unless provided.
@@ -109,9 +124,9 @@ export async function printGoodsReceipt(
   printerName = '',
 ): Promise<PrintResult> {
   const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
-  const html = await buildGoodsReceiptHtml(gr, s)
   const cfg = await docConfig(printerName)
-  return window.api.printer.printHtml({ html, printerName: cfg.printerName, paperWidthMm: 210, heightMm: 297, copies: cfg.copies })
+  const html = await buildGoodsReceiptHtml(gr, s, { paperSize: cfg.paperSize })
+  return window.api.printer.printHtml({ html, printerName: cfg.printerName, paperWidthMm: cfg.widthMm, heightMm: cfg.heightMm, copies: cfg.copies })
 }
 
 export async function previewGoodsReceipt(
@@ -119,6 +134,7 @@ export async function previewGoodsReceipt(
   shop?: Partial<Setting>,
 ): Promise<PrintResult> {
   const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
-  const html = await buildGoodsReceiptHtml(gr, s)
-  return window.api.printer.previewHtmlPdf({ html, pageFormat: 'A4' })
+  const cfg = await docConfig()
+  const html = await buildGoodsReceiptHtml(gr, s, { paperSize: cfg.paperSize })
+  return window.api.printer.previewHtmlPdf({ html, pageFormat: cfg.paperSize })
 }

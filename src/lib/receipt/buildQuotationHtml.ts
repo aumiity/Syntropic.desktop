@@ -13,9 +13,12 @@ import type { QuotationForPrint, Setting } from '@/types'
 export async function buildQuotationHtml(
   quote: QuotationForPrint,
   shop: Partial<Setting>,
-  opts: { fontFamily?: string } = {},
+  opts: { fontFamily?: string; paperSize?: 'A4' | 'A5' } = {},
 ): Promise<string> {
   const fontFamily = opts.fontFamily || 'Sarabun'
+  const paperSize = opts.paperSize || 'A4'
+  // A5 = A4 zoomed by the linear page ratio (148/210 ≈ 0.705) — see buildTaxInvoiceHtml.
+  const zoom = paperSize === 'A5' ? 148 / 210 : 1
   const fontFaceCss = await buildPrintFontFaceCss(fontFamily)
   const money = (n: number) => formatCurrency(n)
 
@@ -88,8 +91,9 @@ ${fontFaceCss}
   --line: #ece6da;
 }
 * { box-sizing: border-box; }
-@page { size: A4; margin: 0; }
+@page { size: ${paperSize}; margin: 0; }
 html, body { margin: 0; }
+html { zoom: ${zoom}; }
 body {
   padding: 14mm 14mm 12mm;
   font-family: '${fontFamily}', sans-serif;

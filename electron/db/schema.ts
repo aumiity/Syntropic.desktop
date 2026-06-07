@@ -546,13 +546,14 @@ export function initializeSchema(db: Database.Database) {
 
     -- A4 document printing (singleton). Covers every full-page document that
     -- shares the A4 printer: ใบกำกับภาษีเต็มรูป, ใบรับสินค้า, ใบเสนอราคา, ฯลฯ.
-    -- One physical printer for all of them (operator decision) — page size is
-    -- fixed A4 in the print helpers (210×297 mm), so only the printer + copies
-    -- are configurable. printer_name = '' falls back to the OS default printer.
+    -- One physical printer for all of them (operator decision). paper_size picks
+    -- the page size the print helpers emit ('A4' 210×297 / 'A5' 148×210 mm);
+    -- printer_name = '' falls back to the OS default printer.
     CREATE TABLE IF NOT EXISTS document_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       printer_name TEXT NOT NULL DEFAULT '',
       copies       INTEGER NOT NULL DEFAULT 1,
+      paper_size   TEXT NOT NULL DEFAULT 'A4',
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -912,6 +913,9 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE users ADD COLUMN last_name TEXT NOT NULL DEFAULT ''`,
     `ALTER TABLE users ADD COLUMN username TEXT`,
     `ALTER TABLE users ADD COLUMN phone TEXT`,
+    // A4 documents can now be issued on A4 or A5 — page size is configurable
+    // per the document_settings singleton (was hard-locked to A4).
+    `ALTER TABLE document_settings ADD COLUMN paper_size TEXT NOT NULL DEFAULT 'A4'`,
   ]) {
     try { db.exec(sql) } catch {}
   }

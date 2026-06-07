@@ -33,9 +33,12 @@ export interface GoodsReceiptForPrint {
 export async function buildGoodsReceiptHtml(
   gr: GoodsReceiptForPrint,
   shop: Partial<Setting>,
-  opts: { fontFamily?: string } = {},
+  opts: { fontFamily?: string; paperSize?: 'A4' | 'A5' } = {},
 ): Promise<string> {
   const fontFamily = opts.fontFamily || 'Sarabun'
+  const paperSize = opts.paperSize || 'A4'
+  // A5 = A4 zoomed by the linear page ratio (148/210 ≈ 0.705) — see buildTaxInvoiceHtml.
+  const zoom = paperSize === 'A5' ? 148 / 210 : 1
   const fontFaceCss = await buildPrintFontFaceCss(fontFamily)
   const money = (n: number) => formatCurrency(n)
 
@@ -78,8 +81,9 @@ export async function buildGoodsReceiptHtml(
   return `<!doctype html><html><head><meta charset="utf-8">
 <style>
 ${fontFaceCss}
-@page { size: A4; margin: 0; }
+@page { size: ${paperSize}; margin: 0; }
 html, body { margin: 0; }
+html { zoom: ${zoom}; }
 body { padding: 12mm; font-family: '${fontFamily}', sans-serif; font-size: 11pt; color: #000; background: #fff; }
 .head { display: flex; justify-content: space-between; align-items: flex-start; }
 .title { text-align: right; }

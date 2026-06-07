@@ -165,6 +165,7 @@ export interface DocumentSettings {
   id: number
   printer_name: string
   copies: number
+  paper_size: 'A4' | 'A5'
   updated_at?: string
 }
 

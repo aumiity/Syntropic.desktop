@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SectionCard } from '@/components/ui/card'
@@ -8,7 +8,6 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
-import { TintIcon } from '@/components/ui/tint-icon'
 import { FONTS } from '@/lib/print/fonts'
 import { buildSlipHtml } from '@/lib/receipt/buildSlipHtml'
 import type { ReceiptSettings, SaleForPrint, Setting } from '@/types'
@@ -59,7 +58,7 @@ const PAPER_PRESETS = [
 
 interface PrinterInfo { name: string; displayName: string; isDefault: boolean }
 
-export function ReceiptSettingsTab() {
+export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode) => void }) {
   const { toast } = useToast()
   const [form, setForm] = useState<ReceiptForm>(DEFAULTS)
   const [shop, setShop] = useState<Partial<Setting>>({})
@@ -68,6 +67,22 @@ export function ReceiptSettingsTab() {
   const [printing, setPrinting] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [previewHtml, setPreviewHtml] = useState('')
+  // iframes don't auto-size to content, so the receipt would scroll INSIDE the
+  // frame. Measure the rendered body height and set the iframe to it, so the
+  // frame is full natural height and the OUTER gray box owns the scrollbar.
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [iframeH, setIframeH] = useState(0)
+  const fitIframe = useCallback(() => {
+    const doc = iframeRef.current?.contentWindow?.document
+    if (doc) setIframeH(doc.documentElement.scrollHeight)
+  }, [])
+  // Re-measure after the embedded (base64) fonts apply — that reflow changes the
+  // height after the initial load event fires.
+  useEffect(() => {
+    if (!previewHtml) return
+    const t = setTimeout(fitIframe, 120)
+    return () => clearTimeout(t)
+  }, [previewHtml, fitIframe])
 
   // Load settings — explicit per-key overwrite keeps stale UI-only keys out of
   // form (which would poison the dynamic-SQL UPDATE).
@@ -145,39 +160,69 @@ export function ReceiptSettingsTab() {
     [printers]
   )
 
-  return (
-    <div className="flex flex-col gap-3 h-full min-h-0">
-      {/* Top action bar */}
-      <div className="flex items-center gap-2 shrink-0">
-        <TintIcon icon={Receipt} tint="primary" size="sm" bordered />
-        <h3 className="text-base font-semibold text-foreground">การพิมพ์ใบเสร็จ</h3>
-        <div className="flex-1" />
-        <Button className="h-9" onClick={handlePreviewPdf} disabled={pdfLoading} variant="elevated">
+  // Lift the action buttons up to the shared sub-tab strip (PrintersTab) — handlers
+  // via a ref so the node never goes stale without a re-register every render.
+  const actRef = useRef({ handlePreviewPdf, handleTestPrint, handleSave })
+  actRef.current = { handlePreviewPdf, handleTestPrint, handleSave }
+  useEffect(() => {
+    onActions?.(
+      <>
+        <Button className="h-9" onClick={() => actRef.current.handlePreviewPdf()} disabled={pdfLoading} variant="elevated">
           <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
         </Button>
-        <Button className="h-9" onClick={handleTestPrint} disabled={printing} variant="elevated">
+        <Button className="h-9" onClick={() => actRef.current.handleTestPrint()} disabled={printing} variant="elevated">
           <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
         </Button>
-        <Button className="h-9" onClick={handleSave} disabled={saving}>
+        <Button className="h-9" onClick={() => actRef.current.handleSave()} disabled={saving}>
           <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
         </Button>
-      </div>
+      </>
+    )
+    return () => onActions?.(null)
+  }, [onActions, pdfLoading, printing, saving])
 
+  return (
+    <div className="flex flex-col gap-3">
       {/* Body: preview (LEFT) + settings (RIGHT) */}
-      <div className="grid grid-cols-[3fr_2fr] gap-4 flex-1 min-h-0">
-        <SectionCard title="ตัวอย่างใบเสร็จ" tint="success" className="flex flex-col min-h-0">
-          <div className="flex-1 min-h-0 flex items-start justify-center bg-muted/30 rounded-lg p-6 overflow-auto">
+      <div className="grid grid-cols-[3fr_2fr] gap-4 items-start">
+        <SectionCard title="ตัวอย่างใบเสร็จ" tint="success">
+          <div className="flex items-start justify-center bg-muted/30 rounded-lg p-6 overflow-auto">
             {/* True render via the real builder so the preview matches print. */}
-            <iframe
-              title="receipt-preview"
-              srcDoc={previewHtml}
-              className="bg-white shadow-card shrink-0 border-0"
-              style={{ width: `${form.paper_width_mm || 80}mm`, height: '100%', minHeight: '500px' }}
-            />
+            {/* Torn-paper bottom edge — same scalloped CSS-mask trick as the POS
+                payment dialog (src/pages/POS/index.tsx). The mask layers a solid
+                rectangle over a row of repeating radial cut-outs at the bottom;
+                the drop-shadow lives on the WRAPPER (not box-shadow) so the shadow
+                follows the jagged alpha edge instead of a straight box. +16px of
+                height gives the notches blank room so they don't clip the footer. */}
+            <div
+              className="shrink-0"
+              style={{ filter: 'drop-shadow(0 4px 5px rgb(0 0 0 / 0.20)) drop-shadow(0 12px 14px rgb(0 0 0 / 0.16))' }}
+            >
+              <iframe
+                ref={iframeRef}
+                title="receipt-preview"
+                srcDoc={previewHtml}
+                onLoad={fitIframe}
+                scrolling="no"
+                className="bg-white border-0 block"
+                style={{
+                  width: `${form.paper_width_mm || 80}mm`,
+                  height: iframeH ? `${iframeH + 16}px` : 'auto',
+                  WebkitMaskImage: 'linear-gradient(#000,#000), radial-gradient(circle 12px at 50% 100%, transparent 12px, #000 12px)',
+                  WebkitMaskSize: '100% calc(100% - 12px), 10% 12px',
+                  WebkitMaskPosition: 'top, left bottom',
+                  WebkitMaskRepeat: 'no-repeat, repeat-x',
+                  maskImage: 'linear-gradient(#000,#000), radial-gradient(circle 12px at 50% 100%, transparent 12px, #000 12px)',
+                  maskSize: '100% calc(100% - 12px), 10% 12px',
+                  maskPosition: 'top, left bottom',
+                  maskRepeat: 'no-repeat, repeat-x',
+                }}
+              />
+            </div>
           </div>
         </SectionCard>
 
-        <div className="flex flex-col min-h-0 overflow-y-auto pr-1 [scrollbar-gutter:stable] space-y-3">
+        <div className="flex flex-col space-y-3">
           <SectionCard icon={Printer} title="เครื่องพิมพ์ & กระดาษ" tint="primary">
             <div className="space-y-3">
               <FormField label="เครื่องพิมพ์">

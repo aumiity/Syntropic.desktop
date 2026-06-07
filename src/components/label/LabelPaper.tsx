@@ -42,11 +42,14 @@ export function LabelPaper({ settings, content, date }: Props) {
     // (real-world ink on paper, not themed UI) and exempt from the
     // no-color-literal rule.
     <div
-      className="border-2 border-dashed border-border bg-white text-black shrink-0"
+      className="bg-white text-black shrink-0"
       style={{
         width:      `${settings.width_mm}mm`,
         height:     `${settings.height_mm}mm`,
         padding:    `${settings.pad_top}mm ${settings.pad_right}mm ${settings.pad_bottom}mm ${settings.pad_left}mm`,
+        // Match the receipt preview's shadow depth (ReceiptSettingsTab) so both
+        // paper previews read at the same elevation.
+        boxShadow:  '0 4px 5px rgb(0 0 0 / 0.20), 0 12px 14px rgb(0 0 0 / 0.16)',
         // Multi-word family names (e.g. "Bai Jamjuree") MUST be quoted in CSS,
         // else the browser parses each word as a separate fallback family.
         fontFamily: `'${settings.font_family}', sans-serif`,
