@@ -3,12 +3,11 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Store, Package, Printer, ShoppingCart, Save, ReceiptText, Database } from 'lucide-react'
+import { Store, FolderTree, Printer, ShoppingCart, Save, Database } from 'lucide-react'
 import { ShopTab } from './ShopTab'
 import { ProductMgmtTab } from './ProductMgmtTab'
 import { PrintersTab } from './PrintersTab'
 import { SalesTab } from './SalesTab'
-import { ExpenseCategoriesTab } from './ExpenseCategoriesTab'
 import { DatabaseTab } from './DatabaseTab'
 
 export default function SettingsPage() {
@@ -24,9 +23,8 @@ export default function SettingsPage() {
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList variant="segmented" className="h-9">
             <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
-            <TabsTrigger value="product-mgmt"><Package /> จัดการสินค้า</TabsTrigger>
+            <TabsTrigger value="product-mgmt"><FolderTree /> หมวดหมู่และประเภท</TabsTrigger>
             <TabsTrigger value="sales"><ShoppingCart /> การขาย</TabsTrigger>
-            <TabsTrigger value="expenses"><ReceiptText /> หมวดค่าใช้จ่าย</TabsTrigger>
             <TabsTrigger value="printers"><Printer /> การพิมพ์</TabsTrigger>
             <TabsTrigger value="database"><Database /> ฐานข้อมูล</TabsTrigger>
           </TabsList>
@@ -48,7 +46,6 @@ export default function SettingsPage() {
             setSaving={setSalesSaving}
           />
         )}
-        {tab === 'expenses' && <ExpenseCategoriesTab />}
         {tab === 'printers' && <PrintersTab />}
         {tab === 'database' && <DatabaseTab />}
       </div>

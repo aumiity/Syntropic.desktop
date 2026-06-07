@@ -422,19 +422,19 @@ export default function DashboardPage() {
           right={<span className="text-xs text-muted-foreground">{rangeLabel}</span>}
         >
             {loading ? (
-              <div className="h-[180px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
+              <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
             ) : donutTotal === 0 ? (
-              <div className="h-[180px] flex flex-col items-center justify-center text-sm text-muted-foreground">
+              <div className="h-[280px] flex flex-col items-center justify-center text-sm text-muted-foreground">
                 <PieChartIcon className="size-10 mb-2 opacity-30" />
                 ยังไม่มีบิลในช่วงนี้
               </div>
             ) : (
-              <div className="flex items-center gap-4">
-                <div className="relative size-[150px] shrink-0">
+              <div className="flex flex-col items-center gap-5">
+                <div className="relative aspect-square w-full max-w-[340px] mx-auto">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie data={donut} dataKey="value" nameKey="name" cx="50%" cy="50%"
-                        innerRadius={48} outerRadius={70} paddingAngle={2} strokeWidth={0}>
+                        innerRadius="64%" outerRadius="98%" paddingAngle={2} strokeWidth={0}>
                         {donut.map((d) => <Cell key={d.name} fill={d.color} />)}
                       </Pie>
                       <Tooltip
@@ -452,18 +452,18 @@ export default function DashboardPage() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-2xl font-bold text-foreground leading-none">{donutTotal.toLocaleString()}</span>
-                    <span className="text-xs text-muted-foreground mt-0.5">บิล</span>
+                    <span className="text-3xl font-bold text-foreground leading-none">{donutTotal.toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground mt-1">บิล</span>
                   </div>
                 </div>
-                <ul className="flex-1 min-w-0 space-y-2">
+                <ul className="w-full flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
                   {donut.map(d => {
                     const pct = donutTotal > 0 ? ((d.value / donutTotal) * 100).toFixed(0) : '0'
                     return (
                       <li key={d.name} className="flex items-center gap-2 text-sm">
-                        <span className="size-3 rounded-sm shrink-0" style={{ backgroundColor: d.color }} />
-                        <span className="text-foreground truncate">{d.name}</span>
-                        <span className="ml-auto font-semibold text-foreground">{pct}%</span>
+                        <span className="size-3.5 rounded-sm shrink-0" style={{ backgroundColor: d.color }} />
+                        <span className="text-foreground">{d.name}</span>
+                        <span className="font-semibold text-foreground">{pct}%</span>
                       </li>
                     )
                   })}
