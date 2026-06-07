@@ -1,5 +1,6 @@
 import * as React from 'react'
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react'
+import { motion } from 'framer-motion'
 import dayjs from 'dayjs'
 import type { DateRange } from 'react-day-picker'
 
@@ -114,6 +115,8 @@ export function PeriodPicker({
   className,
 }: PeriodPickerProps) {
   const [open, setOpen] = React.useState(false)
+  // Shared layoutId so the active pill slides between modes (iOS segmented feel).
+  const pillId = React.useId()
 
   const handleModeChange = (newMode: PeriodMode) => {
     if (newMode === mode) return
@@ -133,32 +136,49 @@ export function PeriodPicker({
 
   return (
     <div className={cn('inline-flex items-center gap-2', className)}>
-      {/* Granularity segmented — bg-card pill like the Tabs default variant */}
-      <div className="inline-flex items-center bg-card rounded-lg shadow-card p-1 h-10">
-        {allowedModes.map(m => (
-          <Button
-            key={m}
-            type="button"
-            variant={mode === m ? 'default' : 'ghost'}
-            size="sm"
-            className={cn(
-              'h-8 px-3 text-sm font-medium rounded-md',
-              mode !== m && 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => handleModeChange(m)}
-          >
-            {MODE_LABELS[m]}
-          </Button>
-        ))}
+      {/* Granularity segmented — iOS-style like the Tabs SEGMENTED variant:
+          muted track + card pill on active, foreground text (not teal fill). */}
+      <div className="inline-grid grid-flow-col auto-cols-fr items-center bg-muted rounded-lg p-1 h-10 gap-1">
+        {allowedModes.map(m => {
+          const active = mode === m
+          return (
+            <Button
+              key={m}
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                'relative w-full h-8 px-3 text-sm font-medium rounded-md hover:bg-transparent',
+                active
+                  ? 'text-primary-foreground hover:text-primary-foreground'
+                  : 'text-foreground/60 dark:text-muted-foreground hover:text-foreground',
+              )}
+              onClick={() => handleModeChange(m)}
+              title={MODE_LABELS[m]}
+            >
+              {active && (
+                <motion.div
+                  layoutId={pillId}
+                  aria-hidden
+                  className="absolute inset-0 rounded-md bg-primary shadow-md"
+                  transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                />
+              )}
+              <span className="relative z-10 inline-flex items-center justify-center">
+                {m === 'custom' ? <CalendarRange className="size-4" /> : MODE_LABELS[m]}
+              </span>
+            </Button>
+          )
+        })}
       </div>
 
-      {/* Stepper + popover trigger */}
-      <div className="inline-flex items-center bg-card rounded-lg shadow-card h-10 overflow-hidden">
+      {/* Stepper + popover trigger — matches the segmented muted track */}
+      <div className="inline-flex items-center bg-muted rounded-lg h-10 overflow-hidden">
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="size-10 rounded-none text-muted-foreground hover:text-foreground"
+          className="size-10 rounded-none text-muted-foreground hover:bg-primary-soft hover:text-primary"
           onClick={() => handleStep(-1)}
           title="ก่อนหน้า"
         >
@@ -170,7 +190,7 @@ export function PeriodPicker({
             <Button
               type="button"
               variant="ghost"
-              className="h-10 px-3 rounded-none min-w-[180px] justify-center font-medium"
+              className="h-10 px-3 rounded-none min-w-[180px] justify-center font-medium hover:bg-primary-soft hover:text-primary"
             >
               <CalendarDays className="size-4 mr-2 text-foreground-subtle" />
               {displayLabel(mode, from, to)}
@@ -188,7 +208,7 @@ export function PeriodPicker({
           type="button"
           variant="ghost"
           size="icon"
-          className="size-10 rounded-none text-muted-foreground hover:text-foreground"
+          className="size-10 rounded-none text-muted-foreground hover:bg-primary-soft hover:text-primary"
           onClick={() => handleStep(1)}
           title="ถัดไป"
         >
