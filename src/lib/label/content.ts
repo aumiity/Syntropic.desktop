@@ -8,10 +8,13 @@ import type { SectionKey } from './sections'
 
 // Sample text shown in the Settings label-designer preview / test print. The
 // `shop` row's date is rendered separately (right column), so it is NOT part of
-// the shop string here. Line sections (header_line) carry no content.
+// the shop string here. Line sections (header_line) carry no content; the
+// `custom_text` section pulls from label_settings (config), not from here.
 export const SAMPLE_CONTENT: Partial<Record<SectionKey, string>> = {
   shop:         'ร้านยา ซินโทรปิก เภสัช',
-  shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ โทร. 02-xxx-xxxx',
+  shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ',
+  shop_phone:   'โทร. 02-xxx-xxxx',
+  shop_line_id: 'LINE: @syntropic',
   product:      'Paracetamol 500mg tablets',
   dosage:       'รับประทาน 1–2 เม็ด วันละ 3 ครั้ง',
   timing:       'หลังอาหาร เช้า-กลางวัน-เย็น',
@@ -47,6 +50,7 @@ interface ShopLike {
   shop_name?: string | null
   shop_address?: string | null
   shop_phone?: string | null
+  shop_line_id?: string | null
 }
 interface Lookup { id: number; name_th?: string | null }
 interface Lookups {
@@ -65,8 +69,10 @@ export function composeLabelContent(
 ): Partial<Record<SectionKey, string>> {
   const out: Partial<Record<SectionKey, string>> = {}
   if (shop?.shop_name) out.shop = shop.shop_name
-  out.shop_address = [shop?.shop_address, shop?.shop_phone ? `โทร. ${shop.shop_phone}` : '']
-    .filter(Boolean).join(' ')
+  // Address / phone / LINE ID are now independent sections (each its own line).
+  out.shop_address = shop?.shop_address || ''
+  out.shop_phone = shop?.shop_phone ? `โทร. ${shop.shop_phone}` : ''
+  out.shop_line_id = shop?.shop_line_id ? `LINE: ${shop.shop_line_id}` : ''
   out.product = product.name_for_print || product.trade_name || ''
   out.barcode = product.barcode || ''
 

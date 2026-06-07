@@ -24,20 +24,38 @@ export async function buildLabelHtml(
   date: string,
 ): Promise<string> {
   const sectionsHtml = SECTIONS
-    .filter(s => settings[`show_${s.key}` as keyof LabelSettingsForm])
+    // `print_date` is folded into the shop flex row (see below), never its own
+    // line; the shop row shows when EITHER the name or the date is enabled.
+    .filter(s => {
+      if (s.key === 'print_date') return false
+      if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
+      return settings[`show_${s.key}` as keyof LabelSettingsForm]
+    })
     .map(s => {
       if (s.kind === 'line') {
         return `<div style="${styleToCss(buildSectionStyle(s, settings))}"></div>`
       }
-      const text = content[s.key] ?? ''
+      // custom_text is config (settings.custom_text), not content — mirror the
+      // same special-case as LabelPaper so print === preview.
+      const text = s.key === 'custom_text' ? (settings.custom_text ?? '') : (content[s.key] ?? '')
       if (s.key === 'shop') {
-        // Special: shop name left + print date right on one flex row.
-        if (!text && !date) return ''
+        // Special: shop name (left, `shop` style) + print date (right, its OWN
+        // `print_date` style + offset) on one flex row; each toggles separately.
+        const showName = !!settings.show_shop
+        const showDate = !!settings.show_print_date && !!date
+        const nameText = showName ? text : ''
+        if (!nameText && !showDate) return ''
         const style = {
           ...buildSectionStyle(s, settings),
           whiteSpace: 'normal', display: 'flex', justifyContent: 'space-between', gap: '4mm',
         } as CSSProperties
-        return `<div style="${styleToCss(style)}"><span>${esc(text)}</span><span>${esc(date)}</span></div>`
+        const dateStyle: CSSProperties = {
+          fontSize:   `${settings.font_size_print_date}pt`,
+          fontWeight: settings.bold_print_date ? 'bold' : 'normal',
+          transform:  `translate(${settings.offset_x_print_date}mm, ${settings.offset_y_print_date}mm)`,
+        }
+        const dateSpan = showDate ? `<span style="${styleToCss(dateStyle)}">${esc(date)}</span>` : ''
+        return `<div style="${styleToCss(style)}"><span>${esc(nameText)}</span>${dateSpan}</div>`
       }
       if (!text) return ''
       const body = esc(text).replace(/\n/g, '<br>')

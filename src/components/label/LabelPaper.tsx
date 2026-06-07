@@ -20,7 +20,14 @@ export function LabelPaper({ settings, content, date }: Props) {
   // (lines always render). marginTop is killed on the first rendered element so
   // it sits flush at the padding edge (matches the print HTML `div:first-child`
   // rule).
-  const visible = SECTIONS.filter(s => settings[`show_${s.key}` as keyof LabelSettingsForm])
+  // `print_date` is never its own line — it's folded into the shop flex row
+  // (right side), so skip it here. The shop row shows when EITHER the shop name
+  // or the date is enabled.
+  const visible = SECTIONS.filter(s => {
+    if (s.key === 'print_date') return false
+    if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
+    return settings[`show_${s.key}` as keyof LabelSettingsForm]
+  })
 
   // The configured family. Multi-word names (e.g. "Bai Jamjuree") MUST be
   // quoted in CSS. We re-apply this on EVERY text element below — not just the
@@ -54,17 +61,32 @@ export function LabelPaper({ settings, content, date }: Props) {
           return <div key={s.key} style={style} />
         }
         style.fontFamily = fontFamily
-        const text = content[s.key] ?? ''
+        // custom_text is config (label_settings.custom_text), not content — it's
+        // the free-text last line typed in the designer. Everything else maps
+        // through the content text map.
+        const text = s.key === 'custom_text' ? (settings.custom_text ?? '') : (content[s.key] ?? '')
         if (s.key === 'shop') {
-          // Special: shop name left + print date right on one flex row.
-          if (!text && !date) return null
+          // Special: shop name (left, styled by `shop`) + print date (right,
+          // styled by its OWN `print_date` columns) on one flex row. Each side
+          // toggles independently via show_shop / show_print_date.
+          const showName = !!settings.show_shop
+          const showDate = !!settings.show_print_date && !!date
+          const nameText = showName ? text : ''
+          if (!nameText && !showDate) return null
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'
-          // Spans need the family too — the `*` rule hits them directly.
+          // Date span uses print_date's font/bold + its own offset nudge. Spans
+          // need the family too — the `*` rule hits them directly.
+          const dateStyle: CSSProperties = {
+            fontFamily,
+            fontSize:   `${settings.font_size_print_date}pt`,
+            fontWeight: settings.bold_print_date ? 'bold' : 'normal',
+            transform:  `translate(${settings.offset_x_print_date}mm, ${settings.offset_y_print_date}mm)`,
+          }
           return (
             <div key={s.key} style={{ ...style, display: 'flex', justifyContent: 'space-between', gap: '4mm' }}>
-              <span style={{ fontFamily }}>{text}</span>
-              {date ? <span style={{ fontFamily }}>{date}</span> : null}
+              <span style={{ fontFamily }}>{nameText}</span>
+              {showDate ? <span style={dateStyle}>{date}</span> : null}
             </div>
           )
         }
