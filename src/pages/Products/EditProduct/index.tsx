@@ -117,7 +117,7 @@ export default function EditProductPage() {
           reorder_point: 0, safety_stock: 0,
           is_antibiotic: 0,
           is_fda9: 0, is_fda10: 0, is_fda11: 0, is_fda13: 0,
-          indication_note: '', side_effect_note: '', search_keywords: '', note: '',
+          search_keywords: '',
           is_hidden: 0, is_disabled: 0,
         })
         return
@@ -163,10 +163,7 @@ export default function EditProductPage() {
         is_fda10: prod.is_fda10 ?? 0,
         is_fda11: prod.is_fda11 ?? 0,
         is_fda13: prod.is_fda13 ?? 0,
-        indication_note: prod.indication_note ?? '',
-        side_effect_note: prod.side_effect_note ?? '',
         search_keywords: prod.search_keywords ?? '',
-        note: prod.note ?? '',
         is_hidden: prod.is_hidden ?? 0,
         is_disabled: prod.is_disabled ?? 0,
       })

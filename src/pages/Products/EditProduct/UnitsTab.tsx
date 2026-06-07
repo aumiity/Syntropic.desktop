@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Badge } from '@/components/ui/badge'
-import { Switch, Toggle } from '@/components/ui/switch'
+import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/label'
 import {
@@ -44,6 +44,8 @@ export function UnitsTab({
   const [unitForm, setUnitForm] = useState<any>({})
   const [unitSaving, setUnitSaving] = useState(false)
   const [deletingUnit, setDeletingUnit] = useState<ProductUnit | null>(null)
+  // ราคาส่งซ่อนหลัง disclosure — กางอัตโนมัติเมื่อหน่วยมีราคาส่งอยู่แล้ว
+  const [showWholesale, setShowWholesale] = useState(false)
 
   const openAddUnit = () => {
     setEditingUnit(null)
@@ -58,6 +60,7 @@ export function UnitsTab({
       is_for_purchase: 0,
       is_disabled: 0,
     })
+    setShowWholesale(false)
     setUnitDialog(true)
   }
 
@@ -74,6 +77,7 @@ export function UnitsTab({
       is_for_purchase: u.is_for_purchase,
       is_disabled: u.is_disabled,
     })
+    setShowWholesale(((u.price_wholesale1 ?? 0) > 0) || ((u.price_wholesale2 ?? 0) > 0))
     setUnitDialog(true)
   }
 
@@ -206,7 +210,7 @@ export function UnitsTab({
                           <Eye />
                         </Button>
                       ) : (
-                        <Button size="icon-lg" variant="elevated-warning" onClick={() => handleToggleDisable(u)} title="ปิดการใช้งาน">
+                        <Button size="icon-lg" variant="elevated" onClick={() => handleToggleDisable(u)} title="ปิดการใช้งาน">
                           <EyeOff />
                         </Button>
                       )}
@@ -247,15 +251,41 @@ export function UnitsTab({
               const retail = calc(parseFloat(String(unitForm.price_retail)) || 0)
               const ws1 = calc(parseFloat(String(unitForm.price_wholesale1)) || 0)
               const ws2 = calc(parseFloat(String(unitForm.price_wholesale2)) || 0)
-              const unitSuffix = (u: string) => <span className="font-normal normal-case text-muted-foreground"> ({u})</span>
+              const profitBox = (d: ReturnType<typeof calc>) => {
+                const labelCls = `text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`
+                const valCls = `text-sm font-bold ${d.pos ? 'text-success' : 'text-destructive'}`
+                const dash = <span className="text-sm text-foreground-subtle">—</span>
+                return (
+                  <div className="rounded-lg bg-success-soft/50 border border-success/30 grid grid-cols-2 divide-x divide-success/30">
+                    <div className="space-y-0.5 min-w-0 px-3 py-2">
+                      <div className={labelCls}>คิดเป็น ({baseUnit})</div>
+                      <div className="text-sm font-bold text-foreground">{formatCurrency(d.perPiece)}</div>
+                    </div>
+                    <div className="space-y-0.5 min-w-0 px-3 py-2">
+                      <div className={labelCls}>กำไร ({newUnit})</div>
+                      {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)} ({d.pos ? '+' : ''}{d.pct.toFixed(0)}%)</div>}
+                    </div>
+                  </div>
+                )
+              }
+              const wholesaleBlock = (label: string, key: string, value: any, d: ReturnType<typeof calc>) => (
+                <div className="space-y-3">
+                  <Field label={label}>
+                    <PriceInput variant="elevated" className="text-left" value={value} onChange={v => setUnitForm((f: any) => ({ ...f, [key]: v }))} />
+                  </Field>
+                  {profitBox(d)}
+                </div>
+              )
               return (
-                <div className="grid grid-cols-2 gap-5 items-start">
-                  {/* ── ซ้าย: ข้อมูลหน่วย + ตัวเลือก ── */}
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-5 items-start">
+                  {/* ── ซ้าย: หน่วย + ราคา + รายละเอียด ── */}
                   <div className="space-y-3">
+                    {/* หน่วยนับ + ขนาดบรรจุ — เลือกก่อน เพราะเป็นตัวตั้งของราคาทุน/ราคา */}
                     <div className="grid grid-cols-2 gap-3">
                       <Field label="หน่วยนับ" required>
                         <Select value={String(unitForm.unit_id ?? 0)} onValueChange={v => setUnitForm((f: any) => ({ ...f, unit_id: Number(v) }))}>
-                          <SelectTrigger variant="elevated" className="h-10 w-full">
+                          <SelectTrigger variant="elevated" className="w-full">
                             <SelectValue placeholder="— เลือกหน่วย —" />
                           </SelectTrigger>
                           <SelectContent>
@@ -265,95 +295,77 @@ export function UnitsTab({
                         </Select>
                       </Field>
                       <Field label="ขนาดบรรจุ">
-                        <Input variant="elevated" type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="text-right" min={0.0001} step="0.0001" />
+                        <Input variant="elevated" type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="text-left" min={0.0001} step="0.0001" />
                       </Field>
                     </div>
-                    <Field label="บาร์โค้ด">
-                      <Input variant="elevated" value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
-                    </Field>
 
-                    {/* ตัวเลือกการใช้งาน */}
-                    <Toggle
-                      framed
-                      size="lg"
-                      label="ใช้ขาย — ใช้หน่วยนี้ในการขาย"
-                      checked={!!unitForm.is_for_sale}
-                      onChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))}
-                      className="justify-between w-full"
-                    />
-                    <Toggle
-                      framed
-                      size="lg"
-                      label="ใช้ซื้อ — ใช้หน่วยนี้ในการรับเข้าสต็อก"
-                      checked={!!unitForm.is_for_purchase}
-                      onChange={v => setUnitForm((f: any) => ({ ...f, is_for_purchase: v ? 1 : 0 }))}
-                      className="justify-between w-full"
-                    />
-                  </div>
-
-                  {/* ── ขวา: ราคา + รายละเอียด ── */}
-                  <div className="space-y-3">
                     {/* ราคาทุน — รวมหน่วยฐาน + หน่วยใหม่ ในกรอบเดียว */}
-                    <div className="rounded-lg bg-warm/50 border border-warm-foreground/25 px-3 py-2 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">ราคาทุน ({baseUnit})</span>
-                        <span className="text-sm font-bold text-warm-foreground">{formatCurrency(baseCost)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">ราคาทุน ({newUnit})</span>
-                        <span className="text-sm font-bold text-warm-foreground">{formatCurrency(unitCost)}</span>
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold text-foreground">ราคาทุน</h4>
+                      <div className="rounded-lg bg-warm/50 border border-warm-foreground/25 px-3 py-2 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">ต่อ {baseUnit}</span>
+                          <span className="text-sm font-bold text-warm-foreground">{formatCurrency(baseCost)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">ต่อ {newUnit}</span>
+                          <span className="text-sm font-bold text-warm-foreground">{formatCurrency(unitCost)}</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* ราคาปลีก + รายละเอียด */}
-                    <Field label={<>ราคาปลีก{unitSuffix(newUnit)}</>}>
-                      <PriceInput variant="elevated" value={unitForm.price_retail} onChange={v => setUnitForm((f: any) => ({ ...f, price_retail: v }))} />
+                    <Field label="ราคาปลีก">
+                      <PriceInput variant="elevated" className="text-left" value={unitForm.price_retail} onChange={v => setUnitForm((f: any) => ({ ...f, price_retail: v }))} />
                     </Field>
-                    <div className="rounded-lg bg-success-soft/50 border border-success/30 px-3 py-2 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">คิดเป็น ({baseUnit})</span>
-                        <span className="text-sm font-bold text-foreground">{formatCurrency(retail.perPiece)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-sm ${retail.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร ({newUnit})</span>
-                        {retail.dim ? (
-                          <span className="text-sm text-foreground-subtle">—</span>
-                        ) : (
-                          <span className={`text-sm font-bold ${retail.pos ? 'text-success' : 'text-destructive'}`}>
-                            {retail.pos ? '+' : ''}{retail.profit.toFixed(2)} ({retail.pos ? '+' : ''}{retail.pct.toFixed(0)}%)
-                          </span>
-                        )}
+                    {profitBox(retail)}
+
+                  </div>
+
+                  {/* ── ขวา: ข้อมูลหน่วย + ตัวเลือก ── */}
+                  <div className="space-y-3">
+                    <Field label="บาร์โค้ด">
+                      <Input variant="elevated" value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
+                    </Field>
+
+                    {/* การตั้งค่า — รวมตัวเลือกการใช้งานไว้ในกรอบเดียว */}
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold text-foreground">การตั้งค่า</h4>
+                      <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
+                        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                          <div>
+                            <div className="text-sm font-semibold text-foreground">ใช้หน่วยนี้ในการขาย</div>
+                            <div className="text-xs text-muted-foreground">ให้เลือกหน่วยนี้ได้ที่หน้าขาย (POS)</div>
+                          </div>
+                          <Switch size="lg" checked={!!unitForm.is_for_sale} onCheckedChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))} />
+                        </div>
+                        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                          <div>
+                            <div className="text-sm font-semibold text-foreground">ใช้หน่วยนี้ในการซื้อ</div>
+                            <div className="text-xs text-muted-foreground">ให้เลือกหน่วยนี้ได้ตอนรับเข้า/สั่งซื้อ</div>
+                          </div>
+                          <Switch size="lg" checked={!!unitForm.is_for_purchase} onCheckedChange={v => setUnitForm((f: any) => ({ ...f, is_for_purchase: v ? 1 : 0 }))} />
+                        </div>
+                        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                          <div>
+                            <div className="text-sm font-semibold text-foreground">ตั้งราคาส่ง</div>
+                            <div className="text-xs text-muted-foreground">กำหนดราคาส่ง 1 / 2 ของหน่วยนี้</div>
+                          </div>
+                          <Switch size="lg" checked={showWholesale} onCheckedChange={setShowWholesale} />
+                        </div>
                       </div>
                     </div>
 
-                    {/* ราคาส่ง 1 + รายละเอียด */}
-                    {([
-                      { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: unitForm.price_wholesale1, d: ws1 },
-                      { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: unitForm.price_wholesale2, d: ws2 },
-                    ] as const).map(({ label, key, value, d }) => (
-                      <div key={key} className="space-y-3">
-                        <Field label={<>{label}{unitSuffix(newUnit)}</>}>
-                          <PriceInput variant="elevated" value={value} onChange={v => setUnitForm((f: any) => ({ ...f, [key]: v }))} />
-                        </Field>
-                        <div className="rounded-lg bg-success-soft/50 border border-success/30 px-3 py-2 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">คิดเป็น ({baseUnit})</span>
-                            <span className="text-sm font-bold text-foreground">{formatCurrency(d.perPiece)}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className={`text-sm ${d.dim ? 'text-foreground-subtle' : 'text-muted-foreground'}`}>กำไร ({newUnit})</span>
-                            {d.dim ? (
-                              <span className="text-sm text-foreground-subtle">—</span>
-                            ) : (
-                              <span className={`text-sm font-bold ${d.pos ? 'text-success' : 'text-destructive'}`}>
-                                {d.pos ? '+' : ''}{d.profit.toFixed(2)} ({d.pos ? '+' : ''}{d.pct.toFixed(0)}%)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
                   </div>
+                  </div>
+
+                  {/* ── ราคาส่ง — โชว์เมื่อเปิดสวิตช์ "ตั้งราคาส่ง" ในกรอบการตั้งค่า ── */}
+                  {showWholesale && (
+                    <div className="grid grid-cols-2 gap-5 items-start">
+                      {wholesaleBlock('ราคาส่ง 1', 'price_wholesale1', unitForm.price_wholesale1, ws1)}
+                      {wholesaleBlock('ราคาส่ง 2', 'price_wholesale2', unitForm.price_wholesale2, ws2)}
+                    </div>
+                  )}
                 </div>
               )
             })()}

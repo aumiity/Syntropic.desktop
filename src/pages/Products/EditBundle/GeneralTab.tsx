@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { FormField } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { SectionCard } from '@/components/ui/card'
-import { Package, ScanBarcode, FileText, Settings, Plus, X } from 'lucide-react'
+import { Package, ScanBarcode, Settings, Plus, X } from 'lucide-react'
 import type { ProductCategory, ItemUnit } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
 import { PriceSection, PriceHistoryDialog } from './PriceSection'
@@ -112,7 +111,7 @@ export function GeneralTab({
             {/* Row 4: หมวดหมู่ | หน่วยหลัก */}
             <Field label="หมวดหมู่">
               <Select value={String(form.category_id ?? 0)} onValueChange={v => setF('category_id', Number(v))}>
-                <SelectTrigger variant="elevated" className="h-10 w-full">
+                <SelectTrigger variant="elevated" className="w-full">
                   <SelectValue placeholder="— ไม่ระบุ —" />
                 </SelectTrigger>
                 <SelectContent>
@@ -149,15 +148,6 @@ export function GeneralTab({
           isNew={isNew}
           onOpenHistory={() => setPriceHistoryOpen(true)}
         />
-
-        <SectionCard icon={FileText} title="หมายเหตุ" tint="secondary">
-          <Textarea
-            variant="elevated"
-            value={form.note ?? ''}
-            onChange={e => setF('note', e.target.value)}
-            rows={4}
-          />
-        </SectionCard>
 
       </div>
 

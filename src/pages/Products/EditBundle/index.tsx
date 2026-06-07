@@ -58,7 +58,7 @@ export default function EditBundlePage() {
         barcode: '', barcode2: '', barcode3: '', barcode4: '',
         category_id: 0, unit_id: 0,
         price_retail: 0, price_wholesale1: 0, price_wholesale2: 0,
-        search_keywords: '', note: '', is_disabled: 0,
+        search_keywords: '', is_disabled: 0,
       }
     : {})
   const [errors, setErrors] = useState<Set<string>>(new Set())
@@ -135,7 +135,6 @@ export default function EditBundlePage() {
         price_wholesale1: prod.price_wholesale1 ?? 0,
         price_wholesale2: prod.price_wholesale2 ?? 0,
         search_keywords: prod.search_keywords ?? '',
-        note: prod.note ?? '',
         is_disabled: prod.is_disabled ?? 0,
       })
     } finally {
@@ -227,7 +226,6 @@ export default function EditBundlePage() {
         price_wholesale1: parseFloat(form.price_wholesale1) || 0,
         price_wholesale2: parseFloat(form.price_wholesale2) || 0,
         search_keywords: form.search_keywords || null,
-        note: form.note || null,
         is_disabled: form.is_disabled ? 1 : 0,
       }
       if (isNew) {

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Switch, Toggle } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
 import {
@@ -13,7 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Package, ScanBarcode, Pill, PackageOpen, FileText, Settings, Plus, X, History,
+  Package, ScanBarcode, Pill, PackageOpen, Settings, Plus, X, History,
 } from 'lucide-react'
 import type { ProductCategory, DrugType, ItemUnit } from '@/types'
 import type { GenericNameSuggestion } from './shared'
@@ -126,7 +127,7 @@ export function GeneralTab({
     <div className="grid grid-cols-[3fr_2fr] gap-4 pt-4">
 
       {/* LEFT COLUMN */}
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4 justify-between">
 
         <SectionCard icon={Package} title="ข้อมูลพื้นฐาน" tint="primary">
           <div className="grid grid-cols-2 gap-3">
@@ -166,7 +167,7 @@ export function GeneralTab({
             {/* Row 4: หมวดหมู่ | หน่วยหลัก */}
             <Field label="หมวดหมู่">
               <Select value={String(form.category_id ?? 0)} onValueChange={v => setF('category_id', Number(v))}>
-                <SelectTrigger variant="elevated" className="h-10 w-full">
+                <SelectTrigger variant="elevated" className="w-full">
                   <SelectValue placeholder="— ไม่ระบุ —" />
                 </SelectTrigger>
                 <SelectContent>
@@ -231,7 +232,7 @@ export function GeneralTab({
           </div>
 
           {!isNew && (
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
+            <div className="grid grid-cols-2 gap-3 pt-3">
               <div className="rounded-lg bg-warm/50 border border-warm-foreground/25 px-3 py-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">เฉลี่ย / เดือน</span>
                 {monthlySales
@@ -239,9 +240,7 @@ export function GeneralTab({
                   : <span className="text-sm text-foreground-subtle">—</span>}
               </div>
               <div className="rounded-lg bg-warm/50 border border-warm-foreground/25 px-3 py-2 flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  {monthlySales ? formatThaiMonth(monthlySales.current_month.ym) : 'เดือนปัจจุบัน'}
-                </span>
+                <span className="text-sm text-muted-foreground">เดือนปัจจุบัน</span>
                 {monthlySales
                   ? <span className="text-base font-bold text-warm-foreground">{monthlySales.current_month.qty.toFixed(2)}</span>
                   : <span className="text-sm text-foreground-subtle">—</span>}
@@ -250,37 +249,10 @@ export function GeneralTab({
           )}
         </SectionCard>
 
-        <SectionCard icon={FileText} title="หมายเหตุและคำบรรยาย" tint="secondary">
-          <Field label="สรรพคุณ">
-            <Textarea
-              variant="elevated"
-              value={form.indication_note}
-              onChange={e => setF('indication_note', e.target.value)}
-              rows={3}
-            />
-          </Field>
-          <Field label="ผลข้างเคียง">
-            <Textarea
-              variant="elevated"
-              value={form.side_effect_note}
-              onChange={e => setF('side_effect_note', e.target.value)}
-              rows={2}
-            />
-          </Field>
-          <Field label="หมายเหตุ">
-            <Textarea
-              variant="elevated"
-              value={form.note}
-              onChange={e => setF('note', e.target.value)}
-              rows={2}
-            />
-          </Field>
-        </SectionCard>
-
       </div>
 
       {/* RIGHT COLUMN */}
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4 justify-between">
 
         <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
           <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
@@ -399,7 +371,7 @@ export function GeneralTab({
                     }))
                   }}
                 >
-                  <SelectTrigger variant="elevated" className="h-10 w-full">
+                  <SelectTrigger variant="elevated" className="w-full">
                     <SelectValue placeholder="— ไม่ระบุ —" />
                   </SelectTrigger>
                   <SelectContent>
@@ -493,25 +465,35 @@ export function GeneralTab({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="size-5" /> ยอดขายย้อนหลัง
-              <span className="font-normal text-muted-foreground text-base ml-1">· 6 เดือน</span>
+              <Badge variant="neutral-outline" className="ml-1">6 เดือน</Badge>
             </DialogTitle>
           </DialogHeader>
-          <DialogBody>
-            <div className="rounded-lg bg-muted/40 divide-y divide-border overflow-hidden">
-              {(monthlySales?.history ?? Array.from({ length: 6 }, (_, i) => ({ ym: `_${i}`, qty: 0 }))).map(h => (
-                <div key={h.ym} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <span className="text-muted-foreground">
-                    {monthlySales ? formatThaiMonth(h.ym) : '—'}
-                  </span>
-                  {monthlySales
-                    ? <span className="font-semibold text-foreground">{h.qty.toFixed(2)}</span>
-                    : <span className="text-foreground-subtle">—</span>}
-                </div>
-              ))}
-            </div>
+          <DialogBody className="p-0">
+            <Table containerClassName="max-h-[60vh] scrollbar-thin">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>เดือน</TableHead>
+                  <TableHead className="text-right">จำนวนขาย</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(monthlySales?.history ?? Array.from({ length: 6 }, (_, i) => ({ ym: `_${i}`, qty: 0 }))).map(h => (
+                  <TableRow key={h.ym} className="[&_td]:py-1.5 [&_td]:font-medium">
+                    <TableCell className="text-sm text-muted-foreground">
+                      {monthlySales ? formatThaiMonth(h.ym) : '—'}
+                    </TableCell>
+                    <TableCell className="text-right text-sm">
+                      {monthlySales
+                        ? <span className="font-semibold text-foreground">{h.qty.toFixed(2)}</span>
+                        : <span className="text-foreground-subtle">—</span>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </DialogBody>
           <DialogFooter>
-            <Button variant="primary-soft" size="xl" onClick={() => setSalesHistoryOpen(false)}>ปิด</Button>
+            <Button size="xl" onClick={() => setSalesHistoryOpen(false)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

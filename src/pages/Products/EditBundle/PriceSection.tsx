@@ -22,7 +22,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { useToast } from '@/components/ui/toast'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
-import { CircleDollarSign, History, RotateCcw, StickyNote, Info } from 'lucide-react'
+import { CircleDollarSign, History, StickyNote, Info } from 'lucide-react'
 import type { FullProduct } from '../EditProduct/shared'
 
 const Field = FormField
@@ -206,82 +206,70 @@ export function PriceHistoryDialog({ open, onOpenChange, productId, isNew, reloa
           <DialogTitle className="flex items-center gap-2">
             <History className="size-5" /> ประวัติการเปลี่ยนราคา
             <Badge variant="neutral-outline" className="ml-1">{history?.length ?? 0}</Badge>
-            <Button
-              size="lg"
-              variant="elevated"
-              className="h-9 px-2 ml-auto"
-              onClick={loadHistory}
-              disabled={historyLoading || isNew}
-              title="รีเฟรช"
-            >
-              <RotateCcw className="size-4" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
         <DialogBody className="p-0">
-          <div className="[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin max-h-[60vh]">
-            <Table>
-              <TableHeader>
+          <Table containerClassName="max-h-[60vh] scrollbar-thin">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-32">วันที่</TableHead>
+                <TableHead className="min-w-20">ชนิดราคา</TableHead>
+                <TableHead className="min-w-16">เดิม</TableHead>
+                <TableHead className="min-w-16">ใหม่</TableHead>
+                <TableHead className="min-w-16">หมายเหตุ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {historyLoading ? (
                 <TableRow>
-                  <TableHead className="min-w-32">วันที่</TableHead>
-                  <TableHead className="min-w-20">ชนิดราคา</TableHead>
-                  <TableHead className="min-w-16">เดิม</TableHead>
-                  <TableHead className="min-w-16">ใหม่</TableHead>
-                  <TableHead className="min-w-16">หมายเหตุ</TableHead>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-12">กำลังโหลด...</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {historyLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-12">กำลังโหลด...</TableCell>
-                  </TableRow>
-                ) : !history || history.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
-                      <History className="size-10 mx-auto mb-2 opacity-30" />
-                      {isNew ? 'บันทึกชุดสินค้าก่อนเพื่อดูประวัติราคา' : 'ยังไม่มีประวัติการเปลี่ยนราคา'}
+              ) : !history || history.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
+                    <History className="size-10 mx-auto mb-2 opacity-30" />
+                    {isNew ? 'บันทึกชุดสินค้าก่อนเพื่อดูประวัติราคา' : 'ยังไม่มีประวัติการเปลี่ยนราคา'}
+                  </TableCell>
+                </TableRow>
+              ) : history.map(h => {
+                const meta = PRICE_TYPE_META[h.price_type] ?? { label: h.price_type, variant: 'success' as const }
+                const up = h.new_price > h.old_price
+                return (
+                  <TableRow key={h.id} className="[&_td]:py-1.5 [&_td]:font-medium">
+                    <TableCell className="text-sm">{formatDateTime(h.created_at)}</TableCell>
+                    <TableCell>
+                      <Badge variant={meta.variant} className="rounded-md">{meta.label}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatCurrency(h.old_price)}
+                    </TableCell>
+                    <TableCell className={`text-sm font-semibold ${up ? 'text-success' : 'text-destructive'}`}>
+                      {formatCurrency(h.new_price)}
+                    </TableCell>
+                    <TableCell>
+                      {h.note ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="icon-sm" variant="elevated" title="ดูหมายเหตุ">
+                              <StickyNote className="size-3.5" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent side="bottom" align="end" className="w-60 max-w-[90vw]">
+                            <div className="text-sm whitespace-pre-wrap break-words">{h.note}</div>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                   </TableRow>
-                ) : history.map(h => {
-                  const meta = PRICE_TYPE_META[h.price_type] ?? { label: h.price_type, variant: 'success' as const }
-                  const up = h.new_price > h.old_price
-                  return (
-                    <TableRow key={h.id} className="[&_td]:py-2.5 [&_td]:font-medium">
-                      <TableCell className="text-sm">{formatDateTime(h.created_at)}</TableCell>
-                      <TableCell>
-                        <Badge variant={meta.variant} className="rounded-md">{meta.label}</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatCurrency(h.old_price)}
-                      </TableCell>
-                      <TableCell className={`text-sm font-semibold ${up ? 'text-success' : 'text-destructive'}`}>
-                        {formatCurrency(h.new_price)}
-                      </TableCell>
-                      <TableCell>
-                        {h.note ? (
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button size="icon-lg" variant="warm" title="ดูหมายเหตุ">
-                                <StickyNote />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent side="bottom" align="end" className="w-60 max-w-[90vw]">
-                              <div className="text-sm whitespace-pre-wrap break-words">{h.note}</div>
-                            </PopoverContent>
-                          </Popover>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                )
+              })}
+            </TableBody>
+          </Table>
         </DialogBody>
         <DialogFooter>
-          <Button variant="primary-soft" size="xl" onClick={() => onOpenChange(false)}>ปิด</Button>
+          <Button size="xl" onClick={() => onOpenChange(false)}>ปิด</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

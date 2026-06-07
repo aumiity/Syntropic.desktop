@@ -239,7 +239,7 @@ export function LabelsTab({
               <div className="grid grid-cols-2 gap-4">
                 <Field label="ปริมาณยา">
                   <Select value={String(labelForm.dosage_id ?? 0)} onValueChange={v => setLF('dosage_id', v)}>
-                    <SelectTrigger variant="elevated" className="h-10 w-full">
+                    <SelectTrigger variant="elevated" className="w-full">
                       <SelectValue placeholder="— เลือก —" />
                     </SelectTrigger>
                     <SelectContent>
@@ -250,7 +250,7 @@ export function LabelsTab({
                 </Field>
                 <Field label="ความถี่">
                   <Select value={String(labelForm.frequency_id ?? 0)} onValueChange={v => setLF('frequency_id', v)}>
-                    <SelectTrigger variant="elevated" className="h-10 w-full">
+                    <SelectTrigger variant="elevated" className="w-full">
                       <SelectValue placeholder="— เลือก —" />
                     </SelectTrigger>
                     <SelectContent>
@@ -261,7 +261,7 @@ export function LabelsTab({
                 </Field>
                 <Field label="เวลาเทียบมื้ออาหาร">
                   <Select value={String(labelForm.timing_id ?? 0)} onValueChange={v => setLF('timing_id', v)}>
-                    <SelectTrigger variant="elevated" className="h-10 w-full">
+                    <SelectTrigger variant="elevated" className="w-full">
                       <SelectValue placeholder="— เลือก —" />
                     </SelectTrigger>
                     <SelectContent>
@@ -272,7 +272,7 @@ export function LabelsTab({
                 </Field>
                 <Field label="เวลาที่รับประทาน">
                   <Select value={String(labelForm.label_time_id ?? 0)} onValueChange={v => setLF('label_time_id', v)}>
-                    <SelectTrigger variant="elevated" className="h-10 w-full">
+                    <SelectTrigger variant="elevated" className="w-full">
                       <SelectValue placeholder="— เลือก —" />
                     </SelectTrigger>
                     <SelectContent>
@@ -284,7 +284,7 @@ export function LabelsTab({
               </div>
               <Field label="คำแนะนำ">
                 <Select value={String(labelForm.advice_id ?? 0)} onValueChange={v => setLF('advice_id', v)}>
-                  <SelectTrigger variant="elevated" className="h-10 w-full">
+                  <SelectTrigger variant="elevated" className="w-full">
                     <SelectValue placeholder="— เลือก —" />
                   </SelectTrigger>
                   <SelectContent>

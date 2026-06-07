@@ -312,7 +312,7 @@ export default function PurchaseIntake() {
               value={supplierId == null ? '' : String(supplierId)}
               onValueChange={(v) => setSupplierId(Number(v))}
             >
-              <SelectTrigger className="h-10 w-full rounded-lg bg-input text-sm">
+              <SelectTrigger className="h-9 w-full rounded-lg bg-input text-sm">
                 <SelectValue placeholder="เลือกผู้ขาย" />
               </SelectTrigger>
               <SelectContent>

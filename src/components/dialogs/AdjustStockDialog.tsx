@@ -55,6 +55,9 @@ export function AdjustStockDialog({
   const [productLots, setProductLots] = useState<ProductLot[]>([])
   const [lotsLoading, setLotsLoading] = useState(false)
   const [lotQuery, setLotQuery] = useState('')
+  // Explicitly-picked existing lot (merge target). null = create a new lot.
+  // Chosen by clicking a row — NOT derived from the typed lot number anymore.
+  const [selectedLotId, setSelectedLotId] = useState<number | null>(null)
   const [newLotExpiry, setNewLotExpiry] = useState('')
   const [costInput, setCostInput] = useState('0')
   const [lotSort, setLotSort] = useState<{ by: 'lot_number' | 'expiry_date' | 'qty_on_hand'; dir: 'asc' | 'desc' }>({ by: 'expiry_date', dir: 'asc' })
@@ -65,6 +68,7 @@ export function AdjustStockDialog({
     setAdjustTarget(String(target.stock_qty))
     setAdjustNote('')
     setLotQuery('')
+    setSelectedLotId(null)
     setNewLotExpiry('')
     // Prefill cost with the last paid cost (the new-lot default). Switches to the
     // matched lot's cost once the operator picks an existing lot (effect below).
@@ -130,31 +134,29 @@ export function AdjustStockDialog({
       })
   }, [productLots])
 
-  // The lot-number box is the single source of truth for the increase target:
-  //   - exact match to an existing lot → merge into it (existing mode)
-  //   - anything else / blank          → create a new lot (new mode)
-  // Selection is DERIVED from the text, never stored, so editing the text instantly
-  // drops a stale selection — no "stuck" existing lot.
+  // Increase target is picked explicitly:
+  //   - a row clicked in the table → merge into that lot (existing mode)
+  //   - nothing selected           → create a new lot (new mode), using the
+  //                                  typed lot number / expiry below
+  // The merge target is the clicked lot id, never derived from the typed text —
+  // so the operator chooses the lot themselves.
   const matchedLot = useMemo(() => {
-    const q = lotQuery.trim().toLowerCase()
-    if (!q) return null
-    return mergeCandidates.find(l => l.lot_number.trim().toLowerCase() === q) ?? null
-  }, [lotQuery, mergeCandidates])
+    if (selectedLotId === null) return null
+    return mergeCandidates.find(l => l.id === selectedLotId) ?? null
+  }, [selectedLotId, mergeCandidates])
 
-  // Lots shown in the picker table, filtered by the typed lot number then sorted
-  // by the clicked column header. Missing expiry dates sort to the end (far-future).
-  const filteredLots = useMemo(() => {
-    const q = lotQuery.trim().toLowerCase()
-    const base = q ? mergeCandidates.filter(l => l.lot_number.toLowerCase().includes(q)) : mergeCandidates
+  // Lots shown in the picker table — ALWAYS the full list, just sorted by the
+  // clicked column header. Missing expiry dates sort to the end (far-future).
+  const sortedLots = useMemo(() => {
     const dir = lotSort.dir === 'asc' ? 1 : -1
-    return [...base].sort((a, b) => {
+    return [...mergeCandidates].sort((a, b) => {
       if (lotSort.by === 'lot_number') return a.lot_number.localeCompare(b.lot_number) * dir
       if (lotSort.by === 'qty_on_hand') return (a.qty_on_hand - b.qty_on_hand) * dir
       const ae = a.expiry_date || '9999-99-99'
       const be = b.expiry_date || '9999-99-99'
       return ae.localeCompare(be) * dir
     })
-  }, [lotQuery, mergeCandidates, lotSort])
+  }, [mergeCandidates, lotSort])
 
   const toggleLotSort = (field: 'lot_number' | 'expiry_date' | 'qty_on_hand') =>
     setLotSort(s => s.by === field
@@ -278,7 +280,7 @@ export function AdjustStockDialog({
         size="xl"
         divided
         onClose={onClose}
-        className="h-[770px] grid-rows-[auto_1fr_auto]"
+        className="h-[774px] grid-rows-[auto_1fr_auto]"
       >
         <DialogHeader>
           <DialogTitle className="text-xl">ปรับสต็อก</DialogTitle>
@@ -369,9 +371,9 @@ export function AdjustStockDialog({
               </div>
             )}
 
-            {/* INCREASE — cost first, then the lot picker. The lot-number box is
-                the single source of truth: an exact match merges into that lot,
-                anything else creates a new lot. */}
+            {/* INCREASE — cost first, then the lot picker. Click a row to merge
+                into that lot; with nothing selected, the lot-number/expiry fields
+                below define a brand-new lot. */}
             {adjustDelta !== null && adjustDelta > 0 && (
               <div className="space-y-3">
                 {/* Cost + resulting average — no frame, kept compact */}
@@ -415,13 +417,19 @@ export function AdjustStockDialog({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-sm font-medium mb-1 text-muted-foreground">เลขที่ล็อต</label>
-                      <Input
-                        variant="elevated"
-                        value={lotQuery}
-                        onChange={e => setLotQuery(e.target.value)}
-                        placeholder="เว้นว่างเพื่อสร้างเลขอัตโนมัติ"
-                        className="h-10 w-full rounded-lg text-sm"
-                      />
+                      {matchedLot ? (
+                        <div className="h-10 px-3 flex items-center bg-muted border border-border rounded-lg text-sm text-muted-foreground">
+                          {matchedLot.lot_number}
+                        </div>
+                      ) : (
+                        <Input
+                          variant="elevated"
+                          value={lotQuery}
+                          onChange={e => setLotQuery(e.target.value)}
+                          placeholder="เว้นว่างเพื่อสร้างเลขอัตโนมัติ"
+                          className="h-10 w-full rounded-lg text-sm"
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1 text-muted-foreground">วันหมดอายุ</label>
@@ -445,13 +453,13 @@ export function AdjustStockDialog({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredLots.map(l => {
-                        const selected = matchedLot?.id === l.id
+                      {sortedLots.map(l => {
+                        const selected = selectedLotId === l.id
                         const depleted = l.is_closed || l.qty_on_hand <= 0
                         return (
                           <TableRow
                             key={l.id}
-                            onClick={() => setLotQuery(l.lot_number)}
+                            onClick={() => setSelectedLotId(prev => prev === l.id ? null : l.id)}
                             data-state={selected ? 'selected' : undefined}
                             className="cursor-pointer"
                           >
@@ -471,10 +479,10 @@ export function AdjustStockDialog({
                           </TableRow>
                         )
                       })}
-                      {filteredLots.length === 0 && (
+                      {sortedLots.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
-                            ไม่พบล็อตที่ตรงกับ "{lotQuery.trim()}" — จะถูกสร้างเป็นล็อตใหม่
+                            ยังไม่มีล็อต — กรอกเลขที่ล็อตด้านบนเพื่อสร้างล็อตใหม่
                           </TableCell>
                         </TableRow>
                       )}
