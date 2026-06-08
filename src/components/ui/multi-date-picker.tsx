@@ -169,7 +169,7 @@ export function MultiDatePicker({
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      'relative flex-1 h-8 px-2 text-xs font-semibold rounded-lg',
+                      'relative flex-1 h-8 px-2 text-sm font-semibold rounded-lg',
                       'hover:bg-transparent',
                       active
                         ? 'text-primary-foreground hover:text-primary-foreground'
