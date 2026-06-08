@@ -176,12 +176,12 @@ export function MultiDatePicker({
           type="button"
           variant="ghost"
           className={cn(
-            'h-9 px-3 rounded-none min-w-[220px] justify-center gap-2 font-normal text-sm',
+            'h-9 px-3 rounded-none min-w-[220px] justify-center font-normal text-sm',
             'hover:bg-primary-soft hover:text-primary',
             hasValue ? 'text-foreground' : 'text-foreground-subtle',
           )}
         >
-          <CalendarDays className="size-4 text-foreground-subtle shrink-0" />
+          <CalendarDays className="size-4 text-foreground-subtle shrink-0 mr-2" />
           <span className="truncate">{label}</span>
         </Button>
       </PopoverTrigger>
@@ -457,7 +457,7 @@ function CustomPanel({
   return (
     <div className="flex">
       {/* Preset sidebar */}
-      <div className="flex flex-col p-3 border-r border-border bg-muted/20 min-w-[140px]">
+      <div className="flex flex-col p-3 border-r border-border bg-muted/20 min-w-[140px] min-h-[338px]">
         <span className="px-2 pb-1.5 text-[0.7rem] font-semibold text-muted-foreground uppercase tracking-wide">
           ช่วงเวลา
         </span>
