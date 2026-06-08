@@ -1,8 +1,16 @@
 # Syntropic Desktop - Build Progress
 
 ## Status: ✅ Runnable — **User Login system shipped end-to-end** (Session 2026-06-05): real login (เลือกชื่อ + scrypt password + lockout), main-side session + per-role IPC enforcement (`requireAdmin`), manager-override (inline credential), self-service recovery-code reset, Setup Phase 0 admin-password step. **NOT click-tested yet (Hunter cannot run Electron).** Deferred/blocked: vendor reset + License/Activation layer A (License infra not started). Earlier: **Expenses (bookkeeping) system shipped** (Session 2026-06-03). Shop expenses entry/reporting: new /reports/expenses tab (between ซื้อ and รายงาน อย.), `expense_categories` (9 seeded: rent/utilities/payroll/etc.) + `expenses` tables (running EX-YYYYMMDD-NNNN code), admin entry/edit/delete (hard delete), staff read-only + 7-day clamp, Finance integration (now 6 KPIs: เรื่องเบ็ด + ค่าใช้จ่าย + กำไรสุทธิ + อื่น 3), all tsc-clean both configs + Priest PASS. **NOT click-tested yet.** Earlier: Receipt/tax-invoice printing + full Quotation system + Quotation→Sale convert (Session 2026-05-31). Three features landed that session: (1) **Receipt/cash-slip + tax-invoice printing** (80mm slip + abbreviated ม.86/6 + full A4 ม.86/4 + `tax_invoices` table); (2) **Quotation system (เฟส 1)** (QT-YYYYMMDD-NNNN, draft-only edit/delete, A4 print, sidebar under การขาย); (3) **Quotation → Sale convert (เฟส 2)** (state machine accepted→converting→converted, atomic claim, loads to POS cart, reuses saveBill). Earlier baseline: Negative-stock sales + reconciliation (Session 2026-05-21b). POS cart alert system + bundle expansion + EditBundle parity + input ELEVATED default flip also shipped in May. **Negative-stock + POS alerts + bundle expand + Bundle min-2 + ขย.9 + Bundle base + Manage/Reports Phase 1–4 + h-10 sweep + Receipt/tax-invoice + Quotation (both phases) all NOT click-tested yet.**
-## Last updated: 2026-06-05
+## Last updated: 2026-06-09
 ## Run: `npm run electron:dev`
+
+## ✅ DONE 2026-06-09: **POS Return + Adjust modals unified to one cart-table UX** (commit `2c8457e`) — UI-only, tsc-clean
+- Adjust-stock modal (`showAdjust`) rebuilt to mirror the return modal: single column → full-width search (shared `ProductSearchDialog`, per-unit rows) → cart `<Table>` → footer total → reason band. Old 2-column layout deleted.
+- Adjust now keeps the chosen/scanned unit (not forced base) + FEFO lot split resolved internally (`recomputeAdjustAllocations`, 1 row/item, multi-lot in tooltip, exact cost, over-stock caught on add/edit). `AdjustLineItem` reshaped; confirm payload flatMaps allocations per-lot. `adjustLotBatch` IPC unchanged.
+- Return table: dropped `ราคา/หน่วย` column. Search-bar focus-ring clip fixed (`pt-1` vs DialogBody overflow-hidden). unit-picker height trim; ProductSearchDialog 1000→800; lot-picker polish.
+- Detail/SSOT: [[project_pos_redesign]]. **NOT click-tested yet.**
+
+## ✅ DONE 2026-06-08: **MultiDatePicker = standard date picker** (commits `65c9907`/`5db05ee`) — replaced PeriodPicker/DateRangePicker across Dashboard, EditProduct/EditBundle HistoryTab, KhorYor9, Manage Sales/Purchases/Expenses (full mode); Manage persists `dateMode`+from/to (day/month/year rolling). Detail: [[project_multi_date_picker]].
 
 ## ✅ DONE 2026-06-05: **User Login system — end-to-end (Phase 0+1+2 + Phase 3 + Phase 2.5 recovery-code)** — wizard→blacksmith→priest→hunter pipeline, tsc-clean both configs, Priest PASS. **NOT click-tested yet (Hunter cannot run Electron — see queue).**
 ### Why

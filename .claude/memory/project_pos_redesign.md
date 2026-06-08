@@ -42,14 +42,22 @@ metadata:
 - **Right rail DONE:** quick-action 5 ปุ่ม `variant="outline"`+ad-hoc → **`variant="elevated"`** (ได้ shadow-sm + hover/active จริง); ไอคอนสีตามบทบาท (เปิดลิ้นชัก=primary, พิมพ์ฉลาก/ตัดสต็อก=info-soft-foreground, รับคืน=warm-foreground, ยกเลิกบิล=destructive); เอา `border border-border` ออกจากกล่องยอดสุทธิ (bg-primary) + ปุ่มชำระเงิน (bg-accent)
 - **Cart row inline buttons DONE:** หน่วย/จำนวน/ราคา → **`variant="primary-soft"`**, ส่วนลด(มีค่า+0) → **`variant="destructive2"`** (เดิม outline+ad-hoc soft-bg ที่ hover ไม่เปลี่ยน → ตอนนี้ hover ถูกต้อง); ล้าง double-bg ปุ่มส่วนลด 0. **ค้าง: ปุ่มส่วนลด 0 ยังแดงอ่อน** — เจ้าของอาจอยากให้จาง/นิ่งกว่านี้ตอนยังไม่มีส่วนลด (ถามได้)
 
+## Done 2026-06-09 (commit `2c8457e`) — Return + Adjust modals = unified cart-table
+
+- **Adjust-stock modal (`showAdjust`) rebuilt to MIRROR the return modal**: single column → full-width SearchInput (opens shared `ProductSearchDialog` with per-unit rows) → cart-style `<Table>` → footer total bar → reason band. Old 2-column (search-panel | list-panel) layout deleted.
+- **Adjust logic — `recomputeAdjustAllocations` (module fn in POS/index.tsx):** 1 visible row per product+unit; FEFO lot split resolved INTERNALLY (allocations[]) so cost is exact + over-stock caught at add/edit; multi-lot split shown read-only in a tooltip. `AdjustLineItem` reshaped (product + unit_id/qty_per_base + base_qty + allocations[]); confirm payload `flatMap`s allocations → per-lot `{product_id, lot_id, base_qty}`. `adjustLotBatch` IPC unchanged.
+- **Unit rule (owner decision):** adjust unit = the SCANNED/SELECTED unit (per-unit search rows like main POS), **not forced base**. No in-table unit picker. Lot stays FEFO-auto (owner: "แทบไม่เคยดูล็อต ระบบกำหนดให้อยู่แล้ว").
+- **Return table:** dropped the `ราคา/หน่วย` column (only `รวม`/line_total matters); colSpan 8→7.
+- **PITFALL fixed:** search-bar wrapper under the divider used `pt-0` → input's 1px focus `ring` got clipped by `DialogBody overflow-hidden` top edge. Use **`pt-1`** (both return + adjust) — ring shows, still tight. (Don't go pt-0 against an overflow-hidden edge.)
+- unit-picker-dialog: trimmed button height (px-4 py-2.5, gap-1.5, title text-xl). ProductSearchDialog default width 1000→800. lot-picker label/badge polish.
+
 ## Pending — POS sections NOT touched
 
-- (Right rail + cart inline buttons = DONE ด้านบนแล้ว)
+- (Right rail + cart inline buttons + Return + Adjust modals = DONE ด้านบนแล้ว)
 - Payment dialog (`showPayment`) — large, complex, has its own muted-bg cards
 - Quick-add customer dialog (`showQuickAdd`) — simple but uses bare Inputs/Labels (no elevated, no convention polish)
-- Return dialog (`showReturn`), adjust-stock dialog (`showAdjust`) — both spreadsheet-y
-- Product search dialog (`searchOpen`, 1000×800) — palette-style like customer search; may need same divider/elevated polish pass
-- Unit picker / qty modal / price modal / discount modal — various small modals
+- Product search dialog (`searchOpen`, now 800×800) — palette-style like customer search; may need same divider/elevated polish pass
+- Qty modal / price modal / discount modal — various small modals
 
 ## How to apply
 
