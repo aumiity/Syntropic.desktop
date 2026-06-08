@@ -158,7 +158,7 @@ export function MultiDatePicker({
   const hasValue = Boolean(from && to)
 
   return (
-    <div className={cn('inline-flex items-center bg-muted rounded-lg h-9 overflow-hidden', className)}>
+    <div className={cn('inline-flex items-center bg-card border border-border shadow-sm rounded-lg h-9 overflow-hidden', className)}>
       <Button
         type="button"
         variant="ghost"
@@ -169,8 +169,6 @@ export function MultiDatePicker({
       >
         <ChevronLeft className="size-4" />
       </Button>
-
-      <div className="w-px h-5 bg-border shrink-0" />
 
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -241,8 +239,6 @@ export function MultiDatePicker({
         {mode === 'custom' && <CustomPanel from={from} to={to} onPick={commit} />}
       </PopoverContent>
     </Popover>
-
-      <div className="w-px h-5 bg-border shrink-0" />
 
       <Button
         type="button"
