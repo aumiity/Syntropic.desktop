@@ -111,6 +111,37 @@ export function MultiDatePicker({
   const [open, setOpen] = React.useState(false)
   const pillId = React.useId()
 
+  const handleStep = (dir: -1 | 1) => {
+    const anchor = dayjs(from)
+    let f: string, t: string
+    switch (mode) {
+      case 'day': {
+        const d = anchor.add(dir, 'day')
+        f = t = d.format('YYYY-MM-DD')
+        break
+      }
+      case 'month': {
+        const d = anchor.add(dir, 'month')
+        f = d.startOf('month').format('YYYY-MM-DD')
+        t = d.endOf('month').format('YYYY-MM-DD')
+        break
+      }
+      case 'year': {
+        const d = anchor.add(dir, 'year')
+        f = d.startOf('year').format('YYYY-MM-DD')
+        t = d.endOf('year').format('YYYY-MM-DD')
+        break
+      }
+      case 'custom': {
+        const days = dayjs(to).diff(anchor, 'day') + 1
+        f = anchor.add(dir * days, 'day').format('YYYY-MM-DD')
+        t = dayjs(to).add(dir * days, 'day').format('YYYY-MM-DD')
+        break
+      }
+    }
+    onChange(mode, f, t)
+  }
+
   const switchMode = (next: MultiDateMode) => {
     if (next === mode) return
     const r = rangeForMultiMode(next, from)
@@ -127,17 +158,29 @@ export function MultiDatePicker({
   const hasValue = Boolean(from && to)
 
   return (
+    <div className={cn('inline-flex items-center bg-muted rounded-lg h-9 overflow-hidden', className)}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-9 rounded-none shrink-0 text-muted-foreground hover:bg-primary-soft hover:text-primary"
+        onClick={() => handleStep(-1)}
+        title="ก่อนหน้า"
+      >
+        <ChevronLeft className="size-4" />
+      </Button>
+
+      <div className="w-px h-5 bg-border shrink-0" />
+
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           className={cn(
-            'h-9 px-3 justify-start gap-2 font-normal text-sm min-w-[200px]',
-            'bg-card border border-border shadow-sm',
-            'hover:bg-muted/60 hover:shadow-sm',
+            'h-9 px-3 rounded-none min-w-[160px] justify-start gap-2 font-normal text-sm',
+            'hover:bg-primary-soft hover:text-primary',
             hasValue ? 'text-foreground' : 'text-foreground-subtle',
-            className,
           )}
         >
           <span className="flex-1 truncate text-left">{label}</span>
@@ -197,6 +240,20 @@ export function MultiDatePicker({
         {mode === 'custom' && <CustomPanel from={from} to={to} onPick={commit} />}
       </PopoverContent>
     </Popover>
+
+      <div className="w-px h-5 bg-border shrink-0" />
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-9 rounded-none shrink-0 text-muted-foreground hover:bg-primary-soft hover:text-primary"
+        onClick={() => handleStep(1)}
+        title="ถัดไป"
+      >
+        <ChevronRight className="size-4" />
+      </Button>
+    </div>
   )
 }
 
