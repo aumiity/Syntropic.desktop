@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "plans/done/User_Login_System.md",
+                "file": "สรุป-01-ภาพรวมโปรเจค.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "User_Login_System"
+              "title": "สรุป-01-ภาพรวมโปรเจค"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "plans/done/User_Login_System.md",
+                "file": "สรุป-01-ภาพรวมโปรเจค.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for User_Login_System"
+              "title": "Backlinks for สรุป-01-ภาพรวมโปรเจค"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "plans/done/User_Login_System.md",
+                "file": "สรุป-01-ภาพรวมโปรเจค.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from User_Login_System"
+              "title": "Outgoing links from สรุป-01-ภาพรวมโปรเจค"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "plans/done/User_Login_System.md",
+                "file": "สรุป-01-ภาพรวมโปรเจค.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of User_Login_System"
+              "title": "Outline of สรุป-01-ภาพรวมโปรเจค"
             }
           }
         ]
@@ -183,8 +183,18 @@
       "bases:Create new base": false
     }
   },
-  "active": "5e4d61bc2db7568a",
+  "active": "af900e082f3015e1",
   "lastOpenFiles": [
+    "สรุป-00-สารบัญ.md",
+    "สรุป-01-ภาพรวมโปรเจค.md",
+    "สรุป-06-สารบัญ-Memory.md",
+    "สรุป-05-กฎเหล็กสถาปัตยกรรม.md",
+    "สรุป-04-งานที่ค้างอยู่.md",
+    "สรุป-03-ระบบที่ทำเสร็จแล้ว.md",
+    "สรุป-02-สถานะปัจจุบัน.md",
+    "audits/done/label-setting-impl-audit-request.md",
+    "plans/done/User_Login_System.md",
+    "_ping.md",
     "plans/ui-redesign-pass.md",
     "plans/done/label-restructure.md",
     "claude/business-logic.md",
