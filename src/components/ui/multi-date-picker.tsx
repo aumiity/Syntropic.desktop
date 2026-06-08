@@ -387,6 +387,7 @@ const CUSTOM_PRESETS: { label: string; range: () => { from: string; to: string }
   { label: 'เดือนนี้',       range: () => { const t = dayjs(); return { from: t.startOf('month').format('YYYY-MM-DD'), to: t.endOf('month').format('YYYY-MM-DD') } } },
   { label: 'เดือนที่แล้ว',   range: () => { const t = dayjs().subtract(1, 'month'); return { from: t.startOf('month').format('YYYY-MM-DD'), to: t.endOf('month').format('YYYY-MM-DD') } } },
   { label: 'ปีนี้',           range: () => { const t = dayjs(); return { from: t.startOf('year').format('YYYY-MM-DD'), to: t.endOf('year').format('YYYY-MM-DD') } } },
+  { label: 'ปีที่แล้ว',      range: () => { const t = dayjs().subtract(1, 'year'); return { from: t.startOf('year').format('YYYY-MM-DD'), to: t.endOf('year').format('YYYY-MM-DD') } } },
 ]
 
 function CustomPanel({
