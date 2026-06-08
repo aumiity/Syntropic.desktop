@@ -9,7 +9,9 @@ import CUSTOMERS from './seed-data/customers';
 export function seedDatabase(db) {
     // Idempotent staff test user — added to every install so audit trail has a non-admin actor
     // until proper login lands. Keyed by unique email.
-    db.prepare("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)").run('Staff Test', 'staff@syntropic.local', 'staff', 'staff');
+    // username MUST be set: a UNIQUE index on users(username) exists after the
+    // migration, so two seed rows with the default '' would collide.
+    db.prepare("INSERT OR IGNORE INTO users (name, first_name, username, email, password, role) VALUES (?, ?, ?, ?, ?, ?)").run('Staff Test', 'Staff Test', 'STAFF', 'staff@syntropic.local', 'staff', 'staff');
     // Label lookups + drug generic names — sourced from docs/*.json via
     // scripts/gen-seed-data.mjs (see electron/db/seed-data/*.ts). Columns are
     // already mapped to our schema by the generator; advices/dosages/times have
@@ -43,9 +45,12 @@ export function seedDatabase(db) {
     if (userCount > 0)
         return;
     // Default admin user
-    db.prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)").run('Admin', 'admin@syntropic.local', 'admin', 'admin');
-    // Default settings
-    db.prepare("INSERT INTO settings (shop_name, shop_address, shop_phone) VALUES (?, ?, ?)").run('ร้านยา Syntropic', '', '');
+    db.prepare("INSERT INTO users (name, first_name, username, email, password, role) VALUES (?, ?, ?, ?, ?, ?)").run('ผู้ดูแลระบบ', 'ผู้ดูแลระบบ', 'ADMIN', 'admin@syntropic.local', 'admin', 'admin');
+    // Default settings — blank shop identity on purpose: setup_completed defaults
+    // to 0, so the first-run setup wizard fires and forces the operator to enter a
+    // real shop name/address/phone (a pre-filled placeholder name would let them
+    // click straight past the required-field validation).
+    db.prepare("INSERT INTO settings (shop_name, shop_address, shop_phone) VALUES (?, ?, ?)").run('', '', '');
     // Product categories
     var categories = [
         ['DRUG', 'ยา', 1],
@@ -59,6 +64,14 @@ export function seedDatabase(db) {
     for (var _i = 0, categories_1 = categories; _i < categories_1.length; _i++) {
         var _a = categories_1[_i], code = _a[0], name_1 = _a[1], sort = _a[2];
         insCategory.run(code, name_1, sort);
+    }
+    // Expense categories — seeded once (only when the table is empty) so an
+    // operator who renames/removes them doesn't get them re-added on restart.
+    var expCount = db.prepare("SELECT COUNT(*) AS c FROM expense_categories").get();
+    if (expCount.c === 0) {
+        var insExp_1 = db.prepare("INSERT INTO expense_categories (name, sort_order) VALUES (?, ?)");
+        ['ค่าเช่า', 'ค่าน้ำ', 'ค่าไฟ', 'เงินเดือน/ค่าแรง', 'ค่าการตลาด', 'ค่าขนส่ง', 'ค่าอุปกรณ์', 'ภาษี/ค่าธรรมเนียม', 'อื่นๆ']
+            .forEach(function (name, i) { return insExp_1.run(name, i + 1); });
     }
     // Item units — superset of what's referenced by seeded products (32 names from
     // the Hygeia Item export) plus a handful of common ones we want available

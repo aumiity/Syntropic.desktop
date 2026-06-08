@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2 } from 'lucide-react'
+import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 // Bundled fonts + the @font-face/esc helpers are shared with the receipt/tax
 // print paths — see src/lib/print/fonts.ts for why base64 embedding is needed.
@@ -56,19 +57,64 @@ function sizeDefaults(_w: number, h: number) {
 // in-flight text locally so the user can clear / type freely; only commit a
 // real number to parent state. On blur, snap back to the parent's last good
 // value if the buffer is empty/invalid (keeps state consistent on focus loss).
+// Press-and-hold auto-repeat. `bind(fn)` returns pointer handlers for a button:
+// one immediate call, then repeat every 70ms after a 350ms hold, until pointer
+// up / leave / cancel / unmount. Shared by the NumInput steppers AND the
+// per-section position arrows so both feel identical.
+function useHoldRepeat() {
+  const ref = React.useRef<{ t?: ReturnType<typeof setTimeout>; i?: ReturnType<typeof setInterval> }>({})
+  const stop = React.useCallback(() => {
+    if (ref.current.t) clearTimeout(ref.current.t)
+    if (ref.current.i) clearInterval(ref.current.i)
+    ref.current = {}
+  }, [])
+  React.useEffect(() => stop, [stop])
+  return React.useCallback((fn: () => void) => ({
+    onPointerDown: () => { stop(); fn(); ref.current.t = setTimeout(() => { ref.current.i = setInterval(fn, 70) }, 350) },
+    onPointerUp: stop,
+    onPointerLeave: stop,
+    onPointerCancel: stop,
+  }), [stop])
+}
+
 function NumInput({
-  value, onChange, ...rest
-}: { value: number; onChange: (n: number) => void } & Omit<React.ComponentProps<typeof Input>, 'value' | 'onChange' | 'type'>) {
+  value, onChange, stepper, className, ...rest
+}: {
+  value: number
+  onChange: (n: number) => void
+  // `stepper` overlays chevron ▲▼ buttons inside the field for fine adjustment;
+  // they step by the `step` prop (default 1), clamped to min/max.
+  stepper?: boolean
+} & Omit<React.ComponentProps<typeof Input>, 'value' | 'onChange' | 'type'>) {
   const [text, setText] = React.useState(String(value))
   const [focused, setFocused] = React.useState(false)
   React.useEffect(() => {
     if (!focused) setText(String(value))
   }, [value, focused])
-  return (
+
+  const stepN = rest.step != null ? Number(rest.step) : 1
+  const minN  = rest.min  != null ? Number(rest.min)  : -Infinity
+  const maxN  = rest.max  != null ? Number(rest.max)  :  Infinity
+  // Latest value in a ref so the press-and-hold interval (below) reads the
+  // current value each tick instead of the stale one captured when it started.
+  const valueRef = React.useRef(value)
+  valueRef.current = value
+  // Step by ±step, clamped, rounded to kill float drift (0.1 steps → 1.2000001).
+  const bump = (dir: 1 | -1) => {
+    const base = Number.isFinite(valueRef.current) ? valueRef.current : 0
+    const n = Math.min(maxN, Math.max(minN, Math.round((base + dir * stepN) * 1000) / 1000))
+    setText(String(n))
+    if (n !== valueRef.current) onChange(n)
+  }
+
+  const bindHold = useHoldRepeat()
+
+  const input = (
     <Input
       type="number"
       variant={rest.variant ?? 'elevated'}
       {...rest}
+      className={stepper ? cn('w-full pr-6', className) : className}
       value={text}
       onFocus={e => { setFocused(true); rest.onFocus?.(e) }}
       onChange={e => {
@@ -87,6 +133,28 @@ function NumInput({
       }}
     />
   )
+
+  if (!stepper) return input
+
+  return (
+    <div className={cn('relative', className)}>
+      {input}
+      <div className="absolute inset-y-0 right-0.5 flex flex-col justify-center">
+        <Button type="button" variant="ghost" size="icon-xs" tabIndex={-1} disabled={rest.disabled}
+          className="h-1/2 w-5 min-h-0 rounded-sm px-0 text-muted-foreground hover:text-foreground"
+          {...bindHold(() => bump(1))}
+          title="เพิ่ม (กดค้างได้)">
+          <ChevronUp />
+        </Button>
+        <Button type="button" variant="ghost" size="icon-xs" tabIndex={-1} disabled={rest.disabled}
+          className="h-1/2 w-5 min-h-0 rounded-sm px-0 text-muted-foreground hover:text-foreground"
+          {...bindHold(() => bump(-1))}
+          title="ลด (กดค้างได้)">
+          <ChevronDown />
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 interface PrinterInfo { name: string; displayName: string; isDefault: boolean }
@@ -98,11 +166,21 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
   const [printing, setPrinting] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
-  const [subTab, setSubTab] = useState<'paper' | 'sections' | 'spacing'>('paper')
+  const [subTab, setSubTab] = useState<'paper' | 'sections'>('paper')
+  const [customSizeMode, setCustomSizeMode] = useState(false)
   // Real shop info for the preview header (ชื่อร้าน / ที่อยู่ / เบอร์ / LINE ID).
   const [shop, setShop] = useState<any>(null)
-  // Pending "apply size defaults" confirmation ({w,h} of the target size).
-  const [sizeConfirm, setSizeConfirm] = useState<{ w: number; h: number } | null>(null)
+  // Pending confirmation before applying size defaults. `mode` distinguishes the
+  // two triggers so the dialog wording + the size-commit behaviour differ:
+  //  - 'size'  = user picked a new preset size; the size is NOT applied until
+  //              confirmed (cancel leaves the current size, dropdown snaps back).
+  //  - 'reset' = user pressed "รีเซ็ตการตั้งค่า"; size stays, only defaults reset.
+  const [sizeConfirm, setSizeConfirm] = useState<{ w: number; h: number; mode: 'size' | 'reset' } | null>(null)
+  // Preview zoom — the paper renders at true 1:1 mm (small on screen), so let the
+  // user magnify it to inspect spacing/fonts. CSS `zoom` (Chromium) scales the
+  // real layout box so the overflow-auto container can scroll to the edges.
+  const [zoom, setZoom] = useState(1)
+  const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
 
   // Load settings — explicit per-key overwrite to keep stale UI-only keys out
   // of `form` (which would later poison the dynamic-SQL UPDATE).
@@ -152,17 +230,27 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
 
   // Nudge a numeric offset column by ±0.5mm (rounded to 1 decimal to avoid float
   // drift). Drives the per-section X/Y arrow buttons — the live preview moves.
+  // Uses the functional setForm, so press-and-hold reads the latest value (no
+  // stale closure) automatically.
   const nudge = (k: keyof LabelSettingsForm, delta: number) =>
     setForm(f => ({ ...f, [k]: Math.round(((f[k] as number) + delta) * 10) / 10 }))
+  const bindHold = useHoldRepeat()
 
-  // Apply size-appropriate defaults: set every text section's font to one base
-  // size + uniform margins + section gap for the given paper size. Show/bold/
-  // offset and other content choices are left untouched.
+  // FULL reset to defaults for the given paper size. EVERYTHING returns to
+  // LABEL_DEFAULTS — show/bold/offset toggles, custom_text, lookup IDs, the lot —
+  // and only the selected `printer_name` is preserved (hardware choice, not a
+  // style). Size-appropriate font/margins/spacing are then layered on top.
+  // `font_family` is forced to 'Sarabun' so the result is identical on every
+  // machine (it's stored per-machine; bare LABEL_DEFAULTS would differ). NOTE:
+  // this only updates `form` — nothing persists until the user presses บันทึก.
   const applySizeTemplate = (w: number, h: number) => {
     const { baseFont, pad, gap, lineSpacing } = sizeDefaults(w, h)
     setForm(f => {
-      const next = {
-        ...f, width_mm: w, height_mm: h,
+      const next: LabelSettingsForm = {
+        ...LABEL_DEFAULTS,
+        printer_name: f.printer_name,
+        width_mm: w, height_mm: h,
+        font_family: 'Sarabun',
         pad_top: pad, pad_right: pad, pad_bottom: pad, pad_left: pad,
         section_gap: gap, line_spacing: lineSpacing,
       }
@@ -261,32 +349,78 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
     return () => onActions?.(null)
   }, [onActions, pdfLoading, printing, saving])
 
+  const matchedPreset = PAPER_PRESETS.find(p => p.w === form.width_mm && p.h === form.height_mm)
+  useEffect(() => {
+    if (!matchedPreset) setCustomSizeMode(true)
+  }, [matchedPreset])
+
+  // กว้าง/สูง แก้ได้เฉพาะตอนเลือก "กำหนดเอง" — ถ้าเลือกขนาดจาก list ให้ล็อกไว้
+  const isCustomSize = customSizeMode || !matchedPreset
+
   return (
     <div className="flex flex-col gap-3">
       {/* Body: preview (LEFT, big) + tabbed settings (RIGHT, compact) */}
       <div className="grid grid-cols-[3fr_2fr] gap-4 items-start">
         {/* LEFT — preview, centered, true 1:1 mm scale */}
-        <SectionCard title="ตัวอย่างฉลาก" tint="success">
+        <SectionCard
+          className="min-w-0 sticky top-0 self-start"
+          title="ตัวอย่างฉลาก"
+          tint="success"
+          right={
+            <div className="flex items-center gap-1">
+              <Button
+                type="button" size="icon-sm" variant="elevated"
+                disabled={zoom <= ZOOM_MIN}
+                onClick={() => setZoom(z => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 10) / 10))}
+                title="ซูมออก"
+              >
+                <ZoomOut className="size-4" />
+              </Button>
+              <Button
+                type="button" variant="ghost" size="sm"
+                onClick={() => setZoom(1)}
+                className="w-12 justify-center px-0 text-muted-foreground"
+                title="รีเซ็ตเป็นขนาดจริง (100%)"
+              >
+                {Math.round(zoom * 100)}%
+              </Button>
+              <Button
+                type="button" size="icon-sm" variant="elevated"
+                disabled={zoom >= ZOOM_MAX}
+                onClick={() => setZoom(z => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 10) / 10))}
+                title="ซูมเข้า"
+              >
+                <ZoomIn className="size-4" />
+              </Button>
+            </div>
+          }
+        >
           {/* The label paper itself is rendered by the shared LabelPaper
               component (also used by the per-product LabelsTab preview), so the
-              designer preview and the printed sticker stay 1:1. */}
-          <div className="flex items-center justify-center bg-muted/30 rounded-lg p-6 overflow-auto">
-            <LabelPaper settings={form} content={previewContent} date={todayBE()} />
+              designer preview and the printed sticker stay 1:1. The zoom wrapper
+              uses CSS `zoom` (not transform) so the scaled box keeps its layout
+              size and the overflow-auto container can scroll to its edges. */}
+          {/* `mx-auto` (not flex `justify-center`): centers while the zoomed
+              label fits, then left-aligns when it overflows — so scroll reveals
+              the label, not a blank strip on the right. */}
+          <div className="bg-muted/30 rounded-lg p-6 overflow-auto max-h-[70vh]">
+            <div className="w-fit mx-auto" style={{ zoom }}>
+              <LabelPaper settings={form} content={previewContent} date={todayBE()} />
+            </div>
           </div>
         </SectionCard>
 
-        {/* RIGHT — sub-tabs: กระดาษ / ฟอนต์ & บรรทัด / ช่วง */}
-        <div className="flex flex-col">
+        {/* RIGHT — sub-tabs: กระดาษ (ขนาด+ระยะห่าง) / ฟอนต์ & บรรทัด */}
+        <div className="flex flex-col min-w-0">
           <Tabs value={subTab} onValueChange={v => setSubTab(v as typeof subTab)} className="flex flex-col gap-3">
             <TabsList variant="line" className="w-full shrink-0">
-              <TabsTrigger value="paper">กระดาษ</TabsTrigger>
-              <TabsTrigger value="sections">ฟอนต์ &amp; บรรทัด</TabsTrigger>
-              <TabsTrigger value="spacing">ช่วง</TabsTrigger>
+              <TabsTrigger value="paper">ตั้งค่าการพิมพ์</TabsTrigger>
+              <TabsTrigger value="sections">รูปแบบการพิมพ์</TabsTrigger>
             </TabsList>
 
             <div className="pr-1">
               <TabsContent value="paper" className="space-y-3 mt-0">
-                <SectionCard icon={Printer} title="ขนาดกระดาษ" tint="primary">
+                <SectionCard icon={Printer} title="ตั้งค่า" tint="primary">
                   <FormField label="เครื่องพิมพ์">
                     <Select value={form.printer_name || '__default__'} onValueChange={v => setF('printer_name', v === '__default__' ? '' : v)}>
                       <SelectTrigger variant="elevated" className="w-full">
@@ -303,17 +437,18 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                   </FormField>
                   <FormField label="ขนาดมาตรฐาน">
                     <Select
-                      value={PAPER_PRESETS.some(p => p.w === form.width_mm && p.h === form.height_mm)
-                        ? presetKey(form.width_mm, form.height_mm)
-                        : '__custom__'}
+                      value={isCustomSize ? '__custom__' : presetKey(form.width_mm, form.height_mm)}
                       onValueChange={key => {
-                        if (key === '__custom__') return
+                        if (key === '__custom__') {
+                          setCustomSizeMode(true)
+                          return
+                        }
                         const hit = PAPER_PRESETS.find(p => presetKey(p.w, p.h) === key)
                         if (hit) {
-                          // Switch size now (so the dropdown reflects it), then
-                          // offer to apply size-appropriate font/margin defaults.
-                          setForm(f => ({ ...f, width_mm: hit.w, height_mm: hit.h }))
-                          setSizeConfirm({ w: hit.w, h: hit.h })
+                          // Don't change the size yet — confirm first. On cancel the
+                          // size is untouched, so the dropdown (value derived from
+                          // form size) snaps back to the current size on its own.
+                          setSizeConfirm({ w: hit.w, h: hit.h, mode: 'size' })
                         }
                       }}
                     >
@@ -330,16 +465,24 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                   </FormField>
                   <FormField label="กว้าง × สูง (มม.)">
                     <div className="flex items-center gap-2">
-                      <NumInput value={form.width_mm}  onChange={n => setF('width_mm',  n)} className="w-24" min={1} />
+                      <NumInput stepper value={form.width_mm}  onChange={n => setF('width_mm',  n)} className="w-24" min={1} step={1} disabled={!isCustomSize} />
                       <span className="text-sm text-muted-foreground">×</span>
-                      <NumInput value={form.height_mm} onChange={n => setF('height_mm', n)} className="w-24" min={1} />
+                      <NumInput stepper value={form.height_mm} onChange={n => setF('height_mm', n)} className="w-24" min={1} step={1} disabled={!isCustomSize} />
                     </div>
                   </FormField>
-                  <FormField label="ระยะขอบ บน / ขวา / ล่าง / ซ้าย (มม.)">
-                    <div className="flex items-center gap-1.5">
-                      {(['pad_top', 'pad_right', 'pad_bottom', 'pad_left'] as const).map(k => (
-                        <NumInput key={k} value={form[k]} onChange={n => setF(k, n)} className="w-16" min={0} />
-                      ))}
+                  <FormField label="ระยะขอบ (มม.)">
+                    {/* Cross layout — each input sits in its real direction (บน/ล่าง
+                        ขนาบด้วย ซ้าย/ขวา) รอบกล่องที่แทนตัวกระดาษตรงกลาง. */}
+                    <div className="grid grid-cols-3 gap-1.5 w-fit items-center">
+                      <span />
+                      <NumInput stepper value={form.pad_top} onChange={n => setF('pad_top', n)} className="w-16" min={0} step={0.5} title="ขอบบน" />
+                      <span />
+                      <NumInput stepper value={form.pad_left} onChange={n => setF('pad_left', n)} className="w-16" min={0} step={0.5} title="ขอบซ้าย" />
+                      <div className="h-9 rounded-md border border-dashed border-border bg-muted/30" />
+                      <NumInput stepper value={form.pad_right} onChange={n => setF('pad_right', n)} className="w-16" min={0} step={0.5} title="ขอบขวา" />
+                      <span />
+                      <NumInput stepper value={form.pad_bottom} onChange={n => setF('pad_bottom', n)} className="w-16" min={0} step={0.5} title="ขอบล่าง" />
+                      <span />
                     </div>
                   </FormField>
                   <div className="pt-1">
@@ -347,12 +490,12 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                       type="button"
                       variant="elevated"
                       className="h-9 w-full"
-                      onClick={() => setSizeConfirm({ w: form.width_mm, h: form.height_mm })}
+                      onClick={() => setSizeConfirm({ w: form.width_mm, h: form.height_mm, mode: 'reset' })}
                     >
-                      <Wand2 className="size-4" /> ใช้ค่าเริ่มต้นของขนาดนี้
+                      <RotateCcw className="size-4" /> รีเซ็ตการตั้งค่า
                     </Button>
                     <p className="pt-1.5 text-xs text-muted-foreground">
-                      ปรับฟอนต์ทุกส่วน + ระยะขอบ + ระยะห่าง ให้พอดีกับขนาดกระดาษปัจจุบัน (ตำแหน่ง/การแสดงผลคงเดิม)
+                      รีเซ็ตการตั้งค่าฉลากทั้งหมดกลับเป็นค่าเริ่มต้นของขนาดกระดาษปัจจุบัน (อย่าลืมกดบันทึกเพื่อให้มีผล)
                     </p>
                   </div>
                 </SectionCard>
@@ -370,6 +513,14 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                       </SelectContent>
                     </Select>
                   </FormField>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField label="ระยะห่างบรรทัด (เท่า)">
+                      <NumInput stepper value={form.line_spacing} onChange={n => setF('line_spacing', n)} min={1} max={3} step={0.1} />
+                    </FormField>
+                    <FormField label="ระยะห่างส่วน (pt)">
+                      <NumInput stepper value={form.section_gap} onChange={n => setF('section_gap', n)} min={0} max={20} step={1} />
+                    </FormField>
+                  </div>
 
                   {/* One row per section — text sections carry size + bold; line
                       sections (header_line) skip those two and keep only show +
@@ -378,7 +529,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                     <div className="flex items-center gap-2 px-1 pb-1 text-sm font-semibold text-foreground">
                       <span className="w-4 shrink-0" />
                       <span className="flex-1">บรรทัด</span>
-                      <span className="w-16 text-center shrink-0">ขนาด</span>
+                      <span className="w-20 text-center shrink-0">ขนาด</span>
                       <span className="w-9 text-center shrink-0">หนา</span>
                       <span className="w-28 text-center shrink-0">ตำแหน่ง</span>
                     </div>
@@ -400,9 +551,11 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                           {isText ? (
                             <>
                               <NumInput
+                                stepper
                                 value={form[fsKey] as number}
                                 onChange={n => setF(fsKey, n as never)}
-                                className="w-16" min={6} max={30} disabled={!visible}
+                                className="w-20" min={def.key === 'barcode' ? 4 : 6} max={30} step={1} disabled={!visible}
+                                title={def.key === 'barcode' ? 'ความสูงบาร์โค้ด (มม.)' : undefined}
                               />
                               <Button
                                 type="button"
@@ -419,7 +572,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                             </>
                           ) : (
                             <>
-                              <span className="w-16 shrink-0" />
+                              <span className="w-20 shrink-0" />
                               <span className="w-9 shrink-0" />
                             </>
                           )}
@@ -427,16 +580,16 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                               each); the live preview shifts as you click. Y+ is
                               down (matches translate() in buildSectionStyle). */}
                           <div className="flex items-center justify-center gap-1 w-28 shrink-0">
-                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} onClick={() => nudge(oxKey, -0.5)} title="เลื่อนซ้าย">
+                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} {...bindHold(() => nudge(oxKey, -0.5))} title="เลื่อนซ้าย (กดค้างได้)">
                               <ChevronLeft />
                             </Button>
-                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} onClick={() => nudge(oxKey, 0.5)} title="เลื่อนขวา">
+                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} {...bindHold(() => nudge(oxKey, 0.5))} title="เลื่อนขวา (กดค้างได้)">
                               <ChevronRight />
                             </Button>
-                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} onClick={() => nudge(oyKey, -0.5)} title="เลื่อนขึ้น">
+                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} {...bindHold(() => nudge(oyKey, -0.5))} title="เลื่อนขึ้น (กดค้างได้)">
                               <ChevronUp />
                             </Button>
-                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} onClick={() => nudge(oyKey, 0.5)} title="เลื่อนลง">
+                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} {...bindHold(() => nudge(oyKey, 0.5))} title="เลื่อนลง (กดค้างได้)">
                               <ChevronDown />
                             </Button>
                           </div>
@@ -463,16 +616,6 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                 </SectionCard>
               </TabsContent>
 
-              <TabsContent value="spacing" className="space-y-3 mt-0">
-                <SectionCard icon={Printer} title="ระยะห่าง" tint="info-soft">
-                  <FormField label="ระยะห่างบรรทัด (เท่า)">
-                    <NumInput value={form.line_spacing} onChange={n => setF('line_spacing', n)} className="w-24" min={1} max={3} step={0.1} />
-                  </FormField>
-                  <FormField label="ระยะห่างส่วน (pt)">
-                    <NumInput value={form.section_gap} onChange={n => setF('section_gap', n)} className="w-24" min={0} max={20} />
-                  </FormField>
-                </SectionCard>
-              </TabsContent>
             </div>
           </Tabs>
         </div>
@@ -482,14 +625,20 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
         open={!!sizeConfirm}
         onOpenChange={o => { if (!o) setSizeConfirm(null) }}
         variant="warning"
-        icon={Wand2}
-        title="ใช้ค่าเริ่มต้นของขนาดนี้?"
-        description={sizeConfirm ? ((sd) =>
-          `ขนาด ${sizeConfirm.w}×${sizeConfirm.h} มม. — จะปรับฟอนต์ทุกส่วนเป็น ${sd.baseFont}pt, ระยะขอบ ${sd.pad} มม., ระยะห่างบรรทัด ${sd.lineSpacing} และระยะห่างส่วน ${sd.gap}pt ให้พอดีกับกระดาษ (การแสดงผล/ตำแหน่งที่ตั้งไว้จะไม่เปลี่ยน)`
-        )(sizeDefaults(sizeConfirm.w, sizeConfirm.h)) : undefined}
-        confirmLabel="ใช้ค่าเริ่มต้น"
-        cancelLabel="ไม่เปลี่ยน"
-        onConfirm={() => { if (sizeConfirm) applySizeTemplate(sizeConfirm.w, sizeConfirm.h); setSizeConfirm(null) }}
+        icon={sizeConfirm?.mode === 'size' ? Printer : Wand2}
+        title={sizeConfirm?.mode === 'size' ? 'เปลี่ยนขนาดฉลาก?' : 'รีเซ็ตการตั้งค่า?'}
+        description={sizeConfirm?.mode === 'size'
+          ? 'เมื่อเปลี่ยนขนาดฉลาก การตั้งค่าทั้งหมดจะถูกรีเซ็ตเป็นค่าเริ่มต้นของขนาดใหม่ (กดบันทึกเพื่อให้มีผล)'
+          : 'การตั้งค่าฉลากทั้งหมดจะถูกรีเซ็ตคืนเป็นค่าเริ่มต้น (กดบันทึกเพื่อให้มีผล)'}
+        confirmLabel={sizeConfirm?.mode === 'size' ? 'ยืนยัน' : 'ใช้ค่าเริ่มต้น'}
+        cancelLabel={sizeConfirm?.mode === 'size' ? 'ยกเลิก' : 'ไม่เปลี่ยน'}
+        onConfirm={() => {
+          if (sizeConfirm) {
+            applySizeTemplate(sizeConfirm.w, sizeConfirm.h)
+            if (sizeConfirm.mode === 'size') setCustomSizeMode(false)
+          }
+          setSizeConfirm(null)
+        }}
       />
     </div>
   )

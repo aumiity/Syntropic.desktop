@@ -6,9 +6,11 @@ import { buildGoodsReceiptHtml, type GoodsReceiptForPrint } from './buildGoodsRe
 
 type PrintResult = { success: boolean; error?: string }
 
-// paper_height_mm = 0 → continuous-roll auto height; otherwise a fixed page.
-const slipHeight = (s: ReceiptSettings): number | 'auto' =>
-  s.paper_height_mm && s.paper_height_mm > 0 ? s.paper_height_mm : 'auto'
+// Receipts always print on a continuous roll → height is ALWAYS auto (measured
+// from content), and copies are ALWAYS 1. Neither is user-tunable; the stored
+// paper_height_mm / copies columns are ignored on purpose.
+const SLIP_HEIGHT = 'auto' as const
+const SLIP_COPIES = 1
 
 async function loadConfig(): Promise<{ shop: Partial<Setting>; settings: ReceiptSettings }> {
   const [shop, settings] = await Promise.all([
@@ -55,8 +57,8 @@ export async function printSlip(
     html,
     printerName: settings.printer_name || '',
     paperWidthMm: settings.paper_width_mm || 80,
-    heightMm: slipHeight(settings),
-    copies: settings.copies || 1,
+    heightMm: SLIP_HEIGHT,
+    copies: SLIP_COPIES,
   })
 }
 
@@ -67,7 +69,7 @@ export async function previewSlip(sale: SaleForPrint, mode: SlipMode): Promise<P
   return window.api.printer.previewHtmlPdf({
     html,
     paperWidthMm: settings.paper_width_mm || 80,
-    heightMm: slipHeight(settings),
+    heightMm: SLIP_HEIGHT,
   })
 }
 

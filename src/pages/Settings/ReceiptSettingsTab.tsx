@@ -7,11 +7,17 @@ import { Toggle } from '@/components/ui/switch'
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { FONTS } from '@/lib/print/fonts'
 import { buildSlipHtml } from '@/lib/receipt/buildSlipHtml'
+import { RC_SECTIONS, type RcAlign } from '@/lib/receipt/sections'
 import type { ReceiptSettings, SaleForPrint, Setting } from '@/types'
-import { Receipt, Printer, FileText, Save } from 'lucide-react'
+import {
+  Printer, FileText, Save, ZoomIn, ZoomOut, Bold,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify,
+} from 'lucide-react'
 
 // Form keys are canonical receipt_settings column names — Object.keys(form)
 // flows into the dynamic-SQL UPDATE in settings:saveReceiptSettings, so any key
@@ -26,9 +32,18 @@ const DEFAULTS: ReceiptForm = {
   copies: 1,
   font_family: 'Sarabun',
   font_size: 11,
-  header_note: '',
   footer_note: 'ขอบคุณที่ใช้บริการ',
   abbrev_tax_invoice: 1,
+  // Per-section style — defaults mirror the receipt_settings column defaults.
+  show_shop: 1,         bold_shop: 1,         align_shop: 'center',
+  show_shop_contact: 1, bold_shop_contact: 0, align_shop_contact: 'center',
+  show_tax_id: 1,       bold_tax_id: 0,       align_tax_id: 'center',
+  show_title: 1,        bold_title: 1,        align_title: 'center',
+  show_bill_info: 1,    bold_bill_info: 0,    align_bill_info: 'justify',
+  show_summary: 1,      bold_summary: 0,      align_summary: 'justify',
+  show_payment: 1,      bold_payment: 0,      align_payment: 'justify',
+  show_footer: 1,       bold_footer: 0,       align_footer: 'center',
+  show_salesperson: 1,  bold_salesperson: 0,  align_salesperson: 'center',
 }
 
 // Sample bill for the live preview / test print — includes VAT so the tax
@@ -39,6 +54,7 @@ const SAMPLE_SALE: SaleForPrint = {
   sale_type: 'retail',
   status: 'completed',
   customer_name: 'ลูกค้าทั่วไป',
+  salesperson_name: 'พนักงาน ก',
   items: [
     { item_name: 'Paracetamol 500mg', unit_name: 'แผง', qty: 2, unit_price: 12, discount: 0, unit_vat: 0.785, line_total: 24 },
     { item_name: 'Vitamin C 1000mg', unit_name: 'ขวด', qty: 1, unit_price: 120, discount: 10, unit_vat: 7.196, line_total: 110 },
@@ -56,6 +72,16 @@ const PAPER_PRESETS = [
   { v: 58, label: '58 มม.' },
 ]
 
+// The four alignment choices for a section. 'justify' = กระจาย — for label/value
+// (pair) sections this keeps the 2-column look; for plain text it behaves like
+// CSS text-align: justify.
+const ALIGN_OPTS: { v: RcAlign; title: string; Icon: typeof AlignLeft }[] = [
+  { v: 'left',    title: 'ชิดซ้าย',  Icon: AlignLeft },
+  { v: 'center',  title: 'กึ่งกลาง', Icon: AlignCenter },
+  { v: 'right',   title: 'ชิดขวา',   Icon: AlignRight },
+  { v: 'justify', title: 'กระจาย',   Icon: AlignJustify },
+]
+
 interface PrinterInfo { name: string; displayName: string; isDefault: boolean }
 
 export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode) => void }) {
@@ -67,14 +93,31 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
   const [printing, setPrinting] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [previewHtml, setPreviewHtml] = useState('')
+  const [subTab, setSubTab] = useState<'paper' | 'format'>('paper')
   // iframes don't auto-size to content, so the receipt would scroll INSIDE the
   // frame. Measure the rendered body height and set the iframe to it, so the
   // frame is full natural height and the OUTER gray box owns the scrollbar.
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeH, setIframeH] = useState(0)
+  // Preview zoom — the slip renders at true 1:1 mm (small on screen). CSS `zoom`
+  // (Chromium) scales the real layout box so the overflow-auto box can scroll.
+  const [zoom, setZoom] = useState(1)
+  const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
   const fitIframe = useCallback(() => {
-    const doc = iframeRef.current?.contentWindow?.document
-    if (doc) setIframeH(doc.documentElement.scrollHeight)
+    const el = iframeRef.current
+    const doc = el?.contentWindow?.document
+    if (!el || !doc) return
+    // Collapse before measuring: documentElement.scrollHeight returns
+    // max(content, current iframe height), so measuring while the frame still
+    // holds its previous (taller) height inflates it a little on every rebuild —
+    // the preview crept longer each time the abbrev-tax toggle (or any setting)
+    // flipped. Force a reflow at 0, read the true content height, then re-apply.
+    el.style.height = '0'
+    const h = doc.documentElement.scrollHeight
+    // Set directly too, in case `h` is unchanged and React doesn't re-render to
+    // re-apply the height style prop (which would leave the frame collapsed).
+    el.style.height = `${h + 16}px`
+    setIframeH(h)
   }, [])
   // Re-measure after the embedded (base64) fonts apply — that reflow changes the
   // height after the initial load event fires.
@@ -92,6 +135,11 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
       setForm(prev => {
         const next = { ...prev }
         for (const k of Object.keys(prev) as (keyof ReceiptForm)[]) {
+          // Receipt height is ALWAYS auto (continuous roll) and copies ALWAYS 1 —
+          // these are no longer user-tunable, so keep the form pinned to the
+          // DEFAULTS (0 / 1) regardless of any stale stored value. Saving then
+          // normalizes the DB row back to 0 / 1.
+          if (k === 'paper_height_mm' || k === 'copies') continue
           const v = (data as any)[k]
           if (v !== undefined && v !== null) (next as any)[k] = v
         }
@@ -128,15 +176,12 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     } finally { setSaving(false) }
   }, [form, toast])
 
-  const slipHeight = (): number | 'auto' =>
-    form.paper_height_mm && form.paper_height_mm > 0 ? form.paper_height_mm : 'auto'
-
   const handlePreviewPdf = async () => {
     if (pdfLoading) return
     setPdfLoading(true)
     try {
       const html = await buildSlipHtml(SAMPLE_SALE, shop, settingsForBuild, { mode: previewMode })
-      const res = await window.api.printer.previewHtmlPdf({ html, paperWidthMm: form.paper_width_mm || 80, heightMm: slipHeight() })
+      const res = await window.api.printer.previewHtmlPdf({ html, paperWidthMm: form.paper_width_mm || 80, heightMm: 'auto' })
       if (!res.success) toast({ title: 'สร้าง PDF ไม่สำเร็จ', description: res.error, variant: 'error' })
     } finally { setPdfLoading(false) }
   }
@@ -148,7 +193,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
       const html = await buildSlipHtml(SAMPLE_SALE, shop, settingsForBuild, { mode: previewMode })
       const res = await window.api.printer.printHtml({
         html, printerName: form.printer_name || '', paperWidthMm: form.paper_width_mm || 80,
-        heightMm: slipHeight(), copies: form.copies || 1,
+        heightMm: 'auto', copies: 1,
       })
       if (res.success) toast({ title: 'ส่งงานพิมพ์แล้ว', variant: 'success' })
       else toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'error' })
@@ -185,8 +230,45 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     <div className="flex flex-col gap-3">
       {/* Body: preview (LEFT) + settings (RIGHT) */}
       <div className="grid grid-cols-[3fr_2fr] gap-4 items-start">
-        <SectionCard title="ตัวอย่างใบเสร็จ" tint="success">
-          <div className="flex items-start justify-center bg-muted/30 rounded-lg p-6 overflow-auto">
+        <SectionCard
+          className="min-w-0 sticky top-0 self-start"
+          title="ตัวอย่างใบเสร็จ"
+          tint="success"
+          right={
+            <div className="flex items-center gap-1">
+              <Button
+                type="button" size="icon-sm" variant="elevated"
+                disabled={zoom <= ZOOM_MIN}
+                onClick={() => setZoom(z => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 10) / 10))}
+                title="ซูมออก"
+              >
+                <ZoomOut className="size-4" />
+              </Button>
+              <Button
+                type="button" variant="ghost" size="sm"
+                onClick={() => setZoom(1)}
+                className="w-12 justify-center px-0 text-muted-foreground"
+                title="รีเซ็ตเป็นขนาดจริง (100%)"
+              >
+                {Math.round(zoom * 100)}%
+              </Button>
+              <Button
+                type="button" size="icon-sm" variant="elevated"
+                disabled={zoom >= ZOOM_MAX}
+                onClick={() => setZoom(z => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 10) / 10))}
+                title="ซูมเข้า"
+              >
+                <ZoomIn className="size-4" />
+              </Button>
+            </div>
+          }
+        >
+          {/* No flex `justify-center` here: when the zoomed slip is wider than
+              the box, flex-centering pushes it right and leaves a useless blank
+              strip + horizontal scroll. A block child with `mx-auto` centers only
+              while it fits, then left-aligns (margins collapse to 0) when it
+              overflows — so scroll reveals the slip, never empty space. */}
+          <div className="bg-muted/30 rounded-lg p-6 overflow-y-auto overflow-x-hidden max-h-[70vh]">
             {/* True render via the real builder so the preview matches print. */}
             {/* Torn-paper bottom edge — same scalloped CSS-mask trick as the POS
                 payment dialog (src/pages/POS/index.tsx). The mask layers a solid
@@ -194,9 +276,24 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                 the drop-shadow lives on the WRAPPER (not box-shadow) so the shadow
                 follows the jagged alpha edge instead of a straight box. +16px of
                 height gives the notches blank room so they don't clip the footer. */}
+            {/* Zoom via transform (NOT `zoom`): the slip is an iframe, and `zoom`
+                would resize its inner viewport — the document reflows to a WIDER
+                page instead of magnifying. `transform: scale` rasterizes the whole
+                frame so text scales with the paper (true zoom). transform doesn't
+                reserve layout space, so the outer wrapper is sized to the scaled
+                box (width mm × zoom, height px × zoom) to keep scroll working. */}
             <div
-              className="shrink-0"
-              style={{ filter: 'drop-shadow(0 4px 5px rgb(0 0 0 / 0.20)) drop-shadow(0 12px 14px rgb(0 0 0 / 0.16))' }}
+              className="mx-auto"
+              style={{
+                width: `calc(${form.paper_width_mm || 80}mm * ${zoom})`,
+                height: iframeH ? `${(iframeH + 16) * zoom}px` : 'auto',
+              }}
+            >
+            <div
+              style={{
+                transform: `scale(${zoom})`, transformOrigin: 'top left',
+                filter: 'drop-shadow(0 4px 5px rgb(0 0 0 / 0.20)) drop-shadow(0 12px 14px rgb(0 0 0 / 0.16))',
+              }}
             >
               <iframe
                 ref={iframeRef}
@@ -219,12 +316,22 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                 }}
               />
             </div>
+            </div>
           </div>
         </SectionCard>
 
-        <div className="flex flex-col space-y-3">
-          <SectionCard icon={Printer} title="เครื่องพิมพ์ & กระดาษ" tint="primary">
-            <div className="space-y-3">
+        {/* RIGHT — sub-tabs: กระดาษ (เครื่องพิมพ์+กระดาษ) / รูปแบบ (รูปแบบ+ตัวเลือก) */}
+        <div className="flex flex-col min-w-0">
+          <Tabs value={subTab} onValueChange={v => setSubTab(v as typeof subTab)} className="flex flex-col gap-3">
+            <TabsList variant="line" className="w-full shrink-0">
+              <TabsTrigger value="paper">ตั้งค่าการพิมพ์</TabsTrigger>
+              <TabsTrigger value="format">รูปแบบการพิมพ์</TabsTrigger>
+            </TabsList>
+
+            <div className="pr-1">
+              <TabsContent value="paper" className="space-y-3 mt-0">
+                <SectionCard icon={Printer} title="ตั้งค่า" tint="primary">
+                  <div className="space-y-3">
               <FormField label="เครื่องพิมพ์">
                 <Select value={form.printer_name || '__default__'} onValueChange={v => setF('printer_name', v === '__default__' ? '' : v)}>
                   <SelectTrigger variant="elevated" className="w-full">
@@ -249,70 +356,137 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                   </SelectContent>
                 </Select>
               </FormField>
-              <FormField label="ความสูงกระดาษ (มม., 0 = อัตโนมัติตามเนื้อหา)">
-                <Input
-                  variant="elevated" type="number" min={0}
-                  value={String(form.paper_height_mm)}
-                  onChange={e => setF('paper_height_mm', Number(e.target.value) || 0)}
-                  className="w-32"
-                />
-              </FormField>
-              <FormField label="จำนวนสำเนา">
-                <Input
-                  variant="elevated" type="number" min={1} max={20}
-                  value={String(form.copies)}
-                  onChange={e => setF('copies', Math.max(1, Number(e.target.value) || 1))}
-                  className="w-32"
-                />
-              </FormField>
-            </div>
-          </SectionCard>
+              {/* ความสูง = อัตโนมัติเสมอ (กระดาษม้วนต่อเนื่อง — ตัดพอดีเนื้อหา) และ
+                  ไม่พิมพ์สำเนา — ทั้งคู่ไม่เปิดให้ปรับอีกต่อไป (บังคับ auto / 1 ใบ
+                  ทุกที่ที่พิมพ์, ดู print.ts). */}
 
-          <SectionCard icon={FileText} title="รูปแบบ" tint="warm">
-            <div className="space-y-3">
-              <FormField label="ฟอนต์">
-                <Select value={form.font_family} onValueChange={v => setF('font_family', v)}>
-                  <SelectTrigger variant="elevated" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FONTS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FormField>
-              <FormField label="ขนาดฟอนต์ (pt)">
-                <Input
-                  variant="elevated" type="number" min={7} max={20}
-                  value={String(form.font_size)}
-                  onChange={e => setF('font_size', Number(e.target.value) || 11)}
-                  className="w-32"
-                />
-              </FormField>
-              <FormField label="ข้อความหัวกระดาษ (ไม่บังคับ)">
-                <Input variant="elevated" value={form.header_note} onChange={e => setF('header_note', e.target.value)} />
-              </FormField>
-              <FormField label="ข้อความท้ายกระดาษ">
-                <Input variant="elevated" value={form.footer_note} onChange={e => setF('footer_note', e.target.value)} />
-              </FormField>
-            </div>
-          </SectionCard>
+              {/* ตัวเลือกการพิมพ์ — both switches share ONE frame (canonical
+                  grouped-switch box, cf. SalesTab). Lives on the printer tab. */}
+              <div className="pt-1">
+                <p className="pb-2 text-sm font-semibold text-foreground">ตัวเลือก</p>
+                <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
+                  <Toggle
+                    className="justify-between w-full h-11 px-3"
+                    label="พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน"
+                    checked={!!form.auto_print}
+                    onChange={v => setF('auto_print', v ? 1 : 0)}
+                  />
+                  <Toggle
+                    className="justify-between w-full h-11 px-3"
+                    label="ใช้สลิปเป็นใบกำกับภาษีอย่างย่อ (เมื่อเปิด VAT)"
+                    checked={!!form.abbrev_tax_invoice}
+                    onChange={v => setF('abbrev_tax_invoice', v ? 1 : 0)}
+                  />
+                </div>
+              </div>
+                  </div>
+                </SectionCard>
+              </TabsContent>
 
-          <SectionCard icon={Receipt} title="ตัวเลือก" tint="info-soft">
-            <div className="space-y-2">
-              <Toggle
-                framed className="justify-between w-full"
-                label="พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน"
-                checked={!!form.auto_print}
-                onChange={v => setF('auto_print', v ? 1 : 0)}
-              />
-              <Toggle
-                framed className="justify-between w-full"
-                label="ใช้สลิปเป็นใบกำกับภาษีอย่างย่อ (เมื่อเปิด VAT)"
-                checked={!!form.abbrev_tax_invoice}
-                onChange={v => setF('abbrev_tax_invoice', v ? 1 : 0)}
-              />
+              <TabsContent value="format" className="space-y-3 mt-0">
+                <SectionCard icon={FileText} title="รูปแบบใบเสร็จ" tint="warm">
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1 min-w-0">
+                      <FormField label="ฟอนต์">
+                        <Select value={form.font_family} onValueChange={v => setF('font_family', v)}>
+                          <SelectTrigger variant="elevated" className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FONTS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </FormField>
+                    </div>
+                    <div className="w-24 shrink-0">
+                      <FormField label="ขนาด (pt)">
+                        <Input
+                          variant="elevated" type="number" min={7} max={20}
+                          value={String(form.font_size)}
+                          onChange={e => setF('font_size', Number(e.target.value) || 11)}
+                          className="w-full"
+                        />
+                      </FormField>
+                    </div>
+                  </div>
+                  {/* Per-section style — one row per group: show toggle + bold +
+                      alignment (ซ้าย/กลาง/ขวา/กระจาย). Font size is global (above).
+                      SSOT for the section order/labels = src/lib/receipt/sections.ts.
+                      The fixed "รายการขาย" block is shown read-only (no controls). */}
+                  <div className="mt-1 pt-1 space-y-1.5">
+                    <div className="flex items-center gap-2 px-1 pb-1 text-sm font-semibold text-foreground">
+                      <span className="w-4 shrink-0" />
+                      <span className="flex-1">กลุ่มข้อความ</span>
+                      <span className="w-9 text-center shrink-0">หนา</span>
+                      <span className="w-[156px] text-center shrink-0">จัดวาง</span>
+                    </div>
+                    {RC_SECTIONS.map(def => {
+                      // The fixed sale-items block isn't user-styleable — omit it
+                      // from the list entirely (no controls to show).
+                      if (def.kind === 'items') return null
+                      const showKey  = `show_${def.key}`  as keyof ReceiptForm
+                      const boldKey  = `bold_${def.key}`  as keyof ReceiptForm
+                      const alignKey = `align_${def.key}` as keyof ReceiptForm
+                      const visible  = !!form[showKey]
+                      const curAlign = form[alignKey] as RcAlign
+                      // 'กระจาย' applies only to 2-column (pair) sections; on a plain
+                      // text line it looks identical to ชิดซ้าย, so a stale justify
+                      // value highlights ชิดซ้าย instead.
+                      const effAlign: RcAlign = def.kind !== 'pair' && curAlign === 'justify' ? 'left' : curAlign
+                      return (
+                        <div key={def.key} className="flex items-center gap-2 py-1">
+                          <Checkbox
+                            checked={visible}
+                            onCheckedChange={v => setF(showKey, (v ? 1 : 0) as never)}
+                          />
+                          <span className="flex-1 text-sm text-foreground truncate">{def.label}</span>
+                          <Button
+                            type="button" size="icon-lg"
+                            variant={form[boldKey] ? 'default' : 'elevated'}
+                            onClick={() => setF(boldKey, (form[boldKey] ? 0 : 1) as never)}
+                            aria-pressed={!!form[boldKey]}
+                            title="ตัวหนา" className="size-9" disabled={!visible}
+                          >
+                            <Bold />
+                          </Button>
+                          <div className="flex items-center gap-1">
+                            {ALIGN_OPTS.map(opt => {
+                              // Hide กระจาย on text sections (redundant with ชิดซ้าย);
+                              // keep an empty slot so the columns stay aligned.
+                              if (opt.v === 'justify' && def.kind !== 'pair') {
+                                return <span key={opt.v} className="size-9 shrink-0" aria-hidden />
+                              }
+                              return (
+                                <Button
+                                  key={opt.v} type="button" size="icon-lg"
+                                  variant={effAlign === opt.v ? 'default' : 'elevated'}
+                                  onClick={() => setF(alignKey, opt.v as never)}
+                                  aria-pressed={effAlign === opt.v}
+                                  title={opt.title} className="size-9" disabled={!visible}
+                                >
+                                  <opt.Icon />
+                                </Button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Footer text belongs to the ข้อความท้ายใบเสร็จ group — revealed
+                      by its own row's checkbox so the toggle lives in one place. */}
+                  {!!form.show_footer && (
+                    <div className="mt-3">
+                      <FormField label="ข้อความท้ายใบเสร็จ">
+                        <Input variant="elevated" value={form.footer_note} onChange={e => setF('footer_note', e.target.value)} />
+                      </FormField>
+                    </div>
+                  )}
+                </SectionCard>
+              </TabsContent>
             </div>
-          </SectionCard>
+          </Tabs>
         </div>
       </div>
     </div>

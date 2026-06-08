@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '@/stores/cartStore'
-import { getCurrentUserId } from '@/stores/userStore'
+import { getCurrentUserId, getCurrentUserName } from '@/stores/userStore'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useToast } from '@/components/ui/toast'
@@ -727,6 +727,7 @@ export default function POSPage() {
     sale_type: cart.saleType,
     status: 'completed',
     customer_name: cart.customer?.full_name ?? cart.customerNameFree ?? null,
+    salesperson_name: getCurrentUserName(),
     items: cart.items.map((i, idx) => {
       const d = pendingEffectiveDiscounts[idx] ?? 0
       const line_total = i.qty * i.unit_price - d
@@ -795,6 +796,7 @@ export default function POSPage() {
         sale_type: cart.saleType,
         status: 'completed',
         customer_name: cart.customer?.full_name ?? cart.customerNameFree ?? null,
+        salesperson_name: getCurrentUserName(),
         items: billItems.map(b => ({
           item_name: b.item_name, unit_name: b.unit_name, qty: b.qty,
           unit_price: b.unit_price, discount: b.discount, unit_vat: b.unit_vat, line_total: b.line_total,

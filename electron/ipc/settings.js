@@ -26,6 +26,8 @@ import fs from 'fs';
 import path from 'path';
 import { getDb } from '../db';
 import { orderByBucket } from '../db/sortName';
+import { hashSecret, genRecoveryCode } from '../auth/hash';
+import { requireAdmin } from '../auth/session';
 function resolveThemeCssPath() {
     var appPath = app.getAppPath();
     var candidates = [
@@ -97,6 +99,7 @@ export function registerSettingsHandlers() {
         return getDb().prepare("SELECT * FROM settings LIMIT 1").get();
     });
     ipcMain.handle('settings:saveShop', function (_e, data) {
+        requireAdmin(_e);
         var db = getDb();
         var existing = db.prepare("SELECT id FROM settings LIMIT 1").get();
         if (existing) {
@@ -108,11 +111,62 @@ export function registerSettingsHandlers() {
         }
         return db.prepare("SELECT * FROM settings LIMIT 1").get();
     });
+    // First-run setup: atomically write shop identity + the one-time VAT decision
+    // and flip the setup_completed gate, all in ONE transaction so onboarding can
+    // never half-complete. Columns are listed explicitly (not a dynamic Object.keys
+    // spread) per the allow-list invariant. Payload shape:
+    //   { shop: {shop_name, shop_address, shop_phone, shop_license_no, shop_line_id,
+    //            shop_tax_id, shop_branch, vat_registered_date},
+    //     vat:  {vat_enabled, vat_rate} }
+    ipcMain.handle('settings:completeSetup', function (_e, payload) {
+        var _a, _b, _c, _d, _f, _g, _h, _j, _k, _l;
+        var db = getDb();
+        var shop = (_a = payload === null || payload === void 0 ? void 0 : payload.shop) !== null && _a !== void 0 ? _a : {};
+        var vat = (_b = payload === null || payload === void 0 ? void 0 : payload.vat) !== null && _b !== void 0 ? _b : {};
+        var shopData = {
+            shop_name: (_c = shop.shop_name) !== null && _c !== void 0 ? _c : '',
+            shop_address: (_d = shop.shop_address) !== null && _d !== void 0 ? _d : '',
+            shop_phone: (_f = shop.shop_phone) !== null && _f !== void 0 ? _f : '',
+            shop_license_no: (_g = shop.shop_license_no) !== null && _g !== void 0 ? _g : '',
+            shop_line_id: (_h = shop.shop_line_id) !== null && _h !== void 0 ? _h : '',
+            shop_tax_id: (_j = shop.shop_tax_id) !== null && _j !== void 0 ? _j : '',
+            shop_branch: (_k = shop.shop_branch) !== null && _k !== void 0 ? _k : 'สำนักงานใหญ่',
+            vat_registered_date: (_l = shop.vat_registered_date) !== null && _l !== void 0 ? _l : null,
+        };
+        var recoveryCode = null;
+        db.transaction(function () {
+            var existing = db.prepare("SELECT id FROM settings LIMIT 1").get();
+            if (existing) {
+                db.prepare("\n          UPDATE settings SET\n            shop_name = @shop_name, shop_address = @shop_address, shop_phone = @shop_phone,\n            shop_license_no = @shop_license_no, shop_line_id = @shop_line_id,\n            shop_tax_id = @shop_tax_id, shop_branch = @shop_branch,\n            vat_registered_date = @vat_registered_date,\n            setup_completed = 1, setup_completed_at = datetime('now','localtime'),\n            updated_at = datetime('now','localtime')\n          WHERE id = @id\n        ").run(__assign(__assign({}, shopData), { id: existing.id }));
+            }
+            else {
+                db.prepare("\n          INSERT INTO settings (\n            shop_name, shop_address, shop_phone, shop_license_no, shop_line_id,\n            shop_tax_id, shop_branch, vat_registered_date,\n            setup_completed, setup_completed_at\n          ) VALUES (\n            @shop_name, @shop_address, @shop_phone, @shop_license_no, @shop_line_id,\n            @shop_tax_id, @shop_branch, @vat_registered_date,\n            1, datetime('now','localtime')\n          )\n        ").run(shopData);
+            }
+            // VAT decision → sales_settings (ensure-row-then-UPDATE singleton, mirrors
+            // saveSalesSettings so a first-ever write persists instead of bare defaults).
+            var srow = db.prepare("SELECT id FROM sales_settings LIMIT 1").get();
+            if (!srow) {
+                var r = db.prepare("INSERT INTO sales_settings DEFAULT VALUES").run();
+                srow = { id: r.lastInsertRowid };
+            }
+            db.prepare("UPDATE sales_settings SET vat_enabled = @vat_enabled, vat_rate = @vat_rate, updated_at = datetime('now','localtime') WHERE id = @id")
+                .run({ vat_enabled: vat.vat_enabled ? 1 : 0, vat_rate: Number(vat.vat_rate) || 7, id: srow.id });
+            // Phase 0 bootstrap: set the admin password + a one-time recovery code.
+            // Only the hashes are stored; the plaintext code is returned once.
+            if (payload === null || payload === void 0 ? void 0 : payload.adminPassword) {
+                recoveryCode = genRecoveryCode();
+                db.prepare("\n          UPDATE users SET password = @password, recovery_code_hash = @recovery, updated_at = datetime('now','localtime')\n          WHERE email = 'admin@syntropic.local'\n        ").run({ password: hashSecret(payload.adminPassword), recovery: hashSecret(recoveryCode) });
+            }
+        })();
+        var settingsRow = db.prepare("SELECT * FROM settings LIMIT 1").get();
+        return __assign(__assign({}, settingsRow), { recoveryCode: recoveryCode });
+    });
     // Categories
     ipcMain.handle('settings:listCategories', function () {
         return getDb().prepare("SELECT * FROM product_categories ORDER BY sort_order, id").all();
     });
     ipcMain.handle('settings:saveCategory', function (_e, data) {
+        requireAdmin(_e);
         var db = getDb();
         if (data.id) {
             var id = data.id, rest = __rest(data, ["id"]);
@@ -126,6 +180,7 @@ export function registerSettingsHandlers() {
     // Drag-and-drop reorder: renumber sort_order to 1..n by the given id order,
     // in one transaction so listCategories (ORDER BY sort_order, id) is stable.
     ipcMain.handle('settings:reorderCategories', function (_e, ids) {
+        requireAdmin(_e);
         var db = getDb();
         var upd = db.prepare("UPDATE product_categories SET sort_order = ?, updated_at = datetime('now','localtime') WHERE id = ?");
         db.transaction(function (order) {
@@ -138,6 +193,7 @@ export function registerSettingsHandlers() {
         return getDb().prepare("\n      SELECT u.*, COUNT(DISTINCT pu.product_id) as usage_count\n      FROM item_units u\n      LEFT JOIN product_units pu ON pu.unit_id = u.id\n      GROUP BY u.id ORDER BY ".concat(orderByBucket('u.name'), "\n    ")).all();
     });
     ipcMain.handle('settings:saveUnit', function (_e, data) {
+        requireAdmin(_e);
         var db = getDb();
         if (data.id) {
             db.prepare("UPDATE item_units SET name = ? WHERE id = ?").run(data.name, data.id);
@@ -151,6 +207,7 @@ export function registerSettingsHandlers() {
         return getDb().prepare("SELECT * FROM drug_types ORDER BY id").all();
     });
     ipcMain.handle('settings:saveDrugType', function (_e, data) {
+        requireAdmin(_e);
         var db = getDb();
         if (data.id) {
             var id = data.id, rest = __rest(data, ["id"]);
@@ -177,6 +234,7 @@ export function registerSettingsHandlers() {
         return getDb().prepare("SELECT * FROM label_settings ORDER BY id LIMIT 1").get();
     });
     ipcMain.handle('settings:saveLabelSettings', function (_e, data) {
+        requireAdmin(_e);
         var db = getDb();
         var existing = db.prepare("SELECT id FROM label_settings ORDER BY id LIMIT 1").get();
         if (existing) {
@@ -204,6 +262,7 @@ export function registerSettingsHandlers() {
         return row;
     });
     ipcMain.handle('settings:saveSalesSettings', function (_e, data) {
+        requireAdmin(_e);
         var db = getDb();
         db.transaction(function () {
             // Ensure the singleton row exists, then UPDATE with the submitted form —
@@ -235,6 +294,7 @@ export function registerSettingsHandlers() {
         return row;
     });
     ipcMain.handle('settings:saveReceiptSettings', function (_e, data) {
+        requireAdmin(_e);
         var db = getDb();
         db.transaction(function () {
             var row = db.prepare("SELECT id FROM receipt_settings ORDER BY id LIMIT 1").get();
@@ -250,6 +310,37 @@ export function registerSettingsHandlers() {
             }
         })();
         return db.prepare("SELECT * FROM receipt_settings ORDER BY id LIMIT 1").get();
+    });
+    // A4 document settings (singleton) — printer + copies shared by every
+    // full-page document (tax invoice, goods receipt, quotation). Same
+    // ensure-row-then-UPDATE pattern as receipt_settings so a first-ever save
+    // persists the submitted values instead of bare defaults.
+    ipcMain.handle('settings:getDocumentSettings', function () {
+        var db = getDb();
+        var row = db.prepare("SELECT * FROM document_settings ORDER BY id LIMIT 1").get();
+        if (!row) {
+            db.prepare("INSERT INTO document_settings DEFAULT VALUES").run();
+            row = db.prepare("SELECT * FROM document_settings ORDER BY id LIMIT 1").get();
+        }
+        return row;
+    });
+    ipcMain.handle('settings:saveDocumentSettings', function (_e, data) {
+        requireAdmin(_e);
+        var db = getDb();
+        db.transaction(function () {
+            var row = db.prepare("SELECT id FROM document_settings ORDER BY id LIMIT 1").get();
+            if (!row) {
+                var r = db.prepare("INSERT INTO document_settings DEFAULT VALUES").run();
+                row = { id: r.lastInsertRowid };
+            }
+            var id = data.id, updated_at = data.updated_at, rest = __rest(data, ["id", "updated_at"]);
+            var fields = Object.keys(rest).map(function (k) { return "".concat(k, " = @").concat(k); }).join(', ');
+            if (fields) {
+                db.prepare("UPDATE document_settings SET ".concat(fields, ", updated_at = datetime('now','localtime') WHERE id = @id"))
+                    .run(__assign(__assign({}, rest), { id: row.id }));
+            }
+        })();
+        return db.prepare("SELECT * FROM document_settings ORDER BY id LIMIT 1").get();
     });
     // All item units (for dropdowns)
     ipcMain.handle('settings:allUnits', function () {
@@ -283,6 +374,7 @@ export function registerSettingsHandlers() {
         };
     });
     ipcMain.handle('settings:saveThemeColors', function (_e, payload) {
+        requireAdmin(_e);
         var cssPath = resolveThemeCssPath();
         var css = fs.readFileSync(cssPath, 'utf8');
         var rootUpdates = {};
@@ -313,6 +405,7 @@ export function registerSettingsHandlers() {
         return (_a = getHtmlFontSize(css)) !== null && _a !== void 0 ? _a : '18px';
     });
     ipcMain.handle('settings:saveThemeFontSize', function (_e, fontSize) {
+        requireAdmin(_e);
         var value = String(fontSize !== null && fontSize !== void 0 ? fontSize : '').trim();
         if (!/^\d+(\.\d+)?px$/i.test(value)) {
             throw new Error('รูปแบบขนาดฟอนต์ไม่ถูกต้อง (ตัวอย่าง: 18px)');
@@ -336,6 +429,7 @@ export function registerSettingsHandlers() {
     });
     ipcMain.handle('settings:saveThemeFonts', function (_e, payload) {
         var _a, _b;
+        requireAdmin(_e);
         var latin = String((_a = payload === null || payload === void 0 ? void 0 : payload.latin) !== null && _a !== void 0 ? _a : '').trim();
         var thai = String((_b = payload === null || payload === void 0 ? void 0 : payload.thai) !== null && _b !== void 0 ? _b : '').trim();
         if (!latin || !thai) {

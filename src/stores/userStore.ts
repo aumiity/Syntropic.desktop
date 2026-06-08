@@ -40,3 +40,9 @@ export function getCurrentUserId(): number {
   if (!u) throw new Error('ยังไม่ได้โหลดข้อมูลผู้ใช้งาน')
   return u.id
 }
+
+// Logged-in user's display name (for the receipt "พนักงานขาย" line). Returns
+// null when no session — the slip just omits the salesperson line.
+export function getCurrentUserName(): string | null {
+  return useUserStore.getState().current?.name ?? null
+}

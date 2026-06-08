@@ -11,6 +11,7 @@ import { ipcMain } from 'electron';
 import { getDb } from '../db';
 import { assertNotBundle, recomputeAvgCost, propagateCostToBundles } from '../db/pricing';
 import dayjs from 'dayjs';
+import { requireAdmin } from '../auth/session';
 export function registerPurchaseHandlers() {
     var db = getDb();
     // Migrations (safe to call repeatedly)
@@ -227,8 +228,9 @@ export function registerPurchaseHandlers() {
         tx();
         return { success: true };
     });
-    ipcMain.handle('purchase:cancel', function (_e, payload) {
+    ipcMain.handle('purchase:cancel', function (_e, payload, override) {
         var _a;
+        requireAdmin(_e, override);
         var db = getDb();
         var reason = ((_a = payload.reason) !== null && _a !== void 0 ? _a : '').trim();
         if (!reason)

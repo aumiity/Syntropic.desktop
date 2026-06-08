@@ -33,6 +33,8 @@ import { ipcMain } from 'electron';
 import { getDb } from '../db';
 import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes';
 import { orderByBucket } from '../db/sortName';
+import { hashSecret } from '../auth/hash';
+import { requireAdmin } from '../auth/session';
 export function registerPeopleHandlers() {
     // --- CUSTOMERS ---
     ipcMain.handle('people:listCustomers', function (_e, filters) {
@@ -133,22 +135,81 @@ export function registerPeopleHandlers() {
     });
     // --- STAFF ---
     ipcMain.handle('people:listStaff', function (_e, filters) {
+        requireAdmin(_e);
         var _a = (filters !== null && filters !== void 0 ? filters : {}).includeDisabled, includeDisabled = _a === void 0 ? false : _a;
         var where = includeDisabled ? '' : "WHERE is_disabled = 0";
-        return getDb().prepare("SELECT id, name, email, role, is_disabled, created_at FROM users ".concat(where, " ORDER BY ").concat(orderByBucket('name'))).all();
+        return getDb().prepare("SELECT id, name, first_name, last_name, username, phone, email, role, is_disabled, created_at FROM users ".concat(where, " ORDER BY ").concat(orderByBucket('name'))).all();
     });
     ipcMain.handle('people:saveStaff', function (_e, data) {
+        var _a, _b, _c, _d, _f, _g, _h, _j;
+        requireAdmin(_e);
         var db = getDb();
+        // Required identity fields. username is app-required (the column is nullable +
+        // UNIQUE-indexed, so enforcement lives here, not in the schema).
+        var email = String((_a = data.email) !== null && _a !== void 0 ? _a : '').trim();
+        // Usernames are forced UPPERCASE, English alphanumerics + _ . - only (anything
+        // else — Thai, spaces, symbols — is stripped). They're case-insensitive
+        // identifiers, so this also makes the uniqueness check below case-insensitive
+        // (SQLite's default text compare is case-sensitive) and avoids AUM/Aum/aum dupes.
+        var username = String((_b = data.username) !== null && _b !== void 0 ? _b : '').trim().toUpperCase().replace(/[^A-Z0-9_.-]/g, '');
+        if (!email)
+            throw new Error('กรุณาระบุอีเมล');
+        if (!username)
+            throw new Error('กรุณาระบุชื่อผู้ใช้ (username)');
+        // The owner admin's username is locked to 'ADMIN' (avoids confusion; admin
+        // lookups elsewhere are email-keyed).
+        var finalUsername = username;
         if (data.id) {
-            var id = data.id, rest = __rest(data, ["id"]);
-            var fields = Object.keys(rest).map(function (k) { return "".concat(k, " = @").concat(k); }).join(', ');
-            db.prepare("UPDATE users SET ".concat(fields, ", updated_at = datetime('now','localtime') WHERE id = @id")).run(data);
-            return db.prepare("SELECT id, name, email, role, is_disabled FROM users WHERE id = ?").get(id);
+            var existing = db.prepare("SELECT email FROM users WHERE id = ?").get(data.id);
+            if ((existing === null || existing === void 0 ? void 0 : existing.email) === 'admin@syntropic.local')
+                finalUsername = 'ADMIN';
         }
-        var result = db.prepare("INSERT INTO users (name, email, password, role) VALUES (@name, @email, @password, @role)").run(data);
-        return db.prepare("SELECT id, name, email, role, is_disabled FROM users WHERE id = ?").get(result.lastInsertRowid);
+        // Unique username (excluding self).
+        var clash = db.prepare("SELECT id FROM users WHERE username = ? AND id <> ?").get(finalUsername, (_c = data.id) !== null && _c !== void 0 ? _c : 0);
+        if (clash)
+            throw new Error('ชื่อผู้ใช้นี้ถูกใช้แล้ว');
+        // Compose the display name — users.name is NOT NULL and is what every report
+        // join (sold_by_name / created_by_name / cashier) reads. Never let it be ''.
+        var first = String((_d = data.first_name) !== null && _d !== void 0 ? _d : '').trim();
+        var last = String((_f = data.last_name) !== null && _f !== void 0 ? _f : '').trim();
+        var composedName = [first, last].filter(Boolean).join(' ').trim() || finalUsername || email.split('@')[0];
+        // HARD: allow-list columns — never spread Object.keys(data) (footgun: a stray
+        // key throws "no such column"; a renderer-supplied hash must never be trusted).
+        // The renderer always sends plaintext; we hash here. `name` and `username` are
+        // injected explicitly (composed / normalized), not taken from the allow-list.
+        var ALLOWED = ['first_name', 'last_name', 'phone', 'role', 'is_disabled'];
+        if (data.id) {
+            var params = { id: data.id, name: composedName, username: finalUsername, email: email };
+            var sets = ['name = @name', 'username = @username', 'email = @email'];
+            for (var _i = 0, ALLOWED_1 = ALLOWED; _i < ALLOWED_1.length; _i++) {
+                var k = ALLOWED_1[_i];
+                if (k in data) {
+                    sets.push("".concat(k, " = @").concat(k));
+                    params[k] = data[k];
+                }
+            }
+            // Password is conditional — only touched when a non-empty value is sent.
+            if (data.password) {
+                sets.push("password = @password");
+                params.password = hashSecret(data.password);
+            }
+            db.prepare("UPDATE users SET ".concat(sets.join(', '), ", updated_at = datetime('now','localtime') WHERE id = @id")).run(params);
+            return db.prepare("SELECT id, name, first_name, last_name, username, phone, email, role, is_disabled FROM users WHERE id = ?").get(data.id);
+        }
+        var result = db.prepare("INSERT INTO users (name, first_name, last_name, username, phone, email, password, role) VALUES (@name, @first_name, @last_name, @username, @phone, @email, @password, @role)").run({
+            name: composedName,
+            first_name: first,
+            last_name: last,
+            username: finalUsername,
+            phone: (_g = data.phone) !== null && _g !== void 0 ? _g : null,
+            email: email,
+            password: hashSecret((_h = data.password) !== null && _h !== void 0 ? _h : ''),
+            role: (_j = data.role) !== null && _j !== void 0 ? _j : 'staff',
+        });
+        return db.prepare("SELECT id, name, first_name, last_name, username, phone, email, role, is_disabled FROM users WHERE id = ?").get(result.lastInsertRowid);
     });
     ipcMain.handle('people:setStaffStatus', function (_e, payload) {
+        requireAdmin(_e);
         getDb().prepare("UPDATE users SET is_disabled = ?, updated_at = datetime('now','localtime') WHERE id = ?")
             .run(payload.disabled ? 1 : 0, payload.id);
         return true;

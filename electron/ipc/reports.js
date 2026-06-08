@@ -21,6 +21,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 import { ipcMain } from 'electron';
 import { getDb } from '../db';
 import { orderByBucket } from '../db/sortName';
+import { requireAdmin, getSessionRole } from '../auth/session';
 export function registerReportHandlers() {
     ipcMain.handle('reports:salesList', function (_e, filters) {
         var _a, _b, _c;
@@ -104,7 +105,8 @@ export function registerReportHandlers() {
         var items = db.prepare("\n      SELECT si.*,\n        COALESCE((\n          SELECT SUM(sil.qty * pl.cost_price) FROM sale_item_lots sil\n          JOIN product_lots pl ON pl.id = sil.lot_id\n          WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0\n        ), 0) as item_cost\n      FROM sale_items si WHERE si.sale_id = ?\n    ").all(id);
         return __assign(__assign({}, sale), { items: items });
     });
-    ipcMain.handle('reports:voidSale', function (_e, id, reason) {
+    ipcMain.handle('reports:voidSale', function (_e, id, reason, override) {
+        requireAdmin(_e, override);
         var db = getDb();
         var voidSale = db.transaction(function () {
             var sale = db.prepare("SELECT * FROM sales WHERE id = ?").get(id);
@@ -210,7 +212,7 @@ export function registerReportHandlers() {
     // it twice (current + previous period) for delta widgets without duplicating
     // the SQL or losing the SALE_COST_SUB / PURCHASE_NET_SUB sharing.
     function computeFinanceWindow(date_from, date_to) {
-        var _a, _b;
+        var _a, _b, _c;
         var db = getDb();
         var sCond = ["s.status != 'voided'"];
         var sParams = [];
@@ -237,7 +239,20 @@ export function registerReportHandlers() {
         }
         var pWhere = "WHERE ".concat(pCond.join(' AND '));
         var purchases = (_b = db.prepare("\n      SELECT\n        COALESCE(SUM(".concat(PURCHASE_NET_SUB, "), 0) AS purchase_total,\n        COALESCE(SUM(CASE WHEN pr.payment_type = 'cash'   THEN ").concat(PURCHASE_NET_SUB, " ELSE 0 END), 0) AS purchase_cash,\n        COALESCE(SUM(CASE WHEN pr.payment_type = 'credit' THEN ").concat(PURCHASE_NET_SUB, " ELSE 0 END), 0) AS purchase_credit,\n        COUNT(*) AS purchase_count\n      FROM purchase_receipts pr ").concat(pWhere, "\n    "))).get.apply(_b, pParams);
-        return __assign(__assign({}, sales), purchases);
+        // Shop expenses (ค่าใช้จ่าย) over the same window — feeds net-profit display.
+        var eCond = [];
+        var eParams = [];
+        if (date_from) {
+            eCond.push("date(e.expense_date) >= ?");
+            eParams.push(date_from);
+        }
+        if (date_to) {
+            eCond.push("date(e.expense_date) <= ?");
+            eParams.push(date_to);
+        }
+        var eWhere = eCond.length ? "WHERE ".concat(eCond.join(' AND ')) : '';
+        var expenses = (_c = db.prepare("\n      SELECT COALESCE(SUM(e.amount), 0) AS expense_total FROM expenses e ".concat(eWhere, "\n    "))).get.apply(_c, eParams);
+        return __assign(__assign(__assign({}, sales), purchases), { expense_total: expenses.expense_total });
     }
     // Same-length window immediately before [date_from, date_to]. e.g. May 1–23
     // (23 days) → April 8–30. Returned as ISO yyyy-mm-dd to match input format.
@@ -251,6 +266,7 @@ export function registerReportHandlers() {
         return { from: prevFrom.toISOString().slice(0, 10), to: prevTo.toISOString().slice(0, 10) };
     }
     ipcMain.handle('reports:financeSummary', function (_e, filters) {
+        requireAdmin(_e);
         var db = getDb();
         var date_from = filters.date_from, date_to = filters.date_to, with_compare = filters.with_compare;
         var current = computeFinanceWindow(date_from, date_to);
@@ -269,6 +285,7 @@ export function registerReportHandlers() {
     ipcMain.handle('reports:salesPurchaseTrend', function (_e, filters) {
         var _a, _b;
         var _c;
+        requireAdmin(_e);
         var db = getDb();
         var date_from = filters.date_from, date_to = filters.date_to;
         var granularity = (_c = filters.granularity) !== null && _c !== void 0 ? _c : 'day';
@@ -324,7 +341,8 @@ export function registerReportHandlers() {
         }
         return Array.from(map.values()).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     });
-    ipcMain.handle('reports:accountsPayable', function () {
+    ipcMain.handle('reports:accountsPayable', function (_e) {
+        requireAdmin(_e);
         var db = getDb();
         var rows = db.prepare("\n      SELECT pr.invoice_no, pr.supplier_invoice_no, pr.created_at AS received_at,\n             pr.due_date, s.name AS supplier_name,\n             ".concat(PURCHASE_NET_SUB, " AS amount,\n             CAST(julianday(date('now')) - julianday(date(pr.due_date)) AS INTEGER) AS days_overdue\n      FROM purchase_receipts pr\n      LEFT JOIN suppliers s ON s.id = pr.supplier_id\n      WHERE pr.status != 'cancelled' AND pr.payment_type = 'credit' AND pr.is_paid = 0\n      ORDER BY (pr.due_date IS NULL), date(pr.due_date) ASC, pr.created_at ASC\n    ")).all();
         // Aging buckets by days overdue (negative/unset = not yet due).
@@ -354,6 +372,7 @@ export function registerReportHandlers() {
     ipcMain.handle('reports:topProducts', function (_e, filters) {
         var _a;
         var _b, _c;
+        requireAdmin(_e);
         var db = getDb();
         var date_from = filters.date_from, date_to = filters.date_to;
         var by = (_b = filters.by) !== null && _b !== void 0 ? _b : 'revenue';
@@ -371,17 +390,23 @@ export function registerReportHandlers() {
         var where = "WHERE ".concat(conds.join(' AND '));
         // cost = Σ(lot qty × lot cost_price), matched per sale_item. Same expression
         // as salesList's total_cost subquery but pivoted by product instead of sale.
+        // `margin` = profit/revenue; NULLIF guards divide-by-zero so zero-revenue
+        // rows sort last. Wrapped in an outer SELECT so the ORDER BY can reference
+        // the aggregate aliases inside an expression (bare aliases alone are safe,
+        // but `profit / revenue` is not guaranteed without the wrapper).
         var orderBy = (by === 'qty' ? "qty DESC" :
             by === 'profit' ? "profit DESC" :
                 by === 'low_profit' ? "profit ASC" :
-                    "revenue DESC");
-        return (_a = db.prepare("\n      SELECT p.id                                        AS product_id,\n             p.trade_name,\n             u.name                                      AS unit_name,\n             COALESCE(SUM(si.qty), 0)                    AS qty,\n             COALESCE(SUM(si.line_total), 0)             AS revenue,\n             COALESCE(SUM((\n               SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)\n               FROM sale_item_lots sil\n               LEFT JOIN product_lots pl ON pl.id = sil.lot_id\n               WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0\n             )), 0)                                      AS cost,\n             COALESCE(SUM(si.line_total), 0) - COALESCE(SUM((\n               SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)\n               FROM sale_item_lots sil\n               LEFT JOIN product_lots pl ON pl.id = sil.lot_id\n               WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0\n             )), 0)                                      AS profit\n      FROM sale_items si\n      JOIN sales s    ON s.id = si.sale_id\n      JOIN products p ON p.id = si.product_id\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      ".concat(where, "\n      GROUP BY p.id\n      ORDER BY ").concat(orderBy, ", ").concat(orderByBucket('p.trade_name'), "\n      LIMIT ?\n    "))).all.apply(_a, __spreadArray(__spreadArray([], params, false), [limit], false));
+                    by === 'margin' ? "CAST(profit AS REAL) / NULLIF(revenue, 0) DESC" :
+                        "revenue DESC");
+        return (_a = db.prepare("\n      SELECT * FROM (\n        SELECT p.id                                      AS product_id,\n               p.trade_name,\n               u.name                                    AS unit_name,\n               COALESCE(SUM(si.qty), 0)                  AS qty,\n               COALESCE(SUM(si.line_total), 0)           AS revenue,\n               COALESCE(SUM((\n                 SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)\n                 FROM sale_item_lots sil\n                 LEFT JOIN product_lots pl ON pl.id = sil.lot_id\n                 WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0\n               )), 0)                                    AS cost,\n               COALESCE(SUM(si.line_total), 0) - COALESCE(SUM((\n                 SELECT COALESCE(SUM(sil.qty * pl.cost_price), 0)\n                 FROM sale_item_lots sil\n                 LEFT JOIN product_lots pl ON pl.id = sil.lot_id\n                 WHERE sil.sale_item_id = si.id AND sil.is_cancelled = 0\n               )), 0)                                    AS profit\n        FROM sale_items si\n        JOIN sales s    ON s.id = si.sale_id\n        JOIN products p ON p.id = si.product_id\n        LEFT JOIN item_units u ON u.id = p.unit_id\n        ".concat(where, "\n        GROUP BY p.id\n      )\n      ORDER BY ").concat(orderBy, ", ").concat(orderByBucket('trade_name'), "\n      LIMIT ?\n    "))).all.apply(_a, __spreadArray(__spreadArray([], params, false), [limit], false));
     });
     // Top suppliers by purchase amount in window. Same PURCHASE_NET_SUB logic
     // as financeSummary so totals reconcile.
     ipcMain.handle('reports:topSuppliers', function (_e, filters) {
         var _a;
         var _b;
+        requireAdmin(_e);
         var db = getDb();
         var date_from = filters.date_from, date_to = filters.date_to;
         var limit = (_b = filters.limit) !== null && _b !== void 0 ? _b : 10;
@@ -406,6 +431,7 @@ export function registerReportHandlers() {
     //                 (average busiest times). Same fill so 24 points always.
     ipcMain.handle('reports:hourlyTraffic', function (_e, filters) {
         var _a;
+        requireAdmin(_e); // hourly sales = revenue → admin-only (staff never see money)
         var db = getDb();
         var date_from = filters.date_from, date_to = filters.date_to;
         var mode = (date_from && date_to && date_from === date_to) ? 'single_day' : 'aggregated';
@@ -431,6 +457,7 @@ export function registerReportHandlers() {
     ipcMain.handle('reports:cashierLeaderboard', function (_e, filters) {
         var _a;
         var _b;
+        requireAdmin(_e);
         var db = getDb();
         var date_from = filters.date_from, date_to = filters.date_to;
         var limit = (_b = filters.limit) !== null && _b !== void 0 ? _b : 10;
@@ -455,6 +482,7 @@ export function registerReportHandlers() {
     //   - bundle revenue share
     ipcMain.handle('reports:salesStats', function (_e, filters) {
         var _a, _b, _c, _d;
+        requireAdmin(_e);
         var db = getDb();
         var date_from = filters.date_from, date_to = filters.date_to;
         var sCond = [];
@@ -519,6 +547,7 @@ export function registerReportHandlers() {
         var _a;
         var _b;
         var db = getDb();
+        var isAdmin = getSessionRole(_e) === 'admin';
         var date_from = filters.date_from, date_to = filters.date_to;
         var limit = (_b = filters.limit) !== null && _b !== void 0 ? _b : 50;
         var stockExpr = "COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)";
@@ -534,7 +563,28 @@ export function registerReportHandlers() {
             sParams.push(date_to);
         }
         var inactiveCondition = "NOT EXISTS (\n      SELECT 1 FROM sale_items si\n      JOIN sales s ON s.id = si.sale_id\n      WHERE si.product_id = p.id AND ".concat(sCond.join(' AND '), "\n    )");
-        return (_a = db.prepare("\n      SELECT p.id                                  AS product_id,\n             p.trade_name,\n             u.name                                AS unit_name,\n             ".concat(stockExpr, "                          AS qty_on_hand,\n             ").concat(costExpr, "                           AS cost_value,\n             (SELECT MAX(s2.sold_at)\n                FROM sale_items si2\n                JOIN sales s2 ON s2.id = si2.sale_id\n                WHERE si2.product_id = p.id AND s2.status != 'voided' AND si2.is_cancelled = 0\n             )                                     AS last_sold_at,\n             (SELECT COALESCE(SUM(sil3.qty), 0) / 6.0\n                FROM sale_item_lots sil3\n                JOIN sale_items si3 ON si3.id = sil3.sale_item_id\n                JOIN sales s3 ON s3.id = si3.sale_id\n                WHERE sil3.product_id = p.id\n                  AND sil3.is_cancelled = 0\n                  AND si3.is_cancelled = 0\n                  AND s3.status != 'voided'\n                  AND date(s3.sold_at) >= date('now','-6 months')\n             )                                     AS avg_monthly_6m\n      FROM products p\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      WHERE p.is_disabled = 0\n        AND p.is_bundle   = 0\n        AND ").concat(stockExpr, " > 0\n        AND ").concat(inactiveCondition, "\n      ORDER BY cost_value DESC\n      LIMIT ?\n    "))).all.apply(_a, __spreadArray(__spreadArray([], sParams, false), [limit], false));
+        var rows = (_a = db.prepare("\n      SELECT p.id                                  AS product_id,\n             p.trade_name,\n             u.name                                AS unit_name,\n             ".concat(stockExpr, "                          AS qty_on_hand,\n             ").concat(costExpr, "                           AS cost_value,\n             (SELECT MAX(s2.sold_at)\n                FROM sale_items si2\n                JOIN sales s2 ON s2.id = si2.sale_id\n                WHERE si2.product_id = p.id AND s2.status != 'voided' AND si2.is_cancelled = 0\n             )                                     AS last_sold_at,\n             (SELECT COALESCE(SUM(sil3.qty), 0) / 6.0\n                FROM sale_item_lots sil3\n                JOIN sale_items si3 ON si3.id = sil3.sale_item_id\n                JOIN sales s3 ON s3.id = si3.sale_id\n                WHERE sil3.product_id = p.id\n                  AND sil3.is_cancelled = 0\n                  AND si3.is_cancelled = 0\n                  AND s3.status != 'voided'\n                  AND date(s3.sold_at) >= date('now','-6 months')\n             )                                     AS avg_monthly_6m\n      FROM products p\n      LEFT JOIN item_units u ON u.id = p.unit_id\n      WHERE p.is_disabled = 0\n        AND p.is_bundle   = 0\n        AND ").concat(stockExpr, " > 0\n        AND ").concat(inactiveCondition, "\n      ORDER BY cost_value DESC\n      LIMIT ?\n    "))).all.apply(_a, __spreadArray(__spreadArray([], sParams, false), [limit], false));
+        // R1: cost is finance — staff never see per-row cost value. Strip on the
+        // main side so it can't leak via DevTools; admin keeps the full figure.
+        if (!isAdmin)
+            return rows.map(function (r) { return (__assign(__assign({}, r), { cost_value: null })); });
+        return rows;
+    });
+    // Counts of "dead stock" SKUs (stock on hand, no sale within N months) for
+    // the 1/3/6/12-month threshold cards. Counts are nested by construction
+    // (m1 >= m3 >= m6 >= m12). "Not sold within N months" ⟺ last sale older than
+    // now-N (or never sold), matching the NOT EXISTS window in inactiveProducts.
+    ipcMain.handle('reports:inactiveCounts', function () {
+        var _a, _b, _c, _d;
+        var db = getDb();
+        var stockExpr = "COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)";
+        var row = db.prepare("\n      SELECT\n        SUM(CASE WHEN last_sold IS NULL OR last_sold < date('now','-1 months')  THEN 1 ELSE 0 END) AS m1,\n        SUM(CASE WHEN last_sold IS NULL OR last_sold < date('now','-3 months')  THEN 1 ELSE 0 END) AS m3,\n        SUM(CASE WHEN last_sold IS NULL OR last_sold < date('now','-6 months')  THEN 1 ELSE 0 END) AS m6,\n        SUM(CASE WHEN last_sold IS NULL OR last_sold < date('now','-12 months') THEN 1 ELSE 0 END) AS m12\n      FROM (\n        SELECT (\n          SELECT MAX(date(s.sold_at))\n          FROM sale_items si\n          JOIN sales s ON s.id = si.sale_id\n          WHERE si.product_id = p.id AND s.status != 'voided' AND si.is_cancelled = 0\n        ) AS last_sold\n        FROM products p\n        WHERE p.is_disabled = 0\n          AND p.is_bundle   = 0\n          AND ".concat(stockExpr, " > 0\n      )\n    ")).get();
+        return {
+            m1: (_a = row.m1) !== null && _a !== void 0 ? _a : 0,
+            m3: (_b = row.m3) !== null && _b !== void 0 ? _b : 0,
+            m6: (_c = row.m6) !== null && _c !== void 0 ? _c : 0,
+            m12: (_d = row.m12) !== null && _d !== void 0 ? _d : 0,
+        };
     });
     // Sales velocity per product (6-month rolling base, not affected by date
     // filter) + suggested safety_stock / reorder_point for the operator. We
@@ -549,6 +599,7 @@ export function registerReportHandlers() {
     ipcMain.handle('reports:productVelocity', function (_e, filters) {
         var _a;
         var _b, _c;
+        requireAdmin(_e);
         var db = getDb();
         var limit = (_b = filters.limit) !== null && _b !== void 0 ? _b : 50;
         var sort_by = (_c = filters.sort_by) !== null && _c !== void 0 ? _c : 'days_cover';

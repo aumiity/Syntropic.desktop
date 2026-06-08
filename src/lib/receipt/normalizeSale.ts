@@ -22,6 +22,7 @@ export function saleDetailToPrint(detail: any): SaleForPrint {
     sale_type: detail.sale_type,
     status: detail.status,
     customer_name: detail.customer_name ?? detail.customer_name_free ?? null,
+    salesperson_name: detail.sold_by_name ?? null,
     items,
     subtotal: Number(detail.subtotal) || 0,
     total_discount: Number(detail.total_discount) || 0,

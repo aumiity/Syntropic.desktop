@@ -17,6 +17,9 @@ declare const api: {
             price_type?: "retail" | "wholesale1" | "wholesale2";
             new_price: number;
             note?: string;
+        }, override?: {
+            userId: number;
+            password: string;
         }) => Promise<any>;
         priceHistory: (id: number, limit?: number) => Promise<any>;
         stockMovements: (productId: number, opts?: {
@@ -27,7 +30,10 @@ declare const api: {
             date_to?: string;
             sort_dir?: "asc" | "desc";
         }) => Promise<any>;
-        adjustStock: (productId: number, data: any) => Promise<any>;
+        adjustStock: (productId: number, data: any, override?: {
+            userId: number;
+            password: string;
+        }) => Promise<any>;
         addUnit: (data: any) => Promise<any>;
         updateUnit: (id: number, data: any) => Promise<any>;
         deleteUnit: (id: number) => Promise<any>;
@@ -54,6 +60,9 @@ declare const api: {
             qty: number;
             note?: string;
             user_id: number;
+        }, override?: {
+            userId: number;
+            password: string;
         }) => Promise<any>;
         adjustLotBatch: (payload: {
             items: Array<{
@@ -63,9 +72,18 @@ declare const api: {
             }>;
             reason: string;
             user_id: number;
+        }, override?: {
+            userId: number;
+            password: string;
         }) => Promise<any>;
-        updateLot: (id: number, data: any) => Promise<any>;
-        expireLot: (lotId: number, userId: number) => Promise<any>;
+        updateLot: (id: number, data: any, override?: {
+            userId: number;
+            password: string;
+        }) => Promise<any>;
+        expireLot: (lotId: number, userId: number, override?: {
+            userId: number;
+            password: string;
+        }) => Promise<any>;
         stockStats: (filters: {
             q?: string;
             category_id?: number;
@@ -83,6 +101,9 @@ declare const api: {
             invoice_no: string;
             reason: string;
             userId: number;
+        }, override?: {
+            userId: number;
+            password: string;
         }) => Promise<any>;
         updateHeader: (payload: any) => Promise<any>;
     };
@@ -103,7 +124,10 @@ declare const api: {
         salesList: (filters: any) => Promise<any>;
         getSale: (id: number) => Promise<any>;
         getSaleByInvoice: (invoiceNo: string) => Promise<any>;
-        voidSale: (id: number, reason: string) => Promise<any>;
+        voidSale: (id: number, reason: string, override?: {
+            userId: number;
+            password: string;
+        }) => Promise<any>;
         expiringLots: (filters: any) => Promise<any>;
         financeSummary: (filters: any) => Promise<any>;
         salesPurchaseTrend: (filters: any) => Promise<any>;
@@ -118,6 +142,7 @@ declare const api: {
         cashierLeaderboard: (filters: any) => Promise<any>;
         salesStats: (filters: any) => Promise<any>;
         inactiveProducts: (filters: any) => Promise<any>;
+        inactiveCounts: () => Promise<any>;
         productVelocity: (filters: any) => Promise<any>;
     };
     settings: {
@@ -137,6 +162,8 @@ declare const api: {
         saveSalesSettings: (data: any) => Promise<any>;
         getReceiptSettings: () => Promise<any>;
         saveReceiptSettings: (data: any) => Promise<any>;
+        getDocumentSettings: () => Promise<any>;
+        saveDocumentSettings: (data: any) => Promise<any>;
         listLabelFrequencies: () => Promise<any>;
         listLabelDosages: () => Promise<any>;
         listLabelMealRelations: () => Promise<any>;
@@ -263,6 +290,58 @@ declare const api: {
             lineTotal: number | string;
         }>) => Promise<any>;
     };
+    backup: {
+        export: () => Promise<{
+            ok: boolean;
+            path?: string;
+            canceled?: boolean;
+            error?: string;
+        }>;
+        restore: () => Promise<{
+            ok: boolean;
+            canceled?: boolean;
+            error?: string;
+        }>;
+        getSettings: () => Promise<{
+            id: number;
+            auto_enabled: number;
+            retention_count: number;
+            backup_dir: string | null;
+            last_auto_backup_at: string | null;
+            default_dir: string;
+        }>;
+        saveSettings: (s: {
+            auto_enabled: boolean;
+            retention_count: number;
+        }) => Promise<{
+            id: number;
+            auto_enabled: number;
+            retention_count: number;
+            backup_dir: string | null;
+            last_auto_backup_at: string | null;
+            default_dir: string;
+        }>;
+        pickFolder: () => Promise<{
+            ok: boolean;
+            path?: string;
+            canceled?: boolean;
+            error?: string;
+        }>;
+        resetFolder: () => Promise<{
+            ok: boolean;
+            path: string;
+        }>;
+        listAuto: () => Promise<Array<{
+            name: string;
+            path: string;
+            size: number;
+            mtime: string;
+        }>>;
+        openFolder: () => Promise<{
+            ok: boolean;
+            error?: string;
+        }>;
+    };
     negativeStock: {
         list: () => Promise<any>;
         count: () => Promise<any>;
@@ -275,8 +354,32 @@ declare const api: {
             userId: number;
         }) => Promise<any>;
     };
+    expenses: {
+        list: (filters?: any) => Promise<any>;
+        summary: (filters?: any) => Promise<any>;
+        save: (payload: any) => Promise<any>;
+        delete: (id: number) => Promise<any>;
+        listCategories: () => Promise<any>;
+        activeCategories: () => Promise<any>;
+        saveCategory: (data: any) => Promise<any>;
+        reorderCategories: (ids: number[]) => Promise<any>;
+    };
     auth: {
-        getCurrentUser: () => Promise<any>;
+        listLoginUsers: () => Promise<any>;
+        login: (userId: number, password: string) => Promise<any>;
+        devLogin: () => Promise<{
+            id: number;
+            name: string;
+            role: string;
+        } | null>;
+        logout: () => Promise<any>;
+        getMyProfile: () => Promise<any>;
+        changePassword: (currentPassword: string, newPassword: string) => Promise<{
+            ok: true;
+        }>;
+        resetAdminPassword: (recoveryCode: string, newPassword: string) => Promise<{
+            recoveryCode: string;
+        }>;
     };
     dev: {
         seedSalesHistory: (days?: number) => Promise<any>;

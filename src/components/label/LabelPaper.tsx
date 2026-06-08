@@ -7,6 +7,7 @@ import type { CSSProperties } from 'react'
 import {
   SECTIONS, buildSectionStyle, type SectionKey, type LabelSettingsForm,
 } from '@/lib/label/sections'
+import { barcodeSvg } from '@/lib/label/barcode'
 
 interface Props {
   settings: LabelSettingsForm
@@ -78,6 +79,11 @@ export function LabelPaper({ settings, content, date }: Props) {
           if (!nameText && !showDate) return null
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'
+          // The shop offset must move ONLY the name, not the date. Lift the offset
+          // transform off the flex CONTAINER (it would shift both children) and
+          // re-apply it to the name span alone; the date keeps its OWN offset.
+          const shopTransform = style.transform
+          style.transform = undefined
           // Date span uses print_date's font/bold + its own offset nudge. Spans
           // need the family too — the `*` rule hits them directly.
           const dateStyle: CSSProperties = {
@@ -88,8 +94,25 @@ export function LabelPaper({ settings, content, date }: Props) {
           }
           return (
             <div key={s.key} style={{ ...style, display: 'flex', justifyContent: 'space-between', gap: '4mm' }}>
-              <span style={{ fontFamily }}>{nameText}</span>
+              <span style={{ fontFamily, transform: shopTransform }}>{nameText}</span>
               {showDate ? <span style={dateStyle}>{date}</span> : null}
+            </div>
+          )
+        }
+        if (s.key === 'barcode') {
+          // Bars only (no digits). Height = the section's "ขนาด" value, read as mm
+          // (font_size_barcode is repurposed for barcode height). barcodeSvg → ''
+          // when blank/unencodable, so the row simply disappears.
+          const svg = barcodeSvg(text, { displayValue: false })
+          if (!svg) return null
+          if (first) { style.marginTop = 0; first = false }
+          return (
+            <div key={s.key} style={{ ...style, textAlign: 'center' }}>
+              <img
+                src={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`}
+                alt={text}
+                style={{ height: `${settings.font_size_barcode}mm`, maxWidth: '100%', display: 'inline-block' }}
+              />
             </div>
           )
         }

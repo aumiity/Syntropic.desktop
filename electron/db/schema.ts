@@ -538,9 +538,19 @@ export function initializeSchema(db: Database.Database) {
       copies             INTEGER NOT NULL DEFAULT 1,
       font_family        TEXT NOT NULL DEFAULT 'Sarabun',
       font_size          REAL NOT NULL DEFAULT 11,
-      header_note        TEXT NOT NULL DEFAULT '',
       footer_note        TEXT NOT NULL DEFAULT 'ขอบคุณที่ใช้บริการ',
       abbrev_tax_invoice INTEGER NOT NULL DEFAULT 1,
+      -- Per-section style (SSOT: src/lib/receipt/sections.ts). show_/bold_ = 0|1,
+      -- align_ = 'left'|'center'|'right'|'justify'. Font SIZE is global above.
+      show_shop          INTEGER NOT NULL DEFAULT 1, bold_shop          INTEGER NOT NULL DEFAULT 1, align_shop          TEXT NOT NULL DEFAULT 'center',
+      show_shop_contact  INTEGER NOT NULL DEFAULT 1, bold_shop_contact  INTEGER NOT NULL DEFAULT 0, align_shop_contact  TEXT NOT NULL DEFAULT 'center',
+      show_tax_id        INTEGER NOT NULL DEFAULT 1, bold_tax_id        INTEGER NOT NULL DEFAULT 0, align_tax_id        TEXT NOT NULL DEFAULT 'center',
+      show_title         INTEGER NOT NULL DEFAULT 1, bold_title         INTEGER NOT NULL DEFAULT 1, align_title         TEXT NOT NULL DEFAULT 'center',
+      show_bill_info     INTEGER NOT NULL DEFAULT 1, bold_bill_info     INTEGER NOT NULL DEFAULT 0, align_bill_info     TEXT NOT NULL DEFAULT 'justify',
+      show_summary       INTEGER NOT NULL DEFAULT 1, bold_summary       INTEGER NOT NULL DEFAULT 0, align_summary       TEXT NOT NULL DEFAULT 'justify',
+      show_payment       INTEGER NOT NULL DEFAULT 1, bold_payment       INTEGER NOT NULL DEFAULT 0, align_payment       TEXT NOT NULL DEFAULT 'justify',
+      show_footer        INTEGER NOT NULL DEFAULT 1, bold_footer        INTEGER NOT NULL DEFAULT 0, align_footer        TEXT NOT NULL DEFAULT 'center',
+      show_salesperson   INTEGER NOT NULL DEFAULT 1, bold_salesperson   INTEGER NOT NULL DEFAULT 0, align_salesperson   TEXT NOT NULL DEFAULT 'center',
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -916,6 +926,41 @@ export function initializeSchema(db: Database.Database) {
     // A4 documents can now be issued on A4 or A5 — page size is configurable
     // per the document_settings singleton (was hard-locked to A4).
     `ALTER TABLE document_settings ADD COLUMN paper_size TEXT NOT NULL DEFAULT 'A4'`,
+    // receipt_settings: per-section style (SSOT src/lib/receipt/sections.ts).
+    // show_/bold_ = 0|1, align_ = 'left'|'center'|'right'|'justify'. Font size
+    // stays the single global `font_size` column. header_note is retired (dropped
+    // below) — the slip's only free text is footer_note.
+    `ALTER TABLE receipt_settings ADD COLUMN show_shop          INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN bold_shop          INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN align_shop          TEXT NOT NULL DEFAULT 'center'`,
+    `ALTER TABLE receipt_settings ADD COLUMN show_shop_contact  INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN bold_shop_contact  INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE receipt_settings ADD COLUMN align_shop_contact  TEXT NOT NULL DEFAULT 'center'`,
+    `ALTER TABLE receipt_settings ADD COLUMN show_tax_id        INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN bold_tax_id        INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE receipt_settings ADD COLUMN align_tax_id        TEXT NOT NULL DEFAULT 'center'`,
+    `ALTER TABLE receipt_settings ADD COLUMN show_title         INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN bold_title         INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN align_title         TEXT NOT NULL DEFAULT 'center'`,
+    `ALTER TABLE receipt_settings ADD COLUMN show_bill_info     INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN bold_bill_info     INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE receipt_settings ADD COLUMN align_bill_info     TEXT NOT NULL DEFAULT 'justify'`,
+    `ALTER TABLE receipt_settings ADD COLUMN show_summary       INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN bold_summary       INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE receipt_settings ADD COLUMN align_summary       TEXT NOT NULL DEFAULT 'justify'`,
+    `ALTER TABLE receipt_settings ADD COLUMN show_payment       INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN bold_payment       INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE receipt_settings ADD COLUMN align_payment       TEXT NOT NULL DEFAULT 'justify'`,
+    `ALTER TABLE receipt_settings ADD COLUMN show_footer        INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN bold_footer        INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE receipt_settings ADD COLUMN align_footer        TEXT NOT NULL DEFAULT 'center'`,
+    `ALTER TABLE receipt_settings ADD COLUMN show_salesperson   INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE receipt_settings ADD COLUMN bold_salesperson   INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE receipt_settings ADD COLUMN align_salesperson   TEXT NOT NULL DEFAULT 'center'`,
+    // Retire the receipt header note (owner doesn't use it). DROP COLUMN needs
+    // SQLite 3.35+ (bundled); the loop's per-statement try/catch swallows it on
+    // older engines, where the column simply lingers unused (harmless).
+    `ALTER TABLE receipt_settings DROP COLUMN header_note`,
   ]) {
     try { db.exec(sql) } catch {}
   }

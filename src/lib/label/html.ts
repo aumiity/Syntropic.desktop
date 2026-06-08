@@ -7,6 +7,7 @@
 import type { CSSProperties } from 'react'
 import { SECTIONS, buildSectionStyle, type LabelSettingsForm, type SectionKey } from './sections'
 import { esc, buildPrintFontFaceCss } from '@/lib/print/fonts'
+import { barcodeSvg } from './barcode'
 
 // Inline React style object → a CSS declaration string (camelCase → kebab-case).
 export function styleToCss(s: CSSProperties): string {
@@ -45,17 +46,30 @@ export async function buildLabelHtml(
         const showDate = !!settings.show_print_date && !!date
         const nameText = showName ? text : ''
         if (!nameText && !showDate) return ''
+        // Lift the shop offset OFF the flex container (it would drag the date too)
+        // and re-apply it to the name span only; the date keeps its own offset.
+        const secStyle = buildSectionStyle(s, settings)
+        const shopTransform = secStyle.transform
         const style = {
-          ...buildSectionStyle(s, settings),
+          ...secStyle, transform: undefined,
           whiteSpace: 'normal', display: 'flex', justifyContent: 'space-between', gap: '4mm',
         } as CSSProperties
+        const nameStyle: CSSProperties = { transform: shopTransform }
         const dateStyle: CSSProperties = {
           fontSize:   `${settings.font_size_print_date}pt`,
           fontWeight: settings.bold_print_date ? 'bold' : 'normal',
           transform:  `translate(${settings.offset_x_print_date}mm, ${settings.offset_y_print_date}mm)`,
         }
         const dateSpan = showDate ? `<span style="${styleToCss(dateStyle)}">${esc(date)}</span>` : ''
-        return `<div style="${styleToCss(style)}"><span>${esc(nameText)}</span>${dateSpan}</div>`
+        return `<div style="${styleToCss(style)}"><span style="${styleToCss(nameStyle)}">${esc(nameText)}</span>${dateSpan}</div>`
+      }
+      if (s.key === 'barcode') {
+        // Bars only; height = section "ขนาด" (mm). Same SVG generator as the React
+        // preview → print === preview.
+        const svg = barcodeSvg(text, { displayValue: false })
+        if (!svg) return ''
+        const wrap = { ...buildSectionStyle(s, settings), textAlign: 'center' } as CSSProperties
+        return `<div style="${styleToCss(wrap)}"><img src="data:image/svg+xml;utf8,${encodeURIComponent(svg)}" style="height:${settings.font_size_barcode}mm;max-width:100%;display:inline-block" /></div>`
       }
       if (!text) return ''
       const body = esc(text).replace(/\n/g, '<br>')

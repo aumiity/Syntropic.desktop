@@ -1,5 +1,6 @@
 import { buildPrintFontFaceCss, esc } from '@/lib/print/fonts'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
+import { alignCss, type RcSectionKey } from './sections'
 import type { ReceiptSettings, SaleForPrint, Setting } from '@/types'
 
 // Slip document modes:
@@ -17,8 +18,18 @@ const TITLES: Record<SlipMode, string> = {
   void: 'ใบเสร็จรับเงิน (ยกเลิก)',
 }
 
+// One label/value row of a "pair" section.
+type PairRow = { label: string; value: string }
+
 // Build the 80mm (configurable) thermal slip HTML. Continuous roll: the page
 // uses `@page size <w>mm auto` and the print IPC measures the rendered height.
+//
+// Per-section style model (SSOT: src/lib/receipt/sections.ts): each section is
+// shown/hidden, bolded, and aligned by its own settings columns. Font SIZE is
+// global (settings.font_size) — one size for the whole slip. For "pair" sections
+// (label/value rows) the alignment 'justify' keeps the classic 2-column look
+// (label left, value right); any other alignment packs "label value" onto one
+// line and aligns the whole block left/center/right.
 export async function buildSlipHtml(
   sale: SaleForPrint,
   shop: Partial<Setting>,
@@ -36,49 +47,100 @@ export async function buildSlipHtml(
   const exVat = sale.total_amount - sale.total_vat
   const isAbbrevTax = mode === 'abbrevTax'
 
-  const shopLines: string[] = []
-  if (shop.shop_address) shopLines.push(esc(shop.shop_address))
-  if (shop.shop_phone) shopLines.push(`โทร. ${esc(shop.shop_phone)}`)
-  // Tax id + branch are mandatory on an abbreviated tax invoice (ม.86/6).
-  if (isAbbrevTax && shop.shop_tax_id) {
-    shopLines.push(`เลขผู้เสียภาษี ${esc(shop.shop_tax_id)}`)
-    if (shop.shop_branch) shopLines.push(esc(shop.shop_branch))
+  // Per-section style accessors (columns resolved by convention from the key).
+  const shown = (k: RcSectionKey) => !!(settings as any)[`show_${k}`]
+  const weight = (k: RcSectionKey) => ((settings as any)[`bold_${k}`] ? 700 : 400)
+  const al = (k: RcSectionKey) => alignCss((settings as any)[`align_${k}`])
+
+  // A "text" section: a block of plain lines (already HTML-escaped, joined by
+  // <br>). Hidden when toggled off or empty.
+  const textBlock = (k: RcSectionKey, innerHtml: string) =>
+    shown(k) && innerHtml
+      ? `<div class="sec" style="text-align:${al(k)};font-weight:${weight(k)}">${innerHtml}</div>`
+      : ''
+
+  // A "pair" section: label/value rows. 'justify' → 2-column flex; otherwise the
+  // pair is packed ("label value") and the whole line aligned.
+  const pairBlock = (k: RcSectionKey, rows: (PairRow | null)[]) => {
+    const visible = rows.filter((r): r is PairRow => r != null)
+    if (!shown(k) || visible.length === 0) return ''
+    const w = weight(k)
+    const a = al(k)
+    if (a === 'justify') {
+      return visible.map(r =>
+        `<div class="prow" style="font-weight:${w}"><span>${r.label}</span><span class="val">${r.value}</span></div>`
+      ).join('')
+    }
+    return visible.map(r =>
+      `<div class="sec" style="text-align:${a};font-weight:${w}">${r.label} ${r.value}</div>`
+    ).join('')
   }
 
+  // ── Section content ────────────────────────────────────────────────────────
+  // 1) ชื่อร้าน + สาขา
+  const shopInner = [
+    esc(shop.shop_name ?? ''),
+    shop.shop_branch ? esc(shop.shop_branch) : '',
+  ].filter(Boolean).join('<br>')
+
+  // 2) ที่อยู่ + เบอร์โทร
+  const contactInner = [
+    shop.shop_address ? esc(shop.shop_address) : '',
+    shop.shop_phone ? `โทร. ${esc(shop.shop_phone)}` : '',
+  ].filter(Boolean).join('<br>')
+
+  // 3) เลขประจำตัวผู้เสียภาษี
+  const taxInner = shop.shop_tax_id ? `เลขประจำตัวผู้เสียภาษี ${esc(shop.shop_tax_id)}` : ''
+
+  // 5) เลขที่ / วันที่ / ผู้รับบริการ
+  const billRows: (PairRow | null)[] = [
+    { label: 'เลขที่', value: esc(sale.invoice_no) },
+    { label: 'วันที่', value: esc(formatDateTime(sale.sold_at)) },
+    sale.customer_name ? { label: 'ลูกค้า', value: esc(sale.customer_name) } : null,
+  ]
+
+  // 6) รายการขาย (fixed layout — not user-styleable)
   const itemsHtml = sale.items.map(it => {
     const discRow = it.discount > 0
-      ? `<div class="line disc"><span>ส่วนลด</span><span>-${money(it.discount)}</span></div>`
+      ? `<div class="line"><span>ส่วนลด</span><span class="val">-${money(it.discount)}</span></div>`
       : ''
     return `<div class="item">
       <div class="iname">${esc(it.item_name)}</div>
-      <div class="line"><span>${money(it.qty)} ${esc(it.unit_name)} × ${money(it.unit_price)}</span><span>${money(it.line_total)}</span></div>
+      <div class="line"><span>${money(it.qty)} ${esc(it.unit_name)} × ${money(it.unit_price)}</span><span class="val">${money(it.line_total)}</span></div>
       ${discRow}
     </div>`
   }).join('')
 
-  const vatBlock = hasVat ? `
-    <div class="line"><span>มูลค่าก่อนภาษี</span><span>${money(exVat)}</span></div>
-    <div class="line"><span>ภาษีมูลค่าเพิ่ม</span><span>${money(sale.total_vat)}</span></div>
-  ` : ''
+  // 7) มูลค่า / ส่วนลด / ภาษี / รวมทั้งสิ้น
+  const summaryRows: (PairRow | null)[] = [
+    { label: 'ยอดรวม', value: money(sale.subtotal) },
+    sale.total_discount > 0 ? { label: 'ส่วนลด', value: `-${money(sale.total_discount)}` } : null,
+    ...(hasVat
+      ? [
+          { label: 'มูลค่าก่อนภาษี', value: money(exVat) },
+          { label: 'ภาษีมูลค่าเพิ่ม', value: money(sale.total_vat) },
+        ]
+      : []),
+    { label: 'รวมทั้งสิ้น', value: money(sale.total_amount) },
+  ]
 
-  const cashBlock = sale.cash_amount > 0 ? `
-    <div class="line"><span>รับเงิน</span><span>${money(sale.cash_amount)}</span></div>
-    <div class="line"><span>เงินทอน</span><span>${money(sale.change_amount)}</span></div>
-  ` : ''
+  // 8) รับเงิน / เงินทอน
+  const paymentRows: (PairRow | null)[] = sale.cash_amount > 0
+    ? [
+        { label: 'รับเงิน', value: money(sale.cash_amount) },
+        { label: 'เงินทอน', value: money(sale.change_amount) },
+      ]
+    : []
 
-  const voidBanner = mode === 'void'
-    ? `<div class="void">** ยกเลิก / VOID **</div>` : ''
+  // 9) ข้อความท้ายใบเสร็จ
+  const footerInner = settings.footer_note ? esc(settings.footer_note) : ''
 
-  const abbrevNote = isAbbrevTax
-    ? `<div class="center small">ราคารวมภาษีมูลค่าเพิ่มไว้แล้ว</div>` : ''
+  // 10) พนักงานขาย
+  const salespersonInner = sale.salesperson_name ? `พนักงานขาย ${esc(sale.salesperson_name)}` : ''
 
-  const customerLine = sale.customer_name
-    ? `<div class="line"><span>ลูกค้า</span><span>${esc(sale.customer_name)}</span></div>` : ''
-
-  const headerNote = settings.header_note
-    ? `<div class="center small">${esc(settings.header_note)}</div>` : ''
-  const footerNote = settings.footer_note
-    ? `<div class="center">${esc(settings.footer_note)}</div>` : ''
+  // Non-styleable stamps/notes.
+  const voidBanner = mode === 'void' ? `<div class="void">** ยกเลิก / VOID **</div>` : ''
+  const abbrevNote = isAbbrevTax ? `<div class="sec center">ราคารวมภาษีมูลค่าเพิ่มไว้แล้ว</div>` : ''
 
   return `<!doctype html><html><head><meta charset="utf-8">
 <style>
@@ -95,40 +157,30 @@ body {
   color: #000; background: #fff;
 }
 .center { text-align: center; }
-.small { font-size: ${Math.max(7, base - 2)}pt; }
-.shop { text-align: center; }
-.shop .name { font-size: ${base + 3}pt; font-weight: 700; }
-.title { text-align: center; font-weight: 700; font-size: ${base + 1}pt; margin: 1mm 0; }
-.void { text-align: center; font-weight: 700; font-size: ${base + 2}pt; margin: 1mm 0; }
+.sec { margin: 0.3mm 0; white-space: pre-line; }
+.void { text-align: center; font-weight: 700; margin: 1mm 0; }
 hr { border: none; border-top: 1px dashed #000; margin: 1.5mm 0; }
+.prow { display: flex; justify-content: space-between; gap: 2mm; }
+.prow .val, .line .val { white-space: nowrap; }
 .line { display: flex; justify-content: space-between; gap: 2mm; }
-.line > span:last-child { white-space: nowrap; }
-.disc { font-size: ${Math.max(7, base - 2)}pt; }
 .item { margin-bottom: 1mm; }
 .iname { font-weight: 600; }
-.total { display: flex; justify-content: space-between; font-weight: 700; font-size: ${base + 3}pt; margin: 1mm 0; }
 </style></head><body>
-  <div class="shop">
-    <div class="name">${esc(shop.shop_name ?? '')}</div>
-    ${shopLines.map(l => `<div class="small">${l}</div>`).join('')}
-  </div>
-  <div class="title">${TITLES[mode]}</div>
+  ${textBlock('shop', shopInner)}
+  ${textBlock('shop_contact', contactInner)}
+  ${textBlock('tax_id', taxInner)}
+  ${textBlock('title', esc(TITLES[mode]))}
   ${voidBanner}
-  ${headerNote}
   <hr>
-  <div class="line"><span>เลขที่</span><span>${esc(sale.invoice_no)}</span></div>
-  <div class="line"><span>วันที่</span><span>${esc(formatDateTime(sale.sold_at))}</span></div>
-  ${customerLine}
+  ${pairBlock('bill_info', billRows)}
   <hr>
   ${itemsHtml}
   <hr>
-  <div class="line"><span>ยอดรวม</span><span>${money(sale.subtotal)}</span></div>
-  ${sale.total_discount > 0 ? `<div class="line"><span>ส่วนลด</span><span>-${money(sale.total_discount)}</span></div>` : ''}
-  ${vatBlock}
-  <div class="total"><span>รวมทั้งสิ้น</span><span>${money(sale.total_amount)}</span></div>
-  ${cashBlock}
+  ${pairBlock('summary', summaryRows)}
+  ${pairBlock('payment', paymentRows)}
   ${abbrevNote}
   <hr>
-  ${footerNote}
+  ${textBlock('footer', footerInner)}
+  ${textBlock('salesperson', salespersonInner)}
 </body></html>`
 }

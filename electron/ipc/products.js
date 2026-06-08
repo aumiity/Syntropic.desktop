@@ -33,6 +33,7 @@ import { ipcMain } from 'electron';
 import { getDb } from '../db';
 import { assertNotBundle, recomputeAvgCost, recomputeBundleCost, propagateCostToBundles } from '../db/pricing';
 import { orderByBucket } from '../db/sortName';
+import { requireAdmin } from '../auth/session';
 // Stock expression aware of bundles: regular products sum open lots,
 // bundles derive MIN(component_open_stock / qty_per_bundle). Used by
 // products:list (sort + filter), stockStats, and anywhere else that
@@ -359,8 +360,9 @@ export function registerProductHandlers() {
         db.prepare("UPDATE products SET ".concat(fields, ", updated_at = datetime('now','localtime') WHERE id = @id")).run(__assign(__assign({}, data), { id: id }));
         return db.prepare("SELECT * FROM products WHERE id = ?").get(id);
     });
-    ipcMain.handle('products:updatePrice', function (_e, productId, data) {
+    ipcMain.handle('products:updatePrice', function (_e, productId, data, override) {
         var _a;
+        requireAdmin(_e, override);
         var db = getDb();
         var type = (_a = data.price_type) !== null && _a !== void 0 ? _a : 'retail';
         var col = type === 'retail' ? 'price_retail' : type === 'wholesale1' ? 'price_wholesale1' : 'price_wholesale2';
@@ -479,7 +481,8 @@ export function registerProductHandlers() {
     //                           products.cost_price as creating a new lot. Use
     //                           when supplier bundles freebies with an existing
     //                           receive (same batch/expiry).
-    ipcMain.handle('products:adjustStock', function (_e, productId, data) {
+    ipcMain.handle('products:adjustStock', function (_e, productId, data, override) {
+        requireAdmin(_e, override);
         if (!data.userId)
             throw new Error('ไม่พบผู้ใช้งาน');
         if (!data.note || !data.note.trim())
@@ -642,7 +645,7 @@ export function registerProductHandlers() {
             db.prepare("UPDATE product_labels SET ".concat(fields, ", updated_at = datetime('now','localtime') WHERE id = @id")).run(data);
             return db.prepare("SELECT * FROM product_labels WHERE id = ?").get(id);
         }
-        var result = db.prepare("\n      INSERT INTO product_labels (product_id, label_name, dose_qty, dosage_id, frequency_id, timing_id,\n        indication_th, indication_mm, indication_zh, note_th, note_mm, note_zh, sort_order)\n      VALUES (@product_id, @label_name, @dose_qty, @dosage_id, @frequency_id, @timing_id,\n        @indication_th, @indication_mm, @indication_zh, @note_th, @note_mm, @note_zh, @sort_order)\n    ").run(data);
+        var result = db.prepare("\n      INSERT INTO product_labels (product_id, label_name, dose_qty, dosage_id, frequency_id, timing_id,\n        label_time_id, advice_id, indication_th, indication_mm, indication_zh, note_th, note_mm, note_zh,\n        show_barcode, is_default, is_active, sort_order)\n      VALUES (@product_id, @label_name, @dose_qty, @dosage_id, @frequency_id, @timing_id,\n        @label_time_id, @advice_id, @indication_th, @indication_mm, @indication_zh, @note_th, @note_mm, @note_zh,\n        @show_barcode, @is_default, @is_active, @sort_order)\n    ").run(data);
         return db.prepare("SELECT * FROM product_labels WHERE id = ?").get(result.lastInsertRowid);
     });
     ipcMain.handle('products:deleteLabel', function (_e, id) {
@@ -728,7 +731,8 @@ export function registerProductHandlers() {
         })();
     });
     // System A — FEFO stock-out (POS quick adjust)
-    ipcMain.handle('products:adjustLot', function (_e, payload) {
+    ipcMain.handle('products:adjustLot', function (_e, payload, override) {
+        requireAdmin(_e, override);
         if (!payload.qty || payload.qty <= 0)
             throw new Error('จำนวนต้องมากกว่า 0');
         if (!payload.user_id)
@@ -750,7 +754,8 @@ export function registerProductHandlers() {
     });
     // System A (batch) — Multi-item explicit-lot stock-out from POS adjust modal.
     // Atomic: any per-item failure rolls back the entire batch.
-    ipcMain.handle('products:adjustLotBatch', function (_e, payload) {
+    ipcMain.handle('products:adjustLotBatch', function (_e, payload, override) {
+        requireAdmin(_e, override);
         if (!payload.user_id)
             throw new Error('ไม่พบผู้ใช้งาน');
         if (!payload.reason || !payload.reason.trim())
@@ -788,7 +793,8 @@ export function registerProductHandlers() {
         })();
     });
     // System B — Direct lot edit (metadata + qty)
-    ipcMain.handle('products:updateLot', function (_e, id, data) {
+    ipcMain.handle('products:updateLot', function (_e, id, data, override) {
+        requireAdmin(_e, override);
         if (!data.user_id)
             throw new Error('ไม่พบผู้ใช้งาน');
         var db = getDb();
@@ -862,7 +868,8 @@ export function registerProductHandlers() {
     //   expired      → expiry_date <= today
     //   near_expiry  → expiry_date >  today (or expiry_date IS NULL — disposed without expiry tracking)
     // Used ONLY by the Expiry / Expiring Products page. Other disposal flows are unaffected.
-    ipcMain.handle('products:expireLot', function (_e, lot_id, user_id) {
+    ipcMain.handle('products:expireLot', function (_e, lot_id, user_id, override) {
+        requireAdmin(_e, override);
         if (!user_id)
             throw new Error('ไม่พบผู้ใช้งาน');
         var db = getDb();

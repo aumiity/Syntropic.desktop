@@ -113,26 +113,45 @@ export function registerQuotationHandlers() {
         var q = filters.q, date_from = filters.date_from, date_to = filters.date_to, _d = filters.sort_by, sort_by = _d === void 0 ? 'issue_date' : _d, _f = filters.sort_dir, sort_dir = _f === void 0 ? 'DESC' : _f, _g = filters.page, page = _g === void 0 ? 1 : _g, limitOpt = filters.limit, _h = filters.status_filter, status_filter = _h === void 0 ? 'all' : _h;
         var limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 50);
         var offset = limit ? (page - 1) * limit : 0;
-        var conditions = [];
-        var params = [];
+        // Base scope = search + date. The status filter narrows the table rows and
+        // the paginated total, but NOT the summary cards — the cards always show the
+        // full status breakdown for the current search/date scope (so picking the
+        // "ร่าง" tab doesn't zero out the other count cards).
+        var baseConditions = [];
+        var baseParams = [];
         if (q) {
-            conditions.push("(qt.quote_no LIKE ? OR c.full_name LIKE ? OR qt.customer_name LIKE ?)");
+            baseConditions.push("(qt.quote_no LIKE ? OR c.full_name LIKE ? OR qt.customer_name LIKE ?)");
             var lq = "%".concat(q, "%");
-            params.push(lq, lq, lq);
+            baseParams.push(lq, lq, lq);
         }
         if (date_from) {
-            conditions.push("date(qt.issue_date) >= ?");
-            params.push(date_from);
+            baseConditions.push("date(qt.issue_date) >= ?");
+            baseParams.push(date_from);
         }
         if (date_to) {
-            conditions.push("date(qt.issue_date) <= ?");
-            params.push(date_to);
+            baseConditions.push("date(qt.issue_date) <= ?");
+            baseParams.push(date_to);
         }
-        if (['draft', 'sent', 'accepted', 'rejected'].includes(status_filter)) {
-            conditions.push("qt.status = ?");
-            params.push(status_filter);
+        var baseWhere = baseConditions.length ? "WHERE ".concat(baseConditions.join(' AND ')) : '';
+        // 'expired' is derived, not stored: a draft/sent quote whose valid_until
+        // (ครบกำหนด) is in the past. Draft/sent filters EXCLUDE expired rows so the
+        // status buckets stay mutually exclusive (an expired quote shows only under
+        // the พ้นกำหนด tab, never under ร่าง/รอตอบรับ).
+        var EXPIRED = "qt.status IN ('draft','sent') AND qt.valid_until IS NOT NULL AND date(qt.valid_until) < date('now','localtime')";
+        var rowConditions = __spreadArray([], baseConditions, true);
+        var rowParams = __spreadArray([], baseParams, true);
+        if (status_filter === 'expired') {
+            rowConditions.push("(".concat(EXPIRED, ")"));
         }
-        var where = conditions.length ? "WHERE ".concat(conditions.join(' AND ')) : '';
+        else if (status_filter === 'draft' || status_filter === 'sent') {
+            rowConditions.push("qt.status = ? AND NOT (".concat(EXPIRED, ")"));
+            rowParams.push(status_filter);
+        }
+        else if (['accepted', 'rejected', 'canceled'].includes(status_filter)) {
+            rowConditions.push("qt.status = ?");
+            rowParams.push(status_filter);
+        }
+        var where = rowConditions.length ? "WHERE ".concat(rowConditions.join(' AND ')) : '';
         var validSorts = ['issue_date', 'quote_no', 'valid_until', 'total_amount', 'customer_name'];
         var sortCol = !validSorts.includes(sort_by) ? 'qt.issue_date'
             : sort_by === 'customer_name' ? 'COALESCE(c.full_name, qt.customer_name)'
@@ -140,9 +159,9 @@ export function registerQuotationHandlers() {
         var sortDirection = sort_dir === 'ASC' ? 'ASC' : 'DESC';
         var limitClause = limit ? "LIMIT ? OFFSET ?" : '';
         var limitParams = limit ? [limit, offset] : [];
-        var rows = (_a = db.prepare("\n      SELECT qt.*, COALESCE(c.full_name, qt.customer_name) AS customer_display,\n        (SELECT COUNT(*) FROM quotation_items qi WHERE qi.quotation_id = qt.id) AS item_count\n      FROM quotations qt\n      LEFT JOIN customers c ON c.id = qt.customer_id\n      ".concat(where, "\n      ORDER BY ").concat(sortCol, " ").concat(sortDirection, "\n      ").concat(limitClause, "\n    "))).all.apply(_a, __spreadArray(__spreadArray([], params, false), limitParams, false));
-        var summary = (_b = db.prepare("\n      SELECT\n        COUNT(*) AS count_all,\n        COALESCE(SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END), 0) AS count_draft,\n        COALESCE(SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END), 0) AS count_sent,\n        COALESCE(SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END), 0) AS count_accepted,\n        COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) AS count_rejected\n      FROM quotations qt\n      LEFT JOIN customers c ON c.id = qt.customer_id\n      ".concat(where, "\n    "))).get.apply(_b, params);
-        var total = (_c = db.prepare("SELECT COUNT(*) AS c FROM quotations qt LEFT JOIN customers c ON c.id = qt.customer_id ".concat(where))).get.apply(_c, params).c;
+        var rows = (_a = db.prepare("\n      SELECT qt.*, COALESCE(c.full_name, qt.customer_name) AS customer_display,\n        (SELECT COUNT(*) FROM quotation_items qi WHERE qi.quotation_id = qt.id) AS item_count\n      FROM quotations qt\n      LEFT JOIN customers c ON c.id = qt.customer_id\n      ".concat(where, "\n      ORDER BY ").concat(sortCol, " ").concat(sortDirection, "\n      ").concat(limitClause, "\n    "))).all.apply(_a, __spreadArray(__spreadArray([], rowParams, false), limitParams, false));
+        var summary = (_b = db.prepare("\n      SELECT\n        COUNT(*) AS count_all,\n        COALESCE(SUM(CASE WHEN qt.status = 'draft' AND NOT (".concat(EXPIRED, ") THEN 1 ELSE 0 END), 0) AS count_draft,\n        COALESCE(SUM(CASE WHEN qt.status = 'sent'  AND NOT (").concat(EXPIRED, ") THEN 1 ELSE 0 END), 0) AS count_sent,\n        COALESCE(SUM(CASE WHEN (").concat(EXPIRED, ") THEN 1 ELSE 0 END), 0) AS count_expired,\n        COALESCE(SUM(CASE WHEN qt.status = 'accepted' THEN 1 ELSE 0 END), 0) AS count_accepted,\n        COALESCE(SUM(CASE WHEN qt.status = 'rejected' THEN 1 ELSE 0 END), 0) AS count_rejected,\n        COALESCE(SUM(CASE WHEN qt.status = 'canceled' THEN 1 ELSE 0 END), 0) AS count_canceled\n      FROM quotations qt\n      LEFT JOIN customers c ON c.id = qt.customer_id\n      ").concat(baseWhere, "\n    "))).get.apply(_b, baseParams);
+        var total = (_c = db.prepare("SELECT COUNT(*) AS c FROM quotations qt LEFT JOIN customers c ON c.id = qt.customer_id ".concat(where))).get.apply(_c, rowParams).c;
         return { rows: rows, summary: summary, total: total, page: page, limit: limit !== null && limit !== void 0 ? limit : total };
     });
     ipcMain.handle('quotation:get', function (_e, id) {
@@ -164,12 +183,13 @@ export function registerQuotationHandlers() {
         if (!cur)
             throw new Error('ไม่พบใบเสนอราคา');
         var allowed = {
-            draft: ['sent'],
-            sent: ['accepted', 'rejected', 'draft'],
-            accepted: [],
+            draft: ['sent', 'canceled'],
+            sent: ['accepted', 'rejected', 'draft', 'canceled'],
+            accepted: ['canceled'],
             rejected: [],
             converting: [],
             converted: [],
+            canceled: [],
         };
         if (!((_a = allowed[cur.status]) !== null && _a !== void 0 ? _a : []).includes(payload.status)) {
             throw new Error("\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E08\u0E32\u0E01 ".concat(cur.status, " \u0E40\u0E1B\u0E47\u0E19 ").concat(payload.status, " \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49"));

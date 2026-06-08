@@ -150,10 +150,21 @@ export interface ReceiptSettings {
   auto_print: number
   copies: number
   font_family: string
-  font_size: number
-  header_note: string
+  font_size: number         // GLOBAL — one size for the whole slip (no per-section size)
   footer_note: string
   abbrev_tax_invoice: number
+  // Per-section style — one trio per controllable section (see
+  // src/lib/receipt/sections.ts SSOT). show_/bold_ are 0|1; align_ is one of
+  // 'left'|'center'|'right'|'justify'.
+  show_shop: number;         bold_shop: number;         align_shop: string
+  show_shop_contact: number; bold_shop_contact: number; align_shop_contact: string
+  show_tax_id: number;       bold_tax_id: number;       align_tax_id: string
+  show_title: number;        bold_title: number;        align_title: string
+  show_bill_info: number;    bold_bill_info: number;    align_bill_info: string
+  show_summary: number;      bold_summary: number;      align_summary: string
+  show_payment: number;      bold_payment: number;      align_payment: string
+  show_footer: number;       bold_footer: number;       align_footer: string
+  show_salesperson: number;  bold_salesperson: number;  align_salesperson: string
   updated_at?: string
 }
 
@@ -193,6 +204,7 @@ export interface SaleForPrint {
   sale_type: string
   status: string
   customer_name?: string | null
+  salesperson_name?: string | null
   items: Array<{
     item_name: string
     unit_name: string

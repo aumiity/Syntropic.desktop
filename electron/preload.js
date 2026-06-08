@@ -16,10 +16,10 @@ var api = {
         get: function (id) { return ipcRenderer.invoke('products:get', id); },
         create: function (data) { return ipcRenderer.invoke('products:create', data); },
         update: function (id, data) { return ipcRenderer.invoke('products:update', id, data); },
-        updatePrice: function (id, data) { return ipcRenderer.invoke('products:updatePrice', id, data); },
+        updatePrice: function (id, data, override) { return ipcRenderer.invoke('products:updatePrice', id, data, override); },
         priceHistory: function (id, limit) { return ipcRenderer.invoke('products:priceHistory', id, limit); },
         stockMovements: function (productId, opts) { return ipcRenderer.invoke('products:stockMovements', productId, opts); },
-        adjustStock: function (productId, data) { return ipcRenderer.invoke('products:adjustStock', productId, data); },
+        adjustStock: function (productId, data, override) { return ipcRenderer.invoke('products:adjustStock', productId, data, override); },
         addUnit: function (data) { return ipcRenderer.invoke('products:addUnit', data); },
         updateUnit: function (id, data) { return ipcRenderer.invoke('products:updateUnit', id, data); },
         deleteUnit: function (id) { return ipcRenderer.invoke('products:deleteUnit', id); },
@@ -36,12 +36,12 @@ var api = {
         createBundle: function (payload) {
             return ipcRenderer.invoke('products:createBundle', payload);
         },
-        adjustLot: function (payload) {
-            return ipcRenderer.invoke('products:adjustLot', payload);
+        adjustLot: function (payload, override) {
+            return ipcRenderer.invoke('products:adjustLot', payload, override);
         },
-        adjustLotBatch: function (payload) { return ipcRenderer.invoke('products:adjustLotBatch', payload); },
-        updateLot: function (id, data) { return ipcRenderer.invoke('products:updateLot', id, data); },
-        expireLot: function (lotId, userId) { return ipcRenderer.invoke('products:expireLot', lotId, userId); },
+        adjustLotBatch: function (payload, override) { return ipcRenderer.invoke('products:adjustLotBatch', payload, override); },
+        updateLot: function (id, data, override) { return ipcRenderer.invoke('products:updateLot', id, data, override); },
+        expireLot: function (lotId, userId, override) { return ipcRenderer.invoke('products:expireLot', lotId, userId, override); },
         stockStats: function (filters) {
             return ipcRenderer.invoke('products:stockStats', filters);
         },
@@ -52,8 +52,8 @@ var api = {
         save: function (payload) { return ipcRenderer.invoke('purchase:save', payload); },
         history: function (filters) { return ipcRenderer.invoke('purchase:history', filters); },
         getReceipt: function (invoiceNo) { return ipcRenderer.invoke('purchase:getReceipt', invoiceNo); },
-        cancel: function (payload) {
-            return ipcRenderer.invoke('purchase:cancel', payload);
+        cancel: function (payload, override) {
+            return ipcRenderer.invoke('purchase:cancel', payload, override);
         },
         updateHeader: function (payload) { return ipcRenderer.invoke('purchase:updateHeader', payload); },
     },
@@ -76,7 +76,7 @@ var api = {
         salesList: function (filters) { return ipcRenderer.invoke('reports:salesList', filters); },
         getSale: function (id) { return ipcRenderer.invoke('reports:getSale', id); },
         getSaleByInvoice: function (invoiceNo) { return ipcRenderer.invoke('reports:getSaleByInvoice', invoiceNo); },
-        voidSale: function (id, reason) { return ipcRenderer.invoke('reports:voidSale', id, reason); },
+        voidSale: function (id, reason, override) { return ipcRenderer.invoke('reports:voidSale', id, reason, override); },
         expiringLots: function (filters) { return ipcRenderer.invoke('reports:expiringLots', filters); },
         financeSummary: function (filters) { return ipcRenderer.invoke('reports:financeSummary', filters); },
         salesPurchaseTrend: function (filters) { return ipcRenderer.invoke('reports:salesPurchaseTrend', filters); },
@@ -88,12 +88,14 @@ var api = {
         cashierLeaderboard: function (filters) { return ipcRenderer.invoke('reports:cashierLeaderboard', filters); },
         salesStats: function (filters) { return ipcRenderer.invoke('reports:salesStats', filters); },
         inactiveProducts: function (filters) { return ipcRenderer.invoke('reports:inactiveProducts', filters); },
+        inactiveCounts: function () { return ipcRenderer.invoke('reports:inactiveCounts'); },
         productVelocity: function (filters) { return ipcRenderer.invoke('reports:productVelocity', filters); },
     },
     // Settings
     settings: {
         getShop: function () { return ipcRenderer.invoke('settings:getShop'); },
         saveShop: function (data) { return ipcRenderer.invoke('settings:saveShop', data); },
+        completeSetup: function (data) { return ipcRenderer.invoke('settings:completeSetup', data); },
         listCategories: function () { return ipcRenderer.invoke('settings:listCategories'); },
         saveCategory: function (data) { return ipcRenderer.invoke('settings:saveCategory', data); },
         reorderCategories: function (ids) { return ipcRenderer.invoke('settings:reorderCategories', ids); },
@@ -107,6 +109,8 @@ var api = {
         saveSalesSettings: function (data) { return ipcRenderer.invoke('settings:saveSalesSettings', data); },
         getReceiptSettings: function () { return ipcRenderer.invoke('settings:getReceiptSettings'); },
         saveReceiptSettings: function (data) { return ipcRenderer.invoke('settings:saveReceiptSettings', data); },
+        getDocumentSettings: function () { return ipcRenderer.invoke('settings:getDocumentSettings'); },
+        saveDocumentSettings: function (data) { return ipcRenderer.invoke('settings:saveDocumentSettings', data); },
         listLabelFrequencies: function () { return ipcRenderer.invoke('settings:listLabelFrequencies'); },
         listLabelDosages: function () { return ipcRenderer.invoke('settings:listLabelDosages'); },
         listLabelMealRelations: function () { return ipcRenderer.invoke('settings:listLabelMealRelations'); },
@@ -184,6 +188,33 @@ var api = {
         },
         exportCSV: function (rows) { return ipcRenderer.invoke('matcher:exportCSV', rows); },
     },
+    // Database backup / export / restore
+    backup: {
+        export: function () {
+            return ipcRenderer.invoke('backup:export');
+        },
+        restore: function () {
+            return ipcRenderer.invoke('backup:restore');
+        },
+        getSettings: function () {
+            return ipcRenderer.invoke('backup:getSettings');
+        },
+        saveSettings: function (s) {
+            return ipcRenderer.invoke('backup:saveSettings', s);
+        },
+        pickFolder: function () {
+            return ipcRenderer.invoke('backup:pickFolder');
+        },
+        resetFolder: function () {
+            return ipcRenderer.invoke('backup:resetFolder');
+        },
+        listAuto: function () {
+            return ipcRenderer.invoke('backup:listAuto');
+        },
+        openFolder: function () {
+            return ipcRenderer.invoke('backup:openFolder');
+        },
+    },
     // Negative-stock reconciliation
     negativeStock: {
         list: function () { return ipcRenderer.invoke('negativeStock:list'); },
@@ -195,9 +226,31 @@ var api = {
             return ipcRenderer.invoke('negativeStock:dismiss', payload);
         },
     },
-    // Auth (placeholder until proper login)
+    // Shop expenses (ค่าใช้จ่าย)
+    expenses: {
+        list: function (filters) { return ipcRenderer.invoke('expenses:list', filters); },
+        summary: function (filters) { return ipcRenderer.invoke('expenses:summary', filters); },
+        save: function (payload) { return ipcRenderer.invoke('expenses:save', payload); },
+        delete: function (id) { return ipcRenderer.invoke('expenses:delete', id); },
+        listCategories: function () { return ipcRenderer.invoke('expenses:listCategories'); },
+        activeCategories: function () { return ipcRenderer.invoke('expenses:activeCategories'); },
+        saveCategory: function (data) { return ipcRenderer.invoke('expenses:saveCategory', data); },
+        reorderCategories: function (ids) { return ipcRenderer.invoke('expenses:reorderCategories', ids); },
+    },
+    // Auth — login picker + password verify (no session persisted)
     auth: {
-        getCurrentUser: function () { return ipcRenderer.invoke('auth:getCurrentUser'); },
+        listLoginUsers: function () { return ipcRenderer.invoke('auth:listLoginUsers'); },
+        login: function (userId, password) { return ipcRenderer.invoke('auth:login', { userId: userId, password: password }); },
+        // DEV-only auto-login (no password) — main rejects when packaged. See auth.ts.
+        devLogin: function () { return ipcRenderer.invoke('auth:devLogin'); },
+        logout: function () { return ipcRenderer.invoke('auth:logout'); },
+        getMyProfile: function () { return ipcRenderer.invoke('auth:getMyProfile'); },
+        changePassword: function (currentPassword, newPassword) {
+            return ipcRenderer.invoke('auth:changePassword', { currentPassword: currentPassword, newPassword: newPassword });
+        },
+        resetAdminPassword: function (recoveryCode, newPassword) {
+            return ipcRenderer.invoke('auth:resetAdminPassword', { recoveryCode: recoveryCode, newPassword: newPassword });
+        },
     },
     // Dev (only registered when isDev=true in main.ts; will reject otherwise)
     dev: {

@@ -154,6 +154,7 @@ export function registerPosHandlers() {
         // Walk-in (null) → C0000 row, never NULL (walk-in invariant).
         var customerId = (_a = payload.customer_id) !== null && _a !== void 0 ? _a : walkInCustomerId(db);
         var doReturn = db.transaction(function () {
+            var _a;
             // Generate RT-YYYYMMDD-NNN invoice number (see saveBill for why the
             // sold_at date filter is omitted — format mismatch makes it always-false).
             var today = dayjs().format('YYYYMMDD');
@@ -163,22 +164,25 @@ export function registerPosHandlers() {
             // Negative sales record — total_amount is negative, decreases daily stats automatically
             var saleResult = db.prepare("\n        INSERT INTO sales (invoice_no, sale_type, customer_id, sold_by, sold_at,\n          subtotal, total_discount, total_vat, total_amount,\n          cash_amount, card_amount, transfer_amount, change_amount,\n          note, status)\n        VALUES (?, 'return', ?, ?, datetime('now','localtime'),\n          ?, 0, 0, ?,\n          0, 0, 0, 0,\n          ?, 'completed')\n      ").run(invoiceNo, customerId, payload.created_by, -totalAmount, -totalAmount, payload.reason);
             var saleId = saleResult.lastInsertRowid;
-            for (var _i = 0, _a = payload.items; _i < _a.length; _i++) {
-                var item = _a[_i];
+            for (var _i = 0, _b = payload.items; _i < _b.length; _i++) {
+                var item = _b[_i];
                 var lot = db.prepare("SELECT * FROM product_lots WHERE id = ?").get(item.lot_id);
                 if (!lot)
                     throw new Error("Lot not found: ".concat(item.lot_id));
-                // Negative sale_items row
+                // Returned qty is in the chosen unit; the lot/movements work in base
+                // units (qty * qty_per_base). sale_items.qty stays in the chosen unit.
+                var baseQty = item.qty * ((_a = item.qty_per_base) !== null && _a !== void 0 ? _a : 1);
+                // Negative sale_items row (qty in the returned unit)
                 var saleItemResult = db.prepare("\n          INSERT INTO sale_items (sale_id, product_id, item_name, unit_name, qty, unit_price, discount, line_total, item_note)\n          VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)\n        ").run(saleId, item.product_id, item.product_name, item.unit_name, -item.qty, item.unit_price, -item.line_total, item.reason);
                 var saleItemId = saleItemResult.lastInsertRowid;
-                // Lot tracing — negative qty mirrors sale_items
-                db.prepare("\n          INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty)\n          VALUES (?, ?, ?, ?)\n        ").run(saleItemId, item.lot_id, item.product_id, -item.qty);
-                // Restore stock
+                // Lot tracing — negative BASE qty mirrors how sales record sale_item_lots
+                db.prepare("\n          INSERT INTO sale_item_lots (sale_item_id, lot_id, product_id, qty)\n          VALUES (?, ?, ?, ?)\n        ").run(saleItemId, item.lot_id, item.product_id, -baseQty);
+                // Restore stock (base units)
                 var qtyBefore = lot.qty_on_hand;
-                var qtyAfter = qtyBefore + item.qty;
-                db.prepare("UPDATE product_lots SET qty_on_hand = qty_on_hand + ? WHERE id = ?").run(item.qty, item.lot_id);
+                var qtyAfter = qtyBefore + baseQty;
+                db.prepare("UPDATE product_lots SET qty_on_hand = qty_on_hand + ? WHERE id = ?").run(baseQty, item.lot_id);
                 // Stock movement — ref_id links back to the return sales record
-                db.prepare("\n          INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, unit_cost, note, created_by)\n          VALUES (?, ?, 'sale_return', 'return', ?, ?, ?, ?, ?, ?, ?)\n        ").run(item.product_id, item.lot_id, saleId, item.qty, qtyBefore, qtyAfter, lot.cost_price, item.reason, payload.created_by);
+                db.prepare("\n          INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, unit_cost, note, created_by)\n          VALUES (?, ?, 'sale_return', 'return', ?, ?, ?, ?, ?, ?, ?)\n        ").run(item.product_id, item.lot_id, saleId, baseQty, qtyBefore, qtyAfter, lot.cost_price, item.reason, payload.created_by);
             }
             return { success: true, invoice_no: invoiceNo, count: payload.items.length, total_amount: totalAmount };
         });
