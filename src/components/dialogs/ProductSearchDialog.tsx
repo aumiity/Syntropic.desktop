@@ -112,7 +112,7 @@ export function ProductSearchDialog<Row>({
         onClose={onClose}
         className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
         style={{
-          width: size?.width ?? '1000px',
+          width: size?.width ?? '800px',
           maxWidth: 'calc(100vw - 2rem)',
           height: size?.height ?? '800px',
           maxHeight: 'calc(100vh - 4rem)',

@@ -59,7 +59,7 @@ export function LotPickerDialog<T extends LotPickerOption>({
               framed
               disabled={!anyDepleted}
               className="w-full justify-between mb-2.5"
-              label={`แสดงล็อตที่ปิด/หมดสต็อก${!showDepleted && hiddenCount > 0 ? ` (${hiddenCount})` : ''}`}
+              label={`แสดงล็อตที่ปิด${!showDepleted && hiddenCount > 0 ? ` (${hiddenCount})` : ''}`}
               checked={showDepleted}
               onChange={setShowDepleted}
             />
@@ -100,7 +100,7 @@ export function LotPickerDialog<T extends LotPickerOption>({
                         <ClockAlert className="size-4 shrink-0" />
                         <span className="truncate">{expiry}</span>
                       </span>
-                      <Badge variant={active ? 'default' : 'secondary'} className="shrink-0">
+                      <Badge variant={active ? 'default' : 'secondary'} className="shrink-0 text-sm">
                         คงเหลือ {lot.qty_on_hand}
                       </Badge>
                     </div>

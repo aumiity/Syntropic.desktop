@@ -39,7 +39,7 @@ export function UnitPickerDialog<T extends UnitPickerOption>({
             <div className="text-base font-semibold text-foreground">{productName || '-'}</div>
           </DialogHeader>
           <DialogBody>
-            <div className="grid gap-2.5 max-h-[28rem] overflow-y-auto scrollbar-thin p-0.5">
+            <div className="grid gap-2 max-h-[28rem] overflow-y-auto scrollbar-thin p-0.5">
               {units.length === 0 ? (
                 <div className="text-sm text-center text-foreground-subtle py-6">ไม่มีหน่วยให้เลือก</div>
               ) : units.map(u => {
@@ -51,7 +51,7 @@ export function UnitPickerDialog<T extends UnitPickerOption>({
                   <Button key={u.id} variant="elevated"
                     onClick={() => onSelect(u)}
                     className={cn(
-                      "w-full h-auto flex flex-col items-stretch justify-start gap-3 text-left p-4 rounded-xl border-2 transition-all",
+                      "w-full h-auto flex flex-col items-stretch justify-start gap-1.5 text-left px-4 py-2.5 rounded-xl border-2 transition-all",
                       active
                         ? "border-primary bg-primary-soft/50 hover:bg-primary-soft/50 shadow-card"
                         : "hover:border-border-strong",
@@ -59,7 +59,7 @@ export function UnitPickerDialog<T extends UnitPickerOption>({
                     {/* Header — unit name + base/packaging subtitle, selected check on the right */}
                     <div className="flex items-start gap-3 w-full">
                       <div className="flex-1 min-w-0 space-y-0.5">
-                        <span className="block text-2xl font-bold text-foreground">{u.unit_name ?? '-'}</span>
+                        <span className="block text-xl font-bold text-foreground">{u.unit_name ?? '-'}</span>
                         <div className={cn("text-sm font-medium", isBase ? "text-warm-foreground" : "text-primary")}>
                           {isBase ? 'หน่วยหลัก' : `บรรจุ ${qpb} ${baseUnitName}`}
                         </div>
@@ -71,7 +71,7 @@ export function UnitPickerDialog<T extends UnitPickerOption>({
                       )}
                     </div>
                     {/* Metrics — selling price (+ per-base equivalent for variants) */}
-                    <div className="w-full border-t border-border/60 pt-2.5 flex items-center justify-between text-sm font-normal">
+                    <div className="w-full border-t border-border/60 pt-2 flex items-center justify-between text-sm font-normal">
                       <span className="text-muted-foreground">ราคาขาย</span>
                       <div className="flex items-baseline gap-2">
                         {!isBase && perBase > 0 && (
