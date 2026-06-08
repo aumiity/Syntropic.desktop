@@ -178,13 +178,13 @@ export function MultiDatePicker({
           type="button"
           variant="ghost"
           className={cn(
-            'h-9 px-3 rounded-none min-w-[160px] justify-center gap-2 font-normal text-sm',
+            'h-9 px-3 pr-8 rounded-none min-w-[160px] relative justify-center font-normal text-sm',
             'hover:bg-primary-soft hover:text-primary',
             hasValue ? 'text-foreground' : 'text-foreground-subtle',
           )}
         >
           <span className="truncate">{label}</span>
-          <CalendarDays className="size-4 text-foreground-subtle shrink-0" />
+          <CalendarDays className="absolute right-2.5 size-4 text-foreground-subtle pointer-events-none" />
         </Button>
       </PopoverTrigger>
 
