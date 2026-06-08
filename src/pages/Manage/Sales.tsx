@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { DateRangePicker, resolveDateRangePreset, type DateRangePresetKey } from '@/components/ui/date-range-picker'
+import { MultiDatePicker, rangeForMultiMode, type MultiDateMode } from '@/components/ui/multi-date-picker'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { VoidBillDialog } from '@/components/dialogs/VoidBillDialog'
 import { useToast } from '@/components/ui/toast'
@@ -66,9 +66,12 @@ interface SortState { by: SortField; dir: SortDir }
 interface SalesPrefs {
   pageSize: PageSize
   sort: SortState
-  // Date is persisted as a preset key (rolling), not absolute dates — so
-  // reopening tomorrow doesn't show yesterday's "today". null = custom dates.
-  datePreset: DateRangePresetKey | null
+  // Date is persisted as the picker mode (rolling for day/month/year — so
+  // reopening tomorrow recomputes "today"/"this month"/...) plus absolute
+  // from/to that are only consulted when mode === 'custom'.
+  dateMode: MultiDateMode
+  dateFrom: string
+  dateTo: string
   showColDate: boolean
   showColCustomer: boolean
   showColItems: boolean
@@ -79,7 +82,9 @@ interface SalesPrefs {
 const SALES_DEFAULTS: SalesPrefs = {
   pageSize: 50,
   sort: { by: 'sold_at', dir: 'desc' },
-  datePreset: 'today',
+  dateMode: 'day',
+  dateFrom: new Date().toISOString().slice(0, 10),
+  dateTo: new Date().toISOString().slice(0, 10),
   showColDate: true,
   showColCustomer: true,
   showColItems: true,
@@ -93,13 +98,15 @@ export default function ManageSalesPage() {
 
   const [prefs, setPrefs] = usePagePrefs<SalesPrefs>('sales', SALES_DEFAULTS)
 
-  // Date range: resolved fresh on every mount from the persisted preset.
+  // Date range: resolved fresh on every mount. day/month/year recompute from
+  // today (rolling); custom uses the persisted absolute from/to.
   // statusFilter is NOT persisted — filters reset per session.
-  const initialRange = prefs.datePreset
-    ? resolveDateRangePreset(prefs.datePreset)
-    : { from: new Date().toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) }
+  const initialRange = prefs.dateMode === 'custom'
+    ? { from: prefs.dateFrom, to: prefs.dateTo }
+    : rangeForMultiMode(prefs.dateMode)
 
   const [q, setQ] = useState('')
+  const [dateMode, setDateMode] = useState<MultiDateMode>(prefs.dateMode)
   const [dateFrom, setDateFrom] = useState(initialRange.from)
   const [dateTo, setDateTo] = useState(initialRange.to)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -269,13 +276,15 @@ export default function ManageSalesPage() {
             onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
           />
-          <DateRangePicker
-            variant="elevated"
+          <MultiDatePicker
+            mode={dateMode}
             from={dateFrom}
             to={dateTo}
-            onChange={(f, t) => { setDateFrom(f); setDateTo(t) }}
-            onPresetChange={key => setPrefs({ datePreset: key })}
-            className="h-9 w-60 shrink-0"
+            onChange={(m, f, t) => {
+              setDateMode(m); setDateFrom(f); setDateTo(t)
+              setPrefs({ dateMode: m, dateFrom: f, dateTo: t })
+            }}
+            className="shrink-0"
           />
 
           {/* Status filter popover — was previously the clickable summary cards */}

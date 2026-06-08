@@ -112,7 +112,10 @@ export function MultiDatePicker({
   const pillId = React.useId()
 
   const handleStep = (dir: -1 | 1) => {
-    const anchor = dayjs(from)
+    // Fall back to today when from/to are empty (e.g. an unfiltered history
+    // view) so the stepper can't emit an Invalid Date.
+    const anchor = from ? dayjs(from) : dayjs()
+    const toAnchor = to ? dayjs(to) : anchor
     let f: string, t: string
     switch (mode) {
       case 'day': {
@@ -133,9 +136,9 @@ export function MultiDatePicker({
         break
       }
       case 'custom': {
-        const days = dayjs(to).diff(anchor, 'day') + 1
+        const days = toAnchor.diff(anchor, 'day') + 1
         f = anchor.add(dir * days, 'day').format('YYYY-MM-DD')
-        t = dayjs(to).add(dir * days, 'day').format('YYYY-MM-DD')
+        t = toAnchor.add(dir * days, 'day').format('YYYY-MM-DD')
         break
       }
     }

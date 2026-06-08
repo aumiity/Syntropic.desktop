@@ -4,7 +4,7 @@ import { TintIcon } from '@/components/ui/tint-icon'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { DateRangePicker, resolveDateRangePreset, type DateRangePresetKey } from '@/components/ui/date-range-picker'
+import { MultiDatePicker, rangeForMultiMode, type MultiDateMode } from '@/components/ui/multi-date-picker'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ExpenseFormDialog } from '@/components/dialogs/ExpenseFormDialog'
@@ -21,13 +21,19 @@ type SortDir = 'asc' | 'desc'
 type ExpenseSortField = 'expense_date' | 'expense_no' | 'category_name' | 'amount'
 
 interface ExpensesPrefs {
-  datePreset: DateRangePresetKey | null
+  // mode persisted always (day/month/year roll on mount); from/to only used
+  // when mode === 'custom'.
+  dateMode: MultiDateMode
+  dateFrom: string
+  dateTo: string
   catFilter: string
   sort: { by: ExpenseSortField; dir: SortDir }
 }
 
 const EXPENSES_DEFAULTS: ExpensesPrefs = {
-  datePreset: 'thisMonth',
+  dateMode: 'month',
+  dateFrom: new Date().toISOString().slice(0, 8) + '01',
+  dateTo: new Date().toISOString().slice(0, 10),
   catFilter: 'all',
   sort: { by: 'expense_date', dir: 'desc' },
 }
@@ -52,10 +58,11 @@ export default function ManageExpensesPage() {
   const { toast } = useToast()
 
   const [prefs, setPrefs] = usePagePrefs<ExpensesPrefs>('expenses', EXPENSES_DEFAULTS)
-  const initialRange = prefs.datePreset
-    ? resolveDateRangePreset(prefs.datePreset)
-    : { from: new Date().toISOString().slice(0, 8) + '01', to: new Date().toISOString().slice(0, 10) }
+  const initialRange = prefs.dateMode === 'custom'
+    ? { from: prefs.dateFrom, to: prefs.dateTo }
+    : rangeForMultiMode(prefs.dateMode)
 
+  const [dateMode, setDateMode] = useState<MultiDateMode>(prefs.dateMode)
   const [dateFrom, setDateFrom] = useState(initialRange.from)
   const [dateTo, setDateTo] = useState(initialRange.to)
   const [rows, setRows] = useState<Expense[]>([])
@@ -150,13 +157,15 @@ export default function ManageExpensesPage() {
             </SelectContent>
           </Select>
 
-          <DateRangePicker
-            variant="elevated"
+          <MultiDatePicker
+            mode={dateMode}
             from={dateFrom}
             to={dateTo}
-            onChange={(from, to) => { setDateFrom(from); setDateTo(to) }}
-            onPresetChange={key => setPrefs({ datePreset: key })}
-            className="h-9 w-60 shrink-0"
+            onChange={(m, from, to) => {
+              setDateMode(m); setDateFrom(from); setDateTo(to)
+              setPrefs({ dateMode: m, dateFrom: from, dateTo: to })
+            }}
+            className="shrink-0"
           />
 
           <Button size="lg" variant="elevated" className="h-9 px-2 shrink-0" onClick={openAdd}>

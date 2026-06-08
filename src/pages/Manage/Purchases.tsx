@@ -10,7 +10,7 @@ import { Input, SearchInput } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { DateInput } from '@/components/ui/date-input'
-import { DateRangePicker, resolveDateRangePreset, type DateRangePresetKey } from '@/components/ui/date-range-picker'
+import { MultiDatePicker, rangeForMultiMode, type MultiDateMode } from '@/components/ui/multi-date-picker'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -59,7 +59,11 @@ interface SortState { by: SortField; dir: SortDir }
 interface PurchasesPrefs {
   histPageSize: PageSize
   histSort: SortState
-  datePreset: DateRangePresetKey | null
+  // mode persisted always (day/month/year roll on mount); from/to only used
+  // when mode === 'custom'.
+  dateMode: MultiDateMode
+  dateFrom: string
+  dateTo: string
   showColDate: boolean
   showColSupplier: boolean
   showColItems: boolean
@@ -70,7 +74,9 @@ interface PurchasesPrefs {
 const PURCHASES_DEFAULTS: PurchasesPrefs = {
   histPageSize: 50,
   histSort: { by: 'created_at', dir: 'desc' },
-  datePreset: 'thisMonth',
+  dateMode: 'month',
+  dateFrom: new Date().toISOString().slice(0, 8) + '01',
+  dateTo: new Date().toISOString().slice(0, 10),
   showColDate: true,
   showColSupplier: true,
   showColItems: true,
@@ -92,15 +98,17 @@ export default function ManagePurchasesPage() {
   const [history, setHistory] = useState<HistoryRow[]>([])
   const [histTotal, setHistTotal] = useState(0)
   const [histPage, setHistPage] = useState(1)
-  // Recompute the date range fresh from the persisted preset on mount, so a
-  // "this month" preset doesn't show last month's data after a month rolls over.
-  const initialRange = prefs.datePreset
-    ? resolveDateRangePreset(prefs.datePreset)
-    : { from: new Date().toISOString().slice(0, 8) + '01', to: new Date().toISOString().slice(0, 10) }
+  // Recompute the date range fresh on mount: day/month/year roll from today
+  // (so a "this month" view doesn't show last month after a rollover); custom
+  // restores the persisted absolute from/to.
+  const initialRange = prefs.dateMode === 'custom'
+    ? { from: prefs.dateFrom, to: prefs.dateTo }
+    : rangeForMultiMode(prefs.dateMode)
   const histPageSize = prefs.histPageSize
   const setHistPageSize = (v: PageSize) => setPrefs({ histPageSize: v })
   const [histQ, setHistQ] = useState('')
   const [histSupplierId, setHistSupplierId] = useState<number>(0)
+  const [histDateMode, setHistDateMode] = useState<MultiDateMode>(prefs.dateMode)
   const [histDateFrom, setHistDateFrom] = useState(initialRange.from)
   const [histDateTo, setHistDateTo] = useState(initialRange.to)
   const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'unpaid' | 'cancelled'>('all')
@@ -466,17 +474,18 @@ export default function ManagePurchasesPage() {
               emptyText="ไม่พบผู้จัดจำหน่าย"
             />
           </div>
-          <DateRangePicker
-            variant="elevated"
+          <MultiDatePicker
+            mode={histDateMode}
             from={histDateFrom}
             to={histDateTo}
-            onChange={(from, to) => {
+            onChange={(m, from, to) => {
+              setHistDateMode(m)
               setHistDateFrom(from)
               setHistDateTo(to)
+              setPrefs({ dateMode: m, dateFrom: from, dateTo: to })
               loadHistory(1, undefined, { from, to }, true)
             }}
-            onPresetChange={key => setPrefs({ datePreset: key })}
-            className="h-9 w-60 shrink-0"
+            className="shrink-0"
           />
 
           {/* Status filter popover — was previously the clickable summary cards */}

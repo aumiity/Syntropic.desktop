@@ -6,8 +6,8 @@ import {
 import dayjs from 'dayjs'
 import { useToast } from '@/components/ui/toast'
 import {
-  PeriodPicker, defaultPeriodFor, allowedModesFor, type PeriodMode,
-} from '@/components/ui/period-picker'
+  MultiDatePicker, defaultMultiDateFor, allowedModesFor, type MultiDateMode,
+} from '@/components/ui/multi-date-picker'
 import { usePermission } from '@/hooks/usePermission'
 import { MetricCard, SectionCard } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -32,7 +32,7 @@ import type { ReportsOutletContext } from './index'
 // layout (KPI row → trend + donut → alerts → bottom 4-card grid) wired to the
 // reports IPC. No new backend: the "ยอดขายตามหมวด" donut is
 // drawn from salesStats bill-type counts (retail/wholesale/rx), not a per-
-// category revenue query. The global PeriodPicker drives every metric; the
+// category revenue query. The global MultiDatePicker drives every metric; the
 // trend chart overrides locally with a trailing 7/30/90-day window.
 
 // ── Types (subset of the Dashboard shapes we consume) ──────────────────────
@@ -144,8 +144,8 @@ export default function DashboardPage() {
   const { setToolbar } = useOutletContext<ReportsOutletContext>()
 
   const { isAdmin } = usePermission()
-  const initial = defaultPeriodFor(isAdmin)
-  const [mode, setMode] = useState<PeriodMode>(initial.mode)
+  const initial = defaultMultiDateFor(isAdmin)
+  const [mode, setMode] = useState<MultiDateMode>(initial.mode)
   const [dateFrom, setDateFrom] = useState(initial.from)
   const [dateTo, setDateTo] = useState(initial.to)
 
@@ -214,7 +214,7 @@ export default function DashboardPage() {
     }
   }, [dateFrom, dateTo, trendWin, topSortBy, profitMode, toast])
 
-  const handlePeriodChange = useCallback((m: PeriodMode, f: string, t: string) => {
+  const handlePeriodChange = useCallback((m: MultiDateMode, f: string, t: string) => {
     setMode(m); setDateFrom(f); setDateTo(t)
   }, [])
 
@@ -248,7 +248,7 @@ export default function DashboardPage() {
   useEffect(() => {
     setToolbar(
       <>
-        <PeriodPicker mode={mode} from={dateFrom} to={dateTo} onChange={handlePeriodChange} align="end" allowedModes={allowedModesFor(isAdmin)} />
+        <MultiDatePicker mode={mode} from={dateFrom} to={dateTo} onChange={handlePeriodChange} align="end" allowedModes={allowedModesFor(isAdmin)} />
         <Button variant="elevated" size="lg" className="h-10 px-3" onClick={() => load()} disabled={loading} title="โหลดข้อมูลใหม่">
           <RefreshCw className={loading ? 'animate-spin' : undefined} /> รีเฟรช
         </Button>

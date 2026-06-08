@@ -8,7 +8,7 @@ import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
-import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { MultiDatePicker, type MultiDateMode } from '@/components/ui/multi-date-picker'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { VoidBillDialog } from '@/components/dialogs/VoidBillDialog'
 import { useToast } from '@/components/ui/toast'
@@ -69,6 +69,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
   const [movementSort, setMovementSort] = useState<{ by: MovementSortKey; dir: 'asc' | 'desc' }>({
     by: 'created_at', dir: 'desc',
   })
+  const [movementDateMode, setMovementDateMode] = useState<MultiDateMode>('custom')
   const [movementDateFrom, setMovementDateFrom] = useState('')
   const [movementDateTo, setMovementDateTo] = useState('')
 
@@ -164,12 +165,12 @@ export function HistoryTab({ productId, isNew, active }: Props) {
             <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
           </div>
 
-          <DateRangePicker
-            variant="elevated"
+          <MultiDatePicker
+            mode={movementDateMode}
             from={movementDateFrom}
             to={movementDateTo}
-            onChange={(f, t) => { setMovementDateFrom(f); setMovementDateTo(t); setPage(1) }}
-            className="w-60 shrink-0 ml-auto"
+            onChange={(m, f, t) => { setMovementDateMode(m); setMovementDateFrom(f); setMovementDateTo(t); setPage(1) }}
+            className="shrink-0 ml-auto"
           />
           {(movementDateFrom || movementDateTo) && (
             <Button

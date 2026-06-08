@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { MultiDatePicker, type MultiDateMode } from '@/components/ui/multi-date-picker'
 import { useToast } from '@/components/ui/toast'
 import { formatThaiShortBE } from '@/lib/thaiDate'
 import type { Setting } from '@/types'
@@ -38,6 +38,7 @@ export default function KhorYor9Page() {
   const { toast } = useToast()
   const { setSummary } = useOutletContext<ReportsOutletContext>()
 
+  const [dateMode, setDateMode] = useState<MultiDateMode>('custom')
   const [dateFrom, setDateFrom] = useState(firstDayOfMonth())
   const [dateTo, setDateTo] = useState(today())
   const [rows, setRows] = useState<KhorYor9Row[] | null>(null)
@@ -88,11 +89,12 @@ export default function KhorYor9Page() {
         <Button asChild variant="outline" size="icon-lg" title="ย้อนกลับ">
           <Link to="/reports/fda"><ArrowLeft /></Link>
         </Button>
-        <DateRangePicker
+        <MultiDatePicker
+          mode={dateMode}
           from={dateFrom}
           to={dateTo}
-          onChange={(f, t) => { setDateFrom(f); setDateTo(t) }}
-          className="w-60 shrink-0 bg-input hover:bg-surface-hover"
+          onChange={(m, f, t) => { setDateMode(m); setDateFrom(f); setDateTo(t) }}
+          className="shrink-0"
         />
         <div className="flex-1" />
         <Button size="lg" className="h-9 px-4" onClick={() => window.print()}>
