@@ -45,7 +45,7 @@ function endOfMonth(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0)
 }
 
-export type DateRangePresetKey = 'today' | 'yesterday' | 'last7d' | 'last30d' | 'thisMonth' | 'lastMonth' | 'thisYear'
+export type DateRangePresetKey = 'today' | 'yesterday' | 'last7d' | 'last30d' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear'
 
 interface Preset {
   key: DateRangePresetKey
@@ -69,6 +69,7 @@ const PRESETS: Preset[] = [
     },
   },
   { key: 'thisYear', label: 'ปีนี้', range: () => { const y = new Date().getFullYear(); return { from: new Date(y, 0, 1), to: new Date(y, 11, 31) } } },
+  { key: 'lastYear', label: 'ปีที่แล้ว', range: () => { const y = new Date().getFullYear() - 1; return { from: new Date(y, 0, 1), to: new Date(y, 11, 31) } } },
 ]
 
 // Compute {from, to} ISO strings from a preset key — used by pages that persist
