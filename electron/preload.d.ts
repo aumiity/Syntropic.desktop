@@ -118,6 +118,7 @@ declare const api: {
         listStaff: (filters?: any) => Promise<any>;
         saveStaff: (data: any) => Promise<any>;
         setStaffStatus: (id: number, disabled: boolean) => Promise<any>;
+        resetStaffPassword: (id: number, password: string) => Promise<any>;
         allSuppliers: () => Promise<any>;
     };
     reports: {

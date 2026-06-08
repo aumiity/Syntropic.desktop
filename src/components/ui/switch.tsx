@@ -72,19 +72,21 @@ function Switch({
 // lives in a top bar beside a search field. h-9 matches every other bar
 // control (search Input, DateInput/DateRangePicker/Combobox/NativeSelect all
 // default h-9) — see CLAUDE.md "EVERY bar = h-12, EVERY control = h-9".
-function Toggle({ checked, onChange, label, size, variant = "default", framed, className }: {
+function Toggle({ checked, onChange, label, size, variant = "default", framed, disabled, className }: {
   checked: boolean
   onChange: (v: boolean) => void
   label?: React.ReactNode
   size?: "sm" | "default" | "lg"
   variant?: "default" | "destructive" | "warning"
   framed?: boolean | "input"
+  disabled?: boolean
   className?: string
 }) {
   const frameInput = framed === "input"
   return (
     <label className={cn(
       "flex items-center gap-2 cursor-pointer select-none",
+      disabled && "cursor-not-allowed opacity-50",
       // top-bar input-blended frame (matches the search Input)
       frameInput && "h-9 px-3 rounded-lg bg-input transition-colors",
       // standard pill frame (border + bg-card)
@@ -97,7 +99,7 @@ function Toggle({ checked, onChange, label, size, variant = "default", framed, c
       className,
     )}>
       {label ? <span className="text-sm">{label}</span> : null}
-      <Switch checked={checked} onCheckedChange={onChange} size={size} variant={variant} />
+      <Switch checked={checked} onCheckedChange={onChange} size={size} variant={variant} disabled={disabled} />
     </label>
   )
 }

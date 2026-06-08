@@ -7,7 +7,7 @@ import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Input, SearchInput } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Label } from '@/components/ui/label'
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
@@ -19,11 +19,11 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { QtyDialog } from '@/components/ui/qty-dialog'
+import { LotPickerDialog } from '@/components/ui/lot-picker-dialog'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency } from '@/lib/utils'
 import dayjs from 'dayjs'
@@ -213,6 +213,7 @@ export default function POSPage() {
   const [returnSaving, setReturnSaving] = useState(false)
   const [returnUnitRowIdx, setReturnUnitRowIdx] = useState<number | null>(null)
   const [returnQtyRowIdx, setReturnQtyRowIdx] = useState<number | null>(null)
+  const [returnLotRowIdx, setReturnLotRowIdx] = useState<number | null>(null)
   const returnInputRef = useRef<HTMLInputElement>(null)
   const returnSearchInputRef = useRef<HTMLInputElement>(null)
 
@@ -1818,7 +1819,7 @@ export default function POSPage() {
 
       {/* ── ADJUST STOCK DIALOG (System A — multi-item) ── */}
       <Dialog open={showAdjust} onOpenChange={(v) => { if (!v) closeAdjust() }}>
-        <DialogContent size="4xl" divided onClose={closeAdjust}>
+        <DialogContent size="4xl" divided onClose={closeAdjust} className="h-[680px] grid-rows-[auto_1fr_auto]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <TintIcon icon={PackageMinus} tint="accent" size="md" bordered />
@@ -1826,21 +1827,19 @@ export default function POSPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <DialogBody className="flex gap-0 p-0 overflow-hidden rounded-xl" style={{ height: '520px' }}>
+          <DialogBody className="flex gap-0 p-0 overflow-hidden rounded-lg min-h-0">
             {/* Left column — search + product results / lot picker */}
             <div className="flex flex-col basis-1/2 min-w-0 overflow-hidden">
               <div className="p-3 shrink-0">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    ref={adjustInputRef}
-                    placeholder="สแกนหรือค้นหาชื่อ / บาร์โค้ด / รหัสสินค้า..."
-                    value={adjustQuery}
-                    onChange={e => handleAdjustSearch(e.target.value)}
-                    className="h-10 pl-9"
-                    autoComplete="off"
-                  />
-                </div>
+                <SearchInput
+                  ref={adjustInputRef}
+                  placeholder="สแกนหรือค้นหาชื่อ / บาร์โค้ด / รหัสสินค้า..."
+                  value={adjustQuery}
+                  onChange={e => handleAdjustSearch(e.target.value)}
+                  wrapperClassName="w-full"
+                  className="h-10"
+                  autoComplete="off"
+                />
               </div>
 
               {!adjustSelected ? (
@@ -1858,7 +1857,7 @@ export default function POSPage() {
                     <div className="px-2 pb-2 space-y-1">
                       {adjustResults.map(p => (
                         <div key={p.id} onClick={() => handleAdjustSelectProduct(p)}
-                          className="group flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer transition-colors hover:bg-warm">
+                          className="group flex items-center gap-3 rounded-lg px-3 py-2 cursor-pointer transition-colors hover:bg-warm">
                           <div className="min-w-0 flex-1">
                             <div className="font-semibold text-sm truncate">{p.trade_name}</div>
                             <div className="text-sm text-muted-foreground truncate">{p.unit_name} · {p.barcode || '—'}</div>
@@ -2046,18 +2045,16 @@ export default function POSPage() {
           <DialogBody className="flex flex-col p-0 gap-0 overflow-hidden min-h-0">
             {/* Add-product search bar — opens the shared ProductSearchDialog */}
             <div className="px-4 py-3 shrink-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  ref={returnInputRef}
-                  placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อ/รหัสสินค้าเพื่อเพิ่ม..."
-                  value={returnQuery}
-                  onChange={e => handleReturnSearch(e.target.value)}
-                  onFocus={() => { if (returnQuery.trim()) setReturnSearchOpen(true) }}
-                  className="h-11 pl-9 text-base"
-                  autoComplete="off"
-                />
-              </div>
+              <SearchInput
+                ref={returnInputRef}
+                placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อ/รหัสสินค้าเพื่อเพิ่ม..."
+                value={returnQuery}
+                onChange={e => handleReturnSearch(e.target.value)}
+                onFocus={() => { if (returnQuery.trim()) setReturnSearchOpen(true) }}
+                wrapperClassName="w-full"
+                className="h-11 text-base"
+                autoComplete="off"
+              />
             </div>
 
             {/* Cart-style table — the scroll zone */}
@@ -2065,14 +2062,14 @@ export default function POSPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-center w-12">#</TableHead>
-                    <TableHead className="min-w-[200px]">รายการ</TableHead>
-                    <TableHead className="text-center min-w-24">หน่วย</TableHead>
-                    <TableHead className="text-center min-w-20">จำนวน</TableHead>
-                    <TableHead className="min-w-[180px]">ล็อต / วันหมดอายุ</TableHead>
-                    <TableHead className="text-right min-w-24">ราคา/หน่วย</TableHead>
-                    <TableHead className="text-right min-w-24">รวม</TableHead>
-                    <TableHead className="text-center w-14" />
+                    <TableHead className="text-center w-10">#</TableHead>
+                    <TableHead className="min-w-[260px]">รายการ</TableHead>
+                    <TableHead className="text-center min-w-10">หน่วย</TableHead>
+                    <TableHead className="text-center min-w-10">จำนวน</TableHead>
+                    <TableHead className="min-w-12">ล็อต / วันหมดอายุ</TableHead>
+                    <TableHead className="text-right min-w-10">ราคา/หน่วย</TableHead>
+                    <TableHead className="text-right min-w-10">รวม</TableHead>
+                    <TableHead className="text-center w-12" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -2089,11 +2086,13 @@ export default function POSPage() {
                     return (
                       <TableRow key={`${item.product_id}-${item.unit_id}-${item.lot_id}`} className="[&_td]:py-2.5">
                         <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
-                        <TableCell className="font-semibold text-sm text-foreground">{item.product_name}</TableCell>
+                        <TableCell className="max-w-0">
+                          <div className="font-semibold text-sm text-foreground whitespace-nowrap overflow-x-clip overflow-y-visible" title={item.product_name}>{item.product_name}</div>
+                        </TableCell>
                         <TableCell className="text-center">
                           <Button variant="primary-soft" size="sm" onClick={() => setReturnUnitRowIdx(idx)}
-                            className="h-8 gap-1 rounded-md">
-                            {item.unit_name} <ChevronDown className="size-3" />
+                            className="h-8 rounded-md">
+                            {item.unit_name}
                           </Button>
                         </TableCell>
                         <TableCell className="text-center">
@@ -2104,36 +2103,11 @@ export default function POSPage() {
                         </TableCell>
                         <TableCell>
                           {multiLot ? (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="elevated" size="sm" className="h-8 max-w-full gap-1 text-xs font-normal text-muted-foreground">
-                                  <span className="truncate">Lot {item.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}</span>
-                                  <ChevronDown className="size-3 shrink-0" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent align="start" className="w-80 p-1.5">
-                                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">เลือกล็อตที่จะคืนเข้า</div>
-                                <div className="space-y-0.5 max-h-64 overflow-y-auto scrollbar-thin">
-                                  {item.lots.map(lot => {
-                                    const sel = lot.id === item.lot_id
-                                    return (
-                                      <button key={lot.id} onClick={() => setReturnRowLot(idx, lot)}
-                                        className={`w-full text-left rounded-lg px-2.5 py-1.5 transition-colors focus:outline-none ${sel ? 'bg-primary-soft' : 'hover:bg-primary-soft/60'}`}>
-                                        <div className="flex items-center justify-between gap-2">
-                                          <span className={`text-sm font-semibold truncate ${sel ? 'text-primary' : 'text-foreground'}`}>Lot {lot.lot_number || '—'}</span>
-                                          <Badge variant={sel ? 'default' : 'secondary'} className="shrink-0">คงเหลือ {lot.qty_on_hand}</Badge>
-                                        </div>
-                                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5 truncate">
-                                          <ClockAlert className="size-3 shrink-0" />
-                                          {lot.expiry_date ? dayjs(lot.expiry_date).format('DD/MM/YYYY') : '—'}
-                                          {lot.supplier_name ? ` · ${lot.supplier_name}` : ''}
-                                        </div>
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
+                            <Button variant="primary-soft" size="sm" onClick={() => setReturnLotRowIdx(idx)}
+                              className="h-8 max-w-full gap-1 rounded-md">
+                              <span className="truncate">Lot {item.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}</span>
+                              <ChevronDown className="size-3 shrink-0" />
+                            </Button>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                               <ClockAlert className="size-3 shrink-0" />
@@ -2275,6 +2249,23 @@ export default function POSPage() {
             unitPrice={row.unit_price}
             stockQty={lot?.qty_on_hand}
             onApply={(qty) => setReturnRowQty(returnQtyRowIdx, qty)}
+          />
+        )
+      })()}
+
+      {/* Return — inline lot picker (Dialog, not Popover: scroll-lock safe) */}
+      {returnLotRowIdx !== null && (() => {
+        const row = returnList[returnLotRowIdx]
+        if (!row) return null
+        return (
+          <LotPickerDialog
+            open
+            onClose={() => setReturnLotRowIdx(null)}
+            title="เลือกล็อตที่จะคืนเข้า"
+            productName={row.product_name}
+            lots={row.lots}
+            activeLotId={row.lot_id}
+            onSelect={(lot) => { setReturnRowLot(returnLotRowIdx, lot); setReturnLotRowIdx(null) }}
           />
         )
       })()}

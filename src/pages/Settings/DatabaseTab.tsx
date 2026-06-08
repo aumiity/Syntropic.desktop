@@ -117,7 +117,7 @@ export function DatabaseTab() {
   }
 
   return (
-    <div className="max-w-3xl space-y-4 pt-2">
+    <div className="max-w-3xl space-y-4">
       {/* Export */}
       <SectionCard icon={Download} title="สำรองข้อมูล" tint="primary">
         <p className="text-sm text-muted-foreground leading-relaxed">

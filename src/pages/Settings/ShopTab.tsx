@@ -40,7 +40,7 @@ export function ShopTab() {
   }
 
   return (
-    <div>
+    <div className="max-w-3xl">
       <SectionCard
         icon={Store}
         title="ข้อมูลร้านค้า / ร้านยา"

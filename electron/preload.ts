@@ -73,6 +73,7 @@ const api = {
     listStaff: (filters?: any) => ipcRenderer.invoke('people:listStaff', filters),
     saveStaff: (data: any) => ipcRenderer.invoke('people:saveStaff', data),
     setStaffStatus: (id: number, disabled: boolean) => ipcRenderer.invoke('people:setStaffStatus', { id, disabled }),
+    resetStaffPassword: (id: number, password: string) => ipcRenderer.invoke('people:resetStaffPassword', { id, password }),
     allSuppliers: () => ipcRenderer.invoke('people:allSuppliers'),
   },
   // Reports

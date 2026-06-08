@@ -85,14 +85,16 @@ export function SidebarUser({ collapsed }: { collapsed: boolean }) {
   return (
     <>
       <Popover open={menuOpen} onOpenChange={setMenuOpen}>
-        <PopoverTrigger asChild>
-          {collapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-              <TooltipContent>{current.name}</TooltipContent>
-            </Tooltip>
-          ) : trigger}
-        </PopoverTrigger>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent>{current.name}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+        )}
         <PopoverContent side="right" align="end" sideOffset={12} className="w-60 gap-0 p-1.5">
           <div className="flex items-center gap-2.5 px-2 py-2">
             <InitialAvatar name={current.name} size="default" />

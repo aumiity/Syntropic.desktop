@@ -24,7 +24,7 @@ import { motion } from 'framer-motion'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
 import type { Customer, Supplier, User } from '@/types'
-import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2, Filter, MoreHorizontal, Ban, Check } from 'lucide-react'
+import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2, Filter, MoreHorizontal, Ban, Check, KeyRound } from 'lucide-react'
 
 // Enter on a working input fires the dialog's primary OK action (modal contract).
 // Textarea is exempted so multi-line input keeps newline behaviour.
@@ -595,6 +595,8 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
   const [editing, setEditing] = useState<User | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
+  // Password reset is a separate flow from editing details — holds the target staff.
+  const [pwTarget, setPwTarget] = useState<User | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -777,7 +779,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                 return (
                 <TableRow key={u.id} className="[&_td]:py-2.5 [&_td]:font-medium">
                   <TableCell className="text-sm truncate">{u.name}</TableCell>
-                  {showColUsername && <TableCell className="text-sm text-muted-foreground truncate">@{u.username}</TableCell>}
+                  {showColUsername && <TableCell className="text-sm text-muted-foreground truncate">{u.username}</TableCell>}
                   {showColEmail && <TableCell className="text-sm text-muted-foreground truncate">{u.email}</TableCell>}
                   {showColPhone && <TableCell className="text-sm text-muted-foreground truncate">{u.phone || '-'}</TableCell>}
                   {showColRole && (
@@ -802,6 +804,10 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                           <button type="button" onClick={() => openEdit(u)}
                             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                             <Edit className="size-4" /> แก้ไข
+                          </button>
+                          <button type="button" onClick={() => setPwTarget(u)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                            <KeyRound className="size-4" /> เปลี่ยนรหัสผ่าน
                           </button>
                           <button type="button" onClick={() => toggleDisabled(u)}
                             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
@@ -869,14 +875,12 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 col-span-2">
-                <Label>
-                  รหัสผ่าน{form.id
-                    ? <span className="ml-1 font-normal text-muted-foreground">(เว้นว่างถ้าไม่เปลี่ยน)</span>
-                    : <span className="text-destructive ml-0.5">*</span>}
-                </Label>
-                <Input variant="elevated" type="password" value={form.password ?? ''} onChange={e => setF('password', e.target.value)} />
-              </div>
+              {!form.id && (
+                <div className="space-y-1.5 col-span-2">
+                  <Label>รหัสผ่าน <span className="text-destructive ml-0.5">*</span></Label>
+                  <Input variant="elevated" type="password" value={form.password ?? ''} onChange={e => setF('password', e.target.value)} />
+                </div>
+              )}
             </div>
 
             {editing && (
@@ -891,7 +895,70 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ResetStaffPasswordDialog
+        target={pwTarget}
+        onClose={() => setPwTarget(null)}
+        onSuccess={() => { setPwTarget(null); toast({ title: 'เปลี่ยนรหัสผ่านสำเร็จ', variant: 'success' }) }}
+      />
     </div>
+  )
+}
+
+// Admin reset of a staff member's password (no current-password check — that's
+// the self-service flow in SidebarUser). Separate from the edit-details dialog.
+function ResetStaffPasswordDialog({
+  target, onClose, onSuccess,
+}: {
+  target: User | null
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const { toast } = useToast()
+  const [newPw, setNewPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Reset fields whenever a new target is selected.
+  useEffect(() => {
+    if (target) { setNewPw(''); setConfirmPw(''); setSaving(false) }
+  }, [target])
+
+  const submit = () => {
+    if (saving || !target) return
+    if (newPw.length < 4) { toast({ title: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร', variant: 'error' }); return }
+    if (newPw !== confirmPw) { toast({ title: 'รหัสผ่านใหม่และการยืนยันไม่ตรงกัน', variant: 'error' }); return }
+    setSaving(true)
+    window.api.people.resetStaffPassword(target.id, newPw)
+      .then(() => onSuccess())
+      .catch((e: any) => toast({ title: 'เปลี่ยนรหัสผ่านไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }))
+      .finally(() => setSaving(false))
+  }
+
+  return (
+    <Dialog open={!!target} onOpenChange={o => { if (!o && !saving) onClose() }}>
+      <DialogContent size="sm" divided onClose={onClose}>
+        <DialogHeader>
+          <DialogTitle>เปลี่ยนรหัสผ่าน{target ? ` — ${target.name}` : ''}</DialogTitle>
+        </DialogHeader>
+        <DialogBody className="space-y-3" onKeyDown={submitOnEnter(submit)}>
+          <div className="space-y-1.5">
+            <Label>รหัสผ่านใหม่ <span className="text-destructive">*</span></Label>
+            <Input variant="elevated" type="password" value={newPw} autoFocus
+              onChange={e => setNewPw(e.target.value)} placeholder="อย่างน้อย 4 ตัวอักษร" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>ยืนยันรหัสผ่านใหม่ <span className="text-destructive">*</span></Label>
+            <Input variant="elevated" type="password" value={confirmPw}
+              onChange={e => setConfirmPw(e.target.value)} placeholder="••••••••" />
+          </div>
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="elevated" size="xl" onClick={onClose}>ยกเลิก</Button>
+          <Button size="xl" onClick={submit} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

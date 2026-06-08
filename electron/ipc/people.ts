@@ -196,6 +196,20 @@ export function registerPeopleHandlers() {
     return true
   })
 
+  // Admin reset of another staff member's password (no current-password check —
+  // that's the self-service auth:changePassword flow). Hashing happens here; the
+  // renderer only ever sends plaintext.
+  ipcMain.handle('people:resetStaffPassword', (_e, payload: { id: number; password: string }) => {
+    requireAdmin(_e)
+    const pw = String(payload?.password ?? '')
+    if (pw.length < 4) throw new Error('รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร')
+    const res = getDb()
+      .prepare(`UPDATE users SET password = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+      .run(hashSecret(pw), payload.id)
+    if (res.changes === 0) throw new Error('ไม่พบพนักงาน')
+    return true
+  })
+
   // All suppliers (for dropdowns) — always filters disabled.
   ipcMain.handle('people:allSuppliers', () => {
     return getDb().prepare(`SELECT id, code, name FROM suppliers WHERE is_disabled = 0 ORDER BY ${orderByBucket('name')}`).all()
