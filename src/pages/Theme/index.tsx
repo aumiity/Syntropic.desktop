@@ -44,6 +44,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { DateInput } from '@/components/ui/date-input'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { PeriodPicker, type PeriodMode } from '@/components/ui/period-picker'
+import { MultiDatePicker, type MultiDateMode, rangeForMultiMode } from '@/components/ui/multi-date-picker'
 import { Calendar } from '@/components/ui/calendar'
 import {
   Search, Plus, Edit, Trash2, Info, ExternalLink,
@@ -162,6 +163,10 @@ export default function Theme() {
     const d = new Date()
     return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10)
   })
+  // MultiDatePicker showcase state — default to this-month
+  const [multiMode, setMultiMode] = useState<MultiDateMode>('month')
+  const [multiFrom, setMultiFrom] = useState(() => rangeForMultiMode('month').from)
+  const [multiTo,   setMultiTo]   = useState(() => rangeForMultiMode('month').to)
   const [page, setPage] = useState(3)
   const [pageSize, setPageSize] = useState<import('@/components/ui/pagination').PageSize>(50)
   const [tableQ, setTableQ] = useState('')
@@ -965,6 +970,42 @@ export default function Theme() {
                   ผู้ใช้ต้องการเลือก "ทั้งเดือน/ทั้งปี" ทีเดียวบ่อย ๆ — pattern แบบ Hygeia.
                   Prev/next stepper เลื่อนหน่วยเวลาทีละ 1 หน่วยตาม mode (custom = shift by range length).
                   ใช้ <code className="bg-muted px-1 rounded">defaultPeriodFor(isOwner)</code> + <code className="bg-muted px-1 rounded">allowedModesFor(isOwner)</code> helper ใน parent.
+                </p>
+              </Section>
+
+              {/* ── MULTI DATE PICKER ── */}
+              <Section title="MultiDatePicker" path="src/components/ui/multi-date-picker.tsx" full>
+                <DemoRow label="ปุ่มเดียว — โหมด วัน/เดือน/ปี/กำหนดเอง อยู่ใน popover">
+                  <div className="w-full space-y-3">
+                    <MultiDatePicker
+                      mode={multiMode}
+                      from={multiFrom}
+                      to={multiTo}
+                      onChange={(m, f, t) => { setMultiMode(m); setMultiFrom(f); setMultiTo(t) }}
+                      align="start"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      mode: <span className="text-foreground">{multiMode}</span>{' · '}
+                      {multiFrom} → {multiTo}
+                    </p>
+                  </div>
+                </DemoRow>
+                <DemoRow label="Non-owner — only [วัน] [กำหนดเอง]">
+                  <MultiDatePicker
+                    mode={multiMode === 'month' || multiMode === 'year' ? 'day' : multiMode}
+                    from={multiFrom}
+                    to={multiTo}
+                    onChange={(m, f, t) => { setMultiMode(m); setMultiFrom(f); setMultiTo(t) }}
+                    allowedModes={['day', 'custom']}
+                    align="start"
+                  />
+                </DemoRow>
+                <p className="text-sm text-muted-foreground">
+                  ต่างจาก <code className="bg-muted px-1 rounded">PeriodPicker</code> ตรงที่ไม่มีปุ่มแยกข้างนอก —
+                  ปุ่มเลือกโหมดอยู่ใน popover เลย เหมาะสำหรับ filter strip ที่พื้นที่แน่น.
+                  ใช้ <code className="bg-muted px-1 rounded">rangeForMultiMode(mode)</code>,{' '}
+                  <code className="bg-muted px-1 rounded">defaultMultiDateFor(isOwner)</code>,{' '}
+                  <code className="bg-muted px-1 rounded">allowedModesFor(isOwner)</code> helpers.
                 </p>
               </Section>
 
