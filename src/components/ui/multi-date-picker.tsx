@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
+import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import dayjs from 'dayjs'
 import type { DateRange } from 'react-day-picker'
@@ -140,14 +140,8 @@ export function MultiDatePicker({
             className,
           )}
         >
-          <CalendarDays className="size-4 text-primary shrink-0" />
           <span className="flex-1 truncate text-left">{label}</span>
-          <ChevronDown
-            className={cn(
-              'size-3.5 shrink-0 text-foreground-subtle transition-transform duration-200',
-              open && 'rotate-180',
-            )}
-          />
+          <CalendarDays className="size-4 text-foreground-subtle shrink-0" />
         </Button>
       </PopoverTrigger>
 
