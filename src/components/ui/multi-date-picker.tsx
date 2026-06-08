@@ -163,7 +163,7 @@ export function MultiDatePicker({
         type="button"
         variant="ghost"
         size="icon"
-        className="size-9 rounded-none shrink-0 text-muted-foreground hover:bg-primary-soft hover:text-primary"
+        className="size-9 rounded-none shrink-0 text-muted-foreground hover:bg-primary-soft hover:text-primary border-r border-border"
         onClick={() => handleStep(-1)}
         title="ก่อนหน้า"
       >
@@ -244,7 +244,7 @@ export function MultiDatePicker({
         type="button"
         variant="ghost"
         size="icon"
-        className="size-9 rounded-none shrink-0 text-muted-foreground hover:bg-primary-soft hover:text-primary"
+        className="size-9 rounded-none shrink-0 text-muted-foreground hover:bg-primary-soft hover:text-primary border-l border-border"
         onClick={() => handleStep(1)}
         title="ถัดไป"
       >
