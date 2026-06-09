@@ -165,7 +165,8 @@
       "Bash(echo \"=== tables ===\")",
       "Bash(mdb-tables -1 /Users/CYUT/Documents/GitHub/hygeia.data.mdb)",
       "Read(//Users/CYUT/.claude/**)",
-      "Bash(bash ~/.claude/statusline.sh)"
+      "Bash(bash ~/.claude/statusline.sh)",
+      "Bash(echo \"exit=$?\")"
     ],
     "additionalDirectories": [
       "/tmp"

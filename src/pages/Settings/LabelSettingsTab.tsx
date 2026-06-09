@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
+import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, ZoomIn, ZoomOut, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Bundled fonts + the @font-face/esc helpers are shared with the receipt/tax
@@ -598,21 +598,39 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                     })}
                   </div>
 
-                  {/* ข้อความเพิ่มเติม — the input is revealed by its own row's
-                      checkbox (show_custom_text) in the list above, so the toggle
-                      lives in one place: tick it to print + edit the text. */}
-                  {!!form.show_custom_text && (
-                    <div className="mt-3 pt-3 border-t border-border">
-                      <FormField label="ข้อความเพิ่มเติม (บรรทัดสุดท้าย)">
-                        <Input
-                          value={form.custom_text}
-                          onChange={e => setF('custom_text', e.target.value)}
-                          placeholder="เช่น ขอบคุณที่ใช้บริการค่ะ"
-                          className="h-9"
-                        />
+                  {/* Shown only when the barcode row is ticked. It governs THIS
+                      designer preview (so the owner can see + position the sample
+                      bars); the real per-label on/off lives on each product's
+                      ฉลาก tab. */}
+                  {!!form.show_barcode && (
+                    <div className="mt-3 space-y-2">
+                      {/* Barcode box = WIDTH × HEIGHT. The ขนาด column above sets
+                          HEIGHT; this sets WIDTH. The bars stretch to fill so every
+                          product's barcode is the same footprint regardless of how
+                          many digits it has. */}
+                      <FormField label="ความกว้างบาร์โค้ด (มม.)">
+                        <NumInput stepper value={form.barcode_width_mm} onChange={n => setF('barcode_width_mm', n)} min={10} max={120} step={1} className="w-32" />
                       </FormField>
+                      <div className="flex items-start gap-1.5 rounded-lg border border-info/30 bg-info-soft p-2.5 text-xs text-info-soft-foreground">
+                        <Info className="size-3.5 shrink-0 mt-0.5" />
+                        <span>บาร์โค้ดที่แสดง ใช้เพื่อการปรับรูปแบบเท่านั้น หากต้องการให้แสดงผลบนฉลาก กรุณาตั้งค่าที่สินค้า</span>
+                      </div>
                     </div>
                   )}
+
+                  {/* ข้อความเพิ่มเติม — always editable; whether it PRINTS is
+                      gated by its own row's checkbox (show_custom_text) above, so
+                      the text can be drafted/kept even while toggled off. */}
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <FormField label="ข้อความเพิ่มเติม (บรรทัดสุดท้าย)">
+                      <Input
+                        value={form.custom_text}
+                        onChange={e => setF('custom_text', e.target.value)}
+                        placeholder="เช่น ขอบคุณที่ใช้บริการค่ะ"
+                        className="h-9"
+                      />
+                    </FormField>
+                  </div>
                 </SectionCard>
               </TabsContent>
 

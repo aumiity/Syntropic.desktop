@@ -438,6 +438,10 @@ export function initializeSchema(db: Database.Database) {
       font_size_indication    REAL NOT NULL DEFAULT 10,
       font_size_advice        REAL NOT NULL DEFAULT 10,
       font_size_barcode       REAL NOT NULL DEFAULT 10,
+      -- Barcode is sized by an explicit box: font_size_barcode = HEIGHT (mm),
+      -- barcode_width_mm = WIDTH (mm). The bars stretch to fill so every product
+      -- renders the same barcode footprint regardless of how many digits it has.
+      barcode_width_mm        REAL NOT NULL DEFAULT 40,
       font_size_custom_text   REAL NOT NULL DEFAULT 10,
       font_size_small         REAL NOT NULL DEFAULT 10, -- DEAD: retired shared tier
       -- Per-section bold; only shop name / address / phone / product default on.
@@ -872,6 +876,9 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE label_settings ADD COLUMN show_print_date    INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_print_date   REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_print_date   REAL NOT NULL DEFAULT 0`,
+    // Barcode WIDTH (mm) — pairs with font_size_barcode (HEIGHT). The bars stretch
+    // to fill this box so a short code and a long code occupy the same footprint.
+    `ALTER TABLE label_settings ADD COLUMN barcode_width_mm      REAL NOT NULL DEFAULT 40`,
     // product_labels restructure: persist the advice + time-of-day lookups and
     // the per-label default / show-barcode toggles. Without these columns the
     // saveLabel UPDATE (dynamic from Object.keys) threw "no such column".

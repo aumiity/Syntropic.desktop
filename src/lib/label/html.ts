@@ -25,11 +25,14 @@ export async function buildLabelHtml(
   date: string,
 ): Promise<string> {
   const sectionsHtml = SECTIONS
-    // `print_date` is folded into the shop flex row (see below), never its own
-    // line; the shop row shows when EITHER the name or the date is enabled.
+    // `print_date` folds into the shop flex row and `barcode` into the
+    // shop_phone flex row (see below), never their own line; each host row shows
+    // when EITHER its own text or its folded-in partner is enabled.
     .filter(s => {
       if (s.key === 'print_date') return false
+      if (s.key === 'barcode') return false
       if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
+      if (s.key === 'shop_phone') return !!settings.show_shop_phone || !!settings.show_barcode
       return settings[`show_${s.key}` as keyof LabelSettingsForm]
     })
     .map(s => {
@@ -63,13 +66,29 @@ export async function buildLabelHtml(
         const dateSpan = showDate ? `<span style="${styleToCss(dateStyle)}">${esc(date)}</span>` : ''
         return `<div style="${styleToCss(style)}"><span style="${styleToCss(nameStyle)}">${esc(nameText)}</span>${dateSpan}</div>`
       }
-      if (s.key === 'barcode') {
-        // Bars only; height = section "ขนาด" (mm). Same SVG generator as the React
-        // preview → print === preview.
-        const svg = barcodeSvg(text, { displayValue: false })
-        if (!svg) return ''
-        const wrap = { ...buildSectionStyle(s, settings), textAlign: 'center' } as CSSProperties
-        return `<div style="${styleToCss(wrap)}"><img src="data:image/svg+xml;utf8,${encodeURIComponent(svg)}" style="height:${settings.font_size_barcode}mm;max-width:100%;display:inline-block" /></div>`
+      if (s.key === 'shop_phone') {
+        // Special: phone (left, `shop_phone` style) + barcode (right, its OWN
+        // offset + height) on one flex row; each toggles separately via
+        // show_shop_phone / show_barcode. Bars only (no digits). Same SVG
+        // generator as the React preview → print === preview. Mirrors shop+date.
+        const phoneText = settings.show_shop_phone ? text : ''
+        const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false }) : ''
+        if (!phoneText && !svg) return ''
+        // Lift the phone offset OFF the flex container (it would drag the barcode
+        // too) and re-apply to the phone span only; the barcode keeps its own.
+        const secStyle = buildSectionStyle(s, settings)
+        const phoneTransform = secStyle.transform
+        const style = {
+          ...secStyle, transform: undefined,
+          whiteSpace: 'normal', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4mm',
+        } as CSSProperties
+        // Phone yields (truncates); barcode renders in a fixed box (width ×
+        // height) that the stretched SVG fills. Mirrors LabelPaper exactly.
+        const phoneStyle: CSSProperties = { transform: phoneTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+        const barImg = svg
+          ? `<img src="data:image/svg+xml;utf8,${encodeURIComponent(svg)}" style="height:${settings.font_size_barcode}mm;width:${settings.barcode_width_mm}mm;max-width:100%;flex-shrink:0;display:inline-block;transform:translate(${settings.offset_x_barcode}mm, ${settings.offset_y_barcode}mm)" />`
+          : ''
+        return `<div style="${styleToCss(style)}"><span style="${styleToCss(phoneStyle)}">${esc(phoneText)}</span>${barImg}</div>`
       }
       if (!text) return ''
       const body = esc(text).replace(/\n/g, '<br>')

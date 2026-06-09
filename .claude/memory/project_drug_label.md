@@ -34,15 +34,19 @@ Core restructure DONE. **Section-split DONE 2026-06-07** (plan `docs/plans/label
 
 **`print_date` is special:** it has its OWN settings columns (show/font/bold/offset → appears as its own row in the settings table) but is **NOT rendered as its own line** — it's folded into the `shop` flex row (right side), styled by `font_size_print_date` / `bold_print_date` / `offset_*_print_date`. The shop row shows when `show_shop` OR `show_print_date`. The date string itself is still the `date` PROP (todayBE), not a content-map key. Both render paths (LabelPaper + buildLabelHtml) skip `print_date` in the section loop and draw the date span inside the shop row.
 
+**`barcode` is folded the same way (2026-06-09):** it is NOT its own line anymore — it renders on the RIGHT of the `shop_phone` flex row (phone left, barcode right, `alignItems:center`). The `shop_phone` row shows when `show_shop_phone` OR `show_barcode`; both paths skip `barcode` in the loop and special-case `shop_phone`. Gate = `settings.show_barcode` (per-product path = `effectiveSettings.show_barcode` = the label switch) AND an encodable `content.barcode`. The PHONE truncates (`minWidth:0`+ellipsis); the barcode box is `flexShrink:0`.
+
+**Barcode is a FIXED BOX (2026-06-09), not natural-width:** `font_size_barcode` = HEIGHT (mm), new column `barcode_width_mm` = WIDTH (mm, default 40). The SVG STRETCHES to fill the box — `barcodeSvg` adds `viewBox` + `preserveAspectRatio="none"` so a short code and a long code occupy the SAME footprint (bars still scan — width ratios scale uniformly). Reason: the sample (EAN13, 13 digits) looked wide in the Settings designer while a real short product code looked tiny — inconsistent. Width input lives in LabelSettingsTab under the section table (shown only when `show_barcode`). `maxWidth:100%` is the overflow guard.
+
 Removed sections: `notes`, `footer_line`, `lot_expiry`.
 
 **IMPORTANT:** `label_settings` DB columns for the removed sections (`show_notes`, `notes_text`, `show_footer_line`, `footer_line_text`, `show_lot_expiry`) are kept as DEAD columns — they are NOT removed from `LabelSettingsForm` defaults (`LABEL_DEFAULTS`) or the load-filter. If they were dropped from defaults the form would strip them from the loaded row and overwrite them as `undefined` on next save, corrupting any existing stored value. Keep them in the allow-list; just don't render them.
 
 ---
 
-## Dual-render pitfall — shop+date row
+## Dual-render pitfall — shop+date row & shop_phone+barcode row
 
-The `shop` section with the date on the right is a **special flex layout** implemented in TWO separate code paths that can drift:
+The `shop` section (date on the right) AND the `shop_phone` section (barcode on the right) are **special flex layouts** implemented in TWO separate code paths that can drift:
 
 1. `LabelPaper.tsx` (React, JSX) — used for on-screen preview
 2. `buildLabelHtml()` in `LabelSettingsTab.tsx` (HTML string) — used for actual printing
@@ -58,6 +62,18 @@ They share `SECTIONS`, `buildSectionStyle()`, and the content map, but the rende
 Rule: when using `.run(namedParamObj)`, the object's keys must be a **subset** of (or exactly match) the parameters the statement declares. Extra keys = hard throw, not silent ignore. Unlike the dynamic UPDATE path, INSERT column lists must be kept in sync with the payload manually.
 
 ---
+
+## Barcode control model (wired 2026-06-09)
+
+Two gates were confused before — now split by ROLE (owner decision 2026-06-09, option "per-product switch decides"):
+
+- **Per-label `product_labels.show_barcode`** = the REAL on/off for the barcode section on a printed/previewed label. Lives on each product's ฉลาก tab (LabelsTab dialog toggle "แสดงบาร์โค้ด"). Previously SAVED BUT DEAD (no render path read it).
+- **Global `label_settings.show_barcode`** = governs the Settings **designer preview only** (so the owner can see + position the SAMPLE bars). Default 0. Must NOT gate real output.
+- **Barcode VALUE** = `products.barcode` (content.ts `out.barcode = product.barcode`). Empty ⇒ `barcodeSvg → ''` ⇒ row self-hides even when the switch is on.
+
+**How it's wired:** the shared renderers (`LabelPaper` / `buildLabelHtml`) STILL gate the barcode section on `settings.show_barcode` — unchanged. `LabelsTab` builds an `effectiveSettings = { ...labelSettings, show_barcode: selected.show_barcode ? 1 : 0 }` (useMemo) and passes THAT to both the preview and `selectedLabelHtml()`. So the per-label switch overrides the global for real labels; the Settings designer keeps the global toggle for positioning. Offset/height (`offset_*_barcode`, `font_size_barcode`) always come from labelSettings.
+
+Hints added: Settings barcode row has an Info note ("ติ๊กที่นี่ = ตัวอย่างเท่านั้น"); LabelsTab dialog warns when switch on but `product.barcode` blank.
 
 ## Deferred / not yet done
 
@@ -77,4 +93,4 @@ Do not add the section until the DB wiring is complete — it will silently rend
 
 ### Per-product label printing — NOT YET WIRED
 
-The per-product LabelsTab shows a live preview via `LabelPaper.tsx` + `composeLabelContent()`, but there is NO print action that fires `buildLabelHtml()` with real product data. The Settings designer is the only working print path (sample text only). Next step: wire a "Print" button in LabelsTab that calls `buildLabelHtml()` with the real label + product + shop data.
+~~Was unwired~~ — **DONE.** LabelsTab now has working "พิมพ์ฉลาก" + "ดู PDF" buttons (`handlePrintLabel` / `handlePreviewPdf`) that call `selectedLabelHtml()` → `buildLabelHtml()` with the real selected label + product + shop data, gated by `canPrint()` (needs a selected label + a paper size set in ตั้งค่า > ฉลากยา). Print path === preview (same builder).

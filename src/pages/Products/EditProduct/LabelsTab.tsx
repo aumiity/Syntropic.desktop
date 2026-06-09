@@ -14,7 +14,7 @@ import {
 import { useToast } from '@/components/ui/toast'
 import { SectionCard } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { Plus, Trash2, Edit, Pill, Info, Languages, SlidersHorizontal, List, Printer, FileText } from 'lucide-react'
+import { Plus, Trash2, Edit, Pill, Info, Languages, SlidersHorizontal, List, Printer, FileText, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ProductLabel } from '@/types'
 import type { FullProduct } from './shared'
 // Label anatomy (settings shape / defaults) — SSOT shared with the Settings
@@ -59,6 +59,11 @@ export function LabelsTab({
   const [shop, setShop] = useState<any>(null)
   const [printing, setPrinting] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
+  // Preview zoom — the paper renders at true 1:1 mm (small on screen), so let the
+  // user magnify it. CSS `zoom` (Chromium) scales the real layout box so the
+  // overflow-auto container can scroll to the edges. Mirrors the Settings designer.
+  const [zoom, setZoom] = useState(1)
+  const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
 
   const setLF = (key: string, v: any) => setLabelForm((f: any) => ({ ...f, [key]: v }))
 
@@ -86,6 +91,19 @@ export function LabelsTab({
     }
     return labels.find(l => (l as any).is_default) ?? labels[0] ?? null
   }, [selectedId, labels])
+
+  // The per-label "แสดงบาร์โค้ด" switch is the REAL on/off for the barcode
+  // section on a printed label. The global label_settings.show_barcode only
+  // governs the Settings designer preview (so the owner can see + position the
+  // sample barcode) — it must NOT gate real output. Override it here with the
+  // selected label's switch so the product-level decision wins. Offset/height
+  // (offset_*_barcode, font_size_barcode) still come from labelSettings.
+  // The barcode also self-hides when the product has no barcode value
+  // (barcodeSvg → '' ⇒ row dropped), so an empty barcode never prints a stub.
+  const effectiveSettings = useMemo<LabelSettingsForm>(() => ({
+    ...labelSettings,
+    show_barcode: (selected as any)?.show_barcode ? 1 : 0,
+  }), [labelSettings, selected])
 
   const openAddLabel = () => {
     setEditingLabel(null)
@@ -184,7 +202,7 @@ export function LabelsTab({
   // shared builder the Settings designer uses (so print === preview).
   const selectedLabelHtml = () =>
     buildLabelHtml(
-      labelSettings,
+      effectiveSettings,
       composeLabelContent(selected as any, product, shop, { labelTimes, labelAdvices }),
       todayBE(),
     )
@@ -242,11 +260,38 @@ export function LabelsTab({
 
         {/* LEFT — faithful 1:1 preview of the selected label */}
         <SectionCard
+          className="min-w-0 sticky top-0 self-start"
           icon={Pill}
           title="ตัวอย่างฉลาก"
           tint="success"
           right={
             <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button" size="icon-sm" variant="elevated"
+                  disabled={zoom <= ZOOM_MIN}
+                  onClick={() => setZoom(z => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 10) / 10))}
+                  title="ซูมออก"
+                >
+                  <ZoomOut className="size-4" />
+                </Button>
+                <Button
+                  type="button" variant="ghost" size="sm"
+                  onClick={() => setZoom(1)}
+                  className="w-12 justify-center px-0 text-muted-foreground"
+                  title="รีเซ็ตเป็นขนาดจริง (100%)"
+                >
+                  {Math.round(zoom * 100)}%
+                </Button>
+                <Button
+                  type="button" size="icon-sm" variant="elevated"
+                  disabled={zoom >= ZOOM_MAX}
+                  onClick={() => setZoom(z => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 10) / 10))}
+                  title="ซูมเข้า"
+                >
+                  <ZoomIn className="size-4" />
+                </Button>
+              </div>
               <Button variant="elevated" onClick={handlePreviewPdf} disabled={!selected || pdfLoading} className="h-9 px-3">
                 <FileText className="size-4" /> {pdfLoading ? 'กำลังสร้าง...' : 'ดู PDF'}
               </Button>
@@ -258,23 +303,28 @@ export function LabelsTab({
         >
           {/* The label paper is rendered by the shared LabelPaper component
               (also used by the Settings designer preview) so this matches the
-              printed sticker 1:1. composeLabelContent maps this label → text. */}
-          <div className="flex items-center justify-center bg-muted/30 rounded-lg p-6 min-h-[360px] overflow-auto">
-            {selected ? (
-              <LabelPaper
-                settings={labelSettings}
-                content={composeLabelContent(selected as any, product, shop, { labelTimes, labelAdvices })}
-                date={todayBE()}
-              />
-            ) : (
-              <div
-                className="border-2 border-dashed border-border bg-card text-foreground-subtle flex flex-col items-center justify-center gap-2 shrink-0"
-                style={{ width: `${labelSettings.width_mm}mm`, height: `${labelSettings.height_mm}mm` }}
-              >
-                <Pill className="size-8 opacity-40" />
-                <span className="text-sm">เลือกฉลากเพื่อดูตัวอย่าง</span>
-              </div>
-            )}
+              printed sticker 1:1. composeLabelContent maps this label → text.
+              The zoom wrapper uses CSS `zoom` (not transform) so the scaled box
+              keeps its layout size and overflow-auto can scroll to its edges;
+              `mx-auto` centers while it fits, then left-aligns when it overflows. */}
+          <div className="bg-muted/30 rounded-lg p-6 overflow-auto max-h-[70vh]">
+            <div className="w-fit mx-auto" style={{ zoom }}>
+              {selected ? (
+                <LabelPaper
+                  settings={effectiveSettings}
+                  content={composeLabelContent(selected as any, product, shop, { labelTimes, labelAdvices })}
+                  date={todayBE()}
+                />
+              ) : (
+                <div
+                  className="border-2 border-dashed border-border bg-card text-foreground-subtle flex flex-col items-center justify-center gap-2 shrink-0"
+                  style={{ width: `${labelSettings.width_mm}mm`, height: `${labelSettings.height_mm}mm` }}
+                >
+                  <Pill className="size-8 opacity-40" />
+                  <span className="text-sm">เลือกฉลากเพื่อดูตัวอย่าง</span>
+                </div>
+              )}
+            </div>
           </div>
         </SectionCard>
 
@@ -438,6 +488,15 @@ export function LabelsTab({
                 <Toggle framed size="lg" checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" className="justify-between w-full" />
                 <Toggle framed size="lg" checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" className="justify-between w-full" />
               </div>
+              {/* The barcode encodes products.barcode — warn if the switch is on
+                  but the product has no barcode number (the row would silently
+                  vanish on the printed label). */}
+              {!!labelForm.show_barcode && !product.barcode && (
+                <div className="mt-2 flex items-start gap-1.5 text-xs text-warning-soft-foreground">
+                  <Info className="size-3.5 shrink-0 mt-0.5" />
+                  <span>สินค้านี้ยังไม่มีเลขบาร์โค้ด — บาร์โค้ดจะไม่ขึ้นบนฉลาก กรุณากรอกเลขบาร์โค้ดในแท็บข้อมูลทั่วไปก่อน</span>
+                </div>
+              )}
             </SectionCard>
           </DialogBody>
           <DialogFooter>

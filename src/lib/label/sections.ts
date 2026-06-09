@@ -33,12 +33,14 @@ export interface SectionDef {
 
 // Single source of truth: drives the "ฟอนต์ & บรรทัด" sub-tab, the preview, and
 // the print-HTML builder. Order is LOCKED (see docs/plans/label-section-split.md).
-// `shop` is special-cased in LabelPaper/buildLabelHtml: shop name left + print
-// date right on a single flex row. `print_date` is the date's OWN settings
-// (show/font/bold/offset) — it appears in the settings table but is NOT rendered
-// as its own line; it's folded into the shop flex row (right side) and styled by
-// its own columns. `custom_text` always renders LAST and pulls its text from
-// label_settings.custom_text (config, not content).
+// Two flex rows are special-cased in LabelPaper/buildLabelHtml:
+//   - `shop` row: shop name left + print date right.
+//   - `shop_phone` row: phone left + BARCODE right (bars only).
+// `print_date` and `barcode` keep their OWN settings columns (show/font/offset;
+// for barcode, font_size = height in mm) and appear as their own rows in the
+// settings table, but are NOT rendered as their own line — each is folded into
+// its host row's right side and styled by its own columns. `custom_text` always
+// renders LAST and pulls its text from label_settings.custom_text (config).
 export const SECTIONS: SectionDef[] = [
   { kind: 'text', key: 'shop',         label: 'ชื่อร้าน' },
   { kind: 'text', key: 'print_date',   label: 'วันที่' },
@@ -72,6 +74,10 @@ export interface LabelSettingsForm {
   font_size_shop_address: number; font_size_shop_phone: number; font_size_shop_line_id: number
   font_size_product: number; font_size_dosage: number; font_size_timing: number
   font_size_indication: number; font_size_advice: number; font_size_barcode: number
+  // Barcode is sized by a box: font_size_barcode = HEIGHT (mm), barcode_width_mm
+  // = WIDTH (mm). Bars stretch to fill so every product's barcode is the same
+  // footprint regardless of digit count.
+  barcode_width_mm: number
   font_size_custom_text: number
   font_size_small: number // DEAD — retired shared tier, kept for round-trip.
   // Per-section bold — one column per text section.
@@ -119,6 +125,7 @@ export const LABEL_DEFAULTS: LabelSettingsForm = {
   font_size_shop_address: 10, font_size_shop_phone: 10, font_size_shop_line_id: 10,
   font_size_product: 10, font_size_dosage: 10, font_size_timing: 10,
   font_size_indication: 10, font_size_advice: 10, font_size_barcode: 10,
+  barcode_width_mm: 40,
   font_size_custom_text: 10,
   font_size_small: 10, // DEAD
   // Bold only the shop name / address / phone / product name (date not bold).

@@ -54,6 +54,16 @@ export function barcodeSvg(value: string | null | undefined, opts: BarcodeOpts =
     } catch {
       return null
     }
+    // Make the SVG STRETCHABLE: give it a viewBox matching JsBarcode's intrinsic
+    // px size and `preserveAspectRatio="none"` so that when the caller pins BOTH
+    // a CSS width and height (the label's fixed barcode box), the bars fill the
+    // box instead of letterboxing. Without this, a short code (few bars) renders
+    // narrow and a long code wide — the inconsistency we want to remove. Bar
+    // WIDTH ratios still scale uniformly, so the code stays scannable.
+    const w = svg.getAttribute('width')
+    const h = svg.getAttribute('height')
+    if (w && h) svg.setAttribute('viewBox', `0 0 ${w} ${h}`)
+    svg.setAttribute('preserveAspectRatio', 'none')
     return new XMLSerializer().serializeToString(svg)
   }
 
