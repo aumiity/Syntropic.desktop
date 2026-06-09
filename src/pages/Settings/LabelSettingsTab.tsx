@@ -5,13 +5,14 @@ import { Input } from '@/components/ui/input'
 import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Toggle } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, ZoomIn, ZoomOut, Info } from 'lucide-react'
+import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, ZoomIn, ZoomOut, Info, Barcode } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Bundled fonts + the @font-face/esc helpers are shared with the receipt/tax
@@ -524,7 +525,9 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
 
                   {/* One row per section — text sections carry size + bold; line
                       sections (header_line) skip those two and keep only show +
-                      X/Y. Size/bold/X/Y are disabled when the section is hidden. */}
+                      X/Y. Size/bold/X/Y are disabled when the section is hidden.
+                      `barcode` is pulled OUT of this table into its own card below
+                      (it's a สูง × กว้าง box, no bold) — see "บาร์โค้ด" SectionCard. */}
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 px-1 pb-1 text-sm font-semibold text-foreground">
                       <span className="w-4 shrink-0" />
@@ -533,7 +536,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                       <span className="w-9 text-center shrink-0">หนา</span>
                       <span className="w-28 text-center shrink-0">ตำแหน่ง</span>
                     </div>
-                    {SECTIONS.map(def => {
+                    {SECTIONS.filter(def => def.key !== 'barcode').map(def => {
                       const showKey = `show_${def.key}` as keyof LabelSettingsForm
                       const oxKey   = `offset_x_${def.key}` as keyof LabelSettingsForm
                       const oyKey   = `offset_y_${def.key}` as keyof LabelSettingsForm
@@ -554,8 +557,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                                 stepper
                                 value={form[fsKey] as number}
                                 onChange={n => setF(fsKey, n as never)}
-                                className="w-20" min={def.key === 'barcode' ? 4 : 6} max={30} step={1} disabled={!visible}
-                                title={def.key === 'barcode' ? 'ความสูงบาร์โค้ด (มม.)' : undefined}
+                                className="w-20" min={6} max={30} step={1} disabled={!visible}
                               />
                               <Button
                                 type="button"
@@ -598,26 +600,6 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                     })}
                   </div>
 
-                  {/* Shown only when the barcode row is ticked. It governs THIS
-                      designer preview (so the owner can see + position the sample
-                      bars); the real per-label on/off lives on each product's
-                      ฉลาก tab. */}
-                  {!!form.show_barcode && (
-                    <div className="mt-3 space-y-2">
-                      {/* Barcode box = WIDTH × HEIGHT. The ขนาด column above sets
-                          HEIGHT; this sets WIDTH. The bars stretch to fill so every
-                          product's barcode is the same footprint regardless of how
-                          many digits it has. */}
-                      <FormField label="ความกว้างบาร์โค้ด (มม.)">
-                        <NumInput stepper value={form.barcode_width_mm} onChange={n => setF('barcode_width_mm', n)} min={10} max={120} step={1} className="w-32" />
-                      </FormField>
-                      <div className="flex items-start gap-1.5 rounded-lg border border-info/30 bg-info-soft p-2.5 text-xs text-info-soft-foreground">
-                        <Info className="size-3.5 shrink-0 mt-0.5" />
-                        <span>บาร์โค้ดที่แสดง ใช้เพื่อการปรับรูปแบบเท่านั้น หากต้องการให้แสดงผลบนฉลาก กรุณาตั้งค่าที่สินค้า</span>
-                      </div>
-                    </div>
-                  )}
-
                   {/* ข้อความเพิ่มเติม — always editable; whether it PRINTS is
                       gated by its own row's checkbox (show_custom_text) above, so
                       the text can be drafted/kept even while toggled off. */}
@@ -631,6 +613,59 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                       />
                     </FormField>
                   </div>
+                </SectionCard>
+
+                {/* บาร์โค้ด — pulled out of the per-section table into its own card
+                    because it's a สูง × กว้าง BOX (no font/bold like text rows). The
+                    toggle + size/position here govern only THIS designer preview so
+                    the owner can see + position sample bars; the real per-label
+                    on/off lives on each product's ฉลาก tab. */}
+                <SectionCard icon={Barcode} title="บาร์โค้ด" tint="info">
+                  <Toggle
+                    framed
+                    className="w-full justify-between"
+                    checked={!!form.show_barcode}
+                    onChange={v => setF('show_barcode', (v ? 1 : 0) as never)}
+                    label="แสดงบาร์โค้ดในตัวอย่าง"
+                  />
+                  {!!form.show_barcode && (
+                    <>
+                      {/* สูง / กว้าง / ตำแหน่ง on ONE row. Barcode box = สูง × กว้าง;
+                          the bars stretch to fill so every product's barcode keeps the
+                          same footprint regardless of digit count. flex-wrap lets the
+                          ตำแหน่ง group drop to a second line on a narrow panel. */}
+                      <div className="flex items-start justify-between gap-3">
+                        <FormField label="ความสูง (มม.)">
+                          <NumInput stepper value={form.font_size_barcode} onChange={n => setF('font_size_barcode', n)} min={4} max={30} step={1} className="w-20" />
+                        </FormField>
+                        <FormField label="ความกว้าง (มม.)">
+                          <NumInput stepper value={form.barcode_width_mm} onChange={n => setF('barcode_width_mm', n)} min={10} max={120} step={1} className="w-20" />
+                        </FormField>
+                        <FormField label="ตำแหน่ง">
+                          {/* ◄ ► move X, ▲ ▼ move Y (±0.5mm); live preview shifts.
+                              size-9 so the buttons match the input field height. */}
+                          <div className="flex items-center gap-1">
+                            <Button type="button" size="icon-lg" variant="elevated" className="size-9" {...bindHold(() => nudge('offset_x_barcode', -0.5))} title="เลื่อนซ้าย (กดค้างได้)">
+                              <ChevronLeft />
+                            </Button>
+                            <Button type="button" size="icon-lg" variant="elevated" className="size-9" {...bindHold(() => nudge('offset_x_barcode', 0.5))} title="เลื่อนขวา (กดค้างได้)">
+                              <ChevronRight />
+                            </Button>
+                            <Button type="button" size="icon-lg" variant="elevated" className="size-9" {...bindHold(() => nudge('offset_y_barcode', -0.5))} title="เลื่อนขึ้น (กดค้างได้)">
+                              <ChevronUp />
+                            </Button>
+                            <Button type="button" size="icon-lg" variant="elevated" className="size-9" {...bindHold(() => nudge('offset_y_barcode', 0.5))} title="เลื่อนลง (กดค้างได้)">
+                              <ChevronDown />
+                            </Button>
+                          </div>
+                        </FormField>
+                      </div>
+                      <div className="flex items-start gap-1.5 rounded-lg border border-info/30 bg-info-soft p-2.5 text-sm text-info-soft-foreground">
+                        <Info className="size-4 shrink-0 mt-0.5" />
+                        <span>บาร์โค้ดที่แสดง ใช้เพื่อการปรับรูปแบบเท่านั้น หากต้องการให้แสดงผลบนฉลาก กรุณาตั้งค่าที่สินค้า</span>
+                      </div>
+                    </>
+                  )}
                 </SectionCard>
               </TabsContent>
 

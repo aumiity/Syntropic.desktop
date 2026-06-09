@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>พิมพ์ฉลากยาในหน้า POS (รองรับ 4 ภาษา) — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine .ok{color:#6ee7b7}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>พิมพ์ฉลากยาในหน้า POS · รองรับ 4 ภาษา</h1>
+    <p>เปลี่ยนปุ่ม "พิมพ์ฉลาก" ที่ยัง disabled ให้เปิดหน้าต่างเลือกพิมพ์ฉลากของสินค้าในตะกร้า พร้อมเลือกภาษา ไทย/English/พม่า/จีน ได้จริง</p>
+    <div class="pillrow">
+      <span class="pill">ร่าง · ผ่าน audit 3 รอบ</span>
+      <span class="pill">แตะ schema: +1 คอลัมน์ (indication_en)</span>
+      <span class="pill">+ฟอนต์ Noto (พม่า/จีน)</span>
+      <span class="pill">2026-06-09</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><b>ปัญหา:</b> ปุ่ม "พิมพ์ฉลาก" ในหน้า POS ยัง <code>disabled</code> ใช้ไม่ได้ และระบบฉลากปัจจุบัน "พิมพ์ออกมาเป็นไทยล้วน"
+    (<code>composeLabelContent</code> fix <code>name_th</code>/<code>indication_th</code>) ทั้งที่ DB เก็บคำแปลไว้หลายภาษาอยู่แล้ว</p>
+    <p><b>แผนนี้แก้ 2 เรื่องพร้อมกัน:</b></p>
+    <ul class="clean">
+      <li><b>(A) นำระบบพิมพ์ฉลากเข้าหน้า POS</b> — กดปุ่มแล้วเปิดหน้าต่างเลือกพิมพ์ฉลากของสินค้าในตะกร้า (ติ๊กอัตโนมัติ + เลือกฉลาก + จำนวนสำเนา) มีสวิตช์ดูสินค้าที่ยังไม่มีฉลาก + quick add</li>
+      <li><b>(B) รองรับ 4 ภาษา</b> — เลือกภาษาได้ครั้งเดียวใช้ทั้งบิล (ไทย/English/พม่า/จีน) ฉลากจะดึงคำแปลตามภาษาที่เลือก โดย fallback กลับไทยเมื่อช่องนั้นยังว่าง</li>
+    </ul>
+    <p><b>สถานะ 4 ภาษาใน DB ตอนนี้:</b> ตาราง lookup ทั้ง 5 (ขนาดยา/ความถี่/มื้อ/เวลา/คำแนะนำ) มี <code>name_th/en/mm/zh</code> ครบ + seed แปลครบแล้ว
+    เหลือแค่ <b>สรรพคุณรายสินค้า (<code>indication</code>) ขาด English</b> → แผนนี้เพิ่มคอลัมน์ <code>indication_en</code> ให้ครบ และเพิ่มช่องกรอกในฟอร์ม
+    ส่วนฟอนต์พม่า/จีนยังไม่มีในแอป → bundle Noto เพิ่ม กันพิมพ์ออกมาเป็นกล่อง (tofu)</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <h3>ขั้นตอนการใช้งาน (flow)</h3>
+    <p><code>กดปุ่ม "พิมพ์ฉลาก" (เปิดได้เมื่อมีของในตะกร้า)
+  <span class="arrow">→</span> หน้าต่างพิมพ์ฉลาก : เลือก [ภาษา: ไทย ▾]  (ครั้งเดียว ใช้ทั้งบิล)
+      <span class="arrow">→</span> รายการมีฉลาก : ☑ ติ๊กอัตโนมัติ + เลือกฉลาก + จำนวนสำเนา (เริ่ม 1)
+      <span class="arrow">→</span> สวิตช์ "แสดงรายการที่ไม่มีฉลาก" → ปุ่ม [เพิ่มฉลาก] (ฟอร์มเต็ม 4 ภาษา)
+  <span class="arrow">→</span> กด "พิมพ์ (N)" : compose ตามภาษา → รวมหลายหน้า + ฝังฟอนต์ที่ต้องใช้ → พิมพ์ทีเดียว</code></p>
+
+    <h3>สถานะ 4 ภาษา (ก่อนแผนนี้)</h3>
+    <table>
+      <thead><tr><th>ตาราง / ฟิลด์</th><th>ไทย</th><th>Eng</th><th>พม่า</th><th>จีน</th></tr></thead>
+      <tbody>
+        <tr><td>lookup × 5 (<code>name_*</code>)</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td><code>product_labels.indication_*</code></td><td>✓</td><td><span class="tag t-skip">ขาด → เพิ่ม</span></td><td>✓</td><td>✓</td></tr>
+        <tr><td>การ render (<code>composeLabelContent</code>)</td><td colspan="4">เดิม fix ไทยล้วน → เพิ่ม param <code>lang</code> เลือกคอลัมน์ตามภาษา (fallback ไทย)</td></tr>
+        <tr><td>ฟอนต์พิมพ์</td><td colspan="4">มีแต่ฟอนต์ไทย → bundle Noto Sans Myanmar + Noto Sans SC (ฝังเฉพาะเมื่อเนื้อหามีอักษรนั้น)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <table>
+      <thead><tr><th>ไฟล์</th><th>บทบาท</th><th>การเปลี่ยน</th></tr></thead>
+      <tbody>
+        <tr><td><code>electron/db/schema.ts</code></td><td>schema + migration</td><td><span class="tag t-opt">+คอลัมน์ indication_en (CREATE + ALTER)</span></td></tr>
+        <tr><td><code>electron/ipc/products.ts</code></td><td>saveLabel INSERT</td><td><span class="tag t-opt">+indication_en ใน column list + VALUES</span></td></tr>
+        <tr><td><code>src/types/index.ts</code></td><td>ProductLabel + Lookups</td><td><span class="tag t-opt">+indication_en</span></td></tr>
+        <tr><td><code>src/lib/label/content.ts</code></td><td>composeLabelContent</td><td><span class="tag t-opt">+param lang + resolve lookup ตามภาษา</span></td></tr>
+        <tr><td><code>src/lib/print/fonts.ts</code></td><td>ฟอนต์พิมพ์</td><td><span class="tag t-gen">+helper ฝังฟอนต์ fallback (พม่า/จีน)</span></td></tr>
+        <tr><td><code>src/assets/fonts/</code></td><td>ไฟล์ฟอนต์</td><td><span class="tag t-gen">+NotoSansMyanmar + NotoSansSC (.ttf)</span></td></tr>
+        <tr><td><code>src/lib/label/html.ts</code></td><td>ตัวสร้าง HTML</td><td><span class="tag t-gen">แยก renderer + sheet builder (หลายหน้า + ฟอนต์ตามเนื้อหา)</span></td></tr>
+        <tr><td><code>src/components/label/LabelFormDialog.tsx</code></td><td>ฟอร์มฉลาก (ใหม่ ใช้ร่วม)</td><td><span class="tag t-gen">สร้างใหม่ (4 ภาษา)</span></td></tr>
+        <tr><td><code>.../EditProduct/LabelsTab.tsx</code></td><td>แท็บฉลากหน้าสินค้า</td><td><span class="tag t-opt">refactor ใช้ฟอร์มร่วม + ส่ง lookup ครบ 5 (2 จุดเรียก)</span></td></tr>
+        <tr><td><code>src/pages/Settings/LabelSettingsTab.tsx</code></td><td>designer preview (caller ที่ 3)</td><td><span class="tag t-opt">รับ signature ใหม่ (lang default) — verify preview ไม่เพี้ยน</span></td></tr>
+        <tr><td><code>src/pages/POS/LabelPrintDialog.tsx</code></td><td>หน้าต่างพิมพ์ฉลาก (ใหม่)</td><td><span class="tag t-gen">สร้างใหม่ (+ตัวเลือกภาษา)</span></td></tr>
+        <tr><td><code>src/pages/POS/index.tsx</code></td><td>หน้า POS</td><td><span class="tag t-opt">เปิดปุ่ม + mount dialog</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>ปุ่ม "พิมพ์ฉลาก" ในหน้า POS กดไม่ได้ (disabled ถาวร)</li>
+        <li>ฉลากพิมพ์เป็นไทยล้วนเสมอ — สลับภาษาไม่ได้แม้ DB เก็บคำแปลไว้</li>
+        <li>สรรพคุณรายสินค้าขาดช่อง English (มีแค่ ไทย/พม่า/จีน)</li>
+        <li>ไม่มีฟอนต์พม่า/จีนในแอป → ถ้าพิมพ์ออกมาจะเป็นกล่อง</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>ปุ่มเปิดใช้ได้เมื่อมีของในตะกร้า → หน้าต่างพิมพ์ฉลาก</li>
+        <li>เลือกภาษาครั้งเดียวใช้ทั้งบิล — ฉลากดึงคำแปลตามภาษา (fallback ไทย)</li>
+        <li>กรอกสรรพคุณได้ครบ 4 ภาษาในฟอร์มเดียว</li>
+        <li>พม่า/จีน render ชัดด้วย Noto ที่ฝังเฉพาะเมื่อมีอักษรนั้น (Thai-only ไม่อืด)</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>พิมพ์ฉลากหลายภาษาจากหน้าขายได้ทันที — ตรงกับลูกค้าพม่า/จีนของร้าน</li>
+    <li>ใช้คำแปล lookup ที่ seed ไว้ครบอยู่แล้ว — แค่ปลดล็อกให้เลือกภาษา</li>
+    <li>แตะ schema น้อยมาก (+1 คอลัมน์ ผ่าน migration ที่ปลอดภัยกับ DB เดิม)</li>
+    <li>ฝังฟอนต์ตามเนื้อหา — บิลไทยล้วนไฟล์เล็กเท่าเดิม จ่ายต้นทุน CJK เฉพาะตอนใช้</li>
+    <li>ฟอร์มฉลากแยกเป็น component ร่วม (SSOT) ใช้ทั้งหน้าสินค้าและ POS</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>เพิ่มไฟล์ฟอนต์ในรีโป — Noto Sans SC (จีน) ราวหลาย MB (Myanmar เล็ก) → repo + ไฟล์พิมพ์ตอนมีจีนใหญ่ขึ้น (อนาคต subset ได้)</li>
+    <li>แตะ schema/IPC แล้ว — ไม่ใช่งาน UI ล้วนเหมือนแผนเดิม จึงต้อง migrate + ทดสอบ DB เดิม</li>
+    <li>composeLabelContent เปลี่ยน signature → กระทบ LabelsTab 2 จุดเรียก (ต้องอัปเดต)</li>
+    <li>ฝังฟอนต์ 2 น้ำหนัก (Regular+Bold) ต่อภาษาที่ใช้ → ไฟล์พิมพ์ตอนมี CJK ใหญ่ขึ้นอีกเท่าตัว (แต่ได้ bold จริง)</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง (invariant)</h4><ul class="clean">
+    <li><b>saveLabel named-param subset เป๊ะ</b> — เพิ่ม <code>indication_en</code> ต้องใส่ทั้งใน payload object และใน INSERT column list/VALUES พร้อมกัน ไม่งั้น throw "Too many parameter values" (ดู project_drug_label.md)</li>
+    <li><b>migration ปลอดภัยกับ DB เดิม</b> — ใส่ ALTER ใน array ที่ห่อ <code>try{}catch{}</code> (schema.ts:765) เท่านั้น; เพิ่ม <code>indication_en</code> ใน CREATE TABLE สำหรับ DB ใหม่ด้วย</li>
+    <li><b>fallback ภาษา</b> — ช่องที่ภาษาเลือกว่าง ต้องถอยกลับ <code>*_th</code> (name_th NOT NULL การันตีไทยมีเสมอ) ไม่ใช่ปล่อยว่าง</li>
+    <li><b>composeLabelContent default lang='th'</b> — ค่าเริ่มต้นต้องให้ผลเท่าเดิมเป๊ะ (กัน LabelsTab/Settings designer เพี้ยน)</li>
+    <li><b>render path 1:1</b> — แถวพิเศษ shop+วันที่ และ shop_phone+barcode คงตรรกะเดิมทั้งคู่</li>
+    <li><b>ฝังฟอนต์ตามอักษรจริง</b> — สแกน content; มีพม่า→ฝัง Myanmar, มี CJK→ฝัง SC; ต่อ family เข้า stack ก่อน <code>sans-serif</code></li>
+    <li><b>ห้าม coerce ค่าว่าง→0</b> (จำนวนสำเนา clamp 1..99) · <b>Select คืน string</b> (แปลง Number ทุกครั้ง) · <b>show_barcode รายฉลากทับ global</b> · <b>โฟกัส POS</b> (เพิ่มใน anyModalOpen + refocusSearch)</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><b>ปุ่มเปิด:</b> ปุ่ม "พิมพ์ฉลาก" เดิม (icon <code>Tag</code>) — disabled เฉพาะเมื่อตะกร้าว่าง</li>
+      <li><b>หน้าต่าง:</b> <code>Dialog</code> ขนาด <code>xl</code> (Header+Title+Body+Footer) — Esc ปิด, คลิกนอกไม่ปิด, Enter = ปุ่มหลัก</li>
+      <li><b>ตัวเลือกภาษา:</b> <code>Select</code> (h-9) "ภาษาฉลาก" ที่หัว Body — 4 ตัวเลือก ไทย/English/พม่า/จีน, default ไทย, มีผลกับทุกฉลากในรอบพิมพ์</li>
+      <li><b>แถวมีฉลาก:</b> <code>Checkbox</code> (auto-check) · ชื่อสินค้า · <code>Select</code> ฉลาก (default ค่าเริ่มต้น) · <code>Input</code> สำเนา (h-9, เริ่ม 1)</li>
+      <li><b>สวิตช์:</b> <code>Toggle</code> "แสดงรายการที่ไม่มีฉลาก" (เริ่มปิด) → เผยกลุ่มไร้ฉลาก + Badge "ไม่มีฉลาก" + ปุ่ม <code>elevated</code> "เพิ่มฉลาก"</li>
+      <li><b>quick add:</b> เปิด <code>LabelFormDialog</code> (ฟอร์มเต็ม — สรรพคุณ 4 ภาษา ไทย/English/พม่า/จีน) ซ้อนบนหน้าต่าง POS</li>
+      <li><b>Footer:</b> <code>elevated</code> "ยกเลิก" + <code>default</code> "พิมพ์ (N)" disabled เมื่อ N=0</li>
+      <li>ไม่มี preview / ไม่มีปุ่มดู PDF ในหน้าต่างนี้ (ตามที่เลือก) · ภาษาไทยทั้งหมด · semantic token · ไม่มี emoji/raw HTML</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit</h2>
+  <div class="card">
+    <p><b>รอบ 1–2</b> ตรวจแผนฐาน (พิมพ์ฉลากเข้า POS) — ผ่าน SAFE หลังแก้ประเด็นย่อย:</p>
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>พิมพ์หลายหน้าต้องใช้ <code>preferCSSPageSize</code>?</td><td><span class="tag t-keep">RESOLVED</span></td><td>ไม่ต้อง — เป็น option ของ printToPDF; <code>print()</code> แบ่งหน้าด้วย pageSize microns + CSS break ⇒ ไม่แก้ printer.ts</td></tr>
+        <tr><td>1</td><td>copies ผูกกับ qty?</td><td><span class="tag t-opt">MAJOR</span></td><td>ระบุชัด: default 1/สินค้า แก้ได้ ไม่ derive จาก qty</td></tr>
+        <tr><td>1</td><td>bundle โผล่ในรายการ / Toggle ใช้ onChange / saveLabel ไม่มีชื่อ join / dialog ซ้อน 2xl</td><td><span class="tag t-opt">MINOR×4</span></td><td>กรอง is_bundle ออก · ระบุ onChange · re-fetch getLabels · คง 2xl divided</td></tr>
+        <tr><td>2</td><td>การแยก renderer / payload subset / edge cases / wiring</td><td><span class="tag t-keep">PASS</span></td><td>ตรงกับโค้ดจริง</td></tr>
+        <tr><td>2</td><td>selectedLabelId number แต่ Select คืน string</td><td><span class="tag t-opt">MINOR</span></td><td>เก็บ String()/อ่าน Number() เสมอ</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:14px"><b>รอบ 3</b> ตรวจส่วนเพิ่ม 4 ภาษา (schema + ฟอนต์ + composeLabelContent):</p>
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>3</td><td><code>composeLabelContent</code> มี caller ที่ 3 (<code>LabelSettingsTab.tsx:219</code>) ที่แผนเดิมอ้างผิดว่าใช้ SAMPLE_CONTENT ล้วน</td><td><span class="tag t-skip">BLOCKER</span></td><td>เพิ่ม Settings เป็น caller ที่ 3 ในตาราง/Step 6/verify; ยืนยัน Lookups ใหม่ทุก field optional + lang มี default ⇒ <code>(null,{},shop,{})</code> compile ผ่าน preview เท่าเดิม</td></tr>
+        <tr><td>3</td><td>ไฟล์ฟอนต์ Noto Myanmar/SC ยังไม่มีในรีโป — Step 2/4 build ไม่ผ่านจนกว่าจะหามา</td><td><span class="tag t-keep">แก้แล้ว</span></td><td>เจ้าของวางไฟล์ครบ (Regular+Bold ทุกน้ำหนัก ทั้ง 2 ภาษา) 2026-06-09 → ไม่ติด prerequisite อีก + ฝังตัวหนาได้จริง</td></tr>
+        <tr><td>3</td><td>fallback ชื่อ lookup ต้องคง joined <code>*_name</code> เมื่อไม่ส่ง lookup (LabelsTab ส่งแค่ times/advices)</td><td><span class="tag t-keep">PASS</span></td><td>แผน Step 3 มี fallback สุดท้าย <code>*_name</code> อยู่แล้ว — ถูกต้อง</td></tr>
+        <tr><td>3</td><td>schema/migration · saveLabel subset · ฟอนต์ mechanism · injection point · regex</td><td><span class="tag t-keep">PASS</span></td><td>ตรงกับโค้ดจริงทุกจุด</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li><code>product_labels.indication_en</code> มีจริง (CREATE ใหม่ + ALTER DB เดิม), saveLabel เขียน/อ่านได้, ProductLabel type มี field</li>
+      <li><code>composeLabelContent(label, product, shop, lookups, lang='th')</code> เลือกคอลัมน์ตาม lang (indication + dosage/frequency/timing/label_time/advice จาก lookup) fallback <code>*_th</code>; lang='th' ให้ผลเท่าเดิม</li>
+      <li>ฟอนต์ Noto Myanmar + SC อยู่ใน assets; helper ฝัง @font-face fallback ตามอักษรในเนื้อหา; family stack ต่อก่อน <code>sans-serif</code></li>
+      <li>ปุ่ม "พิมพ์ฉลาก" (POS/index.tsx:1303-1306) <code>disabled={cart.items.length===0}</code> + เปิด modal</li>
+      <li>modal: เลือกภาษา (default ไทย) + รายการมีฉลาก (auto-check/เลือกฉลาก/สำเนา) + Toggle เผยไร้ฉลาก + quick add (ฟอร์ม 4 ภาษา)</li>
+      <li>"พิมพ์" → compose ตาม lang → <code>buildLabelSheetHtml</code> (หลายหน้า + ฟอนต์ตามเนื้อหา) → <code>printer.printLabel</code>; gate paper size + ≥1 ติ๊ก</li>
+      <li>พิมพ์พม่า/จีนแล้ว glyph ขึ้นจริง (ไม่ tofu); บิลไทยล้วนไม่ฝัง CJK</li>
+      <li><code>npx tsc --noEmit</code> ผ่าน; LabelsTab (เพิ่ม/แก้/ลบ/พิมพ์) + Settings label designer ยังทำงานเดิม</li>
+    </ul>
+
+    <h3>ข้อกำหนดก่อนเริ่ม (PREREQUISITE)</h3>
+    <ul>
+      <li class="ok">ไฟล์ฟอนต์ <b>วางครบแล้ว</b> ใน <code>src/assets/fonts/</code> — <code>NotoSansMyanmar-{Regular,Bold,...}.ttf</code> + <code>NotoSansSC-{Regular,Bold,...}.ttf</code> ทุกน้ำหนัก (ยืนยัน 2026-06-09). มี <b>Regular + Bold</b> ⇒ ฝังได้ทั้ง 2 น้ำหนัก ตัวหนาพม่า/จีน render bold จริง ไม่ต้อง faux-bold. SC เต็มยังใหญ่ → คงกลยุทธ์ฝังเฉพาะเมื่อเนื้อหามี CJK.</li>
+    </ul>
+
+    <h3>ขั้นตอน (ตามลำดับ dependency)</h3>
+    <ol>
+      <div class="step"><b>Step 1 — schema + saveLabel + types: เพิ่ม <code>indication_en</code> ครบวง.</b>
+        <br><code>electron/db/schema.ts</code>: (a) เพิ่ม <code>indication_en TEXT</code> ใน CREATE TABLE product_labels (วางถัด <code>indication_th</code> ~บรรทัด 405); (b) เพิ่ม <code>`ALTER TABLE product_labels ADD COLUMN indication_en TEXT`</code> ใน array migration ที่ห่อ <code>try{db.exec(sql)}catch{}</code> (schema.ts:765-972).
+        <br><code>electron/ipc/products.ts</code> <code>products:saveLabel</code> (~899): เพิ่ม <code>indication_en</code> ใน INSERT column list และ <code>@indication_en</code> ใน VALUES.
+        <br><code>src/types/index.ts</code> <code>ProductLabel</code> (~75): เพิ่ม <code>indication_en?: string</code>.
+        <br><span class="inv">invariant: ห้ามแตะ key อื่นใน saveLabel; payload ↔ column list ต้องตรงกัน (named-param subset) · ALTER ต้องอยู่ใน try/catch array เท่านั้น (DB เดิมจะ throw duplicate-column ถ้าไม่ห่อ)</span></div>
+
+      <div class="step"><b>Step 2 — ฟอนต์ fallback พม่า/จีน.</b>
+        ไฟล์อยู่แล้วใน <code>src/assets/fonts/</code> (<code>NotoSansMyanmar-Regular/Bold.ttf</code> + <code>NotoSansSC-Regular/Bold.ttf</code> — ครบทุกน้ำหนัก).
+        <br><code>src/lib/print/fonts.ts</code>: import 4 ไฟล์ (Regular+Bold ของแต่ละภาษา) แบบ <code>?url</code>; เพิ่ม
+        <code>export async function buildFallbackFontFaceCss(text: string): Promise&lt;{css:string; families:string[]}&gt;</code> —
+        สแกน <code>text</code> ด้วย regex Myanmar <code>/[က-႟ꩠ-ꩿꧠ-꧿]/</code> และ CJK <code>/[㐀-䶿一-鿿豈-﫿]/</code>; ภาษาที่พบ → fetch ttf เป็น data URL (เลียน buildPrintFontFaceCss) คืน @font-face + ชื่อ family (<code>'Noto Sans Myanmar'</code>, <code>'Noto Sans SC'</code>).
+        <br><span class="inv">invariant: ฝังเฉพาะอักษรที่ปรากฏจริง (กันไฟล์อืด) · ฝัง Regular+Bold ให้ bold section เป็น bold จริง (มีไฟล์ Bold แล้ว)</span></div>
+
+      <div class="step"><b>Step 3 — <code>composeLabelContent</code>: รองรับ lang.</b>
+        <code>src/lib/label/content.ts</code>: เพิ่ม type <code>LabelLang='th'|'en'|'mm'|'zh'</code>; signature ใหม่
+        <code>composeLabelContent(label, product, shop, lookups, lang: LabelLang = 'th')</code>.
+        ขยาย <code>Lookups</code> ให้รับครบ 5 ลิสต์ (labelDosages/labelFrequencies/labelMealRelations/labelTimes/labelAdvices, ทุกตัว optional) และ <code>LabelLike</code> ให้มี id ครบ (dosage_id/frequency_id/timing_id) + indication_en/mm/zh.
+        ตัวเลือกชื่อ: <code>pick(row,lang)= row?.[`name_${lang}`] || row?.name_th || ''</code>; resolve dosage/frequency/timing(meal)/label_time/advice จาก lookup ตาม id+lang, ตกมาที่ joined <code>*_name</code> (name_th) เป็น fallback สุดท้ายถ้าไม่ส่ง lookup.
+        indication: <code>label[`indication_${lang}`] || label.indication_th || ''</code>.
+        <br><span class="inv">invariant: lang='th' + ส่ง lookup ครบ ต้องให้ผลเท่าเดิมเป๊ะ; ถ้าช่อง lang ว่าง fallback th เสมอ</span></div>
+
+      <div class="step"><b>Step 4 — <code>src/lib/label/html.ts</code>: แยก renderer + sheet builder (หลายหน้า + ฟอนต์ตามเนื้อหา).</b>
+        4a) แยก body ของ <code>.filter().map().join('')</code> (html.ts:27-97) เป็น <code>export function renderLabelSectionsHtml(settings, content, date): string</code> (closure dep มีแค่ 3 ตัวนี้ — ตรวจแล้ว); <code>buildLabelHtml</code> เรียกฟังก์ชันนี้ คง wrapper เดิมเป๊ะ (single-label output ต้องเท่าเดิม).
+        <br>4b) เพิ่ม <code>export async function buildLabelSheetHtml(baseSettings, entries: {settings,content,date}[]): Promise&lt;string&gt;</code>:
+        รวม <code>allText</code> = ทุก content ทุก entry → <code>const fb = await buildFallbackFontFaceCss(allText)</code>;
+        primary font-face (จาก baseSettings) + <code>fb.css</code>; family stack = <code>'${baseSettings.font_family}', ${fb.families..}, sans-serif</code>;
+        <code>@page{size:${w}mm ${h}mm;margin:0}</code> ครั้งเดียว; แต่ละ entry = <code>div.label-page</code> ขนาดกระดาษ + padding/line-height + <code>font-family</code>(stack) + <code>overflow:hidden</code> + <code>break-after:page;page-break-after:always</code>; CSS <code>.label-page:last-child{break-after:auto}</code> + <code>.label-page>div:first-child{margin-top:0!important}</code>; เนื้อใน = <code>renderLabelSectionsHtml(entry.settings, entry.content, entry.date)</code>.
+        <br><span class="inv">invariant: per-entry settings ใช้แค่ section show/hide+style (รวม show_barcode รายฉลาก); paper/font/padding จาก baseSettings · คงแถวพิเศษ shop+date / shop_phone+barcode</span></div>
+
+      <div class="step"><b>Step 5 — <code>src/components/label/LabelFormDialog.tsx</code> (ใหม่): ฟอร์มฉลากร่วม 4 ภาษา.</b>
+        ย้าย <code>&lt;Dialog&gt;</code> + form state + <code>handleSaveLabel</code> + barcode warning จาก LabelsTab (~388-507) มาที่นี่.
+        Props: <code>{open,onOpenChange,productId,editingLabel|null,productBarcode?,lookups{5 lists},onSaved}</code>; seed จาก editingLabel/blank ใน <code>useEffect([open,editingLabel])</code>.
+        การ์ด "สรรพคุณ": เพิ่ม <code>Textarea</code> "สรรพคุณ (English)" → รวมเป็น 4 ช่อง (ไทย/English/พม่า/จีน); seed + payload เพิ่ม <code>indication_en</code>.
+        คง <code>&lt;DialogContent size="2xl" divided className="max-h-[90vh] grid-rows-[auto_1fr_auto]"&gt;</code>.
+        <br><span class="inv">invariant: payload keys = เดิม + indication_en (ให้ตรง INSERT) · ผล saveLabel เป็น SELECT* ไม่มีชื่อ join → onSaved ต้อง re-fetch getLabels</span></div>
+
+      <div class="step"><b>Step 6 — <code>LabelsTab.tsx</code> + Settings: ใช้ LabelFormDialog + รับ signature ใหม่.</b>
+        <code>LabelsTab</code>: ลบ form/dialog ที่ย้ายไป; render <code>&lt;LabelFormDialog ... onSaved={()=&gt;onRefresh()} /&gt;</code> ส่ง lookups ครบ 5.
+        อัปเดต <b>2 จุดเรียก</b> <code>composeLabelContent</code> (preview LabelsTab.tsx:315 + selectedLabelHtml :206) ให้ส่ง lookups ครบ 5 (lang เว้น default 'th'). preview/print/list/zoom คงเดิม.
+        <br><b>caller ที่ 3 — <code>Settings/LabelSettingsTab.tsx:219</code></b> <code>composeLabelContent(null, {}, shop, {})</code>: เพราะ Lookups ใหม่ทุก field optional + lang มี default ⇒ call นี้ <b>compile ผ่านไม่ต้องแก้</b> และ label=null ทำให้ข้าม block ภาษา → preview เท่าเดิม. <span class="inv">verify จริงว่า Settings designer preview ไม่เพี้ยน (มันเป็น live caller ไม่ใช่ SAMPLE_CONTENT ล้วน)</span>.
+        <br><span class="inv">verify: เพิ่ม/แก้/ลบ/พิมพ์ จากแท็บฉลากยังครบ + Settings designer preview เดิม — จุด regression หลัก</span></div>
+
+      <div class="step"><b>Step 7 — <code>src/pages/POS/LabelPrintDialog.tsx</code> (ใหม่).</b>
+        Props <code>{open,onClose}</code>; อ่าน <code>useCartStore</code>. โหลดเมื่อ open: labelSettings (per-key overwrite guard) + shop + 5 lookups.
+        สร้างรายการ: dedupe ตาม <code>product_id</code> (ข้ามไม่มี product / <code>is_bundle===1</code>); <code>products.getLabels(id)</code> เก็บ active.
+        Row <code>{productId,product,labels,checked,selectedLabelId:number|null,copies:number}</code>; มี active→check+default+1.
+        State <code>lang</code> (default 'th'). UI: <code>DialogContent size="xl"</code>; หัว Body <code>Select</code> "ภาษาฉลาก" (4 ตัวเลือก).
+        แถว: <code>Checkbox</code>(onCheckedChange) + ชื่อ(<code>name_for_print||trade_name</code>) + <code>Select</code> ฉลาก (<span class="inv">value=String(id), อ่าน Number(v)</span>) + <code>Input type=number</code> h-9 (<span class="inv">clamp 1..99, ห้าม blank→0</span>).
+        <code>Toggle</code> "แสดงรายการที่ไม่มีฉลาก" (<span class="inv">onChange</span>); กลุ่มไร้ฉลาก: ชื่อ+Badge+ปุ่ม "เพิ่มฉลาก".
+        Footer: <code>elevated</code> "ยกเลิก" + <code>default</code> "พิมพ์ (N)" disabled เมื่อ N=0.
+        quick add: <code>quickAddProductId</code> → <code>LabelFormDialog</code> add-mode; onSaved → re-fetch getLabels(active) → ย้าย row เข้ากลุ่มมีฉลาก.
+        <b>handlePrint:</b> gate <code>width_mm&gt;0&&height_mm&gt;0</code> (ไม่งั้น toast ไปตั้งค่า); checkedRows ว่าง→toast.
+        build entries: ต่อ row หา label, <code>effective={...labelSettings, show_barcode: label.show_barcode?1:0}</code>, <code>content=composeLabelContent(label, product, shop, {5 lists}, lang)</code>, push ×clamp(copies); <code>html=await buildLabelSheetHtml(labelSettings, entries)</code>; <code>printer.printLabel({html,printerName:labelSettings.printer_name,paperWidthMm:width_mm,paperHeightMm:height_mm})</code>; success→toast+onClose; busy flag.</div>
+
+      <div class="step"><b>Step 8 — <code>src/pages/POS/index.tsx</code>: เปิดปุ่ม + mount.</b>
+        <code>const [showLabelPrint,setShowLabelPrint]=useState(false)</code>; แทนปุ่ม disabled เดิม (1303-1306) ด้วย <code>disabled={cart.items.length===0} onClick={()=&gt;setShowLabelPrint(true)}</code>;
+        <span class="inv">เพิ่ม showLabelPrint ใน anyModalOpen (~324)</span>; mount <code>&lt;LabelPrintDialog open={showLabelPrint} onClose={()=&gt;{setShowLabelPrint(false);refocusSearch()}} /&gt;</code>; <code>Tag</code> import มีแล้ว (43).</div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> สะอาด</li>
+      <li>migrate DB เดิม: เปิดแอป → ไม่ error, แก้/บันทึกฉลากที่มี English ได้ (เช็คคอลัมน์ <code>indication_en</code> ถูกเขียน)</li>
+      <li>click-test POS: ใส่สินค้ามีฉลาก + ไร้ฉลาก → เปิด modal → เปลี่ยนภาษาเป็นพม่า/จีน → พิมพ์ → glyph ขึ้นจริง (ไม่ tofu); ภาษาไทย/อังกฤษถูกต้อง; ช่องว่าง fallback ไทย</li>
+      <li>บิลไทยล้วน: ตรวจว่าไฟล์พิมพ์ไม่ฝัง Noto SC (เนื้อหาไม่มี CJK)</li>
+      <li>regression: LabelsTab เพิ่ม/แก้/ลบ/พิมพ์ + <b>Settings label designer preview</b> (live caller composeLabelContent — ต้องเหมือนเดิม, lang='th' ผลเท่าเดิม)</li>
+      <li><span class="ok">dev tip:</span> route <code>buildLabelSheetHtml</code> ผ่าน <code>previewLabelPdf</code> ชั่วคราวเพื่อ eyeball การแบ่งหน้า + ฟอนต์ ก่อนเครื่องจริง</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li><span class="inv">R1</span> buildLabelHtml regression ตอนแยก → คง wrapper + click-test designer/LabelsTab</li>
+      <li><span class="inv">R2</span> LabelsTab regression ตอนแยกฟอร์ม + เปลี่ยน signature composeLabelContent → ย้าย verbatim + อัปเดต 2 จุดเรียก + click-test</li>
+      <li><span class="inv">R3</span> หน้าว่างท้าย/spill → break-after + :last-child auto + overflow:hidden; <span class="ok">print() แบ่งหน้าด้วย pageSize microns + CSS break, ไม่ต้อง preferCSSPageSize ⇒ ไม่แก้ printer.ts</span></li>
+      <li><span class="inv">R4</span> ฟอนต์ CJK ใหญ่ → ฝังเฉพาะเมื่อมีอักษรนั้น; อนาคต subset</li>
+      <li><span class="inv">R5</span> migration DB เดิม → ALTER ใน try/catch array; CREATE มี column ด้วย</li>
+      <li><span class="inv">R6</span> named-param subset → indication_en ต้องครบทั้ง payload + INSERT column list</li>
+      <li><span class="inv">R7</span> copies มหาศาล → clamp 1..99 · cart line ไม่มี product/bundle → ข้าม</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-09</footer>
+
+</div>
+</body>
+</html>
