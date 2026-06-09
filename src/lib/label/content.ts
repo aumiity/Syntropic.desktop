@@ -32,14 +32,26 @@ export function todayBE(d: Date = new Date()): string {
   return `${dd}/${mm}/${yyyy}`
 }
 
+// Label print language — selectable per print run in POS. Each maps to the
+// `*_th/_en/_mm/_zh` column suffix on the lookup rows + indication fields.
+export type LabelLang = 'th' | 'en' | 'mm' | 'zh'
+
 interface LabelLike {
   dose_qty?: number | string | null
+  dosage_id?: number | null
+  frequency_id?: number | null
+  timing_id?: number | null
+  label_time_id?: number | null
+  advice_id?: number | null
+  // Joined name_th from products:getLabels — last-resort fallback when the
+  // caller doesn't pass the lookup lists (keeps the Thai LabelsTab preview working).
   dosage_name?: string | null
   frequency_name?: string | null
   timing_name?: string | null
-  label_time_id?: number | null
-  advice_id?: number | null
   indication_th?: string | null
+  indication_en?: string | null
+  indication_mm?: string | null
+  indication_zh?: string | null
 }
 interface ProductLike {
   name_for_print?: string | null
@@ -52,20 +64,38 @@ interface ShopLike {
   shop_phone?: string | null
   shop_line_id?: string | null
 }
-interface Lookup { id: number; name_th?: string | null }
+interface Lookup {
+  id: number
+  name_th?: string | null; name_en?: string | null
+  name_mm?: string | null; name_zh?: string | null
+}
 interface Lookups {
+  labelDosages?: Lookup[]
+  labelFrequencies?: Lookup[]
+  labelMealRelations?: Lookup[]
   labelTimes?: Lookup[]
   labelAdvices?: Lookup[]
 }
 
-// Map a real product label + shop + lookups to text per section. '' / absent =
-// nothing to show (LabelPaper skips empty text sections). The shop row's date is
-// rendered by LabelPaper, NOT folded into the shop string here.
+// Pick a lookup row's name in the requested language, falling back to Thai
+// (name_th is NOT NULL in the schema, so Thai is always present). '' if no row.
+function pickName(row: Lookup | undefined, lang: LabelLang): string {
+  if (!row) return ''
+  return (row[`name_${lang}` as const] || row.name_th || '') as string
+}
+
+// Map a real product label + shop + lookups to text per section, in `lang`. '' /
+// absent = nothing to show (LabelPaper skips empty text sections). The shop row's
+// date is rendered by LabelPaper, NOT folded into the shop string here.
+// Names resolve from the passed lookup lists by id (lang-aware); if a list is
+// omitted, the joined `*_name` (Thai) is the last-resort fallback. lang defaults
+// to 'th' so existing callers render identically.
 export function composeLabelContent(
   label: LabelLike | null,
   product: ProductLike,
   shop: ShopLike | null,
   lookups: Lookups,
+  lang: LabelLang = 'th',
 ): Partial<Record<SectionKey, string>> {
   const out: Partial<Record<SectionKey, string>> = {}
   if (shop?.shop_name) out.shop = shop.shop_name
@@ -78,14 +108,17 @@ export function composeLabelContent(
 
   if (label) {
     const dose = label.dose_qty != null && String(label.dose_qty) !== '' ? String(label.dose_qty) : ''
-    out.dosage = [dose, label.dosage_name, label.frequency_name].filter(Boolean).join(' ')
+    const dosageName = pickName(lookups.labelDosages?.find(d => d.id === label.dosage_id), lang) || label.dosage_name || ''
+    const frequencyName = pickName(lookups.labelFrequencies?.find(f => f.id === label.frequency_id), lang) || label.frequency_name || ''
+    out.dosage = [dose, dosageName, frequencyName].filter(Boolean).join(' ')
 
-    const labelTimeName = lookups.labelTimes?.find(t => t.id === label.label_time_id)?.name_th
-    out.timing = [label.timing_name, labelTimeName].filter(Boolean).join(' ')
+    const timingName = pickName(lookups.labelMealRelations?.find(m => m.id === label.timing_id), lang) || label.timing_name || ''
+    const labelTimeName = pickName(lookups.labelTimes?.find(t => t.id === label.label_time_id), lang)
+    out.timing = [timingName, labelTimeName].filter(Boolean).join(' ')
 
-    out.indication = label.indication_th || ''
+    out.indication = label[`indication_${lang}` as const] || label.indication_th || ''
 
-    out.advice = lookups.labelAdvices?.find(a => a.id === label.advice_id)?.name_th || ''
+    out.advice = pickName(lookups.labelAdvices?.find(a => a.id === label.advice_id), lang)
   }
 
   return out

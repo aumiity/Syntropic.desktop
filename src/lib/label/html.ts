@@ -6,7 +6,7 @@
 // one function (React vs HTML string), so they share everything below instead.
 import type { CSSProperties } from 'react'
 import { SECTIONS, buildSectionStyle, type LabelSettingsForm, type SectionKey } from './sections'
-import { esc, buildPrintFontFaceCss } from '@/lib/print/fonts'
+import { esc, buildPrintFontFaceCss, buildFallbackFontFaceCss } from '@/lib/print/fonts'
 import { barcodeSvg } from './barcode'
 
 // Inline React style object → a CSS declaration string (camelCase → kebab-case).
@@ -17,14 +17,15 @@ export function styleToCss(s: CSSProperties): string {
     .join(';')
 }
 
-// Build the full label HTML (with embedded @font-face) used for both silent
-// print and the PDF preview — single source so they render identically.
-export async function buildLabelHtml(
+// Render just the label's inner section HTML (no doc wrapper, no @font-face).
+// Shared by buildLabelHtml (single label) and buildLabelSheetHtml (multi-page),
+// so on-screen preview, single print and the POS batch sheet stay 1:1.
+export function renderLabelSectionsHtml(
   settings: LabelSettingsForm,
   content: Partial<Record<SectionKey, string>>,
   date: string,
-): Promise<string> {
-  const sectionsHtml = SECTIONS
+): string {
+  return SECTIONS
     // `print_date` folds into the shop flex row and `barcode` into the
     // shop_phone flex row (see below), never their own line; each host row shows
     // when EITHER its own text or its folded-in partner is enabled.
@@ -95,7 +96,16 @@ export async function buildLabelHtml(
       return `<div style="${styleToCss(buildSectionStyle(s, settings))}">${body}</div>`
     })
     .join('')
+}
 
+// Build the full single-label HTML (with embedded @font-face) used for silent
+// print and the PDF preview — single source so they render identically.
+export async function buildLabelHtml(
+  settings: LabelSettingsForm,
+  content: Partial<Record<SectionKey, string>>,
+  date: string,
+): Promise<string> {
+  const sectionsHtml = renderLabelSectionsHtml(settings, content, date)
   const fontFaceCss = await buildPrintFontFaceCss(settings.font_family)
   return `<!doctype html><html><head><meta charset="utf-8">
 <style>
@@ -112,4 +122,43 @@ body {
 }
 div:first-child { margin-top: 0 !important; }
 </style></head><body>${sectionsHtml}</body></html>`
+}
+
+// Build a MULTI-PAGE label sheet — one label per page (page-break between),
+// printed in ONE spool job (POS batch print). Script-fallback fonts (Myanmar /
+// Simplified Chinese) are embedded ONLY when the combined content needs them, so
+// a Thai-only run stays light. Per-entry `settings` drives each page's section
+// show/hide + styles (including per-label show_barcode); paper size, padding,
+// line-height and base font come from `baseSettings` (all labels share one paper
+// + font). The font-family STACK appends the matched fallback families before
+// `sans-serif` so Burmese/Chinese glyphs resolve instead of printing as tofu.
+export async function buildLabelSheetHtml(
+  baseSettings: LabelSettingsForm,
+  entries: Array<{ settings: LabelSettingsForm; content: Partial<Record<SectionKey, string>>; date: string }>,
+): Promise<string> {
+  const allText = entries.map(e => Object.values(e.content).filter(Boolean).join(' ')).join(' ')
+  const fontFaceCss = await buildPrintFontFaceCss(baseSettings.font_family)
+  const fallback = await buildFallbackFontFaceCss(allText)
+  const familyStack = [baseSettings.font_family, ...fallback.families].map(f => `'${f}'`).join(', ') + ', sans-serif'
+
+  const pageStyle = [
+    `width:${baseSettings.width_mm}mm`,
+    `height:${baseSettings.height_mm}mm`,
+    `padding:${baseSettings.pad_top}mm ${baseSettings.pad_right}mm ${baseSettings.pad_bottom}mm ${baseSettings.pad_left}mm`,
+    `box-sizing:border-box`, `overflow:hidden`, `break-after:page`, `page-break-after:always`,
+  ].join(';')
+  const pages = entries
+    .map(e => `<div class="label-page" style="${pageStyle}">${renderLabelSectionsHtml(e.settings, e.content, e.date)}</div>`)
+    .join('')
+
+  return `<!doctype html><html><head><meta charset="utf-8">
+<style>
+${fontFaceCss}
+${fallback.css}
+@page { size: ${baseSettings.width_mm}mm ${baseSettings.height_mm}mm; margin: 0; }
+html, body { margin: 0; padding: 0; }
+body { font-family: ${familyStack}; line-height: ${baseSettings.line_spacing}; color: #000; background: #fff; }
+.label-page:last-child { break-after: auto; page-break-after: auto; }
+.label-page > div:first-child { margin-top: 0 !important; }
+</style></head><body>${pages}</body></html>`
 }

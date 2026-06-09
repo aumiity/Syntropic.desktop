@@ -5,6 +5,19 @@ metadata:
   type: project
 ---
 
+## Status — 2026-06-09 (POS label print + 4 languages)
+
+**POS label printing DONE + 4-language support DONE** (plan `docs/plans/POS_Label_Print.html`, audit 3 รอบ, tsc ผ่าน, ผู้ใช้ทดสอบจริงผ่าน 2026-06-09). What shipped:
+
+- **POS "พิมพ์ฉลาก" button now live** (`src/pages/POS/index.tsx` — เดิม disabled ถาวร). เปิด `src/pages/POS/LabelPrintDialog.tsx`: ดึงสินค้าในตะกร้า (dedupe ตาม `product_id`, ข้าม `is_bundle`), แยกกลุ่มมีฉลาก/ไร้ฉลาก, Checkbox auto-check + Select เลือกฉลาก (default `is_default`) + Input จำนวนสำเนา (clamp 1..99, **ไม่ผูก qty** — มติ default 1/สินค้า), Toggle เผยรายการไร้ฉลาก + quick add. พิมพ์รวมเป็น sheet หลายหน้าผ่าน `printer.printLabel` (งานเดียว). `showLabelPrint` อยู่ใน `anyModalOpen` + `refocusSearch()` ตอนปิด.
+- **`LabelFormDialog` extracted** (`src/components/label/LabelFormDialog.tsx`) = ฟอร์มเพิ่ม/แก้ฉลากร่วม ใช้ทั้ง LabelsTab และ POS quick-add (SSOT). LabelsTab ลบฟอร์มเดิม ใช้ตัวนี้แทน. **saveLabel payload keys ต้อง = INSERT column list** (named-param subset) — เพิ่ม key ใหม่ต้องแก้ทั้ง 2 ที่.
+- **4 ภาษา (th/en/mm/zh):** lookup ทั้ง 5 มี `name_th/en/mm/zh` + seed ครบอยู่แล้ว. เพิ่มคอลัมน์ **`product_labels.indication_en`** (schema CREATE + ALTER migration ใน try/catch array + saveLabel INSERT + ProductLabel type + ช่องกรอกในฟอร์ม) → สรรพคุณครบ 4 ภาษา. `composeLabelContent(label, product, shop, lookups, lang='th')` เลือกคอลัมน์ตาม lang, resolve ชื่อ lookup จาก id+lang (fallback joined `*_name` เมื่อไม่ส่ง lookup), indication fallback `indication_th`. **default lang='th' = ผลเท่าเดิมเป๊ะ** (callers เก่า LabelsTab×2 + LabelSettingsTab:219 ไม่พัง). ภาษาเลือกครั้งเดียวใช้ทั้งบิล (POS เท่านั้น).
+- **ฟอนต์ fallback พม่า/จีน:** bundle `NotoSansMyanmar-*` + `NotoSansSC-*` (Regular+Bold ครบ) ใน `src/assets/fonts/`. `buildFallbackFontFaceCss(text)` ใน `fonts.ts` สแกน Unicode range (Myanmar U+1000–109F / CJK U+4E00–9FFF…) แล้ว **ฝัง @font-face เฉพาะอักษรที่ปรากฏจริง** (Thai-only ไม่อืด). `buildLabelSheetHtml` (ใหม่ ใน `html.ts`) ต่อ family เข้า stack ก่อน `sans-serif`. `renderLabelSectionsHtml` แยกออกจาก `buildLabelHtml` (sync, ใช้ร่วม single + sheet). **พิมพ์หลายหน้าใช้ `break-after:page` + pageSize microns — ไม่ต้อง `preferCSSPageSize` (เป็น option ของ printToPDF เท่านั้น) → ไม่แตะ printer.ts**.
+
+**⏭️ Next (2026-06-10):** ปรับ UI หน้าต่างพิมพ์ฉลาก POS + เพิ่ม**ตัวเลือกแสดงตัวอย่าง 4 ภาษาภายในหน้าสินค้า** (ตอนนี้ LabelsTab preview ยัง fix `lang='th'` — `composeLabelContent` รับ lang แล้ว เหลือต่อ UI สลับภาษาใน preview).
+
+---
+
 ## Status — 2026-06-07
 
 Core restructure DONE. **Section-split DONE 2026-06-07** (plan `docs/plans/label-section-split.md`): per-section model — EVERY text section now owns `font_size_<key>` + `bold_<key>` + `show_<key>` + `offset_x/y_<key>` (no shared tier; old `font_size_small` is now a DEAD column). 3 new sections added: `shop_phone`, `shop_line_id` (composed from shop info), `custom_text` (free-text LAST line, config not content — pulled from `label_settings.custom_text`, special-cased in BOTH LabelPaper + buildLabelHtml). Defaults flipped: all fonts 10pt, bold on shop/shop_address/shop_phone/product only. tsc + 2-round audit pass; interactive click-test still pending. Preview works in both Settings designer and per-product LabelsTab. Printing from per-product tab NOT yet wired.

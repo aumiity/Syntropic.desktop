@@ -18,6 +18,15 @@ import ibmPlexThaiBold from '@/assets/fonts/IBMPlexSansThai-Bold.ttf?url'
 import ibmPlexThaiLoopedRegular from '@/assets/fonts/IBMPlexSansThaiLooped-Regular.ttf?url'
 import ibmPlexThaiLoopedBold from '@/assets/fonts/IBMPlexSansThaiLooped-Bold.ttf?url'
 import notoSansThaiVariable from '@/assets/fonts/NotoSansThai-Variable.ttf?url'
+// Script-fallback fonts for the label printer — Burmese + Simplified Chinese.
+// The bundled Thai/Latin fonts have NO Myanmar/CJK glyphs, so multilingual
+// labels would print as tofu boxes. These are embedded ON DEMAND (only when the
+// content actually contains those scripts — see buildFallbackFontFaceCss) so a
+// Thai-only label never pays the (large) CJK payload.
+import notoMyanmarRegular from '@/assets/fonts/NotoSansMyanmar-Regular.ttf?url'
+import notoMyanmarBold from '@/assets/fonts/NotoSansMyanmar-Bold.ttf?url'
+import notoScRegular from '@/assets/fonts/NotoSansSC-Regular.ttf?url'
+import notoScBold from '@/assets/fonts/NotoSansSC-Bold.ttf?url'
 
 interface FontFile { weight: string | number; url: string }
 
@@ -40,23 +49,58 @@ export const FONTS = Object.keys(FONT_REGISTRY)
 export const esc = (s: string) =>
   String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
 
+// Fetch one TTF url and inline it as a single @font-face for `family`/`weight`.
+async function fontFace(family: string, weight: string | number, url: string): Promise<string> {
+  try {
+    const resp = await fetch(url)
+    const blob = await resp.blob()
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(reader.error)
+      reader.readAsDataURL(blob)
+    })
+    return `@font-face { font-family: '${family}'; src: url('${dataUrl}') format('truetype'); font-weight: ${weight}; font-style: normal; }`
+  } catch { return '' }
+}
+
 // Build a `@font-face` CSS block for the selected family with each weight's TTF
 // base64-embedded so the print HTML (data: URL, separate origin) can resolve it.
 export async function buildPrintFontFaceCss(family: string): Promise<string> {
   const files = FONT_REGISTRY[family]
   if (!files) return ''
-  const faces = await Promise.all(files.map(async f => {
-    try {
-      const resp = await fetch(f.url)
-      const blob = await resp.blob()
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = () => reject(reader.error)
-        reader.readAsDataURL(blob)
-      })
-      return `@font-face { font-family: '${family}'; src: url('${dataUrl}') format('truetype'); font-weight: ${f.weight}; font-style: normal; }`
-    } catch { return '' }
-  }))
+  const faces = await Promise.all(files.map(f => fontFace(family, f.weight, f.url)))
   return faces.filter(Boolean).join('\n')
+}
+
+// Script-fallback font registry — keyed by a detection regex. Kept OUT of
+// FONT_REGISTRY because these are content-driven (auto-appended when the text
+// needs them), not user-selectable print fonts.
+const FALLBACK_FONTS: { family: string; test: RegExp; files: FontFile[] }[] = [
+  {
+    family: 'Noto Sans Myanmar',
+    // Myanmar block (U+1000–109F) + Extended-A (U+AA60–AA7F) + Extended-B (U+A9E0–A9FF)
+    test: /[က-႟ꩠ-ꩿꧠ-꧿]/,
+    files: [{ weight: 400, url: notoMyanmarRegular }, { weight: 700, url: notoMyanmarBold }],
+  },
+  {
+    family: 'Noto Sans SC',
+    // CJK Unified (U+4E00–9FFF) + Ext-A (U+3400–4DBF) + Compatibility Ideographs (U+F900–FAFF)
+    test: /[㐀-䶿一-鿿豈-﫿]/,
+    files: [{ weight: 400, url: notoScRegular }, { weight: 700, url: notoScBold }],
+  },
+]
+
+// Scan `text` and embed ONLY the script-fallback fonts whose glyphs actually
+// appear. Returns the @font-face CSS plus the family names to append (in order)
+// to the print `font-family` stack — so a Burmese/Chinese run falls through the
+// Thai/Latin face to the matching Noto face instead of rendering tofu. A
+// Thai-only label gets `{ css: '', families: [] }` and stays light.
+export async function buildFallbackFontFaceCss(text: string): Promise<{ css: string; families: string[] }> {
+  const needed = FALLBACK_FONTS.filter(fb => fb.test.test(text))
+  if (needed.length === 0) return { css: '', families: [] }
+  const blocks = await Promise.all(
+    needed.flatMap(fb => fb.files.map(f => fontFace(fb.family, f.weight, f.url))),
+  )
+  return { css: blocks.filter(Boolean).join('\n'), families: needed.map(fb => fb.family) }
 }

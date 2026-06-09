@@ -403,6 +403,7 @@ export function initializeSchema(db: Database.Database) {
       label_time_id INTEGER REFERENCES label_times(id),
       advice_id INTEGER REFERENCES label_advices(id),
       indication_th TEXT,
+      indication_en TEXT,
       indication_mm TEXT,
       indication_zh TEXT,
       note_th TEXT,
@@ -882,6 +883,10 @@ export function initializeSchema(db: Database.Database) {
     // product_labels restructure: persist the advice + time-of-day lookups and
     // the per-label default / show-barcode toggles. Without these columns the
     // saveLabel UPDATE (dynamic from Object.keys) threw "no such column".
+    // English สรรพคุณ (indication) — completes the 4-language set (th/en/mm/zh)
+    // so the POS label-print language switch can render English. lookups already
+    // carry name_en; this fills the per-product gap.
+    `ALTER TABLE product_labels ADD COLUMN indication_en TEXT`,
     `ALTER TABLE product_labels ADD COLUMN label_time_id INTEGER REFERENCES label_times(id)`,
     `ALTER TABLE product_labels ADD COLUMN advice_id INTEGER REFERENCES label_advices(id)`,
     `ALTER TABLE product_labels ADD COLUMN is_default INTEGER NOT NULL DEFAULT 0`,

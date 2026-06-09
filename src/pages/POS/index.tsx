@@ -34,6 +34,7 @@ import { printSlip } from '@/lib/receipt/print'
 import { Printer, FileText } from 'lucide-react'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
+import { LabelPrintDialog } from './LabelPrintDialog'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
 import { extractVat, VAT_RATE_DEFAULT } from '@/lib/vat'
 import {
@@ -277,6 +278,7 @@ export default function POSPage() {
 
   // Adjust stock dialog — cart-table flow, mirrors the return modal.
   const [showAdjust, setShowAdjust] = useState(false)
+  const [showLabelPrint, setShowLabelPrint] = useState(false)
   const [adjustSearchOpen, setAdjustSearchOpen] = useState(false)
   const [adjustQuery, setAdjustQuery] = useState('')
   const [adjustResults, setAdjustResults] = useState<ProductWithDetails[]>([])
@@ -322,7 +324,7 @@ export default function POSPage() {
   }, [])
 
   const anyModalOpen = searchOpen || showPayment || showCustomerSearch || showQuickAdd || showSuccess || showCustomerInfo ||
-    showReturn || showAdjust ||
+    showReturn || showAdjust || showLabelPrint ||
     unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null
 
   // Refs so focus callbacks always see current modal state without stale closures
@@ -1300,7 +1302,8 @@ export default function POSPage() {
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
               <Banknote className="size-6 text-info" /> เปิดลิ้นชัก
             </Button>
-            <Button variant="elevated" disabled
+            <Button variant="elevated" disabled={cart.items.length === 0}
+              onClick={() => setShowLabelPrint(true)}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
               <Tag className="size-6 text-info-soft-foreground" /> พิมพ์ฉลาก
             </Button>
@@ -1862,6 +1865,11 @@ export default function POSPage() {
       </Dialog>
 
       {/* ── ADJUST STOCK DIALOG (System A — multi-item) ── */}
+      <LabelPrintDialog
+        open={showLabelPrint}
+        onClose={() => { setShowLabelPrint(false); refocusSearch() }}
+      />
+
       <Dialog open={showAdjust} onOpenChange={(v) => { if (!v) closeAdjust() }}>
         <DialogContent size="4xl" divided onClose={closeAdjust} className="h-[760px] grid-rows-[auto_1fr_auto]">
           <DialogHeader>
