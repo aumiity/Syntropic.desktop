@@ -174,6 +174,13 @@ declare const api: {
         listLabelMealRelations: () => Promise<any>;
         listLabelTimes: () => Promise<any>;
         listLabelAdvices: () => Promise<any>;
+        saveLabelLookup: (data: any) => Promise<any>;
+        labelLookupRefs: (data: any) => Promise<{ labels: any[]; presets: any[]; count: number }>;
+        reassignLabelLookup: (data: any) => Promise<{ count: number }>;
+        deleteLabelLookup: (data: any) => Promise<any>;
+        listLabelPresets: () => Promise<any[]>;
+        saveLabelPreset: (data: any) => Promise<any>;
+        deleteLabelPreset: (id: number) => Promise<any>;
         allUnits: () => Promise<any>;
         allCategories: () => Promise<any>;
         allDrugTypes: () => Promise<any>;

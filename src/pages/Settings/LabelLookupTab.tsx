@@ -1,0 +1,246 @@
+import { useState, useEffect, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input, SearchInput } from '@/components/ui/input'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
+} from '@/components/ui/dialog'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { FormField } from '@/components/ui/label'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useToast } from '@/components/ui/toast'
+import { Plus, Edit, Trash2, MoreHorizontal, Stethoscope } from 'lucide-react'
+import type { LabelFormLookups } from '@/components/label/LabelFormDialog'
+import { LookupDeleteDialog } from '@/components/dialogs/LookupDeleteDialog'
+
+interface LookupRow { id: number; code: string; name_th: string; name_en?: string; name_mm?: string; name_zh?: string }
+
+const KINDS = [
+  { key: 'dosage',    label: 'ปริมาณยา',          listKey: 'labelDosages' },
+  { key: 'frequency', label: 'ความถี่',           listKey: 'labelFrequencies' },
+  { key: 'meal',      label: 'เวลาเทียบมื้อ',      listKey: 'labelMealRelations' },
+  { key: 'time',      label: 'เวลา',              listKey: 'labelTimes' },
+  { key: 'advice',    label: 'คำแนะนำ',           listKey: 'labelAdvices' },
+] as const
+
+const emptyLookups: LabelFormLookups = {
+  labelFrequencies: [], labelDosages: [], labelMealRelations: [], labelTimes: [], labelAdvices: [],
+}
+
+export function LabelLookupTab() {
+  const { toast } = useToast()
+  const [kind, setKind] = useState<string>('dosage')
+  const [lookups, setLookups] = useState<LabelFormLookups>(emptyLookups)
+  const [q, setQ] = useState('')
+
+  const [dialog, setDialog] = useState(false)
+  const [form, setForm] = useState<any>({})
+  const [saving, setSaving] = useState(false)
+
+  const [confirmDel, setConfirmDel] = useState<LookupRow | null>(null)
+  const [delBusy, setDelBusy] = useState(false)
+  const [impact, setImpact] = useState<LookupRow | null>(null)
+
+  const listKey = (KINDS.find(k => k.key === kind)!.listKey) as keyof LabelFormLookups
+  const rows = (lookups[listKey] as LookupRow[]) ?? []
+
+  const load = useCallback(async () => {
+    try {
+      const [freqs, dosages, meals, times, advices] = await Promise.all([
+        window.api.settings.listLabelFrequencies(),
+        window.api.settings.listLabelDosages(),
+        window.api.settings.listLabelMealRelations(),
+        window.api.settings.listLabelTimes(),
+        window.api.settings.listLabelAdvices(),
+      ])
+      setLookups({
+        labelFrequencies: freqs as any[], labelDosages: dosages as any[],
+        labelMealRelations: meals as any[], labelTimes: times as any[], labelAdvices: advices as any[],
+      })
+    } catch (e: any) {
+      toast({ title: 'โหลดข้อมูลไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
+  }, [toast])
+  useEffect(() => { load() }, [load])
+
+  const openAdd = () => { setForm({ name_th: '', name_en: '', name_mm: '', name_zh: '' }); setDialog(true) }
+  const openEdit = (r: LookupRow) => {
+    setForm({ id: r.id, name_th: r.name_th, name_en: r.name_en ?? '', name_mm: r.name_mm ?? '', name_zh: r.name_zh ?? '' })
+    setDialog(true)
+  }
+  const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
+
+  const handleSave = async () => {
+    if (!String(form.name_th ?? '').trim()) { toast({ title: 'กรุณาระบุชื่อ (ภาษาไทย)', variant: 'error' }); return }
+    setSaving(true)
+    try {
+      await window.api.settings.saveLabelLookup({ kind, ...form })
+      toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
+      setDialog(false); await load()
+    } catch (e: any) {
+      toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally { setSaving(false) }
+  }
+
+  // Delete: ask the backend who references this row. None → quick confirm; some
+  // → open the impact dialog so the user resolves each label/preset first.
+  const startDelete = async (r: LookupRow) => {
+    try {
+      const res = await window.api.settings.labelLookupRefs({ kind, id: r.id })
+      if (res.count === 0) setConfirmDel(r)
+      else setImpact(r)
+    } catch (e: any) {
+      toast({ title: 'ตรวจสอบการอ้างอิงไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDel) return
+    setDelBusy(true)
+    try {
+      await window.api.settings.deleteLabelLookup({ kind, id: confirmDel.id })
+      toast({ title: 'ลบรายการแล้ว', variant: 'success' })
+      setConfirmDel(null); await load()
+    } catch (e: any) {
+      toast({ title: 'ลบไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally { setDelBusy(false) }
+  }
+
+  const needle = q.trim().toLowerCase()
+  const filtered = needle
+    ? rows.filter(r => r.name_th.toLowerCase().includes(needle)
+        || (r.name_en ?? '').toLowerCase().includes(needle))
+    : rows
+
+  return (
+    <div className="pt-4 h-full flex flex-col min-h-0 gap-3">
+      <Tabs value={kind} onValueChange={v => { setKind(v); setQ('') }}>
+        <TabsList variant="segmented" className="h-9">
+          {KINDS.map(k => <TabsTrigger key={k.key} value={k.key}>{k.label}</TabsTrigger>)}
+        </TabsList>
+      </Tabs>
+
+      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
+        <div className="px-4 h-12 shrink-0 flex items-center gap-3">
+          <SearchInput variant="elevated" value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาชื่อรายการ..." />
+          <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" onClick={openAdd}>
+            <Plus className="size-4" /> เพิ่มรายการ
+          </Button>
+        </div>
+
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[220px]">ชื่อ (ไทย)</TableHead>
+                <TableHead className="min-w-[160px]">อังกฤษ</TableHead>
+                <TableHead className="min-w-[140px]">พม่า</TableHead>
+                <TableHead className="min-w-[140px]">จีน</TableHead>
+                <TableHead className="text-center w-24">จัดการ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
+                    <Stethoscope className="size-10 mx-auto mb-2 opacity-30" />
+                    {needle ? 'ไม่พบข้อมูล' : 'ยังไม่มีรายการ'}
+                  </TableCell>
+                </TableRow>
+              ) : filtered.map(r => (
+                <TableRow key={r.id}>
+                  <TableCell className="text-sm font-medium text-foreground">{r.name_th}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{r.name_en || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{r.name_mm || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{r.name_zh || '—'}</TableCell>
+                  <TableCell>
+                    <div className="flex justify-center">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก"><MoreHorizontal /></Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" sideOffset={4} className="w-40 p-1 gap-0">
+                          <button type="button" onClick={() => openEdit(r)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                            <Edit className="size-4" /> แก้ไข
+                          </button>
+                          <button type="button" onClick={() => startDelete(r)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                            <Trash2 className="size-4" /> ลบ
+                          </button>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="px-4 h-12 bg-card border-t border-border flex items-center justify-end text-sm shrink-0">
+          <span className="text-muted-foreground">
+            แสดง <span className="font-semibold text-foreground">{filtered.length.toLocaleString()}</span> รายการ
+          </span>
+        </div>
+      </div>
+
+      {/* Add / edit */}
+      <Dialog open={dialog} onOpenChange={setDialog}>
+        <DialogContent size="sm" divided>
+          <DialogHeader><DialogTitle className="text-xl">{form.id ? 'แก้ไขรายการ' : 'เพิ่มรายการ'}</DialogTitle></DialogHeader>
+          <DialogBody className="space-y-3">
+            <FormField label="ชื่อ (ภาษาไทย)" required>
+              <Input variant="elevated" value={form.name_th ?? ''} onChange={e => setF('name_th', e.target.value)} autoFocus />
+            </FormField>
+            <FormField label="ชื่อ (อังกฤษ)">
+              <Input variant="elevated" value={form.name_en ?? ''} onChange={e => setF('name_en', e.target.value)} />
+            </FormField>
+            <FormField label="ชื่อ (พม่า)">
+              <Input variant="elevated" value={form.name_mm ?? ''} onChange={e => setF('name_mm', e.target.value)} />
+            </FormField>
+            <FormField label="ชื่อ (จีน)">
+              <Input variant="elevated" value={form.name_zh ?? ''} onChange={e => setF('name_zh', e.target.value)} />
+            </FormField>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
+            <Button size="xl" onClick={handleSave} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete (no references) */}
+      <ConfirmDialog
+        open={!!confirmDel}
+        onOpenChange={v => { if (!v) setConfirmDel(null) }}
+        title="ลบรายการนี้?"
+        variant="destructive"
+        confirmLabel="ลบ"
+        busy={delBusy}
+        onConfirm={handleConfirmDelete}
+        content={confirmDel && (
+          <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-muted-foreground">รายการ</span>
+              <span className="text-sm font-semibold text-foreground">{confirmDel.name_th}</span>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* Delete (has references) — resolve impact then delete */}
+      {impact && (
+        <LookupDeleteDialog
+          open={!!impact}
+          onClose={() => setImpact(null)}
+          kind={kind}
+          item={{ id: impact.id, name_th: impact.name_th }}
+          lookups={lookups}
+          onResolved={() => { setImpact(null); load() }}
+        />
+      )}
+    </div>
+  )
+}

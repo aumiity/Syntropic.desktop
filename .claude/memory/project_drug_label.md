@@ -5,6 +5,17 @@ metadata:
   type: project
 ---
 
+## Status — 2026-06-10e (วิธีใช้ยา lookups editable + usage presets) — tsc PASS, in-app verify pending
+
+จาก plan `docs/plans/Label_Usage_Lookups_And_Presets.html` (ผ่าน /write-plan + audit 2 รอบ). 2 เฟส:
+
+**เฟส 1 — 5 lookup วิธีใช้ยาแก้ไขเองได้** (เดิม read-only seed อย่างเดียว). ตาราง `label_dosages/label_frequencies/label_meal_relations/label_times/label_advices` (FK บน product_labels: `dosage_id/frequency_id/timing_id/label_time_id/advice_id`). หน้าใหม่ = แท็บ `วิธีใช้ยา` ใต้ Settings > หมวดหมู่และประเภท (`src/pages/Settings/LabelLookupTab.tsx`, kind selector segmented 5 ชนิด). Backend = **generic handler ตัวเดียวคุม 5 ตาราง** ผ่าน map `LOOKUP_KINDS` (kind→{table,fk,prefix}) — table/fk มาจาก map ตาม kind เท่านั้น **ห้ามรับจาก payload** (กัน allow-list bug), write ใช้คอลัมน์ literal ไม่ใช่ Object.keys. `code` auto-gen = `${prefix}_${lastInsertRowid}` (insert ด้วย Date.now() ชั่วคราวแล้ว UPDATE ด้วย rowid — กันชน UNIQUE). ลบจริง ไม่ใช่ soft-disable (ไม่มี is_disabled).
+- **ลบแบบรู้ผลกระทบ**: `settings:labelLookupRefs({kind,id})` → `{labels:[{label_id,label_name,product_id,product_name}], presets:[{preset_id,name}], count}`. ไม่มีใครใช้ → structured ConfirmDialog → `deleteLabelLookup`. ถูกใช้ → `LookupDeleteDialog` (`src/components/dialogs/`) โชว์ตารางฉลาก+preset ที่อ้างอิง, "แก้ไข" รายแถว (label→LabelFormDialog restrict / preset→LabelPresetDialog restrict), "แก้ไขทั้งหมด" → `reassignLabelLookup({kind,fromId,toId|null})` (guard: toId ต้องอยู่ table เดียวกัน กัน FK ค้าง; sweep ทั้ง product_labels + label_presets ใน 1 tx), ปุ่ม "ลบรายการนี้" gate ที่ refs=0.
+
+**เฟส 2 — usage presets**. ตารางใหม่ `label_presets` (code UNIQUE nullable, name, 5 FK, sort_order). แท็บ `preset วิธีใช้` (`LabelPresetTab.tsx`) + `LabelPresetDialog` (`src/components/dialogs/`, มี restrict mode สำหรับ impact flow). Handler: `listLabelPresets/saveLabelPreset/deleteLabelPreset` (ลบไม่มีเงื่อนไข — ไม่มีใครอ้าง preset). **chip preset แทน `QUICK_LABEL_NAMES` เดิม** ใน `LabelFormDialog.tsx` (โหลดผ่าน useEffect แยก key `[open]` ล้วน กันพันกับ reseed effect); กด chip → `applyPreset` เซ็ต label_name + 5 FK (null→0 sentinel, save 0→null เดิม). **seed ตั้งต้น** 1x1/1x2/1x3/1x4 (dosage 0003 + freq 01-04), 1pc (+meal 02), 1hs (+time 0005) — idempotent keyed SEED_* code ผ่าน subquery resolve id จาก lookup code (back-fill DB เดิมด้วย; แต่ Hygeia ที่ seed ไปแล้วได้ผ่าน back-fill เท่านั้น).
+
+**LabelFormDialog restrict mode** (prop `restrictField?:UsageKey` + `excludeLookupId?`): enable เฉพาะ Combobox นั้น, ที่เหลือ disable, ไฮไลต์ ring-primary, ซ่อน chip, field เริ่มเคลียร์ = 0 (บังคับเลือกใหม่/เว้นว่าง), filter excludeLookupId ออกจาก dropdown. ⚠️ ตอนแก้ preset ใน impact flow ต้องโหลด **full preset row** ก่อน (refs คืนแค่ {preset_id,name}; saveLabelPreset เขียนทุก field — ส่ง partial = ลบ field อื่นทิ้ง). ⚠️ บั๊กที่เจอ: comment ใน schema.ts ห้ามใส่ backtick (schema เป็น template literal ก้อนเดียว — backtick ปิด string).
+
 ## Status — 2026-06-10d (language switch in Settings label-designer preview)
 
 Extended the LabelsTab language toggle to the **Settings** designer preview (`src/pages/Settings/LabelSettingsTab.tsx`), tsc PASS / in-app verify pending:

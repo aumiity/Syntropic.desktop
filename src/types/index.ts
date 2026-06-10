@@ -82,6 +82,16 @@ export interface ProductLabel {
   frequency_name?: string; dosage_name?: string; timing_name?: string
 }
 
+// A named bundle of the 5 "how to use" lookups, applied with one click in the
+// label form (fills the 5 usage fields + label_name). `code` is set only on
+// seeded starter presets; user-created rows leave it null.
+export interface LabelPreset {
+  id: number; code?: string | null; name: string
+  dosage_id?: number | null; frequency_id?: number | null; timing_id?: number | null
+  label_time_id?: number | null; advice_id?: number | null
+  sort_order?: number
+}
+
 export interface Customer {
   id: number; code: string; full_name: string
   id_card?: string; dob?: string; phone?: string; address?: string

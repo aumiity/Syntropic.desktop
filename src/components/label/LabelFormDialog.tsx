@@ -9,15 +9,14 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { SectionCard } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { Info, Pill, Languages } from 'lucide-react'
-import type { ProductLabel } from '@/types'
+import type { ProductLabel, LabelPreset } from '@/types'
 
 const Field = FormField
 
-// Quick-fill shortcuts for the label name — common pharmacy dosing shorthand
-// (1x1..1x4 = ครั้งละ 1 วันละ N, hs = ก่อนนอน, pc = หลังอาหาร). Tapping one
-// just writes the text into label_name; it stays freely editable after.
-const QUICK_LABEL_NAMES = ['1x1', '1x2', '1x3', '1x4', '1hs', '1pc']
+// The 5 usage-field keys a preset fills / a restricted edit may target.
+type UsageKey = 'dosage_id' | 'frequency_id' | 'timing_id' | 'label_time_id' | 'advice_id'
 
 // The label add/edit form, shared by the product Labels tab AND the POS
 // label-print quick-add. Owns its own form state; the parent only supplies the
@@ -43,6 +42,13 @@ interface Props {
   productBarcode?: string | null
   lookups: LabelFormLookups
   onSaved: (saved: any) => void | Promise<void>
+  /** Restricted mode (used by the lookup-delete impact flow): enable ONLY this
+      usage field, disable everything else, and start it cleared so the user must
+      pick a replacement or leave it blank. */
+  restrictField?: UsageKey
+  /** In restricted mode, hide this lookup id from the field's options (it is the
+      row about to be deleted — re-picking it would defeat the purpose). */
+  excludeLookupId?: number
 }
 
 const blankForm = () => ({
@@ -67,6 +73,7 @@ const blankForm = () => ({
 
 export function LabelFormDialog({
   open, onOpenChange, productId, productName, editingLabel, productBarcode, lookups, onSaved,
+  restrictField, excludeLookupId,
 }: Props) {
   const { toast } = useToast()
   const { labelFrequencies, labelDosages, labelMealRelations, labelTimes, labelAdvices } = lookups
@@ -74,6 +81,31 @@ export function LabelFormDialog({
   const [labelForm, setLabelForm] = useState<any>(blankForm())
   const [labelSaving, setLabelSaving] = useState(false)
   const setLF = (key: string, v: any) => setLabelForm((f: any) => ({ ...f, [key]: v }))
+
+  // Usage presets — loaded in their OWN effect keyed [open] only, kept separate
+  // from the form-reseed effect so add-mode reseeding is never disturbed.
+  const [presets, setPresets] = useState<LabelPreset[]>([])
+  const restricted = !!restrictField
+  const fieldEnabled = (key: UsageKey) => !restricted || key === restrictField
+
+  useEffect(() => {
+    if (!open || restricted) return
+    window.api.settings.listLabelPresets()
+      .then((rows: any) => setPresets(Array.isArray(rows) ? rows : []))
+      .catch(() => setPresets([]))
+  }, [open, restricted])
+
+  // Apply a preset: overwrite the 5 usage fields + label_name (intended — that is
+  // the point of a preset). Lookup ids use the form's 0 = "ไม่เลือก" sentinel.
+  const applyPreset = (p: LabelPreset) => setLabelForm((f: any) => ({
+    ...f,
+    label_name: p.name,
+    dosage_id: p.dosage_id ?? 0,
+    frequency_id: p.frequency_id ?? 0,
+    timing_id: p.timing_id ?? 0,
+    label_time_id: p.label_time_id ?? 0,
+    advice_id: p.advice_id ?? 0,
+  }))
 
   // The five "how to use" lookups, each rendered as a searchable Combobox — they
   // hold many rows (e.g. dosage = "กิน 2 เม็ด", "กิน 4 เม็ด" … the qty is baked
@@ -111,11 +143,14 @@ export function LabelFormDialog({
         show_barcode: l.show_barcode ?? 0,
         is_default: l.is_default ?? 0,
         is_active: l.is_active ?? 1,
+        // Restricted mode: start the offending field cleared so the user must
+        // pick a replacement (or leave it blank) to resolve the deletion.
+        ...(restrictField ? { [restrictField]: 0 } : {}),
       })
     } else {
       setLabelForm(blankForm())
     }
-  }, [open, editingLabel])
+  }, [open, editingLabel, restrictField])
 
   const handleSaveLabel = async () => {
     setLabelSaving(true)
@@ -162,6 +197,12 @@ export function LabelFormDialog({
               สินค้า: <span className="font-semibold text-foreground">{productName}</span>
             </div>
           )}
+          {restricted && (
+            <div className="flex items-start gap-1.5 text-xs text-warning-soft-foreground">
+              <Info className="size-3.5 shrink-0 mt-0.5" />
+              <span>แก้ได้เฉพาะช่องที่ไฮไลต์ไว้ เพื่อเลิกอ้างอิงรายการที่กำลังจะลบ — ช่องอื่นถูกล็อกไว้</span>
+            </div>
+          )}
         </DialogHeader>
         <DialogBody className="space-y-3 overflow-y-auto min-h-0 scrollbar-thin">
           <div className="grid grid-cols-2 gap-3 items-start">
@@ -170,41 +211,61 @@ export function LabelFormDialog({
             <div className="space-y-3">
               <SectionCard icon={Info} title="ข้อมูลทั่วไป" tint="primary">
                 <Field label="ชื่อฉลาก">
-                  <Input variant="elevated" value={labelForm.label_name ?? ''} onChange={e => setLF('label_name', e.target.value)} placeholder="เช่น วิธีรับประทานมาตรฐาน" />
-                  <div className="flex flex-wrap gap-1.5">
-                    {QUICK_LABEL_NAMES.map(name => (
-                      <Button
-                        key={name}
-                        type="button"
-                        size="sm"
-                        variant={labelForm.label_name === name ? 'default' : 'primary-soft'}
-                        onClick={() => setLF('label_name', name)}
-                      >
-                        {name}
-                      </Button>
-                    ))}
-                  </div>
+                  <Input variant="elevated" value={labelForm.label_name ?? ''} onChange={e => setLF('label_name', e.target.value)} placeholder="เช่น วิธีรับประทานมาตรฐาน" disabled={restricted} />
+                  {/* Preset chips — one click fills the 5 usage fields + name.
+                      Hidden in restricted mode (presets are irrelevant there). */}
+                  {!restricted && (
+                    presets.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {presets.map(p => (
+                          <Button
+                            key={p.id}
+                            type="button"
+                            size="sm"
+                            variant={labelForm.label_name === p.name ? 'default' : 'primary-soft'}
+                            onClick={() => applyPreset(p)}
+                          >
+                            {p.name}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        ยังไม่มี preset วิธีใช้ — สร้างได้ที่ ตั้งค่า &gt; หมวดหมู่และประเภท &gt; preset วิธีใช้
+                      </p>
+                    )
+                  )}
                 </Field>
               </SectionCard>
 
               <SectionCard icon={Pill} title="วิธีใช้ยา" tint="info-soft">
                 <div className="space-y-3">
-                  {usageFields.map(f => (
-                    <Field key={f.key} label={f.label}>
-                      <Combobox
-                        variant="elevated"
-                        items={f.items}
-                        value={f.items.find((i: any) => i.id === Number(labelForm[f.key])) ?? null}
-                        onChange={(i: any) => setLF(f.key, i?.id ?? 0)}
-                        getKey={(i: any) => i.id}
-                        getLabel={(i: any) => i.name_th}
-                        placeholder="— เลือก —"
-                        searchPlaceholder={f.searchPh}
-                        emptyLabel="— ไม่เลือก —"
-                        emptyText="ไม่พบรายการ"
-                      />
-                    </Field>
-                  ))}
+                  {usageFields.map(f => {
+                    const enabled = fieldEnabled(f.key as UsageKey)
+                    // In restricted mode hide the to-be-deleted row from its own field.
+                    const items = (restricted && f.key === restrictField && excludeLookupId != null)
+                      ? f.items.filter((i: any) => i.id !== excludeLookupId)
+                      : f.items
+                    return (
+                      <div key={f.key} className={cn(restricted && enabled && 'rounded-lg ring-2 ring-primary/40 p-2 -m-2')}>
+                        <Field label={f.label}>
+                          <Combobox
+                            variant="elevated"
+                            items={items}
+                            value={items.find((i: any) => i.id === Number(labelForm[f.key])) ?? null}
+                            onChange={(i: any) => setLF(f.key, i?.id ?? 0)}
+                            getKey={(i: any) => i.id}
+                            getLabel={(i: any) => i.name_th}
+                            placeholder="— เลือก —"
+                            searchPlaceholder={f.searchPh}
+                            emptyLabel="— ไม่เลือก —"
+                            emptyText="ไม่พบรายการ"
+                            disabled={!enabled}
+                          />
+                        </Field>
+                      </div>
+                    )
+                  })}
                 </div>
               </SectionCard>
             </div>
@@ -216,9 +277,9 @@ export function LabelFormDialog({
                   ends rounded. เปิดใช้งาน sits on the first row. */}
               <div className="space-y-2">
                 <div className="flex flex-col">
-                  <Toggle framed size="lg" checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" className="justify-between w-full h-10 rounded-b-none" />
-                  <Toggle framed size="lg" checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" className="justify-between w-full h-10 rounded-none -mt-px" />
-                  <Toggle framed size="lg" checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" className="justify-between w-full h-10 rounded-t-none -mt-px" />
+                  <Toggle framed size="lg" disabled={restricted} checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" className="justify-between w-full h-10 rounded-b-none" />
+                  <Toggle framed size="lg" disabled={restricted} checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" className="justify-between w-full h-10 rounded-none -mt-px" />
+                  <Toggle framed size="lg" disabled={restricted} checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" className="justify-between w-full h-10 rounded-t-none -mt-px" />
                 </div>
                 {/* The barcode encodes products.barcode — warn if the switch is on but
                     the product has no barcode number (the row would silently vanish
@@ -233,16 +294,16 @@ export function LabelFormDialog({
 
               <SectionCard icon={Languages} title="สรรพคุณ" tint="success">
                 <Field label="สรรพคุณ (ไทย)">
-                  <Input variant="elevated" value={labelForm.indication_th ?? ''} onChange={e => setLF('indication_th', e.target.value)} />
+                  <Input variant="elevated" disabled={restricted} value={labelForm.indication_th ?? ''} onChange={e => setLF('indication_th', e.target.value)} />
                 </Field>
                 <Field label="สรรพคุณ (อังกฤษ)">
-                  <Input variant="elevated" value={labelForm.indication_en ?? ''} onChange={e => setLF('indication_en', e.target.value)} />
+                  <Input variant="elevated" disabled={restricted} value={labelForm.indication_en ?? ''} onChange={e => setLF('indication_en', e.target.value)} />
                 </Field>
                 <Field label="สรรพคุณ (ภาษาพม่า)">
-                  <Input variant="elevated" value={labelForm.indication_mm ?? ''} onChange={e => setLF('indication_mm', e.target.value)} />
+                  <Input variant="elevated" disabled={restricted} value={labelForm.indication_mm ?? ''} onChange={e => setLF('indication_mm', e.target.value)} />
                 </Field>
                 <Field label="สรรพคุณ (ภาษาจีน)">
-                  <Input variant="elevated" value={labelForm.indication_zh ?? ''} onChange={e => setLF('indication_zh', e.target.value)} />
+                  <Input variant="elevated" disabled={restricted} value={labelForm.indication_zh ?? ''} onChange={e => setLF('indication_zh', e.target.value)} />
                 </Field>
               </SectionCard>
             </div>

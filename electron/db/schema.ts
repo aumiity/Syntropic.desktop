@@ -416,6 +416,26 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    -- Label Usage Presets — a named bundle of the 5 "how to use" lookups the user
+    -- can apply with one click in the label form (fills the 5 usage fields +
+    -- label_name). The code column is nullable: seed rows carry stable SEED_*
+    -- codes (for idempotent back-fill), user rows leave it NULL (SQLite allows
+    -- many NULLs under a UNIQUE column). Nothing references a preset, so deleting
+    -- one is always safe.
+    CREATE TABLE IF NOT EXISTS label_presets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE,
+      name TEXT NOT NULL,
+      dosage_id     INTEGER REFERENCES label_dosages(id),
+      frequency_id  INTEGER REFERENCES label_frequencies(id),
+      timing_id     INTEGER REFERENCES label_meal_relations(id),
+      label_time_id INTEGER REFERENCES label_times(id),
+      advice_id     INTEGER REFERENCES label_advices(id),
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     -- Label Settings (print configuration)
     CREATE TABLE IF NOT EXISTS label_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

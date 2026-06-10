@@ -252,6 +252,128 @@ export function registerSettingsHandlers() {
   ipcMain.handle('settings:listLabelTimes', () => getDb().prepare(`SELECT * FROM label_times ORDER BY sort_order`).all())
   ipcMain.handle('settings:listLabelAdvices', () => getDb().prepare(`SELECT * FROM label_advices ORDER BY sort_order`).all())
 
+  // ── Label usage lookups: generic add/edit/delete + impact (refs) + reassign ──
+  // The 5 "how to use" lookup tables share one shape, so ONE set of generic
+  // handlers serves all of them, keyed by `kind`. CRITICAL (CLAUDE.md allow-list
+  // invariant): the table + FK column name come ONLY from this fixed map — never
+  // from the payload — and every write uses a literal column list, never
+  // Object.keys(payload). That keeps a crafted `kind` or stray form key from
+  // injecting SQL or hitting a non-column.
+  const LOOKUP_KINDS = {
+    dosage:    { table: 'label_dosages',        fk: 'dosage_id',     prefix: 'DOS' },
+    frequency: { table: 'label_frequencies',    fk: 'frequency_id',  prefix: 'FRQ' },
+    meal:      { table: 'label_meal_relations', fk: 'timing_id',     prefix: 'MEL' },
+    time:      { table: 'label_times',          fk: 'label_time_id', prefix: 'TIM' },
+    advice:    { table: 'label_advices',        fk: 'advice_id',     prefix: 'ADV' },
+  } as const
+  const lookupKind = (kind: string) => {
+    const k = (LOOKUP_KINDS as Record<string, { table: string; fk: string; prefix: string }>)[kind]
+    if (!k) throw new Error('ชนิดวิธีใช้ยาไม่ถูกต้อง')
+    return k
+  }
+
+  ipcMain.handle('settings:saveLabelLookup', (_e, data: any) => {
+    requireAdmin(_e)
+    const { table, prefix } = lookupKind(data?.kind)
+    const db = getDb()
+    const name_th = String(data?.name_th ?? '').trim()
+    if (!name_th) throw new Error('กรุณาระบุชื่อ (ภาษาไทย)')
+    const vals = {
+      name_th,
+      name_en: String(data?.name_en ?? '').trim() || null,
+      name_mm: String(data?.name_mm ?? '').trim() || null,
+      name_zh: String(data?.name_zh ?? '').trim() || null,
+    }
+    if (data?.id) {
+      db.prepare(`UPDATE ${table} SET name_th=@name_th, name_en=@name_en, name_mm=@name_mm, name_zh=@name_zh WHERE id=@id`)
+        .run({ ...vals, id: data.id })
+      return db.prepare(`SELECT * FROM ${table} WHERE id=?`).get(data.id)
+    }
+    const sort = (db.prepare(`SELECT COALESCE(MAX(sort_order),0)+1 AS n FROM ${table}`).get() as any).n
+    const r = db.prepare(`INSERT INTO ${table} (code, name_th, name_en, name_mm, name_zh, sort_order) VALUES (@code, @name_th, @name_en, @name_mm, @name_zh, @sort)`)
+      .run({ code: `${prefix}_${Date.now()}`, ...vals, sort })
+    // Overwrite the temporary code with a rowid-based one — guaranteed unique on
+    // the NOT NULL UNIQUE `code` column (no 1ms Date.now() collision window).
+    const newId = r.lastInsertRowid
+    db.prepare(`UPDATE ${table} SET code=? WHERE id=?`).run(`${prefix}_${newId}`, newId)
+    return db.prepare(`SELECT * FROM ${table} WHERE id=?`).get(newId)
+  })
+
+  // Impact query — every product label AND preset that references this lookup row.
+  ipcMain.handle('settings:labelLookupRefs', (_e, { kind, id }: { kind: string; id: number }) => {
+    const { fk } = lookupKind(kind)
+    const db = getDb()
+    const labels = db.prepare(`
+      SELECT pl.id AS label_id, pl.label_name AS label_name,
+             p.id AS product_id, COALESCE(p.name_for_print, p.trade_name, p.name) AS product_name
+      FROM product_labels pl JOIN products p ON p.id = pl.product_id
+      WHERE pl.${fk} = ? ORDER BY product_name`).all(id) as any[]
+    const presets = db.prepare(`SELECT id AS preset_id, name FROM label_presets WHERE ${fk} = ? ORDER BY sort_order, id`).all(id) as any[]
+    return { labels, presets, count: labels.length + presets.length }
+  })
+
+  // Bulk reassign (or clear → NULL) every reference in one transaction.
+  ipcMain.handle('settings:reassignLabelLookup', (_e, { kind, fromId, toId }: { kind: string; fromId: number; toId: number | null }) => {
+    requireAdmin(_e)
+    const { table, fk } = lookupKind(kind)
+    const db = getDb()
+    // Guard: a non-null target MUST belong to the SAME lookup table — otherwise we
+    // would write a dangling FK (SQLite does not enforce REFERENCES here).
+    if (toId != null && !db.prepare(`SELECT 1 FROM ${table} WHERE id = ?`).get(toId)) {
+      throw new Error('รายการปลายทางไม่ถูกต้อง')
+    }
+    db.transaction(() => {
+      db.prepare(`UPDATE product_labels SET ${fk} = @to WHERE ${fk} = @from`).run({ to: toId, from: fromId })
+      db.prepare(`UPDATE label_presets  SET ${fk} = @to WHERE ${fk} = @from`).run({ to: toId, from: fromId })
+    })()
+    const labels = (db.prepare(`SELECT COUNT(*) AS c FROM product_labels WHERE ${fk} = ?`).get(fromId) as any).c
+    const presets = (db.prepare(`SELECT COUNT(*) AS c FROM label_presets WHERE ${fk} = ?`).get(fromId) as any).c
+    return { count: labels + presets }
+  })
+
+  ipcMain.handle('settings:deleteLabelLookup', (_e, { kind, id }: { kind: string; id: number }) => {
+    requireAdmin(_e)
+    const { table, fk } = lookupKind(kind)
+    const db = getDb()
+    const labels = (db.prepare(`SELECT COUNT(*) AS c FROM product_labels WHERE ${fk} = ?`).get(id) as any).c
+    const presets = (db.prepare(`SELECT COUNT(*) AS c FROM label_presets WHERE ${fk} = ?`).get(id) as any).c
+    if (labels + presets > 0) throw new Error('รายการนี้ยังถูกใช้อยู่ ไม่สามารถลบได้')
+    db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id)
+    return true
+  })
+
+  // ── Label usage presets ──
+  ipcMain.handle('settings:listLabelPresets', () => getDb().prepare(`SELECT * FROM label_presets ORDER BY sort_order, id`).all())
+
+  ipcMain.handle('settings:saveLabelPreset', (_e, data: any) => {
+    requireAdmin(_e)
+    const db = getDb()
+    const name = String(data?.name ?? '').trim()
+    if (!name) throw new Error('กรุณาระบุชื่อ preset')
+    const fk = {
+      dosage_id:     Number(data?.dosage_id)     || null,
+      frequency_id:  Number(data?.frequency_id)  || null,
+      timing_id:     Number(data?.timing_id)     || null,
+      label_time_id: Number(data?.label_time_id) || null,
+      advice_id:     Number(data?.advice_id)     || null,
+    }
+    if (data?.id) {
+      db.prepare(`UPDATE label_presets SET name=@name, dosage_id=@dosage_id, frequency_id=@frequency_id, timing_id=@timing_id, label_time_id=@label_time_id, advice_id=@advice_id, updated_at=datetime('now','localtime') WHERE id=@id`)
+        .run({ name, ...fk, id: data.id })
+      return db.prepare(`SELECT * FROM label_presets WHERE id=?`).get(data.id)
+    }
+    const sort = (db.prepare(`SELECT COALESCE(MAX(sort_order),0)+1 AS n FROM label_presets`).get() as any).n
+    const r = db.prepare(`INSERT INTO label_presets (name, dosage_id, frequency_id, timing_id, label_time_id, advice_id, sort_order) VALUES (@name, @dosage_id, @frequency_id, @timing_id, @label_time_id, @advice_id, @sort)`)
+      .run({ name, ...fk, sort })
+    return db.prepare(`SELECT * FROM label_presets WHERE id=?`).get(r.lastInsertRowid)
+  })
+
+  ipcMain.handle('settings:deleteLabelPreset', (_e, id: number) => {
+    requireAdmin(_e)
+    getDb().prepare(`DELETE FROM label_presets WHERE id = ?`).run(id)
+    return true
+  })
+
   // Label settings (singleton). ORDER BY id keeps reads deterministic if a
   // legacy DB ended up with multiple rows; the seed now guarantees only one.
   ipcMain.handle('settings:getLabelSettings', () => {

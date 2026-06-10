@@ -45,6 +45,29 @@ export function seedDatabase(db: Database.Database) {
   const insGeneric = db.prepare(`INSERT OR IGNORE INTO drug_generic_names (name) VALUES (?)`)
   db.transaction(() => { for (const n of DRUG_GENERIC_NAMES) insGeneric.run(n) })()
 
+  // Starter usage presets — idempotent (keyed on the stable SEED_* code), so this
+  // back-fills existing DBs too. Lookup ids are resolved from the lookup CODES
+  // seeded just above (a NULL @x_code subquery yields NULL → that FK stays empty).
+  // These mirror the old hardcoded 1x1..1hs shortcuts but now set REAL usage
+  // fields; the owner can edit/delete them freely afterwards.
+  const insPreset = db.prepare(`
+    INSERT OR IGNORE INTO label_presets (code, name, dosage_id, frequency_id, timing_id, label_time_id, advice_id, sort_order)
+    VALUES (@code, @name,
+      (SELECT id FROM label_dosages        WHERE code=@dosage_code),
+      (SELECT id FROM label_frequencies    WHERE code=@frequency_code),
+      (SELECT id FROM label_meal_relations WHERE code=@meal_code),
+      (SELECT id FROM label_times          WHERE code=@time_code),
+      NULL, @sort)`)
+  const STARTER_PRESETS = [
+    { code: 'SEED_1x1', name: '1x1', dosage_code: '0003', frequency_code: '01', meal_code: null, time_code: null, sort: 1 },
+    { code: 'SEED_1x2', name: '1x2', dosage_code: '0003', frequency_code: '02', meal_code: null, time_code: null, sort: 2 },
+    { code: 'SEED_1x3', name: '1x3', dosage_code: '0003', frequency_code: '03', meal_code: null, time_code: null, sort: 3 },
+    { code: 'SEED_1x4', name: '1x4', dosage_code: '0003', frequency_code: '04', meal_code: null, time_code: null, sort: 4 },
+    { code: 'SEED_1pc', name: '1pc', dosage_code: '0003', frequency_code: null, meal_code: '02', time_code: null, sort: 5 },
+    { code: 'SEED_1hs', name: '1hs', dosage_code: '0003', frequency_code: null, meal_code: null, time_code: '0005', sort: 6 },
+  ]
+  db.transaction(() => { for (const p of STARTER_PRESETS) insPreset.run(p) })()
+
   // Only seed the rest if tables are empty
   const userCount = (db.prepare(`SELECT COUNT(*) as c FROM users WHERE email = 'admin@syntropic.local'`).get() as { c: number }).c
   if (userCount > 0) return

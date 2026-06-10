@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>วิธีใช้ยาแก้ได้เอง + preset — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine table{font-size:12.5px}
+  .machine th{background:#1e293b;color:#94a3b8}
+  .machine td,.machine th{border-bottom:1px solid #334155}
+  .machine pre{background:#0b1220;border:1px solid #334155;border-radius:8px;padding:12px 14px;
+    overflow-x:auto;font-size:12px;color:#cbd5e1;font-family:"SF Mono",Menlo,Consolas,monospace}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>วิธีใช้ยาแก้ได้เอง + preset วิธีกิน</h1>
+    <p>เปิดให้ผู้ใช้จัดการรายการ "วิธีใช้ยา" (เพิ่ม/แก้/ลบแบบรู้ผลกระทบ) แล้วสร้าง preset ที่กดทีเดียวเซ็ตวิธีกินครบในฟอร์มฉลาก</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ</span>
+      <span class="pill">2 เฟส (lookup → preset)</span>
+      <span class="pill">2026-06-10</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p style="margin-top:0">วันนี้รายการ "วิธีใช้ยา" บนฉลาก (ปริมาณยา / ความถี่ / เวลาเทียบมื้อ / เวลา / คำแนะนำ) มาจากชุดข้อมูลที่ <strong>seed มาให้ตายตัว แก้เองไม่ได้</strong> และปุ่มลัด <code>1x1</code>..<code>1pc</code> ในฟอร์มฉลากก็แค่เขียนข้อความลงช่อง "ชื่อฉลาก" เฉย ๆ ไม่ได้เซ็ตวิธีกินจริง</p>
+    <p>แผนนี้แก้ 2 อย่าง:</p>
+    <ul class="clean">
+      <li><strong>เฟส 1</strong> — เปิดหน้าจัดการ "วิธีใช้ยา" ใน ตั้งค่า ให้เพิ่ม/แก้/ลบรายการเองได้ และเวลาลบรายการที่ยังถูกใช้อยู่ ระบบจะ<strong>โชว์ทุกฉลาก/preset ที่กระทบ</strong> ให้แก้หรือย้ายก่อน ไม่ลบทิ้งแบบมืดบอด</li>
+      <li><strong>เฟส 2</strong> — เปลี่ยนปุ่มลัดเป็น <strong>preset จริง</strong> ที่ผู้ใช้สร้างเอง กดทีเดียวเซ็ตครบทั้ง 5 ช่องวิธีกิน + ชื่อฉลาก พร้อม seed ชุดตั้งต้น <code>1x1</code>..<code>1hs</code> ให้ใช้ได้ทันที</li>
+    </ul>
+    <p style="margin-bottom:0">เสร็จแล้ว: เภสัช/เจ้าของร้านปรับคำวิธีกินให้ตรงร้านตัวเองได้ และออกฉลากเร็วขึ้นด้วยการกด preset ครั้งเดียว</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <h3 style="margin-top:0">ตาราง lookup กับช่องในฟอร์ม (ของเดิม) + ตารางใหม่</h3>
+    <table>
+      <thead><tr><th>ช่องในฟอร์มฉลาก</th><th>ตาราง lookup</th><th>FK ใน product_labels</th></tr></thead>
+      <tbody>
+        <tr><td>ปริมาณยา</td><td><code>label_dosages</code></td><td><code>dosage_id</code></td></tr>
+        <tr><td>ความถี่</td><td><code>label_frequencies</code></td><td><code>frequency_id</code></td></tr>
+        <tr><td>เวลาเทียบมื้ออาหาร</td><td><code>label_meal_relations</code></td><td><code>timing_id</code></td></tr>
+        <tr><td>เวลาที่รับประทาน</td><td><code>label_times</code></td><td><code>label_time_id</code></td></tr>
+        <tr><td>คำแนะนำ</td><td><code>label_advices</code></td><td><code>advice_id</code></td></tr>
+        <tr><td><span class="tag t-gen">ใหม่</span> ชุด preset วิธีกิน</td><td><code>label_presets</code></td><td>อ้าง 5 FK ข้างบน + <code>name</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>การไหลของข้อมูล — ลบ lookup ที่ยังถูกใช้ (renderer ↔ IPC ↔ DB)</h3>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 980 250" role="img" aria-label="flow การลบ lookup ที่ยังถูกใช้ ผ่าน IPC settings ไปยัง product_labels และ label_presets">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+
+      <rect class="box" x="14" y="92" width="190" height="58" rx="10"/>
+      <text x="109" y="114" text-anchor="middle">LabelLookupTab</text>
+      <text class="sub" x="109" y="132" text-anchor="middle">Settings · กดลบ</text>
+
+      <rect class="box warn" x="270" y="92" width="200" height="58" rx="10"/>
+      <text x="370" y="114" text-anchor="middle">LookupDeleteDialog</text>
+      <text class="sub" x="370" y="132" text-anchor="middle">จัดการฉลาก (ใหม่)</text>
+
+      <rect class="box" x="546" y="20" width="200" height="54" rx="10"/>
+      <text x="646" y="42" text-anchor="middle">labelLookupRefs</text>
+      <text class="sub" x="646" y="60" text-anchor="middle">IPC settings:</text>
+
+      <rect class="box" x="546" y="98" width="200" height="46" rx="10"/>
+      <text x="646" y="120" text-anchor="middle">reassignLabelLookup</text>
+
+      <rect class="box warn" x="546" y="168" width="200" height="46" rx="10"/>
+      <text x="646" y="190" text-anchor="middle">deleteLabelLookup</text>
+
+      <rect class="box data" x="800" y="58" width="166" height="46" rx="10"/>
+      <text x="883" y="80" text-anchor="middle">product_labels</text>
+      <text class="sub" x="883" y="97" text-anchor="middle">SQLite</text>
+
+      <rect class="box data" x="800" y="134" width="166" height="46" rx="10"/>
+      <text x="883" y="156" text-anchor="middle">label_presets</text>
+      <text class="sub" x="883" y="173" text-anchor="middle">SQLite</text>
+
+      <path class="edge" d="M204,121 H266"/>
+      <text class="elabel" x="235" y="113" text-anchor="middle">refs&gt;0</text>
+      <path class="edge" d="M470,108 H542"/>
+      <text class="elabel" x="506" y="100" text-anchor="middle">โหลด</text>
+      <path class="edge hot" d="M470,124 L542,121"/>
+      <path class="edge hot" d="M470,134 L542,188"/>
+      <text class="elabel" x="508" y="172" text-anchor="middle">refs=0</text>
+      <path class="edge" d="M746,47 L796,75"/>
+      <path class="edge" d="M746,55 L796,150"/>
+      <path class="edge hot" d="M746,121 L796,90"/>
+      <path class="edge hot" d="M746,128 L796,157"/>
+      <path class="edge hot" d="M746,191 L796,170"/>
+    </svg>
+    </div>
+    <p style="font-size:12.5px;color:var(--muted);margin:4px 0 0">เส้นส้ม = เขียน DB · <code>reassignLabelLookup</code> กวาดทั้ง <code>product_labels</code> และ <code>label_presets</code> ใน transaction เดียว · <code>deleteLabelLookup</code> ลบจริงเมื่ออ้างอิงเหลือ 0</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>วิธีใช้ยา = ชุด seed ตายตัว <strong>แก้เองไม่ได้</strong> (มีแต่ <code>list*</code> handler)</li>
+        <li>ปุ่ม <code>1x1</code>..<code>1pc</code> เขียนแค่ "ชื่อฉลาก" ไม่เซ็ตวิธีกิน</li>
+        <li>ไม่มีหน้าจัดการ ไม่มี preset</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>แท็บ <strong>วิธีใช้ยา</strong> ใน ตั้งค่า — เพิ่ม/แก้/ลบ 5 รายการเองได้</li>
+        <li>ลบรายการที่ถูกใช้ → dialog โชว์ฉลาก/preset ที่กระทบ → แก้รายตัว/ย้ายทั้งหมด → ลบจริง</li>
+        <li>แท็บ <strong>preset วิธีใช้</strong> + chip preset ในฟอร์ม กดทีเดียวเซ็ต 5 ช่อง + ชื่อ</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>ร้านปรับคำวิธีกินให้ตรงตัวเองได้ ไม่ติดชุด seed</li>
+    <li>ลบแบบ "รู้ผลกระทบ" — เห็นทุกฉลาก/preset ที่อ้างอิงก่อนตัดสินใจ ไม่มีข้อมูลหายเงียบ</li>
+    <li>ออกฉลากเร็วขึ้น กด preset ครั้งเดียวครบ 5 ช่อง</li>
+    <li>หลังบ้านเป็น handler generic ตัวเดียวคุม 5 ตาราง โค้ดน้อย ดูแลง่าย</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>เพิ่ม 1 ตาราง (<code>label_presets</code>) + 7 IPC handler + 3 หน้า/ไดอะล็อกใหม่</li>
+    <li>flow ลบแบบมีผลกระทบเป็น UX ใหม่ (ไม่เคยมีในแอป) ต้อง click-test ละเอียด</li>
+    <li>ฐานข้อมูลจริง (Hygeia) ที่ seed ไปแล้วจะได้ preset ตั้งต้นผ่าน back-fill เท่านั้น (idempotent ตาม code)</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><span class="inv" style="color:var(--red)">allow-list invariant</span> — handler ต้องเอาชื่อตาราง/คอลัมน์จาก map <code>LOOKUP_KINDS</code> ตามคีย์ <code>kind</code> เท่านั้น ห้ามรับจาก payload และห้ามสร้าง SQL จาก <code>Object.keys(form)</code></li>
+    <li>FK ใน SQLite ไม่ถูก enforce — <code>reassign</code> ต้องเช็คว่า <code>toId</code> อยู่ในตารางเดียวกัน กัน FK ค้าง</li>
+    <li>แก้ main process (schema/settings/seed) ต้อง <strong>restart Electron</strong> — vite hot-reload ไม่หยิบให้ (บทเรียนจากเคส upgradeToVat "no handler")</li>
+    <li>ฟอร์มใช้ id <code>0</code> = "ไม่เลือก" — applyPreset ต้องแปลง null→0, handleSaveLabel แปลง 0→null อยู่แล้ว</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean" style="margin-top:0">
+      <li><strong>หน้าจัดการ</strong> — การ์ด + ตาราง ตามมาตรฐาน table-card (bar <code>h-12</code> / control <code>h-9</code>); จัดการรายแถว = ปุ่ม <strong>"ตัวเลือก"</strong> (Popover <code>MoreHorizontal</code>) มีเมนู แก้ไข + ลบ (ลบ = <code>text-destructive</code>) — ไม่ใช่ปุ่มไอคอนเรียงกัน ตาม <code>docs/claude/ui-table-card.md</code></li>
+      <li><strong>ยืนยันลบ (ไม่มีใครใช้)</strong> — ConfirmDialog แบบ structured info-card ในช่อง <code>content</code> (ไม่ใช่ prose) ตามแพตเทิร์น <code>feedback_confirm_dialog_content_pattern</code> ปุ่ม primary = <code>destructive</code></li>
+      <li><strong>dialog "จัดการฉลาก"</strong> — หัวเรื่องบอกจำนวน, ตารางฉลาก/preset ที่กระทบ (Badge แยกชนิด), ปุ่ม "แก้ไขทั้งหมด" เหนือตาราง, "แก้ไข" รายแถว, ปุ่ม "ลบรายการนี้" (<code>destructive</code>) ที่ footer เปิดเมื่ออ้างอิงเหลือ 0</li>
+      <li><strong>ฟอร์มฉลาก</strong> — chip preset (<code>Button size="sm" variant="primary-soft"</code>) แทนปุ่มลัดเดิม; โหมด restrict (enable เฉพาะช่องที่มีปัญหา) ซ่อน chip; ทุกข้อความภาษาไทย ใช้ semantic token เท่านั้น ไม่มี emoji</li>
+      <li><strong>แท็บใหม่</strong> ใต้ "หมวดหมู่และประเภท": <em>วิธีใช้ยา</em> (icon <code>Stethoscope</code>) + <em>preset วิธีใช้</em> (icon <code>ListChecks</code>)</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>row action เป็นปุ่มไอคอน 2 อันเรียงกัน ผิดกฎ table-card</td><td>P1</td><td>เปลี่ยนเป็น Popover "ตัวเลือก" (แก้ไข + ลบ) ทั้งหน้า lookup และ preset</td></tr>
+        <tr><td>1</td><td>ยืนยันลบ (unused) ระบุหลวม ๆ ว่า "ConfirmDialog"</td><td>P1</td><td>ระบุชัดเป็น structured content-slot info-card ตาม canonical pattern</td></tr>
+        <tr><td>1</td><td>กรอบคิด "mirror DrugTypesTab" ชวนเข้าใจผิด (DrugTypes ไม่มีลบ ใช้ soft-disable)</td><td>P1</td><td>ตัดกรอบคิด mirror สำหรับ delete; ระบุว่า hard-delete + impact dialog เป็น UX ใหม่ที่เจ้าของยืนยันแล้ว</td></tr>
+        <tr><td>1</td><td>โหลด preset อาจพันกับ useEffect reseed ของฟอร์ม</td><td>P1</td><td>แยกเป็น useEffect ใหม่ key <code>[open]</code> ล้วน + กำหนด loading/empty state</td></tr>
+        <tr><td>1</td><td>path call site / anchor preload.d.ts คลาดเคลื่อน; reassign ไม่กัน FK ข้ามชนิด; code lookup เสี่ยงชน</td><td>P2</td><td>แก้ path เต็ม, anchor <code>:172-176</code>, เพิ่ม guard same-kind, ใช้ <code>lastInsertRowid</code> ทำ code</td></tr>
+        <tr><td>2</td><td>icon <code>Pill</code> ชนกับแท็บ ประเภทยา</td><td>P2</td><td>เปลี่ยน icon แท็บวิธีใช้ยาเป็น <code>Stethoscope</code></td></tr>
+        <tr><td>2</td><td>applyPreset ทับค่าใน edit-mode ไม่ได้ระบุว่าตั้งใจ</td><td>P2</td><td>ระบุชัดว่าเป็นพฤติกรรมตั้งใจ (จุดประสงค์ของ preset) ไม่ต้อง confirm</td></tr>
+        <tr><td>2</td><td>chip preset อาจ stale ถ้าแก้ preset ระหว่างฟอร์มเปิดอยู่</td><td>P2</td><td>บันทึกใน risk ว่ายอมรับได้ (ไดอะล็อกแยกกัน เกิดยาก)</td></tr>
+        <tr><td>2</td><td>allow-list / data-safety / composeLabelContent NULL-tolerance / step order</td><td>—</td><td><strong>PASS</strong> — ยืนยันไม่มี P0/P1 เหลือ ไม่มีปัญหาใหม่จากการแก้รอบ 1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li>แท็บ <code>วิธีใช้ยา</code> ใต้ หมวดหมู่และประเภท: สลับ 5 ชนิด, ตารางต่อชนิด, เพิ่ม/แก้ (name_th บังคับ, en/mm/zh ไม่บังคับ), <code>code</code> auto-gen ฝั่ง main</li>
+      <li>ลบ lookup ที่ไม่มีใครใช้ → structured ConfirmDialog → ลบ</li>
+      <li>ลบ lookup ที่ถูกใช้ → "จัดการฉลาก" โชว์ฉลาก+preset ทั้งหมด; แก้รายแถว (restrict ช่องเดียว) / แก้ไขทั้งหมด (reassign หรือ NULL ใน 1 transaction); "ลบรายการนี้" เปิดเมื่อ refs=0</li>
+      <li>แท็บ <code>preset วิธีใช้</code>: ตาราง + เพิ่ม/แก้/ลบ preset (ลบไม่มีเงื่อนไข)</li>
+      <li>ฟอร์มฉลาก: <code>QUICK_LABEL_NAMES</code> ถูกแทนด้วย chip preset จาก DB; คลิก → เซ็ต 5 ช่อง + <code>label_name</code></li>
+      <li>seed starter preset <code>1x1/1x2/1x3/1x4/1pc/1hs</code> idempotent ผ่าน code subquery</li>
+      <li><code>npx tsc --noEmit</code> ผ่าน + click-test ครบ</li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>electron/db/schema.ts</code> — เพิ่มตาราง <code>label_presets</code> (CREATE TABLE IF NOT EXISTS)</li>
+      <li><code>electron/ipc/settings.ts</code> — map <code>LOOKUP_KINDS</code> + 7 handler (ต่อจาก <code>:253</code>)</li>
+      <li><code>electron/preload.ts</code> (settings <code>:127-131</code>) + <code>electron/preload.d.ts</code> (<code>:172-176</code>) — 7 method</li>
+      <li><code>electron/db/seed.ts</code> — starter preset ใน block idempotent (หลัง <code>:42</code>, ก่อน guard <code>:50</code>)</li>
+      <li><code>src/types/index.ts</code> — interface <code>LabelPreset</code> (หลัง <code>:83</code>)</li>
+      <li><code>src/components/label/LabelFormDialog.tsx</code> — props restrict + chip preset (เดิม <code>:20</code>, reseed <code>:92-118</code>)</li>
+      <li>ใหม่: <code>src/pages/Settings/LabelLookupTab.tsx</code>, <code>LabelPresetTab.tsx</code>, <code>src/components/dialogs/LookupDeleteDialog.tsx</code>, <code>LabelPresetDialog</code></li>
+      <li><code>src/pages/Settings/ProductMgmtTab.tsx</code> — wire 2 แท็บ (<code>Pill</code> ใช้แล้วที่ <code>:17</code> → ใช้ <code>Stethoscope</code>)</li>
+    </ul>
+
+    <h3>ขั้นตอน (ตามลำดับ dependency)</h3>
+    <ol>
+      <div class="step"><strong>1. schema.ts</strong> — เพิ่มตาราง <code>label_presets</code>:
+        <pre>CREATE TABLE IF NOT EXISTS label_presets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT UNIQUE,            -- seed=SEED_*, user=NULL (SQLite ยอม NULL ซ้ำใน UNIQUE)
+  name TEXT NOT NULL,
+  dosage_id INTEGER REFERENCES label_dosages(id),
+  frequency_id INTEGER REFERENCES label_frequencies(id),
+  timing_id INTEGER REFERENCES label_meal_relations(id),
+  label_time_id INTEGER REFERENCES label_times(id),
+  advice_id INTEGER REFERENCES label_advices(id),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);</pre>
+        <span class="inv">ห้ามเพิ่ม is_disabled ในตาราง lookup — ลบจริง ไม่ใช่ซ่อน</span>
+      </div>
+
+      <div class="step"><strong>2. settings.ts</strong> — map + 7 handler (mutating = <code>requireAdmin(_e)</code>):
+        <pre>const LOOKUP_KINDS = {
+  dosage:    { table:'label_dosages',        fk:'dosage_id',     prefix:'DOS' },
+  frequency: { table:'label_frequencies',    fk:'frequency_id',  prefix:'FRQ' },
+  meal:      { table:'label_meal_relations', fk:'timing_id',     prefix:'MEL' },
+  time:      { table:'label_times',          fk:'label_time_id', prefix:'TIM' },
+  advice:    { table:'label_advices',        fk:'advice_id',     prefix:'ADV' },
+} as const
+function lookupKind(k:string){ const x=(LOOKUP_KINDS as any)[k]; if(!x) throw new Error('ชนิด lookup ไม่ถูกต้อง'); return x }</pre>
+        <ul>
+          <li><code>settings:saveLabelLookup</code> — validate name_th; edit = UPDATE คอลัมน์ literal (ไม่แตะ code, ไม่ใช้ Object.keys); add = INSERT แล้ว <code>UPDATE code='${prefix}_'||id WHERE id=@newId</code> (จาก lastInsertRowid), sort_order = MAX+1</li>
+          <li><code>settings:labelLookupRefs</code> (read) → <code>{ labels:[{label_id,label_name,product_id,product_name}], presets:[{preset_id,name}], count }</code>; product_name = <code>COALESCE(p.name_for_print,p.trade_name,p.name)</code></li>
+          <li><code>settings:reassignLabelLookup</code> — <span class="inv">guard: ถ้า toId≠null ต้องมีใน &lt;table&gt;</span>; UPDATE <code>product_labels</code> + <code>label_presets</code> SET fk ใน transaction เดียว</li>
+          <li><code>settings:deleteLabelLookup</code> — re-count refs; &gt;0 throw; else DELETE</li>
+          <li><code>settings:listLabelPresets</code> (read) → ORDER BY sort_order,id</li>
+          <li><code>settings:saveLabelPreset</code> — name บังคับ, คอลัมน์ literal, Number(x)||null ต่อ fk, sort_order MAX+1, code คง NULL</li>
+          <li><code>settings:deleteLabelPreset</code> — DELETE ตรง ๆ</li>
+        </ul>
+        <span class="inv">table/fk มาจาก LOOKUP_KINDS ตาม kind เท่านั้น — ห้ามจาก payload</span>
+      </div>
+
+      <div class="step"><strong>3. preload.ts + preload.d.ts</strong> — เพิ่ม 7 method ใน settings namespace; <code>listLabelPresets(): Promise&lt;LabelPreset[]&gt;</code>, ที่เหลือ <code>Promise&lt;any&gt;</code>; <code>deleteLabelPreset(id:number)</code></div>
+
+      <div class="step"><strong>4. seed.ts</strong> — ใน block idempotent (หลัง <code>:42</code>) insert starter preset ผ่าน code subquery (resolve id จาก code: dosage <code>0003</code>, freq <code>01-04</code>, meal <code>02</code>, time <code>0005</code>); INSERT OR IGNORE keyed code; subquery คืน NULL ถ้า code เป็น null = set fk NULL</div>
+
+      <div class="step"><strong>5. types/index.ts</strong> — เพิ่ม interface <code>LabelPreset</code> (id, code?, name, 5 fk?, sort_order?)</div>
+
+      <div class="step"><strong>6. LabelFormDialog.tsx</strong> — (ก) props <code>restrictField?</code> + <code>excludeLookupId?</code>: เมื่อ set → enable เฉพาะ Combobox key===restrictField, ที่เหลือ disable, filter excludeLookupId ออก, ซ่อน chip; (ข) ลบ <code>QUICK_LABEL_NAMES</code> + ปุ่ม; <span class="inv">useEffect ใหม่ key [open] ล้วน</span> โหลด <code>listLabelPresets()</code> → state presets; render chip <code>variant="primary-soft"</code>; <code>applyPreset</code> เซ็ต label_name + 5 fk (null→0); empty/loading state</div>
+
+      <div class="step"><strong>7. LabelPresetTab.tsx + LabelPresetDialog</strong> — ตาราง (จัดการ = Popover "ตัวเลือก"), โหลด presets + 5 lookup list; dialog: name + 5 Combobox; ลบ = structured ConfirmDialog</div>
+
+      <div class="step"><strong>8. LabelLookupTab.tsx + LookupDeleteDialog.tsx</strong> — kind selector (Tabs segmented) + ตาราง (Popover "ตัวเลือก"); add/edit dialog (name_th + 3 optional); ลบ → labelLookupRefs → refs=0 structured Confirm / refs&gt;0 เปิด LookupDeleteDialog (ตารางฉลาก+preset, แก้รายแถวผ่าน LabelFormDialog restrict / preset ผ่าน LabelPresetDialog restrict, "แก้ไขทั้งหมด" → reassign, "ลบรายการนี้" gate refs=0, re-fetch refs หลังทุก action)</div>
+
+      <div class="step"><strong>9. ProductMgmtTab.tsx</strong> — เพิ่ม 2 line-tab (Stethoscope / ListChecks)</div>
+
+      <div class="step"><strong>10. verify</strong> — tsc + click-test</div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> สะอาด</li>
+      <li>click-test (electron:dev — <span class="inv">RESTART ให้ main โหลดใหม่</span>): เพิ่ม lookup→โผล่; แก้; ลบ unused→หาย; ลบ used→dialog โชว์ฉลาก+preset; แก้รายแถวเปลี่ยน field; แก้ไขทั้งหมด reassign; ลบรายการนี้เปิดที่ 0 แล้วลบ; สร้าง preset; chip preset ในฟอร์ม POS/สินค้าเซ็ต 5 ช่อง+ชื่อ</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li>allow-list → table/fk จาก LOOKUP_KINDS เท่านั้น, save คอลัมน์ literal</li>
+      <li>Hygeia → ลบ/ย้ายแตะแค่ product_labels/label_presets, transaction เดียว; <code>composeLabelContent</code> (content.ts) ทน fk NULL → render ว่าง ไม่ crash</li>
+      <li>FK ไม่ enforce → reassign guard same-kind</li>
+      <li>main change → restart Electron</li>
+      <li>0=unset → applyPreset null→0, save 0→null (เดิมมีอยู่)</li>
+      <li>auth asymmetry → per-row edit ใช้ products:saveLabel (ไม่ admin-gate) แต่ทั้ง flow อยู่ใน Settings admin area + staff แก้ใน POS ได้อยู่แล้ว = ยอมรับได้</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-10 · ผ่าน audit 2 รอบ (ไม่เหลือ P0/P1)</footer>
+
+</div>
+</body>
+</html>
