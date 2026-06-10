@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, Info, Barcode } from 'lucide-react'
+import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, Info, Barcode, Languages } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Bundled fonts + the @font-face/esc helpers are shared with the receipt/tax
@@ -23,7 +23,7 @@ import { FONTS } from '@/lib/print/fonts'
 // Label anatomy (sections / per-section style / form shape / defaults) is the
 // SSOT shared with the per-product LabelsTab preview — see src/lib/label/sections.ts
 import { SECTIONS, LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
-import { SAMPLE_CONTENT, composeLabelContent, todayBE } from '@/lib/label/content'
+import { SAMPLE_CONTENT_BY_LANG, composeLabelContent, todayBE, LANG_OPTIONS, type LabelLang } from '@/lib/label/content'
 import { buildLabelHtml } from '@/lib/label/html'
 import { LabelPaper } from '@/components/label/LabelPaper'
 
@@ -183,6 +183,11 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
   // real layout box so the overflow-auto container can scroll to the edges.
   const [zoom, setZoom] = useState(1)
   const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
+  // Preview language — switches the sample body text (product/วิธีใช้/สรรพคุณ/…)
+  // between th/en/mm/zh so the designer can check font rendering + line wrapping
+  // in each script. Drives BOTH the on-screen preview and ทดสอบพิมพ์/PDF, since
+  // those build from `previewContent` (below), keeping preview = print 1:1.
+  const [lang, setLang] = useState<LabelLang>('th')
 
   // Load settings — explicit per-key overwrite to keep stale UI-only keys out
   // of `form` (which would later poison the dynamic-SQL UPDATE).
@@ -211,21 +216,23 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
   }, [])
 
   // Preview content: real shop header (ชื่อร้าน / ที่อยู่ / เบอร์ / LINE ID) from
-  // the saved shop settings; the product/วิธีใช้ rows stay as sample text because
-  // the designer has no specific product. custom_text is config and is pulled
-  // separately by LabelPaper/buildLabelHtml from form.custom_text. Before shop
-  // loads, fall back to SAMPLE_CONTENT so the preview is never blank.
+  // the saved shop settings; the product/วิธีใช้ rows stay as sample text (in the
+  // selected `lang`) because the designer has no specific product. custom_text is
+  // config and is pulled separately by LabelPaper/buildLabelHtml from
+  // form.custom_text. Before shop loads, fall back to the sample so the preview
+  // is never blank.
   const previewContent = useMemo(() => {
-    if (!shop) return SAMPLE_CONTENT
+    const sample = SAMPLE_CONTENT_BY_LANG[lang]
+    if (!shop) return sample
     const real = composeLabelContent(null, {}, shop, {})
     return {
-      ...SAMPLE_CONTENT,
-      shop:         real.shop || SAMPLE_CONTENT.shop,
+      ...sample,
+      shop:         real.shop || sample.shop,
       shop_address: real.shop_address ?? '',
       shop_phone:   real.shop_phone ?? '',
       shop_line_id: real.shop_line_id ?? '',
     }
-  }, [shop])
+  }, [shop, lang])
 
   const setF = <K extends keyof LabelSettingsForm>(k: K, v: LabelSettingsForm[K]) =>
     setForm(f => ({ ...f, [k]: v }))
@@ -380,6 +387,21 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
           {/* `mx-auto` (not flex `justify-center`): centers while the zoomed
               label fits, then left-aligns when it overflows — so scroll reveals
               the label, not a blank strip on the right. */}
+          {/* Language strip — switches the sample body text (and the
+              ทดสอบพิมพ์/PDF output, which build from previewContent) between
+              th/en/mm/zh so the designer can check font rendering per script. */}
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <Languages className="size-4 text-muted-foreground" /> ภาษา
+            </div>
+            <Tabs value={lang} onValueChange={v => setLang(v as LabelLang)}>
+              <TabsList variant="toggle">
+                {LANG_OPTIONS.map(o => (
+                  <TabsTrigger key={o.value} value={o.value} className="text-sm px-3">{o.label}</TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
           <div className="bg-muted/30 rounded-lg p-6 overflow-auto max-h-[70vh]">
             <div className="w-fit mx-auto" style={{ zoom }}>
               <LabelPaper settings={form} content={previewContent} date={todayBE()} />

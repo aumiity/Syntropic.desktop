@@ -5,6 +5,13 @@ metadata:
   type: project
 ---
 
+## Status — 2026-06-10d (language switch in Settings label-designer preview)
+
+Extended the LabelsTab language toggle to the **Settings** designer preview (`src/pages/Settings/LabelSettingsTab.tsx`), tsc PASS / in-app verify pending:
+- Same "ภาษา" `Tabs variant="toggle"` strip (Languages icon + `LANG_OPTIONS`) above the preview paper, `lang` state defaults `'th'`.
+- The Settings preview body was a hard-coded Thai `SAMPLE_CONTENT`, so it had nothing to translate. Promoted it to **`SAMPLE_CONTENT_BY_LANG: Record<LabelLang, …>`** in `content.ts` (SSOT) — only the body sections (product/dosage/timing/indication/advice) translate; shop rows stay constant (real shop data has no language variants + the preview overlays the real shop header anyway). Kept `export const SAMPLE_CONTENT = SAMPLE_CONTENT_BY_LANG.th` as a back-compat alias.
+- `previewContent` useMemo now keys off `SAMPLE_CONTENT_BY_LANG[lang]` (dep `[shop, lang]`). ทดสอบพิมพ์/PDF follow automatically — they build from `previewContent` (preview = print 1:1), no separate threading.
+
 ## Status — 2026-06-10c (POS LabelPrintDialog restructure + moved to dialogs/)
 
 Codex had built the POS print-label dialog with NO design-system adherence and misplaced the files. Fixed (tsc PASS, in-app visual verify pending):
@@ -64,7 +71,7 @@ Core restructure DONE. **Section-split DONE 2026-06-07** (plan `docs/plans/label
 |---------|------|
 | Section layout metadata (SSOT) | `src/lib/label/sections.ts` |
 | Auto shrink-to-fit (ceiling font, scale-to-fit) | `src/lib/label/fit.ts` — `computeFitScale()` (React), `LABEL_FIT_SCRIPT` (print, `window.__labelFitReady`), `LABEL_FIT_MIN_SCALE`. Render paths wrap sections in `.label-area > .label-fit`. |
-| Sample text (Settings preview) | `src/lib/label/content.ts` — `SAMPLE_CONTENT` (product/วิธีใช้ rows only) |
+| Sample text (Settings preview) | `src/lib/label/content.ts` — `SAMPLE_CONTENT_BY_LANG` (per-language th/en/mm/zh; body rows translate, shop rows constant). `SAMPLE_CONTENT` = back-compat alias to `.th`. |
 | Settings preview shop header | REAL shop data via `getShop()` + `composeLabelContent` — `previewContent` useMemo in `LabelSettingsTab.tsx` overrides the 4 shop sections; test-print/PDF use the same `previewContent` (preview = print 1:1) |
 | Real label content (product) | `src/lib/label/content.ts` — `composeLabelContent()` + `todayBE()` |
 | React preview component | `src/components/label/LabelPaper.tsx` |

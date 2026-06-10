@@ -6,22 +6,82 @@
 // preview and the printed sticker stay 1:1.
 import type { SectionKey } from './sections'
 
-// Sample text shown in the Settings label-designer preview / test print. The
-// `shop` row's date is rendered separately (right column), so it is NOT part of
-// the shop string here. Line sections (header_line) carry no content; the
-// `custom_text` section pulls from label_settings (config), not from here.
-export const SAMPLE_CONTENT: Partial<Record<SectionKey, string>> = {
-  shop:         'ร้านยา ซินโทรปิก เภสัช',
-  shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ',
-  shop_phone:   'โทร. 02-xxx-xxxx',
-  shop_line_id: 'LINE: @syntropic',
-  product:      'Paracetamol 500mg tablets',
-  dosage:       'รับประทาน 1–2 เม็ด วันละ 3 ครั้ง',
-  timing:       'หลังอาหาร เช้า-กลางวัน-เย็น',
-  indication:   'บรรเทาอาการปวด ลดไข้',
-  advice:       'ดื่มน้ำตามมาก ๆ หากแพ้ยาให้หยุดใช้ทันที',
-  barcode:      '8851234567890',
+// Label print language — selectable per print run in POS. Each maps to the
+// `*_th/_en/_mm/_zh` column suffix on the lookup rows + indication fields.
+export type LabelLang = 'th' | 'en' | 'mm' | 'zh'
+
+// Shared language picker options (POS print dialog + per-product LabelsTab
+// preview + Settings label-designer preview). One source so every language
+// selector stays in sync.
+export const LANG_OPTIONS: { value: LabelLang; label: string }[] = [
+  { value: 'th', label: 'ไทย' },
+  { value: 'en', label: 'อังกฤษ' },
+  { value: 'mm', label: 'พม่า' },
+  { value: 'zh', label: 'จีน' },
+]
+
+// Sample text shown in the Settings label-designer preview / test print, keyed
+// by language — so the designer can preview font rendering + line wrapping in
+// each script. Only the body sections (product / dosage / timing / indication /
+// advice) translate; the shop rows stay constant (real shop data has no language
+// variants, and the Settings preview overlays the real shop header on top of
+// these anyway). The `shop` row's date is rendered separately (right column), so
+// it is NOT part of the shop string. Line sections (header_line) carry no
+// content; the `custom_text` section pulls from label_settings (config), not here.
+export const SAMPLE_CONTENT_BY_LANG: Record<LabelLang, Partial<Record<SectionKey, string>>> = {
+  th: {
+    shop:         'ร้านยา ซินโทรปิก เภสัช',
+    shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ',
+    shop_phone:   'โทร. 02-xxx-xxxx',
+    shop_line_id: 'LINE: @syntropic',
+    product:      'Paracetamol 500mg tablets',
+    dosage:       'รับประทาน 1–2 เม็ด วันละ 3 ครั้ง',
+    timing:       'หลังอาหาร เช้า-กลางวัน-เย็น',
+    indication:   'บรรเทาอาการปวด ลดไข้',
+    advice:       'ดื่มน้ำตามมาก ๆ หากแพ้ยาให้หยุดใช้ทันที',
+    barcode:      '8851234567890',
+  },
+  en: {
+    shop:         'ร้านยา ซินโทรปิก เภสัช',
+    shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ',
+    shop_phone:   'โทร. 02-xxx-xxxx',
+    shop_line_id: 'LINE: @syntropic',
+    product:      'Paracetamol 500mg tablets',
+    dosage:       'Take 1–2 tablets, 3 times a day',
+    timing:       'After meals — morning, noon, evening',
+    indication:   'Relieves pain, reduces fever',
+    advice:       'Drink plenty of water. Stop if any allergy occurs.',
+    barcode:      '8851234567890',
+  },
+  mm: {
+    shop:         'ร้านยา ซินโทรปิก เภสัช',
+    shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ',
+    shop_phone:   'โทร. 02-xxx-xxxx',
+    shop_line_id: 'LINE: @syntropic',
+    product:      'Paracetamol 500mg tablets',
+    dosage:       'တစ်ကြိမ်လျှင် ၁–၂ လုံး၊ တစ်နေ့ ၃ ကြိမ်',
+    timing:       'အစာစားပြီး — မနက်၊ နေ့လယ်၊ ည',
+    indication:   'နာကျင်မှုသက်သာစေပြီး အဖျားကျစေသည်',
+    advice:       'ရေများများသောက်ပါ။ ဓာတ်မတည့်ပါက ရပ်ပါ။',
+    barcode:      '8851234567890',
+  },
+  zh: {
+    shop:         'ร้านยา ซินโทรปิก เภสัช',
+    shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ',
+    shop_phone:   'โทร. 02-xxx-xxxx',
+    shop_line_id: 'LINE: @syntropic',
+    product:      'Paracetamol 500mg tablets',
+    dosage:       '每次 1–2 片，每日 3 次',
+    timing:       '饭后服用 — 早、中、晚',
+    indication:   '缓解疼痛，退烧',
+    advice:       '多喝水。如有过敏请立即停用。',
+    barcode:      '8851234567890',
+  },
 }
+
+// Back-compat alias — Thai is the canonical sample. Callers that don't care
+// about language keep importing SAMPLE_CONTENT and get the Thai sample.
+export const SAMPLE_CONTENT = SAMPLE_CONTENT_BY_LANG.th
 
 // Print date for the shop row — dd/mm/yyyy in Buddhist era (matches the rest of
 // the app's date convention). Defaults to today.
@@ -31,19 +91,6 @@ export function todayBE(d: Date = new Date()): string {
   const yyyy = d.getFullYear() + 543
   return `${dd}/${mm}/${yyyy}`
 }
-
-// Label print language — selectable per print run in POS. Each maps to the
-// `*_th/_en/_mm/_zh` column suffix on the lookup rows + indication fields.
-export type LabelLang = 'th' | 'en' | 'mm' | 'zh'
-
-// Shared language picker options (POS print dialog + per-product LabelsTab
-// preview). One source so the two language selectors never drift.
-export const LANG_OPTIONS: { value: LabelLang; label: string }[] = [
-  { value: 'th', label: 'ไทย' },
-  { value: 'en', label: 'อังกฤษ' },
-  { value: 'mm', label: 'พม่า' },
-  { value: 'zh', label: 'จีน' },
-]
 
 interface LabelLike {
   dose_qty?: number | string | null
