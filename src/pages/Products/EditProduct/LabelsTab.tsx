@@ -284,8 +284,10 @@ export function LabelsTab({
                       <span className="text-sm font-semibold overflow-x-clip overflow-y-visible whitespace-nowrap">
                         {l.label_name || 'ฉลากไม่มีชื่อ'}
                       </span>
-                      {(l as any).is_default ? <Badge variant="primary-outline" className="rounded-md shrink-0">ค่าเริ่มต้น</Badge> : null}
-                      {!l.is_active ? <Badge variant="neutral-outline" className="rounded-md shrink-0">ปิด</Badge> : null}
+                      <div className="ml-auto flex items-center gap-2 shrink-0">
+                        {(l as any).is_default ? <Badge variant="primary-outline" className="rounded-md">ค่าเริ่มต้น</Badge> : null}
+                        {!l.is_active ? <Badge variant="neutral-outline" className="rounded-md">ปิด</Badge> : null}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Button size="icon-lg" variant="elevated" onClick={e => { e.stopPropagation(); openEditLabel(l) }} title="แก้ไข">

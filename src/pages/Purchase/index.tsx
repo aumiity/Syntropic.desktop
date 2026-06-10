@@ -800,11 +800,11 @@ export default function PurchasePage() {
                                   <div className="flex flex-col items-center gap-3 text-foreground-subtle">
                                     <TintIcon icon={Package} tint="neutral" size="lg" />
                                     <p className="text-sm leading-relaxed">
-                                      ยังไม่มีรายการ — เพิ่มสินค้าทีละรายการผ่านขั้นตอนนำทาง<br />
+                                      ยังไม่มีรายการ<br /> เพิ่มสินค้าทีละรายการผ่านขั้นตอนนำทาง<br />
                                       หรือวางทั้งบิลด้วยปุ่ม “นำเข้าข้อมูล”
                                     </p>
                                     <Button onClick={openAddWizard} className="gap-1.5 mt-1">
-                                      <Plus className="size-4" /> เพิ่มสินค้าเข้าใบรับ
+                                      <Plus className="size-4" /> เพิ่มสินค้า
                                     </Button>
                                   </div>
                                 </TableCell>

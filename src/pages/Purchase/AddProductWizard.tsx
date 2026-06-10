@@ -269,7 +269,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
             <Plus className="size-5" />
           </span>
           <div className="min-w-0">
-            <DialogTitle className="text-lg">{editing ? 'แก้ไขรายการรับสินค้า' : 'เพิ่มสินค้าเข้าใบรับ'}</DialogTitle>
+            <DialogTitle className="text-lg">{editing ? 'แก้ไขรายการรับสินค้า' : 'เพิ่มสินค้า'}</DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
               {row.trade_name ? `${row.trade_name} · กรอกข้อมูลการรับเข้า` : 'เลือกสินค้าที่จะรับเข้า แล้วกรอกข้อมูลทีละขั้นตอน'}
             </p>

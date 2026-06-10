@@ -244,9 +244,6 @@ export default function POSPage() {
   // excluded from the ภาษีขาย report. Customer pays the same either way —
   // prices are VAT-inclusive, the checkbox only controls the backed-out VAT.
   const [vatChecked, setVatChecked] = useState(true)
-  // Snapshot of the just-completed sale, captured BEFORE the cart is cleared so
-  // the success dialog's "พิมพ์ซ้ำ" button can reprint without a refetch.
-  const [lastSaleForPrint, setLastSaleForPrint] = useState<SaleForPrint | null>(null)
 
   // Bundle row expansion: tracks cart row indices whose component list is open.
   // Keyed by idx because CartItem has no stable id — keep the Set in sync when
@@ -833,6 +830,20 @@ export default function POSPage() {
     window.api.settings.getShop().then(d => { if (d) setShopInfo(d as Setting) }).catch(() => {})
   }, [showPayment])
 
+  // F1 toggles the per-bill VAT checkbox while the payment dialog is open
+  // (VAT-registered shops only — the toggle has no UI otherwise). A function
+  // key is used so it never collides with typing the cash amount, mirroring F4.
+  useEffect(() => {
+    if (!showPayment || !vatEnabled) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'F1') return
+      e.preventDefault()
+      setVatChecked(v => !v)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [showPayment, vatEnabled])
+
   // Print a completed sale's slip. Isolated from the save flow — a print
   // failure must never roll back a committed sale; it just toasts so the
   // operator can retry from the success dialog. VAT-on sales print the slip as
@@ -890,7 +901,6 @@ export default function POSPage() {
       // converted after the sale is committed (best-effort).
       const srcQuote = cart.sourceQuotation
       setLastInvoice(result.invoice_no)
-      setLastSaleForPrint(snapshot)
       setDailyStats({ bills: result.daily_bills, total: result.daily_total, latest: result.latest_bill_time })
       cart.clearCart(); setExpandedBundles(new Set()); setShowPayment(false); setShowSuccess(true)
       setCashAmount(''); setCardAmount(''); setTransferAmount('')
@@ -1756,9 +1766,7 @@ export default function POSPage() {
                         <Checkbox checked={vatChecked} onCheckedChange={v => setVatChecked(v === true)} />
                         <ReceiptText className="size-5 text-muted-foreground" />
                         <span className="text-sm font-medium text-foreground">ภาษีมูลค่าเพิ่ม (VAT {vatRate}%)</span>
-                        <span className="ml-auto text-sm text-muted-foreground">
-                          {vatChecked ? formatCurrency(pendingVat) : 'บิลนี้ไม่มี VAT'}
-                        </span>
+                        <span className="ml-auto inline-flex items-center rounded-md border border-border bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground">F1</span>
                       </label>
                     )}
 
@@ -1822,8 +1830,9 @@ export default function POSPage() {
                     </div>
                   </div>
 
-                  {/* Cash input */}
-                <div className="rounded-xl border border-success/30 bg-success-soft/40 p-4 space-y-3 h-40">
+                  {/* Cash input — box hugs its content (no fixed height): cash is capped
+                    at 99999 so the change value never wraps to a second line. */}
+                <div className="rounded-xl border border-success/30 bg-success-soft/40 p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-xl font-medium text-muted-foreground flex items-center gap-1.5">
                       <Banknote className="size-7 text-success" /> รับเงินมา
@@ -2394,16 +2403,6 @@ export default function POSPage() {
         description={lastInvoice}
         confirmLabel="ตกลง"
         onConfirm={() => setShowSuccess(false)}
-        content={lastSaleForPrint ? (
-          <div className="flex justify-center">
-            <Button
-              variant="elevated"
-              onClick={() => { if (lastSaleForPrint) void printCompletedSale(lastSaleForPrint) }}
-            >
-              <Printer className="size-4" /> พิมพ์ใบเสร็จ
-            </Button>
-          </div>
-        ) : undefined}
       />
 
       {/* ── UNIT DIALOG ── */}
