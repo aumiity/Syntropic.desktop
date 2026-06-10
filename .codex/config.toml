@@ -1,0 +1,10 @@
+[tui]
+# Codex reads project-scoped config from .codex/config.toml when this repo is trusted.
+# This uses Codex's built-in footer items. Unlike Claude Code, Codex does not run
+# an arbitrary statusline command from project config.
+status_line = [
+  "model-with-reasoning",
+  "context-remaining",
+  "git-branch",
+  "current-dir",
+]

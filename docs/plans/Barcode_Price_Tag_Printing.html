@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>พิมพ์บาร์โค้ดสติ๊กเกอร์ + ป้ายราคา A4 — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine ul{padding-left:22px}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .step h4{margin:0 0 6px;color:#fbbf24;font-size:13.5px}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine pre{background:rgba(148,163,184,.12);padding:12px 14px;border-radius:10px;
+    overflow-x:auto;font-size:12px;line-height:1.5;margin:8px 0}
+  .machine pre code{background:none;color:#a5f3fc;padding:0}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>พิมพ์บาร์โค้ดสติ๊กเกอร์ + ป้ายราคา A4</h1>
+    <p>Tab ใหม่ในหน้าสินค้า: พิมพ์สติ๊กเกอร์บาร์โค้ดบนกระดาษฉลากยาเดิม และป้ายราคาแผ่น A4 — เลือกสินค้า+หน่วยรายช่องบน grid พร้อม preview สด และอุดช่องโหว่ POS ให้สแกนบาร์โค้ดของหน่วยเจอ</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ (19 findings แก้ครบ)</span>
+      <span class="pill">Products tab ใหม่ + POS scan fix</span>
+      <span class="pill">2026-06-10</span>
+    </div>
+  </header>
+
+  <div class="callout teal"><h4>เวอร์ชันแก้ไขตามเจ้าของ — 2026-06-10 (ปรับ 3 จุด)</h4>
+    <ul class="clean">
+      <li><strong>1. ที่อยู่ค่าตั้ง:</strong> <em>เครื่องพิมพ์ + ขนาดกระดาษ</em> มาจาก Settings เท่านั้น — สติ๊กเกอร์อ่านจาก <code>label_settings</code> (เครื่อง+กระดาษ width×height), ป้ายราคาอ่านจาก <code>document_settings</code> (เครื่อง + <code>paper_size</code> A4/A5 ที่ DocumentSettingsTab เลือกได้อยู่แล้ว — เลิก hardcode A4). ส่วน <em>จำนวนดวง/ป้ายต่อแผ่น + การแสดงผล (ชื่อ/ราคา/บาร์โค้ด)</em> ยังอยู่ <strong>ในหน้าพิมพ์</strong> ตามเดิม (เป็น per-job control ที่ตั้งใจไว้ ไม่ใช่ deviation)</li>
+      <li><strong>2. เตือน fallback:</strong> เปลี่ยนจาก toast ชั่วคราว → <strong>ไอคอน <code>TriangleAlert</code> ติดบนช่องถาวร + Popover อธิบาย</strong> (อ่านได้ตลอด ไม่หายไปเอง); เคสไม่มีทั้งบาร์โค้ดและรหัส = ยัง block + toast error</li>
+      <li><strong>3. ขนาด/จำนวน:</strong> เลิกปรับ cols×rows/gap/ฟอนต์อิสระ → <strong>preset คงที่ "จำนวนดวงต่อแผ่น"</strong> (สติ๊กเกอร์ 1/2/4/6/8 ดวง, ป้ายราคา 4/8/12/24 ป้ายต่อ A4 — A5 ปรับลดตามส่วน) ที่คำนวณขนาดช่อง+ฟอนต์เหมาะสมไว้ให้; preset ที่เล็กเกินอ่านบนกระดาษนั้น = ปิดเลือก</li>
+    </ul>
+  </div>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p>ตอนนี้แอปพิมพ์ได้แค่ฉลากยา — บาร์โค้ดสินค้ากับป้ายราคายังต้องไปทำมือข้างนอก แผนนี้เพิ่ม <strong>tab ที่ 3 ในหน้าสินค้า</strong> (<code>/products/print</code>) ที่มี 2 โหมดสลับกันได้:</p>
+    <ul class="clean">
+      <li><strong>สติ๊กเกอร์บาร์โค้ด</strong> — ใช้เครื่องพิมพ์+กระดาษ<em>ตัวเดียวกับฉลากยา</em> (อ่านจาก <code>label_settings</code> ตรง ๆ ไม่ตั้งซ้ำ); เลือก <strong>preset จำนวนดวงต่อแผ่น</strong> (1/2/4/6/8 ดวง) แต่ละช่องเลือกสินค้า+หน่วยอิสระ</li>
+      <li><strong>ป้ายราคา</strong> — ใช้เครื่องพิมพ์เอกสารเดิม + <strong>ขนาดกระดาษจาก <code>document_settings.paper_size</code> (A4/A5)</strong>; เลือก <strong>preset จำนวนป้ายต่อแผ่น</strong> (A4: 4/8/12/24) ราคาตัวใหญ่ มีเส้นตัด</li>
+    </ul>
+    <p>ทั้งสองโหมดใช้ UX เดียวกัน: เลือก preset จำนวนต่อแผ่น → คลิกช่อง → ค้นหาสินค้า → เลือกหน่วย, ปุ่ม "คัดลอกช่องแรกไปทุกช่อง", ช่องว่างเว้นได้, จำนวนสำเนา, preview สดเหมือนของจริง. <strong>เครื่องพิมพ์+ขนาดกระดาษมาจาก Settings</strong> (สติ๊กเกอร์=ฉลากยา, ป้ายราคา=เอกสาร A4/A5); preset จำนวนต่อแผ่น + การแสดงผล (ชื่อ/ราคา/บาร์โค้ด) อยู่ในหน้าพิมพ์ (จำค่าล่าสุดไว้)</p>
+    <p>ระหว่าง audit พบของแถมสำคัญ: <strong>POS ปัจจุบันสแกนบาร์โค้ดของ "หน่วย" (แผง/กล่อง) ไม่เจอเลย</strong> เพราะ <code>pos:searchProducts</code> ไม่ค้น <code>product_units.barcode</code> — ถ้าไม่อุด พิมพ์สติ๊กเกอร์หน่วยไปก็สแกนไม่ได้ แผนนี้จึงรวม Step 2.5 แก้จุดนี้ด้วย</p>
+    <div class="grid">
+      <div class="stat"><div class="v">2</div><div class="l">โหมดพิมพ์ใหม่</div></div>
+      <div class="stat"><div class="v">2</div><div class="l">ตาราง DB ใหม่ (singleton)</div></div>
+      <div class="stat"><div class="v">4+1</div><div class="l">IPC ใหม่ + แก้ pos:searchProducts</div></div>
+      <div class="stat"><div class="v">0</div><div class="l">dependency ใหม่ (JsBarcode มีแล้ว)</div></div>
+    </div>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <h3>โหมดสติ๊กเกอร์บาร์โค้ด</h3>
+    <div class="diagram"><div class="flow">
+      <div class="node data">barcode_sticker_settings<br>+ label_settings<small>SQLite</small></div>
+      <div class="ar">▶<small>config</small></div>
+      <div class="node">PrintTab<small>src/pages/Products/PrintTab/index.tsx</small></div>
+      <div class="ar">▶<small>cells + copies</small></div>
+      <div class="node">buildBarcodeStickerHtml<small>src/lib/tags/stickerHtml.ts</small></div>
+      <div class="ar">▶<small>IPC printer:printLabel</small></div>
+      <div class="node">printer.ts<small>electron/ipc/printer.ts</small></div>
+      <div class="ar">▶<small>silent</small></div>
+      <div class="node warn">เครื่องพิมพ์ฉลากยา<small>กระดาษ width×height จาก label_settings</small></div>
+    </div></div>
+
+    <h3>โหมดป้ายราคา A4</h3>
+    <div class="diagram"><div class="flow">
+      <div class="node data">price_tag_settings<br>+ document_settings<small>SQLite</small></div>
+      <div class="ar">▶<small>config</small></div>
+      <div class="node">PrintTab<small>โหมดเดียวกัน สลับด้วย Tabs toggle</small></div>
+      <div class="ar">▶<small>cells</small></div>
+      <div class="node">buildPriceTagHtml<small>src/lib/tags/priceTagHtml.ts</small></div>
+      <div class="ar">▶<small>IPC printer:printHtml (copies≤20)</small></div>
+      <div class="node">printer.ts<small>electron/ipc/printer.ts</small></div>
+      <div class="ar">▶<small>silent</small></div>
+      <div class="node warn">เครื่องพิมพ์เอกสาร<small>ขนาด A4/A5 จาก document_settings</small></div>
+    </div></div>
+
+    <h3>สแกนกลับเข้า POS (Step 2.5 — ช่องโหว่ที่ audit รอบ 2 เจอ)</h3>
+    <div class="diagram"><div class="flow">
+      <div class="node warn">สติ๊กเกอร์ที่พิมพ์<small>บาร์โค้ดของหน่วย (product_units.barcode)</small></div>
+      <div class="ar">▶<small>สแกน</small></div>
+      <div class="node">POS<small>src/pages/POS/index.tsx</small></div>
+      <div class="ar">▶<small>IPC pos:searchProducts</small></div>
+      <div class="node">pos.ts<small>electron/ipc/pos.ts + matched_unit_id</small></div>
+      <div class="ar">▶<small>initialIdx</small></div>
+      <div class="node">ProductSearchDialog<small>highlight แถวหน่วยนั้น → ราคาตรงป้าย</small></div>
+    </div></div>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>พิมพ์บาร์โค้ดสินค้า/ป้ายราคาในแอป<strong>ไม่ได้เลย</strong> — ต้องทำมือใน Word/Excel ข้างนอก</li>
+        <li>เครื่องพิมพ์ฉลากใช้ได้กับฉลากยาอย่างเดียว</li>
+        <li>สแกนบาร์โค้ดของหน่วย (แผง/กล่อง) ใน POS <strong>ไม่เจอ</strong> — <code>pos:searchProducts</code> ค้นเฉพาะบาร์โค้ดบนตัวสินค้า</li>
+        <li>ค้นหาสินค้าใน dialog อื่น ๆ (Quotation) ไม่มี keyboard nav</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>Tab "พิมพ์บาร์โค้ด/ป้ายราคา" ใน <code>/products</code> — สติ๊กเกอร์ grid บนกระดาษฉลากยาเดิม + ป้ายราคา A4 พร้อมเส้นตัด</li>
+        <li>เลือกสินค้า+หน่วยรายช่อง, copy ช่องแรกไปทุกช่อง, preview สดตรงกับงานพิมพ์ 100% (builder เดียวกัน)</li>
+        <li>ค่าตั้ง layout จำไว้ใน DB — ปิดเปิดแอปไม่หาย, staff ใช้ได้ไม่ติดสิทธิ์</li>
+        <li>สแกนบาร์โค้ดหน่วยใน POS เจอ + highlight หน่วยถูกต้อง ราคาตรงป้าย</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>Reuse โครงเดิมเกือบทั้งหมด — <code>printer:printLabel</code>, <code>LABEL_FIT_SCRIPT</code> (shrink-to-fit รายช่องได้ฟรี), <code>barcodeSvg</code> (EAN13/EAN8/CODE128 อัตโนมัติ), ฟอนต์ฝัง data-URI — ไม่มี dependency ใหม่ ไม่ต้อง <code>npm install</code></li>
+    <li>แก้ช่องโหว่ POS ที่มีมาก่อน (สแกนบาร์โค้ดหน่วยไม่เจอ) แบบ backward-safe — ผลค้นหาเดิมไม่เปลี่ยน แค่ได้เพิ่ม</li>
+    <li>Preview = HTML ตัวเดียวกับที่พิมพ์จริง (iframe srcDoc) — สิ่งที่เห็นคือสิ่งที่ได้ ไม่มี drift</li>
+    <li>ตาราง DB ใหม่เป็น additive ล้วน — rollback ง่าย ไม่แตะข้อมูลเงิน/สต็อก</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>แตะไฟล์ shared 2 จุด: <code>ProductSearchDialog</code> (เพิ่ม prop ใหม่) และ <code>WAIT_FOR_RENDER_JS</code> ใน printer.ts — ต้อง regression ใบเสร็จ/เอกสาร A4 เดิมตอน click-test</li>
+    <li>การแบ่งหน้าที่: <em>เครื่องพิมพ์+ขนาดกระดาษ</em> อยู่ Settings (label_settings/document_settings เดิม), ส่วน <em>จำนวนดวงต่อแผ่น + การแสดงผล</em> อยู่ในหน้าพิมพ์ (per-job, จงใจ — operational ของหน้าร้าน ไม่ใช่ config ระดับระบบ)</li>
+    <li>save preset/toggle 2 ตัวนี้<strong>ไม่ gate admin</strong> (จงใจ — staff เป็นผู้ใช้หลัก + auto-persist จำค่าล่าสุด) ต่างจาก settings writes ตัวอื่น — มี carve-out ใน doc กำกับ</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><strong>POS invariants:</strong> base unit ต้องเป็นแถวแรกเสมอ (ห้าม reorder), highlight เป็นของ keyboard เท่านั้น — Step 2.5 เปลี่ยนแค่ "ค่าตอน reset" ผ่าน prop ใหม่ ห้ามเพิ่ม mouse path</li>
+    <li><strong>Dynamic SQL save:</strong> key ของ form ต้องตรงชื่อ column เป๊ะ ไม่งั้น UPDATE ทั้งก้อนพัง — สร้าง state จาก DEFAULTS ที่ตรง column เท่านั้น</li>
+    <li><strong>บาร์โค้ด fallback:</strong> หน่วยที่ไม่มีบาร์โค้ดตัวเองจะพิมพ์บาร์โค้ดหน่วยพื้นฐานแทน → สแกนแล้วได้ราคาหน่วยพื้นฐาน ไม่ตรงป้าย — ระบบเตือนด้วย <strong>ไอคอน <code>TriangleAlert</code> ติดบนช่องถาวร + Popover อธิบาย</strong> (อยู่จนกว่าจะแก้ ไม่หายไปเองเหมือน toast)</li>
+    <li>กระดาษเล็ก ÷ จำนวนดวงมาก = ช่องเล็กอ่านไม่ออก — <strong>กันด้วย preset คงที่ที่คำนวณขนาดช่องไว้ล่วงหน้า</strong>: preset ที่ทำให้ช่องเล็กกว่าเกณฑ์อ่านออกบนกระดาษนั้น = ปิดเลือก (disabled + เหตุผล) จึงเลือกได้เฉพาะขนาดที่ใช้งานได้จริง</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><strong>Bar บน (h-12):</strong> ซ้าย = สลับโหมดด้วย Tabs variant <code>toggle</code> (สติ๊กเกอร์บาร์โค้ด / ป้ายราคา A4); ขวา = ช่องจำนวนสำเนา + ปุ่ม "ดูตัวอย่าง PDF" (<code>elevated</code>) + ปุ่ม "พิมพ์" (<code>default</code> — primary teal) ทุกตัว h-9</li>
+      <li><strong>ซ้าย:</strong> SectionCard "ตั้งค่า" (<strong>preset จำนวนดวง/ป้ายต่อแผ่น</strong> — segmented/Select, preset ที่เล็กเกินบนกระดาษปัจจุบัน disabled + toggle การแสดงผล ชื่อ/ราคา/บาร์โค้ด — auto-save ไม่มีปุ่มบันทึก; ไม่มีช่อง cols/rows/gap/ฟอนต์อิสระแล้ว) + SectionCard "สินค้าในแผ่น" (GridEditor); <strong>ขวา:</strong> preview สด พร้อมป้ายบอกเครื่องพิมพ์+ขนาดกระดาษที่ใช้ (อ่านจาก Settings, read-only)</li>
+      <li><strong>GridEditor:</strong> ช่องว่าง = กรอบ dashed + ไอคอน Plus "เลือกสินค้า"; ช่องมีของ = ชื่อ/หน่วย/ราคา + ปุ่ม X ลบ; เคส fallback (<code>barcode_source !== 'own'</code>) = <strong>ไอคอน <code>TriangleAlert</code> สี warning มุมช่อง → คลิก/ชี้เปิด <code>Popover</code> อธิบาย</strong> ("บาร์โค้ดหน่วยพื้นฐาน — สแกนแล้วได้ราคาหน่วยพื้นฐาน" / "ใช้รหัสสินค้าแทนบาร์โค้ด"); ปุ่ม "คัดลอกช่องแรกไปทุกช่อง" (<code>primary-soft</code>) + "ล้างทั้งหมด" (<code>outline</code>)</li>
+      <li><strong>ค้นหาสินค้า:</strong> ใช้ search modal ตัวเดียวกับ POS (ProductSearchDialog) — ลูกศรขึ้นลง + Enter เลือก + Esc ปิด, แถวหน่วยพื้นฐานมาก่อนเสมอ, โชว์บาร์โค้ด/รหัสในแถวให้รู้ก่อนเลือก</li>
+      <li>แสดงชื่อเครื่องพิมพ์ที่จะใช้แบบ read-only — ค่าว่าง = "เครื่องพิมพ์เริ่มต้นของระบบ" (ไม่ใช่ error); เตือนเฉพาะเครื่องที่ตั้งไว้แล้วหายไป</li>
+      <li>เมื่ออยู่ tab นี้ MetricCards 4 ใบ + ปุ่ม "เพิ่มสินค้า" ของหน้า Products ซ่อน — พื้นที่เต็มสำหรับงานพิมพ์</li>
+      <li>ภาษาไทยทั้งหมด, semantic tokens เท่านั้น, ไอคอน lucide (<code>Tags</code> สำหรับ tab), toast ผ่าน <code>useToast()</code></li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>R1-1</td><td>ไม่ gate <code>requireAdmin</code> ขัด doc "settings writes admin-only"</td><td><span class="tag t-skip">MAJOR</span></td><td>คง deviation (เหตุผลชัด) แต่บังคับครบ 2 ฝั่ง: comment ที่ handler + carve-out ใน <code>docs/claude/ipc-api.md:43</code></td></tr>
+        <tr><td>R1-2</td><td>fit-await แก้แค่ <code>printHtml</code> ลืม <code>previewHtmlPdf</code></td><td><span class="tag t-skip">MAJOR</span></td><td>ครอบทั้งคู่ (ภายหลัง R2-7 รวบเป็นแก้ <code>WAIT_FOR_RENDER_JS</code> const จุดเดียว)</td></tr>
+        <tr><td>R1-3</td><td>TagProductSearchDialog ไม่มี DialogFooter ขัด dialog contract</td><td><span class="tag t-skip">MAJOR</span></td><td>เพิ่ม footer → ภายหลังถูก supersede ด้วย R2-4 (reuse ProductSearchDialog ที่เป็น search-modal canonical)</td></tr>
+        <tr><td>R1-4</td><td>ไม่ได้ตัดสินใจเรื่อง bundle</td><td><span class="tag t-opt">MINOR</span></td><td>รวม bundle (มี price_retail+barcode ขายผ่าน POS ได้ปกติ)</td></tr>
+        <tr><td>R1-5</td><td>copies ไม่ตรง backend clamp (printHtml cap 20)</td><td><span class="tag t-opt">MINOR</span></td><td>max ต่อโหมด: สติ๊กเกอร์ 1..50, ป้ายราคา 1..20 + validate ฝั่ง UI</td></tr>
+        <tr><td>R1-6</td><td>fallback chain จบที่ค่าว่างได้ (code nullable) + barcode2-4 ไม่ถูกกล่าวถึง</td><td><span class="tag t-opt">MINOR</span></td><td>chain <code>unit → p.barcode → p.code</code> (ไม่ไล่ barcode2-4 โดยตั้งใจ); code ว่าง → block + toast error</td></tr>
+        <tr><td>R1-7</td><td>sticker defaults (2×4) ล้นกระดาษ 80×50</td><td><span class="tag t-opt">MINOR</span></td><td>grid_rows default 4→2 (ช่อง ~36×21mm พอดีโดยไม่ shrink) — <strong>↻ 2026-06-10: superseded</strong> ด้วย preset คงที่ (เลิก default cols/rows อิสระ; preset เล็กเกิน = disabled)</td></tr>
+        <tr><td>R1-8</td><td>fit script หดชิดมุมซ้ายบน (transformOrigin top-left)</td><td><span class="tag t-gen">INFO</span></td><td>ยอมรับเป็น documented overflow behavior (defaults ไม่ล้น)</td></tr>
+        <tr><td>R1-9/10</td><td>ห้ามแก้ preload.d.ts ด้วยมือ + ตำแหน่งวาง dialog</td><td><span class="tag t-gen">INFO</span></td><td>เพิ่มหมายเหตุใน Step 3 + วาง dialog ที่ src/components/dialogs/</td></tr>
+        <tr><td>R2-1</td><td><strong><code>pos:searchProducts</code> ไม่ค้น <code>product_units.barcode</code> — สติ๊กเกอร์หน่วยพิมพ์แล้วสแกนไม่เจอ</strong></td><td><span class="tag t-skip">MAJOR</span></td><td>เพิ่ม Step 2.5: ขยาย WHERE + <code>matched_unit_id</code> + prop <code>initialIdx</code> ให้ highlight แถวหน่วยที่สแกน</td></tr>
+        <tr><td>R2-2</td><td>แถวหน่วยที่ fallback ไปใช้บาร์โค้ด base <strong>เงียบ</strong> ทั้งที่ราคาจะไม่ตรงป้าย (เตือนแค่เคส code)</td><td><span class="tag t-skip">MAJOR</span></td><td>เปลี่ยนเป็น <code>barcode_source: 'own'|'base'|'code'</code> — เตือนทุกเคสที่ไม่ใช่บาร์โค้ดของแถวเอง; <strong>↻ 2026-06-10:</strong> กลไกเตือน = ไอคอน <code>TriangleAlert</code> + <code>Popover</code> ติดบนช่องถาวร (แทน toast ชั่วคราว)</td></tr>
+        <tr><td>R2-3</td><td><code>printer_name</code> ว่าง (= OS default ปกติ) โดน warning หลอก</td><td><span class="tag t-opt">MINOR</span></td><td>ค่าว่าง → แสดง "เครื่องพิมพ์เริ่มต้นของระบบ" ไม่ warning; เตือนเฉพาะชื่อที่ตั้งแล้วหายจากรายชื่อ</td></tr>
+        <tr><td>R2-4</td><td>Enter = เลือกแถวแรก ชนกับ "ปิด" เป็น lone primary (semantics ขัดกัน)</td><td><span class="tag t-opt">MINOR</span></td><td>สร้างเป็น thin consumer ของ shared ProductSearchDialog — ได้ keyboard nav ครบ, Enter = แถวที่ highlight, ไม่มี footer (pattern canonical ตาม pos.md)</td></tr>
+        <tr><td>R2-5</td><td>ไม่ระบุ args ปุ่มดูตัวอย่าง A4 + preview ตอนทุกช่องว่างได้ PDF เปล่า</td><td><span class="tag t-opt">MINOR</span></td><td>ระบุ <code>previewHtmlPdf({html, pageFormat: paperSize})</code> (↻ 2026-06-10: A4/A5 ตาม document_settings); disable ปุ่มดูตัวอย่างคู่กับปุ่มพิมพ์</td></tr>
+        <tr><td>R2-6</td><td>เลขบรรทัดอ้างอิงคลาด/ขัดกันเอง (ipc-api.md 41 vs 43, settings.ts 421-450)</td><td><span class="tag t-gen">INFO</span></td><td>แก้เป็นค่าจริง: ipc-api.md:43, settings.ts:424-449</td></tr>
+        <tr><td>R2-7</td><td>R1-2 wording กำกวม + รายชื่อ caller ไม่ครบ</td><td><span class="tag t-gen">INFO</span></td><td>ระบุแก้ที่ <code>WAIT_FOR_RENDER_JS</code> const จุดเดียว (consumer = 2 handler นี้พอดี) + caller ครบ 3 ไฟล์</td></tr>
+        <tr><td>R2-8</td><td>ชื่อปุ่ม copy ไม่ตรงกันระหว่าง DoD กับ Step 5</td><td><span class="tag t-gen">INFO</span></td><td>ใช้ชื่อเดียว: "คัดลอกช่องแรกไปทุกช่อง"</td></tr>
+        <tr><td>R2-9</td><td>annotation R1-9 ใช้ซ้ำ 2 เรื่อง</td><td><span class="tag t-gen">INFO</span></td><td>แยกเป็น R1-10</td></tr>
+        <tr><td>R2-10</td><td>"body padding" ชวนเข้าใจผิด (precedent ใส่ที่ per-page div)</td><td><span class="tag t-gen">INFO</span></td><td>แก้เป็น padding ที่ per-page div (จำเป็นเมื่อ copies&gt;1)</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--muted);margin:8px 0 0">รอบ 2 ยืนยันด้วยว่า fix ของรอบ 1 ทั้ง 9 จุดอยู่ครบและ coherent; reference ทุกตัวในแผน (path/บรรทัด/ชื่อ function/column/variant) ตรวจกับไฟล์จริงแล้วทั้ง 2 รอบ</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li>Tab "พิมพ์บาร์โค้ด/ป้ายราคา" ใน Products shell, route <code>/products/print</code>, toggle 2 โหมดด้วย tabs variant <code>toggle</code></li>
+      <li>โหมดสติ๊กเกอร์พิมพ์ผ่าน <code>printer:printLabel</code> (เครื่อง+กระดาษจาก <code>label_settings</code>), N สำเนา = N หน้าใน job เดียว</li>
+      <li>โหมดป้ายราคาพิมพ์ผ่าน <code>printer:printHtml</code> — <strong>เครื่อง + ขนาดกระดาษ (A4/A5) อ่านจาก <code>document_settings</code></strong> (<code>paper_size</code> → 210×297 หรือ 148×210; เลิก hardcode A4), <code>copies</code></li>
+      <li>แต่ละช่อง: เลือกสินค้า+หน่วย (base = <code>products.barcode</code>+<code>price_retail</code>; หน่วยอื่น = <code>product_units.barcode</code>+<code>price_retail</code> ของหน่วยนั้น)</li>
+      <li>บาร์โค้ดที่ resolve ได้ไม่ใช่ของแถวที่เลือกเอง (<code>barcode_source !== 'own'</code>) → ไอคอน <code>TriangleAlert</code> + <code>Popover</code> อธิบายติดบนช่อง (ถาวร ตามชนิด fallback base/code)</li>
+      <li>สแกน/พิมพ์ <code>product_units.barcode</code> ใน POS แล้วเจอสินค้า + initial highlight ที่แถวหน่วยนั้น (Step 2.5, audit R2-1)</li>
+      <li>ปุ่ม "คัดลอกช่องแรกไปทุกช่อง" copy ช่อง 1 → ทุกช่อง; ช่องไม่ใส่สินค้า = ว่างตอนพิมพ์</li>
+      <li><strong>preset จำนวนต่อแผ่น</strong> เลือกในหน้าพิมพ์ (สติ๊กเกอร์ 1/2/4/6/8 ดวง, ป้ายราคา 4/8/12/24 ต่อ A4 — A5 ลดตามส่วน); preset ที่ช่องเล็กเกินเกณฑ์อ่านออกบนกระดาษปัจจุบัน = disabled</li>
+      <li>Toggle การแสดงผล: สติ๊กเกอร์ = ชื่อ/ราคา/ตัวเลขบาร์โค้ด; ป้ายราคา = ชื่อ/ราคา/บาร์โค้ด/รหัส/หน่วย (+เส้นตัด)</li>
+      <li>print-page preference (preset + toggles) persist ใน <code>barcode_sticker_settings</code> + <code>price_tag_settings</code> (singleton, ensure-row-then-UPDATE) — <strong>เครื่องพิมพ์/ขนาดกระดาษไม่เก็บที่นี่ (อ่านจาก label_settings/document_settings)</strong></li>
+      <li>MetricCards 4 ใบ + ปุ่ม "เพิ่มสินค้า" ซ่อนเมื่ออยู่ tab พิมพ์</li>
+      <li><code>npx tsc --noEmit</code> PASS + click-test checklist ผ่าน</li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>electron/db/schema.ts</code> — ตาราง singleton ใหม่ 2 ตาราง (วางต่อจาก document_settings ~:572)</li>
+      <li><code>electron/ipc/settings.ts</code> — 4 handlers ใหม่ (pattern receipt_settings :424-449)</li>
+      <li><code>electron/ipc/pos.ts</code> — ขยาย <code>pos:searchProducts</code> (:108-128) ให้ค้น unit barcode</li>
+      <li><code>electron/ipc/printer.ts</code> — ต่อท้าย <code>WAIT_FOR_RENDER_JS</code> const (:107-113) ด้วย optional fit-await</li>
+      <li><code>electron/preload.ts</code> — bridge 4 method ใหม่ใน namespace settings</li>
+      <li><code>src/lib/tags/types.ts</code> / <code>presets.ts</code> / <code>stickerHtml.ts</code> / <code>priceTagHtml.ts</code> — ใหม่ (<code>presets.ts</code> = SSOT ของ preset จำนวนต่อแผ่น + ขนาดช่อง/ฟอนต์ที่คำนวณไว้)</li>
+      <li><code>src/pages/Products/PrintTab/index.tsx</code> + <code>GridEditor.tsx</code> — ใหม่</li>
+      <li><code>src/components/dialogs/TagProductSearchDialog.tsx</code> — ใหม่ (thin consumer ของ ProductSearchDialog)</li>
+      <li><code>src/components/dialogs/ProductSearchDialog.tsx</code> — เพิ่ม optional prop <code>initialIdx</code></li>
+      <li><code>src/pages/POS/index.tsx</code> — ส่ง <code>initialIdx</code> จาก <code>matched_unit_id</code></li>
+      <li><code>src/pages/Products/index.tsx</code> + <code>src/App.tsx</code> — tab + route</li>
+      <li><code>docs/claude/ipc-api.md</code> + <code>.claude/memory/</code> — docs/memory</li>
+    </ul>
+
+    <h3>ขั้นตอน (dependency order: 1→2→2.5→3→4→5→6→7→8 — 2.5 อิสระจาก 3-4 แต่ต้องเสร็จก่อน 5 เพราะ TagProductSearchDialog ใช้ matched_unit_id/initialIdx)</h3>
+    <ol>
+      <div class="step">
+        <h4>Step 1 — Schema: 2 ตาราง singleton ใหม่ (electron/db/schema.ts)</h4>
+        <p>วาง CREATE TABLE IF NOT EXISTS ต่อจาก <code>document_settings</code> (ปิดวงเล็บที่ :572) ตาม pattern พี่น้อง (<code>receipt_settings</code>/<code>document_settings</code>):</p>
+<pre><code>-- Barcode sticker print-page preference (singleton). Printer + paper (W×H)
+-- come from label_settings (same physical printer + die-cut paper as drug
+-- labels). This table only stores the chosen LAYOUT PRESET + content toggles.
+-- preset resolves to {cols,rows,gap,font sizes,barcode height} via
+-- src/lib/tags/presets.ts (cell size COMPUTED from the actual label paper;
+-- presets too small for the paper are disabled in the UI). Columns map 1:1 to
+-- the renderer form keys (dynamic-SQL save).
+CREATE TABLE IF NOT EXISTS barcode_sticker_settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  preset      TEXT NOT NULL DEFAULT '4up',   -- '1up'|'2up'|'4up'|'6up'|'8up' (ดวงต่อแผ่น) → grid+ฟอนต์ใน presets.ts
+  show_name   INTEGER NOT NULL DEFAULT 1,
+  show_price  INTEGER NOT NULL DEFAULT 1,
+  show_digits INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+-- Price-tag print-page preference (singleton). Printer + paper SIZE (A4/A5)
+-- come from document_settings (printer_name + paper_size). This table only
+-- stores the chosen LAYOUT PRESET + content toggles. preset resolves per paper
+-- size via src/lib/tags/presets.ts (e.g. A4 '8up' = 2×4; A5 fewer).
+CREATE TABLE IF NOT EXISTS price_tag_settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  preset         TEXT NOT NULL DEFAULT '8up', -- '4up'|'8up'|'12up'|'24up' (ป้ายต่อ A4) → grid+ฟอนต์ใน presets.ts
+  show_name      INTEGER NOT NULL DEFAULT 1,
+  show_price     INTEGER NOT NULL DEFAULT 1,
+  show_barcode   INTEGER NOT NULL DEFAULT 0,
+  show_code      INTEGER NOT NULL DEFAULT 0,
+  show_unit      INTEGER NOT NULL DEFAULT 1,
+  show_cut_lines INTEGER NOT NULL DEFAULT 1,
+  font_family    TEXT NOT NULL DEFAULT 'Sarabun',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);</code></pre>
+        <ul>
+          <li>ตารางใหม่ทั้งคู่ → ไม่ต้องมี ALTER migration (CREATE IF NOT EXISTS รันทุก boot)</li>
+          <li><span class="inv">Invariant: form keys = column names เป๊ะ (dynamic SQL UPDATE จาก Object.keys) → docs/claude/database.md</span></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <h4>Step 2 — IPC handlers (electron/ipc/settings.ts)</h4>
+        <p>เพิ่ม 4 handlers ตาม <strong>ensure-row-then-UPDATE pattern ของ receipt_settings</strong> (settings.ts:424-449 — <span class="inv">อย่า copy pattern ของ saveLabelSettings ที่มี INSERT-DEFAULT-then-skip-payload bug ที่ :271-273</span>):</p>
+        <ul>
+          <li><code>settings:getBarcodeStickerSettings</code> — SELECT…LIMIT 1, ไม่มี row → INSERT DEFAULT VALUES แล้วอ่านใหม่</li>
+          <li><code>settings:saveBarcodeStickerSettings</code> — tx: ensure row → strip <code>{id, updated_at}</code> → dynamic UPDATE → return row</li>
+          <li><code>settings:getPriceTagSettings</code> / <code>settings:savePriceTagSettings</code> — เหมือนกัน</li>
+        </ul>
+        <p><strong>การตัดสินใจเรื่อง requireAdmin: ไม่ใส่</strong> บน save 2 ตัวนี้ (ข้อยกเว้นจาก pattern "settings writes admin-gated") — เหตุผล: เป็น layout preference ของงานพิมพ์หน้าร้านที่ staff เป็นผู้ใช้หลัก, ไม่มีผลการเงิน/ความปลอดภัย, และหน้า print auto-persist ตอน config เปลี่ยน (ถ้า gate admin → staff ใช้งานแล้ว FORBIDDEN toast รัว ๆ)</p>
+        <p>(audit R1-1) <span class="inv">deviation ต้องครบทั้ง 2 ฝั่ง: (a) comment อธิบายที่ handler ทั้งสอง (b) Step 7 แก้ docs/claude/ipc-api.md (บรรทัด "settings writes admin-only" — line 43) ให้ carve-out พร้อมเหตุผล — ห้ามปล่อยให้ doc กับ code ขัดกัน</span></p>
+      </div>
+
+      <div class="step">
+        <h4>Step 2.5 — POS: รองรับสแกนบาร์โค้ดของหน่วย (product_units.barcode) (audit R2-1)</h4>
+        <p><span class="inv">ก่อนแตะ: เปิด docs/claude/pos.md (HARD invariants: base-unit-first, highlight keyboard-owned)</span></p>
+        <p>ปัจจุบัน <code>pos:searchProducts</code> ค้นเฉพาะ <code>p.trade_name/p.barcode/barcode2-4/p.code/p.search_keywords</code> (electron/ipc/pos.ts:116-118) — ไม่ค้น <code>product_units.barcode</code> เลย → สติ๊กเกอร์ที่พิมพ์ด้วยบาร์โค้ดหน่วยจะสแกนใน POS ไม่เจอ ต้องอุดก่อน ไม่งั้นพิมพ์ไปก็ใช้ไม่ได้:</p>
+        <ul>
+          <li><code>electron/ipc/pos.ts</code> (<code>pos:searchProducts</code> :108-128):
+            <ul>
+              <li>WHERE เพิ่ม <code>OR EXISTS (SELECT 1 FROM product_units pu WHERE pu.product_id = p.id AND pu.is_disabled = 0 AND pu.is_for_sale = 1 AND pu.barcode LIKE ?)</code></li>
+              <li>SELECT เพิ่ม <code>(SELECT pu.id FROM product_units pu WHERE pu.product_id = p.id AND pu.barcode = ? AND pu.is_disabled = 0 AND pu.is_for_sale = 1 LIMIT 1) AS matched_unit_id</code> (exact-match กับ query ดิบ — บาร์โค้ดสแกนมาทั้งก้อน)</li>
+              <li>channel signature ไม่เปลี่ยน (ยังรับ query เดียว) → ไม่ต้องแตะ preload; consumer อื่นของ channel (Quotation/return/adjust/Tag dialog) แค่ได้ผลลัพธ์เพิ่ม — additive, ปลอดภัย</li>
+            </ul>
+          </li>
+          <li><code>src/components/dialogs/ProductSearchDialog.tsx</code> (shared): เพิ่ม optional prop <code>initialIdx?: number</code> — ใช้ใน reset effect แทนค่า 0 ตายตัว (<code>useEffect(() =&gt; { setHighlightIdx(initialIdx ?? 0) }, [query, initialIdx])</code> — เดิม line 82). <span class="inv">Highlight ยัง keyboard-owned (เปลี่ยนเฉพาะ "ค่าตอน reset" ซึ่งเป็นกลไกที่ pos.md อนุญาตอยู่แล้ว; ห้ามเพิ่ม mouse path)</span>; ไม่ส่ง prop = พฤติกรรมเดิมเป๊ะ</li>
+          <li><code>src/pages/POS/index.tsx</code>: <span class="inv">flatItems ห้าม reorder (base row มาก่อนเสมอ — HARD invariant)</span> — แค่หา index ของแถวที่ <code>unit?.id === product.matched_unit_id</code> แล้วส่งเป็น <code>initialIdx</code> (ทั้ง cart search และ adjust search ที่ flatten เหมือนกัน); ไม่เจอ → <code>undefined</code> (เดิม)</li>
+          <li>ผล: สแกนบาร์โค้ดหน่วย → modal เปิดพร้อม highlight แถวหน่วยนั้น → Enter/คลิก ได้หน่วย+ราคาตรงป้าย</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <h4>Step 3 — Preload bridge (electron/preload.ts)</h4>
+        <p>เพิ่มใน namespace <code>settings</code> (ตาม pattern <code>getReceiptSettings</code> line 119-120):</p>
+<pre><code>getBarcodeStickerSettings: () =&gt; ipcRenderer.invoke('settings:getBarcodeStickerSettings'),
+saveBarcodeStickerSettings: (data: any) =&gt; ipcRenderer.invoke('settings:saveBarcodeStickerSettings', data),
+getPriceTagSettings: () =&gt; ipcRenderer.invoke('settings:getPriceTagSettings'),
+savePriceTagSettings: (data: any) =&gt; ipcRenderer.invoke('settings:savePriceTagSettings', data),</code></pre>
+        <p>typing ของ <code>window.api</code> ไหลอัตโนมัติ: <code>src/lib/utils.ts:93-97</code> → <code>import('@electron/preload').ElectronAPI</code> → <code>export type ElectronAPI = typeof api</code> ท้าย preload.ts — แก้ preload.ts ที่เดียวพอ <span class="inv">ห้ามแก้ electron/preload.d.ts ด้วยมือ (เป็น artifact; .ts ชนะ .d.ts ตอน resolve)</span> (audit R1-9)</p>
+      </div>
+
+      <div class="step">
+        <h4>Step 4 — Renderer lib (src/lib/tags/) — ไฟล์ใหม่ 3 ไฟล์, reuse ของเดิมให้มากที่สุด</h4>
+        <p><strong>src/lib/tags/presets.ts</strong> — SSOT ของ preset (เลิกใช้ cols/rows/gap/ฟอนต์อิสระ):</p>
+<pre><code>// ผลลัพธ์ที่ resolve แล้ว — builder ใช้ตรง ๆ
+export interface ResolvedLayout {
+  cols: number; rows: number; gapMm: number;
+  fontNamePt: number; fontPricePt: number; fontMetaPt: number;
+  barcodeHeightMm: number;
+  cellWmm: number; cellHmm: number;  // คำนวณจากกระดาษจริง
+  tooSmall: boolean;                 // true → UI disable preset นี้
+}
+// สติ๊กเกอร์: คำนวณช่องจากกระดาษ label_settings (W×H, padding)
+export function resolveStickerPreset(preset: string, paper: LabelSettingsForm): ResolvedLayout
+// ป้ายราคา: คำนวณช่องจากขนาดกระดาษเอกสาร (A4=210×297 / A5=148×210)
+export function resolvePriceTagPreset(preset: string, paperSize: 'A4'|'A5'): ResolvedLayout
+// รายการ preset ที่เลือกได้ (ตัด tooSmall ออก/disable) สำหรับ UI
+export function stickerPresets(paper: LabelSettingsForm): { key: string; label: string; layout: ResolvedLayout }[]
+export function priceTagPresets(paperSize: 'A4'|'A5'): { key: string; label: string; layout: ResolvedLayout }[]
+// MIN_CELL_MM = เกณฑ์อ่านออก (เช่น 18×10mm) → ต่ำกว่านี้ tooSmall=true</code></pre>
+        <p><strong>src/lib/tags/types.ts</strong></p>
+<pre><code>// keys = columns ของ barcode_sticker_settings / price_tag_settings (ยกเว้น id/updated_at)
+// → preset (TEXT) + content toggles เท่านั้น; ไม่มี cols/rows/gap/font_size อิสระแล้ว
+export interface BarcodeStickerForm { preset: string; show_name: number; show_price: number; show_digits: number }
+export interface PriceTagForm { preset: string; show_name: number; show_price: number; show_barcode: number; show_code: number; show_unit: number; show_cut_lines: number; font_family: string }
+export const BARCODE_STICKER_DEFAULTS: BarcodeStickerForm = { preset: '4up', show_name: 1, show_price: 1, show_digits: 1 }
+export const PRICE_TAG_DEFAULTS: PriceTagForm = { preset: '8up', show_name: 1, show_price: 1, show_barcode: 0, show_code: 0, show_unit: 1, show_cut_lines: 1, font_family: 'Sarabun' }
+// 1 ช่องที่ถูก assign แล้ว (null = ช่องว่าง)
+export interface TagCell {
+  product_id: number
+  name: string          // trade_name
+  unit_name: string
+  price: number         // price_retail ของหน่วยที่เลือก
+  code: string          // products.code
+  barcode: string       // resolved: unit.barcode → product.barcode → product.code
+  // 'own'  = บาร์โค้ดของแถวที่เลือกเอง (base row → p.barcode, unit row → u.barcode)
+  // 'base' = แถวหน่วย fallback มาใช้ p.barcode (สแกนแล้วได้ราคาหน่วยพื้นฐาน — ต้องเตือน)
+  // 'code' = ตกถึง products.code (audit R2-2: เตือนทุกกรณีที่ != 'own' ไม่ใช่แค่ code)
+  barcode_source: 'own' | 'base' | 'code'
+}</code></pre>
+        <p><strong>src/lib/tags/stickerHtml.ts</strong> — <code>buildBarcodeStickerHtml(paper: LabelSettingsForm, cfg: BarcodeStickerForm, cells: (TagCell|null)[], copies: number): Promise&lt;string&gt;</code></p>
+        <ul>
+          <li><code>@page { size: ${paper.width_mm}mm ${paper.height_mm}mm; margin: 0 }</code> + padding จาก <code>paper.pad_*</code> ที่ <strong>per-page div</strong> (ไม่ใช่ body — จำเป็นเมื่อ copies&gt;1 หลายหน้า; mirror <code>buildLabelSheetHtml</code> ใน src/lib/label/html.ts:139-171, padding ที่ :151) (audit R2-10)</li>
+          <li><strong>resolve layout จาก preset:</strong> <code>const L = resolveStickerPreset(cfg.preset, paper)</code> → cols/rows/gap/font sizes/barcode height มาจาก presets.ts (คำนวณจากกระดาษจริง ไม่ใช่ค่าใน cfg อีกต่อไป)</li>
+          <li>หน้า = <code>display:grid; grid-template-columns: repeat(L.cols,1fr); grid-template-rows: repeat(L.rows,1fr); gap: L.gapMm</code> + <code>break-after:page</code> ระหว่างหน้า; วน copies หน้า (เนื้อหาเหมือนกันทุกหน้า), clamp copies 1..50</li>
+          <li>แต่ละช่องที่มีของ: <code>&lt;div class="label-area"&gt;&lt;div class="label-fit"&gt;…&lt;/div&gt;&lt;/div&gt;</code> → reuse <code>LABEL_FIT_SCRIPT</code> (src/lib/label/fit.ts — script วนทุก .label-fit อยู่แล้ว จึงได้ per-cell shrink-to-fit ฟรี และ printer:printLabel/previewLabelPdf await <code>window.__labelFitReady</code> อยู่แล้ว)</li>
+          <li>ช่องว่าง (cell=null) = <code>&lt;div&gt;&lt;/div&gt;</code> เปล่า</li>
+          <li>เนื้อหาช่อง (ขนาดทั้งหมดจาก <code>L</code> = preset ที่ resolve แล้ว): ชื่อ (clamp 2 บรรทัด, <code>L.fontNamePt</code>, toggle <code>show_name</code>), แท่งบาร์โค้ด = <code>barcodeSvg(cell.barcode, {displayValue:false})</code> (จาก src/lib/label/barcode.ts) ใน box สูง <code>L.barcodeHeightMm</code> กว้าง 100% ของช่อง, ตัวเลขบาร์โค้ดเป็น div แยก (toggle <code>show_digits</code>, <code>L.fontMetaPt</code>), ราคา <code>L.fontPricePt</code> ตัวหนา (toggle <code>show_price</code>)</li>
+          <li>ฟอนต์: <code>buildPrintFontFaceCss(paper.font_family)</code> (จาก @/lib/print/fonts) + <code>esc()</code> ทุก text</li>
+        </ul>
+        <p><strong>src/lib/tags/priceTagHtml.ts</strong> — <code>buildPriceTagHtml(cfg: PriceTagForm, cells: (TagCell|null)[], paperSize: 'A4'|'A5'): Promise&lt;string&gt;</code> (<code>paperSize</code> ส่งมาจาก <code>document_settings.paper_size</code> — เลิก hardcode A4)</li>
+        <ul>
+          <li><strong>resolve layout:</strong> <code>const L = resolvePriceTagPreset(cfg.preset, paperSize)</code>; <code>@page { size: ${paperSize}; margin: 0 }</code>, body = 210×297 (A4) หรือ 148×210 (A5), padding บาง (margin จริงอยู่ใน cell ของ grid)</li>
+          <li>grid = <code>repeat(L.cols,1fr) / repeat(L.rows,1fr)</code>, gap <code>L.gapMm</code>; <code>show_cut_lines</code> → เส้นขอบช่อง <code>0.3pt solid #000</code> (ทุกช่องรวมช่องว่าง เพื่อให้ตัดเป็นตาราง)</li>
+          <li>เนื้อหาป้าย: ชื่อ (กลาง, clamp 2 บรรทัด, <code>L.fontNamePt</code>), ราคา <code>L.fontPricePt</code> bold + "บาท", บรรทัด meta = รหัส/หน่วย (<code>L.fontMetaPt</code>), บาร์โค้ดเล็ก (optional, <code>L.barcodeHeightMm</code>) — ทุกขนาดมาจาก preset</li>
+          <li>ใส่ <code>LABEL_FIT_SCRIPT</code> + wrap ช่องด้วย .label-area/.label-fit เหมือนกัน</li>
+          <li><strong>(audit R1-2 + R2-7) แก้ electron/ipc/printer.ts จุดเดียว:</strong> ต่อท้าย <code>WAIT_FOR_RENDER_JS</code> const (printer.ts:107-113) ด้วย <code>if (window.__labelFitReady) { try { await window.__labelFitReady } catch {} }</code> (คง shape async ของ script เดิม) — const นี้มี consumer แค่ printer:printHtml (:261) กับ printer:previewHtmlPdf (:303) พอดี (printLabel/previewLabelPdf มี await ของตัวเองที่ :174/:218 อยู่แล้ว ไม่แตะ) — <span class="inv">backward-safe: caller เดิมทั้งหมด (src/lib/receipt/print.ts, ReceiptSettingsTab.tsx:187,197, DocumentSettingsTab.tsx:145,155) ไม่เคยตั้ง __labelFitReady → no-op (ยืนยันแล้วทั้ง audit R1+R2)</span></li>
+          <li>transformOrigin caveat (audit R1-8): fit script scale จาก top left (fit.ts:60) — ป้ายที่ล้นจะหดชิดมุมซ้ายบนของช่อง ยอมรับเป็น documented overflow behavior (defaults ออกแบบให้ไม่ล้น ช่อง A4 ใหญ่); จัดเนื้อหากึ่งกลางด้วย flex ภายใน .label-fit ตามปกติ</li>
+          <li>copies ไม่อยู่ใน HTML — ส่งผ่าน <code>printHtml({copies})</code> (cap 20 ที่ printer.ts:268); ปุ่มดูตัวอย่าง = <code>previewHtmlPdf({html, pageFormat: paperSize})</code> (audit R2-5 — branch pageFormat ที่ printer.ts:306-314 รองรับ A4/A5 อยู่แล้ว (DocumentSettingsTab ใช้ <code>pageFormat: form.paper_size</code>), margins 0, margin จริง bake ใน padding ของ grid cell)</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <h4>Step 5 — หน้า UI (src/pages/Products/PrintTab/)</h4>
+        <p><span class="inv">ก่อนแตะ UI: เปิด docs/claude/ui-theming.md, docs/claude/ui-components.md, docs/claude/ui-table-card.md (กฏ h-12/h-9, tokens, text hierarchy, no raw elements, icon size-N)</span></p>
+        <p><strong>index.tsx</strong> — โครงหน้า:</p>
+        <ul>
+          <li>โหลด: <code>settings.getLabelSettings()</code>, <code>settings.getDocumentSettings()</code>, cfg singletons 2 ตัว, <code>printer.listPrinters()</code> (โชว์ชื่อเครื่องที่จะใช้แบบ read-only; <strong>(audit R2-3) printer_name ว่าง '' = สถานะปกติ → แสดง "เครื่องพิมพ์เริ่มต้นของระบบ" ห้าม warning</strong> (printer.ts:180,275 ส่ง <code>deviceName: args.printerName || undefined</code> — ว่าง = OS default); warning เฉพาะกรณีตั้งชื่อไว้แล้วแต่หายจากรายชื่อ)</li>
+          <li>Bar บน (h-12): toggle โหมด (Tabs variant <code>toggle</code> — สติ๊กเกอร์บาร์โค้ด / ป้ายราคา A4) ซ้าย; ขวา = จำนวนสำเนา (Input type number h-9 w-20, <strong>max ต่างโหมด: สติ๊กเกอร์ 1..50, ป้ายราคา 1..20</strong> ให้ตรง backend clamp ที่ printer.ts:268 — validate ฝั่ง UI ก่อนส่ง, audit R1-5) + ปุ่ม "ดูตัวอย่าง PDF" (<code>variant="elevated"</code> h-9) + ปุ่ม "พิมพ์" (<code>default</code> h-9)</li>
+          <li>เนื้อหา: ซ้าย = SectionCard "ตั้งค่า" (<strong>preset จำนวนต่อแผ่น</strong> — Select/segmented จาก <code>stickerPresets(paper)</code> หรือ <code>priceTagPresets(paperSize)</code>, ตัวที่ <code>layout.tooSmall</code> = disabled + tooltip "ช่องเล็กเกินอ่านบนกระดาษนี้" + <strong>content toggles</strong> ชื่อ/ราคา/บาร์โค้ด/รหัส/หน่วย/เส้นตัด — per mode; ไม่มีช่อง cols/rows/gap/ฟอนต์อิสระ) + SectionCard "สินค้าในแผ่น" (GridEditor); ขวา = preview สด (ป้ายบอกเครื่องพิมพ์+ขนาดกระดาษจาก Settings, read-only) — <span class="inv">ป้ายราคาส่ง <code>paperSize = documentSettings.paper_size</code> เข้า buildPriceTagHtml/previewHtmlPdf</span></li>
+          <li>Preview = <code>&lt;iframe srcDoc={html}&gt;</code> ของ builder เดียวกับงานพิมพ์ (1 หน้า, copies=1) scale ให้พอดีกล่อง — ตัดสินใจ: ไม่ทำ React preview คู่ขนาน (ต่างจาก LabelPaper ของฉลากยา) เพื่อกัน drift: builder คือ SSOT เดียว; rebuild แบบ debounce ~300ms เมื่อ form/cells เปลี่ยน</li>
+          <li>mode สลับ → เก็บ state cells แยกโหมด (สลับไปมาไม่หาย ภายใน session; ไม่ persist ลง DB)</li>
+          <li>config เปลี่ยน → debounce ~800ms save ลง singleton (auto-persist, ไม่มีปุ่มบันทึก)</li>
+          <li>ปุ่ม "พิมพ์" และ "ดูตัวอย่าง PDF" disabled เมื่อทุกช่องว่าง (audit R2-5 — กัน PDF เปล่า); toast แจ้งผล success/error ผ่าน <code>useToast()</code></li>
+        </ul>
+        <p><strong>GridEditor.tsx</strong> — grid assignment UI (ใช้ร่วม 2 โหมด):</p>
+        <ul>
+          <li>render ปุ่มช่องตาม cols×rows (grid CSS); ช่องว่าง = dashed border + ไอคอน Plus "เลือกสินค้า"; ช่องมีของ = ชื่อ (truncate) + หน่วย + ราคา + ปุ่ม X ลบ (คลิกช่อง = เปิด search เปลี่ยนสินค้า)</li>
+          <li><strong>เตือน fallback เมื่อ <code>barcode_source !== 'own'</code> (audit R2-2):</strong> ไอคอน <code>TriangleAlert</code> (lucide, <code>size-N</code>, สี <code>text-warning</code>) มุมบนช่อง = <code>PopoverTrigger</code> (<code>asChild</code> ครอบปุ่ม icon) → <code>PopoverContent</code> ข้อความอธิบาย: 'base' → "หน่วยนี้ไม่มีบาร์โค้ดของตัวเอง ใช้บาร์โค้ดหน่วยพื้นฐาน — สแกนแล้วจะได้ราคาหน่วยพื้นฐาน", 'code' → "สินค้านี้ไม่มีบาร์โค้ด ใช้รหัสสินค้าแทน". ติดถาวรจนกว่าจะเปลี่ยนสินค้า (แทน toast ชั่วคราว); ไอคอนเป็นสัญญาณเตือนที่มองเห็นตลอด</li>
+          <li>ปุ่มแถบบน: "คัดลอกช่องแรกไปทุกช่อง" (<code>variant="primary-soft"</code>, disabled เมื่อช่อง 1 ว่าง — ชื่อเดียวกันทุกที่ในแผน, audit R2-8), "ล้างทั้งหมด" (<code>variant="outline"</code>)</li>
+          <li>เปลี่ยน cols×rows → ช่องเดิม slice/pad ให้พอดีจำนวนใหม่</li>
+        </ul>
+        <p><strong>TagProductSearchDialog.tsx</strong> — วางที่ <code>src/components/dialogs/</code> (reusable dialog ไม่ใช่ page-local, audit R1-10); <strong>(audit R2-4) สร้างเป็น thin consumer ของ shared ProductSearchDialog</strong> (src/components/dialogs/ProductSearchDialog.tsx — search modal canonical ที่ extract จาก POS) ไม่ใช่ copy โครง QuotationProductSearchDialog (standalone, ไม่มี keyboard nav — deviation เก่า):</p>
+        <ul>
+          <li>consumer ถือ query/results เอง + debounce 250ms + <code>pos:searchProducts</code> (pattern เดียวกับ QuotationProductSearchDialog:40-45)</li>
+          <li>rows = base row (<code>{product, unit: null}</code> → p.barcode/p.price_retail/p.unit_name) + แถวต่อ p.units (u.barcode/u.price_retail/u.unit_name) — <span class="inv">invariant "base unit first" (docs/claude/pos.md)</span></li>
+          <li>keyboard ได้ฟรีจาก shared dialog: ArrowUp/Down + <strong>Enter = เลือกแถวที่ highlight (default = แถวแรก)</strong> + Esc ปิด + scroll-into-view; outside-click ไม่ปิด (enforced ใน dialog.tsx) — chrome เป็นแบบ search-modal ตาม pos.md จึงไม่มี DialogFooter (ข้อกำหนด R1-3 เดิมถูก supersede: reuse pattern ที่ approve แล้ว ไม่ใช่สร้าง deviation ใหม่; Enter ไม่ผูกกับปุ่มปิดใด ๆ)</li>
+          <li>ส่ง <code>initialIdx</code> จาก <code>matched_unit_id</code> (Step 2.5) → สแกนบาร์โค้ดตอน assign ช่องก็ highlight หน่วยถูกต้องเหมือน POS</li>
+          <li>(audit R1-4) bundle: รวม — pos:searchProducts ไม่กรอง is_bundle และ bundle มี price_retail+barcode บน products row ขายผ่าน POS ได้ → พิมพ์ป้าย/สติ๊กเกอร์ได้ตามปกติ (ไม่มีแถว units เพิ่ม) — ไม่ต้องกรองออก</li>
+          <li><strong>(audit R1-6 + R2-2) barcode fallback chain:</strong> <code>unit?.barcode || p.barcode || p.code</code> (ใช้ barcode ตัวหลักตัวเดียว — ไม่ไล่ barcode2/3/4 เพราะเป็นช่องบาร์โค้ดสำรองสำหรับค้นหา ไม่ใช่ตัวแทนสินค้า) → set <code>barcode_source</code>:
+            <ul>
+              <li>แถวหน่วย (non-base) ตกมาใช้ p.barcode → <code>barcode_source: 'base'</code> (R2-2: เดิมเคสนี้เงียบ ทั้งที่เสี่ยงคิดเงินไม่ตรงป้าย) — <strong>ไม่ toast; ขึ้น TriangleAlert+Popover บนช่องแทน</strong> (ถาวร อ่านได้ตลอด)</li>
+              <li>ตกถึง code → <code>barcode_source: 'code'</code> — <strong>ไม่ toast; TriangleAlert+Popover บนช่อง</strong></li>
+              <li><span class="inv">code ก็ว่าง/null (column nullable) → block การ assign + toast error "สินค้านี้ไม่มีทั้งบาร์โค้ดและรหัสสินค้า" (เคสนี้ block เลย จึงยังเป็น toast — ไม่มีช่องให้ติด popover); ห้ามปล่อยช่องที่แท่งบาร์โค้ดหายเงียบ</span></li>
+            </ul>
+          </li>
+          <li>แสดง barcode/รหัส ในแถวผลค้นหา เพื่อให้รู้ก่อนเลือก</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <h4>Step 6 — Shell + routes</h4>
+        <p><strong>src/pages/Products/index.tsx</strong></p>
+        <ul>
+          <li><code>TABS</code> += <code>{ value: 'print', label: 'พิมพ์บาร์โค้ด/ป้ายราคา', icon: Tags, path: '/products/print' }</code> (lucide <code>Tags</code>)</li>
+          <li><code>resolveTab</code>: เพิ่ม <code>if (pathname.startsWith('/products/print')) return 'print'</code> ก่อน default</li>
+          <li>ซ่อน summary row (motion.div MetricCards) และปุ่ม "เพิ่มสินค้า" เมื่อ <code>tab === 'print'</code></li>
+          <li><code>COLS_BY_COUNT</code> ไม่ต้องแก้ (summary ซ่อนทั้งแถว)</li>
+        </ul>
+        <p><strong>src/App.tsx</strong></p>
+        <ul>
+          <li>lazy import <code>PrintTab</code> (pattern เดียวกับ ProductsList/BundlesList)</li>
+          <li><code>&lt;Route path="print" element={&lt;PrintTab /&gt;} /&gt;</code> ใน children ของ products (App.tsx:117-120)</li>
+          <li>หมายเหตุ: PrintTab ไม่ใช้ <code>refreshSummary</code> จาก outlet context — ไม่ต้อง wire</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <h4>Step 7 — Docs + memory</h4>
+        <ul>
+          <li><code>docs/claude/ipc-api.md</code> — (a) เพิ่ม method ใหม่ในแถว settings ของตาราง namespace; (b) <strong>carve-out บรรทัด "settings writes admin-only" (line 43)</strong>: ระบุว่า saveBarcodeStickerSettings/savePriceTagSettings เป็นข้อยกเว้น ไม่ gate admin (layout preference ของงานพิมพ์ที่ staff ใช้ + auto-persist) — คู่กับ comment ที่ handler ใน Step 2 (audit R1-1); (c) อัปเดตคำอธิบาย pos:searchProducts (ค้น product_units.barcode + matched_unit_id จาก Step 2.5)</li>
+          <li><code>.claude/memory/project_tag_printing.md</code> ใหม่ + บรรทัด index ใน <code>.claude/memory/MEMORY.md</code></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <h4>Step 8 — Verification</h4>
+        <ul>
+          <li><code>npx tsc --noEmit</code> → PASS</li>
+          <li>Click-test (ในแอป, ผู้ใช้ร่วมทดสอบ):
+            <ol>
+              <li>เปิด tab ใหม่ → MetricCards+ปุ่มเพิ่มสินค้าหาย, toggle โหมดทำงาน</li>
+              <li>assign ช่อง, copy-all, clear, เปลี่ยน cols/rows แล้ว state ไม่พัง</li>
+              <li>สินค้าไม่มีบาร์โค้ด → TriangleAlert บนช่อง + Popover "ใช้รหัสสินค้า" + บาร์โค้ดใน preview เป็นรหัส; เลือกหน่วยที่ไม่มีบาร์โค้ดตัวเอง → TriangleAlert + Popover "บาร์โค้ดหน่วยพื้นฐาน" (R2-2); ไม่มีทั้งบาร์โค้ดและรหัส → block + toast error</li>
+              <li>ดูตัวอย่าง PDF ทั้ง 2 โหมด → ขนาดหน้า/จำนวนหน้า/เส้นตัดถูก; ทุกช่องว่าง → ปุ่มพิมพ์+ดูตัวอย่าง disabled</li>
+              <li>เปลี่ยน preset จำนวนต่อแผ่น → grid+ขนาดช่องปรับตาม; preset ที่เล็กเกินบนกระดาษปัจจุบัน disabled เลือกไม่ได้; เปลี่ยน <code>paper_size</code> A4↔A5 ใน Settings → ป้ายราคา preview/พิมพ์ปรับขนาดหน้าตาม + preset ที่เลือกได้ปรับตามกระดาษ</li>
+              <li>พิมพ์จริง (มีเครื่อง) หรือ PDF printer → silent, copies ถูก</li>
+              <li>ปิด-เปิดแอป → config คงอยู่ (persistence round-trip)</li>
+              <li>login เป็น staff → save config ไม่โดน FORBIDDEN</li>
+              <li>พิมพ์สติ๊กเกอร์ของหน่วยที่มีบาร์โค้ดตัวเอง → พิมพ์/สแกนเลขนั้นใน POS → modal เปิดพร้อม highlight แถวหน่วยนั้น → เลือกแล้วราคาตรงป้าย (R2-1); สแกนบาร์โค้ด base เดิม → พฤติกรรมเดิมไม่เปลี่ยน + regression พิมพ์ใบเสร็จ/เอกสาร A4 เดิมยังปกติ (แตะ WAIT_FOR_RENDER_JS)</li>
+            </ol>
+          </li>
+        </ul>
+      </div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> ต้อง PASS (มี type/logic ใหม่จริง — ไม่ใช่ markup-only)</li>
+      <li>Click-test checklist 8 ข้อใน Step 8 ผ่านครบ (ข้อ 5/8 ต้องมีเครื่องพิมพ์/สแกนเนอร์จริง — ทำร่วมกับผู้ใช้)</li>
+      <li>Regression: พิมพ์ใบเสร็จ + เอกสาร A4 เดิม (ReceiptSettingsTab/DocumentSettingsTab preview) ยังทำงานปกติ หลังแตะ WAIT_FOR_RENDER_JS</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li>กระดาษเล็ก ÷ จำนวนดวงมาก → ช่องจิ๋ว อ่านไม่ออก → <strong>กันด้วย preset คงที่</strong>: <code>resolveStickerPreset</code>/<code>resolvePriceTagPreset</code> คำนวณ cellWmm×cellHmm จากกระดาษจริง, ต่ำกว่า <code>MIN_CELL_MM</code> → <code>tooSmall</code> → UI disable เลือกไม่ได้; fit script ยังคงไว้เป็น safety floor 0.5 เผื่อชื่อยาว</li>
+      <li>printer:printHtml/previewHtmlPdf ไม่ await __labelFitReady → A4 snapshot ก่อน fit → แก้ที่ WAIT_FOR_RENDER_JS const จุดเดียว (Step 4, R1-2+R2-7) — optional + backward-safe</li>
+      <li>บาร์โค้ดที่พิมพ์ไม่ใช่ของหน่วยที่เลือก (fallback base/code) → สแกนแล้วราคาไม่ตรงป้าย → Step 2.5 ทำให้หน่วยที่มีบาร์โค้ดตัวเองสแกนได้ตรงหน่วย (R2-1); เคส fallback เตือนด้วย <strong>TriangleAlert + Popover ติดบนช่องถาวร</strong> ต่อ source (R2-2)</li>
+      <li><span class="inv">แตะ POS search (invariant-heavy) ใน Step 2.5 → อ่าน docs/claude/pos.md ก่อน; ไม่ reorder flatItems, highlight ยัง keyboard-owned (เปลี่ยนแค่ค่า reset ผ่าน optional prop), default behavior เดิมเป๊ะเมื่อไม่ส่ง prop</span></li>
+      <li><span class="inv">dynamic SQL save โดน key แปลก → "no such column" abort → form state สร้างจาก DEFAULTS ที่ key ตรง column เท่านั้น; strip id/updated_at ฝั่ง main (pattern receipt_settings)</span></li>
+      <li>iframe srcDoc preview ฟอนต์ไม่โหลด → @font-face เป็น data-URI ใน CSS เดียวกับ print path (พิสูจน์แล้วใน label preview PDF); click-test ข้อ 4 ยืนยัน</li>
+      <li><span class="inv">ห้ามรัน npm install</span> → ไม่มี dependency ใหม่ — JsBarcode มีอยู่แล้ว (package.json: jsbarcode ^3.12.3)</li>
+    </ul>
+
+    <h3>Invariants checklist (จาก CLAUDE.md)</h3>
+    <ul>
+      <li>Allow-list payload: form keys = columns, strip id/updated_at</li>
+      <li>ไม่มี emoji ใน UI strings (lucide icons เท่านั้น)</li>
+      <li>Semantic tokens เท่านั้น; bars h-12 / controls h-9; text hierarchy; TagProductSearchDialog = reuse search-modal canonical (ProductSearchDialog) ตาม pos.md</li>
+      <li>ไม่แตะ schema/IPC เดิมแบบ breaking (pos:searchProducts ได้ผลเพิ่ม additive + คอลัมน์ matched_unit_id ใหม่; WAIT_FOR_RENDER_JS await เป็น optional behavior, backward-safe)</li>
+      <li>POS: flatItems ยัง base-first, highlight ยัง keyboard-owned (Step 2.5 เปลี่ยนเฉพาะค่า reset ผ่าน optional initialIdx)</li>
+      <li>Base unit synthesize จาก product.unit_name (ไม่มี is_base_unit)</li>
+      <li>tabs variant toggle มีอยู่แล้ว (เพิ่มรอบ drug-label 2026-06-10) — ไม่ต้องสร้างใหม่</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-10</footer>
+
+</div>
+</body>
+</html>

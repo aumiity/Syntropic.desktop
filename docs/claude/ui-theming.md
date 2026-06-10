@@ -34,6 +34,12 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - raw dialog/modal → `<Dialog>` with `<DialogContent>`, `<DialogHeader>`, `<DialogTitle>`, `<DialogBody>`, `<DialogFooter>`
    - If a needed variant is missing, add it to the existing component file (e.g., new entry in `buttonVariants.variant`). Do not work around it with raw elements.
 5. **Dialog structure is mandatory.** Every `<DialogContent>` must contain `<DialogHeader>` + `<DialogTitle>` (accessible title — Radix requirement), `<DialogBody>` (main content), `<DialogFooter>` (action buttons). Body layout inside `DialogBody` may use flex/grid as needed. Override default padding with `className` (twMerge handles conflicts).
+
+5a. **Dialog height is ALWAYS fixed — never auto/content-driven (HARD).** Every `<DialogContent>` must declare an explicit height (e.g. `className="h-[520px]"`) or a capped max-height (e.g. `className="max-h-[80vh]"`). The `<DialogBody>` then handles overflow with `overflow-y-auto` so long content scrolls *inside* the dialog, not the whole dialog resizing.
+   - **Never** omit the height and let the dialog grow/shrink with its content — this causes jarring layout jumps when state changes (e.g. validation errors appearing, list items loading, tabs switching).
+   - For dialogs with multiple steps or tabs, fix the height to the tallest expected step so the dialog frame stays still.
+   - The one exception is a dead-simple confirm/alert dialog (no body content, just a message + 2 buttons) — those may be `h-auto` but must still have `max-h-[80vh]`.
+
 6. **Modal interaction contract (HARD).** Applies to every modal — no exceptions.
    - **Outside-click does NOT close.** Already enforced inside `dialog.tsx` via `onPointerDownOutside`/`onInteractOutside` `preventDefault()`. Do NOT pass replacements that re-enable closing.
    - **Esc closes** (Radix default — leave on).

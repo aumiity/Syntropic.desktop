@@ -14,6 +14,11 @@ import type { ProductLabel } from '@/types'
 
 const Field = FormField
 
+// Quick-fill shortcuts for the label name — common pharmacy dosing shorthand
+// (1x1..1x4 = ครั้งละ 1 วันละ N, hs = ก่อนนอน, pc = หลังอาหาร). Tapping one
+// just writes the text into label_name; it stays freely editable after.
+const QUICK_LABEL_NAMES = ['1x1', '1x2', '1x3', '1x4', '1hs', '1pc']
+
 // The label add/edit form, shared by the product Labels tab AND the POS
 // label-print quick-add. Owns its own form state; the parent only supplies the
 // product + lookups and gets an onSaved callback to refresh its own data.
@@ -31,6 +36,9 @@ interface Props {
   open: boolean
   onOpenChange: (v: boolean) => void
   productId: number
+  /** Shown under the dialog title so the user can confirm WHICH product the
+      label belongs to — a safeguard against editing the wrong product's label. */
+  productName?: string
   editingLabel: ProductLabel | null
   productBarcode?: string | null
   lookups: LabelFormLookups
@@ -58,7 +66,7 @@ const blankForm = () => ({
 })
 
 export function LabelFormDialog({
-  open, onOpenChange, productId, editingLabel, productBarcode, lookups, onSaved,
+  open, onOpenChange, productId, productName, editingLabel, productBarcode, lookups, onSaved,
 }: Props) {
   const { toast } = useToast()
   const { labelFrequencies, labelDosages, labelMealRelations, labelTimes, labelAdvices } = lookups
@@ -149,6 +157,11 @@ export function LabelFormDialog({
       <DialogContent size="3xl" divided className="max-h-[90vh] grid-rows-[auto_1fr_auto]">
         <DialogHeader>
           <DialogTitle>{editingLabel ? 'แก้ไขฉลาก' : 'เพิ่มฉลาก'}</DialogTitle>
+          {productName && (
+            <div className="text-sm text-muted-foreground">
+              สินค้า: <span className="font-semibold text-foreground">{productName}</span>
+            </div>
+          )}
         </DialogHeader>
         <DialogBody className="space-y-3 overflow-y-auto min-h-0 scrollbar-thin">
           <div className="grid grid-cols-2 gap-3 items-start">
@@ -158,6 +171,19 @@ export function LabelFormDialog({
               <SectionCard icon={Info} title="ข้อมูลทั่วไป" tint="primary">
                 <Field label="ชื่อฉลาก">
                   <Input variant="elevated" value={labelForm.label_name ?? ''} onChange={e => setLF('label_name', e.target.value)} placeholder="เช่น วิธีรับประทานมาตรฐาน" />
+                  <div className="flex flex-wrap gap-1.5">
+                    {QUICK_LABEL_NAMES.map(name => (
+                      <Button
+                        key={name}
+                        type="button"
+                        size="sm"
+                        variant={labelForm.label_name === name ? 'default' : 'primary-soft'}
+                        onClick={() => setLF('label_name', name)}
+                      >
+                        {name}
+                      </Button>
+                    ))}
+                  </div>
                 </Field>
               </SectionCard>
 

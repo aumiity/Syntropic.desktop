@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup · รับสินค้าแบบ Step Wizard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   Tokens lifted 1:1 from src/index.css (HSL triples).
+   Light = app default; .dark mirrors structurally.
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --radius:.5rem; --radius-card:1rem; --radius-control:.5rem;
+  --background:0 0% 99%; --foreground:0 0% 12%; --foreground-subtle:0 0% 40%;
+  --card:0 0% 99%; --card-foreground:0 0% 32%;
+  --border:0 0% 87%; --border-strong:0 0% 50%; --input:0 0% 95%; --ring:175 35% 75%;
+  --primary:179 91% 22%; --primary-foreground:0 0% 99%; --primary-hover:175 72% 17%;
+  --primary-strong:179 91% 12%; --primary-soft:180 20% 90%; --primary-soft-border:175 35% 70%;
+  --secondary:0 0% 99%; --secondary-foreground:0 0% 32%;
+  --accent:43 100% 64%; --accent-foreground:0 0% 12%;
+  --muted:0 0% 95%; --muted-foreground:0 0% 12%; --muted-hover:0 0% 88%;
+  --success:142 71% 36%; --success-foreground:0 0% 100%; --success-soft:138 76% 95%;
+  --warning:35 100% 50%; --warning-soft:34 100% 92%; --warning-soft-foreground:27 90% 40%;
+  --destructive:3 100% 59%; --destructive-soft:0 86% 97%;
+  --info:221 83% 53%; --info-soft:219 100% 94%; --info-soft-foreground:219 30% 44%;
+  --warm:45 96% 90%; --warm-foreground:32 88% 33%;
+  --shadow-card:0 1px 0 rgba(20,32,29,.04), 0 8px 24px -16px rgba(20,32,29,.10);
+  --shadow-pop:0 4px 12px rgba(20,32,29,.08), 0 24px 48px -20px rgba(20,32,29,.28);
+}
+.dark{
+  --background:0 0% 10%; --foreground:0 0% 100%; --foreground-subtle:215 16% 60%;
+  --card:0 0% 20%; --card-foreground:0 0% 100%;
+  --border:0 0% 26%; --border-strong:215 25% 45%; --input:0 0% 24%; --ring:175 35% 60%;
+  --primary:173 58% 40%; --primary-foreground:165 50% 5%; --primary-hover:173 58% 35%;
+  --primary-strong:173 60% 60%; --primary-soft:173 24% 16%; --primary-soft-border:173 30% 30%;
+  --secondary:0 0% 20%; --secondary-foreground:0 0% 100%;
+  --accent:43 100% 64%; --accent-foreground:44 100% 8%;
+  --muted:0 0% 24%; --muted-foreground:0 0% 92%; --muted-hover:0 0% 30%;
+  --success:142 60% 48%; --success-foreground:0 0% 100%; --success-soft:142 30% 18%;
+  --warning:35 100% 60%; --warning-soft:30 30% 15%; --warning-soft-foreground:32 95% 72%;
+  --destructive:3 100% 64%; --destructive-soft:0 40% 18%;
+  --info:221 83% 60%; --info-soft:219 40% 20%; --info-soft-foreground:219 80% 80%;
+  --warm:43 25% 14%; --warm-foreground:45 90% 80%;
+  --shadow-card:0 1px 0 rgba(0,0,0,.3), 0 10px 30px -16px rgba(0,0,0,.6);
+  --shadow-pop:0 8px 24px rgba(0,0,0,.4), 0 32px 64px -24px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:'IBM Plex Sans Thai','Inter',sans-serif;
+  background:hsl(var(--background)); color:hsl(var(--foreground));
+  font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.lat{font-family:'Inter',sans-serif}
+.num{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums}
+
+/* ── demo chrome ── */
+.demobar{
+  position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;
+  height:52px;padding:0 18px;background:hsl(var(--card));
+  border-bottom:1px solid hsl(var(--border));box-shadow:var(--shadow-card);
+}
+.demobar .tag{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:hsl(var(--primary));background:hsl(var(--primary-soft));padding:4px 10px;border-radius:999px}
+.demobar h1{font-size:15px;font-weight:700;margin:0}
+.demobar .spacer{flex:1}
+.seg{display:inline-flex;background:hsl(var(--muted));border-radius:10px;padding:3px;gap:2px}
+.seg button{font:inherit;font-size:13px;font-weight:600;border:0;background:transparent;color:hsl(var(--foreground-subtle));
+  padding:6px 12px;border-radius:7px;cursor:pointer}
+.seg button.on{background:hsl(var(--card));color:hsl(var(--foreground));box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.ghostbtn{font:inherit;font-size:13px;font-weight:600;border:1px solid hsl(var(--border));background:hsl(var(--card));
+  color:hsl(var(--foreground));padding:7px 12px;border-radius:9px;cursor:pointer}
+
+/* ─────────────────────────────────────────────────────────────
+   Page behind the dialog (Purchase page skeleton)
+   ───────────────────────────────────────────────────────────── */
+.page{padding:18px 28px;display:flex;flex-direction:column;gap:12px}
+.pagehead{font-size:22px;font-weight:700}
+.layout{display:flex;gap:16px;align-items:stretch}
+.col-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
+.col-side{width:256px;flex:none;display:flex;flex-direction:column;gap:12px}
+.panel{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius-card);box-shadow:var(--shadow-card)}
+.panel-pad{padding:16px}
+.field-label{display:block;font-size:13px;font-weight:600;color:hsl(var(--foreground-subtle));margin-bottom:6px}
+.req{color:hsl(var(--destructive))}
+.ctl{height:40px;width:100%;border:1px solid hsl(var(--border));background:hsl(var(--card));border-radius:var(--radius-control);
+  box-shadow:0 1px 1px rgba(0,0,0,.03);padding:0 12px;font:inherit;font-size:14px;color:hsl(var(--foreground))}
+.ctl::placeholder{color:hsl(var(--foreground-subtle))}
+.ctl:focus{outline:none;border-color:hsl(var(--primary-soft-border));box-shadow:0 0 0 3px hsl(var(--ring)/.5)}
+.head-grid{display:grid;grid-template-columns:1fr 200px 180px;gap:12px}
+
+/* items table */
+.items{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.items-bar{height:50px;display:flex;align-items:center;gap:10px;padding:0 16px}
+.items-bar h3{font-size:17px;font-weight:600;margin:0}
+.count-badge{font-size:12px;font-weight:700;border:1px solid hsl(var(--border));color:hsl(var(--foreground-subtle));
+  padding:2px 9px;border-radius:999px}
+.items-bar .right{margin-left:auto;display:flex;gap:8px}
+.btn{font:inherit;font-size:13px;font-weight:600;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  padding:0 14px;height:36px;border:1px solid hsl(var(--border));background:hsl(var(--card));color:hsl(var(--foreground))}
+.btn.primary{background:hsl(var(--primary));color:hsl(var(--primary-foreground));border-color:transparent}
+.btn.primary:hover{background:hsl(var(--primary-hover))}
+.btn.accent{background:hsl(var(--accent));color:hsl(var(--accent-foreground));border-color:transparent}
+.btn:hover{background:hsl(var(--muted))}
+.btn.primary:hover,.btn.accent:hover{filter:brightness(.97)}
+.btn .ic{font-size:15px;line-height:1}
+table{width:100%;border-collapse:collapse}
+.tbl-wrap{flex:1;overflow:auto;border-left:14px solid hsl(var(--card));border-right:14px solid hsl(var(--card))}
+thead th{font-size:12.5px;font-weight:600;color:hsl(var(--foreground-subtle));text-align:left;padding:9px 12px;
+  background:hsl(var(--muted));position:sticky;top:0}
+thead th.r{text-align:right}thead th.c{text-align:center}
+tbody td{padding:11px 12px;font-size:13.5px;border-bottom:1px solid hsl(var(--border))}
+tbody td.r{text-align:right}tbody td.c{text-align:center}
+tbody tr:hover{background:hsl(var(--muted)/.5);cursor:pointer}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px}
+.pill.ok{background:hsl(var(--success-soft));color:hsl(var(--success))}
+.row-edit{font-size:12px;color:hsl(var(--primary));font-weight:600;opacity:0;transition:.15s}
+tbody tr:hover .row-edit{opacity:1}
+.emptyrow td{padding:34px 12px;text-align:center;color:hsl(var(--foreground-subtle));font-size:14px;border:0}
+.emptyrow .big{display:inline-flex;flex-direction:column;align-items:center;gap:10px}
+.dashbtn{border:1.5px dashed hsl(var(--primary-soft-border));background:hsl(var(--primary-soft)/.4);
+  color:hsl(var(--primary));border-radius:12px;padding:12px 20px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px}
+.dashbtn:hover{background:hsl(var(--primary-soft)/.7)}
+.items-foot{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-top:1px solid hsl(var(--border))}
+.foot-badge{font-size:13px;font-weight:600;color:hsl(var(--primary));background:hsl(var(--primary-soft));padding:3px 10px;border-radius:7px}
+.grand{font-weight:800;color:hsl(var(--primary));font-size:17px}
+
+/* sidebar cards */
+.side-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:hsl(var(--foreground-subtle));margin-bottom:10px}
+.kv{margin-bottom:9px}
+.kv .k{font-size:12.5px;color:hsl(var(--foreground-subtle))}
+.kv .v{font-size:14px;font-weight:600}
+.kv .v.brand{color:hsl(var(--primary));font-weight:700}
+.pay-seg{display:flex;height:38px;background:hsl(var(--muted)/.6);border-radius:10px;padding:3px;gap:3px;margin-bottom:10px}
+.pay-seg button{flex:1;border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;color:hsl(var(--foreground-subtle))}
+.pay-seg button.on{background:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+.save-btn{width:100%;height:48px;border-radius:14px;border:0;background:hsl(var(--primary));color:hsl(var(--primary-foreground));
+  font:inherit;font-size:16px;font-weight:800;cursor:pointer}
+.clear-btn{width:100%;height:46px;border-radius:14px;border:1px solid hsl(var(--destructive)/.4);background:transparent;
+  color:hsl(var(--destructive));font:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
+
+/* ─────────────────────────────────────────────────────────────
+   The Step Wizard dialog
+   ───────────────────────────────────────────────────────────── */
+.backdrop{position:fixed;inset:0;background:rgba(15,22,20,.45);backdrop-filter:blur(2px);z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+.backdrop.open{opacity:1;pointer-events:auto}
+.dialog{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:18px;box-shadow:var(--shadow-pop);
+  width:880px;max-width:100%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;
+  transform:translateY(8px) scale(.985);transition:transform .2s}
+.backdrop.open .dialog{transform:none}
+.dlg-head{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid hsl(var(--border))}
+.dlg-head .ico{width:38px;height:38px;border-radius:11px;background:hsl(var(--primary-soft));color:hsl(var(--primary));
+  display:flex;align-items:center;justify-content:center;font-size:19px;flex:none}
+.dlg-head h2{font-size:18px;font-weight:700;margin:0}
+.dlg-head p{font-size:12.5px;color:hsl(var(--foreground-subtle));margin:2px 0 0}
+.dlg-head .x{margin-left:auto;width:34px;height:34px;border-radius:9px;border:1px solid hsl(var(--border));
+  background:hsl(var(--card));cursor:pointer;font-size:16px;color:hsl(var(--foreground-subtle))}
+
+/* timeline (vertical) layout */
+.dlg-body{display:flex;min-height:0;flex:1;overflow:hidden}
+.rail{width:248px;flex:none;background:hsl(var(--muted)/.45);border-right:1px solid hsl(var(--border));
+  padding:20px 18px;overflow-y:auto}
+.step{display:flex;gap:12px;cursor:pointer;position:relative;padding-bottom:22px}
+.step:last-child{padding-bottom:0}
+.step .line{position:absolute;left:15px;top:34px;bottom:2px;width:2px;background:hsl(var(--border))}
+.step.done .line{background:hsl(var(--primary))}
+.step .dot{width:32px;height:32px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:14px;font-family:'Inter';background:hsl(var(--card));border:2px solid hsl(var(--border));
+  color:hsl(var(--foreground-subtle));z-index:1;transition:.18s}
+.step.active .dot{border-color:hsl(var(--primary));color:hsl(var(--primary));box-shadow:0 0 0 4px hsl(var(--ring)/.4)}
+.step.done .dot{background:hsl(var(--primary));border-color:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+.step .meta{padding-top:4px;min-width:0}
+.step .t{font-size:14px;font-weight:600;color:hsl(var(--foreground-subtle))}
+.step.active .t,.step.done .t{color:hsl(var(--foreground))}
+.step .sub{font-size:12px;color:hsl(var(--foreground-subtle));margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:178px}
+.step.done .sub{color:hsl(var(--primary));font-weight:600}
+
+/* content pane */
+.pane{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}
+.pane-scroll{flex:1;min-height:0;overflow-y:auto;padding:26px 30px}
+.pane-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:hsl(var(--primary));margin:0 0 4px}
+.pane-h{font-size:20px;font-weight:700;margin:0 0 18px}
+.stepview{display:none}
+.stepview.show{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.stepview.show{animation:none}.backdrop,.dialog{transition:none}}
+
+/* search */
+.searchbox{position:relative}
+.searchbox .ctl{height:46px;font-size:15px;padding-left:40px}
+.searchbox .si{position:absolute;left:13px;top:13px;color:hsl(var(--foreground-subtle));font-size:17px}
+.results{margin-top:8px;border:1px solid hsl(var(--border));border-radius:12px;overflow:hidden}
+.results button{width:100%;text-align:left;border:0;background:hsl(var(--card));font:inherit;cursor:pointer;
+  padding:11px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid hsl(var(--border))}
+.results button:last-child{border-bottom:0}
+.results button:hover,.results button.hl{background:hsl(var(--primary-soft)/.5)}
+.results .nm{font-size:14px;font-weight:500;flex:1}
+.results .u{font-size:12.5px;color:hsl(var(--destructive))}
+.results .cd{font-size:11.5px;color:hsl(var(--foreground-subtle));font-family:'Inter'}
+
+/* selected product card */
+.prodcard{border:1px solid hsl(var(--primary-soft-border));background:hsl(var(--primary-soft)/.45);border-radius:14px;padding:16px 18px}
+.prodcard .top{display:flex;align-items:flex-start;gap:12px}
+.prodcard .nm{font-size:17px;font-weight:700}
+.prodcard .cd{font-size:12px;color:hsl(var(--foreground-subtle));font-family:'Inter';margin-top:2px}
+.prodcard .chg{margin-left:auto;font-size:12.5px;font-weight:600;color:hsl(var(--primary));background:hsl(var(--card));
+  border:1px solid hsl(var(--border));border-radius:8px;padding:5px 10px;cursor:pointer}
+.statrow{display:flex;gap:22px;margin-top:14px;padding-top:14px;border-top:1px solid hsl(var(--primary-soft-border)/.6)}
+.statrow .s .l{font-size:11.5px;color:hsl(var(--foreground-subtle))}
+.statrow .s .n{font-size:15px;font-weight:700;font-family:'Inter';margin-top:1px}
+.unitlabel{font-size:13px;font-weight:600;color:hsl(var(--foreground-subtle));margin:18px 0 8px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid hsl(var(--border));background:hsl(var(--card));border-radius:10px;padding:8px 14px;font:inherit;
+  font-size:13.5px;font-weight:600;cursor:pointer}
+.chip.on{border-color:hsl(var(--primary));background:hsl(var(--primary-soft));color:hsl(var(--primary))}
+.chip .q{font-size:11px;color:hsl(var(--foreground-subtle));font-weight:400;margin-left:5px;font-family:'Inter'}
+
+/* generic grids */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.bignum{height:54px;font-size:24px;font-weight:800;font-family:'Inter';text-align:center}
+.hint{font-size:12.5px;color:hsl(var(--foreground-subtle));margin-top:7px;display:flex;align-items:center;gap:6px}
+.hint.warn{color:hsl(var(--warning-soft-foreground))}
+.opt-toggle{margin-top:14px;font-size:13px;font-weight:600;color:hsl(var(--primary));background:none;border:0;cursor:pointer;padding:0}
+.calcbox{margin-top:18px;border:1px solid hsl(var(--border));border-radius:12px;overflow:hidden}
+.calcbox .row{display:flex;justify-content:space-between;padding:9px 16px;font-size:13.5px;border-bottom:1px solid hsl(var(--border))}
+.calcbox .row:last-child{border-bottom:0}
+.calcbox .row .k{color:hsl(var(--foreground-subtle))}
+.calcbox .row.total{background:hsl(var(--primary-soft)/.5)}
+.calcbox .row.total .k{color:hsl(var(--foreground));font-weight:700}
+.calcbox .row.total .v{color:hsl(var(--primary));font-weight:800;font-size:16px;font-family:'Inter'}
+
+/* margin cards step 4 */
+.margins{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.mcard{border:1px solid hsl(var(--border));border-radius:12px;padding:12px 14px;text-align:center}
+.mcard .l{font-size:12px;color:hsl(var(--foreground-subtle))}
+.mcard .n{font-size:19px;font-weight:800;font-family:'Inter';margin-top:2px}
+.mcard.good .n{color:hsl(var(--success))}
+.summary{margin-top:18px;border:1px solid hsl(var(--border));border-radius:12px;background:hsl(var(--muted)/.4);padding:14px 18px}
+.summary h4{font-size:13px;font-weight:700;color:hsl(var(--foreground-subtle));margin:0 0 10px}
+.sline{display:flex;justify-content:space-between;font-size:13.5px;padding:4px 0}
+.sline .k{color:hsl(var(--foreground-subtle))}
+.sline .v{font-weight:600}
+
+/* footer */
+.dlg-foot{display:flex;align-items:center;gap:10px;padding:14px 22px;border-top:1px solid hsl(var(--border));background:hsl(var(--card))}
+.dlg-foot .progress{font-size:12.5px;color:hsl(var(--foreground-subtle));margin-right:auto}
+.dlg-foot .progress b{color:hsl(var(--foreground));font-family:'Inter'}
+.fbtn{height:42px;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:0 22px;border:1px solid hsl(var(--border));background:hsl(var(--card));color:hsl(var(--foreground))}
+.fbtn.primary{background:hsl(var(--primary));color:hsl(var(--primary-foreground));border-color:transparent}
+.fbtn.primary:hover{background:hsl(var(--primary-hover))}
+.fbtn.success{background:hsl(var(--success));color:#fff;border-color:transparent}
+.fbtn:disabled{opacity:.4;cursor:not-allowed}
+.kbd{font-family:'Inter';font-size:11px;border:1px solid hsl(var(--border));border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:hsl(var(--foreground-subtle))}
+
+/* ── compact / horizontal concept ── */
+.dialog.compact{width:560px}
+.dialog.compact .dlg-body{flex-direction:column}
+.dialog.compact .rail{display:none}
+.hstepper{display:none;align-items:center;padding:18px 24px 4px;gap:0}
+.dialog.compact .hstepper{display:flex}
+.hstep{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none}
+.hstep .d{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Inter';
+  font-weight:700;font-size:13px;border:2px solid hsl(var(--border));color:hsl(var(--foreground-subtle));background:hsl(var(--card))}
+.hstep.active .d{border-color:hsl(var(--primary));color:hsl(var(--primary));box-shadow:0 0 0 4px hsl(var(--ring)/.4)}
+.hstep.done .d{background:hsl(var(--primary));border-color:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+.hstep .lbl{font-size:11.5px;font-weight:600;color:hsl(var(--foreground-subtle));white-space:nowrap}
+.hstep.active .lbl,.hstep.done .lbl{color:hsl(var(--foreground))}
+.hline{flex:1;height:2px;background:hsl(var(--border));margin:0 6px;position:relative;top:-10px}
+.hline.done{background:hsl(var(--primary))}
+.dialog.compact .pane-scroll{padding:18px 24px}
+.dialog.compact .pane-h{font-size:17px;margin-bottom:14px}
+
+.note{max-width:880px;margin:14px auto 40px;padding:0 28px;font-size:13px;color:hsl(var(--foreground-subtle))}
+.note b{color:hsl(var(--foreground))}
+.note ul{margin:8px 0 0;padding-left:18px}
+.note li{margin:4px 0}
+</style>
+</head>
+<body>
+
+<div class="demobar">
+  <span class="tag">Mockup</span>
+  <h1>การรับสินค้า · Step Wizard</h1>
+  <div class="spacer"></div>
+  <div class="seg" id="conceptSeg">
+    <button class="on" data-c="timeline">Timeline (แนวตั้ง)</button>
+    <button data-c="compact">Compact (แนวนอน)</button>
+  </div>
+  <button class="ghostbtn" id="themeBtn">🌙 Dark</button>
+  <button class="ghostbtn" id="openBtn">เปิด Dialog เพิ่มสินค้า</button>
+</div>
+
+<!-- ───────── PAGE BEHIND ───────── -->
+<div class="page">
+  <div class="pagehead">การรับสินค้า</div>
+
+  <div class="panel panel-pad" style="flex:none">
+    <div class="head-grid">
+      <div>
+        <label class="field-label">ผู้จำหน่าย <span class="req">*</span></label>
+        <input class="ctl" value="บริษัท ซิลลิค ฟาร์มา จำกัด" readonly>
+      </div>
+      <div>
+        <label class="field-label">เลขที่ใบกำกับสินค้า <span class="req">*</span></label>
+        <input class="ctl lat" value="INV-66-04812" readonly>
+      </div>
+      <div>
+        <label class="field-label">วันที่สั่งซื้อตามบิล</label>
+        <input class="ctl lat" value="10/06/2026" readonly>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout" style="height:560px">
+    <div class="col-main">
+      <div class="panel items">
+        <div class="items-bar">
+          <h3>รายการสินค้า</h3>
+          <span class="count-badge num">2</span>
+          <div class="right">
+            <button class="btn"><span class="ic">⎘</span> นำเข้าข้อมูล</button>
+            <button class="btn">ปรับยอดท้ายบิล</button>
+            <button class="btn primary" onclick="openDialog()"><span class="ic">＋</span> เพิ่มสินค้า</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="c" style="width:36px">#</th>
+                <th style="width:30%">ชื่อสินค้า</th>
+                <th class="c">Lot</th>
+                <th class="c">วันหมดอายุ</th>
+                <th class="c">หน่วย</th>
+                <th class="r">จำนวน</th>
+                <th class="r">ทุน/หน่วย</th>
+                <th class="r">ราคาขาย</th>
+                <th class="r">รวม</th>
+                <th style="width:60px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="c num">1</td>
+                <td>พาราเซตามอล 500mg <span class="pill ok">ครบ</span></td>
+                <td class="c lat">A2401</td>
+                <td class="c lat">04/2028</td>
+                <td class="c">แผง</td>
+                <td class="r num">200</td>
+                <td class="r num">5.10</td>
+                <td class="r num">8.00</td>
+                <td class="r num">1,020.00</td>
+                <td class="r"><span class="row-edit">แก้ไข ›</span></td>
+              </tr>
+              <tr>
+                <td class="c num">2</td>
+                <td>เซทิริซีน 10mg <span class="pill ok">ครบ</span></td>
+                <td class="c lat">CT2312</td>
+                <td class="c lat">11/2027</td>
+                <td class="c">กล่อง</td>
+                <td class="r num">50</td>
+                <td class="r num">42.00</td>
+                <td class="r num">65.00</td>
+                <td class="r num">2,100.00</td>
+                <td class="r"><span class="row-edit">แก้ไข ›</span></td>
+              </tr>
+              <tr class="emptyrow">
+                <td colspan="10">
+                  <span class="big">
+                    เพิ่มสินค้าทีละรายการผ่านขั้นตอนนำทาง หรือวางทั้งบิลด้วยปุ่ม “นำเข้าข้อมูล”
+                    <button class="dashbtn" onclick="openDialog()"><span>＋</span> เพิ่มสินค้าเข้าใบรับ</button>
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="items-foot">
+          <span class="foot-badge num">2/2 รายการ</span>
+          <div style="display:flex;align-items:center;gap:18px">
+            <span style="font-size:13px;font-weight:600">มูลค่ารวมทั้งหมด</span>
+            <span class="grand num">3,120.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-side">
+      <div class="panel panel-pad">
+        <div class="side-title">สรุปใบรับสินค้า</div>
+        <div class="kv"><div class="k">เลขที่ใบรับ</div><div class="v brand lat">GR-2606-0042</div></div>
+        <div class="kv"><div class="k">ผู้จัดจำหน่าย</div><div class="v">ซิลลิค ฟาร์มา</div></div>
+        <div class="kv"><div class="k">วันที่รับสินค้า</div><div class="v lat">10/06/2026</div></div>
+      </div>
+      <div class="panel panel-pad">
+        <div class="side-title">การชำระเงิน</div>
+        <div class="pay-seg"><button class="on">เงินสด</button><button>เครดิต</button></div>
+      </div>
+      <div class="panel panel-pad" style="flex:1">
+        <div class="side-title">หมายเหตุ</div>
+        <textarea class="ctl" style="height:70px;padding:8px 12px" placeholder="บันทึกเพิ่มเติม..."></textarea>
+      </div>
+      <div>
+        <button class="save-btn">บันทึก</button>
+        <button class="clear-btn">ล้างฟอร์ม</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>ไอเดียหลัก:</b> การกรอกทีละแถวในตารางถูกแทนด้วยปุ่ม “เพิ่มสินค้า” ที่เปิด wizard นำทางทีละ step (เลือกสินค้า → Lot/วันหมดอายุ → จำนวน/ต้นทุน → ราคาขาย/ยืนยัน) เสร็จแล้วรายการจะเด้งเข้าตาราง — ตารางเหลือหน้าที่ “แสดง+คลิกแก้ไข” อย่างเดียว ส่วนการวางทั้งบิล (Paste) ยังอยู่ที่ปุ่ม “นำเข้าข้อมูล” เหมือนเดิม
+  <ul>
+    <li><b>2 คอนเซปต์ให้เทียบ</b> สลับที่มุมขวาบน: <b>Timeline</b> (แนวตั้ง ใช้พื้นที่เต็ม เห็นภาพรวมทุก step พร้อม preview ค่าที่กรอกแล้ว) กับ <b>Compact</b> (แนวนอน dialog เล็ก เหมาะเครื่องจอเล็ก/ทำงานเร็ว)</li>
+    <li><b>คีย์บอร์ดล้วน:</b> Enter = ถัดไป, Esc = ปิด — ยังรับ barcode scanner ได้ที่ step แรก</li>
+    <li>คลิกแถวในตาราง (ปุ่ม “แก้ไข ›”) เพื่อเปิด wizard กลับมาที่ค่าเดิมของรายการนั้น</li>
+  </ul>
+</div>
+
+<!-- ───────── WIZARD DIALOG ───────── -->
+<div class="backdrop" id="backdrop">
+  <div class="dialog" id="dialog">
+    <div class="dlg-head">
+      <div class="ico">＋</div>
+      <div>
+        <h2>เพิ่มสินค้าเข้าใบรับ</h2>
+        <p id="dlgSub">เลือกสินค้าที่จะรับเข้า แล้วกรอกข้อมูลทีละขั้นตอน</p>
+      </div>
+      <button class="x" onclick="closeDialog()">✕</button>
+    </div>
+
+    <!-- horizontal stepper (compact concept only) -->
+    <div class="hstepper" id="hstepper"></div>
+
+    <div class="dlg-body">
+      <!-- vertical rail (timeline concept) -->
+      <div class="rail" id="rail"></div>
+
+      <div class="pane">
+        <div class="pane-scroll">
+
+          <!-- STEP 1 -->
+          <div class="stepview show" data-step="0">
+            <p class="pane-title">ขั้นที่ 1</p>
+            <h3 class="pane-h">เลือกสินค้า</h3>
+
+            <div id="searchArea">
+              <div class="searchbox">
+                <span class="si">🔎</span>
+                <input class="ctl" placeholder="พิมพ์ชื่อ หรือยิงบาร์โค้ด…" value="para" oninput="void 0">
+              </div>
+              <div class="results">
+                <button onclick="pickProduct()" class="hl">
+                  <span class="nm">พาราเซตามอล 500mg</span>
+                  <span class="cd">P0042</span>
+                  <span class="u">แผง, กล่อง</span>
+                </button>
+                <button onclick="pickProduct()">
+                  <span class="nm">พาราเซตามอล 325mg</span>
+                  <span class="cd">P0043</span>
+                  <span class="u">แผง</span>
+                </button>
+                <button onclick="pickProduct()">
+                  <span class="nm">พารา-แคป เอ็กซ์ตร้า</span>
+                  <span class="cd">P0211</span>
+                  <span class="u">ขวด</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="pickedArea" style="display:none">
+              <div class="prodcard">
+                <div class="top">
+                  <div>
+                    <div class="nm">พาราเซตามอล 500mg</div>
+                    <div class="cd">P0042 · บาร์โค้ด 8852001234567</div>
+                  </div>
+                  <button class="chg" onclick="unpickProduct()">เปลี่ยน</button>
+                </div>
+                <div class="statrow">
+                  <div class="s"><div class="l">คงเหลือ</div><div class="n num">420 แผง</div></div>
+                  <div class="s"><div class="l">ทุนล่าสุด</div><div class="n num">5.00</div></div>
+                  <div class="s"><div class="l">ราคาขาย</div><div class="n num">8.00</div></div>
+                </div>
+              </div>
+              <div class="unitlabel">หน่วยที่รับเข้า</div>
+              <div class="chips">
+                <button class="chip on">แผง <span class="q">×1</span></button>
+                <button class="chip">กล่อง <span class="q">×10 แผง</span></button>
+              </div>
+              <div class="hint">เลือกหน่วยให้ตรงกับที่ระบุในบิลผู้จำหน่าย ระบบจะคิดสต็อกตามหน่วยฐานให้อัตโนมัติ</div>
+            </div>
+          </div>
+
+          <!-- STEP 2 -->
+          <div class="stepview" data-step="1">
+            <p class="pane-title">ขั้นที่ 2</p>
+            <h3 class="pane-h">Lot &amp; วันหมดอายุ</h3>
+            <div class="g2">
+              <div>
+                <label class="field-label">Lot No. <span class="req">*</span></label>
+                <input class="ctl lat" value="A2401" placeholder="เช่น A2401">
+              </div>
+              <div>
+                <label class="field-label">วันหมดอายุ <span class="req">*</span></label>
+                <input class="ctl lat" value="04/2028" placeholder="ดด/ปปปป">
+              </div>
+            </div>
+            <button class="opt-toggle">＋ ระบุวันผลิต (ไม่บังคับ)</button>
+            <div class="hint warn">⚠ เหลืออายุ ~22 เดือน — ระบบจะจ่ายออกตาม FEFO (ใกล้หมดอายุก่อน) โดยอัตโนมัติ</div>
+          </div>
+
+          <!-- STEP 3 -->
+          <div class="stepview" data-step="2">
+            <p class="pane-title">ขั้นที่ 3</p>
+            <h3 class="pane-h">จำนวน &amp; ต้นทุน</h3>
+            <div class="g3">
+              <div>
+                <label class="field-label">จำนวน (แผง) <span class="req">*</span></label>
+                <input class="ctl bignum" value="200">
+              </div>
+              <div>
+                <label class="field-label">ต้นทุน/หน่วย</label>
+                <input class="ctl bignum" value="5.10">
+              </div>
+              <div>
+                <label class="field-label">ราคารวม</label>
+                <input class="ctl bignum" value="1,020.00">
+              </div>
+            </div>
+            <button class="opt-toggle">＋ เพิ่มส่วนลดรายการ (ไม่บังคับ)</button>
+            <div class="calcbox">
+              <div class="row"><span class="k">200 แผง × 5.10</span><span class="v num">1,020.00</span></div>
+              <div class="row"><span class="k">ส่วนลด</span><span class="v num">0.00</span></div>
+              <div class="row total"><span class="k">รวมเป็นเงิน</span><span class="v num">1,020.00</span></div>
+            </div>
+          </div>
+
+          <!-- STEP 4 -->
+          <div class="stepview" data-step="3">
+            <p class="pane-title">ขั้นที่ 4 · ขั้นสุดท้าย</p>
+            <h3 class="pane-h">ราคาขาย &amp; ยืนยัน</h3>
+            <div class="g2">
+              <div>
+                <label class="field-label">ราคาขาย/หน่วย</label>
+                <input class="ctl bignum" style="color:hsl(var(--primary))" value="8.00">
+              </div>
+              <div style="display:flex;align-items:flex-end">
+                <div class="hint" style="margin:0">ทุนใหม่นี้ขยับขึ้น 0.10 จากครั้งก่อน — ราคาขายเดิมยังคุ้มอยู่</div>
+              </div>
+            </div>
+            <div class="margins">
+              <div class="mcard"><div class="l">ทุน</div><div class="n num">5.10</div></div>
+              <div class="mcard good"><div class="l">กำไร/หน่วย</div><div class="n num">2.90</div></div>
+              <div class="mcard good"><div class="l">กำไร %</div><div class="n num">56.9%</div></div>
+            </div>
+            <div class="summary">
+              <h4>สรุปรายการที่จะเพิ่ม</h4>
+              <div class="sline"><span class="k">สินค้า</span><span class="v">พาราเซตามอล 500mg</span></div>
+              <div class="sline"><span class="k">Lot / วันหมดอายุ</span><span class="v lat">A2401 · 04/2028</span></div>
+              <div class="sline"><span class="k">จำนวน × ทุน</span><span class="v num">200 แผง × 5.10</span></div>
+              <div class="sline"><span class="k">รวมเป็นเงิน</span><span class="v num" style="color:hsl(var(--primary));font-weight:800">1,020.00</span></div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="dlg-foot">
+          <span class="progress">ขั้นที่ <b id="progNow">1</b> จาก <b>4</b></span>
+          <button class="fbtn" id="backBtn" onclick="go(-1)" disabled>‹ ย้อนกลับ</button>
+          <button class="fbtn primary" id="nextBtn" onclick="go(1)">ถัดไป <span class="kbd" style="margin-left:6px;border-color:rgba(255,255,255,.4);color:inherit">Enter</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STEPS = [
+  {t:'เลือกสินค้า',        sub:'ค้นหา / ยิงบาร์โค้ด'},
+  {t:'Lot & วันหมดอายุ',  sub:'Lot No. และ exp'},
+  {t:'จำนวน & ต้นทุน',     sub:'qty, ทุน, รวม'},
+  {t:'ราคาขาย & ยืนยัน',  sub:'margin + ยืนยัน'},
+];
+// once a step is "filled" we show its captured value as the sub-label preview
+const DONE_SUB = ['พาราเซตามอล 500mg · แผง','A2401 · หมด 04/2028','200 แผง · ฿1,020.00','ขาย ฿8.00 · กำไร 56.9%'];
+
+let cur = 0;
+const maxStep = STEPS.length-1;
+
+function buildRail(){
+  const rail = document.getElementById('rail');
+  rail.innerHTML = STEPS.map((s,i)=>{
+    const state = i<cur?'done':i===cur?'active':'';
+    const sub = i<cur?DONE_SUB[i]:s.sub;
+    const dot = i<cur?'✓':(i+1);
+    const line = i<maxStep?'<div class="line"></div>':'';
+    return `<div class="step ${state}" onclick="jump(${i})">
+      ${line}<div class="dot">${dot}</div>
+      <div class="meta"><div class="t">${s.t}</div><div class="sub">${sub}</div></div>
+    </div>`;
+  }).join('');
+
+  const hs = document.getElementById('hstepper');
+  let h='';
+  STEPS.forEach((s,i)=>{
+    const state = i<cur?'done':i===cur?'active':'';
+    h+=`<div class="hstep ${state}" onclick="jump(${i})"><div class="d">${i<cur?'✓':(i+1)}</div><div class="lbl">${s.t}</div></div>`;
+    if(i<maxStep) h+=`<div class="hline ${i<cur?'done':''}"></div>`;
+  });
+  hs.innerHTML = h;
+}
+
+function render(){
+  document.querySelectorAll('.stepview').forEach(v=>{
+    v.classList.toggle('show', +v.dataset.step===cur);
+  });
+  buildRail();
+  document.getElementById('progNow').textContent = cur+1;
+  document.getElementById('backBtn').disabled = cur===0;
+  const nb = document.getElementById('nextBtn');
+  if(cur===maxStep){
+    nb.className='fbtn success';
+    nb.innerHTML='✓ ยืนยันเพิ่มลงรายการ';
+  } else {
+    nb.className='fbtn primary';
+    nb.innerHTML='ถัดไป <span class="kbd" style="margin-left:6px;border-color:rgba(255,255,255,.4);color:inherit">Enter</span>';
+  }
+  document.getElementById('dlgSub').textContent =
+    cur===0 ? 'เลือกสินค้าที่จะรับเข้า แล้วกรอกข้อมูลทีละขั้นตอน'
+            : 'พาราเซตามอล 500mg · กำลังกรอกข้อมูลการรับเข้า';
+}
+function go(d){
+  if(cur===maxStep && d>0){ confirmAdd(); return; }
+  cur = Math.max(0, Math.min(maxStep, cur+d));
+  render();
+}
+function jump(i){ cur=i; render(); }
+
+/* Lock the WHOLE dialog to the height of its tallest step, then never change it.
+   Measured once per concept (widths differ → wrapping differs) and cached, so
+   stepping never resizes the frame and no step scrolls. */
+const heightCache = {};
+function currentConcept(){ return document.getElementById('dialog').classList.contains('compact') ? 'compact' : 'timeline'; }
+function lockHeight(force){
+  const dialog = document.getElementById('dialog');
+  const key = currentConcept();
+  if(heightCache[key] && !force){ dialog.style.height = heightCache[key] + 'px'; return; }
+
+  const views = [...document.querySelectorAll('.stepview')];
+  const scroll = document.querySelector('.pane-scroll');
+  const sa = document.getElementById('searchArea'), pa = document.getElementById('pickedArea');
+  const prev = cur, saD = sa.style.display, paD = pa.style.display;
+
+  // measure step 1 in its tallest (product-picked) state
+  sa.style.display='none'; pa.style.display='block';
+  dialog.style.height='auto'; scroll.style.height='auto';
+  let max = 0;
+  views.forEach(v=>{
+    views.forEach(x=>x.classList.toggle('show', x===v));
+    max = Math.max(max, dialog.offsetHeight);
+  });
+  // restore live state
+  views.forEach(v=>v.classList.toggle('show', +v.dataset.step===prev));
+  sa.style.display=saD; pa.style.display=paD;
+
+  heightCache[key] = max;
+  dialog.style.height = max + 'px';
+}
+// fonts change metrics; recompute the cache once they're ready
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(()=>{
+    for(const k in heightCache) delete heightCache[k];
+    if(document.getElementById('backdrop').classList.contains('open')) lockHeight(true);
+  });
+}
+function confirmAdd(){
+  const dlg=document.getElementById('dialog');
+  dlg.style.transition='transform .25s';
+  dlg.style.transform='translateY(-6px) scale(1.01)';
+  setTimeout(()=>{ closeDialog(); dlg.style.transform=''; cur=0; render(); }, 160);
+}
+
+/* step1 product pick toggles */
+function pickProduct(){
+  document.getElementById('searchArea').style.display='none';
+  document.getElementById('pickedArea').style.display='block';
+  lockHeight();
+}
+function unpickProduct(){
+  document.getElementById('searchArea').style.display='block';
+  document.getElementById('pickedArea').style.display='none';
+}
+
+/* dialog open/close */
+function openDialog(){ document.getElementById('backdrop').classList.add('open'); cur=0; pickProduct(); render(); lockHeight(); }
+function closeDialog(){ document.getElementById('backdrop').classList.remove('open'); }
+document.getElementById('openBtn').onclick=openDialog;
+document.getElementById('backdrop').addEventListener('click',e=>{ if(e.target.id==='backdrop') closeDialog(); });
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('backdrop').classList.contains('open')) return;
+  if(e.key==='Escape') closeDialog();
+  if(e.key==='Enter'){ e.preventDefault(); go(1); }
+});
+
+/* concept toggle */
+document.getElementById('conceptSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#conceptSeg button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById('dialog').classList.toggle('compact', b.dataset.c==='compact');
+  lockHeight();
+});
+
+/* theme toggle */
+document.getElementById('themeBtn').onclick=function(){
+  const d=document.documentElement.classList.toggle('dark');
+  this.textContent = d?'☀ Light':'🌙 Dark';
+};
+
+render();
+</script>
+</body>
+</html>

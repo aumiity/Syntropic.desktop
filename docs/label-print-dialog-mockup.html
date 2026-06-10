@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mockup - พิมพ์ฉลากยา</title>
+  <style>
+    :root {
+      --bg: #eef3f2;
+      --card: #ffffff;
+      --muted: #f3f6f5;
+      --muted-2: #e7eeec;
+      --border: #d7e0dd;
+      --text: #17211f;
+      --subtle: #60716c;
+      --primary: #0f8f7f;
+      --primary-hover: #0b7669;
+      --primary-soft: #dff3ef;
+      --info-soft: #e6f1fb;
+      --info: #276f9f;
+      --warm: #fff4d6;
+      --warning: #9a6a04;
+      --danger-soft: #fde8e8;
+      --danger: #b42318;
+      --success-soft: #e4f6e8;
+      --success: #247a38;
+      --shadow: 0 18px 50px rgba(20, 35, 31, .18);
+      --shadow-sm: 0 1px 2px rgba(20, 35, 31, .08);
+      font-family: Inter, "Noto Sans Thai", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,0)),
+        var(--bg);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 32px;
+    }
+
+    .dialog {
+      width: min(1180px, calc(100vw - 48px));
+      height: min(760px, calc(100vh - 48px));
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    .header,
+    .footer {
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 20px;
+      border-color: var(--border);
+      background: rgba(255,255,255,.92);
+    }
+    .header { border-bottom: 1px solid var(--border); }
+    .footer { border-top: 1px solid var(--border); }
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .title-icon {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border: 1px solid rgba(15, 143, 127, .2);
+      font-weight: 900;
+    }
+
+    .body {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      background: var(--muted);
+    }
+
+    .left,
+    .right {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .left {
+      order: 2;
+      border-left: 1px solid var(--border);
+    }
+    .right {
+      order: 1;
+      background: var(--card);
+    }
+
+    .toolbar {
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .toolbar-left,
+    .toolbar-right,
+    .inline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .select,
+    .input,
+    .button {
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      box-shadow: var(--shadow-sm);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 650;
+    }
+    .select {
+      min-width: 154px;
+      padding: 0 34px 0 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text);
+    }
+    .input {
+      width: 64px;
+      text-align: center;
+      padding: 0 8px;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 14px;
+      cursor: default;
+      white-space: nowrap;
+    }
+    .button.primary {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
+    }
+    .button.primary:hover { background: var(--primary-hover); }
+    .button.icon {
+      width: 36px;
+      padding: 0;
+    }
+    .button:disabled {
+      opacity: .45;
+    }
+
+    .list {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+    }
+    .section-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 4px 2px 8px;
+      color: var(--subtle);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) 190px 78px;
+      align-items: center;
+      gap: 10px;
+      min-height: 58px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 8px;
+    }
+    .row.active {
+      border-color: rgba(15, 143, 127, .55);
+      box-shadow: 0 0 0 3px rgba(15, 143, 127, .15), var(--shadow-sm);
+    }
+    .row.disabled {
+      grid-template-columns: 34px minmax(0, 1fr) auto auto;
+      background: rgba(255,255,255,.7);
+    }
+    .check {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      border: 1px solid var(--primary);
+      background: var(--primary);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .check.empty {
+      background: var(--card);
+      border-color: var(--border);
+      color: transparent;
+    }
+    .check.locked {
+      border-color: var(--border);
+      background: var(--muted-2);
+      color: var(--subtle);
+    }
+    .product {
+      min-width: 0;
+    }
+    .product-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+      font-weight: 750;
+    }
+    .product-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 3px;
+      color: var(--subtle);
+      font-size: 12px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 750;
+      background: var(--card);
+      color: var(--subtle);
+      white-space: nowrap;
+    }
+    .badge.success {
+      background: var(--success-soft);
+      color: var(--success);
+      border-color: rgba(36, 122, 56, .25);
+    }
+    .badge.warn {
+      background: var(--warm);
+      color: var(--warning);
+      border-color: rgba(154, 106, 4, .24);
+    }
+    .badge.danger {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border-color: rgba(180, 35, 24, .24);
+    }
+
+    .preview-head {
+      min-height: 58px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .preview-title {
+      min-width: 0;
+    }
+    .preview-title strong {
+      display: block;
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .preview-title span {
+      display: block;
+      margin-top: 2px;
+      color: var(--subtle);
+      font-size: 12px;
+    }
+    .preview-body {
+      min-height: 0;
+      overflow: auto;
+      padding: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      background: linear-gradient(180deg, var(--muted), #fff);
+    }
+    .paper {
+      width: 280px;
+      min-height: 390px;
+      background: #fff;
+      border: 1px solid #c9d4d0;
+      box-shadow: 0 10px 26px rgba(20, 35, 31, .13);
+      padding: 16px;
+      color: #111;
+    }
+    .paper-shop {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    .paper-line {
+      height: 1px;
+      background: #111;
+      margin: 10px 0;
+    }
+    .paper-drug {
+      font-size: 15px;
+      font-weight: 850;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+    .paper-text {
+      font-size: 14px;
+      line-height: 1.55;
+      margin: 7px 0;
+    }
+    .paper-note {
+      margin-top: 12px;
+      border: 1px solid #111;
+      padding: 8px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .barcode {
+      margin-top: 14px;
+      height: 38px;
+      background: repeating-linear-gradient(90deg, #111 0 2px, transparent 2px 5px, #111 5px 6px, transparent 6px 10px);
+    }
+    .preview-foot {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      gap: 8px;
+      background: var(--card);
+    }
+    .kv {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .kv span:first-child { color: var(--subtle); }
+    .kv span:last-child { font-weight: 750; }
+
+    .summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--subtle);
+      font-size: 14px;
+      font-weight: 650;
+    }
+    .summary strong {
+      color: var(--text);
+      font-weight: 850;
+    }
+
+    @media (max-width: 960px) {
+      body { padding: 16px; }
+      .dialog {
+        width: calc(100vw - 24px);
+        height: calc(100vh - 24px);
+      }
+      .body { grid-template-columns: 1fr; }
+      .right { display: none; }
+      .left { border-left: 0; }
+      .row { grid-template-columns: 34px minmax(0, 1fr); }
+      .row .select,
+      .row .input { grid-column: 2; width: 100%; }
+      .toolbar,
+      .footer { height: auto; min-height: 68px; flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <main class="dialog" role="dialog" aria-label="พิมพ์ฉลากยา">
+    <header class="header">
+      <div class="title">
+        <div class="title-icon">Tag</div>
+        <div>พิมพ์ฉลากยา</div>
+      </div>
+      <button class="button icon" aria-label="ปิด">X</button>
+    </header>
+
+    <section class="body">
+      <div class="left">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <button class="button">เลือกทั้งหมด</button>
+            <div class="select">ภาษาไทย</div>
+          </div>
+          <div class="toolbar-right">
+            <span class="badge success">พร้อมพิมพ์ 3 รายการ</span>
+            <span class="badge warn">ไม่มีฉลาก 1</span>
+          </div>
+        </div>
+
+        <div class="list">
+          <div class="section-label">
+            <span>รายการในตะกร้า</span>
+            <span>แก้ฉลากและจำนวนก่อนพิมพ์</span>
+          </div>
+
+          <article class="row active">
+            <div class="check">✓</div>
+            <div class="product">
+              <div class="product-name">Amoxicillin 500mg Capsule</div>
+              <div class="product-meta">
+                <span>รหัส P000128</span>
+                <span class="badge success">ค่าเริ่มต้น</span>
+              </div>
+            </div>
+            <div class="select">วิธีรับประทานมาตรฐาน</div>
+            <input class="input" value="1" aria-label="จำนวนสำเนา" />
+          </article>
+
+          <article class="row">
+            <div class="check">✓</div>
+            <div class="product">
+              <div class="product-name">Paracetamol 500mg Tablet</div>
+              <div class="product-meta">
+                <span>รหัส P000042</span>
+                <span class="badge">มี 2 ฉลาก</span>
+              </div>
+            </div>
+            <div class="select">หลังอาหารเมื่อมีอาการ</div>
+            <input class="input" value="2" aria-label="จำนวนสำเนา" />
+          </article>
+
+          <article class="row">
+            <div class="check empty">✓</div>
+            <div class="product">
+              <div class="product-name">Cetirizine 10mg Tablet</div>
+              <div class="product-meta">
+                <span>รหัส P000087</span>
+                <span class="badge">ข้ามรายการนี้</span>
+              </div>
+            </div>
+            <div class="select">ก่อนนอน</div>
+            <input class="input" value="1" aria-label="จำนวนสำเนา" />
+          </article>
+
+          <article class="row disabled">
+            <div class="check locked">!</div>
+            <div class="product">
+              <div class="product-name">Omeprazole 20mg Capsule</div>
+              <div class="product-meta">
+                <span>รหัส P000203</span>
+                <span>ยังไม่มีฉลากที่เปิดใช้งาน</span>
+              </div>
+            </div>
+            <span class="badge danger">ไม่มีฉลาก</span>
+            <button class="button">เพิ่มฉลาก</button>
+          </article>
+        </div>
+      </div>
+
+      <aside class="right">
+        <div class="preview-head">
+          <div class="preview-title">
+            <strong>Amoxicillin 500mg Capsule</strong>
+            <span>ตัวอย่างจากฉลาก: วิธีรับประทานมาตรฐาน</span>
+          </div>
+          <button class="button icon" aria-label="แก้ไข">Edit</button>
+        </div>
+
+        <div class="preview-body">
+          <div class="paper" aria-label="ตัวอย่างฉลาก">
+            <div class="paper-shop">ร้านยา Syntropic Pharmacy</div>
+            <div class="paper-line"></div>
+            <div class="paper-drug">Amoxicillin 500mg Capsule</div>
+            <div class="paper-text">รับประทานครั้งละ 1 แคปซูล วันละ 3 ครั้ง</div>
+            <div class="paper-text">หลังอาหาร เช้า กลางวัน เย็น</div>
+            <div class="paper-note">รับประทานยาติดต่อกันจนหมดตามแพทย์สั่ง</div>
+            <div class="paper-text">วันที่จ่าย: 10/06/2569</div>
+            <div class="barcode"></div>
+          </div>
+        </div>
+
+        <div class="preview-foot">
+          <div class="kv"><span>ภาษา</span><span>ไทย</span></div>
+          <div class="kv"><span>จำนวนสำเนา</span><span>1 ดวง</span></div>
+          <div class="kv"><span>ขนาดกระดาษ</span><span>80 x 50 มม.</span></div>
+          <button class="button">เพิ่มหรือแก้ไขฉลากของสินค้านี้</button>
+        </div>
+      </aside>
+    </section>
+
+    <footer class="footer">
+      <button class="button">ยกเลิก</button>
+      <div class="inline">
+        <div class="summary">
+          <span>เลือก <strong>2</strong> รายการ</span>
+          <span>รวม <strong>3</strong> ดวง</span>
+        </div>
+        <button class="button primary">พิมพ์ฉลาก</button>
+      </div>
+    </footer>
+  </main>
+</body>
+</html>

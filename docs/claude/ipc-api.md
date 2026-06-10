@@ -7,11 +7,13 @@
 | `purchase` | nextGRNumber, save, history, getReceipt |
 | `people` | customers CRUD, suppliers CRUD, staff/users CRUD, allSuppliers |
 | `reports` | salesList, getSale, voidSale, purchaseList, vatSummary |
-| `settings` | shopSettings, updateShopSettings, categories, itemUnits, drugTypes, dosageForms, allLabelLookups, labelSettings, updateLabelSettings, upgradeToVat |
+| `settings` | shopSettings, updateShopSettings, categories, itemUnits, drugTypes, dosageForms, allLabelLookups, labelSettings, updateLabelSettings, getBarcodeStickerSettings/saveBarcodeStickerSettings, getPriceTagSettings/savePriceTagSettings, upgradeToVat |
 | `printer` | printReceipt, openCashDrawer |
 | `auth` | listLoginUsers, login, logout, resetAdminPassword |
 
 Handlers live in `electron/ipc/*.ts`; bridge in `electron/preload.ts`.
+
+- `pos:searchProducts(query)` — searches `p.trade_name/p.barcode/barcode2-4/p.code/p.search_keywords` **and** `product_units.barcode` (so a scanned unit/pack barcode resolves), and returns `matched_unit_id` (the `product_units.id` whose barcode exactly equals the raw query, else null). The renderer uses `matched_unit_id` to pre-highlight that unit's row in `ProductSearchDialog` via the `initialIdx` prop (base row still stays first — no reordering). Channel signature unchanged (one query arg); additive for all existing consumers.
 
 ## VAT-specific handlers (2026-06-10)
 
@@ -41,5 +43,7 @@ Handlers live in `electron/ipc/*.ts`; bridge in `electron/preload.ts`.
 **Override-eligible handlers** (staff sees the button → manager-override dialog): `reports:voidSale`, `products:updatePrice`, `products:adjustStock`/`adjustLot`/`adjustLotBatch`/`updateLot`/`expireLot`, `purchase:cancel`. Each takes a trailing optional `override` arg forwarded to `requireAdmin`.
 
 **Admin-only, hidden (no override):** all finance reports (`reports:financeSummary`/`salesPurchaseTrend`/`accountsPayable`/`topProducts`/`topSuppliers`/`cashierLeaderboard`/`salesStats`/`productVelocity`), `expenses:*`, `people:listStaff`/`saveStaff`/`setStaffStatus`, settings **writes** (`saveShop`/`save*Settings`/`saveCategory`/`saveUnit`/`saveDrugType`/`reorderCategories`/`saveTheme*`), backup writes (`export`/`restore`/`saveSettings`/`pickFolder`/`resetFolder`). Settings/backup **reads** and `completeSetup` are NOT gated.
+
+> **Carve-out — `settings:saveBarcodeStickerSettings` / `settings:savePriceTagSettings` are NOT admin-gated** (intentional exception to "settings writes admin-only"). These store only the barcode-sticker / price-tag print-page layout preference (preset + content toggles), a shop-floor operational setting that **staff** are the primary users of, with no financial/security impact. The print tab **auto-persists** on every config change — gating them would spam staff with FORBIDDEN toasts. A matching comment sits on both handlers in `electron/ipc/settings.ts`. Printer + paper size are NOT stored here (read from `label_settings` / `document_settings`).
 
 Renderer side: `usePermission()` (`isAdmin`) gates UX only; `useManagerOverride()` wraps an action so admins run it directly and staff get the `ManagerOverrideDialog`. **Hiding a button is UX — the IPC gate is the real enforcement.**

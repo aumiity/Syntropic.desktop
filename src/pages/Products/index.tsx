@@ -6,7 +6,7 @@ import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { Package, Boxes, Plus, Ban, Check } from 'lucide-react'
+import { Package, Boxes, Plus, Ban, Check, Tags } from 'lucide-react'
 
 // Products page is a Tabs shell — products vs bundles, each owns its own list
 // component (ProductsList / BundlesList) with its own filters and IPC calls.
@@ -15,10 +15,12 @@ import { Package, Boxes, Plus, Ban, Check } from 'lucide-react'
 const TABS = [
   { value: 'products', label: 'สินค้า',     icon: Package, path: '/products' },
   { value: 'bundles',  label: 'ชุดสินค้า',  icon: Boxes,   path: '/products/bundles' },
+  { value: 'print',    label: 'พิมพ์บาร์โค้ด/ป้ายราคา', icon: Tags, path: '/products/print' },
 ]
 
 function resolveTab(pathname: string): string {
   if (pathname.startsWith('/products/bundles')) return 'bundles'
+  if (pathname.startsWith('/products/print')) return 'print'
   return 'products'
 }
 
@@ -95,26 +97,30 @@ export default function ProductsLayout() {
             ))}
           </TabsList>
         </Tabs>
-        <Button
-          onClick={() => navigate(tab === 'bundles' ? '/products/bundles/new' : '/products/new')}
-          className="ml-auto h-9 px-3"
-        >
-          <Plus className="size-4" /> {tab === 'bundles' ? 'เพิ่มชุดสินค้า' : 'เพิ่มสินค้า'}
-        </Button>
+        {tab !== 'print' && (
+          <Button
+            onClick={() => navigate(tab === 'bundles' ? '/products/bundles/new' : '/products/new')}
+            className="ml-auto h-9 px-3"
+          >
+            <Plus className="size-4" /> {tab === 'bundles' ? 'เพิ่มชุดสินค้า' : 'เพิ่มสินค้า'}
+          </Button>
+        )}
       </TabStrip>
 
-      <motion.div
-        initial={{ height: 0, opacity: 0 }}
-        animate={{ height: 'auto', opacity: 1 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
-        onAnimationStart={() => setAnimatingSummary(true)}
-        onAnimationComplete={() => setAnimatingSummary(false)}
-        className={`shrink-0 pt-3 ${animatingSummary ? 'overflow-hidden' : ''}`}
-      >
-        <div className={`grid grid-cols-2 ${COLS_BY_COUNT[summary.length] ?? 'md:grid-cols-3'} gap-3 p-0.5`}>
-          {summary.map((c, i) => <MetricCard key={i} {...c} />)}
-        </div>
-      </motion.div>
+      {tab !== 'print' && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          onAnimationStart={() => setAnimatingSummary(true)}
+          onAnimationComplete={() => setAnimatingSummary(false)}
+          className={`shrink-0 pt-3 ${animatingSummary ? 'overflow-hidden' : ''}`}
+        >
+          <div className={`grid grid-cols-2 ${COLS_BY_COUNT[summary.length] ?? 'md:grid-cols-3'} gap-3 p-0.5`}>
+            {summary.map((c, i) => <MetricCard key={i} {...c} />)}
+          </div>
+        </motion.div>
+      )}
 
       <div className="flex-1 min-h-0 flex flex-col [scrollbar-gutter:stable]">
         <Outlet context={ctx} />

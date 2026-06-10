@@ -107,7 +107,10 @@ export function registerPosHandlers() {
     const kwMidSp = `%, ${query}%`
     const products = db.prepare(`
       SELECT p.*, c.name as category_name, dt.name_th as drug_type_name,
-             u.name as unit_name
+             u.name as unit_name,
+             (SELECT pu.id FROM product_units pu
+                WHERE pu.product_id = p.id AND pu.barcode = ?
+                  AND pu.is_disabled = 0 AND pu.is_for_sale = 1 LIMIT 1) AS matched_unit_id
       FROM products p
       LEFT JOIN product_categories c ON c.id = p.category_id
       LEFT JOIN drug_types dt ON dt.id = p.drug_type_id
@@ -115,7 +118,10 @@ export function registerPosHandlers() {
       WHERE p.is_disabled = 0
         AND (p.trade_name LIKE ? OR p.barcode LIKE ? OR p.barcode2 LIKE ?
              OR p.barcode3 LIKE ? OR p.barcode4 LIKE ?
-             OR p.code LIKE ? OR p.search_keywords LIKE ?)
+             OR p.code LIKE ? OR p.search_keywords LIKE ?
+             OR EXISTS (SELECT 1 FROM product_units pu
+                          WHERE pu.product_id = p.id AND pu.is_disabled = 0
+                            AND pu.is_for_sale = 1 AND pu.barcode LIKE ?))
       ORDER BY
         CASE
           WHEN p.trade_name LIKE ? THEN 1
@@ -125,7 +131,7 @@ export function registerPosHandlers() {
         END,
         ${orderByBucket('p.trade_name')}
       LIMIT 30
-    `).all(q, q, q, q, q, q, q, prefix, prefix, prefix, kwMid, kwMidSp)
+    `).all(query, q, q, q, q, q, q, q, q, prefix, prefix, prefix, kwMid, kwMidSp)
 
     for (const prod of products as any[]) enrichProduct(db, prod)
 

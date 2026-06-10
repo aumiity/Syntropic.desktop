@@ -245,7 +245,7 @@ export function registerProductHandlers() {
             return null;
         var units = db.prepare("\n      SELECT pu.*, u.name as unit_name FROM product_units pu\n      JOIN item_units u ON u.id = pu.unit_id\n      WHERE pu.product_id = ? ORDER BY pu.qty_per_base ASC\n    ").all(id);
         var lots = db.prepare("SELECT * FROM product_lots WHERE product_id = ? ORDER BY created_at DESC").all(id);
-        var labels = db.prepare("\n      SELECT pl.*, lf.name_th as frequency_name, ld.name_th as dosage_name, lm.name_th as timing_name\n      FROM product_labels pl\n      LEFT JOIN label_frequencies lf ON lf.id = pl.frequency_id\n      LEFT JOIN label_dosages ld ON ld.id = pl.dosage_id\n      LEFT JOIN label_meal_relations lm ON lm.id = pl.timing_id\n      WHERE pl.product_id = ? ORDER BY pl.sort_order, pl.id\n    ").all(id);
+        var labels = db.prepare("\n      SELECT pl.*, lf.name_th as frequency_name, ld.name_th as dosage_name, lm.name_th as timing_name\n      FROM product_labels pl\n      LEFT JOIN label_frequencies lf ON lf.id = pl.frequency_id\n      LEFT JOIN label_dosages ld ON ld.id = pl.dosage_id\n      LEFT JOIN label_meal_relations lm ON lm.id = pl.timing_id\n      WHERE pl.product_id = ? ORDER BY pl.id\n    ").all(id);
         // Bundles carry their composition. Joined display fields (component_name etc.)
         // make EditBundle's ComponentsTab render without a second IPC round-trip.
         var bundle_items = product.is_bundle === 1
@@ -635,7 +635,7 @@ export function registerProductHandlers() {
     });
     // Product labels
     ipcMain.handle('products:getLabels', function (_e, productId) {
-        return getDb().prepare("\n      SELECT pl.*, lf.name_th as frequency_name, ld.name_th as dosage_name, lm.name_th as timing_name\n      FROM product_labels pl\n      LEFT JOIN label_frequencies lf ON lf.id = pl.frequency_id\n      LEFT JOIN label_dosages ld ON ld.id = pl.dosage_id\n      LEFT JOIN label_meal_relations lm ON lm.id = pl.timing_id\n      WHERE pl.product_id = ? ORDER BY pl.sort_order, pl.id\n    ").all(productId);
+        return getDb().prepare("\n      SELECT pl.*, lf.name_th as frequency_name, ld.name_th as dosage_name, lm.name_th as timing_name\n      FROM product_labels pl\n      LEFT JOIN label_frequencies lf ON lf.id = pl.frequency_id\n      LEFT JOIN label_dosages ld ON ld.id = pl.dosage_id\n      LEFT JOIN label_meal_relations lm ON lm.id = pl.timing_id\n      WHERE pl.product_id = ? ORDER BY pl.id\n    ").all(productId);
     });
     ipcMain.handle('products:saveLabel', function (_e, data) {
         var db = getDb();
@@ -645,7 +645,7 @@ export function registerProductHandlers() {
             db.prepare("UPDATE product_labels SET ".concat(fields, ", updated_at = datetime('now','localtime') WHERE id = @id")).run(data);
             return db.prepare("SELECT * FROM product_labels WHERE id = ?").get(id);
         }
-        var result = db.prepare("\n      INSERT INTO product_labels (product_id, label_name, dose_qty, dosage_id, frequency_id, timing_id,\n        label_time_id, advice_id, indication_th, indication_mm, indication_zh, note_th, note_mm, note_zh,\n        show_barcode, is_default, is_active, sort_order)\n      VALUES (@product_id, @label_name, @dose_qty, @dosage_id, @frequency_id, @timing_id,\n        @label_time_id, @advice_id, @indication_th, @indication_mm, @indication_zh, @note_th, @note_mm, @note_zh,\n        @show_barcode, @is_default, @is_active, @sort_order)\n    ").run(data);
+        var result = db.prepare("\n      INSERT INTO product_labels (product_id, label_name, dose_qty, dosage_id, frequency_id, timing_id,\n        label_time_id, advice_id, indication_th, indication_en, indication_mm, indication_zh, note_th, note_mm, note_zh,\n        show_barcode, is_default, is_active)\n      VALUES (@product_id, @label_name, @dose_qty, @dosage_id, @frequency_id, @timing_id,\n        @label_time_id, @advice_id, @indication_th, @indication_en, @indication_mm, @indication_zh, @note_th, @note_mm, @note_zh,\n        @show_barcode, @is_default, @is_active)\n    ").run(data);
         return db.prepare("SELECT * FROM product_labels WHERE id = ?").get(result.lastInsertRowid);
     });
     ipcMain.handle('products:deleteLabel', function (_e, id) {

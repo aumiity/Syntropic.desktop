@@ -24,14 +24,45 @@ import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { useShopVat } from '@/hooks/useShopVat'
 import { extractVat } from '@/lib/vat'
 import {
-  Plus, Trash2, Package, Pencil,
+  Plus, Trash2, Package,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle, Settings2,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { motion } from 'framer-motion'
-import { AddProductWizard, type ReceiptRow, type ProductUnitOption, emptyRow } from './AddProductWizard'
 
-// ── Types (ReceiptRow / ProductUnitOption / emptyRow are imported from ./AddProductWizard) ──
+// ── Types ──────────────────────────────────────────────────────────────────
+
+interface ProductUnitOption {
+  id: number
+  unit_name: string
+  qty_per_base: number
+  price_retail?: number
+}
+
+interface ReceiptRow {
+  product_id: number
+  trade_name: string
+  product_code: string
+  unit_name: string
+  units: ProductUnitOption[]
+  default_sell_price: number
+  stored_cost_price?: number
+  lot_number: string
+  manufactured_date: string
+  expiry_date: string
+  qty: string
+  cost_price: string
+  discount: string
+  total: string
+  note: string
+}
+
+const emptyRow = (): ReceiptRow => ({
+  product_id: 0, trade_name: '', product_code: '',
+  unit_name: '', units: [], default_sell_price: 0,
+  lot_number: '', manufactured_date: '', expiry_date: '',
+  qty: '', cost_price: '', discount: '', total: '', note: '',
+})
 
 const stripTrailingZeros = (s: string) => s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s
 
@@ -96,12 +127,8 @@ export default function PurchasePage() {
   const [isPaid, setIsPaid] = useState(false)
   const [paidDate, setPaidDate] = useState('')
   const [grNote, setGrNote] = useState('')
-  const [rows, setRows] = useState<ReceiptRow[]>([])
+  const [rows, setRows] = useState<ReceiptRow[]>([emptyRow()])
   const [saving, setSaving] = useState(false)
-
-  // Add/Edit product wizard (replaces the old per-row inline table editing)
-  const [wizardOpen, setWizardOpen] = useState(false)
-  const [editIdx, setEditIdx] = useState<number | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
   const [savedInvoice, setSavedInvoice] = useState('')
 
@@ -109,12 +136,12 @@ export default function PurchasePage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
 
   // Product search per row
-  const [searchQueries, setSearchQueries] = useState<string[]>([])
-  const [suggestions, setSuggestions] = useState<ProductSuggestion[][]>([])
+  const [searchQueries, setSearchQueries] = useState<string[]>([''])
+  const [suggestions, setSuggestions] = useState<ProductSuggestion[][]>([[]])
   const [activeSuggRow, setActiveSuggRow] = useState<number | null>(null)
   const [suggHighlight, setSuggHighlight] = useState(0)
   const [activeRow, setActiveRow] = useState<number | null>(null)
-  const searchTimers = useRef<(ReturnType<typeof setTimeout> | null)[]>([])
+  const searchTimers = useRef<(ReturnType<typeof setTimeout> | null)[]>([null])
 
   // Optional column toggles (default off — keeps default row compact)
   const [showMfg, setShowMfg] = useState(false)
@@ -191,38 +218,6 @@ export default function PurchasePage() {
 
   const removeRow = (i: number) => {
     if (rows.length === 1) return
-    setBaseRowTotals(null)
-    setRows(r => r.filter((_, idx) => idx !== i))
-    setSearchQueries(q => q.filter((_, idx) => idx !== i))
-    setSuggestions(s => s.filter((_, idx) => idx !== i))
-    searchTimers.current = searchTimers.current.filter((_, idx) => idx !== i)
-  }
-
-  // ── Add/Edit product wizard ────────────────────────────────────────────────
-
-  const openAddWizard = () => { setEditIdx(null); setWizardOpen(true) }
-  const openEditWizard = (i: number) => { setEditIdx(i); setWizardOpen(true) }
-
-  // Wizard returns a fully-built ReceiptRow. Keep the parallel search/suggestion
-  // arrays length-aligned with `rows` so the paste-import bookkeeping stays valid.
-  const handleWizardConfirm = (row: ReceiptRow) => {
-    setBaseRowTotals(null)
-    if (editIdx === null) {
-      setRows(r => [...r, row])
-      setSearchQueries(q => [...q, row.trade_name])
-      setSuggestions(s => [...s, []])
-      searchTimers.current.push(null)
-    } else {
-      const at = editIdx
-      setRows(r => r.map((x, idx) => idx === at ? row : x))
-      setSearchQueries(q => q.map((x, idx) => idx === at ? row.trade_name : x))
-    }
-    setWizardOpen(false)
-    setEditIdx(null)
-  }
-
-  // Delete a committed row (no minimum-row guard — the list can be empty).
-  const deleteRow = (i: number) => {
     setBaseRowTotals(null)
     setRows(r => r.filter((_, idx) => idx !== i))
     setSearchQueries(q => q.filter((_, idx) => idx !== i))
@@ -616,7 +611,7 @@ export default function PurchasePage() {
       setSupplierId(0); setSupplierName(''); setSupplierInvoiceNo('')
       setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
       setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode('none')
-      setRows([]); setSearchQueries([]); setSuggestions([])
+      setRows([emptyRow()]); setSearchQueries(['']); setSuggestions([[]])
     } catch (e: any) {
       toast(e?.message ? `บันทึกไม่สำเร็จ: ${e.message}` : 'บันทึกไม่สำเร็จ', 'error')
     } finally {
@@ -672,7 +667,7 @@ export default function PurchasePage() {
     setSupplierId(0); setSupplierName(''); setSupplierInvoiceNo('')
     setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
     setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode('none')
-    setRows([]); setSearchQueries([]); setSuggestions([])
+    setRows([emptyRow()]); setSearchQueries(['']); setSuggestions([[]])
     setAdjustSubtotal(null); setAdjustDiscountAmt(0); setAdjustSurchargeAmt(0)
     setAppliedDiscount({ baht: '', pct: '' }); setAppliedSurcharge({ baht: '', pct: '' })
     setBaseRowTotals(null)
@@ -768,12 +763,32 @@ export default function PurchasePage() {
                           <Button size="lg" variant="elevated" onClick={() => setShowImport(true)} className="h-9 rounded-lg text-sm gap-1.5">
                             <ClipboardPaste className="size-3.5" /> นำเข้าข้อมูล
                           </Button>
-                          <Button size="lg" variant="elevated" onClick={openBillAdjust} disabled={rows.length === 0} className="h-9 rounded-lg text-sm gap-1.5">
+                          <Button size="lg" variant="elevated" onClick={openBillAdjust} className="h-9 rounded-lg text-sm gap-1.5">
                             ปรับยอดท้ายบิล
                           </Button>
-                          <Button size="lg" onClick={openAddWizard} className="h-9 rounded-lg text-sm gap-1.5">
-                            <Plus className="size-3.5" /> เพิ่มสินค้า
+                          <Button size="lg" variant="elevated" onClick={() => { addRow(); focusCell(rows.length, 0) }} className="h-9 rounded-lg text-sm gap-1.5">
+                            <Plus className="size-3.5" /> เพิ่มแถว
                           </Button>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+                                <Settings2 className="size-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-48">
+                              <PopoverHeader>
+                                <PopoverTitle>จัดการตาราง</PopoverTitle>
+                              </PopoverHeader>
+                              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                                <Checkbox checked={showMfg} onCheckedChange={v => setShowMfg(v === true)} />
+                                <span className="text-sm">วันผลิต</span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
+                                <Checkbox checked={showDiscount} onCheckedChange={v => setShowDiscount(v === true)} />
+                                <span className="text-sm">ส่วนลด</span>
+                              </label>
+                            </PopoverContent>
+                          </Popover>
                         </div>
                       </div>
 
@@ -782,77 +797,205 @@ export default function PurchasePage() {
                         <TableHeader>
                           <TableRow className="border-0 hover:bg-transparent">
                             <TableHead className="px-3 text-center w-10">#</TableHead>
-                            <TableHead className="px-3 w-[26%]">ชื่อสินค้า</TableHead>
-                            <TableHead className="px-3 text-center w-[11%]">Lot</TableHead>
-                            <TableHead className="px-3 text-center w-[12%]">วันหมดอายุ</TableHead>
+                            <TableHead className="px-3 w-[24%]">ชื่อสินค้า</TableHead>
+                            <TableHead className="px-3 text-center w-[10%]">Lot</TableHead>
+                            {showMfg && <TableHead className="px-3 text-center w-[10%]">วันผลิต</TableHead>}
+                            <TableHead className="px-3 text-center w-[11%]">วันหมดอายุ</TableHead>
                             <TableHead className="px-3 text-center w-[10%]">หน่วย</TableHead>
-                            <TableHead className="px-3 text-right w-[9%]">จำนวน</TableHead>
-                            <TableHead className="px-3 text-right w-[11%]">ทุน/หน่วย</TableHead>
-                            <TableHead className="px-3 text-right w-[11%]">ราคาขาย</TableHead>
-                            <TableHead className="px-3 text-right w-[12%]">รวม</TableHead>
-                            <TableHead className="px-3 text-center w-20">จัดการ</TableHead>
+                            <TableHead className="px-3 text-center w-[8%]">จำนวน</TableHead>
+                            <TableHead className="px-3 text-center w-[10%]">ทุน</TableHead>
+                            <TableHead className="px-3 text-center w-[10%]">ราคาขาย</TableHead>
+                            {showDiscount && <TableHead className="px-3 text-center w-[9%]">ส่วนลด</TableHead>}
+                            <TableHead className="px-3 text-center w-[10%]">รวม</TableHead>
+                            <TableHead className="w-10" />
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {rows.length === 0 ? (
-                              <TableRow className="border-0 hover:bg-transparent">
-                                <TableCell colSpan={10} className="py-16 text-center">
-                                  <div className="flex flex-col items-center gap-3 text-foreground-subtle">
-                                    <TintIcon icon={Package} tint="neutral" size="lg" />
-                                    <p className="text-sm leading-relaxed">
-                                      ยังไม่มีรายการ — เพิ่มสินค้าทีละรายการผ่านขั้นตอนนำทาง<br />
-                                      หรือวางทั้งบิลด้วยปุ่ม “นำเข้าข้อมูล”
-                                    </p>
-                                    <Button onClick={openAddWizard} className="gap-1.5 mt-1">
-                                      <Plus className="size-4" /> เพิ่มสินค้าเข้าใบรับ
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ) : rows.map((row, i) => {
-                              const isValid = rowIsValid(row)
+                            {rows.map((row, i) => {
                               const isPartial = rowIsPartial(row)
-                              const qtyN = parseFloat(row.qty)
-                              const totalN = parseFloat(row.total)
-                              const costPerUnit = qtyN > 0 && isFinite(totalN)
-                                ? totalN / qtyN
-                                : (parseFloat(row.cost_price) || 0)
+                              const isValid = rowIsValid(row)
+                              const rowBg = isPartial ? 'bg-warm/60' : isValid ? 'bg-success-soft/50' : 'bg-card'
                               return (
-                                <TableRow
-                                  key={i}
-                                  onClick={() => openEditWizard(i)}
-                                  className={`border-0 cursor-pointer ${isPartial ? 'bg-warm/50 hover:bg-warm/70' : 'hover:bg-primary-soft/40'}`}
-                                >
-                                  <TableCell className="px-3 py-2 text-sm text-foreground-subtle text-center">{i + 1}</TableCell>
+                                <TableRow key={i} className={`border-0 hover:bg-transparent ${rowBg}`}>
 
-                                  <TableCell className="px-3 py-2">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <span className="truncate text-sm font-medium">
-                                        {row.trade_name || <span className="text-foreground-subtle font-normal">{searchQueries[i] || '—'}</span>}
-                                      </span>
-                                      {isValid
-                                        ? <Badge variant="success-soft" className="shrink-0">ครบ</Badge>
-                                        : <Badge variant="warning-outline" className="shrink-0">ไม่ครบ</Badge>}
-                                    </div>
+                                  {/* # */}
+                                  <TableCell className="px-3 py-1.5 text-sm text-foreground-subtle text-center">{i + 1}</TableCell>
+
+                                  {/* Product search */}
+                                  <TableCell className="px-2 py-1.5 relative">
+                                    <Input
+                                      data-cell={`${i}-0`}
+                                      variant="elevated"
+                                      value={searchQueries[i] ?? ''}
+                                      onChange={e => handleProductSearch(i, e.target.value)}
+                                      onFocus={() => { setActiveRow(i); setActiveSuggRow(i); setSuggHighlight(0) }}
+                                      onBlur={() => setTimeout(() => setActiveSuggRow(v => v === i ? null : v), 200)}
+                                      onKeyDown={e => handleProductKeyDown(i, e)}
+                                      placeholder="ค้นหาสินค้า..."
+                                      className="text-sm h-8"
+                                      autoComplete="off"
+                                    />
+                                    {activeSuggRow === i && (suggestions[i]?.length ?? 0) > 0 && (
+                                      <div className="absolute left-2 top-full mt-0.5 z-50 w-64 bg-card rounded-card border border-border shadow-card overflow-hidden">
+                                        {suggestions[i].map((p, si) => (
+                                          <Button
+                                            key={p.id}
+                                            type="button"
+                                            variant="ghost"
+                                            onMouseDown={() => selectProduct(i, p)}
+                                            className={`w-full h-auto justify-start gap-2 rounded-none px-3 py-2 text-sm ${
+                                              si === suggHighlight ? 'bg-primary-soft text-primary' : 'hover:bg-primary-soft'
+                                            }`}
+                                          >
+                                            <Package className="size-3.5 text-foreground-subtle shrink-0" />
+                                            <span className="truncate flex-1 text-left">{p.trade_name}</span>
+                                            {(() => {
+                                              const unitText = p.units && p.units.length > 0 ? p.units.map(u => u.unit_name).join(', ') : p.unit_name
+                                              return unitText ? <span className="text-sm text-destructive shrink-0">{unitText}</span> : null
+                                            })()}
+                                          </Button>
+                                        ))}
+                                      </div>
+                                    )}
                                   </TableCell>
 
-                                  <TableCell className="px-3 py-2 text-center text-sm">{row.lot_number || '—'}</TableCell>
-                                  <TableCell className="px-3 py-2 text-center text-sm">{row.expiry_date ? formatDate(row.expiry_date) : '—'}</TableCell>
-                                  <TableCell className="px-3 py-2 text-center text-sm">{row.unit_name || '—'}</TableCell>
-                                  <TableCell className="px-3 py-2 text-right text-sm">{formatNum(row.qty) || '—'}</TableCell>
-                                  <TableCell className="px-3 py-2 text-right text-sm">{row.total ? formatCurrency(costPerUnit) : '—'}</TableCell>
-                                  <TableCell className="px-3 py-2 text-right text-sm">{row.product_id ? formatCurrency(row.default_sell_price || 0) : '—'}</TableCell>
-                                  <TableCell className="px-3 py-2 text-right text-sm font-semibold">{row.total ? formatCurrency(totalN) : '—'}</TableCell>
+                                  {/* Lot */}
+                                  <TableCell className="max-w-24 px-2 py-1.5">
+                                    <Input data-cell={`${i}-2`} variant="elevated" value={row.lot_number} onChange={e => updateRow(i, 'lot_number', e.target.value)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
+                                  </TableCell>
 
-                                  <TableCell className="px-2 py-2">
-                                    <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
-                                      <Button variant="outline" size="icon" onClick={() => openEditWizard(i)} className="size-8" title="แก้ไข">
-                                        <Pencil className="size-3.5" />
-                                      </Button>
-                                      <Button variant="ghost" size="icon" onClick={() => deleteRow(i)} className="size-8 text-foreground-subtle hover:text-destructive" title="ลบ">
-                                        <Trash2 className="size-3.5" />
-                                      </Button>
-                                    </div>
+                                  {/* วันผลิต (optional) */}
+                                  {showMfg && (
+                                    <TableCell className="max-w-40 px-2 py-1.5">
+                                      <DateInput data-cell={`${i}-3`} variant="elevated" value={row.manufactured_date} onChange={v => updateRow(i, 'manufactured_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
+                                    </TableCell>
+                                  )}
+
+                                  {/* วันหมดอายุ */}
+                                  <TableCell className="max-w-40 px-2 py-1.5">
+                                    <DateInput data-cell={`${i}-4`} variant="elevated" value={row.expiry_date} onChange={v => updateRow(i, 'expiry_date', v)} onFocus={() => setActiveRow(i)} className="h-8 text-sm" />
+                                  </TableCell>
+
+                                  {/* หน่วย — opens swap modal */}
+                                  <TableCell className="max-w-24 px-2 py-1.5">
+                                    <Button
+                                      type="button"
+                                      variant="elevated"
+                                      size="sm"
+                                      disabled={!row.product_id}
+                                      onClick={() => { setActiveRow(i); setUnitModalIdx(i) }}
+                                      className="h-8 w-full justify-center px-2 rounded-lg text-sm font-normal disabled:opacity-50"
+                                    >
+                                      <span className="truncate">{row.unit_name || ''}</span>
+                                    </Button>
+                                  </TableCell>
+
+                                  {/* จำนวน */}
+                                  <TableCell className="max-w-16 px-2 py-1.5">
+                                    <Input
+                                      data-cell={`${i}-1`}
+                                      variant="elevated"
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={focusedCell === `${i}-1` ? row.qty : formatNum(row.qty)}
+                                      onChange={e => updateLineMath(i, 'qty', stripCommas(e.target.value))}
+                                      onFocus={() => { setActiveRow(i); setFocusedCell(`${i}-1`) }}
+                                      onBlur={() => setFocusedCell(null)}
+                                      placeholder="0"
+                                      className="h-8 text-sm text-center"
+                                    />
+                                  </TableCell>
+
+                                  {/* ทุน */}
+                                  <TableCell className="max-w-20 px-2 py-1.5">
+                                    <Input
+                                      data-cell={`${i}-5`}
+                                      variant="elevated"
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={focusedCell === `${i}-5` ? row.cost_price : formatNum(row.cost_price, true)}
+                                      onChange={e => updateLineMath(i, 'cost_price', stripCommas(e.target.value))}
+                                      onFocus={() => { setActiveRow(i); setFocusedCell(`${i}-5`) }}
+                                      onBlur={() => {
+                                        setFocusedCell(null)
+                                        const n = parseFloat(row.cost_price)
+                                        if (isFinite(n)) updateLineMath(i, 'cost_price', n.toFixed(2))
+                                      }}
+                                      placeholder="0.00"
+                                      className="h-8 text-sm text-right"
+                                    />
+                                  </TableCell>
+
+                                  {/* ราคาขาย — opens quick-edit modal */}
+                                  <TableCell className="max-w-28 px-2 py-1.5">
+                                    <Button
+                                      type="button"
+                                      variant="elevated"
+                                      size="sm"
+                                      disabled={!row.product_id}
+                                      onClick={() => { setActiveRow(i); openPriceModal(i) }}
+                                      className="h-8 w-full justify-end px-2 rounded-lg text-sm font-normal disabled:opacity-50"
+                                    >
+                                      <span>
+                                        {row.product_id ? `${formatCurrency(row.default_sell_price || 0)}` : ''}
+                                      </span>
+                                    </Button>
+                                  </TableCell>
+
+                                  {/* ส่วนลด (optional) */}
+                                  {showDiscount && (
+                                    <TableCell className="max-w-28 px-2 py-1.5">
+                                      <Input
+                                        data-cell={`${i}-5b`}
+                                        variant="elevated"
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={focusedCell === `${i}-5b` ? row.discount : formatNum(row.discount, true)}
+                                        onChange={e => updateLineMath(i, 'discount', stripCommas(e.target.value))}
+                                        onFocus={() => { setActiveRow(i); setFocusedCell(`${i}-5b`) }}
+                                        onBlur={() => {
+                                          setFocusedCell(null)
+                                          const n = parseFloat(row.discount)
+                                          if (isFinite(n)) updateLineMath(i, 'discount', n.toFixed(2))
+                                        }}
+                                        placeholder="0.00"
+                                        className="h-8 text-sm text-right"
+                                      />
+                                    </TableCell>
+                                  )}
+
+                                  {/* รวม */}
+                                  <TableCell className="max-w-28 px-2 py-1.5">
+                                    <Input
+                                      data-cell={`${i}-6`}
+                                      variant="elevated"
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={focusedCell === `${i}-6` ? row.total : formatNum(row.total, true)}
+                                      onChange={e => updateLineMath(i, 'total', stripCommas(e.target.value))}
+                                      onFocus={() => { setActiveRow(i); setFocusedCell(`${i}-6`) }}
+                                      onBlur={() => {
+                                        setFocusedCell(null)
+                                        const n = parseFloat(row.total)
+                                        if (isFinite(n)) updateLineMath(i, 'total', n.toFixed(2))
+                                      }}
+                                      onKeyDown={e => handleQtyKeyDown(i, e)}
+                                      placeholder="0.00"
+                                      className="h-8 text-sm text-right"
+                                    />
+                                  </TableCell>
+
+                                  {/* ลบ */}
+                                  <TableCell className="px-1 py-1.5">
+                                    <Button
+                                      variant="elevated"
+                                      size="icon"
+                                      onClick={() => removeRow(i)}
+                                      disabled={rows.length === 1}
+                                      className="size-7 rounded text-foreground-subtle hover:text-destructive disabled:opacity-0"
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                    </Button>
                                   </TableCell>
                                 </TableRow>
                               )
@@ -1529,14 +1672,6 @@ export default function PurchasePage() {
         onConfirm={() => setShowSuccess(false)}
       />
       {overridePrice.dialog}
-
-      {/* ── Add / Edit product wizard (replaces inline row editing) ── */}
-      <AddProductWizard
-        open={wizardOpen}
-        onClose={() => { setWizardOpen(false); setEditIdx(null) }}
-        onConfirm={handleWizardConfirm}
-        editing={editIdx !== null ? rows[editIdx] : null}
-      />
 
     </div>
   )

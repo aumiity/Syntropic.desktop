@@ -481,6 +481,75 @@ export function registerSettingsHandlers() {
     return db.prepare(`SELECT * FROM document_settings ORDER BY id LIMIT 1`).get()
   })
 
+  // Barcode sticker print-page preference (singleton) — chosen layout preset +
+  // content toggles only (printer + paper come from label_settings). Same
+  // ensure-row-then-UPDATE pattern as receipt_settings.
+  ipcMain.handle('settings:getBarcodeStickerSettings', () => {
+    const db = getDb()
+    let row = db.prepare(`SELECT * FROM barcode_sticker_settings ORDER BY id LIMIT 1`).get()
+    if (!row) {
+      db.prepare(`INSERT INTO barcode_sticker_settings DEFAULT VALUES`).run()
+      row = db.prepare(`SELECT * FROM barcode_sticker_settings ORDER BY id LIMIT 1`).get()
+    }
+    return row
+  })
+  // DEVIATION (audit R1-1): NO requireAdmin here. This is a print-page layout
+  // preference for shop-floor staff (the primary users of label printing) with
+  // no money/security impact, and the print page auto-persists on every config
+  // change — gating it admin-only would spam FORBIDDEN toasts at staff. Carve-out
+  // documented in docs/claude/ipc-api.md ("settings writes admin-only").
+  ipcMain.handle('settings:saveBarcodeStickerSettings', (_e, data: any) => {
+    const db = getDb()
+    db.transaction(() => {
+      let row = db.prepare(`SELECT id FROM barcode_sticker_settings ORDER BY id LIMIT 1`).get() as any
+      if (!row) {
+        const r = db.prepare(`INSERT INTO barcode_sticker_settings DEFAULT VALUES`).run()
+        row = { id: r.lastInsertRowid }
+      }
+      const { id, updated_at, ...rest } = data
+      const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
+      if (fields) {
+        db.prepare(`UPDATE barcode_sticker_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`)
+          .run({ ...rest, id: row.id })
+      }
+    })()
+    return db.prepare(`SELECT * FROM barcode_sticker_settings ORDER BY id LIMIT 1`).get()
+  })
+
+  // Price-tag print-page preference (singleton) — chosen layout preset + content
+  // toggles only (printer + paper size come from document_settings). Same
+  // ensure-row-then-UPDATE pattern as receipt_settings.
+  ipcMain.handle('settings:getPriceTagSettings', () => {
+    const db = getDb()
+    let row = db.prepare(`SELECT * FROM price_tag_settings ORDER BY id LIMIT 1`).get()
+    if (!row) {
+      db.prepare(`INSERT INTO price_tag_settings DEFAULT VALUES`).run()
+      row = db.prepare(`SELECT * FROM price_tag_settings ORDER BY id LIMIT 1`).get()
+    }
+    return row
+  })
+  // DEVIATION (audit R1-1): NO requireAdmin here — same rationale as
+  // saveBarcodeStickerSettings above (shop-floor print-page layout preference,
+  // auto-persisted, no money/security impact). Carve-out documented in
+  // docs/claude/ipc-api.md ("settings writes admin-only").
+  ipcMain.handle('settings:savePriceTagSettings', (_e, data: any) => {
+    const db = getDb()
+    db.transaction(() => {
+      let row = db.prepare(`SELECT id FROM price_tag_settings ORDER BY id LIMIT 1`).get() as any
+      if (!row) {
+        const r = db.prepare(`INSERT INTO price_tag_settings DEFAULT VALUES`).run()
+        row = { id: r.lastInsertRowid }
+      }
+      const { id, updated_at, ...rest } = data
+      const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
+      if (fields) {
+        db.prepare(`UPDATE price_tag_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`)
+          .run({ ...rest, id: row.id })
+      }
+    })()
+    return db.prepare(`SELECT * FROM price_tag_settings ORDER BY id LIMIT 1`).get()
+  })
+
   // All item units (for dropdowns)
   ipcMain.handle('settings:allUnits', () => {
     return getDb().prepare(`SELECT * FROM item_units ORDER BY ${orderByBucket('name')}`).all()

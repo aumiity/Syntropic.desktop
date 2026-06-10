@@ -214,6 +214,22 @@ export function registerPeopleHandlers() {
             .run(payload.disabled ? 1 : 0, payload.id);
         return true;
     });
+    // Admin reset of another staff member's password (no current-password check —
+    // that's the self-service auth:changePassword flow). Hashing happens here; the
+    // renderer only ever sends plaintext.
+    ipcMain.handle('people:resetStaffPassword', function (_e, payload) {
+        var _a;
+        requireAdmin(_e);
+        var pw = String((_a = payload === null || payload === void 0 ? void 0 : payload.password) !== null && _a !== void 0 ? _a : '');
+        if (pw.length < 4)
+            throw new Error('รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร');
+        var res = getDb()
+            .prepare("UPDATE users SET password = ?, updated_at = datetime('now','localtime') WHERE id = ?")
+            .run(hashSecret(pw), payload.id);
+        if (res.changes === 0)
+            throw new Error('ไม่พบพนักงาน');
+        return true;
+    });
     // All suppliers (for dropdowns) — always filters disabled.
     ipcMain.handle('people:allSuppliers', function () {
         return getDb().prepare("SELECT id, code, name FROM suppliers WHERE is_disabled = 0 ORDER BY ".concat(orderByBucket('name'))).all();

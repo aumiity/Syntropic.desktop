@@ -18,6 +18,9 @@ export function registerPurchaseHandlers() {
     for (var _i = 0, _a = [
         "ALTER TABLE purchase_receipts ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0",
         "ALTER TABLE purchase_receipts ADD COLUMN surcharge_amount REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE purchase_receipts ADD COLUMN vat_mode TEXT NOT NULL DEFAULT 'none'",
+        "ALTER TABLE purchase_receipts ADD COLUMN vat_rate REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE purchase_receipts ADD COLUMN vat_amount REAL NOT NULL DEFAULT 0",
         "ALTER TABLE purchase_receipts ADD COLUMN status TEXT NOT NULL DEFAULT 'completed'",
         "ALTER TABLE purchase_receipts ADD COLUMN cancelled_at TEXT",
         "ALTER TABLE purchase_receipts ADD COLUMN cancelled_by INTEGER",
@@ -60,13 +63,33 @@ export function registerPurchaseHandlers() {
         return "GR-".concat(today, "-").concat(String(count + 1).padStart(4, '0'));
     });
     ipcMain.handle('purchase:save', function (_e, payload) {
+        var _a, _b;
         var db = getDb();
+        // Input VAT (ภาษีซื้อ) — declared PER BILL because not every supplier is
+        // VAT-registered. Only a VAT-registered shop can claim input VAT, so a
+        // NO-VAT shop is forced to 'none' here regardless of payload (everything
+        // it pays IS cost). The VAT base is the line sum as sent — the renderer
+        // already distributes bill discount/surcharge into the line totals.
+        var shopVatEnabled = ((_b = (_a = db.prepare("SELECT vat_enabled FROM sales_settings LIMIT 1").get()) === null || _a === void 0 ? void 0 : _a.vat_enabled) !== null && _b !== void 0 ? _b : 0) === 1;
+        var vatMode = shopVatEnabled && (payload.vat_mode === 'inclusive' || payload.vat_mode === 'exclusive')
+            ? payload.vat_mode : 'none';
+        var vatRate = vatMode === 'none' ? 0 : (Number(payload.vat_rate) > 0 ? Number(payload.vat_rate) : 7);
+        var lineSum = payload.items.reduce(function (s, it) { return s + it.qty * it.cost_price; }, 0);
+        var vatAmount = vatMode === 'inclusive' ? lineSum * vatRate / (100 + vatRate)
+            : vatMode === 'exclusive' ? lineSum * vatRate / 100
+                : 0;
+        // Claimable VAT is not cost: for VAT-inclusive bills the cost model
+        // (product_lots, weighted avg, stock_movements, last_cost_price) stores
+        // the ex-VAT cost. The purchase_receipt_items ledger keeps the entered
+        // cost untouched — document fidelity with the supplier invoice. For
+        // 'exclusive' bills the entered prices are already ex-VAT.
+        var costFactor = vatMode === 'inclusive' ? 100 / (100 + vatRate) : 1;
         var save = db.transaction(function () {
             var _a;
             var _b, _c, _d, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
             // Header is the authoritative source for GR-level metadata
-            db.prepare("INSERT OR REPLACE INTO purchase_receipts\n        (invoice_no, supplier_id, supplier_invoice_no, order_date,\n         payment_type, due_date, is_paid, paid_date,\n         note, discount_amount, surcharge_amount, status, created_at)\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)")
-                .run(payload.invoice_no, payload.supplier_id, payload.supplier_invoice_no, (_b = payload.order_date) !== null && _b !== void 0 ? _b : null, payload.payment_type, (_c = payload.due_date) !== null && _c !== void 0 ? _c : null, payload.is_paid ? 1 : 0, (_d = payload.paid_date) !== null && _d !== void 0 ? _d : null, (_f = payload.note) !== null && _f !== void 0 ? _f : '', (_g = payload.discount_amount) !== null && _g !== void 0 ? _g : 0, (_h = payload.surcharge_amount) !== null && _h !== void 0 ? _h : 0, payload.receive_date);
+            db.prepare("INSERT OR REPLACE INTO purchase_receipts\n        (invoice_no, supplier_id, supplier_invoice_no, order_date,\n         payment_type, due_date, is_paid, paid_date,\n         note, discount_amount, surcharge_amount,\n         vat_mode, vat_rate, vat_amount, status, created_at)\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)")
+                .run(payload.invoice_no, payload.supplier_id, payload.supplier_invoice_no, (_b = payload.order_date) !== null && _b !== void 0 ? _b : null, payload.payment_type, (_c = payload.due_date) !== null && _c !== void 0 ? _c : null, payload.is_paid ? 1 : 0, (_d = payload.paid_date) !== null && _d !== void 0 ? _d : null, (_f = payload.note) !== null && _f !== void 0 ? _f : '', (_g = payload.discount_amount) !== null && _g !== void 0 ? _g : 0, (_h = payload.surcharge_amount) !== null && _h !== void 0 ? _h : 0, vatMode, vatRate, vatAmount, payload.receive_date);
             for (var _i = 0, _u = payload.items; _i < _u.length; _i++) {
                 var item = _u[_i];
                 // Bundles have no own lots — block GR'ing a bundle. UI hides them via
@@ -74,22 +97,24 @@ export function registerPurchaseHandlers() {
                 // searchProducts without an is_bundle filter so this is the only
                 // backstop. assertNotBundle throws inside the transaction → rollback.
                 assertNotBundle(db, item.product_id);
+                // Cost-model cost (ex-VAT for inclusive bills) — see costFactor above.
+                var costEx = item.cost_price * costFactor;
                 var existing = db.prepare("SELECT * FROM product_lots WHERE product_id = ? AND lot_number = ?").get(item.product_id, item.lot_number);
                 var lotId = void 0;
                 var qtyBefore = 0;
                 if (existing) {
                     var totalQty = existing.qty_received + item.qty;
-                    var avgCost = (existing.qty_received * existing.cost_price + item.qty * item.cost_price) / totalQty;
+                    var avgCost = (existing.qty_received * existing.cost_price + item.qty * costEx) / totalQty;
                     qtyBefore = existing.qty_on_hand;
                     lotId = existing.id;
                     db.prepare("\n            UPDATE product_lots SET\n              qty_received = qty_received + ?,\n              qty_on_hand = qty_on_hand + ?,\n              cost_price = ?,\n              sell_price = ?,\n              supplier_id = ?,\n              invoice_no = ?,\n              supplier_invoice_no = ?,\n              order_date = ?,\n              payment_type = ?,\n              due_date = ?,\n              is_paid = ?,\n              paid_date = ?,\n              updated_at = ?\n            WHERE id = ?\n          ").run(item.qty, item.qty, avgCost, item.sell_price, payload.supplier_id, payload.invoice_no, payload.supplier_invoice_no, (_j = payload.order_date) !== null && _j !== void 0 ? _j : null, payload.payment_type, (_k = payload.due_date) !== null && _k !== void 0 ? _k : null, payload.is_paid ? 1 : 0, (_l = payload.paid_date) !== null && _l !== void 0 ? _l : null, payload.receive_date, existing.id);
                 }
                 else {
-                    var lotResult = db.prepare("\n            INSERT INTO product_lots (product_id, supplier_id, lot_number, manufactured_date, expiry_date,\n              cost_price, sell_price, qty_received, qty_on_hand,\n              invoice_no, supplier_invoice_no, order_date, payment_type, due_date, is_paid, paid_date, note, created_at, updated_at)\n            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n          ").run(item.product_id, payload.supplier_id, item.lot_number, (_m = item.manufactured_date) !== null && _m !== void 0 ? _m : null, item.expiry_date, item.cost_price, item.sell_price, item.qty, item.qty, payload.invoice_no, payload.supplier_invoice_no, (_o = payload.order_date) !== null && _o !== void 0 ? _o : null, payload.payment_type, (_p = payload.due_date) !== null && _p !== void 0 ? _p : null, payload.is_paid ? 1 : 0, (_q = payload.paid_date) !== null && _q !== void 0 ? _q : null, (_r = item.note) !== null && _r !== void 0 ? _r : '', payload.receive_date, payload.receive_date);
+                    var lotResult = db.prepare("\n            INSERT INTO product_lots (product_id, supplier_id, lot_number, manufactured_date, expiry_date,\n              cost_price, sell_price, qty_received, qty_on_hand,\n              invoice_no, supplier_invoice_no, order_date, payment_type, due_date, is_paid, paid_date, note, created_at, updated_at)\n            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n          ").run(item.product_id, payload.supplier_id, item.lot_number, (_m = item.manufactured_date) !== null && _m !== void 0 ? _m : null, item.expiry_date, costEx, item.sell_price, item.qty, item.qty, payload.invoice_no, payload.supplier_invoice_no, (_o = payload.order_date) !== null && _o !== void 0 ? _o : null, payload.payment_type, (_p = payload.due_date) !== null && _p !== void 0 ? _p : null, payload.is_paid ? 1 : 0, (_q = payload.paid_date) !== null && _q !== void 0 ? _q : null, (_r = item.note) !== null && _r !== void 0 ? _r : '', payload.receive_date, payload.receive_date);
                     lotId = Number(lotResult.lastInsertRowid);
                 }
                 db.prepare("\n          INSERT INTO purchase_receipt_items\n            (invoice_no, product_id, lot_id, lot_number, manufactured_date, expiry_date,\n             cost_price, sell_price, qty, note, created_at)\n          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n        ").run(payload.invoice_no, item.product_id, lotId, item.lot_number, (_s = item.manufactured_date) !== null && _s !== void 0 ? _s : null, item.expiry_date, item.cost_price, item.sell_price, item.qty, (_t = item.note) !== null && _t !== void 0 ? _t : null, payload.receive_date);
-                db.prepare("INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by, created_at)\n          VALUES (?, ?, 'receive', 'stock_receive', ?, ?, ?, ?, ?, ?, ?)").run(item.product_id, lotId, item.qty, qtyBefore, qtyBefore + item.qty, item.cost_price, "\u0E23\u0E31\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32: ".concat(payload.invoice_no), payload.userId, payload.receive_date);
+                db.prepare("INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by, created_at)\n          VALUES (?, ?, 'receive', 'stock_receive', ?, ?, ?, ?, ?, ?, ?)").run(item.product_id, lotId, item.qty, qtyBefore, qtyBefore + item.qty, costEx, "\u0E23\u0E31\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32: ".concat(payload.invoice_no), payload.userId, payload.receive_date);
                 db.prepare("UPDATE products SET price_retail = ?, updated_at = datetime('now','localtime') WHERE id = ?")
                     .run(item.sell_price, item.product_id);
                 // last_cost_price = the last cost we actually PAID (display-only).
@@ -98,9 +123,9 @@ export function registerPurchaseHandlers() {
                 // non-zero cost. Stays 0 only for products never paid for (new, or
                 // only ever received free). cost_price is NOT touched here — it's
                 // recomputed as a weighted average below.
-                if (item.cost_price > 0) {
+                if (costEx > 0) {
                     db.prepare("UPDATE products SET last_cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?")
-                        .run(item.cost_price, item.product_id);
+                        .run(costEx, item.product_id);
                 }
             }
             // Recompute products.cost_price as the weighted average of open lots,
@@ -200,7 +225,7 @@ export function registerPurchaseHandlers() {
     });
     ipcMain.handle('purchase:getReceipt', function (_e, invoice_no) {
         var db = getDb();
-        return db.prepare("\n      SELECT pri.id, pri.invoice_no, pri.product_id, pri.lot_id, pri.lot_number,\n             pri.manufactured_date, pri.expiry_date,\n             pri.cost_price, pri.sell_price,\n             pri.qty as qty_received, pri.note,\n             pri.created_at,\n             p.trade_name, p.code as product_code,\n             iu.name as unit_name,\n             pr.supplier_id, pr.supplier_invoice_no, pr.order_date,\n             pr.payment_type, pr.due_date, pr.is_paid, pr.paid_date,\n             s.name as supplier_name,\n             pr.discount_amount, pr.surcharge_amount,\n             COALESCE(pr.status,'completed') as status,\n             pr.cancelled_at, pr.cancel_reason\n      FROM purchase_receipt_items pri\n      JOIN products p ON p.id = pri.product_id\n      LEFT JOIN item_units iu ON iu.id = p.unit_id\n      LEFT JOIN purchase_receipts pr ON pr.invoice_no = pri.invoice_no\n      LEFT JOIN suppliers s ON s.id = pr.supplier_id\n      WHERE pri.invoice_no = ?\n      ORDER BY pri.id\n    ").all(invoice_no);
+        return db.prepare("\n      SELECT pri.id, pri.invoice_no, pri.product_id, pri.lot_id, pri.lot_number,\n             pri.manufactured_date, pri.expiry_date,\n             pri.cost_price, pri.sell_price,\n             pri.qty as qty_received, pri.note,\n             pri.created_at,\n             p.trade_name, p.code as product_code,\n             iu.name as unit_name,\n             pr.supplier_id, pr.supplier_invoice_no, pr.order_date,\n             pr.payment_type, pr.due_date, pr.is_paid, pr.paid_date,\n             s.name as supplier_name,\n             pr.discount_amount, pr.surcharge_amount,\n             COALESCE(pr.vat_mode,'none') as vat_mode, pr.vat_rate, pr.vat_amount,\n             COALESCE(pr.status,'completed') as status,\n             pr.cancelled_at, pr.cancel_reason\n      FROM purchase_receipt_items pri\n      JOIN products p ON p.id = pri.product_id\n      LEFT JOIN item_units iu ON iu.id = p.unit_id\n      LEFT JOIN purchase_receipts pr ON pr.invoice_no = pri.invoice_no\n      LEFT JOIN suppliers s ON s.id = pr.supplier_id\n      WHERE pri.invoice_no = ?\n      ORDER BY pri.id\n    ").all(invoice_no);
     });
     ipcMain.handle('purchase:updateHeader', function (_e, payload) {
         var _a;

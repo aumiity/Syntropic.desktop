@@ -571,6 +571,38 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    -- Barcode sticker print-page preference (singleton). Printer + paper (W×H)
+    -- come from label_settings (same physical printer + die-cut paper as drug
+    -- labels). This table only stores the chosen LAYOUT PRESET + content toggles.
+    -- preset resolves to {cols,rows,gap,font sizes,barcode height} via
+    -- src/lib/tags/presets.ts (cell size COMPUTED from the actual label paper;
+    -- presets too small for the paper are disabled in the UI). Columns map 1:1 to
+    -- the renderer form keys (dynamic-SQL save).
+    CREATE TABLE IF NOT EXISTS barcode_sticker_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      preset      TEXT NOT NULL DEFAULT '4up',
+      show_name   INTEGER NOT NULL DEFAULT 1,
+      show_price  INTEGER NOT NULL DEFAULT 1,
+      show_digits INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
+    -- Price-tag print-page preference (singleton). Printer + paper SIZE (A4/A5)
+    -- come from document_settings (printer_name + paper_size). This table only
+    -- stores the chosen LAYOUT PRESET + content toggles. preset resolves per paper
+    -- size via src/lib/tags/presets.ts (e.g. A4 '8up' = 2×4; A5 fewer).
+    CREATE TABLE IF NOT EXISTS price_tag_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      preset         TEXT NOT NULL DEFAULT '8up',
+      show_name      INTEGER NOT NULL DEFAULT 1,
+      show_price     INTEGER NOT NULL DEFAULT 1,
+      show_barcode   INTEGER NOT NULL DEFAULT 0,
+      show_code      INTEGER NOT NULL DEFAULT 0,
+      show_unit      INTEGER NOT NULL DEFAULT 1,
+      show_cut_lines INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     -- Database backup settings (singleton). auto_enabled gates the on-close +
     -- midnight auto-backups; retention_count caps how many auto-*.db files are
     -- kept. backup_dir is the user-chosen destination folder (NULL = default

@@ -8,6 +8,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { ZoomControl } from '@/components/ui/zoom-control'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { useShopVat } from '@/hooks/useShopVat'
@@ -16,7 +17,7 @@ import { buildSlipHtml } from '@/lib/receipt/buildSlipHtml'
 import { RC_SECTIONS, type RcAlign } from '@/lib/receipt/sections'
 import type { ReceiptSettings, SaleForPrint, Setting } from '@/types'
 import {
-  Printer, FileText, Save, ZoomIn, ZoomOut, Bold,
+  Printer, FileText, Save, Bold,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
 } from 'lucide-react'
 
@@ -237,32 +238,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
           title="ตัวอย่างใบเสร็จ"
           tint="success"
           right={
-            <div className="flex items-center gap-1">
-              <Button
-                type="button" size="icon-sm" variant="elevated"
-                disabled={zoom <= ZOOM_MIN}
-                onClick={() => setZoom(z => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 10) / 10))}
-                title="ซูมออก"
-              >
-                <ZoomOut className="size-4" />
-              </Button>
-              <Button
-                type="button" variant="ghost" size="sm"
-                onClick={() => setZoom(1)}
-                className="w-12 justify-center px-0 text-muted-foreground"
-                title="รีเซ็ตเป็นขนาดจริง (100%)"
-              >
-                {Math.round(zoom * 100)}%
-              </Button>
-              <Button
-                type="button" size="icon-sm" variant="elevated"
-                disabled={zoom >= ZOOM_MAX}
-                onClick={() => setZoom(z => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 10) / 10))}
-                title="ซูมเข้า"
-              >
-                <ZoomIn className="size-4" />
-              </Button>
-            </div>
+            <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
           }
         >
           {/* No flex `justify-center` here: when the zoomed slip is wider than
@@ -481,15 +457,11 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                     })}
                   </div>
 
-                  {/* Footer text belongs to the ข้อความท้ายใบเสร็จ group — revealed
-                      by its own row's checkbox so the toggle lives in one place. */}
-                  {!!form.show_footer && (
-                    <div className="mt-3">
-                      <FormField label="ข้อความท้ายใบเสร็จ">
-                        <Input variant="elevated" value={form.footer_note} onChange={e => setF('footer_note', e.target.value)} />
-                      </FormField>
-                    </div>
-                  )}
+                  <div className="mt-3">
+                    <FormField label="ข้อความท้ายใบเสร็จ">
+                      <Input variant="elevated" value={form.footer_note} onChange={e => setF('footer_note', e.target.value)} />
+                    </FormField>
+                  </div>
                 </SectionCard>
               </TabsContent>
             </div>

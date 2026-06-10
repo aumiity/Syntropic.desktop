@@ -109,6 +109,7 @@ const WAIT_FOR_RENDER_JS = `
     if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }
     try { await Promise.all([...document.images].map(img => img.decode().catch(() => {}))) } catch {}
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+    if (window.__labelFitReady) { try { await window.__labelFitReady } catch {} }
   })()
 `
 

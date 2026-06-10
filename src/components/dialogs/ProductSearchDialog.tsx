@@ -40,6 +40,9 @@ export interface ProductSearchDialogProps<Row> {
   size?: { width: string; height: string }
   /** sr-only dialog title. */
   title?: string
+  /** Row index the keyboard highlight resets to on each query change (default 0).
+   *  Stays keyboard-owned — only the reset target moves, no mouse handlers added. */
+  initialIdx?: number
 }
 
 /**
@@ -72,14 +75,16 @@ export function ProductSearchDialog<Row>({
   footerExtra,
   size,
   title = 'ค้นหาสินค้า',
+  initialIdx,
 }: ProductSearchDialogProps<Row>) {
-  const [highlightIdx, setHighlightIdx] = useState(0)
+  const [highlightIdx, setHighlightIdx] = useState(initialIdx ?? 0)
   const activeRowRef = useRef<HTMLDivElement>(null)
   const localInputRef = useRef<HTMLInputElement | null>(null)
 
   // Highlight is keyboard-owned: reset ONLY when the query text changes —
   // never on scroll/focus/hover (mouse handlers would reset it spuriously).
-  useEffect(() => { setHighlightIdx(0) }, [query])
+  // The reset target is initialIdx (e.g. a scanned unit row) when supplied.
+  useEffect(() => { setHighlightIdx(initialIdx ?? 0) }, [query, initialIdx])
 
   // Keep the highlighted row visible as the user arrows through.
   useEffect(() => {

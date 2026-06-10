@@ -7,12 +7,13 @@ import { FormField } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Toggle } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { ZoomControl } from '@/components/ui/zoom-control'
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, ZoomIn, ZoomOut, Info, Barcode } from 'lucide-react'
+import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, Info, Barcode } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Bundled fonts + the @font-face/esc helpers are shared with the receipt/tax
@@ -368,32 +369,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
           title="ตัวอย่างฉลาก"
           tint="success"
           right={
-            <div className="flex items-center gap-1">
-              <Button
-                type="button" size="icon-sm" variant="elevated"
-                disabled={zoom <= ZOOM_MIN}
-                onClick={() => setZoom(z => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 10) / 10))}
-                title="ซูมออก"
-              >
-                <ZoomOut className="size-4" />
-              </Button>
-              <Button
-                type="button" variant="ghost" size="sm"
-                onClick={() => setZoom(1)}
-                className="w-12 justify-center px-0 text-muted-foreground"
-                title="รีเซ็ตเป็นขนาดจริง (100%)"
-              >
-                {Math.round(zoom * 100)}%
-              </Button>
-              <Button
-                type="button" size="icon-sm" variant="elevated"
-                disabled={zoom >= ZOOM_MAX}
-                onClick={() => setZoom(z => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 10) / 10))}
-                title="ซูมเข้า"
-              >
-                <ZoomIn className="size-4" />
-              </Button>
-            </div>
+            <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
           }
         >
           {/* The label paper itself is rendered by the shared LabelPaper

@@ -14,6 +14,7 @@ const PurchaseIntake = lazy(() => import('./pages/PurchaseIntake'))
 const Products = lazy(() => import('./pages/Products'))
 const ProductsList = lazy(() => import('./pages/Products/ProductsList'))
 const BundlesList = lazy(() => import('./pages/Products/BundlesList'))
+const PrintTab = lazy(() => import('./pages/Products/PrintTab'))
 const EditProduct = lazy(() => import('./pages/Products/EditProduct'))
 const EditBundle = lazy(() => import('./pages/Products/EditBundle'))
 const People = lazy(() => import('./pages/People'))
@@ -117,6 +118,7 @@ export default function App() {
               <Route path="products" element={<Products />}>
                 <Route index element={<ProductsList />} />
                 <Route path="bundles" element={<BundlesList />} />
+                <Route path="print" element={<PrintTab />} />
               </Route>
               <Route path="products/new" element={<EditProduct />} />
               <Route path="products/:id/edit" element={<EditProduct />} />

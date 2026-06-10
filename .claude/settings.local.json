@@ -166,7 +166,10 @@
       "Bash(mdb-tables -1 /Users/CYUT/Documents/GitHub/hygeia.data.mdb)",
       "Read(//Users/CYUT/.claude/**)",
       "Bash(bash ~/.claude/statusline.sh)",
-      "Bash(echo \"exit=$?\")"
+      "Bash(echo \"exit=$?\")",
+      "Bash(sed -n '560,595p' electron/db/schema.ts)",
+      "Bash(sed -n '424,450p' electron/ipc/settings.ts)",
+      "Bash(sed -n '257,290p' electron/ipc/settings.ts)"
     ],
     "additionalDirectories": [
       "/tmp"

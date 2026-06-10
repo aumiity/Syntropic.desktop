@@ -5,6 +5,15 @@ metadata:
   type: project
 ---
 
+## Status — 2026-06-10c (POS LabelPrintDialog restructure + moved to dialogs/)
+
+Codex had built the POS print-label dialog with NO design-system adherence and misplaced the files. Fixed (tsc PASS, in-app visual verify pending):
+- **File moved to the canonical dialog home:** `src/pages/POS/LabelPrintDialog.tsx` → `src/components/dialogs/LabelPrintDialog.tsx` (where all 13 other dialogs live). Import in `src/pages/POS/index.tsx` updated to `@/components/dialogs/LabelPrintDialog`.
+- **Inlined the orphan panel:** codex's `src/components/label/PosLabelPrintPanel.tsx` (only this dialog used it) folded INTO the dialog file → one self-contained file like every other dialog. Old file + old page file DELETED.
+- **UI fixed to match the system:** bars now `h-12` / controls `h-9` (was `min-h-14`); language switch is `Tabs variant="toggle"` (canonical from LabelsTab) NOT a Select dropdown; preview uses `ZoomControl` + CSS `zoom` (was hard-coded `scale-[0.78]`); gradients removed; Badge default heights (was hand-set `h-6`/`h-5`); cart rows match LabelsTab list-row active style (`border-primary ring-2 ring-primary/30 bg-primary-soft/40`); no-label rows show a `CircleAlert` icon (was a raw `<div>!` styled as a badge); `rounded-card`/`rounded-lg` tokens.
+- **Left/right two-pane preserved:** LEFT = live preview of the *active* (clicked) cart product (zoom + language + quick-edit-label button); RIGHT = cart rows with per-row label Select + copies Input + select-all + status badges. All print/compose logic carried over unchanged.
+- **NOT touched (intentional):** `src/components/ui/zoom-control.tsx` (correctly placed, shared by Settings/Products), `src/lib/tags/` (orphan from a SEPARATE Barcode Price Tag feature, not this dialog).
+
 ## Status — 2026-06-10b (LabelFormDialog redesign + sort_order removed + delete confirm)
 
 Shared `LabelFormDialog` (used by LabelsTab + POS quick-add) reworked + small fixes (tsc PASS, in-app verified):
@@ -26,7 +35,7 @@ Two things shipped (tsc PASS; in-app visual verify pending):
 - **Screen:** `LabelPaper.tsx` mirrors it in `useLayoutEffect` via `computeFitScale`, applying transform IMPERATIVELY (React only owns the style props it sets; no transform binding → no fight, no re-render loop). Covers BOTH the LabelsTab preview and the Settings designer (shared component). `overflow:hidden` added on the paper so a floored-still-overflowing label clips instead of bleeding.
 - Below `MIN_SCALE` the paper clips (silent — owner chose silent shrink over a warn-and-fix flow, 2026-06-10). Trade-off: a long label at small `k` may print smaller / barcode could get tight to scan at extremes.
 
-**⏭️ Next:** ปรับ UI หน้าต่างพิมพ์ฉลาก POS (`LabelPrintDialog.tsx`) ให้สวย/ใช้ง่ายขึ้น (งานเดิมข้อ 1 ที่ยังค้าง).
+**⏭️ Next:** ~~ปรับ UI หน้าต่างพิมพ์ฉลาก POS (`LabelPrintDialog.tsx`)~~ — DONE 2026-06-10c (ดูบล็อกบนสุด: ย้ายไป `components/dialogs/` + แก้ UI ตรงสไตล์ + รวม panel เป็นไฟล์เดียว).
 
 ---
 

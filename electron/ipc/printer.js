@@ -208,7 +208,7 @@ export function registerPrinterHandlers() {
                     _a.sent();
                     // Wait for webfonts + layout before printing, otherwise Electron may
                     // snapshot the page with the default font or pre-layout sizing.
-                    return [4 /*yield*/, w.webContents.executeJavaScript("\n        (async () => {\n          if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }\n          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))\n        })()\n      ")];
+                    return [4 /*yield*/, w.webContents.executeJavaScript("\n        (async () => {\n          if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }\n          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))\n          // Auto shrink-to-fit runs in the page (LABEL_FIT_SCRIPT); wait for it\n          // so the snapshot captures the fitted layout, not the pre-fit overflow.\n          if (window.__labelFitReady) { try { await window.__labelFitReady } catch {} }\n        })()\n      ")];
                 case 3:
                     // Wait for webfonts + layout before printing, otherwise Electron may
                     // snapshot the page with the default font or pre-layout sizing.
@@ -260,7 +260,7 @@ export function registerPrinterHandlers() {
                     _a.sent();
                     // Wait for webfonts + layout before snapshotting, otherwise the PDF may
                     // capture the default font or pre-layout sizing (same race as printLabel).
-                    return [4 /*yield*/, w.webContents.executeJavaScript("\n        (async () => {\n          if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }\n          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))\n        })()\n      ")
+                    return [4 /*yield*/, w.webContents.executeJavaScript("\n        (async () => {\n          if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }\n          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))\n          // Auto shrink-to-fit runs in the page (LABEL_FIT_SCRIPT); wait for it\n          // so the snapshot captures the fitted layout, not the pre-fit overflow.\n          if (window.__labelFitReady) { try { await window.__labelFitReady } catch {} }\n        })()\n      ")
                         // preferCSSPageSize honors the @page { size } rule in the HTML; pageSize
                         // (microns) is the fallback for engines that ignore it.
                     ];

@@ -34,7 +34,7 @@ import { printSlip } from '@/lib/receipt/print'
 import { Printer, FileText, ReceiptText } from 'lucide-react'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
-import { LabelPrintDialog } from './LabelPrintDialog'
+import { LabelPrintDialog } from '@/components/dialogs/LabelPrintDialog'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
 import { extractVat, VAT_RATE_DEFAULT } from '@/lib/vat'
 import {
@@ -272,6 +272,8 @@ export default function POSPage() {
   const [returnQuery, setReturnQuery] = useState('')
   const [returnResults, setReturnResults] = useState<ProductWithDetails[]>([])
   const [returnSearching, setReturnSearching] = useState(false)
+  // ตัวคูณจำนวน (7-Eleven style) ของช่องรับคืน — single-use, รีเซ็ตเมื่อปิด/เพิ่มสินค้า
+  const [returnMultiplier, setReturnMultiplier] = useState<number | null>(null)
   const [returnList, setReturnList] = useState<ReturnLineItem[]>([])
   const [returnReason, setReturnReason] = useState('')
   const [returnSaving, setReturnSaving] = useState(false)
@@ -288,6 +290,8 @@ export default function POSPage() {
   const [adjustQuery, setAdjustQuery] = useState('')
   const [adjustResults, setAdjustResults] = useState<ProductWithDetails[]>([])
   const [adjustSearching, setAdjustSearching] = useState(false)
+  // ตัวคูณจำนวนของช่องตัดสต็อก — single-use, รีเซ็ตเมื่อปิด/เพิ่มสินค้า
+  const [adjustMultiplier, setAdjustMultiplier] = useState<number | null>(null)
   const [adjustList, setAdjustList] = useState<AdjustLineItem[]>([])
   const [adjustReason, setAdjustReason] = useState('')
   const [adjustSaving, setAdjustSaving] = useState(false)
@@ -508,6 +512,15 @@ export default function POSPage() {
     ...(p.units ?? []).map(u => ({ product: p, unit: u })),
   ])
 
+  // When a scanned barcode matches a non-base unit, pre-highlight that unit's row
+  // (without reordering — base stays first). Returns undefined → default highlight.
+  const matchedUnitIdx = (items: { product: ProductWithDetails; unit: ProductUnit | null }[]) => {
+    const i = items.findIndex(it => it.unit != null && it.unit.id === it.product.matched_unit_id)
+    return i >= 0 ? i : undefined
+  }
+  const searchInitialIdx = matchedUnitIdx(flatItems)
+  const adjustInitialIdx = matchedUnitIdx(adjustFlatItems)
+
   const handleSelectItem = (product: ProductWithDetails, unit: ProductUnit | null) => {
     const price = resolveSalePrice(unit ?? product, cart.saleType)
     const unitName = unit?.unit_name ?? product.unit_name ?? 'ชิ้น'
@@ -518,15 +531,24 @@ export default function POSPage() {
 
   // กด "*" หลังพิมพ์ตัวเลขล้วน 1..999 (เช่น 5*) = ตั้งตัวคูณ แล้วเคลียร์ช่องให้พร้อมสแกน/เลือก.
   // ถ้าช่องไม่ใช่ตัวเลขล้วน หรือเกินช่วง (0 / >999) ปล่อย "*" พิมพ์ลงช่องตามปกติ → ค้นชื่อที่มี * ได้.
-  const handleMultiplierKey = (e: React.KeyboardEvent): boolean => {
-    if (!multiplierEnabled || e.key !== '*' || !/^\d+$/.test(query)) return false
-    const n = parseInt(query, 10)
+  // Factory: ใช้ร่วมกันทั้ง search หลัก และ mini-POS รับคืน/ตัดสต็อก — แต่ละช่องส่ง query/setMult/clear ของตัวเอง.
+  const makeMultiplierKey = (
+    q: string,
+    setMult: (n: number | null) => void,
+    clearField: () => void,
+  ) => (e: React.KeyboardEvent): boolean => {
+    if (!multiplierEnabled || e.key !== '*' || !/^\d+$/.test(q)) return false
+    const n = parseInt(q, 10)
     if (n < 1 || n > 999) return false
     e.preventDefault()
-    setMultiplier(n)
-    setQuery(''); setResults([])
+    setMult(n)
+    clearField()
     return true
   }
+
+  const handleMultiplierKey = makeMultiplierKey(query, setMultiplier, () => { setQuery(''); setResults([]) })
+  const handleReturnMultiplierKey = makeMultiplierKey(returnQuery, setReturnMultiplier, () => { setReturnQuery(''); setReturnResults([]) })
+  const handleAdjustMultiplierKey = makeMultiplierKey(adjustQuery, setAdjustMultiplier, () => { setAdjustQuery(''); setAdjustResults([]) })
 
   const handleMainInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     handleMultiplierKey(e)
@@ -535,7 +557,7 @@ export default function POSPage() {
   const closeReturn = () => {
     setShowReturn(false)
     setReturnSearchOpen(false)
-    setReturnQuery(''); setReturnResults([])
+    setReturnQuery(''); setReturnResults([]); setReturnMultiplier(null)
     setReturnList([]); setReturnReason('')
     setReturnUnitRowIdx(null); setReturnQtyRowIdx(null)
   }
@@ -543,7 +565,7 @@ export default function POSPage() {
   const closeAdjust = () => {
     setShowAdjust(false)
     setAdjustSearchOpen(false)
-    setAdjustQuery(''); setAdjustResults([])
+    setAdjustQuery(''); setAdjustResults([]); setAdjustMultiplier(null)
     setAdjustList([]); setAdjustReason('')
     setAdjustQtyRowIdx(null)
   }
@@ -562,7 +584,7 @@ export default function POSPage() {
     }
   }, [])
 
-  const closeAdjustSearch = () => { setAdjustSearchOpen(false); setAdjustQuery(''); setAdjustResults([]) }
+  const closeAdjustSearch = () => { setAdjustSearchOpen(false); setAdjustQuery(''); setAdjustResults([]); setAdjustMultiplier(null) }
 
   // Add a product into the adjust list at the SCANNED/SELECTED unit (not forced
   // base), qty 1. FEFO lot allocation is resolved internally by
@@ -573,9 +595,10 @@ export default function POSPage() {
     const unit_name = unit?.unit_name ?? product.unit_name ?? 'ชิ้น'
     const qty_per_base = unit?.qty_per_base ?? 1
 
+    const mult = adjustMultiplier ?? 1 // ตัวคูณ single-use; closeAdjustSearch() จะรีเซ็ตหลังเพิ่มเสร็จ
     const idx = adjustList.findIndex(i => i.product_id === product.id && i.unit_id === unit_id)
     const draft = idx >= 0
-      ? adjustList.map((it, i) => i === idx ? { ...it, qty: it.qty + 1 } : it)
+      ? adjustList.map((it, i) => i === idx ? { ...it, qty: it.qty + mult } : it)
       : [...adjustList, {
           product_id: product.id,
           product_name: product.trade_name,
@@ -583,7 +606,7 @@ export default function POSPage() {
           unit_id,
           unit_name,
           qty_per_base,
-          qty: 1,
+          qty: mult,
           base_qty: 0,
           allocations: [],
           line_total: 0,
@@ -652,7 +675,7 @@ export default function POSPage() {
     }
   }, [])
 
-  const closeReturnSearch = () => { setReturnSearchOpen(false); setReturnQuery(''); setReturnResults([]) }
+  const closeReturnSearch = () => { setReturnSearchOpen(false); setReturnQuery(''); setReturnResults([]); setReturnMultiplier(null) }
 
   // Add a product into the return list at its BASE unit, qty 1, default lot
   // (first = FEFO order from getLots). Unit/qty/lot are edited inline after.
@@ -673,11 +696,12 @@ export default function POSPage() {
     if (!lots || lots.length === 0) { toast('ไม่พบล็อตสำหรับสินค้านี้', 'error'); return }
     const lot = lots[0]
     const unitPrice = product.price_retail ?? 0
+    const mult = returnMultiplier ?? 1 // ตัวคูณ single-use; closeReturnSearch() จะรีเซ็ตหลังเพิ่มเสร็จ
     setReturnList(list => {
       const idx = list.findIndex(i => i.product_id === product.id && i.unit_id === -1 && i.lot_id === lot.id)
       if (idx >= 0) {
         return list.map((item, i) => i === idx
-          ? { ...item, qty: item.qty + 1, line_total: (item.qty + 1) * item.unit_price }
+          ? { ...item, qty: item.qty + mult, line_total: (item.qty + mult) * item.unit_price }
           : item)
       }
       return [...list, {
@@ -688,8 +712,8 @@ export default function POSPage() {
         unit_name: product.unit_name ?? 'ชิ้น',
         qty_per_base: 1,
         unit_price: unitPrice,
-        qty: 1,
-        line_total: unitPrice,
+        qty: mult,
+        line_total: unitPrice * mult,
         lot_id: lot.id,
         lot_number: lot.lot_number ?? '',
         expiry_date: lot.expiry_date ?? null,
@@ -1389,6 +1413,7 @@ export default function POSPage() {
         searching={searching}
         rows={flatItems}
         resultCount={results.length}
+        initialIdx={searchInitialIdx}
         inputRef={modalInputRef}
         onInputKeyDown={handleMultiplierKey}
         rowKey={(it) => `${it.product.id}-${it.unit?.id ?? 'base'}`}
@@ -1914,6 +1939,7 @@ export default function POSPage() {
                 placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อ/รหัสสินค้าเพื่อเพิ่ม..."
                 value={adjustQuery}
                 onChange={e => handleAdjustSearch(e.target.value)}
+                onKeyDown={handleAdjustMultiplierKey}
                 onFocus={() => { if (adjustQuery.trim()) setAdjustSearchOpen(true) }}
                 wrapperClassName="w-full"
                 className="h-11 text-base"
@@ -1982,7 +2008,7 @@ export default function POSPage() {
                               </TooltipContent>
                             </Tooltip>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
                               <ClockAlert className="size-3 shrink-0" />
                               Lot {firstAlloc?.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}
                             </span>
@@ -2071,6 +2097,7 @@ export default function POSPage() {
                 placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อ/รหัสสินค้าเพื่อเพิ่ม..."
                 value={returnQuery}
                 onChange={e => handleReturnSearch(e.target.value)}
+                onKeyDown={handleReturnMultiplierKey}
                 onFocus={() => { if (returnQuery.trim()) setReturnSearchOpen(true) }}
                 wrapperClassName="w-full"
                 className="h-11 text-base"
@@ -2206,6 +2233,9 @@ export default function POSPage() {
         searching={returnSearching}
         rows={returnResults}
         inputRef={returnSearchInputRef}
+        onInputKeyDown={handleReturnMultiplierKey}
+        headerRight={returnMultiplier !== null ? <Badge variant="primary-soft" className="shrink-0">ตัวคูณ × {returnMultiplier}</Badge> : undefined}
+        footerExtra={returnMultiplier !== null ? <span className="text-primary font-semibold"> · ตัวคูณ × {returnMultiplier}</span> : undefined}
         rowKey={(p) => String(p.id)}
         rowClassName="grid items-center px-4 py-2.5"
         rowStyle={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
@@ -2298,7 +2328,11 @@ export default function POSPage() {
         searching={adjustSearching}
         rows={adjustFlatItems}
         resultCount={adjustResults.length}
+        initialIdx={adjustInitialIdx}
         inputRef={adjustSearchInputRef}
+        onInputKeyDown={handleAdjustMultiplierKey}
+        headerRight={adjustMultiplier !== null ? <Badge variant="primary-soft" className="shrink-0">ตัวคูณ × {adjustMultiplier}</Badge> : undefined}
+        footerExtra={adjustMultiplier !== null ? <span className="text-primary font-semibold"> · ตัวคูณ × {adjustMultiplier}</span> : undefined}
         rowKey={(it) => `${it.product.id}-${it.unit?.id ?? 'base'}`}
         rowClassName="grid items-center px-4 py-2.5"
         rowStyle={{ gridTemplateColumns: '1fr 100px 100px' }}

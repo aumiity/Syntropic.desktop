@@ -142,6 +142,7 @@ declare const api: {
         hourlyTraffic: (filters: any) => Promise<any>;
         cashierLeaderboard: (filters: any) => Promise<any>;
         salesStats: (filters: any) => Promise<any>;
+        vatSummary: (filters: any) => Promise<any>;
         inactiveProducts: (filters: any) => Promise<any>;
         inactiveCounts: () => Promise<any>;
         productVelocity: (filters: any) => Promise<any>;
@@ -161,6 +162,9 @@ declare const api: {
         saveLabelSettings: (data: any) => Promise<any>;
         getSalesSettings: () => Promise<any>;
         saveSalesSettings: (data: any) => Promise<any>;
+        upgradeToVat: (data: any) => Promise<any>;
+        downgradeFromVat: (data: any) => Promise<any>;
+        hasVatHistory: () => Promise<any>;
         getReceiptSettings: () => Promise<any>;
         saveReceiptSettings: (data: any) => Promise<any>;
         getDocumentSettings: () => Promise<any>;

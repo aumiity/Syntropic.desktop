@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/toast'
 import { SectionCard } from '@/components/ui/card'
+import { ZoomControl } from '@/components/ui/zoom-control'
 import { cn } from '@/lib/utils'
-import { Plus, Trash2, Edit, Pill, List, Printer, FileText, ZoomIn, ZoomOut, Languages } from 'lucide-react'
+import { Plus, Trash2, Edit, Pill, List, Printer, FileText, Languages } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { ProductLabel } from '@/types'
 import type { FullProduct } from './shared'
@@ -195,32 +196,7 @@ export function LabelsTab({
           tint="success"
           right={
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button" size="icon-sm" variant="elevated"
-                  disabled={zoom <= ZOOM_MIN}
-                  onClick={() => setZoom(z => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 10) / 10))}
-                  title="ซูมออก"
-                >
-                  <ZoomOut className="size-4" />
-                </Button>
-                <Button
-                  type="button" variant="ghost" size="sm"
-                  onClick={() => setZoom(1)}
-                  className="w-12 justify-center px-0 text-muted-foreground"
-                  title="รีเซ็ตเป็นขนาดจริง (100%)"
-                >
-                  {Math.round(zoom * 100)}%
-                </Button>
-                <Button
-                  type="button" size="icon-sm" variant="elevated"
-                  disabled={zoom >= ZOOM_MAX}
-                  onClick={() => setZoom(z => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 10) / 10))}
-                  title="ซูมเข้า"
-                >
-                  <ZoomIn className="size-4" />
-                </Button>
-              </div>
+              <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
               <Button variant="elevated" onClick={handlePreviewPdf} disabled={!selected || pdfLoading} className="h-9 px-3">
                 <FileText className="size-4" /> {pdfLoading ? 'กำลังสร้าง...' : 'ดู PDF'}
               </Button>
@@ -240,7 +216,7 @@ export function LabelsTab({
               (composeLabelContent receives `lang`), keeping preview = print 1:1. */}
           <div className="mb-3 flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-              <Languages className="size-4 text-muted-foreground" /> ภาษาฉลาก
+              <Languages className="size-4 text-muted-foreground" /> ภาษา
             </div>
             <Tabs value={lang} onValueChange={v => setLang(v as LabelLang)}>
               <TabsList variant="toggle">
@@ -332,6 +308,7 @@ export function LabelsTab({
         open={labelDialog}
         onOpenChange={setLabelDialog}
         productId={productId}
+        productName={product.name_for_print || product.trade_name || ''}
         editingLabel={editingLabel}
         productBarcode={product.barcode}
         lookups={{ labelFrequencies, labelDosages, labelMealRelations, labelTimes, labelAdvices }}

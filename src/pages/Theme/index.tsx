@@ -798,6 +798,16 @@ export default function Theme() {
                     <Label htmlFor="cb-dc" className="opacity-50">Disabled Checked</Label>
                   </div>
                 </DemoRow>
+                <DemoRow label="Sizes">
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="cb-sd" defaultChecked />
+                    <Label htmlFor="cb-sd">default (16px)</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="cb-sl" size="lg" defaultChecked />
+                    <Label htmlFor="cb-sl">lg (20px) — touch</Label>
+                  </div>
+                </DemoRow>
               </Section>
 
               {/* ── SWITCH ── */}

@@ -20,6 +20,9 @@ export interface Product {
   search_keywords?: string; note?: string
   // Joined
   category_name?: string; drug_type_name?: string; unit_name?: string
+  // pos:searchProducts only — id of the non-base unit whose barcode exactly
+  // matches the scanned query, so POS can pre-highlight that unit row.
+  matched_unit_id?: number
   stock_qty?: number
   component_count?: number  // bundle list: how many components this bundle has
   // Relations

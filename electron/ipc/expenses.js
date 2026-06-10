@@ -35,7 +35,7 @@ import { requireAdmin } from '../auth/session';
 //     retry-on-unique-collision (mirrors quotation.ts QT- numbering).
 // Allow-listed editable columns (shared by create + update). expense_no /
 // created_at are never in here — they're set once on create.
-var EXPENSE_COLS = ['expense_date', 'category_id', 'amount', 'reference_no', 'note'];
+var EXPENSE_COLS = ['expense_date', 'category_id', 'amount', 'reference_no', 'note', 'vat_amount', 'has_tax_invoice'];
 function validateExpense(payload) {
     var amount = Number(payload.amount);
     if (!Number.isFinite(amount) || amount <= 0)
@@ -44,17 +44,30 @@ function validateExpense(payload) {
         throw new Error('กรุณาเลือกหมวดค่าใช้จ่าย');
     if (!payload.expense_date)
         throw new Error('กรุณาระบุวันที่');
+    // Input VAT can never meet or exceed the VAT-inclusive amount paid
+    if (payload.has_tax_invoice) {
+        var vat = Number(payload.vat_amount);
+        if (!Number.isFinite(vat) || vat < 0)
+            throw new Error('กรุณาระบุยอดภาษีซื้อให้ถูกต้อง');
+        if (vat >= amount)
+            throw new Error('ยอดภาษีซื้อต้องน้อยกว่ายอดค่าใช้จ่าย');
+    }
 }
 // Map a payload to a clean column object (allow-list only). Unknown keys are
-// dropped; missing optional fields become null.
+// dropped; missing optional fields become null. vat_amount is only claimable
+// with a full tax invoice — forced 0 when has_tax_invoice is off so the
+// ภาษีซื้อ report can trust the column directly.
 function pickExpenseCols(payload) {
     var _a, _b, _c;
+    var hasTaxInvoice = payload.has_tax_invoice ? 1 : 0;
     return {
         expense_date: payload.expense_date,
         category_id: (_a = payload.category_id) !== null && _a !== void 0 ? _a : null,
         amount: Number(payload.amount),
         reference_no: (_b = payload.reference_no) !== null && _b !== void 0 ? _b : null,
         note: (_c = payload.note) !== null && _c !== void 0 ? _c : null,
+        vat_amount: hasTaxInvoice ? (Number(payload.vat_amount) || 0) : 0,
+        has_tax_invoice: hasTaxInvoice,
     };
 }
 export function registerExpenseHandlers() {
@@ -150,7 +163,7 @@ export function registerExpenseHandlers() {
                 var next = ((_a = row === null || row === void 0 ? void 0 : row.maxNum) !== null && _a !== void 0 ? _a : 0) + 1;
                 var expenseNo = "EX-".concat(today, "-").concat(String(next).padStart(4, '0'));
                 try {
-                    var res = db.prepare("\n            INSERT INTO expenses (expense_no, expense_date, category_id, amount, reference_no, note, created_at, updated_at)\n            VALUES (@expense_no, @expense_date, @category_id, @amount, @reference_no, @note, datetime('now','localtime'), datetime('now','localtime'))\n          ").run(__assign({ expense_no: expenseNo }, cols));
+                    var res = db.prepare("\n            INSERT INTO expenses (expense_no, expense_date, category_id, amount, reference_no, note, vat_amount, has_tax_invoice, created_at, updated_at)\n            VALUES (@expense_no, @expense_date, @category_id, @amount, @reference_no, @note, @vat_amount, @has_tax_invoice, datetime('now','localtime'), datetime('now','localtime'))\n          ").run(__assign({ expense_no: expenseNo }, cols));
                     return res.lastInsertRowid;
                 }
                 catch (e) {
