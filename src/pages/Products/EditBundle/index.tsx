@@ -330,13 +330,13 @@ export default function EditBundlePage() {
           </TabsList>
         </Tabs>
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="primary-soft" size="lg" className="h-9 px-2" onClick={goBack}>
+          <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={goBack}>
             <ArrowLeft className="size-4" /> ย้อนกลับ
           </Button>
           {tab === 'general' && (
             <Button
               size="lg"
-              className="h-9 px-3"
+              className="h-10 px-3"
               onClick={handleSave}
               disabled={saving || (isNew && draftItems.length < 2)}
               title={isNew && draftItems.length < 2 ? 'ต้องเพิ่มรายการอย่างน้อย 2 รายการก่อน' : undefined}

@@ -6,12 +6,21 @@
 | `products` | list, get, create, update, adjustStock, addUnit/updateUnit/deleteUnit, saveLabel/deleteLabel, searchGenericNames, getLots |
 | `purchase` | nextGRNumber, save, history, getReceipt |
 | `people` | customers CRUD, suppliers CRUD, staff/users CRUD, allSuppliers |
-| `reports` | salesList, getSale, voidSale, purchaseList |
-| `settings` | shopSettings, updateShopSettings, categories, itemUnits, drugTypes, dosageForms, allLabelLookups, labelSettings, updateLabelSettings |
+| `reports` | salesList, getSale, voidSale, purchaseList, vatSummary |
+| `settings` | shopSettings, updateShopSettings, categories, itemUnits, drugTypes, dosageForms, allLabelLookups, labelSettings, updateLabelSettings, upgradeToVat |
 | `printer` | printReceipt, openCashDrawer |
 | `auth` | listLoginUsers, login, logout, resetAdminPassword |
 
 Handlers live in `electron/ipc/*.ts`; bridge in `electron/preload.ts`.
+
+## VAT-specific handlers (2026-06-10)
+
+- `settings:upgradeToVat({tax_id, branch, vat_rate, effective_date})` — admin-only upgrade to VAT-registered mode. Validates 13-digit tax id + rate + date; writes `settings` (tax id/branch/registered date) + `sales_settings.vat_enabled=1` + a `vat_audit_log` row in one tx. Throws if already VAT.
+- `settings:downgradeFromVat({password, reason})` — admin-only guarded downgrade. Re-verifies the **logged-in admin's own password** (scrypt + login lockout backoff; throws `'LOCKED'` with `remainingMs`) and requires a reason; sets `vat_enabled=0` + audit row (`action='downgrade'`, reason) in one tx. Keeps registration data in `settings`; never touches old bills.
+- `settings:hasVatHistory()` → boolean — any VAT bills / input-VAT GRs / vat_audit_log rows exist. Drives the Reports ภาษี tab visibility for downgraded shops.
+- `settings:saveSalesSettings` **strips `vat_enabled`/`vat_rate` main-side** — VAT mode can never be flipped through the generic save, even by a crafted payload.
+- `reports:vatSummary({date_from, date_to})` — admin-only. Returns `{output, input, net_vat, sales_rows, purchase_rows, expense_rows}` for the ภาษีขาย/ภาษีซื้อ/ภ.พ.30 report (`/reports/vat`).
+- `purchase:save` accepts `vat_mode` (`'none'|'inclusive'|'exclusive'`, per bill) + `vat_rate`; forces `'none'` when the shop is NO-VAT. See `business-logic.md` → VAT for the cost rule.
 
 ## `auth` (login)
 

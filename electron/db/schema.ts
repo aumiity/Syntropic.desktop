@@ -412,7 +412,6 @@ export function initializeSchema(db: Database.Database) {
       is_default INTEGER NOT NULL DEFAULT 0,
       show_barcode INTEGER NOT NULL DEFAULT 0,
       is_active INTEGER NOT NULL DEFAULT 1,
-      sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
@@ -604,6 +603,24 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    -- VAT mode transition audit. The shop's VAT status is never a free Settings
+    -- toggle — flipping VAT off mid-stream leaves a gap in the continuous RC-
+    -- sequence (สรรพากร red flag). Transitions go through guarded flows only:
+    -- action 'upgrade' (setup wizard / settings:upgradeToVat) and 'downgrade'
+    -- (settings:downgradeFromVat — admin password re-entry + mandatory reason).
+    -- Every transition is recorded here with who/when/why.
+    CREATE TABLE IF NOT EXISTS vat_audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      tax_id TEXT NOT NULL DEFAULT '',
+      branch TEXT NOT NULL DEFAULT '',
+      vat_rate REAL NOT NULL DEFAULT 7,
+      effective_date TEXT,
+      reason TEXT,
+      performed_by INTEGER REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     -- Quotations (ใบเสนอราคา). Pre-sale price offers — NEVER touch stock/lots.
     -- quote_no = QT-YYYYMMDD-NNNN (generated with retry-on-unique-collision).
     -- Customer fields are a snapshot at issue time so a reprint stays stable.
@@ -664,6 +681,12 @@ export function initializeSchema(db: Database.Database) {
       amount REAL NOT NULL,
       reference_no TEXT,
       note TEXT,
+      -- Input VAT (ภาษีซื้อ) on operating expenses. amount stays the full sum
+      -- paid (VAT-inclusive as on the receipt); vat_amount is the claimable
+      -- portion — only meaningful when has_tax_invoice = 1 (a full tax invoice
+      -- is required to claim; the ภาษีซื้อ report filters on it).
+      vat_amount REAL NOT NULL DEFAULT 0,
+      has_tax_invoice INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
@@ -683,6 +706,13 @@ export function initializeSchema(db: Database.Database) {
       note TEXT NOT NULL DEFAULT '',
       discount_amount REAL NOT NULL DEFAULT 0,
       surcharge_amount REAL NOT NULL DEFAULT 0,
+      -- Input VAT (ภาษีซื้อ) — declared PER BILL because not every supplier is
+      -- VAT-registered. vat_mode: 'none' | 'inclusive' (line prices contain
+      -- VAT) | 'exclusive' (VAT added on top of line prices). vat_amount is a
+      -- snapshot computed at save time; the ภาษีซื้อ report reads it directly.
+      vat_mode TEXT NOT NULL DEFAULT 'none',
+      vat_rate REAL NOT NULL DEFAULT 0,
+      vat_amount REAL NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'completed',
       cancelled_at TEXT,
       cancelled_by INTEGER REFERENCES users(id),
@@ -766,6 +796,16 @@ export function initializeSchema(db: Database.Database) {
   for (const sql of [
     `ALTER TABLE purchase_receipts ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE purchase_receipts ADD COLUMN surcharge_amount REAL NOT NULL DEFAULT 0`,
+    // Input VAT (ภาษีซื้อ) per GR — see the purchase_receipts CREATE TABLE comment.
+    `ALTER TABLE purchase_receipts ADD COLUMN vat_mode TEXT NOT NULL DEFAULT 'none'`,
+    `ALTER TABLE purchase_receipts ADD COLUMN vat_rate REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE purchase_receipts ADD COLUMN vat_amount REAL NOT NULL DEFAULT 0`,
+    // Input VAT (ภาษีซื้อ) on expenses — see the expenses CREATE TABLE comment.
+    `ALTER TABLE expenses ADD COLUMN vat_amount REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE expenses ADD COLUMN has_tax_invoice INTEGER NOT NULL DEFAULT 0`,
+    // Downgrade flow records why VAT was turned off (DBs created before this
+    // column already have the table from the same release).
+    `ALTER TABLE vat_audit_log ADD COLUMN reason TEXT`,
     // POS quantity multiplier (*N) feature toggle — default on for existing DBs.
     `ALTER TABLE sales_settings ADD COLUMN qty_multiplier_enabled INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE sales_settings ADD COLUMN vat_enabled INTEGER NOT NULL DEFAULT 0`,
@@ -1177,6 +1217,8 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE customers DROP COLUMN warning_note`,
     `ALTER TABLE customers DROP COLUMN is_hidden`,
     `ALTER TABLE suppliers DROP COLUMN contact_name`,
+    // ลำดับฉลาก (sort_order) ถอดออก — ฉลากเรียงตาม id (ลำดับสร้าง) แทน.
+    `ALTER TABLE product_labels DROP COLUMN sort_order`,
   ]) {
     try { db.exec(sql) } catch {}
   }

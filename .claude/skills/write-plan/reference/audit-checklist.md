@@ -13,6 +13,7 @@ Used in step 4 of `/write-plan`. Send this checklist to a sub-agent to review th
 - [ ] Every path / file / function / table / column the plan cites **actually exists** (open and check).
 - [ ] Every IPC method / `window.api.*` cited exists in `electron/preload.ts` + a handler.
 - [ ] Assumptions about existing code behavior match the real code, not a guess.
+- [ ] If the plan/HTML includes a diagram: every node label cites a real path/table/IPC channel, arrow direction matches the real call flow, and it is drawn in-file with the template's `.flow` / `svg.sd` helpers (no Mermaid, no CDN, no external images, no ascii-art).
 
 ### 2. Invariants (from CLAUDE.md "HARD invariants")
 - [ ] Save payloads are allow-listed, no raw `...form` spread (products:update, etc.).

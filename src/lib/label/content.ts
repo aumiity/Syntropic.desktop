@@ -36,6 +36,15 @@ export function todayBE(d: Date = new Date()): string {
 // `*_th/_en/_mm/_zh` column suffix on the lookup rows + indication fields.
 export type LabelLang = 'th' | 'en' | 'mm' | 'zh'
 
+// Shared language picker options (POS print dialog + per-product LabelsTab
+// preview). One source so the two language selectors never drift.
+export const LANG_OPTIONS: { value: LabelLang; label: string }[] = [
+  { value: 'th', label: 'ไทย' },
+  { value: 'en', label: 'อังกฤษ' },
+  { value: 'mm', label: 'พม่า' },
+  { value: 'zh', label: 'จีน' },
+]
+
 interface LabelLike {
   dose_qty?: number | string | null
   dosage_id?: number | null

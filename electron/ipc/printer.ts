@@ -169,6 +169,9 @@ export function registerPrinterHandlers() {
         (async () => {
           if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }
           await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+          // Auto shrink-to-fit runs in the page (LABEL_FIT_SCRIPT); wait for it
+          // so the snapshot captures the fitted layout, not the pre-fit overflow.
+          if (window.__labelFitReady) { try { await window.__labelFitReady } catch {} }
         })()
       `)
       await new Promise<void>((resolve, reject) => {
@@ -210,6 +213,9 @@ export function registerPrinterHandlers() {
         (async () => {
           if (document.fonts && document.fonts.ready) { try { await document.fonts.ready } catch {} }
           await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+          // Auto shrink-to-fit runs in the page (LABEL_FIT_SCRIPT); wait for it
+          // so the snapshot captures the fitted layout, not the pre-fit overflow.
+          if (window.__labelFitReady) { try { await window.__labelFitReady } catch {} }
         })()
       `)
       // preferCSSPageSize honors the @page { size } rule in the HTML; pageSize

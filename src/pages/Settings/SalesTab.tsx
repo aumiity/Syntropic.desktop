@@ -2,25 +2,28 @@ import { useCallback, useEffect, useState } from 'react'
 import { SectionCard } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
+import { UpgradeVatDialog } from '@/components/dialogs/UpgradeVatDialog'
+import { DowngradeVatDialog } from '@/components/dialogs/DowngradeVatDialog'
 import { ClockAlert, PackageX, Info, Bell, ReceiptText } from 'lucide-react'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
+import { formatDate } from '@/lib/utils'
 import type { SalesSettings } from '@/types'
 
 // Form keys mirror sales_settings columns 1:1 — settings:saveSalesSettings
 // builds dynamic SQL from Object.keys(), so any renamed key throws "no such column".
 // Note: expiry warn/danger months are NOT here — they're fixed constants in
 // '@/lib/expiry', not settings columns. See that file.
-type SalesForm = Omit<SalesSettings, 'id' | 'updated_at'>
+// vat_enabled/vat_rate are NOT form fields: VAT mode is a one-time decision
+// (setup wizard / upgradeToVat) — the backend strips them from this save too.
+type SalesForm = Omit<SalesSettings, 'id' | 'updated_at' | 'vat_enabled' | 'vat_rate'>
 
 const DEFAULT_FORM: SalesForm = {
   expiry_alert_enabled: 1,
   expired_alert_enabled: 1,
   low_stock_alert_enabled: 1,
   qty_multiplier_enabled: 1,
-  vat_enabled: 0,
-  vat_rate: 7,
 }
 
 export function SalesTab({ registerSave, saving, setSaving }: {
@@ -30,9 +33,24 @@ export function SalesTab({ registerSave, saving, setSaving }: {
 }) {
   const { toast } = useToast()
   const [form, setForm] = useState<SalesForm>(DEFAULT_FORM)
-  // Raw text for the VAT rate so decimals (e.g. "7.5") and a transient empty
-  // field can be typed without each keystroke being reparsed/clamped.
-  const [vatRateStr, setVatRateStr] = useState<string>(String(DEFAULT_FORM.vat_rate))
+  // VAT status display (read-only here) — mode itself is changed only through
+  // the guarded one-way UpgradeVatDialog, never a toggle on this tab.
+  const [vatEnabled, setVatEnabled] = useState(false)
+  const [vatRate, setVatRate] = useState(7)
+  const [vatRegisteredDate, setVatRegisteredDate] = useState<string | null>(null)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const [downgradeOpen, setDowngradeOpen] = useState(false)
+
+  const loadVatStatus = useCallback(() => {
+    window.api.settings.getSalesSettings().then((d: any) => {
+      if (!d) return
+      setVatEnabled(d.vat_enabled === 1)
+      setVatRate(Number(d.vat_rate) || 7)
+    })
+    window.api.settings.getShop().then((s: any) => {
+      setVatRegisteredDate(s?.vat_registered_date ?? null)
+    })
+  }, [])
 
   useEffect(() => {
     window.api.settings.getSalesSettings().then(data => {
@@ -44,13 +62,11 @@ export function SalesTab({ registerSave, saving, setSaving }: {
           low_stock_alert_enabled: d.low_stock_alert_enabled,
           // ระบบคูณจำนวน — บังคับเปิดตลอด ไม่อ่านค่าจาก DB (ไม่มี toggle ใน UI แล้ว)
           qty_multiplier_enabled: 1,
-          vat_enabled: d.vat_enabled,
-          vat_rate: d.vat_rate,
         })
-        setVatRateStr(String(d.vat_rate))
       }
     })
-  }, [])
+    loadVatStatus()
+  }, [loadVatStatus])
 
   const setF = <K extends keyof SalesForm>(k: K, v: SalesForm[K]) =>
     setForm(f => ({ ...f, [k]: v }))
@@ -133,51 +149,58 @@ export function SalesTab({ registerSave, saving, setSaving }: {
           tint="info-soft"
         >
           <div className="space-y-3">
+            {/* VAT mode is a one-time decision — no toggle here by design.
+                NO-VAT shops get the guarded one-way upgrade button instead. */}
             <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
-              <Toggle
-                className="justify-between w-full h-11 px-3"
-                label={
-                  <span className="flex items-center gap-2">
-                    เปิดใช้ระบบภาษีมูลค่าเพิ่ม (VAT)
-                    <Badge variant="warm">เร็ว ๆ นี้</Badge>
-                  </span>
-                }
-                checked={false}
-                onChange={() => {}}
-                disabled
-              />
-
               <div className="flex items-center justify-between gap-3 h-11 px-3">
-                <span className="text-sm font-medium text-foreground">อัตราภาษี</span>
-                <div className="flex items-center gap-2">
-                  <Input
-                    variant="elevated"
-                    type="text"
-                    inputMode="decimal"
-                    value={vatRateStr}
-                    onChange={e => {
-                      const raw = e.target.value
-                      setVatRateStr(raw)
-                      const n = parseFloat(raw)
-                      setF('vat_rate', Number.isNaN(n) ? 0 : Math.min(100, Math.max(0, n)))
-                    }}
-                    onBlur={() => setVatRateStr(String(form.vat_rate))}
-                    disabled
-                    className="h-8 w-16 text-right"
-                  />
-                  <span className="text-sm text-muted-foreground">%</span>
-                </div>
+                <span className="text-sm font-medium text-foreground">สถานะร้าน</span>
+                {vatEnabled
+                  ? <Badge variant="success-outline">จดทะเบียน VAT</Badge>
+                  : <Badge variant="neutral-outline">ไม่จดทะเบียน VAT</Badge>}
               </div>
+              {vatEnabled ? (
+                <>
+                  <div className="flex items-center justify-between gap-3 h-11 px-3">
+                    <span className="text-sm font-medium text-foreground">อัตราภาษี</span>
+                    <span className="text-sm text-foreground">{vatRate}%</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 h-11 px-3">
+                    <span className="text-sm font-medium text-foreground">วันที่จดทะเบียน</span>
+                    <span className="text-sm text-foreground">{vatRegisteredDate ? formatDate(vatRegisteredDate) : '—'}</span>
+                  </div>
+                  {/* Guarded downgrade — admin password re-entry + reason, audited */}
+                  <div className="flex items-center justify-between gap-3 h-11 px-3">
+                    <span className="text-sm text-muted-foreground">เพิกถอนทะเบียน VAT แล้ว?</span>
+                    <Button variant="destructive2" onClick={() => setDowngradeOpen(true)}>
+                      ปิดระบบ VAT
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-between gap-3 h-11 px-3">
+                  <span className="text-sm text-muted-foreground">ร้านจดทะเบียน VAT แล้วใช่ไหม?</span>
+                  <Button variant="default" onClick={() => setUpgradeOpen(true)}>
+                    เปิดใช้ระบบ VAT
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="rounded-lg border bg-muted/50 px-3 py-2 flex items-start gap-1.5 text-sm text-muted-foreground">
               <Info className="size-3.5 shrink-0 mt-0.5" />
-              <span>ราคาสินค้าที่ตั้งไว้ถือว่า<span className="font-medium text-foreground">รวม VAT แล้ว</span> — ระบบจะถอดภาษีออกมาแสดงในใบเสร็จ ยอดที่ลูกค้าจ่ายไม่เปลี่ยน. เมื่อเปิดใช้งาน VAT จะคิดกับ<span className="font-medium text-foreground">สินค้าทุกรายการ</span> (ทั้งร้านเปิด/ปิดพร้อมกัน ไม่มีการตั้งรายตัว)</span>
+              {vatEnabled ? (
+                <span>ราคาสินค้าที่ตั้งไว้ถือว่า<span className="font-medium text-foreground">รวม VAT แล้ว</span> — ระบบถอดภาษีออกมาแสดงในใบเสร็จ ยอดที่ลูกค้าจ่ายไม่เปลี่ยน และคิดกับ<span className="font-medium text-foreground">สินค้าทุกรายการ</span>. การปิดระบบทำได้เฉพาะผู้ดูแลระบบยืนยันรหัสผ่านพร้อมเหตุผล และ<span className="font-medium text-foreground">ถูกบันทึกประวัติทุกครั้ง</span></span>
+              ) : (
+                <span>ขณะนี้ระบบ<span className="font-medium text-foreground">ไม่คิด VAT</span> กับการขาย. หากร้านจดทะเบียน VAT ในภายหลัง ให้กด "เปิดใช้ระบบ VAT" — ระบบจะคิด VAT กับทุกบิลนับจากนั้น การเปิด/ปิดถูก<span className="font-medium text-foreground">บันทึกประวัติเพื่อการตรวจสอบทุกครั้ง</span></span>
+              )}
             </div>
           </div>
         </SectionCard>
 
       </div>
+
+      <UpgradeVatDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} onUpgraded={loadVatStatus} />
+      <DowngradeVatDialog open={downgradeOpen} onOpenChange={setDowngradeOpen} onDowngraded={loadVatStatus} />
     </div>
   )
 }

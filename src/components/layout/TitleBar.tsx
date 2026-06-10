@@ -1,6 +1,49 @@
 import React, { useState, useEffect } from 'react'
-import { Minus, Plus, X, Maximize2 } from 'lucide-react'
+import { Minus, Plus, X, Maximize2, Copy, Check } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+
+// DEV ONLY — route path → source file map for quick copy-paste to Claude
+const ROUTE_FILE_MAP: { pattern: string; file: string }[] = [
+  { pattern: '/products/bundles/new',      file: 'src/pages/Products/EditBundle/index.tsx' },
+  { pattern: '/products/bundles/:id/edit', file: 'src/pages/Products/EditBundle/index.tsx' },
+  { pattern: '/products/bundles',          file: 'src/pages/Products/BundlesList.tsx' },
+  { pattern: '/products/new',              file: 'src/pages/Products/EditProduct/index.tsx' },
+  { pattern: '/products/:id/edit',         file: 'src/pages/Products/EditProduct/index.tsx' },
+  { pattern: '/products',                  file: 'src/pages/Products/ProductsList.tsx' },
+  { pattern: '/purchase-intake',           file: 'src/pages/PurchaseIntake/index.tsx' },
+  { pattern: '/purchase',                  file: 'src/pages/Purchase/index.tsx' },
+  { pattern: '/people',                    file: 'src/pages/People/index.tsx' },
+  { pattern: '/quotation/new',             file: 'src/pages/Quotation/EditQuotation.tsx' },
+  { pattern: '/quotation/:id/edit',        file: 'src/pages/Quotation/EditQuotation.tsx' },
+  { pattern: '/quotation',                 file: 'src/pages/Quotation/QuotationList.tsx' },
+  { pattern: '/manage/purchases',          file: 'src/pages/Manage/Purchases.tsx' },
+  { pattern: '/manage/expenses',           file: 'src/pages/Manage/Expenses.tsx' },
+  { pattern: '/manage/dead-stock',         file: 'src/pages/Manage/DeadStock.tsx' },
+  { pattern: '/manage/low-stock',          file: 'src/pages/Manage/LowStock.tsx' },
+  { pattern: '/manage/expiry',             file: 'src/pages/Manage/Expiry.tsx' },
+  { pattern: '/manage/negative-stock',     file: 'src/pages/Manage/NegativeStock.tsx' },
+  { pattern: '/manage',                    file: 'src/pages/Manage/Sales.tsx' },
+  { pattern: '/reports/fda/khor-yor-9',   file: 'src/pages/Reports/KhorYor9.tsx' },
+  { pattern: '/reports/fda',              file: 'src/pages/Reports/FdaReports.tsx' },
+  { pattern: '/reports/vat',              file: 'src/pages/Reports/VatReport.tsx' },
+  { pattern: '/reports',                  file: 'src/pages/Reports/Dashboard.tsx' },
+  { pattern: '/settings',                 file: 'src/pages/Settings/index.tsx' },
+  { pattern: '/theme',                    file: 'src/pages/Theme/index.tsx' },
+  { pattern: '/css',                      file: 'src/pages/CSS/index.tsx' },
+  { pattern: '/',                         file: 'src/pages/POS/index.tsx' },
+]
+
+function matchFilePath(pathname: string): string {
+  const norm = pathname || '/'
+  for (const { pattern, file } of ROUTE_FILE_MAP) {
+    const pp = pattern.split('/').filter(Boolean)
+    const ap = norm.split('/').filter(Boolean)
+    if (pp.length !== ap.length) continue
+    if (pp.every((seg, i) => seg.startsWith(':') || seg === ap[i])) return file
+  }
+  return norm
+}
 
 const trafficLight =
   'flex items-center justify-center w-4 h-4 rounded-full transition-colors shrink-0'
@@ -26,6 +69,16 @@ export function TitleBar() {
   const [maximized, setMaximized] = useState(false)
   const [hovered, setHovered] = useState<'close' | 'minimize' | 'maximize' | null>(null)
   const [resizeOpen, setResizeOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const location = useLocation()
+
+  const filePath = matchFilePath(location.pathname)
+
+  const copyPath = () => {
+    navigator.clipboard.writeText(filePath)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
 
   useEffect(() => {
     window.api.window.isMaximized().then(setMaximized)
@@ -49,11 +102,27 @@ export function TitleBar() {
       {/* Left spacer (mirrors right control cluster width to keep center true) */}
       <div className="w-[88px] h-full shrink-0" />
 
-      {/* Center: resize-to-preset (test tool) */}
+      {/* Center: path display + resize-to-preset (test tools) */}
       <div
-        className="flex items-center h-full"
+        className="flex items-center gap-1 h-full"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
+        {/* Current route path — click to copy (DEV ONLY) */}
+        <button
+          type="button"
+          onClick={copyPath}
+          title="คัดลอก path"
+          className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-colors font-mono"
+        >
+          {copied
+            ? <Check className="size-3.5 text-success" />
+            : <Copy className="size-3.5" />
+          }
+          <span>{filePath}</span>
+        </button>
+
+        <div className="w-px h-3.5 bg-border mx-0.5" />
+
         <Popover open={resizeOpen} onOpenChange={setResizeOpen}>
           <PopoverTrigger asChild>
             <button

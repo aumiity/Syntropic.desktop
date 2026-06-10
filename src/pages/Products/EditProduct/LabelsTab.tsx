@@ -4,17 +4,19 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/toast'
 import { SectionCard } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { Plus, Trash2, Edit, Pill, List, Printer, FileText, ZoomIn, ZoomOut } from 'lucide-react'
+import { Plus, Trash2, Edit, Pill, List, Printer, FileText, ZoomIn, ZoomOut, Languages } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { ProductLabel } from '@/types'
 import type { FullProduct } from './shared'
 // Label anatomy (settings shape / defaults) — SSOT shared with the Settings
 // label-designer, so this preview matches the print 1:1. LabelPaper does the
 // actual rendering; composeLabelContent maps this product's label → text.
 import { LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
-import { composeLabelContent, todayBE } from '@/lib/label/content'
+import { composeLabelContent, todayBE, LANG_OPTIONS, type LabelLang } from '@/lib/label/content'
 import { buildLabelHtml } from '@/lib/label/html'
 import { LabelPaper } from '@/components/label/LabelPaper'
 import { LabelFormDialog } from '@/components/label/LabelFormDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface Props {
   product: FullProduct
@@ -36,6 +38,9 @@ export function LabelsTab({
 
   const [labelDialog, setLabelDialog] = useState(false)
   const [editingLabel, setEditingLabel] = useState<ProductLabel | null>(null)
+  // Delete confirm — holds the label pending deletion (null = dialog closed).
+  const [confirmDelete, setConfirmDelete] = useState<ProductLabel | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // Selected label drives the LEFT preview. Falls back to the default label
   // (else the first) and follows the list as labels are added / removed.
@@ -51,6 +56,10 @@ export function LabelsTab({
   // overflow-auto container can scroll to the edges. Mirrors the Settings designer.
   const [zoom, setZoom] = useState(1)
   const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
+  // Preview/print language. Threaded into composeLabelContent for BOTH the
+  // on-screen preview and the print/PDF builder so what you see = what prints
+  // (the label system's preview = print 1:1 invariant). Defaults to 'th'.
+  const [lang, setLang] = useState<LabelLang>('th')
 
   useEffect(() => {
     // Per-key overwrite so stale UI-only keys never poison the settings shape.
@@ -102,13 +111,19 @@ export function LabelsTab({
     setLabelDialog(true)
   }
 
-  const handleDeleteLabel = async (labelId: number) => {
+  // Actual delete — fired only after the confirm dialog is accepted.
+  const handleDeleteLabel = async () => {
+    if (!confirmDelete || deleting) return
+    setDeleting(true)
     try {
-      await window.api.products.deleteLabel(labelId)
+      await window.api.products.deleteLabel(confirmDelete.id)
       toast({ title: 'ลบฉลากสำเร็จ', variant: 'success' })
+      setConfirmDelete(null)
       await onRefresh()
     } catch (e: any) {
       toast({ title: 'ลบไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -117,7 +132,7 @@ export function LabelsTab({
   const selectedLabelHtml = () =>
     buildLabelHtml(
       effectiveSettings,
-      composeLabelContent(selected as any, product, shop, { labelDosages, labelFrequencies, labelMealRelations, labelTimes, labelAdvices }),
+      composeLabelContent(selected as any, product, shop, { labelDosages, labelFrequencies, labelMealRelations, labelTimes, labelAdvices }, lang),
       todayBE(),
     )
 
@@ -221,12 +236,26 @@ export function LabelsTab({
               The zoom wrapper uses CSS `zoom` (not transform) so the scaled box
               keeps its layout size and overflow-auto can scroll to its edges;
               `mx-auto` centers while it fits, then left-aligns when it overflows. */}
+          {/* Language strip — switches BOTH the preview and the print/PDF output
+              (composeLabelContent receives `lang`), keeping preview = print 1:1. */}
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <Languages className="size-4 text-muted-foreground" /> ภาษาฉลาก
+            </div>
+            <Tabs value={lang} onValueChange={v => setLang(v as LabelLang)}>
+              <TabsList variant="toggle">
+                {LANG_OPTIONS.map(o => (
+                  <TabsTrigger key={o.value} value={o.value} className="text-sm px-3">{o.label}</TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
           <div className="bg-muted/30 rounded-lg p-6 overflow-auto max-h-[70vh]">
             <div className="w-fit mx-auto" style={{ zoom }}>
               {selected ? (
                 <LabelPaper
                   settings={effectiveSettings}
-                  content={composeLabelContent(selected as any, product, shop, { labelDosages, labelFrequencies, labelMealRelations, labelTimes, labelAdvices })}
+                  content={composeLabelContent(selected as any, product, shop, { labelDosages, labelFrequencies, labelMealRelations, labelTimes, labelAdvices }, lang)}
                   date={todayBE()}
                 />
               ) : (
@@ -286,7 +315,7 @@ export function LabelsTab({
                       <Button size="icon-lg" variant="elevated" onClick={e => { e.stopPropagation(); openEditLabel(l) }} title="แก้ไข">
                         <Edit />
                       </Button>
-                      <Button size="icon-lg" variant="elevated-destructive" onClick={e => { e.stopPropagation(); handleDeleteLabel(l.id) }} title="ลบ">
+                      <Button size="icon-lg" variant="elevated-destructive" onClick={e => { e.stopPropagation(); setConfirmDelete(l) }} title="ลบ">
                         <Trash2 />
                       </Button>
                     </div>
@@ -307,6 +336,25 @@ export function LabelsTab({
         productBarcode={product.barcode}
         lookups={{ labelFrequencies, labelDosages, labelMealRelations, labelTimes, labelAdvices }}
         onSaved={() => onRefresh()}
+      />
+
+      {/* Delete confirm — names the label in the description; destructive variant */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={open => { if (!open && !deleting) setConfirmDelete(null) }}
+        title="ลบฉลากนี้?"
+        description={
+          <>
+            คุณต้องการลบฉลาก "{confirmDelete?.label_name || 'ฉลากไม่มีชื่อ'}"
+            <br />
+            ไม่สามารถกู้คืนได้อีก
+          </>
+        }
+        variant="destructive"
+        confirmLabel={deleting ? 'กำลังลบ...' : 'ยืนยัน'}
+        cancelLabel="ยกเลิก"
+        busy={deleting}
+        onConfirm={handleDeleteLabel}
       />
     </>
   )

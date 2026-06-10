@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/toast'
 import { printSlip } from '@/lib/receipt/print'
 import { saleDetailToPrint } from '@/lib/receipt/normalizeSale'
 import { TaxInvoiceBuyerDialog } from '@/components/dialogs/TaxInvoiceBuyerDialog'
+import { useShopVat } from '@/hooks/useShopVat'
 import type { Sale, SaleItem } from '@/types'
 
 // One sale_item_lots row exposed to the renderer. Joined fields come from
@@ -64,6 +65,7 @@ export function SaleDetailDialog({
   onVoidRequest?: (sale: SaleDetail) => void
 }) {
   const { toast } = useToast()
+  const { vatEnabled } = useShopVat()
   const [detail, setDetail] = useState<SaleDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
@@ -130,7 +132,10 @@ export function SaleDetailDialog({
                     <button type="button" onClick={() => reprintReceipt(detail)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                       <Printer className="size-4" /> พิมพ์ใบเสร็จ
                     </button>
-                    {detail.status !== 'voided' && detail.sale_type !== 'return' && (
+                    {/* Tax invoice is a VAT-shop document — hidden for NO-VAT
+                        shops AND for bills sold without VAT (per-bill checkbox;
+                        a full tax invoice on a 0-VAT bill is meaningless) */}
+                    {vatEnabled && detail.total_vat > 0 && detail.status !== 'voided' && detail.sale_type !== 'return' && (
                       <button type="button" onClick={() => setTaxOpen(true)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                         <FileText className="size-4" /> พิมพ์ใบกำกับภาษี
                       </button>

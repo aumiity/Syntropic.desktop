@@ -1,11 +1,12 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { ShieldCheck, LayoutDashboard } from 'lucide-react'
+import { ShieldCheck, LayoutDashboard, Landmark } from 'lucide-react'
+import { useShopVat } from '@/hooks/useShopVat'
 
 // Reports = แดชบอร์ด (operational + financial overview, the /reports index) +
 // รายงาน อย. The dashboard is the single analytics surface (Dashboard): KPIs,
@@ -13,15 +14,22 @@ import { ShieldCheck, LayoutDashboard } from 'lucide-react'
 // read-only ค่าใช้จ่าย breakdown. The ค่าใช้จ่าย *register* (add/edit/delete)
 // lives in การจัดการ (/manage/expenses); per-bill purchase/payable detail lives
 // in ประวัติการซื้อ (/manage/purchases).
+// The ภาษี (VAT) tab shows for VAT-registered shops AND for shops with VAT
+// history (downgraded shops still file the final ภ.พ.30 / get inspected on
+// past periods) — filtered at render time via useShopVat + hasVatHistory.
+// The /reports/vat route stays registered; a never-VAT shop simply has no
+// entry point and the page shows empty data.
 const TABS = [
   { value: 'dashboard', to: '/reports',           label: 'แดชบอร์ด',       icon: LayoutDashboard },
   { value: 'fda',       to: '/reports/fda',       label: 'รายงาน อย.',     icon: ShieldCheck },
+  { value: 'vat',       to: '/reports/vat',       label: 'ภาษี (VAT)',     icon: Landmark },
 ] as const
 
 type TabValue = typeof TABS[number]['value']
 
 function resolveTab(pathname: string): TabValue {
   if (pathname.startsWith('/reports/fda')) return 'fda'
+  if (pathname.startsWith('/reports/vat')) return 'vat'
   return 'dashboard'
 }
 
@@ -55,6 +63,16 @@ const COLS_BY_COUNT: Record<number, string> = {
 export default function ReportsLayout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { vatEnabled } = useShopVat()
+  const [hasVatHistory, setHasVatHistory] = useState(false)
+  useEffect(() => {
+    let alive = true
+    ;(window.api.settings as any).hasVatHistory()
+      .then((v: boolean) => { if (alive) setHasVatHistory(!!v) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
+  const visibleTabs = TABS.filter(t => t.value !== 'vat' || vatEnabled || hasVatHistory)
   const current = resolveTab(location.pathname)
   const [summaryState, setSummaryState] = useState<{ tab: TabValue; cards: ReportsSummaryCard[] } | null>(null)
   const [toolbarState, setToolbarState] = useState<{ tab: TabValue; node: React.ReactNode } | null>(null)
@@ -99,7 +117,7 @@ export default function ReportsLayout() {
             }}
           >
             <TabsList variant="segmented" className="h-9">
-              {TABS.map(({ value, label, icon: Icon }) => (
+              {visibleTabs.map(({ value, label, icon: Icon }) => (
                 <TabsTrigger key={value} value={value}>
                   <Icon /> {label}
                 </TabsTrigger>

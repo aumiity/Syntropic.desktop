@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Full Program Audit — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine pre{background:rgba(148,163,184,.12);padding:12px 14px;border-radius:8px;overflow-x:auto;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Full Program Audit</h1>
+    <p>ตรวจสุขภาพทั้งโปรแกรม 4 มิติ (เงิน-สต็อก / ความปลอดภัย / คุณภาพโค้ด / UI) แบ่งเป็น 11 รอบ — รายงานก่อน ค่อยเลือกแก้ — เพื่อเตรียม production-ready</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit แผน 2 รอบ</span>
+      <span class="pill">PARKED — รอหลังงาน VAT</span>
+      <span class="pill">11 รอบ (R0–R10) · ~7-8 เซสชัน</span>
+      <span class="pill">2026-06-10</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p>แอปโตมาถึง <strong>~45,000 บรรทัด</strong> (renderer ~35K + Electron main ~9.4K, IPC 16 โมดูล) และกำลังจะเข้าใช้งานจริงที่ร้าน + import ข้อมูล Hygeia จริง — แต่ยังไม่เคยมีการกวาดตรวจทั้งระบบสักครั้ง บั๊กเงิน/สต็อกหรือช่องโหว่ role ที่หลุดไป production จะแพงกว่าตอนนี้มาก</p>
+    <p>แผนนี้แบ่งการตรวจเป็น <strong>11 รอบ</strong>: backend ตรวจ<strong>ตามมิติ</strong> (เงิน → สต็อก → security → คุณภาพโค้ด เพราะ logic ข้ามโมดูล) / UI ตรวจ<strong>ตามหน้า</strong> (เพราะกฏ design เป็นรายหน้า) — แต่ละรอบส่ง sub-agents ขนานกัน 2-3 ตัว แล้ว orchestrator รวบรวม+ยืนยัน findings เอง</p>
+    <p><strong>กติกาหลัก: รอบตรวจไม่แก้โค้ดเลย</strong> ทุกอย่างออกเป็นรายงานจัด severity (P0-P3) ที่ <code>docs/audits/full-program/</code> แล้วพี่เลือกเองว่าแก้ตัวไหน · จุดเสี่ยงสูง (เงิน/สต็อก) มี runtime scenario รันบนแอปจริงด้วย — บน <strong>DB สำเนาชั่วคราวเท่านั้น</strong></p>
+    <div class="grid">
+      <div class="stat"><div class="v">4</div><div class="l">มิติที่ตรวจ</div></div>
+      <div class="stat"><div class="v">11</div><div class="l">รอบ (R0–R10)</div></div>
+      <div class="stat"><div class="v">~45K</div><div class="l">บรรทัดโค้ด</div></div>
+      <div class="stat"><div class="v">7-8</div><div class="l">เซสชันโดยประมาณ</div></div>
+    </div>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง — แบ่งรอบยังไง</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>มิติ / พื้นที่</th><th>ครอบคลุม</th><th>agents</th></tr></thead>
+      <tbody>
+        <tr><td><strong>R0</strong></td><td><span class="tag t-gen">เตรียม</span></td><td>tsc baseline · สร้าง MASTER.md · เตรียม DB สำเนา isolated (มีขั้นทำหมันกัน side effect)</td><td>orchestrator</td></tr>
+        <tr><td><strong>R1</strong></td><td><span class="tag t-keep">เงิน</span></td><td>คิดเงิน POS/ส่วนลด/VAT/void/3-cost/ใบเสร็จ/รายงานเงิน + runtime 4 scenario</td><td>3 ขนาน</td></tr>
+        <tr><td><strong>R2</strong></td><td><span class="tag t-keep">สต็อก+FEFO</span></td><td>FEFO/lot/is_closed/GR/หน่วยฐาน/blank→0 + runtime 3 scenario</td><td>2 ขนาน</td></tr>
+        <tr><td><strong>R3</strong></td><td><span class="tag t-skip">Security</span></td><td>IPC ทั้ง 16 ไฟล์ (role/allow-list/SQL) + main/preload/auth + hooks ฝั่ง renderer</td><td>3 ขนาน</td></tr>
+        <tr><td><strong>R4</strong></td><td><span class="tag t-opt">คุณภาพโค้ด</span></td><td>transaction discipline ทั้ง IPC · backup flow · seed production path · lib/stores/hooks sweep</td><td>2 ขนาน</td></tr>
+        <tr><td><strong>R5</strong></td><td><span class="tag t-gen">UI</span></td><td>POS + Login + Setup (+กฏ POS เฉพาะ: focus/highlight/base-unit-first)</td><td>2 ขนาน</td></tr>
+        <tr><td><strong>R6</strong></td><td><span class="tag t-gen">UI</span></td><td>Products ทั้ง 16 ไฟล์ (ลิสต์ + EditProduct + EditBundle)</td><td>3 ขนาน</td></tr>
+        <tr><td><strong>R7</strong></td><td><span class="tag t-gen">UI</span></td><td>Purchase + PurchaseIntake + People</td><td>2 ขนาน</td></tr>
+        <tr><td><strong>R8</strong></td><td><span class="tag t-gen">UI</span></td><td>Manage 8 ไฟล์ + Reports 4 ไฟล์ (รวม Dashboard)</td><td>2-3 ขนาน</td></tr>
+        <tr><td><strong>R9</strong></td><td><span class="tag t-gen">UI</span></td><td>Settings 13 ไฟล์ + shell (layout 6 ไฟล์) + กวาด ui primitives ทุกตัวรวม charts/</td><td>3 ขนาน</td></tr>
+        <tr><td><strong>R10</strong></td><td><span class="tag t-opt">ปิดงาน</span></td><td>DEV-only checklist · tsc รอบจบ · รวม MASTER + shortlist เสนอพี่เลือกแก้</td><td>orchestrator</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:10px"><strong>ข้าม:</strong> Quotation (ย้ายไป FlowAccount — แต่มิติ security ยังตรวจเพราะ route+handler ยังลงทะเบียน), Theme showcase, หน้า CSS, shadcn-studio (vendored) · <strong>ลำดับ:</strong> R0 → R1 → R2 → R3 → R4 → R5-R9 (สลับได้อิสระ) → R10</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>ไม่รู้ว่าระบบ "พร้อม production แค่ไหน" — ความมั่นใจมาจาก click-test รายฟีเจอร์เท่านั้น</li>
+        <li>กฏ HARD invariant เคยตรวจเฉพาะตอนเขียนของใหม่ ไม่เคยกวาดย้อนทั้งระบบ</li>
+        <li>ช่องโหว่ role/allow-list อาจหลบอยู่ใน handler เก่าที่เขียนก่อนมีระบบ login</li>
+        <li>บั๊กเงิน/สต็อกถ้ามี จะไปโผล่ตอนใช้จริงกับข้อมูลร้านจริง</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>มี <code>MASTER.md</code> สรุป findings ทั้งระบบ จัด severity P0-P3 + นับยอดต่อรอบ</li>
+        <li>จุดเงิน/สต็อกผ่าน runtime scenario จริง มีบันทึก PASS/FAIL เป็นหลักฐาน</li>
+        <li>ได้ shortlist "ควรแก้ก่อนเปิดร้าน" (P0 ทั้งหมด + P1 คัดแล้ว) ให้พี่ตัดสินใจ</li>
+        <li>ของที่ track อยู่แล้ว (tokenization ฯลฯ) ถูก tag แยก ไม่ปนกับบั๊กใหม่</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>เห็นความเสี่ยงทั้งระบบในรายงานเดียว ก่อนเงินจริง/ข้อมูลจริงเข้า</li>
+    <li>report-only → ไม่มี diff ใหญ่ ไม่มีความเสี่ยง regression ระหว่างตรวจ</li>
+    <li>แบ่งรอบจบในตัว — หยุด/สลับกับงานอื่นได้ทุกจุด ไม่ค้างกลางทาง</li>
+    <li>agents ขนาน + checklist กลาง → เร็วและมาตรฐานเดียวกันทุกหน้า</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>ใช้เวลา ~7-8 เซสชัน + ค่า token ของ agents ขนานหลายตัว</li>
+    <li>findings UI บางส่วนจะซ้ำกับ backlog เดิม (กันด้วย tag KNOWN-TRACKED แล้ว)</li>
+    <li>รายงานเสร็จยังไม่ได้แปลว่าแก้เสร็จ — งานแก้เป็นเฟสถัดไปที่พี่เลือกเอง</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><strong>Runtime scenario ห้ามแตะ DB จริงเด็ดขาด</strong> — ต้องทำตาม R0 ขั้น 1-5 ครบ (สำเนา 3 ไฟล์ลง <code>database/</code> + ทำหมัน backup + marker <code>[AUDIT-TMP]</code>)</li>
+    <li><code>npm run dev</code> จะเด้งหน้าต่าง Electron บน DB จริงขึ้นมาเอง — ต้องปิดทิ้งทันที ใช้เฉพาะหน้าต่างจากเทอร์มินัล 2 ที่มี marker</li>
+    <li>ห้าม <code>npm install</code> ตลอดการ audit (พัง better-sqlite3)</li>
+    <li>agents รายงานอย่างเดียว ห้ามแก้ไฟล์ — ถ้า agent เผลอแก้ ให้ revert ทันที</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <p>แผนนี้<strong>ไม่เปลี่ยน UI ใด ๆ</strong> (ตรวจอย่างเดียว) — รอบ R5-R9 ใช้ checklist กลาง 10 ข้อจากกฏ HARD ใน <code>CLAUDE.md</code> + <code>docs/claude/ui-*.md</code>: bar h-12/control h-9 · semantic tokens · ห้าม raw HTML/local helper · text-size hierarchy · ห้าม emoji · modal contract + ปุ่ม footer ตาม role · icon <code>size-N</code> · table-card 4 โซน · truncate กับวรรณยุกต์ไทย · ห้าม <code>tabular-nums</code> — ผลตรวจ UI จะกลายเป็นวัตถุดิบให้ UI Redesign Pass ที่ทำอยู่ด้วย</p>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit แผน (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>electron/db/pricing.ts</code> (SSOT เงิน) ไม่ถูก assign ให้รอบไหนเลย</td><td>P1</td><td>เพิ่มเข้า R1-B (มิติเงิน) + R2-A (เฉพาะ assertNotBundle)</td></tr>
+        <tr><td>1</td><td>claim h-10 ใน primitives เก่าแล้ว — 5 ตัวที่ระบุแก้เป็น h-9 หมดแล้ว</td><td>P1</td><td>เปลี่ยนเป็น "grep สดเอง อย่ายึด pre-list" + อัปเดต hint list</td></tr>
+        <tr><td>1</td><td>วิธี launch isolation รันตามตัวอักษรไม่ได้ (<code>electron:dev</code> ไม่มีช่องส่ง flag)</td><td>P1</td><td>ระบุคำสั่งเป๊ะ: เทอร์มินัลแยก + <code>--user-data-dir</code> ก่อน <code>.</code></td></tr>
+        <tr><td>1</td><td>App.tsx, layout 3 ไฟล์, lib/quotation รั่วเข้า R4, sortName twin, codes.ts label ผิด, dev.ts gate มีอยู่แล้ว, กติกา double-report, tsc wording</td><td>P2 ×8</td><td>แก้ scope/assignment/ถ้อยคำครบทุกข้อ</td></tr>
+        <tr><td>2</td><td><strong><code>npm run dev</code> auto-spawn Electron บน DB จริง</strong> (vite-plugin-electron <code>startup()</code>) — เสี่ยงรัน scenario ผิดหน้าต่าง</td><td>P0</td><td>R0 เพิ่ม: ปิดหน้าต่าง auto-spawn ทันที + marker <code>[AUDIT-TMP]</code> + ยืนยันก่อนทุก scenario</td></tr>
+        <tr><td>2</td><td>on-quit backup ของแอป isolated เขียนทับ backup รายวันจริง + retention prune โฟลเดอร์จริง</td><td>P1</td><td>R0 เพิ่มขั้นทำหมัน: <code>backup_dir=NULL, auto_enabled=0</code> ในสำเนา</td></tr>
+        <tr><td>2</td><td><code>src/hooks/*</code> (useManagerOverride/usePermission) หายจากทุกรอบ · R4 มอบโจทย์ transaction ผิดไฟล์ (db/index.ts ไม่มี mutation)</td><td>P1 ×2</td><td>hooks เข้า R3-C+R4-B · ย้าย transaction sweep ไป <code>electron/ipc/*.ts</code></td></tr>
+        <tr><td>2</td><td>DB ต้องวางใน subfolder <code>database/</code> ไม่งั้น seed DB เปล่าเงียบ ๆ · h-14 confirm-dialog หลุด hint · seed.ts production path ไม่มีคนตรวจ · charts/ subdir · Quotation dialog + main.tsx ไม่อยู่ skip list · comment สคริปต์ stale</td><td>P2 ×7</td><td>แก้ path เต็ม + เติม coverage/skip list ครบทุกข้อ</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;color:var(--muted);font-size:13px">รอบ 2 ยืนยันเพิ่ม: ทุก path/line ที่แผนอ้างเปิดไฟล์แล้วตรงจริง · IPC 16 ไฟล์ assign ครบ · <code>npx tsc --noEmit</code> รันจริงผ่าน (0 error) · ห้าม npm install มีในแผนแล้ว — PASS</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>สถานะ + เงื่อนไขเริ่มงาน</h3>
+    <ul>
+      <li><span class="inv">PARKED (2026-06-10)</span> — ผู้ใช้ทำงาน VAT ก่อน <strong>ห้ามเริ่ม audit เชิงรุก</strong> รอผู้ใช้สั่ง resume เท่านั้น</li>
+      <li>ตอน resume: อ่าน Section B นี้เป็น SSOT → เริ่ม R0 → ไล่ตามลำดับ รอบละจบในตัว อัปเดต MASTER.md ทุกครั้งที่จบรอบ + อัปเดต memory <code>.claude/memory/project_full_program_audit.md</code> ว่าถึงรอบไหน</li>
+      <li>orchestrator = เซสชันหลัก dispatch agents ขนานตาม brief ของแต่ละรอบ แล้วกรอง/ยืนยัน findings เองก่อนบันทึก</li>
+    </ul>
+
+    <h3>Definition of done</h3>
+    <ul>
+      <li>R0–R10 รันครบ มีรายงาน <code>docs/audits/full-program/R&lt;n&gt;-&lt;ชื่อ&gt;.md</code> ทุกรอบ</li>
+      <li><code>docs/audits/full-program/MASTER.md</code> รวม findings: deduped, จัด severity, นับยอดต่อรอบ/severity</li>
+      <li>Runtime scenarios R1 (4 ข้อ) + R2 (3 ข้อ) รันบน DB สำเนาแล้ว บันทึก PASS/FAIL ต่อ scenario</li>
+      <li>Findings ที่ทับงานที่ track อยู่ติด tag <code>KNOWN-TRACKED</code> (ไม่นับเป็นของใหม่)</li>
+      <li>มี shortlist "ควรแก้ก่อน" (P0 ทั้งหมด + P1 คัดแล้ว) เสนอผู้ใช้เลือกตอนจบ R10</li>
+    </ul>
+
+    <h3>ขอบเขต</h3>
+    <ul>
+      <li><strong>ข้าม:</strong> <code>src/pages/Quotation/*</code>, <code>src/lib/quotation/*</code>, <code>src/lib/receipt/buildQuotationHtml.ts</code>, <code>src/components/dialogs/QuotationProductSearchDialog.tsx</code>, <code>src/pages/Theme/index.tsx</code>, <code>src/pages/CSS/index.tsx</code>, <code>src/components/shadcn-studio/*</code> (vendored), <code>src/main.tsx</code> (trivial)</li>
+      <li><span class="inv">ยกเว้นมิติ security ห้ามข้าม quotation</span> — route ยังลงทะเบียน <code>src/App.tsx:125-127</code> (เข้าถึงได้ทาง URL) และ <code>electron/ipc/quotation.ts</code> register ไม่มีเงื่อนไขที่ <code>electron/main.ts:94</code></li>
+      <li><code>electron/ipc/dev.ts</code> มี gate <code>if (isDev)</code> ที่ <code>electron/main.ts:100</code> แล้ว — โจทย์ R3 คือ<strong>ยืนยันว่า gate ยังอยู่</strong> ไม่ใช่รายงานว่าเผย handler</li>
+      <li>DEV-only code (ปุ่ม preview ใน ShopTab, dev seed) = expected — ตรวจแค่ checklist ลบก่อน build ใน R10</li>
+    </ul>
+
+    <h3>Severity + รูปแบบ finding</h3>
+    <ul>
+      <li><strong>P0</strong> เงินคำนวณ/บันทึกผิด, ข้อมูลหาย/พัง, role bypass, SQL injection · <strong>P1</strong> บั๊กที่ผู้ใช้เจอได้จริง · <strong>P2</strong> ผิด HARD invariant/convention ยังไม่ออกอาการ · <strong>P3</strong> cleanup/dead code</li>
+      <li>รูปแบบ: <code>[R#-NNN] [P0-P3] file:line — ชื่อสั้น — เกิดอะไร/ทำไมสำคัญ — fix ที่แนะนำ — tags</code></li>
+      <li>Known-tracked (tag <code>KNOWN-TRACKED</code> อย่ารายงานซ้ำ): theme tokenization (~449 literals), box border audit, table-pattern refactor, column-visibility, edit parity, POS redesign, DEV-only 3 จุด</li>
+    </ul>
+
+    <h3>ขั้นตอน — รอบการตรวจ</h3>
+    <ol>
+      <div class="step"><strong>R0 — เตรียม</strong> (orchestrator เอง ไม่ใช้ agent)
+        <ol>
+          <li><code>npx tsc --noEmit</code> เก็บ baseline error count (tsconfig.json include src+electron แล้ว — อย่ายุ่ง tsconfig.node.json ซึ่งเป็น composite)</li>
+          <li>สร้าง <code>docs/audits/full-program/MASTER.md</code>: ตาราง checklist รอบ + ช่องนับ findings ต่อ severity</li>
+          <li><span class="inv">Runtime isolation — ห้ามแตะ DB จริง:</span> DB path = <code>app.getPath('userData')/database/syntropic.db</code> (<code>electron/db/index.ts:23</code>)
+            <ul>
+              <li>ปิดแอปทุกหน้าต่าง แล้วสำเนา DB dev <strong>ทั้ง 3 ไฟล์</strong> (<code>.db</code>+<code>-wal</code>+<code>-shm</code>) ไป <code>&lt;tmp&gt;/database/syntropic.db</code> — <span class="inv">ต้องมี subfolder database/</span> ไม่งั้นแอป seed DB เปล่าเงียบ ๆ (<code>getDb()</code> index.ts:49-56) → scenario PASS หลอก (แนวทาง <code>scripts/prep-app-db.mjs:22-28</code> แต่ hardcode path Windows ต้อง adapt; <span class="inv">comment ในสคริปต์บรรทัด 12,59 วาง flag หลัง "." ซึ่ง stale — flag ต้องมาก่อน "."</span>)</li>
+              <li><strong>ทำหมันสำเนา:</strong> <code>UPDATE backup_settings SET backup_dir = NULL, auto_enabled = 0;</code> (กัน <code>runCloseBackup()</code> <code>electron/ipc/backup.ts:304-321</code> — ไม่มี same-day dedupe — เขียน <code>auto-YYYYMMDD.db</code> ทับ backup จริง + retention prune โฟลเดอร์จริง) และ <code>UPDATE settings SET shop_name = '[AUDIT-TMP] ' || shop_name;</code></li>
+              <li>เทอร์มินัล 1: <code>npm run dev</code> — <span class="inv">vite-plugin-electron จะ auto-spawn Electron บน userData จริงทันที — ปิดหน้าต่างที่เด้งเองทิ้งทันที</span> / เทอร์มินัล 2: <code>NODE_ENV=development npx electron --user-data-dir=&lt;tmp&gt; .</code></li>
+              <li><span class="inv">ก่อนทุก scenario: ยืนยันชื่อร้านขึ้น [AUDIT-TMP] — ไม่เห็น = ผิดหน้าต่าง ห้ามทำต่อ</span></li>
+              <li>ห้ามใช้ <code>npm run electron:dev</code> ทำ scenario (<code>package.json:10</code> ไม่มีช่องส่ง flag → ลง DB จริง)</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+
+      <div class="step"><strong>R1 — เงิน</strong> · agents 3 ขนาน · อ่านก่อน: <code>docs/claude/business-logic.md</code>, <code>database.md</code>, <code>ipc-api.md</code>
+        <ul>
+          <li><strong>A (renderer คิดเงิน):</strong> <code>src/stores/cartStore.ts</code>, <code>src/pages/POS/index.tsx</code>, <code>redistributeDiscount.ts</code>, <code>cartAlerts.ts</code>, <code>src/lib/vat.ts</code></li>
+          <li><strong>B (main บันทึกเงิน):</strong> <code>electron/ipc/pos.ts</code> (save/void/payment), <code>tax.ts</code>, <code>expenses.ts</code>, <code>purchase.ts</code> (เฉพาะเงิน/payable), <code>electron/db/pricing.ts</code> (SSOT เงิน: weighted-avg recompute, bundle cost propagation)</li>
+          <li><strong>C (รายงาน+เอกสาร):</strong> <code>electron/ipc/reports.ts</code>, <code>src/pages/Reports/Dashboard.tsx</code>, <code>src/lib/receipt/normalizeSale.ts</code>, <code>buildSlipHtml.ts</code>, <code>buildTaxInvoiceHtml.ts</code>, <code>buildGoodsReceiptHtml.ts</code>, <code>print.ts</code></li>
+          <li>จุดตรวจ: ลำดับส่วนลด+ปัดเศษ (รายการ vs บิล), VAT ทุกโหมด, void คืนเงิน+สต็อกครบ, <span class="inv">walk-in = C0000 จริงห้าม NULL</span>, 3-cost model ใช้ถูกตัว (cost_price=valuation / last_cost=pricing ref / FEFO lot=margin), เงินทอน, SUM ใน reports ตรงกับ rows, payable คิดจาก line items</li>
+          <li><strong>Runtime (orchestrator):</strong> (1) ขาย walk-in 2 รายการ + ส่วนลดรายการ + ส่วนลดบิล → ตรวจ rows+ยอด+ทอน (2) ขายหน่วยใหญ่ → conversion ถูก (3) void บิล → เงิน+สต็อก+lot คืนครบ (4) ยอด VAT บนใบเสร็จ vs DB</li>
+        </ul>
+      </div>
+
+      <div class="step"><strong>R2 — สต็อก+FEFO</strong> · agents 2 ขนาน · อ่านก่อน: <code>business-logic.md</code>, <code>database.md</code>
+        <ul>
+          <li><strong>A (main):</strong> <code>electron/ipc/pos.ts</code> (FEFO ตัด/คืน), <code>purchase.ts</code> (GR receive/cancel, lot), <code>products.ts</code> (units, lot edit, allow-list), <code>negativeStock.ts</code>, <code>electron/db/schema.ts</code>, <code>electron/db/pricing.ts</code> (เฉพาะ <code>assertNotBundle</code> — มิติเงินเป็นของ R1-B)</li>
+          <li><strong>B (renderer กรอกตัวเลข):</strong> <code>src/pages/PurchaseIntake/index.tsx</code>, <code>src/pages/Purchase/index.tsx</code>, <code>src/pages/Products/*</code> เฉพาะ stock/lot, <code>src/lib/expiry.ts</code></li>
+          <li>จุดตรวจ: FEFO order, <span class="inv">is_closed toggle เมื่อ qty ข้าม 0 ทั้งสองทิศ</span>, <span class="inv">base unit อยู่ products.unit_id เท่านั้น (ไม่มี is_base_unit, synth id:-1)</span>, unit conversion, GR-cancel คืนสต็อก, <span class="inv">blank→0 trap (parseFloat('')||0)</span> ทุกฟอร์มสต็อก/ต้นทุน</li>
+          <li><strong>Runtime:</strong> (1) GR 2 ล็อต exp ต่างกัน → ขายข้ามล็อต → FEFO+is_closed ถูก (2) แก้ lot qty เป็น 0 → ปิด (3) ขายเกินสต็อก → negative path</li>
+        </ul>
+      </div>
+
+      <div class="step"><strong>R3 — Security</strong> · agents 3 ขนาน · อ่านก่อน: <code>docs/claude/ipc-api.md</code>, <code>.claude/memory/ipc-role-enforcement.md</code>
+        <ul>
+          <li><strong>A (IPC เงิน/ข้อมูล):</strong> <code>pos.ts</code>, <code>products.ts</code>, <code>purchase.ts</code>, <code>people.ts</code>, <code>expenses.ts</code>, <code>tax.ts</code>, <code>reports.ts</code>, <code>negativeStock.ts</code></li>
+          <li><strong>B (IPC ระบบ):</strong> <code>auth.ts</code>, <code>backup.ts</code> (path traversal, restore staging), <code>settings.ts</code>, <code>printer.ts</code>, <code>codes.ts</code> (ไม่มี handler — helper <code>walkInCustomerId</code>/<code>nextCustomerCode</code> ตรวจในฐานะ helper), <code>quotation.ts</code>, <code>dev.ts</code> (ยืนยัน gate isDev ที่ main.ts:100), <code>matcher.ts</code> + <code>electron/services/matcher.ts</code></li>
+          <li><strong>C (ฐานราก):</strong> <code>electron/main.ts</code> (webPreferences, navigation gating <code>!isSameDocument</code>), <code>electron/preload.ts</code> (พื้นผิว expose), <code>electron/auth/session.ts</code>, <code>hash.ts</code>, <code>lockout.ts</code>, <code>src/App.tsx</code> (SetupGate/LoginGate + DEV auto-login <code>import.meta.env.DEV</code> ~78-90 ต้องไม่หลุด production), <code>src/hooks/useManagerOverride.tsx</code> + <code>usePermission.ts</code> (renderer ฝั่ง override/role-gating)</li>
+          <li>จุดตรวจ: ทุก mutating handler มี role check, <span class="inv">allow-list payload ทุก save/update ห้าม ...form spread (dynamic SQL จาก Object.keys)</span>, SQL ต่อ string จาก input, manager-override ครบ flow, session ผูก webContents, validate path จากผู้ใช้ (backup dir/restore file)</li>
+        </ul>
+      </div>
+
+      <div class="step"><strong>R4 — คุณภาพโค้ด</strong> · agents 2 ขนาน
+        <ul>
+          <li><strong>A (main-side):</strong> <strong>transaction discipline sweep ทั้ง <code>electron/ipc/*.ts</code></strong> (mutation ไม่ได้อยู่ใน db/index.ts), <code>electron/db/index.ts</code> (getDb/lockDb/applyPendingRestore — connection lifecycle), <code>electron/ipc/backup.ts</code> (stage-then-relaunch), <code>electron/main.ts</code> lifecycle, <code>electron/services/matcher.ts</code>, <code>electron/db/sortName.ts</code> (twin <code>src/lib/sortName.ts</code> — logic ตรงกันไหม), <code>electron/db/seed.ts</code> <strong>production path</strong> (seed C0000 ~136, backfill UPDATE sales ~139-143, lookup seeds — ไม่มีรอบอื่นตรวจ)</li>
+          <li><strong>B (renderer+sweep):</strong> <code>src/lib/*</code> (ยกเว้น quotation ตาม scope), <code>src/stores/*</code>, <code>src/hooks/*</code>, <code>src/types/index.ts</code> (ตรงกับ schema จริงไหม); sweep: <code>parseFloat/parseInt + || 0</code>, promise ไม่ await, Invalid Date, catch เงียบ, dead exports, printing fallback <code>docConfig()</code></li>
+          <li>จุดตรวจเพิ่ม: error จาก IPC ถึง toast ครบไหม, double-submit ขาย/GR</li>
+        </ul>
+      </div>
+
+      <div class="step"><strong>R5-R9 — UI ตามหน้า</strong> · รอบละ 2-3 agents · อ่านก่อน (ทุกตัว): <code>docs/claude/ui-theming.md</code>, <code>ui-table-card.md</code>, <code>ui-components.md</code>
+        <ul>
+          <li><strong>R5:</strong> <code>src/pages/POS/index.tsx</code>, <code>LabelPrintDialog.tsx</code>, <code>src/pages/Auth/LoginScreen.tsx</code>, <code>src/pages/Setup/SetupWizard.tsx</code> + อ่านเพิ่ม <code>docs/claude/pos.md</code> (<span class="inv">focus/highlight/base-unit-first/qty multiplier 5*</span>)</li>
+          <li><strong>R6:</strong> <code>src/pages/Products/*</code> ทั้ง 16 ไฟล์</li>
+          <li><strong>R7:</strong> <code>src/pages/Purchase/index.tsx</code>, <code>src/pages/PurchaseIntake/index.tsx</code>, <code>src/pages/People/index.tsx</code></li>
+          <li><strong>R8:</strong> <code>src/pages/Manage/*</code> (8 ไฟล์), <code>src/pages/Reports/*</code> (4 ไฟล์)</li>
+          <li><strong>R9:</strong> <code>src/pages/Settings/*</code> (13 ไฟล์), <code>src/components/layout/*</code> (TitleBar, Sidebar, SidebarUser, Layout, PageHeader, TabStrip — สองตัวหลังเป็น bar ใต้กฏ h-12/h-9), <code>src/components/dialogs/*</code> (ยกเว้น Quotation dialog), <code>src/components/label/*</code>, กวาด <code>src/components/ui/**</code> <strong>รวม charts/</strong> หา h-10/h-14 — <span class="inv">grep สดเอง อย่ายึด pre-list</span> (hint ณ 2026-06-10: lot-picker-dialog, multi-date-picker, period-picker, unit-picker-dialog, table.tsx:83, confirm-dialog.tsx:172 h-14; button.tsx:134 size xl อาจตั้งใจ), Tailwind v4 shorthand <code>w-(--x)</code>, scrollbar กำหนดเอง, <code>src/index.css</code> + <code>tailwind.config.js</code> (token SSOT)</li>
+          <li><strong>UI checklist กลาง (ทุกรอบ):</strong> (1) bar h-12/control h-9 (2) semantic tokens — literal ใน tokenization backlog = KNOWN-TRACKED, ใหม่ = finding (3) ห้าม raw HTML/local helper (4) text-size hierarchy ห้ามเล็กกว่า xs และโค้ดใหม่ห้าม text-xs (5) ห้าม emoji (6) modal contract + ปุ่ม footer ตาม role (7) icon size-N ใน Button (8) table-card 4 โซน + row actions (9) truncate วรรณยุกต์ไทย → overflow-x-clip overflow-y-visible (10) tabular-nums BANNED</li>
+        </ul>
+      </div>
+
+      <div class="step"><strong>R10 — Production-readiness + ปิดรายงาน</strong> (orchestrator)
+        <ul>
+          <li>DEV-only checklist: <code>src/pages/Settings/ShopTab.tsx</code> (Setup preview 3 จุด + Login preview 3 จุด), <code>electron/db/seed.ts</code> (Hygeia dev seed: PRODUCTS/CUSTOMERS import + insert blocks)</li>
+          <li><code>npx tsc --noEmit</code> รอบจบ เทียบ baseline R0 · triage known warnings (postcss ESM, DevTools Autofill)</li>
+          <li>รวม MASTER.md: dedupe ข้ามรอบ, นับยอด, ทำ shortlist P0+P1 เสนอผู้ใช้เลือกแก้</li>
+        </ul>
+      </div>
+    </ol>
+
+    <h3>Agent brief template (ใช้ทุก dispatch)</h3>
+    <pre>อ่านก่อนเริ่ม: docs/claude/&lt;ไฟล์ของรอบ&gt;
+ตรวจเฉพาะไฟล์: &lt;รายการ&gt;
+ตรวจเฉพาะ "มิติของรอบตัวเอง" — ไฟล์เดียวกันอาจถูกตรวจมิติอื่นในรอบอื่น
+(เช่น cartStore/vat/receipt ถูกตรวจมิติเงินใน R1 แล้ว — R4 ดูเฉพาะคุณภาพโค้ด)
+ห้ามแก้ไฟล์ใด ๆ — รายงานอย่างเดียว
+ทุก finding ต้องเปิดไฟล์ยืนยัน file:line จริงก่อนรายงาน
+format: [R#-NNN] [P0-P3] file:line — ชื่อ — เกิดอะไร/ทำไมสำคัญ — fix แนะนำ — tags
+เรื่องที่อยู่ใน known-tracked list (แนบให้) → tag KNOWN-TRACKED
+หัวข้อที่ตรวจแล้วไม่พบปัญหา → ตอบ PASS พร้อมบอกว่าตรวจอะไรไป</pre>
+
+    <h3>ลำดับ + ประมาณการ</h3>
+    <ul>
+      <li>R0 → R1 → R2 (แชร์ context pos.ts) → R3 → R4 → R5-R9 (อิสระ สลับ/ขนานข้ามเซสชันได้) → R10 ปิดท้าย</li>
+      <li>~7-8 เซสชัน: R0+R1 / R2 / R3 / R4 / R5+R7 / R6 / R8+R9 / R10</li>
+    </ul>
+
+    <h3>การ verify (ต่อรอบ)</h3>
+    <ul>
+      <li>รายงานรอบอยู่ที่ <code>docs/audits/full-program/</code> + orchestrator สุ่มเปิด file:line ยืนยันก่อนใส่ MASTER</li>
+      <li>R1/R2: runtime log PASS/FAIL ครบทุก scenario (บนหน้าต่าง [AUDIT-TMP] เท่านั้น)</li>
+      <li>R10: MASTER ครบทุกรอบ + shortlist พร้อมเสนอ</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li>Agent false positive → orchestrator เปิดไฟล์ยืนยันเองก่อนใส่ MASTER</li>
+      <li>Findings ท่วมจาก backlog เก่า → tag KNOWN-TRACKED ตั้งแต่ brief</li>
+      <li><span class="inv">Runtime ทำข้อมูลพัง → ทำตาม R0 ขั้น isolation ครบ + ยืนยัน [AUDIT-TMP] ก่อนทุก scenario + ห้าม npm install (พัง better-sqlite3)</span></li>
+      <li>Context ยาวเกิน → รอบละรายงานจบในตัว, MASTER เป็น SSOT, memory ชี้สถานะรอบล่าสุด</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-10 · ผ่าน audit แผน 2 รอบ (1 P0, 6 P1, 15 P2 — แก้ครบ)</footer>
+
+</div>
+</body>
+</html>

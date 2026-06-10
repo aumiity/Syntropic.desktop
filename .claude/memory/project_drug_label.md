@@ -5,6 +5,31 @@ metadata:
   type: project
 ---
 
+## Status — 2026-06-10b (LabelFormDialog redesign + sort_order removed + delete confirm)
+
+Shared `LabelFormDialog` (used by LabelsTab + POS quick-add) reworked + small fixes (tsc PASS, in-app verified):
+- **5 "วิธีใช้" selects → `<Combobox variant="elevated">` autocomplete** (dosage/frequency/timing/label_time/advice — many rows each; qty is baked into the dosage option e.g. "กิน 2 เม็ด", owner does NOT want a separate dose_qty number field). Dialog widened `2xl→3xl`, the 5 comboboxes stacked full-width (was a cramped 2×2 grid). id 0 = ไม่เลือก (combobox `emptyLabel`).
+- **สรรพคุณ Textarea → single-row `Input`** (4 langs). The 3 switches moved to the right column TOP as a **connected framed group** (each keeps its own `framed` pill, flush via `-mt-px` collapsing the shared edge, outer ends rounded `rounded-b/t-none`, `h-10`) — NO wrapping SectionCard; order = เปิดใช้งาน, ฉลากค่าเริ่มต้น, แสดงบาร์โค้ด.
+- **`sort_order` ("ลำดับ") REMOVED front+back**: dropped from `product_labels` CREATE + migration `DROP COLUMN sort_order` (the 2nd DROP-COLUMN loop in schema.ts), `ORDER BY pl.sort_order,pl.id` → `ORDER BY pl.id` (×2 in products.ts: products:get + getLabels), out of saveLabel INSERT, out of `ProductLabel` type + form blankForm/seed/payload/UI. Labels now order by id (creation). (`sort_order` ≠ `is_default`: default = which label is auto-picked.)
+- **Combobox scroll-in-Dialog fix** — see [[feedback_popover_scroll_in_dialog]].
+- **Delete-label confirm** added in LabelsTab (`ConfirmDialog variant="destructive"`, description names the label across 2 lines via `<br/>`, ยืนยัน/ยกเลิก) — was deleting instantly.
+
+## Status — 2026-06-10 (language switch in product page + auto shrink-to-fit)
+
+Two things shipped (tsc PASS; in-app visual verify pending):
+
+**1. Language switch in the product page (LabelsTab).** `composeLabelContent` already took `lang`; only the per-product preview was hard-coded to `'th'`. Added a `lang` state + a "ภาษาฉลาก" toggle-button group (`Tabs` + `TabsList variant="toggle"` — NEW tabs variant added this session: CONNECTED segmented group — `bg-card` track กรอบด้วย `ring-1 ring-inset` (ไม่ใช่ `border` — border กินความสูง 1px×2 ทำ trigger เหลือ 34px ใน bar 36px; ring ไม่กิน layout → trigger เต็ม 36px เท่าปุ่ม h-9 เดี่ยว) `rounded-lg+overflow-hidden` (มุมนอกมน-ในเหลี่ยม), flush `flex-1` triggers คั่นด้วย `border-l` (first:border-l-0, เส้นตั้งกินแค่กว้างไม่กินสูง), `h-full`; **list `h-9` อบใน variant** (`data-[variant=toggle]:group-data-...:h-9` เพราะ className `h-9` ธรรมดาแพ้ specificity ของ base `…:h-8` modifier — บั๊กที่เคยทำให้สูงแค่ 30px), active กดจม `bg-muted+shadow-inner`, ไม่มี sliding pill; showcase ใน `/theme` + doc `docs/claude/ui-components.md`; ไทย/อังกฤษ/พม่า/จีน) strip ABOVE the preview paper in `LabelsTab.tsx`, threaded into `composeLabelContent` for BOTH the preview AND `selectedLabelHtml()` (print/PDF) — so switching language changes what prints too (preview = print 1:1), not just the on-screen text. `LANG_OPTIONS` moved to `content.ts` (SSOT) and POS's local copy removed. Default `'th'` = identical to before.
+
+**2. Auto shrink-to-fit (the hard part — each language is a different length, fixed sticker can't grow).** New `src/lib/label/fit.ts`: configured font = CEILING; when a label's content overflows the printable area, the WHOLE block scales down uniformly (`transform: scale(k)`, `k ≤ 1`, floored at `LABEL_FIT_MIN_SCALE = 0.5`) so the section hierarchy/bold is preserved and only absolute scale changes. Labels that fit are untouched (`k = 1`) — the configured size still drives the common case. Implementation:
+- Both render paths wrap sections in `.label-area` (printable box, fills the padded inside) `>` `.label-fit` (natural content). Measurement is a pure RATIO `area.client* / fit.scroll*`, read from the SAME DOM under the SAME CSS zoom → **zoom-invariant**, so the zoomed on-screen preview and the un-zoomed print window compute an identical `k`.
+- **Print:** `LABEL_FIT_SCRIPT` (no backticks/`${}` so it survives interpolation) embedded by `buildLabelHtml`/`buildLabelSheetHtml`; waits fonts + 2 rAF, fits every `.label-fit`, exposes `window.__labelFitReady`. The two label handlers in `printer.ts` (`printLabel`, `previewLabelPdf`) now `await window.__labelFitReady` before snapshotting — receipts (`WAIT_FOR_RENDER_JS`) untouched.
+- **Screen:** `LabelPaper.tsx` mirrors it in `useLayoutEffect` via `computeFitScale`, applying transform IMPERATIVELY (React only owns the style props it sets; no transform binding → no fight, no re-render loop). Covers BOTH the LabelsTab preview and the Settings designer (shared component). `overflow:hidden` added on the paper so a floored-still-overflowing label clips instead of bleeding.
+- Below `MIN_SCALE` the paper clips (silent — owner chose silent shrink over a warn-and-fix flow, 2026-06-10). Trade-off: a long label at small `k` may print smaller / barcode could get tight to scan at extremes.
+
+**⏭️ Next:** ปรับ UI หน้าต่างพิมพ์ฉลาก POS (`LabelPrintDialog.tsx`) ให้สวย/ใช้ง่ายขึ้น (งานเดิมข้อ 1 ที่ยังค้าง).
+
+---
+
 ## Status — 2026-06-09 (POS label print + 4 languages)
 
 **POS label printing DONE + 4-language support DONE** (plan `docs/plans/POS_Label_Print.html`, audit 3 รอบ, tsc ผ่าน, ผู้ใช้ทดสอบจริงผ่าน 2026-06-09). What shipped:
@@ -14,7 +39,7 @@ metadata:
 - **4 ภาษา (th/en/mm/zh):** lookup ทั้ง 5 มี `name_th/en/mm/zh` + seed ครบอยู่แล้ว. เพิ่มคอลัมน์ **`product_labels.indication_en`** (schema CREATE + ALTER migration ใน try/catch array + saveLabel INSERT + ProductLabel type + ช่องกรอกในฟอร์ม) → สรรพคุณครบ 4 ภาษา. `composeLabelContent(label, product, shop, lookups, lang='th')` เลือกคอลัมน์ตาม lang, resolve ชื่อ lookup จาก id+lang (fallback joined `*_name` เมื่อไม่ส่ง lookup), indication fallback `indication_th`. **default lang='th' = ผลเท่าเดิมเป๊ะ** (callers เก่า LabelsTab×2 + LabelSettingsTab:219 ไม่พัง). ภาษาเลือกครั้งเดียวใช้ทั้งบิล (POS เท่านั้น).
 - **ฟอนต์ fallback พม่า/จีน:** bundle `NotoSansMyanmar-*` + `NotoSansSC-*` (Regular+Bold ครบ) ใน `src/assets/fonts/`. `buildFallbackFontFaceCss(text)` ใน `fonts.ts` สแกน Unicode range (Myanmar U+1000–109F / CJK U+4E00–9FFF…) แล้ว **ฝัง @font-face เฉพาะอักษรที่ปรากฏจริง** (Thai-only ไม่อืด). `buildLabelSheetHtml` (ใหม่ ใน `html.ts`) ต่อ family เข้า stack ก่อน `sans-serif`. `renderLabelSectionsHtml` แยกออกจาก `buildLabelHtml` (sync, ใช้ร่วม single + sheet). **พิมพ์หลายหน้าใช้ `break-after:page` + pageSize microns — ไม่ต้อง `preferCSSPageSize` (เป็น option ของ printToPDF เท่านั้น) → ไม่แตะ printer.ts**.
 
-**⏭️ Next (2026-06-10):** ปรับ UI หน้าต่างพิมพ์ฉลาก POS + เพิ่ม**ตัวเลือกแสดงตัวอย่าง 4 ภาษาภายในหน้าสินค้า** (ตอนนี้ LabelsTab preview ยัง fix `lang='th'` — `composeLabelContent` รับ lang แล้ว เหลือต่อ UI สลับภาษาใน preview).
+**⏭️ Next (2026-06-10):** ~~ปรับ UI หน้าต่างพิมพ์ฉลาก POS~~ + ~~เพิ่มตัวเลือกแสดงตัวอย่าง 4 ภาษาภายในหน้าสินค้า~~ — ภาษาในหน้าสินค้า DONE 2026-06-10 (ดูบล็อกบนสุด); POS dialog UI polish ยังค้าง.
 
 ---
 
@@ -29,6 +54,7 @@ Core restructure DONE. **Section-split DONE 2026-06-07** (plan `docs/plans/label
 | Concern | File |
 |---------|------|
 | Section layout metadata (SSOT) | `src/lib/label/sections.ts` |
+| Auto shrink-to-fit (ceiling font, scale-to-fit) | `src/lib/label/fit.ts` — `computeFitScale()` (React), `LABEL_FIT_SCRIPT` (print, `window.__labelFitReady`), `LABEL_FIT_MIN_SCALE`. Render paths wrap sections in `.label-area > .label-fit`. |
 | Sample text (Settings preview) | `src/lib/label/content.ts` — `SAMPLE_CONTENT` (product/วิธีใช้ rows only) |
 | Settings preview shop header | REAL shop data via `getShop()` + `composeLabelContent` — `previewContent` useMemo in `LabelSettingsTab.tsx` overrides the 4 shop sections; test-print/PDF use the same `previewContent` (preview = print 1:1) |
 | Real label content (product) | `src/lib/label/content.ts` — `composeLabelContent()` + `todayBE()` |

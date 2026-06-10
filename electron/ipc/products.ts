@@ -285,7 +285,7 @@ export function registerProductHandlers() {
       LEFT JOIN label_frequencies lf ON lf.id = pl.frequency_id
       LEFT JOIN label_dosages ld ON ld.id = pl.dosage_id
       LEFT JOIN label_meal_relations lm ON lm.id = pl.timing_id
-      WHERE pl.product_id = ? ORDER BY pl.sort_order, pl.id
+      WHERE pl.product_id = ? ORDER BY pl.id
     `).all(id)
     // Bundles carry their composition. Joined display fields (component_name etc.)
     // make EditBundle's ComponentsTab render without a second IPC round-trip.
@@ -884,7 +884,7 @@ export function registerProductHandlers() {
       LEFT JOIN label_frequencies lf ON lf.id = pl.frequency_id
       LEFT JOIN label_dosages ld ON ld.id = pl.dosage_id
       LEFT JOIN label_meal_relations lm ON lm.id = pl.timing_id
-      WHERE pl.product_id = ? ORDER BY pl.sort_order, pl.id
+      WHERE pl.product_id = ? ORDER BY pl.id
     `).all(productId)
   })
 
@@ -899,10 +899,10 @@ export function registerProductHandlers() {
     const result = db.prepare(`
       INSERT INTO product_labels (product_id, label_name, dose_qty, dosage_id, frequency_id, timing_id,
         label_time_id, advice_id, indication_th, indication_en, indication_mm, indication_zh, note_th, note_mm, note_zh,
-        show_barcode, is_default, is_active, sort_order)
+        show_barcode, is_default, is_active)
       VALUES (@product_id, @label_name, @dose_qty, @dosage_id, @frequency_id, @timing_id,
         @label_time_id, @advice_id, @indication_th, @indication_en, @indication_mm, @indication_zh, @note_th, @note_mm, @note_zh,
-        @show_barcode, @is_default, @is_active, @sort_order)
+        @show_barcode, @is_default, @is_active)
     `).run(data)
     return db.prepare(`SELECT * FROM product_labels WHERE id = ?`).get(result.lastInsertRowid)
   })

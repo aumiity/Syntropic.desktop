@@ -21,6 +21,8 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, NegativeStockAlert } from '@/types'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
+import { useShopVat } from '@/hooks/useShopVat'
+import { extractVat } from '@/lib/vat'
 import {
   Plus, Trash2, Package,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle, Settings2,
@@ -106,6 +108,7 @@ const IMPORT_FIELD_OPTIONS = [
 
 export default function PurchasePage() {
   const { toast } = useToast()
+  const { vatEnabled: shopVatEnabled, vatRate: shopVatRate } = useShopVat()
   const today = new Date().toISOString().slice(0, 10)
 
   // Form
@@ -117,6 +120,10 @@ export default function PurchasePage() {
   const [receiveDate, setReceiveDate] = useState(today)
   const [paymentType, setPaymentType] = useState<'cash' | 'credit'>('cash')
   const [dueDate, setDueDate] = useState('')
+  // Input VAT (ภาษีซื้อ) — per bill: some suppliers aren't VAT-registered.
+  // Only offered when the shop itself is VAT-registered (useShopVat below);
+  // the backend re-guards and forces 'none' for NO-VAT shops.
+  const [vatMode, setVatMode] = useState<'none' | 'inclusive' | 'exclusive'>('none')
   const [isPaid, setIsPaid] = useState(false)
   const [paidDate, setPaidDate] = useState('')
   const [grNote, setGrNote] = useState('')
@@ -530,6 +537,13 @@ export default function PurchasePage() {
   const validRows = rows.filter(r => r.product_id && r.lot_number && r.expiry_date && parseFloat(r.qty) > 0)
   const totalCost = rows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0)
 
+  // VAT preview — inclusive: backed out of the line sum (grand total unchanged);
+  // exclusive: added on top (grand total = lines + VAT). Mirrors purchase:save.
+  const billVat = vatMode === 'inclusive' ? extractVat(totalCost, shopVatRate)
+    : vatMode === 'exclusive' ? totalCost * shopVatRate / 100
+    : 0
+  const grandTotal = vatMode === 'exclusive' ? totalCost + billVat : totalCost
+
   // Duplicate = same product_id + same lot_number (different lots for same product are OK)
   const duplicateNames = (() => {
     const seen = new Map<string, string>()
@@ -559,6 +573,8 @@ export default function PurchasePage() {
         note: grNote || undefined,
         discount_amount: adjustDiscountAmt || undefined,
         surcharge_amount: adjustSurchargeAmt || undefined,
+        vat_mode: vatMode,
+        vat_rate: shopVatRate,
         userId: getCurrentUserId(),
         items: validRows.map(r => {
           const qtyNum = parseFloat(r.qty) || 0
@@ -594,7 +610,7 @@ export default function PurchasePage() {
       await loadNextGR()
       setSupplierId(0); setSupplierName(''); setSupplierInvoiceNo('')
       setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
-      setIsPaid(false); setPaidDate(''); setGrNote('')
+      setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode('none')
       setRows([emptyRow()]); setSearchQueries(['']); setSuggestions([[]])
     } catch (e: any) {
       toast(e?.message ? `บันทึกไม่สำเร็จ: ${e.message}` : 'บันทึกไม่สำเร็จ', 'error')
@@ -650,7 +666,7 @@ export default function PurchasePage() {
   const resetForm = () => {
     setSupplierId(0); setSupplierName(''); setSupplierInvoiceNo('')
     setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
-    setIsPaid(false); setPaidDate(''); setGrNote('')
+    setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode('none')
     setRows([emptyRow()]); setSearchQueries(['']); setSuggestions([[]])
     setAdjustSubtotal(null); setAdjustDiscountAmt(0); setAdjustSurchargeAmt(0)
     setAppliedDiscount({ baht: '', pct: '' }); setAppliedSurcharge({ baht: '', pct: '' })
@@ -1017,11 +1033,23 @@ export default function PurchasePage() {
                             )}
                           </div>
                         )}
+                        {vatMode !== 'none' && billVat > 0 && (
+                          <div className="bg-card px-5 py-1 space-y-0.5">
+                            <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
+                              <span>{vatMode === 'inclusive' ? 'มูลค่าก่อนภาษี' : 'ยอดรวมรายการ'}</span>
+                              <span className="w-32 text-right">{formatCurrency(vatMode === 'inclusive' ? totalCost - billVat : totalCost)}</span>
+                            </div>
+                            <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
+                              <span>ภาษีมูลค่าเพิ่ม {shopVatRate}%{vatMode === 'inclusive' ? ' (รวมในยอด)' : ''}</span>
+                              <span className="w-32 text-right">{formatCurrency(billVat)}</span>
+                            </div>
+                          </div>
+                        )}
                         <div className="h-12 px-5 bg-card border-t border-border flex items-center justify-between gap-3">
                           <Badge variant="primary-soft" className="text-sm rounded-md">{validRows.length}/{rows.length} รายการ</Badge>
                           <div className="flex items-center gap-6">
                             <span className="text-sm font-semibold text-foreground">มูลค่ารวมทั้งหมด</span>
-                            <span className="font-extrabold text-primary text-base w-32 text-right">{formatCurrency(totalCost)}</span>
+                            <span className="font-extrabold text-primary text-base w-32 text-right">{formatCurrency(grandTotal)}</span>
                           </div>
                         </div>
                       </div>
@@ -1154,6 +1182,30 @@ export default function PurchasePage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Input VAT (ภาษีซื้อ) — per bill; only for VAT-registered shops */}
+                    {shopVatEnabled && (
+                      <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2">
+                        <div className="text-sm font-bold text-foreground uppercase tracking-wide">ภาษีซื้อ (VAT)</div>
+                        <Select value={vatMode} onValueChange={v => setVatMode(v as 'none' | 'inclusive' | 'exclusive')}>
+                          <SelectTrigger className="w-full h-9 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">บิลนี้ไม่มี VAT</SelectItem>
+                            <SelectItem value="inclusive">มี VAT — ราคารวม VAT แล้ว</SelectItem>
+                            <SelectItem value="exclusive">มี VAT — ราคายังไม่รวม VAT</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {vatMode !== 'none' && (
+                          <p className="text-xs text-muted-foreground">
+                            {vatMode === 'inclusive'
+                              ? `ระบบจะถอด VAT ${shopVatRate}% ออกจากต้นทุนสินค้าให้อัตโนมัติ (ภาษีซื้อขอคืนได้ ไม่ใช่ต้นทุน)`
+                              : `ระบบจะบวก VAT ${shopVatRate}% เพิ่มจากยอดรวมรายการเป็นยอดชำระ`}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* Note */}
                     <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2">

@@ -52,7 +52,10 @@ Copy the skeleton from `reference/html-template.html`, fill it in, and write the
 
 **Section A — "for the user to read" (human-read)**, plain language, teal/amber tokens per the template:
 - Short summary: what, why, outcome.
-- Structure / mapping / diagram (diagram, mapping table, or flow — whichever communicates best).
+- Structure / mapping / diagram — pick whichever communicates best (your judgment): a mapping table for flat lists; a **drawn diagram** whenever the plan involves a flow, architecture, or ≥3 moving parts across layers (renderer ↔ IPC ↔ DB, state machines, structural before/after).
+  - Diagrams are **drawn in-file only**: linear flows use the template's `.flow` HTML helper; 2D layouts use inline `<svg class="sd">` with the provided classes + arrow marker (examples are commented inside the template's section 2). Colors come from the template's CSS vars — never hardcode hex inside the diagram.
+  - **No Mermaid, no CDN scripts, no external images, no ascii-art** — they break the self-contained / opens-offline rule or look unfinished.
+  - Every node label cites a real thing (path, table, IPC channel) that exists in the repo — audit rounds verify diagram labels like any other reference.
 - **Before ↔ after side-by-side** (use `.ba-grid` in the template).
 - Impact + pros / cons / cautions (the three colored callouts).
 - UX/UI summary.

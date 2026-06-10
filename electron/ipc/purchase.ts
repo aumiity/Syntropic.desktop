@@ -11,6 +11,9 @@ export function registerPurchaseHandlers() {
   for (const sql of [
     `ALTER TABLE purchase_receipts ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE purchase_receipts ADD COLUMN surcharge_amount REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE purchase_receipts ADD COLUMN vat_mode TEXT NOT NULL DEFAULT 'none'`,
+    `ALTER TABLE purchase_receipts ADD COLUMN vat_rate REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE purchase_receipts ADD COLUMN vat_amount REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE purchase_receipts ADD COLUMN status TEXT NOT NULL DEFAULT 'completed'`,
     `ALTER TABLE purchase_receipts ADD COLUMN cancelled_at TEXT`,
     `ALTER TABLE purchase_receipts ADD COLUMN cancelled_by INTEGER`,
@@ -97,6 +100,8 @@ export function registerPurchaseHandlers() {
     note?: string
     discount_amount?: number
     surcharge_amount?: number
+    vat_mode?: 'none' | 'inclusive' | 'exclusive'
+    vat_rate?: number
     items: Array<{
       product_id: number
       lot_number: string
@@ -110,19 +115,43 @@ export function registerPurchaseHandlers() {
     userId: number
   }) => {
     const db = getDb()
+
+    // Input VAT (ภาษีซื้อ) — declared PER BILL because not every supplier is
+    // VAT-registered. Only a VAT-registered shop can claim input VAT, so a
+    // NO-VAT shop is forced to 'none' here regardless of payload (everything
+    // it pays IS cost). The VAT base is the line sum as sent — the renderer
+    // already distributes bill discount/surcharge into the line totals.
+    const shopVatEnabled = ((db.prepare(`SELECT vat_enabled FROM sales_settings LIMIT 1`).get() as any)?.vat_enabled ?? 0) === 1
+    const vatMode: 'none' | 'inclusive' | 'exclusive' =
+      shopVatEnabled && (payload.vat_mode === 'inclusive' || payload.vat_mode === 'exclusive')
+        ? payload.vat_mode : 'none'
+    const vatRate = vatMode === 'none' ? 0 : (Number(payload.vat_rate) > 0 ? Number(payload.vat_rate) : 7)
+    const lineSum = payload.items.reduce((s, it) => s + it.qty * it.cost_price, 0)
+    const vatAmount = vatMode === 'inclusive' ? lineSum * vatRate / (100 + vatRate)
+      : vatMode === 'exclusive' ? lineSum * vatRate / 100
+      : 0
+    // Claimable VAT is not cost: for VAT-inclusive bills the cost model
+    // (product_lots, weighted avg, stock_movements, last_cost_price) stores
+    // the ex-VAT cost. The purchase_receipt_items ledger keeps the entered
+    // cost untouched — document fidelity with the supplier invoice. For
+    // 'exclusive' bills the entered prices are already ex-VAT.
+    const costFactor = vatMode === 'inclusive' ? 100 / (100 + vatRate) : 1
+
     const save = db.transaction(() => {
       // Header is the authoritative source for GR-level metadata
       db.prepare(`INSERT OR REPLACE INTO purchase_receipts
         (invoice_no, supplier_id, supplier_invoice_no, order_date,
          payment_type, due_date, is_paid, paid_date,
-         note, discount_amount, surcharge_amount, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)`)
+         note, discount_amount, surcharge_amount,
+         vat_mode, vat_rate, vat_amount, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)`)
         .run(payload.invoice_no, payload.supplier_id, payload.supplier_invoice_no,
              payload.order_date ?? null,
              payload.payment_type, payload.due_date ?? null,
              payload.is_paid ? 1 : 0, payload.paid_date ?? null,
              payload.note ?? '',
              payload.discount_amount ?? 0, payload.surcharge_amount ?? 0,
+             vatMode, vatRate, vatAmount,
              payload.receive_date)
 
       for (const item of payload.items) {
@@ -132,6 +161,9 @@ export function registerPurchaseHandlers() {
         // backstop. assertNotBundle throws inside the transaction → rollback.
         assertNotBundle(db, item.product_id)
 
+        // Cost-model cost (ex-VAT for inclusive bills) — see costFactor above.
+        const costEx = item.cost_price * costFactor
+
         const existing = db.prepare(`SELECT * FROM product_lots WHERE product_id = ? AND lot_number = ?`).get(item.product_id, item.lot_number) as any
 
         let lotId: number
@@ -139,7 +171,7 @@ export function registerPurchaseHandlers() {
 
         if (existing) {
           const totalQty = existing.qty_received + item.qty
-          const avgCost = (existing.qty_received * existing.cost_price + item.qty * item.cost_price) / totalQty
+          const avgCost = (existing.qty_received * existing.cost_price + item.qty * costEx) / totalQty
           qtyBefore = existing.qty_on_hand
           lotId = existing.id
           db.prepare(`
@@ -170,7 +202,7 @@ export function registerPurchaseHandlers() {
               invoice_no, supplier_invoice_no, order_date, payment_type, due_date, is_paid, paid_date, note, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(item.product_id, payload.supplier_id, item.lot_number, item.manufactured_date ?? null, item.expiry_date,
-            item.cost_price, item.sell_price, item.qty, item.qty,
+            costEx, item.sell_price, item.qty, item.qty,
             payload.invoice_no, payload.supplier_invoice_no, payload.order_date ?? null,
             payload.payment_type,
             payload.due_date ?? null, payload.is_paid ? 1 : 0, payload.paid_date ?? null, item.note ?? '',
@@ -191,7 +223,7 @@ export function registerPurchaseHandlers() {
         db.prepare(`INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by, created_at)
           VALUES (?, ?, 'receive', 'stock_receive', ?, ?, ?, ?, ?, ?, ?)`).run(
           item.product_id, lotId, item.qty, qtyBefore, qtyBefore + item.qty,
-          item.cost_price, `รับสินค้า: ${payload.invoice_no}`, payload.userId, payload.receive_date
+          costEx, `รับสินค้า: ${payload.invoice_no}`, payload.userId, payload.receive_date
         )
 
         db.prepare(`UPDATE products SET price_retail = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
@@ -203,9 +235,9 @@ export function registerPurchaseHandlers() {
         // non-zero cost. Stays 0 only for products never paid for (new, or
         // only ever received free). cost_price is NOT touched here — it's
         // recomputed as a weighted average below.
-        if (item.cost_price > 0) {
+        if (costEx > 0) {
           db.prepare(`UPDATE products SET last_cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
-            .run(item.cost_price, item.product_id)
+            .run(costEx, item.product_id)
         }
       }
 
@@ -353,6 +385,7 @@ export function registerPurchaseHandlers() {
              pr.payment_type, pr.due_date, pr.is_paid, pr.paid_date,
              s.name as supplier_name,
              pr.discount_amount, pr.surcharge_amount,
+             COALESCE(pr.vat_mode,'none') as vat_mode, pr.vat_rate, pr.vat_amount,
              COALESCE(pr.status,'completed') as status,
              pr.cancelled_at, pr.cancel_reason
       FROM purchase_receipt_items pri

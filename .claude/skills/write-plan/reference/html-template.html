@@ -4,6 +4,8 @@
   กฏ: self-contained (style ฝังในไฟล์), ภาษาไทย, สี teal/amber ตาม repo
   มี 2 ส่วน: Section A (คนอ่าน) + Section B (Claude ทำงาน)
   จุดที่ต้องเติม คั่นด้วย {{ ... }} — แทนที่ให้หมด ห้ามเหลือ placeholder
+  ไดอะแกรม: วาดในไฟล์ด้วย .flow หรือ svg.sd เท่านั้น (ห้าม Mermaid/CDN/รูปนอกไฟล์/ascii-art)
+  — ดูตัวอย่างที่ comment ไว้ใน section 2
 -->
 <html lang="th">
 <head>
@@ -68,6 +70,27 @@
   .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
   .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
   @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  /* ไดอะแกรม — วาดในไฟล์เท่านั้น (ห้าม Mermaid/CDN/รูปนอกไฟล์) */
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
   /* Section B — โซน Claude ทำงาน */
   .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
     font-size:13.5px;line-height:1.6}
@@ -103,7 +126,37 @@
 
   <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
   <div class="card">
-    {{diagram / table mapping / flow — เลือกแบบที่สื่อชัดสุด ใช้ <table>, .grid, หรือ ascii ใน <code>}}
+    {{เลือกแบบที่สื่อชัดสุด: <table>/.grid สำหรับ mapping แบน ๆ — ถ้าแผนมี flow / สถาปัตยกรรม / ของขยับ ≥3 ชิ้นข้าม layer ให้วาดไดอะแกรมด้วย .flow หรือ svg.sd ตามตัวอย่างด้านล่าง (label ทุก node = path/ชื่อจริงใน repo; ห้าม ascii-art)}}
+
+    <!-- ตัวอย่าง 1 · flow เส้นตรง ใช้ .flow (ลบ comment เมื่อใช้จริง)
+    <div class="diagram"><div class="flow">
+      <div class="node">POS<small>src/pages/POS/index.tsx</small></div>
+      <div class="ar">▶<small>IPC pos:save</small></div>
+      <div class="node">pos.ts<small>electron/ipc/pos.ts</small></div>
+      <div class="ar">▶<small>FEFO</small></div>
+      <div class="node data">lots<small>SQLite</small></div>
+    </div></div>
+    -->
+
+    <!-- ตัวอย่าง 2 · ผังสองมิติ ใช้ inline SVG (ปรับ viewBox/พิกัดตามเนื้อหา; marker sd-arr ต้องอยู่ใน defs เสมอ)
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 640 200" role="img" aria-label="{{คำอธิบายผัง}}">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+      <rect class="box" x="20" y="30" width="180" height="52" rx="10"/>
+      <text x="110" y="52" text-anchor="middle">POS (renderer)</text>
+      <text class="sub" x="110" y="70" text-anchor="middle">src/pages/POS/index.tsx</text>
+      <rect class="box" x="440" y="30" width="180" height="52" rx="10"/>
+      <text x="530" y="52" text-anchor="middle">pos.ts (main)</text>
+      <text class="sub" x="530" y="70" text-anchor="middle">electron/ipc/pos.ts</text>
+      <path class="edge" d="M200,56 H436"/>
+      <text class="elabel" x="318" y="48" text-anchor="middle">IPC pos:save</text>
+      <rect class="box data" x="440" y="130" width="180" height="46" rx="10"/>
+      <text x="530" y="157" text-anchor="middle">SQLite · lots</text>
+      <path class="edge hot" d="M530,82 V126"/>
+      <text class="elabel" x="545" y="108">FEFO</text>
+    </svg>
+    </div>
+    -->
   </div>
 
   <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>

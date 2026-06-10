@@ -318,10 +318,14 @@ export function registerReportHandlers() {
      JOIN sale_item_lots sil ON sil.sale_item_id = si.id
      JOIN product_lots pl ON pl.id = sil.lot_id
      WHERE si.sale_id = s.id AND sil.is_cancelled = 0)`
+  // Money actually owed/paid per GR: line sum − discount + surcharge, plus the
+  // VAT when the bill prices it separately ('exclusive' — VAT on top of lines;
+  // 'inclusive' VAT already sits inside the line prices, add nothing).
   const PURCHASE_NET_SUB = `
     ((SELECT COALESCE(SUM(pri.qty * pri.cost_price), 0)
       FROM purchase_receipt_items pri WHERE pri.invoice_no = pr.invoice_no)
-     - pr.discount_amount + pr.surcharge_amount)`
+     - pr.discount_amount + pr.surcharge_amount
+     + CASE WHEN COALESCE(pr.vat_mode,'none') = 'exclusive' THEN pr.vat_amount ELSE 0 END)`
 
   // Compute sales+purchase rollup for a date window. Pulled out so we can run
   // it twice (current + previous period) for delta widgets without duplicating
@@ -415,6 +419,81 @@ export function registerReportHandlers() {
       previous = { ...computeFinanceWindow(prev.from, prev.to), date_from: prev.from, date_to: prev.to }
     }
     return { ...current, ...payable, previous }
+  })
+
+  // VAT summary (ภาษีขาย / ภาษีซื้อ / ภ.พ.30) for a date window — admin-only.
+  // Output VAT reads the per-sale snapshots (sales.total_vat, voided excluded;
+  // NOTE: returns currently write total_vat = 0 — no credit-note/ใบลดหนี้
+  // document yet — so they don't reduce output VAT here). Input VAT = GR
+  // headers (vat_mode != 'none', not cancelled) + expenses carrying a full tax
+  // invoice. net_vat = output − input (ภ.พ.30: positive → นำส่ง, negative →
+  // ขอคืน/ยกยอด).
+  ipcMain.handle('reports:vatSummary', (_e, filters: { date_from?: string; date_to?: string }) => {
+    requireAdmin(_e)
+    const db = getDb()
+    const { date_from, date_to } = filters
+
+    const sCond: string[] = [`s.status != 'voided'`]
+    const sParams: any[] = []
+    if (date_from) { sCond.push(`date(s.sold_at) >= ?`); sParams.push(date_from) }
+    if (date_to) { sCond.push(`date(s.sold_at) <= ?`); sParams.push(date_to) }
+    const output = db.prepare(`
+      SELECT COALESCE(SUM(s.total_vat), 0) AS vat_total,
+             COALESCE(SUM(CASE WHEN s.total_vat > 0 THEN s.total_amount ELSE 0 END), 0) AS amount_total,
+             COUNT(CASE WHEN s.total_vat > 0 THEN 1 END) AS bill_count
+      FROM sales s WHERE ${sCond.join(' AND ')}
+    `).get(...sParams) as any
+    const salesRows = db.prepare(`
+      SELECT s.invoice_no, s.sold_at, s.sale_type, s.total_amount, s.total_vat
+      FROM sales s WHERE ${sCond.join(' AND ')} AND s.total_vat > 0
+      ORDER BY s.sold_at
+    `).all(...sParams)
+
+    const pCond: string[] = [`COALESCE(pr.status,'completed') != 'cancelled'`, `COALESCE(pr.vat_mode,'none') != 'none'`]
+    const pParams: any[] = []
+    if (date_from) { pCond.push(`date(pr.created_at) >= ?`); pParams.push(date_from) }
+    if (date_to) { pCond.push(`date(pr.created_at) <= ?`); pParams.push(date_to) }
+    const purchase = db.prepare(`
+      SELECT COALESCE(SUM(pr.vat_amount), 0) AS vat_total, COUNT(*) AS bill_count
+      FROM purchase_receipts pr WHERE ${pCond.join(' AND ')}
+    `).get(...pParams) as any
+    const purchaseRows = db.prepare(`
+      SELECT pr.invoice_no, pr.supplier_invoice_no, pr.created_at, pr.vat_mode, pr.vat_rate, pr.vat_amount,
+             s.name AS supplier_name,
+             COALESCE((SELECT SUM(pri.qty * pri.cost_price) FROM purchase_receipt_items pri WHERE pri.invoice_no = pr.invoice_no), 0) AS total_cost
+      FROM purchase_receipts pr
+      LEFT JOIN suppliers s ON s.id = pr.supplier_id
+      WHERE ${pCond.join(' AND ')}
+      ORDER BY pr.created_at
+    `).all(...pParams)
+
+    const eCond: string[] = [`e.has_tax_invoice = 1`, `e.vat_amount > 0`]
+    const eParams: any[] = []
+    if (date_from) { eCond.push(`date(e.expense_date) >= ?`); eParams.push(date_from) }
+    if (date_to) { eCond.push(`date(e.expense_date) <= ?`); eParams.push(date_to) }
+    const expense = db.prepare(`
+      SELECT COALESCE(SUM(e.vat_amount), 0) AS vat_total, COUNT(*) AS bill_count
+      FROM expenses e WHERE ${eCond.join(' AND ')}
+    `).get(...eParams) as any
+    const expenseRows = db.prepare(`
+      SELECT e.expense_no, e.expense_date, e.amount, e.vat_amount, ec.name AS category_name
+      FROM expenses e
+      LEFT JOIN expense_categories ec ON ec.id = e.category_id
+      WHERE ${eCond.join(' AND ')}
+      ORDER BY e.expense_date
+    `).all(...eParams)
+
+    const inputTotal = (purchase.vat_total as number) + (expense.vat_total as number)
+    return {
+      output: { vat_total: output.vat_total, amount_total: output.amount_total, bill_count: output.bill_count },
+      input: {
+        purchase_vat: purchase.vat_total, purchase_count: purchase.bill_count,
+        expense_vat: expense.vat_total, expense_count: expense.bill_count,
+        vat_total: inputTotal,
+      },
+      net_vat: (output.vat_total as number) - inputTotal,
+      sales_rows: salesRows, purchase_rows: purchaseRows, expense_rows: expenseRows,
+    }
   })
 
   ipcMain.handle('reports:salesPurchaseTrend', (_e, filters: {

@@ -8,6 +8,7 @@ import type { CSSProperties } from 'react'
 import { SECTIONS, buildSectionStyle, type LabelSettingsForm, type SectionKey } from './sections'
 import { esc, buildPrintFontFaceCss, buildFallbackFontFaceCss } from '@/lib/print/fonts'
 import { barcodeSvg } from './barcode'
+import { LABEL_FIT_SCRIPT } from './fit'
 
 // Inline React style object → a CSS declaration string (camelCase → kebab-case).
 export function styleToCss(s: CSSProperties): string {
@@ -107,6 +108,9 @@ export async function buildLabelHtml(
 ): Promise<string> {
   const sectionsHtml = renderLabelSectionsHtml(settings, content, date)
   const fontFaceCss = await buildPrintFontFaceCss(settings.font_family)
+  // .label-area = the printable content box (fills the body inside its padding);
+  // .label-fit = the natural-size content the embedded fit script scales down
+  // when it overflows the area (auto shrink-to-fit, configured font = ceiling).
   return `<!doctype html><html><head><meta charset="utf-8">
 <style>
 ${fontFaceCss}
@@ -118,10 +122,10 @@ body {
   font-family: '${settings.font_family}', sans-serif;
   line-height: ${settings.line_spacing};
   color: #000; background: #fff;
-  box-sizing: border-box;
+  box-sizing: border-box; overflow: hidden;
 }
-div:first-child { margin-top: 0 !important; }
-</style></head><body>${sectionsHtml}</body></html>`
+.label-fit > div:first-child { margin-top: 0 !important; }
+</style></head><body><div class="label-area" style="width:100%;height:100%"><div class="label-fit">${sectionsHtml}</div></div><script>${LABEL_FIT_SCRIPT}</script></body></html>`
 }
 
 // Build a MULTI-PAGE label sheet — one label per page (page-break between),
@@ -147,8 +151,11 @@ export async function buildLabelSheetHtml(
     `padding:${baseSettings.pad_top}mm ${baseSettings.pad_right}mm ${baseSettings.pad_bottom}mm ${baseSettings.pad_left}mm`,
     `box-sizing:border-box`, `overflow:hidden`, `break-after:page`, `page-break-after:always`,
   ].join(';')
+  // Each page wraps its sections in .label-area > .label-fit so the embedded fit
+  // script can shrink an overflowing label to its sticker (per-page, so a long
+  // label scales without touching the others).
   const pages = entries
-    .map(e => `<div class="label-page" style="${pageStyle}">${renderLabelSectionsHtml(e.settings, e.content, e.date)}</div>`)
+    .map(e => `<div class="label-page" style="${pageStyle}"><div class="label-area" style="width:100%;height:100%"><div class="label-fit">${renderLabelSectionsHtml(e.settings, e.content, e.date)}</div></div></div>`)
     .join('')
 
   return `<!doctype html><html><head><meta charset="utf-8">
@@ -159,6 +166,6 @@ ${fallback.css}
 html, body { margin: 0; padding: 0; }
 body { font-family: ${familyStack}; line-height: ${baseSettings.line_spacing}; color: #000; background: #fff; }
 .label-page:last-child { break-after: auto; page-break-after: auto; }
-.label-page > div:first-child { margin-top: 0 !important; }
-</style></head><body>${pages}</body></html>`
+.label-page .label-fit > div:first-child { margin-top: 0 !important; }
+</style></head><body>${pages}<script>${LABEL_FIT_SCRIPT}</script></body></html>`
 }

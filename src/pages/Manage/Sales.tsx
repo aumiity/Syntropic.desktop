@@ -23,6 +23,7 @@ import type { Sale, SaleForPrint } from '@/types'
 import type { ManageOutletContext } from './index'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
+import { useShopVat } from '@/hooks/useShopVat'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye, Printer, FileText } from 'lucide-react'
@@ -130,6 +131,7 @@ export default function ManageSalesPage() {
 
   const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
   const overrideVoid = useManagerOverride()
+  const { vatEnabled } = useShopVat()
 
   // Full tax-invoice issuance dialog (ใบกำกับภาษีเต็มรูป).
   const [taxTarget, setTaxTarget] = useState<{ saleId: number; sale: SaleForPrint; prefillName?: string } | null>(null)
@@ -445,7 +447,9 @@ export default function ManageSalesPage() {
                             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                             <Printer className="size-4" /> พิมพ์ใบเสร็จ
                           </button>
-                          {!isVoided && s.sale_type !== 'return' && (
+                          {/* Tax invoice is a VAT-shop document — hidden for NO-VAT
+                              shops AND for bills sold without VAT (per-bill checkbox) */}
+                          {vatEnabled && s.total_vat > 0 && !isVoided && s.sale_type !== 'return' && (
                             <button type="button" onClick={() => openTaxInvoice(s)}
                               className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                               <FileText className="size-4" /> ใบกำกับภาษี

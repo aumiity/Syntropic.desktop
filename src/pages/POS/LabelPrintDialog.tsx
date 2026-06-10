@@ -15,7 +15,7 @@ import { Pill, Printer, Plus, Languages } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import type { Product, ProductLabel } from '@/types'
 import { LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
-import { composeLabelContent, todayBE, type LabelLang } from '@/lib/label/content'
+import { composeLabelContent, todayBE, LANG_OPTIONS, type LabelLang } from '@/lib/label/content'
 import { buildLabelSheetHtml } from '@/lib/label/html'
 import { LabelFormDialog, type LabelFormLookups } from '@/components/label/LabelFormDialog'
 
@@ -35,13 +35,6 @@ interface Row {
   selectedLabelId: number | null
   copies: number
 }
-
-const LANG_OPTIONS: { value: LabelLang; label: string }[] = [
-  { value: 'th', label: 'ไทย' },
-  { value: 'en', label: 'English' },
-  { value: 'mm', label: 'พม่า' },
-  { value: 'zh', label: 'จีน' },
-]
 
 const emptyLookups: LabelFormLookups = {
   labelFrequencies: [], labelDosages: [], labelMealRelations: [], labelTimes: [], labelAdvices: [],

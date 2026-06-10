@@ -6,7 +6,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { DateInput } from '@/components/ui/date-input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { FormField } from '@/components/ui/label'
+import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
+import { useShopVat } from '@/hooks/useShopVat'
+import { extractVat } from '@/lib/vat'
 import type { Expense, ExpenseCategory } from '@/types'
 
 // Enter on a working input fires the primary OK action (modal contract).
@@ -26,6 +29,8 @@ const blankForm = () => ({
   amount: '',
   reference_no: '',
   note: '',
+  has_tax_invoice: false,
+  vat_amount: '',
 })
 
 export interface ExpenseFormDialogProps {
@@ -43,6 +48,7 @@ export interface ExpenseFormDialogProps {
  */
 export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: ExpenseFormDialogProps) {
   const { toast } = useToast()
+  const { vatEnabled: shopVatEnabled, vatRate: shopVatRate } = useShopVat()
   const [form, setForm] = useState<any>(blankForm())
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [saving, setSaving] = useState(false)
@@ -61,6 +67,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Expe
         amount: expense.amount != null ? String(expense.amount) : '',
         reference_no: expense.reference_no ?? '',
         note: expense.note ?? '',
+        has_tax_invoice: expense.has_tax_invoice === 1,
+        vat_amount: expense.vat_amount ? String(expense.vat_amount) : '',
       })
     } else {
       setForm(blankForm())
@@ -77,6 +85,17 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Expe
     const amount = parseFloat(form.amount)
     if (!Number.isFinite(amount) || amount <= 0) { toast({ title: 'จำนวนเงินไม่ถูกต้อง', variant: 'error' }); return }
 
+    // Input VAT — only sent when claimable (shop VAT + tax invoice on hand).
+    // Never coerce blank → 0: a checked toggle with a blank VAT field aborts.
+    const claimVat = shopVatEnabled && form.has_tax_invoice
+    let vatAmount = 0
+    if (claimVat) {
+      if (form.vat_amount === '' || form.vat_amount == null) { toast({ title: 'กรุณาระบุยอดภาษีซื้อ', variant: 'error' }); return }
+      vatAmount = parseFloat(form.vat_amount)
+      if (!Number.isFinite(vatAmount) || vatAmount < 0) { toast({ title: 'ยอดภาษีซื้อไม่ถูกต้อง', variant: 'error' }); return }
+      if (vatAmount >= amount) { toast({ title: 'ยอดภาษีซื้อต้องน้อยกว่ายอดค่าใช้จ่าย', variant: 'error' }); return }
+    }
+
     setSaving(true)
     try {
       await window.api.expenses.save({
@@ -86,6 +105,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Expe
         amount,
         reference_no: form.reference_no?.trim() || null,
         note: form.note?.trim() || null,
+        has_tax_invoice: claimVat,
+        vat_amount: vatAmount,
       })
       toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
       onOpenChange(false)
@@ -135,6 +156,41 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Expe
               <Input value={form.reference_no ?? ''} onChange={e => setF('reference_no', e.target.value)} placeholder="เลขที่ใบเสร็จ/บิล" />
             </FormField>
           </div>
+          {/* Input VAT (ภาษีซื้อ) — VAT-registered shops only. Claimable only
+              with a full tax invoice; toggling on prefills the VAT backed out
+              of the (VAT-inclusive) amount, editable for partial-VAT bills. */}
+          {shopVatEnabled && (
+            <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
+              <Toggle
+                className="justify-between w-full h-11 px-3"
+                label="มีใบกำกับภาษีเต็มรูป (ขอคืนภาษีซื้อได้)"
+                checked={!!form.has_tax_invoice}
+                onChange={v => {
+                  setForm((f: any) => ({
+                    ...f,
+                    has_tax_invoice: v,
+                    vat_amount: v && f.vat_amount === '' && parseFloat(f.amount) > 0
+                      ? extractVat(parseFloat(f.amount), shopVatRate).toFixed(2)
+                      : f.vat_amount,
+                  }))
+                }}
+              />
+              {form.has_tax_invoice && (
+                <div className="flex items-center justify-between gap-3 h-11 px-3">
+                  <span className="text-sm font-medium text-foreground">ยอดภาษีซื้อ (VAT {shopVatRate}%)</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.vat_amount}
+                    onChange={e => setF('vat_amount', e.target.value)}
+                    placeholder="0.00"
+                    className="h-8 w-32 text-right"
+                  />
+                </div>
+              )}
+            </div>
+          )}
           <FormField label="หมายเหตุ">
             <Textarea value={form.note ?? ''} onChange={e => setF('note', e.target.value)} rows={3} className="resize-none" />
           </FormField>

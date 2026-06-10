@@ -10,6 +10,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
+import { useShopVat } from '@/hooks/useShopVat'
 import { FONTS } from '@/lib/print/fonts'
 import { buildSlipHtml } from '@/lib/receipt/buildSlipHtml'
 import { RC_SECTIONS, type RcAlign } from '@/lib/receipt/sections'
@@ -86,6 +87,7 @@ interface PrinterInfo { name: string; displayName: string; isDefault: boolean }
 
 export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode) => void }) {
   const { toast } = useToast()
+  const { vatEnabled } = useShopVat()
   const [form, setForm] = useState<ReceiptForm>(DEFAULTS)
   const [shop, setShop] = useState<Partial<Setting>>({})
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
@@ -371,12 +373,17 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                     checked={!!form.auto_print}
                     onChange={v => setF('auto_print', v ? 1 : 0)}
                   />
-                  <Toggle
-                    className="justify-between w-full h-11 px-3"
-                    label="ใช้สลิปเป็นใบกำกับภาษีอย่างย่อ (เมื่อเปิด VAT)"
-                    checked={!!form.abbrev_tax_invoice}
-                    onChange={v => setF('abbrev_tax_invoice', v ? 1 : 0)}
-                  />
+                  {/* Abbrev tax invoice only makes sense for a VAT-registered shop —
+                      hidden for NO-VAT (print paths are already data-gated by
+                      sale.total_vat > 0, so a stale `on` value stays harmless) */}
+                  {vatEnabled && (
+                    <Toggle
+                      className="justify-between w-full h-11 px-3"
+                      label="ใช้สลิปเป็นใบกำกับภาษีอย่างย่อ"
+                      checked={!!form.abbrev_tax_invoice}
+                      onChange={v => setF('abbrev_tax_invoice', v ? 1 : 0)}
+                    />
+                  )}
                 </div>
               </div>
                   </div>

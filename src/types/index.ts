@@ -75,7 +75,7 @@ export interface ProductLabel {
   indication_th?: string; indication_en?: string; indication_mm?: string; indication_zh?: string
   note_th?: string; note_mm?: string; note_zh?: string
   show_barcode?: number; is_default?: number
-  is_active: number; sort_order: number
+  is_active: number
   frequency_name?: string; dosage_name?: string; timing_name?: string
 }
 
@@ -302,6 +302,9 @@ export interface Expense {
   amount: number
   reference_no?: string
   note?: string
+  // Input VAT — claimable only when has_tax_invoice = 1 (full tax invoice)
+  vat_amount?: number
+  has_tax_invoice?: number
   created_at?: string
   updated_at?: string
 }

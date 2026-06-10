@@ -3,11 +3,12 @@
 // LabelsTab preview (composeLabelContent). The print path builds an HTML string
 // separately (buildLabelHtml) but iterates the SAME SECTIONS + content map, so
 // preview and print stay 1:1.
-import type { CSSProperties } from 'react'
+import { useLayoutEffect, useRef, type CSSProperties } from 'react'
 import {
   SECTIONS, buildSectionStyle, type SectionKey, type LabelSettingsForm,
 } from '@/lib/label/sections'
 import { barcodeSvg } from '@/lib/label/barcode'
+import { computeFitScale } from '@/lib/label/fit'
 
 interface Props {
   settings: LabelSettingsForm
@@ -40,6 +41,32 @@ export function LabelPaper({ settings, content, date }: Props) {
   // Without re-applying inline, the preview silently falls back to the app font.
   const fontFamily = `'${settings.font_family}', sans-serif`
 
+  // Auto shrink-to-fit (mirrors the print path's LABEL_FIT_SCRIPT): measure the
+  // natural content (.label-fit) against the printable area (.label-area) and,
+  // if it overflows the fixed sticker, scale the whole block down uniformly so
+  // the configured font stays the ceiling and the section hierarchy is kept.
+  // The ratio is read from the same DOM under the same CSS zoom, so the preview
+  // and the (un-zoomed) print window land on an identical scale. Transform is
+  // applied imperatively because React owns only the style props it sets.
+  const areaRef = useRef<HTMLDivElement>(null)
+  const fitRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const measure = () => {
+      const area = areaRef.current, fit = fitRef.current
+      if (!area || !fit) return
+      fit.style.transform = 'none' // back to natural size before measuring
+      const k = computeFitScale(area.clientWidth, area.clientHeight, fit.scrollWidth, fit.scrollHeight)
+      fit.style.transform = k < 1 ? `scale(${k})` : 'none'
+    }
+    measure()
+    // Web fonts shift glyph metrics once they load — re-fit so the preview keeps
+    // matching the print (which also waits for fonts before fitting).
+    let cancelled = false
+    const fonts = (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts
+    fonts?.ready?.then(() => { if (!cancelled) measure() }).catch(() => {})
+    return () => { cancelled = true }
+  }, [settings, content, date])
+
   let first = true
   return (
     // Physical-paper preview: bg-white/text-black literals are intentional
@@ -59,8 +86,13 @@ export function LabelPaper({ settings, content, date }: Props) {
         fontFamily: `'${settings.font_family}', sans-serif`,
         lineHeight: settings.line_spacing,
         boxSizing:  'border-box',
+        overflow:   'hidden',
       }}
     >
+      {/* .label-area = printable box (fills the padded inside); .label-fit =
+          natural content the effect above scales down when it overflows. */}
+      <div ref={areaRef} style={{ width: '100%', height: '100%' }}>
+      <div ref={fitRef} style={{ transformOrigin: 'top left' }}>
       {visible.map(s => {
         const style: CSSProperties = buildSectionStyle(s, settings)
         if (s.kind === 'line') {
@@ -148,6 +180,8 @@ export function LabelPaper({ settings, content, date }: Props) {
         if (first) { style.marginTop = 0; first = false }
         return <div key={s.key} style={style}>{text}</div>
       })}
+      </div>
+      </div>
     </div>
   )
 }

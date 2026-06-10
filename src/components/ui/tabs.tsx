@@ -35,6 +35,12 @@ const tabsListVariants = cva(
     "data-[variant=pill]:rounded-none data-[variant=pill]:p-0 data-[variant=pill]:gap-1 data-[variant=pill]:group-data-[orientation=horizontal]/tabs:h-auto",
     "data-[variant=default]:inline-grid data-[variant=default]:grid-flow-col data-[variant=default]:auto-cols-fr data-[variant=default]:rounded-xl data-[variant=default]:p-1 data-[variant=default]:gap-1 data-[variant=default]:group-data-[orientation=horizontal]/tabs:h-auto",
     "data-[variant=segmented]:rounded-lg data-[variant=segmented]:p-1 data-[variant=segmented]:gap-1 data-[variant=segmented]:group-data-[orientation=horizontal]/tabs:h-auto",
+    // toggle = connected segmented group: buttons flush (gap-0), the container's
+    // rounded-lg + overflow-hidden rounds only the outer ENDS (หัวมน-ท้ายมน) and
+    // clips the square inner buttons. h-9 is baked HERE (not via className): the
+    // base group-data h-8 modifier outranks a plain `h-9` className by
+    // specificity, so the height must be set at the same modifier level to win.
+    "data-[variant=toggle]:rounded-lg data-[variant=toggle]:p-0 data-[variant=toggle]:gap-0 data-[variant=toggle]:overflow-hidden data-[variant=toggle]:group-data-[orientation=horizontal]/tabs:h-9",
   ].join(" "),
   {
     variants: {
@@ -43,6 +49,11 @@ const tabsListVariants = cva(
         line: "gap-0 bg-transparent w-fit justify-start border-b border-border h-auto p-0",
         pill: "bg-transparent",
         segmented: "bg-muted",
+        // ring (inset box-shadow), NOT border — a real border is box-box and
+        // eats 1px top+bottom, shrinking the h-full triggers to 34px inside a 36px
+        // bar; ring costs zero layout height so triggers fill the full h-9 (36px),
+        // matching standalone h-9 buttons.
+        toggle: "bg-card ring-1 ring-inset ring-border",
       },
     },
     defaultVariants: {
@@ -147,6 +158,16 @@ function TabsTrigger({
         // flex-none overrides base flex-1 so triggers are content-width, not equal-fill.
         "group-data-[variant=segmented]/tabs-list:flex-none group-data-[variant=segmented]/tabs-list:rounded-md group-data-[variant=segmented]/tabs-list:px-3 group-data-[variant=segmented]/tabs-list:py-1.5 group-data-[variant=segmented]/tabs-list:h-auto",
         "group-data-[variant=segmented]/tabs-list:data-[state=active]:text-foreground",
+        // TOGGLE — connected segmented button group: triggers sit flush, fill the
+        // row height (h-full), square corners (the LIST rounds + clips the ends).
+        // A left border on each (except the first, via first:border-l-0) is the
+        // shared divider — border-0 then border-l keeps ONLY the left edge.
+        // ACTIVE presses IN: recessed bg-muted + inset shadow (transition-all
+        // fades it). No sliding pill (showPill excludes toggle) — the depress IS
+        // the active affordance.
+        "group-data-[variant=toggle]/tabs-list:flex-1 group-data-[variant=toggle]/tabs-list:rounded-none group-data-[variant=toggle]/tabs-list:h-full group-data-[variant=toggle]/tabs-list:px-3",
+        "group-data-[variant=toggle]/tabs-list:border-0 group-data-[variant=toggle]/tabs-list:border-l group-data-[variant=toggle]/tabs-list:border-border group-data-[variant=toggle]/tabs-list:first:border-l-0 group-data-[variant=toggle]/tabs-list:text-foreground/70 group-data-[variant=toggle]/tabs-list:transition-all",
+        "group-data-[variant=toggle]/tabs-list:data-[state=active]:bg-muted group-data-[variant=toggle]/tabs-list:data-[state=active]:text-foreground group-data-[variant=toggle]/tabs-list:data-[state=active]:shadow-inner",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}

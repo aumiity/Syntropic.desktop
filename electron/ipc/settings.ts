@@ -4,8 +4,9 @@ import fs from 'fs'
 import path from 'path'
 import { getDb } from '../db'
 import { orderByBucket } from '../db/sortName'
-import { hashSecret, genRecoveryCode } from '../auth/hash'
-import { requireAdmin } from '../auth/session'
+import { hashSecret, genRecoveryCode, verifySecret } from '../auth/hash'
+import { requireAdmin, getSession } from '../auth/session'
+import { checkLocked, recordFailure, clearFailures } from '../auth/lockout'
 
 type ThemeColorPayload = {
   token: string
@@ -296,13 +297,125 @@ export function registerSettingsHandlers() {
         const r = db.prepare(`INSERT INTO sales_settings DEFAULT VALUES`).run()
         row = { id: r.lastInsertRowid }
       }
-      const { id, updated_at, ...rest } = data
+      // vat_enabled/vat_rate are NOT saveable here — VAT mode is a one-time
+      // decision (setup wizard / settings:upgradeToVat) and must never be
+      // flippable via the generic settings save, even by a crafted payload.
+      const { id, updated_at, vat_enabled, vat_rate, ...rest } = data
       const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
       if (fields) {
         db.prepare(`UPDATE sales_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...rest, id: row.id })
       }
     })()
     return db.prepare(`SELECT * FROM sales_settings LIMIT 1`).get()
+  })
+
+  // One-way upgrade to VAT-registered mode (Phase 3). Requires admin, the
+  // 13-digit tax id, and an effective date; writes shop registration data +
+  // flips sales_settings.vat_enabled in ONE transaction and records the
+  // transition in vat_audit_log. There is deliberately NO downgrade handler —
+  // a VAT shop charges VAT from the effective date onward, period.
+  ipcMain.handle('settings:upgradeToVat', (e, payload: any) => {
+    requireAdmin(e)
+    const db = getDb()
+    const taxId = String(payload?.tax_id ?? '').trim()
+    const branch = String(payload?.branch ?? '').trim() || 'สำนักงานใหญ่'
+    const rate = Number(payload?.vat_rate)
+    const effectiveDate = String(payload?.effective_date ?? '').trim()
+    if (!/^\d{13}$/.test(taxId)) throw new Error('เลขประจำตัวผู้เสียภาษีต้องมี 13 หลัก')
+    if (!Number.isFinite(rate) || rate <= 0 || rate > 100) throw new Error('อัตราภาษีไม่ถูกต้อง')
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)) throw new Error('กรุณาระบุวันที่จดทะเบียน VAT')
+
+    const current = db.prepare(`SELECT vat_enabled FROM sales_settings LIMIT 1`).get() as any
+    if (current?.vat_enabled === 1) throw new Error('ร้านอยู่ในโหมดจดทะเบียน VAT อยู่แล้ว')
+
+    const userId = getSession(e.sender.id)?.userId ?? null
+    db.transaction(() => {
+      const settingsRow = db.prepare(`SELECT id FROM settings LIMIT 1`).get() as any
+      if (!settingsRow) throw new Error('ยังไม่ได้ตั้งค่าข้อมูลร้าน')
+      db.prepare(`
+        UPDATE settings SET
+          shop_tax_id = @tax_id, shop_branch = @branch,
+          vat_registered_date = @effective_date,
+          updated_at = datetime('now','localtime')
+        WHERE id = @id
+      `).run({ tax_id: taxId, branch, effective_date: effectiveDate, id: settingsRow.id })
+
+      let srow = db.prepare(`SELECT id FROM sales_settings LIMIT 1`).get() as any
+      if (!srow) {
+        const r = db.prepare(`INSERT INTO sales_settings DEFAULT VALUES`).run()
+        srow = { id: r.lastInsertRowid }
+      }
+      db.prepare(`UPDATE sales_settings SET vat_enabled = 1, vat_rate = @rate, updated_at = datetime('now','localtime') WHERE id = @id`)
+        .run({ rate, id: srow.id })
+
+      db.prepare(`
+        INSERT INTO vat_audit_log (action, tax_id, branch, vat_rate, effective_date, performed_by)
+        VALUES ('upgrade', @tax_id, @branch, @rate, @effective_date, @performed_by)
+      `).run({ tax_id: taxId, branch, rate, effective_date: effectiveDate, performed_by: userId })
+    })()
+    return db.prepare(`SELECT * FROM sales_settings LIMIT 1`).get()
+  })
+
+  // Guarded downgrade out of VAT mode. Beyond the admin session, the LOGGED-IN
+  // admin must re-enter their own password (same scrypt verify + lockout
+  // backoff as login — ties accountability to the person who clicked) and give
+  // a mandatory reason; both go into vat_audit_log (action 'downgrade').
+  // Registration data (tax id / branch / registered date) is deliberately KEPT
+  // in settings so a later re-upgrade prefills. Old bills keep their VAT
+  // snapshots untouched — past ภาษีขาย stays reportable.
+  ipcMain.handle('settings:downgradeFromVat', (e, payload: { password?: string; reason?: string }) => {
+    requireAdmin(e)
+    const db = getDb()
+    const session = getSession(e.sender.id)
+    if (!session) throw new Error('FORBIDDEN')
+    const reason = String(payload?.reason ?? '').trim()
+    const password = String(payload?.password ?? '')
+    if (!reason) throw new Error('กรุณาระบุเหตุผลในการปิดระบบ VAT')
+    if (!password) throw new Error('กรุณายืนยันรหัสผ่าน')
+
+    const current = db.prepare(`SELECT vat_enabled, vat_rate FROM sales_settings LIMIT 1`).get() as any
+    if (current?.vat_enabled !== 1) throw new Error('ร้านไม่ได้อยู่ในโหมดจดทะเบียน VAT')
+
+    const lock = checkLocked(db, session.userId)
+    if (lock.locked) {
+      const err = new Error('LOCKED') as Error & { remainingMs?: number }
+      err.remainingMs = lock.remainingMs
+      throw err
+    }
+    const userRow = db.prepare(`SELECT id, role, password FROM users WHERE id = ? AND is_disabled = 0`)
+      .get(session.userId) as { id: number; role: string; password: string } | undefined
+    if (!userRow || userRow.role !== 'admin' || !verifySecret(password, userRow.password).ok) {
+      if (userRow) recordFailure(db, userRow.id)
+      throw new Error('รหัสผ่านไม่ถูกต้อง')
+    }
+    clearFailures(db, userRow.id)
+
+    const shop = db.prepare(`SELECT shop_tax_id, shop_branch FROM settings LIMIT 1`).get() as any
+    db.transaction(() => {
+      db.prepare(`UPDATE sales_settings SET vat_enabled = 0, updated_at = datetime('now','localtime') WHERE vat_enabled = 1`).run()
+      db.prepare(`
+        INSERT INTO vat_audit_log (action, tax_id, branch, vat_rate, effective_date, reason, performed_by)
+        VALUES ('downgrade', @tax_id, @branch, @rate, date('now','localtime'), @reason, @performed_by)
+      `).run({
+        tax_id: shop?.shop_tax_id ?? '', branch: shop?.shop_branch ?? '',
+        rate: Number(current.vat_rate) || 7, reason, performed_by: session.userId,
+      })
+    })()
+    return db.prepare(`SELECT * FROM sales_settings LIMIT 1`).get()
+  })
+
+  // Whether the DB carries any VAT history (VAT bills, input VAT, or mode
+  // transitions). Drives the Reports "ภาษี (VAT)" tab for downgraded shops —
+  // past periods must stay inspectable (ภ.พ.30 งวดสุดท้าย / ตรวจย้อนหลัง).
+  ipcMain.handle('settings:hasVatHistory', () => {
+    const db = getDb()
+    const row = db.prepare(`
+      SELECT EXISTS(SELECT 1 FROM sales WHERE total_vat > 0)
+          OR EXISTS(SELECT 1 FROM vat_audit_log)
+          OR EXISTS(SELECT 1 FROM purchase_receipts WHERE COALESCE(vat_mode,'none') != 'none')
+          AS has
+    `).get() as any
+    return !!row?.has
   })
 
   // Receipt / cash-slip settings (singleton). Uses the ensure-row-then-UPDATE

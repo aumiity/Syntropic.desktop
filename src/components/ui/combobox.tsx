@@ -189,7 +189,16 @@ export function Combobox<T>({
           />
         </div>
 
-        <div className="max-h-72 overflow-y-auto scrollbar-thin px-1.5 pb-1.5">
+        <div
+          className="max-h-72 overflow-y-auto scrollbar-thin px-1.5 pb-1.5"
+          // When this popover is portaled out of a Dialog, the Dialog's
+          // react-remove-scroll adds a document-level (bubble) wheel/touch
+          // listener that preventDefaults scrolling on anything outside the
+          // dialog — including this list. Stop the event from bubbling to
+          // document so the list scrolls natively. Harmless outside a dialog.
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           {showEmptyRow ? (
             (() => {
               const active = highlight === 0

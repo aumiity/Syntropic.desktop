@@ -16,6 +16,9 @@ interface ReceiptItem extends ProductLot {
   status?: 'completed' | 'cancelled'
   cancelled_at?: string
   cancel_reason?: string
+  vat_mode?: 'none' | 'inclusive' | 'exclusive'
+  vat_rate?: number
+  vat_amount?: number
 }
 
 // Shared GR (goods-receipt) detail modal — opened from the Purchases report
@@ -58,7 +61,12 @@ export function PurchaseReceiptDialog({
   const discountAmt = header?.discount_amount ?? 0
   const surchargeAmt = header?.surcharge_amount ?? 0
   const hasAdjust = discountAmt > 0 || surchargeAmt > 0
-  const finalTotal = rawTotal - discountAmt + surchargeAmt
+  // Input VAT snapshot from the GR header. 'inclusive' VAT sits inside the
+  // line prices (display-only row); 'exclusive' VAT adds on top of the total.
+  const vatMode = header?.vat_mode ?? 'none'
+  const vatAmount = header?.vat_amount ?? 0
+  const vatRate = header?.vat_rate ?? 0
+  const finalTotal = rawTotal - discountAmt + surchargeAmt + (vatMode === 'exclusive' ? vatAmount : 0)
   const today = new Date().toISOString().split('T')[0]
   const isCancelled = header?.status === 'cancelled'
   const isOverdue = !!header && !isCancelled && header.payment_type === 'credit' && !header.is_paid && !!header.due_date && header.due_date < today
@@ -202,30 +210,26 @@ export function PurchaseReceiptDialog({
                       exact multiples of 2rem with no transparent gaps
                       between layers. */}
                   <tfoot>
-                    {hasAdjust && (
-                      <>
-                        <tr className={`[&>td]:sticky [&>td]:h-8 ${
-                          discountAmt > 0 && surchargeAmt > 0
-                            ? '[&>td]:bottom-24'
-                            : '[&>td]:bottom-16'
-                        } [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
-                          <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-muted-foreground">ราคารวม</td>
-                          <td className="px-2 py-0.5 text-right text-sm text-muted-foreground">{formatCurrency(rawTotal)}</td>
+                    {/* Summary rows above ยอดสุทธิ are built as a list so the
+                        sticky bottom offsets always stack correctly (each row
+                        is h-8 = 2rem; the row N places above the bottom one
+                        needs bottom-(N×8)). Tailwind needs literal classes,
+                        hence the lookup instead of computed strings. */}
+                    {(() => {
+                      const rows: Array<{ label: string; value: string; cls: string }> = []
+                      if (hasAdjust) rows.push({ label: 'ราคารวม', value: formatCurrency(rawTotal), cls: 'text-muted-foreground' })
+                      if (discountAmt > 0) rows.push({ label: 'ส่วนลด', value: `−${formatCurrency(discountAmt)}`, cls: 'text-warm-foreground' })
+                      if (surchargeAmt > 0) rows.push({ label: 'ส่วนเพิ่ม', value: `+${formatCurrency(surchargeAmt)}`, cls: 'text-warm-foreground' })
+                      if (vatMode === 'inclusive' && vatAmount > 0) rows.push({ label: `ภาษีมูลค่าเพิ่ม ${vatRate}% (รวมในยอด)`, value: formatCurrency(vatAmount), cls: 'text-muted-foreground' })
+                      if (vatMode === 'exclusive' && vatAmount > 0) rows.push({ label: `ภาษีมูลค่าเพิ่ม ${vatRate}%`, value: `+${formatCurrency(vatAmount)}`, cls: 'text-muted-foreground' })
+                      const BOTTOMS = ['[&>td]:bottom-8', '[&>td]:bottom-16', '[&>td]:bottom-24', '[&>td]:bottom-32', '[&>td]:bottom-40']
+                      return rows.map((r, idx) => (
+                        <tr key={r.label} className={`[&>td]:sticky [&>td]:h-8 ${BOTTOMS[rows.length - 1 - idx]} [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
+                          <td colSpan={6} className={`px-2 py-0.5 text-right text-sm ${r.cls}`}>{r.label}</td>
+                          <td className={`px-2 py-0.5 text-right text-sm ${r.cls}`}>{r.value}</td>
                         </tr>
-                        {discountAmt > 0 && (
-                          <tr className={`[&>td]:sticky [&>td]:h-8 ${surchargeAmt > 0 ? '[&>td]:bottom-16' : '[&>td]:bottom-8'} [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>
-                            <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-warm-foreground">ส่วนลด</td>
-                            <td className="px-2 py-0.5 text-right text-sm text-warm-foreground">−{formatCurrency(discountAmt)}</td>
-                          </tr>
-                        )}
-                        {surchargeAmt > 0 && (
-                          <tr className="[&>td]:sticky [&>td]:h-8 [&>td]:bottom-8 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
-                            <td colSpan={6} className="px-2 py-0.5 text-right text-sm text-warm-foreground">ส่วนเพิ่ม</td>
-                            <td className="px-2 py-0.5 text-right text-sm text-warm-foreground">+{formatCurrency(surchargeAmt)}</td>
-                          </tr>
-                        )}
-                      </>
-                    )}
+                      ))
+                    })()}
                     <tr className="[&>td]:sticky [&>td]:h-8 [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
                       <td colSpan={6} className="px-2 py-0.5 text-right text-sm font-bold">ยอดสุทธิ</td>
                       <td className="px-2 py-0.5 text-right font-bold text-primary">{formatCurrency(finalTotal)}</td>

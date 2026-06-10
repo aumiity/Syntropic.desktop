@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAT Click-Test Checklist — Syntropic Desktop</title>
+<style>
+  :root {
+    --bg: #f6f8f8;
+    --card: #ffffff;
+    --border: #e2e8e8;
+    --text: #1a2e2e;
+    --muted: #5f7474;
+    --primary: #0f8a80;
+    --primary-soft: #e0f2f0;
+    --warn-bg: #fff7e6;
+    --warn-border: #f0c36d;
+    --warn-text: #8a5a00;
+    --danger: #c0392b;
+    --done: #9ab3b0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 0 80px;
+    font-family: 'Sarabun', 'Noto Sans Thai', 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text);
+    font-size: 16px; line-height: 1.55;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+
+  /* sticky progress header */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 6px rgba(0,0,0,.05);
+  }
+  .head-inner { max-width: 880px; margin: 0 auto; padding: 14px 20px; }
+  .head-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  h1 { font-size: 19px; margin: 0; flex: 1; }
+  .counter { font-weight: 700; color: var(--primary); white-space: nowrap; }
+  .bar { height: 8px; background: var(--primary-soft); border-radius: 99px; margin-top: 10px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0%; background: var(--primary); border-radius: 99px; transition: width .25s ease; }
+  button.reset {
+    border: 1px solid var(--border); background: var(--card); color: var(--muted);
+    border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  button.reset:hover { background: var(--bg); }
+
+  .intro { margin: 22px 0 6px; color: var(--muted); font-size: 15px; }
+
+  .warning {
+    background: var(--warn-bg); border: 1px solid var(--warn-border);
+    border-radius: 12px; padding: 14px 16px; margin: 16px 0 24px;
+    color: var(--warn-text);
+  }
+  .warning b { color: var(--warn-text); }
+
+  section { margin: 26px 0; }
+  .sec-head {
+    display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px;
+  }
+  .sec-badge {
+    background: var(--primary); color: #fff; font-weight: 700;
+    border-radius: 8px; padding: 2px 10px; font-size: 14px;
+  }
+  .sec-head h2 { font-size: 17px; margin: 0; }
+  .sec-head .sec-count { margin-left: auto; font-size: 13px; color: var(--muted); }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .item { display: flex; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .item:last-child { border-bottom: none; }
+  .item:hover { background: #fbfdfd; }
+  .item input[type=checkbox] {
+    width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--primary); cursor: pointer;
+  }
+  .item .no {
+    flex: none; width: 26px; height: 26px; border-radius: 8px; margin-top: 0;
+    background: var(--primary-soft); color: var(--primary);
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  .item .body { flex: 1; }
+  .item .t { font-weight: 600; }
+  .item .e { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .item .e b { color: var(--text); font-weight: 600; }
+  .item.checked .t, .item.checked .e { color: var(--done); text-decoration: line-through; }
+  .item.checked .no { background: #eef3f2; color: var(--done); }
+  .tag {
+    display: inline-block; font-size: 12px; font-weight: 700; border-radius: 6px;
+    padding: 1px 8px; margin-left: 6px; vertical-align: 1px;
+  }
+  .tag.key { background: #fdecea; color: var(--danger); }
+  .tag.new { background: var(--primary-soft); color: var(--primary); }
+  .footer-note { margin-top: 30px; color: var(--muted); font-size: 14px; }
+  code {
+    background: var(--primary-soft); color: var(--primary);
+    border-radius: 5px; padding: 1px 6px; font-size: 13.5px;
+    font-family: 'SF Mono', Consolas, monospace;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="head-row">
+      <h1>VAT Click-Test Checklist</h1>
+      <span class="counter" id="counter">0 / 0</span>
+      <button class="reset" id="resetBtn" title="ล้างสถานะติ๊กทั้งหมด">เริ่มใหม่</button>
+    </div>
+    <div class="bar"><div id="barFill"></div></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <p class="intro">
+    Syntropic Desktop — ทดสอบระบบ VAT ทั้งชุด 31 ข้อ (อัปเดตรอบ 2: เพิ่มหมวด H ปิดระบบ VAT —
+    ข้อใหม่/ข้อที่เปลี่ยนติดป้าย <span class="tag new">ใหม่</span>) ไล่ติ๊กจากบนลงล่างตามลำดับได้เลย
+    สถานะติ๊กถูกเก็บไว้ในเครื่อง ปิดไฟล์แล้วเปิดใหม่ไม่หาย
+  </p>
+
+  <div class="warning">
+    <b>ก่อนเริ่ม:</b> สำรองฐานข้อมูลก่อน (ตั้งค่า → ฐานข้อมูล → สำรองข้อมูล) เป็นนิสัยที่ดีเสมอ —
+    การปิดระบบ VAT ทำได้ในแอปแล้ว (หมวด H: admin ยืนยันรหัสผ่าน + เหตุผล + บันทึกประวัติ)
+    แต่ประวัติการเปิด/ปิดจะค้างใน audit log ของ DB นั้น ถ้าอยากได้ DB สะอาดหลังทดสอบให้ restore backup ค่ะ
+  </div>
+
+  <!-- ══════════ A ══════════ -->
+  <section data-sec="A">
+    <div class="sec-head">
+      <span class="sec-badge">A</span>
+      <h2>ตอนยังเป็นร้าน NO-VAT — UI ภาษีต้องถูกซ่อนหมด</h2>
+      <span class="sec-count"></span>
+    </div>
+    <div class="card">
+      <label class="item" data-id="a1">
+        <input type="checkbox"><span class="no">1</span>
+        <span class="body">
+          <span class="t">ตั้งค่า → การขาย → การ์ด "ภาษีมูลค่าเพิ่ม (VAT)"</span>
+          <span class="e">ต้องแสดงสถานะ <b>"ไม่จดทะเบียน VAT"</b> + ปุ่ม "เปิดใช้ระบบ VAT" — toggle เปิด/ปิดแบบเดิมต้องหายไปแล้ว</span>
+        </span>
+      </label>
+      <label class="item" data-id="a2">
+        <input type="checkbox"><span class="no">2</span>
+        <span class="body">
+          <span class="t">ประวัติการขาย (การจัดการ → การขาย)</span>
+          <span class="e">เมนูตัวเลือกรายบิล ต้อง<b>ไม่มี</b> "ใบกำกับภาษี" และใน dialog รายละเอียดบิล (เมนูพิมพ์) ก็ต้องไม่มี</span>
+        </span>
+      </label>
+      <label class="item" data-id="a3">
+        <input type="checkbox"><span class="no">3</span>
+        <span class="body">
+          <span class="t">ตั้งค่า → เครื่องพิมพ์ → ใบเสร็จ → ตัวเลือก</span>
+          <span class="e">ต้องไม่เห็น toggle "ใช้สลิปเป็นใบกำกับภาษีอย่างย่อ" (เหลือเฉพาะ "พิมพ์ใบเสร็จอัตโนมัติ")</span>
+        </span>
+      </label>
+      <label class="item" data-id="a4">
+        <input type="checkbox"><span class="no">4</span>
+        <span class="body">
+          <span class="t">หน้ารับสินค้า → sidebar ขวา</span>
+          <span class="e">ต้องไม่มีการ์ด "ภาษีซื้อ (VAT)" (มีแค่ สรุปใบรับ / การชำระเงิน / หมายเหตุ)</span>
+        </span>
+      </label>
+      <label class="item" data-id="a5">
+        <input type="checkbox"><span class="no">5</span>
+        <span class="body">
+          <span class="t">การจัดการ → ค่าใช้จ่าย → เพิ่มค่าใช้จ่าย</span>
+          <span class="e">ฟอร์มต้องไม่มีกล่อง "มีใบกำกับภาษีเต็มรูป"</span>
+        </span>
+      </label>
+      <label class="item" data-id="a6">
+        <input type="checkbox"><span class="no">6</span>
+        <span class="body">
+          <span class="t">รายงาน</span>
+          <span class="e">ต้องไม่มี tab "ภาษี (VAT)" (มีแค่ แดชบอร์ด + รายงาน อย.)</span>
+        </span>
+      </label>
+      <label class="item" data-id="a7">
+        <input type="checkbox"><span class="no">7</span>
+        <span class="body">
+          <span class="t">POS → ชำระเงิน</span>
+          <span class="e">ต้องไม่มี checkbox "คิดภาษีมูลค่าเพิ่ม (VAT)" (มีแค่กล่องพิมพ์ใบเสร็จ)</span>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ══════════ B ══════════ -->
+  <section data-sec="B">
+    <div class="sec-head">
+      <span class="sec-badge">B</span>
+      <h2>Flow อัปเกรดเป็นร้าน VAT</h2>
+      <span class="sec-count"></span>
+    </div>
+    <div class="card">
+      <label class="item" data-id="b1">
+        <input type="checkbox"><span class="no">8</span>
+        <span class="body">
+          <span class="t">Validation ของ dialog "เปิดใช้ระบบ VAT"</span>
+          <span class="e">กรอกเลขภาษี<b>ไม่ครบ 13 หลัก</b> → toast เตือน / อัตราภาษี 0 หรือเกิน 100 → toast เตือน / ลบวันที่ออก → toast เตือน</span>
+        </span>
+      </label>
+      <label class="item" data-id="b2">
+        <input type="checkbox"><span class="no">9</span>
+        <span class="body">
+          <span class="t">อัปเกรดสำเร็จ <span class="tag new">เปลี่ยน</span></span>
+          <span class="e">กรอกครบ → ยืนยัน → toast สำเร็จ → การ์ดเปลี่ยนเป็น <b>"จดทะเบียน VAT"</b> + อัตราภาษี + วันที่จดทะเบียน + แถวปุ่ม "ปิดระบบ VAT" (ทดสอบในหมวด H) — กล่องเตือนใน dialog ต้องพูดถึง "การปิดถูกบันทึกประวัติ" ไม่ใช่ "ปิดไม่ได้ถาวร" แบบเดิม</span>
+        </span>
+      </label>
+      <label class="item" data-id="b3">
+        <input type="checkbox"><span class="no">10</span>
+        <span class="body">
+          <span class="t">ตั้งค่า → ข้อมูลร้าน</span>
+          <span class="e">เลขผู้เสียภาษี + สาขา ต้องถูกเขียนตามที่กรอกใน dialog อัปเกรด</span>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ══════════ C ══════════ -->
+  <section data-sec="C">
+    <div class="sec-head">
+      <span class="sec-badge">C</span>
+      <h2>POS — ภาษีขาย + checkbox VAT ต่อบิล</h2>
+      <span class="sec-count"></span>
+    </div>
+    <div class="card">
+      <label class="item" data-id="c1">
+        <input type="checkbox"><span class="no">11</span>
+        <span class="body">
+          <span class="t">บิลแรก — ติ๊กไว้ (ค่าเริ่มต้น)</span>
+          <span class="e">payment dialog มี checkbox "คิดภาษีมูลค่าเพิ่ม (VAT 7%)" <b>เหนือกล่องพิมพ์ใบเสร็จ</b> ติ๊กมาให้แล้ว + โชว์ยอด VAT ด้านขวา — กล่องสรุปขวามีบรรทัด "มูลค่าก่อนภาษี" + "ภาษีมูลค่าเพิ่ม 7%" — <b>ยอดจ่ายไม่เปลี่ยน</b></span>
+        </span>
+      </label>
+      <label class="item" data-id="c2">
+        <input type="checkbox"><span class="no">12</span>
+        <span class="body">
+          <span class="t">ใบเสร็จของบิลที่มี VAT</span>
+          <span class="e">preview ในหน้าจ่ายเงิน + สลิปจริง มีบรรทัดมูลค่าก่อนภาษี/ภาษีมูลค่าเพิ่ม — ถ้าเปิด "ใบกำกับภาษีอย่างย่อ" ใน settings หัวสลิปต้องเปลี่ยน + มีข้อความ "ราคารวมภาษีมูลค่าเพิ่มไว้แล้ว"</span>
+        </span>
+      </label>
+      <label class="item" data-id="c3">
+        <input type="checkbox"><span class="no">13</span>
+        <span class="body">
+          <span class="t">บิลสอง — ติ๊กออก (NOVAT)</span>
+          <span class="e">บรรทัด VAT หายทั้ง preview และสรุป ข้อความข้าง checkbox เปลี่ยนเป็น "บิลนี้ไม่มี VAT" — <b>ยอดจ่ายเท่าเดิม</b> — สลิปไม่มีบรรทัดภาษี</span>
+        </span>
+      </label>
+      <label class="item" data-id="c4">
+        <input type="checkbox"><span class="no">14</span>
+        <span class="body">
+          <span class="t">Re-arm ทุกบิล</span>
+          <span class="e">หลังขายบิล NOVAT แล้ว เปิด payment dialog บิลถัดไป → checkbox ต้อง<b>กลับมาติ๊กเอง</b> (ไม่จำค่าจากบิลก่อน)</span>
+        </span>
+      </label>
+      <label class="item" data-id="c5">
+        <input type="checkbox"><span class="no">15</span>
+        <span class="body">
+          <span class="t">ใบกำกับภาษีเต็มรูป</span>
+          <span class="e">ประวัติการขาย: บิลที่มี VAT มีปุ่ม "ใบกำกับภาษี" (พิมพ์ครั้งแรก = ต้นฉบับ ครั้งต่อไป = สำเนา) — บิล NOVAT ต้อง<b>ไม่มีปุ่มนี้</b>ทั้งในเมนูแถวและใน dialog รายละเอียด</span>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ══════════ D ══════════ -->
+  <section data-sec="D">
+    <div class="sec-head">
+      <span class="sec-badge">D</span>
+      <h2>รับสินค้า — ภาษีซื้อ 3 โหมด (รับจริง 3 บิล)</h2>
+      <span class="sec-count"></span>
+    </div>
+    <div class="card">
+      <label class="item" data-id="d1">
+        <input type="checkbox"><span class="no">16</span>
+        <span class="body">
+          <span class="t">บิล "ไม่มี VAT"</span>
+          <span class="e">การ์ด "ภาษีซื้อ (VAT)" โผล่ใน sidebar แล้ว (ร้านเป็น VAT) ค่าเริ่มต้น = บิลนี้ไม่มี VAT → บันทึกปกติ ทุกอย่างเหมือนเดิม</span>
+        </span>
+      </label>
+      <label class="item" data-id="d2">
+        <input type="checkbox"><span class="no">17</span>
+        <span class="body">
+          <span class="t">บิล "มี VAT — ราคารวม VAT แล้ว" (inclusive) <span class="tag key">จุดสำคัญสุด</span></span>
+          <span class="e">footer โชว์ มูลค่าก่อนภาษี + VAT (รวมในยอด) ยอดรวม<b>เท่าเดิม</b> — แล้วเปิด <b>EditProduct → ล็อต</b>: ต้นทุนล็อตใหม่ต้อง = <b>ราคาที่กรอก ÷ 1.07</b> (เช่น กรอก 107.00 → ล็อต 100.00) — แต่ใน dialog รายละเอียดบิลซื้อ ราคาต่อหน่วยยังเป็น 107.00 ตามบิลจริง + มีแถว "ภาษีมูลค่าเพิ่ม (รวมในยอด)"</span>
+        </span>
+      </label>
+      <label class="item" data-id="d3">
+        <input type="checkbox"><span class="no">18</span>
+        <span class="body">
+          <span class="t">บิล "มี VAT — ราคายังไม่รวม VAT" (exclusive)</span>
+          <span class="e">footer บวก VAT เพิ่ม "มูลค่ารวมทั้งหมด" = รายการ + 7% — ต้นทุนล็อต = ราคาที่กรอก<b>ตรง ๆ ไม่หาร</b> — dialog รายละเอียดมีแถว VAT แยก และยอดสุทธิรวม VAT</span>
+        </span>
+      </label>
+      <label class="item" data-id="d4">
+        <input type="checkbox"><span class="no">19</span>
+        <span class="body">
+          <span class="t">ยอดซื้อ/เจ้าหนี้ในรายงานการเงิน</span>
+          <span class="e">Dashboard/เจ้าหนี้: บิลแบบแยก VAT (exclusive) ยอดต้อง<b>รวม VAT แล้ว</b> (= เงินที่ต้องจ่ายจริง)</span>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ══════════ E ══════════ -->
+  <section data-sec="E">
+    <div class="sec-head">
+      <span class="sec-badge">E</span>
+      <h2>ค่าใช้จ่าย — ภาษีซื้อ</h2>
+      <span class="sec-count"></span>
+    </div>
+    <div class="card">
+      <label class="item" data-id="e1">
+        <input type="checkbox"><span class="no">20</span>
+        <span class="body">
+          <span class="t">เพิ่มค่าใช้จ่าย + ติ๊ก "มีใบกำกับภาษีเต็มรูป"</span>
+          <span class="e">ช่อง "ยอดภาษีซื้อ" ต้อง<b>เติมเองอัตโนมัติ</b> (= ยอด × 7/107) และแก้ตัวเลขเองได้</span>
+        </span>
+      </label>
+      <label class="item" data-id="e2">
+        <input type="checkbox"><span class="no">21</span>
+        <span class="body">
+          <span class="t">Validation ภาษีซื้อ</span>
+          <span class="e">ใส่ยอดภาษีซื้อ ≥ ยอดค่าใช้จ่าย → ต้องโดน toast "ยอดภาษีซื้อต้องน้อยกว่ายอดค่าใช้จ่าย"</span>
+        </span>
+      </label>
+      <label class="item" data-id="e3">
+        <input type="checkbox"><span class="no">22</span>
+        <span class="body">
+          <span class="t">รายการที่ไม่ติ๊กใบกำกับ</span>
+          <span class="e">เพิ่มอีกรายการแบบไม่ติ๊ก → ต้อง<b>ไม่ไปโผล่</b>ในรายงานภาษีซื้อ (ข้อ 24)</span>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ══════════ F ══════════ -->
+  <section data-sec="F">
+    <div class="sec-head">
+      <span class="sec-badge">F</span>
+      <h2>รายงานภาษี — รวบยอดทุกอย่างข้างบน</h2>
+      <span class="sec-count"></span>
+    </div>
+    <div class="card">
+      <label class="item" data-id="f1">
+        <input type="checkbox"><span class="no">23</span>
+        <span class="body">
+          <span class="t">tab "ภาษี (VAT)" ใน รายงาน</span>
+          <span class="e">tab ต้องโผล่แล้ว (ร้านเป็น VAT) เลือกช่วง = เดือนปัจจุบัน — การ์ด 3 ใบ: <b>ภาษีขาย</b> (เฉพาะบิล POS ที่ติ๊ก VAT) / <b>ภาษีซื้อ</b> (GR 2 บิล + ค่าใช้จ่าย 1 รายการ) / <b>ภ.พ.30</b> = ขาย − ซื้อ (ถ้าติดลบ → การ์ดเขียว "ขอคืน/ยกยอด")</span>
+        </span>
+      </label>
+      <label class="item" data-id="f2">
+        <input type="checkbox"><span class="no">24</span>
+        <span class="body">
+          <span class="t">ตารางรายบิล 3 ชุด</span>
+          <span class="e">ภาษีขายมีเฉพาะบิลที่ติ๊ก VAT / ภาษีซื้อ-รับสินค้า มี GR แบบ inclusive + exclusive (badge รูปแบบถูกต้อง) / ภาษีซื้อ-ค่าใช้จ่าย มีเฉพาะรายการที่ติ๊กใบกำกับ — ตัวเลขรวมตรงกับการ์ดข้างบน</span>
+        </span>
+      </label>
+      <label class="item" data-id="f3">
+        <input type="checkbox"><span class="no">25</span>
+        <span class="body">
+          <span class="t">บิลยกเลิกต้องหลุดจากรายงาน</span>
+          <span class="e">void บิลขายที่มี VAT → refresh รายงาน → บิลนั้นหายจากภาษีขาย / ยกเลิก GR ที่มี VAT → หายจากภาษีซื้อ</span>
+        </span>
+      </label>
+      <label class="item" data-id="f4">
+        <input type="checkbox"><span class="no">26</span>
+        <span class="body">
+          <span class="t">เปลี่ยนช่วงเวลา</span>
+          <span class="e">สลับเดือนก่อนหน้า → ตัวเลขเป็น 0/ว่างตามจริง สลับกลับเดือนปัจจุบัน → ข้อมูลกลับมา</span>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ══════════ G ══════════ -->
+  <section data-sec="G">
+    <div class="sec-head">
+      <span class="sec-badge">G</span>
+      <h2>Setup Wizard (ทดสอบแบบไม่เขียน DB)</h2>
+      <span class="sec-count"></span>
+    </div>
+    <div class="card">
+      <label class="item" data-id="g1">
+        <input type="checkbox"><span class="no">27</span>
+        <span class="body">
+          <span class="t">เส้นทาง "จดทะเบียน VAT" ใน wizard</span>
+          <span class="e">ตั้งค่า → ข้อมูลร้าน → ปุ่ม DEV "ดูตัวอย่าง Setup" (โหมด dryRun ไม่เขียน DB) → step "ภาษี (VAT)" เลือก "จดทะเบียน VAT" → ต้องเห็น<b>ช่องกรอก 4 ช่อง</b> (เลขภาษี/สาขา/อัตรา/วันที่จด) แทนกล่องเตือนสีเหลืองแบบเดิม + validation เลข 13 หลักทำงานตอนกดถัดไป</span>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ══════════ H ══════════ -->
+  <section data-sec="H">
+    <div class="sec-head">
+      <span class="sec-badge">H</span>
+      <h2>ปิดระบบ VAT (downgrade — ทำท้ายสุด) <span class="tag new">ใหม่</span></h2>
+      <span class="sec-count"></span>
+    </div>
+    <div class="card">
+      <label class="item" data-id="h1">
+        <input type="checkbox"><span class="no">28</span>
+        <span class="body">
+          <span class="t">ปุ่ม + validation ของ dialog "ปิดระบบ VAT"</span>
+          <span class="e">ตั้งค่า → การขาย → การ์ด VAT มีแถว "เพิกถอนทะเบียน VAT แล้ว?" + ปุ่มแดงอ่อน "ปิดระบบ VAT" → เปิด dialog: กล่องเตือนแดงสรุปผลกระทบ — ลอง<b>ไม่กรอกเหตุผล</b> → toast / <b>ไม่กรอกรหัสผ่าน</b> → toast</span>
+        </span>
+      </label>
+      <label class="item" data-id="h2">
+        <input type="checkbox"><span class="no">29</span>
+        <span class="body">
+          <span class="t">รหัสผ่านผิด + lockout</span>
+          <span class="e">ใส่รหัสผ่านผิด → toast "รหัสผ่านไม่ถูกต้อง" และช่องรหัสถูกล้าง — ใส่ผิดซ้ำหลายครั้ง → ต้องโดนล็อกชั่วคราว (toast แจ้งให้รอ) เหมือนหน้า login</span>
+        </span>
+      </label>
+      <label class="item" data-id="h3">
+        <input type="checkbox"><span class="no">30</span>
+        <span class="body">
+          <span class="t">ปิดสำเร็จ — UI ภาษีซ่อนกลับทั้งหมด</span>
+          <span class="e">กรอกเหตุผล + รหัสถูก → toast สำเร็จ → การ์ดกลับเป็น "ไม่จดทะเบียน VAT" + ปุ่มเปิดใช้ — POS ไม่มี checkbox VAT / GR ไม่มีการ์ดภาษีซื้อ / ฟอร์มค่าใช้จ่ายไม่มีกล่องใบกำกับ / ปุ่มใบกำกับภาษีในประวัติหาย — <b>บิลเก่าตัวเลขไม่เปลี่ยน</b></span>
+        </span>
+      </label>
+      <label class="item" data-id="h4">
+        <input type="checkbox"><span class="no">31</span>
+        <span class="body">
+          <span class="t">tab "ภาษี (VAT)" ยังอยู่เพื่อดูย้อนหลัง</span>
+          <span class="e">รายงาน → tab ภาษี (VAT) <b>ต้องยังโชว์</b> (เพราะมีประวัติ VAT ใน DB) เปิดดูช่วงเดือนที่เคยเปิด VAT → ตัวเลขภาษีขาย/ซื้อเดิมครบ — แล้วลองกด "เปิดใช้ระบบ VAT" อีกรอบ → เลขภาษี/สาขาเดิม prefill มาให้</span>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <p class="footer-note">
+    ทดสอบครบแล้ว ถ้าอยากได้ DB สะอาด (ไม่มีประวัติเปิด/ปิดทดสอบ) ให้ <b>restore backup</b> —
+    เจอจุดไหนเพี้ยน จดเลขข้อแล้วส่งให้ Claude ตามแก้ได้เลย ·
+    อ้างอิง: <code>.claude/memory/project_vat_phasing.md</code> · <code>docs/claude/business-logic.md → VAT</code>
+  </p>
+
+</div>
+
+<script>
+  const KEY = 'vat-clicktest-2026-06-10'
+  const saved = JSON.parse(localStorage.getItem(KEY) || '{}')
+  const items = Array.from(document.querySelectorAll('.item'))
+
+  function refresh() {
+    let done = 0
+    items.forEach(it => {
+      const cb = it.querySelector('input')
+      it.classList.toggle('checked', cb.checked)
+      if (cb.checked) done++
+    })
+    document.getElementById('counter').textContent = done + ' / ' + items.length
+    document.getElementById('barFill').style.width = (items.length ? (done / items.length * 100) : 0) + '%'
+    document.querySelectorAll('section').forEach(sec => {
+      const secItems = sec.querySelectorAll('.item input')
+      const secDone = sec.querySelectorAll('.item input:checked').length
+      sec.querySelector('.sec-count').textContent = secDone + '/' + secItems.length
+    })
+  }
+
+  items.forEach(it => {
+    const cb = it.querySelector('input')
+    const id = it.dataset.id
+    cb.checked = !!saved[id]
+    cb.addEventListener('change', () => {
+      saved[id] = cb.checked
+      localStorage.setItem(KEY, JSON.stringify(saved))
+      refresh()
+    })
+  })
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!confirm('ล้างสถานะติ๊กทั้งหมด เริ่มทดสอบใหม่?')) return
+    items.forEach(it => { it.querySelector('input').checked = false; delete saved[it.dataset.id] })
+    localStorage.setItem(KEY, JSON.stringify(saved))
+    refresh()
+  })
+
+  refresh()
+</script>
+</body>
+</html>

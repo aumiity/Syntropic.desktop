@@ -31,7 +31,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings, ReceiptSettings, Setting, SaleForPrint } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { printSlip } from '@/lib/receipt/print'
-import { Printer, FileText } from 'lucide-react'
+import { Printer, FileText, ReceiptText } from 'lucide-react'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
 import { LabelPrintDialog } from './LabelPrintDialog'
@@ -239,6 +239,11 @@ export default function POSPage() {
   // Whether to print a slip after this sale. Initialized from auto_print once
   // settings load; operator can override per-sale via the payment-modal checkbox.
   const [printReceiptChecked, setPrintReceiptChecked] = useState(false)
+  // Per-bill VAT (VAT-registered shops only). Default = checked, re-armed every
+  // time the payment dialog opens; unchecked bills record total_vat = 0 and are
+  // excluded from the ภาษีขาย report. Customer pays the same either way —
+  // prices are VAT-inclusive, the checkbox only controls the backed-out VAT.
+  const [vatChecked, setVatChecked] = useState(true)
   // Snapshot of the just-completed sale, captured BEFORE the cart is cleared so
   // the success dialog's "พิมพ์ซ้ำ" button can reprint without a refetch.
   const [lastSaleForPrint, setLastSaleForPrint] = useState<SaleForPrint | null>(null)
@@ -750,14 +755,16 @@ export default function POSPage() {
     : cart.items.map(i => i.discount)
   const pendingTotalDiscount = pendingEffectiveDiscounts.reduce((s, d) => s + d, 0)
   const pendingNet = cart.subtotal() - pendingTotalDiscount
-  // VAT-inclusive & all-or-nothing: the single sales_settings.vat_enabled switch
-  // is authoritative — when on, VAT applies to EVERY line (there is no per-product
-  // VAT flag). Prices already contain VAT, so we back it out of each line's net
-  // amount (rate/(100+rate)); pendingNet is unchanged — this is only the breakdown
-  // shown/recorded.
+  // VAT-inclusive: prices already contain VAT, so we back it out of each line's
+  // net amount (rate/(100+rate)); pendingNet is unchanged — this is only the
+  // breakdown shown/recorded. The shop-level sales_settings.vat_enabled switch
+  // gates the feature; within a VAT shop the operator can additionally untick
+  // the per-bill checkbox in the payment dialog (default = ticked) for bills
+  // that must not carry VAT. There is no per-product VAT flag.
   const vatEnabled = salesSettings?.vat_enabled === 1
   const vatRate = salesSettings?.vat_rate ?? VAT_RATE_DEFAULT
-  const pendingVat = vatEnabled
+  const vatApplied = vatEnabled && vatChecked
+  const pendingVat = vatApplied
     ? cart.items.reduce((sum, i, idx) =>
         sum + extractVat(i.qty * i.unit_price - pendingEffectiveDiscounts[idx], vatRate), 0)
     : 0
@@ -778,7 +785,7 @@ export default function POSPage() {
     items: cart.items.map((i, idx) => {
       const d = pendingEffectiveDiscounts[idx] ?? 0
       const line_total = i.qty * i.unit_price - d
-      const unit_vat = vatEnabled && i.qty > 0 ? extractVat(line_total, vatRate) / i.qty : 0
+      const unit_vat = vatApplied && i.qty > 0 ? extractVat(line_total, vatRate) / i.qty : 0
       return { item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, unit_price: i.unit_price, discount: d, unit_vat, line_total }
     }),
     subtotal: cart.subtotal(),
@@ -788,13 +795,16 @@ export default function POSPage() {
     cash_amount: parseFloat(cashAmount) || 0,
     change_amount: Math.max(0, change),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [cart.items, cart.saleType, cart.customer, cart.customerNameFree, pendingEffectiveDiscounts, pendingTotalDiscount, pendingVat, pendingNet, cashAmount, change, vatEnabled, vatRate])
+  }), [cart.items, cart.saleType, cart.customer, cart.customerNameFree, pendingEffectiveDiscounts, pendingTotalDiscount, pendingVat, pendingNet, cashAmount, change, vatApplied, vatRate])
 
   // Re-pull receipt settings + shop each time the payment dialog opens, so both
   // the in-dialog receipt preview AND the actual print reflect the latest saved
   // settings without a full POS refresh (POS otherwise loads them once on mount).
   useEffect(() => {
     if (!showPayment) return
+    // Re-arm the per-bill VAT checkbox — every bill starts as a VAT bill;
+    // unticking is a deliberate per-bill action that never carries over.
+    setVatChecked(true)
     window.api.settings.getReceiptSettings().then(d => { if (d) setReceiptSettings(d as ReceiptSettings) }).catch(() => {})
     window.api.settings.getShop().then(d => { if (d) setShopInfo(d as Setting) }).catch(() => {})
   }, [showPayment])
@@ -826,7 +836,7 @@ export default function POSPage() {
         // so Σ(unit_vat × qty) reconciles exactly with total_vat (which is also
         // computed on the discounted net). Using the raw unit_price here would
         // overstate VAT on discounted lines.
-        const unit_vat = vatEnabled && i.qty > 0 ? extractVat(line_total, vatRate) / i.qty : 0
+        const unit_vat = vatApplied && i.qty > 0 ? extractVat(line_total, vatRate) / i.qty : 0
         return { product_id: i.product_id, item_name: i.item_name, unit_name: i.unit_name, qty: i.qty, qty_per_base: i.selectedUnit?.qty_per_base ?? 1, unit_price: i.unit_price, discount: d, unit_vat, line_total, item_note: i.item_note }
       })
       const result = await window.api.pos.saveBill({
@@ -1562,7 +1572,7 @@ export default function POSPage() {
 
       {/* ── PAYMENT DIALOG ── */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent size="4xl" divided onClose={() => setShowPayment(false)} className="h-[800px] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="4xl" divided onClose={() => setShowPayment(false)} className="h-[830px] grid-rows-[auto_1fr_auto]">
           <DialogHeader><DialogTitle className="text-2xl">ชำระเงิน</DialogTitle></DialogHeader>
           <DialogBody className="min-h-0 overflow-hidden">
             {(() => {
@@ -1712,6 +1722,21 @@ export default function POSPage() {
                         </div>
                       )}
                     </div>
+                    {/* Per-bill VAT toggle — VAT-registered shops only. Ticked =
+                        VAT backed out of the (inclusive) total and recorded on
+                        the bill; unticked = total_vat 0, bill stays out of the
+                        ภาษีขาย report. Customer pays the same either way. */}
+                    {vatEnabled && (
+                      <label className="shrink-0 flex items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-4 h-12 cursor-pointer select-none">
+                        <Checkbox checked={vatChecked} onCheckedChange={v => setVatChecked(v === true)} />
+                        <ReceiptText className="size-5 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">ภาษีมูลค่าเพิ่ม (VAT {vatRate}%)</span>
+                        <span className="ml-auto text-sm text-muted-foreground">
+                          {vatChecked ? formatCurrency(pendingVat) : 'บิลนี้ไม่มี VAT'}
+                        </span>
+                      </label>
+                    )}
+
                     {/* Print toggle — sits with the receipt it controls */}
                     <label className="shrink-0 flex items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-4 h-12 cursor-pointer select-none">
                       <Checkbox checked={printReceiptChecked} onCheckedChange={v => setPrintReceiptChecked(v === true)} />

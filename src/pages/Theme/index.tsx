@@ -1109,6 +1109,16 @@ export default function Theme() {
                     </TabsList>
                   </Tabs>
                 </DemoRow>
+                <DemoRow label="Toggle — connected segmented, active presses in">
+                  <Tabs defaultValue="th" className="w-fit">
+                    <TabsList variant="toggle">
+                      <TabsTrigger value="th">ไทย</TabsTrigger>
+                      <TabsTrigger value="en">อังกฤษ</TabsTrigger>
+                      <TabsTrigger value="mm">พม่า</TabsTrigger>
+                      <TabsTrigger value="zh">จีน</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </DemoRow>
                 <DemoRow label="Line — underline indicator">
                   <Tabs defaultValue="info" className="w-full">
                     <TabsList variant="line">

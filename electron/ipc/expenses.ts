@@ -17,24 +17,35 @@ import { requireAdmin } from '../auth/session'
 
 // Allow-listed editable columns (shared by create + update). expense_no /
 // created_at are never in here — they're set once on create.
-const EXPENSE_COLS = ['expense_date', 'category_id', 'amount', 'reference_no', 'note'] as const
+const EXPENSE_COLS = ['expense_date', 'category_id', 'amount', 'reference_no', 'note', 'vat_amount', 'has_tax_invoice'] as const
 
 function validateExpense(payload: any) {
   const amount = Number(payload.amount)
   if (!Number.isFinite(amount) || amount <= 0) throw new Error('กรุณาระบุจำนวนเงินให้ถูกต้อง')
   if (!payload.category_id) throw new Error('กรุณาเลือกหมวดค่าใช้จ่าย')
   if (!payload.expense_date) throw new Error('กรุณาระบุวันที่')
+  // Input VAT can never meet or exceed the VAT-inclusive amount paid
+  if (payload.has_tax_invoice) {
+    const vat = Number(payload.vat_amount)
+    if (!Number.isFinite(vat) || vat < 0) throw new Error('กรุณาระบุยอดภาษีซื้อให้ถูกต้อง')
+    if (vat >= amount) throw new Error('ยอดภาษีซื้อต้องน้อยกว่ายอดค่าใช้จ่าย')
+  }
 }
 
 // Map a payload to a clean column object (allow-list only). Unknown keys are
-// dropped; missing optional fields become null.
+// dropped; missing optional fields become null. vat_amount is only claimable
+// with a full tax invoice — forced 0 when has_tax_invoice is off so the
+// ภาษีซื้อ report can trust the column directly.
 function pickExpenseCols(payload: any) {
+  const hasTaxInvoice = payload.has_tax_invoice ? 1 : 0
   return {
     expense_date: payload.expense_date,
     category_id: payload.category_id ?? null,
     amount: Number(payload.amount),
     reference_no: payload.reference_no ?? null,
     note: payload.note ?? null,
+    vat_amount: hasTaxInvoice ? (Number(payload.vat_amount) || 0) : 0,
+    has_tax_invoice: hasTaxInvoice,
   }
 }
 
@@ -146,8 +157,8 @@ export function registerExpenseHandlers() {
         const expenseNo = `EX-${today}-${String(next).padStart(4, '0')}`
         try {
           const res = db.prepare(`
-            INSERT INTO expenses (expense_no, expense_date, category_id, amount, reference_no, note, created_at, updated_at)
-            VALUES (@expense_no, @expense_date, @category_id, @amount, @reference_no, @note, datetime('now','localtime'), datetime('now','localtime'))
+            INSERT INTO expenses (expense_no, expense_date, category_id, amount, reference_no, note, vat_amount, has_tax_invoice, created_at, updated_at)
+            VALUES (@expense_no, @expense_date, @category_id, @amount, @reference_no, @note, @vat_amount, @has_tax_invoice, datetime('now','localtime'), datetime('now','localtime'))
           `).run({ expense_no: expenseNo, ...cols })
           return res.lastInsertRowid
         } catch (e: any) {
