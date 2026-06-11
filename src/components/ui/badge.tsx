@@ -57,7 +57,7 @@ const badgeVariants = cva(
         "destructive-outline": "border-destructive/40 bg-destructive-soft text-destructive",
         "violet-outline": "border-violet/40 bg-violet-soft text-violet-strong",
         "teal-outline": "border-teal/40 bg-teal-soft text-teal-strong",
-        "accent-outline": "border-accent/40 bg-accent-soft text-accent-soft-foreground",
+        "accent-outline": "border-accent/80 bg-accent-soft text-accent-soft-foreground",
         "neutral-outline": "border-border bg-card text-foreground",
         "muted-outline": "border-border-strong/30 bg-muted-hover text-muted-foreground",
       },

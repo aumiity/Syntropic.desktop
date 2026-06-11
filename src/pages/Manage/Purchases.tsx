@@ -618,7 +618,7 @@ export default function ManagePurchasesPage() {
                               ? <Badge variant="success-outline">ชำระแล้ว</Badge>
                               : isOverdue
                                 ? <Badge variant="destructive-outline">เกินกำหนด</Badge>
-                                : <Badge variant="warning-outline">เครดิต</Badge>
+                                : <Badge variant="accent-outline">เครดิต</Badge>
                             : <Badge variant="info-outline">เงินสด</Badge>
                         }
                       </TableCell>
@@ -962,12 +962,22 @@ export default function ManagePurchasesPage() {
         onOpenChange={(o) => { if (!o && !quickPaying) setConfirmPayInvoice(null) }}
         variant="success"
         title="ชำระเงินวันนี้"
-        description={confirmPayInvoice
-          ? `ต้องการบันทึกการชำระเงินบิล "${confirmPayInvoice}" เป็นวันนี้ (${formatDate(today)}) ใช่หรือไม่?`
-          : undefined}
+        description="ต้องการบันทึกการชำระเงินบิลนี้เป็นวันนี้ใช่หรือไม่?"
         confirmLabel={quickPaying ? 'กำลังบันทึก...' : 'ยืนยัน'}
         cancelLabel="ยกเลิก"
         busy={quickPaying}
+        content={confirmPayInvoice && (
+          <div className="rounded-xl border bg-card shadow-sm p-3 space-y-2 text-sm">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-muted-foreground shrink-0">เลขที่บิล</span>
+              <span className="font-semibold text-right">{confirmPayInvoice}</span>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-muted-foreground shrink-0">วันที่ชำระ</span>
+              <span className="font-semibold text-right">{formatDate(today)}</span>
+            </div>
+          </div>
+        )}
         onConfirm={async () => {
           if (!confirmPayInvoice) return
           await quickPayForInvoice(confirmPayInvoice)

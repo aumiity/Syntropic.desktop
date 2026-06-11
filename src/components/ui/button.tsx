@@ -90,7 +90,7 @@ const buttonVariants = cva(
         "info-outline":         "border border-info/40 bg-info-soft text-info-soft-foreground hover:bg-info-soft-hover",
         "violet-outline":       "border border-violet/40 bg-violet-soft text-violet-strong hover:bg-violet-soft/80",
         "teal-outline":         "border border-teal/40 bg-teal-soft text-teal-strong hover:bg-teal-soft/80",
-        "accent-outline":       "border border-accent/40 bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft-hover",
+        "accent-outline":       "border border-accent/80 bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft-hover",
         "neutral-outline":      "border border-border bg-card text-foreground hover:bg-muted",
         "muted-outline":        "border border-border-strong/30 bg-muted-hover text-muted-foreground hover:bg-muted",
         "destructive-soft": "bg-destructive-soft text-destructive hover:bg-destructive/25 hover:text-destructive",
