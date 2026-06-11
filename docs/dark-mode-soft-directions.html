@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dark Mode — Soft color directions</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:0 0% 10%; --card:0 0% 20%; --fg:0 0% 96%; --mut:0 0% 64%; --bd:0 0% 26%; }
+  *{box-sizing:border-box;}
+  html{background:#0b0b0b;}
+  body{margin:0;padding:34px 22px 70px;color:hsl(var(--fg));
+       font:14px/1.55 'Inter','IBM Plex Sans Thai',sans-serif;}
+  .wrap{max-width:1160px;margin:0 auto;}
+  h1{font-size:21px;font-weight:700;margin:0 0 3px;}
+  .sub{font-family:'IBM Plex Sans Thai';color:hsl(var(--mut));font-size:13.5px;margin:0 0 24px;}
+
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  .panel{background:hsl(var(--bg));border:1px solid hsl(var(--bd));border-radius:14px;padding:18px;}
+  .phead{display:flex;align-items:baseline;gap:9px;margin-bottom:4px;}
+  .phead .nm{font-weight:700;font-size:15px;}
+  .phead .tag{font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;background:hsl(var(--card));color:hsl(var(--mut));}
+  .pdesc{font-family:'IBM Plex Sans Thai';color:hsl(var(--mut));font-size:12.5px;margin:0 0 14px;min-height:34px;}
+
+  .lbl{font-family:'IBM Plex Sans Thai';font-size:11px;font-weight:600;color:hsl(var(--mut));text-transform:uppercase;letter-spacing:.05em;margin:12px 0 7px;}
+  .row{display:flex;gap:7px;flex-wrap:wrap;}
+
+  /* badges/buttons read role vars: --r-bg --r-tx --r-bd --r-dot */
+  .chip{font-family:'IBM Plex Sans Thai';font-size:12px;font-weight:600;padding:3px 11px;border-radius:99px;
+        display:inline-flex;align-items:center;gap:6px;
+        background:hsl(var(--r-bg));color:hsl(var(--r-tx));border:1px solid hsl(var(--r-bd));}
+  .chip .dot{width:7px;height:7px;border-radius:99px;background:hsl(var(--r-dot));}
+  .btn{font-family:'IBM Plex Sans Thai';font-size:13px;font-weight:600;padding:7px 14px;border-radius:9px;
+       background:hsl(var(--r-bg));color:hsl(var(--r-tx));border:1px solid hsl(var(--r-bd));cursor:default;}
+
+  /* section callout */
+  .callout{margin-top:7px;border-radius:11px;padding:13px 15px;
+           background:hsl(var(--r-bg));color:hsl(var(--r-tx));border:1px solid hsl(var(--r-bd));
+           border-left:var(--r-barw,1px) solid hsl(var(--r-bar,var(--r-bd)));}
+  .callout .ttl{font-family:'IBM Plex Sans Thai';font-weight:700;font-size:13.5px;margin-bottom:2px;}
+  .callout .bd{font-family:'IBM Plex Sans Thai';font-size:12.5px;color:hsl(var(--r-tx)/0.82);}
+
+  /* role wrappers set the role's vars; direction scope overrides bg/tx/bd formula */
+  .info{--h:219;} .success{--h:142;} .destructive{--h:0;} .warm{--h:40;} .primary{--h:173;}
+
+  /* ============ DIRECTION FORMULAS ============ */
+  /* CURRENT (reference): saturated dark tint */
+  .d-current .info,.d-current .success,.d-current .destructive,.d-current .warm,.d-current .primary{
+    --r-bg:var(--h) 42% 17%; --r-tx:var(--h) 85% 78%; --r-bd:var(--h) 42% 17%; --r-dot:var(--h) 80% 60%; }
+  .d-current .destructive{--r-bg:0 45% 16%;--r-tx:0 90% 78%;--r-bd:0 45% 16%;}
+  .d-current .primary{--r-bg:173 24% 14%;--r-tx:173 55% 58%;--r-bd:173 24% 14%;}
+
+  /* A — MUTED TINT: low saturation, calm */
+  .d-muted .info,.d-muted .success,.d-muted .destructive,.d-muted .warm,.d-muted .primary{
+    --r-bg:var(--h) 15% 16%; --r-tx:var(--h) 38% 68%; --r-bd:var(--h) 18% 22%; --r-dot:var(--h) 35% 55%; }
+  .d-muted .destructive{--r-tx:0 50% 72%;} .d-muted .warm{--r-tx:42 45% 70%;}
+
+  /* B — NEUTRAL + ACCENT: grey fill, colour only in text + dot/bar */
+  .d-neutral .info,.d-neutral .success,.d-neutral .destructive,.d-neutral .warm,.d-neutral .primary{
+    --r-bg:0 0% 24%; --r-tx:var(--h) 48% 66%; --r-bd:0 0% 28%; --r-dot:var(--h) 50% 56%;
+    --r-bar:var(--h) 50% 50%; --r-barw:3px; }
+  .d-neutral .destructive{--r-tx:0 58% 70%;} .d-neutral .warm{--r-tx:42 52% 66%;}
+
+  /* C — OUTLINE: faint fill, colour in border + text */
+  .d-outline .info,.d-outline .success,.d-outline .destructive,.d-outline .warm,.d-outline .primary{
+    --r-bg:var(--h) 20% 13%; --r-tx:var(--h) 45% 70%; --r-bd:var(--h) 38% 38%; --r-dot:var(--h) 45% 58%; }
+  .d-outline .destructive{--r-tx:0 55% 72%;} .d-outline .warm{--r-tx:42 50% 70%;}
+
+  @media(max-width:820px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dark Mode — แนวสี soft (เลี่ยง neon)</h1>
+  <p class="sub">ตัวอย่างเดียวกัน 4 แบบ — badge / ปุ่ม soft / กล่อง callout · เลือกแนวที่ชอบแล้วบอกหนูได้เลยค่ะ</p>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+  const DIRS = [
+    ['d-current','ปัจจุบัน','reference','สีจัด ติด saturation สูง — แบบที่พี่ไม่ชอบ (อ้างอิงไว้เทียบ)'],
+    ['d-muted','A · Muted Tint','แนะนำ','ลดความสดลงมาก เป็นเทาอมสีจาง ๆ ยังพอบอกบทบาทด้วยสีพื้นได้ แต่นุ่มสบายตา ไม่แสบ'],
+    ['d-neutral','B · Neutral + Accent','สุขุมสุด','พื้น soft เป็นเทากลางล้วน ไม่ติดสีเลย — สื่อบทบาทด้วยตัวอักษรสี + แถบ/จุดสีเล็ก ๆ'],
+    ['d-outline','C · Outline','โปร่ง','พื้นจางมาก เน้นที่เส้นขอบสี + ตัวอักษรสี ให้ความรู้สึกโปร่งมีโครง'],
+  ];
+  const ROLES = [
+    ['primary','แบรนด์'],['success','สำเร็จ'],['info','ข้อมูล'],['destructive','ลบ/ค้าง'],['warm','เตือน'],
+  ];
+  const grid = document.getElementById('grid');
+  for (const [cls,nm,tag,desc] of DIRS) {
+    const badges = ROLES.map(([r,t]) =>
+      `<span class="chip ${r}"><span class="dot"></span>${t}</span>`).join('');
+    const btns = `
+      <button class="btn primary">บันทึก</button>
+      <button class="btn info">ปรับสต็อก</button>
+      <button class="btn destructive">ลบ</button>
+      <button class="btn warm">เตือน</button>`;
+    const callout = `<div class="callout info">
+        <div class="ttl">ปรับสต็อกอัตโนมัติ</div>
+        <div class="bd">ระบบจะตัดสต็อกตาม FEFO เมื่อขาย — ตรวจสอบ lot ใกล้หมดอายุก่อนยืนยัน</div>
+      </div>`;
+    grid.insertAdjacentHTML('beforeend', `
+      <div class="panel ${cls}">
+        <div class="phead"><span class="nm">${nm}</span><span class="tag">${tag}</span></div>
+        <p class="pdesc">${desc}</p>
+        <div class="lbl">Badge</div><div class="row">${badges}</div>
+        <div class="lbl">ปุ่ม soft</div><div class="row">${btns}</div>
+        <div class="lbl">กล่อง section (info-soft)</div>${callout}
+      </div>`);
+  }
+</script>
+</body>
+</html>

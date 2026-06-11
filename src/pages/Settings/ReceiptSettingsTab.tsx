@@ -210,24 +210,30 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
 
   // Lift the action buttons up to the shared sub-tab strip (PrintersTab) — handlers
   // via a ref so the node never goes stale without a re-register every render.
-  const actRef = useRef({ handlePreviewPdf, handleTestPrint, handleSave })
-  actRef.current = { handlePreviewPdf, handleTestPrint, handleSave }
+  const actRef = useRef({ handleSave })
+  actRef.current = { handleSave }
   useEffect(() => {
     onActions?.(
-      <>
-        <Button className="h-9" onClick={() => actRef.current.handlePreviewPdf()} disabled={pdfLoading} variant="elevated">
-          <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
-        </Button>
-        <Button className="h-9" onClick={() => actRef.current.handleTestPrint()} disabled={printing} variant="elevated">
-          <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
-        </Button>
-        <Button className="h-9" onClick={() => actRef.current.handleSave()} disabled={saving}>
-          <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
-        </Button>
-      </>
+      <Button className="h-10" onClick={() => actRef.current.handleSave()} disabled={saving}>
+        <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
+      </Button>
     )
     return () => onActions?.(null)
-  }, [onActions, pdfLoading, printing, saving])
+  }, [onActions, saving])
+
+  // Preview/test-print actions live INSIDE the preview card header (beside the
+  // zoom control) — only บันทึก rides the top sub-tab strip.
+  const previewActions = (
+    <div className="flex items-center gap-2">
+      <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
+      <Button className="h-9" onClick={handlePreviewPdf} disabled={pdfLoading} variant="elevated">
+        <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
+      </Button>
+      <Button className="h-9" onClick={handleTestPrint} disabled={printing} variant="elevated">
+        <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
+      </Button>
+    </div>
+  )
 
   return (
     <div className="flex flex-col gap-3">
@@ -237,9 +243,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
           className="min-w-0 sticky top-0 self-start"
           title="ตัวอย่างใบเสร็จ"
           tint="success"
-          right={
-            <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
-          }
+          right={previewActions}
         >
           {/* No flex `justify-center` here: when the zoomed slip is wider than
               the box, flex-centering pushes it right and leaves a useless blank

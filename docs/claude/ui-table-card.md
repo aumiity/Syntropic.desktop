@@ -77,6 +77,10 @@ Canonical: the "ตัวเลือก" button in `Manage/Sales.tsx` (also `Ma
 
 lucide icon (`size-10 opacity-30`) + Thai message, `py-16` padding inside a `<TableCell colSpan={N}>`
 
+### Row status — Badge only, NEVER dim the row (HARD)
+
+A disabled / inactive / paused row is signalled by its **status `<Badge>`** (e.g. `destructive-outline` "ปิดใช้งาน" beside `success-outline` "ใช้งาน") — and nothing else. Do **not** add `opacity-*`/dim to the `<TableRow>` or its cells: the Badge already carries the state, so dimming is redundant *and* it reduces the legibility of data that is still perfectly valid. Status is communicated through semantic tokens/Badges, not by fading the whole row. Canonical: the disable toggle + "ที่พักใช้งาน" filter in `Settings/CategoriesTab.tsx` / `ExpenseCategoriesTab.tsx` / `DrugTypesTab.tsx`.
+
 ## Scrollbar gutter trick
 
 `[scrollbar-gutter:stable]` for tab/page scroll shifts: if you have a horizontally centered element (like a `w-fit` segmented Tabs) inside a vertically-scrollable container, switching content between short and tall tabs makes the scrollbar appear/disappear and shifts the centered element by ~12-15px. Apply `[scrollbar-gutter:stable]` (Tailwind arbitrary value) to the scroll container — reserves the gutter even when no scrollbar is needed.

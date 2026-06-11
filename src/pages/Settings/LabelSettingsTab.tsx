@@ -339,24 +339,30 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
   // Lift the action buttons up to the shared sub-tab strip (PrintersTab) —
   // handlers via a ref so the node never goes stale without re-registering on
   // every render. The printer picker lives in the "ขนาดกระดาษ" card below.
-  const actRef = React.useRef({ handlePreviewPdf, handleTestPrint, handleSave, setF })
-  actRef.current = { handlePreviewPdf, handleTestPrint, handleSave, setF }
+  const actRef = React.useRef({ handleSave })
+  actRef.current = { handleSave }
   React.useEffect(() => {
     onActions?.(
-      <>
-        <Button className="h-9" onClick={() => actRef.current.handlePreviewPdf()} disabled={pdfLoading} variant="elevated">
-          <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
-        </Button>
-        <Button className="h-9" onClick={() => actRef.current.handleTestPrint()} disabled={printing} variant="elevated">
-          <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
-        </Button>
-        <Button className="h-9" onClick={() => actRef.current.handleSave()} disabled={saving}>
-          <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
-        </Button>
-      </>
+      <Button className="h-10" onClick={() => actRef.current.handleSave()} disabled={saving}>
+        <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
+      </Button>
     )
     return () => onActions?.(null)
-  }, [onActions, pdfLoading, printing, saving])
+  }, [onActions, saving])
+
+  // Preview/test-print actions live INSIDE the preview card header (beside the
+  // zoom control) — only บันทึก rides the top sub-tab strip.
+  const previewActions = (
+    <div className="flex items-center gap-2">
+      <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
+      <Button className="h-9" onClick={handlePreviewPdf} disabled={pdfLoading} variant="elevated">
+        <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
+      </Button>
+      <Button className="h-9" onClick={handleTestPrint} disabled={printing} variant="elevated">
+        <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
+      </Button>
+    </div>
+  )
 
   const matchedPreset = PAPER_PRESETS.find(p => p.w === form.width_mm && p.h === form.height_mm)
   useEffect(() => {
@@ -375,9 +381,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
           className="min-w-0 sticky top-0 self-start"
           title="ตัวอย่างฉลาก"
           tint="success"
-          right={
-            <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
-          }
+          right={previewActions}
         >
           {/* The label paper itself is rendered by the shared LabelPaper
               component (also used by the per-product LabelsTab preview), so the

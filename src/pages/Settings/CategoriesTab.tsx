@@ -6,10 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SortableTableBody, SortableRow } from '@/components/ui/sortable'
 import { FormField } from '@/components/ui/label'
-import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
 import type { ProductCategory } from '@/types'
-import { Plus, Edit, Tag, ArrowUpDown, Check, X } from 'lucide-react'
+import { Plus, Edit, Tag, ArrowUpDown, Check, X, Ban, RotateCcw, EyeOff } from 'lucide-react'
 
 export function CategoriesTab() {
   const { toast } = useToast()
@@ -21,6 +20,9 @@ export function CategoriesTab() {
   const [dialog, setDialog] = useState(false)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
+  // Disabled rows are hidden by default; this filter reveals them.
+  const [showDisabled, setShowDisabled] = useState(false)
+  const [togglingId, setTogglingId] = useState<number | null>(null)
 
   const load = async () => {
     const data = await window.api.settings.listCategories() as ProductCategory[]
@@ -76,16 +78,34 @@ export function CategoriesTab() {
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
+  // Toggle พักการใช้งาน straight from the row. Reuses saveCategory with the same
+  // payload shape openEdit builds (allow-list safe), just with is_disabled flipped.
+  const toggleDisabled = async (c: ProductCategory) => {
+    setTogglingId(c.id)
+    try {
+      await window.api.settings.saveCategory({
+        id: c.id, code: c.code ?? '', name: c.name, description: c.description ?? '',
+        sort_order: c.sort_order, is_disabled: c.is_disabled ? 0 : 1,
+      })
+      toast({ title: c.is_disabled ? 'เปิดใช้งานแล้ว' : 'พักการใช้งานแล้ว', variant: 'success' })
+      await load()
+    } catch (e: any) {
+      toast({ title: 'ทำรายการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally { setTogglingId(null) }
+  }
+
   // Client-side filter — categories list is small, no IPC needed.
+  // Disabled rows are excluded unless the "ที่พักใช้งาน" filter is on.
   // Filtering during reorder would scramble the visible order, so search is
   // hidden while reordering (see top bar below).
+  const base = showDisabled ? rows : rows.filter(c => !c.is_disabled)
   const filtered = q.trim()
-    ? rows.filter(c => {
+    ? base.filter(c => {
         const needle = q.trim().toLowerCase()
         return c.name.toLowerCase().includes(needle)
           || (c.code ?? '').toLowerCase().includes(needle)
       })
-    : rows
+    : base
 
   return (
     <div className="pt-4 h-full flex flex-col min-h-0">
@@ -114,6 +134,9 @@ export function CategoriesTab() {
               <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" variant="elevated" onClick={enterReorder} disabled={rows.length < 2}>
                 <ArrowUpDown className="size-4" /> จัดลำดับ
               </Button>
+              <Button size="lg" className="h-9 px-2 shrink-0" variant={showDisabled ? 'default' : 'elevated'} onClick={() => setShowDisabled(s => !s)} title="แสดงรายการที่พักการใช้งาน">
+                <EyeOff className="size-4" /> ที่พักใช้งาน
+              </Button>
               <Button size="lg" className="h-9 px-2 shrink-0" onClick={openAdd}>
                 <Plus className="size-4" /> เพิ่มหมวดหมู่
               </Button>
@@ -131,7 +154,7 @@ export function CategoriesTab() {
                 <TableHead className="min-w-28">รหัส</TableHead>
                 <TableHead className="min-w-[200px]">ชื่อหมวดหมู่</TableHead>
                 <TableHead className="text-center min-w-24">สถานะ</TableHead>
-                {!reorderMode && <TableHead className="text-center min-w-24">จัดการ</TableHead>}
+                {!reorderMode && <TableHead className="text-center min-w-28">จัดการ</TableHead>}
               </TableRow>
             </TableHeader>
 
@@ -169,9 +192,14 @@ export function CategoriesTab() {
                         : <Badge variant="success-outline">ใช้งาน</Badge>}
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-center">
+                      <div className="flex justify-center gap-1.5">
                         <Button size="icon-lg" variant="elevated" onClick={() => openEdit(c)} title="แก้ไข">
                           <Edit />
+                        </Button>
+                        <Button size="icon-lg" variant="elevated" disabled={togglingId === c.id}
+                          onClick={() => toggleDisabled(c)}
+                          title={c.is_disabled ? 'เปิดใช้งาน' : 'พักการใช้งาน'}>
+                          {c.is_disabled ? <RotateCcw /> : <Ban />}
                         </Button>
                       </div>
                     </TableCell>
@@ -199,17 +227,6 @@ export function CategoriesTab() {
             <FormField label="ชื่อหมวดหมู่" required>
               <Input variant="elevated" value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
             </FormField>
-            {form.id ? (
-              <Toggle
-                framed
-                size="lg"
-                variant="destructive"
-                label="พักการใช้งานหมวดหมู่นี้"
-                checked={!!form.is_disabled}
-                onChange={v => setF('is_disabled', v ? 1 : 0)}
-                className="justify-between w-full"
-              />
-            ) : null}
           </DialogBody>
           <DialogFooter>
             <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>

@@ -6,10 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SortableTableBody, SortableRow } from '@/components/ui/sortable'
 import { FormField } from '@/components/ui/label'
-import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
 import type { ExpenseCategory } from '@/types'
-import { Plus, Edit, Tag, ArrowUpDown, Check, X } from 'lucide-react'
+import { Plus, Edit, Tag, ArrowUpDown, Check, X, Ban, RotateCcw, EyeOff } from 'lucide-react'
 
 export function ExpenseCategoriesTab() {
   const { toast } = useToast()
@@ -21,6 +20,9 @@ export function ExpenseCategoriesTab() {
   const [dialog, setDialog] = useState(false)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
+  // Disabled (is_active = 0) rows are hidden by default; this filter reveals them.
+  const [showDisabled, setShowDisabled] = useState(false)
+  const [togglingId, setTogglingId] = useState<number | null>(null)
 
   const load = async () => {
     const data = await window.api.expenses.listCategories() as ExpenseCategory[]
@@ -73,12 +75,29 @@ export function ExpenseCategoriesTab() {
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
+  // Toggle พักการใช้งาน straight from the row. Reuses saveCategory with the same
+  // payload shape openEdit builds (allow-list safe), just with is_active flipped.
+  const toggleDisabled = async (c: ExpenseCategory) => {
+    setTogglingId(c.id)
+    try {
+      await window.api.expenses.saveCategory({
+        id: c.id, name: c.name, is_active: c.is_active ? 0 : 1, sort_order: c.sort_order,
+      })
+      toast({ title: c.is_active ? 'พักการใช้งานแล้ว' : 'เปิดใช้งานแล้ว', variant: 'success' })
+      await load()
+    } catch (e: any) {
+      toast({ title: 'ทำรายการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally { setTogglingId(null) }
+  }
+
   // Client-side filter — categories list is small, no IPC needed.
+  // Disabled (is_active = 0) rows are excluded unless the "ที่พักใช้งาน" filter is on.
   // Filtering during reorder would scramble the visible order, so search is
   // hidden while reordering (see top bar below).
+  const base = showDisabled ? rows : rows.filter(c => c.is_active)
   const filtered = q.trim()
-    ? rows.filter(c => c.name.toLowerCase().includes(q.trim().toLowerCase()))
-    : rows
+    ? base.filter(c => c.name.toLowerCase().includes(q.trim().toLowerCase()))
+    : base
 
   return (
     <div className="pt-4 h-full flex flex-col min-h-0">
@@ -107,6 +126,9 @@ export function ExpenseCategoriesTab() {
               <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" variant="elevated" onClick={enterReorder} disabled={rows.length < 2}>
                 <ArrowUpDown className="size-4" /> จัดลำดับ
               </Button>
+              <Button size="lg" className="h-9 px-2 shrink-0" variant={showDisabled ? 'default' : 'elevated'} onClick={() => setShowDisabled(s => !s)} title="แสดงรายการที่พักการใช้งาน">
+                <EyeOff className="size-4" /> ที่พักใช้งาน
+              </Button>
               <Button size="lg" className="h-9 px-2 shrink-0" onClick={openAdd}>
                 <Plus className="size-4" /> เพิ่มหมวดหมู่
               </Button>
@@ -123,7 +145,7 @@ export function ExpenseCategoriesTab() {
                   : <TableHead className="text-center min-w-20">ลำดับ</TableHead>}
                 <TableHead className="min-w-[200px]">ชื่อหมวดหมู่</TableHead>
                 <TableHead className="text-center min-w-24">สถานะ</TableHead>
-                {!reorderMode && <TableHead className="text-center min-w-24">จัดการ</TableHead>}
+                {!reorderMode && <TableHead className="text-center min-w-28">จัดการ</TableHead>}
               </TableRow>
             </TableHeader>
 
@@ -159,9 +181,14 @@ export function ExpenseCategoriesTab() {
                         : <Badge variant="destructive-outline">ปิดใช้งาน</Badge>}
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-center">
+                      <div className="flex justify-center gap-1.5">
                         <Button size="icon-lg" variant="elevated" onClick={() => openEdit(c)} title="แก้ไข">
                           <Edit />
+                        </Button>
+                        <Button size="icon-lg" variant="elevated" disabled={togglingId === c.id}
+                          onClick={() => toggleDisabled(c)}
+                          title={c.is_active ? 'พักการใช้งาน' : 'เปิดใช้งาน'}>
+                          {c.is_active ? <Ban /> : <RotateCcw />}
                         </Button>
                       </div>
                     </TableCell>
@@ -186,17 +213,6 @@ export function ExpenseCategoriesTab() {
             <FormField label="ชื่อหมวดหมู่" required>
               <Input value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />
             </FormField>
-            {form.id ? (
-              <Toggle
-                framed
-                size="lg"
-                variant="destructive"
-                label="พักการใช้งานหมวดหมู่นี้"
-                checked={!form.is_active}
-                onChange={v => setF('is_active', v ? 0 : 1)}
-                className="justify-between w-full"
-              />
-            ) : null}
           </DialogBody>
           <DialogFooter>
             <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>

@@ -46,7 +46,7 @@ export function UnitsTab() {
     : rows
 
   return (
-    <div className="pt-4 h-full flex flex-col min-h-0">
+    <div className="h-full flex flex-col min-h-0">
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <SearchInput

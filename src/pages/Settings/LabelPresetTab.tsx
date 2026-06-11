@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/input'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
-import { Plus, Edit, Trash2, MoreHorizontal, ListChecks } from 'lucide-react'
+import { Plus, Edit, Trash2, ListChecks } from 'lucide-react'
 import type { LabelPreset } from '@/types'
 import type { LabelFormLookups } from '@/components/label/LabelFormDialog'
 import { LabelPresetDialog } from '@/components/dialogs/LabelPresetDialog'
@@ -88,13 +87,13 @@ export function LabelPresetTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[120px]">ชื่อ preset</TableHead>
-                <TableHead className="min-w-[140px]">ปริมาณยา</TableHead>
-                <TableHead className="min-w-[120px]">ความถี่</TableHead>
-                <TableHead className="min-w-[140px]">เวลาเทียบมื้อ</TableHead>
-                <TableHead className="min-w-[120px]">เวลา</TableHead>
-                <TableHead className="min-w-[120px]">คำแนะนำ</TableHead>
-                <TableHead className="text-center w-24">จัดการ</TableHead>
+                <TableHead className="min-w-[100px] whitespace-normal">ชื่อ preset</TableHead>
+                <TableHead className="min-w-[90px] whitespace-normal">ปริมาณยา</TableHead>
+                <TableHead className="min-w-[80px] whitespace-normal">ความถี่</TableHead>
+                <TableHead className="min-w-[90px] whitespace-normal">เวลาเทียบมื้อ</TableHead>
+                <TableHead className="min-w-[80px] whitespace-normal">เวลา</TableHead>
+                <TableHead className="min-w-[90px] whitespace-normal">คำแนะนำ</TableHead>
+                <TableHead className="text-center w-28">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -107,29 +106,16 @@ export function LabelPresetTab() {
                 </TableRow>
               ) : filtered.map(p => (
                 <TableRow key={p.id}>
-                  <TableCell className="text-sm font-semibold text-foreground">{p.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{nm(nameMaps.dosage_id, p.dosage_id)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{nm(nameMaps.frequency_id, p.frequency_id)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{nm(nameMaps.timing_id, p.timing_id)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{nm(nameMaps.label_time_id, p.label_time_id)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{nm(nameMaps.advice_id, p.advice_id)}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-center">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก"><MoreHorizontal /></Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" sideOffset={4} className="w-40 p-1 gap-0">
-                          <button type="button" onClick={() => openEdit(p)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                            <Edit className="size-4" /> แก้ไข
-                          </button>
-                          <button type="button" onClick={() => setConfirmDel(p)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
-                            <Trash2 className="size-4" /> ลบ
-                          </button>
-                        </PopoverContent>
-                      </Popover>
+                  <TableCell className="text-sm font-semibold text-foreground whitespace-normal break-words align-top">{p.name}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-normal break-words align-top">{nm(nameMaps.dosage_id, p.dosage_id)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-normal break-words align-top">{nm(nameMaps.frequency_id, p.frequency_id)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-normal break-words align-top">{nm(nameMaps.timing_id, p.timing_id)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-normal break-words align-top">{nm(nameMaps.label_time_id, p.label_time_id)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-normal break-words align-top">{nm(nameMaps.advice_id, p.advice_id)}</TableCell>
+                  <TableCell className="align-top">
+                    <div className="flex justify-center gap-1.5">
+                      <Button size="icon-lg" variant="elevated" title="แก้ไข" onClick={() => openEdit(p)}><Edit /></Button>
+                      <Button size="icon-lg" variant="elevated" title="ลบ" onClick={() => setConfirmDel(p)}><Trash2 /></Button>
                     </div>
                   </TableCell>
                 </TableRow>

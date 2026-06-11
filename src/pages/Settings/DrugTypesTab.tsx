@@ -6,10 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/label'
-import { Toggle } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
 import type { DrugType } from '@/types'
-import { Plus, Edit, Pill } from 'lucide-react'
+import { Plus, Edit, Pill, Ban, RotateCcw, EyeOff } from 'lucide-react'
 
 const FDA_FLAGS = [
   { key: 'is_fda9',  label: 'ข.ย.9 — บัญชีการซื้อยา' },
@@ -25,6 +24,9 @@ export function DrugTypesTab() {
   const [dialog, setDialog] = useState(false)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
+  // Disabled rows are hidden by default; this filter reveals them.
+  const [showDisabled, setShowDisabled] = useState(false)
+  const [togglingId, setTogglingId] = useState<number | null>(null)
 
   const load = async () => {
     const data = await window.api.settings.listDrugTypes() as DrugType[]
@@ -57,13 +59,32 @@ export function DrugTypesTab() {
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
+  // Toggle พักการใช้งาน straight from the row. Reuses saveDrugType with the same
+  // payload shape openEdit builds (allow-list safe), just with is_disabled flipped.
+  const toggleDisabled = async (d: DrugType) => {
+    setTogglingId(d.id)
+    try {
+      await window.api.settings.saveDrugType({
+        id: d.id, code: d.code, name_th: d.name_th,
+        is_fda9: d.is_fda9 ?? 0, is_fda10: d.is_fda10 ?? 0, is_fda11: d.is_fda11 ?? 0, is_fda13: d.is_fda13 ?? 0,
+        is_disabled: d.is_disabled ? 0 : 1,
+      })
+      toast({ title: d.is_disabled ? 'เปิดใช้งานแล้ว' : 'พักการใช้งานแล้ว', variant: 'success' })
+      await load()
+    } catch (e: any) {
+      toast({ title: 'ทำรายการไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally { setTogglingId(null) }
+  }
+
   // Client-side filter — drug-types list is small, no IPC round-trip needed.
+  // Disabled rows are excluded unless the "ที่พักใช้งาน" filter is on.
+  const base = showDisabled ? rows : rows.filter(d => !d.is_disabled)
   const filtered = q.trim()
-    ? rows.filter(d => {
+    ? base.filter(d => {
         const needle = q.trim().toLowerCase()
         return d.code.toLowerCase().includes(needle) || d.name_th.toLowerCase().includes(needle)
       })
-    : rows
+    : base
 
   return (
     <div className="pt-4 h-full flex flex-col min-h-0">
@@ -75,7 +96,10 @@ export function DrugTypesTab() {
             onChange={e => setQ(e.target.value)}
             placeholder="ค้นหารหัส, ชื่อประเภทยา..."
           />
-          <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" onClick={openAdd}>
+          <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" variant={showDisabled ? 'default' : 'elevated'} onClick={() => setShowDisabled(s => !s)} title="แสดงรายการที่พักการใช้งาน">
+            <EyeOff className="size-4" /> ที่พักใช้งาน
+          </Button>
+          <Button size="lg" className="h-9 px-2 shrink-0" onClick={openAdd}>
             <Plus className="size-4" /> เพิ่มประเภทยา
           </Button>
         </div>
@@ -91,7 +115,7 @@ export function DrugTypesTab() {
                 <TableHead className="text-center min-w-20">ข.ย.11</TableHead>
                 <TableHead className="text-center min-w-20">ข.ย.13</TableHead>
                 <TableHead className="text-center min-w-24">สถานะ</TableHead>
-                <TableHead className="text-center min-w-24">จัดการ</TableHead>
+                <TableHead className="text-center min-w-28">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,9 +143,14 @@ export function DrugTypesTab() {
                       : <Badge variant="success-outline">ใช้งาน</Badge>}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-center">
+                    <div className="flex justify-center gap-1.5">
                       <Button size="icon-lg" variant="elevated" onClick={() => openEdit(d)} title="แก้ไข">
                         <Edit />
+                      </Button>
+                      <Button size="icon-lg" variant="elevated" disabled={togglingId === d.id}
+                        onClick={() => toggleDisabled(d)}
+                        title={d.is_disabled ? 'เปิดใช้งาน' : 'พักการใช้งาน'}>
+                        {d.is_disabled ? <RotateCcw /> : <Ban />}
                       </Button>
                     </div>
                   </TableCell>
@@ -167,16 +196,6 @@ export function DrugTypesTab() {
                 ))}
               </div>
             </div>
-            {form.id ? (
-              <Toggle
-                framed
-                variant="destructive"
-                label="พักการใช้งานประเภทยานี้"
-                checked={!!form.is_disabled}
-                onChange={v => setF('is_disabled', v ? 1 : 0)}
-                className="justify-between w-full"
-              />
-            ) : null}
           </DialogBody>
           <DialogFooter>
             <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>

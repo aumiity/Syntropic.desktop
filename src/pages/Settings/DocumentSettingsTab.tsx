@@ -169,31 +169,36 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   // are read through a ref so the registered node never goes stale without forcing
   // a re-register on every render — the effect only re-runs when the visible
   // disabled/label state changes. onActions (setActions) is stable, so no loop.
-  const actRef = useRef({ handlePreviewPdf, handleTestPrint, handleSave })
-  actRef.current = { handlePreviewPdf, handleTestPrint, handleSave }
+  const actRef = useRef({ handleSave })
+  actRef.current = { handleSave }
   useEffect(() => {
     onActions?.(
-      <>
-        <Button className="h-9" onClick={() => actRef.current.handlePreviewPdf()} disabled={pdfLoading} variant="elevated">
-          <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
-        </Button>
-        <Button className="h-9" onClick={() => actRef.current.handleTestPrint()} disabled={printing} variant="elevated">
-          <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
-        </Button>
-        <Button className="h-9" onClick={() => actRef.current.handleSave()} disabled={saving}>
-          <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
-        </Button>
-      </>
+      <Button className="h-10" onClick={() => actRef.current.handleSave()} disabled={saving}>
+        <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
+      </Button>
     )
     return () => onActions?.(null)
-  }, [onActions, pdfLoading, printing, saving])
+  }, [onActions, saving])
+
+  // Preview/test-print actions live INSIDE the preview card header (like the
+  // other print sub-tabs) — only บันทึก rides the top sub-tab strip.
+  const previewActions = (
+    <div className="flex items-center gap-2">
+      <Button className="h-9" onClick={handlePreviewPdf} disabled={pdfLoading} variant="elevated">
+        <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
+      </Button>
+      <Button className="h-9" onClick={handleTestPrint} disabled={printing} variant="elevated">
+        <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
+      </Button>
+    </div>
+  )
 
   return (
     <div className="flex flex-col gap-3">
 
       {/* Body: preview (LEFT) + settings (RIGHT) */}
       <div className="grid grid-cols-[7fr_3fr] gap-4 items-start">
-        <SectionCard title="ตัวอย่างเอกสาร" tint="success" className="min-w-0">
+        <SectionCard title="ตัวอย่างเอกสาร" tint="success" className="min-w-0" right={previewActions}>
           <div ref={previewWrapRef} className="flex justify-center bg-muted/30 rounded-lg p-6">
             {/* The iframe renders the real print HTML at TRUE page size, then a
                 CSS transform scales the whole thing down to fit the column width.

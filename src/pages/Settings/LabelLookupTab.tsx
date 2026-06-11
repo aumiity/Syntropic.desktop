@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
@@ -10,7 +9,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { FormField } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
-import { Plus, Edit, Trash2, MoreHorizontal, Stethoscope } from 'lucide-react'
+import { Plus, Edit, Trash2, Stethoscope } from 'lucide-react'
 import type { LabelFormLookups } from '@/components/label/LabelFormDialog'
 import { LookupDeleteDialog } from '@/components/dialogs/LookupDeleteDialog'
 import { LabelPresetTab } from './LabelPresetTab'
@@ -137,11 +136,11 @@ export function LabelLookupTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[220px]">ชื่อ (ไทย)</TableHead>
-                <TableHead className="min-w-[160px]">อังกฤษ</TableHead>
-                <TableHead className="min-w-[140px]">พม่า</TableHead>
-                <TableHead className="min-w-[140px]">จีน</TableHead>
-                <TableHead className="text-center w-24">จัดการ</TableHead>
+                <TableHead className="min-w-[120px] whitespace-normal">ชื่อ (ไทย)</TableHead>
+                <TableHead className="min-w-[110px] whitespace-normal">อังกฤษ</TableHead>
+                <TableHead className="min-w-[100px] whitespace-normal">พม่า</TableHead>
+                <TableHead className="min-w-[100px] whitespace-normal">จีน</TableHead>
+                <TableHead className="text-center w-28">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -154,27 +153,14 @@ export function LabelLookupTab() {
                 </TableRow>
               ) : filtered.map(r => (
                 <TableRow key={r.id}>
-                  <TableCell className="text-sm font-medium text-foreground">{r.name_th}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{r.name_en || '—'}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{r.name_mm || '—'}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{r.name_zh || '—'}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-center">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก"><MoreHorizontal /></Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" sideOffset={4} className="w-40 p-1 gap-0">
-                          <button type="button" onClick={() => openEdit(r)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                            <Edit className="size-4" /> แก้ไข
-                          </button>
-                          <button type="button" onClick={() => startDelete(r)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
-                            <Trash2 className="size-4" /> ลบ
-                          </button>
-                        </PopoverContent>
-                      </Popover>
+                  <TableCell className="text-sm font-medium text-foreground whitespace-normal break-words align-top">{r.name_th}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-normal break-words align-top">{r.name_en || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-normal break-words align-top">{r.name_mm || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-normal break-words align-top">{r.name_zh || '—'}</TableCell>
+                  <TableCell className="align-top">
+                    <div className="flex justify-center gap-1.5">
+                      <Button size="icon-lg" variant="elevated" title="แก้ไข" onClick={() => openEdit(r)}><Edit /></Button>
+                      <Button size="icon-lg" variant="elevated" title="ลบ" onClick={() => startDelete(r)}><Trash2 /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
