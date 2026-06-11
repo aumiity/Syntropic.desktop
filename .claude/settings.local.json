@@ -169,7 +169,8 @@
       "Bash(echo \"exit=$?\")",
       "Bash(sed -n '560,595p' electron/db/schema.ts)",
       "Bash(sed -n '424,450p' electron/ipc/settings.ts)",
-      "Bash(sed -n '257,290p' electron/ipc/settings.ts)"
+      "Bash(sed -n '257,290p' electron/ipc/settings.ts)",
+      "Bash(zsh -ic 'type claude-studio')"
     ],
     "additionalDirectories": [
       "/tmp"
