@@ -142,16 +142,15 @@ export function LabelPresetTab() {
       <ConfirmDialog
         open={!!confirmDel}
         onOpenChange={v => { if (!v) setConfirmDel(null) }}
-        title="ลบ preset นี้?"
+        title="ต้องการลบรายการนี้?"
         variant="destructive"
-        confirmLabel="ลบ"
+        confirmLabel="ยืนยัน"
         busy={delBusy}
         onConfirm={handleDelete}
         content={confirmDel && (
           <div className="rounded-xl border border-border bg-card shadow-sm p-4">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-muted-foreground">preset</span>
-              <span className="text-sm font-semibold text-foreground">{confirmDel.name}</span>
+            <div className="flex justify-center items-center">
+              <span className="text-base font-semibold text-foreground">{confirmDel.name}</span>
             </div>
           </div>
         )}

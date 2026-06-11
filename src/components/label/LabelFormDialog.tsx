@@ -200,7 +200,7 @@ export function LabelFormDialog({
           {restricted && (
             <div className="flex items-start gap-1.5 text-xs text-warning-soft-foreground">
               <Info className="size-3.5 shrink-0 mt-0.5" />
-              <span>แก้ได้เฉพาะช่องที่ไฮไลต์ไว้ เพื่อเลิกอ้างอิงรายการที่กำลังจะลบ — ช่องอื่นถูกล็อกไว้</span>
+              <span>แก้เป็นรายการอื่น เพื่อเลิกอ้างอิงรายการที่กำลังจะลบ</span>
             </div>
           )}
         </DialogHeader>
@@ -247,7 +247,7 @@ export function LabelFormDialog({
                       ? f.items.filter((i: any) => i.id !== excludeLookupId)
                       : f.items
                     return (
-                      <div key={f.key} className={cn(restricted && enabled && 'rounded-lg ring-2 ring-primary/40 p-2 -m-2')}>
+                      <div key={f.key} className={cn(restricted && enabled && 'rounded-lg ring-2 ring-inset ring-primary/40 p-2 -m-2')}>
                         <Field label={f.label}>
                           <Combobox
                             variant="elevated"

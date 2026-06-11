@@ -130,7 +130,7 @@ export function LookupDeleteDialog({ open, onClose, kind, item, lookups, onResol
             <DialogTitle>จัดการฉลาก</DialogTitle>
             <div className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">{item.name_th}</span> ถูกใช้ใน{' '}
-              <span className="font-semibold text-foreground">{count}</span> รายการ — แก้ทีละรายการ หรือย้ายทั้งหมดก่อนลบ
+              <span className="font-semibold text-foreground">{count}</span> รายการ — ต้องทำการแก้ไขทั้งหมดก่อน จึงจะสามารถลบได้
             </div>
           </DialogHeader>
 
@@ -177,7 +177,7 @@ export function LookupDeleteDialog({ open, onClose, kind, item, lookups, onResol
                       ))}
                       {presets.map(r => (
                         <TableRow key={`p-${r.preset_id}`}>
-                          <TableCell><Badge variant="primary-soft">preset</Badge></TableCell>
+                          <TableCell><Badge variant="primary-outline">preset</Badge></TableCell>
                           <TableCell className="text-sm font-medium text-foreground">{r.name}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">preset วิธีใช้</TableCell>
                           <TableCell>
@@ -207,13 +207,13 @@ export function LookupDeleteDialog({ open, onClose, kind, item, lookups, onResol
 
       {/* Reassign-all sub-dialog */}
       <Dialog open={reassignOpen} onOpenChange={v => { if (!v) { setReassignOpen(false); setReassignTo(null) } }}>
-        <DialogContent size="sm" divided>
+        <DialogContent size="md" divided>
           <DialogHeader><DialogTitle>ย้ายทุกรายการ</DialogTitle></DialogHeader>
           <DialogBody className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              เปลี่ยนทุกฉลาก/preset ที่ใช้ <span className="font-semibold text-foreground">{item.name_th}</span> ไปเป็น:
+              เปลี่ยนจาก <span className="font-semibold text-foreground">{item.name_th}</span> ทั้งหมด
             </div>
-            <FormField label="เปลี่ยนเป็น">
+            <FormField label="เป็น">
               <Combobox
                 variant="elevated"
                 items={reassignItems}
@@ -230,7 +230,7 @@ export function LookupDeleteDialog({ open, onClose, kind, item, lookups, onResol
           </DialogBody>
           <DialogFooter>
             <Button variant="elevated" size="xl" onClick={() => { setReassignOpen(false); setReassignTo(null) }}>ยกเลิก</Button>
-            <Button size="xl" onClick={handleReassign} disabled={reassigning}>{reassigning ? 'กำลังย้าย...' : 'นำไปใช้กับทุกรายการ'}</Button>
+            <Button size="xl" onClick={handleReassign} disabled={reassigning}>{reassigning ? 'กำลังย้าย...' : 'ยืนยัน'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

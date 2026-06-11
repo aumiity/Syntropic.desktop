@@ -329,7 +329,7 @@ export function registerSettingsHandlers() {
     const db = getDb()
     const labels = db.prepare(`
       SELECT pl.id AS label_id, pl.label_name AS label_name,
-             p.id AS product_id, COALESCE(p.name_for_print, p.trade_name, p.name) AS product_name
+             p.id AS product_id, COALESCE(p.name_for_print, p.trade_name) AS product_name
       FROM product_labels pl JOIN products p ON p.id = pl.product_id
       WHERE pl.${fk} = ? ORDER BY product_name`).all(id) as any[]
     const presets = db.prepare(`SELECT id AS preset_id, name FROM label_presets WHERE ${fk} = ? ORDER BY sort_order, id`).all(id) as any[]

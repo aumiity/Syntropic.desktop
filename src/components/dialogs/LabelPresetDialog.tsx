@@ -92,13 +92,13 @@ export function LabelPresetDialog({ open, onOpenChange, editing, lookups, onSave
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="lg" divided className="max-h-[90vh] grid-rows-[auto_1fr_auto]">
+      <DialogContent size="md" divided className="max-h-[90vh] grid-rows-[auto_1fr_auto]">
         <DialogHeader>
           <DialogTitle>{editing ? 'แก้ไข preset วิธีใช้' : 'เพิ่ม preset วิธีใช้'}</DialogTitle>
           {restricted && (
             <div className="flex items-start gap-1.5 text-xs text-warning-soft-foreground">
               <Info className="size-3.5 shrink-0 mt-0.5" />
-              <span>แก้ได้เฉพาะช่องที่ไฮไลต์ เพื่อเลิกอ้างอิงรายการที่กำลังจะลบ</span>
+              <span>แก้เป็นรายการอื่น เพื่อเลิกอ้างอิงรายการที่กำลังจะลบ</span>
             </div>
           )}
         </DialogHeader>
@@ -107,7 +107,7 @@ export function LabelPresetDialog({ open, onOpenChange, editing, lookups, onSave
             <Input variant="elevated" value={form.name ?? ''} onChange={e => setF('name', e.target.value)} placeholder="เช่น 1x2" disabled={restricted} autoFocus={!restricted} />
           </Field>
           {usageFields.map(f => (
-            <div key={f.key} className={cn(restricted && enabled(f.key) && 'rounded-lg ring-2 ring-primary/40 p-2 -m-2')}>
+            <div key={f.key} className={cn(restricted && enabled(f.key) && 'rounded-lg ring-2 ring-inset ring-primary/40 p-2 -m-2')}>
               <Field label={f.label}>
                 <Combobox
                   variant="elevated"

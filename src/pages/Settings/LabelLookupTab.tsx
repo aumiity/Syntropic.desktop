@@ -206,16 +206,15 @@ export function LabelLookupTab() {
       <ConfirmDialog
         open={!!confirmDel}
         onOpenChange={v => { if (!v) setConfirmDel(null) }}
-        title="ลบรายการนี้?"
+        title="ต้องการลบรายการนี้?"
         variant="destructive"
-        confirmLabel="ลบ"
+        confirmLabel="ยืนยัน"
         busy={delBusy}
         onConfirm={handleConfirmDelete}
         content={confirmDel && (
           <div className="rounded-xl border border-border bg-card shadow-sm p-4">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-muted-foreground">รายการ</span>
-              <span className="text-sm font-semibold text-foreground">{confirmDel.name_th}</span>
+            <div className="flex justify-center items-center">
+              <span className="text-base font-semibold text-foreground">{confirmDel.name_th}</span>
             </div>
           </div>
         )}
