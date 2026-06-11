@@ -28,10 +28,10 @@ Structure and modal-interaction rules live with the rest of the theming HARD rul
 
 ## Typography & fonts
 
-- **Font stack:** `var(--font-latin), var(--font-thai), sans-serif` — both swappable from the `/theme` page.
-  - **Light default:** Latin **Inter**, Thai **IBM Plex Sans Thai**.
-  - **Dark default:** Latin **Google Sans**, Thai **Sarabun**.
-  - **Bundled Thai alternates:** IBM Plex Sans Thai (Looped), Sarabun, SF Thonburi, Bai Jamjuree, Anuphan, Noto Sans Thai (+ Looped). Thai fonts are `unicode-range`-scoped to U+0E00–0E7F so digit-only runs render in the Latin font.
+- **Font stack:** `var(--font-latin), var(--font-thai), sans-serif` — both swappable from the CSS font picker (`src/pages/CSS`).
+  - **Primary default (HARD) — light AND dark:** Latin **Inter**, Thai **IBM Plex Sans Thai**. Both `:root` and `.dark` carry the same `--font-latin`/`--font-thai`; do NOT let dark drift to a different face (it used to be Google Sans / Sarabun — that's retired).
+  - **Latin picker options:** Inter, Google Sans, JetBrains Mono (mono), Sarabun (via the full-coverage `'Sarabun Latin'` family), SF Thonburi, IBM Plex Sans Thai, Noto Sans Thai, Bai Jamjuree, Anuphan — picker choices only, not the default.
+  - **Bundled Thai alternates:** IBM Plex Sans Thai (Looped), Sarabun, SF Thonburi, Bai Jamjuree, Anuphan, Noto Sans Thai (+ Looped). Thai fonts are `unicode-range`-scoped to U+0E00–0E7F so digit-only runs render in the Latin font — which is why Sarabun-as-Latin needs the separate unscoped `'Sarabun Latin'` family.
   - **Printed documents default to Sarabun** (official ข.ย. forms).
 - **Base size:** `html { font-size: 16px }` (effective UI base ~15px). **Do NOT use `tabular-nums`** (project decision).
 - **Size hierarchy** is role-based — see `ui-theming.md` rule 9.

@@ -224,9 +224,9 @@
     --shadow-card:   0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 28px -18px rgba(0, 0, 0, 0.6);
     --selection-bg:  hsl(175 60% 60% / 0.4);
 
-    /* ── Fonts ──────────────────────────────────────────────────────────── */
-    --font-latin: 'Google Sans';
-    --font-thai:  'Sarabun';
+    /* ── Fonts — SAME primary as light: Inter + IBM Plex Sans Thai ───────── */
+    --font-latin: 'Inter';
+    --font-thai:  'IBM Plex Sans Thai';
   }
 }
 
@@ -319,6 +319,32 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
 @font-face {
   font-family: 'Google Sans';
   src: url('./assets/fonts/GoogleSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* JetBrains Mono — monospace option for the Latin/digits slot (CSS font picker). */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
 }
@@ -462,6 +488,15 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   font-family: 'Sarabun';
   src: local('Sarabun');
   unicode-range: U+0E00-0E7F;
+}
+
+/* Full-coverage Sarabun (Latin + digits + Thai) for when it's chosen as the
+   LATIN font via the CSS picker. Kept under a SEPARATE family name so the
+   Thai-scoped 'Sarabun' above stays the only 'Sarabun' face — that scoping keeps
+   digits off Sarabun when it's merely the THAI font (avoids the dual-digit bug). */
+@font-face {
+  font-family: 'Sarabun Latin';
+  src: local('Sarabun');
 }
 
 /* Noto Sans Thai — variable font (weights 100–900, widths 62.5–100) */

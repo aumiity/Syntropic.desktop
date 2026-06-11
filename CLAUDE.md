@@ -103,7 +103,7 @@ When briefing a sub-agent, give it: the exact file paths, the specific `docs/cla
 
 ## Quick reference
 
-- **Thai UI language throughout.** Inter + Sarabun fonts (Noto Sans Thai fallback); base 15px.
+- **Thai UI language throughout.** Primary fonts (HARD): **Inter** (Latin) + **IBM Plex Sans Thai** (Thai), Noto Sans Thai fallback — the SAME in light AND dark (`--font-latin`/`--font-thai` in both `:root` and `.dark`). Other bundled faces are picker options only, not the default. Base 15px.
 - **Dark/light theme** via CSS variables (toggled via themeStore).
 - **Frameless Electron window** — custom `TitleBar.tsx`, IPC via `window.api.window.*`.
 - **Toast notifications** via `useToast()` hook.

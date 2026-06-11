@@ -36,6 +36,8 @@ const CSS_PALETTE_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700
 const LATIN_FONTS: Array<{ value: string; label: string }> = [
   { value: "'Inter'", label: 'Inter' },
   { value: "'Google Sans'", label: 'Google Sans' },
+  { value: "'JetBrains Mono'", label: 'JetBrains Mono' },
+  { value: "'Sarabun Latin'", label: 'Sarabun' },
   { value: "'SF Thonburi'", label: 'SF Thonburi' },
   { value: "'IBM Plex Sans Thai'", label: 'IBM Plex Sans Thai' },
   { value: "'Noto Sans Thai'", label: 'Noto Sans Thai' },
