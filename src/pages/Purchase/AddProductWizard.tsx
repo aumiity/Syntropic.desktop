@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Input, SearchInput } from '@/components/ui/input'
 import { DateInput } from '@/components/ui/date-input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Badge } from '@/components/ui/badge'
+import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
 import { formatCurrency } from '@/lib/utils'
 import {
-  Search, Package, Check, ChevronLeft, ChevronRight, Plus,
+  Check, ChevronLeft, ChevronRight, Plus,
   AlertTriangle, ShoppingBag, CalendarClock, Coins, Tag,
 } from 'lucide-react'
 
@@ -53,6 +54,9 @@ interface ProductSuggestion {
   price_retail?: number
   cost_price?: number
   units?: ProductUnitOption[]
+  // pos:searchProducts enriches each hit with its open lots — used for the
+  // "คงเหลือ" column (same source POS reads for stock).
+  lots?: Array<{ qty_on_hand: number }>
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -100,11 +104,15 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   const [step, setStep] = useState(0)
   const [row, setRow] = useState<ReceiptRow>(emptyRow())
 
-  // product search
+  // product search — typing in the step-1 field opens the shared
+  // ProductSearchDialog on top (mirrors the POS adjust mini-POS pattern).
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([])
-  const [highlight, setHighlight] = useState(0)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searching, setSearching] = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)   // step-1 page field
+  const modalSearchRef = useRef<HTMLInputElement>(null)   // ProductSearchDialog input
 
   // optional fields revealed on demand
   const [showMfg, setShowMfg] = useState(false)
@@ -120,7 +128,8 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     setRow(base)
     setQuery(editing?.trade_name ?? '')
     setSuggestions([])
-    setHighlight(0)
+    setSearchOpen(false)
+    setSearching(false)
     setShowMfg(!!editing?.manufactured_date)
     setShowDiscount(!!editing && parseFloat(editing.discount) > 0)
     setSellPrice(editing?.default_sell_price ? String(editing.default_sell_price) : '')
@@ -149,19 +158,75 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     })
   }
 
-  // ── product search ──
+  // ── product search ── typing opens the shared modal and drives its results
   const runSearch = (q: string) => {
     setQuery(q)
-    setHighlight(0)
     if (searchTimer.current) clearTimeout(searchTimer.current)
     if (!q.trim()) { setSuggestions([]); return }
+    setSearchOpen(true)
+    setSearching(true)
     searchTimer.current = setTimeout(async () => {
       try {
         const data = await window.api.pos.searchProducts(q) as ProductSuggestion[]
-        setSuggestions(data.slice(0, 8))
+        setSuggestions(data.slice(0, 30))
       } catch { /* best-effort */ }
+      finally { setSearching(false) }
     }, 180)
   }
+
+  // Esc / outside the modal: clear the query and return focus to the step-1
+  // field (matches POS — closing the picker resets the search).
+  const closeSearch = () => {
+    setSearchOpen(false)
+    setQuery('')
+    setSuggestions([])
+    setTimeout(() => searchInputRef.current?.focus(), 50)
+  }
+
+  // Live refs so the once-registered focus listeners below read current state
+  // without stale closures (same trick POS uses).
+  const openRef = useRef(open); openRef.current = open
+  const stepRef = useRef(step); stepRef.current = step
+  const searchOpenRef = useRef(searchOpen); searchOpenRef.current = searchOpen
+  const hasProductRef = useRef(row.product_id > 0); hasProductRef.current = row.product_id > 0
+
+  // Keep the product-search field permanently focused on step 1 — mirrors the
+  // POS always-focused search. Active ONLY while the wizard is open, on step 0,
+  // and no product is picked yet (other steps own their own inputs; once a
+  // product is chosen the field is gone). Routes to the modal input when the
+  // picker is open, else the page field. Registered once; reads refs.
+  useEffect(() => {
+    const INTERACTIVE = 'input, button, select, textarea, a, [role="button"], [contenteditable="true"]'
+    const armed = () => openRef.current && stepRef.current === 0 && !hasProductRef.current
+    const target = () => (searchOpenRef.current ? modalSearchRef.current : searchInputRef.current)
+
+    // mousedown fires before the browser shifts focus — preventDefault is the lock.
+    const onMouseDown = (e: MouseEvent) => {
+      if (!armed()) return
+      const t = e.target as HTMLElement | null
+      if (!t || t.closest(INTERACTIVE)) return
+      e.preventDefault()
+      target()?.focus()
+    }
+    // Safety net: if our input loses focus to a non-interactive target, snap back.
+    const onFocusOut = (e: FocusEvent) => {
+      if (!armed()) return
+      const lost = e.target as HTMLElement | null
+      if (lost !== searchInputRef.current && lost !== modalSearchRef.current) return
+      setTimeout(() => {
+        if (!armed()) return
+        const active = document.activeElement as HTMLElement | null
+        if (active && active.matches(INTERACTIVE)) return
+        target()?.focus()
+      }, 0)
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('focusout', onFocusOut)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('focusout', onFocusOut)
+    }
+  }, [])
 
   const pickProduct = (p: ProductSuggestion) => {
     const baseName = p.unit_name || 'ชิ้น'
@@ -180,12 +245,15 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     setSellPrice(p.price_retail ? String(p.price_retail) : '')
     setQuery(p.trade_name)
     setSuggestions([])
+    setSearchOpen(false)
   }
 
   const clearProduct = () => {
     patch({ product_id: 0, trade_name: '', product_code: '', unit_name: '', units: [], default_sell_price: 0, stored_cost_price: undefined })
     setQuery('')
     setSuggestions([])
+    setSearchOpen(false)
+    setTimeout(() => searchInputRef.current?.focus(), 50)
   }
 
   const selectUnit = (u: ProductUnitOption) => {
@@ -257,6 +325,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent
         size="4xl"
@@ -320,48 +389,19 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
 
                 {row.product_id === 0 ? (
                   <div>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-[18px] text-foreground-subtle pointer-events-none" />
-                      <Input
-                        autoFocus
-                        data-role="search"
-                        value={query}
-                        onChange={e => runSearch(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight(h => Math.min(h + 1, suggestions.length - 1)) }
-                          else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight(h => Math.max(h - 1, 0)) }
-                          else if (e.key === 'Enter') { e.preventDefault(); if (suggestions[highlight]) pickProduct(suggestions[highlight]) }
-                        }}
-                        placeholder="พิมพ์ชื่อ หรือยิงบาร์โค้ด…"
-                        className="h-12 pl-10 text-base"
-                        autoComplete="off"
-                      />
-                    </div>
-                    {suggestions.length > 0 && (
-                      <div className="mt-2 rounded-card border border-border overflow-hidden">
-                        {suggestions.map((p, si) => {
-                          const unitText = p.units && p.units.length > 0 ? p.units.map(u => u.unit_name).join(', ') : p.unit_name
-                          return (
-                            <Button
-                              key={p.id}
-                              type="button"
-                              variant="ghost"
-                              onMouseDown={() => pickProduct(p)}
-                              className={`w-full h-auto justify-start gap-2.5 rounded-none px-3.5 py-3 text-sm border-b border-border last:border-0
-                                ${si === highlight ? 'bg-primary-soft/50' : 'hover:bg-primary-soft/50'}`}
-                            >
-                              <Package className="size-4 text-foreground-subtle shrink-0" />
-                              <span className="truncate flex-1 text-left">{p.trade_name}</span>
-                              {p.code && <span className="text-xs text-foreground-subtle shrink-0">{p.code}</span>}
-                              {unitText && <span className="text-sm text-destructive shrink-0">{unitText}</span>}
-                            </Button>
-                          )
-                        })}
-                      </div>
-                    )}
-                    {query.trim() !== '' && suggestions.length === 0 && (
-                      <p className="text-sm text-foreground-subtle mt-3 text-center py-2">ไม่พบสินค้าที่ตรงกับ “{query}”</p>
-                    )}
+                    <SearchInput
+                      ref={searchInputRef}
+                      autoFocus
+                      data-role="search"
+                      value={query}
+                      onChange={e => runSearch(e.target.value)}
+                      onFocus={() => { if (query.trim()) setSearchOpen(true) }}
+                      placeholder="พิมพ์ชื่อ รหัส หรือยิงบาร์โค้ด เพื่อค้นหาสินค้า…"
+                      wrapperClassName="w-full"
+                      className="h-12 text-base"
+                      autoComplete="off"
+                    />
+                    <p className="text-sm text-foreground-subtle mt-3">พิมพ์ชื่อ รหัส หรือยิงบาร์โค้ด ระบบจะเปิดหน้าต่างค้นหาให้เลือกสินค้า แล้วจึงเลือกหน่วยที่รับเข้า</p>
                   </div>
                 ) : (
                   <div>
@@ -369,7 +409,6 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       <div className="flex items-start gap-3">
                         <div className="min-w-0">
                           <div className="text-lg font-bold truncate">{row.trade_name}</div>
-                          <div className="text-xs text-foreground-subtle mt-0.5">{row.product_code || '—'}</div>
                         </div>
                         <Button type="button" variant="elevated" size="sm" onClick={clearProduct} className="ml-auto h-8 text-sm">เปลี่ยน</Button>
                       </div>
@@ -574,5 +613,45 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Shared product-search modal — opens on top of the wizard when the user
+        types in the step-1 field (same picker as POS / EditBundle). Keyboard
+        nav + highlight are owned internally; this consumer owns query/results. */}
+    <ProductSearchDialog<ProductSuggestion>
+      open={searchOpen}
+      onClose={closeSearch}
+      query={query}
+      onQueryChange={runSearch}
+      searching={searching}
+      rows={suggestions}
+      resultCount={suggestions.length}
+      inputRef={modalSearchRef}
+      rowKey={(p) => String(p.id)}
+      rowClassName="grid items-center px-4 py-2.5"
+      rowStyle={{ gridTemplateColumns: '1fr 100px 100px' }}
+      onPick={(p) => pickProduct(p)}
+      placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อ/รหัสสินค้าเพื่อเพิ่ม..."
+      header={
+        <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0 border-b border-border"
+          style={{ gridTemplateColumns: '1fr 100px 100px' }}>
+          <div>ชื่อสินค้า</div>
+          <div className="text-center">หน่วย</div>
+          <div className="text-right">คงเหลือ</div>
+        </div>
+      }
+      renderRow={(p) => {
+        const stock = p.lots?.reduce((s, l) => s + (l.qty_on_hand ?? 0), 0) ?? 0
+        return (
+          <>
+            <div className="min-w-0 pr-2">
+              <div className="font-semibold text-base truncate">{p.trade_name}</div>
+            </div>
+            <div className="text-center text-base text-muted-foreground truncate">{p.unit_name ?? '-'}</div>
+            <div className={`text-right text-base font-semibold ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock}</div>
+          </>
+        )
+      }}
+    />
+    </>
   )
 }
