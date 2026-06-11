@@ -27,9 +27,9 @@ export interface GoodsReceiptForPrint {
   lines: GoodsReceiptLine[]
 }
 
-// Full A4 goods-receipt (ใบรับสินค้า). Structure mirrors buildQuotationHtml so
-// the two A4 documents stay visually consistent. Cost prices are shown because
-// this is an internal receiving document, not a customer-facing one.
+// Full A4 goods-receipt (ใบรับสินค้า). Shares the A4 document look with the tax
+// invoice so the documents stay visually consistent. Cost prices are shown
+// because this is an internal receiving document, not a customer-facing one.
 export async function buildGoodsReceiptHtml(
   gr: GoodsReceiptForPrint,
   shop: Partial<Setting>,

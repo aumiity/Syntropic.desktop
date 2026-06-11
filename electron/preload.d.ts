@@ -248,22 +248,6 @@ declare const api: {
             path?: string;
         }>;
     };
-    quotation: {
-        save: (payload: any) => Promise<any>;
-        list: (filters: any) => Promise<any>;
-        get: (id: number) => Promise<any>;
-        setStatus: (payload: {
-            id: number;
-            status: string;
-        }) => Promise<any>;
-        delete: (id: number) => Promise<any>;
-        beginConversion: (id: number) => Promise<any>;
-        releaseConversion: (id: number) => Promise<any>;
-        markConverted: (payload: {
-            id: number;
-            invoice_no: string;
-        }) => Promise<any>;
-    };
     tax: {
         get: (saleId: number) => Promise<any>;
         issueOrGet: (payload: {

@@ -1,7 +1,6 @@
-import type { DocumentSettings, QuotationForPrint, ReceiptSettings, SaleForPrint, Setting, TaxInvoice } from '@/types'
+import type { DocumentSettings, ReceiptSettings, SaleForPrint, Setting, TaxInvoice } from '@/types'
 import { buildSlipHtml, type SlipMode } from './buildSlipHtml'
 import { buildTaxInvoiceHtml } from './buildTaxInvoiceHtml'
-import { buildQuotationHtml } from './buildQuotationHtml'
 import { buildGoodsReceiptHtml, type GoodsReceiptForPrint } from './buildGoodsReceiptHtml'
 
 type PrintResult = { success: boolean; error?: string }
@@ -26,7 +25,7 @@ const PAGE_MM: Record<'A4' | 'A5', { w: number; h: number }> = {
   A5: { w: 148, h: 210 },
 }
 
-// A4 documents (tax invoice / goods receipt / quotation) share one configured
+// A4 documents (tax invoice / goods receipt) share one configured
 // printer + copies + page size (document_settings). printer_name '' = OS default
 // printer. An explicit non-empty printerName arg still wins, for one-off overrides.
 async function docConfig(printerName?: string): Promise<{
@@ -94,28 +93,6 @@ export async function previewTaxInvoice(
 ): Promise<PrintResult> {
   const cfg = await docConfig()
   const html = await buildTaxInvoiceHtml(sale, shop, tax, { copy, paperSize: cfg.paperSize })
-  return window.api.printer.previewHtmlPdf({ html, pageFormat: cfg.paperSize })
-}
-
-// Quotation (ใบเสนอราคา) — A4. Loads shop info itself unless provided.
-export async function printQuotation(
-  quote: QuotationForPrint,
-  shop?: Partial<Setting>,
-  printerName = '',
-): Promise<PrintResult> {
-  const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
-  const cfg = await docConfig(printerName)
-  const html = await buildQuotationHtml(quote, s, { paperSize: cfg.paperSize })
-  return window.api.printer.printHtml({ html, printerName: cfg.printerName, paperWidthMm: cfg.widthMm, heightMm: cfg.heightMm, copies: cfg.copies })
-}
-
-export async function previewQuotation(
-  quote: QuotationForPrint,
-  shop?: Partial<Setting>,
-): Promise<PrintResult> {
-  const s = shop ?? ((await window.api.settings.getShop()) as Partial<Setting>) ?? {}
-  const cfg = await docConfig()
-  const html = await buildQuotationHtml(quote, s, { paperSize: cfg.paperSize })
   return window.api.printer.previewHtmlPdf({ html, pageFormat: cfg.paperSize })
 }
 

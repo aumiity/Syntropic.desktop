@@ -596,7 +596,7 @@ export function registerSettingsHandlers() {
   })
 
   // A4 document settings (singleton) — printer + copies shared by every
-  // full-page document (tax invoice, goods receipt, quotation). Same
+  // full-page document (tax invoice, goods receipt). Same
   // ensure-row-then-UPDATE pattern as receipt_settings so a first-ever save
   // persists the submitted values instead of bare defaults.
   ipcMain.handle('settings:getDocumentSettings', () => {

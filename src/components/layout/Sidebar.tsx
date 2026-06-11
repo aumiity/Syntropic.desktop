@@ -18,10 +18,6 @@ import { SidebarUser } from './SidebarUser'
 // enforces the same boundary regardless (R1/R2).
 const mainNavItems = [
   { to: '/', label: 'การขาย', icon: ShoppingCart, exact: true },
-  // ใบเสนอราคา — HIDDEN from nav 2026-06-02. Module/code kept (routes still live in
-  // App.tsx, reachable by URL); sales documents are being offloaded to FlowAccount.
-  // See CLAUDE.md "Hidden / parked features". Re-enable by uncommenting this line.
-  // { to: '/quotation', label: 'ใบเสนอราคา', icon: FileText },
   { to: '/purchase', label: 'การรับสินค้า', icon: PackagePlus },
   { to: '/products', label: 'สินค้า', icon: Pill },
   { to: '/manage', label: 'การจัดการ', icon: ClipboardList },

@@ -13,7 +13,7 @@ import { requireAdmin } from '../auth/session'
 //   - amount must be a finite > 0 number (validated server-side too); blank is
 //     never coerced to 0.
 //   - expense_no is EX-YYYYMMDD-NNNN, generated with MAX(suffix)+1 +
-//     retry-on-unique-collision (mirrors quotation.ts QT- numbering).
+//     retry-on-unique-collision.
 
 // Allow-listed editable columns (shared by create + update). expense_no /
 // created_at are never in here — they're set once on create.

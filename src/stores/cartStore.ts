@@ -8,14 +8,11 @@ interface CartSlot {
   saleType: string
   symptomNote: string
   ageRange: string
-  // Set when this cart was populated by converting a quotation — POS marks the
-  // quote 'converted' on a successful sale and shows a source banner.
-  sourceQuotation: { id: number; quote_no: string } | null
 }
 
 const emptySlot = (): CartSlot => ({
   items: [], customer: null, customerNameFree: '',
-  saleType: 'retail', symptomNote: '', ageRange: '', sourceQuotation: null,
+  saleType: 'retail', symptomNote: '', ageRange: '',
 })
 
 interface CartStore extends CartSlot {
@@ -28,7 +25,6 @@ interface CartStore extends CartSlot {
   clearCart: () => void
   setCustomer: (customer: Customer | null) => void
   setCustomerNameFree: (name: string) => void
-  setSourceQuotation: (q: { id: number; quote_no: string } | null) => void
   setSaleType: (type: string) => void
   setSymptomNote: (note: string) => void
   setAgeRange: (range: string) => void
@@ -40,7 +36,6 @@ interface CartStore extends CartSlot {
 const snapCurrent = (s: CartStore): CartSlot => ({
   items: s.items, customer: s.customer, customerNameFree: s.customerNameFree,
   saleType: s.saleType, symptomNote: s.symptomNote, ageRange: s.ageRange,
-  sourceQuotation: s.sourceQuotation,
 })
 
 export const useCartStore = create<CartStore>((set, get) => ({
@@ -97,7 +92,6 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
   setCustomer: (customer) => set({ customer }),
   setCustomerNameFree: (name) => set({ customerNameFree: name }),
-  setSourceQuotation: (q) => set({ sourceQuotation: q }),
   setSaleType: (type) => {
     const { items, saleType } = get()
     if (type === saleType) return

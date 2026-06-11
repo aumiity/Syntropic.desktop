@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import type { TagCell } from '@/lib/tags/types'
 
 // A flat search row: the base unit (unit=null → prices/name from product.*) or
-// one non-base sellable unit. Mirrors the POS/Quotation flattening so the base
-// row always comes first (docs/claude/pos.md HARD invariant).
+// one non-base sellable unit. Mirrors the POS flattening so the base row always
+// comes first (docs/claude/pos.md HARD invariant).
 interface TagRow {
   product_id: number
   name: string
@@ -21,8 +21,7 @@ interface TagRow {
 // Thin consumer of the shared ProductSearchDialog (the search-modal canonical,
 // see docs/claude/pos.md): owns query/results + debounced pos:searchProducts,
 // flattens products→units (base first), forwards matched_unit_id as initialIdx,
-// and resolves each picked row's barcode with a fallback chain. NOT a standalone
-// copy of QuotationProductSearchDialog.
+// and resolves each picked row's barcode with a fallback chain.
 export function TagProductSearchDialog({
   open,
   onClose,

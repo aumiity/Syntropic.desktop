@@ -17,9 +17,9 @@ interface CustomerSearchDialogProps {
 }
 
 /**
- * Shared customer picker — keyboard-driven search modal used by POS and the
- * Quotation editor. Owns its own query/results/highlight state so it stays
- * self-contained: callers only wire `open`/`onOpenChange`/`onSelect`.
+ * Shared customer picker — keyboard-driven search modal used by POS. Owns its
+ * own query/results/highlight state so it stays self-contained: callers only
+ * wire `open`/`onOpenChange`/`onSelect`.
  *
  * Highlight is keyboard-owned (resets only on query change, no mouse handlers)
  * to match the POS search-UX invariant — see docs/claude/pos.md.

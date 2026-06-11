@@ -58,7 +58,7 @@ function deductFefo(
 // Attach the POS-facing detail to a product row: open lots (expiry-ASC),
 // sellable non-base units, and (for bundles) composition + component lots.
 // Shared by pos:searchProducts and pos:getProductsByIds so a cart line rebuilt
-// from a quotation is identical to one added via the POS search.
+// by id is identical to one added via the POS search.
 function enrichProduct(db: any, prod: any): any {
   prod.lots = db.prepare(`
     SELECT * FROM product_lots
@@ -139,9 +139,8 @@ export function registerPosHandlers() {
   })
 
   // Fetch enabled products by ids in the same enriched shape as searchProducts.
-  // Used to rebuild POS cart lines when converting a quotation to a sale.
   // Disabled/missing products are simply omitted — the caller treats any id it
-  // asked for but didn't get back as "cannot sell" and blocks the conversion.
+  // asked for but didn't get back as "cannot sell".
   ipcMain.handle('pos:getProductsByIds', (_e, ids: number[]) => {
     const db = getDb()
     const unique = Array.from(new Set((ids ?? []).filter(n => Number.isInteger(n))))

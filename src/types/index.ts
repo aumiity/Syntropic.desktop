@@ -184,7 +184,7 @@ export interface ReceiptSettings {
 // A4 document printing (singleton). Keys MUST match document_settings columns
 // 1:1 — DocumentSettingsTab form state is saved verbatim via a dynamic
 // Object.keys() UPDATE. One printer for every A4 document (tax invoice, goods
-// receipt, quotation); printer_name = '' falls back to the OS default printer.
+// receipt); printer_name = '' falls back to the OS default printer.
 export interface DocumentSettings {
   id: number
   printer_name: string
@@ -235,55 +235,6 @@ export interface SaleForPrint {
   change_amount: number
 }
 
-// Quotation (ใบเสนอราคา) — pre-sale price offer, never touches stock.
-export interface QuotationItem {
-  id?: number
-  quotation_id?: number
-  product_id: number | null
-  item_name: string
-  unit_name: string
-  qty: number
-  unit_price: number
-  discount: number
-  line_total: number
-  sort_order?: number
-}
-
-export interface Quotation {
-  id: number
-  quote_no: string
-  customer_id?: number | null
-  customer_name: string
-  customer_address: string
-  customer_tax_id: string
-  issue_date: string
-  valid_until?: string | null
-  // 'expired' is NOT stored — it's derived for display when a draft/sent quote
-  // passes its valid_until (ครบกำหนด). 'canceled' is a real, terminal status.
-  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'converting' | 'converted' | 'canceled'
-  converted_invoice_no?: string | null
-  vat_enabled: number
-  vat_rate: number
-  subtotal: number
-  total_discount: number
-  total_vat: number
-  total_amount: number
-  note: string
-  created_by?: number
-  created_at?: string
-  updated_at?: string
-  // joined / computed (list + get)
-  customer_display?: string
-  customer_full_name?: string
-  created_by_name?: string
-  item_count?: number
-  items?: QuotationItem[]
-}
-
-// Shape passed to buildQuotationHtml (header + items, already loaded).
-export interface QuotationForPrint extends Quotation {
-  items: QuotationItem[]
-}
 
 // POS / Sales settings (singleton). Keys MUST match sales_settings columns 1:1
 // — SalesTab form state is saved verbatim via a dynamic Object.keys() UPDATE.
