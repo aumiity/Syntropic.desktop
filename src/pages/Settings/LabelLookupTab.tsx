@@ -180,7 +180,7 @@ export function LabelLookupTab() {
       {/* Add / edit */}
       <Dialog open={dialog} onOpenChange={setDialog}>
         <DialogContent size="sm" divided>
-          <DialogHeader><DialogTitle className="text-xl">{form.id ? 'แก้ไขรายการ' : 'เพิ่มรายการ'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-xl">{form.id ? `แก้ไข${kindDef?.label ?? 'รายการ'}` : `เพิ่ม${kindDef?.label ?? 'รายการ'}`}</DialogTitle></DialogHeader>
           <DialogBody className="space-y-3">
             <FormField label="ชื่อ (ภาษาไทย)" required>
               <Input variant="elevated" value={form.name_th ?? ''} onChange={e => setF('name_th', e.target.value)} autoFocus />

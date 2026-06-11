@@ -208,7 +208,7 @@ export function ExpenseCategoriesTab() {
 
       <Dialog open={dialog} onOpenChange={setDialog}>
         <DialogContent size="sm" divided>
-          <DialogHeader><DialogTitle className="text-xl">{form.id ? 'แก้ไขหมวดหมู่' : 'เพิ่มหมวดหมู่'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-xl">{form.id ? 'แก้ไขหมวดหมู่ค่าใช้จ่าย' : 'เพิ่มหมวดหมู่ค่าใช้จ่าย'}</DialogTitle></DialogHeader>
           <DialogBody className="space-y-3">
             <FormField label="ชื่อหมวดหมู่" required>
               <Input value={form.name ?? ''} onChange={e => setF('name', e.target.value)} autoFocus />

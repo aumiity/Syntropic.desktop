@@ -219,7 +219,7 @@ export function CategoriesTab() {
 
       <Dialog open={dialog} onOpenChange={setDialog}>
         <DialogContent size="sm" divided>
-          <DialogHeader><DialogTitle className="text-xl">{form.id ? 'แก้ไขหมวดหมู่' : 'เพิ่มหมวดหมู่'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-xl">{form.id ? 'แก้ไขหมวดหมู่สินค้า' : 'เพิ่มหมวดหมู่สินค้า'}</DialogTitle></DialogHeader>
           <DialogBody className="space-y-3">
             <FormField label="รหัส">
               <Input variant="elevated" value={form.code ?? ''} onChange={e => setF('code', e.target.value)} placeholder="เช่น MED, SUP" />
