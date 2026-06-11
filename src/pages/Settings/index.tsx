@@ -3,9 +3,11 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Store, FolderTree, Printer, ShoppingCart, Save, Database } from 'lucide-react'
+import { Store, FolderTree, Printer, ShoppingCart, Save, Database, Blocks, Stethoscope } from 'lucide-react'
 import { ShopTab } from './ShopTab'
 import { ProductMgmtTab } from './ProductMgmtTab'
+import { UnitsTab } from './UnitsTab'
+import { DrugUsageTab } from './DrugUsageTab'
 import { PrintersTab } from './PrintersTab'
 import { SalesTab } from './SalesTab'
 import { DatabaseTab } from './DatabaseTab'
@@ -24,6 +26,8 @@ export default function SettingsPage() {
           <TabsList variant="segmented" className="h-9">
             <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
             <TabsTrigger value="product-mgmt"><FolderTree /> หมวดหมู่และประเภท</TabsTrigger>
+            <TabsTrigger value="units"><Blocks /> หน่วยนับ</TabsTrigger>
+            <TabsTrigger value="drug-usage"><Stethoscope /> วิธีใช้</TabsTrigger>
             <TabsTrigger value="sales"><ShoppingCart /> การขาย</TabsTrigger>
             <TabsTrigger value="printers"><Printer /> การพิมพ์</TabsTrigger>
             <TabsTrigger value="database"><Database /> ฐานข้อมูล</TabsTrigger>
@@ -39,6 +43,8 @@ export default function SettingsPage() {
       <div className="flex-1 min-h-0 overflow-y-auto pb-8 pt-3 [scrollbar-gutter:stable]">
         {tab === 'shop' && <ShopTab />}
         {tab === 'product-mgmt' && <ProductMgmtTab />}
+        {tab === 'units' && <UnitsTab />}
+        {tab === 'drug-usage' && <DrugUsageTab />}
         {tab === 'sales' && (
           <SalesTab
             registerSave={fn => { salesSaveFn.current = fn }}

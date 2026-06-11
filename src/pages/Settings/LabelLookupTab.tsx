@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/toast'
 import { Plus, Edit, Trash2, MoreHorizontal, Stethoscope } from 'lucide-react'
 import type { LabelFormLookups } from '@/components/label/LabelFormDialog'
 import { LookupDeleteDialog } from '@/components/dialogs/LookupDeleteDialog'
+import { LabelPresetTab } from './LabelPresetTab'
 
 interface LookupRow { id: number; code: string; name_th: string; name_en?: string; name_mm?: string; name_zh?: string }
 
@@ -42,7 +43,8 @@ export function LabelLookupTab() {
   const [delBusy, setDelBusy] = useState(false)
   const [impact, setImpact] = useState<LookupRow | null>(null)
 
-  const listKey = (KINDS.find(k => k.key === kind)!.listKey) as keyof LabelFormLookups
+  const kindDef = KINDS.find(k => k.key === kind)
+  const listKey = (kindDef?.listKey ?? 'labelDosages') as keyof LabelFormLookups
   const rows = (lookups[listKey] as LookupRow[]) ?? []
 
   const load = useCallback(async () => {
@@ -114,13 +116,15 @@ export function LabelLookupTab() {
     : rows
 
   return (
-    <div className="pt-4 h-full flex flex-col min-h-0 gap-3">
+    <div className="h-full flex flex-col min-h-0 gap-4">
       <Tabs value={kind} onValueChange={v => { setKind(v); setQ('') }}>
-        <TabsList variant="segmented" className="h-9">
-          {KINDS.map(k => <TabsTrigger key={k.key} value={k.key}>{k.label}</TabsTrigger>)}
+        <TabsList variant="line">
+          {KINDS.map(k => <TabsTrigger key={k.key} value={k.key} className="flex-none px-4 py-2">{k.label}</TabsTrigger>)}
+          <TabsTrigger value="preset" className="flex-none px-4 py-2">preset วิธีใช้</TabsTrigger>
         </TabsList>
       </Tabs>
 
+      {kind === 'preset' ? <LabelPresetTab /> : (
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <SearchInput variant="elevated" value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาชื่อรายการ..." />
@@ -185,6 +189,7 @@ export function LabelLookupTab() {
           </span>
         </div>
       </div>
+      )}
 
       {/* Add / edit */}
       <Dialog open={dialog} onOpenChange={setDialog}>
