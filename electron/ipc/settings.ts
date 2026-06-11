@@ -205,11 +205,20 @@ export function registerSettingsHandlers() {
 
   // Item units
   ipcMain.handle('settings:listUnits', () => {
+    // usage_count must cover BOTH places a unit can be referenced: the base unit
+    // on products.unit_id AND non-base variants in product_units.unit_id. Counting
+    // only product_units (the old query) under-reports — a unit used solely as a
+    // base unit would show 0 and look safe to delete, which it is not.
     return getDb().prepare(`
-      SELECT u.*, COUNT(DISTINCT pu.product_id) as usage_count
+      SELECT u.*, (
+        SELECT COUNT(*) FROM (
+          SELECT product_id FROM product_units WHERE unit_id = u.id
+          UNION
+          SELECT id FROM products WHERE unit_id = u.id
+        )
+      ) AS usage_count
       FROM item_units u
-      LEFT JOIN product_units pu ON pu.unit_id = u.id
-      GROUP BY u.id ORDER BY ${orderByBucket('u.name')}
+      ORDER BY ${orderByBucket('u.name')}
     `).all()
   })
   ipcMain.handle('settings:saveUnit', (_e, data: any) => {
@@ -221,6 +230,21 @@ export function registerSettingsHandlers() {
     }
     const result = db.prepare(`INSERT INTO item_units (name) VALUES (?)`).run(data.name)
     return db.prepare(`SELECT * FROM item_units WHERE id = ?`).get(result.lastInsertRowid)
+  })
+  // Hard delete — only when no product references the unit (base or variant).
+  // Guard server-side so a stale renderer count can never strand a product's
+  // unit_id FK on a deleted row.
+  ipcMain.handle('settings:deleteUnit', (_e, id: number) => {
+    requireAdmin(_e)
+    const db = getDb()
+    const asBase = db.prepare(`SELECT COUNT(*) AS n FROM products WHERE unit_id = ?`).get(id) as any
+    const asVariant = db.prepare(`SELECT COUNT(*) AS n FROM product_units WHERE unit_id = ?`).get(id) as any
+    const used = (asBase?.n ?? 0) + (asVariant?.n ?? 0)
+    if (used > 0) {
+      throw new Error(`ลบไม่ได้ เพราะมีสินค้าใช้หน่วยนี้อยู่ ${used} รายการ`)
+    }
+    db.prepare(`DELETE FROM item_units WHERE id = ?`).run(id)
+    return { ok: true }
   })
 
   // Drug types

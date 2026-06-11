@@ -462,6 +462,7 @@ export default function Theme() {
                   <Button variant="elevated"><Wallet className="size-4" /> Method</Button>
                   <Button variant="elevated-destructive"><Trash2 className="size-4" /> Elevated Destructive</Button>
                   <Button variant="elevated-warning"><EyeOff className="size-4" /> Elevated Warning</Button>
+                  <Button variant="elevated-success"><RotateCcw className="size-4" /> Elevated Success</Button>
                 </DemoRow>
                 <DemoRow label="Sizes">
                   <Button size="xl">XL</Button>

@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shadcn preset b2BVUGgwC — style showcase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     ค่า token จริงจาก shadcn create preset b2BVUGgwC (Tailwind v4, oklch)
+     ดึงมาจาก: npx shadcn init -t vite -p b2BVUGgwC  → src/index.css
+     เก็บไว้เป็น reference — ฟอนต์ Inter, radius 0.625rem (10px), base = stone/emerald
+     ============================================================ */
+  :root {
+    --radius: 0.625rem;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.147 0.004 49.25);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.147 0.004 49.25);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.147 0.004 49.25);
+    --primary: oklch(0.508 0.118 165.612);
+    --primary-foreground: oklch(0.979 0.021 166.113);
+    --secondary: oklch(0.967 0.001 286.375);
+    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --muted: oklch(0.97 0.001 106.424);
+    --muted-foreground: oklch(0.553 0.013 58.071);
+    --accent: oklch(0.97 0.001 106.424);
+    --accent-foreground: oklch(0.216 0.006 56.043);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(1 0 0);
+    --border: oklch(0.923 0.003 48.717);
+    --input: oklch(0.923 0.003 48.717);
+    --ring: oklch(0.709 0.01 56.259);
+    --chart-1: oklch(0.845 0.143 164.978);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.596 0.145 163.225);
+    --chart-4: oklch(0.508 0.118 165.612);
+    --chart-5: oklch(0.432 0.095 166.913);
+    --sidebar: oklch(0.985 0.001 106.423);
+    --sidebar-foreground: oklch(0.147 0.004 49.25);
+    --sidebar-primary: oklch(0.596 0.145 163.225);
+    --sidebar-primary-foreground: oklch(0.979 0.021 166.113);
+    --sidebar-accent: oklch(0.97 0.001 106.424);
+    --sidebar-accent-foreground: oklch(0.216 0.006 56.043);
+    --sidebar-border: oklch(0.923 0.003 48.717);
+    --sidebar-ring: oklch(0.709 0.01 56.259);
+  }
+  .dark {
+    --background: oklch(0.147 0.004 49.25);
+    --foreground: oklch(0.985 0.001 106.423);
+    --card: oklch(0.216 0.006 56.043);
+    --card-foreground: oklch(0.985 0.001 106.423);
+    --popover: oklch(0.216 0.006 56.043);
+    --popover-foreground: oklch(0.985 0.001 106.423);
+    --primary: oklch(0.432 0.095 166.913);
+    --primary-foreground: oklch(0.979 0.021 166.113);
+    --secondary: oklch(0.274 0.006 286.033);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.268 0.007 34.298);
+    --muted-foreground: oklch(0.709 0.01 56.259);
+    --accent: oklch(0.268 0.007 34.298);
+    --accent-foreground: oklch(0.985 0.001 106.423);
+    --destructive: oklch(0.704 0.191 22.216);
+    --destructive-foreground: oklch(0.985 0.001 106.423);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.553 0.013 58.071);
+    --chart-1: oklch(0.845 0.143 164.978);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.596 0.145 163.225);
+    --chart-4: oklch(0.508 0.118 165.612);
+    --chart-5: oklch(0.432 0.095 166.913);
+    --sidebar: oklch(0.216 0.006 56.043);
+    --sidebar-foreground: oklch(0.985 0.001 106.423);
+    --sidebar-primary: oklch(0.696 0.17 162.48);
+    --sidebar-primary-foreground: oklch(0.262 0.051 172.552);
+    --sidebar-accent: oklch(0.268 0.007 34.298);
+    --sidebar-accent-foreground: oklch(0.985 0.001 106.423);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.553 0.013 58.071);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--background); color: var(--foreground);
+    font: 14px/1.55 'Inter','IBM Plex Sans Thai',sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition: background .2s, color .2s;
+  }
+  .page { max-width: 1080px; margin: 0 auto; padding: 28px 24px 80px; }
+
+  /* topbar */
+  .top { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+  .top h1 { font-size:20px; font-weight:700; margin:0; }
+  .top .src { color: var(--muted-foreground); font-size:12px; }
+  .toggle {
+    margin-left:auto; cursor:pointer; font: 600 13px 'Inter'; padding:7px 14px;
+    border-radius: var(--radius); border:1px solid var(--border);
+    background: var(--card); color: var(--foreground);
+  }
+  .lead { color: var(--muted-foreground); font-family:'IBM Plex Sans Thai'; font-size:13.5px; margin:0 0 24px; }
+
+  .sec-h { display:flex; align-items:center; gap:10px; margin:30px 0 14px; }
+  .sec-h h2 { font-size:15px; font-weight:600; margin:0; }
+  .sec-h .line { flex:1; height:1px; background: var(--border); }
+
+  /* generic shadcn-ish primitives */
+  .btn { font: 500 13px 'Inter','IBM Plex Sans Thai'; height:36px; padding:0 16px; border-radius: var(--radius);
+         border:1px solid transparent; cursor:default; display:inline-flex; align-items:center; gap:7px; }
+  .btn.primary{ background:var(--primary); color:var(--primary-foreground); }
+  .btn.secondary{ background:var(--secondary); color:var(--secondary-foreground); border-color:var(--border); }
+  .btn.destructive{ background:var(--destructive); color:var(--destructive-foreground); }
+  .btn.outline{ background:transparent; color:var(--foreground); border-color:var(--border); }
+  .btn.ghost{ background:transparent; color:var(--foreground); }
+  .btn.link{ background:transparent; color:var(--primary); text-decoration:underline; padding:0; height:auto; }
+
+  .badge{ font: 600 11.5px 'Inter','IBM Plex Sans Thai'; padding:2px 9px; border-radius:999px;
+          display:inline-flex; align-items:center; gap:5px; border:1px solid transparent; }
+  .badge.default{ background:var(--primary); color:var(--primary-foreground); }
+  .badge.secondary{ background:var(--secondary); color:var(--secondary-foreground); }
+  .badge.destructive{ background:var(--destructive); color:var(--destructive-foreground); }
+  .badge.outline{ background:transparent; color:var(--foreground); border-color:var(--border); }
+  .badge.muted{ background:var(--muted); color:var(--muted-foreground); }
+
+  .row { display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+  .card { background:var(--card); color:var(--card-foreground); border:1px solid var(--border);
+          border-radius: calc(var(--radius) + 2px); overflow:hidden; }
+  .card .hd { padding:16px 18px 10px; }
+  .card .hd .t { font-size:15px; font-weight:600; }
+  .card .hd .d { font-size:12.5px; color:var(--muted-foreground); font-family:'IBM Plex Sans Thai'; margin-top:2px; }
+  .card .bd { padding:6px 18px 16px; font-size:13px; }
+  .card .ft { padding:12px 18px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+
+  label.fld { display:block; font-size:12.5px; font-weight:500; margin-bottom:6px; }
+  .input { width:100%; height:36px; padding:0 12px; border-radius:var(--radius);
+           background:var(--background); border:1px solid var(--input); color:var(--foreground);
+           font:14px 'Inter','IBM Plex Sans Thai'; }
+  .input::placeholder{ color:var(--muted-foreground); }
+  .dark .input{ background:transparent; }
+
+  .surf { padding:12px 14px; border-radius:var(--radius); font-family:'IBM Plex Sans Thai'; font-size:13px; }
+  .surf.muted{ background:var(--muted); color:var(--muted-foreground); }
+  .surf.accent{ background:var(--accent); color:var(--accent-foreground); }
+  .surf.secondary{ background:var(--secondary); color:var(--secondary-foreground); }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{ text-align:left; padding:9px 12px; color:var(--muted-foreground);
+            font:600 12px 'IBM Plex Sans Thai'; border-bottom:1px solid var(--border); }
+  td{ padding:9px 12px; border-bottom:1px solid var(--border); }
+  tbody tr:last-child td{ border-bottom:0; }
+  tbody tr:hover td{ background:var(--muted); }
+
+  /* sidebar mock */
+  .sb { background:var(--sidebar); color:var(--sidebar-foreground); border:1px solid var(--sidebar-border);
+        border-radius:calc(var(--radius) + 2px); padding:10px; width:230px; }
+  .sb .item{ display:flex; align-items:center; gap:9px; padding:8px 11px; border-radius:var(--radius);
+             font:500 13px 'IBM Plex Sans Thai'; color:var(--sidebar-foreground); }
+  .sb .item.active{ background:var(--sidebar-primary); color:var(--sidebar-primary-foreground); }
+  .sb .item .ic{ width:7px; height:7px; border-radius:2px; background:currentColor; opacity:.6; }
+
+  /* charts swatches */
+  .charts{ display:flex; gap:8px; align-items:flex-end; height:96px; }
+  .charts .bar{ width:46px; border-radius:6px 6px 0 0; }
+
+  /* token table */
+  .tok{ width:100%; border-collapse:collapse; font:12px 'Inter'; }
+  .tok th{ text-align:left; padding:7px 10px; color:var(--muted-foreground); border-bottom:1px solid var(--border); font-weight:600; }
+  .tok td{ padding:6px 10px; border-bottom:1px solid var(--border); }
+  .tok .sw{ width:26px; height:26px; border-radius:6px; border:1px solid var(--border); display:inline-block; vertical-align:middle; }
+  .tok .nm{ font-weight:500; }
+  .tok .v{ color:var(--muted-foreground); }
+
+  .note{ background:var(--muted); border-radius:var(--radius); padding:14px 16px; font-family:'IBM Plex Sans Thai';
+         font-size:13px; color:var(--foreground); }
+  .note b{ font-weight:700; }
+  .note ul{ margin:8px 0 0; padding-left:18px; color:var(--muted-foreground); }
+  .note li{ margin:4px 0; }
+  code{ font-family:'Inter'; background:var(--secondary); padding:1px 6px; border-radius:5px; font-size:11.5px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top">
+    <h1>shadcn preset · <span style="color:var(--primary)">b2BVUGgwC</span></h1>
+    <span class="src">Inter · radius 10px · stone+emerald · oklch (v4)</span>
+    <button class="toggle" onclick="document.documentElement.classList.toggle('dark')">สลับ Light / Dark</button>
+  </div>
+  <p class="lead">Showcase สไตล์ของ preset (render ด้วย token จริง) — กดปุ่มสลับโหมดเพื่อดู · เก็บไว้ดึงของดีมาใช้</p>
+
+  <div class="sec-h"><h2>Buttons</h2><span class="line"></span></div>
+  <div class="row">
+    <button class="btn primary">Primary</button>
+    <button class="btn secondary">Secondary</button>
+    <button class="btn destructive">Destructive</button>
+    <button class="btn outline">Outline</button>
+    <button class="btn ghost">Ghost</button>
+    <button class="btn link">Link</button>
+  </div>
+
+  <div class="sec-h"><h2>Badges</h2><span class="line"></span></div>
+  <div class="row">
+    <span class="badge default">Default</span>
+    <span class="badge secondary">Secondary</span>
+    <span class="badge destructive">Destructive</span>
+    <span class="badge outline">Outline</span>
+    <span class="badge muted">Muted</span>
+  </div>
+
+  <div class="sec-h"><h2>Card · Form · Surfaces</h2><span class="line"></span></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="hd"><div class="t">ปรับสต็อกอัตโนมัติ</div><div class="d">ตัดสต็อกตาม FEFO เมื่อขาย</div></div>
+      <div class="bd">
+        <label class="fld">ชื่อสินค้า</label>
+        <input class="input" placeholder="พิมพ์ชื่อสินค้า...">
+      </div>
+      <div class="ft">
+        <button class="btn outline">ยกเลิก</button>
+        <button class="btn primary">บันทึก</button>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div class="surf muted"><b>muted surface</b> — พื้นเทากลาง สื่อบทบาทด้วยตัวอักษร (ไม่ติดสี)</div>
+      <div class="surf accent">accent surface — เกือบเหมือน muted (เทากลาง)</div>
+      <div class="surf secondary">secondary surface — เทาอ่อน</div>
+      <div class="note">
+        <b>ข้อสังเกต:</b> preset นี้ <b>ไม่มีสี soft แบบเรา</b> — พื้น muted/accent/secondary เป็นเทากลางหมด สีจริงสงวนไว้แค่ primary + destructive
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-h"><h2>Table</h2><span class="line"></span></div>
+  <div class="card">
+    <table>
+      <thead><tr><th>สินค้า</th><th>ยอดขาย</th><th>สถานะ</th></tr></thead>
+      <tbody>
+        <tr><td>พาราเซตามอล 500mg</td><td>฿4,200</td><td><span class="badge muted">พอ</span></td></tr>
+        <tr><td>Loratadine 10mg</td><td>฿3,150</td><td><span class="badge destructive">ต่ำ</span></td></tr>
+        <tr><td>วิตามินซี 1000mg</td><td>฿2,880</td><td><span class="badge muted">พอ</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sec-h"><h2>Sidebar · Charts</h2><span class="line"></span></div>
+  <div class="row" style="align-items:flex-start; gap:20px;">
+    <div class="sb">
+      <div class="item active"><span class="ic"></span> หน้าขาย</div>
+      <div class="item"><span class="ic"></span> สินค้า</div>
+      <div class="item"><span class="ic"></span> รายงาน</div>
+      <div class="item"><span class="ic"></span> ตั้งค่า</div>
+    </div>
+    <div class="charts">
+      <div class="bar" style="height:40%; background:var(--chart-1)"></div>
+      <div class="bar" style="height:62%; background:var(--chart-2)"></div>
+      <div class="bar" style="height:88%; background:var(--chart-3)"></div>
+      <div class="bar" style="height:54%; background:var(--chart-4)"></div>
+      <div class="bar" style="height:72%; background:var(--chart-5)"></div>
+    </div>
+  </div>
+
+  <div class="sec-h"><h2>Tokens (oklch จริง)</h2><span class="line"></span></div>
+  <div class="grid2">
+    <div>
+      <p style="font:600 12px 'IBM Plex Sans Thai'; color:var(--muted-foreground); margin:0 0 8px;">LIGHT (:root)</p>
+      <table class="tok" id="tok-light"></table>
+    </div>
+    <div>
+      <p style="font:600 12px 'IBM Plex Sans Thai'; color:var(--muted-foreground); margin:0 0 8px;">DARK (.dark)</p>
+      <table class="tok dark" id="tok-dark"></table>
+    </div>
+  </div>
+
+  <div class="sec-h"><h2>ของดีที่น่าดึงมาใช้</h2><span class="line"></span></div>
+  <div class="note">
+    <ul>
+      <li><b>Neutral soft surfaces</b> — muted/accent/secondary เป็นเทากลาง ไม่ติดสี → ตรงกับ Direction B ที่เราคุยกัน (แก้ปัญหาสี soft จัด/neon)</li>
+      <li><b>Border โปร่ง</b> — dark ใช้ <code>oklch(1 0 0 / 10%)</code> (ขาว 10%) แทนสีตายตัว ปรับตามพื้นเอง</li>
+      <li><b>เทา "อุ่น" นิด ๆ</b> — neutral มี chroma ต่ำ ๆ (hue ~34–56 = stone) ไม่ใช่เทาเย็นซีด</li>
+      <li><b>Radius 10px</b> — กลมกว่าเรา (8px) นิดเดียว ดูนุ่มขึ้น</li>
+      <li><b>Font Inter</b> — ตรงกับเราอยู่แล้ว</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  const LIGHT = {
+    background:'oklch(1 0 0)', foreground:'oklch(0.147 0.004 49.25)',
+    card:'oklch(1 0 0)', popover:'oklch(1 0 0)',
+    primary:'oklch(0.508 0.118 165.612)', 'primary-foreground':'oklch(0.979 0.021 166.113)',
+    secondary:'oklch(0.967 0.001 286.375)', muted:'oklch(0.97 0.001 106.424)',
+    'muted-foreground':'oklch(0.553 0.013 58.071)', accent:'oklch(0.97 0.001 106.424)',
+    destructive:'oklch(0.577 0.245 27.325)', border:'oklch(0.923 0.003 48.717)',
+    input:'oklch(0.923 0.003 48.717)', ring:'oklch(0.709 0.01 56.259)',
+    sidebar:'oklch(0.985 0.001 106.423)', 'sidebar-primary':'oklch(0.596 0.145 163.225)',
+  };
+  const DARK = {
+    background:'oklch(0.147 0.004 49.25)', foreground:'oklch(0.985 0.001 106.423)',
+    card:'oklch(0.216 0.006 56.043)', popover:'oklch(0.216 0.006 56.043)',
+    primary:'oklch(0.432 0.095 166.913)', 'primary-foreground':'oklch(0.979 0.021 166.113)',
+    secondary:'oklch(0.274 0.006 286.033)', muted:'oklch(0.268 0.007 34.298)',
+    'muted-foreground':'oklch(0.709 0.01 56.259)', accent:'oklch(0.268 0.007 34.298)',
+    destructive:'oklch(0.704 0.191 22.216)', border:'oklch(1 0 0 / 10%)',
+    input:'oklch(1 0 0 / 15%)', ring:'oklch(0.553 0.013 58.071)',
+    sidebar:'oklch(0.216 0.006 56.043)', 'sidebar-primary':'oklch(0.696 0.17 162.48)',
+  };
+  const fill = (id, obj) => {
+    document.getElementById(id).innerHTML =
+      '<thead><tr><th></th><th>token</th><th>oklch</th></tr></thead><tbody>' +
+      Object.entries(obj).map(([k,v]) =>
+        `<tr><td><span class="sw" style="background:${v}"></span></td><td class="nm">--${k}</td><td class="v">${v.replace('oklch(','').replace(')','')}</td></tr>`
+      ).join('') + '</tbody>';
+  };
+  fill('tok-light', LIGHT); fill('tok-dark', DARK);
+  // default to dark so the "soft = neutral" point lands immediately
+  document.documentElement.classList.add('dark');
+</script>
+</body>
+</html>

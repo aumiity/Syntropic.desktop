@@ -115,7 +115,7 @@ export function LabelPresetTab() {
                   <TableCell className="align-top">
                     <div className="flex justify-center gap-1.5">
                       <Button size="icon-lg" variant="elevated" title="แก้ไข" onClick={() => openEdit(p)}><Edit /></Button>
-                      <Button size="icon-lg" variant="elevated" title="ลบ" onClick={() => setConfirmDel(p)}><Trash2 /></Button>
+                      <Button size="icon-lg" variant="elevated-destructive" title="ลบ" onClick={() => setConfirmDel(p)}><Trash2 /></Button>
                     </div>
                   </TableCell>
                 </TableRow>

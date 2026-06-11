@@ -196,7 +196,7 @@ export function CategoriesTab() {
                         <Button size="icon-lg" variant="elevated" onClick={() => openEdit(c)} title="แก้ไข">
                           <Edit />
                         </Button>
-                        <Button size="icon-lg" variant="elevated" disabled={togglingId === c.id}
+                        <Button size="icon-lg" variant={c.is_disabled ? 'elevated-success' : 'elevated-destructive'} disabled={togglingId === c.id}
                           onClick={() => toggleDisabled(c)}
                           title={c.is_disabled ? 'เปิดใช้งาน' : 'พักการใช้งาน'}>
                           {c.is_disabled ? <RotateCcw /> : <Ban />}

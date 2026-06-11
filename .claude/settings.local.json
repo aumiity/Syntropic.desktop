@@ -170,7 +170,9 @@
       "Bash(sed -n '560,595p' electron/db/schema.ts)",
       "Bash(sed -n '424,450p' electron/ipc/settings.ts)",
       "Bash(sed -n '257,290p' electron/ipc/settings.ts)",
-      "Bash(zsh -ic 'type claude-studio')"
+      "Bash(zsh -ic 'type claude-studio')",
+      "Bash(open \"/Users/CYUT/Documents/GitHub/Syntropic.desktop/docs/shadcn-preset-showcase.html\")",
+      "Bash(rm -rf /tmp/shadcn-probe /tmp/probe2)"
     ],
     "additionalDirectories": [
       "/tmp"

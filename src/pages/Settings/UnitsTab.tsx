@@ -3,11 +3,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { FormField } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
 import type { ItemUnit } from '@/types'
-import { Plus, Edit, Ruler } from 'lucide-react'
+import { Plus, Edit, Trash2, Ruler } from 'lucide-react'
 
 export function UnitsTab() {
   const { toast } = useToast()
@@ -16,6 +17,8 @@ export function UnitsTab() {
   const [dialog, setDialog] = useState(false)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
+  const [delTarget, setDelTarget] = useState<ItemUnit | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const load = async () => {
     const data = await window.api.settings.listUnits() as ItemUnit[]
@@ -36,6 +39,18 @@ export function UnitsTab() {
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     } finally { setSaving(false) }
+  }
+
+  const handleDelete = async () => {
+    if (!delTarget) return
+    setDeleting(true)
+    try {
+      await window.api.settings.deleteUnit(delTarget.id)
+      toast({ title: 'ลบหน่วยสำเร็จ', variant: 'success' })
+      setDelTarget(null); load()
+    } catch (e: any) {
+      toast({ title: 'ลบไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally { setDeleting(false) }
   }
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
@@ -88,9 +103,18 @@ export function UnitsTab() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-center">
+                    <div className="flex justify-center gap-1.5">
                       <Button size="icon-lg" variant="elevated" onClick={() => openEdit(u)} title="แก้ไข">
                         <Edit />
+                      </Button>
+                      <Button
+                        size="icon-lg"
+                        variant="elevated-destructive"
+                        disabled={(u.usage_count ?? 0) > 0}
+                        onClick={() => setDelTarget(u)}
+                        title={(u.usage_count ?? 0) > 0 ? 'ลบไม่ได้ เพราะมีสินค้าใช้หน่วยนี้อยู่' : 'ลบ'}
+                      >
+                        <Trash2 />
                       </Button>
                     </div>
                   </TableCell>
@@ -125,6 +149,20 @@ export function UnitsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!delTarget}
+        onOpenChange={(o) => { if (!o) setDelTarget(null) }}
+        variant="destructive"
+        title="ลบหน่วยนับ"
+        description={<>
+          <div>ต้องการลบหน่วย “{delTarget?.name}” ?</div>
+          <div>การลบนี้ไม่สามารถย้อนกลับได้</div>
+        </>}
+        confirmLabel="ยืนยัน"
+        busy={deleting}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

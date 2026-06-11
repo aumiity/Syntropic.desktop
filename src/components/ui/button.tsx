@@ -109,6 +109,11 @@ const buttonVariants = cva(
           "hover:bg-warm hover:text-warm-foreground hover:shadow-sm",
           "aria-expanded:bg-warm aria-expanded:text-warm-foreground aria-expanded:shadow-sm",
         ].join(" "),
+        "elevated-success": [
+          "bg-card text-foreground border-border border shadow-sm",
+          "hover:bg-success hover:text-success-foreground hover:border-success hover:shadow-sm",
+          "aria-expanded:bg-success aria-expanded:text-success-foreground aria-expanded:border-success aria-expanded:shadow-sm",
+        ].join(" "),
       },
       size: {
         default: [

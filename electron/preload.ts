@@ -107,6 +107,7 @@ const api = {
     reorderCategories: (ids: number[]) => ipcRenderer.invoke('settings:reorderCategories', ids),
     listUnits: () => ipcRenderer.invoke('settings:listUnits'),
     saveUnit: (data: any) => ipcRenderer.invoke('settings:saveUnit', data),
+    deleteUnit: (id: number) => ipcRenderer.invoke('settings:deleteUnit', id),
     listDrugTypes: () => ipcRenderer.invoke('settings:listDrugTypes'),
     saveDrugType: (data: any) => ipcRenderer.invoke('settings:saveDrugType', data),
     getLabelSettings: () => ipcRenderer.invoke('settings:getLabelSettings'),
