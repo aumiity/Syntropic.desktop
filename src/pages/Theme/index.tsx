@@ -2075,7 +2075,7 @@ export default function Theme() {
                     </DialogHeader>
                     <DialogBody className="space-y-3">
                       <Tabs value={tabbedDialogTab} onValueChange={v => setTabbedDialogTab(v as 'discount' | 'charge')}>
-                        <TabsList variant="segmented" className="h-10 w-full">
+                        <TabsList variant="segmented" className="w-full">
                           <TabsTrigger value="discount" className="flex-1">ส่วนลด</TabsTrigger>
                           <TabsTrigger value="charge" className="flex-1">ค่าบริการ</TabsTrigger>
                         </TabsList>

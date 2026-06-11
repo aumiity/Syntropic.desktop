@@ -394,7 +394,7 @@ export default function DashboardPage() {
           className="lg:col-span-4"
           right={
             <Tabs value={String(trendDays)} onValueChange={(v) => setTrendDays(Number(v))}>
-              <TabsList variant="segmented" className="h-9">
+              <TabsList variant="segmented">
                 <TabsTrigger value="7" className="text-sm px-3">7 วัน</TabsTrigger>
                 <TabsTrigger value="30" className="text-sm px-3">30 วัน</TabsTrigger>
                 <TabsTrigger value="90" className="text-sm px-3">90 วัน</TabsTrigger>

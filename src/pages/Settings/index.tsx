@@ -26,7 +26,7 @@ export default function SettingsPage() {
 
       <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="segmented" className="h-9">
+          <TabsList variant="segmented">
             <TabsTrigger value="shop"><Store /> ข้อมูลร้าน</TabsTrigger>
             <TabsTrigger value="sales"><ShoppingCart /> การขาย</TabsTrigger>
             <TabsTrigger value="product-mgmt"><FolderTree /> หมวดหมู่และประเภท</TabsTrigger>

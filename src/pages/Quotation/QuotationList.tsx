@@ -162,13 +162,13 @@ export default function QuotationList() {
       {/* Top row: status filter tabs (left) + create button (right) */}
       <TabStrip className="-mb-2">
         <Tabs value={statusFilter} onValueChange={v => setStatusFilter(v as StatusFilter)}>
-          <TabsList variant="segmented" className="h-9">
+          <TabsList variant="segmented">
             {STATUS_TABS.map(({ value, label, icon: Icon }) => (
               <TabsTrigger key={value} value={value}><Icon /> {label}</TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
-        <Button onClick={() => navigate('/quotation/new')} className="ml-auto h-9 px-3">
+        <Button onClick={() => navigate('/quotation/new')} className="ml-auto h-10 px-3">
           <Plus className="size-4" /> สร้างใบเสนอราคา
         </Button>
       </TabStrip>

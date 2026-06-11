@@ -365,7 +365,7 @@ export default function EditProductPage() {
 
       <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="segmented" className="h-9">
+          <TabsList variant="segmented">
             <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
             <TabsTrigger value="units" disabled={isNew} title={isNew ? 'บันทึกสินค้าก่อนเพื่อจัดการหน่วยนับ' : undefined}>
               <Blocks /> หน่วยนับ ({(product.units?.length ?? 0) + 1})

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
@@ -33,6 +33,22 @@ const submitOnEnter = (fn: () => void) => (e: React.KeyboardEvent) => {
     e.preventDefault()
     fn()
   }
+}
+
+// Shell's "เพิ่ม" button bumps a shared nonce. Tabs mount/unmount on switch, so a
+// plain `addNonce > 0` check re-fires on every fresh mount once the nonce has been
+// bumped — opening the add dialog spuriously when you switch tabs. Track the last
+// nonce this instance saw (seeded to the current value on mount) and only act on a
+// real change.
+function useAddTrigger(addNonce: number, openAdd: () => void) {
+  const lastNonce = useRef(addNonce)
+  useEffect(() => {
+    if (addNonce !== lastNonce.current) {
+      lastNonce.current = addNonce
+      openAdd()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addNonce])
 }
 
 // ========================
@@ -105,8 +121,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   }
 
   // Shell's "เพิ่มลูกค้า" button bumps addNonce → open the add dialog.
-  // Skip the initial 0-value so we don't auto-open on mount.
-  useEffect(() => { if (addNonce > 0) openAdd() }, [addNonce])
+  useAddTrigger(addNonce, openAdd)
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -375,7 +390,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
     }
   }
 
-  useEffect(() => { if (addNonce > 0) openAdd() }, [addNonce])
+  useAddTrigger(addNonce, openAdd)
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
@@ -670,7 +685,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
     }
   }
 
-  useEffect(() => { if (addNonce > 0) openAdd() }, [addNonce])
+  useAddTrigger(addNonce, openAdd)
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
@@ -1035,13 +1050,13 @@ export default function PeoplePage() {
       {/* Tabs + Add button (mirrors ProductsLayout: tabs left, add right). */}
       <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="segmented" className="h-9">
+          <TabsList variant="segmented">
             <TabsTrigger value="customers"><Users /> ลูกค้า</TabsTrigger>
             <TabsTrigger value="suppliers"><Building2 /> ผู้จัดจำหน่าย</TabsTrigger>
             {isAdmin && <TabsTrigger value="staff"><UserCog /> พนักงาน</TabsTrigger>}
           </TabsList>
         </Tabs>
-        <Button onClick={() => setAddNonce(n => n + 1)} className="ml-auto h-9 px-3">
+        <Button onClick={() => setAddNonce(n => n + 1)} className="ml-auto h-10 px-3">
           <Plus className="size-4" /> {ADD_BUTTON[tab]}
         </Button>
       </TabStrip>

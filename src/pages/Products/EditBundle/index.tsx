@@ -322,7 +322,7 @@ export default function EditBundlePage() {
 
       <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="segmented" className="h-9">
+          <TabsList variant="segmented">
             <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
             <TabsTrigger value="components"><Boxes /> รายการ ({componentCount})</TabsTrigger>
             {!isNew && <TabsTrigger value="labels"><Pill /> ฉลาก ({labelCount})</TabsTrigger>}

@@ -34,7 +34,12 @@ const tabsListVariants = cva(
     "data-[variant=line]:rounded-none",
     "data-[variant=pill]:rounded-none data-[variant=pill]:p-0 data-[variant=pill]:gap-1 data-[variant=pill]:group-data-[orientation=horizontal]/tabs:h-auto",
     "data-[variant=default]:inline-grid data-[variant=default]:grid-flow-col data-[variant=default]:auto-cols-fr data-[variant=default]:rounded-xl data-[variant=default]:p-1 data-[variant=default]:gap-1 data-[variant=default]:group-data-[orientation=horizontal]/tabs:h-auto",
-    "data-[variant=segmented]:rounded-lg data-[variant=segmented]:p-1 data-[variant=segmented]:gap-1 data-[variant=segmented]:group-data-[orientation=horizontal]/tabs:h-auto",
+    // h-10 (40px) is baked HERE at the modifier level — NOT via className. The
+    // data-variant modifier outranks a plain `h-9`/`h-10` className by specificity
+    // (same trap as toggle below), so the height must live here to actually win.
+    // 40px = container p-1 (8px) + trigger py-1.5 content (32px); making it explicit
+    // (vs the old h-auto) keeps it stable if the base font size ever changes.
+    "data-[variant=segmented]:rounded-lg data-[variant=segmented]:p-1 data-[variant=segmented]:gap-1 data-[variant=segmented]:group-data-[orientation=horizontal]/tabs:h-10",
     // toggle = connected segmented group: buttons flush (gap-0), the container's
     // rounded-lg + overflow-hidden rounds only the outer ENDS (หัวมน-ท้ายมน) and
     // clips the square inner buttons. h-9 is baked HERE (not via className): the
