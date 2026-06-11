@@ -1,0 +1,130 @@
+/* ============================================================================
+   Dark Mode Redesign — corrected `.dark` block for src/index.css
+   ----------------------------------------------------------------------------
+   โครงเดิมทั้งหมด เปลี่ยนเฉพาะบรรทัดที่ทำเครื่องหมาย  ← แก้
+   เหตุผล: token เหล่านี้ถูกก๊อปค่าจาก light mode มาตรง ๆ ไม่ได้แปลงเป็นโทนมืด
+   ทำให้สีสว่างโผล่บนพื้นเข้ม / text จมหายไปกับพื้น
+
+   หลักการ (โครงสร้าง dark mode):
+     1. บันไดพื้นผิว — background 10% < card 20% < muted 22% < surface-hover 24% ; border 26% (สว่างกว่า card เพื่อให้เห็นเส้น)
+     2. บันไดตัวอักษร — foreground 100/96% > muted-foreground 64% > foreground-subtle 47%
+     3. สูตร soft/soft-foreground — *-soft = สีนั้น L ต่ำ (14-18%), *-soft-foreground = สีนั้น L สูง (78-80%)
+        (success/warm/violet/teal แปลงถูกแล้ว; รอบนี้แค่ทำ destructive/info ให้ตามสูตรเดียวกัน)
+   ============================================================================ */
+
+.dark {
+  /* ── Radii ── */
+  --radius:         0.5rem;
+  --radius-card:    1rem;
+  --radius-control: 0.5rem;
+
+  /* ── Surfaces ── */
+  --background:         0 0% 10%;
+  --foreground:         0 0% 100%;
+  --foreground-subtle:  215 16% 47%;
+  --card:               0 0% 20%;
+  --card-foreground:    0 0% 100%;
+  --popover:            0 0% 20%;
+  --popover-foreground: 0 0% 100%;
+  --surface-hover:      215 25% 22%;
+
+  /* ── Borders · inputs · ring ── */
+  --border:        0 0% 26%;          /* ← แก้ จาก 0 0% 10% (เดิม = สีพื้น เส้นล่องหน) */
+  --border-strong: 215 25% 35%;
+  --input:         0 0% 20%;
+  --ring:          175 35% 60%;
+
+  /* ── Primary — brand teal ── */
+  --primary:              173 58% 40%;
+  --primary-foreground:   165 50% 5%;
+  --primary-hover:        173 58% 35%;
+  --primary-strong:       173 60% 30%;
+  --primary-soft:         173 24% 13%;
+  --primary-soft-hover:   173 28% 17%;
+  --primary-soft-border:  173 30% 25%;
+
+  /* ── Secondary ── */
+  --secondary:            0 0% 20%;
+  --secondary-foreground: 0 0% 100%;
+  --secondary-hover:      0 0% 28%;
+
+  /* ── Accent ── */
+  --accent:            43 100% 64%;
+  --accent-foreground: 44 100% 8%;
+
+  /* ── Muted ── */
+  --muted:            0 0% 22%;        /* ← แก้ จาก 240 5% 96% (เดิมเกือบขาว → หัวตารางขาว) */
+  --muted-foreground: 0 0% 64%;        /* ← แก้ จาก 240 6% 10% (เดิมเกือบดำ → text รอง/scrollbar หาย) */
+  --muted-hover:      0 0% 28%;        /* ← แก้ จาก 240 4% 25% (neutralize hue ให้เข้ากลุ่ม) */
+
+  /* ── Status: Success ── */
+  --success:            142 71% 36%;
+  --success-foreground: 0 0% 100%;
+  --success-hover:      142 71% 30%;
+  --success-soft:       142 30% 18%;
+
+  /* ── Status: Warning ── */
+  --warning:            35 100% 60%;
+  --warning-foreground: 0 0% 100%;
+  --warning-hover:      35 100% 45%;
+  --warning-soft:            30 30% 15%;
+  --warning-soft-foreground: 32 95% 72%;
+
+  /* ── Status: Destructive ── */
+  --destructive:            3 100% 59%;
+  --destructive-foreground: 0 0% 100%;
+  --destructive-hover:      3 100% 39%;
+  --destructive-soft:       0 45% 16%;   /* ← แก้ จาก 0 86% 97% (เดิมชมพูขาว) */
+  --destructive-strong:     0 90% 78%;   /* ← แก้ จาก 0 70% 35% (text บน soft มืด ต้องสว่าง) */
+
+  /* ── Info ── */
+  --info:                 221 83% 60%;
+  --info-foreground:      0 0% 100%;
+  --info-soft:            219 45% 18%;    /* ← แก้ จาก 219 100% 94% (เดิมฟ้าขาว) */
+  --info-soft-foreground: 219 90% 80%;    /* ← แก้ จาก 219 30% 44% (text บน soft ต้องสว่าง) */
+  --info-soft-hover:      219 45% 24%;    /* ← แก้ จาก 219 100% 84% (ตามกลุ่ม info-soft) */
+
+  /* ── Warm ── */
+  --warm:            43 25% 14%;
+  --warm-hover:      43 20% 22%;
+  --warm-foreground: 45 90% 80%;
+
+  /* ── Decorative: Violet ── */
+  --violet:            262 83% 65%;
+  --violet-foreground: 0 0% 100%;
+  --violet-soft:       263 30% 18%;
+  --violet-strong:     263 80% 75%;
+
+  /* ── Decorative: Teal ── */
+  --teal:            167 70% 50%;
+  --teal-foreground: 0 0% 100%;
+  --teal-soft:       167 30% 18%;
+  --teal-strong:     167 70% 75%;
+
+  /* ── Sidebar ── */
+  --sidebar:                    0 0% 20%;
+  --sidebar-foreground:         0 0% 100%;
+  --sidebar-border:             0 0% 26%;   /* ← แก้ จาก 0 0% 10% (เส้นแบ่ง sidebar ล่องหน) */
+  --sidebar-ring:               173 58% 40%;
+  --sidebar-primary:            179 91% 22%;
+  --sidebar-primary-foreground: 214 32% 91%;
+  --sidebar-accent:             43 100% 64%;
+  --sidebar-accent-foreground:  44 100% 8%;
+
+  /* ── Effects ── */
+  --shadow-card:   0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 28px -18px rgba(0, 0, 0, 0.6);
+  --selection-bg:  hsl(175 60% 60% / 0.4);
+
+  /* ── Fonts ── */
+  --font-latin: 'Google Sans';
+  --font-thai:  'Sarabun';
+}
+
+/* ── Polish (ตัวเลือกเสริม — ยังไม่รวมในชุดหลัก) ─────────────────────────────
+   --foreground:        0 0% 96%;   // ขาวนุ่มลง ลดความแสบตา
+   --success:           142 55% 47%;   --success-hover: 142 55% 40%;  // solid สว่างขึ้นสำหรับ dark
+   --destructive:       3 100% 64%;    --destructive-hover: 3 80% 52%;
+   --info:              221 85% 66%;
+   --input:             0 0% 14%;       // filled input แบบ inset (เข้มกว่า card)
+   --warning-foreground: 30 90% 12%;   // text เข้มบนส้ม อ่านง่ายกว่าขาว
+   ──────────────────────────────────────────────────────────────────────── */

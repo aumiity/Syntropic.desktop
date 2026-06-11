@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Syntropic Dark Theme — Our Version (compact)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* ── Syntropic .dark tokens (จาก src/index.css) ── */
+    --bg:           hsl(0 0% 10%);
+    --card:         hsl(0 0% 20%);
+    --card-2:       hsl(0 0% 16%);
+    --fg:           hsl(0 0% 100%);
+    --fg-subtle:    hsl(0 0% 66%);
+    --fg-dim:       hsl(0 0% 46%);
+    --border:       hsl(0 0% 28%);
+    --border-soft:  rgba(255,255,255,0.07);
+    --hover:        rgba(255,255,255,0.04);
+
+    --primary:      hsl(173 58% 40%);
+    --primary-fg:   hsl(165 50% 5%);
+    --primary-soft: hsl(173 24% 13%);
+    --primary-soft-border: hsl(173 30% 25%);
+    --accent:       hsl(43 100% 64%);
+    --accent-fg:    hsl(44 100% 8%);
+
+    --success:      hsl(142 65% 45%);
+    --destructive:  hsl(3 100% 66%);
+    --info:         hsl(221 83% 64%);
+    --warning:      hsl(35 100% 60%);
+    --warm:         hsl(45 90% 80%);
+
+    --r:9px;
+    --sans:'Inter','IBM Plex Sans Thai',system-ui,sans-serif;
+    --thai:'IBM Plex Sans Thai','Inter',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{background:#0d0d0d;}
+  body{margin:0;padding:36px 20px 72px;font:14.5px/1.55 var(--sans);color:var(--fg);
+       -webkit-font-smoothing:antialiased;}
+
+  /* ── window chrome ── */
+  .app{max-width:1100px;margin:0 auto;background:var(--bg);border-radius:12px;
+       border:1px solid var(--border-soft);box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;}
+  .titlebar{background:var(--card-2);border-bottom:1px solid var(--border-soft);
+            padding:9px 13px;display:flex;align-items:center;gap:7px;}
+  .titlebar .dot{width:10px;height:10px;border-radius:50%;background:hsl(0 0% 30%);}
+  .titlebar .path{margin-left:12px;color:var(--fg-dim);font-size:11px;}
+  .app-body{padding:22px 28px 32px;}
+
+  .lead-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .brand-badge{display:inline-flex;align-items:center;gap:6px;background:var(--primary-soft);
+               border:1px solid var(--primary-soft-border);color:var(--primary);
+               padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;}
+  .brand-badge .sq{width:8px;height:8px;border-radius:2px;background:var(--primary);}
+  .lead{font-family:var(--thai);color:var(--fg-subtle);font-size:13.5px;margin:0;}
+
+  #hero{margin:16px 0 2px;}
+  #hero .num{font-size:48px;font-weight:700;line-height:1;letter-spacing:-0.02em;}
+  #hero .num .unit{color:var(--primary);} #hero .num .label{font-size:16px;font-weight:500;color:var(--fg-dim);margin-left:10px;}
+  #hero .split{color:var(--fg-subtle);margin-top:8px;font-size:13.5px;}
+  #hero .split b{color:var(--fg);font-weight:600;} #hero .split .ok{color:var(--success);}
+
+  /* ── section header ── */
+  section{margin-top:28px;}
+  .head{display:flex;align-items:center;gap:10px;margin-bottom:13px;}
+  .head .ico{width:24px;height:24px;border-radius:7px;background:var(--primary-soft);
+             border:1px solid var(--primary-soft-border);display:grid;place-items:center;
+             color:var(--primary);font-weight:700;font-size:13px;flex:none;}
+  .head h2{all:unset;font-family:var(--sans);font-size:15.5px;font-weight:600;color:var(--fg);}
+  .head .hint{font-family:var(--thai);color:var(--fg-dim);font-size:12.5px;}
+  .head .line{flex:1;height:1px;background:var(--border-soft);}
+
+  .note{font-family:var(--thai);color:var(--fg-subtle);font-size:13.5px;margin:0 0 13px;}
+  .note b{color:var(--fg);font-weight:600;}
+  code{font-family:'Inter',monospace;background:var(--card);padding:1px 5px;border-radius:4px;
+       font-size:11px;color:var(--accent);}
+
+  /* ── swatches: แบน — แค่ชิป + ข้อความ ไม่หุ้มกล่อง ── */
+  .swatches{display:grid;gap:8px 18px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));}
+  .sw{display:flex;gap:10px;align-items:center;padding:4px 0;}
+  .sw .chip{width:34px;height:34px;border-radius:7px;flex:none;border:1px solid rgba(255,255,255,0.12);}
+  .sw .nm{font-weight:600;font-size:13.5px;}
+  .sw .hex{color:var(--fg-dim);font-size:11.5px;font-family:'Inter';}
+  .sw .role{font-family:var(--thai);color:var(--fg-subtle);font-size:11.5px;}
+
+  /* ── finding cards: บางลง ── */
+  .takes{display:flex;flex-direction:column;gap:8px;}
+  .take{display:flex;gap:14px;align-items:center;background:var(--card);
+        border-left:3px solid;border-radius:8px;padding:10px 15px;}
+  .take .fig{font-weight:700;font-size:18px;min-width:66px;font-family:'Inter';}
+  .take .txt{font-family:var(--thai);color:var(--fg-subtle);font-size:13.5px;}
+  .take .txt b{color:var(--fg);font-weight:600;}
+  .take.bad{border-left-color:var(--destructive);} .take.bad .fig{color:var(--destructive);}
+  .take.good{border-left-color:var(--success);} .take.good .fig{color:var(--success);}
+  .take.info{border-left-color:var(--info);} .take.info .fig{color:var(--info);}
+
+  /* ── stat grid: panel เดียว แบ่งด้วยเส้น (ไม่ใช่กล่องแยก) ── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+        background:var(--card);border-radius:var(--r);overflow:hidden;}
+  .stat{padding:13px 17px;border-right:1px solid var(--border-soft);}
+  .stat:last-child{border-right:0;}
+  .stat .label{font-family:var(--thai);font-size:13px;color:var(--fg-subtle);}
+  .stat .val{font-size:25px;font-weight:700;margin-top:2px;font-family:'Inter';letter-spacing:-0.01em;}
+  .stat .detail{font-size:11.5px;color:var(--fg-dim);font-family:var(--thai);}
+  .stat.accent .val{color:var(--primary);}
+
+  /* ── bars: เตี้ยลง ── */
+  .bars{display:flex;flex-direction:column;gap:10px;}
+  .bar{display:grid;grid-template-columns:160px 1fr 48px;gap:14px;align-items:center;}
+  .bar .name{font-family:var(--thai);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bar .track{height:8px;border-radius:999px;background:var(--card);overflow:hidden;}
+  .bar .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--primary),hsl(173 58% 52%));}
+  .bar:nth-child(2) .fill{background:linear-gradient(90deg,var(--accent),hsl(43 100% 72%));}
+  .bar:nth-child(3) .fill{background:linear-gradient(90deg,var(--info),hsl(221 83% 74%));}
+  .bar .pct{text-align:right;color:var(--fg-subtle);font-size:13px;font-family:'Inter';font-weight:500;}
+
+  /* ── callout ── */
+  .callout{background:var(--warm);color:hsl(32 88% 18%);border-radius:var(--r);
+           padding:12px 15px;font-family:var(--thai);font-size:13.5px;display:flex;gap:10px;align-items:flex-start;}
+  .callout .k{font-weight:700;color:hsl(32 88% 25%);white-space:nowrap;} .callout b{font-weight:700;}
+  .callout code{background:rgba(0,0,0,0.12);color:hsl(32 88% 22%);}
+
+  /* ── table ── */
+  .tbl-wrap{background:var(--card);border-radius:var(--r);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{background:var(--card-2);text-align:left;padding:10px 16px;font-family:var(--thai);
+           font-weight:600;font-size:13px;color:var(--fg-subtle);}
+  thead th.sorted{color:var(--primary);} thead th.sorted::after{content:' ↓';}
+  td{padding:10px 16px;border-top:1px solid var(--border-soft);font-family:'Inter';}
+  td.thai{font-family:var(--thai);}
+  td.num,th.num{text-align:right;}
+  tbody tr:hover td{background:var(--hover);}
+  .pill{display:inline-block;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:600;font-family:var(--thai);}
+  .pill.ok{background:var(--primary-soft);color:var(--primary);border:1px solid var(--primary-soft-border);}
+  .pill.warn{background:hsl(30 30% 15%);color:var(--warning);border:1px solid hsl(35 40% 30%);}
+
+  /* ── pro/con ── */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .pane{background:var(--card);border-radius:var(--r);padding:14px 17px;}
+  .pane h3{all:unset;display:block;font-family:var(--thai);font-weight:700;font-size:14px;margin-bottom:8px;}
+  .pane.pro h3{color:var(--success);} .pane.con h3{color:var(--destructive);}
+  .pane ul{margin:0;padding-left:17px;font-family:var(--thai);font-size:13.5px;color:var(--fg-subtle);}
+  .pane li{margin:5px 0;} .pane li b{color:var(--fg);font-weight:600;}
+
+  ::selection{background:var(--primary);color:var(--primary-fg);}
+  @media(max-width:760px){.cols{grid-template-columns:1fr;}.bar{grid-template-columns:104px 1fr 44px;gap:9px;}.stat{border-right:0;border-bottom:1px solid var(--border-soft);}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="titlebar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="path">Syntropic POS — dark theme (compact) · Inter + IBM Plex Sans Thai</span>
+  </div>
+  <div class="app-body">
+
+    <div class="lead-row">
+      <span class="brand-badge"><span class="sq"></span>Syntropic</span>
+      <span class="lead">เวอร์ชันรัดให้กระชับ — ฐาน 13.5px, ระยะแคบลง, stat/swatch แบนลง</span>
+    </div>
+
+    <div id="hero">
+      <div class="num">฿128,400<span class="label">ยอดขายสัปดาห์นี้</span></div>
+      <div class="split"><b>342</b> บิล · เฉลี่ย <b>฿375</b>/บิล · <span class="ok">+12.4%</span> จากสัปดาห์ก่อน</div>
+    </div>
+
+    <!-- 1. PALETTE -->
+    <section>
+      <div class="head"><span class="ico">1</span><h2>จานสี</h2><span class="hint">brand teal + yellow · จาก .dark tokens จริง</span><span class="line"></span></div>
+      <div class="note">accent หลัก <b>teal #2BA396</b> + <b>yellow #F5C24A</b> · พื้น <code>#1a1a1a</code> การ์ด <code>#333</code></div>
+      <div class="swatches">
+        <div class="sw"><span class="chip" style="background:hsl(0 0% 10%)"></span><div><div class="nm">background</div><div class="hex">#1a1a1a</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(0 0% 20%)"></span><div><div class="nm">card</div><div class="hex">#333333</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(0 0% 100%)"></span><div><div class="nm">foreground</div><div class="hex">#ffffff</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(173 58% 40%)"></span><div><div class="nm">primary ★</div><div class="hex">#2BA396</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(43 100% 64%)"></span><div><div class="nm">accent ★</div><div class="hex">#F5C24A</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(173 24% 13%)"></span><div><div class="nm">primary-soft</div><div class="hex">#1A2A28</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(142 65% 45%)"></span><div><div class="nm">success</div><div class="hex">green</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(3 100% 66%)"></span><div><div class="nm">destructive</div><div class="hex">red</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(221 83% 64%)"></span><div><div class="nm">info</div><div class="hex">blue</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(35 100% 60%)"></span><div><div class="nm">warning</div><div class="hex">orange</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(45 90% 80%)"></span><div><div class="nm">warm</div><div class="hex">cream</div></div></div>
+        <div class="sw"><span class="chip" style="background:hsl(0 0% 28%)"></span><div><div class="nm">border</div><div class="hex">#474747</div></div></div>
+      </div>
+    </section>
+
+    <!-- 2. FINDINGS -->
+    <section>
+      <div class="head"><span class="ico">2</span><h2>การ์ดสรุป</h2><span class="hint">finding · ตัวเลขเด่น + แท่งสีบอกชนิด</span><span class="line"></span></div>
+      <div class="takes">
+        <div class="take good"><div class="fig">+12.4%</div><div class="txt">ยอดขายโต <b>12.4%</b> จากสัปดาห์ก่อน — แนวโน้มดี</div></div>
+        <div class="take bad"><div class="fig">18</div><div class="txt">มีสินค้า <b>18 รายการ</b> สต็อกต่ำกว่าจุดสั่งซื้อ ควรรีบเติม</div></div>
+        <div class="take info"><div class="fig">฿1.3M</div><div class="txt">เจ้าหนี้ค้างชำระรวม <b>฿1.3M</b> จากบิลเครดิต 351 ใบ</div></div>
+      </div>
+    </section>
+
+    <!-- 3. STAT GRID + BARS -->
+    <section>
+      <div class="head"><span class="ico">3</span><h2>ตัวเลข & แท่งสัดส่วน</h2><span class="hint">stat = panel เดียวแบ่งเส้น (ไม่ใช่กล่องแยก)</span><span class="line"></span></div>
+      <div class="grid" style="margin-bottom:16px">
+        <div class="stat accent"><div class="label">ยอดขายวันนี้</div><div class="val">฿24,150</div><div class="detail">68 บิล</div></div>
+        <div class="stat"><div class="label">กำไรขั้นต้น</div><div class="val">฿7,820</div><div class="detail">32.4% margin</div></div>
+        <div class="stat"><div class="label">ลูกค้าใหม่</div><div class="val">12</div><div class="detail">สัปดาห์นี้</div></div>
+        <div class="stat"><div class="label">ใกล้หมดอายุ</div><div class="val">9</div><div class="detail">ภายใน 60 วัน</div></div>
+      </div>
+      <div class="note"><b>หมวดสินค้าขายดี</b> — สัดส่วนยอดขาย</div>
+      <div class="bars">
+        <div class="bar"><span class="name">ยาแก้ปวด/ลดไข้</span><span class="track"><span class="fill" style="width:64%"></span></span><span class="pct">64%</span></div>
+        <div class="bar"><span class="name">วิตามิน/อาหารเสริม</span><span class="track"><span class="fill" style="width:41%"></span></span><span class="pct">41%</span></div>
+        <div class="bar"><span class="name">เวชสำอาง</span><span class="track"><span class="fill" style="width:23%"></span></span><span class="pct">23%</span></div>
+      </div>
+    </section>
+
+    <!-- 4. CALLOUT + TABLE -->
+    <section>
+      <div class="head"><span class="ico">4</span><h2>คำแนะนำ & ตาราง</h2><span class="hint">callout (พื้นอุ่น) + ตาราง sortable</span><span class="line"></span></div>
+      <div class="callout" style="margin-bottom:14px">
+        <span class="k">แนะนำ</span>
+        <div><b>ยาแก้แพ้ Loratadine</b> เหลือ <code>8</code> กล่อง ต่ำกว่าจุดสั่งซื้อ — ควรเปิด PO ภายในสัปดาห์นี้</div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>สินค้า</th><th class="num sorted">ยอดขาย</th><th class="num">จำนวน</th><th>สต็อก</th></tr></thead>
+          <tbody>
+            <tr><td class="thai">พาราเซตามอล 500mg</td><td class="num">฿4,200</td><td class="num">420</td><td><span class="pill ok">พอ</span></td></tr>
+            <tr><td class="thai">Loratadine 10mg</td><td class="num">฿3,150</td><td class="num">210</td><td><span class="pill warn">ต่ำ</span></td></tr>
+            <tr><td class="thai">วิตามินซี 1000mg</td><td class="num">฿2,880</td><td class="num">96</td><td><span class="pill ok">พอ</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5. PRO/CON -->
+    <section>
+      <div class="head"><span class="ico">5</span><h2>ต่างจาก Claude version ยังไง</h2><span class="hint">ปรับให้เป็นบ้านเรา</span><span class="line"></span></div>
+      <div class="cols">
+        <div class="pane pro"><h3>ของเราเปลี่ยนเป็น</h3>
+          <ul>
+            <li><b>accent teal+yellow</b> แทน clay ส้มอิฐ</li>
+            <li><b>ฟอนต์ sans</b> Inter + IBM Plex Sans Thai</li>
+            <li><b>การ์ด/เส้นแบ่งบาง</b> แทนลุค ASCII</li>
+            <li><b>แท่งจริง gradient</b> แทน block-char</li>
+          </ul>
+        </div>
+        <div class="pane con"><h3>คงไว้จาก Claude</h3>
+          <ul>
+            <li><b>window chrome</b> titlebar 3 จุด</li>
+            <li><b>hero ตัวเลขใหญ่</b> นำสายตา</li>
+            <li><b>section pattern</b> หัวข้อ + เส้น + hint</li>
+            <li><b>ระยะกระชับ</b> ฐานเล็ก gap แคบ</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div style="margin-top:24px;color:var(--fg-dim);font-size:11px;font-family:var(--thai);">
+      compact build · คู่เทียบ Claude ต้นฉบับ: <code>docs/claude-dark-theme-reference.html</code> · สีจาก <code>src/index.css</code> .dark
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

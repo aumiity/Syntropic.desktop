@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dark Mode Spec — Syntropic .dark</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ชุด .dark ที่แก้แล้ว — ใช้ render หน้านี้จริง */
+    --background:0 0% 10%; --foreground:0 0% 100%; --foreground-subtle:215 16% 47%;
+    --card:0 0% 20%; --popover:0 0% 20%; --surface-hover:215 25% 22%;
+    --border:0 0% 26%; --border-strong:215 25% 35%; --input:0 0% 20%; --ring:175 35% 60%;
+    --primary:173 58% 40%; --primary-foreground:165 50% 5%; --primary-hover:173 58% 35%;
+    --primary-strong:173 60% 30%; --primary-soft:173 24% 13%; --primary-soft-hover:173 28% 17%; --primary-soft-border:173 30% 25%;
+    --secondary:0 0% 20%; --secondary-hover:0 0% 28%;
+    --accent:43 100% 64%; --accent-foreground:44 100% 8%;
+    --muted:0 0% 22%; --muted-foreground:0 0% 64%; --muted-hover:0 0% 28%;
+    --success:142 71% 36%; --success-soft:142 30% 18%;
+    --warning:35 100% 60%; --warning-soft:30 30% 15%; --warning-soft-foreground:32 95% 72%;
+    --destructive:3 100% 59%; --destructive-soft:0 45% 16%; --destructive-strong:0 90% 78%;
+    --info:221 83% 60%; --info-soft:219 45% 18%; --info-soft-foreground:219 90% 80%; --info-soft-hover:219 45% 24%;
+    --warm:43 25% 14%; --warm-foreground:45 90% 80%;
+    --violet:262 83% 65%; --violet-soft:263 30% 18%; --violet-strong:263 80% 75%;
+    --teal:167 70% 50%; --teal-soft:167 30% 18%; --teal-strong:167 70% 75%;
+    --sidebar:0 0% 20%; --sidebar-border:0 0% 26%; --sidebar-accent:43 100% 64%;
+  }
+  *{box-sizing:border-box;}
+  html{background:hsl(var(--background));}
+  body{margin:0;padding:36px 24px 80px;color:hsl(var(--foreground));
+       font:14px/1.55 'Inter','IBM Plex Sans Thai',sans-serif;}
+  .wrap{max-width:1120px;margin:0 auto;}
+  h1{font-size:22px;font-weight:700;margin:0 0 3px;}
+  .sub{font-family:'IBM Plex Sans Thai';color:hsl(var(--muted-foreground));font-size:14px;margin:0 0 28px;}
+
+  .head{display:flex;align-items:center;gap:10px;margin:34px 0 14px;}
+  .head .ico{width:24px;height:24px;border-radius:7px;background:hsl(var(--primary-soft));
+             border:1px solid hsl(var(--primary-soft-border));color:hsl(var(--primary));
+             display:grid;place-items:center;font-weight:700;font-size:13px;}
+  .head h2{font-size:16px;font-weight:600;margin:0;}
+  .head .line{flex:1;height:1px;background:hsl(var(--border));}
+
+  /* ── ladders ── */
+  .ladder{display:flex;gap:0;border-radius:11px;overflow:hidden;border:1px solid hsl(var(--border));}
+  .rung{flex:1;padding:16px 14px;display:flex;flex-direction:column;gap:5px;min-height:88px;justify-content:flex-end;}
+  .rung .nm{font-family:'JetBrains Mono';font-size:12px;font-weight:500;}
+  .rung .vl{font-family:'JetBrains Mono';font-size:11px;opacity:.7;}
+  .formula{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .fcard{border:1px solid hsl(var(--border));border-radius:12px;overflow:hidden;}
+  .fcard .top{padding:13px 16px;font-family:'IBM Plex Sans Thai';font-weight:600;font-size:14px;display:flex;gap:9px;align-items:center;}
+  .fcard .demo{padding:18px 16px;display:flex;gap:10px;align-items:center;}
+  .fchip{padding:6px 14px;border-radius:8px;font-family:'IBM Plex Sans Thai';font-size:13px;font-weight:600;}
+  .fnote{font-family:'JetBrains Mono';font-size:11px;color:hsl(var(--muted-foreground));}
+
+  /* ── swatch grid ── */
+  .grid{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));}
+  .sw{display:flex;gap:11px;align-items:center;background:hsl(var(--card));
+      border:1px solid hsl(var(--border));border-radius:10px;padding:9px 11px;position:relative;}
+  .sw.chg{border-color:hsl(var(--primary));box-shadow:0 0 0 1px hsl(var(--primary)/0.4);}
+  .sw .chip{width:34px;height:34px;border-radius:7px;flex:none;border:1px solid rgba(255,255,255,.12);}
+  .sw .nm{font-family:'JetBrains Mono';font-size:12px;font-weight:500;line-height:1.3;word-break:break-all;}
+  .sw .vl{font-family:'JetBrains Mono';font-size:10.5px;color:hsl(var(--muted-foreground));}
+  .sw .badge{position:absolute;top:-7px;right:8px;font-family:'IBM Plex Sans Thai';font-size:10px;font-weight:700;
+             background:hsl(var(--primary));color:hsl(var(--primary-foreground));padding:1px 7px;border-radius:99px;}
+  .legend{font-family:'IBM Plex Sans Thai';color:hsl(var(--muted-foreground));font-size:12.5px;margin:0 0 14px;display:flex;gap:7px;align-items:center;}
+  .legend .dot{width:11px;height:11px;border-radius:3px;background:hsl(var(--primary));box-shadow:0 0 0 1px hsl(var(--primary)/.4);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dark Mode Spec — <span style="font-family:'JetBrains Mono';font-size:18px;color:hsl(var(--primary))">.dark</span></h1>
+  <p class="sub">หน้านี้ render ด้วยชุด token ที่แก้แล้วจริง ๆ · ตัวที่ตีกรอบ teal = ตัวที่เปลี่ยนจากของเดิม</p>
+
+  <!-- LADDER 1: surfaces -->
+  <div class="head"><span class="ico">1</span><h2>บันไดพื้นผิว — ยิ่งลอยยิ่งสว่าง</h2><span class="line"></span></div>
+  <div class="ladder">
+    <div class="rung" style="background:hsl(var(--background))"><span class="nm">background</span><span class="vl">10%</span></div>
+    <div class="rung" style="background:hsl(var(--card))"><span class="nm">card / popover</span><span class="vl">20%</span></div>
+    <div class="rung" style="background:hsl(var(--muted))"><span class="nm">muted</span><span class="vl">22% ←แก้</span></div>
+    <div class="rung" style="background:hsl(var(--surface-hover))"><span class="nm">surface-hover</span><span class="vl">22-24%</span></div>
+    <div class="rung" style="background:hsl(var(--border));color:#fff"><span class="nm">border</span><span class="vl">26% ←แก้</span></div>
+  </div>
+
+  <!-- LADDER 2: text -->
+  <div class="head"><span class="ico">2</span><h2>บันไดตัวอักษร — ยิ่งสำคัญยิ่งสว่าง</h2><span class="line"></span></div>
+  <div class="ladder" style="background:hsl(var(--card))">
+    <div class="rung"><span class="nm" style="color:hsl(var(--foreground));font-size:17px">foreground</span><span class="vl" style="color:hsl(var(--foreground))">100% · หัวข้อ/ค่าหลัก</span></div>
+    <div class="rung"><span class="nm" style="color:hsl(var(--muted-foreground));font-size:15px">muted-foreground</span><span class="vl" style="color:hsl(var(--muted-foreground))">64% ←แก้ · text รอง</span></div>
+    <div class="rung"><span class="nm" style="color:hsl(var(--foreground-subtle));font-size:14px">foreground-subtle</span><span class="vl" style="color:hsl(var(--foreground-subtle))">47% · placeholder</span></div>
+  </div>
+
+  <!-- LADDER 3: soft formula -->
+  <div class="head"><span class="ico">3</span><h2>สูตร soft / soft-foreground</h2><span class="line"></span></div>
+  <p class="legend" style="margin-top:-2px"><code style="font-family:'JetBrains Mono';color:hsl(var(--primary))">*-soft</code> = สีนั้น L ต่ำ (พื้นนุ่ม) · <code style="font-family:'JetBrains Mono';color:hsl(var(--primary))">*-soft-foreground</code> = สีนั้น L สูง (ตัวอักษร) — destructive/info รอบนี้แก้ให้ตามสูตรนี้</p>
+  <div class="formula">
+    <div class="fcard">
+      <div class="top" style="background:hsl(var(--destructive-soft));color:hsl(var(--destructive-strong))">destructive · แก้แล้ว</div>
+      <div class="demo">
+        <span class="fchip" style="background:hsl(var(--destructive-soft));color:hsl(var(--destructive-strong))">ค้างชำระ ฿1,300</span>
+        <span class="fnote">soft 16% · strong 78%</span>
+      </div>
+    </div>
+    <div class="fcard">
+      <div class="top" style="background:hsl(var(--info-soft));color:hsl(var(--info-soft-foreground))">info · แก้แล้ว</div>
+      <div class="demo">
+        <span class="fchip" style="background:hsl(var(--info-soft));color:hsl(var(--info-soft-foreground))">ปรับสต็อก</span>
+        <span class="fnote">soft 18% · fg 80%</span>
+      </div>
+    </div>
+    <div class="fcard">
+      <div class="top" style="background:hsl(var(--success-soft));color:hsl(var(--success))">success · เดิมถูกอยู่แล้ว</div>
+      <div class="demo">
+        <span class="fchip" style="background:hsl(var(--success-soft));color:hsl(var(--success))">สำเร็จ</span>
+        <span class="fnote">soft 18%</span>
+      </div>
+    </div>
+    <div class="fcard">
+      <div class="top" style="background:hsl(var(--warm));color:hsl(var(--warm-foreground))">warm · เดิมถูกอยู่แล้ว</div>
+      <div class="demo">
+        <span class="fchip" style="background:hsl(var(--warm));color:hsl(var(--warm-foreground))">เตือน</span>
+        <span class="fnote">warm 14% · fg 80%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL TOKEN GRID -->
+  <div class="head"><span class="ico">4</span><h2>ทุก token ในชุดที่แก้แล้ว</h2><span class="line"></span></div>
+  <p class="legend"><span class="dot"></span> = ตัวที่เปลี่ยนจากของเดิม (10 บรรทัด)</p>
+  <div class="grid">
+    <div class="sw"><span class="chip" style="background:hsl(var(--background))"></span><div><div class="nm">--background</div><div class="vl">0 0% 10%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--card))"></span><div><div class="nm">--card</div><div class="vl">0 0% 20%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--foreground))"></span><div><div class="nm">--foreground</div><div class="vl">0 0% 100%</div></div></div>
+    <div class="sw chg"><span class="badge">แก้</span><span class="chip" style="background:hsl(var(--muted))"></span><div><div class="nm">--muted</div><div class="vl">0 0% 22%</div></div></div>
+    <div class="sw chg"><span class="badge">แก้</span><span class="chip" style="background:hsl(var(--muted-foreground))"></span><div><div class="nm">--muted-foreground</div><div class="vl">0 0% 64%</div></div></div>
+    <div class="sw chg"><span class="badge">แก้</span><span class="chip" style="background:hsl(var(--muted-hover))"></span><div><div class="nm">--muted-hover</div><div class="vl">0 0% 28%</div></div></div>
+    <div class="sw chg"><span class="badge">แก้</span><span class="chip" style="background:hsl(var(--border))"></span><div><div class="nm">--border</div><div class="vl">0 0% 26%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--border-strong))"></span><div><div class="nm">--border-strong</div><div class="vl">215 25% 35%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--ring))"></span><div><div class="nm">--ring</div><div class="vl">175 35% 60%</div></div></div>
+
+    <div class="sw"><span class="chip" style="background:hsl(var(--primary))"></span><div><div class="nm">--primary</div><div class="vl">173 58% 40%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--primary-soft))"></span><div><div class="nm">--primary-soft</div><div class="vl">173 24% 13%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--primary-soft-border))"></span><div><div class="nm">--primary-soft-border</div><div class="vl">173 30% 25%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--accent))"></span><div><div class="nm">--accent</div><div class="vl">43 100% 64%</div></div></div>
+
+    <div class="sw"><span class="chip" style="background:hsl(var(--success))"></span><div><div class="nm">--success</div><div class="vl">142 71% 36%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--success-soft))"></span><div><div class="nm">--success-soft</div><div class="vl">142 30% 18%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--warning))"></span><div><div class="nm">--warning</div><div class="vl">35 100% 60%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--warning-soft))"></span><div><div class="nm">--warning-soft</div><div class="vl">30 30% 15%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--warning-soft-foreground))"></span><div><div class="nm">--warning-soft-foreground</div><div class="vl">32 95% 72%</div></div></div>
+
+    <div class="sw"><span class="chip" style="background:hsl(var(--destructive))"></span><div><div class="nm">--destructive</div><div class="vl">3 100% 59%</div></div></div>
+    <div class="sw chg"><span class="badge">แก้</span><span class="chip" style="background:hsl(var(--destructive-soft))"></span><div><div class="nm">--destructive-soft</div><div class="vl">0 45% 16%</div></div></div>
+    <div class="sw chg"><span class="badge">แก้</span><span class="chip" style="background:hsl(var(--destructive-strong))"></span><div><div class="nm">--destructive-strong</div><div class="vl">0 90% 78%</div></div></div>
+
+    <div class="sw"><span class="chip" style="background:hsl(var(--info))"></span><div><div class="nm">--info</div><div class="vl">221 83% 60%</div></div></div>
+    <div class="sw chg"><span class="badge">แก้</span><span class="chip" style="background:hsl(var(--info-soft))"></span><div><div class="nm">--info-soft</div><div class="vl">219 45% 18%</div></div></div>
+    <div class="sw chg"><span class="badge">แก้</span><span class="chip" style="background:hsl(var(--info-soft-foreground))"></span><div><div class="nm">--info-soft-foreground</div><div class="vl">219 90% 80%</div></div></div>
+    <div class="sw chg"><span class="badge">แก้</span><span class="chip" style="background:hsl(var(--info-soft-hover))"></span><div><div class="nm">--info-soft-hover</div><div class="vl">219 45% 24%</div></div></div>
+
+    <div class="sw"><span class="chip" style="background:hsl(var(--warm))"></span><div><div class="nm">--warm</div><div class="vl">43 25% 14%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--warm-foreground))"></span><div><div class="nm">--warm-foreground</div><div class="vl">45 90% 80%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--violet))"></span><div><div class="nm">--violet</div><div class="vl">262 83% 65%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--violet-soft))"></span><div><div class="nm">--violet-soft</div><div class="vl">263 30% 18%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--teal))"></span><div><div class="nm">--teal</div><div class="vl">167 70% 50%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--teal-soft))"></span><div><div class="nm">--teal-soft</div><div class="vl">167 30% 18%</div></div></div>
+
+    <div class="sw"><span class="chip" style="background:hsl(var(--sidebar))"></span><div><div class="nm">--sidebar</div><div class="vl">0 0% 20%</div></div></div>
+    <div class="sw chg"><span class="badge">แก้</span><span class="chip" style="background:hsl(var(--sidebar-border))"></span><div><div class="nm">--sidebar-border</div><div class="vl">0 0% 26%</div></div></div>
+    <div class="sw"><span class="chip" style="background:hsl(var(--sidebar-accent))"></span><div><div class="nm">--sidebar-accent</div><div class="vl">43 100% 64%</div></div></div>
+  </div>
+
+  <p class="sub" style="margin-top:30px;font-size:12.5px">
+    block เต็มพร้อม comment = <code style="font-family:'JetBrains Mono';color:hsl(var(--primary))">docs/dark-mode-redesign.css</code> ·
+    before/after มินิ-UI = <code style="font-family:'JetBrains Mono';color:hsl(var(--primary))">docs/dark-mode-redesign.html</code>
+  </p>
+</div>
+</body>
+</html>

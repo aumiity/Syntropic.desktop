@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Dark Theme — Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ivory:#FAF9F5; --term-bg:#1a1918; --term-fg:#d1cfc5; --titlebar:#252321;
+    --outline:rgba(255,255,255,0.08); --hover:rgba(255,255,255,0.035);
+    --clay:#D97757; --dim:rgb(136,136,136); --subtle:rgb(80,80,80);
+    --green:rgb(78,186,101); --red:rgb(255,107,128); --blue:rgb(177,185,249); --yellow:rgb(255,193,7);
+    --mono:'JetBrains Mono','SF Mono',ui-monospace,Menlo,monospace;
+    --thai:'Sarabun',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{background:var(--ivory);}
+  body{margin:0;padding:40px 20px 80px;font:13px/1.6 var(--mono);color:var(--term-fg);}
+
+  /* terminal window chrome */
+  .term{max-width:1180px;margin:0 auto;background:var(--term-bg);border-radius:8px;
+        outline:1px solid var(--outline);box-shadow:0 20px 60px rgba(20,20,19,0.22);}
+  .titlebar{background:var(--titlebar);border-radius:8px 8px 0 0;border-bottom:1px solid var(--outline);
+            padding:11px 14px;display:flex;align-items:center;gap:7px;}
+  .titlebar .dot{width:11px;height:11px;border-radius:50%;background:#3a3836;}
+  .titlebar .path{margin-left:14px;color:var(--dim);font-size:11px;}
+  .term-body{padding:22px 30px 36px;}
+
+  .cmd{color:var(--dim);margin-bottom:6px;}
+  .cmd .prompt{color:var(--clay);} .cmd .flag{color:var(--blue);}
+  .lead{color:var(--subtle);font-size:11px;margin-bottom:4px;}
+  .lead .th{font-family:var(--thai);font-size:13px;color:var(--dim);}
+
+  /* section header pattern */
+  section{margin-top:30px;}
+  .hr{color:var(--subtle);overflow:hidden;white-space:nowrap;user-select:none;margin-bottom:8px;}
+  .hr::after{content:'────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────';}
+  h2{all:unset;display:block;color:var(--clay);font-weight:500;}
+  h2::before{content:'▸ ';}
+  h2 .hint{color:var(--subtle);font-size:11px;font-weight:400;margin-left:10px;}
+  .body{margin-top:14px;}
+  .note{font-family:var(--thai);color:var(--dim);font-size:13px;margin:6px 0 14px;}
+  .note b{color:var(--term-fg);font-weight:600;}
+
+  /* swatches */
+  .swatches{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+  .sw{display:flex;gap:11px;align-items:center;padding:8px;border:1px solid var(--outline);border-radius:6px;}
+  .sw .chip{width:40px;height:40px;border-radius:5px;flex:none;border:1px solid rgba(255,255,255,0.12);}
+  .sw .meta{min-width:0;}
+  .sw .nm{color:var(--term-fg);font-weight:500;}
+  .sw .hex{color:var(--dim);font-size:11px;}
+  .sw .role{font-family:var(--thai);color:var(--subtle);font-size:12px;}
+
+  /* takeaways */
+  .take{display:grid;grid-template-columns:9ch 1fr;gap:18px;padding:6px 0;align-items:baseline;}
+  .take .fig{text-align:right;font-weight:700;font-size:15px;}
+  .take .txt{color:var(--dim);font-family:var(--thai);font-size:13px;}
+  .take .txt b{color:var(--term-fg);font-weight:600;}
+  .take.bad .fig{color:var(--red);} .take.good .fig{color:var(--green);} .take.info .fig{color:var(--blue);}
+
+  /* stat grid */
+  .grid{display:grid;gap:4px 28px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
+  .stat{padding:4px 0;}
+  .stat .label{font-size:11px;color:var(--dim);}
+  .stat .val{font-size:20px;font-weight:500;}
+  .stat .detail{font-size:11px;color:var(--subtle);}
+
+  /* block-char bars */
+  .bar{display:grid;grid-template-columns:18ch 1fr 6ch;gap:14px;padding:2px 0;align-items:center;}
+  .bar .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bar .blocks{color:var(--clay);white-space:pre;overflow:hidden;}
+  .bar .blocks .empty{color:var(--subtle);}
+  .bar .pct{text-align:right;color:var(--dim);}
+  .bar:hover .name{color:var(--clay);}
+
+  /* callout */
+  .callout{padding:6px 0 6px 14px;border-left:2px solid var(--subtle);color:var(--dim);
+           font-family:var(--thai);font-size:13px;margin:6px 0;}
+  .callout b,.callout code{color:var(--term-fg);}
+
+  /* table */
+  .scroll{max-height:300px;overflow:auto;border-top:1px solid var(--outline);border-bottom:1px solid var(--outline);}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th,td{text-align:left;padding:6px 10px;}
+  td{border-top:1px solid rgba(255,255,255,0.04);}
+  th{position:sticky;top:0;background:var(--term-bg);font-weight:500;font-size:11px;color:var(--subtle);
+     border-bottom:1px solid var(--outline);cursor:pointer;}
+  th.sorted{color:var(--clay);} th.sorted::after{content:' ↓';}
+  td.num,th.num{text-align:right;}
+  tbody tr:hover td{background:var(--hover);}
+
+  /* inset light card */
+  .ctx{margin:8px 0;padding:10px 14px;background:#F0EEE6;color:#1a1918;border-radius:6px;font-size:12px;}
+  .ctx .who{color:#87867F;font-size:11px;}
+  .ctx .here{margin:2px -14px;padding:6px 11px 6px 14px;border-left:3px solid var(--clay);background:rgba(217,119,87,0.10);}
+  .ctx .here .who{color:var(--clay);font-weight:500;}
+
+  /* two-col explain */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .cols .pane{border:1px solid var(--outline);border-radius:6px;padding:12px 14px;}
+  .cols h3{all:unset;display:block;font-family:var(--thai);font-weight:600;font-size:13px;margin-bottom:8px;}
+  .cols.pro h3{color:var(--green);} .cols.con h3{color:var(--red);}
+  .cols ul{margin:0;padding-left:18px;font-family:var(--thai);font-size:13px;color:var(--dim);}
+  .cols li{margin:4px 0;} .cols li b{color:var(--term-fg);font-weight:600;}
+
+  /* layout tree */
+  pre.tree{background:rgba(255,255,255,0.02);border:1px solid var(--outline);border-radius:6px;
+           padding:14px 16px;color:var(--dim);font-size:12px;line-height:1.65;overflow-x:auto;}
+  pre.tree .c{color:var(--clay);} pre.tree .d{color:var(--subtle);}
+
+  code{color:var(--blue);}
+  ::selection{background:var(--clay);color:var(--term-bg);}
+  @media(max-width:760px){.cols{grid-template-columns:1fr;}.bar{grid-template-columns:12ch 1fr 5ch;}}
+</style>
+</head>
+<body>
+
+<div class="term">
+  <div class="titlebar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="path">~/.claude — Claude Code "terminal" dark theme · reference</span>
+  </div>
+  <div class="term-body">
+
+    <div class="cmd"><span class="prompt">&gt;</span> ถอดดีไซน์จาก <span class="flag">session-report/template.html</span></div>
+    <div class="lead"><span class="th">เก็บไว้เป็น reference เผื่อทำ dark mode ของ Syntropic — อ้างอิงเฉย ๆ ยังไม่ผูกโค้ดจริง</span></div>
+
+    <!-- 1. PALETTE -->
+    <section>
+      <div class="hr"></div>
+      <h2>1 · จานสี<span class="hint">palette — Anthropic / Claude Code</span></h2>
+      <div class="body">
+        <div class="note">พื้นเข้ม<b>อมน้ำตาลอุ่น</b> (ไม่ใช่ดำสนิท/เทาน้ำเงิน) ตัวอักษร<b>ครีมหม่น</b> (ไม่ใช่ขาวจัด) accent หลักคือ <b>clay ส้มอิฐ</b> ตัวเดียว + 4 สีสถานะ</div>
+        <div class="swatches">
+          <div class="sw"><span class="chip" style="background:#FAF9F5"></span><span class="meta"><div class="nm">ivory</div><div class="hex">#FAF9F5</div><div class="role">พื้นนอกสุด (light)</div></span></div>
+          <div class="sw"><span class="chip" style="background:#1a1918"></span><span class="meta"><div class="nm">term-bg</div><div class="hex">#1a1918</div><div class="role">พื้นเนื้อหา (dark)</div></span></div>
+          <div class="sw"><span class="chip" style="background:#252321"></span><span class="meta"><div class="nm">titlebar</div><div class="hex">#252321</div><div class="role">แถบหัว / muted</div></span></div>
+          <div class="sw"><span class="chip" style="background:#d1cfc5"></span><span class="meta"><div class="nm">term-fg</div><div class="hex">#d1cfc5</div><div class="role">ตัวอักษรหลัก</div></span></div>
+          <div class="sw"><span class="chip" style="background:rgb(136,136,136)"></span><span class="meta"><div class="nm">dim</div><div class="hex">rgb(136,136,136)</div><div class="role">ตัวอักษรรอง</div></span></div>
+          <div class="sw"><span class="chip" style="background:rgb(80,80,80)"></span><span class="meta"><div class="nm">subtle</div><div class="hex">rgb(80,80,80)</div><div class="role">จางสุด / เส้น</div></span></div>
+          <div class="sw"><span class="chip" style="background:#D97757"></span><span class="meta"><div class="nm">clay ★</div><div class="hex">#D97757</div><div class="role">accent หลัก / primary</div></span></div>
+          <div class="sw"><span class="chip" style="background:rgb(78,186,101)"></span><span class="meta"><div class="nm">green</div><div class="hex">rgb(78,186,101)</div><div class="role">success</div></span></div>
+          <div class="sw"><span class="chip" style="background:rgb(255,107,128)"></span><span class="meta"><div class="nm">red</div><div class="hex">rgb(255,107,128)</div><div class="role">destructive</div></span></div>
+          <div class="sw"><span class="chip" style="background:rgb(177,185,249)"></span><span class="meta"><div class="nm">blue</div><div class="hex">rgb(177,185,249)</div><div class="role">info / code</div></span></div>
+          <div class="sw"><span class="chip" style="background:rgb(255,193,7)"></span><span class="meta"><div class="nm">yellow</div><div class="hex">rgb(255,193,7)</div><div class="role">warning</div></span></div>
+          <div class="sw"><span class="chip" style="background:rgba(255,255,255,0.08)"></span><span class="meta"><div class="nm">outline</div><div class="hex">rgba(255,255,255,.08)</div><div class="role">border (ขาวโปร่ง)</div></span></div>
+        </div>
+        <div class="note" style="margin-top:14px">เทคนิค dark mode ที่น่าขโมย: <b>border + hover เป็น overlay ขาวโปร่ง</b> (<code>rgba(255,255,255,.08)</code> / <code>.035</code>) ไม่ใช่สีตายตัว → ปรับตามความเข้มพื้นได้เอง</div>
+      </div>
+    </section>
+
+    <!-- 2. LAYOUT TREE -->
+    <section>
+      <div class="hr"></div>
+      <h2>2 · โครงสร้างหน้า<span class="hint">layout · ลำดับ section</span></h2>
+      <div class="body">
+<pre class="tree"><span class="c">.term</span>  <span class="d">// กล่อง terminal กลางจอ max 1180px + เงาลอย</span>
+├─ <span class="c">.titlebar</span>      <span class="d">● ● ●   path ชิดซ้าย</span>
+└─ <span class="c">.term-body</span>
+   ├─ .cmd          <span class="d">&gt; claude usage --since 7d   (&gt;=clay, flag=blue)</span>
+   ├─ #meta-line    <span class="d">ช่วงวันที่ · root</span>
+   ├─ #hero         <span class="d">ตัวเลขรวมใหญ่ 56px + บรรทัดสรุป</span>
+   │
+   ├─ section ▸ findings        <span class="d">การ์ด .take สี bad/good/info</span>
+   ├─ section ▸ summary         <span class="d">stat grid</span>
+   ├─ section ▸ tokens by project <span class="d">block-char bar █░</span>
+   ├─ section ▸ session timeline  <span class="d">day pills + gantt</span>
+   ├─ section ▸ expensive prompts <span class="d">&lt;details&gt; drill-down</span>
+   ├─ section ▸ cache breaks    <span class="d">&lt;details&gt; drill-down</span>
+   ├─ section ▸ projects/agents/skills <span class="d">ตาราง sortable + sticky</span>
+   ├─ section ▸ recommendations <span class="d">.callout</span>
+   └─ footer
+
+<span class="d">// ทุก section ใช้ pattern เดียว:</span>
+&lt;section&gt;
+  &lt;div class="<span class="c">hr</span>"&gt;&lt;/div&gt;              <span class="d">เส้น ─── เต็มบรรทัดแล้วตัด overflow</span>
+  &lt;h2&gt;ชื่อ&lt;span class="hint"&gt;คำอธิบายจาง&lt;/span&gt;&lt;/h2&gt;  <span class="d">▸ นำหน้า สี clay</span>
+  &lt;div class="body"&gt;…&lt;/div&gt;
+&lt;/section&gt;</pre>
+      </div>
+    </section>
+
+    <!-- 3. COMPONENTS LIVE -->
+    <section>
+      <div class="hr"></div>
+      <h2>3 · ชิ้นส่วน UI<span class="hint">แสดงผลจริง — หยิบไปใช้ซ้ำได้</span></h2>
+      <div class="body">
+
+        <div class="note"><b>3.1 Finding card</b> — ตัวเลขเด่นซ้าย + ประโยคขวา, สีบอกชนิด (เสีย/ดี/กลาง)</div>
+        <div class="take bad"><div class="fig">41.2%</div><div class="txt"><b>cc-monitor</b> กิน 41% ของทั้งสัปดาห์ในแค่ 3 sessions</div></div>
+        <div class="take good"><div class="fig">92%</div><div class="txt">cache-read อยู่ที่ <b>92%</b> — สุขภาพดี</div></div>
+        <div class="take info"><div class="fig">12×</div><div class="txt"><b>wizard</b> ถูกเรียกบ่อยสุด เฉลี่ย 1.2M tokens/ครั้ง</div></div>
+
+        <div class="note" style="margin-top:18px"><b>3.2 Stat grid</b> — สรุปตัวเลข auto-fit</div>
+        <div class="grid">
+          <div class="stat"><div class="label">sessions</div><div class="val">48</div></div>
+          <div class="stat"><div class="label">api calls</div><div class="val">1.2k</div></div>
+          <div class="stat"><div class="label">active hours</div><div class="val">31.4</div><div class="detail">42.0 wall-clock</div></div>
+          <div class="stat"><div class="label">cache breaks</div><div class="val">7</div><div class="detail">&gt;100k uncached</div></div>
+          <div class="stat"><div class="label">subagent calls</div><div class="val">63</div><div class="detail">avg 880k</div></div>
+        </div>
+
+        <div class="note" style="margin-top:18px"><b>3.3 Block-char bar</b> — วาดบาร์ด้วยตัวอักษร <code>█</code> + <code>░</code> ไม่ใช่ div</div>
+        <div class="bar"><span class="name">Syntropic.desktop</span><span class="blocks">████████████████████████████████<span class="empty">░░░░░░░░░░░░░░░░</span></span><span class="pct">64.2%</span></div>
+        <div class="bar"><span class="name">cc-monitor</span><span class="blocks">██████████████<span class="empty">░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░</span></span><span class="pct">28.1%</span></div>
+        <div class="bar"><span class="name">scratch</span><span class="blocks">████<span class="empty">░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░</span></span><span class="pct">7.7%</span></div>
+
+        <div class="note" style="margin-top:18px"><b>3.4 Callout</b> — ข้อเสนอแนะ แท่งเส้นซ้าย</div>
+        <div class="callout"><code>/weekly-status</code> spawn 7 subagents กิน 8.1% ของทั้งหมด — <b>ลดจำนวน agent ขนาน</b></div>
+
+        <div class="note" style="margin-top:18px"><b>3.5 ตาราง sortable + sticky header</b> — คลิกหัวเรียง, คอลัมน์ที่เรียงเป็นสี clay</div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>name</th><th class="num sorted">% total</th><th class="num">sess</th><th class="num">input</th><th class="num">output</th></tr></thead>
+            <tbody>
+              <tr><td>Syntropic.desktop</td><td class="num">64.2%</td><td class="num">31</td><td class="num">8.4M</td><td class="num">120k</td></tr>
+              <tr><td>cc-monitor</td><td class="num">28.1%</td><td class="num">3</td><td class="num">3.7M</td><td class="num">52k</td></tr>
+              <tr><td>scratch</td><td class="num">7.7%</td><td class="num">14</td><td class="num">1.0M</td><td class="num">18k</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note" style="margin-top:18px"><b>3.6 Inset light card</b> — กล่องครีมบนพื้นเข้ม (อ่านง่ายแบบกระดาษ) + highlight แท่ง clay</div>
+        <div class="ctx">
+          <div class="who">  user</div>อ่านยาก ทำเป็น html ให้ผมเห็นโครงสร้างที
+          <div class="here"><div class="who">&gt; user</div>ค้นหาสี และ template การวางโครงสร้าง</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 4. PRO/CON FOR US -->
+    <section>
+      <div class="hr"></div>
+      <h2>4 · หยิบมาทำ dark mode เราดีไหม<span class="hint">เอา / ไม่เอา</span></h2>
+      <div class="body">
+        <div class="cols">
+          <div class="pane pro cols"><h3>ยืมได้ดี</h3>
+            <ul>
+              <li><b>ระบบบทบาทสี</b> — accent เดียวเด่น + 4 สีสถานะ ตรงแนวเรา (primary + success/destructive/info/warning) อยู่แล้ว</li>
+              <li><b>พื้นเข้มอมอุ่น</b> #1a1918 + ตัวอักษรครีมหม่น #d1cfc5 สบายตากว่า dark เทากลาง</li>
+              <li><b>border/hover แบบ overlay โปร่ง</b> ปรับตามพื้นได้เอง</li>
+            </ul>
+          </div>
+          <div class="pane con cols"><h3>ไม่เอาตามตรง</h3>
+            <ul>
+              <li><b>ฟอนต์ mono + ลุค ASCII</b> (█ ░ ▸ ─) เป็นคาแรกเตอร์ terminal เฉพาะหน้ารายงาน ไม่เข้ากับ POS (Sarabun/Inter)</li>
+              <li><b>tabular-nums</b> — กฎเราห้าม</li>
+              <li><b>hex ดิบ</b> — ต้องผ่าน semantic token (<code>src/index.css</code> + <code>tailwind.config.js</code>) ห้ามใส่ตรง component</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note" style="margin-top:16px">ถ้าจะทำจริง: เลือกก่อนว่าจะคง brand <b>teal+yellow</b> ของเรา หรือทดลอง accent อุ่นแบบ clay → ปรับ <code>.dark</code> ใน <code>src/index.css</code> → เทียบ <code>/theme</code> (SSOT) ทุกจุด → อ่าน <code>docs/claude/ui-theming.md</code> ก่อนแตะ component</div>
+      </div>
+    </section>
+
+    <div style="margin-top:30px;color:var(--subtle);font-size:11px;">
+      ต้นฉบับ: ~/.claude/plugins/marketplaces/claude-plugins-official/plugins/session-report/skills/session-report/template.html
+      · ฉบับ markdown: docs/claude-dark-theme-reference.md
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

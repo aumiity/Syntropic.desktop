@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dark Mode Redesign — Syntropic</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── ค่าที่ "เหมือนกันทั้งสองฝั่ง" (แปลงมาถูกแล้ว) ─────────────────── */
+  .scope{
+    --background:0 0% 10%; --foreground:0 0% 96%; --card:0 0% 20%; --card-foreground:0 0% 96%;
+    --foreground-subtle:0 0% 50%;
+    --primary:173 58% 40%; --primary-foreground:165 50% 5%; --primary-soft:173 24% 14%; --primary-soft-border:173 28% 28%;
+    --accent:43 100% 64%; --accent-foreground:44 100% 8%;
+    --success:142 55% 47%; --success-soft:142 30% 16%;
+    --warning:35 100% 60%; --warning-soft:30 35% 15%; --warning-soft-foreground:35 95% 72%;
+    --destructive:3 100% 62%; --destructive-foreground:0 0% 100%;
+    --info:221 85% 66%; --info-foreground:0 0% 100%;
+    --warm:43 25% 14%; --warm-foreground:45 90% 80%;
+  }
+  /* ── ฝั่ง "ตอนนี้ (พัง)" — ค่าที่ก๊อปจาก light มาตรง ๆ ───────────── */
+  .cur{
+    --muted:240 5% 96%;            /* เกือบขาว */
+    --muted-foreground:240 6% 10%; /* เกือบดำ */
+    --border:0 0% 10%;             /* = พื้น (ล่องหน) */
+    --destructive-soft:0 86% 97%;        /* ชมพูขาว */
+    --destructive-strong:0 70% 35%;      /* แดงเข้ม */
+    --info-soft:219 100% 94%;            /* ฟ้าขาว */
+    --info-soft-foreground:219 30% 44%;  /* น้ำเงินเข้ม */
+  }
+  /* ── ฝั่ง "ออกแบบใหม่" — แปลงเป็นโทนมืดให้สอดคล้อง ─────────────── */
+  .new{
+    --muted:0 0% 22%;
+    --muted-foreground:0 0% 64%;
+    --border:0 0% 26%;
+    --destructive-soft:0 45% 16%;
+    --destructive-strong:0 90% 78%;
+    --info-soft:219 45% 18%;
+    --info-soft-foreground:219 90% 80%;
+  }
+
+  *{box-sizing:border-box;}
+  html{background:#0b0b0b;}
+  body{margin:0;padding:32px 22px 70px;font:14px/1.55 'Inter','IBM Plex Sans Thai',sans-serif;color:#e8e8e8;}
+  h1{font-size:20px;font-weight:700;margin:0 0 4px;}
+  .sub{font-family:'IBM Plex Sans Thai';color:#9a9a9a;font-size:13.5px;margin:0 0 26px;}
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .col-h{display:flex;align-items:center;gap:9px;margin-bottom:12px;font-family:'IBM Plex Sans Thai';font-weight:600;}
+  .tag{font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;}
+  .tag.bad{background:#3a1418;color:#ff8a98;}
+  .tag.ok{background:#10322c;color:#48d6c0;}
+
+  /* ── มินิ-UI ที่ render ด้วย token ของแต่ละ scope ─────────────────── */
+  .scope{background:hsl(var(--background));border:1px solid hsl(var(--border));
+         border-radius:14px;padding:18px;color:hsl(var(--foreground));}
+  .panel{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:12px;padding:16px;}
+  .panel + .panel{margin-top:14px;}
+  .ttl{font-weight:600;font-size:15px;margin:0 0 3px;}
+  .sec{font-family:'IBM Plex Sans Thai';color:hsl(var(--muted-foreground));font-size:13px;margin:0;}
+  .divider{height:1px;background:hsl(var(--border));margin:13px 0;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;border-radius:8px;overflow:hidden;}
+  thead th{background:hsl(var(--muted));color:hsl(var(--foreground-subtle));
+           text-align:left;padding:8px 12px;font-family:'IBM Plex Sans Thai';font-weight:600;font-size:12.5px;}
+  td{padding:8px 12px;border-top:1px solid hsl(var(--border));}
+  td.s{font-family:'IBM Plex Sans Thai';color:hsl(var(--muted-foreground));}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+  .chip{font-family:'IBM Plex Sans Thai';font-size:12px;font-weight:600;padding:3px 11px;border-radius:999px;}
+  .chip.suc{background:hsl(var(--success-soft));color:hsl(var(--success));}
+  .chip.dst{background:hsl(var(--destructive-soft));color:hsl(var(--destructive-strong));}
+  .chip.inf{background:hsl(var(--info-soft));color:hsl(var(--info-soft-foreground));}
+  .chip.wrm{background:hsl(var(--warm));color:hsl(var(--warm-foreground));}
+  .chip.pri{background:hsl(var(--primary-soft));color:hsl(var(--primary));border:1px solid hsl(var(--primary-soft-border));}
+
+  .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .btn{font-family:'IBM Plex Sans Thai';font-size:13px;font-weight:600;padding:7px 14px;border-radius:8px;border:0;cursor:default;}
+  .btn.pri{background:hsl(var(--primary));color:hsl(var(--primary-foreground));}
+  .btn.acc{background:hsl(var(--accent));color:hsl(var(--accent-foreground));}
+  .btn.inf{background:hsl(var(--info-soft));color:hsl(var(--info-soft-foreground));}
+  .btn.dst{background:hsl(var(--destructive-soft));color:hsl(var(--destructive-strong));}
+  .btn.out{background:transparent;border:1px solid hsl(var(--border));color:hsl(var(--foreground));}
+
+  /* scrollbar demo */
+  .scrolldemo{height:54px;overflow-y:scroll;background:hsl(var(--card));border:1px solid hsl(var(--border));
+              border-radius:8px;padding:8px 12px;font-family:'IBM Plex Sans Thai';color:hsl(var(--muted-foreground));font-size:12.5px;}
+  .scrolldemo::-webkit-scrollbar{width:6px;}
+  .scrolldemo::-webkit-scrollbar-thumb{background:hsl(var(--muted-foreground)/0.30);border-radius:99px;}
+
+  /* token diff strip */
+  .diff{margin-top:30px;}
+  .diff h2{font-size:15px;margin:0 0 12px;}
+  .row{display:grid;grid-template-columns:230px 1fr 1fr;gap:12px;align-items:center;padding:7px 0;border-top:1px solid #222;font-size:12.5px;}
+  .row:first-of-type{border-top:0;}
+  .row .k{font-family:'Inter';color:#cfcfcf;font-weight:500;}
+  .cell{display:flex;align-items:center;gap:9px;}
+  .sw{width:30px;height:30px;border-radius:7px;border:1px solid rgba(255,255,255,.12);flex:none;}
+  .cell .v{font-family:'Inter';font-size:11.5px;color:#8f8f8f;}
+  .cell .lbl{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:99px;}
+  .lbl.b{background:#3a1418;color:#ff8a98;} .lbl.g{background:#10322c;color:#48d6c0;}
+  @media(max-width:780px){.two{grid-template-columns:1fr;}.row{grid-template-columns:1fr;gap:6px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dark Mode Redesign</h1>
+  <p class="sub">มินิ-UI เดียวกัน render สองครั้ง — ซ้าย = token ตอนนี้ (ก๊อปจาก light) · ขวา = ที่ออกแบบใหม่ (แปลงเป็นโทนมืด)</p>
+
+  <div class="two">
+    <!-- CURRENT -->
+    <div>
+      <div class="col-h"><span class="tag bad">ตอนนี้ · พัง</span> ค่าใน <code>.dark</code> ปัจจุบัน</div>
+      <div class="scope cur">
+        <div class="panel">
+          <p class="ttl">ยอดขายสัปดาห์นี้</p>
+          <p class="sec">342 บิล · เฉลี่ย ฿375/บิล · เทียบสัปดาห์ก่อน +12.4%</p>
+          <div class="divider"></div>
+          <div class="chips">
+            <span class="chip pri">brand</span><span class="chip suc">สำเร็จ</span>
+            <span class="chip dst">ค้างชำระ</span><span class="chip inf">ข้อมูล</span><span class="chip wrm">เตือน</span>
+          </div>
+          <div class="btns">
+            <button class="btn pri">บันทึก</button><button class="btn acc">เน้น</button>
+            <button class="btn inf">ปรับสต็อก</button><button class="btn dst">ลบ</button><button class="btn out">ยกเลิก</button>
+          </div>
+        </div>
+        <div class="panel" style="padding:0;overflow:hidden">
+          <table>
+            <thead><tr><th>สินค้า</th><th>ยอดขาย</th><th>สต็อก</th></tr></thead>
+            <tbody>
+              <tr><td>พาราเซตามอล 500mg</td><td class="s">฿4,200</td><td class="s">พอ</td></tr>
+              <tr><td>Loratadine 10mg</td><td class="s">฿3,150</td><td class="s">ต่ำ</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="scrolldemo">เลื่อนดู scrollbar · บรรทัด 1<br>บรรทัด 2<br>บรรทัด 3<br>บรรทัด 4<br>บรรทัด 5</div>
+      </div>
+    </div>
+
+    <!-- NEW -->
+    <div>
+      <div class="col-h"><span class="tag ok">ออกแบบใหม่</span> แปลงเป็นโทนมืดสอดคล้อง</div>
+      <div class="scope new">
+        <div class="panel">
+          <p class="ttl">ยอดขายสัปดาห์นี้</p>
+          <p class="sec">342 บิล · เฉลี่ย ฿375/บิล · เทียบสัปดาห์ก่อน +12.4%</p>
+          <div class="divider"></div>
+          <div class="chips">
+            <span class="chip pri">brand</span><span class="chip suc">สำเร็จ</span>
+            <span class="chip dst">ค้างชำระ</span><span class="chip inf">ข้อมูล</span><span class="chip wrm">เตือน</span>
+          </div>
+          <div class="btns">
+            <button class="btn pri">บันทึก</button><button class="btn acc">เน้น</button>
+            <button class="btn inf">ปรับสต็อก</button><button class="btn dst">ลบ</button><button class="btn out">ยกเลิก</button>
+          </div>
+        </div>
+        <div class="panel" style="padding:0;overflow:hidden">
+          <table>
+            <thead><tr><th>สินค้า</th><th>ยอดขาย</th><th>สต็อก</th></tr></thead>
+            <tbody>
+              <tr><td>พาราเซตามอล 500mg</td><td class="s">฿4,200</td><td class="s">พอ</td></tr>
+              <tr><td>Loratadine 10mg</td><td class="s">฿3,150</td><td class="s">ต่ำ</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="scrolldemo">เลื่อนดู scrollbar · บรรทัด 1<br>บรรทัด 2<br>บรรทัด 3<br>บรรทัด 4<br>บรรทัด 5</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIFF STRIP -->
+  <div class="diff">
+    <h2>token ที่แก้ (7 ตัว)</h2>
+    <div class="row"><div class="k">--muted-foreground<br><span style="color:#777;font-weight:400">text รอง + scrollbar</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(240 6% 10%)"></span><span class="v">240 6% 10%</span><span class="lbl b">เกือบดำ</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(0 0% 64%)"></span><span class="v">0 0% 64%</span><span class="lbl g">เทาอ่านออก</span></div></div>
+    <div class="row"><div class="k">--muted<br><span style="color:#777;font-weight:400">หัวตาราง</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(240 5% 96%)"></span><span class="v">240 5% 96%</span><span class="lbl b">เกือบขาว</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(0 0% 22%)"></span><span class="v">0 0% 22%</span><span class="lbl g">เทาเข้ม</span></div></div>
+    <div class="row"><div class="k">--border<br><span style="color:#777;font-weight:400">เส้นขอบทั้งแอป</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(0 0% 10%)"></span><span class="v">0 0% 10%</span><span class="lbl b">= พื้น (ล่องหน)</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(0 0% 26%)"></span><span class="v">0 0% 26%</span><span class="lbl g">เห็นเส้น</span></div></div>
+    <div class="row"><div class="k">--destructive-soft</div>
+      <div class="cell"><span class="sw" style="background:hsl(0 86% 97%)"></span><span class="v">0 86% 97%</span><span class="lbl b">ชมพูขาว</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(0 45% 16%)"></span><span class="v">0 45% 16%</span><span class="lbl g">แดงเข้มนุ่ม</span></div></div>
+    <div class="row"><div class="k">--destructive-strong<br><span style="color:#777;font-weight:400">text บน soft</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(0 70% 35%)"></span><span class="v">0 70% 35%</span><span class="lbl b">แดงเข้ม (จม)</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(0 90% 78%)"></span><span class="v">0 90% 78%</span><span class="lbl g">แดงสว่าง</span></div></div>
+    <div class="row"><div class="k">--info-soft</div>
+      <div class="cell"><span class="sw" style="background:hsl(219 100% 94%)"></span><span class="v">219 100% 94%</span><span class="lbl b">ฟ้าขาว</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(219 45% 18%)"></span><span class="v">219 45% 18%</span><span class="lbl g">น้ำเงินเข้มนุ่ม</span></div></div>
+    <div class="row"><div class="k">--info-soft-foreground<br><span style="color:#777;font-weight:400">text บน soft</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(219 30% 44%)"></span><span class="v">219 30% 44%</span><span class="lbl b">น้ำเงินเข้ม (จม)</span></div>
+      <div class="cell"><span class="sw" style="background:hsl(219 90% 80%)"></span><span class="v">219 90% 80%</span><span class="lbl g">ฟ้าสว่าง</span></div></div>
+  </div>
+
+</div>
+</body>
+</html>
