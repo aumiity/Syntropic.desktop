@@ -9,9 +9,9 @@ const PALETTE = [
   "bg-primary-soft text-primary",
   "bg-success-soft text-success",
   "bg-info-soft text-info-soft-foreground",
-  "bg-warm text-warm-foreground",
+  "bg-accent-soft text-accent-soft-foreground",
   "bg-primary-soft text-primary",
-  "bg-warm text-warm-foreground",
+  "bg-accent-soft text-accent-soft-foreground",
   "bg-violet-soft text-violet-strong",
   "bg-destructive-soft text-destructive",
 ] as const

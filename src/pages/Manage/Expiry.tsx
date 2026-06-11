@@ -220,8 +220,8 @@ export default function ManageExpiryPage() {
   // renders MetricCard instead of the clickable StatCard).
   useEffect(() => {
     setSummary([
-      { label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive2', sub: 'ล็อต', subClassName: 'text-base text-foreground' },
-      { label: '≤ 30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'warm',         sub: 'ล็อต', subClassName: 'text-base text-foreground' },
+      { label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive', sub: 'ล็อต', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+      { label: '≤ 30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'accent-soft',         sub: 'ล็อต', subClassName: 'text-base text-foreground' },
       { label: '≤ 90 วัน',     value: counts.d90.toLocaleString(),     icon: ClockAlert, tint: 'info-soft',    sub: 'ล็อต', subClassName: 'text-base text-foreground' },
       { label: '≤ 180 วัน',    value: counts.d180.toLocaleString(),    icon: ClockAlert, tint: 'primary',      sub: 'ล็อต', subClassName: 'text-base text-foreground' },
     ])

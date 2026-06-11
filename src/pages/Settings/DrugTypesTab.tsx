@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/label'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
 import type { DrugType } from '@/types'
 import { Plus, Edit, Pill, Ban, RotateCcw, EyeOff } from 'lucide-react'
@@ -27,6 +28,8 @@ export function DrugTypesTab() {
   // Disabled rows are hidden by default; this filter reveals them.
   const [showDisabled, setShowDisabled] = useState(false)
   const [togglingId, setTogglingId] = useState<number | null>(null)
+  // Enable/disable confirm target (null = closed)
+  const [confirmToggle, setConfirmToggle] = useState<DrugType | null>(null)
 
   const load = async () => {
     const data = await window.api.settings.listDrugTypes() as DrugType[]
@@ -148,7 +151,7 @@ export function DrugTypesTab() {
                         <Edit />
                       </Button>
                       <Button size="icon-lg" variant={d.is_disabled ? 'elevated-success' : 'elevated-destructive'} disabled={togglingId === d.id}
-                        onClick={() => toggleDisabled(d)}
+                        onClick={() => setConfirmToggle(d)}
                         title={d.is_disabled ? 'เปิดใช้งาน' : 'พักการใช้งาน'}>
                         {d.is_disabled ? <RotateCcw /> : <Ban />}
                       </Button>
@@ -203,6 +206,15 @@ export function DrugTypesTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmToggle}
+        onOpenChange={(v) => { if (!v) setConfirmToggle(null) }}
+        variant={confirmToggle?.is_disabled ? 'success' : 'destructive'}
+        title={confirmToggle?.is_disabled ? 'เปิดการใช้งาน' : 'ปิดการใช้งาน'}
+        description={confirmToggle ? `ต้องการ${confirmToggle.is_disabled ? 'เปิด' : 'ปิด'}ใช้งาน "${confirmToggle.name_th}" ?` : undefined}
+        onConfirm={() => { if (confirmToggle) toggleDisabled(confirmToggle); setConfirmToggle(null) }}
+      />
     </div>
   )
 }

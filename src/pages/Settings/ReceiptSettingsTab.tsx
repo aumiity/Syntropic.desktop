@@ -371,7 +371,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
               </TabsContent>
 
               <TabsContent value="format" className="space-y-3 mt-0">
-                <SectionCard icon={FileText} title="รูปแบบใบเสร็จ" tint="warm">
+                <SectionCard icon={FileText} title="รูปแบบใบเสร็จ" tint="accent-soft">
                   <div className="flex items-end gap-3">
                     <div className="flex-1 min-w-0">
                       <FormField label="ฟอนต์">

@@ -426,8 +426,8 @@ export default function Theme() {
                   <Button variant="primary-soft">Primary-soft</Button>
                   <Button variant="success-soft">Success-soft</Button>
                   <Button variant="warning-soft">Warning-soft</Button>
-                  <Button variant="warm">Warm</Button>
-                  <Button variant="destructive2">Destructive2</Button>
+                  <Button variant="accent-soft">Accent-soft</Button>
+                  <Button variant="destructive-soft">Destructive-soft</Button>
                   <Button variant="info-soft">Info-soft</Button>
                 </DemoRow>
                 <DemoRow label="Decorative">
@@ -463,6 +463,13 @@ export default function Theme() {
                   <Button variant="elevated-destructive"><Trash2 className="size-4" /> Elevated Destructive</Button>
                   <Button variant="elevated-warning"><EyeOff className="size-4" /> Elevated Warning</Button>
                   <Button variant="elevated-success"><RotateCcw className="size-4" /> Elevated Success</Button>
+                  <Button variant="elevated-accent"><Edit className="size-4" /> Elevated Accent</Button>
+                </DemoRow>
+                <DemoRow label="Elevated Soft — neutral at rest, SOFT role tint on hover/expanded (gentler than the solid Elevated row above)">
+                  <Button variant="elevated-destructive-soft"><Trash2 className="size-4" /> Elevated Destructive Soft</Button>
+                  <Button variant="elevated-warning-soft"><EyeOff className="size-4" /> Elevated Warning Soft</Button>
+                  <Button variant="elevated-success-soft"><RotateCcw className="size-4" /> Elevated Success Soft</Button>
+                  <Button variant="elevated-accent-soft"><Edit className="size-4" /> Elevated Accent Soft</Button>
                 </DemoRow>
                 <DemoRow label="Sizes">
                   <Button size="xl">XL</Button>
@@ -502,8 +509,9 @@ export default function Theme() {
                 <DemoRow label="Status — soft">
                   <Badge variant="primary-soft">Primary-soft</Badge>
                   <Badge variant="success-soft">Success-soft</Badge>
-                  <Badge variant="warm">Warm</Badge>
-                  <Badge variant="destructive2">Destructive2</Badge>
+                  <Badge variant="warning-soft">Warning-soft</Badge>
+                  <Badge variant="accent-soft">Accent-soft</Badge>
+                  <Badge variant="destructive-soft">Destructive-soft</Badge>
                   <Badge variant="info-soft">Info-soft</Badge>
                 </DemoRow>
                 <DemoRow label="Decorative">
@@ -543,6 +551,69 @@ export default function Theme() {
                   <div className="flex items-center gap-2 text-sm">
                     <span>ประเภท:</span>
                     <Badge variant="outline">ยาอันตราย</Badge>
+                  </div>
+                </DemoRow>
+              </Section>
+
+              {/* ── TINT ICON BOX ── */}
+              <Section title="TintIcon — tinted icon-box primitive" path="src/components/ui/tint-icon.tsx" full>
+                <DemoRow label="Status — soft / strong pairs (size=md)">
+                  <div className="flex flex-wrap gap-3">
+                    {([
+                      'primary', 'primary-strong',
+                      'success', 'success-strong',
+                      'warning', 'warning-strong',
+                      'destructive', 'destructive-strong',
+                    ] as TintIconTint[]).map(t => (
+                      <div key={t} className="flex flex-col items-center gap-1.5">
+                        <TintIcon icon={Package} tint={t} size="md" />
+                        <span className="text-xs text-muted-foreground">{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                </DemoRow>
+                <DemoRow label="Info / decorative (size=md)">
+                  <div className="flex flex-wrap gap-3">
+                    {([
+                      'info-soft', 'info',
+                      'accent-soft', 'accent',
+                      'violet', 'violet-strong',
+                      'teal', 'teal-strong',
+                    ] as TintIconTint[]).map(t => (
+                      <div key={t} className="flex flex-col items-center gap-1.5">
+                        <TintIcon icon={Package} tint={t} size="md" />
+                        <span className="text-xs text-muted-foreground">{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                </DemoRow>
+                <DemoRow label="Neutral (size=md)">
+                  <div className="flex flex-wrap gap-3">
+                    {(['secondary', 'neutral'] as TintIconTint[]).map(t => (
+                      <div key={t} className="flex flex-col items-center gap-1.5">
+                        <TintIcon icon={Package} tint={t} size="md" />
+                        <span className="text-xs text-muted-foreground">{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                </DemoRow>
+                <DemoRow label="All sizes (tint=primary)">
+                  <div className="flex items-end gap-3">
+                    {(['sm', 'md', 'lg', 'xl'] as TintIconSize[]).map(s => (
+                      <div key={s} className="flex flex-col items-center gap-1.5">
+                        <TintIcon icon={Package} tint="primary" size={s} />
+                        <span className="text-xs text-muted-foreground">{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                </DemoRow>
+                <DemoRow label="bordered prop — tinted box with matching colored border (used inside SectionCard)">
+                  <div className="flex flex-wrap gap-3">
+                    {([
+                      'primary', 'success', 'warning', 'destructive', 'info', 'secondary', 'accent-soft', 'violet', 'teal',
+                    ] as TintIconTint[]).map(t => (
+                      <TintIcon key={t} icon={Package} tint={t} size="sm" bordered />
+                    ))}
                   </div>
                 </DemoRow>
               </Section>
@@ -1268,69 +1339,6 @@ export default function Theme() {
                 </div>
               </Section>
 
-              {/* ── TINT ICON BOX ── */}
-              <Section title="TintIcon — tinted icon-box primitive" path="src/components/ui/tint-icon.tsx" full>
-                <DemoRow label="Status — soft / strong pairs (size=md)">
-                  <div className="flex flex-wrap gap-3">
-                    {([
-                      'primary', 'primary-strong',
-                      'success', 'success-strong',
-                      'warning-soft', 'warning', 'warning-strong',
-                      'destructive', 'destructive-strong', 'destructive2',
-                    ] as TintIconTint[]).map(t => (
-                      <div key={t} className="flex flex-col items-center gap-1.5">
-                        <TintIcon icon={Package} tint={t} size="md" />
-                        <span className="text-xs text-muted-foreground">{t}</span>
-                      </div>
-                    ))}
-                  </div>
-                </DemoRow>
-                <DemoRow label="Info / decorative (size=md)">
-                  <div className="flex flex-wrap gap-3">
-                    {([
-                      'info-soft', 'info',
-                      'warm', 'accent',
-                      'violet', 'violet-strong',
-                      'teal', 'teal-strong',
-                    ] as TintIconTint[]).map(t => (
-                      <div key={t} className="flex flex-col items-center gap-1.5">
-                        <TintIcon icon={Package} tint={t} size="md" />
-                        <span className="text-xs text-muted-foreground">{t}</span>
-                      </div>
-                    ))}
-                  </div>
-                </DemoRow>
-                <DemoRow label="Neutral (size=md)">
-                  <div className="flex flex-wrap gap-3">
-                    {(['secondary', 'neutral'] as TintIconTint[]).map(t => (
-                      <div key={t} className="flex flex-col items-center gap-1.5">
-                        <TintIcon icon={Package} tint={t} size="md" />
-                        <span className="text-xs text-muted-foreground">{t}</span>
-                      </div>
-                    ))}
-                  </div>
-                </DemoRow>
-                <DemoRow label="All sizes (tint=primary)">
-                  <div className="flex items-end gap-3">
-                    {(['sm', 'md', 'lg', 'xl'] as TintIconSize[]).map(s => (
-                      <div key={s} className="flex flex-col items-center gap-1.5">
-                        <TintIcon icon={Package} tint="primary" size={s} />
-                        <span className="text-xs text-muted-foreground">{s}</span>
-                      </div>
-                    ))}
-                  </div>
-                </DemoRow>
-                <DemoRow label="bordered prop — tinted box with matching colored border (used inside SectionCard)">
-                  <div className="flex flex-wrap gap-3">
-                    {([
-                      'primary', 'success', 'warning', 'destructive', 'info', 'secondary', 'warm', 'violet', 'teal',
-                    ] as TintIconTint[]).map(t => (
-                      <TintIcon key={t} icon={Package} tint={t} size="sm" bordered />
-                    ))}
-                  </div>
-                </DemoRow>
-              </Section>
-
               {/* ── DASHBOARD CARDS ── */}
               <Section title="SectionCard · MetricCard · StatCard" path="src/components/ui/card.tsx" full>
                 <DemoRow label="SectionCard (form grouping)">
@@ -1339,7 +1347,7 @@ export default function Theme() {
                       icon={Package}
                       title="ข้อมูลสินค้า"
                       tint="primary"
-                      right={<Button size="sm" variant="warm"><Edit /> แก้ไข</Button>}
+                      right={<Button size="sm" variant="accent-soft"><Edit /> แก้ไข</Button>}
                     >
                       <p className="text-sm text-muted-foreground">
                         ใช้จัดกลุ่มฟอร์มในหน้า EditProduct / Settings — มี icon, title, slot ขวา
@@ -1352,7 +1360,7 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="MetricCard (read-only KPI · `unit` inline · sub auto-tints to icon color)">
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    <MetricCard label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="warm" />
+                    <MetricCard label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="accent-soft" />
                     <MetricCard label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success" />
                     <MetricCard
                       label="คงเหลือ"
@@ -1374,7 +1382,7 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="MetricCard size='sm' (compact — icon-right · 3 stacked lines: label / value+unit / sub)">
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    <MetricCard size="sm" label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="warm" />
+                    <MetricCard size="sm" label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="accent-soft" />
                     <MetricCard size="sm" label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success" />
                     <MetricCard
                       size="sm"
@@ -1835,7 +1843,7 @@ export default function Theme() {
                     </DialogHeader>
                     <DialogBody className="space-y-3">
                       <div className="flex gap-3">
-                        <AlertTriangle className="size-10 text-warm-foreground shrink-0 mt-0.5" />
+                        <AlertTriangle className="size-10 text-accent-soft-foreground shrink-0 mt-0.5" />
                         <div className="space-y-1">
                           <p className="text-base font-medium">ราคาปลีก, ราคาส่ง 1 ต่ำกว่าราคาทุน</p>
                           <p className="text-base text-muted-foreground">ยืนยันจะบันทึกข้อมูลนี้?</p>
@@ -2187,7 +2195,7 @@ export default function Theme() {
                   <Button variant="destructive" onClick={() => setConfirmDestrOpen(true)}>
                     <Trash2 /> destructive
                   </Button>
-                  <Button variant="warm" onClick={() => setConfirmWarningOpen(true)}>
+                  <Button variant="accent-soft" onClick={() => setConfirmWarningOpen(true)}>
                     warning
                   </Button>
                   <Button variant="success" onClick={() => setConfirmSuccessOpen(true)}>
@@ -2330,7 +2338,7 @@ export default function Theme() {
                     <AlertTriangle /> Error
                   </Button>
                   <Button
-                    variant="warm"
+                    variant="accent-soft"
                     onClick={() => toast('ดูข้อมูลย้อนหลังได้สูงสุด 7 วัน', 'warning')}
                   >
                     <AlertTriangle /> Warning
@@ -2436,7 +2444,7 @@ export default function Theme() {
           <>
             จะลบ seed dev เดิม (ถ้ามี) แล้วสร้าง GR + sales ย้อน {seedDaysChoice} วัน พร้อม engineer end-state (หมดสต็อก/ต่ำกว่าจุดสั่งซื้อ/expired/near-expire).
             {seedDaysChoice >= 365 && (
-              <span className="inline-flex items-center gap-1 ml-1 text-warm-foreground">
+              <span className="inline-flex items-center gap-1 ml-1 text-accent-soft-foreground">
                 <Clock className="size-3.5" />
                 อาจใช้เวลา 2-5 นาที.
               </span>

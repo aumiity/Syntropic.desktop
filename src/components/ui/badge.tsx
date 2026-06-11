@@ -30,8 +30,8 @@ const badgeVariants = cva(
         "info-soft": [
           "bg-info-soft text-info-soft-foreground",
         ].join(" "),
-        warm: [
-          "bg-warm text-warm-foreground",
+        "accent-soft": [
+          "bg-accent-soft text-accent-soft-foreground",
         ].join(" "),
         destructive:
           "bg-destructive text-white dark:bg-destructive-hover dark:text-white",
@@ -46,17 +46,18 @@ const badgeVariants = cva(
         violet: "border-transparent bg-violet text-violet-foreground",
         teal: "border-transparent bg-teal text-teal-foreground",
         "success-soft": "border-transparent bg-success-soft text-success",
+        "warning-soft": "border-transparent bg-warning-soft text-warning-soft-foreground",
         "violet-soft": "border-transparent bg-violet-soft text-violet-strong",
         "teal-soft": "border-transparent bg-teal-soft text-teal-strong",
-        destructive2: "bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive",
+        "destructive-soft": "bg-destructive-soft text-destructive hover:bg-destructive/25 hover:text-destructive",
         "success-outline": "border-success/40 bg-success-soft text-success",
         "info-outline": "border-info/40 bg-info-soft text-info",
-        "warning-outline": "border-warm-foreground/40 bg-warm text-warm-foreground",
+        "warning-outline": "border-warning/40 bg-warning-soft text-warning-soft-foreground",
         "primary-outline": "border-primary/40 bg-primary-soft text-primary",
-        "destructive-outline": "border-destructive/40 bg-destructive/15 text-destructive",
+        "destructive-outline": "border-destructive/40 bg-destructive-soft text-destructive",
         "violet-outline": "border-violet/40 bg-violet-soft text-violet-strong",
         "teal-outline": "border-teal/40 bg-teal-soft text-teal-strong",
-        "accent-outline": "border-accent-foreground/30 bg-accent text-accent-foreground",
+        "accent-outline": "border-accent/40 bg-accent-soft text-accent-soft-foreground",
         "neutral-outline": "border-border bg-card text-foreground",
         "muted-outline": "border-border-strong/30 bg-muted-hover text-muted-foreground",
       },

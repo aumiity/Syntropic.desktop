@@ -106,7 +106,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-type MetricTint = "primary" | "success" | "warning" | "warning-soft" | "destructive" | "destructive2" | "secondary" | "warm" | "info-soft" | "info" | "violet"
+type MetricTint = "primary" | "success" | "warning" | "destructive" | "secondary" | "accent-soft" | "info-soft" | "info" | "violet"
 type SectionTint = MetricTint
 
 function SectionCard({
@@ -176,17 +176,15 @@ function MetricCard({
 }) {
   const valColor =
     tint === "success"     ? "text-success"
-    : tint === "warning"     ? "text-warm-foreground"
+    : tint === "warning"     ? "text-warning-soft-foreground"
     : tint === "destructive" ? "text-destructive"
     : "text-foreground"
   const accentColor =
     tint === "success"     ? "text-success"
-    : tint === "warning"     ? "text-warm-foreground"
+    : tint === "warning"     ? "text-warning-soft-foreground"
     : tint === "destructive" ? "text-destructive"
-    : tint === "destructive2" ? "text-destructive"
     : tint === "secondary"   ? "text-muted-foreground"
-    : tint === "warm"        ? "text-warm-foreground"
-    : tint === "warning-soft" ? "text-warning-soft-foreground"
+    : tint === "accent-soft"        ? "text-accent-soft-foreground"
     : tint === "info-soft"   ? "text-info-soft-foreground"
     : tint === "info"        ? "text-info-soft-foreground"
     : tint === "violet"      ? "text-violet-strong"
@@ -341,14 +339,14 @@ function StatCard({
 }) {
   // StatCard maps `warning` → warm-styled icon box (cream/amber) so the card
   // stays soft even when warning is the alert-orange in other contexts.
-  const iconTint: TintIconTint = tint === "warning" ? "warm" : tint
+  const iconTint: TintIconTint = tint === "warning" ? "accent-soft" : tint
   const activeRing =
     !isActive ? "ring-0"
     : tint === "success"     ? "ring-2 ring-success"
     : tint === "warning"     ? "ring-2 ring-warning"
     : tint === "destructive" ? "ring-2 ring-destructive"
     : tint === "secondary"   ? "ring-2 ring-border-strong"
-    : tint === "warm"   ? "ring-2 ring-warm-foreground"
+    : tint === "accent-soft"   ? "ring-2 ring-accent-soft-foreground"
     : tint === "info-soft"   ? "ring-2 ring-info-soft-foreground"
     : "ring-2 ring-primary"
   const interactive = onClick

@@ -395,7 +395,7 @@ export default function EditBundlePage() {
           value={formatCurrency(cost)}
           unit={baseUnit !== '—' ? `/ ${baseUnit}` : undefined}
           icon={Coins}
-          tint="warm"
+          tint="accent-soft"
         />
         <MetricCard
           label="ราคาขาย"

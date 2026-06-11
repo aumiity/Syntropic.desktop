@@ -42,10 +42,10 @@ export default {
           DEFAULT: 'hsl(var(--info))',
           foreground: 'hsl(var(--info-foreground))',
         },
-        warm: {
-          DEFAULT: 'hsl(var(--warm))',
-          hover: 'hsl(var(--warm-hover))',
-          foreground: 'hsl(var(--warm-foreground))',
+        'accent-soft': {
+          DEFAULT: 'hsl(var(--accent-soft))',
+          hover: 'hsl(var(--accent-soft-hover))',
+          foreground: 'hsl(var(--accent-soft-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',

@@ -148,6 +148,9 @@ export default function ManagePurchasesPage() {
   // Quick-paid (mark unpaid credit bill as paid today, one-click from the
   // GR detail dialog's footer-left)
   const [quickPaying, setQuickPaying] = useState(false)
+  // Invoice awaiting "ชำระวันนี้" confirmation (null = dialog closed). Both the
+  // row menu and the receipt-dialog footer route through this confirm.
+  const [confirmPayInvoice, setConfirmPayInvoice] = useState<string | null>(null)
 
   // Edit-bill (header) modal
   const [showEditModal, setShowEditModal] = useState(false)
@@ -212,8 +215,8 @@ export default function ManagePurchasesPage() {
       { label: 'จำนวนบิล', value: histSummary.count.toLocaleString(),           icon: FileText,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'เงินสด',    value: histSummary.cash_count.toLocaleString(),      icon: Banknote,      tint: 'success',      sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
       { label: 'เครดิต',    value: histSummary.credit_count.toLocaleString(),    icon: CreditCard,    tint: 'info-soft',    sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ค้างชำระ',  value: histSummary.unpaid_count.toLocaleString(),    icon: AlertTriangle, tint: 'warm',         sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive2', sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ค้างชำระ',  value: histSummary.unpaid_count.toLocaleString(),    icon: AlertTriangle, tint: 'accent-soft',         sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     ])
   }, [histSummary, setSlotSummary])
 
@@ -373,12 +376,6 @@ export default function ManagePurchasesPage() {
     } finally {
       setQuickPaying(false)
     }
-  }
-
-  // From the receipt dialog footer — items already loaded.
-  const handleQuickPay = () => {
-    if (!selectedInvoice || receiptItems.length === 0) return
-    quickPayFromHeader(receiptItems[0], selectedInvoice)
   }
 
   // From a row's จัดการ menu — fetch the header first.
@@ -640,7 +637,7 @@ export default function ManagePurchasesPage() {
                               <Eye className="size-4" /> ดูรายละเอียด
                             </button>
                             {!isCancelled && h.payment_type === 'credit' && !h.is_paid && (
-                              <button type="button" onClick={() => quickPayForInvoice(h.invoice_no)} disabled={quickPaying}
+                              <button type="button" onClick={() => setConfirmPayInvoice(h.invoice_no)} disabled={quickPaying}
                                 className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-success hover:bg-success/10 transition-colors disabled:opacity-50">
                                 <Check className="size-4" /> ชำระวันนี้
                               </button>
@@ -721,7 +718,7 @@ export default function ManagePurchasesPage() {
             )}
             actions={
               canQuickPay && (
-                <Button variant="success" size="xl" onClick={handleQuickPay} disabled={quickPaying}>
+                <Button variant="success" size="xl" onClick={() => selectedInvoice && setConfirmPayInvoice(selectedInvoice)} disabled={quickPaying}>
                   <Check className="size-4" />
                   {quickPaying ? 'กำลังบันทึก...' : 'ชำระวันนี้'}
                 </Button>
@@ -869,7 +866,7 @@ export default function ManagePurchasesPage() {
                       <Button
                         key={d}
                         type="button"
-                        variant="warm"
+                        variant="accent-soft"
                         onClick={() => {
                           const dt = new Date()
                           dt.setDate(dt.getDate() + d)
@@ -957,6 +954,25 @@ export default function ManagePurchasesPage() {
             )}
           </div>
         }
+      />
+
+      {/* ── ชำระวันนี้ confirm (success) — shared by row menu + receipt footer ── */}
+      <ConfirmDialog
+        open={!!confirmPayInvoice}
+        onOpenChange={(o) => { if (!o && !quickPaying) setConfirmPayInvoice(null) }}
+        variant="success"
+        title="ชำระเงินวันนี้"
+        description={confirmPayInvoice
+          ? `ต้องการบันทึกการชำระเงินบิล "${confirmPayInvoice}" เป็นวันนี้ (${formatDate(today)}) ใช่หรือไม่?`
+          : undefined}
+        confirmLabel={quickPaying ? 'กำลังบันทึก...' : 'ยืนยัน'}
+        cancelLabel="ยกเลิก"
+        busy={quickPaying}
+        onConfirm={async () => {
+          if (!confirmPayInvoice) return
+          await quickPayForInvoice(confirmPayInvoice)
+          setConfirmPayInvoice(null)
+        }}
       />
       {overrideCancel.dialog}
     </>

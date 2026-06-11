@@ -69,7 +69,7 @@ export default function ProductsLayout() {
   const summary = useMemo(() => [
     { label: 'ทั้งหมด',     value: allStats.total_all.toLocaleString(),                       icon: Package, tint: 'primary'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground' },
     { label: 'เปิดใช้งาน',   value: (allStats.total_all - allStats.disabled).toLocaleString(), icon: Check,   tint: 'success'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-    { label: 'ปิดการใช้งาน', value: allStats.disabled.toLocaleString(),                        icon: Ban,     tint: 'destructive2' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground' },
+    { label: 'ปิดการใช้งาน', value: allStats.disabled.toLocaleString(),                        icon: Ban,     tint: 'destructive' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     { label: 'ชุดสินค้า',    value: bundleCount.toLocaleString(),                              icon: Boxes,   tint: 'info-soft' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground' },
   ], [allStats, bundleCount])
 

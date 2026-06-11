@@ -44,6 +44,8 @@ export function UnitsTab({
   const [unitForm, setUnitForm] = useState<any>({})
   const [unitSaving, setUnitSaving] = useState(false)
   const [deletingUnit, setDeletingUnit] = useState<ProductUnit | null>(null)
+  // Enable/disable confirm target (null = closed)
+  const [confirmToggle, setConfirmToggle] = useState<ProductUnit | null>(null)
   // ราคาส่งซ่อนหลัง disclosure — กางอัตโนมัติเมื่อหน่วยมีราคาส่งอยู่แล้ว
   const [showWholesale, setShowWholesale] = useState(false)
 
@@ -206,11 +208,11 @@ export function UnitsTab({
                         <Edit />
                       </Button>
                       {u.is_disabled ? (
-                        <Button size="icon-lg" variant="elevated" onClick={() => handleToggleDisable(u)} title="เปิดใช้งาน">
+                        <Button size="icon-lg" variant="elevated" onClick={() => setConfirmToggle(u)} title="เปิดใช้งาน">
                           <Eye />
                         </Button>
                       ) : (
-                        <Button size="icon-lg" variant="elevated" onClick={() => handleToggleDisable(u)} title="ปิดการใช้งาน">
+                        <Button size="icon-lg" variant="elevated" onClick={() => setConfirmToggle(u)} title="ปิดการใช้งาน">
                           <EyeOff />
                         </Button>
                       )}
@@ -302,14 +304,14 @@ export function UnitsTab({
                     {/* ราคาทุน — รวมหน่วยฐาน + หน่วยใหม่ ในกรอบเดียว */}
                     <div className="space-y-2">
                       <h4 className="text-sm font-semibold text-foreground">ราคาทุน</h4>
-                      <div className="rounded-lg bg-warm/50 border border-warm-foreground/25 px-3 py-2 space-y-1">
+                      <div className="rounded-lg bg-accent-soft/50 border border-accent-soft-foreground/25 px-3 py-2 space-y-1">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">ต่อ {baseUnit}</span>
-                          <span className="text-sm font-bold text-warm-foreground">{formatCurrency(baseCost)}</span>
+                          <span className="text-sm font-bold text-accent-soft-foreground">{formatCurrency(baseCost)}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">ต่อ {newUnit}</span>
-                          <span className="text-sm font-bold text-warm-foreground">{formatCurrency(unitCost)}</span>
+                          <span className="text-sm font-bold text-accent-soft-foreground">{formatCurrency(unitCost)}</span>
                         </div>
                       </div>
                     </div>
@@ -407,6 +409,15 @@ export function UnitsTab({
         confirmLabel={unitSaving ? 'กำลังลบ...' : 'ยืนยันลบ'}
         cancelLabel="ยกเลิก"
         onConfirm={() => { if (deletingUnit) handleDeleteUnit(deletingUnit.id) }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmToggle}
+        onOpenChange={(v) => { if (!v) setConfirmToggle(null) }}
+        variant={confirmToggle?.is_disabled ? 'success' : 'destructive'}
+        title={confirmToggle?.is_disabled ? 'เปิดการใช้งาน' : 'ปิดการใช้งาน'}
+        description={confirmToggle ? `ต้องการ${confirmToggle.is_disabled ? 'เปิด' : 'ปิด'}ใช้งาน "${confirmToggle.unit_name ?? `Unit #${confirmToggle.unit_id}`}" ?` : undefined}
+        onConfirm={() => { if (confirmToggle) handleToggleDisable(confirmToggle); setConfirmToggle(null) }}
       />
     </div>
   )

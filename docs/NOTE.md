@@ -1,9 +1,8 @@
 - ปรับ Template การพิมพ์เอกสาร A4 สำหรับ ใบกำกับภาษี
 - ปรับโครงสร้างสีสำหรับ DARK MODE ใหม่ทั้งหมด
-- ตรวจสอบการอ้างอิงไม่สำเร็จ
-Error invoking remote method 'settings:labelLookupRefs': SqliteError: no such column: p.name  <การลบ lookup ยังใช้ไม่ได้จริง ไม่แน่ใจว่า มี alert modal แล้วหรือไม่
-- แก้ไข alert ลบ preset นี้? ให้เป็น title:ต้องการลบ description:คุณต้องการลบ preset 'xxx'  แล้วก็มีปุ่มให้กด ยืนยัน / ยกเลิก
-- 
+- ลบฉลากใน editproduct ยังไม่มี confirm dialog
+- แก้ autoFocus ให้กับ รับคืนสินค้า และ ตัดสต็อค
+- ต้องทำ modal ออกใบกำกับภาษี ใหม่
 
 ======================================================
 ยังไม่ตรวจงาน

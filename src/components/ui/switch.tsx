@@ -95,7 +95,7 @@ function Toggle({ checked, onChange, label, size, variant = "default", framed, d
       framed && !frameInput && (variant === "default" || !checked) && "bg-card border-border",
       // colored frame/tint only once switched on
       framed && !frameInput && variant === "destructive" && checked && "bg-destructive-soft border-destructive/30 text-destructive",
-      framed && !frameInput && variant === "warning" && checked && "bg-warm border-warning/40 text-warm-foreground",
+      framed && !frameInput && variant === "warning" && checked && "bg-accent-soft border-warning/40 text-accent-soft-foreground",
       className,
     )}>
       {label ? <span className="text-sm">{label}</span> : null}

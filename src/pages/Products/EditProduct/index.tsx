@@ -441,7 +441,7 @@ export default function EditProductPage() {
               unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
               sub={isNew ? undefined : `เฉลี่ย ${formatCurrency(product.cost_price)}`}
               icon={Coins}
-              tint="warm"
+              tint="accent-soft"
               className={isNew ? 'opacity-50' : ''}
             />
             <MetricCard

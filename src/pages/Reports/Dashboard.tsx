@@ -91,10 +91,10 @@ const baht = (v: number) => `฿${formatCurrency(v)}`
 
 // Alert-card soft tones — borderless soft fill + a matching foreground that the
 // icon, heading, count, and chevron all inherit via currentColor. Tokens only.
-const ALERT_TONE: Record<'destructive' | 'warning' | 'warm' | 'info', string> = {
+const ALERT_TONE: Record<'destructive' | 'warning' | 'accent-soft' | 'info', string> = {
   destructive: 'bg-destructive-soft text-destructive',
   warning:     'bg-warning-soft text-warning-soft-foreground',
-  warm:        'bg-warm text-warm-foreground',
+  'accent-soft':        'bg-accent-soft text-accent-soft-foreground',
   info:        'bg-info-soft text-info-soft-foreground',
 }
 
@@ -269,7 +269,7 @@ export default function DashboardPage() {
     return [
       { name: 'ขายปลีก', value: c.retail, color: 'hsl(var(--primary))' },
       { name: 'ขายส่ง', value: c.wholesale, color: 'hsl(var(--info-soft-foreground))' },
-      { name: 'ใบสั่งยา', value: c.rx, color: 'hsl(var(--warm-foreground))' },
+      { name: 'ใบสั่งยา', value: c.rx, color: 'hsl(var(--accent-soft-foreground))' },
     ].filter(d => d.value > 0)
   }, [stats])
   const donutTotal = useMemo(() => donut.reduce((s, d) => s + d.value, 0), [donut])
@@ -332,7 +332,7 @@ export default function DashboardPage() {
   // Alerts — a health summary: one soft-color card per category with a heading
   // (line 1) + item COUNT (line 2), not a per-item dump. `tone` is a severity
   // gradient: destructive (red) = negative stock, warning (orange) = below
-  // reorder, warm (yellow) = nearing expiry, info (blue) = long-idle stock.
+  // reorder, accent-soft (yellow) = nearing expiry, info (blue) = long-idle stock.
   // Cards always render their tone, count 0 included.
   const alerts = useMemo(() => {
     const negCount = lowStock.filter(l => l.stock_qty < 0).length   // stock below zero
@@ -340,7 +340,7 @@ export default function DashboardPage() {
     return [
       { key: 'neg',  icon: PackageMinus, title: 'สต็อกติดลบ',          unit: 'รายการ', count: negCount,         tone: 'destructive', onClick: () => navigate('/manage/negative-stock') },
       { key: 'low',  icon: PackageX,     title: 'ต่ำกว่าจุดสั่งซื้อ',    unit: 'รายการ', count: belowReorder,     tone: 'warning',     onClick: () => navigate('/manage/low-stock') },
-      { key: 'near', icon: Clock,     title: 'ใกล้หมดอายุใน 30 วัน', unit: 'ล็อต',   count: expiryCounts.d30,  tone: 'warm',       onClick: () => navigate('/manage/expiry') },
+      { key: 'near', icon: Clock,     title: 'ใกล้หมดอายุใน 30 วัน', unit: 'ล็อต',   count: expiryCounts.d30,  tone: 'accent-soft',       onClick: () => navigate('/manage/expiry') },
       { key: 'dead', icon: Hourglass, title: 'คงค้างเกิน 6 เดือน', unit: 'รายการ', count: deadStockCount, tone: 'info', onClick: () => navigate('/manage/dead-stock') },
     ] as const
   }, [lowStock, expiryCounts.d30, deadStockCount, navigate])
@@ -380,8 +380,8 @@ export default function DashboardPage() {
         <MetricCard
           label="ต้องสั่งซื้อ" value={lowStockCount.toLocaleString()}
           sub={lowStockCount > 0 ? 'สินค้าต่ำกว่าจุดสั่งซื้อ' : 'สต็อกปกติ'}
-          subClassName={lowStockCount > 0 ? 'text-warm-foreground' : undefined}
-          icon={PackageX} tint={lowStockCount > 0 ? 'warm' : 'secondary'}
+          subClassName={lowStockCount > 0 ? 'text-accent-soft-foreground' : undefined}
+          icon={PackageX} tint={lowStockCount > 0 ? 'accent-soft' : 'secondary'}
         />
       </div>
 
@@ -550,7 +550,7 @@ export default function DashboardPage() {
         <SectionCard
           icon={Wallet}
           title="ค่าใช้จ่าย"
-          tint="warm"
+          tint="accent-soft"
           right={
             <Select value={expenseMode} onValueChange={(v) => setExpenseMode(v as ExpenseMode)}>
               <SelectTrigger variant="elevated" className="h-9 w-32">

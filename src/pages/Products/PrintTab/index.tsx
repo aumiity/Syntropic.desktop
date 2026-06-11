@@ -322,7 +322,7 @@ export default function PrintTab() {
           <SectionCard
             title="ตัวอย่าง"
             icon={FileText}
-            tint="warm"
+            tint="accent-soft"
             fill
             className="h-full"
             right={mode === 'sticker'

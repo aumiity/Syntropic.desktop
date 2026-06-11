@@ -12,12 +12,13 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { AdjustStockDialog, type AdjustStockTarget } from '@/components/dialogs/AdjustStockDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency, cn } from '@/lib/utils'
 import type { Product, ProductCategory } from '@/types'
 import type { ProductsOutletContext } from './index'
 import {
-  Edit, Package, Settings2, Filter, MoreHorizontal, Layers, Ban, Check,
+  Edit, Package, Settings2, Filter, Layers, Ban, RotateCcw, Check,
 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
@@ -79,6 +80,8 @@ export default function ProductsList() {
 
   // Stock-adjust dialog target (null = closed)
   const [adjustTarget, setAdjustTarget] = useState<AdjustStockTarget | null>(null)
+  // Enable/disable confirm target (null = closed)
+  const [confirmToggle, setConfirmToggle] = useState<ProductRow | null>(null)
 
   const pageSize = prefs.pageSize
   const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
@@ -289,7 +292,7 @@ export default function ProductsList() {
                   <SortableTableHead field="stock_qty" align="left" sort={sort} onToggle={toggleSort} className="min-w-[140px] pr-6">สต็อก</SortableTableHead>
                 )}
                 <TableHead className="min-w-20 text-center">สถานะ</TableHead>
-                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
+                <TableHead className="min-w-[130px] text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -370,43 +373,37 @@ export default function ProductsList() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-center">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
-                              <MoreHorizontal />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/products/${row.id}/edit`)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
-                            >
-                              <Edit className="size-4" /> แก้ไข
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setAdjustTarget({
-                                id: row.id,
-                                trade_name: row.trade_name,
-                                stock_qty: row.stock_qty,
-                                unit_name: row.unit_name,
-                                last_cost_price: row.last_cost_price,
-                              })}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
-                            >
-                              <Layers className="size-4" /> ปรับสต็อค
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => toggleDisabled(row)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                            >
-                              <Ban className="size-4" /> {row.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
-                            </button>
-                          </PopoverContent>
-                        </Popover>
+                      <div className="flex justify-center gap-1.5">
+                        <Button
+                          size="icon-lg"
+                          variant="elevated"
+                          title="แก้ไข"
+                          onClick={() => navigate(`/products/${row.id}/edit`)}
+                        >
+                          <Edit />
+                        </Button>
+                        <Button
+                          size="icon-lg"
+                          variant="elevated"
+                          title="ปรับสต็อค"
+                          onClick={() => setAdjustTarget({
+                            id: row.id,
+                            trade_name: row.trade_name,
+                            stock_qty: row.stock_qty,
+                            unit_name: row.unit_name,
+                            last_cost_price: row.last_cost_price,
+                          })}
+                        >
+                          <Layers />
+                        </Button>
+                        <Button
+                          size="icon-lg"
+                          variant={isDisabled ? 'elevated-success' : 'elevated-destructive'}
+                          title={isDisabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                          onClick={() => setConfirmToggle(row)}
+                        >
+                          {isDisabled ? <RotateCcw /> : <Ban />}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -452,6 +449,15 @@ export default function ProductsList() {
         target={adjustTarget}
         onClose={() => setAdjustTarget(null)}
         onSaved={() => { load(page); refreshSummary() }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmToggle}
+        onOpenChange={(v) => { if (!v) setConfirmToggle(null) }}
+        variant={confirmToggle?.is_disabled ? 'success' : 'destructive'}
+        title={confirmToggle?.is_disabled ? 'เปิดการใช้งาน' : 'ปิดการใช้งาน'}
+        description={confirmToggle ? `ต้องการ${confirmToggle.is_disabled ? 'เปิด' : 'ปิด'}ใช้งาน "${confirmToggle.trade_name}" ?` : undefined}
+        onConfirm={() => { if (confirmToggle) toggleDisabled(confirmToggle); setConfirmToggle(null) }}
       />
     </div>
   )

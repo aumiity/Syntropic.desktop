@@ -9,15 +9,13 @@ export type TintIconTint =
   | "success-strong"
   | "warning"
   | "warning-strong"
-  | "warning-soft"
   | "destructive"
   | "destructive-strong"
-  | "destructive2"
   // info (blue)
   | "info-soft"
   | "info"
   // decorative colors
-  | "warm"
+  | "accent-soft"
   | "violet"
   | "violet-strong"
   | "teal"
@@ -46,17 +44,15 @@ const BOX_BY_TINT: Record<TintIconTint, string> = {
   "primary-strong":      "bg-primary text-primary-foreground",
   success:               "bg-success-soft text-success",
   "success-strong":      "bg-success text-success-foreground",
-  warning:               "bg-warm text-warm-foreground",
+  warning:               "bg-warning-soft text-warning-soft-foreground",
   "warning-strong":      "bg-warning text-warning-foreground",
-  "warning-soft":        "bg-warning-soft text-warning-soft-foreground",
   destructive:           "bg-destructive-soft text-destructive",
   "destructive-strong":  "bg-destructive text-destructive-foreground",
-  destructive2:          "bg-destructive/15 text-destructive",
   // Info (blue)
   "info-soft":           "bg-info-soft text-info-soft-foreground",
   info:                  "bg-info text-info-foreground",
   // Decorative
-  warm:                  "bg-warm text-warm-foreground",
+  "accent-soft":                  "bg-accent-soft text-accent-soft-foreground",
   violet:                "bg-violet-soft text-violet-strong",
   "violet-strong":       "bg-violet text-violet-foreground",
   teal:                  "bg-teal-soft text-teal-strong",
@@ -74,13 +70,11 @@ const BORDER_BY_TINT: Record<Exclude<TintIconTint, "neutral">, string> = {
   "success-strong":      "border border-success/40",
   warning:               "border border-warning/40",
   "warning-strong":      "border border-warning/40",
-  "warning-soft":        "border border-warning-soft-foreground/30",
   destructive:           "border border-destructive/40",
   "destructive-strong":  "border border-destructive/40",
-  destructive2:          "border border-destructive/40",
   "info-soft":           "border border-info-soft-foreground/30",
   info:                  "border border-info/40",
-  warm:                  "border border-warm-foreground/30",
+  "accent-soft":                  "border border-accent-soft-foreground/30",
   violet:                "border border-violet/40",
   "violet-strong":       "border border-violet/40",
   teal:                  "border border-teal/40",

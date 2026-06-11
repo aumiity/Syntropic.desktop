@@ -235,7 +235,7 @@ export function SaleDetailDialog({
                             <TableCell className="text-center text-sm">{item.qty}</TableCell>
                             <TableCell className="text-center text-sm">{item.unit_name}</TableCell>
                             <TableCell className="text-right text-sm">{formatCurrency(item.unit_price)}</TableCell>
-                            <TableCell className="text-right text-sm text-warm-foreground">
+                            <TableCell className="text-right text-sm text-accent-soft-foreground">
                               {item.discount > 0 ? formatCurrency(item.discount) : '0'}
                             </TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(item.line_total)}</TableCell>
@@ -322,7 +322,7 @@ export function SaleDetailDialog({
                     <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
                       <td colSpan={4} className="py-2" />
                       <td className="pr-2 py-2 text-right text-sm font-bold">ยอดสุทธิ</td>
-                      <td className="px-2 py-2 text-right text-sm font-medium text-warm-foreground">
+                      <td className="px-2 py-2 text-right text-sm font-medium text-accent-soft-foreground">
                         {detail.total_discount > 0 ? `-${formatCurrency(detail.total_discount)}` : '0'}
                       </td>
                       <td className="pr-2 py-2 text-right font-bold text-primary">{formatCurrency(detail.total_amount)}</td>

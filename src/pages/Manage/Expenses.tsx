@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { MultiDatePicker, rangeForMultiMode, type MultiDateMode } from '@/components/ui/multi-date-picker'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ExpenseFormDialog } from '@/components/dialogs/ExpenseFormDialog'
 import {
@@ -14,7 +13,7 @@ import {
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Expense, ExpenseCategory } from '@/types'
-import { ReceiptText, Plus, Edit, Trash2, MoreHorizontal } from 'lucide-react'
+import { ReceiptText, Plus, Edit, Trash2 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type SortDir = 'asc' | 'desc'
@@ -204,24 +203,23 @@ export default function ManageExpensesPage() {
                   <TableCell className="text-sm text-foreground overflow-x-clip overflow-y-visible">{r.category_name ?? '—'}</TableCell>
                   <TableCell className="text-right text-sm text-foreground">{formatCurrency(r.amount)}</TableCell>
                   <TableCell>
-                    <div className="flex justify-center">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
-                            <MoreHorizontal />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" sideOffset={4} className="w-40 p-1 gap-0">
-                          <button type="button" onClick={() => openEdit(r)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                            <Edit className="size-4" /> แก้ไข
-                          </button>
-                          <button type="button" onClick={() => setDeleteTarget(r)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
-                            <Trash2 className="size-4" /> ลบ
-                          </button>
-                        </PopoverContent>
-                      </Popover>
+                    <div className="flex justify-center gap-1.5">
+                      <Button
+                        size="icon-lg"
+                        variant="elevated"
+                        title="แก้ไข"
+                        onClick={() => openEdit(r)}
+                      >
+                        <Edit />
+                      </Button>
+                      <Button
+                        size="icon-lg"
+                        variant="elevated-destructive"
+                        title="ลบ"
+                        onClick={() => setDeleteTarget(r)}
+                      >
+                        <Trash2 />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

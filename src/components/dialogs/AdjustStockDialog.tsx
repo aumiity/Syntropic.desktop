@@ -343,7 +343,7 @@ export function AdjustStockDialog({
                       {fefoPreview.map(({ lot, deduct, qtyAfter }, i) => (
                         <div key={lot.id} className="flex items-center justify-between text-sm bg-destructive-soft rounded-lg px-3 py-2">
                           <span className="flex items-center gap-2 min-w-0">
-                            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-destructive/15 text-xs font-bold text-destructive">{i + 1}</span>
+                            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-destructive-soft text-xs font-bold text-destructive">{i + 1}</span>
                             <span className="font-semibold text-foreground truncate">{lot.lot_number}</span>
                             <span className="text-muted-foreground shrink-0">exp {formatExp(lot.expiry_date)}</span>
                           </span>

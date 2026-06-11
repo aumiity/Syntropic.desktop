@@ -128,8 +128,8 @@ export function SalesTab({ registerSave, saving, setSaving }: {
                 <span><span className="font-medium text-warning">เตือนล่วงหน้า</span> — เหลือไม่ถึง {EXPIRY_WARN_MONTHS} เดือน แสดงป้ายสีเหลือง</span>
               </div>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <ClockAlert className="size-3.5 shrink-0 text-warm-foreground" />
-                <span><span className="font-medium text-warm-foreground">ระดับอันตราย</span> — เหลือไม่ถึง {EXPIRY_DANGER_MONTHS} เดือน แสดงป้ายสีส้ม</span>
+                <ClockAlert className="size-3.5 shrink-0 text-accent-soft-foreground" />
+                <span><span className="font-medium text-accent-soft-foreground">ระดับอันตราย</span> — เหลือไม่ถึง {EXPIRY_DANGER_MONTHS} เดือน แสดงป้ายสีส้ม</span>
               </div>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <ClockAlert className="size-3.5 shrink-0 text-destructive" />
@@ -171,7 +171,7 @@ export function SalesTab({ registerSave, saving, setSaving }: {
                   {/* Guarded downgrade — admin password re-entry + reason, audited */}
                   <div className="flex items-center justify-between gap-3 h-11 px-3">
                     <span className="text-sm text-muted-foreground">เพิกถอนทะเบียน VAT แล้ว?</span>
-                    <Button variant="destructive2" onClick={() => setDowngradeOpen(true)}>
+                    <Button variant="destructive-soft" onClick={() => setDowngradeOpen(true)}>
                       ปิดระบบ VAT
                     </Button>
                   </div>

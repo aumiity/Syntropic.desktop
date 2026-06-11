@@ -17,7 +17,7 @@ import { useUserStore } from '@/stores/userStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import type { ManageOutletContext } from './index'
 import type { NegativeStockRow } from '@/types'
-import { PackageCheck, Trash2, Settings2, MoreHorizontal, PackageMinus } from 'lucide-react'
+import { PackageCheck, Trash2, Settings2, PackageMinus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 type Confirming =
@@ -190,28 +190,24 @@ export default function NegativeStockPage() {
                       </TableCell>
                     )}
                     <TableCell>
-                      <div className="flex justify-center">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
-                              <MoreHorizontal />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" sideOffset={4} className="w-52 p-1 gap-0">
-                            <button type="button"
-                              disabled={!canReconcile}
-                              onClick={() => setConfirming({ kind: 'reconcile', row: r })}
-                              title={canReconcile ? 'ตัดสต็อคย้อนหลัง' : 'ไม่มีสต็อคพร้อมตัด — ต้องรับสินค้าก่อน'}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:pointer-events-none">
-                              <PackageCheck className="size-4" /> ตัดสต็อคย้อนหลัง
-                            </button>
-                            <button type="button"
-                              onClick={() => setConfirming({ kind: 'dismiss', row: r })}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
-                              <Trash2 className="size-4" /> ลบรายการ
-                            </button>
-                          </PopoverContent>
-                        </Popover>
+                      <div className="flex justify-center gap-1.5">
+                        <Button
+                          size="icon-lg"
+                          variant="elevated"
+                          disabled={!canReconcile}
+                          title={canReconcile ? 'ตัดสต็อคย้อนหลัง' : 'ไม่มีสต็อคพร้อมตัด — ต้องรับสินค้าก่อน'}
+                          onClick={() => setConfirming({ kind: 'reconcile', row: r })}
+                        >
+                          <PackageCheck />
+                        </Button>
+                        <Button
+                          size="icon-lg"
+                          variant="elevated-destructive"
+                          title="ลบรายการ"
+                          onClick={() => setConfirming({ kind: 'dismiss', row: r })}
+                        >
+                          <Trash2 />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -264,7 +260,7 @@ export default function NegativeStockPage() {
                   </span> {confirming.row.unit_name} จากล็อตปัจจุบัน (FEFO)
                 </div>
                 {confirming.row.available_stock < confirming.row.qty && (
-                  <div className="rounded-xl bg-warm p-3 text-sm text-warm-foreground leading-relaxed">
+                  <div className="rounded-xl bg-accent-soft p-3 text-sm text-accent-soft-foreground leading-relaxed">
                     สต๊อกปัจจุบันไม่พอตัดครบ — เหลือค้าง <span className="font-bold">
                       {(confirming.row.qty - confirming.row.available_stock).toLocaleString()}
                     </span> {confirming.row.unit_name}

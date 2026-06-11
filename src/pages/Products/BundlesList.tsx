@@ -10,12 +10,13 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } 
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { formatCurrency, cn } from '@/lib/utils'
 import type { Product } from '@/types'
 import type { ProductsOutletContext } from './index'
-import { Edit, Boxes, Settings2, Filter, MoreHorizontal, Ban, Check } from 'lucide-react'
+import { Edit, Boxes, Settings2, Filter, Ban, RotateCcw, Check } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
 type SortDir = 'asc' | 'desc'
@@ -52,6 +53,8 @@ export default function BundlesList() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
+  // Enable/disable confirm target (null = closed)
+  const [confirmToggle, setConfirmToggle] = useState<BundleRow | null>(null)
 
   const [q, setQ] = useState('')
   const showCost = prefs.showCost
@@ -207,7 +210,7 @@ export default function BundlesList() {
                   <SortableTableHead field="profit" sort={sort} onToggle={toggleSort} className="min-w-24">กำไร</SortableTableHead>
                 )}
                 <TableHead className="text-center min-w-20">สถานะ</TableHead>
-                <TableHead className="text-center min-w-20">จัดการ</TableHead>
+                <TableHead className="text-center min-w-[92px]">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -285,30 +288,23 @@ export default function BundlesList() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-center">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
-                              <MoreHorizontal />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/products/bundles/${row.id}/edit`)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
-                            >
-                              <Edit className="size-4" /> แก้ไข
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => toggleDisabled(row)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                            >
-                              <Ban className="size-4" /> {row.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
-                            </button>
-                          </PopoverContent>
-                        </Popover>
+                      <div className="flex justify-center gap-1.5">
+                        <Button
+                          size="icon-lg"
+                          variant="elevated"
+                          title="แก้ไข"
+                          onClick={() => navigate(`/products/bundles/${row.id}/edit`)}
+                        >
+                          <Edit />
+                        </Button>
+                        <Button
+                          size="icon-lg"
+                          variant={isDisabled ? 'elevated-success' : 'elevated-destructive'}
+                          title={isDisabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                          onClick={() => setConfirmToggle(row)}
+                        >
+                          {isDisabled ? <RotateCcw /> : <Ban />}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -349,6 +345,15 @@ export default function BundlesList() {
           <Pagination page={page} totalPages={totalPages} onPageChange={p => load(p)} className="w-auto" />
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!confirmToggle}
+        onOpenChange={(v) => { if (!v) setConfirmToggle(null) }}
+        variant={confirmToggle?.is_disabled ? 'success' : 'destructive'}
+        title={confirmToggle?.is_disabled ? 'เปิดการใช้งาน' : 'ปิดการใช้งาน'}
+        description={confirmToggle ? `ต้องการ${confirmToggle.is_disabled ? 'เปิด' : 'ปิด'}ใช้งาน "${confirmToggle.trade_name}" ?` : undefined}
+        onConfirm={() => { if (confirmToggle) toggleDisabled(confirmToggle); setConfirmToggle(null) }}
+      />
     </div>
   )
 }

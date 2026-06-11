@@ -100,7 +100,7 @@ export function DowngradeVatDialog({
           </FormField>
         </DialogBody>
         <DialogFooter>
-          <Button size="xl" variant="destructive2" onClick={() => onOpenChange(false)} disabled={busy}>
+          <Button size="xl" variant="destructive-soft" onClick={() => onOpenChange(false)} disabled={busy}>
             ยกเลิก
           </Button>
           <Button size="xl" variant="destructive" onClick={handleConfirm} disabled={busy}>

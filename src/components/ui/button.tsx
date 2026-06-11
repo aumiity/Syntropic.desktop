@@ -43,9 +43,9 @@ const buttonVariants = cva(
           "bg-info-soft text-info-soft-foreground",
           "hover:bg-info-soft-hover [a]:hover:bg-info-soft/80",
         ].join(" "),
-        warm: [
-          "bg-warm text-warm-foreground",
-          "hover:bg-warm-hover [a]:hover:bg-warm/80",
+        "accent-soft": [
+          "bg-accent-soft text-accent-soft-foreground",
+          "hover:bg-accent-soft-hover [a]:hover:bg-accent-soft/80",
         ].join(" "),
         outline: [
           "border-transparent bg-muted",
@@ -78,22 +78,22 @@ const buttonVariants = cva(
         violet: "bg-violet text-violet-foreground hover:bg-violet/85",
         teal: "bg-teal text-teal-foreground hover:bg-teal/85",
         "success-soft": "bg-success-soft text-success hover:bg-success-soft/80",
-        // warning-soft = pale ORANGE (distinct from `warm` which is cream)
+        // warning-soft = pale ORANGE (distinct from `accent-soft` which is cream)
         "warning-soft": "bg-warning-soft text-warning-soft-foreground hover:bg-warning-soft/80",
         "violet-soft": "bg-violet-soft text-violet-strong hover:bg-violet-soft/80",
         "teal-soft": "bg-teal-soft text-teal-strong hover:bg-teal-soft/80",
         // Soft + colored border — bordered chip look (matches Badge *-outline)
         "primary-outline":      "border border-primary/40 bg-primary-soft text-primary hover:bg-primary-soft-hover",
         "success-outline":      "border border-success/40 bg-success-soft text-success hover:bg-success-soft/80",
-        "warning-outline":      "border border-warm-foreground/40 bg-warm text-warm-foreground hover:bg-warm-hover",
-        "destructive-outline":  "border border-destructive/40 bg-destructive/15 text-destructive hover:bg-destructive/25",
+        "warning-outline":      "border border-warning/40 bg-warning-soft text-warning-soft-foreground hover:bg-warning-soft/80",
+        "destructive-outline":  "border border-destructive/40 bg-destructive-soft text-destructive hover:bg-destructive/25",
         "info-outline":         "border border-info/40 bg-info-soft text-info-soft-foreground hover:bg-info-soft-hover",
         "violet-outline":       "border border-violet/40 bg-violet-soft text-violet-strong hover:bg-violet-soft/80",
         "teal-outline":         "border border-teal/40 bg-teal-soft text-teal-strong hover:bg-teal-soft/80",
-        "accent-outline":       "border border-accent-foreground/30 bg-accent text-accent-foreground hover:bg-accent/85",
+        "accent-outline":       "border border-accent/40 bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft-hover",
         "neutral-outline":      "border border-border bg-card text-foreground hover:bg-muted",
         "muted-outline":        "border border-border-strong/30 bg-muted-hover text-muted-foreground hover:bg-muted",
-        destructive2: "bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive",
+        "destructive-soft": "bg-destructive-soft text-destructive hover:bg-destructive/25 hover:text-destructive",
         elevated: [
           "bg-card text-foreground border-border border shadow-sm",
           "hover:bg-muted hover:shadow-sm",
@@ -106,13 +106,39 @@ const buttonVariants = cva(
         ].join(" "),
         "elevated-warning": [
           "bg-card text-foreground border-border border shadow-sm",
-          "hover:bg-warm hover:text-warm-foreground hover:shadow-sm",
-          "aria-expanded:bg-warm aria-expanded:text-warm-foreground aria-expanded:shadow-sm",
+          "hover:bg-warning hover:text-white hover:border-warning hover:shadow-sm",
+          "aria-expanded:bg-warning aria-expanded:text-white aria-expanded:border-warning aria-expanded:shadow-sm",
         ].join(" "),
         "elevated-success": [
           "bg-card text-foreground border-border border shadow-sm",
           "hover:bg-success hover:text-success-foreground hover:border-success hover:shadow-sm",
           "aria-expanded:bg-success aria-expanded:text-success-foreground aria-expanded:border-success aria-expanded:shadow-sm",
+        ].join(" "),
+        // Soft elevated — role tint shows at rest (soft bg + colored border + shadow), deepens on hover/aria-expanded
+        "elevated-destructive-soft": [
+          "bg-card text-foreground border-border border shadow-sm",
+          "hover:bg-destructive-soft hover:text-destructive hover:border-destructive-soft hover:shadow-sm",
+          "aria-expanded:bg-destructive-soft aria-expanded:text-destructive aria-expanded:border-destructive-soft aria-expanded:shadow-sm",
+        ].join(" "),
+        "elevated-warning-soft": [
+          "bg-card text-foreground border-border border shadow-sm",
+          "hover:bg-warning-soft hover:text-warning-soft-foreground hover:border-warning-soft hover:shadow-sm",
+          "aria-expanded:bg-warning-soft aria-expanded:text-warning-soft-foreground aria-expanded:border-warning-soft aria-expanded:shadow-sm",
+        ].join(" "),
+        "elevated-success-soft": [
+          "bg-card text-foreground border-border border shadow-sm",
+          "hover:bg-success-soft hover:text-success hover:border-success-soft hover:shadow-sm",
+          "aria-expanded:bg-success-soft aria-expanded:text-success aria-expanded:border-success-soft aria-expanded:shadow-sm",
+        ].join(" "),
+        "elevated-accent": [
+          "bg-card text-foreground border-border border shadow-sm",
+          "hover:bg-accent hover:text-accent-foreground hover:border-accent hover:shadow-sm",
+          "aria-expanded:bg-accent aria-expanded:text-accent-foreground aria-expanded:border-accent aria-expanded:shadow-sm",
+        ].join(" "),
+        "elevated-accent-soft": [
+          "bg-card text-foreground border-border border shadow-sm",
+          "hover:bg-accent-soft hover:text-accent-soft-foreground hover:border-accent-soft hover:shadow-sm",
+          "aria-expanded:bg-accent-soft aria-expanded:text-accent-soft-foreground aria-expanded:border-accent-soft aria-expanded:shadow-sm",
         ].join(" "),
       },
       size: {

@@ -23,8 +23,9 @@ import { InitialAvatar } from '@/components/ui/avatar'
 import { motion } from 'framer-motion'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import type { Customer, Supplier, User } from '@/types'
-import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2, Filter, MoreHorizontal, Ban, Check, KeyRound } from 'lucide-react'
+import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2, Filter, Ban, RotateCcw, Check, KeyRound } from 'lucide-react'
 
 // Enter on a working input fires the dialog's primary OK action (modal contract).
 // Textarea is exempted so multi-line input keeps newline behaviour.
@@ -79,6 +80,8 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
 
   const [dialog, setDialog] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
+  // Enable/disable confirm target (null = closed)
+  const [confirmToggle, setConfirmToggle] = useState<Customer | null>(null)
 
   const pageSize = prefs.pageSize
   const setPageSize = (v: PageSize) => setPrefs({ pageSize: v })
@@ -195,7 +198,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                 {showColPhone && <TableHead className="min-w-32">โทรศัพท์</TableHead>}
                 {showColAlert && <TableHead className="min-w-24 text-center">แจ้งเตือน</TableHead>}
                 <TableHead className="min-w-24 text-center">สถานะ</TableHead>
-                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
+                <TableHead className="min-w-[92px] text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -233,30 +236,23 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                       : <Badge variant="success-outline">ใช้งาน</Badge>}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-center">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
-                            <MoreHorizontal />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(c)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
-                          >
-                            <Edit className="size-4" /> แก้ไข
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => toggleDisabled(c)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                          >
-                            <Ban className="size-4" /> {c.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
-                          </button>
-                        </PopoverContent>
-                      </Popover>
+                    <div className="flex justify-center gap-1.5">
+                      <Button
+                        size="icon-lg"
+                        variant="elevated"
+                        title="แก้ไข"
+                        onClick={() => openEdit(c)}
+                      >
+                        <Edit />
+                      </Button>
+                      <Button
+                        size="icon-lg"
+                        variant={c.is_disabled ? 'elevated-success' : 'elevated-destructive'}
+                        title={c.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                        onClick={() => setConfirmToggle(c)}
+                      >
+                        {c.is_disabled ? <RotateCcw /> : <Ban />}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -302,6 +298,15 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
         customerId={editingId}
         onSaved={() => { load(page); refreshStats() }}
       />
+
+      <ConfirmDialog
+        open={!!confirmToggle}
+        onOpenChange={(v) => { if (!v) setConfirmToggle(null) }}
+        variant={confirmToggle?.is_disabled ? 'success' : 'destructive'}
+        title={confirmToggle?.is_disabled ? 'เปิดการใช้งาน' : 'ปิดการใช้งาน'}
+        description={confirmToggle ? `ต้องการ${confirmToggle.is_disabled ? 'เปิด' : 'ปิด'}ใช้งาน "${confirmToggle.full_name}" ?` : undefined}
+        onConfirm={() => { if (confirmToggle) toggleDisabled(confirmToggle); setConfirmToggle(null) }}
+      />
     </div>
   )
 }
@@ -331,6 +336,8 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
   const [editing, setEditing] = useState<Supplier | null>(null)
+  // Enable/disable confirm target (null = closed)
+  const [confirmToggle, setConfirmToggle] = useState<Supplier | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
 
@@ -456,7 +463,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                 <TableHead className="min-w-[320px]">ชื่อบริษัท</TableHead>
                 {showColPhone && <TableHead className="min-w-32">โทรศัพท์</TableHead>}
                 <TableHead className="min-w-24 text-center">สถานะ</TableHead>
-                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
+                <TableHead className="min-w-[92px] text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -483,24 +490,23 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                       : <Badge variant="success-outline">ใช้งาน</Badge>}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-center">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
-                            <MoreHorizontal />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
-                          <button type="button" onClick={() => openEdit(s)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                            <Edit className="size-4" /> แก้ไข
-                          </button>
-                          <button type="button" onClick={() => toggleDisabled(s)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
-                            <Ban className="size-4" /> {s.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
-                          </button>
-                        </PopoverContent>
-                      </Popover>
+                    <div className="flex justify-center gap-1.5">
+                      <Button
+                        size="icon-lg"
+                        variant="elevated"
+                        title="แก้ไข"
+                        onClick={() => openEdit(s)}
+                      >
+                        <Edit />
+                      </Button>
+                      <Button
+                        size="icon-lg"
+                        variant={s.is_disabled ? 'elevated-success' : 'elevated-destructive'}
+                        title={s.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                        onClick={() => setConfirmToggle(s)}
+                      >
+                        {s.is_disabled ? <RotateCcw /> : <Ban />}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -576,6 +582,15 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmToggle}
+        onOpenChange={(v) => { if (!v) setConfirmToggle(null) }}
+        variant={confirmToggle?.is_disabled ? 'success' : 'destructive'}
+        title={confirmToggle?.is_disabled ? 'เปิดการใช้งาน' : 'ปิดการใช้งาน'}
+        description={confirmToggle ? `ต้องการ${confirmToggle.is_disabled ? 'เปิด' : 'ปิด'}ใช้งาน "${confirmToggle.name}" ?` : undefined}
+        onConfirm={() => { if (confirmToggle) toggleDisabled(confirmToggle); setConfirmToggle(null) }}
+      />
     </div>
   )
 }
@@ -608,6 +623,8 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
+  // Enable/disable confirm target (null = closed)
+  const [confirmToggle, setConfirmToggle] = useState<User | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
   // Password reset is a separate flow from editing details — holds the target staff.
@@ -777,7 +794,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                 {showColPhone && <TableHead className="min-w-32">เบอร์โทร</TableHead>}
                 {showColRole && <TableHead className="min-w-28 text-center">ตำแหน่ง</TableHead>}
                 <TableHead className="min-w-24 text-center">สถานะ</TableHead>
-                <TableHead className="min-w-16 text-center">จัดการ</TableHead>
+                <TableHead className="min-w-[130px] text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -808,28 +825,31 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                       : <Badge variant="success-outline">ใช้งาน</Badge>}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-center">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
-                            <MoreHorizontal />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
-                          <button type="button" onClick={() => openEdit(u)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                            <Edit className="size-4" /> แก้ไข
-                          </button>
-                          <button type="button" onClick={() => setPwTarget(u)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                            <KeyRound className="size-4" /> เปลี่ยนรหัสผ่าน
-                          </button>
-                          <button type="button" onClick={() => toggleDisabled(u)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
-                            <Ban className="size-4" /> {u.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
-                          </button>
-                        </PopoverContent>
-                      </Popover>
+                    <div className="flex justify-center gap-1.5">
+                      <Button
+                        size="icon-lg"
+                        variant="elevated"
+                        title="แก้ไข"
+                        onClick={() => openEdit(u)}
+                      >
+                        <Edit />
+                      </Button>
+                      <Button
+                        size="icon-lg"
+                        variant="elevated"
+                        title="เปลี่ยนรหัสผ่าน"
+                        onClick={() => setPwTarget(u)}
+                      >
+                        <KeyRound />
+                      </Button>
+                      <Button
+                        size="icon-lg"
+                        variant={u.is_disabled ? 'elevated-success' : 'elevated-destructive'}
+                        title={u.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                        onClick={() => setConfirmToggle(u)}
+                      >
+                        {u.is_disabled ? <RotateCcw /> : <Ban />}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -915,6 +935,15 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
         target={pwTarget}
         onClose={() => setPwTarget(null)}
         onSuccess={() => { setPwTarget(null); toast({ title: 'เปลี่ยนรหัสผ่านสำเร็จ', variant: 'success' }) }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmToggle}
+        onOpenChange={(v) => { if (!v) setConfirmToggle(null) }}
+        variant={confirmToggle?.is_disabled ? 'success' : 'destructive'}
+        title={confirmToggle?.is_disabled ? 'เปิดการใช้งาน' : 'ปิดการใช้งาน'}
+        description={confirmToggle ? `ต้องการ${confirmToggle.is_disabled ? 'เปิด' : 'ปิด'}ใช้งาน "${confirmToggle.name}" ?` : undefined}
+        onConfirm={() => { if (confirmToggle) toggleDisabled(confirmToggle); setConfirmToggle(null) }}
       />
     </div>
   )
@@ -1035,7 +1064,7 @@ export default function PeoplePage() {
 
   const summary = useMemo(() => [
     { label: 'ลูกค้าที่ใช้งาน',     value: stats.customers_active.toLocaleString(),   icon: Users,     tint: 'primary'   as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground' },
-    { label: 'ลูกค้าที่ปิดใช้งาน',  value: stats.customers_disabled.toLocaleString(), icon: Ban,       tint: 'destructive2' as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground' },
+    { label: 'ลูกค้าที่ปิดใช้งาน',  value: stats.customers_disabled.toLocaleString(), icon: Ban,       tint: 'destructive' as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     { label: 'ผู้จัดจำหน่าย',      value: stats.suppliers.toLocaleString(),          icon: Building2, tint: 'info-soft' as MetricTint, sub: 'ราย', subClassName: 'text-base text-foreground' },
     ...(isAdmin ? [{ label: 'พนักงาน', value: stats.staff.toLocaleString(), icon: UserCog, tint: 'success' as MetricTint, sub: 'คน', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' }] : []),
   ], [stats, isAdmin])

@@ -505,7 +505,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
               </TabsContent>
 
               <TabsContent value="sections" className="space-y-3 mt-0">
-                <SectionCard icon={Printer} title="ฟอนต์ &amp; บรรทัด" tint="warm">
+                <SectionCard icon={Printer} title="ฟอนต์ &amp; บรรทัด" tint="accent-soft">
                   <FormField label="ฟอนต์">
                     <Select value={form.font_family} onValueChange={v => setF('font_family', v)}>
                       <SelectTrigger variant="elevated" className="w-full">

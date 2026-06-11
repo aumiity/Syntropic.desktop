@@ -193,7 +193,7 @@ function ProfileDialog({
 
           <div className="mt-4 rounded-xl border bg-card shadow-sm divide-y divide-border">
             <ProfileRow label="ชื่อ-นามสกุล" value={fullName} />
-            <ProfileRow label="ชื่อผู้ใช้" value={profile?.username ? `@${profile.username}` : (loading ? '…' : '-')} />
+            <ProfileRow label="ชื่อผู้ใช้" value={profile?.username ? `${profile.username}` : (loading ? '…' : '-')} />
             <ProfileRow label="อีเมล" value={profile?.email || (loading ? '…' : '-')} />
             <ProfileRow label="เบอร์โทร" value={profile?.phone || (loading ? '…' : '-')} />
             <ProfileRow label="สิทธิ์การใช้งาน" value={ROLE_LABEL[role] ?? role} />

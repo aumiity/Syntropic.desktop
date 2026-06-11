@@ -293,7 +293,7 @@ export default function PurchaseIntake() {
 
   const cellTint = (tier: Tier, score: number) => {
     if (tier === 'alias' || score >= AUTO_CONFIRM) return 'bg-success-soft/40'
-    if (score >= 0.7) return 'bg-warm/40'
+    if (score >= 0.7) return 'bg-accent-soft/40'
     return 'bg-destructive-soft/40'
   }
 

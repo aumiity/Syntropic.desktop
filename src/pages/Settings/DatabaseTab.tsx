@@ -131,7 +131,7 @@ export function DatabaseTab() {
       </SectionCard>
 
       {/* Restore */}
-      <SectionCard icon={Upload} title="กู้คืนข้อมูล" tint="warm">
+      <SectionCard icon={Upload} title="กู้คืนข้อมูล" tint="accent-soft">
         <p className="text-sm text-muted-foreground leading-relaxed">
           เลือกไฟล์สำรอง <span className="font-mono text-xs">.db</span> มาแทนที่ฐานข้อมูลปัจจุบันทั้งหมด
           ระบบจะสำรองข้อมูลปัจจุบันไว้ก่อนอัตโนมัติ แล้วรีสตาร์ทโปรแกรม

@@ -14,7 +14,7 @@ import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/Qu
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { compareNameBuckets } from '@/lib/sortName'
 import type { ManageOutletContext } from './index'
-import { PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes, Settings2, MoreHorizontal, Filter, Check } from 'lucide-react'
+import { PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes, Settings2, Filter, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -141,8 +141,8 @@ export default function ManageLowStockPage() {
   useEffect(() => {
     setSummary([
       { label: 'รายการทั้งหมด', value: rows.length.toLocaleString(),                  icon: Package,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'หมดสต็อก',      value: outCount.toLocaleString(),                     icon: PackageX,     tint: 'destructive2', sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ใกล้หมด',       value: Math.max(0, rows.length - outCount).toLocaleString(), icon: TrendingDown, tint: 'warm',  sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'หมดสต็อก',      value: outCount.toLocaleString(),                     icon: PackageX,     tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+      { label: 'ใกล้หมด',       value: Math.max(0, rows.length - outCount).toLocaleString(), icon: TrendingDown, tint: 'accent-soft',  sub: 'รายการ', subClassName: 'text-base text-foreground' },
     ])
   }, [rows.length, outCount, setSummary])
 
@@ -301,7 +301,7 @@ export default function ManageLowStockPage() {
                 {showSupplier && (
                   <TableHead className="text-right min-w-32">ผู้จำหน่าย</TableHead>
                 )}
-                <TableHead className="text-center min-w-20">จัดการสินค้า</TableHead>
+                <TableHead className="text-center min-w-[92px]">จัดการสินค้า</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -373,33 +373,31 @@ export default function ManageLowStockPage() {
                       </TableCell>
                     )}
                     <TableCell>
-                      <div className="flex justify-center">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
-                              <MoreHorizontal />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
-                            <button type="button"
-                              onClick={() => setQuickTarget({
-                                id: r.product_id,
-                                trade_name: r.trade_name,
-                                code: r.code,
-                                unit_name: r.unit_name,
-                                stock_qty: r.stock_qty,
-                                reorder_point: r.reorder_point,
-                                safety_stock: r.safety_stock,
-                              })}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                              <Boxes className="size-4" /> ตั้งค่าสต็อก
-                            </button>
-                            <button type="button" onClick={() => navigate(`/products/${r.product_id}/edit`)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                              <Edit className="size-4" /> แก้ไขสินค้า
-                            </button>
-                          </PopoverContent>
-                        </Popover>
+                      <div className="flex justify-center gap-1.5">
+                        <Button
+                          size="icon-lg"
+                          variant="elevated"
+                          title="ตั้งค่าสต็อก"
+                          onClick={() => setQuickTarget({
+                            id: r.product_id,
+                            trade_name: r.trade_name,
+                            code: r.code,
+                            unit_name: r.unit_name,
+                            stock_qty: r.stock_qty,
+                            reorder_point: r.reorder_point,
+                            safety_stock: r.safety_stock,
+                          })}
+                        >
+                          <Boxes />
+                        </Button>
+                        <Button
+                          size="icon-lg"
+                          variant="elevated"
+                          title="แก้ไขสินค้า"
+                          onClick={() => navigate(`/products/${r.product_id}/edit`)}
+                        >
+                          <Edit />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

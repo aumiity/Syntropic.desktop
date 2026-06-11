@@ -91,7 +91,7 @@ Solid / primary roles:
 Soft / tinted:
 - `primary-soft` — light teal soft · subtle brand emphasis (this absorbed the old `brand-soft`)
 - `info-soft` — light blue · info-style action, e.g. "ปรับสต็อก"
-- `warm` — soft amber/yellow · warm secondary
+- `accent-soft` — soft amber/yellow · warm secondary (this is the former `warm`, renamed)
 - `destructive2` — soft red tint · destructive secondary (the slot next to a `destructive` primary)
 - `success-soft` / `violet-soft` / `teal-soft`
 
@@ -105,7 +105,7 @@ Neutral / low-emphasis:
 
 Elevated (the house raised look — only as the **secondary** beside a primary, never lone): `elevated`, `elevated-destructive`, `elevated-warning`.
 
-> **Renames (do not use the old names):** `tertiary` → `accent`; `brand-soft` → `primary-soft`; the old ordinals `quaternary/quinary/senary` → `primary-soft/info-soft/warm`. Token values are unchanged.
+> **Renames (do not use the old names):** `tertiary` → `accent`; `brand-soft` → `primary-soft`; `warm` → `accent-soft` (cream/amber soft token, role name `accent-soft`); the old ordinals `quaternary/quinary/senary` → `primary-soft/info-soft/accent-soft`. Token values are unchanged.
 
 ### `<Badge>` variants (`badge.tsx`)
 
@@ -114,9 +114,9 @@ Badge shares the same role names as Button (minus the `elevated*` / `mutedborder
 ### Semantic color tokens (`index.css` — defined in both `:root` and `.dark`)
 
 - Brand: `primary`, `primary-soft`, `primary-soft-hover`, `primary-soft-border`, `primary-strong`, `primary-hover`, `primary-foreground`
-- Accent (yellow): `accent`, `accent-foreground` (no `tertiary`/`accent-soft` — those names are gone)
+- Accent (yellow): `accent`, `accent-foreground` (no `tertiary` — that name is gone). `accent-soft`/`accent-soft-hover`/`accent-soft-foreground` = the soft cream/amber surface (formerly `warm`)
 - Neutrals: `background`, `card`, `muted`, `muted-hover`, `popover`, `secondary`
-- Decorative surfaces: `primary-soft` (light teal), `info-soft` (light blue), `warm` (warm amber) — each with `-foreground` / `-hover`
+- Decorative surfaces: `primary-soft` (light teal), `info-soft` (light blue), `accent-soft` (warm amber, formerly `warm`) — each with `-foreground` / `-hover`
 - Radius: `--radius-card` (→ `rounded-card`, the single source of truth for card/panel corners) and `--radius-control` (→ `rounded-control`, buttons/inputs). Change card roundness app-wide by editing `--radius-card` in `index.css` only.
 - Status: `success`/`success-soft`, `warning`/`warning-soft`/`warning-strong`, `destructive`/`destructive-soft`/`destructive-strong`
 - Text: `foreground`, `muted-foreground`, `foreground-subtle`
@@ -124,9 +124,9 @@ Badge shares the same role names as Button (minus the `elevated*` / `mutedborder
 
 ### When writing new UI — guidelines
 
-1. **Differentiate actions by tint.** "Edit" `outline`, info/details icon `warm`, external-link icon `primary-soft`, "Adjust stock" `info-soft`, "Delete" `destructive`, primary save `default`, secondary toggle `accent`. See the row-action rule in `ui-table-card.md` for the canonical square icon-button pattern.
-2. **Decorative chips/status badges** → reach for `accent`/`primary-soft`/`info-soft`/`warm` before falling back to `secondary` or grey.
-3. **Section accents / soft backgrounds** → `bg-primary-soft`, `bg-info-soft`, `bg-warm` (NOT `bg-muted` for everything).
+1. **Differentiate actions by tint.** "Edit" `outline`, info/details icon `accent-soft`, external-link icon `primary-soft`, "Adjust stock" `info-soft`, "Delete" `destructive`, primary save `default`, secondary toggle `accent`. See the row-action rule in `ui-table-card.md` for the canonical square icon-button pattern.
+2. **Decorative chips/status badges** → reach for `accent`/`primary-soft`/`info-soft`/`accent-soft` before falling back to `secondary` or grey.
+3. **Section accents / soft backgrounds** → `bg-primary-soft`, `bg-info-soft`, `bg-accent-soft` (NOT `bg-muted` for everything).
 4. **Hover states** → use the matching `-hover` token (`primary-hover`, `primary-soft-hover`, etc.) — already wired into the Button variants.
 5. **Missing role?** Add a new variant to `buttonVariants`/`badgeVariants` AND a matching token to `:root` + `.dark` in `index.css`. Never hardcode hex or Tailwind palette literals.
 

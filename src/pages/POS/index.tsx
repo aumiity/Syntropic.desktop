@@ -51,7 +51,7 @@ const SEVERITY_LABELS: Record<string, string> = {
   mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต',
 }
 const SEVERITY_VARIANTS: Record<string, any> = {
-  mild: 'secondary', moderate: 'warning', severe: 'warm', life_threatening: 'destructive',
+  mild: 'secondary', moderate: 'warning', severe: 'accent-soft', life_threatening: 'destructive',
 }
 
 const stripCommas = (v: string) => v.replace(/,/g, '')
@@ -987,7 +987,7 @@ export default function POSPage() {
                     </span>
                     <div className="flex items-center w-full">
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant={isActive ? 'warm' : 'accent'} className="text-xs rounded-md">ขายส่ง</Badge>
+                        <Badge variant={isActive ? 'accent-soft' : 'accent'} className="text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
                         <Badge variant={isActive ? 'primary-soft' : 'default'} className="text-xs rounded-md">ขายปลีก</Badge>
                       )}
@@ -1088,7 +1088,7 @@ export default function POSPage() {
                 className="h-9 py-2 pl-3 pr-9 text-sm rounded-lg"/>
               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
             </div>
-            <Button variant="destructive2" size="sm" disabled={cart.items.length === 0}
+            <Button variant="destructive-soft" size="sm" disabled={cart.items.length === 0}
               onClick={() => { cart.clearCart(); setExpandedBundles(new Set()); refocusSearch() }}
               className="gap-1.5 px-3 py-1.5 h-9 rounded-lg text-sm font-medium hover:bg-destructive hover:text-primary-foreground shrink-0">
               <Trash2 className="size-3.5" /> ลบรายการทั้งหมด
@@ -1211,13 +1211,13 @@ export default function POSPage() {
 
                       <TableCell className="text-right">
                         {item.discount ? (
-                          <Button variant="destructive2" size="sm"
+                          <Button variant="destructive-soft" size="sm"
                             onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
                             className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md text-sm font-semibold">
                             <span className="leading-none">{formatCurrency(item.discount)}</span>
                           </Button>
                         ) : (
-                          <Button variant="destructive2" size="sm"
+                          <Button variant="destructive-soft" size="sm"
                             onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
                             className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md text-sm font-medium">
                             <span className="text-right">0</span>
@@ -1278,7 +1278,7 @@ export default function POSPage() {
                     <ClockAlert className="size-3.5 text-destructive" /> หมดอายุ
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <ClockAlert className="size-3.5 text-warm-foreground" /> อายุต่ำกว่า {EXPIRY_DANGER_MONTHS} เดือน
+                    <ClockAlert className="size-3.5 text-accent-soft-foreground" /> อายุต่ำกว่า {EXPIRY_DANGER_MONTHS} เดือน
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <ClockAlert className="size-3.5 text-warning" /> อายุต่ำกว่า {EXPIRY_WARN_MONTHS} เดือน
@@ -1519,7 +1519,7 @@ export default function POSPage() {
 
                   {/* Medical */}
                   {(c.chronic_diseases || allergies.length > 0) ? (
-                    <SectionCard icon={HeartPulse} title="ข้อมูลทางการแพทย์" tint="warm">
+                    <SectionCard icon={HeartPulse} title="ข้อมูลทางการแพทย์" tint="accent-soft">
                       {c.chronic_diseases ? (
                         <div className="space-y-1">
                           <div className="text-sm font-semibold text-muted-foreground">โรคประจำตัว</div>
@@ -2660,7 +2660,7 @@ export default function POSPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="destructive2" size="xl" className="mr-auto" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
+                <Button variant="destructive-soft" size="xl" className="mr-auto" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
                 <Button variant="elevated" size="xl" onClick={() => setDiscountModalIdx(null)}>ปิด</Button>
                 <Button size="xl" onClick={() => applyDiscount(d)}>ตกลง</Button>
               </DialogFooter>
