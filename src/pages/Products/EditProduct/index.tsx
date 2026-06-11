@@ -426,7 +426,7 @@ export default function EditProductPage() {
                 <div className="flex items-center gap-1 mt-auto min-w-0 flex-wrap">
                   {!isNew && !!product.is_drug && <Badge variant="success-outline">ยา</Badge>}
                   {!isNew && !!product.is_fda9 && <Badge variant="primary-outline">ข.ย.9</Badge>}
-                  {!isNew && !!product.is_fda10 && <Badge variant="warning-outline">ข.ย.10</Badge>}
+                  {!isNew && !!product.is_fda10 && <Badge variant="accent-outline">ข.ย.10</Badge>}
                   {!isNew && !!product.is_fda11 && <Badge variant="destructive-outline">ข.ย.11</Badge>}
                   {!isNew && !!product.is_fda13 && <Badge variant="info-outline">ข.ย.13</Badge>}
                   {!isNew && !!product.is_hidden && <Badge variant="muted-outline">ซ่อน</Badge>}

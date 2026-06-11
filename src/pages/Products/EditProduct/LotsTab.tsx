@@ -291,7 +291,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                             <ClockAlert className="size-4" /> {dateStr}
                           </Badge>
                         ) : days < 90 ? (
-                          <Badge variant="warning-outline" className="rounded-md gap-1 text-sm">
+                          <Badge variant="accent-outline" className="rounded-md gap-1 text-sm">
                             <ClockFading className="size-4" /> {dateStr}
                           </Badge>
                         ) : (

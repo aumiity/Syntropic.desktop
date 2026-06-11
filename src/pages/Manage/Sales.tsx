@@ -54,10 +54,10 @@ type StatusFilter = 'all' | 'retail' | 'wholesale' | 'return' | 'voided'
 const SALE_TYPE_LABELS: Record<string, string> = {
   retail: 'ปลีก', wholesale: 'ส่ง', rx: 'ใบสั่งยา', return: 'คืนสินค้า',
 }
-// STATUS (soft + outline) family — matches success-outline / warning-outline /
+// STATUS (soft + outline) family — matches success-outline / accent-outline /
 // destructive-outline on the "สถานะ" column so all status pills share a tone.
 const SALE_TYPE_VARIANTS: Record<string, any> = {
-  retail: 'primary-outline', wholesale: 'warning-outline', rx: 'success-outline', return: 'violet-outline',
+  retail: 'primary-outline', wholesale: 'accent-outline', rx: 'success-outline', return: 'violet-outline',
 }
 
 type SortField = 'invoice_no' | 'sold_at' | 'total_amount'

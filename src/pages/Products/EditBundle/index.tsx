@@ -384,7 +384,7 @@ export default function EditBundlePage() {
             </div>
             <div className="flex items-center gap-1 mt-auto min-w-0 flex-wrap">
               <Badge variant="primary-outline">ชุดสินค้า</Badge>
-              {isNew && <Badge variant="warning-outline">ยังไม่บันทึก</Badge>}
+              {isNew && <Badge variant="accent-outline">ยังไม่บันทึก</Badge>}
               {displayDisabled && <Badge variant="destructive-outline">ปิดใช้งาน</Badge>}
             </div>
           </div>

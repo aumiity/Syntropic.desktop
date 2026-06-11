@@ -832,7 +832,7 @@ export default function PurchasePage() {
                                       </span>
                                       {isValid
                                         ? <Badge variant="success-soft" className="shrink-0">ครบ</Badge>
-                                        : <Badge variant="warning-outline" className="shrink-0">ไม่ครบ</Badge>}
+                                        : <Badge variant="accent-outline" className="shrink-0">ไม่ครบ</Badge>}
                                     </div>
                                   </TableCell>
 

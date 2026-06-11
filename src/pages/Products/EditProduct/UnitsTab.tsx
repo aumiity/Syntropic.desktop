@@ -185,7 +185,7 @@ export function UnitsTab({
                 <TableCell className="text-sm font-semibold text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
                 <TableCell><Checkbox checked tabIndex={-1} className="pointer-events-none" /></TableCell>
                 <TableCell><Checkbox checked tabIndex={-1} className="pointer-events-none" /></TableCell>
-                <TableCell><Badge variant="warning-outline" className="rounded-md">หลัก</Badge></TableCell>
+                <TableCell><Badge variant="accent-outline" className="rounded-md">หลัก</Badge></TableCell>
                 <TableCell className="text-sm text-muted-foreground">แก้ที่แท็บข้อมูลทั่วไป</TableCell>
               </TableRow>
               {product.units?.map(u => (

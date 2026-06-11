@@ -62,7 +62,7 @@ function renderExpiryDate(date: string | null, days: number | null) {
       <ClockAlert className="size-4" /> {dateStr}
     </Badge>
   ) : d < 90 ? (
-    <Badge variant="warning-outline" className="rounded-md gap-1 text-sm">
+    <Badge variant="accent-outline" className="rounded-md gap-1 text-sm">
       <ClockFading className="size-4" /> {dateStr}
     </Badge>
   ) : (

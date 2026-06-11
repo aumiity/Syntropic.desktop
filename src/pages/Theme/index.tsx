@@ -123,13 +123,13 @@ function DemoRow({ label, children }: { label?: string; children: React.ReactNod
 const PRODUCTS = [
   { id: 'prd-001', name: 'Amoxicillin 500mg', cat: 'ยาต้านเชื้อ', price: '12.00', stock: 240, status: 'success-outline' as const },
   { id: 'prd-002', name: 'Paracetamol 500mg', cat: 'ยาแก้ปวด', price: '2.50', stock: 800, status: 'success-outline' as const },
-  { id: 'prd-003', name: 'Metformin 500mg', cat: 'ยาเบาหวาน', price: '8.00', stock: 15, status: 'warning-outline' as const },
+  { id: 'prd-003', name: 'Metformin 500mg', cat: 'ยาเบาหวาน', price: '8.00', stock: 15, status: 'accent-outline' as const },
   { id: 'prd-004', name: 'Atorvastatin 10mg', cat: 'ยาลดไขมัน', price: '35.00', stock: 0, status: 'destructive-outline' as const },
 ]
 
 const STATUS_LABEL: Record<string, string> = {
   'success-outline': 'ปกติ',
-  'warning-outline': 'ใกล้หมด',
+  'accent-outline': 'ใกล้หมด',
   'destructive-outline': 'หมดสต็อก',
 }
 
@@ -440,7 +440,7 @@ export default function Theme() {
                 <DemoRow label="Soft + colored border (chip style — matches Badge *-outline)">
                   <Button variant="primary-outline">Primary-outline</Button>
                   <Button variant="success-outline">Success-outline</Button>
-                  <Button variant="warning-outline">Warning-outline</Button>
+                  <Button variant="accent-outline">accent-outline</Button>
                   <Button variant="destructive-outline">Destructive-outline</Button>
                   <Button variant="info-outline">Info-outline</Button>
                   <Button variant="violet-outline">Violet-outline</Button>
@@ -530,7 +530,7 @@ export default function Theme() {
                 <DemoRow label="Soft + colored border (chip style)">
                   <Badge variant="primary-outline">Primary-outline</Badge>
                   <Badge variant="success-outline">Success-outline</Badge>
-                  <Badge variant="warning-outline">Warning-outline</Badge>
+                  <Badge variant="accent-outline">accent-outline</Badge>
                   <Badge variant="destructive-outline">Destructive-outline</Badge>
                   <Badge variant="info-outline">Info-outline</Badge>
                   <Badge variant="violet-outline">Violet-outline</Badge>
@@ -1131,7 +1131,8 @@ export default function Theme() {
                   </div>
                 </div>
               </Section>
-              <SectionGroup title="Layout & Container" />
+
+              <SectionGroup title="Layout & Container" />
 
               {/* ── TABS ── */}
               <Section title="Tabs" path="src/components/ui/tabs.tsx" full>
@@ -1422,7 +1423,7 @@ export default function Theme() {
                   <strong>แถบล่าง (h-12 px-5)</strong>: ซ้าย = "จำนวนแถว [Select] แสดง X-Y จาก N รายการ" · ขวา = Pagination (sliding window 5 หน้า ไม่มี ellipsis)
                   <br />
                   <strong>Row action</strong> = ปุ่มเดียว <code>icon-lg variant="ghost"</code> + MoreHorizontal → Popover (รายละเอียด/แก้ไข/ลบ ฯลฯ) — เกาะสีพื้นไม่เด่น
-                  <br />
+                  <br />accent-outline
                   <strong>Status badge</strong> = STATUS (soft + outline) family: <code>success-outline</code> / <code>warning-outline</code> / <code>destructive-outline</code> ฯลฯ — column alignment ใช้ <code>text-left</code> ทุกคอลัมน์ (รวม "จัดการ")
                 </p>
                 <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
@@ -1555,7 +1556,7 @@ export default function Theme() {
                     <TableBody>
                       {[...PRODUCTS, ...PRODUCTS, ...PRODUCTS]
                         .filter(row =>
-                          (row.status === 'success-outline' && tableStatusFilter.ok) ||
+                          (row.status === 'accent-outline' && tableStatusFilter.ok) ||
                           (row.status === 'warning-outline' && tableStatusFilter.low) ||
                           (row.status === 'destructive-outline' && tableStatusFilter.out)
                         )
