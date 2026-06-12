@@ -6,10 +6,11 @@ import { DateInput } from '@/components/ui/date-input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Badge } from '@/components/ui/badge'
 import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { formatCurrency } from '@/lib/utils'
 import {
-  Check, ChevronLeft, ChevronRight, Plus,
-  AlertTriangle, ShoppingBag, CalendarClock, Coins, Tag,
+  Check, ChevronLeft, ChevronRight, Plus, RotateCcw,
+  AlertTriangle, ShoppingBag, CalendarClock, Coins, Tag, Info,
 } from 'lucide-react'
 
 // ── Shared types (single source — index.tsx imports these) ───────────────────
@@ -53,6 +54,8 @@ interface ProductSuggestion {
   unit_name?: string
   price_retail?: number
   cost_price?: number
+  // last paid cost (pricing ref) — pos:searchProducts returns it via SELECT p.*
+  last_cost_price?: number
   units?: ProductUnitOption[]
   // Receiving unit list = every enabled variant (see enrichProduct). The base
   // unit is synthesized separately; this supplies the non-base receivable
@@ -211,31 +214,40 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     const INTERACTIVE = 'input, button, select, textarea, a, [role="button"], [contenteditable="true"]'
     const armed = () => openRef.current && stepRef.current === 0 && !hasProductRef.current
     const target = () => (searchOpenRef.current ? modalSearchRef.current : searchInputRef.current)
+    const hasSelection = () => (window.getSelection()?.toString().length ?? 0) > 0
 
-    // mousedown fires before the browser shifts focus — preventDefault is the lock.
-    const onMouseDown = (e: MouseEvent) => {
+    // Re-grab the scan field after a plain click on empty chrome — but on
+    // mouseup, and only when the click produced no text selection. The old
+    // version preventDefault'd mousedown, which let the field stay glued for
+    // barcode scanning but ALSO blocked the user from ever starting a drag-
+    // selection (Windows Chromium then refuses to select inside the modal).
+    // Deferring to mouseup keeps the field focused for scanning yet lets the
+    // user drag out text and copy it.
+    const onMouseUp = (e: MouseEvent) => {
       if (!armed()) return
       const t = e.target as HTMLElement | null
       if (!t || t.closest(INTERACTIVE)) return
-      e.preventDefault()
+      if (hasSelection()) return
       target()?.focus()
     }
-    // Safety net: if our input loses focus to a non-interactive target, snap back.
+    // Safety net: if our input loses focus to a non-interactive target, snap back
+    // — unless the user is mid-selection (refocusing would collapse the range).
     const onFocusOut = (e: FocusEvent) => {
       if (!armed()) return
       const lost = e.target as HTMLElement | null
       if (lost !== searchInputRef.current && lost !== modalSearchRef.current) return
       setTimeout(() => {
         if (!armed()) return
+        if (hasSelection()) return
         const active = document.activeElement as HTMLElement | null
         if (active && active.matches(INTERACTIVE)) return
         target()?.focus()
       }, 0)
     }
-    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('mouseup', onMouseUp)
     document.addEventListener('focusout', onFocusOut)
     return () => {
-      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('mouseup', onMouseUp)
       document.removeEventListener('focusout', onFocusOut)
     }
   }, [])
@@ -357,15 +369,13 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     <>
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent
-        size="4xl"
+        size="3xl"
         onClose={onClose}
-        className="h-[600px] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 p-0 overflow-hidden"
+        className="h-[580px] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 p-0 overflow-hidden"
       >
         {/* ── Header ── */}
-        <DialogHeader className="flex-row items-center gap-3 px-5 pt-4 pb-3 border-b border-border">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-primary-soft text-primary">
-            <Plus className="size-5" />
-          </span>
+        <DialogHeader className="flex-row items-center gap-3 px-5 py-3 border-b border-border">
+          <TintIcon icon={Plus} tint="primary" size="md" bordered />
           <div className="min-w-0">
             <DialogTitle className="text-lg">{editing ? 'แก้ไขรายการรับสินค้า' : 'เพิ่มสินค้า'}</DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -378,7 +388,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
         <DialogBody className="p-0 min-h-0 overflow-hidden flex" onKeyDown={handleKeyDown}>
 
           {/* timeline rail */}
-          <div className="w-60 shrink-0 border-r border-border bg-muted/40 overflow-y-auto scrollbar-thin p-5">
+          <div className="w-52 shrink-0 border-r border-border bg-muted/40 overflow-y-auto scrollbar-thin p-4">
             {STEPS.map((s, i) => {
               const done = isDone(i)
               const active = i === step
@@ -387,20 +397,20 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                   key={i}
                   type="button"
                   onClick={() => jump(i)}
-                  className="relative flex w-full items-start gap-3 pb-6 last:pb-0 text-left"
+                  className="relative flex w-full items-start gap-3 pb-5 last:pb-0 text-left"
                 >
                   {i < LAST && (
-                    <span className={`absolute left-[15px] top-8 bottom-1 w-0.5 ${done ? 'bg-primary' : 'bg-border'}`} />
+                    <span className={`absolute left-[13px] top-7 bottom-1 w-0.5 ${done ? 'bg-primary' : 'bg-border'}`} />
                   )}
-                  <span className={`relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors
+                  <span className={`relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors
                     ${done ? 'border-primary bg-primary text-primary-foreground'
                       : active ? 'border-primary text-primary ring-4 ring-ring/40'
                       : 'border-border bg-card text-foreground-subtle'}`}>
-                    {done ? <Check className="size-4" /> : i + 1}
+                    {done ? <Check className="size-4" /> : active ? (() => { const Icon = s.icon; return <Icon className="size-3.5" /> })() : i + 1}
                   </span>
                   <span className="min-w-0 pt-1">
                     <span className={`block text-sm font-semibold ${active || done ? 'text-foreground' : 'text-foreground-subtle'}`}>{s.title}</span>
-                    <span className={`block text-xs mt-0.5 truncate max-w-[150px] ${done ? 'text-primary font-medium' : 'text-foreground-subtle'}`}>{railSub(i)}</span>
+                    <span className={`block text-xs mt-0.5 truncate max-w-[140px] ${done ? 'text-primary font-medium' : 'text-foreground-subtle'}`}>{railSub(i)}</span>
                   </span>
                 </button>
               )
@@ -413,8 +423,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
             {/* STEP 1 — product */}
             {step === 0 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-primary">ขั้นที่ 1</p>
-                <h3 className="text-xl font-bold mt-0.5 mb-4">เลือกสินค้า</h3>
+                <h3 className="text-lg font-bold mb-4">เลือกสินค้า</h3>
 
                 {row.product_id === 0 ? (
                   <div>
@@ -434,41 +443,49 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                   </div>
                 ) : (
                   <div>
-                    <div className="rounded-card border border-primary-soft-border bg-primary-soft/40 p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="min-w-0">
-                          <div className="text-lg font-bold truncate">{row.trade_name}</div>
-                        </div>
-                        <Button type="button" variant="elevated" size="sm" onClick={clearProduct} className="ml-auto h-8 text-sm">เปลี่ยน</Button>
+                    {/* name frame */}
+                    <div className="flex items-center gap-3 rounded-lg border-2 border-primary bg-primary-soft/50 px-4 py-2">
+                      <div className="min-w-0 flex-1 text-base font-bold truncate text-primary">{row.trade_name}</div>
+                      <Button type="button" variant="elevated" size="icon-sm" onClick={clearProduct} tooltip="เปลี่ยนสินค้า" className="h-8 w-8 shrink-0">
+                        <RotateCcw className="size-4" />
+                      </Button>
+                    </div>
+
+                    {/* price frame — cost / sell, split into two cells */}
+                    <div className="mt-2.5 grid grid-cols-2 divide-x divide-border overflow-hidden rounded-lg bg-accent-soft/50 border border-accent-soft-foreground/25">
+                      <div className="px-4 py-2">
+                        <div className="text-sm text-muted-foreground">ทุนล่าสุด</div>
+                        <div className="mt-0.5 text-sm font-bold text-accent-soft-foreground">{formatCurrency((row.stored_cost_price ?? 0) * (row.units.find(u => u.unit_name === row.unit_name)?.qty_per_base ?? 1))}</div>
                       </div>
-                      <div className="mt-3.5 pt-3.5 border-t border-primary-soft-border/60 flex gap-7 text-sm">
-                        <div>
-                          <div className="text-xs text-foreground-subtle">ทุนล่าสุด</div>
-                          <div className="font-bold mt-0.5">{formatCurrency(row.stored_cost_price ?? 0)}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-foreground-subtle">ราคาขายปัจจุบัน</div>
-                          <div className="font-bold mt-0.5">{formatCurrency(row.default_sell_price ?? 0)}</div>
-                        </div>
+                      <div className="px-4 py-2">
+                        <div className="text-sm text-muted-foreground">ราคาขายปัจจุบัน</div>
+                        <div className="mt-0.5 text-sm font-bold text-accent-soft-foreground">{formatCurrency(row.default_sell_price ?? 0)}</div>
                       </div>
                     </div>
 
-                    <div className="text-sm font-semibold text-foreground-subtle mt-5 mb-2">หน่วยที่รับเข้า</div>
+                    <div className="text-sm font-semibold text-muted-foreground mt-5 mb-2.5">หน่วยที่รับเข้า</div>
                     <div className="flex gap-2 flex-wrap">
                       {row.units.map(u => (
                         <Button
                           key={u.id}
                           type="button"
-                          variant={u.unit_name === row.unit_name ? 'primary-soft' : 'elevated'}
+                          variant="primary-soft"
                           onClick={() => selectUnit(u)}
-                          className={`h-10 px-4 text-sm font-semibold ${u.unit_name === row.unit_name ? 'ring-1 ring-primary' : ''}`}
+                          className={`h-7 w-auto px-4 text-sm font-semibold rounded-md ${u.unit_name === row.unit_name ? 'ring-1 ring-primary' : ''}`}
                         >
                           {u.unit_name}
-                          {u.qty_per_base > 1 && <span className="ml-1.5 text-xs font-normal text-foreground-subtle">×{u.qty_per_base}</span>}
                         </Button>
                       ))}
                     </div>
-                    <p className="text-xs text-foreground-subtle mt-3">เลือกหน่วยให้ตรงกับที่ระบุในบิลผู้จำหน่าย ระบบจะคิดสต็อกตามหน่วยฐานให้อัตโนมัติ</p>
+
+                    {/* pack size — qty of the SELECTED unit per base unit, single line */}
+                    <div className="mt-3 h-7 w-44 flex items-center gap-2 rounded-lg border border-accent-soft-foreground/25 bg-accent-soft/50 px-4 py-2 text-xs">
+                      <Info className="size-3 shrink-0" />
+                      <span className="text-muted-foreground">ขนาดบรรจุ</span>
+                      <span className="font-bold text-accent-soft-foreground">
+                        = {row.units.find(u => u.unit_name === row.unit_name)?.qty_per_base ?? 1} {row.units[0]?.unit_name}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -477,16 +494,15 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
             {/* STEP 2 — lot & expiry */}
             {step === 1 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-primary">ขั้นที่ 2</p>
-                <h3 className="text-xl font-bold mt-0.5 mb-4">Lot &amp; วันหมดอายุ</h3>
+                <h3 className="text-lg font-bold mb-4">Lot &amp; วันหมดอายุ</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Lot No. <span className="text-destructive">*</span></label>
-                    <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} placeholder="เช่น A2401" className="h-11 text-base" />
+                    <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} placeholder="เช่น A2401" className="h-10" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันหมดอายุ <span className="text-destructive">*</span></label>
-                    <DateInput value={row.expiry_date} onChange={v => patch({ expiry_date: v })} className="h-11" />
+                    <DateInput value={row.expiry_date} onChange={v => patch({ expiry_date: v })} className="h-10" />
                   </div>
                 </div>
                 {!showMfg ? (
@@ -494,7 +510,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                 ) : (
                   <div className="mt-4 max-w-[calc(50%-0.5rem)]">
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันผลิต</label>
-                    <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} className="h-11" />
+                    <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} className="h-10" />
                   </div>
                 )}
                 {expMonths !== null && (
@@ -511,16 +527,15 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
             {/* STEP 3 — qty & cost */}
             {step === 2 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-primary">ขั้นที่ 3</p>
-                <h3 className="text-xl font-bold mt-0.5 mb-4">จำนวน &amp; ต้นทุน</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <h3 className="text-lg font-bold mb-4">จำนวน &amp; ต้นทุน</h3>
+                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">จำนวน ({row.unit_name}) <span className="text-destructive">*</span></label>
                     <Input
                       autoFocus type="text" inputMode="decimal"
                       value={row.qty}
                       onChange={e => lineMath('qty', stripCommas(e.target.value))}
-                      placeholder="0" className="h-14 text-2xl font-bold text-center"
+                      placeholder="0" className="h-12 text-xl font-bold text-center"
                     />
                   </div>
                   <div>
@@ -530,7 +545,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       value={row.cost_price}
                       onChange={e => lineMath('cost_price', stripCommas(e.target.value))}
                       onBlur={() => { const n = parseFloat(row.cost_price); if (isFinite(n)) lineMath('cost_price', n.toFixed(2)) }}
-                      placeholder="0.00" className="h-14 text-2xl font-bold text-center"
+                      placeholder="0.00" className="h-12 text-xl font-bold text-center"
                     />
                   </div>
                   <div>
@@ -540,7 +555,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       value={row.total}
                       onChange={e => lineMath('total', stripCommas(e.target.value))}
                       onBlur={() => { const n = parseFloat(row.total); if (isFinite(n)) lineMath('total', n.toFixed(2)) }}
-                      placeholder="0.00" className="h-14 text-2xl font-bold text-center"
+                      placeholder="0.00" className="h-12 text-xl font-bold text-center"
                     />
                   </div>
                 </div>
@@ -554,20 +569,20 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       value={row.discount}
                       onChange={e => lineMath('discount', stripCommas(e.target.value))}
                       onBlur={() => { const n = parseFloat(row.discount); if (isFinite(n)) lineMath('discount', n.toFixed(2)) }}
-                      placeholder="0.00" className="h-11 text-right"
+                      placeholder="0.00" className="h-10 text-right"
                     />
                   </div>
                 )}
                 <div className="mt-5 rounded-card border border-border overflow-hidden">
-                  <div className="flex justify-between px-4 py-2.5 text-sm border-b border-border">
+                  <div className="flex justify-between px-4 py-2 text-sm border-b border-border">
                     <span className="text-foreground-subtle">{formatNum(row.qty) || 0} {row.unit_name} × {formatNum(row.cost_price, true) || '0.00'}</span>
                     <span className="font-medium">{formatCurrency(qtyNum * (parseFloat(row.cost_price) || 0))}</span>
                   </div>
-                  <div className="flex justify-between px-4 py-2.5 text-sm border-b border-border">
+                  <div className="flex justify-between px-4 py-2 text-sm border-b border-border">
                     <span className="text-foreground-subtle">ส่วนลด</span>
                     <span className="font-medium text-primary">−{formatCurrency(parseFloat(row.discount) || 0)}</span>
                   </div>
-                  <div className="flex justify-between px-4 py-2.5 bg-primary-soft/50">
+                  <div className="flex justify-between px-4 py-2 bg-primary-soft/50">
                     <span className="font-bold">รวมเป็นเงิน</span>
                     <span className="font-extrabold text-primary text-base">{formatCurrency(totalNum)}</span>
                   </div>
@@ -578,8 +593,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
             {/* STEP 4 — sell price & confirm */}
             {step === 3 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-primary">ขั้นที่ 4 · ขั้นสุดท้าย</p>
-                <h3 className="text-xl font-bold mt-0.5 mb-4">ราคาขาย &amp; ยืนยัน</h3>
+                <h3 className="text-lg font-bold mb-4">ราคาขาย &amp; ยืนยัน<span className="ml-2 text-xs text-foreground-subtle">ขั้นสุดท้าย</span></h3>
                 <div className="grid grid-cols-2 gap-5 items-end">
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">ราคาขาย/หน่วย</label>
@@ -588,7 +602,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       value={sellPrice}
                       onChange={setSellPrice}
                       onFocus={e => e.currentTarget.select()}
-                      className="w-full h-14 text-2xl font-extrabold text-primary bg-card border border-border rounded-control shadow-sm focus:ring-2 focus:ring-primary outline-none px-3 text-center"
+                      className="w-full h-12 text-xl font-extrabold text-primary text-center"
                     />
                   </div>
                   <div className="pb-1 text-sm text-foreground-subtle">
@@ -597,22 +611,22 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       : 'ราคาขายนี้ใช้กับใบรับนี้ และเป็นค่าตั้งต้นของสินค้า'}
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3 mt-5">
-                  <div className="rounded-card border border-border p-3 text-center">
+                <div className="grid grid-cols-3 gap-3 mt-4">
+                  <div className="rounded-card border border-border p-2.5 text-center">
                     <div className="text-xs text-foreground-subtle">ทุน</div>
                     <div className="text-lg font-extrabold mt-0.5">{formatCurrency(cost)}</div>
                   </div>
-                  <div className="rounded-card border border-border p-3 text-center">
+                  <div className="rounded-card border border-border p-2.5 text-center">
                     <div className="text-xs text-foreground-subtle">กำไร/หน่วย</div>
                     <div className={`text-lg font-extrabold mt-0.5 ${profit > 0 ? 'text-success' : profit < 0 ? 'text-destructive' : ''}`}>{formatCurrency(profit)}</div>
                   </div>
-                  <div className="rounded-card border border-border p-3 text-center">
+                  <div className="rounded-card border border-border p-2.5 text-center">
                     <div className="text-xs text-foreground-subtle">กำไร %</div>
                     <div className={`text-lg font-extrabold mt-0.5 ${profit > 0 ? 'text-success' : profit < 0 ? 'text-destructive' : ''}`}>{cost > 0 ? marginPct.toFixed(1) : '0.0'}%</div>
                   </div>
                 </div>
-                <div className="mt-5 rounded-card border border-border bg-muted/40 p-4">
-                  <h4 className="text-sm font-bold text-foreground-subtle mb-2.5">สรุปรายการที่จะ{editing ? 'บันทึก' : 'เพิ่ม'}</h4>
+                <div className="mt-4 rounded-card border border-border bg-muted/40 p-3.5">
+                  <h4 className="text-sm font-bold text-foreground-subtle mb-2">สรุปรายการที่จะ{editing ? 'บันทึก' : 'เพิ่ม'}</h4>
                   <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">สินค้า</span><span className="font-semibold">{row.trade_name}</span></div>
                   <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">Lot / วันหมดอายุ</span><span className="font-semibold">{row.lot_number} · {row.expiry_date}</span></div>
                   <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">จำนวน × ทุน</span><span className="font-semibold">{formatNum(row.qty)} {row.unit_name} × {formatCurrency(cost)}</span></div>
@@ -626,7 +640,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
 
         {/* ── Footer ── */}
         <DialogFooter className="flex-row items-center gap-2.5 px-5 py-3.5 border-t border-border">
-          <span className="text-sm text-foreground-subtle mr-auto">ขั้นที่ <b className="text-foreground">{step + 1}</b> จาก <b className="text-foreground">{STEPS.length}</b></span>
+          <span className="text-xs text-foreground-subtle mr-auto">ขั้นที่ <b className="text-foreground">{step + 1}</b> จาก <b className="text-foreground">{STEPS.length}</b></span>
           <Button type="button" variant="elevated" size="lg" onClick={goBack} disabled={step === 0} className="gap-1.5">
             <ChevronLeft className="size-4" /> ย้อนกลับ
           </Button>
@@ -658,36 +672,36 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
       inputRef={modalSearchRef}
       rowKey={(it) => `${it.product.id}:${it.unit?.id ?? 'base'}`}
       rowClassName="grid items-center px-4 py-2.5"
-      rowStyle={{ gridTemplateColumns: '1fr 130px 110px' }}
+      rowStyle={{ gridTemplateColumns: '1fr 100px 120px 100px' }}
       onPick={(it) => pickProduct(it.product, it.unit)}
       placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อ/รหัสสินค้าเพื่อเพิ่ม..."
       header={
         <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0 border-b border-border"
-          style={{ gridTemplateColumns: '1fr 130px 110px' }}>
+          style={{ gridTemplateColumns: '1fr 100px 120px 100px' }}>
           <div>ชื่อสินค้า</div>
           <div className="text-center">หน่วย</div>
+          <div className="text-right">ราคาทุน</div>
           <div className="text-right">คงเหลือ</div>
         </div>
       }
       renderRow={(it) => {
         const p = it.product
+        // คงเหลือ = สต็อกฐานดิบ (ไม่แปลงตามหน่วย) ให้แสดงผลเหมือนหน้า POS
         const baseStock = p.lots?.reduce((s, l) => s + (l.qty_on_hand ?? 0), 0) ?? 0
-        const qpb = it.unit?.qty_per_base ?? 1
-        // คงเหลือแปลงตามหน่วยของแถว (900 ห่อ = 90 แพค = 75 กล่อง) ให้เห็นภาพจริง
-        const stockInUnit = qpb > 0 ? baseStock / qpb : baseStock
-        const isBase = it.unit == null
+        // ราคาทุน = ทุนล่าสุด (ระดับสินค้า/หน่วยฐาน — product_units ไม่เก็บ cost)
+        const cost = p.last_cost_price ?? 0
+        const unitName = it.unit?.unit_name ?? p.unit_name ?? '-'
         return (
           <>
             <div className="min-w-0 pr-2">
-              <div className="font-semibold text-base truncate">{p.trade_name}</div>
+              <div className="font-semibold text-base flex items-center gap-1.5 truncate">
+                <span className="truncate">{p.trade_name}</span>
+                {baseStock === 0 && <Badge variant="destructive-outline" className="shrink-0">หมด</Badge>}
+              </div>
             </div>
-            <div className="text-center text-base truncate">
-              <span className={isBase ? 'text-muted-foreground' : 'font-semibold text-foreground'}>
-                {it.unit?.unit_name ?? p.unit_name ?? '-'}
-              </span>
-              {!isBase && qpb > 1 && <span className="ml-1 text-xs text-foreground-subtle">×{qpb}</span>}
-            </div>
-            <div className={`text-right text-base font-semibold ${baseStock > 0 ? 'text-foreground' : 'text-destructive'}`}>{formatNum(String(stockInUnit), false) || '0'}</div>
+            <div className="text-center text-base text-muted-foreground truncate">{unitName}</div>
+            <div className="text-right font-bold text-primary text-base">{formatCurrency(cost)}</div>
+            <div className={`text-right text-base font-semibold ${baseStock > 0 ? 'text-foreground' : 'text-destructive'}`}>{baseStock}</div>
           </>
         )
       }}

@@ -95,7 +95,10 @@ const DialogContent = React.forwardRef<
       onPointerDownOutside={(e) => e.preventDefault()}
       onInteractOutside={(e) => e.preventDefault()}
       className={cn(
-        "relative grid w-full max-w-[calc(100%-2rem)] pointer-events-auto",
+        // select-text: Chromium on Windows withholds text selection inside a
+        // focus-trapped aria-modal by default (macOS allows it). Opt every modal
+        // back into selectable text from this one shared primitive.
+        "relative grid w-full max-w-[calc(100%-2rem)] pointer-events-auto select-text",
         "gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground",
         "duration-100 outline-none",
         "sm:max-w-sm",

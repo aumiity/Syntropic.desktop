@@ -61,7 +61,7 @@ Copy the skeleton from `reference/html-template.html`, fill it in, and write the
 - UX/UI summary.
 - Audit changelog from the two rounds (what was found, what was fixed).
 
-**Section B — "for Claude to work from" (machine)** is the step-3 draft after it passed audit. Place it in the template's `.machine` block — real executable steps, ready to act on immediately.
+**Section B — "for Claude to work from" (machine)** is the step-3 draft after it passed audit. Place it in the template's `.machine` block — real executable steps, ready to act on immediately. Write in English human not read.
 
 ### 6. Work from the file
 Tell the user where the plan landed (use `SendUserFile` to attach the HTML so they can open it). Then — when implementing — **read Section B from that file as the source of truth** and follow the steps. If the plan changes mid-flight, update the file to match.
