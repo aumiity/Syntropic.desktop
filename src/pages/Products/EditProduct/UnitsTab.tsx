@@ -204,19 +204,19 @@ export function UnitsTab({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <Button size="icon-lg" variant="elevated" onClick={() => openEditUnit(u)} title="แก้ไข">
+                      <Button size="icon-lg" variant="elevated" onClick={() => openEditUnit(u)} tooltip="แก้ไข">
                         <Edit />
                       </Button>
                       {u.is_disabled ? (
-                        <Button size="icon-lg" variant="elevated" onClick={() => setConfirmToggle(u)} title="เปิดใช้งาน">
+                        <Button size="icon-lg" variant="elevated" onClick={() => setConfirmToggle(u)} tooltip="เปิดใช้งาน">
                           <Eye />
                         </Button>
                       ) : (
-                        <Button size="icon-lg" variant="elevated" onClick={() => setConfirmToggle(u)} title="ปิดการใช้งาน">
+                        <Button size="icon-lg" variant="elevated" onClick={() => setConfirmToggle(u)} tooltip="ปิดการใช้งาน">
                           <EyeOff />
                         </Button>
                       )}
-                      <Button size="icon-lg" variant="elevated-destructive-soft" onClick={() => setDeletingUnit(u)} title="ลบ">
+                      <Button size="icon-lg" variant="elevated-destructive-soft" onClick={() => setDeletingUnit(u)} tooltip="ลบ">
                         <Trash2 />
                       </Button>
                     </div>

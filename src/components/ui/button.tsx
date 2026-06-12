@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
-import { text } from "stream/consumers"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
 const buttonVariants = cva(
   [
@@ -188,19 +188,38 @@ const buttonVariants = cva(
   }
 )
 
-const Button = React.forwardRef<HTMLButtonElement, React.ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { asChild?: boolean }>(
-  ({ className, variant = "default", size = "default", asChild = false, ...props }, ref) => {
+type ButtonProps = React.ComponentProps<"button"> &
+  VariantProps<typeof buttonVariants> & {
+    asChild?: boolean
+    /** When set, the button is wrapped in a styled <Tooltip>. A string also sets aria-label for icon-only buttons. */
+    tooltip?: React.ReactNode
+    /** Side the tooltip pops out toward. Defaults to "top". */
+    tooltipSide?: React.ComponentProps<typeof TooltipContent>["side"]
+  }
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = "default", size = "default", asChild = false, tooltip, tooltipSide = "top", "aria-label": ariaLabel, ...props }, ref) => {
   const Comp = asChild ? Slot.Root : "button"
 
-  return (
+  const button = (
     <Comp
         ref={ref} // <-- ส่ง ref มาที่นี่
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      aria-label={ariaLabel ?? (typeof tooltip === "string" ? tooltip : undefined)}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
+  )
+
+  if (tooltip == null) return button
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipContent side={tooltipSide}>{tooltip}</TooltipContent>
+    </Tooltip>
   )
 }
 )

@@ -86,7 +86,7 @@ export default function KhorYor9Page() {
     <div className="flex flex-1 flex-col min-h-0 gap-3">
       {/* Filter strip — hidden when printing */}
       <div className="no-print h-12 px-2 bg-card rounded-card border border-border shadow-card flex items-center gap-2 shrink-0">
-        <Button asChild variant="outline" size="icon-lg" title="ย้อนกลับ">
+        <Button asChild variant="outline" size="icon-lg" tooltip="ย้อนกลับ">
           <Link to="/reports/fda"><ArrowLeft /></Link>
         </Button>
         <MultiDatePicker

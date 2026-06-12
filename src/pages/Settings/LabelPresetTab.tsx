@@ -114,8 +114,8 @@ export function LabelPresetTab() {
                   <TableCell className="text-sm text-muted-foreground whitespace-normal break-words align-top">{nm(nameMaps.advice_id, p.advice_id)}</TableCell>
                   <TableCell className="align-top">
                     <div className="flex justify-center gap-1.5">
-                      <Button size="icon-lg" variant="elevated" title="แก้ไข" onClick={() => openEdit(p)}><Edit /></Button>
-                      <Button size="icon-lg" variant="elevated-destructive-soft" title="ลบ" onClick={() => setConfirmDel(p)}><Trash2 /></Button>
+                      <Button size="icon-lg" variant="elevated" tooltip="แก้ไข" onClick={() => openEdit(p)}><Edit /></Button>
+                      <Button size="icon-lg" variant="elevated-destructive-soft" tooltip="ลบ" onClick={() => setConfirmDel(p)}><Trash2 /></Button>
                     </div>
                   </TableCell>
                 </TableRow>

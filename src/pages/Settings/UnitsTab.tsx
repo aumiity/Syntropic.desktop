@@ -104,7 +104,7 @@ export function UnitsTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-center gap-1.5">
-                      <Button size="icon-lg" variant="elevated" onClick={() => openEdit(u)} title="แก้ไข">
+                      <Button size="icon-lg" variant="elevated" onClick={() => openEdit(u)} tooltip="แก้ไข">
                         <Edit />
                       </Button>
                       <Button
@@ -112,7 +112,7 @@ export function UnitsTab() {
                         variant="elevated-destructive-soft"
                         disabled={(u.usage_count ?? 0) > 0}
                         onClick={() => setDelTarget(u)}
-                        title={(u.usage_count ?? 0) > 0 ? 'ลบไม่ได้ เพราะมีสินค้าใช้หน่วยนี้อยู่' : 'ลบ'}
+                        tooltip={(u.usage_count ?? 0) > 0 ? 'ลบไม่ได้ เพราะมีสินค้าใช้หน่วยนี้อยู่' : 'ลบ'}
                       >
                         <Trash2 />
                       </Button>

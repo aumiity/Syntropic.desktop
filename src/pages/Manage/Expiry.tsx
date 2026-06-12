@@ -409,7 +409,7 @@ export default function ManageExpiryPage() {
                         <Button
                           size="icon-lg"
                           variant="elevated-destructive-soft"
-                          title="ตัดออก"
+                          tooltip="ตัดออก"
                           onClick={() => setConfirmingLot(lot)}
                         >
                           <PackageX />

@@ -377,7 +377,7 @@ export default function ManageLowStockPage() {
                         <Button
                           size="icon-lg"
                           variant="elevated"
-                          title="ตั้งค่าสต็อก"
+                          tooltip="ตั้งค่าสต็อก"
                           onClick={() => setQuickTarget({
                             id: r.product_id,
                             trade_name: r.trade_name,
@@ -393,7 +393,7 @@ export default function ManageLowStockPage() {
                         <Button
                           size="icon-lg"
                           variant="elevated"
-                          title="แก้ไขสินค้า"
+                          tooltip="แก้ไขสินค้า"
                           onClick={() => navigate(`/products/${r.product_id}/edit`)}
                         >
                           <Edit />

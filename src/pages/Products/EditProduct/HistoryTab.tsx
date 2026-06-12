@@ -270,7 +270,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
             className="h-9 w-9 p-0 shrink-0"
             onClick={reloadMovements}
             disabled={movementsLoading}
-            title="รีเฟรช"
+            tooltip="รีเฟรช"
           >
             <RotateCcw className="size-4" />
           </Button>
@@ -365,7 +365,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                             size="icon-lg"
                             variant="elevated"
                             onClick={() => openMovementDetail(m)}
-                            title={`ดู ${detailLink?.invoice ?? ''}`}
+                            tooltip={`ดู ${detailLink?.invoice ?? ''}`}
                           >
                             <Info />
                           </Button>

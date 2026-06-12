@@ -159,8 +159,8 @@ export function LabelLookupTab() {
                   <TableCell className="text-sm text-muted-foreground whitespace-normal break-words align-top">{r.name_zh || '—'}</TableCell>
                   <TableCell className="align-top">
                     <div className="flex justify-center gap-1.5">
-                      <Button size="icon-lg" variant="elevated" title="แก้ไข" onClick={() => openEdit(r)}><Edit /></Button>
-                      <Button size="icon-lg" variant="elevated-destructive-soft" title="ลบ" onClick={() => startDelete(r)}><Trash2 /></Button>
+                      <Button size="icon-lg" variant="elevated" tooltip="แก้ไข" onClick={() => openEdit(r)}><Edit /></Button>
+                      <Button size="icon-lg" variant="elevated-destructive-soft" tooltip="ลบ" onClick={() => startDelete(r)}><Trash2 /></Button>
                     </div>
                   </TableCell>
                 </TableRow>

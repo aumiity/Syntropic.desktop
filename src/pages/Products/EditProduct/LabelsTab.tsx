@@ -290,10 +290,10 @@ export function LabelsTab({
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <Button size="icon-lg" variant="elevated" onClick={e => { e.stopPropagation(); openEditLabel(l) }} title="แก้ไข">
+                      <Button size="icon-lg" variant="elevated" onClick={e => { e.stopPropagation(); openEditLabel(l) }} tooltip="แก้ไข">
                         <Edit />
                       </Button>
-                      <Button size="icon-lg" variant="elevated-destructive" onClick={e => { e.stopPropagation(); setConfirmDelete(l) }} title="ลบ">
+                      <Button size="icon-lg" variant="elevated-destructive" onClick={e => { e.stopPropagation(); setConfirmDelete(l) }} tooltip="ลบ">
                         <Trash2 />
                       </Button>
                     </div>

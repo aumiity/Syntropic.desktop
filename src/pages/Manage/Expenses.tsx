@@ -207,7 +207,7 @@ export default function ManageExpensesPage() {
                       <Button
                         size="icon-lg"
                         variant="elevated"
-                        title="แก้ไข"
+                        tooltip="แก้ไข"
                         onClick={() => openEdit(r)}
                       >
                         <Edit />
@@ -215,7 +215,7 @@ export default function ManageExpensesPage() {
                       <Button
                         size="icon-lg"
                         variant="elevated-destructive-soft"
-                        title="ลบ"
+                        tooltip="ลบ"
                         onClick={() => setDeleteTarget(r)}
                       >
                         <Trash2 />

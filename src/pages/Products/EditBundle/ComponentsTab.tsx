@@ -329,7 +329,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                         size="icon-lg"
                         variant="elevated-destructive-soft"
                         onClick={() => setDeleteTarget({ idx: i, item: it })}
-                        title="ลบรายการ"
+                        tooltip="ลบรายการ"
                       >
                         <Trash2 />
                       </Button>

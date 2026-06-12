@@ -195,7 +195,7 @@ export default function NegativeStockPage() {
                           size="icon-lg"
                           variant="elevated"
                           disabled={!canReconcile}
-                          title={canReconcile ? 'ตัดสต็อคย้อนหลัง' : 'ไม่มีสต็อคพร้อมตัด — ต้องรับสินค้าก่อน'}
+                          tooltip={canReconcile ? 'ตัดสต็อคย้อนหลัง' : 'ไม่มีสต็อคพร้อมตัด — ต้องรับสินค้าก่อน'}
                           onClick={() => setConfirming({ kind: 'reconcile', row: r })}
                         >
                           <PackageCheck />
@@ -203,7 +203,7 @@ export default function NegativeStockPage() {
                         <Button
                           size="icon-lg"
                           variant="elevated-destructive-soft"
-                          title="ลบรายการ"
+                          tooltip="ลบรายการ"
                           onClick={() => setConfirming({ kind: 'dismiss', row: r })}
                         >
                           <Trash2 />

@@ -232,7 +232,7 @@ export default function ManageDeadStockPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-center">
-                    <Button size="icon-lg" variant="elevated" title="ดูรายละเอียดสินค้า"
+                    <Button size="icon-lg" variant="elevated" tooltip="ดูรายละเอียดสินค้า"
                       onClick={() => navigate(`/products/${r.product_id}/edit`)}>
                       <Eye />
                     </Button>

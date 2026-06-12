@@ -323,7 +323,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                     </TableCell>
                     <TableCell>
                       {!lot.is_cancelled && (
-                        <Button size="icon-lg" variant="elevated" onClick={() => startEditLot(lot)} title="แก้ไข">
+                        <Button size="icon-lg" variant="elevated" onClick={() => startEditLot(lot)} tooltip="แก้ไข">
                           <Edit />
                         </Button>
                       )}
