@@ -142,7 +142,11 @@ export function initializeSchema(db: Database.Database) {
       price_wholesale1 REAL NOT NULL DEFAULT 0,
       price_wholesale2 REAL NOT NULL DEFAULT 0,
       is_for_sale INTEGER NOT NULL DEFAULT 1,
-      is_for_purchase INTEGER NOT NULL DEFAULT 0,
+      -- DEAD COLUMN (2026-06-12): purchase/sale unit split dropped. Receiving now
+      -- shows every enabled unit; only is_for_sale is honored (POS picker). Kept to
+      -- avoid an immediate migration — DROP in the pre-release schema cleanup.
+      -- See docs/refine_schema.md
+      is_for_purchase INTEGER NOT NULL DEFAULT 1,
       is_disabled INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -563,6 +567,8 @@ export function initializeSchema(db: Database.Database) {
       font_family        TEXT NOT NULL DEFAULT 'Sarabun',
       font_size          REAL NOT NULL DEFAULT 11,
       footer_note        TEXT NOT NULL DEFAULT 'ขอบคุณที่ใช้บริการ',
+      -- DEAD COLUMN: โหมดใบกำกับภาษีอย่างย่อตัดสินจาก sale.total_vat>0 (print.ts) แล้ว
+      -- ไม่มี UI/โค้ดอ่านค่านี้ → DROP ตอน schema cleanup. ดู docs/refine_schema.md
       abbrev_tax_invoice INTEGER NOT NULL DEFAULT 1,
       -- Per-section style (SSOT: src/lib/receipt/sections.ts). show_/bold_ = 0|1,
       -- align_ = 'left'|'center'|'right'|'justify'. Font SIZE is global above.

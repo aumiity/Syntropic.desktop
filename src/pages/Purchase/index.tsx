@@ -57,6 +57,8 @@ interface ProductSuggestion {
   price_retail?: number
   cost_price?: number
   units?: ProductUnitOption[]
+  // Receivable variants = every enabled unit — see enrichProduct.
+  purchase_units?: ProductUnitOption[]
 }
 
 
@@ -287,7 +289,7 @@ export default function PurchasePage() {
 
   const selectProduct = (i: number, p: ProductSuggestion) => {
     const baseName = p.unit_name || 'ชิ้น'
-    const incoming = p.units ?? []
+    const incoming = p.purchase_units ?? p.units ?? []
     const baseUnit: ProductUnitOption = {
       id: -1,
       unit_name: baseName,
@@ -316,7 +318,7 @@ export default function PurchasePage() {
 
   const buildRowFromProduct = (p: ProductSuggestion, fields: Partial<ReceiptRow>): ReceiptRow => {
     const baseName = p.unit_name || 'ชิ้น'
-    const incoming = p.units ?? []
+    const incoming = p.purchase_units ?? p.units ?? []
     const baseUnit: ProductUnitOption = {
       id: -1, unit_name: baseName, qty_per_base: 1,
       price_retail: p.price_retail ?? 0,

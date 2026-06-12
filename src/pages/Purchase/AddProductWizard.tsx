@@ -54,10 +54,22 @@ interface ProductSuggestion {
   price_retail?: number
   cost_price?: number
   units?: ProductUnitOption[]
+  // Receiving unit list = every enabled variant (see enrichProduct). The base
+  // unit is synthesized separately; this supplies the non-base receivable
+  // variants (กล่อง/แพ็ค) that `units` (POS sale-only) would hide.
+  purchase_units?: ProductUnitOption[]
   // pos:searchProducts enriches each hit with its open lots — used for the
   // "คงเหลือ" column (same source POS reads for stock).
   lots?: Array<{ qty_on_hand: number }>
+  // When a scanned barcode matches a non-base unit, the row that unit lives on
+  // is pre-highlighted (mirrors POS). null/absent → default to the base row.
+  matched_unit_id?: number | null
 }
+
+// One navigable row in the search modal = a product paired with a specific unit
+// (base = unit:null). Mirrors POS: base row first, then each receivable variant,
+// so the user can pick กล่อง/แพ็ค straight from the list (not just in step 1).
+type SearchItem = { product: ProductSuggestion; unit: ProductUnitOption | null }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -228,25 +240,42 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     }
   }, [])
 
-  const pickProduct = (p: ProductSuggestion) => {
+  // Pick a product with a chosen unit (null = base). The chosen unit becomes the
+  // receiving unit + seeds the sell price; step-1 chips still let the user switch.
+  const pickProduct = (p: ProductSuggestion, picked: ProductUnitOption | null) => {
     const baseName = p.unit_name || 'ชิ้น'
     const baseUnit: ProductUnitOption = { id: -1, unit_name: baseName, qty_per_base: 1, price_retail: p.price_retail ?? 0 }
-    const units = [baseUnit, ...(p.units ?? []).filter(u => u.unit_name !== baseName)]
+    const variants = (p.purchase_units ?? p.units ?? []).filter(u => u.unit_name !== baseName)
+    const units = [baseUnit, ...variants]
+    const chosen = picked ?? baseUnit
     setRow(r => ({
       ...r,
       product_id: p.id,
       trade_name: p.trade_name,
       product_code: p.code ?? '',
-      unit_name: baseName,
+      unit_name: chosen.unit_name,
       units,
-      default_sell_price: p.price_retail ?? 0,
+      default_sell_price: chosen.price_retail ?? p.price_retail ?? 0,
       stored_cost_price: p.cost_price,
     }))
-    setSellPrice(p.price_retail ? String(p.price_retail) : '')
+    const seedPrice = chosen.price_retail ?? p.price_retail
+    setSellPrice(seedPrice ? String(seedPrice) : '')
     setQuery(p.trade_name)
     setSuggestions([])
     setSearchOpen(false)
   }
+
+  // Flatten results → one row per (product, unit): base first, then each variant.
+  const flatItems: SearchItem[] = suggestions.flatMap(p => {
+    const baseName = p.unit_name || 'ชิ้น'
+    const variants = (p.purchase_units ?? p.units ?? []).filter(u => u.unit_name !== baseName)
+    return [{ product: p, unit: null }, ...variants.map(u => ({ product: p, unit: u }))]
+  })
+  // Pre-highlight the scanned unit's row (base stays first; only highlight moves).
+  const searchInitialIdx = (() => {
+    const i = flatItems.findIndex(it => it.unit != null && it.unit.id === it.product.matched_unit_id)
+    return i >= 0 ? i : undefined
+  })()
 
   const clearProduct = () => {
     patch({ product_id: 0, trade_name: '', product_code: '', unit_name: '', units: [], default_sell_price: 0, stored_cost_price: undefined })
@@ -398,7 +427,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       onFocus={() => { if (query.trim()) setSearchOpen(true) }}
                       placeholder="พิมพ์ชื่อ รหัส หรือยิงบาร์โค้ด เพื่อค้นหาสินค้า…"
                       wrapperClassName="w-full"
-                      className="h-12 text-base"
+                      className="h-10 text-base"
                       autoComplete="off"
                     />
                     <p className="text-sm text-foreground-subtle mt-3">พิมพ์ชื่อ รหัส หรือยิงบาร์โค้ด ระบบจะเปิดหน้าต่างค้นหาให้เลือกสินค้า แล้วจึงเลือกหน่วยที่รับเข้า</p>
@@ -617,37 +646,48 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     {/* Shared product-search modal — opens on top of the wizard when the user
         types in the step-1 field (same picker as POS / EditBundle). Keyboard
         nav + highlight are owned internally; this consumer owns query/results. */}
-    <ProductSearchDialog<ProductSuggestion>
+    <ProductSearchDialog<SearchItem>
       open={searchOpen}
       onClose={closeSearch}
       query={query}
       onQueryChange={runSearch}
       searching={searching}
-      rows={suggestions}
-      resultCount={suggestions.length}
+      rows={flatItems}
+      resultCount={flatItems.length}
+      initialIdx={searchInitialIdx}
       inputRef={modalSearchRef}
-      rowKey={(p) => String(p.id)}
+      rowKey={(it) => `${it.product.id}:${it.unit?.id ?? 'base'}`}
       rowClassName="grid items-center px-4 py-2.5"
-      rowStyle={{ gridTemplateColumns: '1fr 100px 100px' }}
-      onPick={(p) => pickProduct(p)}
+      rowStyle={{ gridTemplateColumns: '1fr 130px 110px' }}
+      onPick={(it) => pickProduct(it.product, it.unit)}
       placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อ/รหัสสินค้าเพื่อเพิ่ม..."
       header={
         <div className="grid items-center px-4 py-2 bg-muted text-sm font-bold text-muted-foreground shrink-0 border-b border-border"
-          style={{ gridTemplateColumns: '1fr 100px 100px' }}>
+          style={{ gridTemplateColumns: '1fr 130px 110px' }}>
           <div>ชื่อสินค้า</div>
           <div className="text-center">หน่วย</div>
           <div className="text-right">คงเหลือ</div>
         </div>
       }
-      renderRow={(p) => {
-        const stock = p.lots?.reduce((s, l) => s + (l.qty_on_hand ?? 0), 0) ?? 0
+      renderRow={(it) => {
+        const p = it.product
+        const baseStock = p.lots?.reduce((s, l) => s + (l.qty_on_hand ?? 0), 0) ?? 0
+        const qpb = it.unit?.qty_per_base ?? 1
+        // คงเหลือแปลงตามหน่วยของแถว (900 ห่อ = 90 แพค = 75 กล่อง) ให้เห็นภาพจริง
+        const stockInUnit = qpb > 0 ? baseStock / qpb : baseStock
+        const isBase = it.unit == null
         return (
           <>
             <div className="min-w-0 pr-2">
               <div className="font-semibold text-base truncate">{p.trade_name}</div>
             </div>
-            <div className="text-center text-base text-muted-foreground truncate">{p.unit_name ?? '-'}</div>
-            <div className={`text-right text-base font-semibold ${stock > 0 ? 'text-foreground' : 'text-destructive'}`}>{stock}</div>
+            <div className="text-center text-base truncate">
+              <span className={isBase ? 'text-muted-foreground' : 'font-semibold text-foreground'}>
+                {it.unit?.unit_name ?? p.unit_name ?? '-'}
+              </span>
+              {!isBase && qpb > 1 && <span className="ml-1 text-xs text-foreground-subtle">×{qpb}</span>}
+            </div>
+            <div className={`text-right text-base font-semibold ${baseStock > 0 ? 'text-foreground' : 'text-destructive'}`}>{formatNum(String(stockInUnit), false) || '0'}</div>
           </>
         )
       }}

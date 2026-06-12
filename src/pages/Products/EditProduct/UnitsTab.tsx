@@ -59,7 +59,11 @@ export function UnitsTab({
       price_wholesale1: 0,
       price_wholesale2: 0,
       is_for_sale: 1,
-      is_for_purchase: 0,
+      // DEAD COLUMN: the purchase/sale unit split was dropped (2026-06-12) — every
+      // enabled unit is now receivable, so receiving ignores this flag. Still written
+      // (default 1) only to satisfy the existing IPC payload until the column is
+      // DROPped in the pre-release schema cleanup. No UI toggle for it anymore.
+      is_for_purchase: 1,
       is_disabled: 0,
     })
     setShowWholesale(false)
@@ -170,7 +174,6 @@ export function UnitsTab({
                 <TableHead className="min-w-24">ราคาส่ง 1</TableHead>
                 <TableHead className="min-w-24">ราคาส่ง 2</TableHead>
                 <TableHead className="min-w-16">ขาย</TableHead>
-                <TableHead className="min-w-16">ซื้อ</TableHead>
                 <TableHead className="min-w-24">สถานะ</TableHead>
                 <TableHead className="min-w-32">จัดการ</TableHead>
               </TableRow>
@@ -184,7 +187,6 @@ export function UnitsTab({
                 <TableCell className="text-sm font-semibold text-muted-foreground">{(product.price_wholesale1 ?? 0) > 0 ? formatCurrency(product.price_wholesale1) : '—'}</TableCell>
                 <TableCell className="text-sm font-semibold text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
                 <TableCell><Checkbox checked tabIndex={-1} className="pointer-events-none" /></TableCell>
-                <TableCell><Checkbox checked tabIndex={-1} className="pointer-events-none" /></TableCell>
                 <TableCell><Badge variant="accent-outline" className="rounded-md">หลัก</Badge></TableCell>
                 <TableCell className="text-sm text-muted-foreground">แก้ที่แท็บข้อมูลทั่วไป</TableCell>
               </TableRow>
@@ -196,7 +198,6 @@ export function UnitsTab({
                   <TableCell className="text-sm font-semibold text-muted-foreground">{u.price_wholesale1 > 0 ? formatCurrency(u.price_wholesale1) : '—'}</TableCell>
                   <TableCell className="text-sm font-semibold text-muted-foreground">{u.price_wholesale2 > 0 ? formatCurrency(u.price_wholesale2) : '—'}</TableCell>
                   <TableCell><Checkbox checked={!!u.is_for_sale} tabIndex={-1} className="pointer-events-none" /></TableCell>
-                  <TableCell><Checkbox checked={!!u.is_for_purchase} tabIndex={-1} className="pointer-events-none" /></TableCell>
                   <TableCell>
                     {u.is_disabled
                       ? <Badge variant="destructive-outline">ปิดใช้งาน</Badge>
@@ -340,13 +341,6 @@ export function UnitsTab({
                             <div className="text-xs text-muted-foreground">ให้เลือกหน่วยนี้ได้ที่หน้าขาย (POS)</div>
                           </div>
                           <Switch size="lg" checked={!!unitForm.is_for_sale} onCheckedChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))} />
-                        </div>
-                        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
-                          <div>
-                            <div className="text-sm font-semibold text-foreground">ใช้หน่วยนี้ในการซื้อ</div>
-                            <div className="text-xs text-muted-foreground">ให้เลือกหน่วยนี้ได้ตอนรับเข้า/สั่งซื้อ</div>
-                          </div>
-                          <Switch size="lg" checked={!!unitForm.is_for_purchase} onCheckedChange={v => setUnitForm((f: any) => ({ ...f, is_for_purchase: v ? 1 : 0 }))} />
                         </div>
                         <div className="flex items-center justify-between gap-2 px-3 py-2.5">
                           <div>
