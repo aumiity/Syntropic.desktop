@@ -247,7 +247,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                       </Button>
                       <Button
                         size="icon-lg"
-                        variant={c.is_disabled ? 'elevated-success' : 'elevated-destructive'}
+                        variant={c.is_disabled ? 'elevated-success-soft' : 'elevated-destructive-soft'}
                         title={c.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                         onClick={() => setConfirmToggle(c)}
                       >
@@ -501,7 +501,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                       </Button>
                       <Button
                         size="icon-lg"
-                        variant={s.is_disabled ? 'elevated-success' : 'elevated-destructive'}
+                        variant={s.is_disabled ? 'elevated-success-soft' : 'elevated-destructive-soft'}
                         title={s.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                         onClick={() => setConfirmToggle(s)}
                       >
@@ -844,7 +844,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                       </Button>
                       <Button
                         size="icon-lg"
-                        variant={u.is_disabled ? 'elevated-success' : 'elevated-destructive'}
+                        variant={u.is_disabled ? 'elevated-success-soft' : 'elevated-destructive-soft'}
                         title={u.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                         onClick={() => setConfirmToggle(u)}
                       >

@@ -214,7 +214,7 @@ export default function ManageExpensesPage() {
                       </Button>
                       <Button
                         size="icon-lg"
-                        variant="elevated-destructive"
+                        variant="elevated-destructive-soft"
                         title="ลบ"
                         onClick={() => setDeleteTarget(r)}
                       >

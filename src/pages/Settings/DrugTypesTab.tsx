@@ -150,7 +150,7 @@ export function DrugTypesTab() {
                       <Button size="icon-lg" variant="elevated" onClick={() => openEdit(d)} title="แก้ไข">
                         <Edit />
                       </Button>
-                      <Button size="icon-lg" variant={d.is_disabled ? 'elevated-success' : 'elevated-destructive'} disabled={togglingId === d.id}
+                      <Button size="icon-lg" variant={d.is_disabled ? 'elevated-success-soft' : 'elevated-destructive-soft'} disabled={togglingId === d.id}
                         onClick={() => setConfirmToggle(d)}
                         title={d.is_disabled ? 'เปิดใช้งาน' : 'พักการใช้งาน'}>
                         {d.is_disabled ? <RotateCcw /> : <Ban />}

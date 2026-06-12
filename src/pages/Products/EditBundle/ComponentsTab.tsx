@@ -327,7 +327,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                     <div className="flex justify-center">
                       <Button
                         size="icon-lg"
-                        variant="elevated-destructive"
+                        variant="elevated-destructive-soft"
                         onClick={() => setDeleteTarget({ idx: i, item: it })}
                         title="ลบรายการ"
                       >

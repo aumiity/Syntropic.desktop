@@ -109,7 +109,7 @@ export function UnitsTab() {
                       </Button>
                       <Button
                         size="icon-lg"
-                        variant="elevated-destructive"
+                        variant="elevated-destructive-soft"
                         disabled={(u.usage_count ?? 0) > 0}
                         onClick={() => setDelTarget(u)}
                         title={(u.usage_count ?? 0) > 0 ? 'ลบไม่ได้ เพราะมีสินค้าใช้หน่วยนี้อยู่' : 'ลบ'}

@@ -202,7 +202,7 @@ export default function NegativeStockPage() {
                         </Button>
                         <Button
                           size="icon-lg"
-                          variant="elevated-destructive"
+                          variant="elevated-destructive-soft"
                           title="ลบรายการ"
                           onClick={() => setConfirming({ kind: 'dismiss', row: r })}
                         >

@@ -408,7 +408,7 @@ export default function ManageExpiryPage() {
                       <div className="flex justify-center">
                         <Button
                           size="icon-lg"
-                          variant="elevated-destructive"
+                          variant="elevated-destructive-soft"
                           title="ตัดออก"
                           onClick={() => setConfirmingLot(lot)}
                         >

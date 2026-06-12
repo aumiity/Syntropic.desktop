@@ -251,8 +251,11 @@ export function GeneralTab({
 
       </div>
 
-      {/* RIGHT COLUMN */}
-      <div className="flex flex-col gap-4 justify-between">
+      {/* RIGHT COLUMN — justify-start (not -between): when "ข้อมูลยา" is collapsed
+          the right column is shorter than the left, and the grid stretches both to
+          equal height. justify-between would spread the 3 cards across that extra
+          height (ugly gaps); justify-start keeps them stacked tight at gap-4. */}
+      <div className="flex flex-col gap-4 justify-start">
 
         <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
           <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">

@@ -188,7 +188,7 @@ export function ExpenseCategoriesTab() {
                         <Button size="icon-lg" variant="elevated" onClick={() => openEdit(c)} title="แก้ไข">
                           <Edit />
                         </Button>
-                        <Button size="icon-lg" variant={c.is_active ? 'elevated-destructive' : 'elevated-success'} disabled={togglingId === c.id}
+                        <Button size="icon-lg" variant={c.is_active ? 'elevated-destructive-soft' : 'elevated-success-soft'} disabled={togglingId === c.id}
                           onClick={() => setConfirmToggle(c)}
                           title={c.is_active ? 'พักการใช้งาน' : 'เปิดใช้งาน'}>
                           {c.is_active ? <Ban /> : <RotateCcw />}

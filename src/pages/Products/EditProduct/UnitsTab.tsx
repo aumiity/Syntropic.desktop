@@ -216,7 +216,7 @@ export function UnitsTab({
                           <EyeOff />
                         </Button>
                       )}
-                      <Button size="icon-lg" variant="elevated-destructive" onClick={() => setDeletingUnit(u)} title="ลบ">
+                      <Button size="icon-lg" variant="elevated-destructive-soft" onClick={() => setDeletingUnit(u)} title="ลบ">
                         <Trash2 />
                       </Button>
                     </div>

@@ -299,7 +299,7 @@ export default function BundlesList() {
                         </Button>
                         <Button
                           size="icon-lg"
-                          variant={isDisabled ? 'elevated-success' : 'elevated-destructive'}
+                          variant={isDisabled ? 'elevated-success-soft' : 'elevated-destructive-soft'}
                           title={isDisabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                           onClick={() => setConfirmToggle(row)}
                         >
