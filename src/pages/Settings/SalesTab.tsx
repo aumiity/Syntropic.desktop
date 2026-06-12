@@ -94,7 +94,7 @@ export function SalesTab({ registerSave, saving, setSaving }: {
         <SectionCard
           icon={Bell}
           title="การแจ้งเตือนการขาย"
-          tint="warning"
+          tint="accent-soft"
         >
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">

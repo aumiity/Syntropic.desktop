@@ -31,6 +31,7 @@ import {
   REQUIRED_FIELDS,
   REQUIRED_LABEL,
 } from './shared'
+import { usePublishDevTab } from '@/stores/devTabStore'
 
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>()
@@ -49,6 +50,7 @@ export default function EditProductPage() {
   const productId = Number(id)
 
   const [tab, setTab] = useState('general')
+  usePublishDevTab(tab) // DEV ONLY — surfaces open sub-tab file in TitleBar path
   const [product, setProduct] = useState<FullProduct | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

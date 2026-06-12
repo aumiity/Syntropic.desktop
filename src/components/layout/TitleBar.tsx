@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Minus, Plus, X, Maximize2, Copy, Check } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { useDevTabStore } from '@/stores/devTabStore'
 
 // DEV ONLY — route path → source file map for quick copy-paste to Claude
 const ROUTE_FILE_MAP: { pattern: string; file: string }[] = [
@@ -31,13 +32,44 @@ const ROUTE_FILE_MAP: { pattern: string; file: string }[] = [
   { pattern: '/',                         file: 'src/pages/POS/index.tsx' },
 ]
 
-function matchFilePath(pathname: string): string {
+// DEV ONLY — for pages whose tab lives in local state (not the URL), map the
+// active tab value → its sub-file so the path display reaches the open tab.
+// Keyed by the route file resolved above, then by the published tab value.
+const SUBFILE_MAP: Record<string, Record<string, string>> = {
+  'src/pages/Settings/index.tsx': {
+    shop: 'src/pages/Settings/ShopTab.tsx',
+    sales: 'src/pages/Settings/SalesTab.tsx',
+    'product-mgmt': 'src/pages/Settings/ProductMgmtTab.tsx',
+    units: 'src/pages/Settings/UnitsTab.tsx',
+    'drug-usage': 'src/pages/Settings/DrugUsageTab.tsx',
+    printers: 'src/pages/Settings/PrintersTab.tsx',
+    database: 'src/pages/Settings/DatabaseTab.tsx',
+  },
+  'src/pages/Products/EditProduct/index.tsx': {
+    general: 'src/pages/Products/EditProduct/GeneralTab.tsx',
+    units: 'src/pages/Products/EditProduct/UnitsTab.tsx',
+    labels: 'src/pages/Products/EditProduct/LabelsTab.tsx',
+    lots: 'src/pages/Products/EditProduct/LotsTab.tsx',
+    history: 'src/pages/Products/EditProduct/HistoryTab.tsx',
+  },
+  'src/pages/Products/EditBundle/index.tsx': {
+    general: 'src/pages/Products/EditBundle/GeneralTab.tsx',
+    components: 'src/pages/Products/EditBundle/ComponentsTab.tsx',
+    labels: 'src/pages/Products/EditProduct/LabelsTab.tsx',
+    history: 'src/pages/Products/EditBundle/HistoryTab.tsx',
+  },
+}
+
+function matchFilePath(pathname: string, tab: string | null): string {
   const norm = pathname || '/'
   for (const { pattern, file } of ROUTE_FILE_MAP) {
     const pp = pattern.split('/').filter(Boolean)
     const ap = norm.split('/').filter(Boolean)
     if (pp.length !== ap.length) continue
-    if (pp.every((seg, i) => seg.startsWith(':') || seg === ap[i])) return file
+    if (pp.every((seg, i) => seg.startsWith(':') || seg === ap[i])) {
+      if (tab) return SUBFILE_MAP[file]?.[tab] ?? file
+      return file
+    }
   }
   return norm
 }
@@ -68,8 +100,9 @@ export function TitleBar() {
   const [resizeOpen, setResizeOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const location = useLocation()
+  const devTab = useDevTabStore((s) => s.tab)
 
-  const filePath = matchFilePath(location.pathname)
+  const filePath = matchFilePath(location.pathname, devTab)
 
   const copyPath = () => {
     navigator.clipboard.writeText(filePath)

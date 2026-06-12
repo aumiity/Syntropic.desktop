@@ -45,7 +45,7 @@
 
     /* ── Accent — brand yellow ──────────────────────────────────────────── */
     --accent:            43 100% 64%;    /* #F5C24A */
-    --accent-foreground: 0 0% 99%;
+    --accent-foreground: 32 81% 29%;
 
     /* ── Muted (neutral grey surface) ───────────────────────────────────── */
     --muted:            0 0% 95%;

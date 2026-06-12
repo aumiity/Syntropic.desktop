@@ -11,9 +11,11 @@ import { DrugUsageTab } from './DrugUsageTab'
 import { PrintersTab } from './PrintersTab'
 import { SalesTab } from './SalesTab'
 import { DatabaseTab } from './DatabaseTab'
+import { usePublishDevTab } from '@/stores/devTabStore'
 
 export default function SettingsPage() {
   const [tab, setTab] = useState('shop')
+  usePublishDevTab(tab) // DEV ONLY — surfaces open sub-tab file in TitleBar path
   const salesSaveFn = useRef<() => void>()
   const [salesSaving, setSalesSaving] = useState(false)
   // The active การพิมพ์ sub-tab forwards its บันทึก button up here so it lands on

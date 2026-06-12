@@ -19,6 +19,7 @@ import { LabelsTab } from '../EditProduct/LabelsTab'
 import { GeneralTab } from './GeneralTab'
 import { ComponentsTab, type DraftItem } from './ComponentsTab'
 import { HistoryTab } from './HistoryTab'
+import { usePublishDevTab } from '@/stores/devTabStore'
 
 const REQUIRED_FIELDS = ['trade_name', 'unit_id', 'price_retail'] as const
 const REQUIRED_LABEL: Record<string, string> = {
@@ -48,6 +49,7 @@ export default function EditBundlePage() {
   const productId = isNew ? 0 : Number(id)
 
   const [tab, setTab] = useState('general')
+  usePublishDevTab(tab) // DEV ONLY — surfaces open sub-tab file in TitleBar path
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const overridePrice = useManagerOverride()
