@@ -64,13 +64,23 @@ async function fontFace(family: string, weight: string | number, url: string): P
   } catch { return '' }
 }
 
+// Cache the (deterministic) base64 @font-face block per family. The TTF→base64
+// embed is the expensive part; without this a live preview that rebuilds on
+// every keystroke (POS payment dialog) would re-fetch + re-encode the whole TTF
+// each time. Result is constant per family, so caching is safe.
+const fontFaceCache = new Map<string, string>()
+
 // Build a `@font-face` CSS block for the selected family with each weight's TTF
 // base64-embedded so the print HTML (data: URL, separate origin) can resolve it.
 export async function buildPrintFontFaceCss(family: string): Promise<string> {
+  const cached = fontFaceCache.get(family)
+  if (cached !== undefined) return cached
   const files = FONT_REGISTRY[family]
-  if (!files) return ''
+  if (!files) { fontFaceCache.set(family, ''); return '' }
   const faces = await Promise.all(files.map(f => fontFace(family, f.weight, f.url)))
-  return faces.filter(Boolean).join('\n')
+  const css = faces.filter(Boolean).join('\n')
+  fontFaceCache.set(family, css)
+  return css
 }
 
 // Script-fallback font registry — keyed by a detection regex. Kept OUT of

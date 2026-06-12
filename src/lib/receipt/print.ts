@@ -61,6 +61,16 @@ export async function printSlip(
   })
 }
 
+// Resolve the slip header mode from the bill itself — no manual setting.
+// Order matters: voided/return keep their own documents; otherwise a bill that
+// recorded VAT (total_vat > 0) prints as an abbreviated tax invoice, and a
+// non-VAT bill prints as a plain cash receipt.
+export function resolveSlipMode(sale: SaleForPrint): SlipMode {
+  if (sale.status === 'voided') return 'void'
+  if (sale.sale_type === 'return') return 'return'
+  return (sale.total_vat ?? 0) > 0 ? 'abbrevTax' : 'receipt'
+}
+
 // Open a PDF preview of the slip (no physical printer needed).
 export async function previewSlip(sale: SaleForPrint, mode: SlipMode): Promise<PrintResult> {
   const { shop, settings } = await loadConfig()

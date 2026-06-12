@@ -14,6 +14,8 @@ import { useToast } from '@/components/ui/toast'
 import { useShopVat } from '@/hooks/useShopVat'
 import { FONTS } from '@/lib/print/fonts'
 import { buildSlipHtml } from '@/lib/receipt/buildSlipHtml'
+import { resolveSlipMode } from '@/lib/receipt/print'
+import { SlipPreview } from '@/components/receipt/SlipPreview'
 import { RC_SECTIONS, type RcAlign } from '@/lib/receipt/sections'
 import type { ReceiptSettings, SaleForPrint, Setting } from '@/types'
 import {
@@ -95,40 +97,11 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
-  const [previewHtml, setPreviewHtml] = useState('')
   const [subTab, setSubTab] = useState<'paper' | 'format'>('paper')
-  // iframes don't auto-size to content, so the receipt would scroll INSIDE the
-  // frame. Measure the rendered body height and set the iframe to it, so the
-  // frame is full natural height and the OUTER gray box owns the scrollbar.
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [iframeH, setIframeH] = useState(0)
-  // Preview zoom — the slip renders at true 1:1 mm (small on screen). CSS `zoom`
-  // (Chromium) scales the real layout box so the overflow-auto box can scroll.
+  // Preview zoom — the slip renders at true 1:1 mm (small on screen); zoom
+  // scales the whole paper via transform inside SlipPreview.
   const [zoom, setZoom] = useState(1)
   const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
-  const fitIframe = useCallback(() => {
-    const el = iframeRef.current
-    const doc = el?.contentWindow?.document
-    if (!el || !doc) return
-    // Collapse before measuring: documentElement.scrollHeight returns
-    // max(content, current iframe height), so measuring while the frame still
-    // holds its previous (taller) height inflates it a little on every rebuild —
-    // the preview crept longer each time the abbrev-tax toggle (or any setting)
-    // flipped. Force a reflow at 0, read the true content height, then re-apply.
-    el.style.height = '0'
-    const h = doc.documentElement.scrollHeight
-    // Set directly too, in case `h` is unchanged and React doesn't re-render to
-    // re-apply the height style prop (which would leave the frame collapsed).
-    el.style.height = `${h + 16}px`
-    setIframeH(h)
-  }, [])
-  // Re-measure after the embedded (base64) fonts apply — that reflow changes the
-  // height after the initial load event fires.
-  useEffect(() => {
-    if (!previewHtml) return
-    const t = setTimeout(fitIframe, 120)
-    return () => clearTimeout(t)
-  }, [previewHtml, fitIframe])
 
   // Load settings — explicit per-key overwrite keeps stale UI-only keys out of
   // form (which would poison the dynamic-SQL UPDATE).
@@ -159,15 +132,14 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     setForm(f => ({ ...f, [k]: v }))
 
   const settingsForBuild: ReceiptSettings = useMemo(() => ({ id: 1, ...form }), [form])
-  const previewMode = form.abbrev_tax_invoice ? 'abbrevTax' as const : 'receipt' as const
-
-  // Rebuild the live preview (iframe srcDoc) whenever the form/shop changes.
-  useEffect(() => {
-    let cancelled = false
-    buildSlipHtml(SAMPLE_SALE, shop, settingsForBuild, { mode: previewMode })
-      .then(html => { if (!cancelled) setPreviewHtml(html) })
-    return () => { cancelled = true }
-  }, [settingsForBuild, shop, previewMode])
+  // Preview reflects the shop's VAT status (not a manual toggle): a VAT shop
+  // sees an abbreviated tax invoice with the VAT line; a NO-VAT shop sees a
+  // plain cash receipt with total_vat zeroed out.
+  const previewSale = useMemo<SaleForPrint>(
+    () => vatEnabled ? SAMPLE_SALE : { ...SAMPLE_SALE, total_vat: 0 },
+    [vatEnabled],
+  )
+  const previewMode = resolveSlipMode(previewSale)
 
   const handleSave = useCallback(async () => {
     setSaving(true)
@@ -183,7 +155,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     if (pdfLoading) return
     setPdfLoading(true)
     try {
-      const html = await buildSlipHtml(SAMPLE_SALE, shop, settingsForBuild, { mode: previewMode })
+      const html = await buildSlipHtml(previewSale, shop, settingsForBuild, { mode: previewMode })
       const res = await window.api.printer.previewHtmlPdf({ html, paperWidthMm: form.paper_width_mm || 80, heightMm: 'auto' })
       if (!res.success) toast({ title: 'สร้าง PDF ไม่สำเร็จ', description: res.error, variant: 'error' })
     } finally { setPdfLoading(false) }
@@ -193,7 +165,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     if (printing) return
     setPrinting(true)
     try {
-      const html = await buildSlipHtml(SAMPLE_SALE, shop, settingsForBuild, { mode: previewMode })
+      const html = await buildSlipHtml(previewSale, shop, settingsForBuild, { mode: previewMode })
       const res = await window.api.printer.printHtml({
         html, printerName: form.printer_name || '', paperWidthMm: form.paper_width_mm || 80,
         heightMm: 'auto', copies: 1,
@@ -251,54 +223,16 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
               while it fits, then left-aligns (margins collapse to 0) when it
               overflows — so scroll reveals the slip, never empty space. */}
           <div className="bg-muted/30 rounded-lg p-6 overflow-y-auto overflow-x-hidden max-h-[70vh]">
-            {/* True render via the real builder so the preview matches print. */}
-            {/* Torn-paper bottom edge — same scalloped CSS-mask trick as the POS
-                payment dialog (src/pages/POS/index.tsx). The mask layers a solid
-                rectangle over a row of repeating radial cut-outs at the bottom;
-                the drop-shadow lives on the WRAPPER (not box-shadow) so the shadow
-                follows the jagged alpha edge instead of a straight box. +16px of
-                height gives the notches blank room so they don't clip the footer. */}
-            {/* Zoom via transform (NOT `zoom`): the slip is an iframe, and `zoom`
-                would resize its inner viewport — the document reflows to a WIDER
-                page instead of magnifying. `transform: scale` rasterizes the whole
-                frame so text scales with the paper (true zoom). transform doesn't
-                reserve layout space, so the outer wrapper is sized to the scaled
-                box (width mm × zoom, height px × zoom) to keep scroll working. */}
-            <div
-              className="mx-auto"
-              style={{
-                width: `calc(${form.paper_width_mm || 80}mm * ${zoom})`,
-                height: iframeH ? `${(iframeH + 16) * zoom}px` : 'auto',
-              }}
-            >
-            <div
-              style={{
-                transform: `scale(${zoom})`, transformOrigin: 'top left',
-                filter: 'drop-shadow(0 4px 5px rgb(0 0 0 / 0.20)) drop-shadow(0 12px 14px rgb(0 0 0 / 0.16))',
-              }}
-            >
-              <iframe
-                ref={iframeRef}
-                title="receipt-preview"
-                srcDoc={previewHtml}
-                onLoad={fitIframe}
-                scrolling="no"
-                className="bg-white border-0 block"
-                style={{
-                  width: `${form.paper_width_mm || 80}mm`,
-                  height: iframeH ? `${iframeH + 16}px` : 'auto',
-                  WebkitMaskImage: 'linear-gradient(#000,#000), radial-gradient(circle 12px at 50% 100%, transparent 12px, #000 12px)',
-                  WebkitMaskSize: '100% calc(100% - 12px), 10% 12px',
-                  WebkitMaskPosition: 'top, left bottom',
-                  WebkitMaskRepeat: 'no-repeat, repeat-x',
-                  maskImage: 'linear-gradient(#000,#000), radial-gradient(circle 12px at 50% 100%, transparent 12px, #000 12px)',
-                  maskSize: '100% calc(100% - 12px), 10% 12px',
-                  maskPosition: 'top, left bottom',
-                  maskRepeat: 'no-repeat, repeat-x',
-                }}
-              />
-            </div>
-            </div>
+            {/* SlipPreview = the shared real-builder render (torn-paper edge +
+                transform-zoom live inside it), the SAME component the POS payment
+                dialog uses, so the two previews can never drift. */}
+            <SlipPreview
+              sale={previewSale}
+              shop={shop}
+              settings={settingsForBuild}
+              mode={previewMode}
+              zoom={zoom}
+            />
           </div>
         </SectionCard>
 
@@ -353,17 +287,6 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                     checked={!!form.auto_print}
                     onChange={v => setF('auto_print', v ? 1 : 0)}
                   />
-                  {/* Abbrev tax invoice only makes sense for a VAT-registered shop —
-                      hidden for NO-VAT (print paths are already data-gated by
-                      sale.total_vat > 0, so a stale `on` value stays harmless) */}
-                  {vatEnabled && (
-                    <Toggle
-                      className="justify-between w-full h-11 px-3"
-                      label="ใช้สลิปเป็นใบกำกับภาษีอย่างย่อ"
-                      checked={!!form.abbrev_tax_invoice}
-                      onChange={v => setF('abbrev_tax_invoice', v ? 1 : 0)}
-                    />
-                  )}
                 </div>
               </div>
                   </div>

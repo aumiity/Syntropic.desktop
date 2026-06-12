@@ -8,7 +8,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
 import { Ban, ChevronRight, Boxes, Printer, FileText } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
-import { printSlip } from '@/lib/receipt/print'
+import { printSlip, resolveSlipMode } from '@/lib/receipt/print'
 import { saleDetailToPrint } from '@/lib/receipt/normalizeSale'
 import { TaxInvoiceBuyerDialog } from '@/components/dialogs/TaxInvoiceBuyerDialog'
 import { useShopVat } from '@/hooks/useShopVat'
@@ -73,12 +73,7 @@ export function SaleDetailDialog({
 
   const reprintReceipt = async (d: SaleDetail) => {
     const sale = saleDetailToPrint(d)
-    const rs = await window.api.settings.getReceiptSettings()
-    const abbrev = (rs as any)?.abbrev_tax_invoice === 1
-    const mode = d.status === 'voided' ? 'void'
-      : d.sale_type === 'return' ? 'return'
-      : (abbrev && sale.total_vat > 0) ? 'abbrevTax'
-      : 'receipt'
+    const mode = resolveSlipMode(sale)
     const res = await printSlip(sale, mode)
     if (!res.success) toast({ title: 'พิมพ์ใบเสร็จไม่สำเร็จ', description: res.error, variant: 'error' })
   }

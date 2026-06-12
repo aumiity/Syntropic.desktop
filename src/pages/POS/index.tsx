@@ -30,7 +30,8 @@ import dayjs from 'dayjs'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings, ReceiptSettings, Setting, SaleForPrint } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
-import { printSlip } from '@/lib/receipt/print'
+import { printSlip, resolveSlipMode } from '@/lib/receipt/print'
+import { SlipPreview } from '@/components/receipt/SlipPreview'
 import { Printer, ReceiptText } from 'lucide-react'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
@@ -871,11 +872,12 @@ export default function POSPage() {
 
   // Print a completed sale's slip. Isolated from the save flow — a print
   // failure must never roll back a committed sale; it just toasts so the
-  // operator can retry from the success dialog. VAT-on sales print the slip as
-  // an abbreviated tax invoice when that option is enabled.
+  // operator can retry from the success dialog. The header follows the bill's
+  // own VAT status: bills with total_vat > 0 print as an abbreviated tax
+  // invoice, otherwise a plain cash receipt.
   const printCompletedSale = useCallback(async (sale: SaleForPrint) => {
     if (!receiptSettings) { toast('ยังไม่ได้ตั้งค่าการพิมพ์ใบเสร็จ', 'error'); return }
-    const mode = receiptSettings.abbrev_tax_invoice && sale.total_vat > 0 ? 'abbrevTax' : 'receipt'
+    const mode = resolveSlipMode(sale)
     const res = await printSlip(sale, mode, { shop: shopInfo, settings: receiptSettings })
     if (!res.success) toast(`พิมพ์ใบเสร็จไม่สำเร็จ: ${res.error ?? ''}`, 'error')
   }, [receiptSettings, shopInfo, toast])
@@ -1676,81 +1678,23 @@ export default function POSPage() {
 
               return (
                 <div className="grid grid-cols-2 gap-4 h-full min-h-0">
-                  {/* LEFT COLUMN — designed receipt preview (themed paper, NOT the
-                      literal thermal slip — fed by previewSale so it tracks live) */}
+                  {/* LEFT COLUMN — live slip preview via the shared SlipPreview
+                      (the SAME real-builder render the Settings receipt designer
+                      uses, fed by previewSale so it tracks the cart + VAT toggle;
+                      fontFamily overridden to the app font, not the thermal font) */}
                   <div className="flex flex-col gap-2 min-h-0 h-full">
                     <div className="flex-1 min-h-0 flex items-start justify-center rounded-xl border border-border bg-muted/30 p-6 overflow-auto scrollbar-thin">
                       {cart.items.length === 0 ? (
                         <div className="self-center text-sm text-muted-foreground">ไม่มีสินค้า</div>
+                      ) : !receiptSettings ? (
+                        <div className="self-center text-sm text-muted-foreground">กำลังโหลด...</div>
                       ) : (
-                        <div className="w-[300px] shrink-0" style={{ filter: 'drop-shadow(0 4px 5px rgb(0 0 0 / 0.20)) drop-shadow(0 12px 14px rgb(0 0 0 / 0.16))' }}>
-                          <div className="bg-card text-foreground rounded-t-md px-6 pt-6 pb-6" style={{
-                            WebkitMaskImage: 'linear-gradient(#000,#000), radial-gradient(circle 12px at 50% 100%, transparent 12px, #000 12px)',
-                            WebkitMaskSize: '100% calc(100% - 12px), 10% 12px',
-                            WebkitMaskPosition: 'top, left bottom',
-                            WebkitMaskRepeat: 'no-repeat, repeat-x',
-                            maskImage: 'linear-gradient(#000,#000), radial-gradient(circle 12px at 50% 100%, transparent 12px, #000 12px)',
-                            maskSize: '100% calc(100% - 12px), 10% 12px',
-                            maskPosition: 'top, left bottom',
-                            maskRepeat: 'no-repeat, repeat-x',
-                          }}>
-                            {/* Shop header */}
-                            <div className="text-center space-y-0.5">
-                              <div className="text-base font-bold leading-tight">{shopInfo.shop_name || 'ร้านขายยา'}</div>
-                              {shopInfo.shop_address ? <div className="text-xs text-muted-foreground leading-snug">{shopInfo.shop_address}</div> : null}
-                              {shopInfo.shop_phone ? <div className="text-xs text-muted-foreground">โทร. {shopInfo.shop_phone}</div> : null}
-                            </div>
-                            <div className="my-3 flex justify-center">
-                              <span className="inline-flex items-center rounded-full border border-dashed border-border px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">ใบเสร็จรับเงิน</span>
-                            </div>
-                            {/* Meta */}
-                            <div className="border-t border-dashed border-border pt-2 space-y-1 text-xs">
-                              <div className="flex justify-between text-muted-foreground"><span>เลขที่</span><span className="font-medium text-foreground">(ตัวอย่าง)</span></div>
-                              <div className="flex justify-between text-muted-foreground"><span>วันที่</span><span className="font-medium text-foreground">{new Date().toLocaleString('th-TH', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span></div>
-                              {previewSale.customer_name ? <div className="flex justify-between text-muted-foreground"><span>ลูกค้า</span><span className="font-medium text-foreground truncate max-w-[60%] text-right">{previewSale.customer_name}</span></div> : null}
-                            </div>
-                            {/* Items */}
-                            <div className="border-t border-dashed border-border mt-2 pt-2 space-y-2">
-                              {previewSale.items.map((it, i) => (
-                                <div key={i} className="text-sm">
-                                  <div className="font-semibold leading-snug">{it.item_name}</div>
-                                  <div className="flex justify-between gap-2 text-muted-foreground">
-                                    <span>{it.qty} {it.unit_name} × {formatCurrency(it.unit_price)}</span>
-                                    <span className="text-foreground whitespace-nowrap">{formatCurrency(it.qty * it.unit_price)}</span>
-                                  </div>
-                                  {it.discount > 0 ? (
-                                    <div className="flex justify-between text-xs text-destructive"><span>ส่วนลด</span><span>-{formatCurrency(it.discount)}</span></div>
-                                  ) : null}
-                                </div>
-                              ))}
-                            </div>
-                            {/* Totals */}
-                            <div className="border-t border-dashed border-border mt-2 pt-2 space-y-1 text-sm">
-                              <div className="flex justify-between text-muted-foreground"><span>ยอดรวม</span><span className="text-foreground">{formatCurrency(previewSale.subtotal)}</span></div>
-                              {previewSale.total_discount > 0 ? <div className="flex justify-between text-destructive"><span>ส่วนลดรวม</span><span>-{formatCurrency(previewSale.total_discount)}</span></div> : null}
-                              {previewSale.total_vat > 0 ? (
-                                <>
-                                  <div className="flex justify-between text-muted-foreground"><span>มูลค่าก่อนภาษี</span><span className="text-foreground">{formatCurrency(previewSale.total_amount - previewSale.total_vat)}</span></div>
-                                  <div className="flex justify-between text-muted-foreground"><span>ภาษีมูลค่าเพิ่ม {vatRate}%</span><span className="text-foreground">{formatCurrency(previewSale.total_vat)}</span></div>
-                                </>
-                              ) : null}
-                            </div>
-                            {/* Grand total */}
-                            <div className="border-t-2 border-foreground/70 mt-2 pt-2 flex items-end justify-between gap-2">
-                              <span className="text-sm font-bold">รวมทั้งสิ้น</span>
-                              <span className="text-xl font-extrabold whitespace-nowrap">{formatCurrency(previewSale.total_amount)}</span>
-                            </div>
-                            {/* Cash / change */}
-                            {previewSale.cash_amount > 0 ? (
-                              <div className="mt-2 space-y-1 text-sm">
-                                <div className="flex justify-between text-muted-foreground"><span>รับเงิน</span><span className="text-foreground">{formatCurrency(previewSale.cash_amount)}</span></div>
-                                <div className="flex justify-between text-muted-foreground"><span>เงินทอน</span><span className="text-foreground">{formatCurrency(previewSale.change_amount)}</span></div>
-                              </div>
-                            ) : null}
-                            {/* Footer */}
-                            <div className="mt-4 text-center text-xs text-muted-foreground">{receiptSettings?.footer_note || 'ขอบคุณที่ใช้บริการค่ะ'}</div>
-                          </div>
-                        </div>
+                        <SlipPreview
+                          sale={previewSale}
+                          shop={shopInfo}
+                          settings={receiptSettings}
+                          fontFamily="IBM Plex Sans Thai"
+                        />
                       )}
                     </div>
                     {/* Per-bill VAT toggle — VAT-registered shops only. Ticked =

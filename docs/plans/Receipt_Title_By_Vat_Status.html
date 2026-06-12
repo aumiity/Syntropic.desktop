@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>หัวกระดาษใบเสร็จตามสถานะ VAT — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine pre{background:#1e293b;border-radius:8px;padding:12px 14px;overflow-x:auto;
+    font-size:12.5px;line-height:1.5;color:#e2e8f0;margin:8px 0}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+  .slip{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12px;line-height:1.5;
+    background:#fff;border:1px dashed var(--slate);border-radius:8px;padding:12px 14px;white-space:pre;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>หัวกระดาษใบเสร็จกำหนดตามสถานะ VAT/NoVAT ของบิล</h1>
+    <p>ใบเสร็จในแอป (POS + ประวัติการขาย) ให้หัวกระดาษขึ้นกับว่าบิลนั้นมี VAT ไหม ไม่ใช่สวิตช์ตั้งค่าด้วยมืออีกต่อไป</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ</span>
+      <span class="pill">ขอบเขต: หัวกระดาษ slip (POS + Manage + SaleDetail + Settings preview)</span>
+      <span class="pill">2026-06-12</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><strong>ปัญหา:</strong> หัวกระดาษใบเสร็จในแอปขึ้นว่า "ใบเสร็จรับเงิน" เสมอ เพราะการเปลี่ยนเป็น "ใบกำกับภาษีอย่างย่อ" ถูกล็อกไว้หลังสวิตช์ตั้งค่าด้วยมือ (<code>abbrev_tax_invoice</code> — toggle "ใช้สลิปเป็นใบกำกับภาษีอย่างย่อ" ในแท็บตั้งค่าใบเสร็จ) ถ้าสวิตช์นี้ปิด หัวก็เป็น "ใบเสร็จรับเงิน" ตลอด แม้บิลจะมี VAT</p>
+    <p><strong>สิ่งที่ควรเป็น:</strong> หัวกระดาษต้องสะท้อน "ความจริงของบิล" — บิลที่มี VAT (<code>total_vat &gt; 0</code>) ต้องขึ้น <strong>"ใบกำกับภาษีอย่างย่อ"</strong> เสมอ ส่วนบิลที่ไม่มี VAT ขึ้น <strong>"ใบเสร็จรับเงิน"</strong> — โดยไม่ต้องมีใครมาตั้งค่าเอง</p>
+    <p><strong>แผนนี้แก้โดย:</strong> ตัด gate ของสวิตช์ตั้งค่าทิ้ง แล้วให้หัวกระดาษขึ้นกับ <code>sale.total_vat</code> ของบิลล้วน ๆ, รวมตรรกะที่ซ้ำกัน 3 ที่ให้เป็นฟังก์ชันกลางตัวเดียว (<code>resolveSlipMode</code>), และลบสวิตช์ที่ไม่จำเป็นออกจากหน้าตั้งค่า</p>
+    <p><strong>เสร็จแล้วได้:</strong> ร้านที่จด VAT พิมพ์บิลออกมาเป็นใบกำกับภาษีอย่างย่อโดยอัตโนมัติ, บิลที่พนักงานไม่ติ๊ก VAT (หรือร้านที่ไม่จด VAT) ยังเป็นใบเสร็จรับเงินถูกต้อง, บิลยกเลิก/รับคืนคงหัวเดิม</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p>ตรรกะตัดสินหัวกระดาษ (slip mode) ปัจจุบันถูกเขียนซ้ำใน 3 จุดเรียก แล้วส่งต่อไปที่ <code>buildSlipHtml</code> ซึ่งแมป mode → ข้อความหัวกระดาษผ่านตาราง <code>TITLES</code> แผนนี้รวม 3 จุดให้เรียก <code>resolveSlipMode</code> ตัวเดียว</p>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 660 300" role="img" aria-label="ผังการตัดสินหัวกระดาษ slip">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+
+      <rect class="box" x="16" y="20" width="190" height="48" rx="10"/>
+      <text x="111" y="40" text-anchor="middle">POS print</text>
+      <text class="sub" x="111" y="57" text-anchor="middle">POS/index.tsx</text>
+
+      <rect class="box" x="16" y="112" width="190" height="48" rx="10"/>
+      <text x="111" y="132" text-anchor="middle">Manage reprint</text>
+      <text class="sub" x="111" y="149" text-anchor="middle">Manage/Sales.tsx</text>
+
+      <rect class="box" x="16" y="204" width="190" height="48" rx="10"/>
+      <text x="111" y="224" text-anchor="middle">SaleDetail reprint</text>
+      <text class="sub" x="111" y="241" text-anchor="middle">SaleDetailDialog.tsx</text>
+
+      <rect class="box warn" x="270" y="112" width="180" height="60" rx="10"/>
+      <text x="360" y="136" text-anchor="middle">resolveSlipMode(sale)</text>
+      <text class="sub" x="360" y="154" text-anchor="middle">lib/receipt/print.ts</text>
+
+      <rect class="box" x="500" y="112" width="150" height="60" rx="10"/>
+      <text x="575" y="136" text-anchor="middle">buildSlipHtml</text>
+      <text class="sub" x="575" y="154" text-anchor="middle">TITLES[mode]</text>
+
+      <path class="edge" d="M206,44 H240 V138 H266"/>
+      <path class="edge" d="M206,136 H266"/>
+      <path class="edge" d="M206,228 H240 V146 H266"/>
+      <path class="edge hot" d="M450,142 H496"/>
+      <text class="elabel" x="473" y="132" text-anchor="middle">mode</text>
+    </svg>
+    </div>
+    <p style="margin-top:14px"><strong>ตรรกะใน <code>resolveSlipMode</code></strong> (ลำดับสำคัญ — บนลงล่าง):</p>
+    <div class="diagram"><div class="flow">
+      <div class="node warn">บิลยกเลิก?<small>status === 'voided'</small></div>
+      <div class="ar">▶</div>
+      <div class="node">return?<small>sale_type === 'return'</small></div>
+      <div class="ar">▶</div>
+      <div class="node">มี VAT?<small>total_vat &gt; 0</small></div>
+      <div class="ar">▶<small>ไม่ใช่ทุกข้อ</small></div>
+      <div class="node data">receipt<small>ใบเสร็จรับเงิน</small></div>
+    </div></div>
+    <table style="margin-top:12px">
+      <thead><tr><th>mode</th><th>หัวกระดาษ</th><th>เงื่อนไข</th></tr></thead>
+      <tbody>
+        <tr><td><code>void</code></td><td>ใบเสร็จรับเงิน (ยกเลิก)</td><td><code>status === 'voided'</code></td></tr>
+        <tr><td><code>return</code></td><td>ใบรับคืนสินค้า</td><td><code>sale_type === 'return'</code></td></tr>
+        <tr><td><code>abbrevTax</code></td><td><strong>ใบกำกับภาษีอย่างย่อ</strong> + "ราคารวมภาษีมูลค่าเพิ่มไว้แล้ว"</td><td><code>total_vat &gt; 0</code></td></tr>
+        <tr><td><code>receipt</code></td><td>ใบเสร็จรับเงิน</td><td>ที่เหลือ (<code>total_vat === 0</code>)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <p>หัวกระดาษ = <code>abbrev_tax_invoice (toggle) &amp;&amp; total_vat &gt; 0</code></p>
+      <p>ถ้าสวิตช์ปิด → บิล VAT ก็ยังขึ้น "ใบเสร็จรับเงิน"</p>
+      <div class="slip">     ร้านยา Syntropic
+      ใบเสร็จรับเงิน
+─────────────────────
+เลขที่  RC-0001
+...
+ภาษีมูลค่าเพิ่ม   8.77</div>
+      <p style="margin-top:8px;font-size:12.5px;color:var(--muted)">ตรรกะซ้ำ 3 ที่ + ต้องไป fetch ตั้งค่ามาเช็คสวิตช์</p>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <p>หัวกระดาษ = <code>resolveSlipMode(sale)</code> ขึ้นกับ <code>total_vat</code> ของบิลล้วน ๆ</p>
+      <p>บิล VAT → "ใบกำกับภาษีอย่างย่อ" อัตโนมัติ</p>
+      <div class="slip">     ร้านยา Syntropic
+   ใบกำกับภาษีอย่างย่อ
+─────────────────────
+เลขที่  RC-0001
+...
+ภาษีมูลค่าเพิ่ม   8.77
+ราคารวมภาษีมูลค่าเพิ่มไว้แล้ว</div>
+      <p style="margin-top:8px;font-size:12.5px;color:var(--muted)">ฟังก์ชันกลางตัวเดียว + สวิตช์ตั้งค่าที่ซ้ำซ้อนถูกลบ</p>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>หัวกระดาษถูกต้องตามกฎหมายอัตโนมัติ — ร้านจด VAT ออกใบกำกับภาษีอย่างย่อโดยไม่ต้องตั้งค่า</li>
+    <li>บิลที่พนักงานไม่ติ๊ก VAT (total_vat=0) → เป็นใบเสร็จรับเงินถูกต้อง สอดคล้องกับที่บิลนั้นไม่เข้ารายงานภาษีขาย</li>
+    <li>ตรรกะรวมเป็นฟังก์ชันกลางตัวเดียว — กันการแก้ที่เดียวลืมอีก 2 ที่ (drift)</li>
+    <li>หน้าตั้งค่าใบเสร็จสะอาดขึ้น — ลบสวิตช์ที่ทำให้สับสน</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li><strong>ไม่ใช่การเสียการควบคุม</strong> — ร้าน VAT ยังกำหนดได้ "ต่อบิล" ผ่าน checkbox VAT ใน payment dialog: ไม่ติ๊ก VAT → <code>total_vat=0</code> → พิมพ์ "ใบเสร็จรับเงิน". ปุ่มควบคุมแค่ย้ายจาก toggle รวมทั้งร้าน → ต่อบิล (ถูกต้องกว่า เพราะหัวกระดาษผูกกับว่า "บิลนี้บันทึก VAT จริงไหม")</li>
+    <li>คอลัมน์ <code>abbrev_tax_invoice</code> ใน DB กลายเป็น dead column ชั่วคราว (คงไว้เฉย ๆ ไม่มี migration ตอนนี้) — <span class="tag t-opt">จดไว้</span> มีแผนลบจริงในรอบปรับ schema ก่อน launch program จริง</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><span class="tag t-skip">invariant</span> ห้ามแตะ allow-list save payload — <code>abbrev_tax_invoice</code> ยังเป็นคอลัมน์จริง คงไว้ใน DEFAULTS ไม่ให้ dynamic UPDATE พัง</li>
+    <li>ข้อกฎหมาย: ใบกำกับภาษีอย่างย่อ ม.86/6 ปกติต้องได้รับอนุมัติจากสรรพากรก่อน — แผนนี้ถือว่าร้านที่จด VAT ในแอป = ได้รับอนุมัติแล้ว (ตามมติของพี่)</li>
+    <li>บิลเก่าที่เก็บไว้อ่าน <code>total_vat</code> snapshot ของตัวเอง การพิมพ์ซ้ำจึงตรงกับตอนขายเสมอ ไม่ขึ้นกับสถานะ VAT ปัจจุบันของร้าน</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><strong>หน้า POS / ประวัติการขาย:</strong> ไม่มี UI ใหม่ — แค่หัวกระดาษบนสลิปที่พิมพ์เปลี่ยนตามบิล</li>
+      <li><strong>หน้าตั้งค่าใบเสร็จ (ReceiptSettingsTab):</strong> ลบ Toggle "ใช้สลิปเป็นใบกำกับภาษีอย่างย่อ" ออก (คง Toggle "พิมพ์ใบเสร็จอัตโนมัติ" และกรอบกลุ่มสวิตช์เดิม) — ไม่เพิ่ม primitive ใหม่ ไม่มี raw HTML ไม่มีสี literal</li>
+      <li><strong>หน้าตัวอย่าง (preview) ในตั้งค่าใบเสร็จ:</strong> เดิมขึ้นกับสวิตช์ → เปลี่ยนเป็นขึ้นกับสถานะร้าน VAT (<code>useShopVat</code>): ร้านจด VAT โชว์ "ใบกำกับภาษีอย่างย่อ" + บรรทัด VAT; ร้านไม่จด VAT โชว์ "ใบเสร็จรับเงิน" ไม่มีบรรทัด VAT</li>
+      <li>ภาษาไทยทั้งหมด, คงโทนตามแอป — งานนี้เป็นการ "ลบ + แก้ตรรกะ" ไม่ใช่เพิ่ม UI ใหม่</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>POS note (R1) อ้าง "เส้นทางพิมพ์ return" ที่จริงไม่มี — POS รับคืนไม่พิมพ์ และ snapshot ฮาร์ดโค้ด status/sale_type</td><td>minor</td><td>เปลี่ยน R1 เป็น "verified, no action" — branch void/return inert บน POS snapshot</td></tr>
+        <tr><td>1</td><td>ช่วงบรรทัด Toggle ใน current-state (359-366) ไม่ตรงกับ Step 5 (356-366)</td><td>minor</td><td>แก้ current-state เป็น 356-366 (comment 356-358 + Toggle 359-366) ให้ชัด</td></tr>
+        <tr><td>1</td><td>NOVAT preview คง total_amount=134 (อาจถูกเข้าใจผิดว่าเลขเพี้ยน)</td><td>minor</td><td>เพิ่มหมายเหตุว่าเป็น sample ที่ consistent ไม่ใช่บั๊ก</td></tr>
+        <tr><td>1</td><td>อ้างอิง line/function/signature ทั้งหมด, reader sweep, การลบ getReceiptSettings, preview self-consistency, invariant ทั้งหมด</td><td>PASS</td><td>ยืนยันถูกต้องทุกจุด — ไม่มี critical/major</td></tr>
+        <tr><td>2</td><td><code>electron/db/schema.js</code> (build artifact) จะโผล่ใน grep abbrev_tax_invoice ด้วย — Step 6 ไม่ได้ระบุ</td><td>minor</td><td>เพิ่ม schema.js เข้า expected-remaining-hits ใน Step 6</td></tr>
+        <tr><td>2</td><td>ความถูกต้องของ resolveSlipMode (precedence behavior-preserving: s.* === sale.* ผ่าน SELECT s.*), no missed call site, removing rs safe, preview self-consistent, invariant ทั้งหมด</td><td>PASS</td><td>ยืนยัน sound + implementation-ready — ไม่มี issue ใหม่</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li>บิล VAT (<code>total_vat &gt; 0</code>) พิมพ์หัว "ใบกำกับภาษีอย่างย่อ" โดยไม่มีสวิตช์ใดควบคุม</li>
+      <li>บิลไม่มี VAT (ร้าน NOVAT หรือบิลที่ไม่ติ๊ก VAT) พิมพ์ "ใบเสร็จรับเงิน"</li>
+      <li>บิลยกเลิก → "ใบเสร็จรับเงิน (ยกเลิก)"; บิลรับคืน → "ใบรับคืนสินค้า" — คงเดิม</li>
+      <li>Toggle "ใช้สลิปเป็นใบกำกับภาษีอย่างย่อ" ถูกลบจาก ReceiptSettingsTab</li>
+      <li>ทั้ง 3 จุดเรียก resolve mode ผ่าน <code>resolveSlipMode</code> ตัวเดียว</li>
+      <li>preview ในตั้งค่าใบเสร็จสะท้อนสถานะร้าน VAT</li>
+      <li><code>npx tsc --noEmit</code> PASS; click-test POS print + Manage reprint + SaleDetail reprint + Settings preview</li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>src/lib/receipt/print.ts</code> — เพิ่ม helper <code>resolveSlipMode</code> (มี <code>SlipMode</code> import แล้ว line 2, <code>SaleForPrint</code> import แล้ว line 1)</li>
+      <li><code>src/pages/POS/index.tsx</code> — <code>printCompletedSale</code> ~876-881, import line 33</li>
+      <li><code>src/pages/Manage/Sales.tsx</code> — <code>reprintReceipt</code> ~142-158, import line 20</li>
+      <li><code>src/components/dialogs/SaleDetailDialog.tsx</code> — <code>reprintReceipt</code> ~74-84, import line 11</li>
+      <li><code>src/pages/Settings/ReceiptSettingsTab.tsx</code> — Toggle 356-366, previewMode 162, SAMPLE_SALE 53, buildSlipHtml 167/186/196, useShopVat 14/91, DEFAULTS 38</li>
+      <li>ไม่แตะ: <code>buildSlipHtml.ts</code> (TITLES + abbrevNote ทำงานถูกอยู่แล้ว), schema, types (คงคอลัมน์ dormant)</li>
+    </ul>
+
+    <h3>ขั้นตอน</h3>
+    <ol>
+      <div class="step"><strong>Step 1 — เพิ่ม resolveSlipMode</strong> ที่ <code>src/lib/receipt/print.ts</code> (วางคู่ <code>printSlip</code>):
+<pre>export function resolveSlipMode(sale: SaleForPrint): SlipMode {
+  if (sale.status === 'voided') return 'void'
+  if (sale.sale_type === 'return') return 'return'
+  return (sale.total_vat ?? 0) &gt; 0 ? 'abbrevTax' : 'receipt'
+}</pre>
+        ลำดับ void→return→vat→receipt มิเรอร์พฤติกรรมเดิมของ Manage/SaleDetail. <span class="inv">ไม่เปลี่ยน signature ของ printSlip — call site ยังส่ง mode มาเอง</span></div>
+
+      <div class="step"><strong>Step 2 — POS</strong> <code>src/pages/POS/index.tsx</code>: แทนบรรทัด 878 ด้วย <code>const mode = resolveSlipMode(sale)</code>; เพิ่ม <code>resolveSlipMode</code> ใน import บรรทัด 33; ปรับ comment 872-875 ให้บอกว่าหัวขึ้นกับสถานะ VAT ของบิล. <span class="inv">POS รับคืนไม่พิมพ์ + snapshot ฮาร์ดโค้ด status:'completed'/sale_type:'retail'|'wholesale' → branch void/return inert ที่นี่ (ไม่มีผลเสีย)</span></div>
+
+      <div class="step"><strong>Step 3 — Manage/Sales</strong> <code>src/pages/Manage/Sales.tsx</code> ใน <code>reprintReceipt</code>: ลบ <code>const rs = await window.api.settings.getReceiptSettings()</code> + <code>const abbrev = ...</code>; แทน block <code>const mode = ...</code> ด้วย <code>const mode = resolveSlipMode(sale)</code>; เพิ่ม import บรรทัด 20; ปรับ comment 139-141. <span class="inv">printSlip(sale, mode) ไม่ส่ง config → printSlip โหลด settings เองผ่าน loadConfig() ภายใน (print.ts:53) ไม่พังการพิมพ์; rs ใช้แค่ abbrev เท่านั้น</span></div>
+
+      <div class="step"><strong>Step 4 — SaleDetailDialog</strong> <code>src/components/dialogs/SaleDetailDialog.tsx</code> ใน <code>reprintReceipt</code>: ลบ <code>const rs = ...</code> + <code>const abbrev = ...</code>; แทนด้วย <code>const mode = resolveSlipMode(sale)</code>; เพิ่ม import บรรทัด 11</div>
+
+      <div class="step"><strong>Step 5 — ReceiptSettingsTab</strong> <code>src/pages/Settings/ReceiptSettingsTab.tsx</code>:
+        <ul>
+          <li>ลบ block 356-366 (comment 356-358 + <code>{vatEnabled &amp;&amp; (&lt;Toggle label="ใช้สลิปเป็นใบกำกับภาษีอย่างย่อ" .../&gt;)}</code>). คง Toggle <code>auto_print</code> (350-355) + กรอบ <code>&lt;div&gt;</code> (349/367)</li>
+          <li>แก้ preview ให้ self-consistent ผ่าน helper เดียวกัน:
+<pre>const previewSale = useMemo(
+  () =&gt; vatEnabled ? SAMPLE_SALE : { ...SAMPLE_SALE, total_vat: 0 },
+  [vatEnabled],
+)
+const previewMode = resolveSlipMode(previewSale)</pre>
+            แทน <code>previewMode</code> เดิมบรรทัด 162; ส่ง <code>previewSale</code> (ไม่ใช่ SAMPLE_SALE) เข้า buildSlipHtml ทั้ง 3 จุด (167/186/196); import <code>resolveSlipMode</code> จาก <code>@/lib/receipt/print</code></li>
+          <li>คง <code>useShopVat</code>/<code>vatEnabled</code> import (ยังใช้ใน previewSale)</li>
+          <li><span class="inv">คง abbrev_tax_invoice ใน DEFAULTS (38) + type ReceiptSettings + schema receipt_settings — คอลัมน์ dormant (เขียนแต่ไม่อ่าน) เหมือน paper_height_mm/copies; ไม่มี migration ตอนนี้ ไม่แตะ allow-list. (จดไว้: ลบจริงในรอบปรับ schema ก่อน launch — ดู memory project_receipt_sections)</span></li>
+        </ul></div>
+
+      <div class="step"><strong>Step 6 — sweep หา reader ค้าง:</strong> <code>grep -rn "abbrev_tax_invoice" src/ electron/</code> — หลังแก้ ต้องเหลือเฉพาะ: DEFAULTS (ReceiptSettingsTab), type (types/index.ts:168), schema (schema.ts:566) และ build artifact <code>electron/db/schema.js</code> (คาดไว้ — inlined SQL, ไม่มีผล). ห้ามเหลือ reader ที่อ่าน "ค่า" มาตัดสินใจ. buildSlipHtml.ts comment 6-12 ยังถูกต้อง ไม่ต้องแก้</div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> PASS</li>
+      <li>POS: บิล VAT (ติ๊ก checkbox) → "ใบกำกับภาษีอย่างย่อ" + บรรทัด "ราคารวมภาษีมูลค่าเพิ่มไว้แล้ว"; untick VAT → "ใบเสร็จรับเงิน"</li>
+      <li>Manage reprint: บิล VAT → ใบกำกับภาษีอย่างย่อ; voided → (ยกเลิก); return → ใบรับคืนสินค้า</li>
+      <li>SaleDetailDialog reprint: เหมือน Manage</li>
+      <li>Settings preview: ร้าน VAT → ใบกำกับภาษีอย่างย่อ + บรรทัด VAT; ร้าน NOVAT → ใบเสร็จรับเงิน + ไม่มีบรรทัด VAT; Toggle หายไป</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li><strong>R1 POS return path</strong> → RESOLVED: POS ไม่พิมพ์ return; branch void/return inert บน snapshot — ไม่ต้องทำอะไร</li>
+      <li><strong>R2 ลบ getReceiptSettings/rs</strong> → ปลอดภัย: printSlip โหลด settings เองภายใน; rs ใช้แค่ abbrev</li>
+      <li><strong>R3 vatEnabled หลังลบ Toggle</strong> → คง useShopVat import (ใช้ใน previewSale)</li>
+      <li><strong>cosmetic:</strong> NOVAT previewSale คง total_amount=134 (subtotal 144 − disc 10) ไม่มีบรรทัด VAT — sample ที่ consistent ไม่ใช่บั๊ก</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-12</footer>
+
+</div>
+</body>
+</html>

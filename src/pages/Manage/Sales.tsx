@@ -17,7 +17,7 @@ import { TintIcon } from '@/components/ui/tint-icon'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
 import { TaxInvoiceBuyerDialog } from '@/components/dialogs/TaxInvoiceBuyerDialog'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
-import { printSlip } from '@/lib/receipt/print'
+import { printSlip, resolveSlipMode } from '@/lib/receipt/print'
 import { saleDetailToPrint } from '@/lib/receipt/normalizeSale'
 import type { Sale, SaleForPrint } from '@/types'
 import type { ManageOutletContext } from './index'
@@ -137,19 +137,14 @@ export default function ManageSalesPage() {
   const [taxTarget, setTaxTarget] = useState<{ saleId: number; sale: SaleForPrint; prefillName?: string } | null>(null)
 
   // Reprint a slip from history. Voided bills print stamped VOID; returns print
-  // as a refund document; VAT bills reprint as an abbreviated tax invoice when
-  // that option is on. Cancelled line items are filtered out by the normalizer.
+  // as a refund document; VAT bills (total_vat > 0) reprint as an abbreviated
+  // tax invoice. Cancelled line items are filtered out by the normalizer.
   const reprintReceipt = async (s: SaleRow) => {
     try {
       const detail = await window.api.reports.getSaleByInvoice(s.invoice_no)
       if (!detail) { toast({ title: 'ไม่พบข้อมูลบิล', variant: 'error' }); return }
       const sale = saleDetailToPrint(detail)
-      const rs = await window.api.settings.getReceiptSettings()
-      const abbrev = (rs as any)?.abbrev_tax_invoice === 1
-      const mode = s.status === 'voided' ? 'void'
-        : s.sale_type === 'return' ? 'return'
-        : (abbrev && sale.total_vat > 0) ? 'abbrevTax'
-        : 'receipt'
+      const mode = resolveSlipMode(sale)
       const res = await printSlip(sale, mode)
       if (!res.success) toast({ title: 'พิมพ์ใบเสร็จไม่สำเร็จ', description: res.error, variant: 'error' })
     } catch (e: any) {
