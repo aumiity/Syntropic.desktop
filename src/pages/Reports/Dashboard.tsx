@@ -248,7 +248,7 @@ export default function DashboardPage() {
   useEffect(() => {
     setToolbar(
       <>
-        <MultiDatePicker mode={mode} from={dateFrom} to={dateTo} onChange={handlePeriodChange} align="end" allowedModes={allowedModesFor(isAdmin)} />
+        <MultiDatePicker mode={mode} from={dateFrom} to={dateTo} onChange={handlePeriodChange} align="end" allowedModes={allowedModesFor(isAdmin)} size="lg" />
         <Button variant="elevated" size="lg" className="h-10 px-3" onClick={() => load()} disabled={loading} title="โหลดข้อมูลใหม่">
           <RefreshCw className={loading ? 'animate-spin' : undefined} /> รีเฟรช
         </Button>

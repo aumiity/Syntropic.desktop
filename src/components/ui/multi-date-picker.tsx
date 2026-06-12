@@ -92,6 +92,8 @@ export interface MultiDatePickerProps {
   /** Modes shown in the in-picker tab strip. Default: all four. */
   allowedModes?: MultiDateMode[]
   align?: 'start' | 'center' | 'end'
+  /** Control height. 'default' = h-9 (table-bar control); 'lg' = h-10 (sits in a TabStrip row). */
+  size?: 'default' | 'lg'
   className?: string
   placeholder?: string
 }
@@ -105,11 +107,15 @@ export function MultiDatePicker({
   onChange,
   allowedModes = ['day', 'month', 'year', 'custom'],
   align = 'start',
+  size = 'default',
   className,
   placeholder,
 }: MultiDatePickerProps) {
   const [open, setOpen] = React.useState(false)
   const pillId = React.useId()
+  // Height + matching chevron-button square size for the two stepper buttons.
+  const frameH = size === 'lg' ? 'h-10' : 'h-9'
+  const chevronSquare = size === 'lg' ? 'size-10' : 'size-9'
 
   const handleStep = (dir: -1 | 1) => {
     // Fall back to today when from/to are empty (e.g. an unfiltered history
@@ -161,12 +167,12 @@ export function MultiDatePicker({
   const hasValue = Boolean(from && to)
 
   return (
-    <div className={cn('inline-flex items-center bg-card border border-border shadow-sm rounded-lg h-9 overflow-hidden', className)}>
+    <div className={cn('inline-flex items-center bg-card border border-border shadow-sm rounded-lg overflow-hidden', frameH, className)}>
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="size-9 rounded-none shrink-0 text-muted-foreground hover:bg-primary-soft hover:text-primary border-r border-border"
+        className={cn(chevronSquare, 'rounded-none shrink-0 text-muted-foreground hover:bg-primary-soft hover:text-primary border-r border-border')}
         onClick={() => handleStep(-1)}
         title="ก่อนหน้า"
       >
@@ -179,7 +185,8 @@ export function MultiDatePicker({
           type="button"
           variant="ghost"
           className={cn(
-            'h-9 px-3 rounded-none min-w-[220px] justify-center font-normal text-sm',
+            frameH,
+            'px-3 rounded-none min-w-[220px] justify-center font-normal text-sm',
             'hover:bg-primary-soft hover:text-primary',
             hasValue ? 'text-foreground' : 'text-foreground-subtle',
           )}
@@ -246,7 +253,7 @@ export function MultiDatePicker({
         type="button"
         variant="ghost"
         size="icon"
-        className="size-9 rounded-none shrink-0 text-muted-foreground hover:bg-primary-soft hover:text-primary border-l border-border"
+        className={cn(chevronSquare, 'rounded-none shrink-0 text-muted-foreground hover:bg-primary-soft hover:text-primary border-l border-border')}
         onClick={() => handleStep(1)}
         title="ถัดไป"
       >
