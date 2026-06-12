@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { orderByBucket } from '../db/sortName'
 import { requireAdmin, getSessionRole, type Override } from '../auth/session'
+import { walkInCustomerId } from './codes'
 
 export function registerReportHandlers() {
   ipcMain.handle('reports:salesList', (_e, filters: {
@@ -49,7 +50,8 @@ export function registerReportHandlers() {
     const limitParams = limit ? [limit, offset] : []
     const rows = db.prepare(`
       SELECT s.*, c.full_name as customer_name,
-        (SELECT COUNT(DISTINCT si.product_id) FROM sale_items si WHERE si.sale_id = s.id AND si.is_cancelled = 0) as item_kinds
+        (SELECT COUNT(DISTINCT si.product_id) FROM sale_items si WHERE si.sale_id = s.id AND si.is_cancelled = 0) as item_kinds,
+        EXISTS(SELECT 1 FROM tax_invoices ti WHERE ti.sale_id = s.id AND ti.original_printed = 1) AS tax_locked
       FROM sales s
       LEFT JOIN customers c ON c.id = s.customer_id
       ${where}
@@ -87,7 +89,10 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:getSaleByInvoice', (_e, invoiceNo: string) => {
     const db = getDb()
     const sale = db.prepare(`
-      SELECT s.*, c.full_name as customer_name, u.name as sold_by_name
+      SELECT s.*, c.full_name as customer_name,
+             c.id_card as customer_id_card, c.address as customer_address,
+             c.branch as customer_branch, u.name as sold_by_name,
+             (SELECT ti.original_printed FROM tax_invoices ti WHERE ti.sale_id = s.id) AS tax_original_printed
       FROM sales s
       LEFT JOIN customers c ON c.id = s.customer_id
       LEFT JOIN users u ON u.id = s.sold_by
@@ -162,6 +167,12 @@ export function registerReportHandlers() {
       // also log a confusing 'sale_void' movement with a negative qty.
       if (sale.sale_type === 'return') throw new Error('ไม่สามารถยกเลิกบิลรับคืนสินค้าได้ — ถ้าต้องการคืนสต็อก ให้ขายออกใหม่')
 
+      // A printed-original tax invoice locks the bill (กันแก้เอกสารภาษีย้อนหลัง).
+      // throw inside the transaction rolls back cleanly — it's before the
+      // stock-restore loop, so no mutation has happened yet.
+      const tx = db.prepare(`SELECT original_printed FROM tax_invoices WHERE sale_id = ?`).get(id) as any
+      if (tx?.original_printed === 1) throw new Error('บิลนี้ออกใบกำกับภาษีตัวจริงแล้ว ไม่สามารถยกเลิกได้')
+
       // Restore stock for each lot. SELECT sil.* only — sale_item_lots and
       // sale_items BOTH have a product_id column, so `SELECT sil.*, si.product_id`
       // collides at the better-sqlite3 row mapper (last column wins → row.product_id
@@ -206,6 +217,26 @@ export function registerReportHandlers() {
       return true
     })
     return voidSale()
+  })
+
+  // Reassign the customer of an existing sale (= change the buyer on the tax
+  // invoice). Admin-only (staff → manager-override). Allow-listed: writes only
+  // customer_id and clears customer_name_free — never spreads a form. Rejects
+  // locked (printed-original) / voided / return bills and the walk-in customer.
+  ipcMain.handle('reports:updateSaleCustomer', (_e, p: { sale_id: number; customer_id: number }, override?: Override) => {
+    requireAdmin(_e, override)
+    const db = getDb()
+    const sale = db.prepare(`SELECT id, status, sale_type FROM sales WHERE id = ?`).get(p?.sale_id) as any
+    if (!sale) throw new Error('ไม่พบรายการขาย')
+    if (sale.status === 'voided') throw new Error('บิลถูกยกเลิก แก้ไขลูกค้าไม่ได้')
+    if (sale.sale_type === 'return') throw new Error('บิลรับคืนสินค้า แก้ไขลูกค้าไม่ได้')
+    const tx = db.prepare(`SELECT original_printed FROM tax_invoices WHERE sale_id = ?`).get(p.sale_id) as any
+    if (tx?.original_printed === 1) throw new Error('บิลนี้ออกใบกำกับภาษีตัวจริงแล้ว แก้ไขลูกค้าไม่ได้')
+    if (!p?.customer_id || p.customer_id === walkInCustomerId(db))
+      throw new Error('กรุณาเลือกลูกค้า (ลูกค้าทั่วไปออกใบกำกับเต็มรูปไม่ได้)')
+    db.prepare(`UPDATE sales SET customer_id = @cid, customer_name_free = NULL, updated_at = datetime('now','localtime') WHERE id = @id`)
+      .run({ cid: p.customer_id, id: p.sale_id })
+    return true
   })
 
   // System C — Expiry report data.
@@ -444,8 +475,15 @@ export function registerReportHandlers() {
       FROM sales s WHERE ${sCond.join(' AND ')}
     `).get(...sParams) as any
     const salesRows = db.prepare(`
-      SELECT s.invoice_no, s.sold_at, s.sale_type, s.total_amount, s.total_vat
-      FROM sales s WHERE ${sCond.join(' AND ')} AND s.total_vat > 0
+      SELECT s.id AS sale_id, s.invoice_no, s.sold_at, s.sale_type,
+             s.total_amount, s.total_vat, s.customer_id, s.customer_name_free,
+             c.full_name AS customer_name, c.address AS customer_address,
+             c.id_card AS customer_tax_id, c.branch AS customer_branch,
+             CASE WHEN ti.sale_id IS NOT NULL THEN 1 ELSE 0 END AS tax_invoice_issued
+      FROM sales s
+      LEFT JOIN customers c ON c.id = s.customer_id
+      LEFT JOIN tax_invoices ti ON ti.sale_id = s.id
+      WHERE ${sCond.join(' AND ')} AND s.total_vat > 0
       ORDER BY s.sold_at
     `).all(...sParams)
 

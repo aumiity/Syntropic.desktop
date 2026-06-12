@@ -129,6 +129,13 @@ declare const api: {
             userId: number;
             password: string;
         }) => Promise<any>;
+        updateSaleCustomer: (p: {
+            sale_id: number;
+            customer_id: number;
+        }, override?: {
+            userId: number;
+            password: string;
+        }) => Promise<any>;
         expiringLots: (filters: any) => Promise<any>;
         financeSummary: (filters: any) => Promise<any>;
         salesPurchaseTrend: (filters: any) => Promise<any>;
@@ -258,6 +265,7 @@ declare const api: {
             buyer_branch?: string;
             issued_by?: number | null;
         }) => Promise<any>;
+        confirmOriginalPrinted: (saleId: number) => Promise<any>;
     };
     window: {
         minimize: () => Promise<any>;

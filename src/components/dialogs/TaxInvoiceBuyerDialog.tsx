@@ -2,33 +2,39 @@ import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { FormField } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { printTaxInvoice, previewTaxInvoice } from '@/lib/receipt/print'
 import type { SaleForPrint, Setting, TaxInvoice } from '@/types'
-import { FileText, Printer } from 'lucide-react'
+import { FileText, Printer, AlertTriangle } from 'lucide-react'
 
-// Captures/edits the buyer details required for a full tax invoice (ม.86/4),
-// then issues + prints it. Prefills from a prior issuance if one exists,
-// otherwise from the linked customer. The first issue prints "ต้นฉบับ"; later
-// issues print "สำเนา".
+// Read-only tax-invoice issuer (ม.86/4). The buyer comes ONLY from the sale's
+// linked customer (or the legal snapshot if one was already issued) — there is
+// no picker and no free-text editing here. To change the buyer, reassign the
+// bill's customer in SaleDetailDialog. The first successful print of the
+// "ต้นฉบับ" locks the bill via tax:confirmOriginalPrinted (deferred lock —
+// never at issue/preview time, so a cancelled print leaves the bill unlocked).
 export function TaxInvoiceBuyerDialog({
-  open, onOpenChange, saleId, sale, customerPrefill,
+  open, onOpenChange, saleId, sale, buyer, onIssued,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   saleId: number | null
   sale: SaleForPrint | null
-  customerPrefill?: { name?: string; address?: string; taxId?: string }
+  /** Buyer pulled from the bill's linked customer — read-only. */
+  buyer?: { name?: string; address?: string; taxId?: string; branch?: string }
+  /** Fired after a successful issue/print so callers can refresh their list. */
+  onIssued?: () => void
 }) {
   const { toast } = useToast()
   const [shop, setShop] = useState<Partial<Setting>>({})
+  // Resolved buyer = snapshot (if a tax invoice exists) ELSE the bill's customer.
+  // handlePreview/handlePrint/validate all read from this set only.
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [taxId, setTaxId] = useState('')
-  const [branch, setBranch] = useState('สำนักงานใหญ่')
+  const [branch, setBranch] = useState('')
   const [alreadyOriginal, setAlreadyOriginal] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -37,20 +43,25 @@ export function TaxInvoiceBuyerDialog({
     window.api.settings.getShop().then(d => setShop((d as Setting) ?? {}))
     window.api.tax.get(saleId).then((rec: TaxInvoice | null) => {
       if (rec) {
+        // A prior issuance is the legal snapshot — its buyer values win.
         setName(rec.buyer_name)
         setAddress(rec.buyer_address)
         setTaxId(rec.buyer_tax_id)
         setBranch(rec.buyer_branch || 'สำนักงานใหญ่')
         setAlreadyOriginal(rec.original_printed === 1)
       } else {
-        setName(customerPrefill?.name ?? '')
-        setAddress(customerPrefill?.address ?? '')
-        setTaxId(customerPrefill?.taxId ?? '')
-        setBranch('สำนักงานใหญ่')
+        setName(buyer?.name ?? '')
+        setAddress(buyer?.address ?? '')
+        setTaxId(buyer?.taxId ?? '')
+        setBranch(buyer?.branch || 'สำนักงานใหญ่')
         setAlreadyOriginal(false)
       }
     })
-  }, [open, saleId, customerPrefill])
+  }, [open, saleId, buyer])
+
+  // Block when the bill has no customer / incomplete info — a full tax invoice
+  // needs at least a name + address.
+  const incomplete = !name.trim() || !address.trim()
 
   const validate = (): boolean => {
     if (!name.trim()) { toast({ title: 'กรุณาระบุชื่อผู้ซื้อ', variant: 'error' }); return false }
@@ -92,7 +103,12 @@ export function TaxInvoiceBuyerDialog({
       }) as { record: TaxInvoice; copy: boolean }
       const res = await printTaxInvoice(sale, shop, record, copy, '')
       if (res.success) {
+        // Deferred lock — only an ORIGINAL print (!copy) and ONLY after the
+        // print succeeded. A failed/cancelled print never reaches here, so the
+        // bill stays editable (P0).
+        if (!copy) await window.api.tax.confirmOriginalPrinted(saleId)
         toast({ title: copy ? 'พิมพ์ใบกำกับภาษี (สำเนา) แล้ว' : 'พิมพ์ใบกำกับภาษี (ต้นฉบับ) แล้ว', variant: 'success' })
+        onIssued?.()
         onOpenChange(false)
       } else {
         toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'error' })
@@ -107,32 +123,40 @@ export function TaxInvoiceBuyerDialog({
       <DialogContent size="md" divided onClose={() => onOpenChange(false)}>
         <DialogHeader>
           <DialogTitle>ออกใบกำกับภาษีเต็มรูป</DialogTitle>
-          {alreadyOriginal && (
-            <div className="text-sm text-muted-foreground">ออกต้นฉบับไปแล้ว — การพิมพ์ครั้งนี้จะเป็น "สำเนา"</div>
-          )}
+          <div className="text-sm text-muted-foreground">
+            {alreadyOriginal
+              ? 'ออกต้นฉบับไปแล้ว — การพิมพ์ครั้งนี้จะเป็น "สำเนา"'
+              : 'ผู้ซื้อดึงจากลูกค้าของบิล — แก้ไขที่นี่ไม่ได้'}
+          </div>
         </DialogHeader>
         <DialogBody className="space-y-3">
+          {incomplete && (
+            <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning-soft px-3 py-2.5 text-sm text-warning-strong">
+              <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+              <span>บิลนี้ยังไม่มีลูกค้า หรือข้อมูลลูกค้าไม่ครบ (ขาดชื่อ/ที่อยู่) — กรุณากด "แก้ไขรายชื่อลูกค้า" ของบิลก่อนออกใบกำกับ</span>
+            </div>
+          )}
           <FormField label="ชื่อผู้ซื้อ">
-            <Input variant="elevated" value={name} onChange={e => setName(e.target.value)} placeholder="ชื่อบุคคล / นิติบุคคล" />
+            <Input value={name || '— ไม่มีลูกค้า —'} readOnly disabled />
           </FormField>
           <FormField label="ที่อยู่">
-            <Textarea variant="elevated" rows={3} className="resize-none" value={address} onChange={e => setAddress(e.target.value)} />
+            <Input value={address || '—'} readOnly disabled />
           </FormField>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="เลขประจำตัวผู้เสียภาษี (13 หลัก)">
-              <Input variant="elevated" inputMode="numeric" maxLength={13} value={taxId} onChange={e => setTaxId(e.target.value.replace(/\D/g, ''))} />
+            <FormField label="เลขประจำตัวผู้เสียภาษี">
+              <Input value={taxId || '—'} readOnly disabled />
             </FormField>
             <FormField label="สาขา">
-              <Input variant="elevated" value={branch} onChange={e => setBranch(e.target.value)} placeholder="สำนักงานใหญ่" />
+              <Input value={branch || '—'} readOnly disabled />
             </FormField>
           </div>
         </DialogBody>
         <DialogFooter>
-          <Button variant="elevated" onClick={handlePreview} disabled={busy}>
+          <Button variant="elevated" onClick={handlePreview} disabled={busy || incomplete}>
             <FileText className="size-4" /> ดูตัวอย่าง PDF
           </Button>
-          <Button variant="default" onClick={handlePrint} disabled={busy}>
-            <Printer className="size-4" /> {busy ? 'กำลังพิมพ์...' : 'พิมพ์ใบกำกับภาษี'}
+          <Button variant="default" onClick={handlePrint} disabled={busy || incomplete}>
+            <Printer className="size-4" /> {busy ? 'กำลังพิมพ์...' : (alreadyOriginal ? 'พิมพ์สำเนาใบกำกับ' : 'พิมพ์ใบกำกับภาษี')}
           </Button>
         </DialogFooter>
       </DialogContent>

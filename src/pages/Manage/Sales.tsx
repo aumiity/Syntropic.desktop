@@ -15,18 +15,16 @@ import { VoidBillDialog } from '@/components/dialogs/VoidBillDialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
-import { TaxInvoiceBuyerDialog } from '@/components/dialogs/TaxInvoiceBuyerDialog'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { printSlip, resolveSlipMode } from '@/lib/receipt/print'
 import { saleDetailToPrint } from '@/lib/receipt/normalizeSale'
-import type { Sale, SaleForPrint } from '@/types'
+import type { Sale } from '@/types'
 import type { ManageOutletContext } from './index'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
-import { useShopVat } from '@/hooks/useShopVat'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye, Printer, FileText } from 'lucide-react'
+import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye, Printer } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Money lives in the table rows; the summary slot now carries only the count
@@ -43,6 +41,7 @@ interface SaleSummary {
 interface SaleRow extends Sale {
   customer_name?: string
   item_kinds?: number
+  tax_locked?: number
 }
 
 const EMPTY_SUMMARY: SaleSummary = {
@@ -131,10 +130,6 @@ export default function ManageSalesPage() {
 
   const [voidTarget, setVoidTarget] = useState<{ id: number; invoice_no: string } | null>(null)
   const overrideVoid = useManagerOverride()
-  const { vatEnabled } = useShopVat()
-
-  // Full tax-invoice issuance dialog (ใบกำกับภาษีเต็มรูป).
-  const [taxTarget, setTaxTarget] = useState<{ saleId: number; sale: SaleForPrint; prefillName?: string } | null>(null)
 
   // Reprint a slip from history. Voided bills print stamped VOID; returns print
   // as a refund document; VAT bills (total_vat > 0) reprint as an abbreviated
@@ -149,16 +144,6 @@ export default function ManageSalesPage() {
       if (!res.success) toast({ title: 'พิมพ์ใบเสร็จไม่สำเร็จ', description: res.error, variant: 'error' })
     } catch (e: any) {
       toast({ title: 'พิมพ์ใบเสร็จไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-    }
-  }
-
-  const openTaxInvoice = async (s: SaleRow) => {
-    try {
-      const detail = await window.api.reports.getSaleByInvoice(s.invoice_no)
-      if (!detail) { toast({ title: 'ไม่พบข้อมูลบิล', variant: 'error' }); return }
-      setTaxTarget({ saleId: s.id, sale: saleDetailToPrint(detail), prefillName: detail.customer_name ?? undefined })
-    } catch (e: any) {
-      toast({ title: 'เปิดใบกำกับภาษีไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     }
   }
 
@@ -442,19 +427,20 @@ export default function ManageSalesPage() {
                             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                             <Printer className="size-4" /> พิมพ์ใบเสร็จ
                           </button>
-                          {/* Tax invoice is a VAT-shop document — hidden for NO-VAT
-                              shops AND for bills sold without VAT (per-bill checkbox) */}
-                          {vatEnabled && s.total_vat > 0 && !isVoided && s.sale_type !== 'return' && (
-                            <button type="button" onClick={() => openTaxInvoice(s)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                              <FileText className="size-4" /> ใบกำกับภาษี
-                            </button>
-                          )}
                           {!isVoided && s.sale_type !== 'return' && (
-                            <button type="button" onClick={() => setVoidTarget({ id: s.id, invoice_no: s.invoice_no })}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
-                              <Ban className="size-4" /> ยกเลิกบิล
-                            </button>
+                            s.tax_locked
+                              // Locked → keep the item visible but muted; clicking
+                              // explains why (no disabled+title — pointer-events-none
+                              // kills hover, so the reason would never show).
+                              ? <button type="button"
+                                  onClick={() => toast({ title: 'ยกเลิกไม่ได้', description: 'บิลนี้ออกใบกำกับภาษีตัวจริงแล้ว', variant: 'error' })}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted transition-colors">
+                                  <Ban className="size-4" /> ยกเลิกบิล (ออกใบกำกับแล้ว — ยกเลิกไม่ได้)
+                                </button>
+                              : <button type="button" onClick={() => setVoidTarget({ id: s.id, invoice_no: s.invoice_no })}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                                  <Ban className="size-4" /> ยกเลิกบิล
+                                </button>
                           )}
                         </PopoverContent>
                       </Popover>
@@ -504,6 +490,7 @@ export default function ManageSalesPage() {
           setVoidTarget({ id: sale.id, invoice_no: sale.invoice_no })
           setDetailOpen(false)
         }}
+        onChanged={() => load(page)}
       />
 
       <VoidBillDialog
@@ -512,14 +499,6 @@ export default function ManageSalesPage() {
         onConfirm={handleVoid}
       />
       {overrideVoid.dialog}
-
-      <TaxInvoiceBuyerDialog
-        open={taxTarget !== null}
-        onOpenChange={(o) => { if (!o) setTaxTarget(null) }}
-        saleId={taxTarget?.saleId ?? null}
-        sale={taxTarget?.sale ?? null}
-        customerPrefill={taxTarget?.prefillName ? { name: taxTarget.prefillName } : undefined}
-      />
     </>
   )
 }

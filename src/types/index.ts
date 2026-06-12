@@ -95,6 +95,7 @@ export interface LabelPreset {
 export interface Customer {
   id: number; code: string; full_name: string
   id_card?: string; dob?: string; phone?: string; address?: string
+  branch?: string
   chronic_diseases?: string
   is_alert: number; alert_note?: string
   is_disabled: number

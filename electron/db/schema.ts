@@ -210,6 +210,7 @@ export function initializeSchema(db: Database.Database) {
       dob TEXT,
       phone TEXT,
       address TEXT,
+      branch TEXT,
       chronic_diseases TEXT,
       is_alert INTEGER NOT NULL DEFAULT 0,
       alert_note TEXT,
@@ -1211,6 +1212,12 @@ export function initializeSchema(db: Database.Database) {
   for (const sql of [
     `ALTER TABLE customers ADD COLUMN is_disabled INTEGER NOT NULL DEFAULT 0`,
     `UPDATE customers SET is_disabled = 1 WHERE is_hidden = 1 AND is_disabled = 0`,
+    // Tax-invoice branch (สาขา) — paired with id_card (which doubles as the
+    // buyer's เลขประจำตัวผู้เสียภาษี, same 13 digits). The tax-invoice dialog reads
+    // these read-only from the sale's linked customer (Tax Invoice Flow Rework).
+    // No separate tax_id column: a pharmacy stores every member as a person, so
+    // id_card IS the tax id.
+    `ALTER TABLE customers ADD COLUMN branch TEXT`,
   ]) {
     try { db.exec(sql) } catch {}
   }

@@ -1,16 +1,17 @@
 import { Fragment, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
-import { Ban, ChevronRight, Boxes, Printer, FileText } from 'lucide-react'
+import { Ban, ChevronRight, Boxes, Printer, FileText, UserPen } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { printSlip, resolveSlipMode } from '@/lib/receipt/print'
 import { saleDetailToPrint } from '@/lib/receipt/normalizeSale'
 import { TaxInvoiceBuyerDialog } from '@/components/dialogs/TaxInvoiceBuyerDialog'
+import { CustomerSearchDialog } from '@/components/dialogs/CustomerSearchDialog'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { useShopVat } from '@/hooks/useShopVat'
 import type { Sale, SaleItem } from '@/types'
 
@@ -37,6 +38,10 @@ interface BundleSaleItem extends SaleItem {
 
 export interface SaleDetail extends Sale {
   customer_name?: string
+  customer_id_card?: string
+  customer_address?: string
+  customer_branch?: string
+  tax_original_printed?: number | null
   sold_by_name?: string
   items: BundleSaleItem[]
 }
@@ -57,19 +62,23 @@ function profitColor(profit: number) {
 // trigger a void from inside the modal; omit it to disable the button (e.g.,
 // when the host page has no void flow).
 export function SaleDetailDialog({
-  open, onOpenChange, invoiceNo, onVoidRequest,
+  open, onOpenChange, invoiceNo, onVoidRequest, onChanged,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   invoiceNo: string | null
   onVoidRequest?: (sale: SaleDetail) => void
+  /** Fired after the bill's customer is reassigned or a tax invoice is issued. */
+  onChanged?: () => void
 }) {
   const { toast } = useToast()
   const { vatEnabled } = useShopVat()
+  const ov = useManagerOverride()
   const [detail, setDetail] = useState<SaleDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [taxOpen, setTaxOpen] = useState(false)
+  const [reassignOpen, setReassignOpen] = useState(false)
 
   const reprintReceipt = async (d: SaleDetail) => {
     const sale = saleDetailToPrint(d)
@@ -101,6 +110,11 @@ export function SaleDetailDialog({
     })
   }
 
+  // A printed-original tax invoice locks the bill: no void, no customer change.
+  const locked = detail?.tax_original_printed === 1
+  const taxEligible = !!detail && vatEnabled && detail.total_vat > 0
+    && detail.status !== 'voided' && detail.sale_type !== 'return'
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="4xl" divided>
@@ -117,26 +131,6 @@ export function SaleDetailDialog({
                 {detail.status === 'voided'
                   ? <Badge variant="destructive-outline">ยกเลิกแล้ว</Badge>
                   : <Badge variant="success-outline">สำเร็จ</Badge>}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="elevated" size="icon-sm" className="h-8 w-8 ml-auto" title="พิมพ์">
-                      <Printer />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" sideOffset={4} className="w-52 p-1 gap-0">
-                    <button type="button" onClick={() => reprintReceipt(detail)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                      <Printer className="size-4" /> พิมพ์ใบเสร็จ
-                    </button>
-                    {/* Tax invoice is a VAT-shop document — hidden for NO-VAT
-                        shops AND for bills sold without VAT (per-bill checkbox;
-                        a full tax invoice on a 0-VAT bill is meaningless) */}
-                    {vatEnabled && detail.total_vat > 0 && detail.status !== 'voided' && detail.sale_type !== 'return' && (
-                      <button type="button" onClick={() => setTaxOpen(true)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
-                        <FileText className="size-4" /> พิมพ์ใบกำกับภาษี
-                      </button>
-                    )}
-                  </PopoverContent>
-                </Popover>
               </DialogTitle>
             </DialogHeader>
             <DialogBody className="space-y-4">
@@ -331,6 +325,34 @@ export function SaleDetailDialog({
                   </tfoot>
                 </Table>
               </div>
+
+              {/* VAT breakdown — only for bills that carried VAT (total_vat>0). */}
+              {detail.total_vat > 0 && (
+                <div className="ml-auto w-full max-w-xs rounded-lg border border-border bg-card shadow-sm p-3 text-sm space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">มูลค่าสินค้า</span>
+                    <span className="font-medium">{formatCurrency(detail.subtotal)}</span>
+                  </div>
+                  {detail.total_discount > 0 && (
+                    <div className="flex justify-between text-accent-soft-foreground">
+                      <span>ส่วนลด</span>
+                      <span className="font-medium">-{formatCurrency(detail.total_discount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">มูลค่าก่อนภาษี</span>
+                    <span className="font-medium">{formatCurrency(detail.total_amount - detail.total_vat)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ภาษีมูลค่าเพิ่ม</span>
+                    <span className="font-medium">{formatCurrency(detail.total_vat)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border pt-1.5">
+                    <span className="font-semibold">รวมสุทธิ</span>
+                    <span className="font-bold text-primary">{formatCurrency(detail.total_amount)}</span>
+                  </div>
+                </div>
+              )}
             </DialogBody>
             <DialogFooter className="sm:items-center">
               {detail.sale_type === 'return' && detail.note && (
@@ -339,12 +361,32 @@ export function SaleDetailDialog({
                   <span className="text-foreground">{detail.note}</span>
                 </div>
               )}
-              {onVoidRequest && detail.status !== 'voided' && detail.sale_type !== 'return' && (
-                <Button size="xl" variant="destructive" className="mr-auto" onClick={() => onVoidRequest(detail)}>
-                  <Ban className="size-4 mr-1.5" /> ยกเลิกบิล
+              {taxEligible && !locked && (
+                <Button size="xl" variant="elevated" className="mr-auto" onClick={() => setReassignOpen(true)}>
+                  <UserPen className="size-4 mr-1.5" /> แก้ไขรายชื่อลูกค้า
                 </Button>
               )}
-              <Button size="xl" variant="default" onClick={() => onOpenChange(false)}>ปิด</Button>
+              {onVoidRequest && detail.status !== 'voided' && detail.sale_type !== 'return' && (
+                <div className={`flex items-center gap-2 ${taxEligible && !locked ? '' : 'mr-auto'}`}>
+                  <Button size="xl" variant="destructive" disabled={locked} onClick={() => onVoidRequest(detail)}>
+                    <Ban className="size-4 mr-1.5" /> ยกเลิกบิล
+                  </Button>
+                  {locked && (
+                    <span className="text-xs text-muted-foreground max-w-[200px]">
+                      ออกใบกำกับตัวจริงแล้ว — ยกเลิก/แก้ลูกค้าไม่ได้
+                    </span>
+                  )}
+                </div>
+              )}
+              <Button size="xl" variant="elevated" onClick={() => reprintReceipt(detail)}>
+                <Printer className="size-4 mr-1.5" /> พิมพ์ใบเสร็จ
+              </Button>
+              {taxEligible && (
+                <Button size="xl" variant="default" onClick={() => setTaxOpen(true)}>
+                  <FileText className="size-4 mr-1.5" /> {locked ? 'พิมพ์สำเนาใบกำกับ' : 'ออกใบกำกับภาษี'}
+                </Button>
+              )}
+              <Button size="xl" variant="elevated" onClick={() => onOpenChange(false)}>ปิด</Button>
             </DialogFooter>
           </>
         )}
@@ -355,9 +397,38 @@ export function SaleDetailDialog({
           onOpenChange={setTaxOpen}
           saleId={detail.id}
           sale={saleDetailToPrint(detail)}
-          customerPrefill={detail.customer_name ? { name: detail.customer_name } : undefined}
+          buyer={{
+            name: detail.customer_name ?? '',
+            address: detail.customer_address ?? '',
+            taxId: detail.customer_id_card ?? '',
+            branch: detail.customer_branch ?? '',
+          }}
+          onIssued={() => { fetchDetail(detail.invoice_no); onChanged?.() }}
         />
       )}
+      {detail && (
+        <CustomerSearchDialog
+          open={reassignOpen}
+          onOpenChange={setReassignOpen}
+          showWalkIn={false}
+          onSelect={c => {
+            if (!c) return
+            ov.run(
+              async (o) => { await window.api.reports.updateSaleCustomer({ sale_id: detail.id, customer_id: c.id }, o) },
+              {
+                title: 'แก้ไขลูกค้าของบิล',
+                onDone: () => {
+                  toast({ title: 'แก้ไขลูกค้าของบิลแล้ว', variant: 'success' })
+                  fetchDetail(detail.invoice_no)
+                  onChanged?.()
+                },
+                onError: (e: any) => toast({ title: 'แก้ไขลูกค้าไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }),
+              },
+            )
+          }}
+        />
+      )}
+      {ov.dialog}
     </Dialog>
   )
 }

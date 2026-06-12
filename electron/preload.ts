@@ -82,6 +82,7 @@ const api = {
     getSale: (id: number) => ipcRenderer.invoke('reports:getSale', id),
     getSaleByInvoice: (invoiceNo: string) => ipcRenderer.invoke('reports:getSaleByInvoice', invoiceNo),
     voidSale: (id: number, reason: string, override?: { userId: number; password: string }) => ipcRenderer.invoke('reports:voidSale', id, reason, override),
+    updateSaleCustomer: (p: { sale_id: number; customer_id: number }, override?: { userId: number; password: string }) => ipcRenderer.invoke('reports:updateSaleCustomer', p, override),
     expiringLots: (filters: any) => ipcRenderer.invoke('reports:expiringLots', filters),
     financeSummary: (filters: any) => ipcRenderer.invoke('reports:financeSummary', filters),
     salesPurchaseTrend: (filters: any) => ipcRenderer.invoke('reports:salesPurchaseTrend', filters),
@@ -177,6 +178,7 @@ const api = {
       buyer_branch?: string
       issued_by?: number | null
     }) => ipcRenderer.invoke('tax:issueOrGet', payload),
+    confirmOriginalPrinted: (saleId: number) => ipcRenderer.invoke('tax:confirmOriginalPrinted', saleId),
   },
   // Window controls
   window: {

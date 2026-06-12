@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tax Invoice Flow Rework — แผนงาน</title>
+<title>Tax Invoice Flow Rework v2 — แผนงาน</title>
 <style>
   :root{
     --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
@@ -75,11 +75,13 @@
   svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
   svg.sd .box.warn{stroke:var(--amber)}
   svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd .box.hub{fill:var(--teal-soft);stroke:var(--teal);stroke-width:2}
   svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
   svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
     font-family:"SF Mono",Menlo,Consolas,monospace}
   svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
   svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd .edge.lock{stroke:var(--red);stroke-width:1.5;stroke-dasharray:4 3}
   svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
   .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
     font-size:13.5px;line-height:1.6}
@@ -94,16 +96,36 @@
     overflow-x:auto;font-size:12.5px;color:#cbd5e1;margin:8px 0}
   .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
   footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+  /* mockup */
+  .mock{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;
+    box-shadow:0 8px 24px -12px rgba(0,0,0,.25);max-width:430px}
+  .mock .mhead{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700;font-size:15px}
+  .mock .mhead .note{font-weight:400;font-size:12.5px;color:var(--muted);margin-top:3px}
+  .mock .mbody{padding:16px 18px;display:flex;flex-direction:column;gap:11px}
+  .mock .ro{display:flex;flex-direction:column;gap:3px}
+  .mock .ro .lab{font-size:12px;color:var(--muted);font-weight:600}
+  .mock .ro .val{font-size:13.5px;background:#f1f5f9;border:1px solid var(--line);
+    border-radius:8px;padding:7px 10px;color:var(--ink)}
+  .mock .ro .val.empty{color:var(--red);background:var(--red-soft);border-color:var(--red-soft)}
+  .mock .warnbox{background:var(--amber-soft);border:1px solid #fcd34d;border-radius:10px;
+    padding:11px 13px;font-size:13px;color:#b45309}
+  .mock .mfoot{padding:13px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:9px}
+  .mock .btn{border-radius:9px;padding:8px 15px;font-size:13px;font-weight:600;border:1px solid var(--line)}
+  .mock .btn.elev{background:#fff;color:var(--ink)}
+  .mock .btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .mock .btn.disabled{background:#f1f5f9;color:#94a3b8;border-color:var(--line)}
+  .mockrow{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin:14px 0}
+  .mockrow .cap{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:7px}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header class="hero">
-    <h1>คิด flow การพิมพ์ใบกำกับภาษีใหม่</h1>
-    <p>ออกใบกำกับภาษีเต็มรูปจากรายงานภาษีขาย · เลือกผู้ซื้อจากลูกค้าในระบบ · ไม่แปลง VAT ย้อนหลัง</p>
+    <h1>คิด flow การพิมพ์ใบกำกับภาษีใหม่ (v2)</h1>
+    <p>ผู้ซื้อบนใบกำกับ = ลูกค้าที่ผูกกับบิลเท่านั้น · เปลี่ยนผู้ซื้อด้วยการแก้ลูกค้าของบิล · พิมพ์ตัวจริงแล้วล็อกบิล</p>
     <div class="pillrow">
-      <span class="pill">ร่าง · ผ่าน audit 2 รอบ</span>
+      <span class="pill">v2 · รื้อจาก v1 (picker ใน modal)</span>
       <span class="pill">VAT / ใบกำกับภาษี</span>
       <span class="pill">2026-06-12</span>
     </div>
@@ -113,75 +135,76 @@
 
   <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
   <div class="card">
-    <p style="margin-top:0">ตอนนี้การออกใบกำกับภาษีเต็มรูปมีปัญหา 3 จุดที่ทำให้ใช้งานจริงลำบาก:</p>
+    <p style="margin-top:0"><b>ปัญหาของ v1 (ที่ต้องรื้อ):</b> กล่องพิมพ์ใบกำกับภาษีมี "ปุ่มเลือกลูกค้าจากระบบ" + ช่องพิมพ์ผู้ซื้ออิสระ — แปลว่า <b>บิลที่คิดเงินไปแล้วจะออกใบกำกับให้ใครก็ได้</b> ผู้ซื้อบนใบหลุดจากลูกค้าจริงของบิล เปิดช่องโหว่ทางบัญชี/ภาษี</p>
+    <p><b>หลักการใหม่ (v2):</b></p>
     <ul class="clean">
-      <li><b>หาบิล VAT ไม่เจอ</b> — ไม่มีตารางไหนแสดงสถานะ VAT ให้กรอง/ค้นหา เวลาลูกค้ามาขอใบย้อนหลังต้องไล่เปิดทีละบิล</li>
-      <li><b>ต้องพิมพ์ข้อมูลผู้ซื้อเองทุกครั้ง</b> — กล่องออกใบกำกับ prefill มาแค่ "ชื่อ" ไม่มีตัวเลือกดึงลูกค้าที่มีอยู่แล้วมาใช้ (ที่อยู่/เลขภาษี/สาขา ต้องพิมพ์ใหม่หมด)</li>
-      <li><b>ลูกค้ายังเก็บเลขผู้เสียภาษีไม่ได้</b> — ตาราง <code>customers</code> ไม่มีช่อง <code>tax_id</code>/<code>branch</code> เลย ต่อให้เลือกลูกค้าก็ไม่มีเลขภาษีให้ดึง</li>
+      <li><b>ผู้ซื้อบนใบกำกับ = ลูกค้าที่ผูกกับบิลนั้นเท่านั้น</b> (อ่านจาก <code>sales.customer_id</code> → customer record) — กล่องพิมพ์เป็น read-only ไม่มี picker ไม่มีช่องพิมพ์อิสระ</li>
+      <li><b>จะเปลี่ยนผู้ซื้อ ต้องแก้ "ลูกค้าของบิล"</b> (reassign <code>customer_id</code>) ผ่านปุ่ม "แก้ไขรายชื่อลูกค้า" ใน SaleDetailDialog (สิทธิ์ admin)</li>
+      <li><b>พิมพ์ใบกำกับ "ตัวจริง" แล้ว = ล็อกบิล</b> — แก้ลูกค้าไม่ได้, ยกเลิกบิลไม่ได้, พิมพ์ได้แค่ "สำเนา"</li>
+      <li>รวมทุก action ไว้ที่ <b>SaleDetailDialog</b> ที่เดียว — ตารางรายการขายเหลือแค่ ดูรายละเอียด/พิมพ์ใบเสร็จ/ยกเลิกบิล</li>
     </ul>
-    <p>แผนนี้แก้โดย: เพิ่ม <b>ปุ่มออกใบกำกับ/พิมพ์สำเนา ต่อแถว</b> ในตาราง "รายงานภาษีขาย" ที่ <code>/reports/vat</code> (ไม่สร้างตารางใหม่ เพราะเป็นข้อมูลชุดเดียวกัน), เพิ่ม <b>ตัวเลือกลูกค้าจากระบบ</b> ในกล่องออกใบกำกับที่ดึงชื่อ/ที่อยู่/เลขภาษี/สาขามาให้อัตโนมัติ, เพิ่มช่อง <code>tax_id</code>+<code>branch</code> เข้าตารางลูกค้าและฟอร์มลูกค้า, และเมื่อแก้ข้อมูลผู้ซื้อตอนออกใบครั้งแรก จะ <b>บันทึกกลับไปที่ลูกค้าให้อัตโนมัติ</b> (ครั้งหน้าไม่ต้องพิมพ์ซ้ำ)</p>
-    <p style="margin-bottom:0"><b>เรื่อง VAT ย้อนหลัง:</b> บิลที่ขายแบบ "ไม่เอา VAT" ไปแล้ว <span class="tag t-skip">ไม่แปลงย้อนหลัง</span> — ถ้าลูกค้าขอใบกำกับทีหลัง ใช้วิธี <b>ยกเลิกบิลเก่า แล้วขายใหม่เป็นบิล VAT</b> (ปลอดภัยทางภาษี กันคนหายไปหลายวันแล้วเพิ่งนึกได้). เงื่อนไขเดิม "ออกใบได้เฉพาะบิล <code>total_vat &gt; 0</code>" ถูกต้องอยู่แล้ว คงไว้</p>
+    <p style="margin-bottom:0"><b>VAT ย้อนหลังยังเหมือนเดิม:</b> บิลที่ขายแบบ "ไม่เอา VAT" (<code>total_vat = 0</code>) <span class="tag t-skip">ไม่แปลงย้อนหลัง</span> — ออกใบกำกับได้เฉพาะบิล <code>total_vat &gt; 0</code></p>
   </div>
 
   <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
   <div class="card">
-    <p style="margin-top:0">flow การออกใบกำกับใหม่ — เริ่มจากตารางรายงานภาษีขาย ผ่าน IPC ไปดึงบิล + เลือกลูกค้า แล้วออก/พิมพ์ + บันทึกกลับ:</p>
+    <p style="margin-top:0">SaleDetailDialog เป็นศูนย์กลาง — เปิดได้จากตารางรายการขายและรายงานภาษีขาย แล้วแตกเป็น 3 action (แก้ลูกค้า / ออก-สำเนาใบกำกับ / ยกเลิกบิล) โดยมีกฎ "ล็อก" คุมทั้ง 3:</p>
     <div class="diagram">
-    <svg class="sd" viewBox="0 0 980 320" role="img" aria-label="flow การออกใบกำกับภาษีจากรายงานภาษีขาย">
+    <svg class="sd" viewBox="0 0 980 400" role="img" aria-label="flow ใหม่: SaleDetailDialog เป็นศูนย์กลางของแก้ลูกค้า/ออกใบกำกับ/ยกเลิกบิล">
       <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
 
-      <!-- row 1: report -> dialog -->
-      <rect class="box" x="20" y="24" width="210" height="56" rx="10"/>
-      <text x="125" y="48" text-anchor="middle">รายงานภาษีขาย (ปุ่ม/แถว)</text>
-      <text class="sub" x="125" y="66" text-anchor="middle">Reports/VatReport.tsx</text>
+      <!-- entry points -->
+      <rect class="box" x="120" y="18" width="220" height="54" rx="10"/>
+      <text x="230" y="40" text-anchor="middle">รายการขาย (แถว → ดูรายละเอียด)</text>
+      <text class="sub" x="230" y="58" text-anchor="middle">Manage/Sales.tsx</text>
 
-      <rect class="box" x="385" y="24" width="210" height="56" rx="10"/>
-      <text x="490" y="48" text-anchor="middle">กล่องออกใบกำกับ</text>
-      <text class="sub" x="490" y="66" text-anchor="middle">TaxInvoiceBuyerDialog.tsx</text>
+      <rect class="box" x="640" y="18" width="220" height="54" rx="10"/>
+      <text x="750" y="40" text-anchor="middle">รายงานภาษีขาย (แถว)</text>
+      <text class="sub" x="750" y="58" text-anchor="middle">Reports/VatReport.tsx</text>
 
-      <rect class="box" x="750" y="24" width="210" height="56" rx="10"/>
-      <text x="855" y="48" text-anchor="middle">picker เลือกลูกค้า</text>
-      <text class="sub" x="855" y="66" text-anchor="middle">CustomerSearchDialog.tsx</text>
+      <!-- hub -->
+      <rect class="box hub" x="365" y="125" width="250" height="58" rx="12"/>
+      <text x="490" y="149" text-anchor="middle">SaleDetailDialog</text>
+      <text class="sub" x="490" y="168" text-anchor="middle">getSaleByInvoice · locked = original_printed</text>
 
-      <path class="edge" d="M230,52 H381"/>
-      <text class="elabel" x="305" y="42" text-anchor="middle">getSaleByInvoice</text>
-      <path class="edge" d="M595,52 H746"/>
-      <text class="elabel" x="672" y="42" text-anchor="middle">เลือกลูกค้า</text>
+      <path class="edge" d="M230,72 C230,110 360,120 372,127"/>
+      <path class="edge" d="M750,72 C750,110 620,120 608,127"/>
 
-      <!-- report -> vatSummary (down-left) -->
-      <rect class="box data" x="20" y="150" width="210" height="56" rx="10"/>
-      <text x="125" y="174" text-anchor="middle">reports:vatSummary</text>
-      <text class="sub" x="125" y="192" text-anchor="middle">+ sale_id · tax_invoice_issued</text>
-      <path class="edge" d="M125,80 V146"/>
-      <text class="elabel" x="140" y="118">โหลด/รีโหลดตาราง</text>
+      <!-- branch 1: edit customer -->
+      <rect class="box warn" x="20" y="232" width="250" height="56" rx="10"/>
+      <text x="145" y="256" text-anchor="middle">แก้ไขลูกค้า (admin · ซ่อนเมื่อล็อก)</text>
+      <text class="sub" x="145" y="274" text-anchor="middle">CustomerSearchDialog (no walk-in)</text>
+      <path class="edge" d="M420,183 C300,205 200,210 160,228"/>
+      <text class="elabel" x="250" y="208" text-anchor="middle">แก้ลูกค้า</text>
 
-      <!-- picker -> pos:searchCustomers -->
-      <rect class="box data" x="750" y="150" width="210" height="56" rx="10"/>
-      <text x="855" y="174" text-anchor="middle">pos:searchCustomers</text>
-      <text class="sub" x="855" y="192" text-anchor="middle">tax_id · branch · address</text>
-      <path class="edge" d="M855,80 V146"/>
+      <rect class="box data" x="20" y="332" width="250" height="52" rx="10"/>
+      <text x="145" y="356" text-anchor="middle">reports:updateSaleCustomer</text>
+      <text class="sub" x="145" y="373" text-anchor="middle">set customer_id · clear name_free</text>
+      <path class="edge" d="M145,288 V328"/>
 
-      <!-- dialog -> tax:issueOrGet -->
-      <rect class="box warn" x="385" y="150" width="210" height="56" rx="10"/>
-      <text x="490" y="174" text-anchor="middle">tax:issueOrGet</text>
-      <text class="sub" x="490" y="192" text-anchor="middle">{record, copy}</text>
-      <path class="edge hot" d="M490,80 V146"/>
-      <text class="elabel" x="505" y="118">ออก/พิมพ์</text>
+      <!-- branch 2: tax invoice (hot) -->
+      <rect class="box warn" x="365" y="232" width="250" height="56" rx="10"/>
+      <text x="490" y="256" text-anchor="middle">ออก/สำเนา ใบกำกับ (read-only)</text>
+      <text class="sub" x="490" y="274" text-anchor="middle">TaxInvoiceBuyerDialog.tsx</text>
+      <path class="edge hot" d="M490,183 V228"/>
+      <text class="elabel" x="505" y="208">ออก/พิมพ์</text>
 
-      <!-- issueOrGet -> tax_invoices -->
-      <rect class="box data" x="385" y="252" width="210" height="52" rx="10"/>
-      <text x="490" y="282" text-anchor="middle">SQLite · tax_invoices</text>
-      <path class="edge" d="M490,206 V248"/>
+      <rect class="box data" x="365" y="332" width="250" height="52" rx="10"/>
+      <text x="490" y="356" text-anchor="middle">tax:issueOrGet → tax_invoices</text>
+      <text class="sub" x="490" y="373" text-anchor="middle">insert 0 · confirmOriginalPrinted→1 หลังพิมพ์</text>
+      <path class="edge hot" d="M490,288 V328"/>
 
-      <!-- dialog -> write back customer (only first issue) -->
-      <rect class="box" x="660" y="252" width="290" height="52" rx="10"/>
-      <text x="805" y="276" text-anchor="middle">people:updateCustomerTaxInfo</text>
-      <text class="sub" x="805" y="293" text-anchor="middle">first issue · tax_id/branch · addr fill-if-blank</text>
-      <path class="edge" d="M595,178 C640,178 640,278 656,278"/>
-      <text class="elabel" x="640" y="232" text-anchor="middle">บันทึกกลับ</text>
+      <!-- branch 3: void -->
+      <rect class="box" x="710" y="232" width="250" height="56" rx="10"/>
+      <text x="835" y="256" text-anchor="middle">ยกเลิกบิล (disabled เมื่อล็อก)</text>
+      <text class="sub" x="835" y="274" text-anchor="middle">reports:voidSale (lock guard)</text>
+      <path class="edge" d="M560,183 C680,205 780,210 820,228"/>
+      <text class="elabel" x="730" y="208" text-anchor="middle">ยกเลิก</text>
+      <path class="edge lock" d="M615,332 C660,310 760,300 835,290"/>
+      <text class="elabel" x="700" y="316" text-anchor="middle">ล็อก = reject</text>
     </svg>
     </div>
-    <p style="margin-bottom:0;font-size:13px;color:var(--muted)">เส้นสีส้ม = เส้นทางหลัก (ออก/พิมพ์ใบกำกับ) · กล่องเส้นประ = ชั้นข้อมูล (DB/IPC)</p>
+    <p style="margin-bottom:0;font-size:13px;color:var(--muted)">เส้นส้ม = เส้นทางหลัก (ออก/พิมพ์ใบกำกับ) · เส้นแดงประ = กฎล็อก (พิมพ์ตัวจริง → ยกเลิก/แก้ลูกค้าโดน reject) · กล่องเส้นประ = ชั้นข้อมูล (IPC/DB)</p>
   </div>
 
   <div class="card">
@@ -189,69 +212,123 @@
     <table>
       <thead><tr><th>ไฟล์</th><th>เปลี่ยนอะไร</th><th>ชนิด</th></tr></thead>
       <tbody>
-        <tr><td><code>electron/db/schema.ts</code></td><td>เพิ่มคอลัมน์ <code>tax_id</code>+<code>branch</code> ใน customers (CREATE + ALTER loop :1210)</td><td><span class="tag t-gen">DB</span></td></tr>
-        <tr><td><code>electron/ipc/people.ts</code></td><td>เพิ่ม 2 คอลัมน์ใน saveCustomer INSERT + handler ใหม่ <code>updateCustomerTaxInfo</code></td><td><span class="tag t-gen">IPC</span></td></tr>
-        <tr><td><code>electron/ipc/reports.ts</code></td><td>vatSummary salesRows คืน sale_id/customer/tax_invoice_issued เพิ่ม</td><td><span class="tag t-gen">IPC</span></td></tr>
-        <tr><td><code>electron/preload.ts</code></td><td>expose <code>people.updateCustomerTaxInfo</code></td><td><span class="tag t-gen">IPC</span></td></tr>
-        <tr><td><code>src/types/index.ts</code></td><td><code>Customer</code> เพิ่ม tax_id/branch</td><td><span class="tag t-gen">type</span></td></tr>
-        <tr><td><code>src/components/dialogs/CustomerFormDialog.tsx</code></td><td>2 ช่องใหม่ใต้ที่อยู่ + blankForm/load</td><td><span class="tag t-opt">UI</span></td></tr>
-        <tr><td><code>src/components/dialogs/TaxInvoiceBuyerDialog.tsx</code></td><td>ปุ่มเลือกลูกค้า + บันทึกกลับ + onIssued</td><td><span class="tag t-opt">UI</span></td></tr>
-        <tr><td><code>src/pages/Reports/VatReport.tsx</code></td><td>คอลัมน์ action ออกใบ/สำเนา + เปิด dialog</td><td><span class="tag t-opt">UI</span></td></tr>
-        <tr><td>Manage/Sales.tsx · SaleDetailDialog.tsx</td><td>ทางลัดเดิม — คง props optional, compile ได้ไม่ต้องแก้</td><td><span class="tag t-keep">คงไว้</span></td></tr>
+        <tr><td><code>electron/ipc/reports.ts</code></td><td>handler ใหม่ <code>updateSaleCustomer</code>; <code>voidSale</code> เพิ่ม lock guard; <code>getSaleByInvoice</code> คืน customer tax fields + <code>tax_original_printed</code>; <code>salesList</code> คืน <code>tax_locked</code></td><td><span class="tag t-gen">IPC</span></td></tr>
+        <tr><td><code>electron/ipc/tax.ts</code></td><td><b>(P0)</b> <code>issueOrGet</code> INSERT ด้วย <code>original_printed=0</code> + ไม่ force=1 ตอน UPDATE; handler ใหม่ <code>tax:confirmOriginalPrinted</code> (ตั้ง=1 หลังพิมพ์สำเร็จ)</td><td><span class="tag t-gen">IPC</span></td></tr>
+        <tr><td><code>electron/preload.ts</code> + <code>.d.ts</code></td><td>expose <code>reports.updateSaleCustomer</code> + <code>tax.confirmOriginalPrinted</code>; <span class="tag t-skip">ลบ</span> <code>people.updateCustomerTaxInfo</code></td><td><span class="tag t-gen">IPC</span></td></tr>
+        <tr><td><code>electron/ipc/people.ts</code></td><td><span class="tag t-skip">ลบ</span> handler <code>updateCustomerTaxInfo</code> (revert v1)</td><td><span class="tag t-gen">IPC</span></td></tr>
+        <tr><td><code>src/components/dialogs/TaxInvoiceBuyerDialog.tsx</code></td><td>rework เป็น <b>read-only</b> — ถอด picker + write-back; buyer มาจากลูกค้าบิล; block เมื่อ walk-in/ข้อมูลไม่ครบ</td><td><span class="tag t-opt">UI</span></td></tr>
+        <tr><td><code>src/components/dialogs/SaleDetailDialog.tsx</code></td><td><b>หลัก</b> — VAT breakdown ถูกต้อง + ปุ่ม แก้ลูกค้า/พิมพ์ใบเสร็จ/ออก-สำเนาใบกำกับ/ยกเลิก(disable เมื่อล็อก) + reassign flow; prop <code>onChanged</code></td><td><span class="tag t-opt">UI</span></td></tr>
+        <tr><td><code>src/pages/Manage/Sales.tsx</code></td><td>ลด kebab เหลือ ดูรายละเอียด/พิมพ์ใบเสร็จ/ยกเลิก; ยกเลิก disable เมื่อ <code>tax_locked</code>; <span class="tag t-skip">ลบ</span> tax flow ออกจากหน้านี้</td><td><span class="tag t-opt">UI</span></td></tr>
+        <tr><td><code>src/pages/Reports/VatReport.tsx</code></td><td>ปุ่ม row → เปิด SaleDetailDialog แทน tax modal ตรง</td><td><span class="tag t-opt">UI</span></td></tr>
+        <tr><td><code>src/types/index.ts</code></td><td>คง <code>Customer.branch</code> (v1) ไว้</td><td><span class="tag t-keep">คงไว้</span></td></tr>
       </tbody>
     </table>
   </div>
 
   <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
   <div class="ba-grid">
-    <div class="col"><div class="before"><h4>ก่อน</h4>
+    <div class="col"><div class="before"><h4>ก่อน (v1)</h4>
       <ul class="clean">
-        <li>หาบิล VAT ไม่ได้ — ไม่มีตารางแสดงสถานะ VAT</li>
-        <li>ออกใบกำกับได้จาก kebab ใน Manage/Sales เท่านั้น</li>
-        <li>กล่องออกใบ prefill มาแค่ "ชื่อ" — ที่อยู่/เลขภาษี/สาขา พิมพ์เองทุกครั้ง</li>
-        <li>ลูกค้าเก็บเลขผู้เสียภาษีไม่ได้ (ไม่มีช่อง)</li>
-        <li>ไม่รู้ว่าบิลไหนออกใบกำกับไปแล้ว</li>
+        <li>กล่องพิมพ์มี picker เลือกลูกค้า + ช่องพิมพ์ผู้ซื้ออิสระ → ออกใบให้ใครก็ได้</li>
+        <li>ปุ่มออกใบกำกับกระจายทั้งใน Manage/Sales kebab และ SaleDetailDialog</li>
+        <li>พิมพ์ใบกำกับตัวจริงแล้วยัง <b>ยกเลิกบิลได้</b> / แก้ผู้ซื้อได้</li>
+        <li>SaleDetailDialog ไม่โชว์ยอดแยก VAT (มีแค่ยอดสุทธิ/ทุน/กำไร)</li>
+        <li>มี write-back เขียน id_card กลับจากกล่องพิมพ์</li>
       </ul>
     </div></div>
-    <div class="col"><div class="after"><h4>หลัง</h4>
+    <div class="col"><div class="after"><h4>หลัง (v2)</h4>
       <ul class="clean">
-        <li>ตาราง "รายงานภาษีขาย" = รายการบิล VAT ทั้งหมด ค้นหา/กรองช่วงวันได้</li>
-        <li>ปุ่มต่อแถว: <b>ออกใบกำกับ</b> (ยังไม่ออก) / <b>พิมพ์สำเนา</b> (ออกแล้ว)</li>
-        <li>เลือกลูกค้าจากระบบ → ดึงชื่อ/ที่อยู่/เลขภาษี/สาขามาให้ครบ</li>
-        <li>ลูกค้ามีช่อง tax_id + สาขา; แก้ตอนออกใบครั้งแรกบันทึกกลับให้</li>
-        <li>kebab เดิมยังอยู่เป็นทางลัด · VAT ย้อนหลัง = ยกเลิก+ขายใหม่</li>
+        <li>กล่องพิมพ์ read-only — ผู้ซื้อมาจากลูกค้าของบิลเท่านั้น</li>
+        <li>ทุก action รวมที่ SaleDetailDialog; ตารางเหลือ ดูรายละเอียด/พิมพ์ใบเสร็จ/ยกเลิก</li>
+        <li>พิมพ์ตัวจริงแล้ว = <b>ล็อก</b> (แก้ลูกค้า+ยกเลิกถูกปิด, พิมพ์ได้แค่สำเนา) บังคับ 2 ชั้น</li>
+        <li>SaleDetailDialog โชว์ มูลค่าก่อนภาษี / VAT / รวมสุทธิ ครบ</li>
+        <li>เปลี่ยนผู้ซื้อ = "แก้ไขรายชื่อลูกค้า" (admin) reassign ทั้งบิล</li>
       </ul>
     </div></div>
   </div>
 
   <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
   <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
-    <li>ออกใบกำกับ + ตามสถานะ "ออกแล้ว/ยังไม่ออก" ได้จากที่เดียว ไม่ต้องไล่เปิดบิล</li>
-    <li>ไม่ต้องพิมพ์ข้อมูลผู้ซื้อซ้ำ — ดึงจากลูกค้าในระบบ + จำให้ครั้งต่อไป</li>
-    <li>ไม่สร้างตารางใหม่ — ใช้รายงานภาษีขายที่มีอยู่ (ข้อมูลชุดเดียวกัน)</li>
-    <li>ไม่มีช่องโหว่ภาษี: ไม่แปลง VAT ย้อนหลัง, เงื่อนไข total_vat&gt;0 คงเดิม</li>
+    <li>ใบกำกับผูกกับลูกค้าจริงของบิลเสมอ — ปิดช่องโหว่ "ออกให้ใครก็ได้"</li>
+    <li>พิมพ์ตัวจริงแล้วล็อกแน่น (UI + backend) — กันแก้ย้อนหลังเอกสารภาษี</li>
+    <li>flow รวมที่เดียว เข้าใจง่าย ไม่ต้องไล่หลายเมนู</li>
+    <li>เห็นยอด VAT ในบิลชัดเจน</li>
   </ul></div>
   <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
-    <li>เพิ่ม migration 2 คอลัมน์ใน customers (nullable, ปลอดภัย แต่เป็นการแก้ schema)</li>
-    <li>vatSummary salesRows query ยาวขึ้น (join customers + tax_invoices)</li>
-    <li>ลูกค้าเก่าที่ import มา (Hygeia) จะยังไม่มี tax_id จนกว่าจะกรอก/ออกใบครั้งแรก</li>
+    <li>ถ้าลูกค้าของบิลข้อมูลไม่ครบ (ไม่มีที่อยู่/เลขภาษี) ต้องไปเติมที่ "แก้ไขลูกค้า" (People) ก่อน แล้วค่อยออกใบ</li>
+    <li>เพิ่ม handler + query ขึ้นเล็กน้อย (join/subquery tax_invoices)</li>
+    <li>ต้อง revert งาน v1 บางส่วน (picker/write-back/handler)</li>
   </ul></div>
   <div class="callout red"><h4>ข้อควรระวัง (invariant)</h4><ul class="clean">
-    <li><b>Allow-list payload:</b> handler บันทึกกลับใช้คอลัมน์ระบุชัด ไม่ spread <code>Object.keys</code></li>
-    <li><b>ลูกค้าทั่วไป C0000:</b> picker ปิด walk-in (<code>showWalkIn={false}</code>) + handler กัน walkInCustomerId</li>
-    <li><b>บันทึกกลับเฉพาะออกครั้งแรก</b> (<code>!copy</code>) + ที่อยู่เขียนเฉพาะตอนว่าง — กันเขียนทับข้อมูลลูกค้าที่ดีอยู่แล้ว</li>
-    <li><b>ปุ่ม row-action = square <code>size="icon-lg" variant="elevated"</code> + tooltip</b> (ห้าม size=sm/ป้ายข้อความ/role-tint) ตาม ui-table-card.md</li>
-    <li>แก้เฉพาะไฟล์ <code>.ts</code> — ไฟล์ <code>electron/ipc/*.js</code> ที่ track ไว้เป็น artifact เก่า ไม่ใช่ runtime</li>
+    <li><b>ล็อกหลัง "พิมพ์สำเร็จ" ไม่ใช่ "กดออก" (P0 จาก audit):</b> เดิม <code>tax:issueOrGet</code> ตั้ง <code>original_printed=1</code> ทันทีที่ INSERT → ถ้า dialog พิมพ์ถูกยกเลิก/พลาด บิลจะ <b>ล็อกถาวร</b> (ยกเลิก/แก้ลูกค้าไม่ได้) ทั้งที่ยังไม่ได้พิมพ์จริง. v2 เลื่อน flag: issueOrGet INSERT ด้วย <code>original_printed=0</code> (แค่ snapshot buyer) → renderer พิมพ์สำเร็จ (ต้นฉบับ) ค่อยเรียก <code>tax:confirmOriginalPrinted</code> ตั้ง=1 = ล็อก. ตรงเจตนา "พิมพ์ไปแล้วค่อยล็อก"</li>
+    <li><b>Allow-list payload:</b> <code>updateSaleCustomer</code> เขียนเฉพาะ <code>customer_id</code> (+เคลียร์ name_free) ระบุชัด ไม่ spread</li>
+    <li><b>Walk-in C0000:</b> picker reassign ปิด walk-in; handler reject ถ้า customer_id = <code>walkInCustomerId</code> (กัน NULL/แทนค่า C0000 ตามกฎ)</li>
+    <li><b>ล็อก 2 ชั้น:</b> UI ซ่อน/disable + backend reject ทั้ง <code>updateSaleCustomer</code> และ <code>voidSale</code> — UI อย่างเดียวไม่พอ</li>
+    <li><b>snapshot 0 ระหว่างทาง:</b> ถ้าพิมพ์พลาด เหลือแถว tax_invoices <code>original_printed=0</code> (ยังไม่ล็อก) แก้ลูกค้าได้ปกติ; issueOrGet จะ UPDATE buyer ทับจากลูกค้าใหม่ตอนพิมพ์รอบหน้า — snapshot heal เอง</li>
+    <li><b>บิลเก่าจาก v1 (deploy):</b> tax_invoices ที่ออกสมัย v1 มี <code>original_printed=1</code> อยู่แล้ว → หลัง deploy จะ <b>ล็อกทันที</b> (ยกเลิก/แก้ลูกค้าไม่ได้) — เป็นพฤติกรรมที่ตั้งใจ (v1 issue=print) ไม่มี unlock path (รับทราบโดยตั้งใจ ไม่ต้องทำ escape hatch)</li>
+    <li><b>reassign = ขยับรายงาน retroactive:</b> <code>updateSaleCustomer</code> เปลี่ยน <code>customer_id</code> ของบิลย้อนหลัง → บิลย้ายเข้า/ออก ประวัติลูกค้าใน report ที่ join customers (salesList/vatSummary/สถิติลูกค้าใหม่-เก่า) — เป็น semantic ที่ถูกต้อง (แก้ผู้ซื้อให้ตรง) แต่ต้องรู้ว่ามีผล. สต็อก/FEFO ไม่กระทบ</li>
+    <li><code>reports:getSale</code> (by id) ไม่แตะโดยตั้งใจ — ไม่มีใครใช้ดึง lock/tax ในแผนนี้ (SaleDetailDialog ใช้ getSaleByInvoice)</li>
+    <li><b>สิทธิ์:</b> แก้ลูกค้า = <code>requireAdmin(_e, override)</code> + <code>useManagerOverride</code> ฝั่ง renderer (เหมือน voidSale)</li>
+    <li><b>สำเนาใช้ snapshot เดิม:</b> บิลที่ออกแล้ว buyer มาจาก <code>tax_invoices</code> (snapshot ตามกฎหมาย) ไม่ re-pull จากลูกค้าที่อาจถูกแก้</li>
+    <li>แก้เฉพาะไฟล์ <code>.ts/.tsx</code> — <code>electron/ipc/*.js</code> ที่ track เป็น artifact เก่า ไม่ใช่ runtime</li>
   </ul></div>
 
-  <h2><span class="n">5</span> UX / UI</h2>
+  <h2><span class="n">5</span> UX / UI + mockup กล่องพิมพ์ใบกำกับ (read-only)</h2>
   <div class="card">
-    <ul class="clean" style="margin-top:0">
-      <li><b>ตารางรายงานภาษีขาย</b> — เพิ่มคอลัมน์ท้าย "ใบกำกับภาษี" ปุ่มไอคอนสี่เหลี่ยม elevated ต่อแถว: ยังไม่ออก = ไอคอน <code>FileText</code> tooltip "ออกใบกำกับภาษี"; ออกแล้ว = ไอคอน <code>Copy</code> tooltip "พิมพ์สำเนาใบกำกับ" (neutral elevated ไม่ใส่สีบทบาท)</li>
-      <li><b>กล่องออกใบกำกับ</b> — เพิ่มปุ่ม "เลือกลูกค้าจากระบบ" บนสุดของ body → เปิด CustomerSearchDialog (ไม่มี walk-in) เลือกแล้ว prefill ชื่อ/ที่อยู่/เลขภาษี/สาขา; ลูกค้าใหม่ที่ยังไม่มีในระบบ พิมพ์เองได้เหมือนเดิม; ปุ่มท้าย "ดูตัวอย่าง PDF" (elevated) + "พิมพ์ใบกำกับภาษี" (default) ตามเดิม</li>
-      <li><b>ฟอร์มลูกค้า</b> — เพิ่ม 2 ช่องใต้ที่อยู่: "เลขประจำตัวผู้เสียภาษี (13 หลัก)" (กรอกได้เฉพาะตัวเลข) + "สาขา" (placeholder สำนักงานใหญ่) ใช้ <code>Input variant="elevated"</code> + Label เหมือนช่องอื่น</li>
-      <li>ภาษาไทยทั้งหมด ไม่มี emoji · ใช้ semantic token · ไอคอน lucide · ปฏิบัติตาม modal contract เดิมของ Dialog</li>
+    <h3 style="margin-top:4px">SaleDetailDialog — ปุ่มตามสถานะ</h3>
+    <table>
+      <thead><tr><th>ปุ่ม</th><th>เงื่อนไขแสดง/ใช้งาน</th></tr></thead>
+      <tbody>
+        <tr><td>แก้ไขรายชื่อลูกค้า</td><td>บิล VAT (total_vat&gt;0), ไม่ voided/return, <b>ยังไม่ล็อก</b>, สิทธิ์ admin (staff → manager-override)</td></tr>
+        <tr><td>พิมพ์ใบเสร็จ</td><td>เสมอ</td></tr>
+        <tr><td>ออกใบกำกับภาษี</td><td>บิล VAT, ยังไม่ออกตัวจริง → เปิดกล่อง read-only พิมพ์ "ต้นฉบับ" → ล็อก</td></tr>
+        <tr><td>พิมพ์สำเนาใบกำกับภาษี</td><td>บิล VAT, ออกตัวจริงแล้ว (ล็อก) → พิมพ์ "สำเนา" จาก snapshot</td></tr>
+        <tr><td>ยกเลิกบิล</td><td>ไม่ voided/return; <b>disable เมื่อล็อก</b> (พร้อม tooltip บอกเหตุผล)</td></tr>
+      </tbody>
+    </table>
+    <ul class="clean">
+      <li><b>ยอดแยก VAT</b> ใน SaleDetailDialog (โชว์เฉพาะ total_vat&gt;0): มูลค่าสินค้า → ส่วนลด → <b>มูลค่าก่อนภาษี</b> (=total_amount−total_vat) → <b>ภาษีมูลค่าเพิ่ม</b> (total_vat) → <b>รวมสุทธิ</b> (total_amount)</li>
+      <li>ปุ่ม row-action ในตาราง = kebab "ตัวเลือก" เดิม (square icon-lg elevated) ตาม ui-table-card.md · ไม่มี emoji · semantic token · modal contract · bar h-12 control h-9</li>
+      <li>ปุ่มใน dialog footer ตาม role: ออก/พิมพ์ใบกำกับ = <code>default</code> (primary), พิมพ์ใบเสร็จ/แก้ลูกค้า = <code>elevated</code>, ยกเลิกบิล = <code>destructive</code>, ปิด = <code>elevated</code></li>
     </ul>
+
+    <h3>mockup กล่องพิมพ์ใบกำกับ (TaxInvoiceBuyerDialog) — read-only</h3>
+    <div class="mockrow">
+      <div>
+        <div class="cap">สถานะ A — ลูกค้าครบ (ออกได้)</div>
+        <div class="mock">
+          <div class="mhead">ออกใบกำกับภาษีเต็มรูป
+            <div class="note">ผู้ซื้อดึงจากลูกค้าของบิล — แก้ไม่ได้ที่นี่</div>
+          </div>
+          <div class="mbody">
+            <div class="ro"><span class="lab">ชื่อผู้ซื้อ</span><span class="val">บริษัท สุขภาพดี จำกัด</span></div>
+            <div class="ro"><span class="lab">ที่อยู่</span><span class="val">99/1 ถ.สุขุมวิท แขวงคลองเตย กทม. 10110</span></div>
+            <div class="ro"><span class="lab">เลขประจำตัวผู้เสียภาษี</span><span class="val">0105551234567</span></div>
+            <div class="ro"><span class="lab">สาขา</span><span class="val">สำนักงานใหญ่</span></div>
+          </div>
+          <div class="mfoot">
+            <span class="btn elev">ดูตัวอย่าง PDF</span>
+            <span class="btn primary">พิมพ์ใบกำกับภาษี</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="cap">สถานะ B — walk-in / ข้อมูลไม่ครบ (block)</div>
+        <div class="mock">
+          <div class="mhead">ออกใบกำกับภาษีเต็มรูป</div>
+          <div class="mbody">
+            <div class="warnbox">บิลนี้ยังไม่มีลูกค้า หรือข้อมูลลูกค้าไม่ครบ (ขาดชื่อ/ที่อยู่) — กรุณากด "แก้ไขรายชื่อลูกค้า" ของบิลก่อนออกใบกำกับ</div>
+            <div class="ro"><span class="lab">ชื่อผู้ซื้อ</span><span class="val empty">— ไม่มีลูกค้า —</span></div>
+            <div class="ro"><span class="lab">ที่อยู่</span><span class="val empty">—</span></div>
+          </div>
+          <div class="mfoot">
+            <span class="btn elev">ดูตัวอย่าง PDF</span>
+            <span class="btn disabled">พิมพ์ใบกำกับภาษี</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:0">เมื่อบิลออกตัวจริงแล้ว หัวกล่องขึ้นโน้ต "ออกต้นฉบับไปแล้ว — การพิมพ์ครั้งนี้จะเป็นสำเนา" และปุ่มหลักเปลี่ยนเป็น "พิมพ์สำเนาใบกำกับ"</p>
   </div>
 
   <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
@@ -259,12 +336,18 @@
     <table>
       <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
       <tbody>
-        <tr><td>1</td><td>ปุ่ม action ใช้ <code>size="sm"</code> + ป้ายข้อความ + <code>primary-soft</code> ผิดกฎ row-action + ต่ำกว่า text-sm</td><td>P1</td><td>เปลี่ยนเป็นปุ่มไอคอนสี่เหลี่ยม <code>size="icon-lg" variant="elevated"</code> + tooltip (FileText/Copy) neutral</td></tr>
-        <tr><td>1</td><td>handler บันทึกกลับเขียนทับ <code>address</code> เสมอ + ทำงานทุกครั้งที่พิมพ์ (เสี่ยงทับข้อมูลลูกค้า)</td><td>P1</td><td>เขียนกลับเฉพาะออกครั้งแรก (<code>!copy</code>); address เขียนเฉพาะตอนว่าง (CASE WHEN); tax_id/branch ตั้งได้เสมอ</td></tr>
-        <tr><td>1</td><td>Step 7 ไม่ระบุชัดว่า 2 call site เดิมต้อง compile ผ่านหลังเปลี่ยน props</td><td>P1</td><td>ระบุ Manage/Sales.tsx:516 + SaleDetailDialog.tsx:353 ชัด — props ใหม่เป็น optional ทั้งหมด ไม่ต้องแก้</td></tr>
-        <tr><td>1</td><td>เลข schema ผิด (อ้าง :809/:1028) — customers ALTER loop จริงอยู่ :1210</td><td>P2</td><td>ชี้ไป loop customers :1210 (loop ปิด :1215)</td></tr>
-        <tr><td>1</td><td>openTax ไม่ guard กรณี <code>getSaleByInvoice</code> คืน null → <code>saleDetailToPrint(null)</code> throw</td><td>P2</td><td>เพิ่ม guard null + toast; โน้ตว่า return bill ถูกกันด้วย total_vat=0 + backend reject</td></tr>
-        <tr><td>2</td><td>ทุก reference/ขั้นตอน/invariant ตรงกับโค้ดจริง — ไม่พบ P0/P1; เหลือ P2 รับรู้: ไฟล์ <code>.js</code> เก่า (แก้เฉพาะ .ts), ช่องใหม่สืบทอด Enter-submit เดิม</td><td>PASS</td><td>เพิ่มโน้ต "แก้เฉพาะ .ts" + โน้ต Enter-submit ลงแผน ไม่ต้องเปลี่ยนโครง</td></tr>
+        <tr><td>1</td><td><code>tax:issueOrGet</code> ตั้ง <code>original_printed=1</code> ตั้งแต่ "กดออก" ไม่ใช่ "พิมพ์สำเร็จ" → print ยกเลิก/พลาด = บิลล็อกถาวร (ยกเลิก/แก้ลูกค้าไม่ได้)</td><td>P0</td><td>เลื่อน flag: INSERT ด้วย 0, UPDATE ไม่แตะ flag; เพิ่ม <code>tax:confirmOriginalPrinted</code> เรียกหลังพิมพ์ต้นฉบับสำเร็จ (Step 2) — ตรงเจตนา "พิมพ์แล้วค่อยล็อก"</td></tr>
+        <tr><td>1</td><td>disable kebab void ด้วย <code>disabled+title</code> + <code>pointer-events-none</code> → hover ตาย ผู้ใช้ไม่เห็นเหตุผล</td><td>P1</td><td>locked → render ปุ่ม muted + ข้อความในเมนู + onClick toast อธิบาย (ไม่พึ่ง hover) — Step 7</td></tr>
+        <tr><td>1</td><td>หลังถอด tax flow จะมี unused imports tsc fail: <code>vatEnabled</code>/<code>useShopVat</code>/<code>SaleForPrint</code> (Manage/Sales), <code>Textarea</code> (TaxInvoiceBuyerDialog)</td><td>P1</td><td>ระบุลบ import เหล่านี้ชัดใน Step 5/7</td></tr>
+        <tr><td>1</td><td>3 call site ของ TaxInvoiceBuyerDialog ต้องเปลี่ยน prop พร้อมกัน (customerPrefill→buyer) ไม่งั้น tsc พัง</td><td>P1</td><td>ระบุ caller เดียวที่เหลือ = SaleDetailDialog (Manage/Sales+VatReport เลิกเรียกตรง) — Step 5/7/8</td></tr>
+        <tr><td>1</td><td>voidSale guard placement กำกวม (ชี้ที่ transaction opener)</td><td>P2</td><td>ระบุวางหลังบรรทัดเช็ค return (~163) ใช้ <code>sale</code>/<code>id</code> ที่มีแล้ว — Step 1c</td></tr>
+        <tr><td>1</td><td>header print Popover ใน SaleDetailDialog ไม่ชัดว่าจะเก็บหรือทิ้ง</td><td>P2</td><td>ระบุลบทั้งบล็อก ย้ายพิมพ์ใบเสร็จลง footer — Step 6d</td></tr>
+        <tr><td>1</td><td>verify ไม่ครอบ deeplink EditProduct/EditBundle (ที่ render SaleDetailDialog ด้วย)</td><td>P2</td><td>เพิ่ม verify (j) + โน้ตผู้บริโภค getSaleByInvoice ใน Step 1a</td></tr>
+        <tr><td>2</td><td>diagram node ยังเขียน <code>original_printed = 1 (ครั้งแรก)</code> ขัดกับ deferred-lock ที่เพิ่งแก้รอบ 1</td><td>P1</td><td>แก้ label เป็น "insert 0 · confirmOriginalPrinted→1 หลังพิมพ์"</td></tr>
+        <tr><td>2</td><td>Step 5 ไม่ pin ชัดว่า <code>confirmOriginalPrinted</code> ต้องอยู่ใน branch <code>res.success && !copy</code> — เสี่ยง re-introduce P0 ถ้าทำพลาด</td><td>P1</td><td>เขียน code path ชัด <code>if(res.success){ if(!copy) confirm; ... }</code></td></tr>
+        <tr><td>2</td><td>Step 5 ไม่ระบุว่า handlePreview/validate อ่าน buyer จากไหนหลังถอด editable state</td><td>P1</td><td>ระบุเก็บ resolved buyer (snapshot|prop) ใน state แล้วอ่านจากชุดนั้น</td></tr>
+        <tr><td>2</td><td>ไม่ได้รับรู้ว่าบิล v1 (<code>original_printed=1</code>) จะล็อกทันทีหลัง deploy + ผล retroactive ของ reassign ต่อรายงาน</td><td>P2</td><td>เพิ่มโน้ตใน "ข้อควรระวัง" 2 ข้อ + โน้ต getSale ไม่แตะ</td></tr>
+        <tr><td>2</td><td colspan="2">deferred-lock consistent ทุก reader (copy-calc/getSaleByInvoice/salesList/SaleDetailDialog/guards), slip-reprint ไม่กระทบ, 3-caller consolidation ถูกต้อง</td><td><b>PASS</b></td></tr>
       </tbody>
     </table>
   </div>
@@ -277,117 +360,150 @@
   <div class="machine">
     <h3>Definition of done</h3>
     <ul>
-      <li><code>customers</code> มี <code>tax_id TEXT</code> + <code>branch TEXT</code> (CREATE สำหรับ DB ใหม่ + guarded ALTER สำหรับ DB เดิม); <code>Customer</code> type + CustomerFormDialog แสดง/แก้ทั้งคู่; <code>people:saveCustomer</code> INSERT ระบุ 2 คอลัมน์</li>
-      <li><code>reports:vatSummary</code> sales_rows คืน <code>sale_id, customer_id, customer_name, customer_address, customer_tax_id, customer_branch, customer_name_free, tax_invoice_issued (0/1)</code></li>
-      <li><code>/reports/vat</code> ตารางรายงานภาษีขายมีคอลัมน์ action ท้ายแถว เปิด TaxInvoiceBuyerDialog; ไอคอน/tooltip สลับตาม <code>tax_invoice_issued</code>; ออกใบสำเร็จแล้วตารางรีโหลด ปุ่มสลับเป็น Copy</li>
-      <li>TaxInvoiceBuyerDialog มี picker เลือกลูกค้า prefill ครบ 4 ช่อง; ออกครั้งแรกบันทึก tax_id/branch กลับ (address fill-if-blank) ผ่าน <code>people:updateCustomerTaxInfo</code></li>
-      <li><code>npx tsc --noEmit</code> PASS; click-test ตามรายการ verify</li>
+      <li>ตาราง <code>Manage/Sales</code> kebab เหลือ ดูรายละเอียด/พิมพ์ใบเสร็จ/ยกเลิกบิล; ยกเลิกบิล <b>disabled</b> เมื่อบิลล็อก (มี <code>tax_locked</code>)</li>
+      <li><code>SaleDetailDialog</code> โชว์ยอดแยก VAT ถูกต้อง (มูลค่าก่อนภาษี/VAT/รวมสุทธิ เมื่อ total_vat&gt;0) + ปุ่ม แก้ลูกค้า(admin,ซ่อนเมื่อล็อก)/พิมพ์ใบเสร็จ/ออก-สำเนาใบกำกับ(ตามสถานะ)/ยกเลิก(disable เมื่อล็อก)</li>
+      <li>แก้ลูกค้า → CustomerSearchDialog(no walk-in) → <code>reports:updateSaleCustomer</code> (admin/override) → refetch + onChanged</li>
+      <li><code>TaxInvoiceBuyerDialog</code> read-only: buyer จากลูกค้าบิล (หรือ snapshot เดิมถ้าออกแล้ว); block เมื่อ walk-in/ไม่มีชื่อ-ที่อยู่; ไม่มี picker/ช่องแก้/write-back; พิมพ์ต้นฉบับสำเร็จค่อยเรียก <code>confirmOriginalPrinted</code> (ล็อกหลังพิมพ์จริง)</li>
+      <li><b>(P0)</b> <code>tax:issueOrGet</code> ไม่ล็อกทันที (INSERT <code>original_printed=0</code>); ล็อกผ่าน <code>tax:confirmOriginalPrinted</code> หลังพิมพ์สำเร็จ</li>
+      <li>backend: <code>updateSaleCustomer</code> reject locked/voided/return/walk-in; <code>voidSale</code> reject เมื่อล็อก; <code>getSaleByInvoice</code> คืน customer tax fields + <code>tax_original_printed</code>; <code>salesList</code> คืน <code>tax_locked</code></li>
+      <li><code>VatReport</code> ปุ่ม row เปิด SaleDetailDialog</li>
+      <li>revert v1: ถอด picker/write-back ใน TaxInvoiceBuyerDialog + ลบ <code>people:updateCustomerTaxInfo</code> (handler+preload+d.ts); คงไว้ <code>customers.branch</code>, ฟอร์มลูกค้า (label เลขบัตร/เลขภาษี + ช่องสาขา), <code>vatSummary</code></li>
+      <li><code>npx tsc --noEmit</code> PASS (error เดิม Theme/index.tsx ไม่นับ); click-test ตามรายการ verify</li>
     </ul>
 
-    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <h3>ไฟล์ + จุดอ้างอิงจริง</h3>
     <ul>
-      <li><code>electron/db/schema.ts</code> — customers CREATE (~205) + customers ALTER loop (~1210)</li>
-      <li><code>electron/ipc/people.ts</code> — saveCustomer INSERT (~60) + handler ใหม่ + walkInCustomerId</li>
-      <li><code>electron/ipc/reports.ts</code> — vatSummary salesRows (~446)</li>
-      <li><code>electron/preload.ts</code> — people namespace (~65)</li>
-      <li><code>src/types/index.ts</code> — Customer (~95)</li>
-      <li><code>src/components/dialogs/CustomerFormDialog.tsx</code> · <code>TaxInvoiceBuyerDialog.tsx</code> · <code>CustomerSearchDialog.tsx</code> (reuse)</li>
-      <li><code>src/pages/Reports/VatReport.tsx</code> · <code>src/lib/receipt/normalizeSale.ts</code> (<code>saleDetailToPrint</code>, reuse)</li>
-      <li>ทางลัดคงเดิม: <code>src/pages/Manage/Sales.tsx</code> (~516) · <code>src/components/dialogs/SaleDetailDialog.tsx</code> (~353)</li>
+      <li><code>electron/ipc/reports.ts</code> — <code>salesList</code> rows query (~50), <code>getSaleByInvoice</code> (~87), <code>voidSale</code> (~154, return-check ~163), import เพิ่ม <code>walkInCustomerId</code> จาก <code>./codes</code>; <code>Override</code>/<code>requireAdmin</code> มาจาก <code>../auth/session</code></li>
+      <li><code>electron/ipc/tax.ts</code> — <code>issueOrGet</code> (~24, INSERT ~57 / UPDATE ~37), เพิ่ม handler <code>confirmOriginalPrinted</code></li>
+      <li><code>electron/preload.ts</code> — reports namespace (~80) + people namespace (~65, ลบ updateCustomerTaxInfo); <code>electron/preload.d.ts</code> sync</li>
+      <li><code>electron/ipc/people.ts</code> — ลบ block <code>people:updateCustomerTaxInfo</code> (ก่อน <code>// --- SUPPLIERS ---</code>)</li>
+      <li><code>src/components/dialogs/TaxInvoiceBuyerDialog.tsx</code> — rework ทั้งไฟล์</li>
+      <li><code>src/components/dialogs/SaleDetailDialog.tsx</code> — header print Popover (~120), info grid (~143), tfoot (~316), footer (~335), tax dialog render (~352)</li>
+      <li><code>src/components/dialogs/CustomerSearchDialog.tsx</code> — reuse (showWalkIn=false)</li>
+      <li><code>src/pages/Manage/Sales.tsx</code> — kebab (~447-452 tax item ลบ), void item (~453), taxTarget/openTaxInvoice/TaxInvoiceBuyerDialog render (~137/155/516) ลบ; SaleRow type</li>
+      <li><code>src/pages/Reports/VatReport.tsx</code> — taxTarget→detailInvoice, render SaleDetailDialog</li>
+      <li>hooks: <code>@/hooks/useManagerOverride</code> (run/dialog/isAdmin), <code>@/hooks/usePermission</code> (isAdmin), <code>@/hooks/useShopVat</code> (vatEnabled)</li>
     </ul>
-    <p class="inv" style="margin:6px 0">แก้เฉพาะไฟล์ <code>.ts/.tsx</code> — git-tracked <code>electron/ipc/*.js</code> เป็น artifact เก่า ไม่ใช่ runtime (bundle จาก .ts ผ่าน vite-plugin-electron)</p>
+    <p class="inv" style="margin:6px 0">แก้เฉพาะ <code>.ts/.tsx</code> — git-tracked <code>electron/ipc/*.js</code> เป็น artifact เก่า ไม่ใช่ runtime (bundle จาก .ts ผ่าน vite-plugin-electron)</p>
 
     <h3>ขั้นตอน (เรียงตาม dependency)</h3>
     <ol>
-      <div class="step"><b>Step 1 — DB: เพิ่ม tax_id + branch ใน customers.</b>
-        <code>schema.ts</code>: ใน <code>CREATE TABLE IF NOT EXISTS customers</code> (~205) เพิ่ม <code>tax_id TEXT</code> + <code>branch TEXT</code> ต่อจาก <code>address</code>. แล้วเพิ่ม 2 ALTER ใน <b>customers-specific loop ที่ :1210</b> (loop <code>ALTER TABLE customers ADD COLUMN is_disabled…</code>, ปิด :1215): <code>ALTER TABLE customers ADD COLUMN tax_id TEXT</code> / <code>… ADD COLUMN branch TEXT</code>.
-        <span class="inv">แต่ละ element wrap <code>try{db.exec(sql)}catch{}</code> → re-run absorbed. ห้ามใช้ shared loop :809.</span></div>
-
-      <div class="step"><b>Step 2 — type + form + save handler.</b>
-        <code>types/index.ts</code> <code>Customer</code>: เพิ่ม <code>tax_id?: string; branch?: string</code>.
-        <code>people.ts</code> <code>saveCustomer</code> INSERT (~60-67): เพิ่ม <code>tax_id, branch</code> ใน column list + VALUES (<code>@tax_id, @branch</code>).
-        <code>CustomerFormDialog.tsx</code>: <code>blankForm</code> เพิ่ม <code>tax_id:'', branch:''</code>; load mapping (~67) เพิ่ม <code>tax_id: data.tax_id ?? '', branch: data.branch ?? ''</code>; เพิ่ม 2 <code>&lt;Input variant="elevated"&gt;</code> ใต้ block ที่อยู่ (~129): "เลขประจำตัวผู้เสียภาษี (13 หลัก)" (inputMode numeric, maxLength 13, strip non-digit) + "สาขา" (placeholder สำนักงานใหญ่).
-        <span class="inv">UPDATE path เป็น dynamic Object.keys — ปลอดภัยเพราะ form ส่งเฉพาะคอลัมน์จริง; อย่าให้ key แปลกหลุดเข้า.</span></div>
-
-      <div class="step"><b>Step 3 — vatSummary คืนสถานะออกใบ + prefill ลูกค้า.</b>
-        <code>reports.ts</code> <code>reports:vatSummary</code> salesRows (~446): rewrite เป็น
-        <pre>SELECT s.id AS sale_id, s.invoice_no, s.sold_at, s.sale_type,
-       s.total_amount, s.total_vat, s.customer_id, s.customer_name_free,
-       c.full_name AS customer_name, c.address AS customer_address,
-       c.tax_id AS customer_tax_id, c.branch AS customer_branch,
-       CASE WHEN ti.sale_id IS NOT NULL THEN 1 ELSE 0 END AS tax_invoice_issued
+      <div class="step"><b>Step 1 — backend reports.ts: flags + lock guards + handler ใหม่.</b>
+        <div style="margin:4px 0">(a) <code>getSaleByInvoice</code> (~87): ขยาย SELECT ของ sale เป็น
+        <pre>SELECT s.*, c.full_name as customer_name,
+       c.id_card as customer_id_card, c.address as customer_address,
+       c.branch as customer_branch, u.name as sold_by_name,
+       (SELECT ti.original_printed FROM tax_invoices ti WHERE ti.sale_id = s.id) AS tax_original_printed
 FROM sales s
 LEFT JOIN customers c ON c.id = s.customer_id
-LEFT JOIN tax_invoices ti ON ti.sale_id = s.id
-WHERE ${sCond.join(' AND ')} AND s.total_vat > 0
-ORDER BY s.sold_at</pre>
-        คง <code>requireAdmin(_e)</code> + block output/purchase/expense เดิมไม่แตะ. <span class="inv">ผู้บริโภค sales_rows มีแค่ VatReport — เพิ่มคอลัมน์เป็น additive ปลอดภัย.</span></div>
-
-      <div class="step"><b>Step 4 — คอลัมน์ action ใน VatReport.</b> อ่าน <code>docs/claude/ui-table-card.md</code> ก่อน.
-        ขยาย <code>VatSaleRow</code>: เพิ่ม <code>sale_id, customer_id?, customer_name?, customer_address?, customer_tax_id?, customer_branch?, customer_name_free?, tax_invoice_issued</code>.
-        import: <code>TaxInvoiceBuyerDialog</code>, <code>saleDetailToPrint</code> (@/lib/receipt/normalizeSale), <code>Button</code>, <code>FileText</code>/<code>Copy</code>, <code>SaleForPrint</code>.
-        state <code>taxTarget</code> + handler <code>openTax(r)</code>: <code>const detail = await window.api.reports.getSaleByInvoice(r.invoice_no)</code> → <span class="inv">guard <code>if(!detail){toast error; return}</code></span> → <code>setTaxTarget({ saleId: r.sale_id, sale: saleDetailToPrint(detail), customerId: r.customer_id ?? null, prefill: {name: r.customer_name ?? r.customer_name_free ?? '', address: r.customer_address ?? '', taxId: r.customer_tax_id ?? '', branch: r.customer_branch ?? ''} })</code> (try/catch + toast).
-        เพิ่ม <code>&lt;TableHead className="text-right pr-4"&gt;ใบกำกับภาษี&lt;/TableHead&gt;</code> (ย้าย head "ภาษีขาย" ออกจาก pr-4); cell ท้าย: <code>&lt;Button size="icon-lg" variant="elevated" tooltip={r.tax_invoice_issued ? 'พิมพ์สำเนาใบกำกับ' : 'ออกใบกำกับภาษี'}&gt;</code> ไอคอน <code>FileText</code>/<code>Copy</code>, <code>onClick={()=&gt;openTax(r)}</code>. empty-state colSpan 6→7.
-        render <code>&lt;TaxInvoiceBuyerDialog open=… saleId=… sale=… customerId=… customerPrefill=… onIssued={()=&gt;{setTaxTarget(null); load()}} /&gt;</code>.
-        <span class="inv">ปุ่ม row-action ต้อง square icon-lg elevated + tooltip; ห้าม size=sm/ป้าย/role-tint. label keys on tax_invoice_issued (row existence) ไม่ใช่ original_printed.</span></div>
-
-      <div class="step"><b>Step 5 — TaxInvoiceBuyerDialog: picker + บันทึกกลับ + onIssued.</b>
-        ขยาย <code>customerPrefill</code> ให้มี <code>branch?</code>; props ใหม่ <code>customerId?: number | null</code>, <code>onIssued?: () =&gt; void</code>.
-        state <code>linkedCustomerId</code> (init จาก customerId) + <code>pickerOpen</code>. ใน useEffect prefill: set branch จาก prefill + linkedCustomerId จาก customerId; ถ้ามี tax_invoices เดิม ค่า buyer เดิมยังชนะ (คงพฤติกรรม).
-        เพิ่มปุ่ม "เลือกลูกค้าจากระบบ" บนสุด body → <code>&lt;CustomerSearchDialog showWalkIn={false} onSelect={c =&gt; { if(c){ setName(c.full_name); setAddress(c.address??''); setTaxId(c.tax_id??''); setBranch(c.branch||'สำนักงานใหญ่'); setLinkedCustomerId(c.id) } }} /&gt;</code>.
-        ใน <code>handlePrint</code>: <code>issueOrGet</code> คืน <code>{record, copy}</code>. หลังพิมพ์สำเร็จ <span class="inv">เฉพาะ <code>!copy</code> (ออกครั้งแรก)</span> + <code>linkedCustomerId != null</code> → <code>await window.api.people.updateCustomerTaxInfo({id: linkedCustomerId, tax_id: taxId.trim(), branch: branch.trim(), address: address.trim()})</code> (try/catch best-effort, fail แค่ toast ไม่ block ใบที่พิมพ์แล้ว). แล้ว <code>onIssued?.()</code>.
-        <span class="inv">คง modal contract (Header/Body/Footer ครบอยู่แล้ว).</span></div>
-
-      <div class="step"><b>Step 6 — IPC: people:updateCustomerTaxInfo (allow-listed).</b> <code>people.ts</code>:
-        <pre>ipcMain.handle('people:updateCustomerTaxInfo', (_e, p: {
-  id: number; tax_id?: string; branch?: string; address?: string
-}) => {
+LEFT JOIN users u ON u.id = s.sold_by
+WHERE s.invoice_no = ?</pre>
+        <span class="inv">s.* มี customer_id/total_vat/subtotal/total_discount/total_amount/customer_name_free อยู่แล้ว — additive ปลอดภัย. ผู้บริโภค getSaleByInvoice = SaleDetailDialog (Manage/Sales, EditProduct/EditBundle HistoryTab) + reprint — เพิ่มคอลัมน์ไม่กระทบ.</span></div>
+        <div style="margin:4px 0">(b) <code>salesList</code> rows query (~50): เพิ่มใน SELECT (หลัง <code>item_kinds</code>)
+        <pre>EXISTS(SELECT 1 FROM tax_invoices ti WHERE ti.sale_id = s.id AND ti.original_printed = 1) AS tax_locked</pre>
+        summary/total query ไม่ต้องแตะ.</div>
+        <div style="margin:4px 0">(c) <code>voidSale</code>: ใน transaction <b>หลังบรรทัดเช็ค return (~163)</b> ใช้ <code>sale</code> ที่ fetch ไว้แล้ว เพิ่ม
+        <pre>const tx = db.prepare(`SELECT original_printed FROM tax_invoices WHERE sale_id = ?`).get(id) as any
+if (tx?.original_printed === 1) throw new Error('บิลนี้ออกใบกำกับภาษีตัวจริงแล้ว ไม่สามารถยกเลิกได้')</pre>
+        (throw ใน transaction rollback สะอาด ไม่ mutate stock เพราะอยู่ก่อน loop คืนสต็อก).</div>
+        <div style="margin:4px 0">(d) handler ใหม่ + import <code>walkInCustomerId</code> จาก <code>'./codes'</code>:
+        <pre>ipcMain.handle('reports:updateSaleCustomer', (_e, p: { sale_id: number; customer_id: number }, override?: Override) => {
+  requireAdmin(_e, override)
   const db = getDb()
-  if (!p?.id || p.id === walkInCustomerId(db)) return false
-  // tax_id/branch = tax-doc fields → ตั้งได้เสมอ; address = fill-if-blank
-  db.prepare(`UPDATE customers SET
-      tax_id=@tax_id, branch=@branch,
-      address = CASE WHEN (address IS NULL OR address='') THEN @address ELSE address END,
-      updated_at=datetime('now','localtime')
-    WHERE id=@id`)
-    .run({ id: p.id, tax_id: p.tax_id ?? '', branch: p.branch ?? '', address: p.address ?? '' })
+  const sale = db.prepare(`SELECT id, status, sale_type FROM sales WHERE id = ?`).get(p?.sale_id) as any
+  if (!sale) throw new Error('ไม่พบรายการขาย')
+  if (sale.status === 'voided') throw new Error('บิลถูกยกเลิก แก้ไขลูกค้าไม่ได้')
+  if (sale.sale_type === 'return') throw new Error('บิลรับคืนสินค้า แก้ไขลูกค้าไม่ได้')
+  const tx = db.prepare(`SELECT original_printed FROM tax_invoices WHERE sale_id = ?`).get(p.sale_id) as any
+  if (tx?.original_printed === 1) throw new Error('บิลนี้ออกใบกำกับภาษีตัวจริงแล้ว แก้ไขลูกค้าไม่ได้')
+  if (!p?.customer_id || p.customer_id === walkInCustomerId(db))
+    throw new Error('กรุณาเลือกลูกค้า (ลูกค้าทั่วไปออกใบกำกับเต็มรูปไม่ได้)')
+  db.prepare(`UPDATE sales SET customer_id = @cid, customer_name_free = NULL, updated_at = datetime('now','localtime') WHERE id = @id`)
+    .run({ cid: p.customer_id, id: p.sale_id })
   return true
 })</pre>
-        expose ใน <code>preload.ts</code> people namespace: <code>updateCustomerTaxInfo: (p) =&gt; ipcRenderer.invoke('people:updateCustomerTaxInfo', p)</code>.
-        <span class="inv">คอลัมน์ระบุชัด (allow-list); กัน walk-in C0000; address fill-if-blank กันเขียนทับ.</span></div>
+        <span class="inv">allow-list (เขียนแค่ customer_id + เคลียร์ name_free); กัน walk-in; reject locked(original_printed=1)/voided/return. กรณีมี snapshot 0 (พิมพ์พลาด) ยังไม่ล็อก → reassign ได้, issueOrGet ทับ buyer รอบหน้า.</span></div>
+      </div>
 
-      <div class="step"><b>Step 7 — คงทางลัด Manage/Sales + SaleDetailDialog.</b>
-        2 call site: <code>Manage/Sales.tsx:516-521</code>, <code>SaleDetailDialog.tsx:353-358</code> — props ใหม่ optional ทั้งหมด → compile ผ่านไม่ต้องแก้.
-        (เสริมถ้าง่าย: ส่ง <code>customerId</code> จากแถวที่มี <code>customer_id</code> เพื่อให้บันทึกกลับทำงานจากทางลัดด้วย; ถ้าไม่มีลูกค้าผูก → null → skip write-back. v1 จะ ship แค่ flow รายงานก็ได้.)
-        ตรวจ gate <code>total_vat &gt; 0</code> คงอยู่ทั้ง 2 (Manage/Sales.tsx:447, SaleDetailDialog.tsx:133).</div>
+      <div class="step"><b>Step 2 — tax.ts (P0): เลื่อนการล็อกไปหลังพิมพ์สำเร็จ.</b>
+        <div style="margin:4px 0">(a) <code>issueOrGet</code> (~24): INSERT เปลี่ยน <code>original_printed</code> จาก <code>1</code> เป็น <code>0</code> (~57 ใน VALUES); UPDATE (~37) <span class="inv">ลบ <code>original_printed = 1,</code> ออก</span> (อัปเดตแค่ buyer fields — ไม่แตะ flag). <code>copy = !!existing && existing.original_printed === 1</code> คงเดิม (ถ้ายังไม่ confirm flag=0 → copy=false = ต้นฉบับ พิมพ์ซ้ำได้).</div>
+        <div style="margin:4px 0">(b) handler ใหม่:
+        <pre>ipcMain.handle('tax:confirmOriginalPrinted', (_e, saleId: number) => {
+  getDb().prepare(`UPDATE tax_invoices SET original_printed = 1, updated_at = datetime('now','localtime')
+    WHERE sale_id = ? AND original_printed = 0`).run(saleId)
+  return true
+})</pre>
+        <span class="inv">ตั้ง=1 เฉพาะที่ยัง 0 (idempotent). ล็อก = หลังพิมพ์สำเร็จจริงเท่านั้น. preview ใช้ transient ไม่แตะ DB อยู่แล้ว = ปลอดภัย.</span></div>
+      </div>
 
-      <div class="step"><b>Step 8 — verify.</b> ดูส่วน "การ verify".</div>
+      <div class="step"><b>Step 3 — preload.ts (+ .d.ts): expose ใหม่ + ลบเก่า.</b>
+        reports namespace เพิ่ม: <code>updateSaleCustomer: (p, override?) =&gt; ipcRenderer.invoke('reports:updateSaleCustomer', p, override)</code>.
+        tax namespace เพิ่ม: <code>confirmOriginalPrinted: (saleId) =&gt; ipcRenderer.invoke('tax:confirmOriginalPrinted', saleId)</code>.
+        <span class="tag t-skip">ลบ</span> <code>people.updateCustomerTaxInfo</code> ทั้งใน <code>preload.ts</code> และ <code>preload.d.ts</code>. d.ts signatures: <code>updateSaleCustomer: (p:{sale_id:number;customer_id:number}, override?:{userId:number;password:string}) =&gt; Promise&lt;any&gt;</code>, <code>confirmOriginalPrinted: (saleId:number) =&gt; Promise&lt;any&gt;</code>.</div>
+
+      <div class="step"><b>Step 4 — people.ts: ลบ handler updateCustomerTaxInfo.</b>
+        ลบทั้ง block (handler + คอมเมนต์ "Tax Invoice Flow Rework") ที่อยู่ก่อน <code>// --- SUPPLIERS ---</code>. (คง saveCustomer ที่มี <code>branch</code> ไว้.)</div>
+
+      <div class="step"><b>Step 5 — TaxInvoiceBuyerDialog.tsx: rework เป็น read-only.</b>
+        props ใหม่: <code>{ open, onOpenChange, saleId, sale, buyer?: { name?; address?; taxId?; branch? }, onIssued? }</code> — <span class="inv">ถอด customerId/customerPrefill/picker/write-back + ลบ import ที่เลิกใช้: CustomerSearchDialog, Users, Textarea (ที่อยู่เป็น read-only display แล้ว). คง getCurrentUserId (issueOrGet ยังใช้ issued_by).</span>
+        useEffect: <code>tax.get(saleId)</code> → ถ้ามี rec ใช้ buyer จาก snapshot + <code>alreadyOriginal = rec.original_printed === 1</code>; ถ้าไม่มี ใช้ <code>buyer</code> (จากลูกค้าบิล) + alreadyOriginal=false.
+        แสดง buyer แบบ <b>read-only</b> (<code>&lt;FormField&gt;</code> + ข้อความ หรือ <code>&lt;Input disabled&gt;</code> — ไม่มี onChange). <span class="inv">เก็บ resolved buyer ไว้ใน state (name/address/taxId/branch) ที่ set จาก rec snapshot (ถ้ามี) ไม่งั้นจาก <code>buyer</code> prop — <code>handlePreview</code>/<code>handlePrint</code>/<code>validate()</code> อ่านจาก state ชุดนี้ (ไม่ใช่ editable state ที่ถอดออก).</span> ถ้า <code>!name.trim() || !address.trim()</code> → โชว์ warnbox "บิลนี้ยังไม่มีลูกค้า/ข้อมูลไม่ครบ กรุณาแก้ไขรายชื่อลูกค้าของบิลก่อน" + <b>disable ทั้งปุ่มดูตัวอย่างและพิมพ์</b>.
+        <code>handlePrint</code>: issueOrGet → printTaxInvoice → <span class="inv"><code>if (res.success) { if (!copy) await window.api.tax.confirmOriginalPrinted(saleId); onIssued?.(); onOpenChange(false) }</code> — confirm ต้องอยู่ <b>ใน branch res.success เท่านั้น</b> (ถ้าพิมพ์ fail ห้าม confirm — กัน P0 กลับมา).</span> <code>handlePreview</code> สร้าง transient จาก resolved buyer (ไม่แตะ DB = ไม่ล็อก).
+        <span class="inv">คง modal contract. validate(): name+address required, taxId 13 หลักถ้ามี. saleId คง type <code>number | null</code>. caller เดียวที่เหลือ = SaleDetailDialog (Manage/Sales + VatReport เลิกเรียกตรง).</span></div>
+
+      <div class="step"><b>Step 6 — SaleDetailDialog.tsx: VAT breakdown + ปุ่ม + reassign flow + onChanged.</b> อ่าน <code>docs/claude/ui-theming.md</code> + <code>ui-table-card.md</code> ก่อน.
+        <div style="margin:4px 0">(a) prop ใหม่ <code>onChanged?: () =&gt; void</code>. import: <code>useManagerOverride</code>, <code>CustomerSearchDialog</code>. state: <code>reassignOpen</code>. <code>const ov = useManagerOverride()</code> (ให้ทั้ง run/dialog/isAdmin).</div>
+        <div style="margin:4px 0">(b) ขยาย <code>SaleDetail</code> interface: <code>customer_id_card?: string; customer_address?: string; customer_branch?: string; tax_original_printed?: number | null</code>. <code>const locked = detail.tax_original_printed === 1</code>. <code>const taxEligible = vatEnabled && detail.total_vat &gt; 0 && detail.status !== 'voided' && detail.sale_type !== 'return'</code>.</div>
+        <div style="margin:4px 0">(c) <b>VAT breakdown</b>: ใต้ตาราง items เพิ่มกล่องสรุปชิดขวา (เฉพาะ <code>detail.total_vat &gt; 0</code>): มูลค่าสินค้า=<code>subtotal</code>, ส่วนลด=<code>-total_discount</code>, มูลค่าก่อนภาษี=<code>total_amount - total_vat</code>, ภาษีมูลค่าเพิ่ม=<code>total_vat</code>, รวมสุทธิ=<code>total_amount</code> (เน้น). ใช้ semantic token, ไม่มี emoji. (tfoot ต้นทุน/กำไรเดิมคงไว้.)</div>
+        <div style="margin:4px 0">(d) <b>ปุ่ม</b>: <span class="inv">ลบ header print Popover ทั้งบล็อก (~120-139) ทิ้งทั้งอัน</span> — ย้ายทุกปุ่มลง footer. footer (เรียง):
+          ซ้าย(mr-auto): "แก้ไขรายชื่อลูกค้า" (<code>variant="elevated"</code>, แสดงเมื่อ <code>taxEligible && !locked</code>) ; "ยกเลิกบิล" (<code>variant="destructive"</code>, แสดงเมื่อ <code>onVoidRequest && status!=='voided' && sale_type!=='return'</code>, <code>disabled={locked}</code>).
+          ขวา: "พิมพ์ใบเสร็จ" (<code>variant="elevated"</code>, <code>onClick={()=&gt;reprintReceipt(detail)}</code>) ; ปุ่มใบกำกับ (เมื่อ <code>taxEligible</code>) = <code>variant="default"</code> ข้อความ <code>{locked ? 'พิมพ์สำเนาใบกำกับ' : 'ออกใบกำกับภาษี'}</code> → <code>setTaxOpen(true)</code> ; "ปิด" (<code>variant="elevated"</code>).</div>
+        <div style="margin:4px 0">(e) <b>ยกเลิกบิลตอนล็อก:</b> ปุ่ม <code>disabled={locked}</code> เป็น <code>&lt;Button&gt;</code> จริง (ไม่ใช่ raw button ใน popover) → ใช้ prop <code>tooltip</code> ไม่ได้บน disabled (pointer-events-none). วิธีโชว์เหตุผล: เมื่อ <code>locked</code> แสดงข้อความ helper ใต้/ข้างปุ่มเป็น <code>text-xs text-muted-foreground</code> "ออกใบกำกับตัวจริงแล้ว — ยกเลิก/แก้ลูกค้าไม่ได้" (มองเห็นเสมอ ไม่พึ่ง hover).</div>
+        <div style="margin:4px 0">(f) <b>แก้ลูกค้า onClick</b>: <code>setReassignOpen(true)</code>. render <code>&lt;CustomerSearchDialog open={reassignOpen} onOpenChange={setReassignOpen} showWalkIn={false} onSelect={c =&gt; { if(c) ov.run(async (o)=&gt;{ await window.api.reports.updateSaleCustomer({sale_id: detail.id, customer_id: c.id}, o) }, { title:'แก้ไขลูกค้าของบิล', onDone:()=&gt;{ toast ok; fetchDetail(detail.invoice_no); onChanged?.() }, onError:(e)=&gt; toast error }) }} /&gt;</code>. render <code>{ov.dialog}</code>.</div>
+        <div style="margin:4px 0">(g) <b>tax dialog render</b>: ส่ง <code>buyer={{ name: detail.customer_name ?? '', address: detail.customer_address ?? '', taxId: detail.customer_id_card ?? '', branch: detail.customer_branch ?? '' }}</code>, <code>onIssued={()=&gt;{ fetchDetail(detail.invoice_no); onChanged?.() }}</code>. (ถอด customerPrefill เดิม.)</div>
+        <span class="inv">walk-in: customer_id_card/address ว่าง → tax dialog block เอง. fetchDetail(detail.invoice_no) ใช้ refetch หลัง reassign/issue.</span></div>
+
+      <div class="step"><b>Step 7 — Manage/Sales.tsx: ลด kebab + disable void เมื่อล็อก + ถอด tax flow.</b>
+        SaleRow type เพิ่ม <code>tax_locked?: number</code>.
+        kebab: <span class="inv">ลบ item "ใบกำกับภาษี" (~447-452)</span> + ลบ <code>openTaxInvoice</code> (~155), <code>taxTarget</code> state (~137), <code>&lt;TaxInvoiceBuyerDialog&gt;</code> render (~516-522). <span class="inv">ลบ import ที่กลายเป็น unused: <code>TaxInvoiceBuyerDialog</code>, <code>SaleForPrint</code> (เหลือใช้แค่ taxTarget), และ <code>useShopVat</code>/<code>vatEnabled</code> (ใช้แค่บล็อก tax ที่ลบ). คง <code>saleDetailToPrint</code> (reprintReceipt ยังใช้), คง <code>FileText</code> ถ้ายังอ้างที่อื่น ไม่งั้นลบ.</span>
+        void item (~453): บิลที่ <code>s.tax_locked</code> → render ปุ่มแบบ muted + ข้อความในเมนู "(ออกใบกำกับแล้ว — ยกเลิกไม่ได้)" และ <code>onClick</code> ยิง <code>toast</code> อธิบาย (ไม่ทำ void). <span class="inv">อย่าใช้ disabled+title บน &lt;button&gt; ใน popover — pointer-events-none ฆ่า hover ทำให้ไม่เห็นเหตุผล (P1 จาก audit).</span>
+        ส่ง <code>onChanged={() =&gt; load(page)}</code> ให้ <code>&lt;SaleDetailDialog&gt;</code> (~499).</div>
+
+      <div class="step"><b>Step 8 — VatReport.tsx: ปุ่ม row เปิด SaleDetailDialog.</b>
+        แทน state <code>taxTarget</code> ด้วย <code>detailInvoice: string | null</code>; <code>openTax</code> → <code>setDetailInvoice(r.invoice_no)</code> (ไม่ต้อง getSaleByInvoice/saleDetailToPrint ที่นี่แล้ว — SaleDetailDialog fetch เอง).
+        ปุ่ม cell คงไอคอน <code>FileText</code>/<code>Copy</code> ตาม <code>tax_invoice_issued</code> (tooltip "เปิดบิล/ใบกำกับภาษี"); import <code>SaleDetailDialog</code>, <span class="inv">ลบ import <code>TaxInvoiceBuyerDialog</code>/<code>saleDetailToPrint</code>/<code>SaleForPrint</code> ถ้าไม่ใช้แล้ว.</span>
+        render <code>&lt;SaleDetailDialog open={!!detailInvoice} onOpenChange={v=&gt;{if(!v)setDetailInvoice(null)}} invoiceNo={detailInvoice} onChanged={load} /&gt;</code> (ไม่ส่ง onVoidRequest → ปุ่มยกเลิกไม่โผล่ในบริบทรายงาน).</div>
+
+      <div class="step"><b>Step 9 — verify.</b> ดูส่วน "การ verify".</div>
     </ol>
 
     <h3>การ verify</h3>
     <ul>
-      <li><code>npx tsc --noEmit</code> PASS</li>
-      <li>(a) /reports/vat โชว์คอลัมน์ action — FileText/tooltip "ออกใบกำกับ" บิลยังไม่ออก, Copy/"พิมพ์สำเนา" บิลออกแล้ว</li>
-      <li>(b) picker prefill ครบ 4 ช่อง</li>
-      <li>(c) เลือกลูกค้าที่ยังไม่มี tax_id → กรอก → พิมพ์ (ต้นฉบับ) → เปิดฟอร์มลูกค้าคนนั้นเห็น tax_id ถูกบันทึก</li>
-      <li>(d) ออกใบแล้วไอคอนสลับเป็น Copy + ตารางรีโหลด</li>
-      <li>(e) บิล NO-VAT ไม่โผล่ (sales_rows filter total_vat&gt;0); return ก็ไม่โผล่ (return เขียน total_vat=0 + tax:issueOrGet reject sale_type='return')</li>
-      <li>(f) ทางลัด Manage/Sales + SaleDetail ยังพิมพ์ได้</li>
-      <li>(g) พิมพ์สำเนา (copy) ที่แก้ address → address master ลูกค้าไม่เปลี่ยน (write-back skip บน copy)</li>
+      <li><code>npx tsc --noEmit</code> PASS (ยกเว้น error เดิม <code>Theme/index.tsx:1562</code>)</li>
+      <li>(a) Manage/Sales kebab เหลือ 3 รายการ; เปิด SaleDetailDialog เห็นยอดแยก VAT ถูก (มูลค่าก่อนภาษี+VAT+รวมสุทธิ ตรงกับ total_amount/total_vat)</li>
+      <li>(b) บิล VAT ยังไม่ออก: ปุ่ม "ออกใบกำกับภาษี" + "แก้ไขรายชื่อลูกค้า" โผล่; กล่องพิมพ์ read-only ดึงลูกค้าบิลถูก</li>
+      <li>(c) บิล walk-in / ลูกค้าไม่มีที่อยู่: กล่องพิมพ์ขึ้น warnbox + ปุ่มพิมพ์ disable; กด "แก้ไขรายชื่อลูกค้า" reassign แล้วพิมพ์ได้</li>
+      <li>(d) พิมพ์ "ต้นฉบับ" สำเร็จ → ปิด-เปิดบิลใหม่: "แก้ไขรายชื่อลูกค้า" หาย, ปุ่มเป็น "พิมพ์สำเนาใบกำกับ", "ยกเลิกบิล" disable + helper text; ตาราง Manage/Sales kebab "ยกเลิกบิล" muted + toast เหตุผล</li>
+      <li>(e) <b>(P0)</b> เปิด dialog พิมพ์ใบกำกับแล้ว "ยกเลิก" print (ไม่พิมพ์จริง) → บิล <b>ยังไม่ล็อก</b> (confirmOriginalPrinted ไม่ถูกเรียก) ยกเลิก/แก้ลูกค้าได้ปกติ; พิมพ์ใหม่ยังเป็น "ต้นฉบับ"</li>
+      <li>(f) backend จริง: เรียก voidSale/updateSaleCustomer บนบิลที่ล็อก → throw (ยืนยันชั้น 2)</li>
+      <li>(g) staff (ไม่ใช่ admin) กด "แก้ไขรายชื่อลูกค้า" → ManagerOverrideDialog เด้ง; ใส่รหัส admin ผ่าน → reassign สำเร็จ</li>
+      <li>(h) /reports/vat กดปุ่ม row → เปิด SaleDetailDialog ของบิลนั้น (ไม่เปิด tax modal ตรง)</li>
+      <li>(i) บิล NO-VAT (total_vat=0) / return: ไม่มีปุ่มใบกำกับ/แก้ลูกค้า</li>
+      <li>(j) deeplink เดิม: EditProduct/EditBundle → ความเคลื่อนไหว → ดูรายละเอียด เปิด SaleDetailDialog ได้ (ไม่ส่ง onVoidRequest → ไม่มีปุ่มยกเลิก) ไม่ error</li>
     </ul>
 
     <h3>จุดเสี่ยง + วิธีกัน</h3>
     <ul>
-      <li>Allow-list payload → handler ใหม่ใช้คอลัมน์ระบุชัด; saveCustomer dynamic UPDATE ปลอดภัยเพราะ form คุม key</li>
-      <li>Migration idempotency → ALTER ADD COLUMN ใน guarded try/catch loop (:1210)</li>
-      <li>Walk-in C0000 → picker showWalkIn=false + pos:searchCustomers กรอง code!=C0000 + handler กัน walkInCustomerId</li>
-      <li>Data corruption (write-back) → เฉพาะ !copy, tax_id/branch always, address fill-if-blank, best-effort ไม่ block</li>
-      <li>tax_invoices.doc_no reuse RC- invoice_no — ไม่แตะ; buyer snapshot ยังเป็นบันทึกตามกฎหมายบนใบ ส่วน write-back เป็นแค่ความสะดวก</li>
-      <li>Backward compat → คอลัมน์ใหม่ nullable, type optional, tax_invoices/customers เดิม render ได้</li>
+      <li>Allow-list → updateSaleCustomer เขียนแค่ customer_id + เคลียร์ name_free, ระบุชัด</li>
+      <li>Walk-in C0000 → picker showWalkIn=false + handler reject walkInCustomerId; reassign ไม่เคยเขียน NULL</li>
+      <li>ล็อก bypass → บังคับ backend ทั้ง voidSale + updateSaleCustomer (UI disable เป็นชั้นเสริม)</li>
+      <li>สำเนา re-pull ผิด → เมื่อมี tax_invoices แล้ว buyer มาจาก snapshot (tax.get) ไม่ใช่ลูกค้า ปัจจุบัน</li>
+      <li>Backward compat → flags ใหม่ additive/nullable; บิลเก่า/tax_invoices เดิม render ได้</li>
+      <li>fetchDetail หลัง reassign/issue → ต้อง refetch เพื่อให้ locked/ลูกค้าอัปเดตในจอ + onChanged ให้ list host รีโหลด</li>
     </ul>
   </div>
 
-  <footer>สร้างโดย /write-plan · 2026-06-12</footer>
+  <footer>สร้างโดย /write-plan · rework v2 · 2026-06-12</footer>
 
 </div>
 </body>

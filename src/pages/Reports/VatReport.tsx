@@ -2,23 +2,33 @@ import { useCallback, useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { MultiDatePicker, rangeForMultiMode, type MultiDateMode } from '@/components/ui/multi-date-picker'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { useToast } from '@/components/ui/toast'
+import { SaleDetailDialog } from '@/components/dialogs/SaleDetailDialog'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
 import type { ReportsOutletContext } from './index'
-import { ReceiptText, ShoppingCart, Landmark, Wallet, Info } from 'lucide-react'
+import { ReceiptText, ShoppingCart, Landmark, Wallet, Info, FileText, Copy } from 'lucide-react'
 
 // VAT report (ภาษีขาย / ภาษีซื้อ / ภ.พ.30) — VAT-registered shops only (the
 // tab itself is hidden for NO-VAT shops in Reports/index.tsx). Window defaults
 // to the current month — the natural ภ.พ.30 filing period.
 
 interface VatSaleRow {
+  sale_id: number
   invoice_no: string
   sold_at: string
   sale_type: string
   total_amount: number
   total_vat: number
+  customer_id?: number | null
+  customer_name?: string | null
+  customer_address?: string | null
+  customer_tax_id?: string | null
+  customer_branch?: string | null
+  customer_name_free?: string | null
+  tax_invoice_issued: number
 }
 
 interface VatPurchaseRow {
@@ -67,6 +77,9 @@ export default function VatReportPage() {
   const [dateTo, setDateTo] = useState(initial.to)
   const [data, setData] = useState<VatSummaryData | null>(null)
   const [loading, setLoading] = useState(true)
+  // Row click opens the shared SaleDetailDialog (it fetches its own detail and
+  // owns the tax-invoice flow); we only pass the invoice number.
+  const [detailInvoice, setDetailInvoice] = useState<string | null>(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -142,7 +155,8 @@ export default function VatReportPage() {
               <TableHead>ประเภท</TableHead>
               <TableHead className="text-right">มูลค่ารวม VAT</TableHead>
               <TableHead className="text-right">มูลค่าก่อนภาษี</TableHead>
-              <TableHead className="text-right pr-4">ภาษีขาย</TableHead>
+              <TableHead className="text-right">ภาษีขาย</TableHead>
+              <TableHead className="text-right pr-4">ใบกำกับภาษี</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -153,12 +167,19 @@ export default function VatReportPage() {
                 <TableCell className="text-sm">{SALE_TYPE_LABELS[r.sale_type] ?? r.sale_type}</TableCell>
                 <TableCell className="text-right">{formatCurrency(r.total_amount)}</TableCell>
                 <TableCell className="text-right text-muted-foreground">{formatCurrency(r.total_amount - r.total_vat)}</TableCell>
-                <TableCell className="text-right pr-4 font-semibold">{formatCurrency(r.total_vat)}</TableCell>
+                <TableCell className="text-right font-semibold">{formatCurrency(r.total_vat)}</TableCell>
+                <TableCell className="text-right pr-4">
+                  <Button size="icon-lg" variant="elevated"
+                    tooltip={r.tax_invoice_issued ? 'เปิดบิล / ใบกำกับภาษี' : 'เปิดบิล / ออกใบกำกับภาษี'}
+                    onClick={() => setDetailInvoice(r.invoice_no)}>
+                    {r.tax_invoice_issued ? <Copy /> : <FileText />}
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {!loading && (data?.sales_rows.length ?? 0) === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">ไม่มีบิลขายที่มี VAT ในช่วงที่เลือก</TableCell>
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">ไม่มีบิลขายที่มี VAT ในช่วงที่เลือก</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -257,6 +278,13 @@ export default function VatReportPage() {
           ภาษีซื้อนับเฉพาะบิลรับสินค้าที่ระบุ VAT และค่าใช้จ่ายที่มีใบกำกับภาษีเต็มรูปเท่านั้น
         </span>
       </div>
+
+      <SaleDetailDialog
+        open={!!detailInvoice}
+        onOpenChange={v => { if (!v) setDetailInvoice(null) }}
+        invoiceNo={detailInvoice}
+        onChanged={load}
+      />
     </div>
   )
 }

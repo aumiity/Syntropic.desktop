@@ -38,7 +38,7 @@ export function registerTaxHandlers() {
           UPDATE tax_invoices SET
             buyer_name = @buyer_name, buyer_address = @buyer_address,
             buyer_tax_id = @buyer_tax_id, buyer_branch = @buyer_branch,
-            original_printed = 1, updated_at = datetime('now','localtime')
+            updated_at = datetime('now','localtime')
           WHERE sale_id = @sale_id
         `).run({
           sale_id: sale.id,
@@ -50,7 +50,7 @@ export function registerTaxHandlers() {
       } else {
         db.prepare(`
           INSERT INTO tax_invoices (sale_id, doc_no, buyer_name, buyer_address, buyer_tax_id, buyer_branch, original_printed, issued_by)
-          VALUES (@sale_id, @doc_no, @buyer_name, @buyer_address, @buyer_tax_id, @buyer_branch, 1, @issued_by)
+          VALUES (@sale_id, @doc_no, @buyer_name, @buyer_address, @buyer_tax_id, @buyer_branch, 0, @issued_by)
         `).run({
           sale_id: sale.id,
           doc_no: sale.invoice_no,
@@ -65,5 +65,15 @@ export function registerTaxHandlers() {
       return { record, copy }
     })
     return issue()
+  })
+
+  // Lock the bill AFTER a successful "ต้นฉบับ" print — deferred from issueOrGet
+  // so a cancelled/failed print never permanently locks a bill (P0). Sets the
+  // flag only when it's still 0 (idempotent); a re-print of an already-locked
+  // bill is a สำเนา and never reaches here.
+  ipcMain.handle('tax:confirmOriginalPrinted', (_e, saleId: number) => {
+    getDb().prepare(`UPDATE tax_invoices SET original_printed = 1, updated_at = datetime('now','localtime')
+      WHERE sale_id = ? AND original_printed = 0`).run(saleId)
+    return true
   })
 }

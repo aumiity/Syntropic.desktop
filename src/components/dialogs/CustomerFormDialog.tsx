@@ -29,6 +29,7 @@ const submitOnEnter = (fn: () => void) => (e: React.KeyboardEvent) => {
 
 const blankForm = (defaultName = '') => ({
   full_name: defaultName, id_card: '', dob: '', phone: '', address: '',
+  branch: '',
   chronic_diseases: '', is_alert: 0, alert_note: '', is_disabled: 0,
 })
 
@@ -71,6 +72,7 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
           dob: data.dob ?? '',
           phone: data.phone ?? '',
           address: data.address ?? '',
+          branch: data.branch ?? '',
           chronic_diseases: data.chronic_diseases ?? '',
           is_alert: data.is_alert ?? 0,
           alert_note: data.alert_note ?? '',
@@ -119,12 +121,18 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
               <Input variant="elevated" value={form.phone ?? ''} onChange={e => setF('phone', e.target.value)} placeholder="08X-XXX-XXXX" />
             </div>
             <div className="space-y-1.5">
-              <Label>เลขบัตรประชาชน</Label>
-              <Input variant="elevated" value={form.id_card ?? ''} onChange={e => setF('id_card', e.target.value)} />
+              <Label>เลขบัตรประชาชน / เลขประจำตัวผู้เสียภาษี</Label>
+              <Input variant="elevated" inputMode="numeric" maxLength={13}
+                value={form.id_card ?? ''} onChange={e => setF('id_card', e.target.value.replace(/\D/g, ''))}
+                placeholder="13 หลัก" />
             </div>
             <div className="space-y-1.5">
               <Label>วันเกิด</Label>
               <DateInput variant="elevated" value={form.dob ?? ''} onChange={iso => setF('dob', iso)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>สาขา (สำหรับใบกำกับภาษี)</Label>
+              <Input variant="elevated" value={form.branch ?? ''} onChange={e => setF('branch', e.target.value)} placeholder="สำนักงานใหญ่" />
             </div>
             <div className="col-span-2 space-y-1.5">
               <Label>ที่อยู่</Label>
