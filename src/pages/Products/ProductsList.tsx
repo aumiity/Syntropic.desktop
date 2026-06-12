@@ -344,7 +344,7 @@ export default function ProductsList() {
                         <Button
                           size="icon-lg"
                           variant="elevated"
-                          title="แก้ไข"
+                          tooltip="แก้ไข"
                           onClick={() => navigate(`/products/${row.id}/edit`)}
                         >
                           <Edit />
@@ -352,7 +352,7 @@ export default function ProductsList() {
                         <Button
                           size="icon-lg"
                           variant="elevated"
-                          title="ปรับสต็อค"
+                          tooltip="ปรับสต็อค"
                           onClick={() => setAdjustTarget({
                             id: row.id,
                             trade_name: row.trade_name,
@@ -366,7 +366,7 @@ export default function ProductsList() {
                         <Button
                           size="icon-lg"
                           variant={isDisabled ? 'elevated-success-soft' : 'elevated-destructive-soft'}
-                          title={isDisabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                          tooltip={isDisabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                           onClick={() => setConfirmToggle(row)}
                         >
                           {isDisabled ? <RotateCcw /> : <Ban />}

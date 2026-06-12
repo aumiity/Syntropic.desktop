@@ -259,7 +259,7 @@ export default function BundlesList() {
                         <Button
                           size="icon-lg"
                           variant="elevated"
-                          title="แก้ไข"
+                          tooltip="แก้ไข"
                           onClick={() => navigate(`/products/bundles/${row.id}/edit`)}
                         >
                           <Edit />
@@ -267,7 +267,7 @@ export default function BundlesList() {
                         <Button
                           size="icon-lg"
                           variant={isDisabled ? 'elevated-success-soft' : 'elevated-destructive-soft'}
-                          title={isDisabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                          tooltip={isDisabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                           onClick={() => setConfirmToggle(row)}
                         >
                           {isDisabled ? <RotateCcw /> : <Ban />}

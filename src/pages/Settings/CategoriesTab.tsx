@@ -197,12 +197,12 @@ export function CategoriesTab() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-center gap-1.5">
-                        <Button size="icon-lg" variant="elevated" onClick={() => openEdit(c)} title="แก้ไข">
+                        <Button size="icon-lg" variant="elevated" onClick={() => openEdit(c)} tooltip="แก้ไข">
                           <Edit />
                         </Button>
                         <Button size="icon-lg" variant={c.is_disabled ? 'elevated-success-soft' : 'elevated-destructive-soft'} disabled={togglingId === c.id}
                           onClick={() => setConfirmToggle(c)}
-                          title={c.is_disabled ? 'เปิดใช้งาน' : 'พักการใช้งาน'}>
+                          tooltip={c.is_disabled ? 'เปิดใช้งาน' : 'พักการใช้งาน'}>
                           {c.is_disabled ? <RotateCcw /> : <Ban />}
                         </Button>
                       </div>

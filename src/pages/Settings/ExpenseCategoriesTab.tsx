@@ -186,12 +186,12 @@ export function ExpenseCategoriesTab() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-center gap-1.5">
-                        <Button size="icon-lg" variant="elevated" onClick={() => openEdit(c)} title="แก้ไข">
+                        <Button size="icon-lg" variant="elevated" onClick={() => openEdit(c)} tooltip="แก้ไข">
                           <Edit />
                         </Button>
                         <Button size="icon-lg" variant={c.is_active ? 'elevated-destructive-soft' : 'elevated-success-soft'} disabled={togglingId === c.id}
                           onClick={() => setConfirmToggle(c)}
-                          title={c.is_active ? 'พักการใช้งาน' : 'เปิดใช้งาน'}>
+                          tooltip={c.is_active ? 'พักการใช้งาน' : 'เปิดใช้งาน'}>
                           {c.is_active ? <Ban /> : <RotateCcw />}
                         </Button>
                       </div>

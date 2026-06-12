@@ -226,7 +226,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                       <Button
                         size="icon-lg"
                         variant="elevated"
-                        title="แก้ไข"
+                        tooltip="แก้ไข"
                         onClick={() => openEdit(c)}
                       >
                         <Edit />
@@ -234,7 +234,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                       <Button
                         size="icon-lg"
                         variant={c.is_disabled ? 'elevated-success-soft' : 'elevated-destructive-soft'}
-                        title={c.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                        tooltip={c.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                         onClick={() => setConfirmToggle(c)}
                       >
                         {c.is_disabled ? <RotateCcw /> : <Ban />}
@@ -466,7 +466,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                       <Button
                         size="icon-lg"
                         variant="elevated"
-                        title="แก้ไข"
+                        tooltip="แก้ไข"
                         onClick={() => openEdit(s)}
                       >
                         <Edit />
@@ -474,7 +474,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                       <Button
                         size="icon-lg"
                         variant={s.is_disabled ? 'elevated-success-soft' : 'elevated-destructive-soft'}
-                        title={s.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                        tooltip={s.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                         onClick={() => setConfirmToggle(s)}
                       >
                         {s.is_disabled ? <RotateCcw /> : <Ban />}
@@ -787,7 +787,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                       <Button
                         size="icon-lg"
                         variant="elevated"
-                        title="แก้ไข"
+                        tooltip="แก้ไข"
                         onClick={() => openEdit(u)}
                       >
                         <Edit />
@@ -795,7 +795,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                       <Button
                         size="icon-lg"
                         variant="elevated"
-                        title="เปลี่ยนรหัสผ่าน"
+                        tooltip="เปลี่ยนรหัสผ่าน"
                         onClick={() => setPwTarget(u)}
                       >
                         <KeyRound />
@@ -803,7 +803,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                       <Button
                         size="icon-lg"
                         variant={u.is_disabled ? 'elevated-success-soft' : 'elevated-destructive-soft'}
-                        title={u.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                        tooltip={u.is_disabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                         onClick={() => setConfirmToggle(u)}
                       >
                         {u.is_disabled ? <RotateCcw /> : <Ban />}

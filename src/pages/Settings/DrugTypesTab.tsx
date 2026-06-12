@@ -148,12 +148,12 @@ export function DrugTypesTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-center gap-1.5">
-                      <Button size="icon-lg" variant="elevated" onClick={() => openEdit(d)} title="แก้ไข">
+                      <Button size="icon-lg" variant="elevated" onClick={() => openEdit(d)} tooltip="แก้ไข">
                         <Edit />
                       </Button>
                       <Button size="icon-lg" variant={d.is_disabled ? 'elevated-success-soft' : 'elevated-destructive-soft'} disabled={togglingId === d.id}
                         onClick={() => setConfirmToggle(d)}
-                        title={d.is_disabled ? 'เปิดใช้งาน' : 'พักการใช้งาน'}>
+                        tooltip={d.is_disabled ? 'เปิดใช้งาน' : 'พักการใช้งาน'}>
                         {d.is_disabled ? <RotateCcw /> : <Ban />}
                       </Button>
                     </div>
