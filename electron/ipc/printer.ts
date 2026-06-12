@@ -7,6 +7,23 @@ import path from 'path'
 const ESC = 0x1b
 const GS = 0x1d
 
+// Virtual "Print to PDF" printer sentinel. When the chosen printer_name equals
+// this, the print handlers (printer:printHtml / printer:printLabel) export the
+// HTML to a true paper-size PDF + open it in the OS viewer instead of spooling
+// to a physical device. MUST match PRINT_TO_PDF_VALUE in
+// src/lib/print/pdfPrinter.ts (renderer + main are built separately).
+const PRINT_TO_PDF = '__print_to_pdf__'
+
+// Write a rendered PDF buffer to a temp file and open it in the OS default
+// viewer. Shared by the PDF branch of printHtml / printLabel.
+async function savePdfAndOpen(pdf: Buffer, namePrefix: string) {
+  const file = path.join(app.getPath('temp'), `${namePrefix}-${Date.now()}.pdf`)
+  await fs.writeFile(file, pdf)
+  const err = await shell.openPath(file)
+  if (err) return { success: false, error: err }
+  return { success: true, path: file }
+}
+
 function buildReceipt(data: {
   shopName: string
   shopAddress?: string
@@ -175,6 +192,17 @@ export function registerPrinterHandlers() {
           if (window.__labelFitReady) { try { await window.__labelFitReady } catch {} }
         })()
       `)
+      // Virtual "Print to PDF" printer: export the same label HTML to a PDF and
+      // open it instead of spooling to a device (mirrors previewLabelPdf).
+      if (args.printerName === PRINT_TO_PDF) {
+        const pdf = await w.webContents.printToPDF({
+          printBackground: true,
+          preferCSSPageSize: true,
+          pageSize: { width: Math.round(args.paperWidthMm * 1000), height: Math.round(args.paperHeightMm * 1000) },
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        })
+        return await savePdfAndOpen(pdf, 'label')
+      }
       await new Promise<void>((resolve, reject) => {
         w.webContents.print({
           silent: true,
@@ -265,6 +293,18 @@ export function registerPrinterHandlers() {
         ? await measureContentHeightMm(w.webContents)
         : args.heightMm
       if (!(heightMm > 0)) return { success: false, error: 'invalid paper height' }
+
+      // Virtual "Print to PDF" printer: export to a PDF + open it instead of
+      // spooling (copies are irrelevant for a single exported file).
+      if (args.printerName === PRINT_TO_PDF) {
+        const pdf = await w.webContents.printToPDF({
+          printBackground: true,
+          preferCSSPageSize: true,
+          pageSize: { width: Math.round(args.paperWidthMm * 1000), height: Math.round(heightMm * 1000) },
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        })
+        return await savePdfAndOpen(pdf, 'print')
+      }
 
       const copies = Math.max(1, Math.min(20, Math.floor(args.copies ?? 1)))
       for (let i = 0; i < copies; i++) {

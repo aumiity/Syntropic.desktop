@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<!-- write-plan output — Purchase AddProductWizard UI refine. Self-contained, opens offline. -->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ขัดเกลา UI modal เพิ่มสินค้า (AddProductWizard) — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  /* Section B — โซน Claude ทำงาน */
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>ขัดเกลา UI โมดัล "เพิ่มสินค้า" (AddProductWizard)</h1>
+    <p>คง flow 4 ขั้นแบบ timeline เดิมไว้ทั้งหมด แต่ลดความ "อ้วน" จัดวางใหม่ให้กระชับ ตรงกฎ UI ของเรา ปรับจังหวะความสูง input ให้สม่ำเสมอ และทำให้ข้อมูล/การกรอกชัด-เร็วขึ้น</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ (ไม่มี P0)</span>
+      <span class="pill">ขอบเขต: AddProductWizard.tsx ไฟล์เดียว</span>
+      <span class="pill">styling-only · ไม่แตะ logic/IPC</span>
+      <span class="pill">2026-06-12</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><b>ปัญหา:</b> โมดัลเพิ่มสินค้า (ไฟล์ <code>src/pages/Purchase/AddProductWizard.tsx</code>) ทำงานครบดี แต่หน้าตา "อ้วน" และจัดวางยังไม่ลงตัว — กรอบใหญ่ <code>4xl × h-[600px]</code> ขณะที่บางขั้น (เช่นขั้น 2 มีแค่ Lot กับวันหมดอายุ) เหลือพื้นที่ว่างเยอะ, ตัวเลขความสูง input ปนกันไปหมด (<code>h-10 / h-11 / h-14</code>), แต่ละขั้นพิมพ์ "ขั้นที่ N" ซ้ำกับ timeline rail ที่บอกอยู่แล้ว, และช่องราคาขายขั้น 4 ปั้น border/เงา/ring เองด้วย className ดิบแทนที่จะใช้สไตล์มาตรฐาน (ผิดกฎ ELEVATED).</p>
+    <p><b>แผนนี้แก้:</b> คงโครง 4 ขั้นเดิม แต่ (1) สลิม timeline rail + โชว์ไอคอนประจำขั้น, (2) ตัดหัวข้อ "ขั้นที่ N" ที่ซ้ำออก เหลือหัวข้อเดียวต่อขั้น, (3) ตั้งจังหวะความสูง input ใหม่ให้สม่ำเสมอ, (4) ลบ className ดิบของช่องราคา ให้ใช้ ELEVATED default, (5) บีบ padding/กรอบให้กระชับ. <b>ไม่แตะ logic, state, การคำนวณ, IPC, หรือ payload ที่ส่งออกเลย</b> — แก้แค่ JSX กับ className.</p>
+    <p><b>เสร็จแล้วได้:</b> โมดัลที่ดูทันสมัย กระชับ ไม่โล่ง ตรงกฎ UI, จังหวะ input สม่ำเสมอ, ข้อมูลในแต่ละขั้นชัดขึ้น และตา flow เดิมที่ผู้ใช้คุ้นอยู่แล้ว.</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง 4 ขั้น (คงเดิม — ขัดเกลาหน้าตา)</h2>
+  <div class="card">
+    <div class="diagram"><div class="flow">
+      <div class="node">ขั้น 1 · เลือกสินค้า<small>ShoppingBag · ค้น/ยิงบาร์โค้ด</small></div>
+      <div class="ar">▶</div>
+      <div class="node">ขั้น 2 · Lot &amp; หมดอายุ<small>CalendarClock</small></div>
+      <div class="ar">▶</div>
+      <div class="node">ขั้น 3 · จำนวน &amp; ต้นทุน<small>Coins · lineMath</small></div>
+      <div class="ar">▶</div>
+      <div class="node">ขั้น 4 · ราคาขาย &amp; ยืนยัน<small>Tag · onConfirm</small></div>
+      <div class="ar">▶</div>
+      <div class="node data">GR table<small>rows ใน index.tsx</small></div>
+    </div></div>
+    <p style="font-size:13.5px;color:var(--muted);margin:6px 2px 0">ไอคอนประจำขั้น (<code>ShoppingBag/CalendarClock/Coins/Tag</code>) มีอยู่ใน <code>STEPS[]</code> แล้วแต่ยังไม่ถูกใช้ — แผนนี้จะดึงมันมาโชว์ในวงกลม rail ของขั้นที่กำลังทำ. ทั้ง 4 ขั้น, การคำนวณ <code>lineMath</code>, และ <code>onConfirm</code> ที่ยิงเข้า GR table — <b>ไม่เปลี่ยนพฤติกรรม</b>.</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>กรอบ <code>size="4xl" h-[600px]</code> — กว้าง/สูงเกิน ดูโล่ง</li>
+        <li>Rail กว้าง <code>w-60</code>, วงกลม <code>size-8</code>, padding <code>p-5</code> — เทอะทะ; ไอคอนประจำขั้นมีแต่ไม่ได้ใช้</li>
+        <li>แต่ละขั้นขึ้นต้นด้วย <code>ขั้นที่ N</code> + หัวข้อ <code>text-xl</code> — ซ้ำกับ rail</li>
+        <li>ความสูง input ปนกัน: ค้นหา <code>h-10</code>, Lot/วันที่ <code>h-11</code>, ตัวเลข <code>h-14 text-2xl</code></li>
+        <li>ช่องราคาขายขั้น 4 ปั้น <code>bg-card border shadow-sm focus:ring-2 ...</code> เองด้วย className ดิบ — ผิดกฎ ELEVATED</li>
+        <li>ปุ่ม footer <code>size="lg"</code></li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>กรอบ <code>size="3xl" h-[560px]</code> — กระชับ เต็มขึ้น (มี click-test gate เผื่อถอยกลับ 4xl)</li>
+        <li>Rail <code>w-52 p-4</code>, วงกลม <code>size-7</code> โชว์ไอคอนประจำขั้นที่ active (number=ค้าง, Check=เสร็จ)</li>
+        <li>ตัด <code>ขั้นที่ N</code> ที่ซ้ำออก เหลือหัวข้อเดียว <code>text-lg</code> ต่อขั้น (ขั้น 4 คงคำว่า "ขั้นสุดท้าย" แบบกระชับ)</li>
+        <li>จังหวะสม่ำเสมอ: ช่องข้อความ <code>h-10</code>, ช่องตัวเลขเด่น <code>h-12 text-xl</code></li>
+        <li>ช่องราคาขายใช้ ELEVATED default (className เหลือแค่ขนาด/ฟอนต์/<code>text-center</code>)</li>
+        <li>ปุ่ม footer คง <code>size="lg"</code> (ไม่เปลี่ยนเป็น xl — xl คือ <code>px-10</code> สำหรับปุ่มข้อความล้วน)</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>หน้าตากระชับ ทันสมัย ไม่โล่ง — ตรงกับที่พี่อยากได้</li>
+    <li>ตรงกฎ UI: ลบ className ดิบของ input, ใช้ semantic token, ใช้ ELEVATED default</li>
+    <li>จังหวะความสูง input สม่ำเสมอ อ่านง่ายขึ้น</li>
+    <li>ความเสี่ยงต่ำมาก — แก้แค่ JSX/className ไฟล์เดียว ไม่แตะ logic; มี backup <code>index.rowmode.bak.tsx</code> อยู่แล้ว</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>การแคบกรอบเหลือ 3xl ทำให้ขั้น 3 (กล่องตัวเลข 3 ช่อง) แคบลง — ต้อง click-test ยืนยันว่าไม่ตก/ไม่ล้น ก่อน commit (มี fallback กลับ 4xl)</li>
+    <li>ช่องราคาขัั้น 4 focus ring เปลี่ยนจาก teal 2px → ring-ring 1px (token มาตรฐานบ้าน) — เป็นการเปลี่ยน visual ที่ตั้งใจ</li>
+    <li>doc <code>ui-theming.md:141</code> ระบุ DateInput default = h-10/bg-input ซึ่ง stale (จริงคือ h-9/elevated) — ควรแก้ doc เป็น follow-up</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><b>Modal contract (HARD):</b> ห้ามแตะ <code>onClose</code>/handler ที่ทำให้คลิกนอกแล้วปิด — บังคับใน <code>dialog.tsx</code> อยู่แล้ว, แค่อย่าใส่ handler ใหม่ทับ. Enter เดินหน้า/ยืนยัน, Esc ปิด — ต้องยังทำงาน</li>
+    <li><b>Dialog height ต้อง fixed (HARD rule 5a):</b> คง <code>h-[560px]</code> ไว้ ห้ามปล่อย auto</li>
+    <li><b>ความสูง input h-10/h-12 เป็นข้อยกเว้นตั้งใจของ dialog form</b> (ไม่ใช่กฎ bar=h-12/control=h-9 ซึ่งใช้กับ table-card bar เท่านั้น) — อ้างอิงโมดัล price/bill-adjust บนหน้าเดียวกันที่ใช้ h-9/h-10/h-12 อยู่แล้ว</li>
+    <li>วงกลม rail เล็กลงเป็น size-7 — ต้องเลื่อนเส้นเชื่อม <code>left-[15px]→left-[13px]</code> และ <code>top-8→top-7</code> ให้ centre/flush</li>
+    <li>ห้ามใส่ emoji, ห้าม palette literal, ใช้ bracket syntax v3, ห้ามเล็กกว่า text-xs</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <p>โครงยังเป็น <b>timeline rail ซ้าย + แพเนลเนื้อหาขวา</b> ตาม <code>/theme</code> Modal Layout เดิม. การเปลี่ยนทั้งหมดเป็นเชิงสไตล์:</p>
+    <ul class="clean">
+      <li><b>Rail:</b> แคบลง วงกลมเล็กลง โชว์ไอคอน lucide ของขั้นที่ active — ให้ "อ่านสถานะ" ได้เร็วโดยไม่กินที่</li>
+      <li><b>หัวข้อแพเนล:</b> เหลือบรรทัดเดียว <code>text-lg font-bold</code> ต่อขั้น (title role ≥ text-base ตามกฎ); ขั้น 4 ยังบอก "ขั้นสุดท้าย"</li>
+      <li><b>Input:</b> ข้อความ <code>h-10</code>, ตัวเลขเด่น (จำนวน/ต้นทุน/รวม/ราคาขาย) <code>h-12 text-xl</code> ทุกช่องพึ่ง ELEVATED default (bg-card+border+shadow+ring) ไม่ปั้นเอง</li>
+      <li><b>ปุ่ม footer:</b> ย้อนกลับ = <code>elevated</code> (secondary), ถัดไป = <code>default</code> (primary teal), ยืนยัน = <code>success</code> (เขียว สื่อจบงาน) — คง <code>size="lg"</code></li>
+      <li><b>สี:</b> semantic token ล้วน (<code>primary</code>/<code>primary-soft</code>/<code>success</code>/<code>destructive</code>/<code>foreground-subtle</code>...); chip หน่วยที่เลือก = <code>primary-soft</code> + <code>ring-1 ring-primary</code></li>
+      <li><b>ภาษาไทยทั้งหมด</b> น้ำเสียงเดิม; ไม่มี emoji, ใช้ lucide icon</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>footer เปลี่ยนเป็น <code>size="xl"</code> ไม่เหมาะ — xl = <code>px-10</code> ไว้ปุ่มข้อความล้วน แต่ปุ่ม wizard มีไอคอน+ข้อความยาว</td><td>P1</td><td>ยกเลิก — คง <code>size="lg"</code> (h-9) ตาม footer ปุ่มเดิม + header buttons ของหน้า</td></tr>
+        <tr><td>1</td><td>อ้าง DateInput default = h-10 ผิด — จริงคือ h-9 (<code>date-input.tsx:66</code>)</td><td>P1</td><td>ส่ง <code>className="h-10"</code> ให้ DateInput เอง ให้ตรงกับ Lot field ที่ข้าง ๆ</td></tr>
+        <tr><td>1</td><td>เลื่อนเส้นเชื่อม rail แค่ <code>left</code> ลืม <code>top</code></td><td>P2</td><td>เพิ่ม <code>top-8→top-7</code> ใน S3</td></tr>
+        <tr><td>1</td><td>PriceInput focus ring จะเปลี่ยนเป็น 1px ring-ring</td><td>P2</td><td>ระบุชัดว่าเป็นการเปลี่ยน visual ที่ตั้งใจ (token มาตรฐานบ้าน)</td></tr>
+        <tr><td>1</td><td>ProductSearchDialog จะกระทบจาก 3xl?</td><td>P2</td><td>ตรวจแล้ว — เป็น sibling Dialog ไม่มี <code>size=</code> (default sm) ไม่กระทบ; ระบุไว้ใน S1</td></tr>
+        <tr><td>2</td><td>"ขั้นสุดท้าย" ไม่ใช่ของใหม่ — มีอยู่ใน eyebrow ขั้น 4 แล้ว (<code>:581</code>)</td><td>P2</td><td>reword เป็น "ดึง <code>· ขั้นสุดท้าย</code> ออกมาจาก eyebrow เดิม" ไม่ใช่เพิ่ม</td></tr>
+        <tr><td>2</td><td>h-10/h-12 ไม่ตรงกฎ control=h-9</td><td>P1</td><td>ระบุชัดว่าเป็นข้อยกเว้นตั้งใจของ dialog form (กฎ h-9 ใช้กับ table-card bar) อ้างโมดัล price/bill-adjust หน้าเดียวกัน</td></tr>
+        <tr><td>2</td><td>3xl บีบ layout 2 คอลัมน์ + 3 กล่อง — เสี่ยงสุด</td><td>P1</td><td>step-3 ใช้ <code>gap-3</code>; เพิ่ม click-test gate ยืนยันไม่ตก/ล้น ก่อน commit + fallback กลับ 4xl</td></tr>
+        <tr><td>2</td><td>คำนวณความกว้างกล่องผิด (185 → จริง ~157px)</td><td>P2</td><td>แก้ตัวเลขใน risk note</td></tr>
+        <tr><td>2</td><td>PriceInput className ต้องคง <code>w-full</code> + <code>text-center</code> (ทับ <code>text-right</code> ที่ baked มา)</td><td>P2</td><td>ระบุให้คง 2 คลาสนี้ และวาง <code>text-center</code> ท้าย</td></tr>
+        <tr><td>2</td><td>railSub / /theme showcase ต้องแตะไหม</td><td>P2</td><td>ไม่ — <code>railSub</code> อิสระ คงเดิม; ไม่เปลี่ยน primitive ใดเลย จึงไม่ต้องอัป showcase; ระบุไว้</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">7</span> โมดัลอื่นบนหน้ารับสินค้า — จุดที่ควรแก้ (ไว้โน้ต ทำภายหลัง)</h2>
+  <div class="card">
+    <p style="margin-top:0;font-size:13.5px;color:var(--muted)">พี่ขอให้ list ไว้ — รอบนี้ <b>ไม่แก้</b> แค่บันทึก. ทั้งหมดอยู่ใน <code>src/pages/Purchase/index.tsx</code></p>
+    <table>
+      <thead><tr><th>โมดัล</th><th>จุดที่ควรแก้</th><th>อ้างอิง</th></tr></thead>
+      <tbody>
+        <tr><td>แก้ราคาขาย (Sell-price)</td><td><span class="tag t-skip">ผิดกฎ</span> <code>PriceInput</code> ปั้น chrome เองด้วย className ดิบ (<code>bg-card border ... focus:ring-2 ...</code>) — เหมือนที่เพิ่งแก้ใน wizard ควรใช้ ELEVATED default</td><td><code>index.tsx:1151</code></td></tr>
+        <tr><td>แก้ราคาขาย</td><td><span class="tag t-opt">สไตล์</span> <code>DialogTitle className="text-2xl"</code> — default คือ text-xl; override ไม่จำเป็น ทำให้ไม่สม่ำเสมอ</td><td><code>index.tsx:1136</code></td></tr>
+        <tr><td>ปรับยอดท้ายบิล</td><td><span class="tag t-skip">dead code</span> <code>variant={active ? (isDisc ? 'default' : 'default') : 'outline'}</code> — ternary ซ้อนที่สองทางคืน 'default' เท่ากัน ควรตัดให้เหลือ <code>active ? 'default' : 'outline'</code></td><td><code>index.tsx:1327</code></td></tr>
+        <tr><td>ปรับยอดท้ายบิล</td><td><span class="tag t-opt">สไตล์</span> Tabs ส่วนลด/ส่วนเพิ่ม ใช้ default variant — อาจใช้ <code>toggle</code>/<code>segmented</code> ให้เป็น 2-choice ที่ชัดขึ้น; ปุ่ม % ใช้ <code>size="sm"</code> แล้ว override <code>h-8</code> (sm จริง = h-6)</td><td><code>index.tsx:1311-1340</code></td></tr>
+        <tr><td>นำเข้าข้อมูล (Import)</td><td><span class="tag t-opt">สไตล์</span> ปุ่ม <code>+</code>/<code>−</code> ใช้ตัวอักษรดิบแทน lucide (<code>Plus</code>/<code>Minus className="size-4"</code>)</td><td><code>index.tsx:1482-1495</code></td></tr>
+        <tr><td>หน้า (sidebar) — ไม่ใช่ modal</td><td><span class="tag t-opt">token</span> ปุ่ม "บันทึก"/"ล้างฟอร์ม" ใช้ <code>rounded-xl</code> literal — ควรใช้ token <code>rounded-lg</code>/<code>rounded-control</code>; label ฟอร์มหัวบิลใช้ <code>text-base</code> (label role = text-sm)</td><td><code>index.tsx:1087,1094,712</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done (เช็กได้)</h3>
+    <ul>
+      <li>PriceInput ขั้น 4 (<code>~:591</code>) ไม่มี chrome ดิบ (<code>bg-card border border-border rounded-control shadow-sm focus:ring-2 focus:ring-primary outline-none px-3</code>) อีก — เหลือ className = <code>w-full h-12 text-xl font-extrabold text-primary text-center</code> (พึ่ง ELEVATED Input default). <span class="inv">text-center ต้องอยู่ท้าย เพื่อทับ text-right ที่ price-input.tsx:34 baked มา</span></li>
+      <li>ทุกขั้นไม่มี eyebrow <code>&lt;p&gt;ขั้นที่ N&lt;/p&gt;</code> ซ้ำกับ rail; เหลือหัวข้อเดียว <code>text-lg font-bold</code> ต่อขั้น; ขั้น 4 ยังมี "ขั้นสุดท้าย" แบบ caption</li>
+      <li>จังหวะความสูง: ช่องข้อความ = h-10, ช่องตัวเลขเด่น = h-12; ไม่มี h-11/h-14 หลงเหลือ</li>
+      <li>Rail: <code>w-52 p-4</code>, วงกลม <code>size-7</code> โชว์ไอคอน active / number pending / Check done; เส้นเชื่อม centre+flush</li>
+      <li>ปุ่ม footer คง <code>size="lg"</code></li>
+      <li><code>npx tsc --noEmit</code> PASS; click-test เพิ่ม+แก้ไข ครบ 4 ขั้น ผ่าน</li>
+    </ul>
+
+    <h3>ขอบเขต / สิ่งที่ห้ามแตะ</h3>
+    <ul>
+      <li>ไฟล์เดียว: <code>src/pages/Purchase/AddProductWizard.tsx</code>. ไม่แตะ <code>index.tsx</code>, primitive, IPC, schema</li>
+      <li><span class="inv">ห้ามแก้ logic/state ใด ๆ: pickProduct, lineMath, stepValid, confirm(), useEffect always-focused-search, flatItems, searchInitialIdx, การ wiring ProductSearchDialog, railSub() — คงเดิมทั้งหมด</span></li>
+      <li><span class="inv">Modal contract: คง onClose; ห้ามใส่ handler ที่เปิดการปิดด้วยคลิกนอก (dialog.tsx บังคับอยู่). Enter เดินหน้า/ยืนยัน, Esc ปิด ต้องยังทำงาน</span></li>
+      <li><span class="inv">Dialog height ต้อง fixed — คง h-[560px] (HARD rule 5a)</span></li>
+      <li>ไม่เปลี่ยน primitive ใด → ไม่ต้องอัป <code>/theme</code> showcase</li>
+    </ul>
+
+    <h3>ขั้นตอน</h3>
+    <ol>
+      <div class="step"><b>S1 — DialogContent (<code>~:359-363</code>).</b> <code>size="4xl"→"3xl"</code>; <code>h-[600px]→h-[560px]</code>. คง <code>onClose</code> + <code>grid-rows-[auto_minmax(0,1fr)_auto] gap-0 p-0 overflow-hidden</code> + height ที่ระบุชัด. <span class="inv">ProductSearchDialog เป็น sibling ไม่มี size= → ไม่กระทบจากการแคบกรอบ</span></div>
+      <div class="step"><b>S2 — DialogHeader (<code>~:365</code>).</b> <code>px-5 pt-4 pb-3 → px-5 py-3</code>. คง <code>border-b</code>, icon chip <code>bg-primary-soft</code>, title <code>text-lg</code>, subtitle.</div>
+      <div class="step"><b>S3 — Rail (<code>~:381-408</code>).</b> container <code>w-60 ... p-5 → w-52 ... p-4</code>; item <code>pb-6 → pb-5</code>; เส้นเชื่อม (<code>~:393</code>) <code>left-[15px]→left-[13px]</code> และ <code>top-8→top-7</code> (re-center+flush บนวงกลม 28px); วงกลม (<code>~:395</code>) <code>size-8→size-7</code>; เนื้อในวงกลม (<code>~:399</code>) จาก <code>{done ? &lt;Check/&gt; : i+1}</code> → <code>{done ? &lt;Check className="size-4"/&gt; : active ? (() =&gt; { const Icon = s.icon; return &lt;Icon className="size-3.5"/&gt; })() : i+1}</code> (ไอคอนเป็น child ของ <code>&lt;span&gt;</code> ไม่ใช่ Button); sub <code>max-w-[150px]→max-w-[140px]</code>. คง logic สี done/active/pending. <span class="inv">size-3.5 (14px) พอดีในวงกลม 28px</span></div>
+      <div class="step"><b>S4 — หัวข้อแพเนล 4 จุด (<code>~:416-417, 480-481, 514-515, 581-582</code>).</b> ลบ eyebrow <code>&lt;p className="text-xs ... uppercase"&gt;ขั้นที่ N&lt;/p&gt;</code>; หัวข้อ <code>text-xl → text-lg font-bold mb-4</code>. ขั้น 4: ดึง <code>· ขั้นสุดท้าย</code> จาก eyebrow เดิมมาเป็น caption <code>text-xs text-foreground-subtle</code> วางข้างหัวข้อ (เช่น <code>&lt;span className="ml-2 text-xs ..."&gt;ขั้นสุดท้าย&lt;/span&gt;</code>).</div>
+      <div class="step"><b>S5 — Inputs.</b>
+        ขั้น1 unit chips (<code>~:464</code>) <code>h-10→h-9</code>, คง selected <code>primary-soft + ring-1 ring-primary</code>.
+        ขั้น2 Lot Input (<code>~:485</code>) <code>h-11 text-base→h-10</code>; DateInput วันหมดอายุ (<code>~:489</code>) และวันผลิต (<code>~:497</code>) ส่ง <code>className="h-10"</code> ชัด ๆ <span class="inv">DateInput wrapper default = h-9 ไม่ใช่ h-10 — ต้อง override ให้ตรง Lot ที่ข้าง ๆ; className ไป wrapper (inner Input = h-full) ปลอดภัย</span>.
+        ขั้น3 qty/cost/total (<code>~:523,533,543</code>) <code>h-14 text-2xl→h-12 text-xl font-bold text-center</code>; discount (<code>~:557</code>) <code>h-11→h-10</code>; กล่อง 3 ช่องใช้ <code>gap-3</code> (จาก gap-4) กัน squeeze ที่ 3xl.
+        ขั้น4 PriceInput ตาม DoD#1.
+        <span class="inv">คงทุก bare Input เป็น elevated-by-default — ห้ามเติม variant="elevated"</span></div>
+      <div class="step"><b>S6 — Cards.</b> ขั้น3 line-math card (<code>~:561-574</code>) แถว <code>py-2.5→py-2</code>; ขั้น4 stat boxes (<code>~:600-613</code>) + summary card (<code>~:614-620</code>) บีบ padding เล็กน้อย คง <code>rounded-card border-border</code> + สี semantic เดิม (success/destructive สำหรับกำไร). ห้าม palette literal.</div>
+      <div class="step"><b>S7 — Footer (<code>~:628-641</code>).</b> ปุ่มคง <code>size="lg"</code> (back <code>elevated</code> / next <code>default</code> / confirm <code>success</code>); counter "ขั้นที่ N จาก 4" → <code>text-xs text-foreground-subtle mr-auto</code>; ไอคอนคง <code>size-4</code>.</div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> → ต้อง PASS (แก้ JSX เชิงโครงสร้าง + import s.icon ใช้งานจริง)</li>
+      <li>click-test ใน <code>npm run electron:dev</code> → หน้า การรับสินค้า → "เพิ่มสินค้า":
+        <ol>
+          <li>Rail โชว์ 4 ขั้น พร้อมไอคอนขั้น active; เส้นเชื่อม centre/flush ไม่มีช่องว่าง</li>
+          <li>ค้น + เลือกสินค้า + หน่วยไม่ใช่ base (search modal ซ้อนบนยังทำงาน, search ยัง always-focused)</li>
+          <li>เดินขั้นด้วย Enter และคลิก rail; Back/Next disabled ถูกจังหวะ</li>
+          <li><b>ยืนยันที่ 3xl/560px ว่าขั้น 3 (กล่องตัวเลข 3 ช่อง) และขั้น 4 ไม่ตก/ไม่ล้น/ไม่ scroll แปลก</b> — ถ้าแน่นเกิน fallback กรอบกลับ <code>size="4xl"</code> (และ/หรือ <code>h-[600px]</code>)</li>
+          <li>ช่องราคาขั้น 4 ดูเป็น elevated (มี border+เงา+ring ตอน focus), แก้ได้, กำไร/มาร์จิ้นคำนวณถูก</li>
+          <li>กดยืนยัน → แถวเข้า GR table เหมือนเดิมทุก field; แก้ไขแถวเดิม → wizard pre-fill + อัปเดตแถวเดิม</li>
+          <li>Esc ปิดได้; คลิกนอกโมดัล <b>ไม่</b> ปิด</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li><b>3xl บีบ layout (เสี่ยงสุด):</b> usable pane ≈ 768 − 208(rail) − 56(px-7) − 32(gap) ≈ 472/3 ≈ <b>~157px</b>/กล่อง → ใช้ <code>gap-3</code> + click-test gate; fallback 4xl ถ้าตก</li>
+      <li><b>เส้นเชื่อม rail:</b> วงกลม 28px → centre 14px, เส้น w-0.5 → <code>left-[13px]</code>, top flush → <code>top-7</code>; ตรวจด้วยตา</li>
+      <li><b>PriceInput focus ring:</b> เปลี่ยนเป็น 1px ring-ring (token บ้าน) — ยืนยันยังเห็น ring ตอน focus</li>
+      <li><b>ความสูง h-10/h-12:</b> เป็นข้อยกเว้นตั้งใจของ dialog form (กฎ control=h-9 ใช้กับ table-card bar) — สอดคล้องโมดัล price/bill-adjust หน้าเดียวกัน; ไม่ใช่การละเมิด</li>
+      <li><b>ไม่มี data path ถูกแตะ</b> — payload <code>onConfirm</code> (<code>~:318-321</code>) คงเดิม; ไม่มีความเสี่ยงต่อ Hygeia/FEFO/stock</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-12 · ผ่าน audit 2 รอบ (ไม่มี P0)</footer>
+
+</div>
+</body>
+</html>

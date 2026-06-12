@@ -14,6 +14,8 @@ import { useToast } from '@/components/ui/toast'
 import { useShopVat } from '@/hooks/useShopVat'
 import { FONTS } from '@/lib/print/fonts'
 import { buildSlipHtml } from '@/lib/receipt/buildSlipHtml'
+import { buildPrinterOptions } from '@/lib/print/pdfPrinter'
+import { PrinterSelectItems } from '@/components/ui/printer-select-items'
 import { resolveSlipMode } from '@/lib/receipt/print'
 import { SlipPreview } from '@/components/receipt/SlipPreview'
 import { RC_SECTIONS, type RcAlign } from '@/lib/receipt/sections'
@@ -175,10 +177,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     } finally { setPrinting(false) }
   }
 
-  const printerOptions = useMemo(
-    () => [{ name: '', displayName: 'เครื่องพิมพ์ระบบ (ค่าเริ่มต้น)', isDefault: false }, ...printers],
-    [printers]
-  )
+  const printerOptions = useMemo(() => buildPrinterOptions(printers), [printers])
 
   // Lift the action buttons up to the shared sub-tab strip (PrintersTab) — handlers
   // via a ref so the node never goes stale without a re-register every render.
@@ -254,11 +253,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {printerOptions.map(p => (
-                      <SelectItem key={p.name || '__default__'} value={p.name || '__default__'}>
-                        {p.displayName}{p.isDefault ? ' (default)' : ''}
-                      </SelectItem>
-                    ))}
+                    <PrinterSelectItems options={printerOptions} />
                   </SelectContent>
                 </Select>
               </FormField>

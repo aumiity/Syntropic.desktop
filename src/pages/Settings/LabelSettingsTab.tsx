@@ -25,6 +25,8 @@ import { FONTS } from '@/lib/print/fonts'
 import { SECTIONS, LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
 import { SAMPLE_CONTENT_BY_LANG, composeLabelContent, todayBE, LANG_OPTIONS, type LabelLang } from '@/lib/label/content'
 import { buildLabelHtml } from '@/lib/label/html'
+import { buildPrinterOptions } from '@/lib/print/pdfPrinter'
+import { PrinterSelectItems } from '@/components/ui/printer-select-items'
 import { LabelPaper } from '@/components/label/LabelPaper'
 
 // Common label sticker sizes sold by Thai suppliers (thermal roll). 80×50 mm is
@@ -331,10 +333,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
     }
   }
 
-  const printerOptions = useMemo(
-    () => [{ name: '', displayName: 'เครื่องพิมพ์ระบบ (ค่าเริ่มต้น)', isDefault: false }, ...printers],
-    [printers]
-  )
+  const printerOptions = useMemo(() => buildPrinterOptions(printers), [printers])
 
   // Lift the action buttons up to the shared sub-tab strip (PrintersTab) —
   // handlers via a ref so the node never goes stale without re-registering on
@@ -430,11 +429,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {printerOptions.map(p => (
-                          <SelectItem key={p.name || '__default__'} value={p.name || '__default__'}>
-                            {p.displayName}{p.isDefault ? ' (default)' : ''}
-                          </SelectItem>
-                        ))}
+                        <PrinterSelectItems options={printerOptions} />
                       </SelectContent>
                     </Select>
                   </FormField>

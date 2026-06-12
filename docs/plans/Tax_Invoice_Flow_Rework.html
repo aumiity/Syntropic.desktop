@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tax Invoice Flow Rework — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .step b{color:#5eead4}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine pre{background:#020617;border:1px solid #1e293b;border-radius:8px;padding:12px 14px;
+    overflow-x:auto;font-size:12.5px;color:#cbd5e1;margin:8px 0}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>คิด flow การพิมพ์ใบกำกับภาษีใหม่</h1>
+    <p>ออกใบกำกับภาษีเต็มรูปจากรายงานภาษีขาย · เลือกผู้ซื้อจากลูกค้าในระบบ · ไม่แปลง VAT ย้อนหลัง</p>
+    <div class="pillrow">
+      <span class="pill">ร่าง · ผ่าน audit 2 รอบ</span>
+      <span class="pill">VAT / ใบกำกับภาษี</span>
+      <span class="pill">2026-06-12</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p style="margin-top:0">ตอนนี้การออกใบกำกับภาษีเต็มรูปมีปัญหา 3 จุดที่ทำให้ใช้งานจริงลำบาก:</p>
+    <ul class="clean">
+      <li><b>หาบิล VAT ไม่เจอ</b> — ไม่มีตารางไหนแสดงสถานะ VAT ให้กรอง/ค้นหา เวลาลูกค้ามาขอใบย้อนหลังต้องไล่เปิดทีละบิล</li>
+      <li><b>ต้องพิมพ์ข้อมูลผู้ซื้อเองทุกครั้ง</b> — กล่องออกใบกำกับ prefill มาแค่ "ชื่อ" ไม่มีตัวเลือกดึงลูกค้าที่มีอยู่แล้วมาใช้ (ที่อยู่/เลขภาษี/สาขา ต้องพิมพ์ใหม่หมด)</li>
+      <li><b>ลูกค้ายังเก็บเลขผู้เสียภาษีไม่ได้</b> — ตาราง <code>customers</code> ไม่มีช่อง <code>tax_id</code>/<code>branch</code> เลย ต่อให้เลือกลูกค้าก็ไม่มีเลขภาษีให้ดึง</li>
+    </ul>
+    <p>แผนนี้แก้โดย: เพิ่ม <b>ปุ่มออกใบกำกับ/พิมพ์สำเนา ต่อแถว</b> ในตาราง "รายงานภาษีขาย" ที่ <code>/reports/vat</code> (ไม่สร้างตารางใหม่ เพราะเป็นข้อมูลชุดเดียวกัน), เพิ่ม <b>ตัวเลือกลูกค้าจากระบบ</b> ในกล่องออกใบกำกับที่ดึงชื่อ/ที่อยู่/เลขภาษี/สาขามาให้อัตโนมัติ, เพิ่มช่อง <code>tax_id</code>+<code>branch</code> เข้าตารางลูกค้าและฟอร์มลูกค้า, และเมื่อแก้ข้อมูลผู้ซื้อตอนออกใบครั้งแรก จะ <b>บันทึกกลับไปที่ลูกค้าให้อัตโนมัติ</b> (ครั้งหน้าไม่ต้องพิมพ์ซ้ำ)</p>
+    <p style="margin-bottom:0"><b>เรื่อง VAT ย้อนหลัง:</b> บิลที่ขายแบบ "ไม่เอา VAT" ไปแล้ว <span class="tag t-skip">ไม่แปลงย้อนหลัง</span> — ถ้าลูกค้าขอใบกำกับทีหลัง ใช้วิธี <b>ยกเลิกบิลเก่า แล้วขายใหม่เป็นบิล VAT</b> (ปลอดภัยทางภาษี กันคนหายไปหลายวันแล้วเพิ่งนึกได้). เงื่อนไขเดิม "ออกใบได้เฉพาะบิล <code>total_vat &gt; 0</code>" ถูกต้องอยู่แล้ว คงไว้</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p style="margin-top:0">flow การออกใบกำกับใหม่ — เริ่มจากตารางรายงานภาษีขาย ผ่าน IPC ไปดึงบิล + เลือกลูกค้า แล้วออก/พิมพ์ + บันทึกกลับ:</p>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 980 320" role="img" aria-label="flow การออกใบกำกับภาษีจากรายงานภาษีขาย">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+
+      <!-- row 1: report -> dialog -->
+      <rect class="box" x="20" y="24" width="210" height="56" rx="10"/>
+      <text x="125" y="48" text-anchor="middle">รายงานภาษีขาย (ปุ่ม/แถว)</text>
+      <text class="sub" x="125" y="66" text-anchor="middle">Reports/VatReport.tsx</text>
+
+      <rect class="box" x="385" y="24" width="210" height="56" rx="10"/>
+      <text x="490" y="48" text-anchor="middle">กล่องออกใบกำกับ</text>
+      <text class="sub" x="490" y="66" text-anchor="middle">TaxInvoiceBuyerDialog.tsx</text>
+
+      <rect class="box" x="750" y="24" width="210" height="56" rx="10"/>
+      <text x="855" y="48" text-anchor="middle">picker เลือกลูกค้า</text>
+      <text class="sub" x="855" y="66" text-anchor="middle">CustomerSearchDialog.tsx</text>
+
+      <path class="edge" d="M230,52 H381"/>
+      <text class="elabel" x="305" y="42" text-anchor="middle">getSaleByInvoice</text>
+      <path class="edge" d="M595,52 H746"/>
+      <text class="elabel" x="672" y="42" text-anchor="middle">เลือกลูกค้า</text>
+
+      <!-- report -> vatSummary (down-left) -->
+      <rect class="box data" x="20" y="150" width="210" height="56" rx="10"/>
+      <text x="125" y="174" text-anchor="middle">reports:vatSummary</text>
+      <text class="sub" x="125" y="192" text-anchor="middle">+ sale_id · tax_invoice_issued</text>
+      <path class="edge" d="M125,80 V146"/>
+      <text class="elabel" x="140" y="118">โหลด/รีโหลดตาราง</text>
+
+      <!-- picker -> pos:searchCustomers -->
+      <rect class="box data" x="750" y="150" width="210" height="56" rx="10"/>
+      <text x="855" y="174" text-anchor="middle">pos:searchCustomers</text>
+      <text class="sub" x="855" y="192" text-anchor="middle">tax_id · branch · address</text>
+      <path class="edge" d="M855,80 V146"/>
+
+      <!-- dialog -> tax:issueOrGet -->
+      <rect class="box warn" x="385" y="150" width="210" height="56" rx="10"/>
+      <text x="490" y="174" text-anchor="middle">tax:issueOrGet</text>
+      <text class="sub" x="490" y="192" text-anchor="middle">{record, copy}</text>
+      <path class="edge hot" d="M490,80 V146"/>
+      <text class="elabel" x="505" y="118">ออก/พิมพ์</text>
+
+      <!-- issueOrGet -> tax_invoices -->
+      <rect class="box data" x="385" y="252" width="210" height="52" rx="10"/>
+      <text x="490" y="282" text-anchor="middle">SQLite · tax_invoices</text>
+      <path class="edge" d="M490,206 V248"/>
+
+      <!-- dialog -> write back customer (only first issue) -->
+      <rect class="box" x="660" y="252" width="290" height="52" rx="10"/>
+      <text x="805" y="276" text-anchor="middle">people:updateCustomerTaxInfo</text>
+      <text class="sub" x="805" y="293" text-anchor="middle">first issue · tax_id/branch · addr fill-if-blank</text>
+      <path class="edge" d="M595,178 C640,178 640,278 656,278"/>
+      <text class="elabel" x="640" y="232" text-anchor="middle">บันทึกกลับ</text>
+    </svg>
+    </div>
+    <p style="margin-bottom:0;font-size:13px;color:var(--muted)">เส้นสีส้ม = เส้นทางหลัก (ออก/พิมพ์ใบกำกับ) · กล่องเส้นประ = ชั้นข้อมูล (DB/IPC)</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:4px">สรุปไฟล์ที่แตะ</h3>
+    <table>
+      <thead><tr><th>ไฟล์</th><th>เปลี่ยนอะไร</th><th>ชนิด</th></tr></thead>
+      <tbody>
+        <tr><td><code>electron/db/schema.ts</code></td><td>เพิ่มคอลัมน์ <code>tax_id</code>+<code>branch</code> ใน customers (CREATE + ALTER loop :1210)</td><td><span class="tag t-gen">DB</span></td></tr>
+        <tr><td><code>electron/ipc/people.ts</code></td><td>เพิ่ม 2 คอลัมน์ใน saveCustomer INSERT + handler ใหม่ <code>updateCustomerTaxInfo</code></td><td><span class="tag t-gen">IPC</span></td></tr>
+        <tr><td><code>electron/ipc/reports.ts</code></td><td>vatSummary salesRows คืน sale_id/customer/tax_invoice_issued เพิ่ม</td><td><span class="tag t-gen">IPC</span></td></tr>
+        <tr><td><code>electron/preload.ts</code></td><td>expose <code>people.updateCustomerTaxInfo</code></td><td><span class="tag t-gen">IPC</span></td></tr>
+        <tr><td><code>src/types/index.ts</code></td><td><code>Customer</code> เพิ่ม tax_id/branch</td><td><span class="tag t-gen">type</span></td></tr>
+        <tr><td><code>src/components/dialogs/CustomerFormDialog.tsx</code></td><td>2 ช่องใหม่ใต้ที่อยู่ + blankForm/load</td><td><span class="tag t-opt">UI</span></td></tr>
+        <tr><td><code>src/components/dialogs/TaxInvoiceBuyerDialog.tsx</code></td><td>ปุ่มเลือกลูกค้า + บันทึกกลับ + onIssued</td><td><span class="tag t-opt">UI</span></td></tr>
+        <tr><td><code>src/pages/Reports/VatReport.tsx</code></td><td>คอลัมน์ action ออกใบ/สำเนา + เปิด dialog</td><td><span class="tag t-opt">UI</span></td></tr>
+        <tr><td>Manage/Sales.tsx · SaleDetailDialog.tsx</td><td>ทางลัดเดิม — คง props optional, compile ได้ไม่ต้องแก้</td><td><span class="tag t-keep">คงไว้</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>หาบิล VAT ไม่ได้ — ไม่มีตารางแสดงสถานะ VAT</li>
+        <li>ออกใบกำกับได้จาก kebab ใน Manage/Sales เท่านั้น</li>
+        <li>กล่องออกใบ prefill มาแค่ "ชื่อ" — ที่อยู่/เลขภาษี/สาขา พิมพ์เองทุกครั้ง</li>
+        <li>ลูกค้าเก็บเลขผู้เสียภาษีไม่ได้ (ไม่มีช่อง)</li>
+        <li>ไม่รู้ว่าบิลไหนออกใบกำกับไปแล้ว</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>ตาราง "รายงานภาษีขาย" = รายการบิล VAT ทั้งหมด ค้นหา/กรองช่วงวันได้</li>
+        <li>ปุ่มต่อแถว: <b>ออกใบกำกับ</b> (ยังไม่ออก) / <b>พิมพ์สำเนา</b> (ออกแล้ว)</li>
+        <li>เลือกลูกค้าจากระบบ → ดึงชื่อ/ที่อยู่/เลขภาษี/สาขามาให้ครบ</li>
+        <li>ลูกค้ามีช่อง tax_id + สาขา; แก้ตอนออกใบครั้งแรกบันทึกกลับให้</li>
+        <li>kebab เดิมยังอยู่เป็นทางลัด · VAT ย้อนหลัง = ยกเลิก+ขายใหม่</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>ออกใบกำกับ + ตามสถานะ "ออกแล้ว/ยังไม่ออก" ได้จากที่เดียว ไม่ต้องไล่เปิดบิล</li>
+    <li>ไม่ต้องพิมพ์ข้อมูลผู้ซื้อซ้ำ — ดึงจากลูกค้าในระบบ + จำให้ครั้งต่อไป</li>
+    <li>ไม่สร้างตารางใหม่ — ใช้รายงานภาษีขายที่มีอยู่ (ข้อมูลชุดเดียวกัน)</li>
+    <li>ไม่มีช่องโหว่ภาษี: ไม่แปลง VAT ย้อนหลัง, เงื่อนไข total_vat&gt;0 คงเดิม</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>เพิ่ม migration 2 คอลัมน์ใน customers (nullable, ปลอดภัย แต่เป็นการแก้ schema)</li>
+    <li>vatSummary salesRows query ยาวขึ้น (join customers + tax_invoices)</li>
+    <li>ลูกค้าเก่าที่ import มา (Hygeia) จะยังไม่มี tax_id จนกว่าจะกรอก/ออกใบครั้งแรก</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง (invariant)</h4><ul class="clean">
+    <li><b>Allow-list payload:</b> handler บันทึกกลับใช้คอลัมน์ระบุชัด ไม่ spread <code>Object.keys</code></li>
+    <li><b>ลูกค้าทั่วไป C0000:</b> picker ปิด walk-in (<code>showWalkIn={false}</code>) + handler กัน walkInCustomerId</li>
+    <li><b>บันทึกกลับเฉพาะออกครั้งแรก</b> (<code>!copy</code>) + ที่อยู่เขียนเฉพาะตอนว่าง — กันเขียนทับข้อมูลลูกค้าที่ดีอยู่แล้ว</li>
+    <li><b>ปุ่ม row-action = square <code>size="icon-lg" variant="elevated"</code> + tooltip</b> (ห้าม size=sm/ป้ายข้อความ/role-tint) ตาม ui-table-card.md</li>
+    <li>แก้เฉพาะไฟล์ <code>.ts</code> — ไฟล์ <code>electron/ipc/*.js</code> ที่ track ไว้เป็น artifact เก่า ไม่ใช่ runtime</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean" style="margin-top:0">
+      <li><b>ตารางรายงานภาษีขาย</b> — เพิ่มคอลัมน์ท้าย "ใบกำกับภาษี" ปุ่มไอคอนสี่เหลี่ยม elevated ต่อแถว: ยังไม่ออก = ไอคอน <code>FileText</code> tooltip "ออกใบกำกับภาษี"; ออกแล้ว = ไอคอน <code>Copy</code> tooltip "พิมพ์สำเนาใบกำกับ" (neutral elevated ไม่ใส่สีบทบาท)</li>
+      <li><b>กล่องออกใบกำกับ</b> — เพิ่มปุ่ม "เลือกลูกค้าจากระบบ" บนสุดของ body → เปิด CustomerSearchDialog (ไม่มี walk-in) เลือกแล้ว prefill ชื่อ/ที่อยู่/เลขภาษี/สาขา; ลูกค้าใหม่ที่ยังไม่มีในระบบ พิมพ์เองได้เหมือนเดิม; ปุ่มท้าย "ดูตัวอย่าง PDF" (elevated) + "พิมพ์ใบกำกับภาษี" (default) ตามเดิม</li>
+      <li><b>ฟอร์มลูกค้า</b> — เพิ่ม 2 ช่องใต้ที่อยู่: "เลขประจำตัวผู้เสียภาษี (13 หลัก)" (กรอกได้เฉพาะตัวเลข) + "สาขา" (placeholder สำนักงานใหญ่) ใช้ <code>Input variant="elevated"</code> + Label เหมือนช่องอื่น</li>
+      <li>ภาษาไทยทั้งหมด ไม่มี emoji · ใช้ semantic token · ไอคอน lucide · ปฏิบัติตาม modal contract เดิมของ Dialog</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>ปุ่ม action ใช้ <code>size="sm"</code> + ป้ายข้อความ + <code>primary-soft</code> ผิดกฎ row-action + ต่ำกว่า text-sm</td><td>P1</td><td>เปลี่ยนเป็นปุ่มไอคอนสี่เหลี่ยม <code>size="icon-lg" variant="elevated"</code> + tooltip (FileText/Copy) neutral</td></tr>
+        <tr><td>1</td><td>handler บันทึกกลับเขียนทับ <code>address</code> เสมอ + ทำงานทุกครั้งที่พิมพ์ (เสี่ยงทับข้อมูลลูกค้า)</td><td>P1</td><td>เขียนกลับเฉพาะออกครั้งแรก (<code>!copy</code>); address เขียนเฉพาะตอนว่าง (CASE WHEN); tax_id/branch ตั้งได้เสมอ</td></tr>
+        <tr><td>1</td><td>Step 7 ไม่ระบุชัดว่า 2 call site เดิมต้อง compile ผ่านหลังเปลี่ยน props</td><td>P1</td><td>ระบุ Manage/Sales.tsx:516 + SaleDetailDialog.tsx:353 ชัด — props ใหม่เป็น optional ทั้งหมด ไม่ต้องแก้</td></tr>
+        <tr><td>1</td><td>เลข schema ผิด (อ้าง :809/:1028) — customers ALTER loop จริงอยู่ :1210</td><td>P2</td><td>ชี้ไป loop customers :1210 (loop ปิด :1215)</td></tr>
+        <tr><td>1</td><td>openTax ไม่ guard กรณี <code>getSaleByInvoice</code> คืน null → <code>saleDetailToPrint(null)</code> throw</td><td>P2</td><td>เพิ่ม guard null + toast; โน้ตว่า return bill ถูกกันด้วย total_vat=0 + backend reject</td></tr>
+        <tr><td>2</td><td>ทุก reference/ขั้นตอน/invariant ตรงกับโค้ดจริง — ไม่พบ P0/P1; เหลือ P2 รับรู้: ไฟล์ <code>.js</code> เก่า (แก้เฉพาะ .ts), ช่องใหม่สืบทอด Enter-submit เดิม</td><td>PASS</td><td>เพิ่มโน้ต "แก้เฉพาะ .ts" + โน้ต Enter-submit ลงแผน ไม่ต้องเปลี่ยนโครง</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li><code>customers</code> มี <code>tax_id TEXT</code> + <code>branch TEXT</code> (CREATE สำหรับ DB ใหม่ + guarded ALTER สำหรับ DB เดิม); <code>Customer</code> type + CustomerFormDialog แสดง/แก้ทั้งคู่; <code>people:saveCustomer</code> INSERT ระบุ 2 คอลัมน์</li>
+      <li><code>reports:vatSummary</code> sales_rows คืน <code>sale_id, customer_id, customer_name, customer_address, customer_tax_id, customer_branch, customer_name_free, tax_invoice_issued (0/1)</code></li>
+      <li><code>/reports/vat</code> ตารางรายงานภาษีขายมีคอลัมน์ action ท้ายแถว เปิด TaxInvoiceBuyerDialog; ไอคอน/tooltip สลับตาม <code>tax_invoice_issued</code>; ออกใบสำเร็จแล้วตารางรีโหลด ปุ่มสลับเป็น Copy</li>
+      <li>TaxInvoiceBuyerDialog มี picker เลือกลูกค้า prefill ครบ 4 ช่อง; ออกครั้งแรกบันทึก tax_id/branch กลับ (address fill-if-blank) ผ่าน <code>people:updateCustomerTaxInfo</code></li>
+      <li><code>npx tsc --noEmit</code> PASS; click-test ตามรายการ verify</li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>electron/db/schema.ts</code> — customers CREATE (~205) + customers ALTER loop (~1210)</li>
+      <li><code>electron/ipc/people.ts</code> — saveCustomer INSERT (~60) + handler ใหม่ + walkInCustomerId</li>
+      <li><code>electron/ipc/reports.ts</code> — vatSummary salesRows (~446)</li>
+      <li><code>electron/preload.ts</code> — people namespace (~65)</li>
+      <li><code>src/types/index.ts</code> — Customer (~95)</li>
+      <li><code>src/components/dialogs/CustomerFormDialog.tsx</code> · <code>TaxInvoiceBuyerDialog.tsx</code> · <code>CustomerSearchDialog.tsx</code> (reuse)</li>
+      <li><code>src/pages/Reports/VatReport.tsx</code> · <code>src/lib/receipt/normalizeSale.ts</code> (<code>saleDetailToPrint</code>, reuse)</li>
+      <li>ทางลัดคงเดิม: <code>src/pages/Manage/Sales.tsx</code> (~516) · <code>src/components/dialogs/SaleDetailDialog.tsx</code> (~353)</li>
+    </ul>
+    <p class="inv" style="margin:6px 0">แก้เฉพาะไฟล์ <code>.ts/.tsx</code> — git-tracked <code>electron/ipc/*.js</code> เป็น artifact เก่า ไม่ใช่ runtime (bundle จาก .ts ผ่าน vite-plugin-electron)</p>
+
+    <h3>ขั้นตอน (เรียงตาม dependency)</h3>
+    <ol>
+      <div class="step"><b>Step 1 — DB: เพิ่ม tax_id + branch ใน customers.</b>
+        <code>schema.ts</code>: ใน <code>CREATE TABLE IF NOT EXISTS customers</code> (~205) เพิ่ม <code>tax_id TEXT</code> + <code>branch TEXT</code> ต่อจาก <code>address</code>. แล้วเพิ่ม 2 ALTER ใน <b>customers-specific loop ที่ :1210</b> (loop <code>ALTER TABLE customers ADD COLUMN is_disabled…</code>, ปิด :1215): <code>ALTER TABLE customers ADD COLUMN tax_id TEXT</code> / <code>… ADD COLUMN branch TEXT</code>.
+        <span class="inv">แต่ละ element wrap <code>try{db.exec(sql)}catch{}</code> → re-run absorbed. ห้ามใช้ shared loop :809.</span></div>
+
+      <div class="step"><b>Step 2 — type + form + save handler.</b>
+        <code>types/index.ts</code> <code>Customer</code>: เพิ่ม <code>tax_id?: string; branch?: string</code>.
+        <code>people.ts</code> <code>saveCustomer</code> INSERT (~60-67): เพิ่ม <code>tax_id, branch</code> ใน column list + VALUES (<code>@tax_id, @branch</code>).
+        <code>CustomerFormDialog.tsx</code>: <code>blankForm</code> เพิ่ม <code>tax_id:'', branch:''</code>; load mapping (~67) เพิ่ม <code>tax_id: data.tax_id ?? '', branch: data.branch ?? ''</code>; เพิ่ม 2 <code>&lt;Input variant="elevated"&gt;</code> ใต้ block ที่อยู่ (~129): "เลขประจำตัวผู้เสียภาษี (13 หลัก)" (inputMode numeric, maxLength 13, strip non-digit) + "สาขา" (placeholder สำนักงานใหญ่).
+        <span class="inv">UPDATE path เป็น dynamic Object.keys — ปลอดภัยเพราะ form ส่งเฉพาะคอลัมน์จริง; อย่าให้ key แปลกหลุดเข้า.</span></div>
+
+      <div class="step"><b>Step 3 — vatSummary คืนสถานะออกใบ + prefill ลูกค้า.</b>
+        <code>reports.ts</code> <code>reports:vatSummary</code> salesRows (~446): rewrite เป็น
+        <pre>SELECT s.id AS sale_id, s.invoice_no, s.sold_at, s.sale_type,
+       s.total_amount, s.total_vat, s.customer_id, s.customer_name_free,
+       c.full_name AS customer_name, c.address AS customer_address,
+       c.tax_id AS customer_tax_id, c.branch AS customer_branch,
+       CASE WHEN ti.sale_id IS NOT NULL THEN 1 ELSE 0 END AS tax_invoice_issued
+FROM sales s
+LEFT JOIN customers c ON c.id = s.customer_id
+LEFT JOIN tax_invoices ti ON ti.sale_id = s.id
+WHERE ${sCond.join(' AND ')} AND s.total_vat > 0
+ORDER BY s.sold_at</pre>
+        คง <code>requireAdmin(_e)</code> + block output/purchase/expense เดิมไม่แตะ. <span class="inv">ผู้บริโภค sales_rows มีแค่ VatReport — เพิ่มคอลัมน์เป็น additive ปลอดภัย.</span></div>
+
+      <div class="step"><b>Step 4 — คอลัมน์ action ใน VatReport.</b> อ่าน <code>docs/claude/ui-table-card.md</code> ก่อน.
+        ขยาย <code>VatSaleRow</code>: เพิ่ม <code>sale_id, customer_id?, customer_name?, customer_address?, customer_tax_id?, customer_branch?, customer_name_free?, tax_invoice_issued</code>.
+        import: <code>TaxInvoiceBuyerDialog</code>, <code>saleDetailToPrint</code> (@/lib/receipt/normalizeSale), <code>Button</code>, <code>FileText</code>/<code>Copy</code>, <code>SaleForPrint</code>.
+        state <code>taxTarget</code> + handler <code>openTax(r)</code>: <code>const detail = await window.api.reports.getSaleByInvoice(r.invoice_no)</code> → <span class="inv">guard <code>if(!detail){toast error; return}</code></span> → <code>setTaxTarget({ saleId: r.sale_id, sale: saleDetailToPrint(detail), customerId: r.customer_id ?? null, prefill: {name: r.customer_name ?? r.customer_name_free ?? '', address: r.customer_address ?? '', taxId: r.customer_tax_id ?? '', branch: r.customer_branch ?? ''} })</code> (try/catch + toast).
+        เพิ่ม <code>&lt;TableHead className="text-right pr-4"&gt;ใบกำกับภาษี&lt;/TableHead&gt;</code> (ย้าย head "ภาษีขาย" ออกจาก pr-4); cell ท้าย: <code>&lt;Button size="icon-lg" variant="elevated" tooltip={r.tax_invoice_issued ? 'พิมพ์สำเนาใบกำกับ' : 'ออกใบกำกับภาษี'}&gt;</code> ไอคอน <code>FileText</code>/<code>Copy</code>, <code>onClick={()=&gt;openTax(r)}</code>. empty-state colSpan 6→7.
+        render <code>&lt;TaxInvoiceBuyerDialog open=… saleId=… sale=… customerId=… customerPrefill=… onIssued={()=&gt;{setTaxTarget(null); load()}} /&gt;</code>.
+        <span class="inv">ปุ่ม row-action ต้อง square icon-lg elevated + tooltip; ห้าม size=sm/ป้าย/role-tint. label keys on tax_invoice_issued (row existence) ไม่ใช่ original_printed.</span></div>
+
+      <div class="step"><b>Step 5 — TaxInvoiceBuyerDialog: picker + บันทึกกลับ + onIssued.</b>
+        ขยาย <code>customerPrefill</code> ให้มี <code>branch?</code>; props ใหม่ <code>customerId?: number | null</code>, <code>onIssued?: () =&gt; void</code>.
+        state <code>linkedCustomerId</code> (init จาก customerId) + <code>pickerOpen</code>. ใน useEffect prefill: set branch จาก prefill + linkedCustomerId จาก customerId; ถ้ามี tax_invoices เดิม ค่า buyer เดิมยังชนะ (คงพฤติกรรม).
+        เพิ่มปุ่ม "เลือกลูกค้าจากระบบ" บนสุด body → <code>&lt;CustomerSearchDialog showWalkIn={false} onSelect={c =&gt; { if(c){ setName(c.full_name); setAddress(c.address??''); setTaxId(c.tax_id??''); setBranch(c.branch||'สำนักงานใหญ่'); setLinkedCustomerId(c.id) } }} /&gt;</code>.
+        ใน <code>handlePrint</code>: <code>issueOrGet</code> คืน <code>{record, copy}</code>. หลังพิมพ์สำเร็จ <span class="inv">เฉพาะ <code>!copy</code> (ออกครั้งแรก)</span> + <code>linkedCustomerId != null</code> → <code>await window.api.people.updateCustomerTaxInfo({id: linkedCustomerId, tax_id: taxId.trim(), branch: branch.trim(), address: address.trim()})</code> (try/catch best-effort, fail แค่ toast ไม่ block ใบที่พิมพ์แล้ว). แล้ว <code>onIssued?.()</code>.
+        <span class="inv">คง modal contract (Header/Body/Footer ครบอยู่แล้ว).</span></div>
+
+      <div class="step"><b>Step 6 — IPC: people:updateCustomerTaxInfo (allow-listed).</b> <code>people.ts</code>:
+        <pre>ipcMain.handle('people:updateCustomerTaxInfo', (_e, p: {
+  id: number; tax_id?: string; branch?: string; address?: string
+}) => {
+  const db = getDb()
+  if (!p?.id || p.id === walkInCustomerId(db)) return false
+  // tax_id/branch = tax-doc fields → ตั้งได้เสมอ; address = fill-if-blank
+  db.prepare(`UPDATE customers SET
+      tax_id=@tax_id, branch=@branch,
+      address = CASE WHEN (address IS NULL OR address='') THEN @address ELSE address END,
+      updated_at=datetime('now','localtime')
+    WHERE id=@id`)
+    .run({ id: p.id, tax_id: p.tax_id ?? '', branch: p.branch ?? '', address: p.address ?? '' })
+  return true
+})</pre>
+        expose ใน <code>preload.ts</code> people namespace: <code>updateCustomerTaxInfo: (p) =&gt; ipcRenderer.invoke('people:updateCustomerTaxInfo', p)</code>.
+        <span class="inv">คอลัมน์ระบุชัด (allow-list); กัน walk-in C0000; address fill-if-blank กันเขียนทับ.</span></div>
+
+      <div class="step"><b>Step 7 — คงทางลัด Manage/Sales + SaleDetailDialog.</b>
+        2 call site: <code>Manage/Sales.tsx:516-521</code>, <code>SaleDetailDialog.tsx:353-358</code> — props ใหม่ optional ทั้งหมด → compile ผ่านไม่ต้องแก้.
+        (เสริมถ้าง่าย: ส่ง <code>customerId</code> จากแถวที่มี <code>customer_id</code> เพื่อให้บันทึกกลับทำงานจากทางลัดด้วย; ถ้าไม่มีลูกค้าผูก → null → skip write-back. v1 จะ ship แค่ flow รายงานก็ได้.)
+        ตรวจ gate <code>total_vat &gt; 0</code> คงอยู่ทั้ง 2 (Manage/Sales.tsx:447, SaleDetailDialog.tsx:133).</div>
+
+      <div class="step"><b>Step 8 — verify.</b> ดูส่วน "การ verify".</div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> PASS</li>
+      <li>(a) /reports/vat โชว์คอลัมน์ action — FileText/tooltip "ออกใบกำกับ" บิลยังไม่ออก, Copy/"พิมพ์สำเนา" บิลออกแล้ว</li>
+      <li>(b) picker prefill ครบ 4 ช่อง</li>
+      <li>(c) เลือกลูกค้าที่ยังไม่มี tax_id → กรอก → พิมพ์ (ต้นฉบับ) → เปิดฟอร์มลูกค้าคนนั้นเห็น tax_id ถูกบันทึก</li>
+      <li>(d) ออกใบแล้วไอคอนสลับเป็น Copy + ตารางรีโหลด</li>
+      <li>(e) บิล NO-VAT ไม่โผล่ (sales_rows filter total_vat&gt;0); return ก็ไม่โผล่ (return เขียน total_vat=0 + tax:issueOrGet reject sale_type='return')</li>
+      <li>(f) ทางลัด Manage/Sales + SaleDetail ยังพิมพ์ได้</li>
+      <li>(g) พิมพ์สำเนา (copy) ที่แก้ address → address master ลูกค้าไม่เปลี่ยน (write-back skip บน copy)</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li>Allow-list payload → handler ใหม่ใช้คอลัมน์ระบุชัด; saveCustomer dynamic UPDATE ปลอดภัยเพราะ form คุม key</li>
+      <li>Migration idempotency → ALTER ADD COLUMN ใน guarded try/catch loop (:1210)</li>
+      <li>Walk-in C0000 → picker showWalkIn=false + pos:searchCustomers กรอง code!=C0000 + handler กัน walkInCustomerId</li>
+      <li>Data corruption (write-back) → เฉพาะ !copy, tax_id/branch always, address fill-if-blank, best-effort ไม่ block</li>
+      <li>tax_invoices.doc_no reuse RC- invoice_no — ไม่แตะ; buyer snapshot ยังเป็นบันทึกตามกฎหมายบนใบ ส่วน write-back เป็นแค่ความสะดวก</li>
+      <li>Backward compat → คอลัมน์ใหม่ nullable, type optional, tax_invoices/customers เดิม render ได้</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-12</footer>
+
+</div>
+</body>
+</html>

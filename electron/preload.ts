@@ -158,11 +158,11 @@ const api = {
       name: string; displayName: string; description: string; status: number; isDefault: boolean
     }>>,
     printLabel: (args: { html: string; printerName: string; paperWidthMm: number; paperHeightMm: number }) =>
-      ipcRenderer.invoke('printer:printLabel', args) as Promise<{ success: boolean; error?: string }>,
+      ipcRenderer.invoke('printer:printLabel', args) as Promise<{ success: boolean; error?: string; path?: string }>,
     previewLabelPdf: (args: { html: string; paperWidthMm: number; paperHeightMm: number }) =>
       ipcRenderer.invoke('printer:previewLabelPdf', args) as Promise<{ success: boolean; error?: string; path?: string }>,
     printHtml: (args: { html: string; printerName: string; paperWidthMm: number; heightMm?: number | 'auto'; copies?: number }) =>
-      ipcRenderer.invoke('printer:printHtml', args) as Promise<{ success: boolean; error?: string }>,
+      ipcRenderer.invoke('printer:printHtml', args) as Promise<{ success: boolean; error?: string; path?: string }>,
     previewHtmlPdf: (args: { html: string; paperWidthMm?: number; heightMm?: number | 'auto'; pageFormat?: 'A4' | 'A5' }) =>
       ipcRenderer.invoke('printer:previewHtmlPdf', args) as Promise<{ success: boolean; error?: string; path?: string }>,
   },

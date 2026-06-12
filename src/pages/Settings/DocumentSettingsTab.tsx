@@ -8,6 +8,8 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { buildTaxInvoiceHtml } from '@/lib/receipt/buildTaxInvoiceHtml'
+import { buildPrinterOptions } from '@/lib/print/pdfPrinter'
+import { PrinterSelectItems } from '@/components/ui/printer-select-items'
 import type { DocumentSettings, SaleForPrint, Setting, TaxInvoice } from '@/types'
 import { FileText, Printer, Save } from 'lucide-react'
 
@@ -160,10 +162,7 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
     } finally { setPrinting(false) }
   }
 
-  const printerOptions = useMemo(
-    () => [{ name: '', displayName: 'เครื่องพิมพ์ระบบ (ค่าเริ่มต้น)', isDefault: false }, ...printers],
-    [printers]
-  )
+  const printerOptions = useMemo(() => buildPrinterOptions(printers), [printers])
 
   // Lift the action buttons up to the shared sub-tab strip (PrintersTab). Handlers
   // are read through a ref so the registered node never goes stale without forcing
@@ -236,11 +235,7 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {printerOptions.map(p => (
-                      <SelectItem key={p.name || '__default__'} value={p.name || '__default__'}>
-                        {p.displayName}{p.isDefault ? ' (default)' : ''}
-                      </SelectItem>
-                    ))}
+                    <PrinterSelectItems options={printerOptions} />
                   </SelectContent>
                 </Select>
               </FormField>
