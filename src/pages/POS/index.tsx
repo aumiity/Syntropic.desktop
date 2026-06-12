@@ -336,8 +336,16 @@ export default function POSPage() {
   // Refs so focus callbacks always see current modal state without stale closures
   const anyModalOpenRef = useRef(anyModalOpen)
   const searchOpenRef = useRef(searchOpen)
+  const showReturnRef = useRef(showReturn)
+  const showAdjustRef = useRef(showAdjust)
+  const returnSearchOpenRef = useRef(returnSearchOpen)
+  const adjustSearchOpenRef = useRef(adjustSearchOpen)
   anyModalOpenRef.current = anyModalOpen
   searchOpenRef.current = searchOpen
+  showReturnRef.current = showReturn
+  showAdjustRef.current = showAdjust
+  returnSearchOpenRef.current = returnSearchOpen
+  adjustSearchOpenRef.current = adjustSearchOpen
 
   // Focus modal input when search opens
   useEffect(() => {
@@ -384,12 +392,14 @@ export default function POSPage() {
       if (showCustomerInfo) { setShowCustomerInfo(false); return }
       if (showCustomerSearch) { setShowCustomerSearch(false); return }
       if (searchOpen) { closeSearch(); return }
-      if (showReturn) { closeReturn(); return }
-      if (showAdjust) { closeAdjust(); return }
+      // รับคืน/ตัดสต็อก and their nested ProductSearchDialog are NOT handled here:
+      // they are stacked Radix dialogs, and Radix already dismisses only the
+      // top-most layer on Esc (see Purchase/AddProductWizard, same pattern).
+      // Handling them manually too would close BOTH layers at once.
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [qtyModalIdx, discountModalIdx, priceModalIdx, unitModalIdx, searchOpen, showQuickAdd, showCustomerInfo, showCustomerSearch, showReturn, showAdjust])
+  }, [qtyModalIdx, discountModalIdx, priceModalIdx, unitModalIdx, searchOpen, showQuickAdd, showCustomerInfo, showCustomerSearch])
 
   // F4 toggles the "print receipt after payment" option while the payment
   // dialog is open. A function key is used so it never collides with typing
@@ -437,28 +447,43 @@ export default function POSPage() {
     // selector caused the focusout handler to treat those divs as legitimate focus targets and bail.
     const INTERACTIVE = 'input, button, select, textarea, a, [role="button"], [contenteditable="true"]'
 
+    // Resolves which search input owns the focus lock right now, by modal
+    // priority (top-most wins). Returns null when a modal we don't drive owns
+    // focus (payment, customer, unit/qty/price popups) — then we don't steal it.
+    // This is what gives the รับคืน/ตัดสต็อก dialogs the same permanently-focused
+    // header input as the cart table.
+    const lockTarget = (): HTMLInputElement | null => {
+      if (searchOpenRef.current) return modalInputRef.current
+      if (adjustSearchOpenRef.current) return adjustSearchInputRef.current
+      if (returnSearchOpenRef.current) return returnSearchInputRef.current
+      if (showAdjustRef.current) return adjustInputRef.current
+      if (showReturnRef.current) return returnInputRef.current
+      if (anyModalOpenRef.current) return null
+      return mainInputRef.current
+    }
+
     // mousedown fires before the browser shifts focus, so preventDefault here is the real lock.
     const onMouseDown = (e: MouseEvent) => {
       const t = e.target as HTMLElement | null
       if (!t || t.closest(INTERACTIVE)) return
-      if (anyModalOpenRef.current && !searchOpenRef.current) return
+      const inp = lockTarget()
+      if (!inp) return
       e.preventDefault()
-      const inp = searchOpenRef.current ? modalInputRef.current : mainInputRef.current
-      inp?.focus()
+      inp.focus()
     }
 
-    // Safety net via focusout (bubbles, so one listener catches both inputs).
-    // If either the main input or the modal input loses focus to a non-interactive target, snap back.
+    // Safety net via focusout (bubbles, so one listener catches every locked input).
+    // If one of our search inputs loses focus to a non-interactive target, snap back.
     const onFocusOut = (e: FocusEvent) => {
       const lost = e.target as HTMLElement | null
-      const isOurInput = lost === mainInputRef.current || lost === modalInputRef.current
+      const isOurInput = lost === mainInputRef.current || lost === modalInputRef.current ||
+        lost === returnInputRef.current || lost === adjustInputRef.current ||
+        lost === returnSearchInputRef.current || lost === adjustSearchInputRef.current
       if (!isOurInput) return
       setTimeout(() => {
-        if (anyModalOpenRef.current && !searchOpenRef.current) return
         const active = document.activeElement as HTMLElement | null
         if (active && active.matches(INTERACTIVE)) return
-        const inp = searchOpenRef.current ? modalInputRef.current : mainInputRef.current
-        inp?.focus()
+        lockTarget()?.focus()
       }, 0)
     }
 
