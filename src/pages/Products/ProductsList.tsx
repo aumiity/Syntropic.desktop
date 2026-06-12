@@ -13,12 +13,13 @@ import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { AdjustStockDialog, type AdjustStockTarget } from '@/components/dialogs/AdjustStockDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { StatusFilterButton } from '@/components/ui/status-filter'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import type { Product, ProductCategory } from '@/types'
 import type { ProductsOutletContext } from './index'
 import {
-  Edit, Package, Settings2, Filter, Layers, Ban, RotateCcw, Check,
+  Edit, Package, Settings2, Layers, Ban, RotateCcw,
 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
@@ -206,41 +207,7 @@ export default function ProductsList() {
 
           {/* Filter popover — usage status (enabled/disabled). Stock status
               filter was removed; use the Low-Stock page for that. */}
-          {(() => {
-            const STATUS_OPTIONS: { value: typeof statusFilter; label: string }[] = [
-              { value: 'all',      label: 'ทั้งหมด' },
-              { value: 'enabled',  label: 'ใช้งาน' },
-              { value: 'disabled', label: 'ปิดใช้งาน' },
-            ]
-            return (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
-                    <Filter className="size-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-56 p-1 gap-0">
-                  <PopoverHeader className="px-2">
-                    <PopoverTitle>สถานะ</PopoverTitle>
-                  </PopoverHeader>
-                  {STATUS_OPTIONS.map(o => (
-                    <button
-                      key={o.value}
-                      type="button"
-                      onClick={() => setStatusFilter(o.value)}
-                      className={cn(
-                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
-                        statusFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
-                      )}
-                    >
-                      <Check className={cn('size-4', statusFilter === o.value ? 'opacity-100' : 'opacity-0')} />
-                      <span className="flex-1 text-left">{o.label}</span>
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
-            )
-          })()}
+          <StatusFilterButton value={statusFilter} onChange={setStatusFilter} />
 
           {/* Column settings popover */}
           <Popover>

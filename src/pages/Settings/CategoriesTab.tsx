@@ -8,8 +8,9 @@ import { SortableTableBody, SortableRow } from '@/components/ui/sortable'
 import { FormField } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
+import { StatusFilterButton, type StatusFilterValue } from '@/components/ui/status-filter'
 import type { ProductCategory } from '@/types'
-import { Plus, Edit, Tag, ArrowUpDown, Check, X, Ban, RotateCcw, EyeOff } from 'lucide-react'
+import { Plus, Edit, Tag, ArrowUpDown, Check, X, Ban, RotateCcw } from 'lucide-react'
 
 export function CategoriesTab() {
   const { toast } = useToast()
@@ -21,8 +22,8 @@ export function CategoriesTab() {
   const [dialog, setDialog] = useState(false)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
-  // Disabled rows are hidden by default; this filter reveals them.
-  const [showDisabled, setShowDisabled] = useState(false)
+  // Usage-status filter (default 'all' = show everything).
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
   const [togglingId, setTogglingId] = useState<number | null>(null)
   // Enable/disable confirm target (null = closed)
   const [confirmToggle, setConfirmToggle] = useState<ProductCategory | null>(null)
@@ -98,10 +99,12 @@ export function CategoriesTab() {
   }
 
   // Client-side filter — categories list is small, no IPC needed.
-  // Disabled rows are excluded unless the "ที่พักใช้งาน" filter is on.
+  // statusFilter: 'all' shows everything, 'enabled'/'disabled' narrow by status.
   // Filtering during reorder would scramble the visible order, so search is
   // hidden while reordering (see top bar below).
-  const base = showDisabled ? rows : rows.filter(c => !c.is_disabled)
+  const base = statusFilter === 'all' ? rows
+    : statusFilter === 'enabled' ? rows.filter(c => !c.is_disabled)
+    : rows.filter(c => c.is_disabled)
   const filtered = q.trim()
     ? base.filter(c => {
         const needle = q.trim().toLowerCase()
@@ -137,9 +140,7 @@ export function CategoriesTab() {
               <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" variant="elevated" onClick={enterReorder} disabled={rows.length < 2}>
                 <ArrowUpDown className="size-4" /> จัดลำดับ
               </Button>
-              <Button size="lg" className="h-9 px-2 shrink-0" variant={showDisabled ? 'default' : 'elevated'} onClick={() => setShowDisabled(s => !s)} title="แสดงรายการที่พักการใช้งาน">
-                <EyeOff className="size-4" /> ที่พักใช้งาน
-              </Button>
+              <StatusFilterButton value={statusFilter} onChange={setStatusFilter} />
               <Button size="lg" className="h-9 px-2 shrink-0" onClick={openAdd}>
                 <Plus className="size-4" /> เพิ่มหมวดหมู่
               </Button>

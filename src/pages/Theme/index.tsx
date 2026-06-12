@@ -41,6 +41,7 @@ import {
   PopoverHeader, PopoverTitle, PopoverDescription,
 } from '@/components/ui/popover'
 import { Pagination } from '@/components/ui/pagination'
+import { StatusFilterButton, type StatusFilterValue } from '@/components/ui/status-filter'
 import { DateInput } from '@/components/ui/date-input'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { PeriodPicker, type PeriodMode } from '@/components/ui/period-picker'
@@ -206,6 +207,7 @@ export default function Theme() {
   const closePattern = () => setOpenPattern(null)
   const [tabbedDialogTab, setTabbedDialogTab] = useState<'discount' | 'charge'>('discount')
   const [statFilter, setStatFilter] = useState<'all' | 'low' | 'out'>('all')
+  const [demoStatusFilter, setDemoStatusFilter] = useState<StatusFilterValue>('all')
   const [seedConfirmOpen, setSeedConfirmOpen] = useState(false)
   const [seedRunning, setSeedRunning] = useState(false)
   const [seedResult, setSeedResult] = useState<string | null>(null)
@@ -1634,6 +1636,25 @@ export default function Theme() {
                     <Pagination page={page} totalPages={10} onPageChange={setPage} className="w-auto" />
                   </div>
                 </div>
+              </Section>
+
+              {/* ── STATUS FILTER BUTTON ── */}
+              <Section title="StatusFilterButton — กรองสถานะ (canonical)" path="src/components/ui/status-filter.tsx">
+                <DemoRow label="ปุ่มกรองสถานะมาตรฐาน — default = ทั้งหมด, เลือกได้ ใช้งาน / ปิดใช้งาน">
+                  <StatusFilterButton value={demoStatusFilter} onChange={setDemoStatusFilter} />
+                  <span className="text-sm text-muted-foreground self-center">
+                    เลือก: <span className="text-foreground">{demoStatusFilter}</span>
+                  </span>
+                </DemoRow>
+                <p className="text-sm text-muted-foreground">
+                  ปุ่ม <code className="bg-muted px-1 rounded">elevated</code> icon (h-9 w-9) เปิด popover เลือกอย่างเดียว —
+                  ค่าเริ่มต้น <code className="bg-muted px-1 rounded">'all'</code> (โชว์ทั้งหมด) แล้วเลือกแคบเป็น{' '}
+                  <code className="bg-muted px-1 rounded">'enabled'</code> /{' '}
+                  <code className="bg-muted px-1 rounded">'disabled'</code> ได้. ใช้ทุกตาราง list ที่มีสถานะเปิด/ปิด
+                  (สินค้า, ชุดสินค้า, ลูกค้า, ผู้จำหน่าย, พนักงาน, หมวดหมู่, ประเภทยา, หมวดค่าใช้จ่าย).
+                  caller แมป value ลง query/ข้อมูลของตัวเอง; รับ <code className="bg-muted px-1 rounded">options</code> /{' '}
+                  <code className="bg-muted px-1 rounded">title</code> เองได้ถ้าต้องการ label อื่น.
+                </p>
               </Section>
 
               {/* ── SORTABLE (DRAG REORDER) ── */}

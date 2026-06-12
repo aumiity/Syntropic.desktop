@@ -8,8 +8,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/components/ui/toast'
+import { StatusFilterButton, type StatusFilterValue } from '@/components/ui/status-filter'
 import type { DrugType } from '@/types'
-import { Plus, Edit, Pill, Ban, RotateCcw, EyeOff } from 'lucide-react'
+import { Plus, Edit, Pill, Ban, RotateCcw } from 'lucide-react'
 
 const FDA_FLAGS = [
   { key: 'is_fda9',  label: 'ข.ย.9 — บัญชีการซื้อยา' },
@@ -25,8 +26,8 @@ export function DrugTypesTab() {
   const [dialog, setDialog] = useState(false)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
-  // Disabled rows are hidden by default; this filter reveals them.
-  const [showDisabled, setShowDisabled] = useState(false)
+  // Usage-status filter (default 'all' = show everything).
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
   const [togglingId, setTogglingId] = useState<number | null>(null)
   // Enable/disable confirm target (null = closed)
   const [confirmToggle, setConfirmToggle] = useState<DrugType | null>(null)
@@ -80,8 +81,10 @@ export function DrugTypesTab() {
   }
 
   // Client-side filter — drug-types list is small, no IPC round-trip needed.
-  // Disabled rows are excluded unless the "ที่พักใช้งาน" filter is on.
-  const base = showDisabled ? rows : rows.filter(d => !d.is_disabled)
+  // statusFilter: 'all' shows everything, 'enabled'/'disabled' narrow by status.
+  const base = statusFilter === 'all' ? rows
+    : statusFilter === 'enabled' ? rows.filter(d => !d.is_disabled)
+    : rows.filter(d => d.is_disabled)
   const filtered = q.trim()
     ? base.filter(d => {
         const needle = q.trim().toLowerCase()
@@ -99,9 +102,7 @@ export function DrugTypesTab() {
             onChange={e => setQ(e.target.value)}
             placeholder="ค้นหารหัส, ชื่อประเภทยา..."
           />
-          <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" variant={showDisabled ? 'default' : 'elevated'} onClick={() => setShowDisabled(s => !s)} title="แสดงรายการที่พักการใช้งาน">
-            <EyeOff className="size-4" /> ที่พักใช้งาน
-          </Button>
+          <StatusFilterButton value={statusFilter} onChange={setStatusFilter} className="ml-auto" />
           <Button size="lg" className="h-9 px-2 shrink-0" onClick={openAdd}>
             <Plus className="size-4" /> เพิ่มประเภทยา
           </Button>

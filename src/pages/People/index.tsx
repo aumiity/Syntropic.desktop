@@ -18,6 +18,7 @@ import { Toggle } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
+import { StatusFilterButton, type StatusFilterValue } from '@/components/ui/status-filter'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { motion } from 'framer-motion'
@@ -25,7 +26,7 @@ import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import type { Customer, Supplier, User } from '@/types'
-import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2, Filter, Ban, RotateCcw, Check, KeyRound } from 'lucide-react'
+import { Plus, Edit, AlertTriangle, Users, Building2, UserCog, Settings2, Ban, RotateCcw, KeyRound } from 'lucide-react'
 
 // Enter on a working input fires the dialog's primary OK action (modal contract).
 // Textarea is exempted so multi-line input keeps newline behaviour.
@@ -57,12 +58,11 @@ function useAddTrigger(addNonce: number, openAdd: () => void) {
 // ========================
 interface CustomersPrefs {
   pageSize: PageSize
-  showDisabled: boolean
   showColPhone: boolean
   showColAlert: boolean
 }
 const CUSTOMERS_DEFAULTS: CustomersPrefs = {
-  pageSize: 50, showDisabled: false, showColPhone: true, showColAlert: true,
+  pageSize: 50, showColPhone: true, showColAlert: true,
 }
 
 function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; addNonce: number }) {
@@ -72,7 +72,8 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
-  const showDisabled = prefs.showDisabled
+  // Status filter (default 'all' = show everything; not persisted, reset per session)
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
   // Column visibility (จัดการ + รหัส + ชื่อ + สถานะ always shown)
   const showColPhone = prefs.showColPhone
   const showColAlert = prefs.showColAlert
@@ -90,17 +91,17 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   const load = useCallback(async (p = 1) => {
     setLoading(true)
     try {
-      const res = await window.api.people.listCustomers({ q: q.trim() || undefined, page: p, limit: pageSize, includeDisabled: showDisabled }) as any
+      const res = await window.api.people.listCustomers({ q: q.trim() || undefined, page: p, limit: pageSize, statusFilter }) as any
       setRows(res.rows); setTotal(res.total); setPage(p)
     } finally { setLoading(false) }
-  }, [q, pageSize, showDisabled])
+  }, [q, pageSize, statusFilter])
 
   // Realtime search — debounce text input (also covers initial mount, q='').
   useEffect(() => {
     const t = setTimeout(() => load(1), 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, pageSize, showDisabled])
+  }, [q, pageSize, statusFilter])
 
   const openAdd = () => {
     setEditingId(null)
@@ -148,23 +149,8 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
             placeholder="ค้นหาชื่อ, โทร, รหัส..."
           />
 
-          {/* Filter popover — usage status (show disabled) */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
-                <Filter className="size-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-56">
-              <PopoverHeader>
-                <PopoverTitle>ตัวกรอง</PopoverTitle>
-              </PopoverHeader>
-              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
-                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
-              </label>
-            </PopoverContent>
-          </Popover>
+          {/* Filter popover — usage status (ทั้งหมด / ใช้งาน / ปิดใช้งาน) */}
+          <StatusFilterButton value={statusFilter} onChange={setStatusFilter} />
 
           {/* Column settings popover */}
           <Popover>
@@ -316,11 +302,10 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
 // ========================
 interface SuppliersPrefs {
   pageSize: PageSize
-  showDisabled: boolean
   showColPhone: boolean
 }
 const SUPPLIERS_DEFAULTS: SuppliersPrefs = {
-  pageSize: 50, showDisabled: false, showColPhone: true,
+  pageSize: 50, showColPhone: true,
 }
 
 function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; addNonce: number }) {
@@ -330,7 +315,8 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
-  const showDisabled = prefs.showDisabled
+  // Status filter (default 'all' = show everything; not persisted, reset per session)
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
   // Column visibility (รหัส + ชื่อบริษัท + สถานะ + จัดการ always shown)
   const showColPhone = prefs.showColPhone
   const [loading, setLoading] = useState(false)
@@ -348,17 +334,17 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
   const load = useCallback(async (p = 1) => {
     setLoading(true)
     try {
-      const res = await window.api.people.listSuppliers({ q: q.trim() || undefined, page: p, limit: pageSize, includeDisabled: showDisabled }) as any
+      const res = await window.api.people.listSuppliers({ q: q.trim() || undefined, page: p, limit: pageSize, statusFilter }) as any
       setRows(res.rows); setTotal(res.total); setPage(p)
     } finally { setLoading(false) }
-  }, [q, pageSize, showDisabled])
+  }, [q, pageSize, statusFilter])
 
   // Realtime search — debounce text input (also covers initial mount, q='').
   useEffect(() => {
     const t = setTimeout(() => load(1), 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, pageSize, showDisabled])
+  }, [q, pageSize, statusFilter])
 
   const openAdd = () => {
     setEditing(null)
@@ -420,22 +406,8 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
             placeholder="ค้นหาชื่อ, รหัส, โทร..."
           />
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
-                <Filter className="size-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-56">
-              <PopoverHeader>
-                <PopoverTitle>ตัวกรอง</PopoverTitle>
-              </PopoverHeader>
-              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
-                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
-              </label>
-            </PopoverContent>
-          </Popover>
+          {/* Filter popover — usage status (ทั้งหมด / ใช้งาน / ปิดใช้งาน) */}
+          <StatusFilterButton value={statusFilter} onChange={setStatusFilter} />
 
           <Popover>
             <PopoverTrigger asChild>
@@ -599,14 +571,13 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
 // STAFF TAB
 // ========================
 interface StaffPrefs {
-  showDisabled: boolean
   showColUsername: boolean
   showColEmail: boolean
   showColPhone: boolean
   showColRole: boolean
 }
 const STAFF_DEFAULTS: StaffPrefs = {
-  showDisabled: false, showColUsername: true, showColEmail: true, showColPhone: false, showColRole: true,
+  showColUsername: true, showColEmail: true, showColPhone: false, showColRole: true,
 }
 
 function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNonce: number }) {
@@ -614,7 +585,8 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
   const [prefs, setPrefs] = usePagePrefs<StaffPrefs>('people.staff', STAFF_DEFAULTS)
   const [rows, setRows] = useState<User[]>([])
   const [q, setQ] = useState('')
-  const showDisabled = prefs.showDisabled
+  // Status filter (default 'all' = show everything; not persisted, reset per session)
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
   // Column visibility (ชื่อ + สถานะ + จัดการ always shown)
   const showColUsername = prefs.showColUsername
   const showColEmail = prefs.showColEmail
@@ -633,12 +605,12 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
   const load = async () => {
     setLoading(true)
     try {
-      const data = await window.api.people.listStaff({ includeDisabled: showDisabled }) as User[]
+      const data = await window.api.people.listStaff({ statusFilter }) as User[]
       setRows(data)
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [showDisabled])
+  useEffect(() => { load() }, [statusFilter])
 
   const openAdd = () => {
     setEditing(null)
@@ -737,22 +709,8 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
             placeholder="ค้นหาชื่อ, อีเมล..."
           />
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
-                <Filter className="size-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-56">
-              <PopoverHeader>
-                <PopoverTitle>ตัวกรอง</PopoverTitle>
-              </PopoverHeader>
-              <label className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1.5 hover:bg-muted">
-                <Checkbox checked={showDisabled} onCheckedChange={v => setPrefs({ showDisabled: v === true })} />
-                <span className="text-sm">แสดงที่ปิดใช้งาน</span>
-              </label>
-            </PopoverContent>
-          </Popover>
+          {/* Filter popover — usage status (ทั้งหมด / ใช้งาน / ปิดใช้งาน) */}
+          <StatusFilterButton value={statusFilter} onChange={setStatusFilter} />
 
           <Popover>
             <PopoverTrigger asChild>

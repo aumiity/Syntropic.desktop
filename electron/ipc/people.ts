@@ -7,9 +7,9 @@ import { requireAdmin } from '../auth/session'
 
 export function registerPeopleHandlers() {
   // --- CUSTOMERS ---
-  ipcMain.handle('people:listCustomers', (_e, filters: { q?: string; page?: number; limit?: number | 'all'; includeDisabled?: boolean }) => {
+  ipcMain.handle('people:listCustomers', (_e, filters: { q?: string; page?: number; limit?: number | 'all'; includeDisabled?: boolean; statusFilter?: 'all' | 'enabled' | 'disabled' }) => {
     const db = getDb()
-    const { q, page = 1, limit: limitOpt, includeDisabled = false } = filters ?? {}
+    const { q, page = 1, limit: limitOpt, includeDisabled = false, statusFilter } = filters ?? {}
     const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 50)
     const offset = limit ? (page - 1) * limit : 0
     const conds: string[] = []
@@ -17,7 +17,11 @@ export function registerPeopleHandlers() {
     // C0000 (walk-in) is a reserved system row, never a real customer — keep
     // it out of the People list (walk-in invariant, CLAUDE.md).
     conds.push(`code != '${WALKIN_CUSTOMER_CODE}'`)
-    if (!includeDisabled) conds.push(`is_disabled = 0`)
+    // statusFilter (UI default 'all' = show everything) takes precedence; the
+    // legacy includeDisabled flag is the fallback for callers that don't pass it.
+    if (statusFilter === 'enabled') conds.push(`is_disabled = 0`)
+    else if (statusFilter === 'disabled') conds.push(`is_disabled = 1`)
+    else if (statusFilter !== 'all' && !includeDisabled) conds.push(`is_disabled = 0`)
     if (q) {
       conds.push(`(full_name LIKE ? OR phone LIKE ? OR code LIKE ?)`)
       params.push(`%${q}%`, `%${q}%`, `%${q}%`)
@@ -74,14 +78,16 @@ export function registerPeopleHandlers() {
   })
 
   // --- SUPPLIERS ---
-  ipcMain.handle('people:listSuppliers', (_e, filters: { q?: string; page?: number; limit?: number | 'all'; includeDisabled?: boolean }) => {
+  ipcMain.handle('people:listSuppliers', (_e, filters: { q?: string; page?: number; limit?: number | 'all'; includeDisabled?: boolean; statusFilter?: 'all' | 'enabled' | 'disabled' }) => {
     const db = getDb()
-    const { q, page = 1, limit: limitOpt, includeDisabled = false } = filters ?? {}
+    const { q, page = 1, limit: limitOpt, includeDisabled = false, statusFilter } = filters ?? {}
     const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 50)
     const offset = limit ? (page - 1) * limit : 0
     const conds: string[] = []
     const params: any[] = []
-    if (!includeDisabled) conds.push(`is_disabled = 0`)
+    if (statusFilter === 'enabled') conds.push(`is_disabled = 0`)
+    else if (statusFilter === 'disabled') conds.push(`is_disabled = 1`)
+    else if (statusFilter !== 'all' && !includeDisabled) conds.push(`is_disabled = 0`)
     if (q) {
       conds.push(`(name LIKE ? OR code LIKE ? OR phone LIKE ?)`)
       params.push(`%${q}%`, `%${q}%`, `%${q}%`)
@@ -120,10 +126,13 @@ export function registerPeopleHandlers() {
   })
 
   // --- STAFF ---
-  ipcMain.handle('people:listStaff', (_e, filters?: { includeDisabled?: boolean }) => {
+  ipcMain.handle('people:listStaff', (_e, filters?: { includeDisabled?: boolean; statusFilter?: 'all' | 'enabled' | 'disabled' }) => {
     requireAdmin(_e)
-    const { includeDisabled = false } = filters ?? {}
-    const where = includeDisabled ? '' : `WHERE is_disabled = 0`
+    const { includeDisabled = false, statusFilter } = filters ?? {}
+    const where = statusFilter === 'enabled' ? `WHERE is_disabled = 0`
+      : statusFilter === 'disabled' ? `WHERE is_disabled = 1`
+      : statusFilter === 'all' ? ''
+      : includeDisabled ? '' : `WHERE is_disabled = 0`
     return getDb().prepare(`SELECT id, name, first_name, last_name, username, phone, email, role, is_disabled, created_at FROM users ${where} ORDER BY ${orderByBucket('name')}`).all()
   })
 
