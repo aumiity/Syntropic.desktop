@@ -1,11 +1,11 @@
 ---
 name: project_gr_price_edit
-description: GR wizard price-edit — invariants, audit leak fixed, Phase 2 pending (2026-06-13+)
+description: GR wizard price-edit — audit leak fixed, Phase 1+2 DONE (2026-06-13), invariants & pitfalls
 metadata:
   type: project
 ---
 
-**Phase 1 DONE 2026-06-13 (tsc PASS, e2e 6/6 PASS).** Phase 2 pending — see below.
+**Phase 1 DONE 2026-06-13 (tsc PASS, e2e 6/6 PASS). Phase 2 DONE 2026-06-13 (tsc PASS, e2e 11/11 PASS).**
 
 ## Closed audit leak (non-obvious history)
 
@@ -24,16 +24,38 @@ Added in `electron/ipc/auth.ts` + `electron/preload.ts`. Validates a manager-ove
 - **D2 — admin gate is up-front unlock, not per-write.** Non-admin sees the sell-price input `readOnly` + an unlock button; clicking it calls `auth:verifyAdmin(override)`, stashes the credential, then unlocks the field. The stashed override is forwarded when the row is confirmed.
 - **R2 — cost-change alert.** Step 4 shows a banner when typed unit cost differs from `stored_last_cost` (the product's `last_cost_price` snapshotted into `ReceiptRow` at search time). Banner is informational only — does not block save.
 
-## Phase 2 — pending (not started as of 2026-06-13)
+## Phase 2 — all-units price editor (DONE 2026-06-13)
 
-Edit **all units** (base + variants) incl. wholesale (ws1/ws2):
+Step 4 is now an all-units × (ราคาปลีก / ส่ง1 / ส่ง2) grid.
 
-- Needs a NEW `products:updateUnitPrice(productUnitId, {...}, override)` IPC handler — admin-gated.
-- **NOT logged in `price_logs` (decision R5)** — price_logs stays base-unit-only; no schema change needed.
-- Step-4 single price input becomes an all-units × (retail/ws1/ws2) table.
-- **CAUTION:** `row.units` in the wizard come from `purchase_units` (receiving units), but the price-editor table must key on **sellable units** (`is_for_sale=1`). Do not conflate receiving units with sellable units when building the Phase 2 table.
+### New IPC: `products:updateUnitPrice(productUnitId, {price_retail?, price_wholesale1?, price_wholesale2?}, override)`
 
-Spec: `docs/superpowers/specs/2026-06-13-gr-wizard-price-edit-design.md` §7.
+- Admin-gated via `requireAdmin`.
+- Allow-listed to exactly those 3 columns — no other keys accepted.
+- **INTENTIONALLY does NOT write `price_logs` (decision R5).** Price history stays base-unit-only; no schema change needed. Do not add logging here in the future without revisiting R5.
+
+### Write routing on row-confirm
+
+- Base unit price changes → `products:updatePrice` per changed `price_type` (logged as before).
+- Variant unit price changes → `products:updateUnitPrice` with only the changed fields (not logged).
+
+### Sellable-units sourcing — CRITICAL
+
+The price-editor table is built from **`prod.units` (enrichProduct, `is_for_sale=1`)** via `buildSellUnits()` (exported from `AddProductWizard.tsx`, also used in `index.tsx` `buildRowFromProduct`). Do **not** use `purchase_units` (receiving units) for this — they are a different set. The caution was in spec §7 and was honored.
+
+### State management
+
+Phase 1's single `sellPrice` field was removed entirely. Step 4 now uses a `priceDrafts` map keyed by unit.
+
+### clearProduct reset rule (pitfall — fixed during review)
+
+`clearProduct` (the "เปลี่ยนสินค้า" button) must reset **both** `priceDrafts` AND `row.sell_units`. If only one is cleared:
+- The draft-seed effect is gated on `prev` being empty — it won't re-seed for the new product.
+- Product A's prices leak onto product B (wrong displayed price + wrong `price_logs` entries for the base unit).
+
+### e2e test gotcha: `products:addUnit`
+
+`products:addUnit` requires `unit_id` (FK to `item_units` — fetch via `settings.listUnits`) **and** a `barcode` field. Passing `unit_name` alone throws a NOT NULL / FK error. Fetch the unit list first, resolve the `id`, then pass `{ unit_id, barcode, ... }`.
 
 ## Related
 
