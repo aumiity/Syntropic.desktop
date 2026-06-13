@@ -5,7 +5,7 @@ import {
   checkLocked, recordFailure, clearFailures,
   checkRecoveryLocked, recordRecoveryFailure, clearRecoveryFailures,
 } from '../auth/lockout'
-import { bindSession, clearSession, getSession } from '../auth/session'
+import { bindSession, clearSession, getSession, requireAdmin, type Override } from '../auth/session'
 
 export function registerAuthHandlers() {
   // Users shown on the Login picker. The picker now displays @username + email
@@ -74,6 +74,15 @@ export function registerAuthHandlers() {
   // Clear the main-side session for this renderer (logout / lock screen).
   ipcMain.handle('auth:logout', (_e) => {
     clearSession(_e)
+  })
+
+  // Verify the caller has admin authority (own session OR a valid manager
+  // override). Used by the GR wizard to UNLOCK the price editor up front so a
+  // wrong credential is rejected immediately instead of at write time. Throws
+  // on failure (requireAdmin), resolves { ok:true } on success.
+  ipcMain.handle('auth:verifyAdmin', (_e, override?: Override) => {
+    requireAdmin(_e, override)
+    return { ok: true as const }
   })
 
   // Read the CALLER'S OWN profile (for the sidebar profile card). Identity comes

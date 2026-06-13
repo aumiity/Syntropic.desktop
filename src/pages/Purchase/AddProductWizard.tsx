@@ -8,9 +8,10 @@ import { Badge } from '@/components/ui/badge'
 import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { formatCurrency } from '@/lib/utils'
+import { useManagerOverride } from '@/hooks/useManagerOverride'
 import {
   Check, ChevronLeft, ChevronRight, Plus, RotateCcw,
-  AlertTriangle, ShoppingBag, CalendarClock, Coins, Tag, Info,
+  AlertTriangle, ShoppingBag, CalendarClock, Coins, Tag, Info, Lock,
 } from 'lucide-react'
 
 // ── Shared types (single source — index.tsx imports these) ───────────────────
@@ -30,6 +31,8 @@ export interface ReceiptRow {
   units: ProductUnitOption[]
   default_sell_price: number
   stored_cost_price?: number
+  /** ทุนล่าสุดที่จ่ายจริง (last_cost_price) ตอนเลือกสินค้า — baseline เทียบ "ทุนเปลี่ยน" ใน step 4 */
+  stored_last_cost?: number
   lot_number: string
   manufactured_date: string
   expiry_date: string
@@ -136,6 +139,12 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   // sell-price draft (step 4)
   const [sellPrice, setSellPrice] = useState('')
 
+  const { run: runOverride, dialog: overrideDialog, isAdmin } = useManagerOverride()
+  // ปลดล็อกการแก้ราคา: admin ปลดอัตโนมัติ; พนักงานต้องผ่าน verifyAdmin ก่อน
+  const [priceUnlocked, setPriceUnlocked] = useState(false)
+  const [grantedOverride, setGrantedOverride] = useState<{ userId: number; password: string } | undefined>(undefined)
+  const canEditPrice = isAdmin || priceUnlocked
+
   // ── (re)initialise whenever the dialog opens ──
   useEffect(() => {
     if (!open) return
@@ -149,6 +158,8 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     setShowDiscount(!!editing && parseFloat(editing.discount) > 0)
     setSellPrice(editing?.default_sell_price ? String(editing.default_sell_price) : '')
     setStep(0)
+    setPriceUnlocked(false)
+    setGrantedOverride(undefined)
   }, [open, editing])
 
   const patch = useCallback((f: Partial<ReceiptRow>) => setRow(r => ({ ...r, ...f })), [])
@@ -269,6 +280,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
       units,
       default_sell_price: chosen.price_retail ?? p.price_retail ?? 0,
       stored_cost_price: p.cost_price,
+      stored_last_cost: p.last_cost_price,
     }))
     const seedPrice = chosen.price_retail ?? p.price_retail
     setSellPrice(seedPrice ? String(seedPrice) : '')
@@ -318,7 +330,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
 
   const goNext = () => {
     if (!canNext) return
-    if (step === LAST) { confirm(); return }
+    if (step === LAST) { void confirm(); return }
     setStep(s => Math.min(LAST, s + 1))
   }
   const goBack = () => setStep(s => Math.max(0, s - 1))
@@ -327,9 +339,36 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     if (s <= step || stepValid(step)) setStep(s)
   }
 
-  const confirm = () => {
+  const requestPriceUnlock = () => {
+    runOverride(
+      async (ov) => {
+        await window.api.auth.verifyAdmin(ov)   // throws ถ้ารหัสผิด → dialog ค้างโชว์ error
+        setGrantedOverride(ov)
+        setPriceUnlocked(true)
+      },
+      { title: 'ขอสิทธิ์แก้ราคา', description: 'การแก้ราคาขายต้องใช้สิทธิ์ผู้ดูแลระบบ' },
+    )
+  }
+
+  const confirm = async () => {
     const sp = parseFloat(sellPrice)
-    onConfirm({ ...row, default_sell_price: isFinite(sp) ? sp : row.default_sell_price })
+    const newPrice = isFinite(sp) ? sp : row.default_sell_price
+    // เขียนราคาทันที (D1) เฉพาะเมื่อราคาเปลี่ยนจริง — ราคาเดิม = row.default_sell_price (seed ตอน pick/เลือกหน่วย)
+    if (row.product_id > 0 && Math.abs(newPrice - row.default_sell_price) > 0.0001) {
+      try {
+        await window.api.products.updatePrice(
+          row.product_id,
+          { price_type: 'retail', new_price: newPrice, note: 'แก้ราคาจากหน้ารับสินค้า' },
+          grantedOverride,
+        )
+      } catch (e: any) {
+        // ไม่มีสิทธิ์/ผิดพลาด → ไม่ปิด wizard, ปล่อยให้ผู้ใช้รู้ตัว (toast อยู่ระดับ page; ที่นี่ throw กลับ)
+        // หมายเหตุ: ช่องถูกล็อกสำหรับ non-admin อยู่แล้ว เคสนี้เกิดยาก
+        console.error('[wizard] updatePrice failed:', e?.message)
+        return
+      }
+    }
+    onConfirm({ ...row, default_sell_price: newPrice })
   }
 
   // ── derived numbers for step 4 ──
@@ -341,6 +380,11 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   const profit = sellNum - cost
   const marginPct = cost > 0 ? (profit / cost) * 100 : 0
   const expMonths = monthsToExpiry(row.expiry_date)
+
+  // ทุนเปลี่ยน: เทียบทุน/หน่วยที่กรอก (cost) กับทุนล่าสุดที่จ่ายจริง (stored_last_cost).
+  // ใช้ last_cost_price เป็น baseline — ไม่ fallback ไป weighted-avg (ของฟรี=0 ต้องคง 0).
+  const prevCost = row.stored_last_cost
+  const costChanged = prevCost != null && cost > 0 && Math.abs(cost - prevCost) > 0.0001
 
   // sub-label previews for the rail
   const railSub = (s: number): string => {
@@ -594,16 +638,50 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
             {step === 3 && (
               <div>
                 <h3 className="text-lg font-bold mb-4">ราคาขาย &amp; ยืนยัน<span className="ml-2 text-xs text-foreground-subtle">ขั้นสุดท้าย</span></h3>
+                {costChanged && (
+                  <div className="mb-4 rounded-card border border-accent-soft-foreground/30 bg-accent-soft/50 px-4 py-3">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-accent-soft-foreground">
+                      <AlertTriangle className="size-4 shrink-0" />
+                      ทุนเปลี่ยนจาก {formatCurrency(prevCost!)} → {formatCurrency(cost)} · ทบทวนราคาขาย
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                      <div className="rounded-lg bg-card border border-border px-3 py-2">
+                        <div className="text-xs text-foreground-subtle">ทุนเดิม</div>
+                        <div className="font-bold">{formatCurrency(prevCost!)}</div>
+                      </div>
+                      <div className="rounded-lg bg-card border border-border px-3 py-2">
+                        <div className="text-xs text-foreground-subtle">ทุนใหม่</div>
+                        <div className="font-bold">{formatCurrency(cost)}</div>
+                      </div>
+                      <div className="rounded-lg bg-card border border-border px-3 py-2">
+                        <div className="text-xs text-foreground-subtle">ส่วนต่าง</div>
+                        <div className={`font-bold ${cost - prevCost! > 0 ? 'text-destructive' : 'text-success'}`}>
+                          {cost - prevCost! > 0 ? '+' : ''}{formatCurrency(cost - prevCost!)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-5 items-end">
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">ราคาขาย/หน่วย</label>
                     <PriceInput
-                      autoFocus
+                      autoFocus={canEditPrice}
                       value={sellPrice}
                       onChange={setSellPrice}
                       onFocus={e => e.currentTarget.select()}
-                      className="w-full h-12 text-xl font-extrabold text-primary text-center"
+                      readOnly={!canEditPrice}
+                      className={`w-full h-12 text-xl font-extrabold text-primary text-center ${!canEditPrice ? 'opacity-70 cursor-not-allowed' : ''}`}
                     />
+                    {!canEditPrice && (
+                      <Button
+                        type="button" variant="elevated" size="sm"
+                        onClick={requestPriceUnlock}
+                        className="mt-2 gap-1.5"
+                      >
+                        <Lock className="size-3.5" /> ขอสิทธิ์แก้ราคา
+                      </Button>
+                    )}
                   </div>
                   <div className="pb-1 text-sm text-foreground-subtle">
                     {row.stored_cost_price != null && cost > row.stored_cost_price
@@ -706,6 +784,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
         )
       }}
     />
+    {overrideDialog}
     </>
   )
 }

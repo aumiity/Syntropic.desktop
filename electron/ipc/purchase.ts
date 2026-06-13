@@ -226,8 +226,8 @@ export function registerPurchaseHandlers() {
           costEx, `รับสินค้า: ${payload.invoice_no}`, payload.userId, payload.receive_date
         )
 
-        db.prepare(`UPDATE products SET price_retail = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
-          .run(item.sell_price, item.product_id)
+        // ราคาขายหลัก (price_retail) ไม่ตั้งจาก GR แล้ว — เป็นของ products:updatePrice
+        // (log + admin gate) ที่เรียกจาก Wizard step 4. ดู docs/superpowers/specs/2026-06-13-gr-wizard-price-edit-design.md
 
         // last_cost_price = the last cost we actually PAID (display-only).
         // Skip when receiving free goods (cost 0) so a freebie doesn't wipe

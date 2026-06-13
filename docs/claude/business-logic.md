@@ -38,6 +38,7 @@ Products have 4 barcode fields (barcode, barcode2, barcode3, barcode4) plus `pro
 - `has_wholesale1` / `has_wholesale2` flags (PHP-only, not in SQLite) historically gated whether wholesale prices were active. The desktop app shows a wholesale row in the price dialog only when its value is `> 0`.
 - Non-base ProductUnit variants (แผง, กล่อง, …) own their own `price_*` / `barcode` / `qty_per_base` / `is_for_sale` / `is_for_purchase`. These override the products table when that unit is selected in POS.
 - `cost_price` per lot; `products.cost_price` = weighted avg of open lots
+- **GR ไม่ตั้งราคาขายหลักอีกต่อไป.** `purchase.save` ไม่เขียน `products.price_retail` แล้ว — ราคาขายหลักเป็นของ `products:updatePrice` (log `price_logs` + admin gate) เจ้าเดียว ที่เรียกจาก Wizard step 4 (เขียนทันทีตอนยืนยัน row). `product_lots.sell_price` + `last_cost_price` ยังเขียนจาก GR ตามเดิม.
 
 ## Base unit storage (HARD)
 

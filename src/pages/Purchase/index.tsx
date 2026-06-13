@@ -3,7 +3,6 @@ import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { PriceInput } from '@/components/ui/price-input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { DateInput } from '@/components/ui/date-input'
@@ -20,7 +19,6 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, NegativeStockAlert } from '@/types'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
-import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { useShopVat } from '@/hooks/useShopVat'
 import { extractVat } from '@/lib/vat'
 import {
@@ -56,6 +54,8 @@ interface ProductSuggestion {
   unit_name?: string
   price_retail?: number
   cost_price?: number
+  // last paid cost (pricing ref) — pos:searchProducts returns it via SELECT p.*
+  last_cost_price?: number
   units?: ProductUnitOption[]
   // Receivable variants = every enabled unit — see enrichProduct.
   purchase_units?: ProductUnitOption[]
@@ -127,15 +127,6 @@ export default function PurchasePage() {
 
   // Unit swap modal (per row)
   const [unitModalIdx, setUnitModalIdx] = useState<number | null>(null)
-
-  // Sell-price quick-edit modal (per row)
-  const [priceModalIdx, setPriceModalIdx] = useState<number | null>(null)
-  const [priceDraft, setPriceDraft] = useState('')
-  const [priceNote, setPriceNote] = useState('')
-  const [priceSaving, setPriceSaving] = useState(false)
-  const overridePrice = useManagerOverride()
-  const [priceHistory, setPriceHistory] = useState<Array<{ id: number; price_type: string; old_price: number; new_price: number; note?: string; created_at: string }>>([])
-  const [prevCost, setPrevCost] = useState<number | null>(null)
 
   // Bulk import modal
   const [showImport, setShowImport] = useState(false)
@@ -336,6 +327,7 @@ export default function PurchasePage() {
       units: allUnits,
       default_sell_price: p.price_retail ?? 0,
       stored_cost_price: p.cost_price,
+      stored_last_cost: p.last_cost_price,
       ...fields,
     }
   }
@@ -433,67 +425,6 @@ export default function PurchasePage() {
     } finally {
       setImporting(false)
     }
-  }
-
-  const openPriceModal = async (i: number) => {
-    const row = rows[i]
-    if (!row?.product_id) return
-    setPriceModalIdx(i)
-    setPriceDraft(String(row.default_sell_price || ''))
-    setPriceNote('')
-    setPriceHistory([])
-    setPrevCost(null)
-    try {
-      const [logs, product] = await Promise.all([
-        window.api.products.priceHistory(row.product_id, 10) as Promise<any[]>,
-        window.api.products.get(row.product_id) as Promise<any>,
-      ])
-      setPriceHistory(logs ?? [])
-      // "ทุนเก่า" baseline = the last cost we actually paid (last-in), so it's
-      // an apples-to-apples comparison with the new lot cost being keyed.
-      // No fallback to the weighted-avg cost_price: a genuine 0 (free goods
-      // last time) must stay 0 — overriding it would hide that it was free.
-      if (product != null) setPrevCost(Number(product.last_cost_price ?? 0))
-    } catch { /* swallow — history is best-effort */ }
-  }
-
-  const closePriceModal = () => {
-    setPriceModalIdx(null)
-    setPriceDraft('')
-    setPriceNote('')
-    setPriceHistory([])
-    setPrevCost(null)
-  }
-
-  const savePriceModal = async () => {
-    if (priceModalIdx === null) return
-    const row = rows[priceModalIdx]
-    if (!row?.product_id) return
-    const newPrice = parseFloat(priceDraft)
-    if (!isFinite(newPrice) || newPrice < 0) { toast('ราคาไม่ถูกต้อง', 'error'); return }
-    const targetId = row.product_id
-    setPriceSaving(true)
-    overridePrice.run(
-      async (ov) => {
-        await window.api.products.updatePrice(targetId, {
-          price_type: 'retail', new_price: newPrice, note: priceNote || undefined,
-        }, ov)
-      },
-      {
-        title: 'แก้ไขราคาขาย',
-        onDone: () => {
-          setPriceSaving(false)
-          setRows(rs => rs.map(r => r.product_id === targetId ? { ...r, default_sell_price: newPrice } : r))
-          toast('อัปเดตราคาขายแล้ว', 'success')
-          closePriceModal()
-        },
-        onError: (e: any) => {
-          setPriceSaving(false)
-          toast(e?.message ?? 'อัปเดตราคาไม่สำเร็จ', 'error')
-        },
-      },
-    )
-    if (!overridePrice.isAdmin) setPriceSaving(false)
   }
 
   const changeRowUnit = (i: number, u: ProductUnitOption) => {
@@ -1113,163 +1044,6 @@ export default function PurchasePage() {
         />
       )}
 
-      {/* ── Sell-price quick-edit modal — same as POS ── */}
-      <Dialog open={priceModalIdx !== null} onOpenChange={(o) => { if (!o && !priceSaving) closePriceModal() }}>
-        {priceModalIdx !== null && rows[priceModalIdx] && (() => {
-          const row = rows[priceModalIdx]
-          const qtyNum = parseFloat(row.qty) || 0
-          const totalNum = parseFloat(row.total) || 0
-          const typedCost = parseFloat(row.cost_price)
-          const cost = isFinite(typedCost) && typedCost > 0
-            ? typedCost
-            : (qtyNum > 0 ? totalNum / qtyNum : 0)
-          const customPrice = parseFloat(priceDraft) || 0
-          const customProfit = customPrice - cost
-          const customMarkupPct = cost > 0 ? (customProfit / cost) * 100 : 0
-          const fmtDate = (s: string) => {
-            const m = s?.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/)
-            return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}` : (s ?? '')
-          }
-          return (
-            <DialogContent size="lg" divided onClose={closePriceModal}>
-              <DialogHeader>
-                <DialogTitle className="text-2xl">ราคาขาย</DialogTitle>
-                <div className="text-base font-semibold text-foreground">{row.trade_name || '-'}</div>
-              </DialogHeader>
-              <DialogBody>
-                <div className="space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin p-0.5">
-                  {/* Custom price — card-style, mirrors POS price picker */}
-                  <div className="w-full rounded-xl border-2 border-primary bg-primary-soft/50 p-3.5 shadow-card">
-                    <span className="text-base font-semibold text-primary">กำหนดราคา (ต่อ {row.unit_name || 'ชิ้น'})</span>
-                    <div className="mt-2 flex items-center gap-2">
-                      <PriceInput
-                        autoFocus
-                        value={priceDraft}
-                        onChange={setPriceDraft}
-                        onFocus={e => e.currentTarget.select()}
-                        onKeyDown={e => { if (e.key === 'Enter' && customPrice > 0 && !priceSaving) { e.preventDefault(); savePriceModal() } }}
-                        className="w-full flex-1 h-12 text-3xl font-extrabold text-primary bg-card border border-border rounded-lg shadow-sm focus:ring-2 focus:ring-primary outline-none px-3"
-                      />
-                      <Button variant="default" onClick={savePriceModal} disabled={priceSaving || customPrice <= 0} className="h-12 px-5 text-base">
-                        {priceSaving ? 'กำลังบันทึก…' : 'ตกลง'}
-                      </Button>
-                    </div>
-                    <div className="mt-2.5 border-t border-border/60 pt-2 grid grid-cols-3 gap-2 text-sm">
-                      <span className="text-muted-foreground">ทุน <span className="font-semibold text-foreground">{formatCurrency(cost)}</span></span>
-                      <span className="text-muted-foreground">กำไร <span className={`font-semibold ${customProfit > 0 ? 'text-success' : customProfit < 0 ? 'text-destructive' : 'text-foreground'}`}>{formatCurrency(customProfit)}</span></span>
-                      <span className="text-muted-foreground">กำไร% <span className={`font-semibold ${customProfit > 0 ? 'text-success' : customProfit < 0 ? 'text-destructive' : 'text-foreground'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</span></span>
-                    </div>
-                  </div>
-
-                  {/* Comparison: old vs new (ราคา / ทุน / กำไร / กำไร %) — shown when price OR cost changed */}
-                  {prevCost !== null && (() => {
-                    const oldSellPrice = row.default_sell_price
-                    const newSellPrice = customPrice
-                    const priceDiff = newSellPrice - oldSellPrice
-                    const costDiff = cost - prevCost
-                    if (Math.abs(priceDiff) < 0.0001 && Math.abs(costDiff) < 0.0001) return null
-                    const oldProfit = oldSellPrice - prevCost
-                    const newProfit = newSellPrice - cost
-                    const oldMargin = prevCost > 0 ? (oldProfit / prevCost) * 100 : 0
-                    const newMargin = cost > 0 ? (newProfit / cost) * 100 : 0
-                    const profitDiff = newProfit - oldProfit
-                    const marginDiff = newMargin - oldMargin
-                    // Price up = good (more revenue). Cost up = bad. Profit/margin up = good.
-                    const priceDiffCls = priceDiff > 0 ? 'text-success' : priceDiff < 0 ? 'text-destructive' : 'text-muted-foreground'
-                    const costDiffCls = costDiff > 0 ? 'text-destructive' : costDiff < 0 ? 'text-success' : 'text-muted-foreground'
-                    const profitDiffCls = profitDiff > 0 ? 'text-success' : profitDiff < 0 ? 'text-destructive' : 'text-muted-foreground'
-                    const marginDiffCls = marginDiff > 0 ? 'text-success' : marginDiff < 0 ? 'text-destructive' : 'text-muted-foreground'
-                    const profitCls = (n: number) => n > 0 ? 'text-success' : n < 0 ? 'text-destructive' : 'text-muted-foreground'
-                    const sign = (n: number) => n > 0 ? '+' : ''
-                    return (
-                      <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 space-y-2">
-                        <div className="text-base font-semibold text-foreground-subtle">เปรียบเทียบ</div>
-                        <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr] gap-x-3 gap-y-1.5 text-sm items-center">
-                          {/* Column headers */}
-                          <div />
-                          <div className="text-foreground-subtle text-sm text-right">ราคา</div>
-                          <div className="text-foreground-subtle text-sm text-right">ทุน</div>
-                          <div className="text-foreground-subtle text-sm text-right">กำไร</div>
-                          <div className="text-foreground-subtle text-sm text-right">กำไร %</div>
-
-                          {/* เก่า */}
-                          <div className="text-foreground-subtle">เก่า</div>
-                          <div className="text-right text-muted-foreground">{formatCurrency(oldSellPrice)}</div>
-                          <div className="text-right text-muted-foreground">{formatCurrency(prevCost)}</div>
-                          <div className={`text-right ${profitCls(oldProfit)}`}>{formatCurrency(oldProfit)}</div>
-                          <div className={`text-right ${profitCls(oldMargin)}`}>{oldMargin.toFixed(1)}%</div>
-
-                          {/* ใหม่ */}
-                          <div className="font-semibold">ใหม่</div>
-                          <div className="text-right font-semibold text-foreground">{formatCurrency(newSellPrice)}</div>
-                          <div className="text-right font-semibold text-foreground">{formatCurrency(cost)}</div>
-                          <div className={`text-right font-semibold ${profitCls(newProfit)}`}>{formatCurrency(newProfit)}</div>
-                          <div className={`text-right font-semibold ${profitCls(newMargin)}`}>{newMargin.toFixed(1)}%</div>
-
-                          {/* ส่วนต่าง */}
-                          <div className="text-foreground-subtle">ส่วนต่าง</div>
-                          <div className={`text-right ${priceDiffCls}`}>{sign(priceDiff)}{formatCurrency(priceDiff)}</div>
-                          <div className={`text-right ${costDiffCls}`}>{sign(costDiff)}{formatCurrency(costDiff)}</div>
-                          <div className={`text-right ${profitDiffCls}`}>{sign(profitDiff)}{formatCurrency(profitDiff)}</div>
-                          <div className={`text-right ${marginDiffCls}`}>{sign(marginDiff)}{marginDiff.toFixed(1)}%</div>
-                        </div>
-                      </div>
-                    )
-                  })()}
-
-                  {/* Note */}
-                  <div>
-                    <label className="block text-sm font-semibold text-muted-foreground mb-1">หมายเหตุ</label>
-                    <Input
-                      variant="elevated"
-                      value={priceNote}
-                      onChange={e => setPriceNote(e.target.value)}
-                      placeholder="เหตุผลการแก้ไขราคา..."
-                      className="h-9 text-sm"
-                    />
-                  </div>
-
-                  {/* History */}
-                  <div>
-                    <div className="text-sm font-semibold text-muted-foreground mb-1.5">ประวัติการแก้ไขล่าสุด</div>
-                    <div className="rounded-lg border border-border bg-muted/40 max-h-40 overflow-y-auto">
-                      {priceHistory.length === 0 ? (
-                        <div className="text-sm text-foreground-subtle text-center py-3">ยังไม่มีประวัติ</div>
-                      ) : (
-                        <table className="w-full table-fixed text-sm">
-                          <thead>
-                            <tr className="text-muted-foreground [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
-                              <th className="px-2 py-1 text-left font-medium w-32">วันที่</th>
-                              <th className="px-2 py-1 text-right font-medium w-24">เดิม</th>
-                              <th className="px-2 py-1 text-right font-medium w-24">ใหม่</th>
-                              <th className="px-2 py-1 text-left font-medium">หมายเหตุ</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {priceHistory.map(h => (
-                              <tr key={h.id}>
-                                {/* text-xs — intentional exception to min-text-sm rule for compact history rows (per user request) */}
-                                <td className="px-2 py-1 text-xs text-muted-foreground truncate">{fmtDate(h.created_at)}</td>
-                                <td className="px-2 py-1 text-xs text-right text-muted-foreground">{formatCurrency(h.old_price)}</td>
-                                <td className="px-2 py-1 text-xs text-right text-foreground font-semibold">{formatCurrency(h.new_price)}</td>
-                                <td className="px-2 py-1 text-xs text-muted-foreground truncate">{h.note || '-'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <Button size="xl" className="w-32" onClick={closePriceModal}>ปิด</Button>
-              </DialogFooter>
-            </DialogContent>
-          )
-        })()}
-      </Dialog>
-
       {/* ── Bill adjustment modal ── */}
       <Dialog open={showBillAdjust} onOpenChange={(o) => { if (!o) closeBillAdjust() }}>
         <DialogContent size="sm" divided>
@@ -1530,7 +1304,6 @@ export default function PurchasePage() {
         confirmLabel="เสร็จสิ้น"
         onConfirm={() => setShowSuccess(false)}
       />
-      {overridePrice.dialog}
 
       {/* ── Add / Edit product wizard (replaces inline row editing) ── */}
       <AddProductWizard
