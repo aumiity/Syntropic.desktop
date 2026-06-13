@@ -39,6 +39,7 @@ Products have 4 barcode fields (barcode, barcode2, barcode3, barcode4) plus `pro
 - Non-base ProductUnit variants (แผง, กล่อง, …) own their own `price_*` / `barcode` / `qty_per_base` / `is_for_sale` / `is_for_purchase`. These override the products table when that unit is selected in POS.
 - `cost_price` per lot; `products.cost_price` = weighted avg of open lots
 - **GR ไม่ตั้งราคาขายหลักอีกต่อไป.** `purchase.save` ไม่เขียน `products.price_retail` แล้ว — ราคาขายหลักเป็นของ `products:updatePrice` (log `price_logs` + admin gate) เจ้าเดียว ที่เรียกจาก Wizard step 4 (เขียนทันทีตอนยืนยัน row). `product_lots.sell_price` + `last_cost_price` ยังเขียนจาก GR ตามเดิม.
+- **ราคาขายแก้จาก GR wizard ได้ทุกหน่วย.** step 4 = ตารางทุกหน่วยที่ขายได้ (ฐาน + is_for_sale variants) × ปลีก/ส่ง1/ส่ง2. หน่วยฐาน → `products:updatePrice` (log `price_logs` + admin gate); หน่วยอื่น → `products:updateUnitPrice` (admin gate, **ไม่ log** — ประวัติเก็บเฉพาะหน่วยฐาน, allow-list 3 คอลัมน์ราคา ห้าม build SQL จาก key อื่น). เขียนทันทีตอนยืนยัน row (admin/override). `purchase.save` ยังไม่ตั้งราคาหลัก (price_retail) เอง.
 
 ## Base unit storage (HARD)
 

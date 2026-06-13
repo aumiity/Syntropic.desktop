@@ -18,6 +18,8 @@ const api = {
     create: (data: any) => ipcRenderer.invoke('products:create', data),
     update: (id: number, data: any) => ipcRenderer.invoke('products:update', id, data),
     updatePrice: (id: number, data: { price_type?: 'retail' | 'wholesale1' | 'wholesale2'; new_price: number; note?: string }, override?: { userId: number; password: string }) => ipcRenderer.invoke('products:updatePrice', id, data, override),
+    updateUnitPrice: (productUnitId: number, data: { price_retail?: number; price_wholesale1?: number; price_wholesale2?: number }, override?: { userId: number; password: string }) =>
+      ipcRenderer.invoke('products:updateUnitPrice', productUnitId, data, override),
     priceHistory: (id: number, limit?: number) => ipcRenderer.invoke('products:priceHistory', id, limit),
     stockMovements: (productId: number, opts?: {
       page?: number; pageSize?: number;

@@ -498,6 +498,28 @@ export function registerProductHandlers() {
     })()
   })
 
+  // ตั้งราคาขายของ "หน่วยที่ไม่ใช่ฐาน" (product_units row หนึ่ง ๆ). admin-gated.
+  // ตั้งใจ NOT log price_logs — ประวัติราคาเก็บเฉพาะหน่วยฐานเท่านั้น (decision R5).
+  // Allow-list: เขียนได้แค่ 3 คอลัมน์ราคา ห้าม build SQL จาก key อื่น (กฎ HARD).
+  ipcMain.handle('products:updateUnitPrice', (_e, productUnitId: number, data: { price_retail?: number; price_wholesale1?: number; price_wholesale2?: number }, override?: Override) => {
+    requireAdmin(_e, override)
+    const db = getDb()
+    const allowed = ['price_retail', 'price_wholesale1', 'price_wholesale2'] as const
+    const sets: string[] = []
+    const params: Record<string, number> = {}
+    for (const k of allowed) {
+      if (data[k] != null && isFinite(Number(data[k]))) {
+        sets.push(`${k} = @${k}`)
+        params[k] = Number(data[k])
+      }
+    }
+    if (sets.length === 0) return { product_unit_id: productUnitId, changed: false }
+    const info = db.prepare(
+      `UPDATE product_units SET ${sets.join(', ')}, updated_at = datetime('now','localtime') WHERE id = @id`
+    ).run({ ...params, id: productUnitId })
+    return { product_unit_id: productUnitId, changed: info.changes > 0 }
+  })
+
   ipcMain.handle('products:priceHistory', (_e, productId: number, limit = 10) => {
     return getDb().prepare(`
       SELECT id, price_type, old_price, new_price, note, created_at

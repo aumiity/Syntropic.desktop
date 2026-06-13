@@ -27,7 +27,7 @@ import {
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { motion } from 'framer-motion'
-import { AddProductWizard, type ReceiptRow, type ProductUnitOption, emptyRow } from './AddProductWizard'
+import { AddProductWizard, buildSellUnits, type ReceiptRow, type ProductUnitOption, emptyRow } from './AddProductWizard'
 
 // ── Types (ReceiptRow / ProductUnitOption / emptyRow are imported from ./AddProductWizard) ──
 
@@ -53,6 +53,8 @@ interface ProductSuggestion {
   code?: string
   unit_name?: string
   price_retail?: number
+  price_wholesale1?: number
+  price_wholesale2?: number
   cost_price?: number
   // last paid cost (pricing ref) — pos:searchProducts returns it via SELECT p.*
   last_cost_price?: number
@@ -328,6 +330,7 @@ export default function PurchasePage() {
       default_sell_price: p.price_retail ?? 0,
       stored_cost_price: p.cost_price,
       stored_last_cost: p.last_cost_price,
+      sell_units: buildSellUnits(p),
       ...fields,
     }
   }

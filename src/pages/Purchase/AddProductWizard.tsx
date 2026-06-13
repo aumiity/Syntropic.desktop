@@ -21,6 +21,20 @@ export interface ProductUnitOption {
   unit_name: string
   qty_per_base: number
   price_retail?: number
+  price_wholesale1?: number
+  price_wholesale2?: number
+}
+
+// ราคาขายต่อหน่วยที่แก้ได้ใน step 4 (ฐาน + variants ที่ is_for_sale).
+// product_unit_id === null คือหน่วยฐาน (เขียนผ่าน updatePrice/log); ตัวเลข = product_units.id (updateUnitPrice/ไม่ log)
+export interface SellUnitPrice {
+  key: string
+  product_unit_id: number | null
+  unit_name: string
+  qty_per_base: number
+  price_retail: number
+  price_wholesale1: number
+  price_wholesale2: number
 }
 
 export interface ReceiptRow {
@@ -41,6 +55,8 @@ export interface ReceiptRow {
   discount: string
   total: string
   note: string
+  /** หน่วยที่ขายได้ (ฐาน + is_for_sale variants) สำหรับตัวแก้ราคา step 4 — capture ตอนเลือกสินค้า */
+  sell_units?: SellUnitPrice[]
 }
 
 export const emptyRow = (): ReceiptRow => ({
@@ -56,6 +72,8 @@ interface ProductSuggestion {
   code?: string
   unit_name?: string
   price_retail?: number
+  price_wholesale1?: number
+  price_wholesale2?: number
   cost_price?: number
   // last paid cost (pricing ref) — pos:searchProducts returns it via SELECT p.*
   last_cost_price?: number
@@ -89,6 +107,27 @@ const formatNum = (raw: string, two = false): string => {
   return two
     ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : n.toLocaleString('en-US', { maximumFractionDigits: 4 })
+}
+
+// สร้างรายการหน่วยที่ขายได้สำหรับตัวแก้ราคา: ฐาน (จาก product) ก่อน แล้ว variants is_for_sale (จาก p.units).
+// ใช้ p.units (is_for_sale) ไม่ใช่ purchase_units — ตัวแก้ราคาคุมเฉพาะหน่วยที่ "ขาย" ได้ (spec §7)
+export function buildSellUnits(p: { unit_name?: string; price_retail?: number; price_wholesale1?: number; price_wholesale2?: number; units?: ProductUnitOption[] }): SellUnitPrice[] {
+  const baseName = p.unit_name || 'ชิ้น'
+  const base: SellUnitPrice = {
+    key: 'base', product_unit_id: null, unit_name: baseName, qty_per_base: 1,
+    price_retail: p.price_retail ?? 0,
+    price_wholesale1: p.price_wholesale1 ?? 0,
+    price_wholesale2: p.price_wholesale2 ?? 0,
+  }
+  const variants = (p.units ?? [])
+    .filter(u => u.unit_name !== baseName)
+    .map<SellUnitPrice>(u => ({
+      key: String(u.id), product_unit_id: u.id, unit_name: u.unit_name, qty_per_base: u.qty_per_base,
+      price_retail: u.price_retail ?? 0,
+      price_wholesale1: u.price_wholesale1 ?? 0,
+      price_wholesale2: u.price_wholesale2 ?? 0,
+    }))
+  return [base, ...variants]
 }
 
 // Months between today and an ISO/`yyyy-mm` expiry date (rough, for the FEFO hint).
@@ -136,8 +175,8 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   const [showMfg, setShowMfg] = useState(false)
   const [showDiscount, setShowDiscount] = useState(false)
 
-  // sell-price draft (step 4)
-  const [sellPrice, setSellPrice] = useState('')
+  // drafts ราคาต่อหน่วย: key = SellUnitPrice.key ('base' | product_unit_id) → 3 ราคา (string)
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, { retail: string; ws1: string; ws2: string }>>({})
 
   const { run: runOverride, dialog: overrideDialog, isAdmin } = useManagerOverride()
   // ปลดล็อกการแก้ราคา: admin ปลดอัตโนมัติ; พนักงานต้องผ่าน verifyAdmin ก่อน
@@ -156,13 +195,28 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     setSearching(false)
     setShowMfg(!!editing?.manufactured_date)
     setShowDiscount(!!editing && parseFloat(editing.discount) > 0)
-    setSellPrice(editing?.default_sell_price ? String(editing.default_sell_price) : '')
     setStep(0)
     setPriceUnlocked(false)
     setGrantedOverride(undefined)
+    const su = editing?.sell_units ?? []
+    const drafts: Record<string, { retail: string; ws1: string; ws2: string }> = {}
+    for (const u of su) drafts[u.key] = { retail: String(u.price_retail || ''), ws1: String(u.price_wholesale1 || ''), ws2: String(u.price_wholesale2 || '') }
+    setPriceDrafts(drafts)
   }, [open, editing])
 
   const patch = useCallback((f: Partial<ReceiptRow>) => setRow(r => ({ ...r, ...f })), [])
+
+  // เมื่อเลือกสินค้าใหม่ (sell_units มาทีหลัง pick) → seed drafts ถ้ายังว่าง
+  useEffect(() => {
+    const su = row.sell_units ?? []
+    if (su.length === 0) return
+    setPriceDrafts(prev => {
+      if (Object.keys(prev).length > 0) return prev
+      const d: Record<string, { retail: string; ws1: string; ws2: string }> = {}
+      for (const u of su) d[u.key] = { retail: String(u.price_retail || ''), ws1: String(u.price_wholesale1 || ''), ws2: String(u.price_wholesale2 || '') }
+      return d
+    })
+  }, [row.sell_units])
 
   // total = qty * cost − discount; editing any field auto-fills dependents (mirrors GR table math)
   const lineMath = (field: 'qty' | 'cost_price' | 'discount' | 'total', value: string) => {
@@ -281,9 +335,8 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
       default_sell_price: chosen.price_retail ?? p.price_retail ?? 0,
       stored_cost_price: p.cost_price,
       stored_last_cost: p.last_cost_price,
+      sell_units: buildSellUnits(p),
     }))
-    const seedPrice = chosen.price_retail ?? p.price_retail
-    setSellPrice(seedPrice ? String(seedPrice) : '')
     setQuery(p.trade_name)
     setSuggestions([])
     setSearchOpen(false)
@@ -302,7 +355,8 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   })()
 
   const clearProduct = () => {
-    patch({ product_id: 0, trade_name: '', product_code: '', unit_name: '', units: [], default_sell_price: 0, stored_cost_price: undefined })
+    patch({ product_id: 0, trade_name: '', product_code: '', unit_name: '', units: [], sell_units: undefined, default_sell_price: 0, stored_cost_price: undefined })
+    setPriceDrafts({})
     setQuery('')
     setSuggestions([])
     setSearchOpen(false)
@@ -311,7 +365,6 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
 
   const selectUnit = (u: ProductUnitOption) => {
     patch({ unit_name: u.unit_name, default_sell_price: u.price_retail ?? row.default_sell_price })
-    setSellPrice(u.price_retail ? String(u.price_retail) : sellPrice)
   }
 
   // ── per-step validation ──
@@ -351,24 +404,40 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   }
 
   const confirm = async () => {
-    const sp = parseFloat(sellPrice)
-    const newPrice = isFinite(sp) ? sp : row.default_sell_price
-    // เขียนราคาทันที (D1) เฉพาะเมื่อราคาเปลี่ยนจริง — ราคาเดิม = row.default_sell_price (seed ตอน pick/เลือกหน่วย)
-    if (row.product_id > 0 && Math.abs(newPrice - row.default_sell_price) > 0.0001) {
+    const units = row.sell_units ?? []
+    if (row.product_id > 0 && canEditPrice) {
       try {
-        await window.api.products.updatePrice(
-          row.product_id,
-          { price_type: 'retail', new_price: newPrice, note: 'แก้ราคาจากหน้ารับสินค้า' },
-          grantedOverride,
-        )
+        for (const u of units) {
+          const d = priceDrafts[u.key]
+          if (!d) continue
+          const nRetail = parseFloat(d.retail); const nWs1 = parseFloat(d.ws1); const nWs2 = parseFloat(d.ws2)
+          if (u.product_unit_id === null) {
+            // หน่วยฐาน → updatePrice ต่อ price_type ที่เปลี่ยน (log + gate)
+            if (isFinite(nRetail) && Math.abs(nRetail - u.price_retail) > 0.0001)
+              await window.api.products.updatePrice(row.product_id, { price_type: 'retail', new_price: nRetail, note: 'แก้ราคาจากหน้ารับสินค้า' }, grantedOverride)
+            if (isFinite(nWs1) && Math.abs(nWs1 - u.price_wholesale1) > 0.0001)
+              await window.api.products.updatePrice(row.product_id, { price_type: 'wholesale1', new_price: nWs1, note: 'แก้ราคาจากหน้ารับสินค้า' }, grantedOverride)
+            if (isFinite(nWs2) && Math.abs(nWs2 - u.price_wholesale2) > 0.0001)
+              await window.api.products.updatePrice(row.product_id, { price_type: 'wholesale2', new_price: nWs2, note: 'แก้ราคาจากหน้ารับสินค้า' }, grantedOverride)
+          } else {
+            // หน่วยอื่น → updateUnitPrice (ไม่ log) เฉพาะฟิลด์ที่เปลี่ยน
+            const patch: { price_retail?: number; price_wholesale1?: number; price_wholesale2?: number } = {}
+            if (isFinite(nRetail) && Math.abs(nRetail - u.price_retail) > 0.0001) patch.price_retail = nRetail
+            if (isFinite(nWs1) && Math.abs(nWs1 - u.price_wholesale1) > 0.0001) patch.price_wholesale1 = nWs1
+            if (isFinite(nWs2) && Math.abs(nWs2 - u.price_wholesale2) > 0.0001) patch.price_wholesale2 = nWs2
+            if (Object.keys(patch).length > 0)
+              await window.api.products.updateUnitPrice(u.product_unit_id, patch, grantedOverride)
+          }
+        }
       } catch (e: any) {
-        // ไม่มีสิทธิ์/ผิดพลาด → ไม่ปิด wizard, ปล่อยให้ผู้ใช้รู้ตัว (toast อยู่ระดับ page; ที่นี่ throw กลับ)
-        // หมายเหตุ: ช่องถูกล็อกสำหรับ non-admin อยู่แล้ว เคสนี้เกิดยาก
-        console.error('[wizard] updatePrice failed:', e?.message)
-        return
+        console.error('[wizard] price write failed:', e?.message)
+        return  // ไม่ปิด wizard ถ้าเขียนราคาพลาด
       }
     }
-    onConfirm({ ...row, default_sell_price: newPrice })
+    // default_sell_price ของ row = ราคาปลีกของหน่วยที่รับเข้า (สำหรับ lot.sell_price + แสดงในตาราง GR)
+    const receivedKey = units.find(u => u.unit_name === row.unit_name)?.key ?? 'base'
+    const receivedRetail = parseFloat(priceDrafts[receivedKey]?.retail ?? '')
+    onConfirm({ ...row, default_sell_price: isFinite(receivedRetail) ? receivedRetail : row.default_sell_price })
   }
 
   // ── derived numbers for step 4 ──
@@ -376,7 +445,9 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   const totalNum = parseFloat(row.total) || 0
   const typedCost = parseFloat(row.cost_price)
   const cost = isFinite(typedCost) && typedCost > 0 ? typedCost : (qtyNum > 0 ? totalNum / qtyNum : 0)
-  const sellNum = parseFloat(sellPrice) || 0
+  // ราคาปลีกของ "หน่วยที่รับเข้า" (row.unit_name) จาก drafts — ใช้คำนวณกำไรการ์ดสรุป
+  const receivedUnitKey = (row.sell_units ?? []).find(u => u.unit_name === row.unit_name)?.key ?? 'base'
+  const sellNum = parseFloat(priceDrafts[receivedUnitKey]?.retail ?? '') || 0
   const profit = sellNum - cost
   const marginPct = cost > 0 ? (profit / cost) * 100 : 0
   const expMonths = monthsToExpiry(row.expiry_date)
@@ -395,7 +466,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
       case 0: return row.trade_name ? `${row.trade_name} · ${row.unit_name}` : 'ยังไม่เลือก'
       case 1: return row.lot_number ? `${row.lot_number} · หมด ${row.expiry_date}` : 'ยังไม่กรอก'
       case 2: return qtyNum > 0 ? `${formatNum(row.qty)} ${row.unit_name} · ฿${formatNum(row.total, true)}` : 'ยังไม่กรอก'
-      case 3: return sellNum > 0 ? `ขาย ฿${formatNum(sellPrice, true)} · กำไร ${marginPct.toFixed(1)}%` : 'ยังไม่กำหนด'
+      case 3: return sellNum > 0 ? `ขาย ฿${formatNum(priceDrafts[receivedUnitKey]?.retail ?? '', true)} · กำไร ${marginPct.toFixed(1)}%` : 'ยังไม่กำหนด'
       default: return ''
     }
   }
@@ -662,33 +733,42 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-5 items-end">
-                  <div>
-                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">ราคาขาย/หน่วย</label>
-                    <PriceInput
-                      autoFocus={canEditPrice}
-                      value={sellPrice}
-                      onChange={setSellPrice}
-                      onFocus={e => e.currentTarget.select()}
-                      readOnly={!canEditPrice}
-                      className={`w-full h-12 text-xl font-extrabold text-primary text-center ${!canEditPrice ? 'opacity-70 cursor-not-allowed' : ''}`}
-                    />
-                    {!canEditPrice && (
-                      <Button
-                        type="button" variant="elevated" size="sm"
-                        onClick={requestPriceUnlock}
-                        className="mt-2 gap-1.5"
-                      >
-                        <Lock className="size-3.5" /> ขอสิทธิ์แก้ราคา
-                      </Button>
-                    )}
-                  </div>
-                  <div className="pb-1 text-sm text-foreground-subtle">
-                    {row.stored_cost_price != null && cost > row.stored_cost_price
-                      ? `ทุนใหม่สูงกว่าครั้งก่อน ${formatCurrency(cost - row.stored_cost_price)} — ตรวจสอบว่าราคาขายยังคุ้ม`
-                      : 'ราคาขายนี้ใช้กับใบรับนี้ และเป็นค่าตั้งต้นของสินค้า'}
+                <div className="rounded-card border border-border overflow-hidden">
+                  <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-px bg-border text-sm">
+                    {/* header */}
+                    <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground">หน่วย</div>
+                    <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground text-right">ราคาปลีก</div>
+                    <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground text-right">ราคาส่ง 1</div>
+                    <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground text-right">ราคาส่ง 2</div>
+                    {(row.sell_units ?? []).map(u => {
+                      const d = priceDrafts[u.key] ?? { retail: '', ws1: '', ws2: '' }
+                      const setD = (field: 'retail' | 'ws1' | 'ws2', v: string) =>
+                        setPriceDrafts(prev => ({ ...prev, [u.key]: { ...(prev[u.key] ?? { retail: '', ws1: '', ws2: '' }), [field]: v } }))
+                      return (
+                        <React.Fragment key={u.key}>
+                          <div className="bg-card px-3 py-2 flex items-center gap-2">
+                            <span className="font-semibold">{u.unit_name}</span>
+                            {u.qty_per_base > 1 && <span className="text-xs text-foreground-subtle">×{u.qty_per_base}</span>}
+                          </div>
+                          <div className="bg-card px-2 py-1.5">
+                            <PriceInput value={d.retail} onChange={v => setD('retail', v)} readOnly={!canEditPrice} onFocus={e => e.currentTarget.select()} className={`h-9 text-right ${!canEditPrice ? 'opacity-70 cursor-not-allowed' : ''}`} />
+                          </div>
+                          <div className="bg-card px-2 py-1.5">
+                            <PriceInput value={d.ws1} onChange={v => setD('ws1', v)} readOnly={!canEditPrice} onFocus={e => e.currentTarget.select()} className={`h-9 text-right ${!canEditPrice ? 'opacity-70 cursor-not-allowed' : ''}`} />
+                          </div>
+                          <div className="bg-card px-2 py-1.5">
+                            <PriceInput value={d.ws2} onChange={v => setD('ws2', v)} readOnly={!canEditPrice} onFocus={e => e.currentTarget.select()} className={`h-9 text-right ${!canEditPrice ? 'opacity-70 cursor-not-allowed' : ''}`} />
+                          </div>
+                        </React.Fragment>
+                      )
+                    })}
                   </div>
                 </div>
+                {!canEditPrice && (
+                  <Button type="button" variant="elevated" size="sm" onClick={requestPriceUnlock} className="mt-3 gap-1.5">
+                    <Lock className="size-3.5" /> ขอสิทธิ์แก้ราคา
+                  </Button>
+                )}
                 <div className="grid grid-cols-3 gap-3 mt-4">
                   <div className="rounded-card border border-border p-2.5 text-center">
                     <div className="text-xs text-foreground-subtle">ทุน</div>
