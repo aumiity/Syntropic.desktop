@@ -376,6 +376,10 @@ declare const api: {
             name: string;
             role: string;
         } | null>;
+        devSetRole: (role: string) => Promise<{
+            id: number;
+            role: string;
+        } | null>;
         logout: () => Promise<any>;
         getMyProfile: () => Promise<any>;
         changePassword: (currentPassword: string, newPassword: string) => Promise<{

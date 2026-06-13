@@ -71,6 +71,21 @@ export function registerAuthHandlers() {
     return row
   })
 
+  // DEV-ONLY role switcher — flips the CALLER'S session role (admin <-> staff)
+  // so the system can be exercised under both roles without logging out. Rebinds
+  // the AUTHORITATIVE main-side session, so IPC enforcement (requireAdmin) — not
+  // just renderer UI gating — sees the new role. Hard-gated on !app.isPackaged:
+  // a packaged production build is a no-op (returns null). The renderer trigger
+  // (TitleBar role-switch button) is also stripped before release.
+  // REMOVE before a production build — see CLAUDE.md "Before a production build".
+  ipcMain.handle('auth:devSetRole', (_e, { role }: { role: string }) => {
+    if (app.isPackaged) return null
+    const s = getSession(_e.sender.id)
+    if (!s) return null
+    bindSession(_e, s.userId, role)
+    return { id: s.userId, role }
+  })
+
   // Clear the main-side session for this renderer (logout / lock screen).
   ipcMain.handle('auth:logout', (_e) => {
     clearSession(_e)

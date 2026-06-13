@@ -263,6 +263,8 @@ const api = {
     login: (userId: number, password: string) => ipcRenderer.invoke('auth:login', { userId, password }),
     // DEV-only auto-login (no password) — main rejects when packaged. See auth.ts.
     devLogin: () => ipcRenderer.invoke('auth:devLogin') as Promise<{ id: number; name: string; role: string } | null>,
+    // DEV-only role switcher — rebinds the caller's session role (main rejects when packaged). REMOVE before release.
+    devSetRole: (role: string) => ipcRenderer.invoke('auth:devSetRole', { role }) as Promise<{ id: number; role: string } | null>,
     logout: () => ipcRenderer.invoke('auth:logout'),
     verifyAdmin: (override?: { userId: number; password: string }) =>
       ipcRenderer.invoke('auth:verifyAdmin', override) as Promise<{ ok: true }>,

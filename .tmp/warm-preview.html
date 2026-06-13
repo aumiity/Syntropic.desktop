@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter','IBM Plex Sans Thai',sans-serif;
+    background: hsl(0 0% 96%);
+    color: hsl(0 0% 20%);
+    padding: 36px 32px 48px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 22px; font-weight: 700; color: hsl(0 0% 14%); margin-bottom: 4px; }
+  .sub { font-size: 13px; color: hsl(0 0% 45%); margin-bottom: 28px; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+  .col {
+    background: hsl(0 0% 99%);
+    border: 1px solid hsl(0 0% 87%);
+    border-radius: 16px;
+    padding: 18px 16px 20px;
+    box-shadow: 0 1px 0 rgba(20,32,29,.04), 0 8px 24px -16px rgba(20,32,29,.10);
+  }
+  .name { font-size: 15px; font-weight: 700; color: hsl(0 0% 16%); }
+  .hsl { font-size: 11px; color: hsl(0 0% 50%); font-family: 'Inter',monospace; margin: 2px 0 14px; }
+  .tag { display:inline-block; font-size:10px; font-weight:600; padding:1px 7px; border-radius:6px; margin-bottom:10px; }
+  .old { background: hsl(0 0% 92%); color: hsl(0 0% 45%); }
+
+  /* swatch ramp */
+  .ramp { display:flex; gap:6px; margin-bottom:16px; }
+  .sw { flex:1; height:38px; border-radius:8px; border:1px solid rgba(0,0,0,.06); }
+
+  .label { font-size:10px; font-weight:600; letter-spacing:.02em; color:hsl(0 0% 55%); margin:14px 0 7px; text-transform:uppercase; }
+
+  /* badge */
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; }
+  .badge .dot { width:6px; height:6px; border-radius:999px; background:currentColor; opacity:.85; }
+
+  /* soft button */
+  .btn { display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; padding:8px 14px; border-radius:10px; border:1px solid transparent; cursor:default; }
+
+  /* alert tile — mimics ConfirmDialog warning use */
+  .alert { margin-top:18px; border:1px solid hsl(0 0% 90%); border-radius:14px; padding:14px; background:hsl(0 0% 99%); text-align:center; }
+  .tile { width:52px; height:52px; border-radius:16px; display:grid; place-items:center; margin:0 auto 10px; }
+  .tile svg { width:28px; height:28px; }
+  .alert .t { font-size:13.5px; font-weight:700; color:hsl(0 0% 18%); }
+  .alert .d { font-size:11.5px; color:hsl(0 0% 48%); margin-top:3px; line-height:1.5; }
+  .chips { display:flex; gap:6px; justify-content:center; margin-top:11px; }
+  .chip { font-size:11px; font-weight:600; padding:4px 10px; border-radius:8px; border:1px solid; }
+  .confirm { margin-top:11px; width:100%; }
+</style>
+</head>
+<body>
+  <h1>โทนสี Warm — เสนอแทน accent-soft (ครีม)</h1>
+  <div class="sub">เรนเดอร์บนพื้นจริง hsl(0 0% 99%) · เทียบกับของเดิม + warning-soft (ส้มซีดที่มีอยู่แล้ว) · แต่ละคอลัมน์โชว์ ramp / Badge / ปุ่ม soft / กล่องเตือนแบบ ConfirmDialog</div>
+  <div class="grid" id="grid"></div>
+
+<script>
+const CANDS = [
+  { key:'cur', name:'เดิม (ครีม)', tagClass:'old', tag:'ปัจจุบัน', soft:'45 96% 90%', hover:'45 96% 80%', fg:'32 88% 33%' },
+  { key:'a', name:'A · Honey', tag:'gold', soft:'41 88% 84%', hover:'41 85% 77%', fg:'30 72% 30%' },
+  { key:'b', name:'B · Apricot', tag:'peach', soft:'29 94% 86%', hover:'29 88% 79%', fg:'19 70% 33%' },
+  { key:'c', name:'C · Terracotta', tag:'clay', soft:'19 75% 87%', hover:'19 68% 80%', fg:'13 55% 32%' },
+  { key:'d', name:'D · Caramel', tag:'tan', soft:'33 55% 82%', hover:'33 50% 75%', fg:'26 58% 27%' },
+];
+const ALERT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
+
+const grid = document.getElementById('grid');
+for (const c of CANDS) {
+  const soft = `hsl(${c.soft})`, hover = `hsl(${c.hover})`, fg = `hsl(${c.fg})`;
+  const fgBorder = `hsl(${c.fg} / .4)`;
+  grid.insertAdjacentHTML('beforeend', `
+   <div class="col">
+     <div class="name">${c.name}</div>
+     <div class="hsl">${c.soft}</div>
+     <span class="tag ${c.tagClass||''}" style="${c.tagClass?'':`background:${soft};color:${fg};`}">${c.tag}</span>
+
+     <div class="ramp">
+       <div class="sw" style="background:${soft}"></div>
+       <div class="sw" style="background:${hover}"></div>
+       <div class="sw" style="background:${fg}"></div>
+     </div>
+
+     <div class="label">Badge</div>
+     <span class="badge" style="background:${soft};color:${fg};border:1px solid ${fgBorder}"><span class="dot"></span>ใกล้หมด</span>
+
+     <div class="label">ปุ่ม soft</div>
+     <button class="btn" style="background:${soft};color:${fg};border-color:${fgBorder}">บันทึก</button>
+
+     <div class="alert">
+       <div class="tile" style="background:${soft};color:${fg}">${ALERT}</div>
+       <div class="t">ตรวจสอบข้อมูล</div>
+       <div class="d">พบรายการที่อาจไม่ถูกต้อง</div>
+       <div class="chips">
+         <span class="chip" style="background:${soft};color:${fg};border-color:${fgBorder}">สินค้าหมด</span>
+         <span class="chip" style="color:${fg};border-color:hsl(0 0% 88%);background:#fff">ผิดพลาด</span>
+       </div>
+       <button class="btn confirm" style="background:${soft};color:${fg};border-color:${fgBorder}">ดำเนินการต่อ</button>
+     </div>
+   </div>`);
+}
+</script>
+</body>
+</html>

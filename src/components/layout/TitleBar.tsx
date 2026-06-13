@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { Minus, Plus, X, Maximize2, Copy, Check } from 'lucide-react'
+import { Minus, Plus, X, Maximize2, Copy, Check, ShieldCheck, User } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useDevTabStore } from '@/stores/devTabStore'
+import { useUserStore } from '@/stores/userStore'
 
 // DEV ONLY — route path → source file map for quick copy-paste to Claude
 const ROUTE_FILE_MAP: { pattern: string; file: string }[] = [
@@ -101,8 +102,19 @@ export function TitleBar() {
   const [copied, setCopied] = useState(false)
   const location = useLocation()
   const devTab = useDevTabStore((s) => s.tab)
+  // DEV ONLY — role switch (admin <-> staff) for testing. REMOVE before release.
+  const currentUser = useUserStore((s) => s.current)
 
   const filePath = matchFilePath(location.pathname, devTab)
+
+  // DEV ONLY — flip both the renderer store (UI gating) AND the authoritative
+  // main-side session (IPC enforcement) so the whole stack reflects the new role.
+  const switchRole = () => {
+    if (!currentUser) return
+    const next = currentUser.role === 'admin' ? 'staff' : 'admin'
+    window.api.auth.devSetRole(next)
+    useUserStore.getState().login({ ...currentUser, role: next })
+  }
 
   const copyPath = () => {
     navigator.clipboard.writeText(filePath)
@@ -188,6 +200,29 @@ export function TitleBar() {
             </div>
           </PopoverContent>
         </Popover>
+
+        {/* DEV ONLY — role switch (admin/staff) for testing. REMOVE before release. */}
+        {import.meta.env.DEV && currentUser && (
+          <>
+            <div className="w-px h-3.5 bg-border mx-0.5" />
+            <button
+              type="button"
+              onClick={switchRole}
+              title="สลับ role (admin/staff) สำหรับทดสอบ"
+              className={`inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-xs transition-colors ${
+                currentUser.role === 'admin'
+                  ? 'text-primary hover:bg-primary-soft/60'
+                  : 'text-accent-foreground hover:bg-accent-soft/60'
+              }`}
+            >
+              {currentUser.role === 'admin'
+                ? <ShieldCheck className="size-3.5" />
+                : <User className="size-3.5" />
+              }
+              <span>{currentUser.role === 'admin' ? 'Admin' : 'Staff'}</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* Right: traffic-light controls */}

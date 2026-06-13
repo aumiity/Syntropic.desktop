@@ -45,7 +45,7 @@
 
     /* ── Accent — brand yellow ──────────────────────────────────────────── */
     --accent:            43 100% 64%;    /* #F5C24A */
-    --accent-foreground: 32 81% 29%;
+    --accent-foreground: 0 0% 12%;
 
     /* ── Muted (neutral grey surface) ───────────────────────────────────── */
     --muted:            0 0% 95%;
@@ -80,9 +80,9 @@
     --info-soft-hover:      219 100% 84%;
 
     /* ── Warm (cream / amber decorative) ────────────────────────────────── */
-    --accent-soft:            45 96% 90%;     /* #FCEFC8 — soft cream */
+    --accent-soft:            55 92% 95%;     /* #FCEFC8 — soft cream */
     --accent-soft-hover:      45 96% 80%;
-    --accent-soft-foreground: 32 88% 33%;     /* deep amber/brown text */
+    --accent-soft-foreground: 41 96% 40%;     /* deep amber/brown text */
 
     /* ── Decorative palette: Violet ─────────────────────────────────────── */
     --violet:            262 83% 58%;

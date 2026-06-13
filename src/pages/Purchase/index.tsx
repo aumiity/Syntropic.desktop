@@ -25,6 +25,7 @@ import { extractVat } from '@/lib/vat'
 import {
   Plus, Trash2, Package, Pencil,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle, Settings2,
+  Check, Minus,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { motion } from 'framer-motion'
@@ -799,9 +800,15 @@ export default function PurchasePage() {
                                       <span className="truncate text-sm font-medium">
                                         {row.trade_name || <span className="text-foreground-subtle font-normal">{searchQueries[i] || '—'}</span>}
                                       </span>
-                                      {isValid
-                                        ? <Badge variant="success-soft" className="shrink-0">ครบ</Badge>
-                                        : <Badge variant="accent-outline" className="shrink-0">ไม่ครบ</Badge>}
+                                      {isValid ? (
+                                        <span className="grid place-items-center size-4 rounded-full bg-success text-success-foreground shrink-0">
+                                          <Check className="size-2.5" strokeWidth={3} />
+                                        </span>
+                                      ) : (
+                                        <span className="grid place-items-center size-4 rounded-full bg-accent text-accent-foreground shrink-0">
+                                          <Minus className="size-2.5" strokeWidth={3} />
+                                        </span>
+                                      )}
                                     </div>
                                   </TableCell>
 

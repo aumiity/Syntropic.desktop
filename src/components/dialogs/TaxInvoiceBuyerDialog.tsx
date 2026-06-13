@@ -122,11 +122,11 @@ export function TaxInvoiceBuyerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="md" divided onClose={() => onOpenChange(false)}>
         <DialogHeader>
-          <DialogTitle>ออกใบกำกับภาษีเต็มรูป</DialogTitle>
+          <DialogTitle>ใบกำกับภาษี</DialogTitle>
           <div className="text-sm text-muted-foreground">
             {alreadyOriginal
-              ? 'ออกต้นฉบับไปแล้ว — การพิมพ์ครั้งนี้จะเป็น "สำเนา"'
-              : 'ผู้ซื้อดึงจากลูกค้าของบิล — แก้ไขที่นี่ไม่ได้'}
+              ? 'การพิมพ์ครั้งนี้จะเป็น "สำเนาใบกำกับภาษี"'
+              : 'โปรดตรวจสอบรายละเอียดผู้ซื้อให้ถูกต้อง'}
           </div>
         </DialogHeader>
         <DialogBody className="space-y-3">
@@ -156,7 +156,7 @@ export function TaxInvoiceBuyerDialog({
             <FileText className="size-4" /> ดูตัวอย่าง PDF
           </Button>
           <Button variant="default" onClick={handlePrint} disabled={busy || incomplete}>
-            <Printer className="size-4" /> {busy ? 'กำลังพิมพ์...' : (alreadyOriginal ? 'พิมพ์สำเนาใบกำกับ' : 'พิมพ์ใบกำกับภาษี')}
+            <Printer className="size-4" /> {busy ? 'กำลังพิมพ์...' : (alreadyOriginal ? 'พิมพ์สำเนา' : 'พิมพ์ใบกำกับภาษี')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -11,9 +11,10 @@ import { printSlip, resolveSlipMode } from '@/lib/receipt/print'
 import { saleDetailToPrint } from '@/lib/receipt/normalizeSale'
 import { TaxInvoiceBuyerDialog } from '@/components/dialogs/TaxInvoiceBuyerDialog'
 import { CustomerSearchDialog } from '@/components/dialogs/CustomerSearchDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { useShopVat } from '@/hooks/useShopVat'
-import type { Sale, SaleItem } from '@/types'
+import type { Sale, SaleItem, Customer } from '@/types'
 
 // One sale_item_lots row exposed to the renderer. Joined fields come from
 // reports:getSaleByInvoice — see the IPC for the source query.
@@ -72,13 +73,16 @@ export function SaleDetailDialog({
   onChanged?: () => void
 }) {
   const { toast } = useToast()
-  const { vatEnabled } = useShopVat()
+  const { vatEnabled, vatRate } = useShopVat()
   const ov = useManagerOverride()
   const [detail, setDetail] = useState<SaleDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [taxOpen, setTaxOpen] = useState(false)
   const [reassignOpen, setReassignOpen] = useState(false)
+  // Customer picked in the search dialog but NOT yet committed — drives the
+  // confirm step so a misclick doesn't overwrite the bill's customer instantly.
+  const [pendingCustomer, setPendingCustomer] = useState<Customer | null>(null)
 
   const reprintReceipt = async (d: SaleDetail) => {
     const sale = saleDetailToPrint(d)
@@ -92,6 +96,26 @@ export function SaleDetailDialog({
     window.api.reports.getSaleByInvoice(inv)
       .then((data: any) => setDetail(data as SaleDetail | null))
       .finally(() => setLoading(false))
+  }
+
+  // Runs only after the user confirms the change in the ConfirmDialog. Still
+  // goes through manager-override (admin password) on the backend.
+  const commitReassign = () => {
+    const c = pendingCustomer
+    if (!c || !detail) return
+    setPendingCustomer(null)
+    ov.run(
+      async (o) => { await window.api.reports.updateSaleCustomer({ sale_id: detail.id, customer_id: c.id }, o) },
+      {
+        title: 'แก้ไขลูกค้าของบิล',
+        onDone: () => {
+          toast({ title: 'แก้ไขลูกค้าของบิลแล้ว', variant: 'success' })
+          fetchDetail(detail.invoice_no)
+          onChanged?.()
+        },
+        onError: (e: any) => toast({ title: 'แก้ไขลูกค้าไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }),
+      },
+    )
   }
 
   useEffect(() => {
@@ -114,6 +138,11 @@ export function SaleDetailDialog({
   const locked = detail?.tax_original_printed === 1
   const taxEligible = !!detail && vatEnabled && detail.total_vat > 0
     && detail.status !== 'voided' && detail.sale_type !== 'return'
+  // Customer reassignment works on ANY bill the backend accepts (not just VAT
+  // ones) — it only rejects voided / return / locked-tax-original bills, so
+  // mirror exactly those guards here.
+  const canReassign = !!detail && !locked
+    && detail.status !== 'voided' && detail.sale_type !== 'return'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -126,30 +155,46 @@ export function SaleDetailDialog({
         ) : (
           <>
             <DialogHeader className="border-b border-border pb-3">
-              <DialogTitle className="flex items-center gap-3 pr-10">
-                <span>{detail.invoice_no}</span>
-                {detail.status === 'voided'
-                  ? <Badge variant="destructive-outline">ยกเลิกแล้ว</Badge>
-                  : <Badge variant="success-outline">สำเร็จ</Badge>}
-              </DialogTitle>
+              <div className="flex items-center justify-between gap-3 pr-10">
+                <DialogTitle className="flex items-center gap-3">
+                  <span>{detail.invoice_no}</span>
+                  {detail.status === 'voided'
+                    ? <Badge variant="destructive-outline">ยกเลิกแล้ว</Badge>
+                    : <Badge variant="success-outline">สำเร็จ</Badge>}
+                  {vatEnabled && detail.total_vat > 0 && <Badge variant="info-outline">VAT</Badge>}
+                </DialogTitle>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="icon-lg" variant="elevated" tooltip="พิมพ์ใบเสร็จ" onClick={() => reprintReceipt(detail)}>
+                    <Printer className="size-4" />
+                  </Button>
+                  {taxEligible && (
+                    <Button size="icon-lg" variant="default" tooltip={locked ? 'พิมพ์สำเนาใบกำกับภาษี' : 'พิมพ์ใบกำกับภาษี'} onClick={() => setTaxOpen(true)}>
+                      <FileText className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
             </DialogHeader>
             <DialogBody className="space-y-4">
-              <div className="relative grid grid-cols-2 gap-3 text-sm bg-muted/30 border border-border rounded-lg p-3">
-                <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                  {([
-                    detail.cash_amount > 0 && { label: 'เงินสด', variant: 'success-outline' as const },
-                    detail.card_amount > 0 && { label: 'บัตร', variant: 'info-outline' as const },
-                    detail.transfer_amount > 0 && { label: 'โอน', variant: 'warning-outline' as const },
-                  ].filter(Boolean) as { label: string; variant: 'success-outline' | 'info-outline' | 'warning-outline' }[]).map(m => (
-                    <Badge key={m.label} variant={m.variant}>{m.label}</Badge>
-                  ))}
-                </div>
+              <div className="grid grid-cols-2 gap-3 text-sm bg-muted/30 border border-border rounded-lg p-3">
                 <div><span className="text-muted-foreground">วันที่:</span> <span className="font-medium">{formatDateTime(detail.sold_at)}</span></div>
-                <div className="pr-40"><span className="text-muted-foreground">พนักงาน:</span> <span className="font-medium">{detail.sold_by_name ?? '—'}</span></div>
+                <div><span className="text-muted-foreground">พนักงาน:</span> <span className="font-medium">{detail.sold_by_name ?? '—'}</span></div>
                 <div><span className="text-muted-foreground">ลูกค้า:</span> <span className="font-medium">{detail.customer_name ?? detail.customer_name_free ?? 'ลูกค้าทั่วไป'}</span></div>
                 <div><span className="text-muted-foreground">ประเภทการขาย:</span> <span className="font-medium">{SALE_TYPE_LABELS[detail.sale_type] ?? detail.sale_type}</span></div>
-                {detail.cash_amount > 0 && <div><span className="text-muted-foreground">รับเงินมา:</span> <span className="font-medium">{formatCurrency(detail.cash_amount)}</span></div>}
-                {detail.change_amount > 0 && <div><span className="text-muted-foreground">เงินทอน:</span> <span className="font-medium">{formatCurrency(detail.change_amount)}</span></div>}
+                <div>
+                  <span className="text-muted-foreground">รูปแบบการชำระเงิน:</span>{' '}
+                  <span className="font-medium">{[
+                    detail.cash_amount > 0 && 'เงินสด',
+                    detail.card_amount > 0 && 'บัตร',
+                    detail.transfer_amount > 0 && 'โอน',
+                  ].filter(Boolean).join(', ') || '—'}</span>
+                </div>
+                {detail.cash_amount > 0 && (
+                  <div className="flex items-center justify-between gap-4">
+                    <span><span className="text-muted-foreground">รับเงินมา:</span> <span className="font-medium">{formatCurrency(detail.cash_amount)}</span></span>
+                    <span><span className="text-muted-foreground">เงินทอน:</span> <span className="font-medium">{formatCurrency(detail.change_amount)}</span></span>
+                  </div>
+                )}
                 {detail.void_reason && (
                   <div className="col-span-2 text-destructive"><span className="font-medium">เหตุผลยกเลิก:</span> {detail.void_reason}</div>
                 )}
@@ -304,55 +349,55 @@ export function SaleDetailDialog({
                     <tr aria-hidden><td colSpan={9} className="h-full p-0" /></tr>
                   </TableBody>
                   {/* Pinned totals: each <td> is sticky (per-cell, not <tr> —
-                      sticky on <tr>/<tfoot> is flaky in Chromium). Single
-                      row aligns values directly under their column headers
-                      (ส่วนลด → col 6, รวม → col 7, ต้นทุน → col 8, กำไร → col 9). */}
+                      sticky on <tr>/<tfoot> is flaky in Chromium). One sticky
+                      row — the customer money summary (มูลค่า/ส่วนลด/ก่อนภาษี/
+                      VAT/ยอดสุทธิ) is a vertical list inside the ราคา→รวม span
+                      (cols 5-7); the internal ต้นทุน/กำไร grand totals stay
+                      column-aligned under their headers (col 8 / col 9),
+                      bottom-aligned onto the ยอดสุทธิ baseline. */}
                   <tfoot>
                     <tr className="[&>td]:sticky [&>td]:bottom-0 [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border">
                       <td colSpan={4} className="py-2" />
-                      <td className="pr-2 py-2 text-right text-sm font-bold">ยอดสุทธิ</td>
-                      <td className="px-2 py-2 text-right text-sm font-medium text-accent-soft-foreground">
-                        {detail.total_discount > 0 ? `-${formatCurrency(detail.total_discount)}` : '0'}
+                      <td colSpan={3} className="px-3 py-2 align-bottom">
+                        <div className="ml-auto max-w-[280px] space-y-1 text-sm">
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">มูลค่าสินค้า</span>
+                            <span className="font-medium">{formatCurrency(detail.subtotal)}</span>
+                          </div>
+                          {detail.total_discount > 0 && (
+                            <div className="flex justify-between gap-4 text-accent-soft-foreground">
+                              <span>ส่วนลด</span>
+                              <span className="font-medium">-{formatCurrency(detail.total_discount)}</span>
+                            </div>
+                          )}
+                          {detail.total_vat > 0 && (
+                            <>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-muted-foreground">มูลค่าก่อนภาษี</span>
+                                <span className="font-medium">{formatCurrency(detail.total_amount - detail.total_vat)}</span>
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-muted-foreground">ภาษีมูลค่าเพิ่ม {vatRate}%</span>
+                                <span className="font-medium">{formatCurrency(detail.total_vat)}</span>
+                              </div>
+                            </>
+                          )}
+                          <div className="flex justify-between gap-4 border-t border-border pt-1">
+                            <span className="font-bold">ยอดสุทธิ</span>
+                            <span className="font-bold text-primary">{formatCurrency(detail.total_amount)}</span>
+                          </div>
+                        </div>
                       </td>
-                      <td className="pr-2 py-2 text-right font-bold text-primary">{formatCurrency(detail.total_amount)}</td>
-                      <td className="pr-2 py-2 text-right text-sm text-muted-foreground">
+                      <td className="pr-2 py-2 text-right text-sm text-muted-foreground align-bottom">
                         {formatCurrency(detail.items.reduce((s, i) => s + (i.item_cost ?? 0), 0))}
                       </td>
-                      <td className={`pr-4 py-2 text-right font-bold ${profitColor(detail.items.reduce((s, i) => s + (i.line_total - (i.item_cost ?? 0)), 0))}`}>
+                      <td className={`pr-4 py-2 text-right font-bold align-bottom ${profitColor(detail.items.reduce((s, i) => s + (i.line_total - (i.item_cost ?? 0)), 0))}`}>
                         {formatCurrency(detail.items.reduce((s, i) => s + (i.line_total - (i.item_cost ?? 0)), 0))}
                       </td>
                     </tr>
                   </tfoot>
                 </Table>
               </div>
-
-              {/* VAT breakdown — only for bills that carried VAT (total_vat>0). */}
-              {detail.total_vat > 0 && (
-                <div className="ml-auto w-full max-w-xs rounded-lg border border-border bg-card shadow-sm p-3 text-sm space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">มูลค่าสินค้า</span>
-                    <span className="font-medium">{formatCurrency(detail.subtotal)}</span>
-                  </div>
-                  {detail.total_discount > 0 && (
-                    <div className="flex justify-between text-accent-soft-foreground">
-                      <span>ส่วนลด</span>
-                      <span className="font-medium">-{formatCurrency(detail.total_discount)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">มูลค่าก่อนภาษี</span>
-                    <span className="font-medium">{formatCurrency(detail.total_amount - detail.total_vat)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ภาษีมูลค่าเพิ่ม</span>
-                    <span className="font-medium">{formatCurrency(detail.total_vat)}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-border pt-1.5">
-                    <span className="font-semibold">รวมสุทธิ</span>
-                    <span className="font-bold text-primary">{formatCurrency(detail.total_amount)}</span>
-                  </div>
-                </div>
-              )}
             </DialogBody>
             <DialogFooter className="sm:items-center">
               {detail.sale_type === 'return' && detail.note && (
@@ -361,32 +406,19 @@ export function SaleDetailDialog({
                   <span className="text-foreground">{detail.note}</span>
                 </div>
               )}
-              {taxEligible && !locked && (
+              {canReassign && (
                 <Button size="xl" variant="elevated" className="mr-auto" onClick={() => setReassignOpen(true)}>
-                  <UserPen className="size-4 mr-1.5" /> แก้ไขรายชื่อลูกค้า
+                  <UserPen className="size-4 mr-1.5" /> แก้ไขลูกค้า
                 </Button>
               )}
               {onVoidRequest && detail.status !== 'voided' && detail.sale_type !== 'return' && (
-                <div className={`flex items-center gap-2 ${taxEligible && !locked ? '' : 'mr-auto'}`}>
+                <div className={`flex items-center gap-2 ${canReassign ? '' : 'mr-auto'}`}>
                   <Button size="xl" variant="destructive" disabled={locked} onClick={() => onVoidRequest(detail)}>
-                    <Ban className="size-4 mr-1.5" /> ยกเลิกบิล
-                  </Button>
-                  {locked && (
-                    <span className="text-xs text-muted-foreground max-w-[200px]">
-                      ออกใบกำกับตัวจริงแล้ว — ยกเลิก/แก้ลูกค้าไม่ได้
-                    </span>
-                  )}
+                    <Ban className="size-4 mr-1.5" /> ยกเลิก
+                  </Button>                  
                 </div>
               )}
-              <Button size="xl" variant="elevated" onClick={() => reprintReceipt(detail)}>
-                <Printer className="size-4 mr-1.5" /> พิมพ์ใบเสร็จ
-              </Button>
-              {taxEligible && (
-                <Button size="xl" variant="default" onClick={() => setTaxOpen(true)}>
-                  <FileText className="size-4 mr-1.5" /> {locked ? 'พิมพ์สำเนาใบกำกับ' : 'ออกใบกำกับภาษี'}
-                </Button>
-              )}
-              <Button size="xl" variant="elevated" onClick={() => onOpenChange(false)}>ปิด</Button>
+              <Button size="xl" variant="default" onClick={() => onOpenChange(false)}>ปิด</Button>
             </DialogFooter>
           </>
         )}
@@ -411,23 +443,34 @@ export function SaleDetailDialog({
           open={reassignOpen}
           onOpenChange={setReassignOpen}
           showWalkIn={false}
-          onSelect={c => {
-            if (!c) return
-            ov.run(
-              async (o) => { await window.api.reports.updateSaleCustomer({ sale_id: detail.id, customer_id: c.id }, o) },
-              {
-                title: 'แก้ไขลูกค้าของบิล',
-                onDone: () => {
-                  toast({ title: 'แก้ไขลูกค้าของบิลแล้ว', variant: 'success' })
-                  fetchDetail(detail.invoice_no)
-                  onChanged?.()
-                },
-                onError: (e: any) => toast({ title: 'แก้ไขลูกค้าไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }),
-              },
-            )
-          }}
+          onSelect={c => { if (c) setPendingCustomer(c) }}
         />
       )}
+      <ConfirmDialog
+        variant="default"
+        open={!!pendingCustomer}
+        onOpenChange={o => { if (!o) setPendingCustomer(null) }}
+        title="แก้ไขรายชื่อลูกค้า"
+        description="กรุณาตรวจสอบข้อมูลให้ถูกต้อง"
+        confirmLabel="ยืนยัน"
+        onConfirm={commitReassign}
+        content={pendingCustomer && detail && (
+          <div className="rounded-xl border bg-card shadow-sm p-3 space-y-2 text-sm">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-muted-foreground shrink-0">เลขที่บิล</span>
+              <span className="font-semibold">{detail.invoice_no}</span>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-muted-foreground shrink-0">ลูกค้าเดิม</span>
+              <span className="font-medium text-right">{detail.customer_name ?? detail.customer_name_free ?? 'ลูกค้าทั่วไป'}</span>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-muted-foreground shrink-0">เปลี่ยนเป็น</span>
+              <span className="font-semibold text-primary text-right">{pendingCustomer.full_name}</span>
+            </div>
+          </div>
+        )}
+      />
       {ov.dialog}
     </Dialog>
   )

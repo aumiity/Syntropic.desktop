@@ -435,7 +435,7 @@ export default function ManageSalesPage() {
                               ? <button type="button"
                                   onClick={() => toast({ title: 'ยกเลิกไม่ได้', description: 'บิลนี้ออกใบกำกับภาษีตัวจริงแล้ว', variant: 'error' })}
                                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted transition-colors">
-                                  <Ban className="size-4" /> ยกเลิกบิล (ออกใบกำกับแล้ว — ยกเลิกไม่ได้)
+                                  <Ban className="size-4" /> ยกเลิกบิล
                                 </button>
                               : <button type="button" onClick={() => setVoidTarget({ id: s.id, invoice_no: s.invoice_no })}
                                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors">
