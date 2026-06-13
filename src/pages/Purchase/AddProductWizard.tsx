@@ -632,11 +632,11 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                   </div>
                 )}
                 {expMonths !== null && (
-                  <div className={`mt-4 flex items-center gap-2 text-sm ${expMonths <= 6 ? 'text-warning-strong' : 'text-foreground-subtle'}`}>
+                  <div className={`mt-4 flex items-center gap-2 text-sm ${expMonths <= 0 ? 'text-destructive' : expMonths <= 6 ? 'text-warning-strong' : 'text-foreground-subtle'}`}>
                     <AlertTriangle className="size-4 shrink-0" />
                     {expMonths <= 0
                       ? 'สินค้าหมดอายุแล้ว — โปรดตรวจสอบวันที่อีกครั้ง'
-                      : `เหลืออายุ ~${expMonths} เดือน — ระบบจ่ายออกตาม FEFO (ใกล้หมดอายุก่อน) อัตโนมัติ`}
+                      : `เหลืออายุ ${expMonths} เดือน`}
                   </div>
                 )}
               </div>
