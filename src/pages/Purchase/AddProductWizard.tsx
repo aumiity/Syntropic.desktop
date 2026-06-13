@@ -11,7 +11,7 @@ import { formatCurrency } from '@/lib/utils'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
 import {
   Check, ChevronLeft, ChevronRight, Plus, RotateCcw,
-  AlertTriangle, ShoppingBag, CalendarClock, Coins, Tag, Info, Lock,
+  AlertTriangle, ShoppingBag, CalendarClock, Coins, Tag, Info, Lock, ClipboardCheck,
 } from 'lucide-react'
 
 // ── Shared types (single source — index.tsx imports these) ───────────────────
@@ -145,7 +145,8 @@ const STEPS = [
   { title: 'เลือกสินค้า', icon: ShoppingBag },
   { title: 'Lot & วันหมดอายุ', icon: CalendarClock },
   { title: 'จำนวน & ต้นทุน', icon: Coins },
-  { title: 'ราคาขาย & ยืนยัน', icon: Tag },
+  { title: 'ราคาขาย', icon: Tag },
+  { title: 'สรุป & ยืนยัน', icon: ClipboardCheck },
 ] as const
 const LAST = STEPS.length - 1
 
@@ -374,6 +375,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
       case 1: return row.lot_number.trim() !== '' && row.expiry_date !== ''
       case 2: return parseFloat(row.qty) > 0 && parseFloat(row.total) > 0
       case 3: return true
+      case 4: return true
       default: return false
     }
   }
@@ -460,13 +462,14 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   // sub-label previews for the rail
   const railSub = (s: number): string => {
     if (!isDone(s) && s !== step) {
-      return ['ค้นหา / ยิงบาร์โค้ด', 'Lot No. และวันหมดอายุ', 'จำนวน · ต้นทุน', 'ราคาขาย · กำไร'][s]
+      return ['ค้นหา / ยิงบาร์โค้ด', 'Lot No. และวันหมดอายุ', 'จำนวน · ต้นทุน', 'ราคาขาย · กำไร', 'ตรวจสอบ · ยืนยัน'][s]
     }
     switch (s) {
       case 0: return row.trade_name ? `${row.trade_name} · ${row.unit_name}` : 'ยังไม่เลือก'
       case 1: return row.lot_number ? `${row.lot_number} · หมด ${row.expiry_date}` : 'ยังไม่กรอก'
       case 2: return qtyNum > 0 ? `${formatNum(row.qty)} ${row.unit_name} · ฿${formatNum(row.total, true)}` : 'ยังไม่กรอก'
       case 3: return sellNum > 0 ? `ขาย ฿${formatNum(priceDrafts[receivedUnitKey]?.retail ?? '', true)} · กำไร ${marginPct.toFixed(1)}%` : 'ยังไม่กำหนด'
+      case 4: return totalNum > 0 ? `รวม ฿${formatNum(row.total, true)}` : 'พร้อมยืนยัน'
       default: return ''
     }
   }
@@ -705,10 +708,10 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
               </div>
             )}
 
-            {/* STEP 4 — sell price & confirm */}
+            {/* STEP 4 — sell price */}
             {step === 3 && (
               <div>
-                <h3 className="text-lg font-bold mb-4">ราคาขาย &amp; ยืนยัน<span className="ml-2 text-xs text-foreground-subtle">ขั้นสุดท้าย</span></h3>
+                <h3 className="text-lg font-bold mb-4">ราคาขาย</h3>
                 {costChanged && (
                   <div className="mb-4 rounded-card border border-accent-soft-foreground/30 bg-accent-soft/50 px-4 py-3">
                     <div className="flex items-center gap-2 text-sm font-semibold text-accent-soft-foreground">
@@ -783,12 +786,20 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                     <div className={`text-lg font-extrabold mt-0.5 ${profit > 0 ? 'text-success' : profit < 0 ? 'text-destructive' : ''}`}>{cost > 0 ? marginPct.toFixed(1) : '0.0'}%</div>
                   </div>
                 </div>
-                <div className="mt-4 rounded-card border border-border bg-muted/40 p-3.5">
+              </div>
+            )}
+
+            {/* STEP 5 — summary & confirm */}
+            {step === 4 && (
+              <div>
+                <h3 className="text-lg font-bold mb-4">สรุป &amp; ยืนยัน<span className="ml-2 text-xs text-foreground-subtle">ขั้นสุดท้าย</span></h3>
+                <div className="rounded-card border border-border bg-muted/40 p-3.5">
                   <h4 className="text-sm font-bold text-foreground-subtle mb-2">สรุปรายการที่จะ{editing ? 'บันทึก' : 'เพิ่ม'}</h4>
                   <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">สินค้า</span><span className="font-semibold">{row.trade_name}</span></div>
                   <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">Lot / วันหมดอายุ</span><span className="font-semibold">{row.lot_number} · {row.expiry_date}</span></div>
                   <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">จำนวน × ทุน</span><span className="font-semibold">{formatNum(row.qty)} {row.unit_name} × {formatCurrency(cost)}</span></div>
-                  <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">รวมเป็นเงิน</span><span className="font-extrabold text-primary">{formatCurrency(totalNum)}</span></div>
+                  <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">ราคาขาย ({row.unit_name})</span><span className="font-semibold">{sellNum > 0 ? formatCurrency(sellNum) : '—'}</span></div>
+                  <div className="flex justify-between text-sm py-1 border-t border-border mt-1 pt-2"><span className="text-foreground-subtle">รวมเป็นเงิน</span><span className="font-extrabold text-primary">{formatCurrency(totalNum)}</span></div>
                 </div>
               </div>
             )}
