@@ -16,6 +16,13 @@ function displayToIso(display: string): string {
   const m = display.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
   if (!m) return ''
   const [, d, mo, y] = m
+  const dd = Number(d), mm = Number(mo), yy = Number(y)
+  // ตรวจว่าวันที่ "มีจริง" ไม่ใช่แค่ตรง pattern: เดือน 1-12, ปีสมเหตุผล,
+  // วันไม่เกินจำนวนวันของเดือนนั้น (new Date(yy, mm, 0) = วันสุดท้ายของเดือน mm, รองรับ leap year)
+  if (mm < 1 || mm > 12) return ''
+  if (yy < 1900 || yy > 2200) return ''
+  const lastDay = new Date(yy, mm, 0).getDate()
+  if (dd < 1 || dd > lastDay) return ''
   return `${y}-${mo}-${d}`
 }
 
@@ -61,6 +68,8 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
     }, [value])
 
     const selectedDate = isoToDate(value)
+    // พิมพ์ครบ 10 ตัว (dd/mm/yyyy) แล้วแต่ไม่ใช่วันที่จริง → โชว์ขอบแดงเตือน
+    const invalid = text.length === 10 && !displayToIso(text)
 
     return (
       <div className={cn("relative h-9", className)}>
@@ -71,6 +80,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
           inputMode="numeric"
           placeholder={placeholder}
           value={text}
+          aria-invalid={invalid || undefined}
           className="h-full w-full pr-9"
           onChange={e => {
             const formatted = autoFormat(e.target.value)

@@ -616,7 +616,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Lot No. <span className="text-destructive">*</span></label>
-                    <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} placeholder="เช่น A2401" className="h-10" />
+                    <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} maxLength={30} placeholder="เช่น A2401" className="h-10" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันหมดอายุ <span className="text-destructive">*</span></label>
