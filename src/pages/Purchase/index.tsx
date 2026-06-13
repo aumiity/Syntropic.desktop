@@ -19,6 +19,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, NegativeStockAlert } from '@/types'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
+import { useGRDraftStore } from '@/stores/grDraftStore'
 import { useShopVat } from '@/hooks/useShopVat'
 import { extractVat } from '@/lib/vat'
 import {
@@ -84,23 +85,30 @@ export default function PurchasePage() {
   const { vatEnabled: shopVatEnabled, vatRate: shopVatRate } = useShopVat()
   const today = new Date().toISOString().slice(0, 10)
 
+  // GR draft persisted across navigation (see grDraftStore). Captured ONCE so
+  // every useState below can lazy-init from it; restoring an in-progress receive
+  // when the operator returns from the sales screen. `setDraft` is stable.
+  const initialDraft = useRef(useGRDraftStore.getState().draft).current
+  const setDraft = useGRDraftStore((s) => s.setDraft)
+  const clearDraft = useGRDraftStore((s) => s.clearDraft)
+
   // Form
-  const [invoiceNo, setInvoiceNo] = useState('')
-  const [supplierId, setSupplierId] = useState<number>(0)
-  const [supplierName, setSupplierName] = useState('')
-  const [supplierInvoiceNo, setSupplierInvoiceNo] = useState('')
-  const [orderDate, setOrderDate] = useState(today)
-  const [receiveDate, setReceiveDate] = useState(today)
-  const [paymentType, setPaymentType] = useState<'cash' | 'credit'>('cash')
-  const [dueDate, setDueDate] = useState('')
+  const [invoiceNo, setInvoiceNo] = useState(() => initialDraft?.invoiceNo ?? '')
+  const [supplierId, setSupplierId] = useState<number>(() => initialDraft?.supplierId ?? 0)
+  const [supplierName, setSupplierName] = useState(() => initialDraft?.supplierName ?? '')
+  const [supplierInvoiceNo, setSupplierInvoiceNo] = useState(() => initialDraft?.supplierInvoiceNo ?? '')
+  const [orderDate, setOrderDate] = useState(() => initialDraft?.orderDate ?? today)
+  const [receiveDate, setReceiveDate] = useState(() => initialDraft?.receiveDate ?? today)
+  const [paymentType, setPaymentType] = useState<'cash' | 'credit'>(() => initialDraft?.paymentType ?? 'cash')
+  const [dueDate, setDueDate] = useState(() => initialDraft?.dueDate ?? '')
   // Input VAT (ภาษีซื้อ) — per bill: some suppliers aren't VAT-registered.
   // Only offered when the shop itself is VAT-registered (useShopVat below);
   // the backend re-guards and forces 'none' for NO-VAT shops.
-  const [vatMode, setVatMode] = useState<'none' | 'inclusive' | 'exclusive'>('none')
-  const [isPaid, setIsPaid] = useState(false)
-  const [paidDate, setPaidDate] = useState('')
-  const [grNote, setGrNote] = useState('')
-  const [rows, setRows] = useState<ReceiptRow[]>([])
+  const [vatMode, setVatMode] = useState<'none' | 'inclusive' | 'exclusive'>(() => initialDraft?.vatMode ?? 'none')
+  const [isPaid, setIsPaid] = useState(() => initialDraft?.isPaid ?? false)
+  const [paidDate, setPaidDate] = useState(() => initialDraft?.paidDate ?? '')
+  const [grNote, setGrNote] = useState(() => initialDraft?.grNote ?? '')
+  const [rows, setRows] = useState<ReceiptRow[]>(() => initialDraft?.rows ?? [])
   const [saving, setSaving] = useState(false)
 
   // Add/Edit product wizard (replaces the old per-row inline table editing)
@@ -112,13 +120,14 @@ export default function PurchasePage() {
   // Suppliers
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
 
-  // Product search per row
-  const [searchQueries, setSearchQueries] = useState<string[]>([])
-  const [suggestions, setSuggestions] = useState<ProductSuggestion[][]>([])
+  // Product search per row. searchQueries persists with the draft; suggestions
+  // and timers are ephemeral — re-seeded empty to match the hydrated row count.
+  const [searchQueries, setSearchQueries] = useState<string[]>(() => initialDraft?.searchQueries ?? [])
+  const [suggestions, setSuggestions] = useState<ProductSuggestion[][]>(() => (initialDraft?.rows ?? []).map(() => []))
   const [activeSuggRow, setActiveSuggRow] = useState<number | null>(null)
   const [suggHighlight, setSuggHighlight] = useState(0)
   const [activeRow, setActiveRow] = useState<number | null>(null)
-  const searchTimers = useRef<(ReturnType<typeof setTimeout> | null)[]>([])
+  const searchTimers = useRef<(ReturnType<typeof setTimeout> | null)[]>((initialDraft?.rows ?? []).map(() => null))
 
   // Optional column toggles (default off — keeps default row compact)
   const [showMfg, setShowMfg] = useState(false)
@@ -151,18 +160,38 @@ export default function PurchasePage() {
   // Which adjust-modal input is focused — shows raw value while editing, comma-formatted when blurred
   const [adjFocus, setAdjFocus] = useState<'baht' | 'pct' | 'net' | null>(null)
   // Last committed values — restored into drafts on next open
-  const [appliedDiscount, setAppliedDiscount] = useState({ baht: '', pct: '' })
-  const [appliedSurcharge, setAppliedSurcharge] = useState({ baht: '', pct: '' })
-  const [adjustSubtotal, setAdjustSubtotal] = useState<number | null>(null)
-  const [adjustDiscountAmt, setAdjustDiscountAmt] = useState(0)
-  const [adjustSurchargeAmt, setAdjustSurchargeAmt] = useState(0)
+  const [appliedDiscount, setAppliedDiscount] = useState(() => initialDraft?.appliedDiscount ?? { baht: '', pct: '' })
+  const [appliedSurcharge, setAppliedSurcharge] = useState(() => initialDraft?.appliedSurcharge ?? { baht: '', pct: '' })
+  const [adjustSubtotal, setAdjustSubtotal] = useState<number | null>(() => initialDraft?.adjustSubtotal ?? null)
+  const [adjustDiscountAmt, setAdjustDiscountAmt] = useState(() => initialDraft?.adjustDiscountAmt ?? 0)
+  const [adjustSurchargeAmt, setAdjustSurchargeAmt] = useState(() => initialDraft?.adjustSurchargeAmt ?? 0)
   // Original per-row totals before any bill adjustment — re-applying always starts from here
-  const [baseRowTotals, setBaseRowTotals] = useState<number[] | null>(null)
+  const [baseRowTotals, setBaseRowTotals] = useState<number[] | null>(() => initialDraft?.baseRowTotals ?? null)
 
   useEffect(() => {
-    loadNextGR()
+    // Keep the draft's GR number when restoring a receive with line items;
+    // otherwise (fresh form / empty draft) fetch the latest next number.
+    if (!initialDraft || initialDraft.rows.length === 0) loadNextGR()
     loadSuppliers()
   }, [])
+
+  // Persist the draft on every change so it survives navigation and the Sidebar
+  // badge stays live. Ephemeral UI state is intentionally excluded.
+  useEffect(() => {
+    setDraft({
+      invoiceNo, supplierId, supplierName, supplierInvoiceNo,
+      orderDate, receiveDate, paymentType, dueDate, vatMode,
+      isPaid, paidDate, grNote, rows, searchQueries,
+      adjustSubtotal, adjustDiscountAmt, adjustSurchargeAmt,
+      appliedDiscount, appliedSurcharge, baseRowTotals,
+    })
+  }, [
+    invoiceNo, supplierId, supplierName, supplierInvoiceNo,
+    orderDate, receiveDate, paymentType, dueDate, vatMode,
+    isPaid, paidDate, grNote, rows, searchQueries,
+    adjustSubtotal, adjustDiscountAmt, adjustSurchargeAmt,
+    appliedDiscount, appliedSurcharge, baseRowTotals, setDraft,
+  ])
 
   const loadNextGR = async () => {
     const no = await window.api.purchase.nextGRNumber()
@@ -553,6 +582,10 @@ export default function PurchasePage() {
       setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
       setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode('none')
       setRows([]); setSearchQueries([]); setSuggestions([])
+      setAdjustSubtotal(null); setAdjustDiscountAmt(0); setAdjustSurchargeAmt(0)
+      setAppliedDiscount({ baht: '', pct: '' }); setAppliedSurcharge({ baht: '', pct: '' })
+      setBaseRowTotals(null)
+      clearDraft()
     } catch (e: any) {
       toast(e?.message ? `บันทึกไม่สำเร็จ: ${e.message}` : 'บันทึกไม่สำเร็จ', 'error')
     } finally {
@@ -612,6 +645,7 @@ export default function PurchasePage() {
     setAdjustSubtotal(null); setAdjustDiscountAmt(0); setAdjustSurchargeAmt(0)
     setAppliedDiscount({ baht: '', pct: '' }); setAppliedSurcharge({ baht: '', pct: '' })
     setBaseRowTotals(null)
+    clearDraft()
     loadNextGR()
   }
 
@@ -756,8 +790,7 @@ export default function PurchasePage() {
                               return (
                                 <TableRow
                                   key={i}
-                                  onClick={() => openEditWizard(i)}
-                                  className={`border-0 cursor-pointer ${isPartial ? 'bg-accent-soft/50 hover:bg-accent-soft/70' : 'hover:bg-primary-soft/40'}`}
+                                  className={`border-0 ${isPartial ? 'bg-accent-soft/50 hover:bg-accent-soft/70' : 'hover:bg-primary-soft/40'}`}
                                 >
                                   <TableCell className="px-3 py-2 text-sm text-foreground-subtle text-center">{i + 1}</TableCell>
 
@@ -781,11 +814,11 @@ export default function PurchasePage() {
                                   <TableCell className="px-3 py-2 text-right text-sm font-semibold">{row.total ? formatCurrency(totalN) : '—'}</TableCell>
 
                                   <TableCell className="px-2 py-2">
-                                    <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
-                                      <Button variant="outline" size="icon" onClick={() => openEditWizard(i)} className="size-8" title="แก้ไข">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Button variant="elevated" size="icon-lg" onClick={() => openEditWizard(i)} tooltip="แก้ไข">
                                         <Pencil className="size-3.5" />
                                       </Button>
-                                      <Button variant="ghost" size="icon" onClick={() => deleteRow(i)} className="size-8 text-foreground-subtle hover:text-destructive" title="ลบ">
+                                      <Button variant="elevated-destructive-soft" size="icon-lg" onClick={() => deleteRow(i)} tooltip="ลบ">
                                         <Trash2 className="size-3.5" />
                                       </Button>
                                     </div>

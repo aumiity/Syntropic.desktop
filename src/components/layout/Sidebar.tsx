@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
+import { useGRDraftStore } from '@/stores/grDraftStore'
 import { usePermission } from '@/hooks/usePermission'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { LogoMark } from '@/components/ui/logo-mark'
@@ -42,14 +43,19 @@ type NavItemProps = {
   collapsed: boolean
   hasBadge?: boolean
   badgeCount?: number
+  // Numeric red badge (e.g. in-progress GR line items). Hidden when falsy/0.
+  // Unlike `hasBadge` (a status dot), this shows the count itself on the row.
+  countBadge?: number
 }
 
-// The "badge" here is intentionally a small dot — count lives on the page tab
-// (e.g. /manage tabs row). Keeping the sidebar visual lightweight prevents the
-// badge from overflowing the row when the sidebar is expanded.
+// `hasBadge` here is intentionally a small dot — count lives on the page tab
+// (e.g. /manage tabs row). Keeping that visual lightweight prevents the badge
+// from overflowing the row when the sidebar is expanded.
 // `badgeCount` is shown in the collapsed-mode tooltip only (zero-click info
 // without cluttering the icon).
-function NavItem({ to, label, icon: Icon, exact, collapsed, hasBadge, badgeCount }: NavItemProps) {
+// `countBadge` is the loud variant: a red pill carrying the number, pinned to
+// the icon corner in BOTH collapsed and expanded modes.
+function NavItem({ to, label, icon: Icon, exact, collapsed, hasBadge, badgeCount, countBadge }: NavItemProps) {
   const resolved = useResolvedPath(to)
   const isActive = !!useMatch({ path: resolved.pathname, end: !!exact })
 
@@ -78,6 +84,11 @@ function NavItem({ to, label, icon: Icon, exact, collapsed, hasBadge, badgeCount
             className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-warning ring-2 ring-sidebar"
           />
         )}
+        {!!countBadge && countBadge > 0 && (
+          <span className="absolute -top-1.5 -right-2.5 grid place-items-center min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold leading-none ring-2 ring-sidebar">
+            {countBadge > 99 ? '99+' : countBadge}
+          </span>
+        )}
       </span>
       {!collapsed && (
         <span className="relative z-10 text-sm font-bold leading-none whitespace-nowrap">{label}</span>
@@ -91,7 +102,9 @@ function NavItem({ to, label, icon: Icon, exact, collapsed, hasBadge, badgeCount
     <Tooltip>
       <TooltipTrigger asChild>{link}</TooltipTrigger>
       <TooltipContent>
-        {label}{hasBadge && badgeCount ? ` (${badgeCount})` : ''}
+        {label}
+        {hasBadge && badgeCount ? ` (${badgeCount})` : ''}
+        {countBadge && countBadge > 0 ? ` (${countBadge})` : ''}
       </TooltipContent>
     </Tooltip>
   )
@@ -109,6 +122,10 @@ export function Sidebar() {
   const negativeStockCount = useNegativeStockBadge(s => s.count)
   const refreshNegativeStock = useNegativeStockBadge(s => s.refresh)
   useEffect(() => { refreshNegativeStock() }, [refreshNegativeStock])
+
+  // In-progress goods-receive line items — red count badge on "การรับสินค้า".
+  // Selector returns a number, so this only re-renders when the count changes.
+  const grDraftCount = useGRDraftStore(s => s.draft?.rows.length ?? 0)
 
   const btnClass = cn(
     'flex items-center justify-center h-11 w-full rounded-xl transition-colors',
@@ -168,6 +185,7 @@ export function Sidebar() {
             collapsed={collapsed}
             hasBadge={item.to === '/manage' && negativeStockCount > 0}
             badgeCount={item.to === '/manage' ? negativeStockCount : undefined}
+            countBadge={item.to === '/purchase' ? grDraftCount : undefined}
           />
         ))}
       </nav>
