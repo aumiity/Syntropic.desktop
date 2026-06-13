@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useThemeStore, type ThemeMode } from '@/stores/themeStore'
 import { ACCENT_PRESETS, HIGHLIGHT_PRESETS } from '@/lib/accent-presets'
 import { TAILWIND_FAMILIES, SHADES, swatchColor } from '@/lib/tailwind-palette'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useToast } from '@/components/ui/toast'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -1107,7 +1107,7 @@ export default function Theme() {
                     />
                     {calDate && (
                       <p className="text-sm text-muted-foreground mt-2">
-                        Selected: {calDate.toLocaleDateString('th-TH', { dateStyle: 'medium' })}
+                        Selected: {formatDate(calDate.toISOString())}
                       </p>
                     )}
                   </div>

@@ -55,6 +55,11 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
 
 10. **Scrollbar — บาง(6px) ทั้งโปรแกรม ขนาดเดียว ห้ามมีขนาดอื่น (HARD).** global `::-webkit-scrollbar` ใน `src/index.css` ตั้งเป็น `w-[6px] h-[6px]` แล้ว ทั้งแอปจึงบางโดยอัตโนมัติ — ไม่ต้องคอยใส่คลาสเอง. utility `.scrollbar-thin` (6px เท่ากัน, ใช้อยู่ ~40 จุด) ใช้ต่อได้เพื่อความชัดเจน. **ห้าม** กำหนดความกว้าง scrollbar อื่น หรือเขียน `::-webkit-scrollbar` ขนาดอื่นที่ใดก็ตาม.
 
+11. **รูปแบบวันที่ — `DD/MM/YYYY` รูปแบบเดียวทั้งโปรแกรม (HARD).** วันที่ที่แสดงต่อผู้ใช้ **ต้อง** ผ่าน `formatDate()` (`src/lib/utils`, default `DD/MM/YYYY`) เสมอ — หรือ `formatDateTime()` เมื่อมีเวลา (`DD/MM/YYYY HH:mm`). ใช้ **ค.ศ.** ไม่ใช่ พ.ศ.
+    - **ห้าม** render ISO ดิบ (เช่น `{row.expiry_date}` → โชว์ `2026-06-13`), ห้าม `toLocaleDateString`, ห้ามใส่ `formatDate(x, '…')` ด้วย pattern แสดงผลอื่น (เช่น `'D MMMM BBBB'`, `'D MMM BB'`) สำหรับ date field.
+    - **Incident:** หน้าสรุปใน GR wizard เคยโชว์วันหมดอายุเป็น `2026-06-13` (ISO ดิบ) เพราะ render `{row.expiry_date}` ตรง ๆ — ต้องเป็น `{formatDate(row.expiry_date)}`.
+    - **ข้อยกเว้นโดยตั้งใจ (ไม่ใช่ date field):** label ของ *date picker* / แกนกราฟ ใช้ชื่อเดือนไทย (เช่น `multi-date-picker`, `trend-chart` — `BBBB`/`MMM BB`) เพื่อการนำทาง; เอกสารพิมพ์ (ใบเสร็จ/ใบกำกับภาษี — `buildTaxInvoiceHtml`, `buildGoodsReceiptHtml` ใช้ `'D MMMM BBBB'`) ใช้วันที่แบบทางการไทย. สองกลุ่มนี้คงไว้ตามเดิม.
+
 ## ELEVATED — the primary surface treatment (HARD)
 
 The house style for controls and panels is the elevated look: `bg-card` + `border border-border` + `shadow-sm`. It reads as a raised card sitting on the background.

@@ -7,7 +7,7 @@ import { PriceInput } from '@/components/ui/price-input'
 import { Badge } from '@/components/ui/badge'
 import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
 import { TintIcon } from '@/components/ui/tint-icon'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
 import {
   Check, ChevronLeft, ChevronRight, Plus, RotateCcw,
@@ -466,7 +466,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     }
     switch (s) {
       case 0: return row.trade_name ? `${row.trade_name} · ${row.unit_name}` : 'ยังไม่เลือก'
-      case 1: return row.lot_number ? `${row.lot_number} · หมด ${row.expiry_date}` : 'ยังไม่กรอก'
+      case 1: return row.lot_number ? `${row.lot_number} · หมด ${formatDate(row.expiry_date)}` : 'ยังไม่กรอก'
       case 2: return qtyNum > 0 ? `${formatNum(row.qty)} ${row.unit_name} · ฿${formatNum(row.total, true)}` : 'ยังไม่กรอก'
       case 3: return sellNum > 0 ? `ขาย ฿${formatNum(priceDrafts[receivedUnitKey]?.retail ?? '', true)} · กำไร ${marginPct.toFixed(1)}%` : 'ยังไม่กำหนด'
       case 4: return totalNum > 0 ? `รวม ฿${formatNum(row.total, true)}` : 'พร้อมยืนยัน'
@@ -792,12 +792,14 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
             {/* STEP 5 — summary & confirm */}
             {step === 4 && (
               <div>
-                <h3 className="text-lg font-bold mb-4">สรุป &amp; ยืนยัน<span className="ml-2 text-xs text-foreground-subtle">ขั้นสุดท้าย</span></h3>
+                <h3 className="text-lg font-bold mb-4">สรุป &amp; ยืนยัน<span className="ml-2 text-xs text-foreground-subtle"></span></h3>
                 <div className="rounded-card border border-border bg-muted/40 p-3.5">
-                  <h4 className="text-sm font-bold text-foreground-subtle mb-2">สรุปรายการที่จะ{editing ? 'บันทึก' : 'เพิ่ม'}</h4>
+                  <h4 className="text-sm font-bold text-foreground-subtle mb-2">รายการที่จะ{editing ? 'บันทึก' : 'เพิ่ม'}</h4>
                   <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">สินค้า</span><span className="font-semibold">{row.trade_name}</span></div>
-                  <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">Lot / วันหมดอายุ</span><span className="font-semibold">{row.lot_number} · {row.expiry_date}</span></div>
-                  <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">จำนวน × ทุน</span><span className="font-semibold">{formatNum(row.qty)} {row.unit_name} × {formatCurrency(cost)}</span></div>
+                  <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">Lot</span><span className="font-semibold">{row.lot_number}</span></div>
+                  <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">วันหมดอายุ</span><span className="font-semibold">{formatDate(row.expiry_date)}</span></div>
+                  <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">จำนวน</span><span className="font-semibold">{formatNum(row.qty)} {row.unit_name}</span></div>
+                  <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">ราคาทุน</span><span className="font-semibold">{formatCurrency(cost)}</span></div>
                   <div className="flex justify-between text-sm py-1"><span className="text-foreground-subtle">ราคาขาย ({row.unit_name})</span><span className="font-semibold">{sellNum > 0 ? formatCurrency(sellNum) : '—'}</span></div>
                   <div className="flex justify-between text-sm py-1 border-t border-border mt-1 pt-2"><span className="text-foreground-subtle">รวมเป็นเงิน</span><span className="font-extrabold text-primary">{formatCurrency(totalNum)}</span></div>
                 </div>
