@@ -68,10 +68,15 @@ export function ManagerOverrideDialog({
     onSubmit({ userId, password: pw })
       .then(() => { onOpenChange(false) })
       .catch((e: any) => {
-        const msg = String(e?.message ?? '')
+        const raw = String(e?.message ?? '')
+        // Electron ห่อ error จาก main เป็น "Error invoking remote method 'X': Error: <ของจริง>"
+        // ตัด prefix ทั้งสองชั้นออกให้เหลือแค่ข้อความที่ผู้ใช้อ่านรู้เรื่อง
+        const msg = raw
+          .replace(/^Error invoking remote method '[^']*':\s*/, '')
+          .replace(/^Error:\s*/, '')
         setBusy(false)
         setPw('')
-        setError(msg.includes('LOCKED') ? 'พยายามหลายครั้งเกินไป กรุณารอสักครู่' : (msg || 'รหัสผ่านไม่ถูกต้อง'))
+        setError(raw.includes('LOCKED') ? 'พยายามหลายครั้งเกินไป กรุณารอสักครู่' : (msg || 'รหัสผ่านไม่ถูกต้อง'))
         setTimeout(() => pwRef.current?.focus(), 0)
       })
   }
