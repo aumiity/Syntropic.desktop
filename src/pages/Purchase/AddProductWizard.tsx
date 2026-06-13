@@ -621,6 +621,14 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันหมดอายุ <span className="text-destructive">*</span></label>
                     <DateInput value={row.expiry_date} onChange={v => patch({ expiry_date: v })} className="h-10" />
+                    {expMonths !== null && (
+                      <div className={`mt-2 flex items-center gap-2 text-sm ${expMonths <= 0 ? 'text-destructive' : expMonths <= 6 ? 'text-warning-strong' : 'text-foreground-subtle'}`}>
+                        <AlertTriangle className="size-4 shrink-0" />
+                        {expMonths <= 0
+                          ? 'สินค้าหมดอายุแล้ว — โปรดตรวจสอบวันที่อีกครั้ง'
+                          : `เหลืออายุ ${expMonths} เดือน`}
+                      </div>
+                    )}
                   </div>
                 </div>
                 {!showMfg ? (
@@ -629,14 +637,6 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                   <div className="mt-4 max-w-[calc(50%-0.5rem)]">
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันผลิต</label>
                     <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} className="h-10" />
-                  </div>
-                )}
-                {expMonths !== null && (
-                  <div className={`mt-4 flex items-center gap-2 text-sm ${expMonths <= 0 ? 'text-destructive' : expMonths <= 6 ? 'text-warning-strong' : 'text-foreground-subtle'}`}>
-                    <AlertTriangle className="size-4 shrink-0" />
-                    {expMonths <= 0
-                      ? 'สินค้าหมดอายุแล้ว — โปรดตรวจสอบวันที่อีกครั้ง'
-                      : `เหลืออายุ ${expMonths} เดือน`}
                   </div>
                 )}
               </div>
