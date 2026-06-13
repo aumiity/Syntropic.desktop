@@ -20,7 +20,8 @@ function displayToIso(display: string): string {
   // ตรวจว่าวันที่ "มีจริง" ไม่ใช่แค่ตรง pattern: เดือน 1-12, ปีสมเหตุผล,
   // วันไม่เกินจำนวนวันของเดือนนั้น (new Date(yy, mm, 0) = วันสุดท้ายของเดือน mm, รองรับ leap year)
   if (mm < 1 || mm > 12) return ''
-  if (yy < 1900 || yy > 2200) return ''
+  // ปี 1900-9999 — เผื่อสินค้าที่ไม่มีวันหมดอายุใส่ปี 9999 ได้
+  if (yy < 1900 || yy > 9999) return ''
   const lastDay = new Date(yy, mm, 0).getDate()
   if (dd < 1 || dd > lastDay) return ''
   return `${y}-${mo}-${d}`
