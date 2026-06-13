@@ -11,7 +11,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
 import {
   Check, ChevronLeft, ChevronRight, Plus, RotateCcw,
-  AlertTriangle, ShoppingBag, CalendarClock, Coins, Tag, Info, Lock, ClipboardCheck,
+  AlertTriangle, ShoppingBag, CalendarClock, Coins, Tag, Info, Lock, ClipboardCheck, ClockAlert,
 } from 'lucide-react'
 
 // ── Shared types (single source — index.tsx imports these) ───────────────────
@@ -460,13 +460,15 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   const costChanged = prevCost != null && cost > 0 && Math.abs(cost - prevCost) > 0.0001
 
   // sub-label previews for the rail
-  const railSub = (s: number): string => {
+  const railSub = (s: number): React.ReactNode => {
     if (!isDone(s) && s !== step) {
       return ['ค้นหา / ยิงบาร์โค้ด', 'Lot No. และวันหมดอายุ', 'จำนวน · ต้นทุน', 'ราคาขาย · กำไร', 'ตรวจสอบ · ยืนยัน'][s]
     }
     switch (s) {
       case 0: return row.trade_name ? `${row.trade_name} · ${row.unit_name}` : 'ยังไม่เลือก'
-      case 1: return row.lot_number ? `${row.lot_number} · หมด ${formatDate(row.expiry_date)}` : 'ยังไม่กรอก'
+      case 1: return row.lot_number
+        ? <span className="inline-flex items-center gap-1">{row.lot_number} · <ClockAlert className="size-3 shrink-0" />{formatDate(row.expiry_date)}</span>
+        : 'ยังไม่กรอก'
       case 2: return qtyNum > 0 ? `${formatNum(row.qty)} ${row.unit_name} · ฿${formatNum(row.total, true)}` : 'ยังไม่กรอก'
       case 3: return sellNum > 0 ? `ขาย ฿${formatNum(priceDrafts[receivedUnitKey]?.retail ?? '', true)} · กำไร ${marginPct.toFixed(1)}%` : 'ยังไม่กำหนด'
       case 4: return totalNum > 0 ? `รวม ฿${formatNum(row.total, true)}` : 'พร้อมยืนยัน'
