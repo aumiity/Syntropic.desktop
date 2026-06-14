@@ -106,10 +106,9 @@ export default function ManageLayout() {
                   <span className="relative inline-block">
                     {label}
                     {showBadge && (
-                      <span
-                        aria-hidden
-                        className="absolute -top-0.5 -right-2.5 h-2 w-2 rounded-full bg-warning ring-2 ring-card"
-                      />
+                      <span className="absolute -top-2 -right-4 grid place-items-center min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold leading-none ring-2 ring-card">
+                        {negativeStockCount > 99 ? '99+' : negativeStockCount}
+                      </span>
                     )}
                   </span>
                 </TabsTrigger>
