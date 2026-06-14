@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FormField } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { SectionCard } from '@/components/ui/card'
@@ -156,13 +156,13 @@ export function GeneralTab({
 
         <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
           <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
-            <div className={`flex items-center justify-between gap-2 px-3 py-2.5 ${form.is_disabled ? 'bg-destructive-soft/40' : ''}`}>
+            <label className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none ${form.is_disabled ? 'bg-destructive-soft/40' : ''}`}>
+              <Checkbox checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
               <div>
                 <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
                 <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งชุดสินค้า</div>
               </div>
-              <Switch size="lg" variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
-            </div>
+            </label>
           </div>
         </SectionCard>
 

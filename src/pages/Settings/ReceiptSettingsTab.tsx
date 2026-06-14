@@ -3,13 +3,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
-import { Toggle } from '@/components/ui/switch'
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ZoomControl } from '@/components/ui/zoom-control'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Checkbox, CheckRow } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { useShopVat } from '@/hooks/useShopVat'
 import { FONTS } from '@/lib/print/fonts'
@@ -276,8 +275,8 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
               <div className="pt-1">
                 <p className="pb-2 text-sm font-semibold text-foreground">ตัวเลือก</p>
                 <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
-                  <Toggle
-                    className="justify-between w-full h-11 px-3"
+                  <CheckRow
+                    className="w-full h-11 px-3"
                     label="พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน"
                     checked={!!form.auto_print}
                     onChange={v => setF('auto_print', v ? 1 : 0)}

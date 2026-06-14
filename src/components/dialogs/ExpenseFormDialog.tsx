@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { DateInput } from '@/components/ui/date-input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { FormField } from '@/components/ui/label'
-import { Toggle } from '@/components/ui/switch'
+import { CheckRow } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { useShopVat } from '@/hooks/useShopVat'
 import { extractVat } from '@/lib/vat'
@@ -161,8 +161,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Expe
               of the (VAT-inclusive) amount, editable for partial-VAT bills. */}
           {shopVatEnabled && (
             <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
-              <Toggle
-                className="justify-between w-full h-11 px-3"
+              <CheckRow
+                className="w-full h-11 px-3"
                 label="มีใบกำกับภาษีเต็มรูป (ขอคืนภาษีซื้อได้)"
                 checked={!!form.has_tax_invoice}
                 onChange={v => {

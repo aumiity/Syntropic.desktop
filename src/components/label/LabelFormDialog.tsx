@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Toggle } from '@/components/ui/switch'
+import { CheckRow } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/label'
 import { Combobox } from '@/components/ui/combobox'
 import {
@@ -277,9 +277,9 @@ export function LabelFormDialog({
                   ends rounded. เปิดใช้งาน sits on the first row. */}
               <div className="space-y-2">
                 <div className="flex flex-col">
-                  <Toggle framed size="lg" disabled={restricted} checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" className="justify-between w-full h-10 rounded-b-none" />
-                  <Toggle framed size="lg" disabled={restricted} checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" className="justify-between w-full h-10 rounded-none -mt-px" />
-                  <Toggle framed size="lg" disabled={restricted} checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" className="justify-between w-full h-10 rounded-t-none -mt-px" />
+                  <CheckRow framed disabled={restricted} checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" className="w-full h-10 rounded-b-none" />
+                  <CheckRow framed disabled={restricted} checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" className="w-full h-10 rounded-none -mt-px" />
+                  <CheckRow framed disabled={restricted} checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" className="w-full h-10 rounded-t-none -mt-px" />
                 </div>
                 {/* The barcode encodes products.barcode — warn if the switch is on but
                     the product has no barcode number (the row would silently vanish

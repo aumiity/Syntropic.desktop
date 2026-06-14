@@ -335,13 +335,13 @@ export function UnitsTab({
                     <div className="space-y-2">
                       <h4 className="text-sm font-semibold text-foreground">การตั้งค่า</h4>
                       <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
-                        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                        <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none">
+                          <Checkbox checked={!!unitForm.is_for_sale} onCheckedChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))} />
                           <div>
                             <div className="text-sm font-semibold text-foreground">ใช้หน่วยนี้ในการขาย</div>
                             <div className="text-xs text-muted-foreground">ให้เลือกหน่วยนี้ได้ที่หน้าขาย (POS)</div>
                           </div>
-                          <Switch size="lg" checked={!!unitForm.is_for_sale} onCheckedChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))} />
-                        </div>
+                        </label>
                         <div className="flex items-center justify-between gap-2 px-3 py-2.5">
                           <div>
                             <div className="text-sm font-semibold text-foreground">ตั้งราคาส่ง</div>

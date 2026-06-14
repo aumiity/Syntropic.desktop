@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Switch, Toggle } from '@/components/ui/switch'
+import { Toggle } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
@@ -259,27 +260,27 @@ export function GeneralTab({
 
         <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
           <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
-            <div className={`flex items-center justify-between gap-2 px-3 py-2.5 ${form.is_disabled ? 'bg-destructive-soft/40' : ''}`}>
+            <label className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none ${form.is_disabled ? 'bg-destructive-soft/40' : ''}`}>
+              <Checkbox checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
               <div>
                 <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
                 <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
               </div>
-              <Switch size="lg" variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
-            </div>
-            <div className={`flex items-center justify-between gap-2 px-3 py-2.5 ${form.is_hidden ? 'bg-destructive-soft/40' : ''}`}>
+            </label>
+            <label className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none ${form.is_hidden ? 'bg-destructive-soft/40' : ''}`}>
+              <Checkbox checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
               <div>
                 <div className="text-sm font-semibold text-foreground">ซ่อน</div>
                 <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>
               </div>
-              <Switch size="lg" variant="destructive" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
-            </div>
-            <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+            </label>
+            <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none">
+              <Checkbox checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
               <div>
                 <div className="text-sm font-semibold text-foreground">นับสต็อก</div>
                 <div className="text-xs text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
               </div>
-              <Switch size="lg" checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
-            </div>
+            </label>
           </div>
         </SectionCard>
 
@@ -417,37 +418,37 @@ export function GeneralTab({
               </Field> */}
               <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
                 {/* ข.ย.9 — locked to is_drug, shown read-only */}
-                <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                <label className="flex items-center gap-3 px-3 py-2.5">
+                  <Checkbox checked={!!form.is_fda9} disabled />
                   <div>
                     <div className="text-sm font-semibold text-foreground">ข.ย.9</div>
                     <div className="text-xs text-muted-foreground">บัญชีการซื้อยา (อัตโนมัติ)</div>
                   </div>
-                  <Switch size="lg" checked={!!form.is_fda9} disabled />
-                </div>
+                </label>
                 {/* ข.ย.10 */}
-                <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none">
+                  <Checkbox checked={!!form.is_fda10} onCheckedChange={v => setF('is_fda10', v ? 1 : 0)} />
                   <div>
                     <div className="text-sm font-semibold text-foreground">ข.ย.10</div>
                     <div className="text-xs text-muted-foreground">ขายยาควบคุมพิเศษ</div>
                   </div>
-                  <Switch size="lg" checked={!!form.is_fda10} onCheckedChange={v => setF('is_fda10', v ? 1 : 0)} />
-                </div>
+                </label>
                 {/* ข.ย.11 */}
-                <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none">
+                  <Checkbox checked={!!form.is_fda11} onCheckedChange={v => setF('is_fda11', v ? 1 : 0)} />
                   <div>
                     <div className="text-sm font-semibold text-foreground">ข.ย.11</div>
                     <div className="text-xs text-muted-foreground">ขายยาอันตราย (ที่ อ.ย. กำหนด)</div>
                   </div>
-                  <Switch size="lg" checked={!!form.is_fda11} onCheckedChange={v => setF('is_fda11', v ? 1 : 0)} />
-                </div>
+                </label>
                 {/* ข.ย.13 */}
-                <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none">
+                  <Checkbox checked={!!form.is_fda13} onCheckedChange={v => setF('is_fda13', v ? 1 : 0)} />
                   <div>
                     <div className="text-sm font-semibold text-foreground">ข.ย.13</div>
                     <div className="text-xs text-muted-foreground">ขายส่ง (เฉพาะร้านขายส่ง)</div>
                   </div>
-                  <Switch size="lg" checked={!!form.is_fda13} onCheckedChange={v => setF('is_fda13', v ? 1 : 0)} />
-                </div>
+                </label>
               </div>
             </>
           )}

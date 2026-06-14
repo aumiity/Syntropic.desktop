@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { SectionCard } from '@/components/ui/card'
-import { Toggle } from '@/components/ui/switch'
+import { CheckRow } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
@@ -98,20 +98,20 @@ export function SalesTab({ registerSave, saving, setSaving }: {
         >
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
-              <Toggle
-                className="justify-between w-full h-11 px-3"
+              <CheckRow
+                className="w-full h-11 px-3"
                 label="แจ้งเตือนเมื่อสินค้าใกล้หมดอายุ"
                 checked={expiryOn}
                 onChange={v => setF('expiry_alert_enabled', v ? 1 : 0)}
               />
-              <Toggle
-                className="justify-between w-full h-11 px-3"
+              <CheckRow
+                className="w-full h-11 px-3"
                 label="แจ้งเตือนสินค้าที่หมดอายุแล้ว"
                 checked={!!form.expired_alert_enabled}
                 onChange={v => setF('expired_alert_enabled', v ? 1 : 0)}
               />
-              <Toggle
-                className="justify-between w-full h-11 px-3"
+              <CheckRow
+                className="w-full h-11 px-3"
                 label="แจ้งเตือนเมื่อสต๊อกไม่พอขาย"
                 checked={!!form.low_stock_alert_enabled}
                 onChange={v => setF('low_stock_alert_enabled', v ? 1 : 0)}

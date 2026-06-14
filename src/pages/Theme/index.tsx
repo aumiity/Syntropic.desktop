@@ -16,7 +16,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent,
   SelectItem, SelectGroup, SelectLabel,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Checkbox, CheckRow } from '@/components/ui/checkbox'
 import { Switch, Toggle } from '@/components/ui/switch'
 import {
   Card, CardHeader, CardTitle, CardDescription,
@@ -953,6 +953,15 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="Toggle framed + warning — กรอบธรรมดาเมื่อปิด, สวิช + กรอบเหลืองเมื่อเปิด (เปิดการแจ้งเตือน)">
                   <Toggle framed variant="warning" size="lg" checked={switchOn} onChange={setSwitchOn} label="เปิดการแจ้งเตือน" />
+                </DemoRow>
+                <DemoRow label="CheckRow — Checkbox + label สำหรับค่าที่ต้องกดบันทึก (checkbox ซ้าย/label ขวา); switch = มีผลทันที, checkbox = เลือกแล้วค่อยเซฟ">
+                  <CheckRow checked={switchOn} onChange={setSwitchOn} label="พื้นฐาน" />
+                </DemoRow>
+                <DemoRow label="CheckRow framed — pill สำหรับ dialog / พื้นมีสี (h-9, bg-card, border)">
+                  <CheckRow framed checked={switchOn} onChange={setSwitchOn} label="แสดงบาร์โค้ดในตัวอย่าง" />
+                </DemoRow>
+                <DemoRow label="CheckRow framed + destructive — กรอบธรรมดาเมื่อปิด, กรอบแดงเมื่อติ๊ก (พักการใช้งาน, ปิดใช้งาน)">
+                  <CheckRow framed variant="destructive" checked={switchOn} onChange={setSwitchOn} label="พักการใช้งาน" />
                 </DemoRow>
               </Section>
 

@@ -5,7 +5,6 @@ import { getCurrentUserId, getCurrentUserName } from '@/stores/userStore'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useToast } from '@/components/ui/toast'
-import { TintIcon } from '@/components/ui/tint-icon'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
@@ -1872,8 +1871,7 @@ export default function POSPage() {
       <Dialog open={showAdjust} onOpenChange={(v) => { if (!v) closeAdjust() }}>
         <DialogContent size="4xl" divided onClose={closeAdjust} className="h-[760px] grid-rows-[auto_1fr_auto]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2.5">
-              <TintIcon icon={PackageMinus} tint="accent" size="md" bordered />
+            <DialogTitle>
               ตัดสต็อก
             </DialogTitle>
           </DialogHeader>
@@ -1998,7 +1996,7 @@ export default function POSPage() {
                     variant={adjustReason === reason ? 'accent' : 'elevated'}
                     size="sm"
                     onClick={() => setAdjustReason(r => r === reason ? '' : reason)}
-                    className="h-8 rounded-md">
+                    className={`h-8 rounded-md border ${adjustReason === reason ? 'border-transparent' : ''}`}>
                     {reason}
                   </Button>
                 ))}
@@ -2030,8 +2028,7 @@ export default function POSPage() {
       <Dialog open={showReturn} onOpenChange={(v) => { if (!v) closeReturn() }}>
         <DialogContent size="4xl" divided onClose={closeReturn} className="h-[760px] grid-rows-[auto_1fr_auto]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2.5">
-              <TintIcon icon={RotateCcw} tint="primary" size="md" bordered />
+            <DialogTitle>
               รับคืนสินค้า
             </DialogTitle>
           </DialogHeader>
@@ -2146,7 +2143,7 @@ export default function POSPage() {
                     variant={returnReason === reason ? 'default' : 'elevated'}
                     size="sm"
                     onClick={() => setReturnReason(r => r === reason ? '' : reason)}
-                    className="h-8 rounded-md">
+                    className={`h-8 rounded-md border ${returnReason === reason ? 'border-transparent' : ''}`}>
                     {reason}
                   </Button>
                 ))}

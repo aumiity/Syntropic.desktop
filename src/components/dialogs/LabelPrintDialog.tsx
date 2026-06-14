@@ -10,16 +10,17 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
-import { TintIcon } from '@/components/ui/tint-icon'
 import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
-import { CircleAlert, Edit, Languages, Plus, Printer, Tag } from 'lucide-react'
+import { CircleAlert, Edit, Languages, PenLine, Plus, Printer, Tag } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import type { Product, ProductLabel } from '@/types'
 import { LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
 import { composeLabelContent, todayBE, LANG_OPTIONS, type LabelLang } from '@/lib/label/content'
 import { buildLabelSheetHtml } from '@/lib/label/html'
+import { buildBlankLabelHtml } from '@/lib/label/blankLabel'
 import { LabelPaper } from '@/components/label/LabelPaper'
+import { ScaledPaper } from '@/components/label/ScaledPaper'
 import { LabelFormDialog, type LabelFormLookups } from '@/components/label/LabelFormDialog'
 
 interface Props {
@@ -79,10 +80,19 @@ export function LabelPrintDialog({ open, onClose }: Props) {
   const [formLabel, setFormLabel] = useState<ProductLabel | null>(null)
   const [activeProductId, setActiveProductId] = useState<number | null>(null)
 
+  // Blank "write-your-own" label — a fixed pre-printed form, independent of the
+  // cart. Has its own copies + print action; the left preview swaps to it when
+  // `blankActive`.
+  const [blankActive, setBlankActive] = useState(false)
+  const [blankCopies, setBlankCopies] = useState('1')
+  const [blankHtml, setBlankHtml] = useState('')
+  const [blankPrinting, setBlankPrinting] = useState(false)
+
   // Load print settings + shop + lookups once per open. Per-key overwrite so
   // stale UI-only keys never poison the LabelSettingsForm shape.
   useEffect(() => {
     if (!open) return
+    setBlankCopies('1')
     window.api.settings.getLabelSettings().then((data: any) => {
       if (!data) return
       setLabelSettings(prev => {
@@ -140,6 +150,8 @@ export function LabelPrintDialog({ open, onClose }: Props) {
         }
       }))
       setActiveProductId(results[0]?.p.id ?? null)
+      // Empty cart → there's nothing to preview but the blank form, so show it.
+      setBlankActive(results.length === 0)
     }).catch(() => {})
     return () => { cancelled = true }
     // items intentionally read at open-time only; cart is frozen while printing.
@@ -148,6 +160,17 @@ export function LabelPrintDialog({ open, onClose }: Props) {
 
   const patchRow = (productId: number, patch: Partial<Row>) =>
     setRows(rs => rs.map(r => (r.productId === productId ? { ...r, ...patch } : r)))
+
+  // Build the 1-page blank-label preview (preview = print 1:1) whenever paper /
+  // font / shop changes. The print job rebuilds with the real copies count.
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    buildBlankLabelHtml(labelSettings, shop, 1)
+      .then(h => { if (!cancelled) setBlankHtml(h) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [open, labelSettings, shop])
 
   const labeledRows = useMemo(() => rows.filter(r => r.labels.length > 0), [rows])
   const noLabelCount = rows.length - labeledRows.length
@@ -246,6 +269,30 @@ export function LabelPrintDialog({ open, onClose }: Props) {
     }
   }
 
+  const handlePrintBlank = async () => {
+    if (blankPrinting) return
+    if (!(labelSettings.width_mm > 0) || !(labelSettings.height_mm > 0)) {
+      toast({ title: 'ยังไม่ได้ตั้งขนาดกระดาษฉลาก', description: 'ไปที่ ตั้งค่า > ฉลากยา เพื่อกำหนดขนาดกระดาษก่อน', variant: 'error' })
+      return
+    }
+    setBlankPrinting(true)
+    try {
+      const html = await buildBlankLabelHtml(labelSettings, shop, copiesNum(blankCopies))
+      const res = await window.api.printer.printLabel({
+        html,
+        printerName: labelSettings.printer_name,
+        paperWidthMm: labelSettings.width_mm,
+        paperHeightMm: labelSettings.height_mm,
+      })
+      if (res.success) toast({ title: 'ส่งงานพิมพ์ฉลากเปล่าแล้ว', variant: 'success' })
+      else toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'error' })
+    } catch (e: any) {
+      toast({ title: 'พิมพ์ไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
+    } finally {
+      setBlankPrinting(false)
+    }
+  }
+
   const quickAddRow = quickAddProductId != null ? rows.find(r => r.productId === quickAddProductId) : undefined
 
   return (
@@ -254,29 +301,30 @@ export function LabelPrintDialog({ open, onClose }: Props) {
         <DialogContent
           size="full"
           divided
-          className="h-[min(760px,calc(100vh-3rem))] max-w-[min(1180px,calc(100vw-3rem))] grid-rows-[auto_1fr_auto] gap-0 p-0"
+          className="h-[min(760px,calc(100vh-3rem))] max-w-[min(1240px,calc(100vw-3rem))] grid-rows-[auto_1fr_auto] gap-0 p-0"
         >
           <DialogHeader className="px-4 pt-4">
-            <DialogTitle className="gap-2.5">
-              <TintIcon icon={Tag} tint="primary" size="md" bordered />
+            <DialogTitle>
               พิมพ์ฉลากยา
             </DialogTitle>
           </DialogHeader>
 
           <DialogBody className="flex min-h-0 overflow-hidden rounded-none p-0">
-            <div className="grid min-h-0 flex-1 grid-cols-[400px_minmax(0,1fr)] overflow-hidden max-[960px]:grid-cols-1">
+            <div className="grid min-h-0 flex-1 grid-cols-[480px_minmax(0,1fr)] overflow-hidden max-[960px]:grid-cols-1">
 
               {/* ============ LEFT — live preview of the active product's label ============ */}
               <aside className="flex min-h-0 flex-col border-r border-border bg-muted max-[960px]:hidden">
                 <div className="flex h-12 shrink-0 items-center border-b border-border bg-card px-4">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-foreground">
-                      {activeRow ? productName(activeRow.product) : 'ตัวอย่างฉลาก'}
+                      {blankActive ? 'ฉลากเปล่า (เขียนเอง)' : activeRow ? productName(activeRow.product) : 'ตัวอย่างฉลาก'}
                     </div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {activeLabel
-                        ? `ฉลาก: ${activeLabel.label_name || 'ฉลากไม่มีชื่อ'}`
-                        : 'เลือกสินค้าที่มีฉลากเพื่อดูตัวอย่าง'}
+                      {blankActive
+                        ? 'พิมพ์ฟอร์มเปล่าสำหรับเขียน/วงเอง'
+                        : activeLabel
+                          ? `ฉลาก: ${activeLabel.label_name || 'ฉลากไม่มีชื่อ'}`
+                          : 'เลือกสินค้าที่มีฉลากเพื่อดูตัวอย่าง'}
                     </div>
                   </div>
                 </div>
@@ -289,7 +337,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                     <Tabs value={lang} onValueChange={v => setLang(v as LabelLang)}>
                       <TabsList variant="toggle">
                         {LANG_OPTIONS.map(o => (
-                          <TabsTrigger key={o.value} value={o.value} className="px-2.5 text-sm" disabled={printing}>
+                          <TabsTrigger key={o.value} value={o.value} className="px-2.5 text-sm" disabled={printing || blankActive}>
                             {o.label}
                           </TabsTrigger>
                         ))}
@@ -301,18 +349,32 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                     size="lg"
                     className="h-9 w-9 shrink-0 p-0"
                     title="แก้ไขฉลากนี้"
-                    disabled={!activeLabel || printing}
+                    disabled={!activeLabel || printing || blankActive}
                     onClick={() => activeRow && activeLabel && openEditLabel(activeRow.productId, activeLabel)}
                   >
                     <Edit className="size-4" />
                   </Button>
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-auto bg-muted/30 p-5">
-                  {activeRow && activeLabel ? (
-                    <div className="mx-auto w-fit">
+                <div className="min-h-0 flex-1 overflow-hidden bg-muted/30 p-5">
+                  {blankActive ? (
+                    <ScaledPaper widthMm={labelSettings.width_mm} heightMm={labelSettings.height_mm}>
+                      <iframe
+                        title="ตัวอย่างฉลากเปล่า"
+                        srcDoc={blankHtml}
+                        scrolling="no"
+                        className="block border-0 bg-white"
+                        style={{
+                          width: `${labelSettings.width_mm}mm`,
+                          height: `${labelSettings.height_mm}mm`,
+                          boxShadow: '0 4px 5px rgb(0 0 0 / 0.20), 0 12px 14px rgb(0 0 0 / 0.16)',
+                        }}
+                      />
+                    </ScaledPaper>
+                  ) : activeRow && activeLabel ? (
+                    <ScaledPaper widthMm={previewSettings.width_mm} heightMm={previewSettings.height_mm}>
                       <LabelPaper settings={previewSettings} content={previewContent} date={todayBE()} />
-                    </div>
+                    </ScaledPaper>
                   ) : (
                     <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
                       <Tag className="size-10 opacity-30" />
@@ -345,29 +407,71 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                 </div>
 
                 <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
+                  {/* Blank write-your-own label — always available, even with an
+                      empty cart. Own copies + own print action (separate job). */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setBlankActive(true)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setBlankActive(true) }
+                    }}
+                    className={cn(
+                      'grid grid-cols-[32px_minmax(0,1fr)_176px_72px] items-center gap-2.5 rounded-lg border-2 bg-card p-2.5 shadow-sm transition-colors',
+                      blankActive ? 'border-primary bg-primary-soft/40' : 'border-border hover:bg-primary-soft/30',
+                    )}
+                  >
+                    <PenLine className="size-5 justify-self-center text-primary" />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-foreground">ฉลากเปล่า (เขียนเอง)</div>
+                      <div className="mt-0.5 flex h-[22px] items-center text-xs text-muted-foreground">
+                        <span className="truncate">พิมพ์ฟอร์มเปล่าสำหรับเขียน/วงเอง</span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="elevated"
+                      size="lg"
+                      onClick={e => { e.stopPropagation(); handlePrintBlank() }}
+                      disabled={blankPrinting}
+                    >
+                      <Printer className="size-4" /> {blankPrinting ? 'กำลังพิมพ์...' : 'พิมพ์ฉลากเปล่า'}
+                    </Button>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={blankCopies}
+                      onChange={e => setBlankCopies(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                      onFocus={e => e.currentTarget.select()}
+                      onBlur={() => setBlankCopies(normalizeCopies(blankCopies))}
+                      onClick={e => e.stopPropagation()}
+                      className="h-9 w-full text-center"
+                      aria-label="จำนวนสำเนาฉลากเปล่า"
+                      disabled={blankPrinting}
+                    />
+                  </div>
+
                   {rows.length === 0 ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground">
                       <Tag className="size-10 opacity-30" />
                       <span className="text-sm">ยังไม่มีสินค้าในตะกร้า</span>
                     </div>
                   ) : (
                     rows.map(row => {
                       const hasLabel = row.labels.length > 0
-                      const isActive = activeRow?.productId === row.productId
+                      const isActive = !blankActive && activeRow?.productId === row.productId
                       const isDefaultSel = row.labels.some(l => l.id === row.selectedLabelId && (l as any).is_default)
                       return (
                         <div
                           key={row.productId}
                           role="button"
                           tabIndex={0}
-                          onClick={() => setActiveProductId(row.productId)}
+                          onClick={() => { setActiveProductId(row.productId); setBlankActive(false) }}
                           onKeyDown={e => {
-                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveProductId(row.productId) }
+                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveProductId(row.productId); setBlankActive(false) }
                           }}
                           className={cn(
-                            'grid grid-cols-[32px_minmax(0,1fr)_176px_72px] items-center gap-2.5 rounded-lg border bg-card p-2.5 shadow-sm transition-colors',
-                            isActive ? 'border-primary ring-2 ring-primary/30 bg-primary-soft/40' : 'border-border hover:bg-primary-soft/30',
-                            !hasLabel && 'opacity-95',
+                            'grid grid-cols-[32px_minmax(0,1fr)_176px_72px] items-center gap-2.5 rounded-lg border-2 bg-card p-2.5 shadow-sm transition-colors',
+                            isActive ? 'border-primary bg-primary-soft/40' : 'border-border hover:bg-primary-soft/30',
                           )}
                         >
                           {hasLabel ? (
@@ -377,9 +481,10 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                               onCheckedChange={v => patchRow(row.productId, { checked: !!v })}
                               onClick={e => e.stopPropagation()}
                               disabled={printing}
+                              className="justify-self-center"
                             />
                           ) : (
-                            <CircleAlert className="size-5 text-warning" />
+                            <CircleAlert className="size-5 justify-self-center text-warning" />
                           )}
 
                           <div className="min-w-0">

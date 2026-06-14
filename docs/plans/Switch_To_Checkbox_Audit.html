@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Switch → Checkbox Audit — Syntropic.desktop</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1d212b; --line:#2a2f3a;
+    --fg:#e8eaed; --muted:#9aa3b2; --sub:#6b7280;
+    --teal:#2dd4bf; --teal-d:#0f766e;
+    --amber:#fbbf24; --amber-soft:#3a2f12;
+    --red:#f87171; --red-soft:#3a1d1d;
+    --green:#34d399; --green-soft:#123026;
+    --blue:#60a5fa; --blue-soft:#16263f;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family:"Inter","IBM Plex Sans Thai","Noto Sans Thai",system-ui,sans-serif;
+    font-size:15px; line-height:1.6; padding:40px 24px 80px;
+  }
+  .wrap{max-width:1040px; margin:0 auto}
+  h1{font-size:26px; margin:0 0 4px; letter-spacing:-0.01em}
+  .lede{color:var(--muted); margin:0 0 28px; font-size:14px}
+  h2{font-size:19px; margin:36px 0 12px; display:flex; align-items:center; gap:10px}
+  .pill{font-size:12px; font-weight:600; padding:2px 10px; border-radius:999px}
+  .pill.cb{background:var(--amber-soft); color:var(--amber); border:1px solid #5a4a1a}
+  .pill.sw{background:var(--green-soft); color:var(--green); border:1px solid #1d5a45}
+  .pill.jc{background:var(--blue-soft); color:var(--blue); border:1px solid #1d3a5a}
+  .rule{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 20px; margin:0 0 8px;
+  }
+  .rule h3{margin:0 0 10px; font-size:15px}
+  .rule .row{display:flex; gap:14px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--line)}
+  .rule .row:first-of-type{border-top:0}
+  .tag{flex:0 0 auto; font-size:12px; font-weight:700; padding:3px 10px; border-radius:8px; margin-top:2px}
+  .tag.cb{background:var(--amber-soft); color:var(--amber)}
+  .tag.sw{background:var(--green-soft); color:var(--green)}
+  table{width:100%; border-collapse:collapse; margin:6px 0 4px; font-size:13.5px}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.04em}
+  tbody tr:hover{background:#ffffff06}
+  .grp td{background:var(--card2); color:var(--teal); font-weight:600; font-size:12.5px; letter-spacing:.02em}
+  code{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; font-size:12.5px; color:#cbd5e1; white-space:nowrap}
+  .loc{color:var(--sub)}
+  .lbl{color:var(--fg)}
+  .why{color:var(--muted); font-size:13px}
+  .count{color:var(--sub); font-weight:400; font-size:13px; margin-left:6px}
+  .note{
+    background:var(--card); border:1px solid var(--line); border-left:3px solid var(--teal);
+    border-radius:10px; padding:12px 16px; margin:10px 0; font-size:13.5px; color:var(--muted)
+  }
+  .note b{color:var(--fg)}
+  .warn{border-left-color:var(--amber)}
+  .foot{margin-top:40px; color:var(--sub); font-size:12px; border-top:1px solid var(--line); padding-top:16px}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; margin:14px 0 0; font-size:13px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .dot{width:10px; height:10px; border-radius:3px; display:inline-block}
+  .dot.cb{background:var(--amber)} .dot.sw{background:var(--green)} .dot.jc{background:var(--blue)}
+
+  /* ---- checkbox / switch mockups ---- */
+  .mock{display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; margin:10px 0 4px}
+  .mockcol{flex:1 1 330px; min-width:300px}
+  .mockcap{font-size:12px; color:var(--muted); margin:0 0 9px; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .swatchrow{display:flex; gap:26px; flex-wrap:wrap; align-items:center; margin:4px 0 2px}
+  .swatch{display:flex; flex-direction:column; align-items:center; gap:7px; font-size:11.5px; color:var(--muted)}
+  .cbx{width:19px; height:19px; border-radius:5px; border:1.5px solid #3a4150; background:#ffffff0a; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; position:relative}
+  .cbx.on{background:var(--teal); border-color:var(--teal)}
+  .cbx.on::after{content:""; width:4px; height:8px; border:solid #06231f; border-width:0 2.5px 2.5px 0; transform:rotate(45deg); margin-top:-2px}
+  .cbx.dis{opacity:.45}
+  .sw{width:38px; height:20px; border-radius:999px; background:#3a4150; position:relative; flex:0 0 auto}
+  .sw.on{background:var(--teal)} .sw.red.on{background:var(--red)}
+  .sw::after{content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:.2s}
+  .sw.on::after{left:20px}
+  .fbox{border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--card)}
+  .frow{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border-top:1px solid var(--line)}
+  .frow:first-child{border-top:0}
+  .frow.tintred{background:var(--red-soft)}
+  .frow .meta .t{font-size:14px; font-weight:600; color:var(--fg)}
+  .frow .meta .t.red{color:var(--red)}
+  .frow .meta .d{font-size:12px; color:var(--muted)}
+  .frow.lead{flex-direction:row; justify-content:flex-start}
+  .lonebox{display:flex; align-items:center; justify-content:space-between; gap:12px; height:38px; padding:0 14px; border-radius:10px; border:1px solid var(--line); background:var(--card); font-size:14px}
+  .lonebox.red{background:var(--red-soft); border-color:#5a2a2a; color:var(--red)}
+  .disc{border:1px dashed #3a4150; border-radius:10px; padding:9px 14px; margin-top:8px; color:var(--sub); font-size:12.5px; background:#ffffff04}
+  .recbadge{font-size:11px; font-weight:700; color:#06231f; background:var(--teal); padding:2px 9px; border-radius:6px; letter-spacing:.02em}
+  .altbadge{font-size:11px; font-weight:700; color:var(--blue); background:var(--blue-soft); padding:2px 9px; border-radius:6px; border:1px solid #1d3a5a}
+  .arrow{color:var(--sub); font-size:18px; align-self:center; padding:0 4px}
+  pre.code{background:#0c0e13; border:1px solid var(--line); border-radius:10px; padding:14px 16px; overflow:auto; font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; font-size:12px; line-height:1.7; color:#cbd5e1; margin:10px 0}
+  pre.code .k{color:#7dd3fc} pre.code .s{color:#a7f3d0} pre.code .c{color:#5b6472} pre.code .t{color:#fca5a5}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Switch → Checkbox Audit</h1>
+  <p class="lede">ไล่ toggle switch ทุกจุดในโปรเจกต์ แล้วแยกตามพฤติกรรมการบันทึก — เพื่อแปลงเฉพาะตัวที่ "ต้องกดเซฟ" ให้เป็น Checkbox &nbsp;·&nbsp; สำรวจ 2026-06-14</p>
+
+  <!-- เกณฑ์ -->
+  <div class="rule">
+    <h3>เกณฑ์การแยกประเภท</h3>
+    <div class="row">
+      <span class="tag cb">→ CHECKBOX</span>
+      <div>ค่าที่เปลี่ยน <b>ไม่มีผลทันที</b> — รอ commit ตอนกดปุ่ม <code>บันทึก</code> / Save แยกต่างหาก (อยู่ใน form ที่มี <code>handleSave</code> / <code>registerSave</code>). Checkbox สื่อ "เลือกตัวเลือกไว้ก่อน แล้วค่อยเซฟ" ชัดเจนกว่า</div>
+    </div>
+    <div class="row">
+      <span class="tag sw">คง SWITCH</span>
+      <div>เปิด/ปิดแล้ว <b>มีผลทันที</b> — เขียนค่า/persist ทันทีใน <code>onChange</code> หรือเป็น view-filter ที่กรองรายการสด ไม่ต้องเซฟซ้ำ Switch สื่อ on/off ทันทีอยู่แล้ว ถูกต้อง</div>
+    </div>
+    <div class="legend">
+      <span><i class="dot cb"></i> แปลงเป็น Checkbox — 23 จุด</span>
+      <span><i class="dot sw"></i> คง Switch (มีผลทันที) — 11 จุด</span>
+      <span><i class="dot jc"></i> คง Switch (มติเจ้าของ) — 2 จุด</span>
+    </div>
+  </div>
+
+  <!-- ===================== รูปแบบ UI ===================== -->
+  <h2>รูปแบบ UI ที่จะใช้</h2>
+
+  <!-- กล่อง / สถานะ checkbox -->
+  <div class="rule">
+    <h3>ตัว Checkbox (primitive เดิม — <code>src/components/ui/checkbox.tsx</code>)</h3>
+    <div class="swatchrow">
+      <div class="swatch"><span class="cbx"></span>ยังไม่ติ๊ก</div>
+      <div class="swatch"><span class="cbx on"></span>ติ๊กแล้ว <span style="color:var(--teal)">(เติม primary teal + เครื่องหมายถูกขาว)</span></div>
+      <div class="swatch"><span class="cbx on dis"></span>ติ๊ก + อ่านอย่างเดียว (<code>disabled</code>, ข.ย.9)</div>
+    </div>
+    <div class="row" style="margin-top:6px"><div class="why">กล่อง <code>size-4</code> (16px) มน <code>rounded-[4px]</code> ขอบ <code>border-border</code>; ติ๊กแล้ว = <code>bg-primary</code> + ไอคอน <code>Check</code> ขาว — ตรงกับ checkbox ที่ใช้อยู่แล้วใน column-visibility popover และ <code>DrugTypesTab</code> ทุกประการ ไม่ต้องสร้าง variant ใหม่ค่ะ</div></div>
+  </div>
+
+  <!-- ก่อน → หลัง -->
+  <div class="rule">
+    <h3>ก่อน → หลัง (กล่อง "การตั้งค่า" ใน EditProduct)</h3>
+    <div class="mock">
+      <div class="mockcol">
+        <p class="mockcap">เดิม — Switch (label ซ้าย / control ขวา)</p>
+        <div class="fbox">
+          <div class="frow"><div class="meta"><div class="t">ปิดใช้งาน</div><div class="d">ปิดการใช้งานทั้งสินค้า</div></div><span class="sw red on"></span></div>
+          <div class="frow"><div class="meta"><div class="t">ซ่อน</div><div class="d">ซ่อนจากการค้นหา</div></div><span class="sw"></span></div>
+          <div class="frow"><div class="meta"><div class="t">นับสต็อก</div><div class="d">ตัดสต็อกอัตโนมัติเมื่อขาย</div></div><span class="sw on"></span></div>
+        </div>
+      </div>
+      <span class="arrow">→</span>
+      <div class="mockcol">
+        <p class="mockcap"><span class="recbadge">เลือกแล้ว</span> แบบ A (สลับฝั่ง) — checkbox ซ้าย / คำอธิบาย ขวา</p>
+        <div class="fbox">
+          <div class="frow lead tintred"><span class="cbx on"></span><div class="meta"><div class="t red">ปิดใช้งาน</div><div class="d">ปิดการใช้งานทั้งสินค้า</div></div></div>
+          <div class="frow lead"><span class="cbx"></span><div class="meta"><div class="t">ซ่อน</div><div class="d">ซ่อนจากการค้นหา</div></div></div>
+          <div class="frow lead"><span class="cbx on"></span><div class="meta"><div class="t">นับสต็อก</div><div class="d">ตัดสต็อกอัตโนมัติเมื่อขาย</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px"><div class="why"><b>แบบที่เลือก:</b> กรอบ + เรขาคณิตแถวคงเดิม (<code>rounded-lg border</code> + <code>divide-y</code>, แถว <code>px-3 py-2.5</code>, title+subtitle 2 บรรทัด) แต่ <b>ย้าย checkbox มานำหน้าทางซ้าย คำอธิบายตามทางขวา</b> → สื่อ "ติ๊กเลือกก่อนเซฟ" ชัดสุด + สแกนคอลัมน์กล่องซ้ายได้; เปลี่ยนจาก <code>justify-between</code> เป็น <code>gap-3</code> (control ก่อน เนื้อหาตาม); ครอบทั้งแถวด้วย <code>&lt;label&gt;</code> → คลิกทั้งแถว; แถว destructive ยัง tint <code>bg-destructive-soft/40</code> ตอนติ๊กเหมือนเดิม</div></div>
+  </div>
+
+  <!-- กรอบเดี่ยว + disclosure -->
+  <div class="rule">
+    <h3>กรอบเดี่ยว (lone) &amp; disclosure</h3>
+    <div class="mock">
+      <div class="mockcol">
+        <p class="mockcap">Toggle <code>framed</code> เดี่ยว → กรอบ pill เดิม (เช่น "พักการใช้งาน")</p>
+        <div class="lonebox red" style="justify-content:flex-start; gap:10px"><span class="cbx on"></span><span>พักการใช้งาน</span></div>
+        <div class="disc">คงเรขาคณิต pill เดิม: <code>h-9 px-3 rounded-lg border</code> (checkbox ซ้าย); variant destructive → ติ๊กแล้วกรอบเป็น <code>bg-destructive-soft border-destructive/30</code> (เหมือน Toggle <code>framed variant="destructive"</code>)</div>
+      </div>
+      <div class="mockcol">
+        <p class="mockcap">Disclosure (เช่น "การแจ้งเตือนลูกค้า") — ติ๊กแล้วเผยช่องย่อย</p>
+        <div class="lonebox" style="justify-content:flex-start; gap:10px"><span class="cbx on"></span><span>การแจ้งเตือนลูกค้า</span></div>
+        <div class="disc">การ "เผยช่องย่อยทันที" เป็นแค่ UX ของ UI — <b>ค่าที่เซฟยังรอปุ่มบันทึก</b> จึงจัดเป็น checkbox ตามเกณฑ์ (ใช้กับ <code>has_tax_invoice</code>, <code>is_alert</code>) &nbsp;·&nbsp; ข้อยกเว้น <code>is_drug</code> เจ้าของขอคงเป็น Switch</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- โค้ดจริง -->
+  <div class="rule">
+    <h3>โค้ดที่จะเขียนจริง (แบบ A)</h3>
+    <p class="why" style="margin:0 0 2px">แถวในกรอบ grouped (มี title + subtitle) — <code>&lt;Checkbox&gt;</code> นำหน้าซ้าย คำอธิบายตามขวา ครอบแถวด้วย <code>&lt;label&gt;</code>:</p>
+    <pre class="code"><span class="k">&lt;div</span> className=<span class="s">"rounded-lg border border-border divide-y divide-border overflow-hidden"</span><span class="k">&gt;</span>
+  <span class="k">&lt;label</span> className={<span class="s">`flex items-center gap-3 px-3 py-2.5</span>
+                      <span class="s">cursor-pointer select-none ${form.is_disabled ? 'bg-destructive-soft/40' : ''}`</span>}<span class="k">&gt;</span>
+    <span class="t">&lt;Checkbox</span> checked={!!form.is_disabled}
+              onCheckedChange={v =&gt; setF(<span class="s">'is_disabled'</span>, v ? 1 : 0)} <span class="t">/&gt;</span>
+    <span class="k">&lt;div&gt;</span>
+      <span class="k">&lt;div</span> className=<span class="s">"text-sm font-semibold text-foreground"</span><span class="k">&gt;</span>ปิดใช้งาน<span class="k">&lt;/div&gt;</span>
+      <span class="k">&lt;div</span> className=<span class="s">"text-xs text-muted-foreground"</span><span class="k">&gt;</span>ปิดการใช้งานทั้งสินค้า<span class="k">&lt;/div&gt;</span>
+    <span class="k">&lt;/div&gt;</span>
+  <span class="k">&lt;/label&gt;</span>
+<span class="k">&lt;/div&gt;</span></pre>
+    <p class="why" style="margin:8px 0 2px">กรอบเดี่ยว (เดิมเป็น Toggle <code>framed</code>) — เช่น "พักการใช้งาน" (checkbox ซ้าย):</p>
+    <pre class="code"><span class="k">&lt;label</span> className={<span class="s">`flex items-center gap-2 h-9 px-3 rounded-lg border</span>
+                    <span class="s">cursor-pointer select-none ${form.is_disabled</span>
+                      <span class="s">? 'bg-destructive-soft border-destructive/30 text-destructive'</span>
+                      <span class="s">: 'bg-card border-border'}`</span>}<span class="k">&gt;</span>
+  <span class="t">&lt;Checkbox</span> checked={!!form.is_disabled}
+            onCheckedChange={v =&gt; setF(<span class="s">'is_disabled'</span>, v ? 1 : 0)} <span class="t">/&gt;</span>
+  <span class="k">&lt;span</span> className=<span class="s">"text-sm"</span><span class="k">&gt;</span>พักการใช้งาน<span class="k">&lt;/span&gt;</span>
+<span class="k">&lt;/label&gt;</span></pre>
+    <div class="note" style="margin-top:10px"><b>ตัวเลือกลดความซ้ำ (เสนอ):</b> สร้าง helper <code>CheckRow</code> ใน <code>src/components/ui/</code> ที่ prop เหมือน <code>Toggle</code> เป๊ะ (<code>checked / onChange / label / framed / variant</code>) แต่ render <code>Checkbox</code> แทน <code>Switch</code> (วาง checkbox ซ้าย / label ขวา) → จุดที่ใช้ <code>label</code> เดี่ยว (LabelFormDialog, People, CustomerFormDialog ฯลฯ) แปลงแบบเปลี่ยนชื่อ <code>&lt;Toggle&gt;</code>→<code>&lt;CheckRow&gt;</code> 1:1; ส่วนแถว title+subtitle (EditProduct/UnitsTab/QuickStock) ใช้ <code>&lt;Checkbox&gt;</code> ดิบใน label ตามโค้ดบน เพราะ layout 2 บรรทัดต่างจาก helper</div>
+  </div>
+
+  <!-- ===================== A: CHECKBOX ===================== -->
+  <h2><span class="pill cb">แปลงเป็น CHECKBOX</span> ต้องกดเซฟ <span class="count">23 จุด</span></h2>
+  <table>
+    <thead><tr><th>ที่อยู่</th><th>field</th><th>ป้าย</th><th>ทำไม / เซฟด้วย</th></tr></thead>
+    <tbody>
+
+      <tr class="grp"><td colspan="4">หน้า Settings — ปุ่มบันทึกรวมของแท็บ</td></tr>
+      <tr><td class="loc"><code>SalesTab.tsx:101</code></td><td><code>expiry_alert_enabled</code></td><td class="lbl">แจ้งเตือนเมื่อสินค้าใกล้หมดอายุ</td><td class="why">อัปเดต <code>form</code> เท่านั้น → <code>registerSave</code></td></tr>
+      <tr><td class="loc"><code>SalesTab.tsx:107</code></td><td><code>expired_alert_enabled</code></td><td class="lbl">แจ้งเตือนสินค้าที่หมดอายุแล้ว</td><td class="why">อัปเดต <code>form</code> เท่านั้น → <code>registerSave</code></td></tr>
+      <tr><td class="loc"><code>SalesTab.tsx:113</code></td><td><code>low_stock_alert_enabled</code></td><td class="lbl">แจ้งเตือนเมื่อสต๊อกไม่พอขาย</td><td class="why">อัปเดต <code>form</code> เท่านั้น → <code>registerSave</code></td></tr>
+      <tr><td class="loc"><code>ReceiptSettingsTab.tsx:279</code></td><td><code>auto_print</code></td><td class="lbl">พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน</td><td class="why">อัปเดต <code>form</code> → ปุ่ม <code>บันทึก</code> (<code>handleSave</code>)</td></tr>
+      <tr><td class="loc"><code>LabelSettingsTab.tsx:621</code></td><td><code>show_barcode</code></td><td class="lbl">แสดงบาร์โค้ดในตัวอย่าง</td><td class="why">เซฟผ่าน <code>handleSave</code>; <b>เอา disclosure ออก</b> — โชว์ช่องปรับแต่งเสมอ แต่ <code>disabled</code> เมื่อไม่ติ๊ก</td></tr>
+
+      <tr class="grp"><td colspan="4">Dialog ฟอร์ม — ปุ่มบันทึกที่ DialogFooter</td></tr>
+      <tr><td class="loc"><code>QuickStockDialog.tsx:197</code></td><td><code>isDisabled</code></td><td class="lbl">ปิดใช้งานสินค้า</td><td class="why">state → <code>handleSave</code></td></tr>
+      <tr><td class="loc"><code>ExpenseFormDialog.tsx:164</code></td><td><code>has_tax_invoice</code></td><td class="lbl">มีใบกำกับภาษีเต็มรูป (ขอคืนภาษีซื้อได้)</td><td class="why">อัปเดต <code>form</code> + เผยช่อง VAT → <code>handleSave</code></td></tr>
+      <tr><td class="loc"><code>CustomerFormDialog.tsx:155</code></td><td><code>is_alert</code></td><td class="lbl">การแจ้งเตือนลูกค้า</td><td class="why">อัปเดต <code>form</code> + เผยช่องโน้ต → <code>handleSave</code></td></tr>
+      <tr><td class="loc"><code>CustomerFormDialog.tsx:182</code></td><td><code>is_disabled</code></td><td class="lbl">พักการใช้งาน</td><td class="why">อัปเดต <code>form</code> → <code>handleSave</code></td></tr>
+      <tr><td class="loc"><code>LabelFormDialog.tsx:280</code></td><td><code>is_active</code></td><td class="lbl">เปิดใช้งาน</td><td class="why"><code>setLF</code> → <code>handleSaveLabel</code></td></tr>
+      <tr><td class="loc"><code>LabelFormDialog.tsx:281</code></td><td><code>is_default</code></td><td class="lbl">ฉลากค่าเริ่มต้น</td><td class="why"><code>setLF</code> → <code>handleSaveLabel</code></td></tr>
+      <tr><td class="loc"><code>LabelFormDialog.tsx:282</code></td><td><code>show_barcode</code></td><td class="lbl">แสดงบาร์โค้ด</td><td class="why"><code>setLF</code> → <code>handleSaveLabel</code></td></tr>
+      <tr><td class="loc"><code>People/index.tsx:546</code></td><td><code>is_disabled</code></td><td class="lbl">พักการใช้งาน <span class="why">(dialog ลูกค้า/ผู้จำหน่าย)</span></td><td class="why">อัปเดต <code>form</code> → <code>handleSave</code></td></tr>
+      <tr><td class="loc"><code>People/index.tsx:880</code></td><td><code>is_disabled</code></td><td class="lbl">พักการใช้งาน <span class="why">(dialog ผู้ใช้/พนักงาน)</span></td><td class="why">อัปเดต <code>form</code> → <code>handleSave</code></td></tr>
+
+      <tr class="grp"><td colspan="4">หน้าแก้ไขสินค้า / ชุดสินค้า — บันทึกของทั้งหน้า</td></tr>
+      <tr><td class="loc"><code>EditProduct/GeneralTab.tsx:267</code></td><td><code>is_disabled</code></td><td class="lbl">ปิดใช้งาน</td><td class="why">อัปเดต <code>form</code> → page save</td></tr>
+      <tr><td class="loc"><code>EditProduct/GeneralTab.tsx:274</code></td><td><code>is_hidden</code></td><td class="lbl">ซ่อน</td><td class="why">อัปเดต <code>form</code> → page save</td></tr>
+      <tr><td class="loc"><code>EditProduct/GeneralTab.tsx:281</code></td><td><code>is_stock_item</code></td><td class="lbl">นับสต็อก</td><td class="why">อัปเดต <code>form</code> → page save</td></tr>
+      <tr><td class="loc"><code>EditProduct/GeneralTab.tsx:425</code></td><td><code>is_fda9</code></td><td class="lbl">ข.ย.9 <span class="why">(read-only, ผูกกับ is_drug)</span></td><td class="why"><code>disabled</code> — แสดงสถานะ → checkbox อ่านอย่างเดียว</td></tr>
+      <tr><td class="loc"><code>EditProduct/GeneralTab.tsx:433</code></td><td><code>is_fda10</code></td><td class="lbl">ข.ย.10</td><td class="why">อัปเดต <code>form</code> → page save</td></tr>
+      <tr><td class="loc"><code>EditProduct/GeneralTab.tsx:441</code></td><td><code>is_fda11</code></td><td class="lbl">ข.ย.11</td><td class="why">อัปเดต <code>form</code> → page save</td></tr>
+      <tr><td class="loc"><code>EditProduct/GeneralTab.tsx:449</code></td><td><code>is_fda13</code></td><td class="lbl">ข.ย.13</td><td class="why">อัปเดต <code>form</code> → page save</td></tr>
+      <tr><td class="loc"><code>EditProduct/UnitsTab.tsx:343</code></td><td><code>is_for_sale</code></td><td class="lbl">ใช้หน่วยนี้ในการขาย</td><td class="why">อัปเดต <code>unitForm</code> → ปุ่มบันทึกใน dialog หน่วย</td></tr>
+      <tr><td class="loc"><code>EditBundle/GeneralTab.tsx:164</code></td><td><code>is_disabled</code></td><td class="lbl">ปิดใช้งาน</td><td class="why">อัปเดต <code>form</code> → page save</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ===================== B: SWITCH ===================== -->
+  <h2><span class="pill sw">คง SWITCH</span> มีผลทันที <span class="count">11 จุด</span></h2>
+  <table>
+    <thead><tr><th>ที่อยู่</th><th>field</th><th>ป้าย</th><th>ทำไมถึงทันที</th></tr></thead>
+    <tbody>
+      <tr><td class="loc"><code>DatabaseTab.tsx:151</code></td><td><code>autoEnabled</code></td><td class="lbl">เปิดสำรองอัตโนมัติ</td><td class="why"><code>onChange</code> เรียก <code>persist()</code> ทันที ไม่มีปุ่มเซฟ</td></tr>
+
+      <tr class="grp"><td colspan="4">PrintTab — auto-persist (debounce 800ms) + ขับ live preview ทันที ไม่มีปุ่มเซฟ</td></tr>
+      <tr><td class="loc"><code>PrintTab/index.tsx:289</code></td><td><code>stickerCfg.show_name</code></td><td class="lbl">ชื่อสินค้า (สติกเกอร์)</td><td class="why">auto-persist + preview สด</td></tr>
+      <tr><td class="loc"><code>PrintTab/index.tsx:290</code></td><td><code>stickerCfg.show_price</code></td><td class="lbl">ราคา (สติกเกอร์)</td><td class="why">auto-persist + preview สด</td></tr>
+      <tr><td class="loc"><code>PrintTab/index.tsx:291</code></td><td><code>stickerCfg.show_digits</code></td><td class="lbl">ตัวเลขบาร์โค้ด</td><td class="why">auto-persist + preview สด</td></tr>
+      <tr><td class="loc"><code>PrintTab/index.tsx:295</code></td><td><code>priceCfg.show_name</code></td><td class="lbl">ชื่อสินค้า (ป้ายราคา)</td><td class="why">auto-persist + preview สด</td></tr>
+      <tr><td class="loc"><code>PrintTab/index.tsx:296</code></td><td><code>priceCfg.show_price</code></td><td class="lbl">ราคา (ป้ายราคา)</td><td class="why">auto-persist + preview สด</td></tr>
+      <tr><td class="loc"><code>PrintTab/index.tsx:297</code></td><td><code>priceCfg.show_barcode</code></td><td class="lbl">บาร์โค้ด</td><td class="why">auto-persist + preview สด</td></tr>
+      <tr><td class="loc"><code>PrintTab/index.tsx:298</code></td><td><code>priceCfg.show_code</code></td><td class="lbl">รหัส</td><td class="why">auto-persist + preview สด</td></tr>
+      <tr><td class="loc"><code>PrintTab/index.tsx:299</code></td><td><code>priceCfg.show_unit</code></td><td class="lbl">หน่วย</td><td class="why">auto-persist + preview สด</td></tr>
+      <tr><td class="loc"><code>PrintTab/index.tsx:300</code></td><td><code>priceCfg.show_cut_lines</code></td><td class="lbl">เส้นตัด</td><td class="why">auto-persist + preview สด</td></tr>
+
+      <tr class="grp"><td colspan="4">View filter — กรองรายการในจอทันที ไม่ใช่ค่าที่ persist</td></tr>
+      <tr><td class="loc"><code>lot-picker-dialog.tsx:58</code></td><td><code>showDepleted</code></td><td class="lbl">แสดงล็อตที่ปิด</td><td class="why">กรองลิสต์ล็อตที่แสดงทันที (UI state ล้วน)</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ===================== C: คง SWITCH โดยมติ ===================== -->
+  <h2><span class="pill jc">คง SWITCH (มติเจ้าของ)</span> disclosure <span class="count">2 จุด</span></h2>
+  <table>
+    <thead><tr><th>ที่อยู่</th><th>field</th><th>ป้าย</th><th>เหตุผล</th></tr></thead>
+    <tbody>
+      <tr><td class="loc"><code>EditProduct/GeneralTab.tsx:348</code></td><td><code>is_drug</code></td><td class="lbl">เป็นยาตามกฎหมาย</td><td class="why">เจ้าของขอคงเป็น Switch — เป็น disclosure เปิด/ปิดกลุ่มข้อมูลยา ให้คงความรู้สึก toggle เปิดใช้งานทันที</td></tr>
+      <tr><td class="loc"><code>EditProduct/UnitsTab.tsx:350</code></td><td><code>showWholesale</code></td><td class="lbl">ตั้งราคาส่ง</td><td class="why">เจ้าของขอคงเป็น Switch — disclosure เผยช่องราคาส่ง ไม่ใช่คอลัมน์ที่เซฟ (อยู่กรอบเดียวกับ <code>is_for_sale:343</code> ที่เป็น checkbox)</td></tr>
+    </tbody>
+  </table>
+
+  <!-- หมายเหตุ -->
+  <h2>หมายเหตุก่อนลงมือ</h2>
+  <div class="note"><b>Checkbox primitive มีอยู่แล้ว</b> — <code>src/components/ui/checkbox.tsx</code> (Radix) ใช้งานจริงอยู่แล้วใน column-visibility popover (ProductsList/BundlesList), <code>DrugTypesTab</code>, <code>LabelPrintDialog</code> ฯลฯ → แปลงได้เลย ไม่ต้องสร้างใหม่</div>
+  <div class="note warn"><b>มติ: LabelSettingsTab:621</b> — เปลี่ยนเป็น checkbox ให้เหมือนทั้งหน้า และ <b>เอา disclosure ออก</b>: เดิมซ่อนช่องความสูง/กว้าง/ตำแหน่งเมื่อปิด → เปลี่ยนเป็นแสดงเสมอ แต่ <code>disabled</code> ช่องเหล่านั้นเมื่อ <code>show_barcode</code> ไม่ได้ติ๊ก</div>
+  <div class="note"><b>Disclosure toggles ที่กลายเป็น checkbox</b> — <code>has_tax_invoice</code>, <code>is_alert</code> เปิดแล้วเผยช่องย่อยทันที (UX ทันที) แต่ "ค่าที่เซฟ" ยังต้องรอปุ่มบันทึก จึงจัดเป็น checkbox ตามเกณฑ์ — การเผยช่องเป็นแค่ผลข้างเคียงของ UI ไม่ใช่การ persist &nbsp;·&nbsp; ส่วน <code>is_drug</code> เจ้าของขอคงเป็น Switch</div>
+  <div class="note"><b>ไม่ต้องแตะ</b> — showcase ใน <code>Theme/index.tsx</code> (เดโม primitive Switch/Toggle) คงไว้เป็นเอกสารของ primitive; ตัว <code>switch.tsx</code> เองก็ไม่แตะ (ทั้ง <code>Switch</code> และ <code>Toggle</code> wrapper)</div>
+  <div class="note"><b>ความสอดคล้อง state shape</b> — Switch ปัจจุบันใช้ <code>onCheckedChange</code> (Switch) / <code>onChange</code> (Toggle wrapper, ส่ง boolean), ส่วน Checkbox primitive ใช้ <code>onCheckedChange(v)</code> โดย <code>v</code> เป็น <code>boolean | "indeterminate"</code> → ตอนแปลงต้องเช็ค <code>v === true</code> หรือ <code>v ? 1 : 0</code> ให้ตรง pattern เดิม (ดู <code>ProductsList.tsx:224</code> เป็นตัวอย่าง)</div>
+
+  <div class="foot">
+    สำรวจทั้งหมด 16 ไฟล์ที่ใช้ <code>&lt;Switch&gt;</code>/<code>&lt;Toggle&gt;</code> · นับเฉพาะ usage จริง (ไม่รวม <code>switch.tsx</code> definition และ Theme showcase) · รวม 36 จุด: แปลง 23 · คง (มีผลทันที) 11 · คง (มติเจ้าของ) 2
+  </div>
+
+</div>
+</body>
+</html>

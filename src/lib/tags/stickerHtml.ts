@@ -1,15 +1,17 @@
-// Build the barcode-sticker print HTML. Mirrors buildLabelSheetHtml
-// (src/lib/label/html.ts): @page = the label sticker W×H, padding on each
-// per-page div (needed once copies>1 → multiple pages), every cell wrapped in
-// .label-area > .label-fit so LABEL_FIT_SCRIPT shrink-to-fits each cell and the
-// print/preview handler can await window.__labelFitReady. Layout (cols/rows/gap/
-// font sizes/barcode height) comes from the resolved preset, NOT free fields.
+// Build the barcode-sticker print HTML. @page = the label sticker W×H, padding on
+// each per-page div (needed once copies>1 → multiple pages). Each cell renders the
+// design at a FIXED reference box (refWmm×refHmm, fixed type/barcode) then scales
+// it uniformly (CSS transform) to fill the real cell — one look at every paper
+// size / count. LABEL_FIT_SCRIPT is still embedded so the print/preview handler
+// can await window.__labelFitReady (fonts loaded) before snapshotting; it just
+// finds no .label-fit elements to touch here. Layout comes from the resolved
+// preset, NOT free fields.
 
 import type { LabelSettingsForm } from '@/lib/label/sections'
 import { barcodeSvg } from '@/lib/label/barcode'
 import { LABEL_FIT_SCRIPT } from '@/lib/label/fit'
 import { buildPrintFontFaceCss, esc } from '@/lib/print/fonts'
-import { resolveStickerPreset } from './presets'
+import { resolveStickerLayout } from './presets'
 import type { BarcodeStickerForm, TagCell } from './types'
 
 function clamp(n: number, lo: number, hi: number): number {
@@ -17,23 +19,32 @@ function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, Math.round(n)))
 }
 
-function cellHtml(cell: TagCell, cfg: BarcodeStickerForm, L: ReturnType<typeof resolveStickerPreset>): string {
+function priceStr(price: number): string {
+  // "ราคา 10 บาท" — drop the .00 on whole numbers, keep 2 decimals otherwise.
+  return Number.isInteger(price) ? String(price) : price.toFixed(2)
+}
+
+function cellHtml(cell: TagCell, cfg: BarcodeStickerForm, L: ReturnType<typeof resolveStickerLayout>): string {
   const parts: string[] = []
+  // Top line: product name, bold, left-aligned. Font size is FIXED — a name too
+  // long for the cell is truncated with an ellipsis (clip the characters), never
+  // shrunk, so every sticker keeps the same type size.
   if (cfg.show_name) {
     parts.push(
-      `<div style="font-size:${L.fontNamePt}pt;line-height:1.15;text-align:center;` +
-        `display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(cell.name)}</div>`,
+      `<div style="font-size:${L.fontNamePt}pt;font-weight:700;line-height:1;` +
+        `white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cell.name)}</div>`,
     )
   }
   parts.push(
-    `<div style="width:100%;height:${L.barcodeHeightMm}mm;margin:0.5mm 0">` +
+    `<div style="width:100%;height:${L.barcodeHeightMm}mm;margin:0;line-height:0">` +
       `${barcodeSvg(cell.barcode, { displayValue: false })}</div>`,
   )
-  if (cfg.show_digits) {
-    parts.push(`<div style="font-size:${L.fontMetaPt}pt;text-align:center;letter-spacing:0.5px">${esc(cell.barcode)}</div>`)
-  }
-  if (cfg.show_price) {
-    parts.push(`<div style="font-size:${L.fontPricePt}pt;font-weight:700;text-align:center">${cell.price.toFixed(2)}</div>`)
+  // Bottom line: barcode digits and/or "ราคา X บาท", joined by " | ".
+  const meta: string[] = []
+  if (cfg.show_digits) meta.push(esc(cell.barcode))
+  if (cfg.show_price) meta.push(` ${priceStr(cell.price)} บาท`)
+  if (meta.length) {
+    parts.push(`<div style="font-size:${L.fontMetaPt}pt;line-height:1;white-space:nowrap">${meta.join(' | ')}</div>`)
   }
   return parts.join('')
 }
@@ -44,7 +55,7 @@ export async function buildBarcodeStickerHtml(
   cells: (TagCell | null)[],
   copies: number,
 ): Promise<string> {
-  const L = resolveStickerPreset(cfg.preset, paper)
+  const L = resolveStickerLayout(paper)
   const fontFaceCss = await buildPrintFontFaceCss(paper.font_family)
   const familyStack = `'${paper.font_family}', sans-serif`
   const n = L.cols * L.rows
@@ -66,12 +77,27 @@ export async function buildBarcodeStickerHtml(
 
   const cellsHtml = Array.from({ length: n }, (_, i) => {
     const cell = cells[i] ?? null
-    if (!cell) return `<div></div>`
+    // INNER cut lines only (scissor guides): draw a cell's right edge only when a
+    // column follows it, and its bottom edge only when a row follows. The sheet's
+    // outer rim has no border. Extra padding keeps content clear of the cut line.
+    const col = i % L.cols
+    const row = Math.floor(i / L.cols)
+    const right = col < L.cols - 1 ? 'border-right:0.2mm solid #000;' : ''
+    const bottom = row < L.rows - 1 ? 'border-bottom:0.2mm solid #000;' : ''
+    // Minimal inset — just enough to keep content off the cut line.
+    const frame = `overflow:hidden;${right}${bottom}box-sizing:border-box;padding:1mm`
+    if (!cell) return `<div class="label-area" style="${frame}"></div>`
+    // The design is authored at a FIXED reference box (refWmm×refHmm) with fixed
+    // type/barcode, then scaled uniformly to fill the real cell — same look at any
+    // size. Center it; transform scales the whole block as one (no distortion).
+    const design =
+      `<div style="width:${L.refWmm}mm;height:${L.refHmm}mm;transform:scale(${L.scale});transform-origin:center;` +
+      `display:flex;flex-direction:column;justify-content:center;text-align:left">` +
+      `${cellHtml(cell, cfg, L)}</div>`
     return (
-      `<div class="label-area" style="overflow:hidden">` +
-      `<div class="label-fit" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%">` +
-      `${cellHtml(cell, cfg, L)}` +
-      `</div></div>`
+      `<div class="label-area" style="${frame}">` +
+      `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%">` +
+      `${design}</div></div>`
     )
   }).join('')
 
