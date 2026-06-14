@@ -25,6 +25,20 @@ export interface BarcodeOpts {
   fontSize?: number
   /** show the human-readable digits under the bars (default true) */
   displayValue?: boolean
+  /**
+   * Render EAN/UPC bars all at the SAME height (no guard-bar "tails" / descenders
+   * that EAN normally extends to flank the digit row). Default false keeps the
+   * standard look; pass true for a clean full-height bar block. Ignored by CODE128.
+   */
+  flat?: boolean
+  /**
+   * true (default) → stretch bars to fill BOTH the pinned width and height
+   * (preserveAspectRatio:none). false → keep the barcode's natural aspect, fit it
+   * inside the box and CENTER it (xMidYMid meet). Use false when several barcodes
+   * of the SAME symbology must look identical: same-length codes then render at an
+   * identical natural size instead of being stretched to whatever box they sit in.
+   */
+  stretch?: boolean
 }
 
 export function barcodeSvg(value: string | null | undefined, opts: BarcodeOpts = {}): string {
@@ -36,6 +50,7 @@ export function barcodeSvg(value: string | null | undefined, opts: BarcodeOpts =
     height: 40,
     margin: 0,
     displayValue: opts.displayValue ?? true,
+    flat: opts.flat ?? false,
     fontSize: opts.fontSize ?? 14,
     font: opts.font ?? 'sans-serif',
     background: '#ffffff',
@@ -54,16 +69,17 @@ export function barcodeSvg(value: string | null | undefined, opts: BarcodeOpts =
     } catch {
       return null
     }
-    // Make the SVG STRETCHABLE: give it a viewBox matching JsBarcode's intrinsic
-    // px size and `preserveAspectRatio="none"` so that when the caller pins BOTH
-    // a CSS width and height (the label's fixed barcode box), the bars fill the
-    // box instead of letterboxing. Without this, a short code (few bars) renders
-    // narrow and a long code wide — the inconsistency we want to remove. Bar
-    // WIDTH ratios still scale uniformly, so the code stays scannable.
-    const w = svg.getAttribute('width')
-    const h = svg.getAttribute('height')
-    if (w && h) svg.setAttribute('viewBox', `0 0 ${w} ${h}`)
-    svg.setAttribute('preserveAspectRatio', 'none')
+    // Give the SVG a VALID viewBox so it scales to the caller's pinned box.
+    // JsBarcode sets width/height as e.g. "190px" — STRIP the unit (parseFloat),
+    // because a viewBox carrying "px" units is invalid → browsers drop it entirely
+    // → the SVG never scales to the box and even two identical EAN-13 codes render
+    // at inconsistent sizes. preserveAspectRatio: 'none' stretches to fill both
+    // axes; 'xMidYMid meet' keeps the natural aspect and centers (so same-symbology
+    // codes come out identical, which is what `stretch:false` callers want).
+    const w = parseFloat(svg.getAttribute('width') || '')
+    const h = parseFloat(svg.getAttribute('height') || '')
+    if (Number.isFinite(w) && Number.isFinite(h)) svg.setAttribute('viewBox', `0 0 ${w} ${h}`)
+    svg.setAttribute('preserveAspectRatio', (opts.stretch ?? true) ? 'none' : 'xMidYMid meet')
     return new XMLSerializer().serializeToString(svg)
   }
 

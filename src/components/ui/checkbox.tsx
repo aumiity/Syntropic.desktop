@@ -13,14 +13,31 @@ const checkboxSizes = {
   lg: { box: "size-5", check: "[&>svg]:size-[18px]" },
 } as const
 
+// Checked-fill color by role. `default` = primary teal (the standard tick).
+// `destructive` = red fill, for rows whose meaning is negative (e.g. ปิดใช้งาน/
+// ซ่อน) so the tick matches the red row tint instead of clashing teal-on-red.
+const checkboxVariants = {
+  default: {
+    root: "data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary",
+    indicator: "bg-primary",
+  },
+  destructive: {
+    root: "data-checked:border-destructive data-checked:bg-destructive data-checked:text-white dark:data-checked:bg-destructive",
+    indicator: "bg-destructive",
+  },
+} as const
+
 function Checkbox({
   className,
   size = "default",
+  variant = "default",
   ...props
 }: React.ComponentProps<typeof CheckboxPrimitive.Root> & {
   size?: keyof typeof checkboxSizes
+  variant?: keyof typeof checkboxVariants
 }) {
   const sz = checkboxSizes[size]
+  const v = checkboxVariants[variant]
   return (
     <CheckboxPrimitive.Root
       data-slot="checkbox"
@@ -37,7 +54,7 @@ function Checkbox({
         "aria-invalid:aria-checked:border-primary",
         "dark:bg-input/30",
         "dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-        "data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary",
+        v.root,
         className
       )}
       {...props}
@@ -45,7 +62,8 @@ function Checkbox({
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"
         className={cn(
-          "grid place-content-center shrink-0 rounded-[4px] bg-primary text-white transition-none",
+          "grid place-content-center shrink-0 rounded-[4px] text-white transition-none",
+          v.indicator,
           sz.box,
           sz.check,
         )}
@@ -81,7 +99,7 @@ function CheckRow({ checked, onChange, label, variant = "default", framed, disab
       framed && variant === "warning" && checked && "bg-accent-soft border-warning/40 text-accent-soft-foreground",
       className,
     )}>
-      <Checkbox checked={checked} onCheckedChange={v => onChange(v === true)} disabled={disabled} />
+      <Checkbox checked={checked} onCheckedChange={v => onChange(v === true)} disabled={disabled} variant={variant === "destructive" ? "destructive" : "default"} />
       {label ? <span className="text-sm">{label}</span> : null}
     </label>
   )

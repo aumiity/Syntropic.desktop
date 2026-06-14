@@ -261,14 +261,14 @@ export function GeneralTab({
         <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
           <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
             <label className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none ${form.is_disabled ? 'bg-destructive-soft/40' : ''}`}>
-              <Checkbox checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
+              <Checkbox variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
               <div>
                 <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
                 <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
               </div>
             </label>
             <label className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none ${form.is_hidden ? 'bg-destructive-soft/40' : ''}`}>
-              <Checkbox checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
+              <Checkbox variant="destructive" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
               <div>
                 <div className="text-sm font-semibold text-foreground">ซ่อน</div>
                 <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>

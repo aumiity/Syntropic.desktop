@@ -45,11 +45,10 @@ export interface TagCell {
   unit_name: string
   price: number        // price_retail of the selected unit
   code: string         // products.code
-  barcode: string      // resolved: unit.barcode → product.barcode → product.code
-  // 'own'  = the barcode belongs to the selected row itself (base → p.barcode,
-  //          unit → u.barcode)
-  // 'base' = a unit row fell back to p.barcode (scanning yields the base-unit
-  //          price — must warn)
-  // 'code' = fell through to products.code (warn — not a real barcode)
-  barcode_source: 'own' | 'base' | 'code'
+  // The selected row's OWN barcode only — NO fallback to the base unit or to the
+  // product code. Empty string when that row has no barcode of its own.
+  barcode: string
+  // 'own'  = the row has its own barcode (rendered as a real barcode)
+  // 'none' = the row has no barcode → nothing is generated (name/price only)
+  barcode_source: 'own' | 'none'
 }

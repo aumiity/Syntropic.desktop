@@ -190,7 +190,7 @@ export function QuickStockDialog({
 
           {/* Disable toggle */}
           <label className={`flex items-center gap-3 rounded-lg px-3 py-2 border cursor-pointer select-none ${isDisabled ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
-            <Checkbox checked={isDisabled} onCheckedChange={v => setIsDisabled(v === true)} />
+            <Checkbox variant="destructive" checked={isDisabled} onCheckedChange={v => setIsDisabled(v === true)} />
             <div>
               <div className="text-sm font-semibold text-foreground">ปิดใช้งานสินค้า</div>
               <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>

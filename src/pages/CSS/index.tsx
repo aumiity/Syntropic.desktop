@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import tailwindColors from 'tailwindcss/colors'
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -33,27 +34,22 @@ const CSS_PALETTE_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700
 
 // Font option values are stored quoted so they substitute directly into
 // font-family lists (e.g. `var(--font-latin), var(--font-thai), sans-serif`).
-const LATIN_FONTS: Array<{ value: string; label: string }> = [
-  { value: "'Inter'", label: 'Inter' },
-  { value: "'Google Sans'", label: 'Google Sans' },
-  { value: "'JetBrains Mono'", label: 'JetBrains Mono' },
-  { value: "'Sarabun Latin'", label: 'Sarabun' },
-  { value: "'SF Thonburi'", label: 'SF Thonburi' },
-  { value: "'IBM Plex Sans Thai'", label: 'IBM Plex Sans Thai' },
-  { value: "'Noto Sans Thai'", label: 'Noto Sans Thai' },
-  { value: "'Bai Jamjuree'", label: 'Bai Jamjuree' },
-  { value: "'Anuphan'", label: 'Anuphan' },
-]
-
-const THAI_FONTS: Array<{ value: string; label: string }> = [
-  { value: "'Sarabun'", label: 'Sarabun' },
-  { value: "'IBM Plex Sans Thai'", label: 'IBM Plex Sans Thai' },
-  { value: "'IBM Plex Sans Thai Looped'", label: 'IBM Plex Sans Thai Looped' },
-  { value: "'Noto Sans Thai'", label: 'Noto Sans Thai' },
-  { value: "'Noto Sans Thai Looped'", label: 'Noto Sans Thai Looped' },
-  { value: "'SF Thonburi'", label: 'SF Thonburi' },
-  { value: "'Bai Jamjuree'", label: 'Bai Jamjuree' },
-  { value: "'Anuphan'", label: 'Anuphan' },
+// One row per typeface, pairing its Latin and Thai faces so the two picker
+// columns line up by font. Faces scoped to the Thai block (IBM Plex / Noto)
+// expose an UNSCOPED `… Latin` twin for the Latin slot so it renders the real
+// font, not a fallback. `thaiUnsupported` flags a Latin-only face (Inter) whose
+// Thai slot becomes a disabled card with a "no Thai" badge instead of a blank.
+const FONT_ROWS: Array<{ label: string; latin?: string; thai?: string; thaiUnsupported?: boolean }> = [
+  { label: 'Inter',                     latin: "'Inter'",                          thaiUnsupported: true },
+  { label: 'Google Sans',               latin: "'Google Sans'",                    thai: "'Google Sans'" },
+  { label: 'Sarabun',                   latin: "'Sarabun Latin'",                  thai: "'Sarabun'" },
+  { label: 'IBM Plex Sans Thai',        latin: "'IBM Plex Sans Thai Latin'",       thai: "'IBM Plex Sans Thai'" },
+  { label: 'IBM Plex Sans Thai Looped', latin: "'IBM Plex Sans Thai Looped Latin'", thai: "'IBM Plex Sans Thai Looped'" },
+  { label: 'Noto Sans Thai',            latin: "'Noto Sans Thai Latin'",           thai: "'Noto Sans Thai'" },
+  { label: 'Noto Sans Thai Looped',     latin: "'Noto Sans Thai Looped Latin'",    thai: "'Noto Sans Thai Looped'" },
+  { label: 'SF Thonburi',               latin: "'SF Thonburi'",                    thai: "'SF Thonburi'" },
+  { label: 'Bai Jamjuree',              latin: "'Bai Jamjuree'",                   thai: "'Bai Jamjuree'" },
+  { label: 'Anuphan',                   latin: "'Anuphan'",                        thai: "'Anuphan'" },
 ]
 
 const LATIN_SAMPLE = 'The quick brown fox · 0123456789'
@@ -101,30 +97,40 @@ function hexToHslTriplet(hex: string) {
 }
 
 function FontCard({
-  label, sample, fontFamily, isActive, onClick,
+  label, sample, fontFamily, isActive, onClick, disabled = false, badge,
 }: {
   label: string
   sample: string
   fontFamily: string
   isActive: boolean
   onClick: () => void
+  disabled?: boolean
+  badge?: React.ReactNode
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       className={cn(
         'w-full rounded-lg border p-3 text-left transition-all',
-        isActive
-          ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
-          : 'border-border hover:border-foreground/40 bg-card',
+        disabled
+          ? 'border-dashed border-border bg-muted/30 cursor-not-allowed'
+          : isActive
+            ? 'border-2 border-primary bg-primary/5'
+            : 'border-border hover:border-foreground/40 bg-card',
       )}
     >
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="flex items-center justify-between mb-1.5 gap-2">
         <span className="text-[11px] text-muted-foreground">{label}</span>
-        {isActive && <span className="text-[10px] font-semibold text-primary">● ใช้งาน</span>}
+        {badge ?? (isActive && <span className="text-[10px] font-semibold text-primary">● ใช้งาน</span>)}
       </div>
-      <div className="text-base text-foreground" style={{ fontFamily }}>{sample}</div>
+      <div
+        className={cn('text-base', disabled ? 'text-muted-foreground/60' : 'text-foreground')}
+        style={disabled ? undefined : { fontFamily }}
+      >
+        {sample}
+      </div>
     </button>
   )
 }
@@ -261,46 +267,12 @@ export default function CSSPage() {
         <div className="grid grid-cols-2 gap-4">
           {/* ── FONTS ── */}
           <Section title="Fonts" path="--font-latin / --font-thai" full>
-            <p className="text-xs text-foreground">
-              เลือกฟอนต์ Latin และ Thai แยกกัน คลิกเพื่อเปลี่ยนทันที (auto-save ลง <code>src/index.css</code>)
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Latin / ตัวเลข</p>
-                {LATIN_FONTS.map(font => (
-                  <FontCard
-                    key={`latin-${font.value}`}
-                    label={font.label}
-                    sample={LATIN_SAMPLE}
-                    fontFamily={`${font.value}, sans-serif`}
-                    isActive={latinFont === font.value}
-                    onClick={() => applyFont('latin', font.value)}
-                  />
-                ))}
-              </div>
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Thai / ภาษาไทย</p>
-                {THAI_FONTS.map(font => (
-                  <FontCard
-                    key={`thai-${font.value}`}
-                    label={font.label}
-                    sample={THAI_SAMPLE}
-                    fontFamily={`${font.value}, sans-serif`}
-                    isActive={thaiFont === font.value}
-                    onClick={() => applyFont('thai', font.value)}
-                  />
-                ))}
-              </div>
-            </div>
-          </Section>
-
-          {/* ── COLOR TOKENS ── */}
-          <Section title="Color Tokens (from index.css)" path="src/index.css" full>
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-foreground">
-                แก้ค่า HSL ได้จากหน้านี้ แล้วกดบันทึกเพื่อเขียนลงไฟล์ <code>src/index.css</code>
+                เลือกฟอนต์ Latin และ Thai แยกกัน คลิกเพื่อเปลี่ยนทันที (auto-save ลง <code>src/index.css</code>)
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">ขนาดฐาน</span>
                 <Input
                   className="h-8 w-24 text-xs"
                   value={fontSize}
@@ -310,10 +282,61 @@ export default function CSSPage() {
                 <Button size="sm" variant="outline" onClick={saveFontSize} disabled={isSavingFontSize}>
                   {isSavingFontSize ? 'กำลังบันทึก...' : 'บันทึกขนาดฟอนต์'}
                 </Button>
-                <Button size="sm" onClick={saveColorTokens} disabled={isSavingColors}>
-                  {isSavingColors ? 'กำลังบันทึก...' : 'บันทึกสีลงไฟล์'}
-                </Button>
               </div>
+            </div>
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-4">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Latin / ตัวเลข</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Thai / ภาษาไทย</p>
+              </div>
+              {FONT_ROWS.map(row => (
+                <div key={row.label} className="grid grid-cols-2 gap-4">
+                  {row.latin ? (
+                    <FontCard
+                      label={row.label}
+                      sample={LATIN_SAMPLE}
+                      fontFamily={`${row.latin}, sans-serif`}
+                      isActive={latinFont === row.latin}
+                      onClick={() => applyFont('latin', row.latin!)}
+                    />
+                  ) : (
+                    <div aria-hidden="true" />
+                  )}
+                  {row.thai ? (
+                    <FontCard
+                      label={row.label}
+                      sample={THAI_SAMPLE}
+                      fontFamily={`${row.thai}, sans-serif`}
+                      isActive={thaiFont === row.thai}
+                      onClick={() => applyFont('thai', row.thai!)}
+                    />
+                  ) : row.thaiUnsupported ? (
+                    <FontCard
+                      label={row.label}
+                      sample={THAI_SAMPLE}
+                      fontFamily=""
+                      isActive={false}
+                      onClick={() => {}}
+                      disabled
+                      badge={<Badge variant="secondary">ไม่รองรับภาษาไทย</Badge>}
+                    />
+                  ) : (
+                    <div aria-hidden="true" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          {/* ── COLOR TOKENS ── */}
+          <Section title="Color Tokens (from index.css)" path="src/index.css" full>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-foreground">
+                แก้ค่า HSL ได้จากหน้านี้ แล้วกดบันทึกเพื่อเขียนลงไฟล์ <code>src/index.css</code>
+              </p>
+              <Button size="sm" onClick={saveColorTokens} disabled={isSavingColors}>
+                {isSavingColors ? 'กำลังบันทึก...' : 'บันทึกสีลงไฟล์'}
+              </Button>
             </div>
             <div className="rounded-lg border border-border overflow-hidden">
               <div className="grid grid-cols-[190px_1fr_1fr] bg-muted/40 border-b border-border">

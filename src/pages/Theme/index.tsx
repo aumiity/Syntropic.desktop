@@ -882,6 +882,16 @@ export default function Theme() {
                     <Label htmlFor="cb-sl">lg (20px) — touch</Label>
                   </div>
                 </DemoRow>
+                <DemoRow label="Variants — destructive (เช็คแดง) สำหรับแถวความหมายลบ เช่น ปิดใช้งาน/ซ่อน">
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="cb-vd" defaultChecked />
+                    <Label htmlFor="cb-vd">default (teal)</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="cb-vx" variant="destructive" defaultChecked />
+                    <Label htmlFor="cb-vx">destructive (red)</Label>
+                  </div>
+                </DemoRow>
               </Section>
 
               {/* ── SWITCH ── */}

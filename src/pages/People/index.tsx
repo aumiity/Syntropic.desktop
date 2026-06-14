@@ -16,7 +16,7 @@ import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
-import { Checkbox, CheckRow } from '@/components/ui/checkbox'
+import { Checkbox } from '@/components/ui/checkbox'
 import { StatusFilterButton, type StatusFilterValue } from '@/components/ui/status-filter'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
 import { InitialAvatar } from '@/components/ui/avatar'
@@ -541,11 +541,6 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
               <Textarea variant="elevated" value={form.address ?? ''} onChange={e => setF('address', e.target.value)} rows={3} className="resize-none" />
             </div>
 
-            {editing && (
-              <CheckRow framed variant="destructive" className="w-full"
-                checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
-                label="พักการใช้งาน" />
-            )}
           </DialogBody>
           <DialogFooter>
             <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>
@@ -875,11 +870,6 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
               )}
             </div>
 
-            {editing && (
-              <CheckRow framed variant="destructive" className="w-full"
-                checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
-                label="พักการใช้งาน" />
-            )}
           </DialogBody>
           <DialogFooter>
             <Button variant="elevated" size="xl" onClick={() => setDialog(false)}>ยกเลิก</Button>

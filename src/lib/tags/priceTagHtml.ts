@@ -35,7 +35,8 @@ function cellHtml(cell: TagCell, cfg: PriceTagForm, L: ReturnType<typeof resolve
   if (meta.length) {
     parts.push(`<div style="font-size:${L.fontMetaPt}pt;text-align:center;color:#333">${meta.join(' · ')}</div>`)
   }
-  if (cfg.show_barcode) {
+  // STRICT: render a barcode only when the row has its own (no code fallback).
+  if (cfg.show_barcode && cell.barcode) {
     parts.push(
       `<div style="width:80%;height:${L.barcodeHeightMm}mm;margin:1mm auto 0">` +
         `${barcodeSvg(cell.barcode, { displayValue: false })}</div>`,

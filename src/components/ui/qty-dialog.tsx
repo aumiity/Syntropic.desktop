@@ -22,8 +22,11 @@ interface QtyDialogProps {
   /** For the "คงเหลือ" strip. Omit to hide the whole summary strip. */
   stockQty?: number
   onApply: (qty: number) => void
+  /** Quick-pick chips under the stepper. Pass `[]` to hide the row entirely. */
   presets?: number[]
   minQty?: number
+  /** Confirm button label (default "ตกลง" — e.g. "พิมพ์" for a print count). */
+  applyLabel?: string
 }
 
 /**
@@ -34,7 +37,7 @@ interface QtyDialogProps {
 export function QtyDialog({
   open, onClose, itemName, unitName, initialQty,
   unitPrice, discount = 0, stockQty,
-  onApply, presets = [1, 5, 10, 20, 50], minQty = 1,
+  onApply, presets = [1, 5, 10, 20, 50], minQty = 1, applyLabel = 'ตกลง',
 }: QtyDialogProps) {
   const [qtyInput, setQtyInput] = useState(String(initialQty))
 
@@ -57,19 +60,25 @@ export function QtyDialog({
             <div className="text-base font-semibold text-foreground overflow-x-clip overflow-y-visible">{itemName}</div>
           </DialogHeader>
           <DialogBody className="space-y-4">
-            {/* Summary strip — stock on hand + running line total */}
+            {/* Summary strip — each half is independent: คงเหลือ shows only when
+                stockQty is supplied, รวม only when unitPrice is. Omit both to hide
+                the strip entirely. */}
             {(stockQty !== undefined || unitPrice !== undefined) && (
               <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2.5">
-                <div className="flex flex-col">
-                  <span className="text-xs text-foreground-subtle">คงเหลือ</span>
-                  <span className={`text-sm font-semibold ${(stockQty ?? 0) > 0 ? 'text-foreground' : 'text-destructive'}`}>
-                    {stockQty ?? '-'} {unitName}
-                  </span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-xs text-foreground-subtle">รวม</span>
-                  <span className="text-base font-semibold text-foreground">{formatCurrency(lineTotal)}</span>
-                </div>
+                {stockQty !== undefined && (
+                  <div className="flex flex-col">
+                    <span className="text-xs text-foreground-subtle">คงเหลือ</span>
+                    <span className={`text-sm font-semibold ${(stockQty ?? 0) > 0 ? 'text-foreground' : 'text-destructive'}`}>
+                      {stockQty} {unitName}
+                    </span>
+                  </div>
+                )}
+                {unitPrice !== undefined && (
+                  <div className="flex flex-col items-end ml-auto">
+                    <span className="text-xs text-foreground-subtle">รวม</span>
+                    <span className="text-base font-semibold text-foreground">{formatCurrency(lineTotal)}</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -98,7 +107,9 @@ export function QtyDialog({
               </div>
             </div>
 
-            {/* Quick presets — segmented track with a sliding pill (shared-layout) */}
+            {/* Quick presets — segmented track with a sliding pill (shared-layout).
+                Hidden entirely when no presets are supplied. */}
+            {presets.length > 0 && (
             <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
               {presets.map(n => {
                 const active = (parseFloat(qtyInput) || 0) === n
@@ -116,10 +127,11 @@ export function QtyDialog({
                 )
               })}
             </div>
+            )}
           </DialogBody>
           <DialogFooter>
             <Button variant="elevated" size="xl" onClick={onClose}>ยกเลิก</Button>
-            <Button size="xl" onClick={apply}>ตกลง</Button>
+            <Button size="xl" onClick={apply}>{applyLabel}</Button>
           </DialogFooter>
         </DialogContent>
       )}

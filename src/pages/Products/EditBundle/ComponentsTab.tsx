@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { QtyDialog } from '@/components/ui/qty-dialog'
 import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
@@ -74,13 +74,9 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   // the index stays valid because the modal blocks all other interaction.
   const [deleteTarget, setDeleteTarget] = useState<{ idx: number; item: DraftItem } | null>(null)
 
-  // Per-row edit strings for the qty input — keyed by component_product_id.
-  // Decouples the displayed string from the parsed number so the user can clear
-  // the field or type transient forms ("0", "0.5", "01") without parseFloat
-  // snapping the display back. React's controlled-input diffing won't sync the
-  // DOM when value prop is unchanged — so "01" parsing to 1 (same as prior
-  // state) would otherwise leave the typed "01" stuck in the input forever.
-  const [qtyDrafts, setQtyDrafts] = useState<Record<number, string>>({})
+  // Qty editing happens in the shared QtyDialog (same modal as the POS cart) —
+  // this holds the row index whose dialog is open (null = closed).
+  const [qtyModalIdx, setQtyModalIdx] = useState<number | null>(null)
 
   // Component picker — a "+ เพิ่มรายการ" button opens the shared search dialog,
   // which owns its own input focus + keyboard nav.
@@ -103,7 +99,6 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
       qty_per_bundle: Number(bi.qty_per_bundle ?? 1),
     }))
     setLocalItems(seeded)
-    setQtyDrafts({})
     setDirty(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.bundle_items, isControlled])
@@ -160,13 +155,6 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
       component_stock: Number(p.stock_qty ?? 0),
       qty_per_bundle: 1,
     }])
-    // Clear any stale draft so a re-added component shows the seeded "1"
-    // instead of a string left over from a previous edit on the same id.
-    setQtyDrafts(prev => {
-      const next = { ...prev }
-      delete next[p.id]
-      return next
-    })
     setDirty(true)
     // Close after add (POS pattern) — main input auto-refocuses via the
     // searchOpen→false effect above, so the next search is one keystroke away.
@@ -174,16 +162,8 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   }
 
   const removeAt = (idx: number) => {
-    const removed = items[idx]
     const nextLen = items.length - 1
     setItems(prev => prev.filter((_, i) => i !== idx))
-    if (removed) {
-      setQtyDrafts(prev => {
-        const next = { ...prev }
-        delete next[removed.component_product_id]
-        return next
-      })
-    }
     setDirty(true)
     // Warn the moment removal drops the bundle below the 2-item minimum — the
     // user needs to know the list can't be saved until they add another item,
@@ -197,15 +177,11 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
     }
   }
 
-  const updateQty = (componentId: number, v: string) => {
-    // Integer-only field — strip every non-digit before storing the draft so
-    // typing/pasting "5.5" or "-3" can't survive even as a transient string.
-    const cleaned = v.replace(/\D/g, '')
-    setQtyDrafts(prev => ({ ...prev, [componentId]: cleaned }))
-    const num = parseInt(cleaned, 10)
-    setItems(prev => prev.map(it => it.component_product_id === componentId
-      ? { ...it, qty_per_bundle: isNaN(num) ? 0 : num }
-      : it))
+  // Apply the qty picked in the QtyDialog. Qty-per-bundle is integer-only, so
+  // round the dialog's value (it allows decimals) and clamp to >= 1.
+  const applyQty = (idx: number, qty: number) => {
+    const next = Math.max(1, Math.round(qty))
+    setItems(prev => prev.map((it, i) => i === idx ? { ...it, qty_per_bundle: next } : it))
     setDirty(true)
   }
 
@@ -306,18 +282,14 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
                   <TableCell className="font-semibold text-sm text-foreground">{it.component_name}</TableCell>
                   <TableCell className="text-center text-sm text-muted-foreground">{it.component_unit_name ?? '—'}</TableCell>
                   <TableCell className="text-center">
-                    <Input
-                      variant="elevated"
-                      type="number" step="1" min="0" inputMode="numeric"
-                      value={qtyDrafts[it.component_product_id] ?? String(it.qty_per_bundle)}
-                      onChange={e => updateQty(it.component_product_id, e.target.value)}
-                      onBlur={() => setQtyDrafts(prev => {
-                        const next = { ...prev }
-                        delete next[it.component_product_id]
-                        return next
-                      })}
-                      className="h-9 w-16 mx-auto text-center"
-                    />
+                    <Button
+                      variant="primary-soft"
+                      size="sm"
+                      onClick={() => setQtyModalIdx(i)}
+                      className="h-9 w-16 mx-auto flex items-center justify-center rounded-md text-sm font-semibold"
+                    >
+                      {it.qty_per_bundle}
+                    </Button>
                   </TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(it.component_cost)}</TableCell>
                   <TableCell className="text-right text-sm font-semibold text-foreground">{formatCurrency(lineCost)}</TableCell>
@@ -400,6 +372,19 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
           )
         }}
       />
+
+      {/* Qty stepper — shared QtyDialog (same modal as the POS cart). */}
+      {qtyModalIdx !== null && items[qtyModalIdx] && (
+        <QtyDialog
+          open
+          onClose={() => setQtyModalIdx(null)}
+          itemName={items[qtyModalIdx].component_name}
+          unitName={items[qtyModalIdx].component_unit_name}
+          initialQty={items[qtyModalIdx].qty_per_bundle}
+          presets={[]}
+          onApply={(qty) => applyQty(qtyModalIdx, qty)}
+        />
+      )}
 
       {/* Confirm before removing a component from the bundle — prevents an
           accidental trash-button click from silently dropping a line. */}

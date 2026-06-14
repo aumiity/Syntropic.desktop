@@ -39,10 +39,10 @@ const MIN_CELL_H_MM = 10
 // STICKER_W_MM / STICKER_H_MM — the ideal printed sticker size (the กำลังสวย one).
 //   Changing these changes both the sticker size AND how many fit per sheet.
 // STICKER_FONT_* / STICKER_BARCODE_H_MM — the design authored for that size.
-const STICKER_W_MM = 42
-const STICKER_H_MM = 17
-const STICKER_FONT_NAME_PT = 9
-const STICKER_FONT_META_PT = 9
+const STICKER_W_MM = 40
+const STICKER_H_MM = 15
+const STICKER_FONT_NAME_PT = 8
+const STICKER_FONT_META_PT = 7
 const STICKER_BARCODE_H_MM = 7
 // How much a sticker may shrink (per axis) to squeeze in ONE more per row/column.
 // 0.9 = allow cells down to 90% of the ideal size. Without it, a plain floor()

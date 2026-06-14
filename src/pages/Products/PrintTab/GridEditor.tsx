@@ -1,12 +1,11 @@
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, X, TriangleAlert } from 'lucide-react'
+import { Plus, X, TriangleAlert, ClipboardPaste, RefreshCcw } from 'lucide-react'
 import type { TagCell } from '@/lib/tags/types'
 
 const FALLBACK_MSG: Record<Exclude<TagCell['barcode_source'], 'own'>, string> = {
-  base: 'หน่วยนี้ไม่มีบาร์โค้ดของตัวเอง ใช้บาร์โค้ดหน่วยพื้นฐาน — สแกนแล้วจะได้ราคาหน่วยพื้นฐาน',
-  code: 'สินค้านี้ไม่มีบาร์โค้ด ใช้รหัสสินค้าแทน',
+  none: 'หน่วยนี้ไม่มีบาร์โค้ดของตัวเอง — สติ๊กเกอร์จะพิมพ์เฉพาะชื่อและราคา (ไม่มีบาร์โค้ด)',
 }
 
 // Grid of cells shared by both print modes. cols×rows comes from the resolved
@@ -37,10 +36,10 @@ export function GridEditor({
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Button variant="primary-soft" size="lg" className="h-9" disabled={!firstFilled} onClick={onCopyFirst}>
-          คัดลอกช่องแรกไปทุกช่อง
+          <ClipboardPaste className="size-4" /> วางทั้งหมด
         </Button>
         <Button variant="outline" size="lg" className="h-9" disabled={!hasAny} onClick={onClearAll}>
-          ล้างทั้งหมด
+          <RefreshCcw className="size-4" /> ล้างทั้งหมด
         </Button>
       </div>
 

@@ -619,7 +619,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                 <SectionCard icon={Barcode} title="บาร์โค้ด" tint="info">
                   <CheckRow
                     framed
-                    className="w-full"
+                    className="w-full h-12"
                     checked={!!form.show_barcode}
                     onChange={v => setF('show_barcode', (v ? 1 : 0) as never)}
                     label="แสดงบาร์โค้ดในตัวอย่าง"

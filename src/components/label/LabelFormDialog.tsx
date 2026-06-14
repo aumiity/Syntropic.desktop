@@ -277,9 +277,9 @@ export function LabelFormDialog({
                   ends rounded. เปิดใช้งาน sits on the first row. */}
               <div className="space-y-2">
                 <div className="flex flex-col">
-                  <CheckRow framed disabled={restricted} checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" className="w-full h-10 rounded-b-none" />
-                  <CheckRow framed disabled={restricted} checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" className="w-full h-10 rounded-none -mt-px" />
-                  <CheckRow framed disabled={restricted} checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" className="w-full h-10 rounded-t-none -mt-px" />
+                  <CheckRow framed disabled={restricted} checked={!!labelForm.is_active} onChange={v => setLF('is_active', v ? 1 : 0)} label="เปิดใช้งาน" className="w-full h-12 rounded-b-none" />
+                  <CheckRow framed disabled={restricted} checked={!!labelForm.is_default} onChange={v => setLF('is_default', v ? 1 : 0)} label="ฉลากค่าเริ่มต้น" className="w-full h-12 rounded-none -mt-px" />
+                  <CheckRow framed disabled={restricted} checked={!!labelForm.show_barcode} onChange={v => setLF('show_barcode', v ? 1 : 0)} label="แสดงบาร์โค้ด" className="w-full h-12 rounded-t-none -mt-px" />
                 </div>
                 {/* The barcode encodes products.barcode — warn if the switch is on but
                     the product has no barcode number (the row would silently vanish

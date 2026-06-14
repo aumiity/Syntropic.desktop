@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { DateInput } from '@/components/ui/date-input'
-import { Checkbox, CheckRow } from '@/components/ui/checkbox'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { Bell } from 'lucide-react'
 import type { Customer, DrugAllergy } from '@/types'
@@ -147,7 +147,7 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
 
           {/* Alert section — switch header + message grouped in one elevated card */}
           <div className={`rounded-lg border p-3 shadow-sm transition-colors ${form.is_alert ? 'bg-card border-destructive/40' : 'bg-muted/40 border-border'}`}>
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+            <label className="flex items-center gap-2 h-12 cursor-pointer select-none">
               <Checkbox checked={!!form.is_alert} onCheckedChange={v => setF('is_alert', v ? 1 : 0)} />
               <Bell className={`size-4 ${form.is_alert ? 'text-destructive' : 'text-foreground-subtle'}`} />
               <Label className="cursor-pointer">การแจ้งเตือนลูกค้า</Label>
@@ -175,11 +175,6 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
             </div>
           )}
 
-          {isEdit && (
-            <CheckRow framed variant="destructive" className="w-full"
-              checked={!!form.is_disabled} onChange={v => setF('is_disabled', v ? 1 : 0)}
-              label="พักการใช้งาน" />
-          )}
         </DialogBody>
         <DialogFooter>
           <Button variant="elevated" size="xl" onClick={() => onOpenChange(false)}>ยกเลิก</Button>

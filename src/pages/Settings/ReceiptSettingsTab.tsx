@@ -276,7 +276,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                 <p className="pb-2 text-sm font-semibold text-foreground">ตัวเลือก</p>
                 <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
                   <CheckRow
-                    className="w-full h-11 px-3"
+                    className="w-full h-12 px-3"
                     label="พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน"
                     checked={!!form.auto_print}
                     onChange={v => setF('auto_print', v ? 1 : 0)}

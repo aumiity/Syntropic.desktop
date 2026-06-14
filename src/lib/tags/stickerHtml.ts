@@ -25,28 +25,42 @@ function priceStr(price: number): string {
 }
 
 function cellHtml(cell: TagCell, cfg: BarcodeStickerForm, L: ReturnType<typeof resolveStickerLayout>): string {
+  // STRICT: only the row's own barcode is ever set. No barcode → empty string →
+  // we generate nothing and print name/price only (never fabricate from a code).
+  const svg = cell.barcode ? barcodeSvg(cell.barcode, { displayValue: false, flat: true, stretch: false }) : ''
+  // The barcode renders at its NATURAL aspect (stretch:false), so its real printed
+  // width = barcode-box height × (viewBox width / height), capped at the sticker
+  // width. We size the WHOLE content column to exactly this width and center it, so
+  // the name + digit line line up with the barcode edges instead of spilling past
+  // them. With no barcode there's nothing to align to → use the full sticker width.
+  const vb = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg)
+  const bcWmm = vb ? Math.min(L.refWmm, L.barcodeHeightMm * (parseFloat(vb[1]) / parseFloat(vb[2]))) : L.refWmm
+
   const parts: string[] = []
-  // Top line: product name, bold, left-aligned. Font size is FIXED — a name too
-  // long for the cell is truncated with an ellipsis (clip the characters), never
+  // Top line: product name, bold, centered over the barcode. Font size is FIXED —
+  // a name wider than the barcode is truncated with an ellipsis (clip), never
   // shrunk, so every sticker keeps the same type size.
   if (cfg.show_name) {
     parts.push(
       `<div style="font-size:${L.fontNamePt}pt;font-weight:700;line-height:1;` +
-        `white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cell.name)}</div>`,
+        `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center">${esc(cell.name)}</div>`,
     )
   }
-  parts.push(
-    `<div style="width:100%;height:${L.barcodeHeightMm}mm;margin:0;line-height:0">` +
-      `${barcodeSvg(cell.barcode, { displayValue: false })}</div>`,
-  )
-  // Bottom line: barcode digits and/or "ราคา X บาท", joined by " | ".
-  const meta: string[] = []
-  if (cfg.show_digits) meta.push(esc(cell.barcode))
-  if (cfg.show_price) meta.push(` ${priceStr(cell.price)} บาท`)
-  if (meta.length) {
-    parts.push(`<div style="font-size:${L.fontMetaPt}pt;line-height:1;white-space:nowrap">${meta.join(' | ')}</div>`)
+  if (svg) {
+    parts.push(
+      `<div style="width:100%;height:${L.barcodeHeightMm}mm;margin:0;line-height:0">${svg}</div>`,
+    )
   }
-  return parts.join('')
+  // Bottom line: barcode digits on the LEFT, "ราคา X บาท" pushed to the RIGHT
+  // edge (margin-left:auto), so price is right-aligned even when shown alone.
+  const meta: string[] = []
+  if (cfg.show_digits) meta.push(`<span>${esc(cell.barcode)}</span>`)
+  if (cfg.show_price) meta.push(`<span style="margin-left:auto">${priceStr(cell.price)} บาท</span>`)
+  if (meta.length) {
+    parts.push(`<div style="display:flex;width:100%;font-size:${L.fontMetaPt}pt;line-height:1;white-space:nowrap">${meta.join('')}</div>`)
+  }
+  // Center a column that is exactly the barcode's width within the sticker cell.
+  return `<div style="width:${bcWmm}mm;margin:0 auto;display:flex;flex-direction:column">${parts.join('')}</div>`
 }
 
 export async function buildBarcodeStickerHtml(

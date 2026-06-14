@@ -192,10 +192,10 @@ export function DrugTypesTab() {
                 {FDA_FLAGS.map(({ key, label }) => (
                   <label
                     key={key}
-                    className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer select-none"
+                    className="flex items-center gap-2 px-3 h-12 cursor-pointer select-none"
                   >
-                    <span className="text-sm">{label}</span>
                     <Checkbox checked={!!form[key]} onCheckedChange={v => setF(key, v ? 1 : 0)} />
+                    <span className="text-sm">{label}</span>
                   </label>
                 ))}
               </div>

@@ -162,7 +162,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Expe
           {shopVatEnabled && (
             <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
               <CheckRow
-                className="w-full h-11 px-3"
+                className="w-full h-12 px-3"
                 label="มีใบกำกับภาษีเต็มรูป (ขอคืนภาษีซื้อได้)"
                 checked={!!form.has_tax_invoice}
                 onChange={v => {

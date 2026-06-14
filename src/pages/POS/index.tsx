@@ -31,6 +31,7 @@ import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSett
 import { Checkbox } from '@/components/ui/checkbox'
 import { printSlip, resolveSlipMode } from '@/lib/receipt/print'
 import { SlipPreview } from '@/components/receipt/SlipPreview'
+import { getAppThaiFont } from '@/lib/print/fonts'
 import { Printer, ReceiptText } from 'lucide-react'
 import { redistributeDiscounts } from './redistributeDiscount'
 import { getCartItemAlert, alertColorClass, getProductExpiryLevel } from './cartAlerts'
@@ -1680,7 +1681,8 @@ export default function POSPage() {
                   {/* LEFT COLUMN — live slip preview via the shared SlipPreview
                       (the SAME real-builder render the Settings receipt designer
                       uses, fed by previewSale so it tracks the cart + VAT toggle;
-                      fontFamily overridden to the app font, not the thermal font) */}
+                      fontFamily overridden to the app's live Thai UI font, not
+                      the thermal print font) */}
                   <div className="flex flex-col gap-2 min-h-0 h-full">
                     <div className="flex-1 min-h-0 flex items-start justify-center rounded-xl border border-border bg-muted/30 p-6 overflow-auto scrollbar-thin">
                       {cart.items.length === 0 ? (
@@ -1692,30 +1694,32 @@ export default function POSPage() {
                           sale={previewSale}
                           shop={shopInfo}
                           settings={receiptSettings}
-                          fontFamily="IBM Plex Sans Thai"
+                          fontFamily={getAppThaiFont()}
                         />
                       )}
                     </div>
-                    {/* Per-bill VAT toggle — VAT-registered shops only. Ticked =
-                        VAT backed out of the (inclusive) total and recorded on
-                        the bill; unticked = total_vat 0, bill stays out of the
-                        ภาษีขาย report. Customer pays the same either way. */}
-                    {vatEnabled && (
-                      <label className="shrink-0 flex items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-4 h-12 cursor-pointer select-none">
-                        <Checkbox checked={vatChecked} onCheckedChange={v => setVatChecked(v === true)} />
-                        <ReceiptText className="size-5 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground">ภาษีมูลค่าเพิ่ม (VAT {vatRate}%)</span>
-                        <span className="ml-auto inline-flex items-center rounded-md border border-border bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground">F1</span>
+                    {/* Per-bill VAT toggle + print toggle — grouped in ONE frame
+                        (shared border + row divider). VAT row only for VAT-
+                        registered shops. Ticked VAT = VAT backed out of the
+                        (inclusive) total and recorded on the bill; unticked =
+                        total_vat 0, bill stays out of the ภาษีขาย report. Customer
+                        pays the same either way. */}
+                    <div className="shrink-0 rounded-xl border border-border bg-muted/40 divide-y divide-border overflow-hidden">
+                      {vatEnabled && (
+                        <label className="flex items-center gap-2.5 px-4 h-12 cursor-pointer select-none">
+                          <Checkbox checked={vatChecked} onCheckedChange={v => setVatChecked(v === true)} />
+                          <ReceiptText className="size-5 text-muted-foreground" />
+                          <span className="text-sm font-medium text-foreground">ภาษีมูลค่าเพิ่ม (VAT {vatRate}%)</span>
+                          <span className="ml-auto inline-flex items-center rounded-md border border-border bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground">F1</span>
+                        </label>
+                      )}
+                      <label className="flex items-center gap-2.5 px-4 h-12 cursor-pointer select-none">
+                        <Checkbox checked={printReceiptChecked} onCheckedChange={v => setPrintReceiptChecked(v === true)} />
+                        <Printer className="size-5 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">พิมพ์ใบเสร็จหลังชำระเงิน</span>
+                        <span className="ml-auto inline-flex items-center rounded-md border border-border bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground">F4</span>
                       </label>
-                    )}
-
-                    {/* Print toggle — sits with the receipt it controls */}
-                    <label className="shrink-0 flex items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-4 h-12 cursor-pointer select-none">
-                      <Checkbox checked={printReceiptChecked} onCheckedChange={v => setPrintReceiptChecked(v === true)} />
-                      <Printer className="size-5 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">พิมพ์ใบเสร็จหลังชำระเงิน</span>
-                      <span className="ml-auto inline-flex items-center rounded-md border border-border bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground">F4</span>
-                    </label>
+                    </div>
                   </div>
 
                   {/* RIGHT COLUMN — existing payment controls */}

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { ProductSearchDialog } from './ProductSearchDialog'
-import { useToast } from '@/components/ui/toast'
 import { formatCurrency } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import type { TagCell } from '@/lib/tags/types'
@@ -31,7 +30,6 @@ export function TagProductSearchDialog({
   onClose: () => void
   onPick: (cell: TagCell) => void
 }) {
-  const { toast } = useToast()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
@@ -55,32 +53,28 @@ export function TagProductSearchDialog({
   }, [query, open])
 
   // Base row first (unit=null → product.barcode/price/unit), then non-base
-  // sellable units. The barcode fallback chain: unit.barcode → product.barcode
-  // → product.code, tagging the source so the grid can warn on fallbacks.
+  // sellable units. STRICT barcode: each row carries ONLY its OWN barcode — no
+  // fallback to the base unit or to the product code. A row without its own
+  // barcode prints name/price only (no bars).
   const rows: TagRow[] = results.flatMap((p) => {
-    const baseBarcode = p.barcode || p.code || ''
     const base: TagRow = {
       product_id: p.id,
       name: p.trade_name,
       unit_name: p.unit_name ?? '',
       price: p.price_retail ?? 0,
       code: p.code ?? '',
-      barcode: baseBarcode,
-      barcode_source: p.barcode ? 'own' : 'code',
+      barcode: p.barcode || '',
+      barcode_source: p.barcode ? 'own' : 'none',
     }
-    const units: TagRow[] = (p.units ?? []).map((u: any) => {
-      const resolved = u.barcode || p.barcode || p.code || ''
-      const source: TagCell['barcode_source'] = u.barcode ? 'own' : p.barcode ? 'base' : 'code'
-      return {
-        product_id: p.id,
-        name: p.trade_name,
-        unit_name: u.unit_name,
-        price: u.price_retail ?? 0,
-        code: p.code ?? '',
-        barcode: resolved,
-        barcode_source: source,
-      }
-    })
+    const units: TagRow[] = (p.units ?? []).map((u: any) => ({
+      product_id: p.id,
+      name: p.trade_name,
+      unit_name: u.unit_name,
+      price: u.price_retail ?? 0,
+      code: p.code ?? '',
+      barcode: u.barcode || '',
+      barcode_source: u.barcode ? 'own' : 'none',
+    }))
     return [base, ...units]
   })
 
@@ -99,10 +93,8 @@ export function TagProductSearchDialog({
   })()
 
   const handlePick = (row: TagRow) => {
-    if (!row.barcode) {
-      toast('สินค้านี้ไม่มีทั้งบาร์โค้ดและรหัสสินค้า', 'error')
-      return
-    }
+    // A row with no barcode is still allowed — it just prints name/price with no
+    // bars (we never fabricate a barcode from the product code).
     onPick({
       product_id: row.product_id,
       name: row.name,

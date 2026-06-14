@@ -99,19 +99,19 @@ export function SalesTab({ registerSave, saving, setSaving }: {
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
               <CheckRow
-                className="w-full h-11 px-3"
+                className="w-full h-12 px-3"
                 label="แจ้งเตือนเมื่อสินค้าใกล้หมดอายุ"
                 checked={expiryOn}
                 onChange={v => setF('expiry_alert_enabled', v ? 1 : 0)}
               />
               <CheckRow
-                className="w-full h-11 px-3"
+                className="w-full h-12 px-3"
                 label="แจ้งเตือนสินค้าที่หมดอายุแล้ว"
                 checked={!!form.expired_alert_enabled}
                 onChange={v => setF('expired_alert_enabled', v ? 1 : 0)}
               />
               <CheckRow
-                className="w-full h-11 px-3"
+                className="w-full h-12 px-3"
                 label="แจ้งเตือนเมื่อสต๊อกไม่พอขาย"
                 checked={!!form.low_stock_alert_enabled}
                 onChange={v => setF('low_stock_alert_enabled', v ? 1 : 0)}

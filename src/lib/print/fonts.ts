@@ -45,6 +45,21 @@ export const FONT_REGISTRY: Record<string, FontFile[]> = {
 
 export const FONTS = Object.keys(FONT_REGISTRY)
 
+// Resolve the app's CURRENT Thai UI font (the live `--font-thai` CSS variable,
+// e.g. `'IBM Plex Sans Thai'`) to a bare family name for the print/preview
+// builders — so an on-screen slip preview reads in the program's typeface and
+// follows the font the user picked in the CSS page (not a hardcoded face).
+// Clamped to FONT_REGISTRY: an iframe / print document (separate origin) can
+// only render a face buildPrintFontFaceCss can base64-embed, so a non-bundled
+// pick (e.g. Google Sans) falls back to the house default instead of OS tofu.
+export function getAppThaiFont(): string {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue('--font-thai')
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+  return FONT_REGISTRY[raw] ? raw : 'IBM Plex Sans Thai'
+}
+
 // HTML-escape a string for safe interpolation into print HTML.
 export const esc = (s: string) =>
   String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))

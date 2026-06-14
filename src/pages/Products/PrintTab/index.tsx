@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { CheckRow } from '@/components/ui/checkbox'
 import { SectionCard } from '@/components/ui/card'
 import { ZoomControl } from '@/components/ui/zoom-control'
+import { QtyDialog } from '@/components/ui/qty-dialog'
 import { useToast } from '@/components/ui/toast'
 import { TagProductSearchDialog } from '@/components/dialogs/TagProductSearchDialog'
 import { GridEditor, padCells } from './GridEditor'
@@ -60,10 +60,12 @@ export default function PrintTab() {
   const [searchIdx, setSearchIdx] = useState<number | null>(null)
   const [previewHtml, setPreviewHtml] = useState('')
   const [busy, setBusy] = useState(false)
+  // Copies are chosen in a modal (QtyDialog) that pops up on พิมพ์, not inline.
+  const [copiesOpen, setCopiesOpen] = useState(false)
   // Sticker preview zoom — the label renders at true 1:1 mm (small on screen),
   // so let the user magnify it. Mirrors the drug-label preview (LabelsTab).
   const [zoom, setZoom] = useState(1)
-  const ZOOM_MIN = 1, ZOOM_MAX = 3, ZOOM_STEP = 0.5
+  const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
 
   // Load all settings once on mount.
   useEffect(() => {
@@ -172,12 +174,12 @@ export default function PrintTab() {
 
   const clampCopies = () => Math.min(Math.max(1, Math.round(copies) || 1), maxCopies)
 
-  const handlePrint = async () => {
+  const handlePrint = async (n: number) => {
     if (!canPrint || busy) return
     setBusy(true)
     try {
       if (mode === 'blank') {
-        const html = await buildBlankLabelHtml(label, shop, clampCopies())
+        const html = await buildBlankLabelHtml(label, shop, n)
         const res = await window.api.printer.printLabel({
           html,
           printerName: label.printer_name || '',
@@ -187,7 +189,7 @@ export default function PrintTab() {
         if (res.success) toast('ส่งงานพิมพ์ฉลากเปล่าแล้ว', 'success')
         else toast(res.error || 'พิมพ์ไม่สำเร็จ', 'error')
       } else if (mode === 'sticker') {
-        const html = await buildBarcodeStickerHtml(label, stickerCfg, cells, clampCopies())
+        const html = await buildBarcodeStickerHtml(label, stickerCfg, cells, n)
         const res = await window.api.printer.printLabel({
           html,
           printerName: label.printer_name || '',
@@ -204,7 +206,7 @@ export default function PrintTab() {
           printerName: doc.printer_name || '',
           paperWidthMm: dims.w,
           heightMm: dims.h,
-          copies: clampCopies(),
+          copies: n,
         })
         if (res.success) toast('ส่งงานพิมพ์ป้ายราคาแล้ว', 'success')
         else toast(res.error || 'พิมพ์ไม่สำเร็จ', 'error')
@@ -242,7 +244,8 @@ export default function PrintTab() {
 
   return (
     <div className="flex flex-col h-full min-h-0 gap-3">
-      {/* Top bar: mode toggle (left) + copies/preview/print (right). */}
+      {/* Top bar: mode toggle only — copies/preview/print + zoom now ride the
+          preview card header (same row as ZoomControl), mirroring LabelsTab. */}
       <div className="flex items-center gap-3 h-12 shrink-0">
         <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
           <TabsList variant="line">
@@ -251,26 +254,9 @@ export default function PrintTab() {
             <TabsTrigger value="blank" className="flex-none px-4 py-2"><PenLine /> ฉลากเปล่า</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">จำนวนสำเนา</span>
-          <Input
-            type="number"
-            min={1}
-            max={maxCopies}
-            value={copies}
-            onChange={(e) => setCopies(parseInt(e.target.value, 10) || 1)}
-            className="h-9 w-20"
-          />
-          <Button variant="elevated" size="lg" className="h-9" disabled={!canPrint || busy} onClick={handlePreview}>
-            ดูตัวอย่าง PDF
-          </Button>
-          <Button size="lg" className="h-9" disabled={!canPrint || busy} onClick={handlePrint}>
-            <Printer className="size-4" /> พิมพ์
-          </Button>
-        </div>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3 overflow-y-auto scrollbar-thin">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-3 overflow-y-auto scrollbar-thin">
         {/* Right: settings + grid */}
         <div className="space-y-3 min-w-0 order-2">
           {mode === 'blank' ? (
@@ -317,28 +303,28 @@ export default function PrintTab() {
 
             <div className="space-y-2">
               <div className="text-sm font-medium text-foreground">การแสดงผล</div>
-              <div className="flex flex-wrap gap-2">
-                {mode === 'sticker' ? (
-                  <>
-                    <CheckRow framed label="ชื่อสินค้า" checked={!!stickerCfg.show_name} onChange={(v) => setStickerCfg((c) => ({ ...c, show_name: v ? 1 : 0 }))} />
-                    <CheckRow framed label="ราคา" checked={!!stickerCfg.show_price} onChange={(v) => setStickerCfg((c) => ({ ...c, show_price: v ? 1 : 0 }))} />
-                    <CheckRow framed label="ตัวเลขบาร์โค้ด" checked={!!stickerCfg.show_digits} onChange={(v) => setStickerCfg((c) => ({ ...c, show_digits: v ? 1 : 0 }))} />
-                  </>
-                ) : (
-                  <>
-                    <CheckRow framed label="ชื่อสินค้า" checked={!!priceCfg.show_name} onChange={(v) => setPriceCfg((c) => ({ ...c, show_name: v ? 1 : 0 }))} />
-                    <CheckRow framed label="ราคา" checked={!!priceCfg.show_price} onChange={(v) => setPriceCfg((c) => ({ ...c, show_price: v ? 1 : 0 }))} />
-                    <CheckRow framed label="บาร์โค้ด" checked={!!priceCfg.show_barcode} onChange={(v) => setPriceCfg((c) => ({ ...c, show_barcode: v ? 1 : 0 }))} />
-                    <CheckRow framed label="รหัส" checked={!!priceCfg.show_code} onChange={(v) => setPriceCfg((c) => ({ ...c, show_code: v ? 1 : 0 }))} />
-                    <CheckRow framed label="หน่วย" checked={!!priceCfg.show_unit} onChange={(v) => setPriceCfg((c) => ({ ...c, show_unit: v ? 1 : 0 }))} />
-                    <CheckRow framed label="เส้นตัด" checked={!!priceCfg.show_cut_lines} onChange={(v) => setPriceCfg((c) => ({ ...c, show_cut_lines: v ? 1 : 0 }))} />
-                  </>
-                )}
-              </div>
+              {mode === 'sticker' ? (
+                // Sticker has few toggles → group all 3 inside ONE frame
+                // (shared border + row dividers), one per line.
+                <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
+                  <CheckRow className="h-12 px-3" label="ชื่อสินค้า" checked={!!stickerCfg.show_name} onChange={(v) => setStickerCfg((c) => ({ ...c, show_name: v ? 1 : 0 }))} />
+                  <CheckRow className="h-12 px-3" label="ตัวเลขบาร์โค้ด" checked={!!stickerCfg.show_digits} onChange={(v) => setStickerCfg((c) => ({ ...c, show_digits: v ? 1 : 0 }))} />
+                  <CheckRow className="h-12 px-3" label="ราคา" checked={!!stickerCfg.show_price} onChange={(v) => setStickerCfg((c) => ({ ...c, show_price: v ? 1 : 0 }))} />
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <CheckRow framed className="h-12" label="ชื่อสินค้า" checked={!!priceCfg.show_name} onChange={(v) => setPriceCfg((c) => ({ ...c, show_name: v ? 1 : 0 }))} />
+                  <CheckRow framed className="h-12" label="ราคา" checked={!!priceCfg.show_price} onChange={(v) => setPriceCfg((c) => ({ ...c, show_price: v ? 1 : 0 }))} />
+                  <CheckRow framed className="h-12" label="บาร์โค้ด" checked={!!priceCfg.show_barcode} onChange={(v) => setPriceCfg((c) => ({ ...c, show_barcode: v ? 1 : 0 }))} />
+                  <CheckRow framed className="h-12" label="รหัส" checked={!!priceCfg.show_code} onChange={(v) => setPriceCfg((c) => ({ ...c, show_code: v ? 1 : 0 }))} />
+                  <CheckRow framed className="h-12" label="หน่วย" checked={!!priceCfg.show_unit} onChange={(v) => setPriceCfg((c) => ({ ...c, show_unit: v ? 1 : 0 }))} />
+                  <CheckRow framed className="h-12" label="เส้นตัด" checked={!!priceCfg.show_cut_lines} onChange={(v) => setPriceCfg((c) => ({ ...c, show_cut_lines: v ? 1 : 0 }))} />
+                </div>
+              )}
             </div>
           </SectionCard>
 
-          <SectionCard title="สินค้าในแผ่น" icon={Printer} tint="info-soft">
+          <SectionCard title="รายการสินค้า" icon={Printer} tint="info-soft">
             <GridEditor
               cols={layout.cols}
               rows={layout.rows}
@@ -361,25 +347,39 @@ export default function PrintTab() {
             tint="accent-soft"
             fill
             className="h-full"
-            right={mode !== 'pricetag'
-              ? <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
-              : undefined}
+            right={
+              <div className="flex items-center gap-2">
+                {mode !== 'pricetag' && (
+                  <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
+                )}
+                <Button variant="elevated" size="lg" className="h-9" disabled={!canPrint || busy} onClick={handlePreview}>
+                  ดูตัวอย่าง PDF
+                </Button>
+                <Button size="lg" className="h-9" disabled={!canPrint || busy} onClick={() => setCopiesOpen(true)}>
+                  <Printer className="size-4" /> พิมพ์
+                </Button>
+              </div>
+            }
           >
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>
-                เครื่องพิมพ์: <span className={printerMissing ? 'text-warning-strong font-medium' : 'text-foreground'}>{printerLabel}</span>
-              </span>
-              <span>กระดาษ: <span className="text-foreground">{paperLabel}</span></span>
-            </div>
             {mode !== 'pricetag' ? (
               // Full-label preview: the iframe is sized to the real label paper
-              // (width_mm × height_mm) with a paper shadow + zoom, mirroring the
-              // drug-label preview (LabelPaper). CSS `zoom` scales the layout box
-              // so overflow-auto scrolls to the edges; mx-auto centers while it
-              // fits. The builder's page is already true mm, so this is
-              // preview = print 1:1. Shared by sticker + blank-label modes.
+              // (width_mm × height_mm) with a paper shadow, mirroring the
+              // drug-label preview (LabelPaper). UNLIKE that preview (inline DOM),
+              // this is an isolated <iframe>, so CSS `zoom` on a wrapper would
+              // enlarge the iframe box WITHOUT magnifying its inner mm-laid-out
+              // document in lockstep — paper frame grows but contents stay ~physical
+              // size, breaking WYSIWYG. So we scale the iframe itself with
+              // `transform: scale()` (rasterises the whole element + its content
+              // together) and size the wrapper to the scaled box so overflow-auto
+              // still scrolls to the edges; mx-auto centers while it fits.
               <div className="flex-1 min-h-0 overflow-auto rounded-lg border border-border bg-muted/30 p-6">
-                <div className="w-fit mx-auto" style={{ zoom }}>
+                <div
+                  className="mx-auto"
+                  style={{
+                    width: `calc(${label.width_mm}mm * ${zoom})`,
+                    height: `calc(${label.height_mm}mm * ${zoom})`,
+                  }}
+                >
                   <iframe
                     title={mode === 'blank' ? 'ตัวอย่างฉลากเปล่า' : 'ตัวอย่างฉลากสติ๊กเกอร์'}
                     srcDoc={previewHtml}
@@ -388,6 +388,8 @@ export default function PrintTab() {
                     style={{
                       width: `${label.width_mm}mm`,
                       height: `${label.height_mm}mm`,
+                      transform: `scale(${zoom})`,
+                      transformOrigin: 'top left',
                       boxShadow: '0 4px 5px rgb(0 0 0 / 0.20), 0 12px 14px rgb(0 0 0 / 0.16)',
                     }}
                   />
@@ -402,6 +404,12 @@ export default function PrintTab() {
                 />
               </div>
             )}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span>
+                เครื่องพิมพ์: <span className={printerMissing ? 'text-warning-strong font-medium' : 'text-foreground'}>{printerLabel}</span>
+              </span>
+              <span>กระดาษ: <span className="text-foreground">{paperLabel}</span></span>
+            </div>
           </SectionCard>
         </div>
       </div>
@@ -410,6 +418,24 @@ export default function PrintTab() {
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
         onPick={assignCell}
+      />
+
+      {/* Copies modal — pops up on พิมพ์, then prints the chosen count. Reuses
+          the shared POS QtyDialog (center field + flanking +/- + ตกลง/ยกเลิก);
+          no price/stock props so its summary strip stays hidden. */}
+      <QtyDialog
+        open={copiesOpen}
+        onClose={() => setCopiesOpen(false)}
+        itemName={mode === 'sticker' ? 'สติ๊กเกอร์บาร์โค้ด' : mode === 'pricetag' ? 'ป้ายราคา A4' : 'ฉลากเปล่า'}
+        unitName="สำเนา"
+        initialQty={copies}
+        presets={[]}
+        applyLabel="พิมพ์"
+        onApply={(qty) => {
+          const n = Math.min(maxCopies, Math.max(1, Math.round(qty)))
+          setCopies(n)
+          handlePrint(n)
+        }}
       />
     </div>
   )

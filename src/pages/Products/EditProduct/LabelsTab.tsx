@@ -276,7 +276,7 @@ export function LabelsTab({
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(l.id) } }}
                     className={cn(
                       'flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors',
-                      isSel ? 'border-primary ring-2 ring-primary/30 bg-primary-soft/40' : 'border-border hover:bg-primary-soft/30',
+                      isSel ? 'border-2 border-primary bg-primary-soft/40' : 'border-border hover:bg-primary-soft/30',
                       !l.is_active && 'opacity-60',
                     )}
                   >

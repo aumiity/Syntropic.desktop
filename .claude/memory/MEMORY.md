@@ -58,3 +58,4 @@ One line per memory. Detail lives in the linked file (read on demand).
 - [Popover/Combobox scroll in Dialog](feedback_popover_scroll_in_dialog.md) — portaled list scroll ไม่ได้ (react-remove-scroll); fix = `stopPropagation()` บน wheel/touch (combobox.tsx)
 - [TabStrip row = h-10](feedback_tabstrip_height_h10.md) — **2026-06-11** — TabStrip (แท็บ+ปุ่ม ใต้ PageHeader) = 40px → ปุ่มคู่ = h-10 ไม่ใช่ h-9
 - [Switch vs Checkbox](feedback_switch_vs_checkbox.md) — **2026-06-14** — Switch=มีผลทันที / Checkbox=ต้องกดบันทึก; primitive ใหม่ `CheckRow` (checkbox ซ้าย/label ขวา); SSOT `docs/plans/Switch_To_Checkbox_Audit.html`
+- [Checkbox row conventions](checkbox-row-conventions.md) — **2026-06-15** — `Checkbox variant="destructive"` (เช็คแดง); label-only checkbox row = h-12; checkbox-ซ้าย/label-ขวา; ฟอร์มจำนวนใช้ปุ่ม+`QtyDialog` ไม่ใช่ Input
