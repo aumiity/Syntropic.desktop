@@ -28,7 +28,7 @@ const Input = React.forwardRef<
         "placeholder:text-foreground-subtle",
         "focus:ring-[1px] focus:ring-ring focus:border-ring",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        "aria-invalid:border-destructive aria-invalid:ring-[2px] aria-invalid:ring-destructive/40",
+        "aria-invalid:ring-destructive/50 aria-invalid:ring-[1px] aria-invalid:border-destructive/50",
         variant === "filled" ? "bg-input" : "bg-card border border-border shadow-sm",
         className
       )}

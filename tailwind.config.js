@@ -8,6 +8,11 @@ export default {
   ],
   theme: {
     extend: {
+      // `aria-invalid` ไม่ใช่ default aria variant ของ Tailwind v3 — ต้อง register เอง
+      // ไม่งั้นคลาส `aria-invalid:*` (เช่นกรอบแดงใน input.tsx) จะไม่ถูก generate เป็น CSS เลย.
+      aria: {
+        invalid: 'invalid="true"',
+      },
       colors: {
         border: 'hsl(var(--border))',
         'border-strong': 'hsl(var(--border-strong))',

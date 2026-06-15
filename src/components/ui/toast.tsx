@@ -40,20 +40,24 @@ function variantToType(v: ToastVariant | undefined): ToastType {
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const toast = useCallback((input: ToastInput, type: ToastType = 'success', duration = 3000) => {
+  const toast = useCallback((input: ToastInput, type: ToastType = 'success', duration?: number) => {
     const id = Math.random().toString(36).slice(2)
+    const resolvedType: ToastType = typeof input === 'string' ? type : variantToType(input.variant)
+    // เวลาแสดงเริ่มต้น: error/warning ต้องอ่านให้ทัน (มักยาว) → 6 วิ, ที่เหลือ 4 วิ.
+    // caller ที่ส่ง duration มาเอง override ได้ตามเดิม.
+    const ms = duration ?? (resolvedType === 'error' || resolvedType === 'warning' ? 6000 : 4000)
     const next: Toast =
       typeof input === 'string'
-        ? { id, title: input, type, duration }
+        ? { id, title: input, type: resolvedType, duration: ms }
         : {
             id,
             title: input.title,
             description: input.description,
-            type: variantToType(input.variant),
-            duration,
+            type: resolvedType,
+            duration: ms,
           }
     setToasts(prev => [...prev, next])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== next.id)), duration)
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== next.id)), ms)
   }, [])
 
   return (

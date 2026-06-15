@@ -308,8 +308,12 @@ export default function ManagePurchasesPage() {
     if (!actionInvoice) return
     if (!editSupplierId) { toast('กรุณาเลือกผู้จัดจำหน่าย', 'error'); return }
     if (!editSupplierInvoiceNo.trim()) { toast('กรุณาระบุเลขที่ใบกำกับสินค้า', 'error'); return }
-    if (!editReceiveDate) { toast('กรุณาระบุวันที่รับสินค้า', 'error'); return }
-    if (editPaymentType === 'credit' && !editDueDate) { toast('กรุณาระบุวันครบกำหนดชำระ', 'error'); return }
+    // ข้อความรวม (ว่าง/รูปแบบผิด) = "รูปแบบวันที่ไม่ถูกต้อง"; กรอบแดงบนช่องชี้เองว่าช่องไหน.
+    if (!editOrderDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
+    if (!editReceiveDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
+    if (editPaymentType === 'credit' && !editDueDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
+    // วันที่ชำระ required เฉพาะเมื่อติ๊ก "ชำระแล้ว"; ยังไม่จ่ายก็ไม่ต้องมีวัน.
+    if (editIsPaid && !editPaidDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
     setEditSaving(true)
     try {
       const res = await window.api.purchase.updateHeader({

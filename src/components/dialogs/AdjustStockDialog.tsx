@@ -238,10 +238,13 @@ export function AdjustStockDialog({
         payload.target_lot_id = matchedLot.id
         payload.added_cost_price = cost
       } else {
+        // ล็อตใหม่ต้องมีวันหมดอายุ. เลขมั่ว/พิมพ์ตกตัว DateInput จะคืน '' (ดู date-input.tsx)
+        // → ดักที่นี่ ไม่งั้นจะสร้างล็อตแบบไม่มี exp เงียบ ๆ (กระทบ FEFO).
+        if (!newLotExpiry) { toast({ title: 'รูปแบบวันที่ไม่ถูกต้อง', variant: 'error' }); return }
         payload.mode = 'increase_new_lot'
         const ln = lotQuery.trim()
         if (ln) payload.lot_number = ln
-        payload.expiry_date = newLotExpiry || null
+        payload.expiry_date = newLotExpiry
         payload.cost_price = cost
       }
     }
@@ -473,7 +476,7 @@ export function AdjustStockDialog({
                             <TableCell className="text-right">{l.qty_on_hand.toLocaleString()}</TableCell>
                             <TableCell>
                               {depleted
-                                ? <Badge variant="destructive">หมด</Badge>
+                                ? <Badge variant="destructive-outline">หมด</Badge>
                                 : <Badge variant="success-outline">ใช้งาน</Badge>}
                             </TableCell>
                           </TableRow>
@@ -504,7 +507,7 @@ export function AdjustStockDialog({
                   key={r}
                   type="button"
                   size="lg"
-                  variant={adjustNote === r ? 'info-soft' : 'elevated'}
+                  variant={adjustNote === r ? 'accent-outline' : 'elevated'}
                   onClick={() => setAdjustNote(r)}
                 >
                   {r}

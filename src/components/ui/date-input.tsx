@@ -57,9 +57,11 @@ interface DateInputProps extends Omit<InputProps, 'value' | 'onChange' | 'type'>
 }
 
 export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, onChange, placeholder = '', className, variant = 'default', ...props }, ref) => {
+  ({ value, onChange, onBlur, onFocus, placeholder = '', className, variant = 'default', ...props }, ref) => {
     const [text, setText] = React.useState(() => isoToDisplay(value))
     const [open, setOpen] = React.useState(false)
+    // กำลัง focus ช่องนี้อยู่ไหม — ใช้คุมจังหวะโชว์ขอบแดง (ดู `invalid` ด้านล่าง)
+    const [focused, setFocused] = React.useState(false)
 
     React.useEffect(() => {
       const expected = isoToDisplay(value)
@@ -69,8 +71,13 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
     }, [value])
 
     const selectedDate = isoToDate(value)
-    // พิมพ์ครบ 10 ตัว (dd/mm/yyyy) แล้วแต่ไม่ใช่วันที่จริง → โชว์ขอบแดงเตือน
-    const invalid = text.length === 10 && !displayToIso(text)
+    // "มีข้อความค้างอยู่ แต่ไม่ใช่วันที่สมบูรณ์" — ใช้ทั้งโชว์ขอบแดงและรายงานให้ parent
+    const rawInvalid = text.length > 0 && !displayToIso(text)
+    // โชว์ขอบแดงเมื่อ: ไม่ valid && (ไม่ได้ focus อยู่ ‖ พิมพ์ครบ 10 ตัว).
+    //  - ออกจากช่องแล้วยังพิมพ์ไม่ครบ/ผิด → แดง (กันเคสพิมพ์ตกไป 1 ตัวแล้ว exp หายเงียบ)
+    //  - พิมพ์ครบ 10 ตัวแต่ไม่ใช่วันจริง (99/99/9999) → แดงทันทีแม้ยัง focus
+    // ระหว่างพิมพ์ที่ยัง focus + ยังไม่ครบ 10 → ไม่แดง เพื่อไม่ให้กระพริบรบกวน
+    const invalid = rawInvalid && (!focused || text.length === 10)
 
     return (
       <div className={cn("relative h-9", className)}>
@@ -83,12 +90,18 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
           value={text}
           aria-invalid={invalid || undefined}
           className="h-full w-full pr-9"
+          onFocus={e => { setFocused(true); onFocus?.(e) }}
+          onBlur={e => { setFocused(false); onBlur?.(e) }}
           onChange={e => {
             const formatted = autoFormat(e.target.value)
             setText(formatted)
             const iso = displayToIso(formatted)
-            if (iso) onChange(iso)
-            else if (formatted === '') onChange('')
+            // วันที่ valid → commit ISO. อย่างอื่นทั้งหมด (พิมพ์ค้าง, หรือครบ 10 ตัว
+            // แต่ไม่ใช่วันจริงเช่น 99/99/9999, หรือว่าง) → commit '' เสมอ เพื่อให้
+            // parent ที่เช็ค required (`!value`) ดักได้ทันที. เดิม commit '' เฉพาะตอน
+            // ว่าง ทำให้เลขมั่วทิ้ง parent ไว้ที่ค่าเดิม (default/ค่าเก่าที่ valid) แล้ว
+            // "ผ่าน" submit แบบเงียบ ๆ. ตัวอักษรที่พิมพ์ + ขอบแดงยังคงโชว์ตามเดิม.
+            onChange(iso || '')
           }}
           {...props}
         />

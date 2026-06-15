@@ -534,7 +534,14 @@ export default function PurchasePage() {
     if (!supplierId) { toast('กรุณาเลือกผู้จัดจำหน่าย', 'error'); return }
     if (!supplierInvoiceNo.trim()) { toast('กรุณาระบุเลขที่ใบกำกับสินค้า', 'error'); return }
     if (validRows.length === 0) { toast('กรุณาเพิ่มรายการสินค้าให้ครบถ้วน', 'error'); return }
-    if (paymentType === 'credit' && !dueDate) { toast('กรุณาระบุวันครบกำหนดชำระ', 'error'); return }
+    // วันที่ของบิลเป็น required. ถ้าเลขมั่ว/พิมพ์ตกตัว DateInput จะคืน '' (ดู date-input.tsx)
+    // → ดักที่นี่ ไม่งั้นจะส่งวันที่ว่างไป backend แบบเงียบ ๆ. ข้อความรวม (ว่าง/รูปแบบผิด)
+    // ใช้ "รูปแบบวันที่ไม่ถูกต้อง" — กรอบแดงบนช่องจะชี้เองว่าช่องไหน.
+    if (!orderDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
+    if (!receiveDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
+    if (paymentType === 'credit' && !dueDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
+    // วันที่ชำระ required เฉพาะเมื่อติ๊ก "ชำระแล้ว"; ยังไม่จ่ายก็ไม่ต้องมีวัน.
+    if (isPaid && !paidDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
     setSaving(true)
     try {
       const saveResult = await window.api.purchase.save({

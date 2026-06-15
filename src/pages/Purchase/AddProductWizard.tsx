@@ -9,6 +9,7 @@ import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
+import type { ProductLot } from '@/types'
 import {
   Check, ChevronLeft, ChevronRight, Plus, RotateCcw,
   AlertTriangle, ShoppingBag, CalendarClock, Coins, Tag, Info, Lock, ClipboardCheck, ClockAlert,
@@ -171,10 +172,16 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)   // step-1 page field
   const modalSearchRef = useRef<HTMLInputElement>(null)   // ProductSearchDialog input
+  const confirmBtnRef = useRef<HTMLButtonElement>(null)   // footer confirm (focused on the last step)
+  const nextBtnRef = useRef<HTMLButtonElement>(null)      // footer next (focused after a product is picked on step 1)
 
   // optional fields revealed on demand
-  const [showMfg, setShowMfg] = useState(false)
   const [showDiscount, setShowDiscount] = useState(false)
+
+  // existing open lots for the chosen product — FEFO reference shown in step 2
+  // so staff can sanity-check the new lot against what's already on the shelf.
+  const [existingLots, setExistingLots] = useState<ProductLot[]>([])
+  const [lotsLoading, setLotsLoading] = useState(false)
 
   // drafts ราคาต่อหน่วย: key = SellUnitPrice.key ('base' | product_unit_id) → 3 ราคา (string)
   const [priceDrafts, setPriceDrafts] = useState<Record<string, { retail: string; ws1: string; ws2: string }>>({})
@@ -194,7 +201,6 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     setSuggestions([])
     setSearchOpen(false)
     setSearching(false)
-    setShowMfg(!!editing?.manufactured_date)
     setShowDiscount(!!editing && parseFloat(editing.discount) > 0)
     setStep(0)
     setPriceUnlocked(false)
@@ -218,6 +224,31 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
       return d
     })
   }, [row.sell_units])
+
+  // load existing lots for the FEFO reference table whenever the product changes
+  useEffect(() => {
+    if (!open) return
+    const pid = row.product_id
+    if (!pid) { setExistingLots([]); return }
+    let cancelled = false
+    setLotsLoading(true)
+    window.api.products.getLots(pid)
+      .then((rows: ProductLot[]) => { if (!cancelled) setExistingLots(rows) })
+      .catch(() => { if (!cancelled) setExistingLots([]) })
+      .finally(() => { if (!cancelled) setLotsLoading(false) })
+    return () => { cancelled = true }
+  }, [open, row.product_id])
+
+  // last step has no fields → drop focus on the confirm button so the Enter
+  // chain finishes the job (review, then one more Enter confirms — no mouse).
+  useEffect(() => {
+    if (open && step === LAST) confirmBtnRef.current?.focus()
+  }, [open, step])
+
+  // open lots only (qty > 0, not closed/cancelled), nearest expiry first = FEFO order
+  const openLots = existingLots
+    .filter(l => l.is_closed === 0 && l.is_cancelled === 0 && (l.qty_on_hand ?? 0) > 0)
+    .sort((a, b) => (a.expiry_date || '9999-99').localeCompare(b.expiry_date || '9999-99'))
 
   // total = qty * cost − discount; editing any field auto-fills dependents (mirrors GR table math)
   const lineMath = (field: 'qty' | 'cost_price' | 'discount' | 'total', value: string) => {
@@ -341,6 +372,9 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     setQuery(p.trade_name)
     setSuggestions([])
     setSearchOpen(false)
+    // modal closes → focus would fall to <body>; park it on "ถัดไป" so Enter
+    // advances straight to step 2 (chips stay reachable by Tab/click for a unit swap).
+    setTimeout(() => nextBtnRef.current?.focus(), 50)
   }
 
   // Flatten results → one row per (product, unit): base first, then each variant.
@@ -476,12 +510,27 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     }
   }
 
+  // Enter walks to the next text field in the current step; on the last field
+  // it advances the step. Lets staff type → Enter → type → Enter straight down
+  // a step without reaching for Tab. Each step's first field has autoFocus, so
+  // advancing also drops focus onto the next step's first field.
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== 'Enter') return
     // Enter inside the search box is handled there (select suggestion)
     const target = e.target as HTMLElement
     if (target.dataset?.role === 'search') return
     e.preventDefault()
+    const pane = e.currentTarget as HTMLElement
+    const fields = Array.from(
+      pane.querySelectorAll<HTMLInputElement>('input:not([type="hidden"]):not([disabled]):not([readonly]):not([tabindex="-1"])'),
+    ).filter(el => el.offsetParent !== null)
+    const idx = fields.indexOf(target as HTMLInputElement)
+    if (idx >= 0 && idx < fields.length - 1) {
+      const next = fields[idx + 1]
+      next.focus()
+      next.select?.()
+      return
+    }
     goNext()
   }
 
@@ -556,7 +605,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       onFocus={() => { if (query.trim()) setSearchOpen(true) }}
                       placeholder="พิมพ์ชื่อ รหัส หรือยิงบาร์โค้ด เพื่อค้นหาสินค้า…"
                       wrapperClassName="w-full"
-                      className="h-10 text-base"
+                      className="h-9 text-base"
                       autoComplete="off"
                     />
                     <p className="text-sm text-foreground-subtle mt-3">พิมพ์ชื่อ รหัส หรือยิงบาร์โค้ด ระบบจะเปิดหน้าต่างค้นหาให้เลือกสินค้า แล้วจึงเลือกหน่วยที่รับเข้า</p>
@@ -611,36 +660,68 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
               </div>
             )}
 
-            {/* STEP 2 — lot & expiry */}
+            {/* STEP 2 — lot, mfg, expiry + existing-lot FEFO reference */}
             {step === 1 && (
               <div>
                 <h3 className="text-lg font-bold mb-4">Lot &amp; วันหมดอายุ</h3>
-                <div className="grid grid-cols-2 gap-4">
+
+                {/* lot / mfg / expiry — all shown, no progressive reveal */}
+                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Lot No. <span className="text-destructive">*</span></label>
-                    <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} maxLength={30} placeholder="เช่น A2401" className="h-10" />
+                    <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} maxLength={30} placeholder="เช่น A2401" className="h-9" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันผลิต</label>
+                    <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} className="h-9" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันหมดอายุ <span className="text-destructive">*</span></label>
-                    <DateInput value={row.expiry_date} onChange={v => patch({ expiry_date: v })} className="h-10" />
-                    {expMonths !== null && (
-                      <div className={`mt-2 flex items-center gap-2 text-sm ${expMonths <= 0 ? 'text-destructive' : expMonths <= 6 ? 'text-warning-strong' : 'text-foreground-subtle'}`}>
-                        <AlertTriangle className="size-4 shrink-0" />
-                        {expMonths <= 0
-                          ? 'สินค้าหมดอายุแล้ว — โปรดตรวจสอบวันที่อีกครั้ง'
-                          : `เหลืออายุ ${expMonths} เดือน`}
-                      </div>
-                    )}
+                    <DateInput value={row.expiry_date} onChange={v => patch({ expiry_date: v })} className="h-9" />
                   </div>
                 </div>
-                {!showMfg ? (
-                  <Button type="button" variant="link" onClick={() => setShowMfg(true)} className="mt-3 h-auto p-0 text-sm font-semibold text-primary">+ ระบุวันผลิต (ไม่บังคับ)</Button>
-                ) : (
-                  <div className="mt-4 max-w-[calc(50%-0.5rem)]">
-                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันผลิต</label>
-                    <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} className="h-10" />
+                {expMonths !== null && (
+                  <div className={`mt-2.5 flex items-center gap-2 text-sm ${expMonths <= 0 ? 'text-destructive' : expMonths <= 6 ? 'text-warning-strong' : 'text-foreground-subtle'}`}>
+                    <AlertTriangle className="size-4 shrink-0" />
+                    {expMonths <= 0
+                      ? 'สินค้าหมดอายุแล้ว — โปรดตรวจสอบวันที่อีกครั้ง'
+                      : `เหลืออายุ ${expMonths} เดือน`}
                   </div>
                 )}
+
+                {/* existing lots in stock — FEFO sanity-check reference */}
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-semibold text-muted-foreground">ล็อตเดิมในสต็อก</h4>
+                    {openLots.length > 0 && <span className="text-xs text-foreground-subtle">เรียงตามวันหมดอายุ (FEFO)</span>}
+                  </div>
+                  {lotsLoading ? (
+                    <div className="rounded-card border border-border px-4 py-6 text-center text-sm text-foreground-subtle">กำลังโหลดล็อต…</div>
+                  ) : openLots.length === 0 ? (
+                    <div className="rounded-card border border-dashed border-border px-4 py-6 text-center text-sm text-foreground-subtle">
+                      ยังไม่มีล็อตคงเหลือของสินค้านี้ — นี่คือล็อตแรก
+                    </div>
+                  ) : (
+                    <div className="rounded-card border border-border overflow-hidden">
+                      <div className="grid grid-cols-[1.3fr_1fr_0.9fr] gap-px bg-border text-sm">
+                        <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground">Lot No.</div>
+                        <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground">วันหมดอายุ</div>
+                        <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground text-right">คงเหลือ</div>
+                        {openLots.map(lot => {
+                          const m = monthsToExpiry(lot.expiry_date ?? '')
+                          const expCls = m === null ? 'text-foreground-subtle' : m <= 0 ? 'text-destructive font-semibold' : m <= 6 ? 'text-warning-strong font-medium' : 'text-foreground'
+                          return (
+                            <React.Fragment key={lot.id}>
+                              <div className="bg-card px-3 py-2 font-medium truncate">{lot.lot_number}</div>
+                              <div className={`bg-card px-3 py-2 ${expCls}`}>{lot.expiry_date ? formatDate(lot.expiry_date) : '—'}</div>
+                              <div className="bg-card px-3 py-2 text-right font-medium">{lot.qty_on_hand} {row.units[0]?.unit_name ?? ''}</div>
+                            </React.Fragment>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -655,7 +736,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       autoFocus type="text" inputMode="decimal"
                       value={row.qty}
                       onChange={e => lineMath('qty', stripCommas(e.target.value))}
-                      placeholder="0" className="h-12 text-xl font-bold text-center"
+                      placeholder="0" className="h-9 text-base font-bold text-center"
                     />
                   </div>
                   <div>
@@ -665,7 +746,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       value={row.cost_price}
                       onChange={e => lineMath('cost_price', stripCommas(e.target.value))}
                       onBlur={() => { const n = parseFloat(row.cost_price); if (isFinite(n)) lineMath('cost_price', n.toFixed(2)) }}
-                      placeholder="0.00" className="h-12 text-xl font-bold text-center"
+                      placeholder="0.00" className="h-9 text-base font-bold text-center"
                     />
                   </div>
                   <div>
@@ -675,7 +756,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       value={row.total}
                       onChange={e => lineMath('total', stripCommas(e.target.value))}
                       onBlur={() => { const n = parseFloat(row.total); if (isFinite(n)) lineMath('total', n.toFixed(2)) }}
-                      placeholder="0.00" className="h-12 text-xl font-bold text-center"
+                      placeholder="0.00" className="h-9 text-base font-bold text-center"
                     />
                   </div>
                 </div>
@@ -689,7 +770,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       value={row.discount}
                       onChange={e => lineMath('discount', stripCommas(e.target.value))}
                       onBlur={() => { const n = parseFloat(row.discount); if (isFinite(n)) lineMath('discount', n.toFixed(2)) }}
-                      placeholder="0.00" className="h-10 text-right"
+                      placeholder="0.00" className="h-9 text-right"
                     />
                   </div>
                 )}
@@ -745,7 +826,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                     <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground text-right">ราคาปลีก</div>
                     <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground text-right">ราคาส่ง 1</div>
                     <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground text-right">ราคาส่ง 2</div>
-                    {(row.sell_units ?? []).map(u => {
+                    {(row.sell_units ?? []).map((u, ui) => {
                       const d = priceDrafts[u.key] ?? { retail: '', ws1: '', ws2: '' }
                       const setD = (field: 'retail' | 'ws1' | 'ws2', v: string) =>
                         setPriceDrafts(prev => ({ ...prev, [u.key]: { ...(prev[u.key] ?? { retail: '', ws1: '', ws2: '' }), [field]: v } }))
@@ -756,7 +837,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                             {u.qty_per_base > 1 && <span className="text-xs text-foreground-subtle">×{u.qty_per_base}</span>}
                           </div>
                           <div className="bg-card px-2 py-1.5">
-                            <PriceInput value={d.retail} onChange={v => setD('retail', v)} readOnly={!canEditPrice} onFocus={e => e.currentTarget.select()} className={`h-9 text-right ${!canEditPrice ? 'opacity-70 cursor-not-allowed' : ''}`} />
+                            <PriceInput autoFocus={ui === 0 && canEditPrice} value={d.retail} onChange={v => setD('retail', v)} readOnly={!canEditPrice} onFocus={e => e.currentTarget.select()} className={`h-9 text-right ${!canEditPrice ? 'opacity-70 cursor-not-allowed' : ''}`} />
                           </div>
                           <div className="bg-card px-2 py-1.5">
                             <PriceInput value={d.ws1} onChange={v => setD('ws1', v)} readOnly={!canEditPrice} onFocus={e => e.currentTarget.select()} className={`h-9 text-right ${!canEditPrice ? 'opacity-70 cursor-not-allowed' : ''}`} />
@@ -818,11 +899,11 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
             <ChevronLeft className="size-4" /> ย้อนกลับ
           </Button>
           {step === LAST ? (
-            <Button type="button" variant="success" size="lg" onClick={confirm} className="gap-1.5">
+            <Button ref={confirmBtnRef} type="button" variant="success" size="lg" onClick={confirm} className="gap-1.5">
               <Check className="size-4" /> {editing ? 'บันทึกการแก้ไข' : 'ยืนยันเพิ่มลงรายการ'}
             </Button>
           ) : (
-            <Button type="button" size="lg" onClick={goNext} disabled={!canNext} className="gap-1.5">
+            <Button ref={nextBtnRef} type="button" size="lg" onClick={goNext} disabled={!canNext} className="gap-1.5">
               ถัดไป <ChevronRight className="size-4" />
             </Button>
           )}
