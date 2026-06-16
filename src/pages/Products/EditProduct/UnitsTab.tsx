@@ -6,9 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { SettingRow } from '@/components/ui/setting-row'
 import { FormField } from '@/components/ui/label'
-import {
-  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
-} from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
@@ -231,7 +229,7 @@ export function UnitsTab({
 
       {/* ======================== UNIT DIALOG ======================== */}
       <Dialog open={unitDialog} onOpenChange={setUnitDialog}>
-        <DialogContent size="md" divided className="max-h-[70vh] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="2xl" divided className="max-h-[70vh] grid-rows-[auto_1fr_auto]">
           <DialogHeader>
             <DialogTitle>{editingUnit ? 'แก้ไขหน่วยนับ' : 'เพิ่มหน่วยนับ'}</DialogTitle>
           </DialogHeader>
@@ -278,56 +276,70 @@ export function UnitsTab({
                 </div>
               )
               return (
-                <div className="space-y-3">
-                  {/* หน่วยนับ + ขนาดบรรจุ — เลือกก่อน เพราะเป็นตัวตั้งของราคาทุน/ราคา */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="หน่วยนับ" required>
-                      <Select value={String(unitForm.unit_id ?? 0)} onValueChange={v => setUnitForm((f: any) => ({ ...f, unit_id: Number(v) }))}>
-                        <SelectTrigger variant="elevated" className="w-full">
-                          <SelectValue placeholder="— เลือกหน่วย —" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">— เลือกหน่วย —</SelectItem>
-                          {itemUnits.map(u => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field label="ขนาดบรรจุ">
-                      <Input variant="elevated" type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="text-left" min={0.0001} step="0.0001" />
-                    </Field>
-                  </div>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* ===== ฝั่งซ้าย: ตั้งค่าหน่วย + ราคาทุน ===== */}
+                  <div className="flex flex-col gap-3">
+                    {/* หน่วยนับ + ขนาดบรรจุ — บรรทัดเดียวกัน, เลือกก่อน เพราะเป็นตัวตั้งของราคาทุน/ราคา */}
+                    {/* ช่องหน่วยกว้างกว่า (2fr) — combobox ค้นหาได้, ตามแบบ GeneralTab หน่วยหลัก */}
+                    <div className="grid grid-cols-[2fr_1fr] gap-3">
+                      <Field label="หน่วยนับ" required>
+                        <Combobox
+                          variant="elevated"
+                          items={itemUnits}
+                          value={itemUnits.find(u => u.id === Number(unitForm.unit_id)) ?? null}
+                          onChange={u => setUnitForm((f: any) => ({ ...f, unit_id: u?.id ?? 0 }))}
+                          getKey={u => u.id}
+                          getLabel={u => u.name}
+                          placeholder="— เลือกหน่วย —"
+                          searchPlaceholder="พิมพ์เพื่อค้นหาหน่วย..."
+                          emptyText="ไม่พบหน่วย"
+                        />
+                      </Field>
+                      <Field label="ขนาดบรรจุ">
+                        <Input variant="elevated" type="number" value={unitForm.qty_per_base ?? 1} onChange={e => setUnitForm((f: any) => ({ ...f, qty_per_base: e.target.value }))} className="text-left" min={0.0001} step="0.0001" />
+                      </Field>
+                    </div>
 
-                  <Field label="บาร์โค้ด">
-                    <Input variant="elevated" value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
-                  </Field>
+                    <Field label="บาร์โค้ด">
+                      <Input variant="elevated" value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
+                    </Field>
 
-                  {/* ราคาทุน — หัวข้อนอกกล่อง, ในกล่องแบ่ง 2 ฝั่งด้วยเส้นกลาง */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-foreground">ราคาทุนล่าสุด</h4>
-                    <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 grid grid-cols-2 divide-x divide-amber-strong/25 h-9">
-                      <div className="flex items-center justify-between gap-1.5 min-w-0 px-3 text-sm">
-                        <span className="font-bold text-amber-strong">{formatCurrency(baseCost)}</span>
-                        <span className="text-muted-foreground">ต่อ{baseUnit}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-1.5 min-w-0 px-3 text-sm">
-                        <span className="font-bold text-amber-strong">{formatCurrency(unitCost)}</span>
-                        <span className="text-muted-foreground">ต่อ{newUnit}</span>
+                    {/* รายละเอียด — สรุปทุน/ราคาที่ใช้อ้างอิงตอนตั้งราคาหน่วยนี้ */}
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold text-foreground">รายละเอียด</h4>
+                      <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 p-3 space-y-2 text-sm">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="text-muted-foreground shrink-0">ราคาทุนต่อ{newUnit}</span>
+                          <span className="font-bold text-amber-strong">{formatCurrency(unitCost)}</span>
+                        </div>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="text-muted-foreground shrink-0">ราคาทุนต่อ{baseUnit}</span>
+                          <span className="font-bold text-amber-strong">{formatCurrency(baseCost)}</span>
+                        </div>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="text-muted-foreground shrink-0">ราคาปกติต่อ{baseUnit}</span>
+                          <span className="font-bold text-amber-strong">{formatCurrency(product.price_retail ?? 0)}</span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* เปิดใช้หน่วยนี้ในการขาย — mt-auto ดันชิดขอบล่างของคอลัมน์ซ้าย */}
+                    <SettingRow
+                      className="mt-auto"
+                      title="ใช้หน่วยนี้ในการขาย"
+                      description="ให้เลือกหน่วยนี้ได้ที่หน้าขาย (POS)"
+                      checked={!!unitForm.is_for_sale}
+                      onChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))}
+                    />
                   </div>
 
-                  {/* ราคาปลีก / ส่ง 1 / ส่ง 2 — block เดียวกัน ระยะห่างช่อง↔กล่องกำไรเท่ากันทุกชุด */}
-                  {priceBlock('ราคาปลีก', 'price_retail', unitForm.price_retail, retail)}
-                  {priceBlock('ราคาส่ง 1', 'price_wholesale1', unitForm.price_wholesale1, ws1)}
-                  {priceBlock('ราคาส่ง 2', 'price_wholesale2', unitForm.price_wholesale2, ws2)}
-
-                  {/* การตั้งค่า */}
-                  <SettingRow
-                    title="ใช้หน่วยนี้ในการขาย"
-                    description="ให้เลือกหน่วยนี้ได้ที่หน้าขาย (POS)"
-                    checked={!!unitForm.is_for_sale}
-                    onChange={v => setUnitForm((f: any) => ({ ...f, is_for_sale: v ? 1 : 0 }))}
-                  />
+                  {/* ===== ฝั่งขวา: ราคาขาย ===== */}
+                  <div className="space-y-3">
+                    {/* ราคา/ส่ง — ชื่อช่องผูกกับหน่วยใหญ่ที่เลือก (newUnit) ให้สื่อว่าตั้งราคาของหน่วยนี้ */}
+                    {priceBlock(`ราคาปลีก (${newUnit})`, 'price_retail', unitForm.price_retail, retail)}
+                    {priceBlock(`ราคาส่ง 1 (${newUnit})`, 'price_wholesale1', unitForm.price_wholesale1, ws1)}
+                    {priceBlock(`ราคาส่ง 2 (${newUnit})`, 'price_wholesale2', unitForm.price_wholesale2, ws2)}
+                  </div>
                 </div>
               )
             })()}

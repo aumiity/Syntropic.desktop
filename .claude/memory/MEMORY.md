@@ -30,6 +30,7 @@ One line per memory. Detail lives in the linked file (read on demand).
 - [Tax Invoice Flow Rework v2](project_tax_invoice_flow.md) — **DONE 2026-06-12 (click-test pending)** — buyer READ-ONLY; deferred lock `original_printed=1` (2 layers); `SaleDetailDialog` = hub
 - [VAT phasing](project_vat_phasing.md) — **โครงสร้าง VAT ครบ DONE 2026-06-10 (click-test pending)** — hide-when-NO-VAT + one-way upgrade + ภาษีซื้อ GR/expenses + `/reports/vat` + per-bill VAT checkbox + guarded downgrade; เหลือ: ใบลดหนี้
 - [ค่าใช้จ่าย (expenses)](project_expenses.md) — **DONE 2026-06-03 (ยังไม่ click-test)** — tab `/reports/expenses`; tables `expense_categories`+`expenses` (code `EX-YYYYMMDD-NNNN`); add/edit/del admin-only; Finance "กำไร" = net หลังหักค่าใช้จ่าย; เป็นที่อยู่อนาคตของภาษีซื้อ
+- [Default qty (จำนวนตั้งต้นการขาย)](project_default_qty.md) — **DONE 2026-06-16 (click-test pending)** — `products.default_qty` re-added จาก PHP original; multiplier wins; schema 2 จุด (CREATE+ALTER); coerce→1 ไม่ใช่ 0; sale-only
 - [POS qty multiplier](project_pos_qty_multiplier.md) — **DONE 2026-05-30** — `5*`-then-scan (number-first, `*`=commit); อย่า re-add `*N`-prefix/idle-timer/overlay
 - [POS redesign](project_pos_redesign.md) — **ACTIVE 2026-05-29, paused** — bordered cards + cart slot + customer dialogs done; right rail/payment pending
 - [Edit parity pass](project_edit_parity_pass.md) — **ACTIVE 2026-05-28, paused** — align EditBundle → EditProduct tab-by-tab; Tab 1 DONE, Tab 2 (ComponentsTab) NEXT
