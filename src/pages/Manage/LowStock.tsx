@@ -142,7 +142,7 @@ export default function ManageLowStockPage() {
     setSummary([
       { label: 'รายการทั้งหมด', value: rows.length.toLocaleString(),                  icon: Package,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'หมดสต็อก',      value: outCount.toLocaleString(),                     icon: PackageX,     tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-      { label: 'ใกล้หมด',       value: Math.max(0, rows.length - outCount).toLocaleString(), icon: TrendingDown, tint: 'accent-soft',  sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ใกล้หมด',       value: Math.max(0, rows.length - outCount).toLocaleString(), icon: TrendingDown, tint: 'amber',  sub: 'รายการ', subClassName: 'text-base text-foreground' },
     ])
   }, [rows.length, outCount, setSummary])
 

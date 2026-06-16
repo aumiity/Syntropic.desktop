@@ -96,16 +96,17 @@ Solid / primary roles:
 - `warning` — solid orange · caution CTA
 - `info` — solid blue
 - `destructive` — solid red · delete, void
-- `violet` / `teal` — decorative solids
+- `violet` / `teal` — decorative solids (cool)
+- `amber` / `sand` — warm decorative solids (`amber` = deep gold, distinct from yellow `accent`; `sand` = warm-neutral tan, an alternative to cool greys)
 
 Soft / tinted:
 - `primary-soft` — light teal soft · subtle brand emphasis (this absorbed the old `brand-soft`)
 - `info-soft` — light blue · info-style action, e.g. "ปรับสต็อก"
 - `accent-soft` — soft amber/yellow · warm secondary (this is the former `warm`, renamed)
 - `destructive2` — soft red tint · destructive secondary (the slot next to a `destructive` primary)
-- `success-soft` / `violet-soft` / `teal-soft`
+- `success-soft` / `violet-soft` / `teal-soft` / `amber-soft` / `sand-soft`
 
-Outline family (soft fill + role-colored hairline border) — `primary-outline`, `accent-outline`, `success-outline`, `info-outline`, `warning-outline`, `destructive-outline`, `violet-outline`, `teal-outline`, `neutral-outline`, `muted-outline`.
+Outline family (soft fill + role-colored hairline border) — `primary-outline`, `accent-outline`, `success-outline`, `info-outline`, `warning-outline`, `destructive-outline`, `violet-outline`, `teal-outline`, `amber-outline`, `sand-outline`, `neutral-outline`, `muted-outline`.
 
 Neutral / low-emphasis:
 - `outline` — muted bg, transparent border · neutral icon buttons · **the standard for row "แก้ไข" (edit) action buttons**
@@ -123,6 +124,7 @@ Badge shares the same role names as Button (minus the `elevated*` / `mutedborder
 
 ### Semantic color tokens (`index.css` — defined in both `:root` and `.dark`)
 
+- Warm decorative: `amber` (deep gold) + `sand` (warm-neutral tan) — each with `-foreground` / `-soft` / `-strong`, same 4-token shape as `violet`/`teal`. Soft variants render `text-amber-strong`/`text-sand-strong` on the soft surface.
 - Brand: `primary`, `primary-soft`, `primary-soft-hover`, `primary-soft-border`, `primary-strong`, `primary-hover`, `primary-foreground`
 - Accent (yellow): `accent`, `accent-foreground` (no `tertiary` — that name is gone). `accent-soft`/`accent-soft-hover`/`accent-soft-foreground` = the soft cream/amber surface (formerly `warm`)
 - Neutrals: `background`, `card`, `muted`, `muted-hover`, `popover`, `secondary`

@@ -96,6 +96,18 @@
     --teal-soft:       165 76% 92%;
     --teal-strong:     167 76% 26%;
 
+    /* ── Warm palette: Amber (deep gold — ลึกกว่า accent เหลือง) ─────────── */
+    --amber:            38 95% 48%;     /* #F29A07 — golden amber */
+    --amber-foreground: 30 60% 12%;     /* near-brown text on gold */
+    --amber-soft:       45 100% 91%;    /* pale gold surface */
+    --amber-strong:     32 88% 36%;     /* deep amber text on soft */
+
+    /* ── Warm palette: Sand (warm neutral — แทนเทาเย็น) ──────────────────── */
+    --sand:            30 25% 52%;      /* #A98869 — warm tan */
+    --sand-foreground: 0 0% 100%;
+    --sand-soft:       36 44% 94%;      /* #F4ECE0 — warm sand surface */
+    --sand-strong:     28 30% 38%;      /* warm brown text on soft */
+
     /* ── Sidebar (left navigation) ──────────────────────────────────────── */
     --sidebar:                    0 0% 99%;
     --sidebar-foreground:         0 0% 32%;
@@ -209,6 +221,18 @@
     --teal-foreground: 0 0% 100%;
     --teal-soft:       167 30% 18%;
     --teal-strong:     167 70% 75%;
+
+    /* ── Warm: Amber (brighter gold for dark) ───────────────────────────── */
+    --amber:            40 92% 58%;
+    --amber-foreground: 40 60% 8%;
+    --amber-soft:       40 32% 15%;     /* dark gold surface */
+    --amber-strong:     43 90% 76%;     /* pale gold text */
+
+    /* ── Warm: Sand (warm neutral for dark) ─────────────────────────────── */
+    --sand:            32 22% 60%;
+    --sand-foreground: 30 30% 8%;
+    --sand-soft:       30 14% 18%;      /* dark warm-neutral surface */
+    --sand-strong:     34 40% 78%;      /* pale sand text */
 
     /* ── Sidebar ────────────────────────────────────────────────────────── */
     --sidebar:                    0 0% 20%;

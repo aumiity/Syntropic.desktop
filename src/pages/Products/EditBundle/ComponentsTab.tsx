@@ -319,7 +319,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
           {items.length < 2
             ? <span className="text-destructive">ต้องมีรายการอย่างน้อย 2 รายการ ({items.length}/2)</span>
             : dirty
-              ? <span className="text-accent-soft-foreground">มีการเปลี่ยนแปลงที่ยังไม่บันทึก</span>
+              ? <span className="text-amber-strong">มีการเปลี่ยนแปลงที่ยังไม่บันทึก</span>
               : <>{items.length.toLocaleString()} รายการ</>}
         </span>
         <div className="flex items-center gap-6">

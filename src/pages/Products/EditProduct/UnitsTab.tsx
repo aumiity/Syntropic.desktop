@@ -187,7 +187,7 @@ export function UnitsTab({
                 <TableCell className="text-sm font-semibold text-muted-foreground">{(product.price_wholesale1 ?? 0) > 0 ? formatCurrency(product.price_wholesale1) : '—'}</TableCell>
                 <TableCell className="text-sm font-semibold text-muted-foreground">{(product.price_wholesale2 ?? 0) > 0 ? formatCurrency(product.price_wholesale2) : '—'}</TableCell>
                 <TableCell><Checkbox checked tabIndex={-1} className="pointer-events-none" /></TableCell>
-                <TableCell><Badge variant="accent-outline" className="rounded-md">หลัก</Badge></TableCell>
+                <TableCell><Badge variant="amber-outline" className="rounded-md">หลัก</Badge></TableCell>
                 <TableCell className="text-sm text-muted-foreground">แก้ที่แท็บข้อมูลทั่วไป</TableCell>
               </TableRow>
               {product.units?.map(u => (
@@ -305,14 +305,14 @@ export function UnitsTab({
                     {/* ราคาทุน — รวมหน่วยฐาน + หน่วยใหม่ ในกรอบเดียว */}
                     <div className="space-y-2">
                       <h4 className="text-sm font-semibold text-foreground">ราคาทุน</h4>
-                      <div className="rounded-lg bg-accent-soft/50 border border-accent-soft-foreground/25 px-3 py-2 space-y-1">
+                      <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 px-3 py-2 space-y-1">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">ต่อ {baseUnit}</span>
-                          <span className="text-sm font-bold text-accent-soft-foreground">{formatCurrency(baseCost)}</span>
+                          <span className="text-sm font-bold text-amber-strong">{formatCurrency(baseCost)}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">ต่อ {newUnit}</span>
-                          <span className="text-sm font-bold text-accent-soft-foreground">{formatCurrency(unitCost)}</span>
+                          <span className="text-sm font-bold text-amber-strong">{formatCurrency(unitCost)}</span>
                         </div>
                       </div>
                     </div>

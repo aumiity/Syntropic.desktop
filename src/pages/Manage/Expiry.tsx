@@ -62,7 +62,7 @@ function renderExpiryDate(date: string | null, days: number | null) {
       <ClockAlert className="size-4" /> {dateStr}
     </Badge>
   ) : d < 90 ? (
-    <Badge variant="accent-outline" className="rounded-md gap-1 text-sm">
+    <Badge variant="amber-outline" className="rounded-md gap-1 text-sm">
       <ClockFading className="size-4" /> {dateStr}
     </Badge>
   ) : (
@@ -221,7 +221,7 @@ export default function ManageExpiryPage() {
   useEffect(() => {
     setSummary([
       { label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive', sub: 'ล็อต', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-      { label: '≤ 30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'accent-soft',         sub: 'ล็อต', subClassName: 'text-base text-foreground' },
+      { label: '≤ 30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'amber',         sub: 'ล็อต', subClassName: 'text-base text-foreground' },
       { label: '≤ 90 วัน',     value: counts.d90.toLocaleString(),     icon: ClockAlert, tint: 'info-soft',    sub: 'ล็อต', subClassName: 'text-base text-foreground' },
       { label: '≤ 180 วัน',    value: counts.d180.toLocaleString(),    icon: ClockAlert, tint: 'primary',      sub: 'ล็อต', subClassName: 'text-base text-foreground' },
     ])

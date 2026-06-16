@@ -181,7 +181,7 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
             <Card>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-2.5">
-                  <TintIcon icon={KeyRound} tint="accent-soft" size="sm" bordered />
+                  <TintIcon icon={KeyRound} tint="amber" size="sm" bordered />
                   <h1 className="text-base font-semibold text-foreground">รหัสกู้คืน (Recovery Code)</h1>
                 </div>
                 <p className="text-sm text-muted-foreground">

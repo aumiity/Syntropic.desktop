@@ -212,7 +212,7 @@ export function TitleBar() {
               className={`inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-xs transition-colors ${
                 currentUser.role === 'admin'
                   ? 'text-primary hover:bg-primary-soft/60'
-                  : 'text-accent-foreground hover:bg-accent-soft/60'
+                  : 'text-accent-foreground hover:bg-amber-soft/60'
               }`}
             >
               {currentUser.role === 'admin'

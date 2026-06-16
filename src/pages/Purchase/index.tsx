@@ -798,7 +798,7 @@ export default function PurchasePage() {
                               return (
                                 <TableRow
                                   key={i}
-                                  className={`border-0 ${isPartial ? 'bg-accent-soft/50 hover:bg-accent-soft/70' : 'hover:bg-primary-soft/40'}`}
+                                  className={`border-0 ${isPartial ? 'bg-amber-soft/50 hover:bg-amber-soft/70' : 'hover:bg-primary-soft/40'}`}
                                 >
                                   <TableCell className="px-3 py-2 text-sm text-foreground-subtle text-center">{i + 1}</TableCell>
 
@@ -847,7 +847,7 @@ export default function PurchasePage() {
                       {/* ── Footer bar — always pinned at bottom of card ── */}
                       <div className="shrink-0">
                         {duplicateNames.length > 0 && (
-                          <div className="bg-accent-soft px-5 py-2 flex items-center gap-2 text-sm text-accent-soft-foreground">
+                          <div className="bg-amber-soft px-5 py-2 flex items-center gap-2 text-sm text-amber-strong">
                             <AlertTriangle className="size-4 text-warning shrink-0" />
                             <span className="font-semibold shrink-0">พบรายการซ้ำ (สินค้า + Lot เดิม):</span>
                             <span className="truncate">{duplicateNames.join(', ')}</span>
@@ -866,7 +866,7 @@ export default function PurchasePage() {
                               </div>
                             )}
                             {adjustSurchargeAmt > 0 && (
-                              <div className="flex items-center justify-end gap-6 text-sm text-accent-soft-foreground">
+                              <div className="flex items-center justify-end gap-6 text-sm text-amber-strong">
                                 <span>ส่วนเพิ่ม</span>
                                 <span className="w-32 text-right">+{formatCurrency(adjustSurchargeAmt)}</span>
                               </div>
@@ -978,7 +978,7 @@ export default function PurchasePage() {
                                 <Button
                                   key={d}
                                   type="button"
-                                  variant="accent-soft"
+                                  variant="amber-soft"
                                   onClick={() => {
                                     const dt = new Date()
                                     dt.setDate(dt.getDate() + d)
@@ -1227,7 +1227,7 @@ export default function PurchasePage() {
                         <span>ส่วนลด</span>
                         <span className="pr-2.5">{previewDisc > 0 ? '−' : ''}{formatCurrency(previewDisc)}</span>
                       </div>
-                      <div className="flex justify-between text-accent-soft-foreground">
+                      <div className="flex justify-between text-amber-strong">
                         <span>ส่วนเพิ่ม</span>
                         <span className="pr-2.5">{previewSur > 0 ? '+' : ''}{formatCurrency(previewSur)}</span>
                       </div>

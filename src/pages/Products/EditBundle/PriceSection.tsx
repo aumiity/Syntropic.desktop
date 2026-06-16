@@ -36,10 +36,10 @@ interface PriceLog {
   created_at: string
 }
 
-const PRICE_TYPE_META: Record<string, { label: string; variant: 'success' | 'info-soft' | 'accent-soft' }> = {
+const PRICE_TYPE_META: Record<string, { label: string; variant: 'success' | 'info-soft' | 'amber-soft' }> = {
   retail:     { label: 'ราคาปลีก',  variant: 'success' },
   wholesale1: { label: 'ราคาส่ง 1', variant: 'info-soft' },
-  wholesale2: { label: 'ราคาส่ง 2', variant: 'accent-soft' },
+  wholesale2: { label: 'ราคาส่ง 2', variant: 'amber-soft' },
 }
 
 interface PriceSectionProps {
@@ -122,7 +122,7 @@ export function PriceSection({ form, setF, errors, product, baseUnit, isNew, onO
                   className="text-left"
                 />
               </Field>
-              <div className="rounded-lg bg-accent-soft/50 border border-accent-soft-foreground/25 px-3 py-2 flex-1 flex items-center">
+              <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 px-3 py-2 flex-1 flex items-center">
                 <div className="text-sm text-muted-foreground flex items-center gap-1.5">
                   <Info className="size-3.5 shrink-0" />
                   <span>คำนวณอัตโนมัติจากทุนของส่วนประกอบ</span>

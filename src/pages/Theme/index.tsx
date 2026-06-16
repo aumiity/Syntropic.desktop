@@ -439,6 +439,12 @@ export default function Theme() {
                   <Button variant="teal">Teal</Button>
                   <Button variant="teal-soft">Teal-soft</Button>
                 </DemoRow>
+                <DemoRow label="Warm — solid / soft (amber = ทองอำพัน, sand = น้ำตาลทรายอุ่น)">
+                  <Button variant="amber">Amber</Button>
+                  <Button variant="amber-soft">Amber-soft</Button>
+                  <Button variant="sand">Sand</Button>
+                  <Button variant="sand-soft">Sand-soft</Button>
+                </DemoRow>
                 <DemoRow label="Soft + colored border (chip style — matches Badge *-outline)">
                   <Button variant="primary-outline">Primary-outline</Button>
                   <Button variant="success-outline">Success-outline</Button>
@@ -447,6 +453,8 @@ export default function Theme() {
                   <Button variant="info-outline">Info-outline</Button>
                   <Button variant="violet-outline">Violet-outline</Button>
                   <Button variant="teal-outline">Teal-outline</Button>
+                  <Button variant="amber-outline">Amber-outline</Button>
+                  <Button variant="sand-outline">Sand-outline</Button>
                   <Button variant="accent-outline">Accent-outline</Button>
                   <Button variant="neutral-outline">Neutral-outline</Button>
                   <Button variant="muted-outline">Muted-outline</Button>
@@ -523,6 +531,12 @@ export default function Theme() {
                   <Badge variant="teal">Teal</Badge>
                   <Badge variant="teal-soft">Teal-soft</Badge>
                 </DemoRow>
+                <DemoRow label="Warm — solid / soft (amber = ทองอำพัน, sand = น้ำตาลทรายอุ่น)">
+                  <Badge variant="amber">Amber</Badge>
+                  <Badge variant="amber-soft">Amber-soft</Badge>
+                  <Badge variant="sand">Sand</Badge>
+                  <Badge variant="sand-soft">Sand-soft</Badge>
+                </DemoRow>
                 <DemoRow label="Neutral / surface">
                   <Badge variant="secondary">Secondary</Badge>
                   <Badge variant="outline">Outline</Badge>
@@ -537,6 +551,8 @@ export default function Theme() {
                   <Badge variant="info-outline">Info-outline</Badge>
                   <Badge variant="violet-outline">Violet-outline</Badge>
                   <Badge variant="teal-outline">Teal-outline</Badge>
+                  <Badge variant="amber-outline">Amber-outline</Badge>
+                  <Badge variant="sand-outline">Sand-outline</Badge>
                   <Badge variant="accent-outline">Accent-outline</Badge>
                   <Badge variant="neutral-outline">Neutral-outline</Badge>
                   <Badge variant="muted-outline">Muted-outline</Badge>
@@ -581,6 +597,7 @@ export default function Theme() {
                       'accent-soft', 'accent',
                       'violet', 'violet-strong',
                       'teal', 'teal-strong',
+                      'amber', 'amber-strong',
                     ] as TintIconTint[]).map(t => (
                       <div key={t} className="flex flex-col items-center gap-1.5">
                         <TintIcon icon={Package} tint={t} size="md" />
@@ -612,7 +629,7 @@ export default function Theme() {
                 <DemoRow label="bordered prop — tinted box with matching colored border (used inside SectionCard)">
                   <div className="flex flex-wrap gap-3">
                     {([
-                      'primary', 'success', 'warning', 'destructive', 'info', 'secondary', 'accent-soft', 'violet', 'teal',
+                      'primary', 'success', 'warning', 'destructive', 'info', 'secondary', 'accent-soft', 'violet', 'teal', 'amber',
                     ] as TintIconTint[]).map(t => (
                       <TintIcon key={t} icon={Package} tint={t} size="sm" bordered />
                     ))}
@@ -1382,7 +1399,7 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="MetricCard (read-only KPI · `unit` inline · sub auto-tints to icon color)">
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    <MetricCard label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="accent-soft" />
+                    <MetricCard label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="amber" />
                     <MetricCard label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success" />
                     <MetricCard
                       label="คงเหลือ"
@@ -1404,7 +1421,7 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="MetricCard size='sm' (compact — icon-right · 3 stacked lines: label / value+unit / sub)">
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    <MetricCard size="sm" label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="accent-soft" />
+                    <MetricCard size="sm" label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="amber" />
                     <MetricCard size="sm" label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success" />
                     <MetricCard
                       size="sm"

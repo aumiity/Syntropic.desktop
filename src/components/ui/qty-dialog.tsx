@@ -5,7 +5,6 @@ import { Input } from './input'
 import { Label } from './label'
 import { Minus, Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { formatCurrency } from '@/lib/utils'
 
 interface QtyDialogProps {
   open: boolean
@@ -16,7 +15,8 @@ interface QtyDialogProps {
   unitName?: string
   /** Seeds the input each time the dialog opens. */
   initialQty: number
-  /** For the running "รวม" strip — line total = unitPrice*qty - discount. */
+  /** Kept for caller compatibility — no longer displayed (the dialog shows
+   *  only the "คงเหลือ" stock figure now). */
   unitPrice?: number
   discount?: number
   /** For the "คงเหลือ" strip. Omit to hide the whole summary strip. */
@@ -47,7 +47,6 @@ export function QtyDialog({
   }, [open, initialQty])
 
   const q = Math.max(minQty, parseFloat(qtyInput) || 0)
-  const lineTotal = Math.max(0, (unitPrice ?? 0) * q - discount)
   const bump = (delta: number) => setQtyInput(v => String(Math.max(minQty, (parseFloat(v) || 0) + delta)))
   const apply = () => { onApply(q); onClose() }
 
@@ -60,25 +59,13 @@ export function QtyDialog({
             <div className="text-base font-semibold text-foreground overflow-x-clip overflow-y-visible">{itemName}</div>
           </DialogHeader>
           <DialogBody className="space-y-4">
-            {/* Summary strip — each half is independent: คงเหลือ shows only when
-                stockQty is supplied, รวม only when unitPrice is. Omit both to hide
-                the strip entirely. */}
-            {(stockQty !== undefined || unitPrice !== undefined) && (
-              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2.5">
-                {stockQty !== undefined && (
-                  <div className="flex flex-col">
-                    <span className="text-xs text-foreground-subtle">คงเหลือ</span>
-                    <span className={`text-sm font-semibold ${(stockQty ?? 0) > 0 ? 'text-foreground' : 'text-destructive'}`}>
-                      {stockQty} {unitName}
-                    </span>
-                  </div>
-                )}
-                {unitPrice !== undefined && (
-                  <div className="flex flex-col items-end ml-auto">
-                    <span className="text-xs text-foreground-subtle">รวม</span>
-                    <span className="text-base font-semibold text-foreground">{formatCurrency(lineTotal)}</span>
-                  </div>
-                )}
+            {/* Summary strip — shows the available stock. Omit stockQty to hide it. */}
+            {stockQty !== undefined && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+                <span className="text-sm text-foreground-subtle">คงเหลือ</span>
+                <span className={`text-base font-semibold ${(stockQty ?? 0) > 0 ? 'text-foreground' : 'text-destructive'}`}>
+                  {stockQty} {unitName}
+                </span>
               </div>
             )}
 

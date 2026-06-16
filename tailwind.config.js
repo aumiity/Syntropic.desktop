@@ -84,6 +84,18 @@ export default {
           soft: 'hsl(var(--teal-soft))',
           strong: 'hsl(var(--teal-strong))',
         },
+        amber: {
+          DEFAULT: 'hsl(var(--amber))',
+          foreground: 'hsl(var(--amber-foreground))',
+          soft: 'hsl(var(--amber-soft))',
+          strong: 'hsl(var(--amber-strong))',
+        },
+        sand: {
+          DEFAULT: 'hsl(var(--sand))',
+          foreground: 'hsl(var(--sand-foreground))',
+          soft: 'hsl(var(--sand-soft))',
+          strong: 'hsl(var(--sand-strong))',
+        },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',

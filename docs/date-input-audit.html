@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Date Input Audit — Syntropic Desktop</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --surface: #1a2129;
+    --surface-2: #222b35;
+    --border: #2d3742;
+    --text: #e4e9ef;
+    --text-dim: #9aa7b4;
+    --primary: #2dd4bf;
+    --primary-soft: rgba(45, 212, 191, 0.12);
+    --accent: #fbbf24;
+    --danger: #f87171;
+    --danger-soft: rgba(248, 113, 113, 0.12);
+    --ok: #4ade80;
+    --code-bg: #11171d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'IBM Plex Sans Thai', 'Inter', -apple-system, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    font-size: 15px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 48px 28px 96px; }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 40px;
+  }
+  h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .sub { color: var(--text-dim); font-size: 14px; }
+  .meta { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .chip {
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 3px 11px; border-radius: 999px; font-size: 12px; color: var(--text-dim);
+  }
+  h2 {
+    font-size: 20px; margin: 48px 0 16px; padding-left: 12px;
+    border-left: 3px solid var(--primary);
+  }
+  h3 { font-size: 16px; margin: 28px 0 10px; color: var(--primary); }
+  p { margin: 0 0 14px; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0 24px;
+    font-size: 13.5px; background: var(--surface); border-radius: 10px; overflow: hidden;
+  }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--surface-2); font-weight: 600; color: var(--text); font-size: 12.5px; }
+  tr:last-child td { border-bottom: none; }
+  td code, p code, li code { font-size: 12.5px; }
+  code {
+    background: var(--code-bg); padding: 1px 6px; border-radius: 5px;
+    font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace; color: var(--accent);
+  }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px; overflow-x: auto; font-size: 13px; line-height: 1.55;
+    font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace; color: var(--text);
+  }
+  pre .cm { color: var(--text-dim); }
+  pre .kw { color: var(--primary); }
+  pre .ok { color: var(--ok); }
+  pre .bad { color: var(--danger); }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 22px; margin: 16px 0;
+  }
+  .card.danger { border-color: rgba(248,113,113,0.4); background: var(--danger-soft); }
+  .card.note { border-color: rgba(45,212,191,0.35); background: var(--primary-soft); }
+  .card h4 { margin: 0 0 8px; font-size: 14px; }
+  ul { margin: 8px 0 16px; padding-left: 22px; }
+  li { margin: 5px 0; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 5px; font-size: 11.5px; font-weight: 600; }
+  .tag.green { background: rgba(74,222,128,0.15); color: var(--ok); }
+  .tag.red { background: var(--danger-soft); color: var(--danger); }
+  .tag.gray { background: var(--surface-2); color: var(--text-dim); }
+  .pathlist { font-size: 13px; }
+  .pathlist td:first-child { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--primary); white-space: nowrap; }
+  footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 12.5px; }
+  .legend { color: var(--text-dim); font-size: 12.5px; margin-top: -8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Date Input Audit</h1>
+  <div class="sub">รวม date input / date picker ทั้งหมดในแอป — ตำแหน่ง พฤติกรรม และ logic การตรวจเช็ค</div>
+  <div class="meta">
+    <span class="chip">Syntropic Desktop</span>
+    <span class="chip">2026-06-16</span>
+    <span class="chip">scope: src/</span>
+  </div>
+</header>
+
+<h2>1. ภาพรวม — มี primitive 4 ตัว (+ Calendar ฐาน)</h2>
+<table>
+  <thead><tr><th>Primitive</th><th>ไฟล์</th><th>พิมพ์ได้?</th><th>ส่งค่าออก</th></tr></thead>
+  <tbody>
+    <tr><td><strong>DateInput</strong></td><td><code>ui/date-input.tsx</code></td><td><span class="tag green">พิมพ์ + ปฏิทิน</span></td><td><code>onChange(iso)</code> วันเดียว</td></tr>
+    <tr><td><strong>DateRangePicker</strong></td><td><code>ui/date-range-picker.tsx</code></td><td><span class="tag gray">ปฏิทิน/preset</span></td><td><code>onChange(from, to)</code> ช่วง</td></tr>
+    <tr><td><strong>MultiDatePicker</strong></td><td><code>ui/multi-date-picker.tsx</code></td><td><span class="tag gray">ปฏิทิน/preset</span></td><td><code>onChange(mode, from, to)</code></td></tr>
+    <tr><td><strong>PeriodPicker</strong></td><td><code>ui/period-picker.tsx</code></td><td><span class="tag gray">ปฏิทิน/preset</span></td><td><code>onChange(mode, from, to)</code></td></tr>
+    <tr><td>Calendar (ฐาน)</td><td><code>ui/calendar.tsx</code></td><td>—</td><td>react-day-picker wrapper</td></tr>
+  </tbody>
+</table>
+<div class="card note">
+  <h4>ตัวมาตรฐานปัจจุบัน</h4>
+  <p style="margin:0"><code>MultiDatePicker</code> และ <code>PeriodPicker</code> ทำงานเหมือนกันแทบทุกอย่าง (โหมด วัน/เดือน/ปี/กำหนดเอง + stepper). <strong>MultiDatePicker = มาตรฐานใหม่</strong> — หน้าจริงเกือบทั้งหมดย้ายมาแล้ว. <code>PeriodPicker</code> และ <code>DateRangePicker</code> เหลือโชว์ใน <code>/theme</code> เท่านั้น.</p>
+</div>
+
+<h2>2. DateInput — ตัวเดียวที่มี logic ตรวจเช็ค (เพราะพิมพ์ได้)</h2>
+<p>พิมพ์ตัวเลขแล้ว auto-format เป็น <code>DD/MM/YYYY</code> เก็บลง state เป็น ISO <code>YYYY-MM-DD</code> (ค.ศ., ไม่ใช่ พ.ศ.)</p>
+
+<h3>พฤติกรรมการพิมพ์</h3>
+<ul>
+  <li><code>autoFormat()</code> — รับเฉพาะตัวเลข ตัดเหลือ 8 หลัก ใส่ <code>/</code> ให้เอง: <code>25</code> &rarr; <code>25/06</code> &rarr; <code>25/06/2026</code></li>
+  <li><code>displayToIso()</code> — แปลง <code>DD/MM/YYYY</code> &rarr; <code>YYYY-MM-DD</code> พร้อม <strong>ตรวจว่าวันมีจริง</strong></li>
+</ul>
+
+<h3>กฎตรวจ "วันมีจริง" (displayToIso)</h3>
+<ul>
+  <li>เดือนต้อง <code>1–12</code></li>
+  <li>ปีต้อง <code>1900–9999</code> (เผื่อ <code>9999</code> = สินค้าไม่มีวันหมดอายุ)</li>
+  <li>วันต้องไม่เกินวันสุดท้ายของเดือน <code>new Date(yy, mm, 0).getDate()</code> &mdash; รองรับ leap year</li>
+  <li>ผิดข้อใดข้อหนึ่ง &rarr; คืน <code>''</code></li>
+</ul>
+
+<h3>หัวใจ: logic การ commit ค่าออก parent</h3>
+<pre><span class="cm">// ทุกครั้งที่พิมพ์</span>
+const iso = displayToIso(formatted)
+<span class="kw">onChange</span>(iso || '')
+
+<span class="ok">วัน valid       &rarr; onChange(iso)</span>
+<span class="bad">ทุกกรณีอื่น     &rarr; onChange('')   // พิมพ์ค้าง / 99/99/9999 / ว่าง</span></pre>
+<div class="card danger">
+  <h4>ทำไมสำคัญ — invariant</h4>
+  <p style="margin:0"><strong>ค่ามั่วจะไม่มีวันไหลลง DB เลย</strong> &mdash; parent เห็น <code>''</code> เสมอเมื่อไม่ใช่วันจริง. เดิม commit <code>''</code> เฉพาะตอนช่องว่าง ทำให้เลขมั่วทิ้ง parent ไว้ที่ค่าเก่า (ที่ valid) แล้ว submit ผ่านแบบเงียบ ๆ. (codified กฎ #12 ใน <code>ui-theming.md</code>)</p>
+</div>
+
+<h3>logic การโชว์ขอบแดง</h3>
+<pre>rawInvalid = text.length &gt; 0 && !displayToIso(text)
+<span class="kw">invalid</span>    = rawInvalid && (!focused <span class="cm">||</span> text.length === 10)</pre>
+<ul>
+  <li>กำลังพิมพ์ ยังไม่ครบ 10 ตัว &rarr; <span class="tag gray">ยังไม่แดง</span> (กันกระพริบ)</li>
+  <li>ครบ 10 ตัวแต่ไม่ใช่วันจริง เช่น <code>99/99/9999</code> &rarr; <span class="tag red">แดงทันที</span> แม้ยัง focus</li>
+  <li>blur ออกทั้งที่พิมพ์ตก &rarr; <span class="tag red">แดง</span> (กันเคส exp หายเงียบ)</li>
+  <li>ใช้ <code>aria-invalid</code> &rarr; กรอบแดงอย่างเดียว ไม่มี ring ซ้อน และ <strong>ไม่มีข้อความใต้ช่อง</strong></li>
+  <li>เลือกจากปุ่มปฏิทิน &rarr; commit ISO ที่ valid เสมอ (ข้าม validation ได้)</li>
+</ul>
+
+<div class="card danger">
+  <h4>required เป็นหน้าที่ของ parent ไม่ใช่ของ DateInput</h4>
+  <p style="margin:0 0 8px">DateInput ไม่รู้จัก required &mdash; มันแค่การันตีว่า "ถ้าไม่ใช่วันจริงคือ <code>''</code>". การบังคับกรอกต้องเช็ค <code>!value</code> ที่ parient เอง:</p>
+  <ul style="margin:0">
+    <li><code>ExpenseFormDialog.tsx:81</code> &rarr; <code>if (!form.expense_date) toast('กรุณาระบุวันที่')</code></li>
+    <li><code>AddProductWizard.tsx:409</code> &rarr; gate ปุ่ม Next ด้วย <code>row.expiry_date !== ''</code></li>
+  </ul>
+</div>
+
+<h2>3. จุดใช้งานจริงของ DateInput (14 จุด)</h2>
+<p class="legend">ไม่นับ <code>/theme</code> (showcase) และ <code>Purchase/index.rowmode.bak.tsx</code> (ไฟล์ .bak)</p>
+<table class="pathlist">
+  <thead><tr><th>ไฟล์ : บรรทัด</th><th>ฟิลด์</th></tr></thead>
+  <tbody>
+    <tr><td>dialogs/AdjustStockDialog.tsx:444</td><td>วันหมดอายุ lot ใหม่</td></tr>
+    <tr><td>dialogs/CustomerFormDialog.tsx:131</td><td>วันเกิดลูกค้า (dob)</td></tr>
+    <tr><td>dialogs/ExpenseFormDialog.tsx:130</td><td>วันที่ค่าใช้จ่าย</td></tr>
+    <tr><td>dialogs/UpgradeVatDialog.tsx:113</td><td>วันเริ่มมีผล VAT</td></tr>
+    <tr><td>Manage/Purchases.tsx:788/794/867/896</td><td>วันสั่ง / วันรับ / วันครบกำหนด / วันจ่าย</td></tr>
+    <tr><td>Products/EditProduct/LotsTab.tsx:376/380</td><td>วันผลิต / วันหมดอายุ lot</td></tr>
+    <tr><td>Purchase/AddProductWizard.tsx:676/680</td><td>วันผลิต / วันหมดอายุ</td></tr>
+    <tr><td>Purchase/index.tsx:724/918/975/1000</td><td>วันรับ / ครบกำหนด / จ่าย</td></tr>
+    <tr><td>PurchaseIntake/index.tsx:457</td><td>วันรับเข้า</td></tr>
+    <tr><td>Setup/SetupWizard.tsx:299</td><td>วันเริ่ม VAT</td></tr>
+  </tbody>
+</table>
+
+<h2>4. จุดใช้งาน Range / Period picker</h2>
+<h3>MultiDatePicker — filter strip (8 จุด)</h3>
+<table class="pathlist">
+  <tbody>
+    <tr><td>Manage/Expenses.tsx:159</td><td>Manage/Purchases.tsx:478</td></tr>
+    <tr><td>Manage/Sales.tsx:261</td><td>Products/EditBundle/HistoryTab.tsx:168</td></tr>
+    <tr><td>Products/EditProduct/HistoryTab.tsx:183</td><td>Reports/Dashboard.tsx:251</td></tr>
+    <tr><td>Reports/KhorYor9.tsx:92</td><td>Reports/VatReport.tsx:97</td></tr>
+  </tbody>
+</table>
+<p><strong>DateRangePicker / PeriodPicker</strong> &mdash; ใช้แค่ใน <code>/theme</code> (showcase) แล้ว. ของจริงย้ายไป MultiDatePicker หมด.</p>
+
+<h3>logic ของ range/period — ไม่มี validation</h3>
+<p>พิมพ์ไม่ได้ &rarr; ทุกค่ามาจากปฏิทิน/preset = valid เสมอ หรือ <code>''</code> ตอนล้าง. สิ่งที่มีคือ:</p>
+<ul>
+  <li><strong>โหมด</strong> <code>day/month/year/custom</code> — เปลี่ยนโหมดจะ "zoom" จาก anchor เดิม (<code>rangeForMode</code> / <code>rangeForMultiMode</code>)</li>
+  <li><strong>stepper &#9664; &#9654;</strong> — เลื่อนทีละ 1 หน่วยตามโหมด; custom เลื่อนเท่าความยาวช่วงตัวเอง</li>
+  <li><strong>โชว์ปี พ.ศ.</strong> ในตัว picker (<code>year + 543</code>) แต่ค่าที่เก็บเป็น ค.ศ. ISO ตามกฎ</li>
+  <li>empty <code>from/to</code> &rarr; stepper fallback เป็น <code>dayjs()</code> วันนี้ กัน Invalid Date</li>
+</ul>
+
+<h2>5. สรุปสั้น</h2>
+<div class="card note">
+  <ul style="margin:0">
+    <li><strong>DateInput</strong> = ตัวเดียวที่มี logic ตรวจเช็คจริง (วันมีจริง + ขอบแดง + commit <code>''</code> เมื่อมั่ว)</li>
+    <li><strong>required</strong> ปล่อยให้ parent เช็ค <code>!value</code> เอง</li>
+    <li><strong>range/period picker</strong> = ปฏิทินล้วน valid-by-construction ไม่ต้อง validate</li>
+    <li>ทุกตัวเก็บ ISO <code>YYYY-MM-DD</code> (ค.ศ.) แสดงผล <code>DD/MM/YYYY</code> ผ่าน <code>formatDate()</code></li>
+  </ul>
+</div>
+
+<footer>
+  Generated for Syntropic Desktop &mdash; date input audit. SSOT ของ DateInput validation = กฎ #12 ใน <code>docs/claude/ui-theming.md</code> + memory <code>date-input-validation-contract.md</code>.
+</footer>
+</div>
+</body>
+</html>

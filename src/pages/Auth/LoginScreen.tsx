@@ -315,7 +315,7 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
                       {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
                     </Button>
                   </div>
-                  <div className="text-xs text-accent-soft-foreground bg-accent-soft rounded-lg px-2.5 py-1.5">
+                  <div className="text-xs text-amber-strong bg-amber-soft rounded-lg px-2.5 py-1.5">
                     รหัสกู้คืนเดิมใช้ไม่ได้แล้ว หากทำหายจะกู้รหัสผ่านเองไม่ได้
                   </div>
                 </div>

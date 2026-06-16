@@ -14,17 +14,17 @@ interface VariantSpec {
   icon: ComponentType<{ className?: string }>
   tint: TintIconTint
   confirmVariant:
-    | 'default' | 'destructive' | 'success' | 'accent-soft'
+    | 'default' | 'destructive' | 'success' | 'amber-soft'
   cancelVariant:
     | 'elevated' | 'destructive-soft'
 }
 
-// `warning` intentionally uses the `accent-soft` palette (cream + amber) instead of
+// `warning` intentionally uses the warm `amber` palette (deep gold) instead of
 // the harsh `--warning` yellow — same name in the public API for clarity.
 const VARIANT_SPEC: Record<ConfirmVariant, VariantSpec> = {
   default:     { icon: HelpCircle,    tint: 'primary-strong',     confirmVariant: 'default',     cancelVariant: 'elevated' },
   destructive: { icon: AlertTriangle, tint: 'destructive-strong', confirmVariant: 'destructive', cancelVariant: 'destructive-soft' },
-  warning:     { icon: AlertTriangle, tint: 'accent-soft',               confirmVariant: 'accent-soft',        cancelVariant: 'elevated' },
+  warning:     { icon: AlertTriangle, tint: 'amber',              confirmVariant: 'amber-soft',  cancelVariant: 'elevated' },
   success:     { icon: CheckCircle2,  tint: 'success-strong',     confirmVariant: 'success',     cancelVariant: 'elevated' },
 }
 
@@ -80,7 +80,7 @@ export function ConfirmDialog({
   const presetSelectedCls: Record<ConfirmVariant, string> = {
     default:     'border-primary bg-primary-soft text-primary',
     destructive: 'border-destructive bg-destructive-soft text-destructive-strong',
-    warning:     'border-accent-soft-foreground/40 bg-accent-soft text-accent-soft-foreground',
+    warning:     'border-amber/40 bg-amber-soft text-amber-strong',
     success:     'border-success bg-success-soft text-success',
   }
 

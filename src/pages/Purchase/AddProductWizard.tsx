@@ -621,14 +621,14 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                     </div>
 
                     {/* price frame — cost / sell, split into two cells */}
-                    <div className="mt-2.5 grid grid-cols-2 divide-x divide-border overflow-hidden rounded-lg bg-accent-soft/50 border border-accent-soft-foreground/25">
+                    <div className="mt-2.5 grid grid-cols-2 divide-x divide-border overflow-hidden rounded-lg bg-amber-soft/50 border border-amber-strong/25">
                       <div className="px-4 py-2">
                         <div className="text-sm text-muted-foreground">ทุนล่าสุด</div>
-                        <div className="mt-0.5 text-sm font-bold text-accent-soft-foreground">{formatCurrency((row.stored_cost_price ?? 0) * (row.units.find(u => u.unit_name === row.unit_name)?.qty_per_base ?? 1))}</div>
+                        <div className="mt-0.5 text-sm font-bold text-amber-strong">{formatCurrency((row.stored_cost_price ?? 0) * (row.units.find(u => u.unit_name === row.unit_name)?.qty_per_base ?? 1))}</div>
                       </div>
                       <div className="px-4 py-2">
                         <div className="text-sm text-muted-foreground">ราคาขายปัจจุบัน</div>
-                        <div className="mt-0.5 text-sm font-bold text-accent-soft-foreground">{formatCurrency(row.default_sell_price ?? 0)}</div>
+                        <div className="mt-0.5 text-sm font-bold text-amber-strong">{formatCurrency(row.default_sell_price ?? 0)}</div>
                       </div>
                     </div>
 
@@ -648,10 +648,10 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                     </div>
 
                     {/* pack size — qty of the SELECTED unit per base unit, single line */}
-                    <div className="mt-3 h-7 w-44 flex items-center gap-2 rounded-lg border border-accent-soft-foreground/25 bg-accent-soft/50 px-4 py-2 text-xs">
+                    <div className="mt-3 h-7 w-44 flex items-center gap-2 rounded-lg border border-amber-strong/25 bg-amber-soft/50 px-4 py-2 text-xs">
                       <Info className="size-3 shrink-0" />
                       <span className="text-muted-foreground">ขนาดบรรจุ</span>
-                      <span className="font-bold text-accent-soft-foreground">
+                      <span className="font-bold text-amber-strong">
                         = {row.units.find(u => u.unit_name === row.unit_name)?.qty_per_base ?? 1} {row.units[0]?.unit_name}
                       </span>
                     </div>
@@ -796,8 +796,8 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
               <div>
                 <h3 className="text-lg font-bold mb-4">ราคาขาย</h3>
                 {costChanged && (
-                  <div className="mb-4 rounded-card border border-accent-soft-foreground/30 bg-accent-soft/50 px-4 py-3">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-accent-soft-foreground">
+                  <div className="mb-4 rounded-card border border-amber-strong/30 bg-amber-soft/50 px-4 py-3">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-amber-strong">
                       <AlertTriangle className="size-4 shrink-0" />
                       ทุนเปลี่ยนจาก {formatCurrency(prevCost!)} → {formatCurrency(cost)} · ทบทวนราคาขาย
                     </div>

@@ -160,7 +160,7 @@ export function alertColorClass(level: AlertLevel): string {
     case 'low_stock':
       return 'text-destructive'
     case 'danger':
-      return 'text-accent-soft-foreground'
+      return 'text-amber-strong'
     case 'warn':
       return 'text-warning'
   }

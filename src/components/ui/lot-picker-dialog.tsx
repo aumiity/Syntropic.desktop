@@ -55,15 +55,20 @@ export function LotPickerDialog<T extends LotPickerOption>({
             <div className="text-base font-semibold text-foreground">{productName || '-'}</div>
           </DialogHeader>
           <DialogBody>
-            <Toggle
-              framed
-              disabled={!anyDepleted}
-              className="w-full justify-between mb-2.5"
-              label={`แสดงล็อตที่ปิด${!showDepleted && hiddenCount > 0 ? ` (${hiddenCount})` : ''}`}
-              checked={showDepleted}
-              onChange={setShowDepleted}
-            />
-            <div className="grid gap-2.5 max-h-[28rem] overflow-y-auto scrollbar-thin p-0.5">
+            {/* Toggle's right inset (pr-2 = 8px) = list padding (p-0.5 = 2px) +
+                reserved scrollbar gutter (6px), so both edges align whether or
+                not the lot list is scrolling. */}
+            <div className="pl-0.5 pr-2 mb-2.5">
+              <Toggle
+                framed
+                disabled={!anyDepleted}
+                className="w-full h-12 justify-between"
+                label={`แสดงล็อตที่ปิด${!showDepleted && hiddenCount > 0 ? ` (${hiddenCount})` : ''}`}
+                checked={showDepleted}
+                onChange={setShowDepleted}
+              />
+            </div>
+            <div className="grid gap-2.5 max-h-[28rem] overflow-y-auto scrollbar-thin p-0.5 [scrollbar-gutter:stable]">
               {visibleLots.length === 0 ? (
                 <div className="text-sm text-center text-foreground-subtle py-6">ไม่มีล็อตให้เลือก</div>
               ) : visibleLots.map(lot => {

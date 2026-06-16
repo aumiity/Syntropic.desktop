@@ -94,7 +94,7 @@ export function SalesTab({ registerSave, saving, setSaving }: {
         <SectionCard
           icon={Bell}
           title="การแจ้งเตือนการขาย"
-          tint="accent-soft"
+          tint="amber"
         >
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
@@ -128,8 +128,8 @@ export function SalesTab({ registerSave, saving, setSaving }: {
                 <span><span className="font-medium text-warning">เตือนล่วงหน้า</span> — เหลือไม่ถึง {EXPIRY_WARN_MONTHS} เดือน แสดงป้ายสีเหลือง</span>
               </div>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <ClockAlert className="size-3.5 shrink-0 text-accent-soft-foreground" />
-                <span><span className="font-medium text-accent-soft-foreground">ระดับอันตราย</span> — เหลือไม่ถึง {EXPIRY_DANGER_MONTHS} เดือน แสดงป้ายสีส้ม</span>
+                <ClockAlert className="size-3.5 shrink-0 text-amber-strong" />
+                <span><span className="font-medium text-amber-strong">ระดับอันตราย</span> — เหลือไม่ถึง {EXPIRY_DANGER_MONTHS} เดือน แสดงป้ายสีส้ม</span>
               </div>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <ClockAlert className="size-3.5 shrink-0 text-destructive" />

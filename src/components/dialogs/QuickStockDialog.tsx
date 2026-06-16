@@ -153,18 +153,18 @@ export function QuickStockDialog({
           {/* Monthly sales tiles */}
           <div className="space-y-3 pt-3 border-t border-border">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-accent-soft/50 border border-accent-soft-foreground/25 px-3 py-2 flex items-center justify-between">
+              <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 px-3 py-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">เฉลี่ย / เดือน</span>
                 {monthlySales
-                  ? <span className="text-base font-bold text-accent-soft-foreground">{monthlySales.avg_per_month.toFixed(2)}</span>
+                  ? <span className="text-base font-bold text-amber-strong">{monthlySales.avg_per_month.toFixed(2)}</span>
                   : <span className="text-sm text-foreground-subtle">—</span>}
               </div>
-              <div className="rounded-lg bg-accent-soft/50 border border-accent-soft-foreground/25 px-3 py-2 flex items-center justify-between">
+              <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 px-3 py-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
                   {monthlySales ? formatThaiMonth(monthlySales.current_month.ym) : 'เดือนปัจจุบัน'}
                 </span>
                 {monthlySales
-                  ? <span className="text-base font-bold text-accent-soft-foreground">{monthlySales.current_month.qty.toFixed(2)}</span>
+                  ? <span className="text-base font-bold text-amber-strong">{monthlySales.current_month.qty.toFixed(2)}</span>
                   : <span className="text-sm text-foreground-subtle">—</span>}
               </div>
             </div>

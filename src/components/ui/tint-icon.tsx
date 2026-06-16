@@ -21,6 +21,9 @@ export type TintIconTint =
   | "teal"
   | "teal-strong"
   | "accent"
+  // warm decorative — amber (deep gold): base = soft, -strong = solid
+  | "amber"
+  | "amber-strong"
   // neutral
   | "secondary"
   | "neutral"
@@ -58,6 +61,8 @@ const BOX_BY_TINT: Record<TintIconTint, string> = {
   teal:                  "bg-teal-soft text-teal-strong",
   "teal-strong":         "bg-teal text-teal-foreground",
   accent:                "bg-accent text-accent-foreground",
+  amber:                 "bg-amber-soft text-amber-strong",
+  "amber-strong":        "bg-amber text-amber-foreground",
   // Neutral
   secondary:             "bg-muted text-muted-foreground",
   neutral:               "bg-card text-foreground border border-border shadow-sm",
@@ -80,6 +85,8 @@ const BORDER_BY_TINT: Record<Exclude<TintIconTint, "neutral">, string> = {
   teal:                  "border border-teal/40",
   "teal-strong":         "border border-teal/40",
   accent:                "border border-accent-foreground/30",
+  amber:                 "border border-amber/40",
+  "amber-strong":        "border border-amber/40",
   secondary:             "border border-border",
 }
 

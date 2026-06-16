@@ -260,7 +260,7 @@ export default function NegativeStockPage() {
                   </span> {confirming.row.unit_name} จากล็อตปัจจุบัน (FEFO)
                 </div>
                 {confirming.row.available_stock < confirming.row.qty && (
-                  <div className="rounded-xl bg-accent-soft p-3 text-sm text-accent-soft-foreground leading-relaxed">
+                  <div className="rounded-xl bg-amber-soft p-3 text-sm text-amber-strong leading-relaxed">
                     สต๊อกปัจจุบันไม่พอตัดครบ — เหลือค้าง <span className="font-bold">
                       {(confirming.row.qty - confirming.row.available_stock).toLocaleString()}
                     </span> {confirming.row.unit_name}

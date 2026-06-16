@@ -344,7 +344,7 @@ export default function PrintTab() {
           <SectionCard
             title="ตัวอย่าง"
             icon={FileText}
-            tint="accent-soft"
+            tint="amber"
             fill
             className="h-full"
             right={

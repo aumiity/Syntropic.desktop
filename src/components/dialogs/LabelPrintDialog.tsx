@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
-import { CircleAlert, Edit, Languages, PenLine, Plus, Printer, Tag } from 'lucide-react'
+import { CircleAlert, Edit, Languages, Minus, PenLine, Plus, Printer, Tag } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import type { Product, ProductLabel } from '@/types'
 import { LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
@@ -64,6 +64,56 @@ function normalizeCopies(raw: string): string {
 // string while the field is being edited.
 function copiesNum(raw: string): number {
   return Math.max(1, Math.min(99, parseInt(raw, 10) || 1))
+}
+
+// −/+ stepper for label copies (1..99). The center field stays freely typeable
+// (blur-normalizes via normalizeCopies); the buttons step by one off the
+// committed value. Used for both the blank-label row and each product row.
+function CopiesStepper({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string
+  onChange: (next: string) => void
+  disabled?: boolean
+}) {
+  const n = copiesNum(value)
+  return (
+    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+      <Button
+        variant="elevated"
+        size="lg"
+        className="h-9 w-9 p-0 shrink-0"
+        disabled={disabled || n <= 1}
+        onClick={() => onChange(String(Math.max(1, n - 1)))}
+        aria-label="ลดจำนวน"
+      >
+        <Minus className="size-4" />
+      </Button>
+      <Input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={e => onChange(e.target.value.replace(/\D/g, '').slice(0, 2))}
+        onFocus={e => e.currentTarget.select()}
+        onBlur={() => onChange(normalizeCopies(value))}
+        className="h-9 w-full min-w-0 px-1 text-center"
+        aria-label="จำนวนสำเนา"
+        disabled={disabled}
+      />
+      <Button
+        variant="elevated"
+        size="lg"
+        className="h-9 w-9 p-0 shrink-0"
+        disabled={disabled || n >= 99}
+        onClick={() => onChange(String(Math.min(99, n + 1)))}
+        aria-label="เพิ่มจำนวน"
+      >
+        <Plus className="size-4" />
+      </Button>
+    </div>
+  )
 }
 
 export function LabelPrintDialog({ open, onClose }: Props) {
@@ -310,7 +360,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
           </DialogHeader>
 
           <DialogBody className="flex min-h-0 overflow-hidden rounded-none p-0">
-            <div className="grid min-h-0 flex-1 grid-cols-[480px_minmax(0,1fr)] overflow-hidden max-[960px]:grid-cols-1">
+            <div className="grid min-h-0 flex-1 grid-cols-[420px_minmax(0,1fr)] overflow-hidden max-[960px]:grid-cols-1">
 
               {/* ============ LEFT — live preview of the active product's label ============ */}
               <aside className="flex min-h-0 flex-col border-r border-border bg-muted max-[960px]:hidden">
@@ -417,7 +467,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setBlankActive(true) }
                     }}
                     className={cn(
-                      'grid grid-cols-[32px_minmax(0,1fr)_176px_72px] items-center gap-2.5 rounded-lg border-2 bg-card p-2.5 shadow-sm transition-colors',
+                      'grid grid-cols-[32px_minmax(0,1fr)_176px_140px] items-center gap-2.5 rounded-lg border-2 bg-card p-2.5 shadow-sm transition-colors',
                       blankActive ? 'border-primary bg-primary-soft/40' : 'border-border hover:bg-primary-soft/30',
                     )}
                   >
@@ -436,16 +486,9 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                     >
                       <Printer className="size-4" /> {blankPrinting ? 'กำลังพิมพ์...' : 'พิมพ์ฉลากเปล่า'}
                     </Button>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
+                    <CopiesStepper
                       value={blankCopies}
-                      onChange={e => setBlankCopies(e.target.value.replace(/\D/g, '').slice(0, 2))}
-                      onFocus={e => e.currentTarget.select()}
-                      onBlur={() => setBlankCopies(normalizeCopies(blankCopies))}
-                      onClick={e => e.stopPropagation()}
-                      className="h-9 w-full text-center"
-                      aria-label="จำนวนสำเนาฉลากเปล่า"
+                      onChange={setBlankCopies}
                       disabled={blankPrinting}
                     />
                   </div>
@@ -470,7 +513,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveProductId(row.productId); setBlankActive(false) }
                           }}
                           className={cn(
-                            'grid grid-cols-[32px_minmax(0,1fr)_176px_72px] items-center gap-2.5 rounded-lg border-2 bg-card p-2.5 shadow-sm transition-colors',
+                            'grid grid-cols-[32px_minmax(0,1fr)_176px_140px] items-center gap-2.5 rounded-lg border-2 bg-card p-2.5 shadow-sm transition-colors',
                             isActive ? 'border-primary bg-primary-soft/40' : 'border-border hover:bg-primary-soft/30',
                           )}
                         >
@@ -528,16 +571,9 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                                   </SelectItem>
                                 </SelectContent>
                               </Select>
-                              <Input
-                                type="text"
-                                inputMode="numeric"
+                              <CopiesStepper
                                 value={row.copies}
-                                onChange={e => patchRow(row.productId, { copies: e.target.value.replace(/\D/g, '').slice(0, 2) })}
-                                onFocus={e => e.currentTarget.select()}
-                                onBlur={() => patchRow(row.productId, { copies: normalizeCopies(row.copies) })}
-                                onClick={e => e.stopPropagation()}
-                                className="h-9 w-full text-center"
-                                aria-label="จำนวนสำเนา"
+                                onChange={next => patchRow(row.productId, { copies: next })}
                                 disabled={printing}
                               />
                             </>

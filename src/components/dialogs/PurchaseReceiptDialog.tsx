@@ -218,8 +218,8 @@ export function PurchaseReceiptDialog({
                     {(() => {
                       const rows: Array<{ label: string; value: string; cls: string }> = []
                       if (hasAdjust) rows.push({ label: 'ราคารวม', value: formatCurrency(rawTotal), cls: 'text-muted-foreground' })
-                      if (discountAmt > 0) rows.push({ label: 'ส่วนลด', value: `−${formatCurrency(discountAmt)}`, cls: 'text-accent-soft-foreground' })
-                      if (surchargeAmt > 0) rows.push({ label: 'ส่วนเพิ่ม', value: `+${formatCurrency(surchargeAmt)}`, cls: 'text-accent-soft-foreground' })
+                      if (discountAmt > 0) rows.push({ label: 'ส่วนลด', value: `−${formatCurrency(discountAmt)}`, cls: 'text-amber-strong' })
+                      if (surchargeAmt > 0) rows.push({ label: 'ส่วนเพิ่ม', value: `+${formatCurrency(surchargeAmt)}`, cls: 'text-amber-strong' })
                       if (vatMode === 'inclusive' && vatAmount > 0) rows.push({ label: `ภาษีมูลค่าเพิ่ม ${vatRate}% (รวมในยอด)`, value: formatCurrency(vatAmount), cls: 'text-muted-foreground' })
                       if (vatMode === 'exclusive' && vatAmount > 0) rows.push({ label: `ภาษีมูลค่าเพิ่ม ${vatRate}%`, value: `+${formatCurrency(vatAmount)}`, cls: 'text-muted-foreground' })
                       const BOTTOMS = ['[&>td]:bottom-8', '[&>td]:bottom-16', '[&>td]:bottom-24', '[&>td]:bottom-32', '[&>td]:bottom-40']

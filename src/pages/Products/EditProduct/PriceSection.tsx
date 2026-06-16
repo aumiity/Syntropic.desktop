@@ -31,10 +31,10 @@ interface PriceLog {
   created_at: string
 }
 
-const PRICE_TYPE_META: Record<string, { label: string; variant: 'success' | 'info-soft' | 'accent-soft' }> = {
+const PRICE_TYPE_META: Record<string, { label: string; variant: 'success' | 'info-soft' | 'amber-soft' }> = {
   retail:     { label: 'ราคาปลีก',  variant: 'success' },
   wholesale1: { label: 'ราคาส่ง 1', variant: 'info-soft' },
-  wholesale2: { label: 'ราคาส่ง 2', variant: 'accent-soft' },
+  wholesale2: { label: 'ราคาส่ง 2', variant: 'amber-soft' },
 }
 
 interface PriceSectionProps {
@@ -118,11 +118,11 @@ export function PriceSection({
                   className="text-left"
                 />
               </Field>
-              <div className="rounded-lg bg-accent-soft/50 border border-accent-soft-foreground/25 px-3 py-2 space-y-0.5">
+              <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 px-3 py-2 space-y-0.5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">ทุนเฉลี่ย</span>
                   {avgCost > 0
-                    ? <span className="text-sm font-bold text-accent-soft-foreground">{formatCurrency(avgCost)}</span>
+                    ? <span className="text-sm font-bold text-amber-strong">{formatCurrency(avgCost)}</span>
                     : <span className="text-sm text-foreground-subtle">—</span>}
                 </div>
                 <div className="text-sm text-muted-foreground flex items-center gap-1.5">

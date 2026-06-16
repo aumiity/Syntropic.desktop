@@ -106,7 +106,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-type MetricTint = "primary" | "success" | "warning" | "destructive" | "secondary" | "accent-soft" | "info-soft" | "info" | "violet"
+type MetricTint = "primary" | "success" | "warning" | "destructive" | "secondary" | "amber" | "info-soft" | "info" | "violet"
 type SectionTint = MetricTint
 
 function SectionCard({
@@ -184,7 +184,7 @@ function MetricCard({
     : tint === "warning"     ? "text-warning-soft-foreground"
     : tint === "destructive" ? "text-destructive"
     : tint === "secondary"   ? "text-muted-foreground"
-    : tint === "accent-soft"        ? "text-accent-soft-foreground"
+    : tint === "amber"        ? "text-amber-strong"
     : tint === "info-soft"   ? "text-info-soft-foreground"
     : tint === "info"        ? "text-info-soft-foreground"
     : tint === "violet"      ? "text-violet-strong"
@@ -337,16 +337,16 @@ function StatCard({
   onClick?: () => void
   className?: string
 }) {
-  // StatCard maps `warning` → warm-styled icon box (cream/amber) so the card
+  // StatCard maps `warning` → warm-styled icon box (amber/gold) so the card
   // stays soft even when warning is the alert-orange in other contexts.
-  const iconTint: TintIconTint = tint === "warning" ? "accent-soft" : tint
+  const iconTint: TintIconTint = tint === "warning" ? "amber" : tint
   const activeRing =
     !isActive ? "ring-0"
     : tint === "success"     ? "ring-2 ring-success"
     : tint === "warning"     ? "ring-2 ring-warning"
     : tint === "destructive" ? "ring-2 ring-destructive"
     : tint === "secondary"   ? "ring-2 ring-border-strong"
-    : tint === "accent-soft"   ? "ring-2 ring-accent-soft-foreground"
+    : tint === "amber"   ? "ring-2 ring-amber-strong"
     : tint === "info-soft"   ? "ring-2 ring-info-soft-foreground"
     : "ring-2 ring-primary"
   const interactive = onClick

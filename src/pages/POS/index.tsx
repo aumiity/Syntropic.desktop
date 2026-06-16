@@ -52,7 +52,7 @@ const SEVERITY_LABELS: Record<string, string> = {
   mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต',
 }
 const SEVERITY_VARIANTS: Record<string, any> = {
-  mild: 'secondary', moderate: 'warning', severe: 'accent-soft', life_threatening: 'destructive',
+  mild: 'secondary', moderate: 'warning', severe: 'amber-soft', life_threatening: 'destructive',
 }
 
 const stripCommas = (v: string) => v.replace(/,/g, '')
@@ -415,6 +415,62 @@ export default function POSPage() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [showPayment])
+
+  // Seeds the payment dialog from the current cart, then opens it. Shared by the
+  // big "ชำระเงิน" button and the F9 hotkey.
+  const openPayment = useCallback(() => {
+    if (cart.items.length === 0) return
+    setPendingDiscounts(cart.items.map(i => i.discount))
+    setTotalDiscountInput(cart.totalDiscount().toFixed(2))
+    setCashAmount(cart.totalAmount().toFixed(2))
+    setShowBreakdown(false)
+    setShowPayment(true)
+  }, [cart])
+
+  // F9 opens the payment dialog — only when nothing else is open, so it never
+  // hijacks a key inside a nested modal or the search box.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'F9') return
+      if (anyModalOpen) return
+      e.preventDefault()
+      openPayment()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [anyModalOpen, openPayment])
+
+  // Kicks the cash drawer open. Shared by the "เปิดลิ้นชัก" button and F10.
+  const openCashDrawer = useCallback(() => {
+    (window.api.printer as any)?.openCashDrawer?.()
+    refocusSearch()
+  }, [])
+
+  // F10 opens the cash drawer — same "nothing else open" guard as F9.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'F10') return
+      if (anyModalOpen) return
+      e.preventDefault()
+      openCashDrawer()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [anyModalOpen, openCashDrawer])
+
+  // F4 opens the label-print dialog. The "nothing else open" guard also keeps it
+  // clear of the payment dialog's own F4 (toggle print-receipt), which only
+  // listens while that dialog is open. Needs a non-empty cart, like the button.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'F4') return
+      if (anyModalOpen || cart.items.length === 0) return
+      e.preventDefault()
+      setShowLabelPrint(true)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [anyModalOpen, cart])
 
   const refocusSearch = useCallback(() => {
     setTimeout(() => {
@@ -1014,7 +1070,7 @@ export default function POSPage() {
                     </span>
                     <div className="flex items-center w-full">
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant={isActive ? 'accent-soft' : 'accent'} className="text-xs rounded-md">ขายส่ง</Badge>
+                        <Badge variant={isActive ? 'amber-soft' : 'accent'} className="text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
                         <Badge variant={isActive ? 'primary-soft' : 'default'} className="text-xs rounded-md">ขายปลีก</Badge>
                       )}
@@ -1305,7 +1361,7 @@ export default function POSPage() {
                     <ClockAlert className="size-3.5 text-destructive" /> หมดอายุ
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <ClockAlert className="size-3.5 text-accent-soft-foreground" /> อายุต่ำกว่า {EXPIRY_DANGER_MONTHS} เดือน
+                    <ClockAlert className="size-3.5 text-amber-strong" /> อายุต่ำกว่า {EXPIRY_DANGER_MONTHS} เดือน
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <ClockAlert className="size-3.5 text-warning" /> อายุต่ำกว่า {EXPIRY_WARN_MONTHS} เดือน
@@ -1340,14 +1396,16 @@ export default function POSPage() {
 
           {/* Quick actions (vertical stack) */}
           <div className="flex flex-col gap-1.5 flex-1 min-h-0">
-            <Button variant="elevated" onClick={() => { (window.api.printer as any)?.openCashDrawer?.(); refocusSearch() }}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+            <Button variant="elevated" onClick={openCashDrawer}
+              className="relative w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
               <Banknote className="size-6 text-info" /> เปิดลิ้นชัก
+              <span className="absolute right-2 top-2 inline-flex items-center rounded-md border border-border px-1.5 py-0.5 text-xs font-semibold text-border-strong">F10</span>
             </Button>
             <Button variant="elevated" disabled={cart.items.length === 0}
               onClick={() => setShowLabelPrint(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              className="relative w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
               <Tag className="size-6 text-info-soft-foreground" /> พิมพ์ฉลาก
+              <span className="absolute right-2 top-2 inline-flex items-center rounded-md border border-border px-1.5 py-0.5 text-xs font-semibold text-border-strong">F4</span>
             </Button>
             <Button variant="elevated" onClick={() => setShowAdjust(true)}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
@@ -1365,16 +1423,11 @@ export default function POSPage() {
 
           {/* Pay button */}
           <Button disabled={cart.items.length === 0}
-            onClick={() => {
-              setPendingDiscounts(cart.items.map(i => i.discount))
-              setTotalDiscountInput(cart.totalDiscount().toFixed(2))
-              setCashAmount(cart.totalAmount().toFixed(2))
-              setShowBreakdown(false)
-              setShowPayment(true)
-            }}
-            className="w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-accent/85  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3">
+            onClick={openPayment}
+            className="relative w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-accent/85  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3">
               <HandCoins className="size-9" strokeWidth={2.2} />
               <span className="text-4xl font-bold leading-none">ชำระเงิน</span>
+              <span className="absolute right-2 top-2 inline-flex items-center rounded-md border border-foreground/60 px-1.5 py-0.5 text-xs font-semibold text-foreground">F9</span>
           </Button>
 
           {/* Daily summary */}
@@ -1546,7 +1599,7 @@ export default function POSPage() {
 
                   {/* Medical */}
                   {(c.chronic_diseases || allergies.length > 0) ? (
-                    <SectionCard icon={HeartPulse} title="ข้อมูลทางการแพทย์" tint="accent-soft">
+                    <SectionCard icon={HeartPulse} title="ข้อมูลทางการแพทย์" tint="amber">
                       {c.chronic_diseases ? (
                         <div className="space-y-1">
                           <div className="text-sm font-semibold text-muted-foreground">โรคประจำตัว</div>
@@ -1946,7 +1999,6 @@ export default function POSPage() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground cursor-default">
-                                  <ClockAlert className="size-3 shrink-0" />
                                   FEFO · {item.allocations.length} ล็อต
                                 </span>
                               </TooltipTrigger>
@@ -1960,7 +2012,6 @@ export default function POSPage() {
                             </Tooltip>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                              <ClockAlert className="size-3 shrink-0" />
                               Lot {firstAlloc?.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}
                             </span>
                           )}
@@ -1997,7 +2048,7 @@ export default function POSPage() {
               <div className="flex flex-wrap items-center gap-1.5">
                 {['ใช้ภายใน', 'เสียหาย/แตกหัก', 'สูญหาย'].map(reason => (
                   <Button key={reason}
-                    variant={adjustReason === reason ? 'accent' : 'elevated'}
+                    variant={adjustReason === reason ? 'amber-soft' : 'elevated'}
                     size="sm"
                     onClick={() => setAdjustReason(r => r === reason ? '' : reason)}
                     className={`h-8 rounded-md border ${adjustReason === reason ? 'border-transparent' : ''}`}>
@@ -2018,7 +2069,7 @@ export default function POSPage() {
             <Button variant="elevated" size="xl" onClick={closeAdjust}>ยกเลิก</Button>
             <Button
               size="xl"
-              variant="accent"
+              variant="default"
               onClick={handleConfirmAdjust}
               disabled={adjustList.length === 0 || !adjustReason.trim() || adjustSaving}
             >
@@ -2103,7 +2154,6 @@ export default function POSPage() {
                             <Button variant="primary-soft" size="sm" onClick={() => setReturnLotRowIdx(idx)}
                               className="h-8 max-w-full gap-1 rounded-md">
                               <span className="truncate">Lot {item.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}</span>
-                              <ChevronDown className="size-3 shrink-0" />
                             </Button>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -2144,7 +2194,7 @@ export default function POSPage() {
               <div className="flex flex-wrap items-center gap-1.5">
                 {['ลูกค้าเปลี่ยนใจ', 'สินค้าเสียหาย', 'หมดอายุ'].map(reason => (
                   <Button key={reason}
-                    variant={returnReason === reason ? 'default' : 'elevated'}
+                    variant={returnReason === reason ? 'primary-soft' : 'elevated'}
                     size="sm"
                     onClick={() => setReturnReason(r => r === reason ? '' : reason)}
                     className={`h-8 rounded-md border ${returnReason === reason ? 'border-transparent' : ''}`}>
@@ -2416,7 +2466,7 @@ export default function POSPage() {
                 <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
               </DialogHeader>
               <DialogBody>
-                <div className="flex flex-col gap-2 h-[30rem] overflow-y-auto scrollbar-thin p-0.5">
+                <div className="flex flex-col gap-2 max-h-[28rem] overflow-y-auto scrollbar-thin p-0.5">
                   {/* Custom price — special card with an input, kept distinct via primary tint */}
                   <div className={`w-full shrink-0 rounded-xl border-2 p-3.5 transition-all ${customActive ? 'border-primary bg-primary-soft/50 shadow-card' : 'border-primary/30 bg-primary-soft/30'}`}>
                     <div className="flex items-start justify-between gap-3 w-full">

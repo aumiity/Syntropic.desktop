@@ -60,7 +60,7 @@ export function UnitPickerDialog<T extends UnitPickerOption>({
                     <div className="flex items-start gap-3 w-full">
                       <div className="flex-1 min-w-0 space-y-0.5">
                         <span className="block text-xl font-bold text-foreground">{u.unit_name ?? '-'}</span>
-                        <div className={cn("text-sm font-medium", isBase ? "text-accent-soft-foreground" : "text-primary")}>
+                        <div className={cn("text-sm font-medium", isBase ? "text-amber-strong" : "text-primary")}>
                           {isBase ? 'หน่วยหลัก' : `บรรจุ ${qpb} ${baseUnitName}`}
                         </div>
                       </div>

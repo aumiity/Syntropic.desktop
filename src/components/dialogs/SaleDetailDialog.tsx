@@ -269,7 +269,7 @@ export function SaleDetailDialog({
                             <TableCell className="text-center text-sm">{item.qty}</TableCell>
                             <TableCell className="text-center text-sm">{item.unit_name}</TableCell>
                             <TableCell className="text-right text-sm">{formatCurrency(item.unit_price)}</TableCell>
-                            <TableCell className="text-right text-sm text-accent-soft-foreground">
+                            <TableCell className="text-right text-sm text-amber-strong">
                               {item.discount > 0 ? formatCurrency(item.discount) : '0'}
                             </TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(item.line_total)}</TableCell>
@@ -365,7 +365,7 @@ export function SaleDetailDialog({
                             <span className="font-medium">{formatCurrency(detail.subtotal)}</span>
                           </div>
                           {detail.total_discount > 0 && (
-                            <div className="flex justify-between gap-4 text-accent-soft-foreground">
+                            <div className="flex justify-between gap-4 text-amber-strong">
                               <span>ส่วนลด</span>
                               <span className="font-medium">-{formatCurrency(detail.total_discount)}</span>
                             </div>

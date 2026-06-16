@@ -43,7 +43,7 @@ const EMPTY_COUNTS: InactiveCounts = { m1: 0, m3: 0, m6: 0, m12: 0 }
 const THRESHOLDS: { months: Months; key: keyof InactiveCounts; tint: MetricTint }[] = [
   { months: 1,  key: 'm1',  tint: 'primary' },
   { months: 3,  key: 'm3',  tint: 'info-soft' },
-  { months: 6,  key: 'm6',  tint: 'accent-soft' },
+  { months: 6,  key: 'm6',  tint: 'amber' },
   { months: 12, key: 'm12', tint: 'destructive' },
 ]
 

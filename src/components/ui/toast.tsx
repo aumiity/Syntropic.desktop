@@ -71,7 +71,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               'pointer-events-auto flex items-start gap-3 rounded-lg border px-4 py-3 shadow-lg text-sm min-w-[280px] max-w-sm animate-in slide-in-from-right',
               t.type === 'success' && 'bg-success-soft border-success/30 text-success',
               t.type === 'error' && 'bg-destructive-soft border-destructive/30 text-destructive',
-              t.type === 'warning' && 'bg-accent-soft border-warning/40 text-accent-soft-foreground',
+              t.type === 'warning' && 'bg-amber-soft border-warning/40 text-amber-strong',
               t.type === 'info' && 'bg-primary-soft border-primary-soft-border text-primary',
             )}
           >

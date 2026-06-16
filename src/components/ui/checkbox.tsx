@@ -96,7 +96,7 @@ function CheckRow({ checked, onChange, label, variant = "default", framed, disab
       framed && "h-9 px-3 rounded-lg border transition-colors",
       framed && (variant === "default" || !checked) && "bg-card border-border",
       framed && variant === "destructive" && checked && "bg-destructive-soft border-destructive/30 text-destructive",
-      framed && variant === "warning" && checked && "bg-accent-soft border-warning/40 text-accent-soft-foreground",
+      framed && variant === "warning" && checked && "bg-amber-soft border-warning/40 text-amber-strong",
       className,
     )}>
       <Checkbox checked={checked} onCheckedChange={v => onChange(v === true)} disabled={disabled} variant={variant === "destructive" ? "destructive" : "default"} />

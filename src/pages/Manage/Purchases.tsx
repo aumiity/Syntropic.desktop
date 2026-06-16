@@ -215,7 +215,7 @@ export default function ManagePurchasesPage() {
       { label: 'จำนวนบิล', value: histSummary.count.toLocaleString(),           icon: FileText,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'เงินสด',    value: histSummary.cash_count.toLocaleString(),      icon: Banknote,      tint: 'success',      sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
       { label: 'เครดิต',    value: histSummary.credit_count.toLocaleString(),    icon: CreditCard,    tint: 'info-soft',    sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ค้างชำระ',  value: histSummary.unpaid_count.toLocaleString(),    icon: AlertTriangle, tint: 'accent-soft',         sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ค้างชำระ',  value: histSummary.unpaid_count.toLocaleString(),    icon: AlertTriangle, tint: 'amber',         sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     ])
   }, [histSummary, setSlotSummary])
@@ -622,7 +622,7 @@ export default function ManagePurchasesPage() {
                               ? <Badge variant="success-outline">ชำระแล้ว</Badge>
                               : isOverdue
                                 ? <Badge variant="destructive-outline">เกินกำหนด</Badge>
-                                : <Badge variant="accent-outline">เครดิต</Badge>
+                                : <Badge variant="amber-outline">เครดิต</Badge>
                             : <Badge variant="info-outline">เงินสด</Badge>
                         }
                       </TableCell>
@@ -870,7 +870,7 @@ export default function ManagePurchasesPage() {
                       <Button
                         key={d}
                         type="button"
-                        variant="accent-soft"
+                        variant="amber-soft"
                         onClick={() => {
                           const dt = new Date()
                           dt.setDate(dt.getDate() + d)
