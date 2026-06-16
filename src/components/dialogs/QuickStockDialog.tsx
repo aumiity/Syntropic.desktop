@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
+import { SettingRow } from '@/components/ui/setting-row'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { Boxes } from 'lucide-react'
@@ -189,13 +189,13 @@ export function QuickStockDialog({
           </div>
 
           {/* Disable toggle */}
-          <label className={`flex items-center gap-3 rounded-lg px-3 py-2 border cursor-pointer select-none ${isDisabled ? 'border-destructive/40 bg-destructive-soft/40' : 'border-border'}`}>
-            <Checkbox variant="destructive" checked={isDisabled} onCheckedChange={v => setIsDisabled(v === true)} />
-            <div>
-              <div className="text-sm font-semibold text-foreground">ปิดใช้งานสินค้า</div>
-              <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
-            </div>
-          </label>
+          <SettingRow
+            variant="destructive"
+            title="ปิดใช้งานสินค้า"
+            description="ปิดการใช้งานทั้งสินค้า"
+            checked={isDisabled}
+            onChange={v => setIsDisabled(v === true)}
+          />
         </DialogBody>
 
         <DialogFooter>

@@ -57,7 +57,7 @@ function Switch({
 
 // Toggle = label + Switch. Label sits on the LEFT, switch on the RIGHT
 // (iOS/macOS settings convention: setting name first, control after).
-// `framed` wraps it in a h-9 rounded-lg pill with a thin border so it reads
+// `framed` wraps it in a h-12 rounded-lg pill with a thin border so it reads
 // as a control on both tinted page backgrounds AND inside white dialogs
 // (where a borderless white pill would be invisible). The pill stays a plain
 // neutral frame (bg-card border-border) while OFF for every variant — only
@@ -90,7 +90,7 @@ function Toggle({ checked, onChange, label, size, variant = "default", framed, d
       // top-bar input-blended frame (matches the search Input)
       frameInput && "h-9 px-3 rounded-lg bg-input transition-colors",
       // standard pill frame (border + bg-card)
-      framed && !frameInput && "h-9 px-3 rounded-lg border transition-colors",
+      framed && !frameInput && "h-12 px-3 rounded-lg border transition-colors",
       // plain neutral frame for every variant while off
       framed && !frameInput && (variant === "default" || !checked) && "bg-card border-border",
       // colored frame/tint only once switched on

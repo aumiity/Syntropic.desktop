@@ -77,7 +77,7 @@ function Checkbox({
 // CheckRow = Checkbox + label, checkbox on the LEFT, label on the RIGHT.
 // Sibling of Toggle (switch.tsx) for "deferred" settings that commit only on an
 // explicit Save: a checkbox reads as "tick to select, then save", whereas a
-// switch implies an instant on/off. `framed` wraps it in an h-9 pill (mirrors
+// switch implies an instant on/off. `framed` wraps it in an h-12 pill (mirrors
 // Toggle framed) so it reads as a control inside dialogs and on tinted pages;
 // variant=destructive/warning tints the pill once checked, exactly like Toggle.
 function CheckRow({ checked, onChange, label, variant = "default", framed, disabled, className }: {
@@ -93,7 +93,7 @@ function CheckRow({ checked, onChange, label, variant = "default", framed, disab
     <label className={cn(
       "flex items-center gap-2 cursor-pointer select-none",
       disabled && "cursor-not-allowed opacity-50",
-      framed && "h-9 px-3 rounded-lg border transition-colors",
+      framed && "h-12 px-3 rounded-lg border transition-colors",
       framed && (variant === "default" || !checked) && "bg-card border-border",
       framed && variant === "destructive" && checked && "bg-destructive-soft border-destructive/30 text-destructive",
       framed && variant === "warning" && checked && "bg-amber-soft border-warning/40 text-amber-strong",

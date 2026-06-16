@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select'
 import { Checkbox, CheckRow } from '@/components/ui/checkbox'
 import { Switch, Toggle } from '@/components/ui/switch'
+import { SettingRow } from '@/components/ui/setting-row'
 import {
   Card, CardHeader, CardTitle, CardDescription,
   CardContent, CardFooter, CardAction,
@@ -963,7 +964,7 @@ export default function Theme() {
                 <DemoRow label="Toggle (label + switch) — label on left, switch on right (iOS settings style)">
                   <Toggle size="lg" checked={switchOn} onChange={setSwitchOn} label="พื้นฐาน" />
                 </DemoRow>
-                <DemoRow label="Toggle framed — pill for dialogs / tinted bg (h-9, bg-card, border, rounded-lg)">
+                <DemoRow label="Toggle framed — pill for dialogs / tinted bg (h-12, bg-card, border, rounded-lg)">
                   <Toggle framed size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่พักใช้งาน" />
                 </DemoRow>
                 <DemoRow label='Toggle framed="input" — top-bar variant: borderless h-9 bg-input, blends with the search Input beside it'>
@@ -984,11 +985,24 @@ export default function Theme() {
                 <DemoRow label="CheckRow — Checkbox + label สำหรับค่าที่ต้องกดบันทึก (checkbox ซ้าย/label ขวา); switch = มีผลทันที, checkbox = เลือกแล้วค่อยเซฟ">
                   <CheckRow checked={switchOn} onChange={setSwitchOn} label="พื้นฐาน" />
                 </DemoRow>
-                <DemoRow label="CheckRow framed — pill สำหรับ dialog / พื้นมีสี (h-9, bg-card, border)">
+                <DemoRow label="CheckRow framed — pill สำหรับ dialog / พื้นมีสี (h-12, bg-card, border)">
                   <CheckRow framed checked={switchOn} onChange={setSwitchOn} label="แสดงบาร์โค้ดในตัวอย่าง" />
                 </DemoRow>
                 <DemoRow label="CheckRow framed + destructive — กรอบธรรมดาเมื่อปิด, กรอบแดงเมื่อติ๊ก (พักการใช้งาน, ปิดใช้งาน)">
                   <CheckRow framed variant="destructive" checked={switchOn} onChange={setSwitchOn} label="พักการใช้งาน" />
+                </DemoRow>
+                <DemoRow label="SettingRow — แถวตั้งค่า title + คำอธิบาย 2 บรรทัด (h-14); control=checkbox (ซ้าย) หรือ switch (ขวา); สูง/ขอบ/tint คุมจากที่เดียว (border-over-ring)">
+                  <div className="w-96 space-y-3">
+                    <SettingRow title="ใช้หน่วยนี้ในการขาย" description="ให้เลือกหน่วยนี้ได้ที่หน้าขาย (POS)" checked={switchOn} onChange={setSwitchOn} />
+                    <SettingRow control="switch" title="เป็นยาตามกฎหมาย" description="เปิดสวิตช์เพื่อกรอกข้อมูลยา" checked={switchOn} onChange={setSwitchOn} />
+                    <SettingRow variant="destructive" title="ปิดใช้งาน" description="ปิดการใช้งานทั้งสินค้า" checked={switchOn} onChange={setSwitchOn} />
+                  </div>
+                </DemoRow>
+                <DemoRow label="SettingRow framed={false} — กลุ่มแถวใน 'rounded-lg border divide-y' กล่องเดียว (แถวไม่มีขอบเอง, wrapper เป็นกรอบ); readOnly = ค่า lock จากที่อื่น ไม่ dim">
+                  <div className="w-96 rounded-lg border border-border divide-y divide-border overflow-hidden">
+                    <SettingRow framed={false} title="ข.ย.10" description="ขายยาควบคุมพิเศษ" checked={switchOn} onChange={setSwitchOn} />
+                    <SettingRow framed={false} readOnly title="ข.ย.9" description="บัญชีการซื้อยา (อัตโนมัติ)" checked />
+                  </div>
                 </DemoRow>
               </Section>
 

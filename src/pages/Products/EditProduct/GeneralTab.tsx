@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Toggle } from '@/components/ui/switch'
-import { Checkbox } from '@/components/ui/checkbox'
+import { SettingRow } from '@/components/ui/setting-row'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SectionCard } from '@/components/ui/card'
@@ -260,27 +259,29 @@ export function GeneralTab({
 
         <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
           <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
-            <label className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none ${form.is_disabled ? 'bg-destructive-soft/40' : ''}`}>
-              <Checkbox variant="destructive" checked={!!form.is_disabled} onCheckedChange={v => setF('is_disabled', v ? 1 : 0)} />
-              <div>
-                <div className="text-sm font-semibold text-foreground">ปิดใช้งาน</div>
-                <div className="text-xs text-muted-foreground">ปิดการใช้งานทั้งสินค้า</div>
-              </div>
-            </label>
-            <label className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none ${form.is_hidden ? 'bg-destructive-soft/40' : ''}`}>
-              <Checkbox variant="destructive" checked={!!form.is_hidden} onCheckedChange={v => setF('is_hidden', v ? 1 : 0)} />
-              <div>
-                <div className="text-sm font-semibold text-foreground">ซ่อน</div>
-                <div className="text-xs text-muted-foreground">ซ่อนจากการค้นหา</div>
-              </div>
-            </label>
-            <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none">
-              <Checkbox checked={!!form.is_stock_item} onCheckedChange={v => setF('is_stock_item', v ? 1 : 0)} />
-              <div>
-                <div className="text-sm font-semibold text-foreground">นับสต็อก</div>
-                <div className="text-xs text-muted-foreground">ตัดสต็อกอัตโนมัติเมื่อขาย</div>
-              </div>
-            </label>
+            <SettingRow
+              framed={false}
+              variant="destructive"
+              title="ปิดใช้งาน"
+              description="ปิดการใช้งานทั้งสินค้า"
+              checked={!!form.is_disabled}
+              onChange={v => setF('is_disabled', v ? 1 : 0)}
+            />
+            <SettingRow
+              framed={false}
+              variant="destructive"
+              title="ซ่อน"
+              description="ซ่อนจากการค้นหา"
+              checked={!!form.is_hidden}
+              onChange={v => setF('is_hidden', v ? 1 : 0)}
+            />
+            <SettingRow
+              framed={false}
+              title="นับสต็อก"
+              description="ตัดสต็อกอัตโนมัติเมื่อขาย"
+              checked={!!form.is_stock_item}
+              onChange={v => setF('is_stock_item', v ? 1 : 0)}
+            />
           </div>
         </SectionCard>
 
@@ -341,21 +342,17 @@ export function GeneralTab({
           title="ข้อมูลยา"
           tint="warning"
         >
-          <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2">
-            <div>
-              <div className="text-sm font-semibold text-foreground">เป็นยาตามกฎหมาย</div>
-              <div className="text-xs text-muted-foreground">เปิดสวิตช์เพื่อกรอกข้อมูลยา</div>
-            </div>
-            <Toggle
-              size="lg"
-              checked={!!form.is_drug}
-              onChange={v => {
-                setF('is_drug', v ? 1 : 0)
-                // ข.ย.9 (purchase report) is always tied to is_drug — every drug must be logged
-                setF('is_fda9', v ? 1 : 0)
-              }}
-            />
-          </div>
+          <SettingRow
+            control="switch"
+            title="เป็นยาตามกฎหมาย"
+            description="เปิดสวิตช์เพื่อกรอกข้อมูลยา"
+            checked={!!form.is_drug}
+            onChange={v => {
+              setF('is_drug', v ? 1 : 0)
+              // ข.ย.9 (purchase report) is always tied to is_drug — every drug must be logged
+              setF('is_fda9', v ? 1 : 0)
+            }}
+          />
           {!!form.is_drug && (
             <>
               <div className="space-y-3">
@@ -418,37 +415,34 @@ export function GeneralTab({
               </Field> */}
               <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
                 {/* ข.ย.9 — locked to is_drug, shown read-only */}
-                <label className="flex items-center gap-3 px-3 py-2.5">
-                  <Checkbox checked={!!form.is_fda9} disabled />
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">ข.ย.9</div>
-                    <div className="text-xs text-muted-foreground">บัญชีการซื้อยา (อัตโนมัติ)</div>
-                  </div>
-                </label>
-                {/* ข.ย.10 */}
-                <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none">
-                  <Checkbox checked={!!form.is_fda10} onCheckedChange={v => setF('is_fda10', v ? 1 : 0)} />
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">ข.ย.10</div>
-                    <div className="text-xs text-muted-foreground">ขายยาควบคุมพิเศษ</div>
-                  </div>
-                </label>
-                {/* ข.ย.11 */}
-                <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none">
-                  <Checkbox checked={!!form.is_fda11} onCheckedChange={v => setF('is_fda11', v ? 1 : 0)} />
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">ข.ย.11</div>
-                    <div className="text-xs text-muted-foreground">ขายยาอันตราย (ที่ อ.ย. กำหนด)</div>
-                  </div>
-                </label>
-                {/* ข.ย.13 */}
-                <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none">
-                  <Checkbox checked={!!form.is_fda13} onCheckedChange={v => setF('is_fda13', v ? 1 : 0)} />
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">ข.ย.13</div>
-                    <div className="text-xs text-muted-foreground">ขายส่ง (เฉพาะร้านขายส่ง)</div>
-                  </div>
-                </label>
+                <SettingRow
+                  framed={false}
+                  readOnly
+                  title="ข.ย.9"
+                  description="บัญชีการซื้อยา (อัตโนมัติ)"
+                  checked={!!form.is_fda9}
+                />
+                <SettingRow
+                  framed={false}
+                  title="ข.ย.10"
+                  description="ขายยาควบคุมพิเศษ"
+                  checked={!!form.is_fda10}
+                  onChange={v => setF('is_fda10', v ? 1 : 0)}
+                />
+                <SettingRow
+                  framed={false}
+                  title="ข.ย.11"
+                  description="ขายยาอันตราย (ที่ อ.ย. กำหนด)"
+                  checked={!!form.is_fda11}
+                  onChange={v => setF('is_fda11', v ? 1 : 0)}
+                />
+                <SettingRow
+                  framed={false}
+                  title="ข.ย.13"
+                  description="ขายส่ง (เฉพาะร้านขายส่ง)"
+                  checked={!!form.is_fda13}
+                  onChange={v => setF('is_fda13', v ? 1 : 0)}
+                />
               </div>
             </>
           )}
