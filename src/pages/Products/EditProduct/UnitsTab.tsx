@@ -267,24 +267,24 @@ export function UnitsTab({
                   </div>
                 )
               }
-              // ราคาส่ง — input 30% + กล่องกำไรเขียว 70% บรรทัดเดียว แบ่ง 2 ฝั่งด้วยเส้น
+              // ราคาส่ง — input บรรทัดบน, กล่องกำไรเต็มความกว้างบรรทัดล่าง แบ่ง 2 ฝั่งด้วยเส้น
               const wholesaleBlock = (label: string, key: string, value: any, d: ReturnType<typeof calc>) => (
-                <Field label={label}>
-                  <div className="grid grid-cols-[2fr_8fr] gap-3 items-stretch">
+                <div className="space-y-2">
+                  <Field label={label}>
                     <PriceInput variant="elevated" className="text-left" value={value} onChange={v => setUnitForm((f: any) => ({ ...f, [key]: v }))} />
-                    <div className={`rounded-lg grid grid-cols-[2fr_3fr] ${d.dim ? 'bg-muted/40 border border-border divide-x divide-border opacity-70' : 'bg-success-soft/50 border border-success/30 divide-x divide-success/30'}`}>
-                      <div className="flex items-center min-w-0 px-3 py-1.5 text-sm">
-                        <span className="font-bold text-foreground">{formatCurrency(d.perPiece)}/{baseUnit}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 min-w-0 px-3 py-1.5 text-sm">
-                        <span className="text-muted-foreground">กำไร</span>
-                        {d.dim
-                          ? <span className="text-foreground-subtle">—</span>
-                          : <span className={`font-bold ${d.pos ? 'text-success' : 'text-destructive'}`}>{d.pos ? '+' : ''}{d.profit.toFixed(2)} ({d.pos ? '+' : ''}{d.pct.toFixed(0)}%)</span>}
-                      </div>
+                  </Field>
+                  <div className={`rounded-lg grid grid-cols-[2fr_3fr] h-9 ${d.dim ? 'bg-muted/40 border border-border divide-x divide-border opacity-70' : 'bg-success-soft/50 border border-success/30 divide-x divide-success/30'}`}>
+                    <div className="flex items-center min-w-0 px-3 text-sm">
+                      <span className="font-bold text-foreground">{formatCurrency(d.perPiece)}/{baseUnit}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 min-w-0 px-3 text-sm">
+                      <span className="text-muted-foreground">กำไร</span>
+                      {d.dim
+                        ? <span className="text-foreground-subtle">—</span>
+                        : <span className={`font-bold ${d.pos ? 'text-success' : 'text-destructive'}`}>{d.pos ? '+' : ''}{d.profit.toFixed(2)} ({d.pos ? '+' : ''}{d.pct.toFixed(0)}%)</span>}
                     </div>
                   </div>
-                </Field>
+                </div>
               )
               return (
                 <div className="space-y-5">
