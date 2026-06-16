@@ -507,7 +507,7 @@ export function AdjustStockDialog({
                   key={r}
                   type="button"
                   size="lg"
-                  variant={adjustNote === r ? 'accent-outline' : 'elevated'}
+                  variant={adjustNote === r ? 'amber-soft' : 'elevated'}
                   onClick={() => setAdjustNote(r)}
                 >
                   {r}

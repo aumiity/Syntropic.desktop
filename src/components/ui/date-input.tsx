@@ -54,10 +54,15 @@ interface DateInputProps extends Omit<InputProps, 'value' | 'onChange' | 'type'>
   // Forwarded to the inner <Input>. "elevated" → bg-card + border + shadow,
   // matches DateRangePicker/SelectTrigger elevated for filter-strip use.
   variant?: 'default' | 'elevated'
+  // Parent-driven red border. Lets the form (which owns the required check —
+  // DateInput coerces invalid/empty alike to '') light up the SAME red border
+  // for a required-but-EMPTY field, where internal `rawInvalid` can't (it needs
+  // text present). Parent should clear it in onChange. Border-only, no message.
+  error?: boolean
 }
 
 export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, onChange, onBlur, onFocus, placeholder = '', className, variant = 'default', ...props }, ref) => {
+  ({ value, onChange, onBlur, onFocus, placeholder = '', className, variant = 'default', error, ...props }, ref) => {
     const [text, setText] = React.useState(() => isoToDisplay(value))
     const [open, setOpen] = React.useState(false)
     // กำลัง focus ช่องนี้อยู่ไหม — ใช้คุมจังหวะโชว์ขอบแดง (ดู `invalid` ด้านล่าง)
@@ -77,7 +82,9 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
     //  - ออกจากช่องแล้วยังพิมพ์ไม่ครบ/ผิด → แดง (กันเคสพิมพ์ตกไป 1 ตัวแล้ว exp หายเงียบ)
     //  - พิมพ์ครบ 10 ตัวแต่ไม่ใช่วันจริง (99/99/9999) → แดงทันทีแม้ยัง focus
     // ระหว่างพิมพ์ที่ยัง focus + ยังไม่ครบ 10 → ไม่แดง เพื่อไม่ให้กระพริบรบกวน
-    const invalid = rawInvalid && (!focused || text.length === 10)
+    // `error` (parent-driven) บังคับแดงเสมอ — ใช้ชี้ช่อง required ที่ลืมกรอก
+    // (ว่างเปล่า → rawInvalid=false → ไม่มีอะไรชี้ถ้าไม่มี prop นี้). parent ล้างตอน onChange.
+    const invalid = (rawInvalid && (!focused || text.length === 10)) || !!error
 
     return (
       <div className={cn("relative h-9", className)}>

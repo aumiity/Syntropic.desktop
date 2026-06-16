@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/label'
 import {
@@ -46,8 +45,6 @@ export function UnitsTab({
   const [deletingUnit, setDeletingUnit] = useState<ProductUnit | null>(null)
   // Enable/disable confirm target (null = closed)
   const [confirmToggle, setConfirmToggle] = useState<ProductUnit | null>(null)
-  // ราคาส่งซ่อนหลัง disclosure — กางอัตโนมัติเมื่อหน่วยมีราคาส่งอยู่แล้ว
-  const [showWholesale, setShowWholesale] = useState(false)
 
   const openAddUnit = () => {
     setEditingUnit(null)
@@ -66,7 +63,6 @@ export function UnitsTab({
       is_for_purchase: 1,
       is_disabled: 0,
     })
-    setShowWholesale(false)
     setUnitDialog(true)
   }
 
@@ -83,7 +79,6 @@ export function UnitsTab({
       is_for_purchase: u.is_for_purchase,
       is_disabled: u.is_disabled,
     })
-    setShowWholesale(((u.price_wholesale1 ?? 0) > 0) || ((u.price_wholesale2 ?? 0) > 0))
     setUnitDialog(true)
   }
 
@@ -261,7 +256,7 @@ export function UnitsTab({
                 return (
                   <div className="rounded-lg bg-success-soft/50 border border-success/30 grid grid-cols-2 divide-x divide-success/30">
                     <div className="space-y-0.5 min-w-0 px-3 py-2">
-                      <div className={labelCls}>คิดเป็น ({baseUnit})</div>
+                      <div className={labelCls}>ต่อ {baseUnit}</div>
                       <div className="text-sm font-bold text-foreground">{formatCurrency(d.perPiece)}</div>
                     </div>
                     <div className="space-y-0.5 min-w-0 px-3 py-2">
@@ -271,13 +266,24 @@ export function UnitsTab({
                   </div>
                 )
               }
+              // ราคาส่ง — input 30% + กล่องกำไรเขียว 70% บรรทัดเดียว แบ่ง 2 ฝั่งด้วยเส้น
               const wholesaleBlock = (label: string, key: string, value: any, d: ReturnType<typeof calc>) => (
-                <div className="space-y-3">
-                  <Field label={label}>
+                <Field label={label}>
+                  <div className="grid grid-cols-[2fr_8fr] gap-3 items-stretch">
                     <PriceInput variant="elevated" className="text-left" value={value} onChange={v => setUnitForm((f: any) => ({ ...f, [key]: v }))} />
-                  </Field>
-                  {profitBox(d)}
-                </div>
+                    <div className={`rounded-lg grid grid-cols-[2fr_3fr] ${d.dim ? 'bg-muted/40 border border-border divide-x divide-border opacity-70' : 'bg-success-soft/50 border border-success/30 divide-x divide-success/30'}`}>
+                      <div className="flex items-center min-w-0 px-3 py-1.5 text-sm">
+                        <span className="font-bold text-foreground">{formatCurrency(d.perPiece)}/{baseUnit}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 min-w-0 px-3 py-1.5 text-sm">
+                        <span className="text-muted-foreground">กำไร</span>
+                        {d.dim
+                          ? <span className="text-foreground-subtle">—</span>
+                          : <span className={`font-bold ${d.pos ? 'text-success' : 'text-destructive'}`}>{d.pos ? '+' : ''}{d.profit.toFixed(2)} ({d.pos ? '+' : ''}{d.pct.toFixed(0)}%)</span>}
+                      </div>
+                    </div>
+                  </div>
+                </Field>
               )
               return (
                 <div className="space-y-5">
@@ -302,17 +308,21 @@ export function UnitsTab({
                       </Field>
                     </div>
 
+                    <Field label="บาร์โค้ด">
+                      <Input variant="elevated" value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
+                    </Field>
+
                     {/* ราคาทุน — รวมหน่วยฐาน + หน่วยใหม่ ในกรอบเดียว */}
                     <div className="space-y-2">
                       <h4 className="text-sm font-semibold text-foreground">ราคาทุน</h4>
-                      <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 px-3 py-2 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">ต่อ {baseUnit}</span>
-                          <span className="text-sm font-bold text-amber-strong">{formatCurrency(baseCost)}</span>
+                      <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 grid grid-cols-2 divide-x divide-amber-strong/25">
+                        <div className="space-y-0.5 min-w-0 px-3 py-2">
+                          <div className="text-sm text-muted-foreground">ต่อ {baseUnit}</div>
+                          <div className="text-sm font-bold text-amber-strong">{formatCurrency(baseCost)}</div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">ต่อ {newUnit}</span>
-                          <span className="text-sm font-bold text-amber-strong">{formatCurrency(unitCost)}</span>
+                        <div className="space-y-0.5 min-w-0 px-3 py-2">
+                          <div className="text-sm text-muted-foreground">ต่อ {newUnit}</div>
+                          <div className="text-sm font-bold text-amber-strong">{formatCurrency(unitCost)}</div>
                         </div>
                       </div>
                     </div>
@@ -327,10 +337,6 @@ export function UnitsTab({
 
                   {/* ── ขวา: ข้อมูลหน่วย + ตัวเลือก ── */}
                   <div className="space-y-3">
-                    <Field label="บาร์โค้ด">
-                      <Input variant="elevated" value={unitForm.barcode ?? ''} onChange={e => setUnitForm((f: any) => ({ ...f, barcode: e.target.value }))} />
-                    </Field>
-
                     {/* การตั้งค่า — รวมตัวเลือกการใช้งานไว้ในกรอบเดียว */}
                     <div className="space-y-2">
                       <h4 className="text-sm font-semibold text-foreground">การตั้งค่า</h4>
@@ -342,26 +348,14 @@ export function UnitsTab({
                             <div className="text-xs text-muted-foreground">ให้เลือกหน่วยนี้ได้ที่หน้าขาย (POS)</div>
                           </div>
                         </label>
-                        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
-                          <div>
-                            <div className="text-sm font-semibold text-foreground">ตั้งราคาส่ง</div>
-                            <div className="text-xs text-muted-foreground">กำหนดราคาส่ง 1 / 2 ของหน่วยนี้</div>
-                          </div>
-                          <Switch size="lg" checked={showWholesale} onCheckedChange={setShowWholesale} />
-                        </div>
                       </div>
                     </div>
 
+                    {/* ── ราคาส่ง ── */}
+                    {wholesaleBlock('ราคาส่ง 1', 'price_wholesale1', unitForm.price_wholesale1, ws1)}
+                    {wholesaleBlock('ราคาส่ง 2', 'price_wholesale2', unitForm.price_wholesale2, ws2)}
                   </div>
                   </div>
-
-                  {/* ── ราคาส่ง — โชว์เมื่อเปิดสวิตช์ "ตั้งราคาส่ง" ในกรอบการตั้งค่า ── */}
-                  {showWholesale && (
-                    <div className="grid grid-cols-2 gap-5 items-start">
-                      {wholesaleBlock('ราคาส่ง 1', 'price_wholesale1', unitForm.price_wholesale1, ws1)}
-                      {wholesaleBlock('ราคาส่ง 2', 'price_wholesale2', unitForm.price_wholesale2, ws2)}
-                    </div>
-                  )}
                 </div>
               )
             })()}

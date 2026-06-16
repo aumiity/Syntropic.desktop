@@ -163,6 +163,10 @@ export default function ManagePurchasesPage() {
   const [editIsPaid, setEditIsPaid] = useState(false)
   const [editPaidDate, setEditPaidDate] = useState('')
   const [editSaving, setEditSaving] = useState(false)
+  // Per-field red-border flags for required date fields. Set on a failed save,
+  // cleared as soon as that field changes — so a forgotten/blank date lights up
+  // (DateInput's internal red border only fires for non-empty invalid text).
+  const [dateErrors, setDateErrors] = useState({ order: false, receive: false, due: false, paid: false })
 
   const loadSuppliers = async () => {
     const data = await window.api.people.allSuppliers()
@@ -288,6 +292,7 @@ export default function ManagePurchasesPage() {
     setEditDueDate(first.due_date ?? '')
     setEditIsPaid(!!first.is_paid)
     setEditPaidDate(first.paid_date ?? '')
+    setDateErrors({ order: false, receive: false, due: false, paid: false })
     setShowEditModal(true)
   }
 
@@ -308,12 +313,22 @@ export default function ManagePurchasesPage() {
     if (!actionInvoice) return
     if (!editSupplierId) { toast('กรุณาเลือกผู้จัดจำหน่าย', 'error'); return }
     if (!editSupplierInvoiceNo.trim()) { toast('กรุณาระบุเลขที่ใบกำกับสินค้า', 'error'); return }
-    // ข้อความรวม (ว่าง/รูปแบบผิด) = "รูปแบบวันที่ไม่ถูกต้อง"; กรอบแดงบนช่องชี้เองว่าช่องไหน.
-    if (!editOrderDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
-    if (!editReceiveDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
-    if (editPaymentType === 'credit' && !editDueDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
-    // วันที่ชำระ required เฉพาะเมื่อติ๊ก "ชำระแล้ว"; ยังไม่จ่ายก็ไม่ต้องมีวัน.
-    if (editIsPaid && !editPaidDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
+    // เก็บทุกช่องวันที่ที่ขาดพร้อมกัน → ติดกรอบแดงทุกช่อง (prop `error`) + toast ระบุชื่อ
+    // ช่องชัด ๆ (กรณีลืมกรอก ช่องว่างไม่มีกรอบแดงในตัว จึงต้องสั่งจาก parent). วันที่ชำระ
+    // required เฉพาะติ๊ก "ชำระแล้ว"; วันครบกำหนด required เฉพาะจ่ายเครดิต.
+    const errs = {
+      order: !editOrderDate,
+      receive: !editReceiveDate,
+      due: editPaymentType === 'credit' && !editDueDate,
+      paid: editIsPaid && !editPaidDate,
+    }
+    setDateErrors(errs)
+    const missing: string[] = []
+    if (errs.order) missing.push('วันที่สั่งซื้อตามบิล')
+    if (errs.receive) missing.push('วันที่รับสินค้า')
+    if (errs.due) missing.push('วันครบกำหนด')
+    if (errs.paid) missing.push('วันที่ชำระ')
+    if (missing.length > 0) { toast(`กรุณาระบุ${missing.join(' · ')}ให้ถูกต้อง`, 'error'); return }
     setEditSaving(true)
     try {
       const res = await window.api.purchase.updateHeader({
@@ -785,13 +800,13 @@ export default function ManagePurchasesPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1.5">วันที่สั่งซื้อตามบิล</label>
-                <DateInput variant="elevated" value={editOrderDate} onChange={setEditOrderDate} className="w-full" />
+                <DateInput variant="elevated" value={editOrderDate} onChange={v => { setEditOrderDate(v); setDateErrors(e => ({ ...e, order: false })) }} error={dateErrors.order} className="w-full" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1.5">
                   วันที่รับสินค้า <span className="text-destructive">*</span>
                 </label>
-                <DateInput variant="elevated" value={editReceiveDate} onChange={setEditReceiveDate} className="w-full" />
+                <DateInput variant="elevated" value={editReceiveDate} onChange={v => { setEditReceiveDate(v); setDateErrors(e => ({ ...e, receive: false })) }} error={dateErrors.receive} className="w-full" />
               </div>
             </div>
 
@@ -864,7 +879,7 @@ export default function ManagePurchasesPage() {
                   <label className="flex items-center h-6 text-sm font-medium">
                     วันครบกำหนดชำระ <span className="text-destructive ml-1">*</span>
                   </label>
-                  <DateInput variant="elevated" value={editDueDate} onChange={setEditDueDate} className="w-full" />
+                  <DateInput variant="elevated" value={editDueDate} onChange={v => { setEditDueDate(v); setDateErrors(e => ({ ...e, due: false })) }} error={dateErrors.due} className="w-full" />
                   <div className="flex gap-1">
                     {[15, 30, 60, 90].map(d => (
                       <Button
@@ -893,7 +908,7 @@ export default function ManagePurchasesPage() {
                     <span className="text-sm font-medium">ชำระเงินแล้ว</span>
                   </label>
                   <div className={cn('space-y-1.5 transition-opacity', !editIsPaid && 'opacity-40 pointer-events-none')}>
-                    <DateInput variant="elevated" value={editPaidDate} onChange={setEditPaidDate} className="w-full" />
+                    <DateInput variant="elevated" value={editPaidDate} onChange={v => { setEditPaidDate(v); setDateErrors(e => ({ ...e, paid: false })) }} error={dateErrors.paid} className="w-full" />
                     <div className="flex gap-1">
                       <Button
                         type="button"

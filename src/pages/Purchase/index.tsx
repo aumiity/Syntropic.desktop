@@ -25,7 +25,7 @@ import { extractVat } from '@/lib/vat'
 import {
   Plus, Trash2, Package, Pencil,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle, Settings2,
-  Check, Minus,
+  Check, Minus, Info,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { motion } from 'framer-motion'
@@ -111,6 +111,10 @@ export default function PurchasePage() {
   const [grNote, setGrNote] = useState(() => initialDraft?.grNote ?? '')
   const [rows, setRows] = useState<ReceiptRow[]>(() => initialDraft?.rows ?? [])
   const [saving, setSaving] = useState(false)
+  // Per-field red-border flags for required date fields. Set on a failed save,
+  // cleared as soon as that field changes — so a forgotten/blank date lights up
+  // (DateInput's internal red border only fires for non-empty invalid text).
+  const [dateErrors, setDateErrors] = useState({ order: false, receive: false, due: false, paid: false })
 
   // Add/Edit product wizard (replaces the old per-row inline table editing)
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -175,6 +179,19 @@ export default function PurchasePage() {
     if (!initialDraft || initialDraft.rows.length === 0) loadNextGR()
     loadSuppliers()
   }, [])
+
+  // VAT-registered shops default a fresh bill to "มีภาษีมูลค่าเพิ่ม" (inclusive).
+  // shopVatEnabled loads async, so apply once it resolves — but only on a fresh
+  // form (no restored draft) and only while still untouched ('none'), so the
+  // operator's explicit uncheck or a restored draft is never overwritten.
+  const vatDefaultApplied = useRef(false)
+  useEffect(() => {
+    if (vatDefaultApplied.current || !shopVatEnabled) return
+    vatDefaultApplied.current = true
+    if (!initialDraft || initialDraft.rows.length === 0) {
+      setVatMode(m => m === 'none' ? 'inclusive' : m)
+    }
+  }, [shopVatEnabled])
 
   // Persist the draft on every change so it survives navigation and the Sidebar
   // badge stays live. Ephemeral UI state is intentionally excluded.
@@ -534,14 +551,24 @@ export default function PurchasePage() {
     if (!supplierId) { toast('กรุณาเลือกผู้จัดจำหน่าย', 'error'); return }
     if (!supplierInvoiceNo.trim()) { toast('กรุณาระบุเลขที่ใบกำกับสินค้า', 'error'); return }
     if (validRows.length === 0) { toast('กรุณาเพิ่มรายการสินค้าให้ครบถ้วน', 'error'); return }
-    // วันที่ของบิลเป็น required. ถ้าเลขมั่ว/พิมพ์ตกตัว DateInput จะคืน '' (ดู date-input.tsx)
-    // → ดักที่นี่ ไม่งั้นจะส่งวันที่ว่างไป backend แบบเงียบ ๆ. ข้อความรวม (ว่าง/รูปแบบผิด)
-    // ใช้ "รูปแบบวันที่ไม่ถูกต้อง" — กรอบแดงบนช่องจะชี้เองว่าช่องไหน.
-    if (!orderDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
-    if (!receiveDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
-    if (paymentType === 'credit' && !dueDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
-    // วันที่ชำระ required เฉพาะเมื่อติ๊ก "ชำระแล้ว"; ยังไม่จ่ายก็ไม่ต้องมีวัน.
-    if (isPaid && !paidDate) { toast('รูปแบบวันที่ไม่ถูกต้อง', 'error'); return }
+    // วันที่ของบิลเป็น required. ถ้าเลขมั่ว/พิมพ์ตกตัว/ลืมกรอก DateInput จะคืน '' (ดู
+    // date-input.tsx) → ดักที่นี่ ไม่งั้นส่งวันที่ว่างไป backend แบบเงียบ ๆ. เก็บทุกช่องที่
+    // ขาดพร้อมกัน → ติดกรอบแดงทุกช่อง (prop `error`) + toast ระบุชื่อช่องชัด ๆ (กรณีลืม
+    // กรอก ช่องว่างไม่มีกรอบแดงในตัวเอง จึงต้องสั่งจาก parent). วันที่ชำระ required เฉพาะ
+    // เมื่อติ๊ก "ชำระแล้ว"; วันครบกำหนด required เฉพาะจ่ายเครดิต.
+    const errs = {
+      order: !orderDate,
+      receive: !receiveDate,
+      due: paymentType === 'credit' && !dueDate,
+      paid: isPaid && !paidDate,
+    }
+    setDateErrors(errs)
+    const missing: string[] = []
+    if (errs.order) missing.push('วันที่สั่งซื้อตามบิล')
+    if (errs.receive) missing.push('วันที่รับสินค้า')
+    if (errs.due) missing.push('วันครบกำหนด')
+    if (errs.paid) missing.push('วันที่ชำระ')
+    if (missing.length > 0) { toast(`กรุณาระบุ${missing.join(' · ')}ให้ถูกต้อง`, 'error'); return }
     setSaving(true)
     try {
       const saveResult = await window.api.purchase.save({
@@ -588,7 +615,7 @@ export default function PurchasePage() {
       await loadNextGR()
       setSupplierId(0); setSupplierName(''); setSupplierInvoiceNo('')
       setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
-      setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode('none')
+      setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode(shopVatEnabled ? 'inclusive' : 'none')
       setRows([]); setSearchQueries([]); setSuggestions([])
       setAdjustSubtotal(null); setAdjustDiscountAmt(0); setAdjustSurchargeAmt(0)
       setAppliedDiscount({ baht: '', pct: '' }); setAppliedSurcharge({ baht: '', pct: '' })
@@ -648,7 +675,7 @@ export default function PurchasePage() {
   const resetForm = () => {
     setSupplierId(0); setSupplierName(''); setSupplierInvoiceNo('')
     setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
-    setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode('none')
+    setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode(shopVatEnabled ? 'inclusive' : 'none')
     setRows([]); setSearchQueries([]); setSuggestions([])
     setAdjustSubtotal(null); setAdjustDiscountAmt(0); setAdjustSurchargeAmt(0)
     setAppliedDiscount({ baht: '', pct: '' }); setAppliedSurcharge({ baht: '', pct: '' })
@@ -720,11 +747,12 @@ export default function PurchasePage() {
 
                         {/* Order date (bill date) */}
                         <div>
-                          <label className="block text-base font-semibold text-muted-foreground mb-1.5">วันที่สั่งซื้อตามบิล</label>
+                          <label className="block text-base font-semibold text-muted-foreground mb-1.5">วันที่สั่งซื้อตามบิล<span className="text-destructive">*</span></label>
                           <DateInput
                             variant="elevated"
                             value={orderDate}
-                            onChange={setOrderDate}
+                            onChange={v => { setOrderDate(v); setDateErrors(e => ({ ...e, order: false })) }}
+                            error={dateErrors.order}
                             className="h-10 text-sm"
                           />
                         </div>
@@ -914,8 +942,8 @@ export default function PurchasePage() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-sm text-foreground-subtle mb-1 block">วันที่รับสินค้า</label>
-                        <DateInput variant="elevated" value={receiveDate} onChange={setReceiveDate} className="h-9 text-sm" />
+                        <label className="text-sm text-foreground-subtle mb-1 block">วันที่รับสินค้า<span className="text-destructive">*</span></label>
+                        <DateInput variant="elevated" value={receiveDate} onChange={v => { setReceiveDate(v); setDateErrors(e => ({ ...e, receive: false })) }} error={dateErrors.receive} className="h-9 text-sm" />
                       </div>
                     </div>
 
@@ -972,7 +1000,7 @@ export default function PurchasePage() {
                         <div className="space-y-2.5">
                           <div>
                             <label className="text-sm font-semibold text-muted-foreground mb-1 block">วันครบกำหนด <span className="text-destructive">*</span></label>
-                            <DateInput variant="elevated" value={dueDate} onChange={setDueDate} className="h-9 text-sm" />
+                            <DateInput variant="elevated" value={dueDate} onChange={v => { setDueDate(v); setDateErrors(e => ({ ...e, due: false })) }} error={dateErrors.due} className="h-9 text-sm" />
                             <div className="flex gap-1 mt-1.5">
                               {[15, 30, 60, 90].map(d => (
                                 <Button
@@ -997,7 +1025,7 @@ export default function PurchasePage() {
                           </label>
                           {isPaid && (
                             <div className="space-y-1.5">
-                              <DateInput variant="elevated" value={paidDate} onChange={setPaidDate} className="h-9 text-sm" />
+                              <DateInput variant="elevated" value={paidDate} onChange={v => { setPaidDate(v); setDateErrors(e => ({ ...e, paid: false })) }} error={dateErrors.paid} className="h-9 text-sm" />
                               <div className="flex gap-1">
                                 <Button
                                   type="button"
@@ -1023,26 +1051,24 @@ export default function PurchasePage() {
                       )}
                     </div>
 
-                    {/* Input VAT (ภาษีซื้อ) — per bill; only for VAT-registered shops */}
+                    {/* ภาษีมูลค่าเพิ่ม — per bill; only for VAT-registered shops.
+                        Checkbox: ติ๊ก = บิลมี VAT (ราคารวม VAT แล้วเสมอ → 'inclusive');
+                        ไม่ติ๊ก = บิลไม่มี VAT ('none'). ร้านที่เปิด VAT default = ติ๊ก. */}
                     {shopVatEnabled && (
                       <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2">
-                        <div className="text-sm font-bold text-foreground uppercase tracking-wide">ภาษีซื้อ (VAT)</div>
-                        <Select value={vatMode} onValueChange={v => setVatMode(v as 'none' | 'inclusive' | 'exclusive')}>
-                          <SelectTrigger className="w-full h-9 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">บิลนี้ไม่มี VAT</SelectItem>
-                            <SelectItem value="inclusive">มี VAT — ราคารวม VAT แล้ว</SelectItem>
-                            <SelectItem value="exclusive">มี VAT — ราคายังไม่รวม VAT</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {vatMode !== 'none' && (
-                          <p className="text-xs text-muted-foreground">
-                            {vatMode === 'inclusive'
-                              ? `ระบบจะถอด VAT ${shopVatRate}% ออกจากต้นทุนสินค้าให้อัตโนมัติ (ภาษีซื้อขอคืนได้ ไม่ใช่ต้นทุน)`
-                              : `ระบบจะบวก VAT ${shopVatRate}% เพิ่มจากยอดรวมรายการเป็นยอดชำระ`}
-                          </p>
+                        <div className="text-sm font-bold text-foreground uppercase tracking-wide">ภาษีมูลค่าเพิ่ม</div>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <Checkbox
+                            checked={vatMode === 'inclusive'}
+                            onCheckedChange={v => setVatMode(v === true ? 'inclusive' : 'none')}
+                          />
+                          <span className="text-sm text-muted-foreground">บิลมีภาษีมูลค่าเพิ่ม</span>
+                        </label>
+                        {vatMode === 'inclusive' && (
+                          <div className="flex items-start gap-1.5 rounded-lg border border-info/30 bg-info-soft p-2.5 text-xs text-info-soft-foreground">
+                            <Info className="size-4 shrink-0 mt-0.5" />
+                            <span>ระบบจะแสดงราคาสินค้าที่รวมภาษีมูลค่าเพิ่มแล้วเท่านั้น</span>
+                          </div>
                         )}
                       </div>
                     )}
