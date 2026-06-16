@@ -112,6 +112,7 @@ export function initializeSchema(db: Database.Database) {
       cost_price REAL NOT NULL DEFAULT 0,
       last_cost_price REAL NOT NULL DEFAULT 0,
       unit_id INTEGER REFERENCES item_units(id),
+      default_qty REAL NOT NULL DEFAULT 1,
       is_drug INTEGER NOT NULL DEFAULT 0,
       reorder_point REAL,
       safety_stock REAL,
@@ -847,6 +848,8 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE products ADD COLUMN is_drug INTEGER NOT NULL DEFAULT 0`,
     // Backfill: anything that already had a drug_type assigned was implicitly a drug.
     `UPDATE products SET is_drug = 1 WHERE drug_type_id IS NOT NULL AND is_drug = 0`,
+    // default_qty: re-adds the PHP "จำนวนตั้งต้นการขายใน POS" — starting cart qty.
+    `ALTER TABLE products ADD COLUMN default_qty REAL NOT NULL DEFAULT 1`,
     // is_bundle: marks a product as a "ชุดสินค้า" (kit/bundle). Bundle rows
     // hold no lots (is_stock_item=0); stock derived via product_bundle_items.
     `ALTER TABLE products ADD COLUMN is_bundle INTEGER NOT NULL DEFAULT 0`,

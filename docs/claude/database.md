@@ -8,7 +8,8 @@ Runtime SQLite schema lives in `electron/db/schema.ts` — **always read it befo
 - **Dropped from `products`:** `dosage_form_id`, `no_discount` (formerly `is_not_discount`)
 - **Added `products.is_drug`** (Hygeia-style): explicit "this product is a drug under the law" flag, gates the "ข้อมูลยา" section in EditProduct. `category` is purely for sorting/filtering. Migration backfills `is_drug=1` for products with a `drug_type_id`.
 - **Base unit lives directly on `products`:** `products.unit_id` (FK → `item_units`) is the single source of truth for the base unit. `product_units` holds **only non-base variants** (แผง, กล่อง, …). `unit_name` for product list / POS / purchase / reports resolves via `LEFT JOIN item_units u ON u.id = p.unit_id`. There is no `is_base_unit` flag and no synthetic base row in `product_units`.
-- **PHP-only, not in SQLite:** `default_qty`, `has_wholesale1`, `has_wholesale2`, `drug_generic_name_id`, `old_item_key`
+- **PHP-only, not in SQLite:** `has_wholesale1`, `has_wholesale2`, `drug_generic_name_id`, `old_item_key`
+- **Re-added:** `products.default_qty` (REAL DEFAULT 1) — the POS default starting cart quantity, brought back from PHP.
 
 ## Allow-list save payloads (HARD)
 

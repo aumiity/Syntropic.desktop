@@ -108,7 +108,7 @@ export function PriceSection({
         <div className="space-y-4">
           {/* Row 1: ราคาทุน + ราคาปลีก (input on top, detail below within each cell) */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Field label="ราคาทุนล่าสุด">
                 <PriceInput
                   variant="elevated"
@@ -131,7 +131,7 @@ export function PriceSection({
                 </div>
               </div>
             </div>
-            <div className="space-y-2" data-field="price_retail">
+            <div className="space-y-3" data-field="price_retail">
               <Field label="ราคาขายปลีก" required>
                 <PriceInput
                   variant="elevated"
@@ -151,7 +151,7 @@ export function PriceSection({
               { label: 'ราคาส่ง 1', key: 'price_wholesale1', value: form.price_wholesale1, d: ws1 },
               { label: 'ราคาส่ง 2', key: 'price_wholesale2', value: form.price_wholesale2, d: ws2 },
             ] as const).map(({ label, key, value, d }) => (
-              <div key={key} className="space-y-2">
+              <div key={key} className="space-y-3">
                 <Field label={label}>
                   <PriceInput
                     variant="elevated"

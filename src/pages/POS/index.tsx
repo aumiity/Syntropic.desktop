@@ -603,7 +603,7 @@ export default function POSPage() {
   const handleSelectItem = (product: ProductWithDetails, unit: ProductUnit | null) => {
     const price = resolveSalePrice(unit ?? product, cart.saleType)
     const unitName = unit?.unit_name ?? product.unit_name ?? 'ชิ้น'
-    const qty = multiplier ?? 1
+    const qty = multiplier ?? product.default_qty ?? 1
     cart.addItem({ product_id: product.id, item_name: product.trade_name, unit_name: unitName, qty, unit_price: price, discount: 0, line_total: price * qty, product, selectedUnit: unit ?? undefined })
     closeSearch() // ปิด modal + รีเซ็ตตัวคูณ (single-use)
   }

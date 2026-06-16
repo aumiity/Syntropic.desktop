@@ -9,6 +9,7 @@ export interface Product {
   unit_id?: number
   is_drug: number
   reorder_point?: number; safety_stock?: number
+  default_qty?: number
   drug_type_id?: number
   // PHP-only, NOT a SQLite column — lives in EditProduct form state only for the
   // generic-name autocomplete; doSave strips it before products:update.

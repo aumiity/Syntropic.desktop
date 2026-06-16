@@ -14,7 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Package, ScanBarcode, Pill, PackageOpen, Settings, Plus, X, History,
+  Package, ScanBarcode, Pill, PackageOpen, Settings, Plus, Trash2, History,
 } from 'lucide-react'
 import type { ProductCategory, DrugType, ItemUnit } from '@/types'
 import type { GenericNameSuggestion } from './shared'
@@ -124,10 +124,10 @@ export function GeneralTab({
   }
 
   return (
-    <div className="grid grid-cols-[3fr_2fr] gap-4 pt-4">
+    <div className="grid grid-cols-[3fr_2fr] items-start gap-4 pt-4">
 
       {/* LEFT COLUMN */}
-      <div className="flex flex-col gap-4 justify-between">
+      <div className="flex flex-col gap-4">
 
         <SectionCard icon={Package} title="ข้อมูลพื้นฐาน" tint="primary">
           <div className="grid grid-cols-2 gap-3">
@@ -145,8 +145,8 @@ export function GeneralTab({
               />
             </Field>
 
-            {/* Row 2: ชื่อสินค้า* (full width) */}
-            <div className="col-span-2" data-field="trade_name">
+            {/* Row 2: ชื่อสินค้า* | ชื่อสำหรับพิมพ์ */}
+            <div data-field="trade_name">
               <Field label="ชื่อสินค้า" required>
                 <Input
                   variant="elevated"
@@ -156,15 +156,11 @@ export function GeneralTab({
                 />
               </Field>
             </div>
+            <Field label="ชื่อสำหรับพิมพ์">
+              <Input variant="elevated" value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" />
+            </Field>
 
-            {/* Row 3: ชื่อสำหรับพิมพ์ (full width) */}
-            <div className="col-span-2">
-              <Field label="ชื่อสำหรับพิมพ์">
-                <Input variant="elevated" value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" />
-              </Field>
-            </div>
-
-            {/* Row 4: หมวดหมู่ | หน่วยหลัก */}
+            {/* Row 3: หมวดหมู่ | หน่วยหลัก */}
             <Field label="หมวดหมู่">
               <Select value={String(form.category_id ?? 0)} onValueChange={v => setF('category_id', Number(v))}>
                 <SelectTrigger variant="elevated" className="w-full">
@@ -192,6 +188,11 @@ export function GeneralTab({
                 />
               </Field>
             </div>
+
+            {/* Row 4: จำนวนตั้งต้นการขาย | (right half left empty by grid auto-flow) */}
+            <Field label="จำนวนตั้งต้นการขาย">
+              <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', e.target.value)} min={1} step="any" />
+            </Field>
           </div>
         </SectionCard>
 
@@ -232,7 +233,7 @@ export function GeneralTab({
           </div>
 
           {!isNew && (
-            <div className="grid grid-cols-2 gap-3 pt-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 px-3 py-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">เฉลี่ย / เดือน</span>
                 {monthlySales
@@ -251,11 +252,8 @@ export function GeneralTab({
 
       </div>
 
-      {/* RIGHT COLUMN — justify-start (not -between): when "ข้อมูลยา" is collapsed
-          the right column is shorter than the left, and the grid stretches both to
-          equal height. justify-between would spread the 3 cards across that extra
-          height (ugly gaps); justify-start keeps them stacked tight at gap-4. */}
-      <div className="flex flex-col gap-4 justify-start">
+      {/* RIGHT COLUMN */}
+      <div className="flex flex-col gap-4">
 
         <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
           <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
@@ -285,55 +283,51 @@ export function GeneralTab({
           </div>
         </SectionCard>
 
-        <SectionCard icon={ScanBarcode} title="บาร์โค้ด" tint="secondary">
+        <SectionCard
+          icon={ScanBarcode}
+          title="บาร์โค้ด"
+          tint="secondary"
+          right={
+            <Button
+              size="lg"
+              variant="elevated"
+              className="h-9 px-3"
+              onClick={() => setBarcodeSlots(n => Math.min(4, n + 1))}
+              disabled={barcodeSlots >= 4}
+            >
+              <Plus className="size-4" /> เพิ่ม
+            </Button>
+          }
+        >
           <div className="space-y-3">
-            <Field label="บาร์โค้ด 1">
-              <Input variant="elevated" value={form.barcode} onChange={e => setF('barcode', e.target.value)} placeholder="ตัวเลข 13 หลัก" />
-            </Field>
-            {barcodeSlots >= 2 && (
-              <Field label="บาร์โค้ด 2">
-                <div className="flex gap-2">
-                  <Input variant="elevated" value={form.barcode2} onChange={e => setF('barcode2', e.target.value)} className="flex-1" />
-                  {barcodeSlots === 2 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={collapseLastBarcode} title="ยุบ" aria-label="ยุบบาร์โค้ด 2">
-                      <X className="size-4" />
-                    </Button>
-                  )}
-                </div>
-              </Field>
-            )}
-            {barcodeSlots >= 3 && (
-              <Field label="บาร์โค้ด 3">
-                <div className="flex gap-2">
-                  <Input variant="elevated" value={form.barcode3} onChange={e => setF('barcode3', e.target.value)} className="flex-1" />
-                  {barcodeSlots === 3 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={collapseLastBarcode} title="ยุบ" aria-label="ยุบบาร์โค้ด 3">
-                      <X className="size-4" />
-                    </Button>
-                  )}
-                </div>
-              </Field>
-            )}
-            {barcodeSlots >= 4 && (
-              <Field label="บาร์โค้ด 4">
-                <div className="flex gap-2">
-                  <Input variant="elevated" value={form.barcode4} onChange={e => setF('barcode4', e.target.value)} className="flex-1" />
-                  <Button type="button" variant="ghost" size="icon" onClick={collapseLastBarcode} title="ยุบ" aria-label="ยุบบาร์โค้ด 4">
-                    <X className="size-4" />
-                  </Button>
-                </div>
-              </Field>
-            )}
-            {barcodeSlots < 4 && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setBarcodeSlots(n => Math.min(4, n + 1))}
-                className="w-full justify-center"
-              >
-                <Plus className="size-4" /> เพิ่มบาร์โค้ด
-              </Button>
-            )}
+            {Array.from({ length: barcodeSlots }, (_, i) => {
+              const key = i === 0 ? 'barcode' : `barcode${i + 1}`
+              const isLast = i === barcodeSlots - 1
+              return (
+                <Field key={key} label={`บาร์โค้ด ${i + 1}`}>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form[key] ?? ''}
+                      onChange={e => setF(key, e.target.value)}
+                      className="flex-1"
+                      placeholder={i === 0 ? 'ตัวเลข 13 หลัก' : undefined}
+                    />
+                    {isLast && i > 0 && (
+                      <Button
+                        type="button"
+                        size="lg"
+                        variant="elevated-destructive-soft"
+                        className="h-9 w-9 p-0 shrink-0"
+                        onClick={collapseLastBarcode}
+                        tooltip="ลบบาร์โค้ดนี้"
+                      >
+                        <Trash2 />
+                      </Button>
+                    )}
+                  </div>
+                </Field>
+              )
+            })}
           </div>
         </SectionCard>
 
@@ -344,8 +338,8 @@ export function GeneralTab({
         >
           <SettingRow
             control="switch"
-            title="เป็นยาตามกฎหมาย"
-            description="เปิดสวิตช์เพื่อกรอกข้อมูลยา"
+            title="สินค้านี้เป็นยาตามกฎหมาย"
+            description="ใช้ระบุข้อมูลเพิ่มเติมสำหรับยาตามที่กฏหมายกำหนดไว้"
             checked={!!form.is_drug}
             onChange={v => {
               setF('is_drug', v ? 1 : 0)
