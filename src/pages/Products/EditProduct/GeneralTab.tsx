@@ -159,8 +159,10 @@ export function GeneralTab({
             <Field label="ชื่อสำหรับพิมพ์">
               <Input variant="elevated" value={form.name_for_print} onChange={e => setF('name_for_print', e.target.value)} placeholder="ถ้าว่างใช้ชื่อสินค้า" />
             </Field>
+          </div>
 
-            {/* Row 3: หมวดหมู่ | หน่วยหลัก */}
+          {/* Row 3: หมวดหมู่ | หน่วยหลัก | จำนวนตั้งต้นการขาย — 3 คอลัมน์ */}
+          <div className="grid grid-cols-3 gap-3">
             <Field label="หมวดหมู่">
               <Select value={String(form.category_id ?? 0)} onValueChange={v => setF('category_id', Number(v))}>
                 <SelectTrigger variant="elevated" className="w-full">
@@ -188,8 +190,6 @@ export function GeneralTab({
                 />
               </Field>
             </div>
-
-            {/* Row 4: จำนวนตั้งต้นการขาย | (right half left empty by grid auto-flow) */}
             <Field label="จำนวนตั้งต้นการขาย">
               <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', e.target.value)} min={1} step="any" />
             </Field>
