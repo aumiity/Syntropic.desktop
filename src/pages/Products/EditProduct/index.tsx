@@ -435,7 +435,6 @@ export default function EditProductPage() {
                   {!isNew && !!product.is_fda10 && <Badge variant="amber-outline">ข.ย.10</Badge>}
                   {!isNew && !!product.is_fda11 && <Badge variant="destructive-outline">ข.ย.11</Badge>}
                   {!isNew && !!product.is_fda13 && <Badge variant="info-outline">ข.ย.13</Badge>}
-                  {!isNew && !!product.is_hidden && <Badge variant="muted-outline">ซ่อน</Badge>}
                   {!isNew && !!product.is_disabled && <Badge variant="destructive-outline">ปิดใช้งาน</Badge>}
                 </div>
               </div>

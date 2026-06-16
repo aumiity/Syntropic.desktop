@@ -74,7 +74,7 @@ export function renderLabelSectionsHtml(
         // show_shop_phone / show_barcode. Bars only (no digits). Same SVG
         // generator as the React preview → print === preview. Mirrors shop+date.
         const phoneText = settings.show_shop_phone ? text : ''
-        const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false }) : ''
+        const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false, flat: true }) : ''
         if (!phoneText && !svg) return ''
         // Lift the phone offset OFF the flex container (it would drag the barcode
         // too) and re-apply to the phone span only; the barcode keeps its own.

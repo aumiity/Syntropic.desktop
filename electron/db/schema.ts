@@ -105,6 +105,8 @@ export function initializeSchema(db: Database.Database) {
       is_stock_item INTEGER NOT NULL DEFAULT 1,
       is_bundle INTEGER NOT NULL DEFAULT 0,
       is_disabled INTEGER NOT NULL DEFAULT 0,
+      -- DEAD COLUMN: ไม่มี query ไหนกรอง products.is_hidden เลย (UI ถูกถอดแล้ว) — is_disabled
+      -- ครอบคลุมทุกเคส; รอ DROP ทีเดียวตอน schema cleanup. ดู docs/refine_schema.md
       is_hidden INTEGER NOT NULL DEFAULT 0,
       price_retail REAL NOT NULL DEFAULT 0,
       price_wholesale1 REAL NOT NULL DEFAULT 0,

@@ -91,7 +91,7 @@ function CheckRow({ checked, onChange, label, variant = "default", framed, disab
 }) {
   return (
     <label className={cn(
-      "flex items-center gap-2 cursor-pointer select-none",
+      "flex items-center gap-3 cursor-pointer select-none",
       disabled && "cursor-not-allowed opacity-50",
       framed && "h-12 px-3 rounded-lg border transition-colors",
       framed && (variant === "default" || !checked) && "bg-card border-border",

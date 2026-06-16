@@ -209,7 +209,7 @@ export function GeneralTab({
         <SectionCard
           icon={PackageOpen}
           title="สต็อกและการแจ้งเตือน"
-          tint="warning"
+          tint="amber"
           right={
             <Button
               size="lg"
@@ -261,22 +261,14 @@ export function GeneralTab({
               framed={false}
               variant="destructive"
               title="ปิดใช้งาน"
-              description="ปิดการใช้งานทั้งสินค้า"
+              description="ปิดการใช้งานสินค้าชนิดนี้"
               checked={!!form.is_disabled}
               onChange={v => setF('is_disabled', v ? 1 : 0)}
             />
             <SettingRow
               framed={false}
-              variant="destructive"
-              title="ซ่อน"
-              description="ซ่อนจากการค้นหา"
-              checked={!!form.is_hidden}
-              onChange={v => setF('is_hidden', v ? 1 : 0)}
-            />
-            <SettingRow
-              framed={false}
-              title="นับสต็อก"
-              description="ตัดสต็อกอัตโนมัติเมื่อขาย"
+              title="การเคลื่อนไหวของสต็อก"
+              description="เปิดเพื่อให้มีการเดินของสต็อกสินค้า"
               checked={!!form.is_stock_item}
               onChange={v => setF('is_stock_item', v ? 1 : 0)}
             />
@@ -334,7 +326,7 @@ export function GeneralTab({
         <SectionCard
           icon={Pill}
           title="ข้อมูลยา"
-          tint="warning"
+          tint="teal"
         >
           <SettingRow
             control="switch"

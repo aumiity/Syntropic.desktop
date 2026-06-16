@@ -69,7 +69,7 @@ export function PriceSection({
     const valCls = `text-sm font-bold ${d.pos ? 'text-success' : 'text-destructive'}`
     const dash = <span className="text-sm text-foreground-subtle">—</span>
     return (
-      <div className="rounded-lg bg-success-soft/50 border border-success/30 grid grid-cols-2 divide-x divide-success/30">
+      <div className={`rounded-lg grid grid-cols-2 ${d.dim ? 'bg-muted/40 border border-border divide-x divide-border opacity-70' : 'bg-success-soft/50 border border-success/30 divide-x divide-success/30'}`}>
         <div className="space-y-0.5 min-w-0 px-3 py-2">
           <div className={labelCls}>กำไร</div>
           {d.dim ? dash : <div className={valCls}>{d.pos ? '+' : ''}{d.profit.toFixed(2)}</div>}

@@ -114,7 +114,9 @@ function SectionCard({
 }: {
   icon?: React.ComponentType<{ className?: string }>
   title: React.ReactNode
-  tint?: SectionTint
+  /** SectionCard forwards tint straight to TintIcon, so it accepts the full
+      TintIcon palette (e.g. teal/violet) — not just the MetricCard subset. */
+  tint?: TintIconTint
   right?: React.ReactNode
   children: React.ReactNode
   className?: string

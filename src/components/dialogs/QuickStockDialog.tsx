@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { SettingRow } from '@/components/ui/setting-row'
+import { CheckRow } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
-import { TintIcon } from '@/components/ui/tint-icon'
-import { Boxes } from 'lucide-react'
 
 const THAI_MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
 function formatThaiMonth(ym: string) {
@@ -103,16 +101,12 @@ export function QuickStockDialog({
         onKeyDown={e => { if (e.key === 'Enter' && !saving) { e.preventDefault(); handleSave() } }}
       >
         <DialogHeader>
-          <DialogTitle className="flex items-start gap-2.5">
-            <TintIcon icon={Boxes} tint="warning" size="md" />
-            <div className="min-w-0">
-              <div>สต็อกและการแจ้งเตือน</div>
-              <div className="text-sm font-normal text-muted-foreground truncate">
-                {target?.code && <span className="mr-1.5">{target.code}</span>}
-                {target?.trade_name}
-              </div>
+          <DialogTitle>สต็อกและการแจ้งเตือน</DialogTitle>
+          {target && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground truncate max-w-[60%]">{target.trade_name}</span>
             </div>
-          </DialogTitle>
+          )}
         </DialogHeader>
 
         <DialogBody className="space-y-4">
@@ -189,10 +183,11 @@ export function QuickStockDialog({
           </div>
 
           {/* Disable toggle */}
-          <SettingRow
+          <CheckRow
+            framed
             variant="destructive"
-            title="ปิดใช้งานสินค้า"
-            description="ปิดการใช้งานทั้งสินค้า"
+            className="w-full"
+            label="ปิดใช้งานสินค้า"
             checked={isDisabled}
             onChange={v => setIsDisabled(v === true)}
           />

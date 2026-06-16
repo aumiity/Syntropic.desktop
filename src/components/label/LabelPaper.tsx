@@ -141,7 +141,7 @@ export function LabelPaper({ settings, content, date }: Props) {
           // value (barcodeSvg → '' when blank). Bars only (no digits). Mirrors
           // the shop + print_date flex row.
           const phoneText = settings.show_shop_phone ? text : ''
-          const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false }) : ''
+          const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false, flat: true }) : ''
           if (!phoneText && !svg) return null
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'

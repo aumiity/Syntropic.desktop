@@ -32,6 +32,14 @@
   2. `src/types/index.ts:168` — ถอด `abbrev_tax_invoice`
   3. `src/pages/Settings/ReceiptSettingsTab.tsx:39` — ถอดออกจาก default state object (สำคัญ: handler `settings:saveReceiptSettings` ใช้ dynamic `Object.keys(rest)` → ถ้าไม่ถอด หลัง DROP จะ throw `no such column`)
 
+### 3. `products.is_hidden`
+- **ที่มา:** ติดมาจากระบบ PHP/Hygeia เดิม (`IsHidden`) แนวคิดดั้งเดิมอยากแยก 2 ระดับ (ปิดใช้งาน vs ซ่อนจากค้นหา) แต่ **ไม่เคยมี query ไหนกรอง `products.is_hidden` เลย** (เช็คทั้ง electron/ipc + renderer แล้ว ไม่มีใน list/search/POS) — `is_disabled` ครอบคลุมทุกเคสจริง ตรงกับที่ `customers.is_hidden` เคยถูกยุบ→`is_disabled` แล้ว DROP ไปแล้ว (`schema.ts` customers migration). UI (toggle GeneralTab + badge หัวหน้า) ถอดออกแล้ว 2026-06-16
+- **ขั้นตอนลบ:**
+  1. `electron/db/schema.ts` (~บรรทัด 108) — ลบคอลัมน์ `is_hidden` + คอมเมนต์ DEAD COLUMN; เพิ่ม `ALTER TABLE products DROP COLUMN is_hidden`
+  2. `src/pages/Products/EditProduct/index.tsx` — ถอด `is_hidden` จาก new-default (~124) + load (~171); ที่ create ถอดออกจาก destructure strip (~296-297) ได้เลย (**สำคัญ:** ต้องถอดจาก form state เพราะ update payload ส่งผ่าน `...rest` → `products:update` dynamic SQL จะ throw `no such column` หลัง DROP ถ้ายังหลงเหลือ)
+  3. `src/types/index.ts:6` — ถอด `is_hidden` ออกจาก type `Product`
+  4. (ตรวจซ้ำ) seed/import: `electron/db/seed.ts`, `scripts/import-hygeia.mjs`, `scripts/gen-products.py` ยังอ้าง `is_hidden` ใน INSERT — ถ้า DB เก่ายัง import อยู่ค่อยถอด ไม่งั้นถอดพร้อมกัน
+
 ---
 
 ## ลบแล้ว (DONE)

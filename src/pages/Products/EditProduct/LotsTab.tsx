@@ -22,7 +22,7 @@ import { getCurrentUserId } from '@/stores/userStore'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { formatCurrency, formatDate, formatExpiry, cn } from '@/lib/utils'
 import dayjs from 'dayjs'
-import { Edit, Package, Filter, Check, Clock, ClockFading, ClockAlert } from 'lucide-react'
+import { Edit, Package, Filter, Check, Clock, ClockFading, ClockAlert, Info } from 'lucide-react'
 import type { ProductLot } from '@/types'
 import type { FullProduct } from './shared'
 
@@ -394,9 +394,10 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                   </Field>
                 </div>
 
-                <p className="text-sm text-muted-foreground">
-                  การเปลี่ยนจำนวนคงเหลือจะบันทึกในประวัติการเคลื่อนไหวสต็อกอัตโนมัติ
-                </p>
+                <div className="flex items-start gap-1.5 rounded-lg border border-info/30 bg-info-soft p-2.5 text-sm text-info-soft-foreground">
+                  <Info className="size-4 shrink-0 mt-0.5" />
+                  <span>การเปลี่ยนจำนวนคงเหลือจะบันทึกในประวัติการเคลื่อนไหวสต็อกอัตโนมัติ</span>
+                </div>
               </DialogBody>
               <DialogFooter>
                 <Button variant="elevated" size="xl" onClick={() => setEditingLotId(null)} disabled={lotSaving}>ยกเลิก</Button>

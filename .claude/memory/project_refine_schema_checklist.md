@@ -15,3 +15,4 @@ metadata:
 ## รายการค้างปัจจุบัน (ดูรายละเอียด+ขั้นตอนในไฟล์)
 1. `product_units.is_for_purchase` — งานยุบหน่วยซื้อ/ขาย [[project_unit_flag_collapse]]
 2. `receipt_settings.abbrev_tax_invoice` — งานใบเสร็จ per-section [[project_receipt_sections]] (โหมดใบกำกับย่อตัดสินจาก total_vat>0 แล้ว)
+3. `products.is_hidden` (2026-06-16) — dead flag ติดจาก PHP เดิม ไม่มี query กรองเลย, `is_disabled` ครอบคลุมแล้ว (เหมือน `customers.is_hidden` ที่ DROP ไปแล้ว); UI toggle+badge ถอดออกแล้ว เหลือ DROP คอลัมน์+form plumbing
