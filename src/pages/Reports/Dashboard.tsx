@@ -350,7 +350,7 @@ export default function DashboardPage() {
   const rangeLabel = `${dayjs(dateFrom).format('D MMM BB')} - ${dayjs(dateTo).format('D MMM BB')}`
 
   return (
-    <div className="flex flex-col gap-3 pb-2">
+    <div className="flex flex-col gap-3">
       {/* 1 — KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 p-0.5">
         <MetricCard

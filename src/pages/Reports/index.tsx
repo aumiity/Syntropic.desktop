@@ -106,7 +106,7 @@ export default function ReportsLayout() {
        sticky bg-background div) so the strip's border-b becomes the boundary
        where Summary + content scroll away beneath. */
     <div className="flex flex-col h-full overflow-y-auto scrollbar-thin px-8 pb-4">
-      <div className="no-print sticky top-0 z-20 bg-background">
+      <div className="no-print sticky top-0 z-20 bg-background pt-4">
         <PageHeader title="รายงาน" />
         <TabStrip className="static">
           <Tabs
