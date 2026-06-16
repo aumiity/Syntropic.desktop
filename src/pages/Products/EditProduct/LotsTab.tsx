@@ -353,16 +353,16 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
               </DialogHeader>
               <DialogBody className="space-y-4">
                 {/* Read-only context */}
-                <div className="rounded-lg bg-muted px-3 py-2 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-muted-foreground">ผู้จัดจำหน่าย</div>
-                    <div className="text-sm font-semibold text-foreground">{(lot as any)?.supplier_name ?? '—'}</div>
+                <div className="rounded-lg bg-muted/50 border border-border">
+                  <div className="flex items-center justify-between gap-3 px-3 py-2">
+                    <span className="text-sm text-muted-foreground shrink-0">ผู้จัดจำหน่าย</span>
+                    <span className="text-sm font-semibold text-foreground overflow-x-clip overflow-y-visible text-right">{(lot as any)?.supplier_name ?? '—'}</span>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm text-muted-foreground">รับเข้า</div>
-                    <div className="text-sm font-semibold text-foreground">
+                  <div className="flex items-center justify-between gap-3 px-3 py-2">
+                    <span className="text-sm text-muted-foreground shrink-0">จำนวนที่รับเข้า</span>
+                    <span className="text-sm font-semibold text-foreground">
                       {lot?.qty_received ?? 0} <span className="font-normal text-muted-foreground">{baseUnit}</span>
-                    </div>
+                    </span>
                   </div>
                 </div>
 

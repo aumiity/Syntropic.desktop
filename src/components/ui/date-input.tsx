@@ -59,10 +59,15 @@ interface DateInputProps extends Omit<InputProps, 'value' | 'onChange' | 'type'>
   // for a required-but-EMPTY field, where internal `rawInvalid` can't (it needs
   // text present). Parent should clear it in onChange. Border-only, no message.
   error?: boolean
+  // Optional: reports whether there is text present that is NOT a valid date
+  // (e.g. "99/99/9999" or a partial entry). Both empty and malformed coerce
+  // `onChange` to '', so this is the ONLY way a parent can tell "didn't fill it"
+  // apart from "filled it wrong" — letting it pick the right error message.
+  onRawInvalidChange?: (rawInvalid: boolean) => void
 }
 
 export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, onChange, onBlur, onFocus, placeholder = '', className, variant = 'default', error, ...props }, ref) => {
+  ({ value, onChange, onRawInvalidChange, onBlur, onFocus, placeholder = '', className, variant = 'default', error, ...props }, ref) => {
     const [text, setText] = React.useState(() => isoToDisplay(value))
     const [open, setOpen] = React.useState(false)
     // กำลัง focus ช่องนี้อยู่ไหม — ใช้คุมจังหวะโชว์ขอบแดง (ดู `invalid` ด้านล่าง)
@@ -109,6 +114,8 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
             // ว่าง ทำให้เลขมั่วทิ้ง parent ไว้ที่ค่าเดิม (default/ค่าเก่าที่ valid) แล้ว
             // "ผ่าน" submit แบบเงียบ ๆ. ตัวอักษรที่พิมพ์ + ขอบแดงยังคงโชว์ตามเดิม.
             onChange(iso || '')
+            // มีข้อความค้างแต่ไม่ใช่วันที่จริง → ให้ parent แยก "ลืมกรอก" จาก "กรอกผิด" ได้
+            onRawInvalidChange?.(formatted.length > 0 && !iso)
           }}
           {...props}
         />
@@ -134,6 +141,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
                 const iso = dateToIso(d)
                 setText(isoToDisplay(iso))
                 onChange(iso)
+                onRawInvalidChange?.(false)
                 setOpen(false)
               }}
               initialFocus

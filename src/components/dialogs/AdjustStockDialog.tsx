@@ -59,6 +59,13 @@ export function AdjustStockDialog({
   // Chosen by clicking a row — NOT derived from the typed lot number anymore.
   const [selectedLotId, setSelectedLotId] = useState<number | null>(null)
   const [newLotExpiry, setNewLotExpiry] = useState('')
+  // Parent-owned required flag for the new-lot expiry — DateInput coerces both
+  // empty and malformed input to '', so the "missing expiry" case can only be
+  // flagged from here. Lights the field's red border; cleared on edit / reopen.
+  const [expiryError, setExpiryError] = useState(false)
+  // Tracks whether the expiry field holds malformed text (vs being empty) so the
+  // submit error can say "รูปแบบวันที่ไม่ถูกต้อง" instead of "กรุณาระบุ...".
+  const [expiryRawInvalid, setExpiryRawInvalid] = useState(false)
   const [costInput, setCostInput] = useState('0')
   const [lotSort, setLotSort] = useState<{ by: 'lot_number' | 'expiry_date' | 'qty_on_hand'; dir: 'asc' | 'desc' }>({ by: 'expiry_date', dir: 'asc' })
 
@@ -70,6 +77,8 @@ export function AdjustStockDialog({
     setLotQuery('')
     setSelectedLotId(null)
     setNewLotExpiry('')
+    setExpiryError(false)
+    setExpiryRawInvalid(false)
     // Prefill cost with the last paid cost (the new-lot default). Switches to the
     // matched lot's cost once the operator picks an existing lot (effect below).
     setCostInput(String(target.last_cost_price ?? 0))
@@ -239,8 +248,16 @@ export function AdjustStockDialog({
         payload.added_cost_price = cost
       } else {
         // ล็อตใหม่ต้องมีวันหมดอายุ. เลขมั่ว/พิมพ์ตกตัว DateInput จะคืน '' (ดู date-input.tsx)
-        // → ดักที่นี่ ไม่งั้นจะสร้างล็อตแบบไม่มี exp เงียบ ๆ (กระทบ FEFO).
-        if (!newLotExpiry) { toast({ title: 'รูปแบบวันที่ไม่ถูกต้อง', variant: 'error' }); return }
+        // → ดักที่นี่ ไม่งั้นจะสร้างล็อตแบบไม่มี exp เงียบ ๆ (กระทบ FEFO). โชว์กรอบแดง
+        // ที่ช่องวันหมดอายุ + แยกข้อความ: มีข้อความค้างแต่ผิดรูปแบบ vs เว้นว่าง.
+        if (!newLotExpiry) {
+          setExpiryError(true)
+          toast({
+            title: expiryRawInvalid ? 'รูปแบบวันที่ไม่ถูกต้อง' : 'กรุณาระบุวันหมดอายุ',
+            variant: 'error',
+          })
+          return
+        }
         payload.mode = 'increase_new_lot'
         const ln = lotQuery.trim()
         if (ln) payload.lot_number = ln
@@ -280,10 +297,10 @@ export function AdjustStockDialog({
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent
-        size="xl"
+        size="4xl"
         divided
         onClose={onClose}
-        className="h-[774px] grid-rows-[auto_1fr_auto]"
+        className="h-[560px] grid-rows-[auto_1fr_auto]"
       >
         <DialogHeader>
           <DialogTitle className="text-xl">ปรับสต็อก</DialogTitle>
@@ -293,94 +310,55 @@ export function AdjustStockDialog({
             </div>
           )}
         </DialogHeader>
-        <DialogBody className="flex flex-col overflow-y-auto min-h-0 scrollbar-thin">
-          <div className="space-y-3">
+        <DialogBody className="grid grid-cols-2 gap-4 overflow-hidden min-h-0">
 
-            <div>
-              <label className="block text-base font-medium mb-1">
-                จำนวนสต็อกหลังปรับ <span className="text-destructive">*</span>
-              </label>
-              <div className="flex items-center gap-3">
-                <span
-                  className={`inline-flex flex-1 basis-0 items-center justify-center gap-1.5 rounded-lg border px-3 h-10 text-base font-semibold ${
-                    adjustDelta === null
-                      ? 'bg-card text-muted-foreground/60 border-border'
-                      : adjustDelta > 0
-                        ? 'bg-success-soft text-success border-success/30'
-                        : adjustDelta < 0
-                          ? 'bg-destructive-soft text-destructive border-destructive/30'
-                          : 'bg-card text-muted-foreground border-border'
-                  }`}
-                >
-                  {adjustDelta === null
-                    ? '—'
-                    : adjustDelta > 0
-                      ? <><ArrowUpCircle className="size-4" /> +{adjustDelta.toLocaleString()}</>
-                      : adjustDelta < 0
-                        ? <><ArrowDownCircle className="size-4" /> {adjustDelta.toLocaleString()}</>
-                        : <><Minus className="size-4" /> ไม่เปลี่ยน</>}
-                </span>
-                <Input
-                  variant="elevated"
-                  type="number"
-                  value={adjustTarget}
-                  onChange={e => setAdjustTarget(e.target.value)}
-                  placeholder="0"
-                  min={0}
-                  className="h-10 rounded-lg text-lg font-semibold flex-1 basis-0 text-right"
-                  autoFocus
-                />
-              </div>
-            </div>
+          {/* ============ LEFT — form inputs ============ */}
+          <div className="flex flex-col min-h-0 overflow-y-auto scrollbar-thin pr-1">
+            <div className="space-y-3">
 
-            {/* DECREASE — FEFO preview */}
-            {adjustDelta !== null && adjustDelta < 0 && (
-              <div className="rounded-card border border-destructive/30 bg-destructive-soft p-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
-                  <Info className="size-4" />
-                  ระบบจะหักด้วย FEFO (ล็อตใกล้หมดอายุก่อน)
-                </div>
-                <div className="h-[316px] overflow-y-auto scrollbar-thin pr-1">
-                  {fefoPreview.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {fefoPreview.map(({ lot, deduct, qtyAfter }, i) => (
-                        <div key={lot.id} className="flex items-center justify-between text-sm bg-destructive-soft rounded-lg px-3 py-2">
-                          <span className="flex items-center gap-2 min-w-0">
-                            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-destructive-soft text-xs font-bold text-destructive">{i + 1}</span>
-                            <span className="font-semibold text-foreground truncate">{lot.lot_number}</span>
-                            <span className="text-muted-foreground shrink-0">exp {formatExp(lot.expiry_date)}</span>
-                          </span>
-                          <span className="flex items-center gap-4 shrink-0">
-                            <span>
-                              <span className="text-muted-foreground">เดิม</span>{' '}
-                              <span className="font-semibold text-foreground">{lot.qty_on_hand.toLocaleString()}</span>
-                            </span>
-                            <span className="text-destructive">
-                              <span className="opacity-70">ลด</span>{' '}
-                              <span className="font-bold">−{deduct.toLocaleString()}</span>
-                            </span>
-                            <span>
-                              <span className="text-muted-foreground">คงเหลือ</span>{' '}
-                              <span className="font-semibold text-foreground">{qtyAfter.toLocaleString()}</span>
-                            </span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">ไม่มีล็อตที่จะหัก — ตรวจสอบจำนวนอีกครั้ง</div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* INCREASE — cost first, then the lot picker. Click a row to merge
-                into that lot; with nothing selected, the lot-number/expiry fields
-                below define a brand-new lot. */}
-            {adjustDelta !== null && adjustDelta > 0 && (
-              <div className="space-y-3">
-                {/* Cost + resulting average — no frame, kept compact */}
+              <div>
+                <label className="block text-base font-medium mb-1">
+                  จำนวนสต็อกหลังปรับ <span className="text-destructive">*</span>
+                </label>
                 <div className="grid grid-cols-2 gap-3">
+                  <span
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 h-10 text-base font-semibold ${
+                      adjustDelta === null
+                        ? 'bg-card text-muted-foreground/60 border-border'
+                        : adjustDelta > 0
+                          ? 'bg-success-soft text-success border-success/30'
+                          : adjustDelta < 0
+                            ? 'bg-destructive-soft text-destructive border-destructive/30'
+                            : 'bg-card text-muted-foreground border-border'
+                    }`}
+                  >
+                    {adjustDelta === null
+                      ? '—'
+                      : adjustDelta > 0
+                        ? <><ArrowUpCircle className="size-4" /> +{adjustDelta.toLocaleString()}</>
+                        : adjustDelta < 0
+                          ? <><ArrowDownCircle className="size-4" /> {adjustDelta.toLocaleString()}</>
+                          : <><Minus className="size-4" /> ไม่เปลี่ยน</>}
+                  </span>
+                  <Input
+                    variant="elevated"
+                    type="number"
+                    value={adjustTarget}
+                    onChange={e => setAdjustTarget(e.target.value)}
+                    placeholder="0"
+                    min={0}
+                    className="h-10 rounded-lg text-lg font-semibold text-right"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* INCREASE — cost + lot inputs. Click a row in the right-hand table
+                  to merge into that lot; with nothing selected, the lot-number/
+                  expiry fields below define a brand-new lot. */}
+              {adjustDelta !== null && adjustDelta > 0 && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="flex items-center gap-1 text-sm font-medium mb-1 text-muted-foreground h-5">
                         <span>ต้นทุน/หน่วย</span>
@@ -413,115 +391,178 @@ export function AdjustStockDialog({
                       </div>
                     </div>
                   </div>
+                </>
+              )}
+            </div>
 
-                {/* Lot picker — no frame/title, kept compact */}
-                <div className="space-y-3">
+            {/* Note section — pinned to the bottom (mt-auto) so its position stays
+                put across modes. The left column scrolls if its content overflows. */}
+            <div className="mt-auto pt-3">
+              <label className="block text-base font-medium mb-2">หมายเหตุ <span className="text-destructive">*</span></label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {QUICK_REASONS.map(r => (
+                  <Button
+                    key={r}
+                    type="button"
+                    size="lg"
+                    variant={adjustNote === r ? 'amber-soft' : 'elevated'}
+                    onClick={() => setAdjustNote(r)}
+                  >
+                    {r}
+                  </Button>
+                ))}
+              </div>
+              <Input
+                variant="elevated"
+                value={adjustNote}
+                onChange={e => setAdjustNote(e.target.value)}
+                placeholder="เหตุผลการปรับสต็อก หรือเลือกจากปุ่มด้านบน"
+                className="h-10 rounded-lg"
+                onKeyDown={e => { if (e.key === 'Enter') handleAdjust() }}
+              />
+            </div>
+          </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-muted-foreground">เลขที่ล็อต</label>
-                      {matchedLot ? (
-                        <div className="h-10 px-3 flex items-center bg-muted border border-border rounded-lg text-sm text-muted-foreground">
-                          {matchedLot.lot_number}
+          {/* ============ RIGHT — mode-specific detail ============ */}
+          <div className="flex flex-col min-h-0">
+
+            {/* DECREASE — FEFO preview (fills the column height) */}
+            {adjustDelta !== null && adjustDelta < 0 && (
+              <div className="flex flex-col min-h-0 rounded-card border border-destructive/30 bg-destructive-soft p-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-destructive mb-2">
+                  <Info className="size-4 shrink-0" />
+                  ระบบจะหักด้วย FEFO (ล็อตใกล้หมดอายุก่อน)
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin pr-1">
+                  {fefoPreview.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {fefoPreview.map(({ lot, deduct, qtyAfter }, i) => (
+                        <div key={lot.id} className="bg-card/60 rounded-lg px-3 py-2 space-y-1 text-sm">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-destructive-soft text-xs font-bold text-destructive">{i + 1}</span>
+                            <span className="font-semibold text-foreground overflow-x-clip overflow-y-visible">{lot.lot_number}</span>
+                            <span className="text-muted-foreground shrink-0 ml-auto">exp {formatExp(lot.expiry_date)}</span>
+                          </div>
+                          <div className="flex items-center gap-4 pl-7">
+                            <span>
+                              <span className="text-muted-foreground">เดิม</span>{' '}
+                              <span className="font-semibold text-foreground">{lot.qty_on_hand.toLocaleString()}</span>
+                            </span>
+                            <span className="text-destructive">
+                              <span className="opacity-70">ลด</span>{' '}
+                              <span className="font-bold">−{deduct.toLocaleString()}</span>
+                            </span>
+                            <span>
+                              <span className="text-muted-foreground">คงเหลือ</span>{' '}
+                              <span className="font-semibold text-foreground">{qtyAfter.toLocaleString()}</span>
+                            </span>
+                          </div>
                         </div>
-                      ) : (
-                        <Input
-                          variant="elevated"
-                          value={lotQuery}
-                          onChange={e => setLotQuery(e.target.value)}
-                          placeholder="เว้นว่างเพื่อสร้างเลขอัตโนมัติ"
-                          className="h-10 w-full rounded-lg text-sm"
-                        />
-                      )}
+                      ))}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-muted-foreground">วันหมดอายุ</label>
-                      {matchedLot ? (
-                        <div className="h-10 px-3 flex items-center bg-muted border border-border rounded-lg text-sm text-muted-foreground">
-                          {formatExp(matchedLot.expiry_date)}
-                        </div>
-                      ) : (
-                        <DateInput variant="elevated" className="h-10 w-full" value={newLotExpiry} onChange={setNewLotExpiry} placeholder="dd/mm/yyyy" />
-                      )}
-                    </div>
-                  </div>
-
-                  <Table containerClassName="h-[208px] rounded-lg border border-border">
-                    <TableHeader>
-                      <TableRow>
-                        <SortableTableHead field="lot_number" sort={lotSort} onToggle={toggleLotSort}>เลขที่ล็อต</SortableTableHead>
-                        <SortableTableHead field="expiry_date" sort={lotSort} onToggle={toggleLotSort}>วันหมดอายุ</SortableTableHead>
-                        <SortableTableHead field="qty_on_hand" align="right" sort={lotSort} onToggle={toggleLotSort}>คงเหลือ</SortableTableHead>
-                        <TableHead>สถานะ</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedLots.map(l => {
-                        const selected = selectedLotId === l.id
-                        const depleted = l.is_closed || l.qty_on_hand <= 0
-                        return (
-                          <TableRow
-                            key={l.id}
-                            onClick={() => setSelectedLotId(prev => prev === l.id ? null : l.id)}
-                            data-state={selected ? 'selected' : undefined}
-                            className="cursor-pointer"
-                          >
-                            <TableCell className="font-medium text-foreground">
-                              <span className="flex items-center gap-1.5">
-                                {selected && <Check className="size-3.5 text-primary" />}
-                                {l.lot_number}
-                              </span>
-                            </TableCell>
-                            <TableCell>{formatExp(l.expiry_date)}</TableCell>
-                            <TableCell className="text-right">{l.qty_on_hand.toLocaleString()}</TableCell>
-                            <TableCell>
-                              {depleted
-                                ? <Badge variant="destructive-outline">หมด</Badge>
-                                : <Badge variant="success-outline">ใช้งาน</Badge>}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                      {sortedLots.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
-                            ยังไม่มีล็อต — กรอกเลขที่ล็อตด้านบนเพื่อสร้างล็อตใหม่
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">ไม่มีล็อตที่จะหักออก — ตรวจสอบจำนวนอีกครั้ง</div>
+                  )}
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Note section — pinned to the bottom (mt-auto) so its position stays
-              put across modes. Dialog height is fixed; shorter modes show the gap
-              above the note, taller content scrolls within the body. */}
-          <div className="mt-auto pt-3">
-            <label className="block text-base font-medium mb-2">หมายเหตุ <span className="text-destructive">*</span></label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {QUICK_REASONS.map(r => (
-                <Button
-                  key={r}
-                  type="button"
-                  size="lg"
-                  variant={adjustNote === r ? 'amber-soft' : 'elevated'}
-                  onClick={() => setAdjustNote(r)}
-                >
-                  {r}
-                </Button>
-              ))}
-            </div>
-            <Input
-              variant="elevated"
-              value={adjustNote}
-              onChange={e => setAdjustNote(e.target.value)}
-              placeholder="เหตุผลการปรับสต็อก หรือเลือกจากปุ่มด้านบน"
-              className="h-10 rounded-lg"
-              onKeyDown={e => { if (e.key === 'Enter') handleAdjust() }}
-            />
+            {/* INCREASE — lot fields + picker table (fills the column height) */}
+            {adjustDelta !== null && adjustDelta > 0 && (
+              <div className="flex flex-col min-h-0">
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-muted-foreground">เลขที่ล็อต</label>
+                    {matchedLot ? (
+                      <div className="h-10 px-3 flex items-center bg-muted border border-border rounded-lg text-sm text-muted-foreground">
+                        {matchedLot.lot_number}
+                      </div>
+                    ) : (
+                      <Input
+                        variant="elevated"
+                        value={lotQuery}
+                        onChange={e => setLotQuery(e.target.value)}
+                        placeholder="เว้นว่างเพื่อสร้างเลขอัตโนมัติ"
+                        className="h-10 w-full rounded-lg text-sm"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-muted-foreground">วันหมดอายุ</label>
+                    {matchedLot ? (
+                      <div className="h-10 px-3 flex items-center bg-muted border border-border rounded-lg text-sm text-muted-foreground">
+                        {formatExp(matchedLot.expiry_date)}
+                      </div>
+                    ) : (
+                      <DateInput
+                        variant="elevated"
+                        className="h-10 w-full"
+                        value={newLotExpiry}
+                        onChange={v => { setNewLotExpiry(v); if (expiryError) setExpiryError(false) }}
+                        onRawInvalidChange={setExpiryRawInvalid}
+                        error={expiryError}
+                        placeholder="dd/mm/yyyy"
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="text-sm font-medium text-muted-foreground mb-2">
+                  เลือกล็อต <span className="font-normal opacity-70"></span>
+                </div>
+                <Table containerClassName="flex-1 min-h-0 rounded-lg border border-border">
+                  <TableHeader>
+                    <TableRow>
+                      <SortableTableHead field="lot_number" sort={lotSort} onToggle={toggleLotSort}>เลขที่ล็อต</SortableTableHead>
+                      <SortableTableHead field="expiry_date" sort={lotSort} onToggle={toggleLotSort}>วันหมดอายุ</SortableTableHead>
+                      <SortableTableHead field="qty_on_hand" align="right" sort={lotSort} onToggle={toggleLotSort}>คงเหลือ</SortableTableHead>
+                      <TableHead>สถานะ</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedLots.map(l => {
+                      const selected = selectedLotId === l.id
+                      const depleted = l.is_closed || l.qty_on_hand <= 0
+                      return (
+                        <TableRow
+                          key={l.id}
+                          onClick={() => setSelectedLotId(prev => prev === l.id ? null : l.id)}
+                          data-state={selected ? 'selected' : undefined}
+                          className="cursor-pointer"
+                        >
+                          <TableCell className="font-medium text-foreground">
+                            <span className="flex items-center gap-1.5">
+                              {selected && <Check className="size-3.5 text-primary" />}
+                              {l.lot_number}
+                            </span>
+                          </TableCell>
+                          <TableCell>{formatExp(l.expiry_date)}</TableCell>
+                          <TableCell className="text-right">{l.qty_on_hand.toLocaleString()}</TableCell>
+                          <TableCell>
+                            {depleted
+                              ? <Badge variant="destructive-outline">หมด</Badge>
+                              : <Badge variant="success-outline">ใช้งาน</Badge>}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                    {sortedLots.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
+                          ยังไม่มีล็อต — กรอกเลขที่ล็อตด้านบนเพื่อสร้างล็อตใหม่
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* IDLE — no change yet */}
+            {(adjustDelta === null || adjustDelta === 0) && (
+              <div className="flex-1 grid place-items-center rounded-card border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                ระบุจำนวนสต็อกหลังปรับ เพื่อดูรายละเอียดการปรับ
+              </div>
+            )}
           </div>
         </DialogBody>
         <DialogFooter>
