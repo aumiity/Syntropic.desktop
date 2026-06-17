@@ -1,17 +1,19 @@
 // Silent-print the already-rendered A4 preview sheets (no OS dialog).
 //
-// WHY serialize the live DOM instead of building HTML from scratch: the on-screen
-// preview is already paginated by JS measurement against the app's real fonts +
-// CSS. Re-rendering it as a separate HTML string would use different metrics and
-// the pre-computed page breaks / filler counts would no longer fit. Cloning the
-// live `.a4-sheet` nodes + inlining the app's own stylesheets guarantees the
-// print is pixel-identical to the preview.
+// HOW: clone the live `.a4-sheet` nodes and bake every element's COMPUTED style
+// into an inline `style=""`, then ship that to a hidden print window. Baking
+// computed styles (instead of inlining the app's stylesheets) makes the print
+// pixel-identical to the on-screen preview — same fonts, same measured
+// pagination — while carrying NO app CSS rules, so nothing from @media print /
+// Tailwind can re-flow the tables (an earlier full-stylesheet inline collapsed
+// the column widths into a stray grid). Every cell ends up with an explicit px
+// width, so the table can't collapse.
 //
 // WHY not window.print() / webContents.print({silent:false}): Electron ships
 // without Chromium's print-preview, so both surface "This app doesn't support
-// print preview". The silent printer:printHtml path (hidden window →
-// webContents.print({silent:true})) is the proven one (receipts/labels/tax
-// invoices use it) and prints straight to the configured printer.
+// print preview". The silent printer:printDocument path (hidden window →
+// webContents.print({silent:true})) is the proven one and prints straight to the
+// configured printer; landscape is forced there (orientation is per-document).
 import { buildPrintFontFaceCss, getAppThaiFont } from './fonts'
 
 // Parse a page-range string ("1-3, 5") into sorted 1-based page numbers, clamped
@@ -37,25 +39,29 @@ export function parsePageSelection(input: string, max: number): number[] | 'all'
   return out.size ? Array.from(out).sort((a, b) => a - b) : 'all'
 }
 
-// Read every same-origin stylesheet's text. Cross-origin sheets (e.g. a CDN
-// font) throw on cssRules access — skipped. The app's own CSS (Tailwind, tokens,
-// @media print) is same-origin in both dev (<style> tags) and a built app
-// (bundled <link>), so the cloned sheets keep their exact look.
-function collectAppCss(): string {
-  return Array.from(document.styleSheets)
-    .map(sheet => {
-      try { return Array.from((sheet as CSSStyleSheet).cssRules).map(r => r.cssText).join('\n') }
-      catch { return '' }
-    })
-    .join('\n')
+// Recursively copy every computed CSS property from each source element onto the
+// matching cloned element as an inline style. The clone tree mirrors the source
+// (cloneNode(true)), so children line up by index. cssText is empty for computed
+// styles in Chromium, so iterate the property list instead.
+function bakeComputedStyles(src: Element, dst: Element) {
+  const cs = getComputedStyle(src)
+  let style = ''
+  for (let i = 0; i < cs.length; i++) {
+    const prop = cs.item(i)
+    style += `${prop}:${cs.getPropertyValue(prop)};`
+  }
+  dst.setAttribute('style', style)
+  const sc = src.children
+  const dc = dst.children
+  for (let i = 0; i < sc.length && i < dc.length; i++) bakeComputedStyles(sc[i], dc[i])
 }
 
 export interface PrintDomResult { success: boolean; error?: string }
 
-// Clone the chosen .a4-sheet nodes inside `docSelector`, wrap them in a
-// standalone HTML doc (app CSS inlined + Thai font embedded + print overrides),
-// and spool it silently to `printerName` (''=OS default). pages = 'all' or a
-// 1-based list (see parsePageSelection).
+// Clone the chosen .a4-sheet nodes inside `docSelector`, bake their computed
+// styles inline, wrap them in a standalone HTML doc (Thai font embedded), and
+// spool it silently — landscape A4 — to `printerName` (''=OS default).
+// pages = 'all' or a 1-based list (see parsePageSelection).
 export async function printDomSheets(opts: {
   docSelector: string
   pages?: number[] | 'all'
@@ -72,25 +78,25 @@ export async function printDomSheets(opts: {
     : opts.pages.map(n => allSheets[n - 1]).filter(Boolean)
   if (chosen.length === 0) return { success: false, error: 'ไม่มีหน้าที่เลือก (ตรวจเลขหน้าอีกครั้ง)' }
 
-  const font = getAppThaiFont()
-  const fontCss = await buildPrintFontFaceCss(font)
-  const appCss = collectAppCss()
-  const sheetsHtml = chosen.map(s => s.outerHTML).join('')
+  const fontCss = await buildPrintFontFaceCss(getAppThaiFont())
 
-  // Overrides come AFTER the app CSS so they win. They neutralize the screen-only
-  // `.a4-doc { position:absolute }` print rule (unreliable for multi-page) and
-  // pin each sheet to an exact A4-landscape page so one sheet = one printed page.
+  const sheetsHtml = chosen.map(src => {
+    const clone = src.cloneNode(true) as HTMLElement
+    bakeComputedStyles(src, clone)
+    return clone.outerHTML
+  }).join('')
+
+  // No app stylesheet is shipped — the baked inline styles already carry the full
+  // look. These few rules only pin each sheet to one exact A4-landscape page.
   const html = `<!doctype html><html><head><meta charset="utf-8">
 <style>${fontCss}</style>
-<style>${appCss}</style>
 <style>
   @page { size: A4 landscape; margin: 0; }
-  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-  .a4-doc { position: static !important; inset: auto !important; display: block !important; gap: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
-  .a4-sheet { width: 297mm !important; height: 210mm !important; margin: 0 !important; box-shadow: none !important; border-radius: 0 !important; break-inside: avoid; break-after: page; page-break-after: always; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  .a4-sheet { width: 297mm !important; height: 210mm !important; margin: 0 !important; box-shadow: none !important; overflow: hidden; break-inside: avoid; break-after: page; page-break-after: always; }
   .a4-sheet:last-child { break-after: auto; page-break-after: auto; }
 </style>
-</head><body><div class="a4-doc">${sheetsHtml}</div></body></html>`
+</head><body>${sheetsHtml}</body></html>`
 
   // pageFormat 'A4' + landscape:true forces the job landscape regardless of the
   // printer's portrait default (the shared A4 printer is set up portrait for tax

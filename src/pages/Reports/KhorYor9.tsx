@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link, useOutletContext } from 'react-router-dom'
+import { useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MultiDatePicker, type MultiDateMode, rangeForMultiMode } from '@/components/ui/multi-date-picker'
@@ -9,7 +9,7 @@ import { printDomSheets, parsePageSelection } from '@/lib/print/printDomSheets'
 import type { Setting } from '@/types'
 import type { ReportsOutletContext } from './index'
 import { A4Sheet, A4_CONTENT_W, A4_CONTENT_H, FOOTER_H, PACK_SAFETY } from './a4'
-import { ArrowLeft, Printer } from 'lucide-react'
+import { Printer } from 'lucide-react'
 
 interface KhorYor9Row {
   invoice_no: string
@@ -197,9 +197,6 @@ export default function KhorYor9Page() {
     <div className="flex flex-1 flex-col min-h-0 gap-3">
       {/* Filter strip — hidden when printing */}
       <div className="no-print h-12 px-2 bg-card rounded-card border border-border shadow-card flex items-center gap-2 shrink-0">
-        <Button asChild variant="outline" size="icon-lg" tooltip="ย้อนกลับ">
-          <Link to="/reports/fda"><ArrowLeft /></Link>
-        </Button>
         <MultiDatePicker
           mode={dateMode}
           from={dateFrom}
