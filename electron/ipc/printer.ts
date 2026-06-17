@@ -169,6 +169,33 @@ export function registerPrinterHandlers() {
     return await event.sender.getPrintersAsync()
   })
 
+  // Print the calling window's visible content through the OS print dialog.
+  // The renderer can't call window.print() (Electron has no Chromium
+  // print-preview → "This app doesn't support print preview"); routing through
+  // webContents.print({ silent:false }) opens the real system dialog instead,
+  // which gives printer + page-range + copies selection for free. The page's
+  // own @media print CSS (hide chrome, A4 sheets, break-after:page) is honored.
+  // Used by the A4 official reports (ขย.9/10/11) — monthly, occasional, and the
+  // operator needs to pick pages (reprint a single damaged sheet).
+  ipcMain.handle('printer:printVisible', async (event, opts?: { landscape?: boolean }) => {
+    return await new Promise<{ success: boolean; error?: string }>((resolve) => {
+      try {
+        event.sender.print(
+          {
+            silent: false,
+            printBackground: true,
+            landscape: opts?.landscape ?? true,
+            pageSize: 'A4',
+            margins: { marginType: 'none' },
+          },
+          (success, failureReason) => resolve({ success, error: success ? undefined : failureReason }),
+        )
+      } catch (e: any) {
+        resolve({ success: false, error: e?.message ?? String(e) })
+      }
+    })
+  })
+
   ipcMain.handle('printer:printLabel', async (_e, args: {
     html: string
     printerName: string

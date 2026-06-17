@@ -101,6 +101,15 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
 
   const isEmpty = !loading && rows && rows.length === 0
 
+  // Print via the OS dialog (printer + page-range + copies). Renderer
+  // window.print() is unsupported in Electron, so route through the main process.
+  const handlePrint = async () => {
+    const res = await window.api.printer.printVisible({ landscape: true })
+    if (!res?.success && res?.error && !/cancel/i.test(res.error)) {
+      toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'destructive' })
+    }
+  }
+
   // Group lot-cut rows into per-lot sections — one header block + its sale rows.
   // Keyed on `rows` (stable state ref) so `sections` only changes on real data
   // changes — feeding the pagination effect a stable dep (no setPages loop).
@@ -272,7 +281,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
           className="shrink-0"
         />
         <div className="flex-1" />
-        <Button size="lg" className="h-9 px-4" onClick={() => window.print()}>
+        <Button size="lg" className="h-9 px-4" onClick={handlePrint}>
           <Printer className="size-4" /> พิมพ์
         </Button>
       </div>

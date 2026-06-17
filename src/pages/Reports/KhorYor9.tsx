@@ -83,6 +83,15 @@ export default function KhorYor9Page() {
   const isEmpty = !loading && rows && rows.length === 0
   const displayRows = rows ?? []
 
+  // Print via the OS dialog (printer + page-range + copies). Renderer
+  // window.print() is unsupported in Electron, so route through the main process.
+  const handlePrint = async () => {
+    const res = await window.api.printer.printVisible({ landscape: true })
+    if (!res?.success && res?.error && !/cancel/i.test(res.error)) {
+      toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'destructive' })
+    }
+  }
+
   // Measure real row/header heights from the hidden specimen, then greedily pack
   // rows into fixed-height A4 pages. Runs before paint (useLayoutEffect) so the
   // visible sheets never flash an un-paginated state.
@@ -191,7 +200,7 @@ export default function KhorYor9Page() {
           className="shrink-0"
         />
         <div className="flex-1" />
-        <Button size="lg" className="h-9 px-4" onClick={() => window.print()}>
+        <Button size="lg" className="h-9 px-4" onClick={handlePrint}>
           <Printer className="size-4" /> พิมพ์
         </Button>
       </div>
