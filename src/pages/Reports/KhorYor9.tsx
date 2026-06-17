@@ -268,6 +268,35 @@ export default function KhorYor9Page() {
     </A4Sheet>
   )
 
+  // Diagonal strike (bottom-left → top-right) + centered message over a table —
+  // the FDA-required marking for a month with no entries.
+  const diagonalOverlay = (message: string) => (
+    <div className="absolute inset-0 pointer-events-none text-foreground">
+      <svg width="100%" height="100%" className="block">
+        <line x1="0" y1="100%" x2="100%" y2="0" stroke="currentColor" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="px-4 py-1 text-lg font-semibold bg-card">{message}</span>
+      </div>
+    </div>
+  )
+
+  // Empty-month sheet: the blank ruled form, struck through diagonally + message.
+  const renderEmptySheet = () => (
+    <A4Sheet header={headerBlock} pageNo={1} pageCount={1}>
+      <div className="relative">
+        <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
+          {colgroup}
+          <thead>{theadRow}</thead>
+          <tbody>
+            {Array.from({ length: blankFillerCount() }).map((_, i) => fillerRow(`e-${i}`))}
+          </tbody>
+        </table>
+        {diagonalOverlay('ไม่มีรายการซื้อยาในเดือนนี้')}
+      </div>
+    </A4Sheet>
+  )
+
   return (
     <div className="flex flex-1 flex-col min-h-0 gap-3">
       {/* Filter strip — hidden when printing */}
@@ -329,6 +358,8 @@ export default function KhorYor9Page() {
                   </tbody>
                 </table>
               </A4Sheet>
+            ) : isEmpty ? (
+              renderEmptySheet()
             ) : pages[viewPage - 1] ? (
               renderPage(pages[viewPage - 1], viewPage - 1)
             ) : null}
@@ -363,7 +394,7 @@ export default function KhorYor9Page() {
           the baked computed styles stay correct. */}
       {printRender && !loading && (
         <div className="a4-doc" aria-hidden style={{ position: 'absolute', left: -100000, top: 0 }}>
-          {pages.map(renderPage)}
+          {isEmpty ? renderEmptySheet() : pages.map(renderPage)}
         </div>
       )}
 
