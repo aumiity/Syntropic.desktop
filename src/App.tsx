@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState, useCallback } from 'react'
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { ToastProvider } from './components/ui/toast'
 import { TooltipProvider } from './components/ui/tooltip'
@@ -137,8 +137,8 @@ export default function App() {
               {/* Phase 4: Reports rebuilt as finance dashboard (Phase 5 adds อย.). */}
               <Route path="reports" element={<ReportsLayout />}>
                 <Route index element={<ReportsDashboard />} />
-                <Route path="fda">
-                  <Route index element={<ReportsFda />} />
+                <Route path="fda" element={<ReportsFda />}>
+                  <Route index element={<Navigate to="khor-yor-9" replace />} />
                   <Route path="khor-yor-9" element={<ReportsKhorYor9 />} />
                   <Route path="khor-yor-10" element={<ReportsKhorYor10 />} />
                   <Route path="khor-yor-11" element={<ReportsKhorYor11 />} />

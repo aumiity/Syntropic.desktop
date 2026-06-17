@@ -34,10 +34,18 @@ export function A4Sheet({
 }) {
   return (
     <div
-      className="a4-sheet bg-card text-foreground shadow-card mx-auto flex flex-col overflow-hidden"
+      className="a4-sheet bg-card text-foreground mx-auto flex flex-col overflow-hidden"
       // Official ขย. documents are locked to Sarabun — on the preview AND the
       // print (the print bakes these computed styles, so the font carries over).
-      style={{ width: A4.W, height: A4.H, padding: `${A4.PAD_Y}px ${A4.PAD_X}px`, fontFamily: "'Sarabun Print', sans-serif" }}
+      // boxShadow matches the receipt/label/document preview depth (DocumentSettingsTab);
+      // it never prints — printDomSheets forces box-shadow:none and doesn't bake it.
+      style={{
+        width: A4.W,
+        height: A4.H,
+        padding: `${A4.PAD_Y}px ${A4.PAD_X}px`,
+        fontFamily: "'Sarabun Print', sans-serif",
+        boxShadow: '0 4px 5px rgb(0 0 0 / 0.20), 0 12px 14px rgb(0 0 0 / 0.16)',
+      }}
     >
       <div className="shrink-0">{header}</div>
       <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
