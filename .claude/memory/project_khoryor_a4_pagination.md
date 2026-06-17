@@ -7,6 +7,10 @@ metadata:
 
 **DONE 2026-06-17 (in-app + print verify pending)** — รายงาน ข.ย. (`KhorYor9.tsx`, `KhorYorSaleLedger.tsx` = ข.ย.10/11) เปลี่ยนพรีวิวจาก "แผ่นเดียวยาว" → **แบ่งเป็นหน้า A4 แยกแผ่นจริง**.
 
+**ปุ่ม "ฟอร์มเปล่า" (พิมพ์ฟอร์ม ข.ย. เปล่าไว้กรอกมือ):** mount `.a4-blank` ชั่วคราว (1 หน้า: หัว + ตารางแถวว่างเต็มหน้า; ledger มีบล็อกหัวล็อตเปล่าเส้นประด้วย) → printDomSheets path เดิม. จำนวนแถวว่างจาก `blankFillerCount()` คำนวณจาก `metricsRef` (headerH/theadH(saleHeadH)/fillerH(/blankLotHeadH) ที่ effect เก็บไว้).
+
+**🚨 กฎ อย. — เดือนไม่มีรายการ:** ต้องพิมพ์ **ฟอร์มเปล่า + ขีดทแยงมุมซ้ายล่าง→ขวาบนคร่อมตาราง + ข้อความกลางตาราง** "ไม่มีรายการซื้อยาในเดือนนี้"(ข.ย.9)/"ไม่มีรายการขายยาในเดือนนี้"(ข.ย.10/11). ทำใน `renderEmptySheet()` (ใช้ทั้งพรีวิว `isEmpty`/`sections.length===0` + hidden `.a4-doc` ตอนพิมพ์). เส้นทแยง = `<svg><line x1=0 y1=100% x2=100% y2=0 stroke=currentColor>` (อยู่รอด bake เพราะ stroke/geometry เป็น attribute, color baked); ข้อความ span `bg-card` ทับเส้น. **ห้ามแสดงแค่ข้อความเฉย ๆ — ต้องมีฟอร์ม+เส้นทแยง.**
+
 **กลไก:** วัดความสูง DOM จริงจาก hidden specimen (off-screen `left:-10000px`, width = `A4_CONTENT_W` 1043px, markup เหมือน sheet เป๊ะเพราะ `table-fixed`) ใน `useLayoutEffect` (รันก่อน paint ไม่ให้กระพริบ) แล้ว **greedy pack** ลงทีละหน้า:
 - ข.ย.9 = pack ทีละ row
 - ข.ย.10/11 = pack ทีละ lot section, section ยาวเกินหน้า → split + ซ้ำหัวล็อต ใส่ "(ต่อ)"
