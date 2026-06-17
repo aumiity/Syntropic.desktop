@@ -174,10 +174,18 @@ export function registerPurchaseHandlers() {
           const avgCost = (existing.qty_received * existing.cost_price + item.qty * costEx) / totalQty
           qtyBefore = existing.qty_on_hand
           lotId = existing.id
+          // Receiving adds positive stock → if this lot was previously closed
+          // (qty hit 0), reopen it. Otherwise the restocked lot stays is_closed=1
+          // and disappears from every FEFO/availability query (which filter
+          // is_closed=0) — the HARD invariant "is_closed auto-toggles at qty 0".
+          // The CASE reads the pre-update qty_on_hand (SQL evaluates SET RHS
+          // against old row values), so the bound qty is added to decide.
           db.prepare(`
             UPDATE product_lots SET
               qty_received = qty_received + ?,
               qty_on_hand = qty_on_hand + ?,
+              is_closed = CASE WHEN (qty_on_hand + ?) > 0 THEN 0 ELSE is_closed END,
+              closed_at  = CASE WHEN (qty_on_hand + ?) > 0 THEN NULL ELSE closed_at END,
               cost_price = ?,
               sell_price = ?,
               supplier_id = ?,
@@ -190,7 +198,7 @@ export function registerPurchaseHandlers() {
               paid_date = ?,
               updated_at = ?
             WHERE id = ?
-          `).run(item.qty, item.qty, avgCost, item.sell_price, payload.supplier_id,
+          `).run(item.qty, item.qty, item.qty, item.qty, avgCost, item.sell_price, payload.supplier_id,
             payload.invoice_no, payload.supplier_invoice_no, payload.order_date ?? null,
             payload.payment_type,
             payload.due_date ?? null, payload.is_paid ? 1 : 0, payload.paid_date ?? null,

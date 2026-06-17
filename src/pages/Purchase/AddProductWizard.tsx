@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { DateInput } from '@/components/ui/date-input'
 import { PriceInput } from '@/components/ui/price-input'
 import { Badge } from '@/components/ui/badge'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
+import { Toggle } from '@/components/ui/switch'
 import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -182,6 +184,10 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   // so staff can sanity-check the new lot against what's already on the shelf.
   const [existingLots, setExistingLots] = useState<ProductLot[]>([])
   const [lotsLoading, setLotsLoading] = useState(false)
+  // ล็อตเดิมที่เลือกเพื่อ "รับเข้าล็อตนั้น" (merge ตาม lot_number ที่ backend จับคู่ให้) — null = สร้างล็อตใหม่จากฟอร์ม
+  const [selectedLotId, setSelectedLotId] = useState<number | null>(null)
+  const [showClosedLots, setShowClosedLots] = useState(false)
+  const [lotSort, setLotSort] = useState<{ by: 'lot_number' | 'expiry_date' | 'qty_on_hand'; dir: 'asc' | 'desc' }>({ by: 'expiry_date', dir: 'asc' })
 
   // drafts ราคาต่อหน่วย: key = SellUnitPrice.key ('base' | product_unit_id) → 3 ราคา (string)
   const [priceDrafts, setPriceDrafts] = useState<Record<string, { retail: string; ws1: string; ws2: string }>>({})
@@ -205,6 +211,9 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     setStep(0)
     setPriceUnlocked(false)
     setGrantedOverride(undefined)
+    setSelectedLotId(null)
+    setShowClosedLots(false)
+    setLotSort({ by: 'expiry_date', dir: 'asc' })
     const su = editing?.sell_units ?? []
     const drafts: Record<string, { retail: string; ws1: string; ws2: string }> = {}
     for (const u of su) drafts[u.key] = { retail: String(u.price_retail || ''), ws1: String(u.price_wholesale1 || ''), ws2: String(u.price_wholesale2 || '') }
@@ -229,6 +238,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   useEffect(() => {
     if (!open) return
     const pid = row.product_id
+    setSelectedLotId(null)
     if (!pid) { setExistingLots([]); return }
     let cancelled = false
     setLotsLoading(true)
@@ -245,10 +255,53 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     if (open && step === LAST) confirmBtnRef.current?.focus()
   }, [open, step])
 
-  // open lots only (qty > 0, not closed/cancelled), nearest expiry first = FEFO order
-  const openLots = existingLots
-    .filter(l => l.is_closed === 0 && l.is_cancelled === 0 && (l.qty_on_hand ?? 0) > 0)
-    .sort((a, b) => (a.expiry_date || '9999-99').localeCompare(b.expiry_date || '9999-99'))
+  // ล็อตที่รับเข้าได้ — ไม่รวมที่ยกเลิก; ล็อตปิด/หมดดันไปท้ายสุด (เหมือน AdjustStockDialog)
+  const mergeCandidates = useMemo(() =>
+    existingLots
+      .filter(l => l.is_cancelled === 0)
+      .sort((a, b) => {
+        const aClosed = (a.is_closed === 1 || a.qty_on_hand <= 0) ? 1 : 0
+        const bClosed = (b.is_closed === 1 || b.qty_on_hand <= 0) ? 1 : 0
+        if (aClosed !== bClosed) return aClosed - bClosed
+        return b.id - a.id
+      }), [existingLots])
+
+  // สวิตช์ "แสดงล็อตที่ปิด/หมดแล้ว" → default โชว์เฉพาะล็อตคงเหลือ (qty > 0, ยังเปิด)
+  const visibleLots = useMemo(() =>
+    showClosedLots ? mergeCandidates : mergeCandidates.filter(l => l.is_closed === 0 && l.qty_on_hand > 0),
+    [mergeCandidates, showClosedLots])
+
+  // เรียงตามหัวคอลัมน์ที่คลิก; วันหมดอายุว่างดันไปท้าย (far-future)
+  const sortedLots = useMemo(() => {
+    const dir = lotSort.dir === 'asc' ? 1 : -1
+    return [...visibleLots].sort((a, b) => {
+      if (lotSort.by === 'lot_number') return a.lot_number.localeCompare(b.lot_number) * dir
+      if (lotSort.by === 'qty_on_hand') return (a.qty_on_hand - b.qty_on_hand) * dir
+      const ae = a.expiry_date || '9999-99-99'
+      const be = b.expiry_date || '9999-99-99'
+      return ae.localeCompare(be) * dir
+    })
+  }, [visibleLots, lotSort])
+
+  // ล็อตเดิมที่ถูกเลือก (merge target) — คุมโดย selectedLotId เท่านั้น
+  const matchedLot = useMemo(() =>
+    selectedLotId === null ? null : mergeCandidates.find(l => l.id === selectedLotId) ?? null,
+    [selectedLotId, mergeCandidates])
+
+  const toggleLotSort = (field: 'lot_number' | 'expiry_date' | 'qty_on_hand') =>
+    setLotSort(s => s.by === field ? { by: field, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { by: field, dir: 'asc' })
+
+  // คลิกแถว = รับเข้าล็อตนั้น (เติมเลขล็อต/วันหมดอายุ/วันผลิตของล็อตเดิมลงฟอร์ม → backend
+  // จับคู่ (product_id, lot_number) แล้ว merge ให้เอง). คลิกซ้ำ = ยกเลิก กลับมากรอกล็อตใหม่.
+  const selectLot = (l: ProductLot) => {
+    if (selectedLotId === l.id) {
+      setSelectedLotId(null)
+      patch({ lot_number: '', expiry_date: '', manufactured_date: '' })
+    } else {
+      setSelectedLotId(l.id)
+      patch({ lot_number: l.lot_number, expiry_date: l.expiry_date ?? '', manufactured_date: l.manufactured_date ?? '' })
+    }
+  }
 
   // total = qty * cost − discount; editing any field auto-fills dependents (mirrors GR table math)
   const lineMath = (field: 'qty' | 'cost_price' | 'discount' | 'total', value: string) => {
@@ -406,7 +459,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   const stepValid = (s: number): boolean => {
     switch (s) {
       case 0: return row.product_id > 0
-      case 1: return row.lot_number.trim() !== '' && row.expiry_date !== ''
+      case 1: return selectedLotId !== null || (row.lot_number.trim() !== '' && row.expiry_date !== '')
       case 2: return parseFloat(row.qty) > 0 && parseFloat(row.total) > 0
       case 3: return true
       case 4: return true
@@ -665,19 +718,43 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
               <div>
                 <h3 className="text-lg font-bold mb-4">Lot &amp; วันหมดอายุ</h3>
 
-                {/* lot / mfg / expiry — all shown, no progressive reveal */}
+                {/* เลือกล็อตเดิมอยู่ → แถบยืนยัน + ปุ่มกลับไปสร้างล็อตใหม่ */}
+                {matchedLot && (
+                  <div className="mb-3 flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary-soft/50 px-3 py-2">
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+                      <Check className="size-4 shrink-0" /> รับเข้าล็อตเดิม · {matchedLot.lot_number}
+                    </span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => selectLot(matchedLot)} className="h-7 px-2 text-xs">
+                      เปลี่ยนเป็นล็อตใหม่
+                    </Button>
+                  </div>
+                )}
+
+                {/* lot / mfg / expiry — read-only เมื่อเลือกรับเข้าล็อตเดิม (backend ไม่แก้ exp/mfg ตอน merge) */}
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Lot No. <span className="text-destructive">*</span></label>
-                    <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} maxLength={30} placeholder="เช่น A2401" className="h-9" />
+                    {matchedLot ? (
+                      <div className="h-9 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.lot_number}</div>
+                    ) : (
+                      <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} maxLength={30} placeholder="เช่น A2401" className="h-9" />
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันผลิต</label>
-                    <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} className="h-9" />
+                    {matchedLot ? (
+                      <div className="h-9 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.manufactured_date ? formatDate(matchedLot.manufactured_date) : '—'}</div>
+                    ) : (
+                      <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} className="h-9" />
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันหมดอายุ <span className="text-destructive">*</span></label>
-                    <DateInput value={row.expiry_date} onChange={v => patch({ expiry_date: v })} className="h-9" />
+                    {matchedLot ? (
+                      <div className="h-9 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.expiry_date ? formatDate(matchedLot.expiry_date) : '—'}</div>
+                    ) : (
+                      <DateInput value={row.expiry_date} onChange={v => patch({ expiry_date: v })} className="h-9" />
+                    )}
                   </div>
                 </div>
                 {expMonths !== null && (
@@ -689,37 +766,65 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                   </div>
                 )}
 
-                {/* existing lots in stock — FEFO sanity-check reference */}
+                {/* ล็อตเดิมในสต็อก — คลิกแถวเพื่อรับเข้าล็อตนั้น (merge); ไม่เลือก = สร้างล็อตใหม่จากฟอร์มด้านบน */}
                 <div className="mt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold text-muted-foreground">ล็อตเดิมในสต็อก</h4>
-                    {openLots.length > 0 && <span className="text-xs text-foreground-subtle">เรียงตามวันหมดอายุ (FEFO)</span>}
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-semibold text-muted-foreground">ล็อตเดิมในสต็อก</h4>
+                      <p className="text-xs text-foreground-subtle mt-0.5">คลิกล็อตเพื่อรับเข้าล็อตเดิม หรือกรอกเลขล็อตใหม่ด้านบน</p>
+                    </div>
+                    <Toggle checked={showClosedLots} onChange={setShowClosedLots} label="แสดงล็อตที่ปิด/หมดแล้ว" size="sm" className="shrink-0" />
                   </div>
                   {lotsLoading ? (
-                    <div className="rounded-card border border-border px-4 py-6 text-center text-sm text-foreground-subtle">กำลังโหลดล็อต…</div>
-                  ) : openLots.length === 0 ? (
-                    <div className="rounded-card border border-dashed border-border px-4 py-6 text-center text-sm text-foreground-subtle">
-                      ยังไม่มีล็อตคงเหลือของสินค้านี้ — นี่คือล็อตแรก
-                    </div>
+                    <div className="rounded-lg border border-border px-4 py-6 text-center text-sm text-foreground-subtle">กำลังโหลดล็อต…</div>
                   ) : (
-                    <div className="rounded-card border border-border overflow-hidden">
-                      <div className="grid grid-cols-[1.3fr_1fr_0.9fr] gap-px bg-border text-sm">
-                        <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground">Lot No.</div>
-                        <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground">วันหมดอายุ</div>
-                        <div className="bg-muted px-3 py-2 font-semibold text-muted-foreground text-right">คงเหลือ</div>
-                        {openLots.map(lot => {
-                          const m = monthsToExpiry(lot.expiry_date ?? '')
-                          const expCls = m === null ? 'text-foreground-subtle' : m <= 0 ? 'text-destructive font-semibold' : m <= 6 ? 'text-warning-strong font-medium' : 'text-foreground'
+                    <Table containerClassName="rounded-lg border border-border max-h-60 overflow-auto scrollbar-thin">
+                      <TableHeader>
+                        <TableRow>
+                          <SortableTableHead field="lot_number" sort={lotSort} onToggle={toggleLotSort}>เลขที่ล็อต</SortableTableHead>
+                          <SortableTableHead field="expiry_date" sort={lotSort} onToggle={toggleLotSort}>วันหมดอายุ</SortableTableHead>
+                          <SortableTableHead field="qty_on_hand" align="right" sort={lotSort} onToggle={toggleLotSort}>คงเหลือ</SortableTableHead>
+                          <TableHead>สถานะ</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedLots.map(l => {
+                          const selected = selectedLotId === l.id
+                          const depleted = l.is_closed === 1 || l.qty_on_hand <= 0
                           return (
-                            <React.Fragment key={lot.id}>
-                              <div className="bg-card px-3 py-2 font-medium truncate">{lot.lot_number}</div>
-                              <div className={`bg-card px-3 py-2 ${expCls}`}>{lot.expiry_date ? formatDate(lot.expiry_date) : '—'}</div>
-                              <div className="bg-card px-3 py-2 text-right font-medium">{lot.qty_on_hand} {row.units[0]?.unit_name ?? ''}</div>
-                            </React.Fragment>
+                            <TableRow
+                              key={l.id}
+                              onClick={() => selectLot(l)}
+                              data-state={selected ? 'selected' : undefined}
+                              className="cursor-pointer"
+                            >
+                              <TableCell className="font-medium text-foreground">
+                                <span className="flex items-center gap-1.5">
+                                  {selected && <Check className="size-3.5 text-primary" />}
+                                  {l.lot_number}
+                                </span>
+                              </TableCell>
+                              <TableCell>{l.expiry_date ? formatDate(l.expiry_date) : '—'}</TableCell>
+                              <TableCell className="text-right">{l.qty_on_hand.toLocaleString()}</TableCell>
+                              <TableCell>
+                                {depleted
+                                  ? <Badge variant="destructive-outline">หมด</Badge>
+                                  : <Badge variant="success-outline">ใช้งาน</Badge>}
+                              </TableCell>
+                            </TableRow>
                           )
                         })}
-                      </div>
-                    </div>
+                        {sortedLots.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="py-10 text-center text-sm text-foreground-subtle">
+                              {showClosedLots
+                                ? 'ยังไม่มีล็อตของสินค้านี้ — นี่คือล็อตแรก'
+                                : 'ไม่มีล็อตคงเหลือ — เปิดสวิตช์เพื่อดูล็อตที่ปิดแล้ว หรือกรอกเลขล็อตใหม่ด้านบน'}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
                   )}
                 </div>
               </div>
