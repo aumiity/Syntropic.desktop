@@ -92,11 +92,14 @@ export async function printDomSheets(opts: {
 </style>
 </head><body><div class="a4-doc">${sheetsHtml}</div></body></html>`
 
-  return window.api.printer.printHtml({
+  // pageFormat 'A4' + landscape:true forces the job landscape regardless of the
+  // printer's portrait default (the shared A4 printer is set up portrait for tax
+  // invoices) — orientation is per-document, not per-printer.
+  return window.api.printer.printDocument({
     html,
     printerName: opts.printerName,
-    paperWidthMm: 297,
-    heightMm: 210,
+    pageFormat: 'A4',
+    landscape: true,
     copies: Math.max(1, opts.copies ?? 1),
   })
 }

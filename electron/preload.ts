@@ -180,6 +180,10 @@ const api = {
       invoke('printer:printHtml', args) as Promise<{ success: boolean; error?: string; path?: string }>,
     previewHtmlPdf: (args: { html: string; paperWidthMm?: number; heightMm?: number | 'auto'; pageFormat?: 'A4' | 'A5' }) =>
       invoke('printer:previewHtmlPdf', args) as Promise<{ success: boolean; error?: string; path?: string }>,
+    // Silent print of a full-page A4/A5 document with explicit orientation —
+    // used by the ขย. reports to force landscape on a portrait-configured printer.
+    printDocument: (args: { html: string; printerName: string; pageFormat?: 'A4' | 'A5'; landscape?: boolean; copies?: number }) =>
+      invoke('printer:printDocument', args) as Promise<{ success: boolean; error?: string; path?: string }>,
   },
   // Tax invoices (ใบกำกับภาษีเต็มรูป)
   tax: {

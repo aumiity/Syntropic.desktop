@@ -329,6 +329,61 @@ export function registerPrinterHandlers() {
     }
   })
 
+  // Silent print of a full-page document (A4/A5, portrait OR landscape) to a
+  // named page size. Separate from printHtml (which is built for continuous
+  // thermal rolls: custom width + auto height). Orientation is a property of the
+  // DOCUMENT, not the printer — so the official ขย. reports force landscape here
+  // even when the shared A4 printer (document_settings) is set up portrait for
+  // tax invoices/receipts. Multi-page HTML (break-after:page per sheet) prints
+  // one sheet per page. printerName '' = OS default; the PRINT_TO_PDF sentinel
+  // exports a PDF + opens it instead of spooling.
+  ipcMain.handle('printer:printDocument', async (_e, args: {
+    html: string
+    printerName: string
+    pageFormat?: 'A4' | 'A5'
+    landscape?: boolean
+    copies?: number
+  }) => {
+    const pageSize = args.pageFormat ?? 'A4'
+    const landscape = args.landscape ?? false
+    const w = new BrowserWindow({ show: false, webPreferences: { offscreen: false } })
+    try {
+      await w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args.html))
+      await w.webContents.executeJavaScript(WAIT_FOR_RENDER_JS)
+
+      if (args.printerName === PRINT_TO_PDF) {
+        const pdf = await w.webContents.printToPDF({
+          printBackground: true,
+          preferCSSPageSize: true,
+          pageSize,
+          landscape,
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        })
+        return await savePdfAndOpen(pdf, 'report')
+      }
+
+      const copies = Math.max(1, Math.min(20, Math.floor(args.copies ?? 1)))
+      for (let i = 0; i < copies; i++) {
+        await new Promise<void>((resolve, reject) => {
+          w.webContents.print({
+            silent: true,
+            deviceName: args.printerName || undefined,
+            pageSize,
+            landscape,
+            margins: { marginType: 'none' },
+            printBackground: true,
+            color: false,
+          }, (success, failureReason) => success ? resolve() : reject(new Error(failureReason)))
+        })
+      }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    } finally {
+      w.destroy()
+    }
+  })
+
   // Render receipt/tax-invoice HTML to a PDF and open it — "what will print"
   // preview without a physical printer. pageFormat ('A4'/'A5') for full tax
   // invoices; otherwise width + auto/fixed height like a slip.
