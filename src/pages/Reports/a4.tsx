@@ -35,7 +35,9 @@ export function A4Sheet({
   return (
     <div
       className="a4-sheet bg-card text-foreground shadow-card mx-auto flex flex-col overflow-hidden"
-      style={{ width: A4.W, height: A4.H, padding: `${A4.PAD_Y}px ${A4.PAD_X}px` }}
+      // Official ขย. documents are locked to Sarabun — on the preview AND the
+      // print (the print bakes these computed styles, so the font carries over).
+      style={{ width: A4.W, height: A4.H, padding: `${A4.PAD_Y}px ${A4.PAD_X}px`, fontFamily: "'Sarabun Print', sans-serif" }}
     >
       <div className="shrink-0">{header}</div>
       <div className="flex-1 min-h-0 overflow-hidden">{children}</div>

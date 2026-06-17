@@ -277,7 +277,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
   return (
     <div className="flex flex-1 flex-col min-h-0 gap-3">
       {/* Filter strip — hidden when printing */}
-      <div className="no-print h-12 px-2 bg-card rounded-card border border-border shadow-card flex items-center gap-2 shrink-0">
+      <div className="no-print h-12 flex items-center justify-end gap-2 shrink-0">
         <MultiDatePicker
           mode={dateMode}
           from={dateFrom}
@@ -286,7 +286,6 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
           allowedModes={['month']}
           className="shrink-0"
         />
-        <div className="flex-1" />
         <span className="text-sm text-muted-foreground shrink-0">หน้า</span>
         <Input
           value={pageInput}
@@ -294,13 +293,16 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
           placeholder={pages.length > 1 ? `ทุกหน้า (1-${pages.length})` : 'ทุกหน้า'}
           className="h-9 w-36 shrink-0"
         />
-        <Button size="lg" className="h-9 px-4" onClick={handlePrint} disabled={loading || pages.length === 0}>
-          <Printer className="size-4" /> พิมพ์
-        </Button>
       </div>
 
       {/* Paged A4 preview — also the print surface (one .a4-sheet = one page) */}
-      <div className="flex-1 min-h-0 overflow-auto bg-muted/40 [scrollbar-gutter:stable]">
+      <div className="flex-1 min-h-0 flex flex-col rounded-card border border-border overflow-hidden">
+        <div className="no-print h-12 px-3 flex items-center justify-end shrink-0 border-b border-border bg-card">
+          <Button size="lg" className="h-9 px-4" onClick={handlePrint} disabled={loading || pages.length === 0}>
+            <Printer className="size-4" /> พิมพ์
+          </Button>
+        </div>
+        <div className="flex-1 min-h-0 overflow-auto bg-muted/40 [scrollbar-gutter:stable]">
         <div className="a4-doc flex flex-col items-center gap-6 py-6">
           {loading ? (
             <A4Sheet header={headerBlock} pageNo={1} pageCount={1}>
@@ -370,7 +372,8 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
         ref={measureRef}
         aria-hidden
         className="invisible pointer-events-none"
-        style={{ position: 'absolute', left: -10000, top: 0, width: A4_CONTENT_W }}
+        // Measure in the SAME font the sheets/print use (Sarabun) so row heights match.
+        style={{ position: 'absolute', left: -10000, top: 0, width: A4_CONTENT_W, fontFamily: "'Sarabun Print', sans-serif" }}
       >
         {headerBlock}
         {/* salehead + filler reference */}
@@ -408,6 +411,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
           </div>
         ))}
       </div>
+        </div>
     </div>
   )
 }

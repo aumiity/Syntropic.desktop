@@ -35,6 +35,9 @@ export const FONT_REGISTRY: Record<string, FontFile[]> = {
   // label_settings). Bundled here so the print window embeds it as base64 and
   // renders identically on Windows AND macOS (where Sarabun isn't a system font).
   'Sarabun':                  [{ weight: 400, url: sarabunRegular }, { weight: 700, url: sarabunBold }],
+  // Document-locked Sarabun for the official ขย. reports (preview + print share
+  // the same bundled face — see the 'Sarabun Print' @font-face in index.css).
+  'Sarabun Print':            [{ weight: 400, url: sarabunRegular }, { weight: 700, url: sarabunBold }],
   'Bai Jamjuree':             [{ weight: 400, url: baiJamjureeRegular }, { weight: 700, url: baiJamjureeBold }],
   'Anuphan':                  [{ weight: '100 700', url: anuphanRegular }],
   'SF Thonburi':              [{ weight: 400, url: sfThonburiRegular }, { weight: 700, url: sfThonburiBold }],

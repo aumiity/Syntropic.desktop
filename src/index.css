@@ -123,8 +123,8 @@
     --selection-bg:  hsl(175 60% 60% / 0.4);
 
     /* ── Fonts (swappable via Theme page) ───────────────────────────────── */
-    --font-latin: 'Sarabun Latin';
-    --font-thai:  'Sarabun';
+    --font-latin: 'Google Sans';
+    --font-thai:  'Google Sans';
     /* Brand wordmark font — pinned, NOT overridden in .dark and NOT swapped by the
        Theme page, so "Rx Desktop" always renders in the same typeface. */
     --font-brand: 'Inter';
@@ -496,6 +496,23 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
 @font-face {
   font-family: 'Sarabun Latin';
   src: local('Sarabun');
+}
+
+/* 'Sarabun Print' — bundled full-coverage Sarabun (Latin + digits + Thai) used
+   ONLY by the official ขย. reports so the document is locked to Sarabun on BOTH
+   the on-screen preview and the print (regardless of OS / system fonts). A
+   separate family name keeps it away from the Thai-scoped 'Sarabun' face above. */
+@font-face {
+  font-family: 'Sarabun Print';
+  src: url('./assets/fonts/Sarabun-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Sarabun Print';
+  src: url('./assets/fonts/Sarabun-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
 }
 
 /* Noto Sans Thai — variable font (weights 100–900, widths 62.5–100) */
