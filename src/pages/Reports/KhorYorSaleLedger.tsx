@@ -256,7 +256,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
   )
 
   const lotHeaderInner = (head: SaleLedgerRow, continued: boolean) => (
-    <div className="text-sm space-y-1 pb-2 border-b border-dotted border-foreground/60">
+    <div className="text-sm space-y-1 pb-2">
       <div>
         <span className="text-foreground-subtle">ชื่อยา</span>{' '}
         <span className="font-medium">{head.drug_name}</span>
@@ -295,7 +295,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
 
   // Blank lot-header block — every fill-in field is a dotted line (for ฟอร์มเปล่า).
   const blankLotHeader = (
-    <div className="text-sm space-y-1 pb-2 border-b border-dotted border-foreground/60">
+    <div className="text-sm space-y-1 pb-2">
       <div>
         <span className="text-foreground-subtle">ชื่อยา</span>{' '}
         <span className="inline-block min-w-[320px] border-b border-dotted border-foreground/60">&nbsp;</span>
