@@ -609,6 +609,16 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   font-family: var(--font-latin), var(--font-thai), sans-serif;
 }
 
+/* Official ขย. reports are LOCKED to Sarabun on the preview too. The global `*`
+   rule above sets the app font on every element directly, which beats the font
+   inherited from the A4Sheet root — so re-assert Sarabun with a higher-specificity
+   descendant selector (covers the visible sheets AND the hidden measuring
+   specimen `.a4-measure`, so measurement matches what prints). */
+.a4-sheet, .a4-sheet *,
+.a4-measure, .a4-measure * {
+  font-family: 'Sarabun Print', sans-serif;
+}
+
 /* ── Print — official forms (ขย.9/10/11) ────────────────────────────────
    Strategy: hide app chrome via .no-print. The report is pre-paginated in JS
    into discrete .a4-sheet elements (each exactly 1123×794px = A4 landscape at

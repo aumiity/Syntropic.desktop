@@ -10,7 +10,7 @@ import { printDomSheets, parsePageSelection } from '@/lib/print/printDomSheets'
 import type { Setting } from '@/types'
 import type { ReportsOutletContext } from './index'
 import { A4Sheet, A4_CONTENT_W, A4_CONTENT_H, FOOTER_H, PACK_SAFETY } from './a4'
-import { Printer } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
 
 interface KhorYor9Row {
   invoice_no: string
@@ -55,10 +55,14 @@ export default function KhorYor9Page() {
   const [shopName, setShopName] = useState('')
   const [pages, setPages] = useState<Page9[]>([])
   const [pageInput, setPageInput] = useState('')   // "" = ทุกหน้า; เช่น "1-3,5"
+  const [viewPage, setViewPage] = useState(1)      // 1-based page shown in the preview
+  const [printRender, setPrintRender] = useState(false) // mount the full hidden .a4-doc only while printing
 
   const measureRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { setSummary(null) }, [setSummary])
+  // New data / re-pagination → jump back to the first page.
+  useEffect(() => { setViewPage(1) }, [pages])
 
   useEffect(() => {
     (window.api.settings as any).getShop().then((data: Setting | null) => {
@@ -87,20 +91,36 @@ export default function KhorYor9Page() {
   const isEmpty = !loading && rows && rows.length === 0
   const displayRows = rows ?? []
 
-  // Silent-print the selected sheets to the configured A4 printer (Settings →
-  // เครื่องพิมพ์ → เอกสาร A4). No OS dialog — Electron can't show one reliably.
-  const handlePrint = async () => {
+  // Silent-print to the configured A4 printer (Settings → เครื่องพิมพ์ → เอกสาร A4).
+  // The preview keeps only the viewed sheet mounted, so printing first mounts a
+  // hidden FULL .a4-doc (printRender) and the effect below prints it once it's
+  // committed to the DOM, then unmounts it.
+  const handlePrint = () => {
     if (loading || pages.length === 0) return
-    const ds = (await window.api.settings.getDocumentSettings()) as any
-    const res = await printDomSheets({
-      docSelector: '.a4-doc',
-      pages: parsePageSelection(pageInput, pages.length),
-      printerName: ds?.printer_name || '',
-      copies: Math.max(1, Number(ds?.copies) || 1),
-    })
-    if (res.success) toast({ title: 'ส่งไปยังเครื่องพิมพ์แล้ว', variant: 'success' })
-    else if (res.error) toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'destructive' })
+    setPrintRender(true)
   }
+
+  useEffect(() => {
+    if (!printRender) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const ds = (await window.api.settings.getDocumentSettings()) as any
+        const res = await printDomSheets({
+          docSelector: '.a4-doc',
+          pages: parsePageSelection(pageInput, pages.length),
+          printerName: ds?.printer_name || '',
+          copies: Math.max(1, Number(ds?.copies) || 1),
+        })
+        if (cancelled) return
+        if (res.success) toast({ title: 'ส่งไปยังเครื่องพิมพ์แล้ว', variant: 'success' })
+        else if (res.error) toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'destructive' })
+      } finally {
+        if (!cancelled) setPrintRender(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [printRender, pageInput, pages.length, toast])
 
   // Measure real row/header heights from the hidden specimen, then greedily pack
   // rows into fixed-height A4 pages. Runs before paint (useLayoutEffect) so the
@@ -194,6 +214,21 @@ export default function KhorYor9Page() {
     </tr>
   )
 
+  // One paginated A4 sheet — shared by the single-page preview and the hidden
+  // full-document render used for printing.
+  const renderPage = (pg: Page9, pi: number) => (
+    <A4Sheet key={pi} header={headerBlock} pageNo={pi + 1} pageCount={pages.length}>
+      <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
+        {colgroup}
+        <thead>{theadRow}</thead>
+        <tbody>
+          {displayRows.slice(pg.start, pg.end).map((r, idx) => dataRow(r, pg.start + idx))}
+          {Array.from({ length: pg.filler }).map((_, i) => fillerRow(`f-${i}`))}
+        </tbody>
+      </table>
+    </A4Sheet>
+  )
+
   return (
     <div className="flex flex-1 flex-col min-h-0 gap-3">
       {/* Filter strip — hidden when printing */}
@@ -231,55 +266,70 @@ export default function KhorYor9Page() {
           </div>
         }
       >
-        <div className="h-full overflow-auto bg-muted/30 rounded-lg [scrollbar-gutter:stable]">
-        <div className="a4-doc flex flex-col items-center gap-6 py-6">
-          {loading ? (
-            <A4Sheet header={headerBlock} pageNo={1} pageCount={1}>
-              <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
-                {colgroup}
-                <thead>{theadRow}</thead>
-                <tbody>
-                  {Array.from({ length: 16 }).map((_, i) => (
-                    <tr key={`sk-${i}`}>
-                      {Array.from({ length: 8 }).map((__, j) => (
-                        <td key={j} className="border border-foreground/80 px-2 py-1 h-8">
-                          <div className="h-3 rounded bg-muted/60 animate-pulse" />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </A4Sheet>
-          ) : (
-            pages.map((pg, pi) => (
-              <A4Sheet key={pi} header={headerBlock} pageNo={pi + 1} pageCount={pages.length}>
+        <div className="h-full flex flex-col gap-3">
+          {/* Viewer — ONE page at a time (no long stacked scroll). */}
+          <div className="flex-1 min-h-0 overflow-auto bg-muted/30 rounded-lg p-6 [scrollbar-gutter:stable]">
+            {loading ? (
+              <A4Sheet header={headerBlock} pageNo={1} pageCount={1}>
                 <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
                   {colgroup}
                   <thead>{theadRow}</thead>
                   <tbody>
-                    {displayRows.slice(pg.start, pg.end).map((r, idx) => dataRow(r, pg.start + idx))}
-                    {Array.from({ length: pg.filler }).map((_, i) => fillerRow(`f-${i}`))}
+                    {Array.from({ length: 16 }).map((_, i) => (
+                      <tr key={`sk-${i}`}>
+                        {Array.from({ length: 8 }).map((__, j) => (
+                          <td key={j} className="border border-foreground/80 px-2 py-1 h-8">
+                            <div className="h-3 rounded bg-muted/60 animate-pulse" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </A4Sheet>
-            ))
+            ) : pages[viewPage - 1] ? (
+              renderPage(pages[viewPage - 1], viewPage - 1)
+            ) : null}
+          </div>
+
+          {/* Page navigation — only when there is more than one page. */}
+          {!loading && pages.length > 1 && (
+            <div className="shrink-0 flex items-center justify-center gap-3">
+              <Button
+                variant="elevated" size="icon-lg" className="h-9 w-9 p-0"
+                onClick={() => setViewPage(p => Math.max(1, p - 1))}
+                disabled={viewPage <= 1} tooltip="หน้าก่อนหน้า"
+              >
+                <ChevronLeft />
+              </Button>
+              <span className="text-sm text-muted-foreground select-none">หน้า {viewPage} / {pages.length}</span>
+              <Button
+                variant="elevated" size="icon-lg" className="h-9 w-9 p-0"
+                onClick={() => setViewPage(p => Math.min(pages.length, p + 1))}
+                disabled={viewPage >= pages.length} tooltip="หน้าถัดไป"
+              >
+                <ChevronRight />
+              </Button>
+            </div>
           )}
         </div>
-
-        {isEmpty && (
-          <div className="no-print mt-4 text-center text-sm italic text-muted-foreground">
-            ไม่มีรายการซื้อยาในช่วงวันที่ที่เลือก
-          </div>
-        )}
-        </div>
       </SectionCard>
+
+      {/* Hidden FULL-document render — mounted only while printing so the print
+          path (printDomSheets clones .a4-sheet from the live DOM) still emits every
+          page even though the preview shows just one. Off-screen but laid out, so
+          the baked computed styles stay correct. */}
+      {printRender && !loading && (
+        <div className="a4-doc" aria-hidden style={{ position: 'absolute', left: -100000, top: 0 }}>
+          {pages.map(renderPage)}
+        </div>
+      )}
 
       {/* Hidden specimen — measured for exact row/header heights (kept off-screen) */}
       <div
         ref={measureRef}
         aria-hidden
-        className="invisible pointer-events-none"
+        className="a4-measure invisible pointer-events-none"
         // Measure in the SAME font the sheets/print use (Sarabun) so row heights match.
         style={{ position: 'absolute', left: -10000, top: 0, width: A4_CONTENT_W, fontFamily: "'Sarabun Print', sans-serif" }}
       >
