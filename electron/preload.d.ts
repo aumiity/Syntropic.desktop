@@ -144,6 +144,11 @@ declare const api: {
             date_from?: string;
             date_to?: string;
         }) => Promise<any>;
+        khorYorSale: (filters: {
+            form: 10 | 11;
+            date_from?: string;
+            date_to?: string;
+        }) => Promise<any>;
         topProducts: (filters: any) => Promise<any>;
         topSuppliers: (filters: any) => Promise<any>;
         hourlyTraffic: (filters: any) => Promise<any>;

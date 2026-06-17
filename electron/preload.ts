@@ -101,6 +101,7 @@ const api = {
     salesPurchaseTrend: (filters: any) => invoke('reports:salesPurchaseTrend', filters),
     accountsPayable: () => invoke('reports:accountsPayable'),
     khorYor9: (filters: { date_from?: string; date_to?: string }) => invoke('reports:khorYor9', filters),
+    khorYorSale: (filters: { form: 10 | 11; date_from?: string; date_to?: string }) => invoke('reports:khorYorSale', filters),
     topProducts:        (filters: any) => invoke('reports:topProducts', filters),
     topSuppliers:       (filters: any) => invoke('reports:topSuppliers', filters),
     hourlyTraffic:      (filters: any) => invoke('reports:hourlyTraffic', filters),

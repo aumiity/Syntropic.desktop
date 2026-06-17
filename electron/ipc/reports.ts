@@ -1143,4 +1143,53 @@ export function registerReportHandlers() {
       ORDER BY pr.created_at ASC, pri.invoice_no ASC, pri.id ASC
     `).all(...params)
   })
+
+  // ── ขย.10 / ขย.11 — บัญชีการขายยา (per-lot sale ledger) ──
+  // One row per sale_item_lot (FEFO lot cut) of a flagged drug within range.
+  // form=10 → is_fda10, form=11 → is_fda11. Bundles excluded. Walk-in (C0000) → blank buyer.
+  // Lot received date = pl.created_at: GR receive writes payload.receive_date into
+  // product_lots.created_at (purchase.ts), whereas order_date is the purchase-order
+  // date (often NULL). COALESCE keeps order_date as a fallback only.
+  ipcMain.handle('reports:khorYorSale', (_e, filters: { form: 10 | 11; date_from?: string; date_to?: string }) => {
+    const db = getDb()
+    const { form, date_from, date_to } = filters
+    const flagCol = form === 11 ? 'p.is_fda11' : 'p.is_fda10'
+    const conds: string[] = [
+      `s.status = 'completed'`,
+      `si.is_cancelled = 0`,
+      `sil.is_cancelled = 0`,
+      `${flagCol} = 1`,
+      `p.is_bundle = 0`,
+    ]
+    const params: any[] = []
+    if (date_from) { conds.push(`date(s.sold_at) >= date(?)`); params.push(date_from) }
+    if (date_to)   { conds.push(`date(s.sold_at) <= date(?)`); params.push(date_to) }
+
+    return db.prepare(`
+      SELECT
+        pl.id                                                AS lot_id,
+        p.id                                                 AS product_id,
+        COALESCE(NULLIF(p.name_for_print,''), p.trade_name)  AS drug_name,
+        COALESCE(sup.name, '')                               AS supplier_name,
+        COALESCE(pl.lot_number, '')                          AS lot_number,
+        pl.qty_received                                      AS qty_received,
+        COALESCE(pl.created_at, pl.order_date)               AS lot_received_date,
+        s.sold_at                                            AS sold_at,
+        sil.qty                                              AS qty,
+        COALESCE(u.name, '')                                 AS unit_name,
+        c.code                                               AS customer_code,
+        COALESCE(c.full_name, '')                            AS customer_full_name,
+        COALESCE(s.customer_name_free, '')                   AS customer_name_free
+      FROM sale_item_lots sil
+      JOIN sale_items si  ON si.id = sil.sale_item_id
+      JOIN sales      s   ON s.id  = si.sale_id
+      JOIN products   p   ON p.id  = sil.product_id
+      LEFT JOIN product_lots pl  ON pl.id = sil.lot_id
+      LEFT JOIN suppliers    sup ON sup.id = pl.supplier_id
+      LEFT JOIN item_units   u   ON u.id  = p.unit_id
+      LEFT JOIN customers    c   ON c.id  = s.customer_id
+      WHERE ${conds.join(' AND ')}
+      ORDER BY p.trade_name ASC, pl.id ASC, s.sold_at ASC, sil.id ASC
+    `).all(...params)
+  })
 }

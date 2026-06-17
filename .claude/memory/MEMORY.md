@@ -37,7 +37,7 @@ One line per memory. Detail lives in the linked file (read on demand).
 - [Table-pattern refactor](project_table_pattern_refactor.md) — **ACTIVE 2026-05-27, paused** — ProductsList canonical, rolled out 9 list pages; resume on edit/settings sub-tabs
 - [Column-visibility refactor](project_column_visibility.md) — **ACTIVE 2026-05-25, paused** — Settings popover + checkbox per column; shipped ProductsList+BundlesList; more pending (PROGRESS.md)
 - [Manage/Reports restructure](project_manage_restructure.md) — **ACTIVE** — phased split; next = PROGRESS.md top block (Phase 2 = Purchase history → /manage)
-- [ข.ย.10/ข.ย.11 reports — DEFERRED](project_kho10_kho11.md) — now Phase 5, blocked on อย. spec. Don't start proactively.
+- [ข.ย.10/ข.ย.11 reports](project_kho10_kho11.md) — **DONE 2026-06-17 (in-app verify pending)** — per-lot ledger; `KhorYorSaleLedger.tsx` shared; IPC `reports:khorYorSale`; insight: วันที่รับล็อต = `created_at` ไม่ใช่ `order_date`
 - [Invoice Matcher CSV — verified correct](project_invoice_matcher_csv.md) — don't add xlsx writer; Power Automate fix is user-side. Resume in sideproject.md
 - [3-cost model](project_cost_model.md) — cost_price=weighted-avg (never hand-edit), last_cost_price=last paid, FEFO lot=this-sale margin; Reports audit + GR-cancel refresh pending
 - [Design-rule corrections 2026-06](feedback_design_rules_2026-06.md) — **2026-06-05** — no `tertiary`(→accent)/`brand-soft`(→primary-soft); `tabular-nums` BANNED; animation announce+OK first; verify variants vs button.tsx/badge.tsx

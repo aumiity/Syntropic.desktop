@@ -5,10 +5,9 @@ import { cn } from '@/lib/utils'
 import type { ReportsOutletContext } from './index'
 import { FileText, FileClock, FileBarChart, ArrowRight } from 'lucide-react'
 
-// Hub for official FDA / Pharmacy Council forms. Each enabled card navigates
-// to its dedicated report page; placeholders ship as disabled chips so the
-// architecture for ขย.11 / ขย.13 is visible without committing UI to forms
-// that don't exist yet.
+// Hub for official FDA / Pharmacy Council forms. Each card navigates to its
+// dedicated report page: ขย.9 (purchase register), ขย.10 (controlled-drug sale
+// register), ขย.11 (dangerous-drug sale register).
 const FORMS = [
   {
     code: 'แบบ ข.ย. ๙',
@@ -19,20 +18,20 @@ const FORMS = [
     enabled: true,
   },
   {
-    code: 'แบบ ข.ย. ๑๑',
-    title: 'บัญชีการขายยา',
-    description: 'รายงานการขายยาตามแบบของสภาเภสัชกรรม',
+    code: 'แบบ ข.ย. ๑๐',
+    title: 'บัญชีการขายยาควบคุมพิเศษ',
+    description: 'รายงานการขายยาควบคุมพิเศษ รายล็อต — วันที่ขาย จำนวน ชื่อผู้ซื้อ',
     icon: FileClock,
-    to: '/reports/fda/khor-yor-11',
-    enabled: false,
+    to: '/reports/fda/khor-yor-10',
+    enabled: true,
   },
   {
-    code: 'แบบ ข.ย. ๑๓',
-    title: 'บัญชีการขายยาควบคุมพิเศษ',
-    description: 'รายงานการขายยาควบคุมพิเศษ / ยาอันตราย',
+    code: 'แบบ ข.ย. ๑๑',
+    title: 'บัญชีการขายยาอันตราย',
+    description: 'รายงานการขายยาอันตรายตามที่เลขาธิการ อย. กำหนด รายล็อต',
     icon: FileBarChart,
-    to: '/reports/fda/khor-yor-13',
-    enabled: false,
+    to: '/reports/fda/khor-yor-11',
+    enabled: true,
   },
 ] as const
 

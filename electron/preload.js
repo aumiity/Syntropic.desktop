@@ -83,6 +83,7 @@ var api = {
         salesPurchaseTrend: function (filters) { return ipcRenderer.invoke('reports:salesPurchaseTrend', filters); },
         accountsPayable: function () { return ipcRenderer.invoke('reports:accountsPayable'); },
         khorYor9: function (filters) { return ipcRenderer.invoke('reports:khorYor9', filters); },
+        khorYorSale: function (filters) { return ipcRenderer.invoke('reports:khorYorSale', filters); },
         topProducts: function (filters) { return ipcRenderer.invoke('reports:topProducts', filters); },
         topSuppliers: function (filters) { return ipcRenderer.invoke('reports:topSuppliers', filters); },
         hourlyTraffic: function (filters) { return ipcRenderer.invoke('reports:hourlyTraffic', filters); },
