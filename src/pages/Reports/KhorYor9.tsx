@@ -137,7 +137,7 @@ export default function KhorYor9Page() {
 
   const headerBlock = (
     <div data-m="header" className="relative pb-4">
-      <span className="absolute right-0 top-0 text-sm">แบบ ข.ย. ๙</span>
+      <span className="absolute right-0 top-0 text-sm whitespace-nowrap">แบบ ข.ย. ๙</span>
       <h1 className="text-xl font-semibold text-center pt-1">บัญชีการซื้อยา</h1>
       <div className="mt-3 text-center text-sm">
         <span className="inline-block min-w-[480px] border-b border-dotted border-foreground/60 pb-0.5">

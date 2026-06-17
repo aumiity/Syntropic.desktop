@@ -181,7 +181,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
 
   const headerBlock = (
     <div data-m="header" className="relative pb-1">
-      <span className="absolute right-0 top-0 text-sm">แบบ {formCode}</span>
+      <span className="absolute right-0 top-0 text-sm whitespace-nowrap">แบบ {formCode}</span>
       <h1 className="text-xl font-semibold text-center pt-1">{title}</h1>
       <div className="mt-3 text-center text-sm">
         <span className="inline-block min-w-[480px] border-b border-dotted border-foreground/60 pb-0.5">
