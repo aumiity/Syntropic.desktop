@@ -244,7 +244,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
   const saleTheadRow = (
     <tr>
       {HEADERS.map((h) => (
-        <th key={h} className="border border-foreground/40 px-2 py-2 text-sm font-semibold text-center align-middle bg-card">
+        <th key={h} className="border border-foreground/80 px-2 py-2 text-sm font-semibold text-center align-middle bg-card">
           {h}
         </th>
       ))}
@@ -256,21 +256,21 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
 
   const saleDataRow = (r: SaleLedgerRow, num: number, key: string | number) => (
     <tr key={key}>
-      <td className="border border-foreground/40 px-2 py-1 text-center">{num}</td>
-      <td className="border border-foreground/40 px-2 py-1 text-center">{formatThaiShortBE(r.sold_at)}</td>
-      <td className="border border-foreground/40 px-2 py-1 text-center">
+      <td className="border border-foreground/80 px-2 py-1 text-center">{num}</td>
+      <td className="border border-foreground/80 px-2 py-1 text-center">{formatThaiShortBE(r.sold_at)}</td>
+      <td className="border border-foreground/80 px-2 py-1 text-center">
         {formatQty(r.qty)}{r.unit_name ? ` ${r.unit_name}` : ''}
       </td>
-      <td className="border border-foreground/40 px-2 py-1">{buyerOf(r)}</td>
-      <td className="border border-foreground/40 px-2 py-1"></td>
-      <td className="border border-foreground/40 px-2 py-1"></td>
+      <td className="border border-foreground/80 px-2 py-1">{buyerOf(r)}</td>
+      <td className="border border-foreground/80 px-2 py-1"></td>
+      <td className="border border-foreground/80 px-2 py-1"></td>
     </tr>
   )
 
   const fillerRow = (key: string | number) => (
     <tr key={key}>
       {Array.from({ length: 6 }).map((_, j) => (
-        <td key={j} className="border border-foreground/40 px-2 py-1 h-8"></td>
+        <td key={j} className="border border-foreground/80 px-2 py-1 h-8"></td>
       ))}
     </tr>
   )
@@ -328,7 +328,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
                     {Array.from({ length: 10 }).map((_, i) => (
                       <tr key={i}>
                         {Array.from({ length: 6 }).map((__, j) => (
-                          <td key={j} className="border border-foreground/40 px-2 py-1 h-8">
+                          <td key={j} className="border border-foreground/80 px-2 py-1 h-8">
                             <div className="h-3 rounded bg-muted/60 animate-pulse" />
                           </td>
                         ))}
@@ -394,7 +394,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
           <tbody>
             <tr data-m="filler">
               {Array.from({ length: 6 }).map((_, j) => (
-                <td key={j} className="border border-foreground/40 px-2 py-1 h-8"></td>
+                <td key={j} className="border border-foreground/80 px-2 py-1 h-8"></td>
               ))}
             </tr>
           </tbody>
@@ -407,14 +407,14 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
               <tbody>
                 {sec.rows.map((r, ri) => (
                   <tr key={ri} data-m="srow" data-si={si} data-ri={ri}>
-                    <td className="border border-foreground/40 px-2 py-1 text-center">{ri + 1}</td>
-                    <td className="border border-foreground/40 px-2 py-1 text-center">{formatThaiShortBE(r.sold_at)}</td>
-                    <td className="border border-foreground/40 px-2 py-1 text-center">
+                    <td className="border border-foreground/80 px-2 py-1 text-center">{ri + 1}</td>
+                    <td className="border border-foreground/80 px-2 py-1 text-center">{formatThaiShortBE(r.sold_at)}</td>
+                    <td className="border border-foreground/80 px-2 py-1 text-center">
                       {formatQty(r.qty)}{r.unit_name ? ` ${r.unit_name}` : ''}
                     </td>
-                    <td className="border border-foreground/40 px-2 py-1">{buyerOf(r)}</td>
-                    <td className="border border-foreground/40 px-2 py-1"></td>
-                    <td className="border border-foreground/40 px-2 py-1"></td>
+                    <td className="border border-foreground/80 px-2 py-1">{buyerOf(r)}</td>
+                    <td className="border border-foreground/80 px-2 py-1"></td>
+                    <td className="border border-foreground/80 px-2 py-1"></td>
                   </tr>
                 ))}
               </tbody>

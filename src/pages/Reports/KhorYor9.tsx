@@ -164,7 +164,7 @@ export default function KhorYor9Page() {
   const theadRow = (
     <tr>
       {HEADERS.map((h) => (
-        <th key={h} className="border border-foreground/40 px-2 py-2 text-sm font-semibold text-center align-middle bg-card">
+        <th key={h} className="border border-foreground/80 px-2 py-2 text-sm font-semibold text-center align-middle bg-card">
           {h}
         </th>
       ))}
@@ -173,23 +173,23 @@ export default function KhorYor9Page() {
 
   const dataRow = (r: KhorYor9Row, idx: number) => (
     <tr key={`${r.invoice_no}-${idx}`}>
-      <td className="border border-foreground/40 px-2 py-1 text-center">{idx + 1}</td>
-      <td className="border border-foreground/40 px-2 py-1 text-center">{formatThaiShortBE(r.purchase_date)}</td>
-      <td className="border border-foreground/40 px-2 py-1">{r.supplier_name}</td>
-      <td className="border border-foreground/40 px-2 py-1">{r.drug_name}</td>
-      <td className="border border-foreground/40 px-2 py-1">{r.lot_number}</td>
-      <td className="border border-foreground/40 px-2 py-1 text-center">
+      <td className="border border-foreground/80 px-2 py-1 text-center">{idx + 1}</td>
+      <td className="border border-foreground/80 px-2 py-1 text-center">{formatThaiShortBE(r.purchase_date)}</td>
+      <td className="border border-foreground/80 px-2 py-1">{r.supplier_name}</td>
+      <td className="border border-foreground/80 px-2 py-1">{r.drug_name}</td>
+      <td className="border border-foreground/80 px-2 py-1">{r.lot_number}</td>
+      <td className="border border-foreground/80 px-2 py-1 text-center">
         {formatQty(r.qty)}{r.unit_name ? ` ${r.unit_name}` : ''}
       </td>
-      <td className="border border-foreground/40 px-2 py-1"></td>
-      <td className="border border-foreground/40 px-2 py-1"></td>
+      <td className="border border-foreground/80 px-2 py-1"></td>
+      <td className="border border-foreground/80 px-2 py-1"></td>
     </tr>
   )
 
   const fillerRow = (key: string | number) => (
     <tr key={key}>
       {Array.from({ length: 8 }).map((_, j) => (
-        <td key={j} className="border border-foreground/40 px-2 py-1 h-8"></td>
+        <td key={j} className="border border-foreground/80 px-2 py-1 h-8"></td>
       ))}
     </tr>
   )
@@ -242,7 +242,7 @@ export default function KhorYor9Page() {
                   {Array.from({ length: 16 }).map((_, i) => (
                     <tr key={`sk-${i}`}>
                       {Array.from({ length: 8 }).map((__, j) => (
-                        <td key={j} className="border border-foreground/40 px-2 py-1 h-8">
+                        <td key={j} className="border border-foreground/80 px-2 py-1 h-8">
                           <div className="h-3 rounded bg-muted/60 animate-pulse" />
                         </td>
                       ))}
@@ -290,21 +290,21 @@ export default function KhorYor9Page() {
           <tbody>
             {displayRows.map((r, i) => (
               <tr key={i} data-m="row">
-                <td className="border border-foreground/40 px-2 py-1 text-center">{i + 1}</td>
-                <td className="border border-foreground/40 px-2 py-1 text-center">{formatThaiShortBE(r.purchase_date)}</td>
-                <td className="border border-foreground/40 px-2 py-1">{r.supplier_name}</td>
-                <td className="border border-foreground/40 px-2 py-1">{r.drug_name}</td>
-                <td className="border border-foreground/40 px-2 py-1">{r.lot_number}</td>
-                <td className="border border-foreground/40 px-2 py-1 text-center">
+                <td className="border border-foreground/80 px-2 py-1 text-center">{i + 1}</td>
+                <td className="border border-foreground/80 px-2 py-1 text-center">{formatThaiShortBE(r.purchase_date)}</td>
+                <td className="border border-foreground/80 px-2 py-1">{r.supplier_name}</td>
+                <td className="border border-foreground/80 px-2 py-1">{r.drug_name}</td>
+                <td className="border border-foreground/80 px-2 py-1">{r.lot_number}</td>
+                <td className="border border-foreground/80 px-2 py-1 text-center">
                   {formatQty(r.qty)}{r.unit_name ? ` ${r.unit_name}` : ''}
                 </td>
-                <td className="border border-foreground/40 px-2 py-1"></td>
-                <td className="border border-foreground/40 px-2 py-1"></td>
+                <td className="border border-foreground/80 px-2 py-1"></td>
+                <td className="border border-foreground/80 px-2 py-1"></td>
               </tr>
             ))}
             <tr data-m="filler">
               {Array.from({ length: 8 }).map((_, j) => (
-                <td key={j} className="border border-foreground/40 px-2 py-1 h-8"></td>
+                <td key={j} className="border border-foreground/80 px-2 py-1 h-8"></td>
               ))}
             </tr>
           </tbody>
