@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { MultiDatePicker, type MultiDateMode } from '@/components/ui/multi-date-picker'
+import { MultiDatePicker, type MultiDateMode, rangeForMultiMode } from '@/components/ui/multi-date-picker'
 import { useToast } from '@/components/ui/toast'
 import { formatThaiShortBE } from '@/lib/thaiDate'
 import type { Setting } from '@/types'
 import type { ReportsOutletContext } from './index'
+import { A4Sheet, A4_CONTENT_W, A4_CONTENT_H, FOOTER_H, PACK_SAFETY } from './a4'
 import { ArrowLeft, Printer } from 'lucide-react'
 
 interface KhorYor9Row {
@@ -18,32 +19,40 @@ interface KhorYor9Row {
   unit_name: string
 }
 
-function firstDayOfMonth(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-}
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 function formatQty(n: number): string {
   if (n == null || isNaN(n)) return ''
   return n % 1 === 0 ? String(n) : parseFloat(n.toFixed(2)).toString()
 }
 
-const FILLER_MIN_ROWS = 16
+const HEADERS = [
+  'ลำดับที่',
+  'วัน เดือน ปี ที่ซื้อ',
+  'ชื่อผู้ขาย',
+  'ชื่อยา',
+  'เลขที่หรืออักษรของครั้งที่ผลิต',
+  'จำนวน / ปริมาณ',
+  'ลายมือชื่อผู้มีหน้าที่ปฏิบัติการ',
+  'หมายเหตุ',
+]
+
+// One contiguous slice of data rows on a single page, plus how many empty ruled
+// rows to append so the table reaches the page bottom (เติมจนเต็มหน้า).
+interface Page9 { start: number; end: number; filler: number }
 
 export default function KhorYor9Page() {
   const { toast } = useToast()
   const { setSummary } = useOutletContext<ReportsOutletContext>()
 
-  const [dateMode, setDateMode] = useState<MultiDateMode>('custom')
-  const [dateFrom, setDateFrom] = useState(firstDayOfMonth())
-  const [dateTo, setDateTo] = useState(today())
+  // รายงาน ข.ย. ผู้ตรวจดูเป็นรายเดือนเท่านั้น → ล็อกตัวเลือกวันที่ไว้ที่โหมด 'month'
+  const [dateMode, setDateMode] = useState<MultiDateMode>('month')
+  const [dateFrom, setDateFrom] = useState(() => rangeForMultiMode('month').from)
+  const [dateTo, setDateTo] = useState(() => rangeForMultiMode('month').to)
   const [rows, setRows] = useState<KhorYor9Row[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [shopName, setShopName] = useState('')
+  const [pages, setPages] = useState<Page9[]>([])
+
+  const measureRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { setSummary(null) }, [setSummary])
 
@@ -73,13 +82,97 @@ export default function KhorYor9Page() {
 
   const isEmpty = !loading && rows && rows.length === 0
   const displayRows = rows ?? []
-  const fillerCount = Math.max(0, FILLER_MIN_ROWS - displayRows.length)
 
-  // Skeleton rows during initial load — share the same border grid so the
-  // table dimensions don't jump when real data arrives.
-  const skeletonRows = useMemo(
-    () => loading ? Array.from({ length: FILLER_MIN_ROWS }) : [],
-    [loading],
+  // Measure real row/header heights from the hidden specimen, then greedily pack
+  // rows into fixed-height A4 pages. Runs before paint (useLayoutEffect) so the
+  // visible sheets never flash an un-paginated state.
+  useLayoutEffect(() => {
+    if (loading) return
+    const root = measureRef.current
+    if (!root) return
+    const headerH = (root.querySelector('[data-m="header"]') as HTMLElement)?.offsetHeight ?? 0
+    const theadH = (root.querySelector('[data-m="thead"]') as HTMLElement)?.offsetHeight ?? 0
+    const fillerH = (root.querySelector('[data-m="filler"]') as HTMLElement)?.offsetHeight ?? 33
+    const rowEls = Array.from(root.querySelectorAll('[data-m="row"]')) as HTMLElement[]
+    const rowHs = rowEls.map(e => e.offsetHeight)
+
+    const avail = A4_CONTENT_H - headerH - FOOTER_H - theadH - PACK_SAFETY
+    const out: Page9[] = []
+
+    if (rowHs.length === 0) {
+      out.push({ start: 0, end: 0, filler: Math.max(0, Math.floor(avail / fillerH)) })
+    } else {
+      let i = 0
+      while (i < rowHs.length) {
+        let used = 0
+        const start = i
+        while (i < rowHs.length && used + rowHs[i] <= avail) { used += rowHs[i]; i++ }
+        if (i === start) { used += rowHs[i]; i++ } // a single over-tall row: place it anyway
+        out.push({ start, end: i, filler: Math.max(0, Math.floor((avail - used) / fillerH)) })
+      }
+    }
+    setPages(out)
+    // Depend on `rows` (stable state ref), NOT `displayRows` (a fresh [] each
+    // render) — otherwise setPages re-renders → new displayRows → effect → loop.
+  }, [loading, rows, shopName])
+
+  const headerBlock = (
+    <div data-m="header" className="relative pb-4">
+      <span className="absolute right-0 top-0 text-sm">แบบ ข.ย. ๙</span>
+      <h1 className="text-xl font-semibold text-center pt-1">บัญชีการซื้อยา</h1>
+      <div className="mt-3 text-center text-sm">
+        <span className="inline-block min-w-[480px] border-b border-dotted border-foreground/60 pb-0.5">
+          {shopName || ' '}
+        </span>
+        <div className="text-foreground-subtle mt-1">(ชื่อสถานที่ขายยา)</div>
+      </div>
+    </div>
+  )
+
+  const colgroup = (
+    <colgroup>
+      <col style={{ width: '6%' }} />
+      <col style={{ width: '12%' }} />
+      <col style={{ width: '16%' }} />
+      <col style={{ width: '20%' }} />
+      <col style={{ width: '13%' }} />
+      <col style={{ width: '11%' }} />
+      <col style={{ width: '14%' }} />
+      <col style={{ width: '8%' }} />
+    </colgroup>
+  )
+
+  const theadRow = (
+    <tr>
+      {HEADERS.map((h) => (
+        <th key={h} className="border border-foreground/80 px-2 py-2 text-sm font-semibold text-center align-middle bg-card">
+          {h}
+        </th>
+      ))}
+    </tr>
+  )
+
+  const dataRow = (r: KhorYor9Row, idx: number) => (
+    <tr key={`${r.invoice_no}-${idx}`}>
+      <td className="border border-foreground/80 px-2 py-1 text-center">{idx + 1}</td>
+      <td className="border border-foreground/80 px-2 py-1 text-center">{formatThaiShortBE(r.purchase_date)}</td>
+      <td className="border border-foreground/80 px-2 py-1">{r.supplier_name}</td>
+      <td className="border border-foreground/80 px-2 py-1">{r.drug_name}</td>
+      <td className="border border-foreground/80 px-2 py-1">{r.lot_number}</td>
+      <td className="border border-foreground/80 px-2 py-1 text-center">
+        {formatQty(r.qty)}{r.unit_name ? ` ${r.unit_name}` : ''}
+      </td>
+      <td className="border border-foreground/80 px-2 py-1"></td>
+      <td className="border border-foreground/80 px-2 py-1"></td>
+    </tr>
+  )
+
+  const fillerRow = (key: string | number) => (
+    <tr key={key}>
+      {Array.from({ length: 8 }).map((_, j) => (
+        <td key={j} className="border border-foreground/80 px-2 py-1 h-8"></td>
+      ))}
+    </tr>
   )
 
   return (
@@ -94,6 +187,7 @@ export default function KhorYor9Page() {
           from={dateFrom}
           to={dateTo}
           onChange={(m, f, t) => { setDateMode(m); setDateFrom(f); setDateTo(t) }}
+          allowedModes={['month']}
           className="shrink-0"
         />
         <div className="flex-1" />
@@ -102,97 +196,83 @@ export default function KhorYor9Page() {
         </Button>
       </div>
 
-      {/* A4 landscape preview — also the print surface */}
+      {/* Paged A4 preview — also the print surface (one .a4-sheet = one page) */}
       <div className="flex-1 min-h-0 overflow-auto bg-muted/40 [scrollbar-gutter:stable]">
-        <div className="mx-auto my-6 print:m-0">
-          <div
-            className="print-area bg-card text-foreground shadow-card mx-auto"
-            style={{ width: '1123px', minHeight: '794px', padding: '32px 40px' }}
-          >
-            <div className="relative">
-              <span className="absolute right-0 top-0 text-sm">แบบ ข.ย. ๙</span>
-              <h1 className="text-xl font-semibold text-center pt-1">บัญชีการซื้อยา</h1>
-              <div className="mt-3 text-center text-sm">
-                <span className="inline-block min-w-[480px] border-b border-dotted border-foreground/60 pb-0.5">
-                  {shopName || ' '}
-                </span>
-                <div className="text-foreground-subtle mt-1">(ชื่อสถานที่ขายยา)</div>
-              </div>
-            </div>
-
-            <table className="mt-6 w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
-              <colgroup>
-                <col style={{ width: '6%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '16%' }} />
-                <col style={{ width: '20%' }} />
-                <col style={{ width: '13%' }} />
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '8%' }} />
-              </colgroup>
-              <thead>
-                <tr>
-                  {[
-                    'ลำดับที่',
-                    'วัน เดือน ปี ที่ซื้อ',
-                    'ชื่อผู้ขาย',
-                    'ชื่อยา',
-                    'เลขที่หรืออักษรของครั้งที่ผลิต',
-                    'จำนวน / ปริมาณ',
-                    'ลายมือชื่อผู้มีหน้าที่ปฏิบัติการ',
-                    'หมายเหตุ',
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="border border-foreground/80 px-2 py-2 text-sm font-semibold text-center align-middle bg-card"
-                    >
-                      {h}
-                    </th>
+        <div className="a4-doc flex flex-col items-center gap-6 py-6">
+          {loading ? (
+            <A4Sheet header={headerBlock} pageNo={1} pageCount={1}>
+              <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
+                {colgroup}
+                <thead>{theadRow}</thead>
+                <tbody>
+                  {Array.from({ length: 16 }).map((_, i) => (
+                    <tr key={`sk-${i}`}>
+                      {Array.from({ length: 8 }).map((__, j) => (
+                        <td key={j} className="border border-foreground/80 px-2 py-1 h-8">
+                          <div className="h-3 rounded bg-muted/60 animate-pulse" />
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading && skeletonRows.map((_, i) => (
-                  <tr key={`s-${i}`}>
-                    {Array.from({ length: 8 }).map((__, j) => (
-                      <td key={j} className="border border-foreground/80 px-2 py-1 h-8">
-                        <div className="h-3 rounded bg-muted/60 animate-pulse" />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-                {!loading && displayRows.map((r, i) => (
-                  <tr key={`${r.invoice_no}-${i}`}>
-                    <td className="border border-foreground/80 px-2 py-1 text-center">{i + 1}</td>
-                    <td className="border border-foreground/80 px-2 py-1 text-center">{formatThaiShortBE(r.purchase_date)}</td>
-                    <td className="border border-foreground/80 px-2 py-1">{r.supplier_name}</td>
-                    <td className="border border-foreground/80 px-2 py-1">{r.drug_name}</td>
-                    <td className="border border-foreground/80 px-2 py-1">{r.lot_number}</td>
-                    <td className="border border-foreground/80 px-2 py-1 text-center">
-                      {formatQty(r.qty)}{r.unit_name ? ` ${r.unit_name}` : ''}
-                    </td>
-                    <td className="border border-foreground/80 px-2 py-1"></td>
-                    <td className="border border-foreground/80 px-2 py-1"></td>
-                  </tr>
-                ))}
-                {!loading && Array.from({ length: fillerCount }).map((_, i) => (
-                  <tr key={`f-${i}`}>
-                    {Array.from({ length: 8 }).map((__, j) => (
-                      <td key={j} className="border border-foreground/80 px-2 py-1 h-8"></td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {isEmpty && (
-              <div className="no-print mt-4 text-center text-sm italic text-muted-foreground">
-                ไม่มีรายการซื้อยาในช่วงวันที่ที่เลือก
-              </div>
-            )}
-          </div>
+                </tbody>
+              </table>
+            </A4Sheet>
+          ) : (
+            pages.map((pg, pi) => (
+              <A4Sheet key={pi} header={headerBlock} pageNo={pi + 1} pageCount={pages.length}>
+                <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
+                  {colgroup}
+                  <thead>{theadRow}</thead>
+                  <tbody>
+                    {displayRows.slice(pg.start, pg.end).map((r, idx) => dataRow(r, pg.start + idx))}
+                    {Array.from({ length: pg.filler }).map((_, i) => fillerRow(`f-${i}`))}
+                  </tbody>
+                </table>
+              </A4Sheet>
+            ))
+          )}
         </div>
+
+        {isEmpty && (
+          <div className="no-print mt-4 text-center text-sm italic text-muted-foreground">
+            ไม่มีรายการซื้อยาในช่วงวันที่ที่เลือก
+          </div>
+        )}
+      </div>
+
+      {/* Hidden specimen — measured for exact row/header heights (kept off-screen) */}
+      <div
+        ref={measureRef}
+        aria-hidden
+        className="invisible pointer-events-none"
+        style={{ position: 'absolute', left: -10000, top: 0, width: A4_CONTENT_W }}
+      >
+        {headerBlock}
+        <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
+          {colgroup}
+          <thead data-m="thead">{theadRow}</thead>
+          <tbody>
+            {displayRows.map((r, i) => (
+              <tr key={i} data-m="row">
+                <td className="border border-foreground/80 px-2 py-1 text-center">{i + 1}</td>
+                <td className="border border-foreground/80 px-2 py-1 text-center">{formatThaiShortBE(r.purchase_date)}</td>
+                <td className="border border-foreground/80 px-2 py-1">{r.supplier_name}</td>
+                <td className="border border-foreground/80 px-2 py-1">{r.drug_name}</td>
+                <td className="border border-foreground/80 px-2 py-1">{r.lot_number}</td>
+                <td className="border border-foreground/80 px-2 py-1 text-center">
+                  {formatQty(r.qty)}{r.unit_name ? ` ${r.unit_name}` : ''}
+                </td>
+                <td className="border border-foreground/80 px-2 py-1"></td>
+                <td className="border border-foreground/80 px-2 py-1"></td>
+              </tr>
+            ))}
+            <tr data-m="filler">
+              {Array.from({ length: 8 }).map((_, j) => (
+                <td key={j} className="border border-foreground/80 px-2 py-1 h-8"></td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   )

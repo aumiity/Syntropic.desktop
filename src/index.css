@@ -592,24 +592,35 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   font-family: var(--font-latin), var(--font-thai), sans-serif;
 }
 
-/* ── Print — official forms (ขย.9 etc.) ─────────────────────────────────
-   Strategy: hide app chrome via .no-print (sidebar, titlebar, page header,
-   tabs, filter strip). The .print-area expands to fill the printed page.
-   Authored tables inside .print-area must repeat their <thead> on each page. */
+/* ── Print — official forms (ขย.9/10/11) ────────────────────────────────
+   Strategy: hide app chrome via .no-print. The report is pre-paginated in JS
+   into discrete .a4-sheet elements (each exactly 1123×794px = A4 landscape at
+   96dpi). With @page margin:0 one sheet maps 1:1 to one physical page; the
+   sheet's own padding supplies the page margin. .a4-doc escapes the app flex
+   layout so the fixed-width sheets aren't squeezed. */
 @media print {
-  @page { size: A4 landscape; margin: 8mm; }
+  @page { size: A4 landscape; margin: 0; }
   html, body { background: white !important; }
   .no-print { display: none !important; }
-  .print-area {
+  .a4-doc {
     position: absolute !important;
     inset: 0 !important;
-    width: 100% !important;
-    min-height: auto !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    background: white !important;
+    overflow: visible !important;
+  }
+  .a4-sheet {
     box-shadow: none !important;
     border-radius: 0 !important;
-    padding: 8mm 10mm !important;
     margin: 0 !important;
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
   }
-  .print-area thead { display: table-header-group; }
-  .print-area tr, .print-area td, .print-area th { page-break-inside: avoid; }
+  .a4-sheet:last-child { break-after: auto; page-break-after: auto; }
+  .a4-sheet thead { display: table-header-group; }
+  .a4-sheet tr, .a4-sheet td, .a4-sheet th { break-inside: avoid; }
 }
