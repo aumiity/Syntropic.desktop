@@ -10,7 +10,7 @@ import { printDomSheets, parsePageSelection } from '@/lib/print/printDomSheets'
 import type { Setting } from '@/types'
 import type { ReportsOutletContext } from './index'
 import { A4Sheet, A4_CONTENT_W, A4_CONTENT_H, FOOTER_H, PACK_SAFETY } from './a4'
-import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Printer, FileText } from 'lucide-react'
 
 interface KhorYor9Row {
   invoice_no: string
@@ -57,8 +57,11 @@ export default function KhorYor9Page() {
   const [pageInput, setPageInput] = useState('')   // "" = ทุกหน้า; เช่น "1-3,5"
   const [viewPage, setViewPage] = useState(1)      // 1-based page shown in the preview
   const [printRender, setPrintRender] = useState(false) // mount the full hidden .a4-doc only while printing
+  const [blankRender, setBlankRender] = useState(false) // mount the hidden .a4-blank only while printing a blank form
 
   const measureRef = useRef<HTMLDivElement>(null)
+  // Heights measured from the specimen — reused to fill a blank form to the page bottom.
+  const metricsRef = useRef({ headerH: 0, theadH: 0, fillerH: 33 })
 
   useEffect(() => { setSummary(null) }, [setSummary])
   // New data / re-pagination → jump back to the first page.
@@ -100,6 +103,41 @@ export default function KhorYor9Page() {
     setPrintRender(true)
   }
 
+  // Print a BLANK form (one ruled page, no data) to fill in by hand.
+  const handlePrintBlank = () => {
+    if (loading) return
+    setBlankRender(true)
+  }
+
+  // Empty ruled rows that fill one blank page to the bottom (from measured heights).
+  const blankFillerCount = () => {
+    const m = metricsRef.current
+    const avail = A4_CONTENT_H - m.headerH - FOOTER_H - m.theadH - PACK_SAFETY
+    return Math.max(1, Math.floor(avail / (m.fillerH || 33)))
+  }
+
+  useEffect(() => {
+    if (!blankRender) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const ds = (await window.api.settings.getDocumentSettings()) as any
+        const res = await printDomSheets({
+          docSelector: '.a4-blank',
+          pages: 'all',
+          printerName: ds?.printer_name || '',
+          copies: Math.max(1, Number(ds?.copies) || 1),
+        })
+        if (cancelled) return
+        if (res.success) toast({ title: 'ส่งฟอร์มเปล่าไปยังเครื่องพิมพ์แล้ว', variant: 'success' })
+        else if (res.error) toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'destructive' })
+      } finally {
+        if (!cancelled) setBlankRender(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [blankRender, toast])
+
   useEffect(() => {
     if (!printRender) return
     let cancelled = false
@@ -132,6 +170,7 @@ export default function KhorYor9Page() {
     const headerH = (root.querySelector('[data-m="header"]') as HTMLElement)?.offsetHeight ?? 0
     const theadH = (root.querySelector('[data-m="thead"]') as HTMLElement)?.offsetHeight ?? 0
     const fillerH = (root.querySelector('[data-m="filler"]') as HTMLElement)?.offsetHeight ?? 33
+    metricsRef.current = { headerH, theadH, fillerH }
     const rowEls = Array.from(root.querySelectorAll('[data-m="row"]')) as HTMLElement[]
     const rowHs = rowEls.map(e => e.offsetHeight)
 
@@ -260,6 +299,9 @@ export default function KhorYor9Page() {
               placeholder={pages.length > 1 ? `ทุกหน้า (1-${pages.length})` : 'ทุกหน้า'}
               className="h-9 w-36 shrink-0"
             />
+            <Button className="h-9" onClick={handlePrintBlank} disabled={loading} variant="elevated">
+              <FileText className="size-4" /> ฟอร์มเปล่า
+            </Button>
             <Button className="h-9" onClick={handlePrint} disabled={loading || pages.length === 0} variant="elevated">
               <Printer className="size-4" /> พิมพ์
             </Button>
@@ -322,6 +364,21 @@ export default function KhorYor9Page() {
       {printRender && !loading && (
         <div className="a4-doc" aria-hidden style={{ position: 'absolute', left: -100000, top: 0 }}>
           {pages.map(renderPage)}
+        </div>
+      )}
+
+      {/* Hidden BLANK form — one ruled page (no data) mounted only while printing it. */}
+      {blankRender && (
+        <div className="a4-blank" aria-hidden style={{ position: 'absolute', left: -100000, top: 0 }}>
+          <A4Sheet header={headerBlock} pageNo={1} pageCount={1}>
+            <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
+              {colgroup}
+              <thead>{theadRow}</thead>
+              <tbody>
+                {Array.from({ length: blankFillerCount() }).map((_, i) => fillerRow(`b-${i}`))}
+              </tbody>
+            </table>
+          </A4Sheet>
         </div>
       )}
 

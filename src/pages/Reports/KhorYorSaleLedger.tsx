@@ -10,7 +10,7 @@ import { printDomSheets, parsePageSelection } from '@/lib/print/printDomSheets'
 import type { Setting } from '@/types'
 import type { ReportsOutletContext } from './index'
 import { A4Sheet, A4_CONTENT_W, A4_CONTENT_H, FOOTER_H, PACK_SAFETY } from './a4'
-import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Printer, FileText } from 'lucide-react'
 
 interface SaleLedgerRow {
   lot_id: number | null
@@ -76,8 +76,11 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
   const [pageInput, setPageInput] = useState('')   // "" = ทุกหน้า; เช่น "1-3,5"
   const [viewPage, setViewPage] = useState(1)      // 1-based page shown in the preview
   const [printRender, setPrintRender] = useState(false) // mount the full hidden .a4-doc only while printing
+  const [blankRender, setBlankRender] = useState(false) // mount the hidden .a4-blank only while printing a blank form
 
   const measureRef = useRef<HTMLDivElement>(null)
+  // Heights measured from the specimen — reused to fill a blank form to the page bottom.
+  const metricsRef = useRef({ headerH: 0, saleHeadH: 0, fillerH: 33, blankLotHeadH: 90 })
 
   useEffect(() => { setSummary(null) }, [setSummary])
   // New data / re-pagination → jump back to the first page.
@@ -117,6 +120,42 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
     if (loading || pages.length === 0) return
     setPrintRender(true)
   }
+
+  // Print a BLANK form (one ruled page: blank lot header + empty sale rows) to fill by hand.
+  const handlePrintBlank = () => {
+    if (loading) return
+    setBlankRender(true)
+  }
+
+  // Empty sale rows that fill one blank page to the bottom (from measured heights).
+  const blankFillerCount = () => {
+    const m = metricsRef.current
+    const avail = A4_CONTENT_H - m.headerH - FOOTER_H - BODY_TOP - PACK_SAFETY
+      - m.blankLotHeadH - GAP_LOTHEAD_TO_TABLE - m.saleHeadH
+    return Math.max(1, Math.floor(avail / (m.fillerH || 33)))
+  }
+
+  useEffect(() => {
+    if (!blankRender) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const ds = (await window.api.settings.getDocumentSettings()) as any
+        const res = await printDomSheets({
+          docSelector: '.a4-blank',
+          pages: 'all',
+          printerName: ds?.printer_name || '',
+          copies: Math.max(1, Number(ds?.copies) || 1),
+        })
+        if (cancelled) return
+        if (res.success) toast({ title: 'ส่งฟอร์มเปล่าไปยังเครื่องพิมพ์แล้ว', variant: 'success' })
+        else if (res.error) toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'destructive' })
+      } finally {
+        if (!cancelled) setBlankRender(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [blankRender, toast])
 
   useEffect(() => {
     if (!printRender) return
@@ -163,6 +202,10 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
     const headerH = (root.querySelector('[data-m="header"]') as HTMLElement)?.offsetHeight ?? 0
     const saleHeadH = (root.querySelector('[data-m="salehead"]') as HTMLElement)?.offsetHeight ?? 0
     const fillerH = (root.querySelector('[data-m="filler"]') as HTMLElement)?.offsetHeight ?? 33
+    metricsRef.current = {
+      headerH, saleHeadH, fillerH,
+      blankLotHeadH: (root.querySelector('[data-m="blanklothead"]') as HTMLElement)?.offsetHeight ?? 90,
+    }
 
     const avail = A4_CONTENT_H - headerH - FOOTER_H - BODY_TOP - PACK_SAFETY
     const out: PageL[] = []
@@ -246,6 +289,26 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
           <span className="text-foreground-subtle">วันที่รับ</span>{' '}
           <span className="font-medium">{formatThaiShortBE(head.lot_received_date)}</span>
         </span>
+      </div>
+    </div>
+  )
+
+  // Blank lot-header block — every fill-in field is a dotted line (for ฟอร์มเปล่า).
+  const blankLotHeader = (
+    <div className="text-sm space-y-1 pb-2 border-b border-dotted border-foreground/60">
+      <div>
+        <span className="text-foreground-subtle">ชื่อยา</span>{' '}
+        <span className="inline-block min-w-[320px] border-b border-dotted border-foreground/60">&nbsp;</span>
+      </div>
+      <div className="flex flex-wrap gap-x-6 gap-y-1">
+        <span><span className="text-foreground-subtle">ชื่อผู้ผลิต / ผู้นำเข้า</span>{' '}<span className="inline-block min-w-[140px] border-b border-dotted border-foreground/60">&nbsp;</span></span>
+        <span><span className="text-foreground-subtle">เลขที่หรืออักษรของครั้งที่ผลิต</span>{' '}<span className="inline-block min-w-[120px] border-b border-dotted border-foreground/60">&nbsp;</span></span>
+        <span><span className="text-foreground-subtle">ขนาดบรรจุ</span>{' '}<span className="inline-block min-w-[100px] border-b border-dotted border-foreground/60">&nbsp;</span></span>
+      </div>
+      <div className="flex flex-wrap gap-x-6 gap-y-1">
+        <span><span className="text-foreground-subtle">ได้มาจาก</span>{' '}<span className="inline-block min-w-[160px] border-b border-dotted border-foreground/60">&nbsp;</span></span>
+        <span><span className="text-foreground-subtle">จำนวนรับ</span>{' '}<span className="inline-block min-w-[100px] border-b border-dotted border-foreground/60">&nbsp;</span></span>
+        <span><span className="text-foreground-subtle">วันที่รับ</span>{' '}<span className="inline-block min-w-[120px] border-b border-dotted border-foreground/60">&nbsp;</span></span>
       </div>
     </div>
   )
@@ -351,6 +414,9 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
               placeholder={pages.length > 1 ? `ทุกหน้า (1-${pages.length})` : 'ทุกหน้า'}
               className="h-9 w-36 shrink-0"
             />
+            <Button className="h-9" onClick={handlePrintBlank} disabled={loading} variant="elevated">
+              <FileText className="size-4" /> ฟอร์มเปล่า
+            </Button>
             <Button className="h-9" onClick={handlePrint} disabled={loading || pages.length === 0} variant="elevated">
               <Printer className="size-4" /> พิมพ์
             </Button>
@@ -436,6 +502,24 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
         </div>
       )}
 
+      {/* Hidden BLANK form — one ruled page (blank lot header + empty sale rows). */}
+      {blankRender && (
+        <div className="a4-blank" aria-hidden style={{ position: 'absolute', left: -100000, top: 0 }}>
+          <A4Sheet header={headerBlock} pageNo={1} pageCount={1}>
+            <div className="mt-2">
+              {blankLotHeader}
+              <table className="mt-3 w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
+                {saleColgroup}
+                <thead>{saleTheadRow}</thead>
+                <tbody>
+                  {Array.from({ length: blankFillerCount() }).map((_, i) => fillerRow(`b-${i}`))}
+                </tbody>
+              </table>
+            </div>
+          </A4Sheet>
+        </div>
+      )}
+
       {/* Hidden specimen — measured for exact lot-header / row / table-header heights */}
       <div
         ref={measureRef}
@@ -457,6 +541,8 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
             </tr>
           </tbody>
         </table>
+        {/* blank lot-header reference — height used to fill the blank form */}
+        <div data-m="blanklothead">{blankLotHeader}</div>
         {sections.map((sec, si) => (
           <div key={sec.key}>
             <div data-m="lothead" data-si={si}>{lotHeaderInner(sec.head, false)}</div>
