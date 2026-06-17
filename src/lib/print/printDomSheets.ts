@@ -117,6 +117,8 @@ export async function printDomSheets(opts: {
   @page { size: A4 landscape; margin: 0; }
   html, body { margin: 0; padding: 0; background: #fff; }
   body, .a4-sheet, .a4-sheet * { font-family: 'Sarabun Print', sans-serif !important; }
+  /* Keep cell borders single 1px lines (no doubling) so they print thin, not bold. */
+  .a4-sheet table { border-collapse: collapse !important; }
   .a4-sheet { width: 297mm !important; height: 210mm !important; margin: 0 !important; box-shadow: none !important; overflow: hidden; break-inside: avoid; break-after: page; page-break-after: always; }
   .a4-sheet:last-child { break-after: auto; page-break-after: auto; }
 </style>

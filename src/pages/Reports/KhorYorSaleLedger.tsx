@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { SectionCard } from '@/components/ui/card'
 import { MultiDatePicker, type MultiDateMode, rangeForMultiMode } from '@/components/ui/multi-date-picker'
 import { useToast } from '@/components/ui/toast'
 import { formatThaiShortBE } from '@/lib/thaiDate'
@@ -243,7 +244,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
   const saleTheadRow = (
     <tr>
       {HEADERS.map((h) => (
-        <th key={h} className="border border-foreground/80 px-2 py-2 text-sm font-semibold text-center align-middle bg-card">
+        <th key={h} className="border border-foreground/40 px-2 py-2 text-sm font-semibold text-center align-middle bg-card">
           {h}
         </th>
       ))}
@@ -255,21 +256,21 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
 
   const saleDataRow = (r: SaleLedgerRow, num: number, key: string | number) => (
     <tr key={key}>
-      <td className="border border-foreground/80 px-2 py-1 text-center">{num}</td>
-      <td className="border border-foreground/80 px-2 py-1 text-center">{formatThaiShortBE(r.sold_at)}</td>
-      <td className="border border-foreground/80 px-2 py-1 text-center">
+      <td className="border border-foreground/40 px-2 py-1 text-center">{num}</td>
+      <td className="border border-foreground/40 px-2 py-1 text-center">{formatThaiShortBE(r.sold_at)}</td>
+      <td className="border border-foreground/40 px-2 py-1 text-center">
         {formatQty(r.qty)}{r.unit_name ? ` ${r.unit_name}` : ''}
       </td>
-      <td className="border border-foreground/80 px-2 py-1">{buyerOf(r)}</td>
-      <td className="border border-foreground/80 px-2 py-1"></td>
-      <td className="border border-foreground/80 px-2 py-1"></td>
+      <td className="border border-foreground/40 px-2 py-1">{buyerOf(r)}</td>
+      <td className="border border-foreground/40 px-2 py-1"></td>
+      <td className="border border-foreground/40 px-2 py-1"></td>
     </tr>
   )
 
   const fillerRow = (key: string | number) => (
     <tr key={key}>
       {Array.from({ length: 6 }).map((_, j) => (
-        <td key={j} className="border border-foreground/80 px-2 py-1 h-8"></td>
+        <td key={j} className="border border-foreground/40 px-2 py-1 h-8"></td>
       ))}
     </tr>
   )
@@ -286,23 +287,32 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
           allowedModes={['month']}
           className="shrink-0"
         />
-        <span className="text-sm text-muted-foreground shrink-0">หน้า</span>
-        <Input
-          value={pageInput}
-          onChange={e => setPageInput(e.target.value)}
-          placeholder={pages.length > 1 ? `ทุกหน้า (1-${pages.length})` : 'ทุกหน้า'}
-          className="h-9 w-36 shrink-0"
-        />
       </div>
 
-      {/* Paged A4 preview — also the print surface (one .a4-sheet = one page) */}
-      <div className="flex-1 min-h-0 flex flex-col rounded-card border border-border overflow-hidden">
-        <div className="no-print h-12 px-3 flex items-center justify-end shrink-0 border-b border-border bg-card">
-          <Button size="lg" className="h-9 px-4" onClick={handlePrint} disabled={loading || pages.length === 0}>
-            <Printer className="size-4" /> พิมพ์
-          </Button>
-        </div>
-        <div className="flex-1 min-h-0 overflow-auto bg-muted/40 [scrollbar-gutter:stable]">
+      {/* Paged A4 preview — also the print surface (one .a4-sheet = one page).
+          Frame + header-right print controls mirror the Settings document-preview
+          card (DocumentSettingsTab → SectionCard "ตัวอย่างเอกสาร"). */}
+      <SectionCard
+        title="ตัวอย่างเอกสาร"
+        tint="success"
+        fill
+        className="flex-1 min-h-0"
+        right={
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground shrink-0">หน้า</span>
+            <Input
+              value={pageInput}
+              onChange={e => setPageInput(e.target.value)}
+              placeholder={pages.length > 1 ? `ทุกหน้า (1-${pages.length})` : 'ทุกหน้า'}
+              className="h-9 w-36 shrink-0"
+            />
+            <Button className="h-9" onClick={handlePrint} disabled={loading || pages.length === 0} variant="elevated">
+              <Printer className="size-4" /> พิมพ์
+            </Button>
+          </div>
+        }
+      >
+        <div className="h-full overflow-auto bg-muted/30 rounded-lg [scrollbar-gutter:stable]">
         <div className="a4-doc flex flex-col items-center gap-6 py-6">
           {loading ? (
             <A4Sheet header={headerBlock} pageNo={1} pageCount={1}>
@@ -318,7 +328,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
                     {Array.from({ length: 10 }).map((_, i) => (
                       <tr key={i}>
                         {Array.from({ length: 6 }).map((__, j) => (
-                          <td key={j} className="border border-foreground/80 px-2 py-1 h-8">
+                          <td key={j} className="border border-foreground/40 px-2 py-1 h-8">
                             <div className="h-3 rounded bg-muted/60 animate-pulse" />
                           </td>
                         ))}
@@ -365,7 +375,8 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
             ไม่มีรายการขายยาในช่วงวันที่ที่เลือก
           </div>
         )}
-      </div>
+        </div>
+      </SectionCard>
 
       {/* Hidden specimen — measured for exact lot-header / row / table-header heights */}
       <div
@@ -383,7 +394,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
           <tbody>
             <tr data-m="filler">
               {Array.from({ length: 6 }).map((_, j) => (
-                <td key={j} className="border border-foreground/80 px-2 py-1 h-8"></td>
+                <td key={j} className="border border-foreground/40 px-2 py-1 h-8"></td>
               ))}
             </tr>
           </tbody>
@@ -396,14 +407,14 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
               <tbody>
                 {sec.rows.map((r, ri) => (
                   <tr key={ri} data-m="srow" data-si={si} data-ri={ri}>
-                    <td className="border border-foreground/80 px-2 py-1 text-center">{ri + 1}</td>
-                    <td className="border border-foreground/80 px-2 py-1 text-center">{formatThaiShortBE(r.sold_at)}</td>
-                    <td className="border border-foreground/80 px-2 py-1 text-center">
+                    <td className="border border-foreground/40 px-2 py-1 text-center">{ri + 1}</td>
+                    <td className="border border-foreground/40 px-2 py-1 text-center">{formatThaiShortBE(r.sold_at)}</td>
+                    <td className="border border-foreground/40 px-2 py-1 text-center">
                       {formatQty(r.qty)}{r.unit_name ? ` ${r.unit_name}` : ''}
                     </td>
-                    <td className="border border-foreground/80 px-2 py-1">{buyerOf(r)}</td>
-                    <td className="border border-foreground/80 px-2 py-1"></td>
-                    <td className="border border-foreground/80 px-2 py-1"></td>
+                    <td className="border border-foreground/40 px-2 py-1">{buyerOf(r)}</td>
+                    <td className="border border-foreground/40 px-2 py-1"></td>
+                    <td className="border border-foreground/40 px-2 py-1"></td>
                   </tr>
                 ))}
               </tbody>
@@ -411,7 +422,6 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
           </div>
         ))}
       </div>
-        </div>
     </div>
   )
 }
