@@ -1,9 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { MultiDatePicker, type MultiDateMode, rangeForMultiMode } from '@/components/ui/multi-date-picker'
 import { useToast } from '@/components/ui/toast'
 import { formatThaiShortBE } from '@/lib/thaiDate'
+import { printDomSheets, parsePageSelection } from '@/lib/print/printDomSheets'
 import type { Setting } from '@/types'
 import type { ReportsOutletContext } from './index'
 import { A4Sheet, A4_CONTENT_W, A4_CONTENT_H, FOOTER_H, PACK_SAFETY } from './a4'
@@ -70,6 +72,7 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
   const [loading, setLoading] = useState(true)
   const [shopName, setShopName] = useState('')
   const [pages, setPages] = useState<PageL[]>([])
+  const [pageInput, setPageInput] = useState('')   // "" = ทุกหน้า; เช่น "1-3,5"
 
   const measureRef = useRef<HTMLDivElement>(null)
 
@@ -101,13 +104,19 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
 
   const isEmpty = !loading && rows && rows.length === 0
 
-  // Print via the OS dialog (printer + page-range + copies). Renderer
-  // window.print() is unsupported in Electron, so route through the main process.
+  // Silent-print the selected sheets to the configured A4 printer (Settings →
+  // เครื่องพิมพ์ → เอกสาร A4). No OS dialog — Electron can't show one reliably.
   const handlePrint = async () => {
-    const res = await window.api.printer.printVisible({ landscape: true })
-    if (!res?.success && res?.error && !/cancel/i.test(res.error)) {
-      toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'destructive' })
-    }
+    if (loading || pages.length === 0) return
+    const ds = (await window.api.settings.getDocumentSettings()) as any
+    const res = await printDomSheets({
+      docSelector: '.a4-doc',
+      pages: parsePageSelection(pageInput, pages.length),
+      printerName: ds?.printer_name || '',
+      copies: Math.max(1, Number(ds?.copies) || 1),
+    })
+    if (res.success) toast({ title: 'ส่งไปยังเครื่องพิมพ์แล้ว', variant: 'success' })
+    else if (res.error) toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'destructive' })
   }
 
   // Group lot-cut rows into per-lot sections — one header block + its sale rows.
@@ -281,7 +290,14 @@ export default function KhorYorSaleLedger({ formCode, title, flag }: KhorYorSale
           className="shrink-0"
         />
         <div className="flex-1" />
-        <Button size="lg" className="h-9 px-4" onClick={handlePrint}>
+        <span className="text-sm text-muted-foreground shrink-0">หน้า</span>
+        <Input
+          value={pageInput}
+          onChange={e => setPageInput(e.target.value)}
+          placeholder={pages.length > 1 ? `ทุกหน้า (1-${pages.length})` : 'ทุกหน้า'}
+          className="h-9 w-36 shrink-0"
+        />
+        <Button size="lg" className="h-9 px-4" onClick={handlePrint} disabled={loading || pages.length === 0}>
           <Printer className="size-4" /> พิมพ์
         </Button>
       </div>

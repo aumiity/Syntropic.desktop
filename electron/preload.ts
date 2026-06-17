@@ -180,12 +180,6 @@ const api = {
       invoke('printer:printHtml', args) as Promise<{ success: boolean; error?: string; path?: string }>,
     previewHtmlPdf: (args: { html: string; paperWidthMm?: number; heightMm?: number | 'auto'; pageFormat?: 'A4' | 'A5' }) =>
       invoke('printer:previewHtmlPdf', args) as Promise<{ success: boolean; error?: string; path?: string }>,
-    // Print the CURRENT app window's content via the OS print dialog (page-range
-    // + printer + copies selectable). Renderer window.print() can't be used in
-    // Electron — it tries Chromium's unsupported print-preview ("This app doesn't
-    // support print preview"). Honors @media print CSS of the live page.
-    printVisible: (opts?: { landscape?: boolean }) =>
-      invoke('printer:printVisible', opts) as Promise<{ success: boolean; error?: string }>,
   },
   // Tax invoices (ใบกำกับภาษีเต็มรูป)
   tax: {
