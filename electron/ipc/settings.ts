@@ -267,6 +267,14 @@ export function registerSettingsHandlers() {
       ORDER BY d.id
     `).all()
   })
+  // Count products flagged as a drug (is_drug=1) but with no drug type assigned.
+  // The drug-types tab surfaces this as a summary row so these stragglers — which
+  // contribute 0 to every per-type usage_count — don't silently go unnoticed.
+  ipcMain.handle('settings:countUnclassifiedDrugs', () => {
+    return (getDb().prepare(
+      `SELECT COUNT(*) AS c FROM products WHERE is_drug = 1 AND drug_type_id IS NULL`
+    ).get() as { c: number }).c
+  })
   ipcMain.handle('settings:saveDrugType', (_e, data: any) => {
     requireAdmin(_e)
     const db = getDb()

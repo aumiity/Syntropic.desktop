@@ -124,6 +124,7 @@ const api = {
     saveUnit: (data: any) => invoke('settings:saveUnit', data),
     deleteUnit: (id: number) => invoke('settings:deleteUnit', id),
     listDrugTypes: () => invoke('settings:listDrugTypes'),
+    countUnclassifiedDrugs: () => invoke('settings:countUnclassifiedDrugs') as Promise<number>,
     saveDrugType: (data: any) => invoke('settings:saveDrugType', data),
     getLabelSettings: () => invoke('settings:getLabelSettings'),
     saveLabelSettings: (data: any) => invoke('settings:saveLabelSettings', data),

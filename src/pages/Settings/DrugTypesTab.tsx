@@ -22,6 +22,8 @@ const FDA_FLAGS = [
 export function DrugTypesTab() {
   const { toast } = useToast()
   const [rows, setRows] = useState<DrugType[]>([])
+  // Products flagged as a drug but with no type assigned — shown as a summary row.
+  const [unclassified, setUnclassified] = useState(0)
   const [q, setQ] = useState('')
   const [dialog, setDialog] = useState(false)
   const [form, setForm] = useState<any>({})
@@ -33,12 +35,17 @@ export function DrugTypesTab() {
   const [confirmToggle, setConfirmToggle] = useState<DrugType | null>(null)
 
   const load = async () => {
-    const data = await window.api.settings.listDrugTypes() as DrugType[]
+    const [data, unclassifiedCount] = await Promise.all([
+      window.api.settings.listDrugTypes() as Promise<DrugType[]>,
+      window.api.settings.countUnclassifiedDrugs(),
+    ])
     setRows(data)
+    setUnclassified(unclassifiedCount)
   }
   useEffect(() => { load() }, [])
 
-  const openAdd = () => { setForm({ code: '', name_th: '', is_fda9: 0, is_fda10: 0, is_fda11: 0, is_fda13: 0 }); setDialog(true) }
+  // ข.ย.9 (บัญชีการซื้อยา) บังคับเสมอ — ยาทุกประเภทต้องลง ห้ามแก้เป็น 0 → default 1
+  const openAdd = () => { setForm({ code: '', name_th: '', is_fda9: 1, is_fda10: 0, is_fda11: 0, is_fda13: 0 }); setDialog(true) }
   const openEdit = (d: DrugType) => {
     setForm({
       id: d.id, code: d.code, name_th: d.name_th,
@@ -52,7 +59,8 @@ export function DrugTypesTab() {
     if (!form.code?.trim() || !form.name_th?.trim()) { toast({ title: 'กรุณาระบุรหัสและชื่อ', variant: 'error' }); return }
     setSaving(true)
     try {
-      await window.api.settings.saveDrugType(form)
+      // is_fda9 ล็อก 1 เสมอ — เผื่อ heal ข้อมูลเก่าที่เคยถูกบันทึกเป็น 0 ตอนผู้ใช้แก้+บันทึก
+      await window.api.settings.saveDrugType({ ...form, is_fda9: 1 })
       toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
       setDialog(false); load()
     } catch (e: any) {
@@ -70,7 +78,7 @@ export function DrugTypesTab() {
     try {
       await window.api.settings.saveDrugType({
         id: d.id, code: d.code, name_th: d.name_th,
-        is_fda9: d.is_fda9 ?? 0, is_fda10: d.is_fda10 ?? 0, is_fda11: d.is_fda11 ?? 0, is_fda13: d.is_fda13 ?? 0,
+        is_fda9: 1, is_fda10: d.is_fda10 ?? 0, is_fda11: d.is_fda11 ?? 0, is_fda13: d.is_fda13 ?? 0,
         is_disabled: d.is_disabled ? 0 : 1,
       })
       toast({ title: d.is_disabled ? 'เปิดใช้งานแล้ว' : 'พักการใช้งานแล้ว', variant: 'success' })
@@ -124,6 +132,20 @@ export function DrugTypesTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {unclassified > 0 && !q.trim() && (
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableCell colSpan={6}>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-foreground">ยังไม่ระบุประเภท</span>
+                      <span className="text-xs text-muted-foreground">สินค้าที่ติดธงว่าเป็นยา แต่ยังไม่ได้เลือกประเภทยา</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant="accent-outline">{unclassified.toLocaleString()} รายการ</Badge>
+                  </TableCell>
+                  <TableCell colSpan={2} />
+                </TableRow>
+              )}
               {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
@@ -135,13 +157,22 @@ export function DrugTypesTab() {
                 <TableRow key={d.id}>
                   <TableCell className="text-sm font-semibold">{d.code}</TableCell>
                   <TableCell className="text-sm text-foreground">{d.name_th}</TableCell>
-                  {FDA_FLAGS.map(({ key }) => (
-                    <TableCell key={key} className="text-center">
-                      <div className="flex justify-center">
-                        <Checkbox checked={!!(d as any)[key]} tabIndex={-1} className="pointer-events-none" />
-                      </div>
-                    </TableCell>
-                  ))}
+                  {FDA_FLAGS.map(({ key }) => {
+                    // ข.ย.9 = ค่าบังคับ → disabled + ติ๊กค้างเสมอ (teal จาง เหมือน EditProduct)
+                    const locked = key === 'is_fda9'
+                    return (
+                      <TableCell key={key} className="text-center">
+                        <div className="flex justify-center">
+                          <Checkbox
+                            checked={locked ? true : !!(d as any)[key]}
+                            disabled={locked}
+                            tabIndex={-1}
+                            className={locked ? undefined : 'pointer-events-none'}
+                          />
+                        </div>
+                      </TableCell>
+                    )
+                  })}
                   <TableCell className="text-right">
                     <Badge variant={(d.usage_count ?? 0) > 0 ? 'teal-outline' : 'muted-outline'}>
                       {(d.usage_count ?? 0).toLocaleString()} รายการ
@@ -195,15 +226,25 @@ export function DrugTypesTab() {
                 การตั้งค่านี้จะส่งผลต่อทุกสินค้าในประเภท โดยอัตโนมัติ (สามารถแก้ไขเพิ่มเติมได้ที่ การตั้งค่าสินค้ารายตัว)
               </p>
               <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
-                {FDA_FLAGS.map(({ key, label }) => (
-                  <label
-                    key={key}
-                    className="flex items-center gap-2 px-3 h-12 cursor-pointer select-none"
-                  >
-                    <Checkbox checked={!!form[key]} onCheckedChange={v => setF(key, v ? 1 : 0)} />
-                    <span className="text-sm">{label}</span>
-                  </label>
-                ))}
+                {FDA_FLAGS.map(({ key, label }) => {
+                  // ข.ย.9 = บัญชีการซื้อยา: ยาทุกประเภทต้องลงตามกฎหมาย → ติ๊กค้าง readonly
+                  // (สื่อว่าเป็นค่าบังคับ ไม่ใช่ตัวเลือก). ที่เหลือ 10/11/13 เลือกได้ปกติ.
+                  const locked = key === 'is_fda9'
+                  return (
+                    <label
+                      key={key}
+                      className={`flex items-center gap-2 px-3 h-12 select-none ${locked ? 'cursor-default' : 'cursor-pointer'}`}
+                    >
+                      <Checkbox
+                        checked={locked ? true : !!form[key]}
+                        onCheckedChange={locked ? undefined : (v => setF(key, v ? 1 : 0))}
+                        disabled={locked}
+                      />
+                      <span className="text-sm">{label}</span>
+                      {locked}
+                    </label>
+                  )
+                })}
               </div>
             </div>
           </DialogBody>

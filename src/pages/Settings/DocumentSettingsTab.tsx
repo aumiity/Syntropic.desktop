@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast'
 import { buildTaxInvoiceHtml } from '@/lib/receipt/buildTaxInvoiceHtml'
 import { buildPrinterOptions } from '@/lib/print/pdfPrinter'
 import { PrinterSelectItems } from '@/components/ui/printer-select-items'
+import { ZoomControl } from '@/components/ui/zoom-control'
 import type { DocumentSettings, SaleForPrint, Setting, TaxInvoice } from '@/types'
 import { FileText, Printer, Save } from 'lucide-react'
 
@@ -76,14 +77,21 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   const [printing, setPrinting] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [previewHtml, setPreviewHtml] = useState('')
-  // Track the preview column width; scale = fit the true-size page into it (never
-  // up). Recomputed below whenever the width OR the chosen page size changes.
+  // Preview zoom — on top of the fit-to-column scale (like the receipt/label
+  // tabs). The overflow-auto container scrolls both ways once the zoomed page
+  // grows past the column.
+  const [zoom, setZoom] = useState(1)
+  const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
+  // Track the preview box size (width AND height); fit = shrink the true-size
+  // page so the WHOLE sheet shows inside the box (never up). Recomputed whenever
+  // the box resizes OR the chosen page size changes.
   const previewWrapRef = useRef<HTMLDivElement>(null)
   const [wrapW, setWrapW] = useState(0)
+  const [wrapH, setWrapH] = useState(0)
   useEffect(() => {
     const el = previewWrapRef.current
     if (!el) return
-    const update = () => setWrapW(el.clientWidth)
+    const update = () => { setWrapW(el.clientWidth); setWrapH(el.clientHeight) }
     update()
     const ro = new ResizeObserver(update)
     ro.observe(el)
@@ -92,11 +100,18 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   const dims = PAGE_MM[form.paper_size] ?? PAGE_MM.A4
   const paperWpx = mmToPx(dims.w)
   const paperHpx = mmToPx(dims.h)
-  // Scale is ALWAYS referenced to A4 (never the current page), so the preview
-  // column is fixed to A4 width: A4 fills it, A5 renders proportionally smaller
-  // (0.705×) inside the same column — showing the real physical size difference
-  // instead of shrinking the column to fit the smaller page.
-  const scale = wrapW ? Math.min(1, wrapW / mmToPx(PAGE_MM.A4.w)) : 1
+  // Fit is ALWAYS referenced to A4 (never the current page) so A5 renders
+  // proportionally smaller (0.705×) inside the same box — showing the real
+  // physical size difference. The base scale fits the FULL A4 sheet inside the
+  // box on BOTH axes (so the whole page is visible without scrolling at 100%);
+  // subtract the p-6 padding (48px each axis) so it fits exactly. Zoom then
+  // multiplies on top — zooming past 100% overflows the box and lets it scroll.
+  const availW = Math.max(0, wrapW - 48)
+  const availH = Math.max(0, wrapH - 48)
+  const fitScale = availW && availH
+    ? Math.min(1, availW / mmToPx(PAGE_MM.A4.w), availH / mmToPx(PAGE_MM.A4.h))
+    : 1
+  const scale = fitScale * zoom
 
   // Load settings — explicit per-key overwrite keeps stale UI-only keys out of
   // form (which would poison the dynamic-SQL UPDATE).
@@ -179,10 +194,12 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
     return () => onActions?.(null)
   }, [onActions, saving])
 
-  // Preview/test-print actions live INSIDE the preview card header (like the
-  // other print sub-tabs) — only บันทึก rides the top sub-tab strip.
+  // Preview/test-print actions live INSIDE the preview card header (beside the
+  // zoom control, like the other print sub-tabs) — only บันทึก rides the top
+  // sub-tab strip.
   const previewActions = (
     <div className="flex items-center gap-2">
+      <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
       <Button className="h-9" onClick={handlePreviewPdf} disabled={pdfLoading} variant="elevated">
         <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
       </Button>
@@ -193,18 +210,23 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   )
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 h-full min-h-0">
 
-      {/* Body: preview (LEFT) + settings (RIGHT) */}
-      <div className="grid grid-cols-[7fr_3fr] gap-4 items-start">
-        <SectionCard title="ตัวอย่างเอกสาร" tint="success" className="min-w-0" right={previewActions}>
-          <div ref={previewWrapRef} className="flex justify-center bg-muted/30 rounded-lg p-6">
+      {/* Body: preview (LEFT) + settings (RIGHT). The grid fills the leftover
+          height so the preview card (fill) stretches and its body scrolls — the
+          whole page fits the screen without an outer scrollbar. */}
+      <div className="grid grid-cols-[31fr_9fr] grid-rows-1 gap-4 items-stretch flex-1 min-h-0">
+        <SectionCard title="ตัวอย่างเอกสาร" tint="success" className="min-w-0" right={previewActions} fill>
+          <div ref={previewWrapRef} className="h-full bg-muted/30 rounded-lg p-6 overflow-auto">
             {/* The iframe renders the real print HTML at TRUE page size, then a
                 CSS transform scales the whole thing down to fit the column width.
                 The wrapper is sized to the scaled box so it reserves the right
-                amount of vertical space — the page scrolls to reveal the rest. */}
+                amount of vertical space — the page scrolls to reveal the rest.
+                `mx-auto` (not flex justify-center): centers while the page fits,
+                then left-aligns when zoom overflows so scroll reveals the page,
+                not a blank strip on the right. */}
             <div
-              className="shrink-0 bg-white overflow-hidden"
+              className="shrink-0 bg-white overflow-hidden mx-auto"
               style={{
                 width: `${paperWpx * scale}px`,
                 height: `${paperHpx * scale}px`,

@@ -73,6 +73,28 @@ export const useCartStore = create<CartStore>((set, get) => ({
     const updated = [...items]
     const item = { ...updated[index], ...updates }
     item.line_total = item.qty * item.unit_price - item.discount
+    // A unit change can make this line collide with another line of the same
+    // product+unit. Merge into the existing line (sum qty + discount) instead
+    // of leaving two identical rows — mirrors addItem's dedup and keeps the
+    // cart invariant: never two lines with the same product_id + unit_name.
+    const collisionIdx = updated.findIndex(
+      (i, j) => j !== index && i.product_id === item.product_id && i.unit_name === item.unit_name
+    )
+    if (collisionIdx >= 0) {
+      const target = updated[collisionIdx]
+      const newQty = target.qty + item.qty
+      const newDiscount = target.discount + item.discount
+      updated[collisionIdx] = {
+        ...target,
+        qty: newQty,
+        unit_price: item.unit_price,
+        discount: newDiscount,
+        line_total: newQty * item.unit_price - newDiscount,
+      }
+      updated.splice(index, 1)
+      set({ items: updated })
+      return
+    }
     updated[index] = item
     set({ items: updated })
   },

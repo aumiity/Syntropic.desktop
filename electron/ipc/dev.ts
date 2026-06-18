@@ -13,11 +13,17 @@ export function registerDevHandlers() {
   // never exceeds safety_stock × STOCK_CAP_MULT (fallback safety = 200 when
   // NULL). FEFO is enforced. Same shape as a user clicking POS + GR by hand.
   //
+  // Sales mix: ~10% wholesale (sale_type='wholesale', price_wholesale1, larger
+  // baskets) and ~2% of bills get a later customer return (RT- negative sale that
+  // restocks the original lot). GR bills are 90% paid / 10% outstanding.
+  // Monthly operating expenses are also seeded (fixed rent/salary + utilities +
+  // random extras, capped at 30,000 ฿/month).
+  //
   // After the random simulation, a final "end-state engineering" phase
   // guarantees the demo state the user asked for:
   //   • 20 SKUs out of stock
   //   • 80-100 SKUs below reorder_point
-  //   • 20 SKUs expired
+  //   • 200-300 SKUs expired
   //   • 40 SKUs near-expire (30-90 days)
   // The four target sets are mutually exclusive — each SKU is in at most one.
   //
@@ -55,11 +61,13 @@ export function registerDevHandlers() {
     // ---- Pre-flight ----
     type Product = {
       id: number; trade_name: string; name_for_print: string | null
-      cost_price: number; price_retail: number; unit_id: number | null; unit_name: string | null
+      cost_price: number; price_retail: number; price_wholesale1: number
+      unit_id: number | null; unit_name: string | null
       reorder_point: number | null; safety_stock: number | null
     }
     const products = db.prepare(`
-      SELECT p.id, p.trade_name, p.name_for_print, p.cost_price, p.price_retail, p.unit_id,
+      SELECT p.id, p.trade_name, p.name_for_print, p.cost_price, p.price_retail,
+             p.price_wholesale1, p.unit_id,
              u.name AS unit_name, p.reorder_point, p.safety_stock
       FROM products p
       LEFT JOIN item_units u ON u.id = p.unit_id
@@ -92,42 +100,52 @@ export function registerDevHandlers() {
         ? p.reorder_point
         : Math.max(1, Math.floor(safetyCap(p) * 0.3))
 
-    // ---- Safety: any non-dev sale referencing a dev lot? ----
-    const conflict = (db.prepare(`
-      SELECT COUNT(*) c FROM sale_item_lots sil
-      JOIN product_lots pl ON pl.id = sil.lot_id
-      JOIN sale_items si ON si.id = sil.sale_item_id
-      JOIN sales s ON s.id = si.sale_id
-      WHERE pl.note = '[DEV-SEED]'
-        AND (s.note IS NULL OR s.note != '[DEV-SEED]')
-    `).get() as { c: number }).c
-    if (conflict > 0) {
-      throw new Error(
-        `พบ ${conflict} sale_item_lots ของจริงอ้างถึง lot dev-seed — void/ลบบิลพวกนั้นก่อน`,
-      )
-    }
-
     // ---- Phase 1: Wipe previous dev seed ----
+    // All deletes are set-based (filter by note / subquery), never an
+    // `id IN (?, ?, …)` list — a dev seed accumulates tens of thousands of rows
+    // and binding one variable per id blows past SQLite's variable limit
+    // ("too many SQL variables"). Ordering matters: clear every non-cascade
+    // referencer of product_lots BEFORE deleting the lots themselves
+    // (stock_movements.lot_id, purchase_receipt_items.lot_id, sale_item_lots.lot_id
+    //  all lack ON DELETE CASCADE — schema.ts).
     const wiped = db.transaction(() => {
-      const oldSaleIds = (db.prepare(`SELECT id FROM sales WHERE note = '[DEV-SEED]'`)
-        .all() as any[]).map(r => r.id) as number[]
-      const oldGRs = (db.prepare(`SELECT invoice_no FROM purchase_receipts WHERE note = '[DEV-SEED]'`)
-        .all() as any[]).map(r => r.invoice_no) as string[]
-      const oldLotIds = (db.prepare(`SELECT id FROM product_lots WHERE note = '[DEV-SEED]'`)
-        .all() as any[]).map(r => r.id) as number[]
+      // Conflicting non-dev bills: click-testing the POS rings up real
+      // (non-DEV-SEED) sales whose FEFO pulled from dev-seed lots. On a dev DB
+      // this is throwaway test data, so fold them into the wipe — deleting the
+      // sale cascades its sale_items + sale_item_lots, releasing the lot refs.
+      const conflicts = db.prepare(`
+        DELETE FROM sales WHERE id IN (
+          SELECT DISTINCT si.sale_id
+          FROM sale_item_lots sil
+          JOIN product_lots pl ON pl.id = sil.lot_id
+          JOIN sale_items si ON si.id = sil.sale_item_id
+          JOIN sales s ON s.id = si.sale_id
+          WHERE pl.note = '[DEV-SEED]'
+            AND (s.note IS NULL OR s.note != '[DEV-SEED]')
+        )
+      `).run().changes
 
-      const wipeIn = (sql: string, ids: (number | string)[]) => {
-        if (ids.length === 0) return
-        const ph = ids.map(() => '?').join(',')
-        db.prepare(sql.replace('IN_PLACEHOLDER', ph)).run(...ids)
-      }
-      wipeIn(`DELETE FROM stock_movements WHERE lot_id IN (IN_PLACEHOLDER)`, oldLotIds)
-      wipeIn(`DELETE FROM sales WHERE id IN (IN_PLACEHOLDER)`, oldSaleIds)
-      wipeIn(`DELETE FROM purchase_receipt_items WHERE invoice_no IN (IN_PLACEHOLDER)`, oldGRs)
-      wipeIn(`DELETE FROM purchase_receipts WHERE invoice_no IN (IN_PLACEHOLDER)`, oldGRs)
-      wipeIn(`DELETE FROM product_lots WHERE id IN (IN_PLACEHOLDER)`, oldLotIds)
+      db.prepare(`
+        DELETE FROM stock_movements
+        WHERE lot_id IN (SELECT id FROM product_lots WHERE note = '[DEV-SEED]')
+      `).run()
 
-      return { sales: oldSaleIds.length, grs: oldGRs.length, lots: oldLotIds.length }
+      // Deleting dev sales cascades sale_items + sale_item_lots.
+      const sales = db.prepare(`DELETE FROM sales WHERE note = '[DEV-SEED]'`).run().changes
+
+      db.prepare(`
+        DELETE FROM purchase_receipt_items
+        WHERE invoice_no IN (SELECT invoice_no FROM purchase_receipts WHERE note = '[DEV-SEED]')
+      `).run()
+      const grs = db.prepare(`DELETE FROM purchase_receipts WHERE note = '[DEV-SEED]'`).run().changes
+
+      // lot_cost_logs.lot_id has ON DELETE CASCADE, so it clears automatically.
+      const lots = db.prepare(`DELETE FROM product_lots WHERE note = '[DEV-SEED]'`).run().changes
+
+      // Seeded expenses (Phase 5) carry '[DEV-SEED]' in their note.
+      db.prepare(`DELETE FROM expenses WHERE note LIKE '%[DEV-SEED]%'`).run()
+
+      return { sales, grs, lots, conflicts }
     })()
 
     // ---- Phase 2: Simulation params ----
@@ -150,6 +168,7 @@ export function registerDevHandlers() {
 
     const grSeqByDate = new Map<string, number>()
     const saleSeqByDate = new Map<string, number>()
+    const returnSeqByDate = new Map<string, number>()
 
     const insReceipt = db.prepare(`
       INSERT INTO purchase_receipts
@@ -185,7 +204,7 @@ export function registerDevHandlers() {
          subtotal, total_discount, total_amount,
          cash_amount, card_amount, transfer_amount, change_amount,
          note, status, created_at)
-      VALUES (?, 'retail', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[DEV-SEED]', 'completed', ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[DEV-SEED]', 'completed', ?)
     `)
     const insSaleItem = db.prepare(`
       INSERT INTO sale_items
@@ -205,6 +224,17 @@ export function registerDevHandlers() {
       SET qty_on_hand = ?,
           is_closed = CASE WHEN ? <= 0 THEN 1 ELSE is_closed END,
           closed_at = CASE WHEN ? <= 0 AND closed_at IS NULL THEN ? ELSE closed_at END
+      WHERE id = ?
+    `)
+    // Returns restore stock to the original lot, reopening it if a prior sale had
+    // closed it at zero (HARD invariant: is_closed toggles when qty crosses 0).
+    const selLotNow = db.prepare(`SELECT qty_on_hand FROM product_lots WHERE id = ?`)
+    const restoreLotStmt = db.prepare(`
+      UPDATE product_lots
+      SET qty_on_hand = qty_on_hand + ?,
+          is_closed = CASE WHEN qty_on_hand + ? > 0 THEN 0 ELSE is_closed END,
+          closed_at = CASE WHEN qty_on_hand + ? > 0 THEN NULL ELSE closed_at END,
+          updated_at = ?
       WHERE id = ?
     `)
 
@@ -245,6 +275,7 @@ export function registerDevHandlers() {
 
     const result = db.transaction(() => {
       let grCount = 0, lotCount = 0, saleCount = 0, saleItemCount = 0
+      let wholesaleCount = 0, returnCount = 0
 
       // ---- Day 0: opening-stock GR ----
       // One bootstrap receipt on the oldest day that stocks EVERY inventory
@@ -300,7 +331,8 @@ export function registerDevHandlers() {
           const min = rand(0, 59)
           const dtStr = `${dateStr} ${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`
 
-          const isPaid = Math.random() < 0.6 ? 1 : 0
+          // 90% of GR bills are paid, 10% outstanding (credit, due in 30 days).
+          const isPaid = Math.random() < 0.9 ? 1 : 0
           const paymentType = isPaid ? 'cash' : 'credit'
           const dueDate = !isPaid ? day.add(30, 'day').format('YYYY-MM-DD') : null
 
@@ -346,20 +378,30 @@ export function registerDevHandlers() {
             : (namedCustomers.length ? pick(namedCustomers) : walkIn.id)
           const userId = pick(users)
 
-          // Target bill amount in [50, 2000] — heavily biased to small bills
-          // so daily total lands in 10k-20k with 80-100 bills/day (avg ~150 b./bill).
-          const targetAmount = weighted<number>([
-            [rand(50, 100), 60],
-            [rand(100, 200), 30],
-            [rand(200, 600), 8],
-            [rand(600, 2000), 2],
-          ])
+          // 10% of bills are wholesale: sale_type='wholesale', priced at
+          // price_wholesale1 (fallback retail), larger baskets (1,000-5,000 ฿).
+          const isWholesale = Math.random() < 0.10
+          const saleType = isWholesale ? 'wholesale' : 'retail'
+          const priceOf = (p: Product) =>
+            isWholesale && p.price_wholesale1 > 0 ? p.price_wholesale1 : p.price_retail
+
+          // Target bill amount. Retail [50,2000] heavily biased small so a day of
+          // 80-100 bills lands ~10k-20k; wholesale [1000,5000] for bulk buyers.
+          const targetAmount = isWholesale
+            ? rand(1000, 5000)
+            : weighted<number>([
+                [rand(50, 100), 60],
+                [rand(100, 200), 30],
+                [rand(200, 600), 8],
+                [rand(600, 2000), 2],
+              ])
           const maxItems = rand(ITEMS_PER_SALE_MIN, ITEMS_PER_SALE_MAX)
 
           const shuffled = shuffle(products)
           const items: Array<{
             product: Product
             qty: number
+            price: number
             lots: Array<{ id: number; qty: number; cost: number; qtyBefore: number }>
           }> = []
           let runningSubtotal = 0
@@ -376,8 +418,9 @@ export function registerDevHandlers() {
             if (avail < 1) continue
 
             // Size the line so it nudges the bill toward (not past) the target.
+            const unitPrice = priceOf(product)
             const remaining = Math.max(1, targetAmount - runningSubtotal)
-            const idealQty = Math.max(1, Math.round(remaining / product.price_retail))
+            const idealQty = Math.max(1, Math.round(remaining / unitPrice))
             const desired = weighted<number>([
               [1, 35], [2, 25], [3, 15], [rand(4, 6), 15], [rand(6, 12), 10],
             ])
@@ -395,8 +438,8 @@ export function registerDevHandlers() {
               })
               remainingQty -= deduct
             }
-            items.push({ product, qty, lots: used })
-            runningSubtotal += qty * product.price_retail
+            items.push({ product, qty, price: unitPrice, lots: used })
+            runningSubtotal += qty * unitPrice
 
             // Apply deduction immediately so next item's FEFO query sees it
             for (const u of used) {
@@ -408,7 +451,7 @@ export function registerDevHandlers() {
           if (items.length === 0) continue
 
           let subtotal = 0
-          for (const it of items) subtotal += it.qty * it.product.price_retail
+          for (const it of items) subtotal += it.qty * it.price
           const discountPct = Math.random() < 0.15 ? randF(0.05, 0.15) : 0
           const totalDiscount = +(subtotal * discountPct).toFixed(2)
           const totalAmount = +(subtotal - totalDiscount).toFixed(2)
@@ -430,14 +473,14 @@ export function registerDevHandlers() {
           }
 
           const saleRes = insSale.run(
-            rcNo, customerId, userId, dtStr,
+            rcNo, saleType, customerId, userId, dtStr,
             subtotal, totalDiscount, totalAmount,
             cashAmount, cardAmount, transferAmount, changeAmount, dtStr,
           )
           const saleId = Number(saleRes.lastInsertRowid)
 
           for (const it of items) {
-            const gross = it.qty * it.product.price_retail
+            const gross = it.qty * it.price
             const lineDiscount = +(gross * discountPct).toFixed(2)
             const lineTotal = +(gross - lineDiscount).toFixed(2)
 
@@ -445,7 +488,7 @@ export function registerDevHandlers() {
               saleId, it.product.id,
               it.product.name_for_print ?? it.product.trade_name,
               it.product.unit_name ?? '',
-              it.qty, it.product.price_retail, lineDiscount, lineTotal,
+              it.qty, it.price, lineDiscount, lineTotal,
             )
             const saleItemId = Number(siRes.lastInsertRowid)
             saleItemCount++
@@ -460,10 +503,55 @@ export function registerDevHandlers() {
             }
           }
           saleCount++
+          if (isWholesale) wholesaleCount++
+
+          // ---- Returns (~2% of bills) ----
+          // A few days later the customer brings one line back: a negative RT-
+          // sale + stock restored to the very lot it came from (mirrors
+          // pos:returnItems). note='[DEV-SEED]' so Phase 1 wipes it like any sale.
+          if (Math.random() < 0.02) {
+            const ret = pick(items)
+            if (ret.lots.length > 0) {
+              const rDay = day.add(Math.min(rand(1, 7), d), 'day')
+              const rYmd = rDay.format('YYYYMMDD')
+              const rSeq = (returnSeqByDate.get(rYmd) ?? 0) + 1
+              returnSeqByDate.set(rYmd, rSeq)
+              const rtNo = `RT-${rYmd}-${String(rSeq).padStart(4, '0')}`
+              const rDtStr = `${rDay.format('YYYY-MM-DD')} ` +
+                `${String(rand(9, 18)).padStart(2, '0')}:${String(rand(0, 59)).padStart(2, '0')}:00`
+
+              const lineTotal = +(ret.qty * ret.price).toFixed(2)
+              const rSaleRes = insSale.run(
+                rtNo, 'return', customerId, userId, rDtStr,
+                -lineTotal, 0, -lineTotal,
+                0, 0, 0, 0, rDtStr,
+              )
+              const rSaleId = Number(rSaleRes.lastInsertRowid)
+              const rItemRes = insSaleItem.run(
+                rSaleId, ret.product.id,
+                ret.product.name_for_print ?? ret.product.trade_name,
+                ret.product.unit_name ?? '',
+                -ret.qty, ret.price, 0, -lineTotal,
+              )
+              const rItemId = Number(rItemRes.lastInsertRowid)
+              for (const u of ret.lots) {
+                insSaleItemLot.run(rItemId, u.id, ret.product.id, -u.qty)
+                const before = (selLotNow.get(u.id) as { qty_on_hand: number } | undefined)?.qty_on_hand ?? 0
+                restoreLotStmt.run(u.qty, u.qty, u.qty, rDtStr, u.id)
+                bumpOnHand(ret.product.id, u.qty)
+                insMove.run(
+                  ret.product.id, u.id, 'sale_return', 'return', rSaleId,
+                  u.qty, before, before + u.qty, u.cost,
+                  `รับคืน: ${rtNo} [DEV-SEED]`, userId, rDtStr,
+                )
+              }
+              returnCount++
+            }
+          }
         }
       }
 
-      return { grCount, lotCount, saleCount, saleItemCount }
+      return { grCount, lotCount, saleCount, saleItemCount, wholesaleCount, returnCount }
     })()
 
     // ---- Phase 3: End-state engineering ----
@@ -472,10 +560,12 @@ export function registerDevHandlers() {
     const TARGET_OUT_OF_STOCK = 20
     const TARGET_BELOW_REORDER_MIN = 80
     const TARGET_BELOW_REORDER_MAX = 100
-    const TARGET_EXPIRED = 20
+    const TARGET_EXPIRED_MIN = 200
+    const TARGET_EXPIRED_MAX = 300
     const TARGET_NEAR_EXPIRE = 40
 
     const targetBelowReorder = rand(TARGET_BELOW_REORDER_MIN, TARGET_BELOW_REORDER_MAX)
+    const targetExpired = rand(TARGET_EXPIRED_MIN, TARGET_EXPIRED_MAX)
 
     // Eligible = has at least one open, non-cancelled dev-seed lot
     const eligibleIds = (db.prepare(`
@@ -489,7 +579,7 @@ export function registerDevHandlers() {
     const productById = new Map(products.map(p => [p.id, p]))
     const shuffledEligible = shuffle(eligibleIds)
 
-    const need = TARGET_OUT_OF_STOCK + targetBelowReorder + TARGET_EXPIRED + TARGET_NEAR_EXPIRE
+    const need = TARGET_OUT_OF_STOCK + targetBelowReorder + targetExpired + TARGET_NEAR_EXPIRE
     if (shuffledEligible.length < need) {
       // Not enough — proportionally scale down each bucket so we don't bias one.
       // Rare for a real run (typically 1000+ SKUs eligible), defensive only.
@@ -503,7 +593,7 @@ export function registerDevHandlers() {
     }
     const outOfStockIds = take(TARGET_OUT_OF_STOCK)
     const belowReorderIds = take(targetBelowReorder)
-    const expiredIds = take(TARGET_EXPIRED)
+    const expiredIds = take(targetExpired)
     const nearExpireIds = take(TARGET_NEAR_EXPIRE)
 
     const adjustStmt = db.prepare(`
@@ -615,15 +705,81 @@ export function registerDevHandlers() {
       for (const pid of affected) recompute.run(pid, pid)
     })()
 
+    // ---- Phase 5: Monthly expenses (fixed recurring + random, ≤ 30,000/เดือน) ----
+    // One pass per month in the simulation window. Fixed lines (rent, salary)
+    // anchor the total; utilities + a few random extras fill toward the 30k cap
+    // but never exceed it. Dates are clamped so nothing lands in the future.
+    const cats = db.prepare(`SELECT id, name FROM expense_categories`).all() as Array<{ id: number; name: string }>
+    const catId = (name: string) => cats.find(c => c.name === name)?.id ?? cats[0]?.id ?? null
+    const insExpense = db.prepare(`
+      INSERT INTO expenses
+        (expense_no, expense_date, category_id, amount, reference_no, note,
+         vat_amount, has_tax_invoice, created_at, updated_at)
+      VALUES (?, ?, ?, ?, NULL, ?, 0, 0, ?, ?)
+    `)
+    const expSeqByDate = new Map<string, number>()
+    const expNo = (ymd: string) => {
+      const seq = (expSeqByDate.get(ymd) ?? 0) + 1
+      expSeqByDate.set(ymd, seq)
+      return `EX-${ymd}-${String(seq).padStart(4, '0')}`
+    }
+    let expenseCount = 0
+    if (cats.length > 0) {
+      const startMonth = today.subtract(DAYS, 'day').startOf('month')
+      const endMonth = today.startOf('month')
+      const MONTHLY_BUDGET = 30000
+      db.transaction(() => {
+        let m = startMonth
+        while (m.isBefore(endMonth) || m.isSame(endMonth, 'month')) {
+          let monthTotal = 0
+          const add = (catName: string, amount: number, dom: number, label: string) => {
+            if (monthTotal + amount > MONTHLY_BUDGET) return
+            const dt0 = m.date(Math.min(dom, m.daysInMonth()))
+            const dt = dt0.isAfter(today) ? today : dt0
+            const dateStr = dt.format('YYYY-MM-DD')
+            const created = `${dateStr} 09:00:00`
+            insExpense.run(expNo(dt.format('YYYYMMDD')), dateStr, catId(catName),
+              +amount.toFixed(2), `${label} [DEV-SEED]`, created, created)
+            monthTotal += amount
+            expenseCount++
+          }
+          // Fixed recurring
+          add('ค่าเช่า', 8000, 1, 'ค่าเช่าร้าน')
+          add('เงินเดือน/ค่าแรง', 9000, 28, 'เงินเดือนพนักงาน')
+          // Semi-fixed utilities (random within band)
+          add('ค่าน้ำ', rand(300, 900), 5, 'ค่าน้ำประปา')
+          add('ค่าไฟ', rand(1500, 3500), 8, 'ค่าไฟฟ้า')
+          // Random extras until the budget runs low
+          const extras: Array<[string, string]> = [
+            ['ค่าการตลาด', 'โฆษณา/โปรโมชัน'],
+            ['ค่าขนส่ง', 'ค่าขนส่งสินค้า'],
+            ['ค่าอุปกรณ์', 'อุปกรณ์สำนักงาน'],
+            ['ภาษี/ค่าธรรมเนียม', 'ค่าธรรมเนียม'],
+            ['อื่นๆ', 'เบ็ดเตล็ด'],
+          ]
+          const extraCount = rand(2, 4)
+          for (let i = 0; i < extraCount; i++) {
+            const [c, l] = pick(extras)
+            add(c, rand(500, 4000), rand(10, 26), l)
+          }
+          m = m.add(1, 'month')
+        }
+      })()
+    }
+
     return {
       wiped,
       ...result,
       engineered,
+      expenseCount,
       days: DAYS,
       message:
-        `ลบของเก่า ${wiped.grs} GR / ${wiped.sales} sales / ${wiped.lots} lots\n` +
+        `ลบของเก่า ${wiped.grs} GR / ${wiped.sales} sales / ${wiped.lots} lots` +
+        (wiped.conflicts > 0 ? ` (รวมบิลทดสอบที่อ้างล็อต dev ${wiped.conflicts} ใบ)` : '') + `\n` +
         `สร้างใหม่ย้อน ${DAYS} วัน: ${result.grCount} GR (รวม ${result.lotCount} lots), ` +
-        `${result.saleCount} sales (${result.saleItemCount} items)\n` +
+        `${result.saleCount} sales (${result.saleItemCount} items) ` +
+        `[ขายส่ง ${result.wholesaleCount} / รับคืน ${result.returnCount}], ` +
+        `ค่าใช้จ่าย ${expenseCount} รายการ\n` +
         `End-state: ${engineered.outOfStock} หมดสต็อก / ${engineered.belowReorder} ต่ำกว่าจุดสั่งซื้อ / ` +
         `${engineered.expired} expired / ${engineered.nearExpire} near-expire`,
     }

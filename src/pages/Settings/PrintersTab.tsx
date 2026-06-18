@@ -15,11 +15,13 @@ import { ReceiptSettingsTab } from './ReceiptSettingsTab'
 export function PrintersTab({ onActions }: { onActions?: (node: ReactNode) => void }) {
   const [sub, setSub] = useState('documents')
 
-  // All three sub-tabs are page-scroll layouts: they flow at their natural height
-  // and ride the Settings page's OWN outer scroll — so the sub-tab strip scrolls
-  // away with the content and every tab gets the same page bottom margin.
+  // The hub fills the Settings content area (h-full): the sub-tab strip is pinned
+  // at the top (shrink-0) and the active sub-tab owns the leftover height. The A4
+  // sub-tab uses that to size its preview so the whole page fits the screen with
+  // NO outer scroll; the taller labels/receipts sub-tabs scroll inside this
+  // wrapper instead of the Settings page's outer scroll.
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 h-full min-h-0">
       <div className="flex items-center gap-2 shrink-0">
         <Tabs value={sub} onValueChange={setSub}>
           <TabsList variant="line">
@@ -30,7 +32,7 @@ export function PrintersTab({ onActions }: { onActions?: (node: ReactNode) => vo
         </Tabs>
       </div>
 
-      <div>
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {sub === 'documents' && <DocumentSettingsTab onActions={onActions} />}
         {sub === 'labels' && <LabelSettingsTab onActions={onActions} />}
         {sub === 'receipts' && <ReceiptSettingsTab onActions={onActions} />}

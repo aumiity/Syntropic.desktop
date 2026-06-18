@@ -48,20 +48,28 @@ export default function SettingsPage() {
         )}
       </TabStrip>
 
-      <div className="flex-1 min-h-0 overflow-y-auto pb-8 pt-3 [scrollbar-gutter:stable]">
-        {tab === 'shop' && <ShopTab />}
+      {/* Manage-style content area: a flex column that fills the leftover height
+          (flex-1 min-h-0, NO outer scroll). Table-card tabs (h-full) stretch to
+          the bottom edge and scroll internally; natural-height form tabs get
+          their OWN scroll wrapper (overflow-y-auto + pb-8 breathing room) so they
+          can scroll without making the whole page scroll. Bottom margin is the
+          root's pb-4 for every tab — same as the Manage page. */}
+      <div className="flex flex-1 min-h-0 flex-col pt-3">
+        {tab === 'shop' && <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]"><ShopTab /></div>}
         {tab === 'product-mgmt' && <ProductMgmtTab />}
         {tab === 'units' && <UnitsTab />}
         {tab === 'drug-usage' && <DrugUsageTab />}
         {tab === 'sales' && (
-          <SalesTab
-            registerSave={fn => { salesSaveFn.current = fn }}
-            saving={salesSaving}
-            setSaving={setSalesSaving}
-          />
+          <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]">
+            <SalesTab
+              registerSave={fn => { salesSaveFn.current = fn }}
+              saving={salesSaving}
+              setSaving={setSalesSaving}
+            />
+          </div>
         )}
         {tab === 'printers' && <PrintersTab onActions={setPrintersActions} />}
-        {tab === 'database' && <DatabaseTab />}
+        {tab === 'database' && <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]"><DatabaseTab /></div>}
       </div>
     </div>
   )

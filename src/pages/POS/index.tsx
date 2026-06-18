@@ -997,6 +997,20 @@ export default function POSPage() {
   const changeCartUnit = (idx: number, unit: ProductUnit) => {
     const isBase = unit.id === -1
     const price = resolveSalePrice(unit, cart.saleType)
+    // Switching units can make this line match another line (same product+unit),
+    // in which case the store merges them — splicing this row out. Realign
+    // expandedBundles to the shifted indices first (same as removeCartItem), or
+    // kept bundle keys would point at the wrong row.
+    const willMerge = cart.items.some(
+      (i, j) => j !== idx && i.product_id === cart.items[idx].product_id && i.unit_name === unit.unit_name
+    )
+    if (willMerge) {
+      setExpandedBundles(prev => {
+        const next = new Set<number>()
+        prev.forEach(k => { if (k < idx) next.add(k); else if (k > idx) next.add(k - 1) })
+        return next
+      })
+    }
     cart.updateItem(idx, {
       unit_name: unit.unit_name,
       unit_price: price,
@@ -1308,7 +1322,7 @@ export default function POSPage() {
                         )}
                       </TableCell>
 
-                      <TableCell className="text-right pr-2 font-semibold text-primary text-sm truncate">
+                      <TableCell className="text-right pr-2 font-semibold text-primary text-lg truncate">
                         {formatCurrency(item.line_total)}
                       </TableCell>
 
