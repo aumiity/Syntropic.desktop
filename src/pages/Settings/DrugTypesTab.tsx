@@ -118,6 +118,7 @@ export function DrugTypesTab() {
                 <TableHead className="text-center min-w-20">ข.ย.10</TableHead>
                 <TableHead className="text-center min-w-20">ข.ย.11</TableHead>
                 <TableHead className="text-center min-w-20">ข.ย.13</TableHead>
+                <TableHead className="text-right min-w-40">จำนวนสินค้า</TableHead>
                 <TableHead className="text-center min-w-24">สถานะ</TableHead>
                 <TableHead className="text-center min-w-28">จัดการ</TableHead>
               </TableRow>
@@ -125,7 +126,7 @@ export function DrugTypesTab() {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
                     <Pill className="size-10 mx-auto mb-2 opacity-30" />
                     {q.trim() ? 'ไม่พบข้อมูล' : 'ยังไม่มีประเภทยา'}
                   </TableCell>
@@ -141,6 +142,11 @@ export function DrugTypesTab() {
                       </div>
                     </TableCell>
                   ))}
+                  <TableCell className="text-right">
+                    <Badge variant={(d.usage_count ?? 0) > 0 ? 'teal-outline' : 'muted-outline'}>
+                      {(d.usage_count ?? 0).toLocaleString()} รายการ
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-center">
                     {d.is_disabled
                       ? <Badge variant="destructive-outline">ปิดใช้งาน</Badge>

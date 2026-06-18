@@ -253,6 +253,7 @@ export interface SalesSettings {
 
 export interface ProductCategory {
   id: number; code: string; name: string; description?: string; sort_order: number; is_disabled: number
+  usage_count?: number
 }
 
 export interface ExpenseCategory {
@@ -283,6 +284,7 @@ export interface DrugType {
   id: number; code: string; name_th: string
   is_fda9: number; is_fda10: number; is_fda11: number; is_fda13: number
   is_disabled: number
+  usage_count?: number
 }
 
 export interface DosageForm {

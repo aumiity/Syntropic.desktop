@@ -177,7 +177,15 @@ export function registerSettingsHandlers() {
 
   // Categories
   ipcMain.handle('settings:listCategories', () => {
-    return getDb().prepare(`SELECT * FROM product_categories ORDER BY sort_order, id`).all()
+    // usage_count = number of products referencing this category (products.category_id),
+    // mirroring the unit list so the table can show how many products use each row.
+    return getDb().prepare(`
+      SELECT c.*, (
+        SELECT COUNT(*) FROM products p WHERE p.category_id = c.id
+      ) AS usage_count
+      FROM product_categories c
+      ORDER BY c.sort_order, c.id
+    `).all()
   })
   ipcMain.handle('settings:saveCategory', (_e, data: any) => {
     requireAdmin(_e)
@@ -249,7 +257,15 @@ export function registerSettingsHandlers() {
 
   // Drug types
   ipcMain.handle('settings:listDrugTypes', () => {
-    return getDb().prepare(`SELECT * FROM drug_types ORDER BY id`).all()
+    // usage_count = number of products referencing this drug type (products.drug_type_id),
+    // mirroring the unit list so the table can show how many products use each row.
+    return getDb().prepare(`
+      SELECT d.*, (
+        SELECT COUNT(*) FROM products p WHERE p.drug_type_id = d.id
+      ) AS usage_count
+      FROM drug_types d
+      ORDER BY d.id
+    `).all()
   })
   ipcMain.handle('settings:saveDrugType', (_e, data: any) => {
     requireAdmin(_e)

@@ -157,6 +157,7 @@ export function CategoriesTab() {
                   : <TableHead className="text-center min-w-20">ลำดับ</TableHead>}
                 <TableHead className="min-w-28">รหัส</TableHead>
                 <TableHead className="min-w-[200px]">ชื่อหมวดหมู่</TableHead>
+                {!reorderMode && <TableHead className="text-right min-w-40">จำนวนสินค้า</TableHead>}
                 <TableHead className="text-center min-w-24">สถานะ</TableHead>
                 {!reorderMode && <TableHead className="text-center min-w-28">จัดการ</TableHead>}
               </TableRow>
@@ -180,7 +181,7 @@ export function CategoriesTab() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
                       <Tag className="size-10 mx-auto mb-2 opacity-30" />
                       {q.trim() ? 'ไม่พบข้อมูล' : 'ยังไม่มีหมวดหมู่'}
                     </TableCell>
@@ -190,6 +191,11 @@ export function CategoriesTab() {
                     <TableCell className="text-center text-sm text-muted-foreground">{i + 1}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
                     <TableCell className="font-semibold text-sm text-foreground">{c.name}</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={(c.usage_count ?? 0) > 0 ? 'teal-outline' : 'muted-outline'}>
+                        {(c.usage_count ?? 0).toLocaleString()} รายการ
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-center">
                       {c.is_disabled
                         ? <Badge variant="destructive-outline">ปิดใช้งาน</Badge>
