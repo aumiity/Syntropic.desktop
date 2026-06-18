@@ -21,8 +21,8 @@ import { useShopVat } from '@/hooks/useShopVat'
 // entry point and the page shows empty data.
 const TABS = [
   { value: 'dashboard', to: '/reports',           label: 'แดชบอร์ด',       icon: LayoutDashboard },
-  { value: 'fda',       to: '/reports/fda',       label: 'รายงาน อย.',     icon: ShieldCheck },
   { value: 'vat',       to: '/reports/vat',       label: 'ภาษี (VAT)',     icon: Landmark },
+  { value: 'fda',       to: '/reports/fda',       label: 'รายงาน อย.',     icon: ShieldCheck },
 ] as const
 
 type TabValue = typeof TABS[number]['value']
@@ -157,8 +157,12 @@ export default function ReportsLayout() {
       {/* When a tab provides no summary cards (e.g. แดชบอร์ด draws its own KPI
           row), the content would sit right up against the TabStrip divider —
           the summary block's pt-3 is what normally provides that gap, so mirror
-          it here. (Same pattern as Manage/index.tsx.) */}
-      <div className={summary && summary.length > 0 ? '' : 'pt-3'}>
+          it here. (Same pattern as Manage/index.tsx.)
+          FDA registers (ข.ย.๙/๑๐/๑๑) are full-height review tables that scroll
+          INTERNALLY, so the FDA branch also needs a bounded height — APPEND
+          flex-1/min-h-0 to the existing pt-3 wrapper (it sets setSummary(null),
+          so it always takes the pt-3 branch). Dashboard/VAT keep page-scroll. */}
+      <div className={`${summary && summary.length > 0 ? '' : 'pt-3'}${current === 'fda' ? ' flex-1 min-h-0 flex flex-col' : ''}`}>
         <Outlet context={ctx} />
       </div>
     </div>

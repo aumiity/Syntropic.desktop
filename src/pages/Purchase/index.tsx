@@ -809,7 +809,7 @@ export default function PurchasePage() {
                                       ยังไม่มีรายการ<br /> เพิ่มสินค้าทีละรายการผ่านขั้นตอนนำทาง<br />
                                       หรือวางทั้งบิลด้วยปุ่ม “นำเข้าข้อมูล”
                                     </p>
-                                    <Button onClick={openAddWizard} className="gap-1.5 mt-1">
+                                    <Button onClick={openAddWizard} className="h-9 gap-1.5 mt-1">
                                       <Plus className="size-4" /> เพิ่มสินค้า
                                     </Button>
                                   </div>

@@ -168,12 +168,19 @@ export function registerPurchaseHandlers() {
 
         let lotId: number
         let qtyBefore = 0
+        // วันหมดอายุ/วันผลิตที่บันทึกลงประวัติ GR ต้องสะท้อน "ล็อตจริง": ตอน merge ล็อตเดิม
+        // คงวันเดิมไว้ (UPDATE ไม่แตะ expiry/mfg) → ถ้าพนักงานพิมพ์วันใหม่ที่ไม่ตรง วันนั้น
+        // จะถูกทิ้ง ฉะนั้นประวัติต้องใช้วันของล็อตเดิม ไม่ใช่วันที่กรอกมา (กันประวัติเพี้ยน)
+        let recExpiry = item.expiry_date
+        let recMfg: string | null = item.manufactured_date ?? null
 
         if (existing) {
           const totalQty = existing.qty_received + item.qty
           const avgCost = (existing.qty_received * existing.cost_price + item.qty * costEx) / totalQty
           qtyBefore = existing.qty_on_hand
           lotId = existing.id
+          recExpiry = existing.expiry_date
+          recMfg = existing.manufactured_date ?? null
           // Receiving adds positive stock → if this lot was previously closed
           // (qty hit 0), reopen it. Otherwise the restocked lot stays is_closed=1
           // and disappears from every FEFO/availability query (which filter
@@ -224,7 +231,7 @@ export function registerPurchaseHandlers() {
              cost_price, sell_price, qty, note, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(payload.invoice_no, item.product_id, lotId, item.lot_number,
-          item.manufactured_date ?? null, item.expiry_date,
+          recMfg, recExpiry,
           item.cost_price, item.sell_price, item.qty, item.note ?? null,
           payload.receive_date)
 

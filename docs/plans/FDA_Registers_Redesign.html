@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ปรับหน้ารายงาน อย. (ข.ย.๙/๑๐/๑๑) — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>ปรับหน้ารายงาน อย. (ข.ย.๙/๑๐/๑๑) — ตารางรีวิว + กล่องพิมพ์</h1>
+    <p>ทั้ง 3 แทปกลายเป็นตารางรายการเต็มหน้าเลื่อนในตัว → กด "พิมพ์" เปิดกล่องพรีวิว A4 พร้อมตั้งค่าหน้า/จำนวนชุด · ข.ย.๙ กรองผู้จำหน่ายออกได้</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ (ฉบับ 3 แทป)</span>
+      <span class="pill">ขอบเขต: ข.ย.๙/๑๐/๑๑</span>
+      <span class="pill">ไม่แตะ DB / IPC</span>
+      <span class="pill">2026-06-18</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><b>ปัญหาวันนี้:</b> รายงาน อย. ทั้ง 3 แทป เปิดมาเป็น "พรีวิว A4" เต็มหน้าเลย มองภาพรวมรายการเป็นตารางไม่ได้ และตัดผู้จำหน่ายรายย่อยที่ไม่อยากให้ขึ้นรายงานไม่ได้</p>
+    <p><b>แนวคิดที่พี่ต้องการ (ทั้ง 3 แทปแนวเดียวกัน):</b> โชว์รายการเป็น <b>ตารางก่อน</b> แล้วค่อยกดพิมพ์เพื่อ "จัดระเบียบลงแบบฟอร์ม อย." ในกล่องพรีวิว</p>
+    <ul class="clean">
+      <li><b>หน้าหลักทุกแทป = ตารางเต็มความสูง เลื่อนรายการในตัวตาราง</b> หัวตาราง sticky ค้างไว้ (เหมือนหน้าสินค้า <code>ProductsList</code>)</li>
+      <li><b>ข.ย.๙ (ซื้อยา):</b> ตารางแบน + ตัวกรอง <b>"ผู้จำหน่าย"</b> (เช็คลิสต์ + ค้นหา + เลือกทั้งหมด/ล้าง) ติ๊กออก = รายการของรายนั้นไม่ถูกพิมพ์ (แถวในตารางจางลง)</li>
+      <li><b>ข.ย.๑๐/๑๑ (ขายยา):</b> ตารางแบนแถวเดียว (1 แถว = 1 รายการขาย: วันที่ขาย/ชื่อยา/ล็อต/ได้มาจาก/จำนวน/ผู้ซื้อ) — <b>ไม่มีตัวกรอง</b> ตอนพิมพ์ค่อยจัดกลุ่มเป็นล็อตตามฟอร์มเดิม</li>
+      <li><b>กด "พิมพ์" (ทุกแทป):</b> เปิด <b>กล่องพรีวิวเดียวกัน</b> (shared) โชว์ A4 จริงทีละหน้า + เลือกหน้า (เช่น 1-3,5) + <b>จำนวนชุด (เริ่ม 1)</b> แล้วพิมพ์เงียบไปเครื่อง A4</li>
+      <li><b>"ฟอร์มเปล่า"</b> ยังอยู่บน toolbar ของทุกแทป เหมือนเดิม</li>
+    </ul>
+    <p style="margin-bottom:0"><b>ขอบเขต:</b> ไม่แตะฐานข้อมูล/IPC เลย · ฟอร์มพิมพ์ของ ข.ย.๑๐/๑๑ (จัดกลุ่มรายล็อต) เหมือนเดิมเป๊ะ — เปลี่ยนแค่ "หน้าจอเป็นตาราง" + "ย้ายพรีวิวไปอยู่ในกล่องพิมพ์"</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p style="margin-top:0">เลย์เอาต์ Reports เปิด bounded height ให้โซน อย. → ทั้ง 3 หน้าเป็นตารางเลื่อนในตัว → ปุ่มพิมพ์เรียก <b>กล่องพิมพ์ตัวเดียวกัน</b> โดยส่ง "ฟังก์ชันวาดหน้า A4" เข้าไป (กล่องไม่รู้ว่าเป็นฟอร์มไหน)</p>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 1000 320" role="img" aria-label="ผัง: index.tsx เปิด bounded height ให้ FdaReports 3 แทป แต่ละหน้าเป็นตาราง กดพิมพ์เรียก ReportPrintDialog ตัวเดียวกัน">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+
+      <rect class="box warn" x="20" y="20" width="220" height="50" rx="10"/>
+      <text x="130" y="42" text-anchor="middle">index.tsx (เปิด bounded H)</text>
+      <text class="sub" x="130" y="60" text-anchor="middle">gate /reports/fda</text>
+
+      <rect class="box" x="20" y="120" width="220" height="50" rx="10"/>
+      <text x="130" y="142" text-anchor="middle">FdaReports (แท็บ)</text>
+      <text class="sub" x="130" y="160" text-anchor="middle">FdaReports.tsx</text>
+      <path class="edge" d="M130,70 V116"/>
+
+      <!-- three report pages -->
+      <rect class="box" x="320" y="20" width="250" height="62" rx="10"/>
+      <text x="445" y="46" text-anchor="middle">ข.ย.๙ · ตาราง + กรองผู้จำหน่าย</text>
+      <text class="sub" x="445" y="64" text-anchor="middle">KhorYor9.tsx · includedRows</text>
+
+      <rect class="box" x="320" y="100" width="250" height="62" rx="10"/>
+      <text x="445" y="126" text-anchor="middle">ข.ย.๑๐/๑๑ · ตารางแบน</text>
+      <text class="sub" x="445" y="144" text-anchor="middle">KhorYorSaleLedger.tsx</text>
+
+      <path class="edge" d="M240,140 H316"/>
+      <text class="elabel" x="278" y="132" text-anchor="middle">Outlet</text>
+
+      <!-- shared dialog -->
+      <rect class="box warn" x="650" y="60" width="230" height="72" rx="10"/>
+      <text x="765" y="86" text-anchor="middle">ReportPrintDialog (shared)</text>
+      <text class="sub" x="765" y="104" text-anchor="middle">size=full · scale · หน้า · ชุด</text>
+      <text class="sub" x="765" y="120" text-anchor="middle">renderPreview / renderFullDoc</text>
+      <path class="edge hot" d="M570,55 C610,55 620,86 646,90"/>
+      <text class="elabel" x="600" y="50" text-anchor="middle">พิมพ์</text>
+      <path class="edge hot" d="M570,128 C610,128 620,104 646,100"/>
+
+      <!-- printer -->
+      <rect class="box data" x="650" y="190" width="230" height="50" rx="10"/>
+      <text x="765" y="212" text-anchor="middle">printDomSheets → เครื่อง A4</text>
+      <text class="sub" x="765" y="230" text-anchor="middle">.a4-doc · silent · landscape</text>
+      <path class="edge hot" d="M765,132 V186"/>
+
+      <rect class="box data" x="320" y="250" width="250" height="46" rx="10"/>
+      <text x="445" y="277" text-anchor="middle">reports:khorYor9 / khorYorSale</text>
+      <path class="edge" d="M445,162 V162 M445,162 C445,210 445,210 445,246"/>
+      <text class="elabel" x="460" y="210">rows (ไม่แตะ IPC)</text>
+    </svg>
+    </div>
+    <table>
+      <thead><tr><th>ไฟล์</th><th>บทบาท</th><th>สถานะ</th></tr></thead>
+      <tbody>
+        <tr><td><code>src/pages/Reports/ReportPrintDialog.tsx</code></td><td>กล่องพิมพ์ใช้ร่วม: พรีวิว A4 ย่อทีละหน้า + เลือกหน้า + จำนวนชุด + พิมพ์เงียบ (รับ renderPreview/renderFullDoc)</td><td><span class="tag t-keep">สร้างใหม่</span></td></tr>
+        <tr><td><code>src/pages/Reports/index.tsx</code></td><td>เปิด bounded height ให้โซน <code>/reports/fda</code> (append คลาส) — Dashboard/VAT ไม่แตะ</td><td><span class="tag t-opt">แก้เล็ก</span></td></tr>
+        <tr><td><code>src/pages/Reports/KhorYor9.tsx</code></td><td>ตารางรีวิว + ตัวกรองผู้จำหน่าย; paginate บน <code>includedRows</code>; เปิดกล่องพิมพ์</td><td><span class="tag t-gen">แก้ใหญ่</span></td></tr>
+        <tr><td><code>src/pages/Reports/KhorYorSaleLedger.tsx</code></td><td>ตารางแบน (10/11); ฟอร์มพิมพ์รายล็อตเหมือนเดิม; เปิดกล่องพิมพ์ (แก้ไฟล์เดียวคุมทั้ง 10+11)</td><td><span class="tag t-gen">แก้ใหญ่</span></td></tr>
+        <tr><td><code>electron/ipc/reports.ts</code> · schema</td><td>คืนครบทุกฟิลด์อยู่แล้ว</td><td><span class="tag t-skip">ไม่แตะ</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>ทั้ง 3 แทปเปิดมาเจอ <b>พรีวิว A4 เต็มหน้า</b> ทันที</li>
+        <li>เลือกเดือน + ช่อง "หน้า" + ฟอร์มเปล่า/พิมพ์ อยู่บนหัวการ์ดพรีวิว</li>
+        <li>จำนวนชุด = ค่ากลางจาก <code>document_settings</code></li>
+        <li><b>มองภาพรวมเป็นตารางไม่ได้ · กรองผู้จำหน่ายไม่ได้</b></li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>ทุกแทป = <b>ตารางเต็มหน้าเลื่อนในตัว</b> หัวตาราง sticky + badge นับรายการ</li>
+        <li>ข.ย.๙ กรอง <b>ผู้จำหน่าย</b> ออกได้ (แถวที่ตัดจางลง)</li>
+        <li>กด "พิมพ์" → <b>กล่องพรีวิว A4</b> เลือกหน้า + <b>จำนวนชุด (เริ่ม 1)</b> ต่อครั้ง</li>
+        <li>ฟอร์มพิมพ์ของ ๑๐/๑๑ (จัดกลุ่มรายล็อต) เหมือนเดิมเป๊ะ</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>ทั้ง 3 แทปแนวเดียวกัน — ดูรายการเป็นตารางก่อนพิมพ์ ลดความเปลืองกระดาษ</li>
+    <li>ข.ย.๙ ตัดผู้จำหน่ายรายย่อยออกได้ในคลิกเดียว</li>
+    <li>เลือกจำนวนชุด/ช่วงหน้าต่อครั้ง ไม่ไปแก้ค่ากลางเครื่องพิมพ์</li>
+    <li>กล่องพิมพ์ใช้ร่วม (โค้ดพรีวิว/พิมพ์ที่เดียว) · ไม่แตะ DB/IPC · ฟอร์มพิมพ์ ๑๐/๑๑ ไม่เปลี่ยน</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>งานปานกลาง-ใหญ่: 4 ไฟล์ (กล่องใหม่ + แก้ 2 หน้า + แก้ index.tsx นิดเดียว) ต้องย้าย state พิมพ์เก่าออกให้สะอาด</li>
+    <li>ต้องเปิด bounded height ที่ <code>index.tsx</code> (gate เฉพาะ <code>/reports/fda</code>) — ต้อง click-test ว่า Dashboard/VAT ยัง page-scroll เหมือนเดิม</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><b>ข้อกฎหมาย อย. (ข.ย.๙):</b> การ "ซ่อนผู้จำหน่ายบางราย" ทำให้ฉบับที่พิมพ์ไม่ครบตามที่ซื้อจริง — เป็น <b>การกรองตอนพิมพ์ชั่วคราว</b> ไม่ลบข้อมูล ใช้อย่างเข้าใจหน้าที่นะคะ</li>
+    <li>markup ฟอร์ม A4 ต้องเหมือนเดิมเป๊ะ ไม่งั้น <code>printDomSheets</code> (bake style) + การวัด Sarabun เพี้ยน → คงอะตอม/ฟังก์ชันวาดเดิมไว้ ไม่เขียนใหม่</li>
+    <li><code>DialogContent</code> ต้องมี <code>grid-rows-[auto_1fr_auto]</code> ไม่งั้น body ไม่ scroll · ใช้ prop <code>size="full"</code> ไม่ใช่ raw <code>max-w</code> · Enter ต้อง wire เอง</li>
+    <li>ข.ย.๙ ต้อง paginate + วัด specimen บน <code>includedRows</code> ไม่ใช่ rows ดิบ ไม่งั้นแถวที่ตัดยังถูกพิมพ์/เลขเพี้ยน</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><b>หน้าตาราง (ทุกแทป):</b> การ์ดเต็มความสูง (<code>flex flex-1 flex-col min-h-0</code> + table-container <code>overflow-auto</code>) หัวตาราง sticky · แถบ h-12 เดียว: ไอคอน+หัวข้อ + <code>Badge neutral-outline</code> นับรายการ + <code>MultiDatePicker</code>(เดือน) + [ข.ย.๙: ปุ่ม "ผู้จำหน่าย"] + "ฟอร์มเปล่า"(<code>elevated</code>) + "พิมพ์"(<code>default</code>) — ทุก control h-9</li>
+      <li><b>ข.ย.๙ คอลัมน์:</b> ลำดับ/วันที่ซื้อ(<code>formatDate</code>)/ผู้ขาย/ชื่อยา/ครั้งที่ผลิต/จำนวน/เลขที่ใบ · แถวที่ตัด = <code>text-muted-foreground</code> (เปลี่ยนสี ไม่จาง opacity)</li>
+      <li><b>ข.ย.๑๐/๑๑ คอลัมน์:</b> ลำดับ/วันที่ขาย/ชื่อยา/ครั้งที่ผลิต/ได้มาจาก/จำนวน/ชื่อผู้ซื้อ</li>
+      <li><b>popover ผู้จำหน่าย (เฉพาะ ๙):</b> หัว + ค้นหา + "เลือกทั้งหมด/ล้าง" + ลิสต์ <code>Checkbox</code> ต่อราย (พร้อมจำนวนแถว)</li>
+      <li><b>กล่องพิมพ์ (shared):</b> <code>Dialog size="full"</code> สูง <code>h-[88vh] grid-rows-[auto_1fr_auto]</code> — Header/Body/Footer ครบ · Body = พรีวิว A4 ย่อพอดีกว้าง (ResizeObserver + transform scale) + ปุ่มหน้าก่อน/ถัดไป (<code>icon-lg</code>) · Footer = เลือกหน้า + จำนวนชุด + "ยกเลิก"(<code>elevated</code>) + "พิมพ์"(<code>default</code>) · Esc ปิด, คลิกนอกไม่ปิด, Enter=พิมพ์ (wire เอง)</li>
+      <li>ภาษาไทยทั้งหมด · ไม่มี emoji · semantic token + lucide icon · scrollbar 6px · ฟอนต์เอกสาร Sarabun (ล็อก)</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit</h2>
+  <div class="card">
+    <p style="margin-top:0;color:var(--muted);font-size:13.5px">แผนพัฒนาเป็น 2 ระยะ: ระยะแรก (ข.ย.๙ อย่างเดียว) ผ่าน 2 รอบ จากนั้นพี่ขยายสโคปเป็น <b>ทั้ง 3 แทป + ตารางเต็มหน้าเลื่อนในตัว</b> → รื้อแผนใหม่และ audit ฉบับ 3 แทปอีก 2 รอบ (ตารางด้านล่าง)</p>
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>DialogContent className="max-w-[1000px]"</code> โดน <code>sm:max-w-sm</code> ของ primitive ทับ</td><td><span class="tag t-skip">BLOCKER</span></td><td>ใช้ prop <code>size="full"</code> (→ <code>sm:max-w-5xl</code>) แทน raw max-w</td></tr>
+        <tr><td>1</td><td>ไม่ได้สลับ specimen + renderPage slice ของ ข.ย.๙ จาก <code>displayRows</code>→<code>includedRows</code> → วัด/แบ่งหน้าเพี้ยน</td><td><span class="tag t-opt">MAJOR</span></td><td>ระบุครบ 3 จุด (specimen :414, slice :264, dep effect)</td></tr>
+        <tr><td>1</td><td>shell ไม่ clamp <code>viewPage</code> เมื่อ <code>pageCount</code> ลด</td><td><span class="tag t-opt">MAJOR</span></td><td>เพิ่ม effect clamp <code>[pageCount]</code></td></tr>
+        <tr><td>1</td><td>การ bound height ต้อง append คลาสเข้ากับ <code>pt-3</code> เดิม ไม่ใช่แทนที่</td><td><span class="tag t-opt">MAJOR/MINOR</span></td><td>merge className + ระบุ verify Dashboard/VAT</td></tr>
+        <tr><td>2</td><td>ข.ย.๙ อ้างตัวแปร <code>sections0</code> ที่ไม่มีจริง (compile ไม่ผ่าน)</td><td><span class="tag t-skip">BLOCKER</span></td><td><code>pageCount={includedRows.length===0 ? 1 : pages.length}</code></td></tr>
+        <tr><td>2</td><td><code>DialogContent</code> base เป็น <code>grid gap-4</code> ไม่มี row template → body ไม่ scroll</td><td><span class="tag t-opt">MAJOR</span></td><td>เพิ่ม <code>grid-rows-[auto_1fr_auto]</code></td></tr>
+        <tr><td>2</td><td>ไม่ได้ระบุลบ state พิมพ์เก่าที่ค้าง (viewPage/pageInput/printRender/print effect/handlePrint)</td><td><span class="tag t-opt">MAJOR</span></td><td>ระบุชัดให้ลบจากทั้ง 2 ไฟล์ เหลือแค่ blankRender</td></tr>
+        <tr><td>2</td><td>ลบ binding <code>displayRows</code> ที่ไม่ใช้แล้ว / ปุ่มพิมพ์ต้อง <code>disabled={loading}</code></td><td><span class="tag t-opt">MINOR</span></td><td>ระบุลบ binding + คง loading guard</td></tr>
+        <tr><td colspan="4"><b>สรุป:</b> ทุก path/IPC/primitive/พฤติกรรมพิมพ์ + การ bound height + shared shell ตรวจเทียบโค้ดจริงครบ — รอบ 2 ยืนยัน fix รอบแรกถูกหมด และจุดใหม่แก้ครบแล้ว <b>พร้อมลงมือ</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Goal</h3>
+    <p>All 3 FDA tabs (ข.ย.๙ purchase, ข.ย.๑๐/๑๑ sale) become full-height review Table-Cards (internal scroll, sticky header like ProductsList). "พิมพ์" opens a SHARED form-agnostic print modal (<code>ReportPrintDialog.tsx</code>) with paged A4 preview + page-range + copies. ข.ย.๙ also gets a SUPPLIER exclusion filter (pagination + measure run over <code>includedRows</code>). "ฟอร์มเปล่า" stays on each toolbar (unchanged). No schema/IPC change; the two pagination engines stay in their files; the ledger print form is unchanged.</p>
+
+    <h3>Definition of done</h3>
+    <ul>
+      <li><code>/reports/fda/khor-yor-9|10|11</code> each show a full-height Table-Card; table scrolls internally, page does NOT scroll, thead pins.</li>
+      <li>ข.ย.๙: table (ลำดับ|วันที่ซื้อ|ชื่อผู้ขาย|ชื่อยา|ครั้งที่ผลิต|จำนวน|เลขที่ใบ) + "ผู้จำหน่าย" filter popover (distinct + counts + search + เลือกทั้งหมด/ล้าง); excluded rows muted; print emits included rows renumbered 1..N.</li>
+      <li>ข.ย.๑๐/๑๑: flat one-row-per-sale-lot table (ลำดับ|วันที่ขาย|ชื่อยา|ครั้งที่ผลิต|ได้มาจาก|จำนวน|ชื่อผู้ซื้อ); no filter; print = per-lot ledger UNCHANGED.</li>
+      <li>"พิมพ์" modal: scaled paged A4 preview (prev/next), page-range Input (""=all,"1-3,5"), copies Input (default 1, min 1, not persisted), Print(default)+Cancel(elevated), Enter=Print.</li>
+      <li>copies from modal; printer from <code>document_settings.printer_name</code>; landscape A4. Empty/filtered-to-empty → blank ruled form. ฟอร์มเปล่า works on each tab.</li>
+      <li>ข.ย.๙ exclusions transient (reset on month change / re-entry). <code>npx tsc --noEmit</code> passes + click-test.</li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>src/pages/Reports/ReportPrintDialog.tsx</code> — NEW shared print modal shell.</li>
+      <li><code>src/pages/Reports/index.tsx</code> — MODIFY: bound FDA zone height.</li>
+      <li><code>src/pages/Reports/KhorYor9.tsx</code> — MODIFY: review table + supplier filter.</li>
+      <li><code>src/pages/Reports/KhorYorSaleLedger.tsx</code> — MODIFY: flat table (covers 10 & 11).</li>
+      <li>Read-only refs: <code>a4.tsx</code>, <code>printDomSheets.ts</code>, <code>DocumentSettingsTab.tsx</code> (scale), <code>ProductsList.tsx</code> (card+popover), <code>dialog/popover/checkbox/table/card/badge/button.tsx</code>, <code>reports.ts:1115/1153</code>.</li>
+    </ul>
+
+    <h3>ขั้นตอน</h3>
+    <ol>
+      <div class="step"><b>STEP 1 — NEW <code>ReportPrintDialog.tsx</code> (shared, form-agnostic).</b> Props <code>{open, onOpenChange, title, pageCount, renderPreview:(i:number)=&gt;ReactNode, renderFullDoc:()=&gt;ReactNode}</code>. Owns <code>viewPage/pageInput/copies</code> (reset on <code>[open]</code> rising edge) + <code>printRender</code> + <code>wrapRef</code>+ResizeObserver.
+        <ul>
+          <li><span class="inv">DialogContent must be <code>size="full" className="h-[88vh] grid-rows-[auto_1fr_auto]"</code></span> — base is <code>grid gap-4</code> with no row template (dialog.tsx:101); without the row template the body won't be bounded to <code>1fr</code> and <code>overflow-y-auto</code> won't scroll. Use <code>size</code> (→ sm:max-w-5xl), NEVER raw <code>max-w-[…]</code> (loses to baked <code>sm:max-w-sm</code>).</li>
+          <li>Body = scaled viewport: <code>scale=Math.min(1, wrapW/A4.W)</code>; wrapper reserves <code>A4.W*scale × A4.H*scale</code>; inner <code>transform:scale(scale); transformOrigin:'top left'; width:A4.W; height:A4.H</code> wrapping <code>renderPreview(viewPage-1)</code>. (Borrow only the ResizeObserver+transform technique from DocumentSettingsTab:79-100,200-225 — px sheet, not iframe/mm.)</li>
+          <li><span class="inv">Clamp: <code>useEffect(()=&gt;{ if(viewPage&gt;pageCount) setViewPage(Math.max(1,pageCount)) },[pageCount])</code></span> (parent may shrink pages while open).</li>
+          <li>prev/next nav (when <code>pageCount&gt;1</code>): <code>variant="elevated" size="icon-lg" className="h-9 w-9 p-0"</code> + "หน้า X / Y". Footer: "หน้า" + page-range Input(w-36) + "จำนวนชุด" + copies <code>&lt;Input type="number" min={1}&gt;</code>(w-24) + Cancel(<code>elevated</code>, onOpenChange(false)) + Print(<code>default</code>).</li>
+          <li><span class="inv">Enter NOT auto-wired</span> — <code>onKeyDown</code> on DialogContent: <code>if(e.key==='Enter' &amp;&amp; !e.nativeEvent.isComposing){ e.preventDefault(); handlePrint() }</code>. Esc/no-outside-close from dialog.tsx; don't bypass.</li>
+          <li>handlePrint: <code>setPrintRender(true)</code> → render hidden <code>&lt;div className="a4-doc" aria-hidden style={{position:'absolute',left:-100000,top:0}}&gt;{renderFullDoc()}&lt;/div&gt;</code> → effect (dep <code>[printRender]</code>) <code>getDocumentSettings()</code> → <code>printDomSheets({docSelector:'.a4-doc', pages:parsePageSelection(pageInput,pageCount), printerName:ds.printer_name||'', copies:Math.max(1,Number(copies)||1)})</code> → toast → <code>setPrintRender(false)</code>. Modal copies independent of <code>document_settings.copies</code>.</li>
+        </ul>
+      </div>
+
+      <div class="step"><b>STEP 2 — MODIFY <code>index.tsx</code> (bound FDA height).</b> <span class="inv">APPEND</span> (not replace) <code>flex-1 min-h-0 flex flex-col</code> to the Outlet wrapper className (<code>:161</code>) when <code>location.pathname.startsWith('/reports/fda')</code>, e.g. <code>className={`${summary?.length ? '' : 'pt-3'} ${isFda ? 'flex-1 min-h-0 flex flex-col' : ''}`}</code>. FDA sets <code>setSummary(null)</code> → keeps the <code>pt-3</code> branch. <span class="inv">Dashboard (/reports) + VAT (/reports/vat) must stay page-scroll</span>. FdaReports.tsx already <code>flex flex-1 flex-col min-h-0</code> — don't touch.</div>
+
+      <div class="step"><b>STEP 3 — MODIFY <code>KhorYor9.tsx</code> (table + supplier filter).</b> Keep <code>setSummary(null)</code> (NOT setToolbar), shopName, month picker, fetch, atoms (<code>headerBlock/colgroup/theadRow/dataRow/fillerRow/renderPage/renderEmptySheet</code>), measure specimen, Page9 useLayoutEffect.
+        <ul>
+          <li>NEW state <code>excludedSuppliers:Set&lt;string&gt;</code> (reset on rows change), <code>printOpen</code>. DELETE <code>const displayRows = rows ?? []</code> (<code>:95</code>).</li>
+          <li>Derived: <code>suppliers</code> (distinct supplier_name, '' → "(ไม่ระบุผู้ขาย)" keyed on raw '', counts, <code>localeCompare('th')</code>); <code>includedRows = useMemo(()=&gt;rows.filter(r=&gt;!excludedSuppliers.has(r.supplier_name)),[rows,excludedSuppliers])</code>.</li>
+          <li><span class="inv">Swap ALL <code>displayRows</code>→<code>includedRows</code></span>: specimen map (<code>:414</code>), <code>renderPage</code> slice (<code>:264</code>), and the Page9 useLayoutEffect dep/source. renumber 1..N over includedRows.</li>
+          <li>Full-height Table-Card (mirror ProductsList:173-243): root <code>flex flex-1 flex-col min-h-0</code>; card <code>flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden</code>; h-12 strip (TintIcon+"ตรวจรายการก่อนพิมพ์ (ซื้อยา)"+<code>Badge neutral-outline {included}/{total}</code>+month picker+"ผู้จำหน่าย" Popover+"ฟอร์มเปล่า" elevated+"พิมพ์" default <code>disabled={loading}</code>); body <code>flex-1 min-h-0</code> with <code>[&amp;&gt;[data-slot=table-container]]:h-full / :overflow-auto / :scrollbar-thin</code> + <code>border-l/r-[16px] border-card</code>. Table primitive already gives the container + sticky thead.</li>
+          <li>Columns: ลำดับ | วันที่ซื้อ (<code>formatDate(r.purchase_date)</code>, NOT formatDateTime) | ชื่อผู้ขาย | ชื่อยา | ครั้งที่ผลิต | จำนวน (<code>formatQty</code>+unit) | เลขที่ใบส่งของ (invoice_no). Excluded rows: cells <code>text-muted-foreground</code>.</li>
+          <li>Supplier popover: <code>PopoverContent w-64</code> + Header/Title + search Input + "เลือกทั้งหมด/ล้าง" + <code>max-h-72 overflow-auto scrollbar-thin</code> list of <code>&lt;label&gt;&lt;Checkbox checked={!excludedSuppliers.has(name)} .../&gt; label (count)&lt;/label&gt;</code>.</li>
+          <li>Mount <code>&lt;ReportPrintDialog open={printOpen} onOpenChange={setPrintOpen} title="พิมพ์รายงาน ข.ย.๙" pageCount={includedRows.length===0?1:pages.length} renderPreview={(i)=&gt; includedRows.length===0?renderEmptySheet():renderPage(pages[i],i)} renderFullDoc={()=&gt; includedRows.length===0?renderEmptySheet():pages.map(renderPage)} /&gt;</code>.</li>
+          <li><span class="inv">REMOVE</span>: the preview SectionCard, the data <code>.a4-doc</code>/<code>printRender</code> + its print effect (<code>:141-161</code>), old <code>handlePrint</code>, <code>viewPage</code>+<code>useEffect(()=&gt;setViewPage(1),[pages])</code>(<code>:58,:68</code>), <code>pageInput</code>(<code>:57</code>). KEEP <code>blankRender</code>+<code>handlePrintBlank</code>+its effect+blank specimen+data specimen.</li>
+        </ul>
+      </div>
+
+      <div class="step"><b>STEP 4 — MODIFY <code>KhorYorSaleLedger.tsx</code> (flat table, 10 & 11).</b> Keep month picker, fetch, <code>sections</code> useMemo, ALL ledger atoms + measure specimen + PageL/chunk pagination UNCHANGED (print form identical). Add <code>printOpen</code>.
+        <ul>
+          <li>NEW full-height flat Table-Card (same chrome as ข.ย.๙): columns ลำดับ | วันที่ขาย (<code>formatDate(r.sold_at)</code>) | ชื่อยา | ครั้งที่ผลิต (lot_number) | ได้มาจาก (supplier_name) | จำนวน (<code>formatQty</code>+unit) | ชื่อผู้ซื้อ (<code>buyerOf(r)</code>). Title "ตรวจรายการก่อนพิมพ์ (ขายยา…)", Badge = <code>rows.length</code>. No filter popover.</li>
+          <li>h-12 strip: month picker + "ฟอร์มเปล่า" + "พิมพ์" (<code>disabled={loading}</code>).</li>
+          <li>Mount <code>&lt;ReportPrintDialog ... pageCount={pages.length||1} renderPreview={(i)=&gt; sections.length===0?renderEmptySheet():renderPage(pages[i],i)} renderFullDoc={()=&gt; sections.length===0?renderEmptySheet():pages.map(renderPage)} /&gt;</code>.</li>
+          <li><span class="inv">REMOVE</span>: preview SectionCard, data <code>.a4-doc</code>/<code>printRender</code>+print effect (<code>:160-180</code>), old <code>handlePrint</code>, <code>viewPage</code>+reset effect (<code>:77,:87</code>), <code>pageInput</code> (<code>:76</code>). KEEP blankRender path + both specimens + pagination.</li>
+        </ul>
+      </div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> clean.</li>
+      <li>ข.ย.๙: full-height table scrolls internally, sticky header. Uncheck supplier → rows mute, count drops. "พิมพ์" → modal preview = included, numbered 1..N, prev/next. copies=2, range "1" → PRINT_TO_PDF → page 1 only, included rows, 2 copies. ฟอร์มเปล่า → blank. Filter all out → blank form. Re-enter/month change → reset.</li>
+      <li>ข.ย.๑๐ & ๑๑: full-height flat table. "พิมพ์" → modal = per-lot ledger (unchanged), multi-page. ฟอร์มเปล่า works. Empty month → blank form.</li>
+      <li>Layout: page does NOT scroll, table scrolls internally, thead + PageHeader/TabStrip pin. Dashboard + VAT UNCHANGED (page-scroll).</li>
+      <li>Enter-from-range: type range then Enter → prints that range.</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li>bounded-height regression → gated on <code>/reports/fda</code>; click-test Dashboard/VAT.</li>
+      <li>pagination loop → ข.ย.๙ stable memoized <code>includedRows</code>; ๑๐/๑๑ unchanged <code>sections</code>; shell state reset on <code>[open]</code> + viewPage clamp.</li>
+      <li>portaled print → <code>.a4-doc</code> in document.body, found by querySelector; silent (not window.print) so <code>@media print</code> dead.</li>
+      <li>specimen lays out (invisible off-screen, never display:none); always-mounted specimen uses raw table (no <code>.a4-sheet</code>) → no clone collision.</li>
+      <li>orphaned state → enumerate-remove the old print state from both reports (STEP 3/4 REMOVE lists).</li>
+      <li>state leak across tabs → each report mounts its OWN ReportPrintDialog (unmounts on route change) → no leak.</li>
+    </ul>
+
+    <h3>Out of scope</h3>
+    <ul>
+      <li>No filter on ๑๐/๑๑; no per-row checkbox; no drug-name filter (drug exclusion via EditProduct <code>is_drug</code>).</li>
+      <li>No persistence (transient). No IPC/schema change (reports.ts:1128-1145, 1168-1193 already return all fields).</li>
+      <li>Ledger print form (per-lot grouping/split) UNCHANGED — only the on-screen flat table + print-as-modal are new.</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-18</footer>
+
+</div>
+</body>
+</html>

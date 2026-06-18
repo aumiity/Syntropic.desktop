@@ -71,9 +71,9 @@ function SetupGate({ children }: { children: React.ReactNode }) {
 
 // Gates every route behind login. Session is in-memory only (no persist) so
 // `current` starts null on every launch → the login screen shows until a
-// successful auth sets `current`, after which the gate passes through. Must wrap
-// the router so no route that calls getCurrentUserId() mounts before a user
-// exists.
+// successful auth sets `current`, after which the gate passes through. The
+// gated children hold the <Routes>, so no route that calls getCurrentUserId()
+// mounts before a user exists.
 function LoginGate({ children }: { children: React.ReactNode }) {
   const current = useUserStore(s => s.current)
 
@@ -106,9 +106,13 @@ export default function App() {
   return (
     <ToastProvider>
      <TooltipProvider>
+      {/* HashRouter must wrap the gates: SetupWizard/LoginScreen both render
+          <TitleBar/>, which calls useLocation() and crashes ("may be used only
+          in the context of a <Router>") if mounted outside the router. Do not
+          move it back inside the gates. */}
+      <HashRouter>
       <SetupGate>
       <LoginGate>
-      <HashRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route element={<Layout />}>
@@ -151,9 +155,9 @@ export default function App() {
             </Route>
           </Routes>
         </Suspense>
-      </HashRouter>
       </LoginGate>
       </SetupGate>
+      </HashRouter>
      </TooltipProvider>
     </ToastProvider>
   )

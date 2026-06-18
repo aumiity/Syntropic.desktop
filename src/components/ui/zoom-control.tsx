@@ -13,7 +13,10 @@ interface ZoomControlProps {
 }
 
 export function ZoomControl({ value, min, max, step, onChange, className }: ZoomControlProps) {
-  const roundZoom = (next: number) => Math.round(next * 10) / 10
+  // Round to 0.01 (not 0.1) so quarter steps (0.25) land exactly — e.g. 1.0→1.25
+  // instead of drifting to 1.3. Backward-compatible with 0.5-step callers
+  // (1.0/1.5/2.0 are unchanged).
+  const roundZoom = (next: number) => Math.round(next * 100) / 100
 
   return (
     <div className={cn('inline-flex h-9 items-stretch overflow-hidden rounded-lg shadow-sm', className)}>

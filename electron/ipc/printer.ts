@@ -24,6 +24,19 @@ async function savePdfAndOpen(pdf: Buffer, namePrefix: string) {
   return { success: true, path: file }
 }
 
+// loadURL('data:text/html,...') throws ERR_INVALID_URL once the percent-encoded
+// HTML outgrows Chromium's URL-length cap — which large baked documents (multi-
+// page A4 ขย. registers, hundreds of cells × inline styles) easily do. Write the
+// HTML to a temp file and loadFile it instead: no length limit, and the doc is
+// self-contained (fonts embedded as base64) so there are no relative-path
+// resources to resolve. Returns the temp path so the caller can delete it.
+async function loadHtmlIntoWindow(w: BrowserWindow, html: string): Promise<string> {
+  const file = path.join(app.getPath('temp'), `print-${Date.now()}-${Math.random().toString(36).slice(2)}.html`)
+  await fs.writeFile(file, html, 'utf8')
+  await w.loadFile(file)
+  return file
+}
+
 function buildReceipt(data: {
   shopName: string
   shopAddress?: string
@@ -347,8 +360,9 @@ export function registerPrinterHandlers() {
     const pageSize = args.pageFormat ?? 'A4'
     const landscape = args.landscape ?? false
     const w = new BrowserWindow({ show: false, webPreferences: { offscreen: false } })
+    let tempFile: string | null = null
     try {
-      await w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args.html))
+      tempFile = await loadHtmlIntoWindow(w, args.html)
       await w.webContents.executeJavaScript(WAIT_FOR_RENDER_JS)
 
       if (args.printerName === PRINT_TO_PDF) {
@@ -381,6 +395,7 @@ export function registerPrinterHandlers() {
       return { success: false, error: e.message }
     } finally {
       w.destroy()
+      if (tempFile) fs.unlink(tempFile).catch(() => {})
     }
   })
 

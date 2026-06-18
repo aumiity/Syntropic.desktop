@@ -7,6 +7,8 @@ metadata:
 
 **Phase 1 DONE 2026-06-13 (tsc PASS, e2e 6/6 PASS). Phase 2 DONE 2026-06-13 (tsc PASS, e2e 11/11 PASS).**
 
+> **⚠️ UPDATE 2026-06-18 — price-edit STEP ถูกถอดออกจาก wizard แล้ว.** `AddProductWizard.tsx` ปรับ step เหลือ 4: เลือกสินค้า → จำนวน&ต้นทุน → Lot&วันหมดอายุ → สรุป (ลบ step "ราคาขาย" ออก, สลับจำนวนมาก่อน Lot). `confirm()` **ไม่เขียนราคาแล้ว** (เหลือ `onConfirm(row)`; `default_sell_price` มาจากหน่วยที่เลือกใน pickProduct/selectUnit). แผน: ย้ายการแก้ราคาไปเป็น **modal แยกที่ตาราง GR** (ยังไม่เริ่ม). โค้ดราคาใน wizard (priceDrafts + seed effects, useManagerOverride/overrideDialog, requestPriceUnlock, canEditPrice/priceUnlocked/grantedOverride, derived sellNum/profit/marginPct/prevCost/costChanged, import PriceInput/Tag/Lock) **ถอนออกหมดแล้ว (2026-06-18, tsc PASS)** — `AddProductWizard.tsx` สะอาดไม่มี logic ราคาเหลือ. **ยังเก็บ `buildSellUnits` + capture `row.sell_units` (ใน pickProduct) ไว้** เพราะ index.tsx ใช้ + เป็น data ให้ modal ราคาที่ตารางทีหลัง. **IPC `products:updatePrice`/`updateUnitPrice`/`auth:verifyAdmin` ยังอยู่ครบ** — รายละเอียดด้านล่างยังใช้ได้กับ modal ใหม่. ดู [[project_purchase_wizard]].
+
 ## Closed audit leak (non-obvious history)
 
 `purchase.save` USED TO run `UPDATE products SET price_retail = sell_price` on every GR receive — unconditionally, with **no `price_logs` entry and no admin gate**. That block is **removed** as of commit a10b91e. From now on:
@@ -22,7 +24,7 @@ Added in `electron/ipc/auth.ts` + `electron/preload.ts`. Validates a manager-ove
 
 - **D1 — price edit persists even if GR bill is cancelled.** `products:updatePrice` fires on row-confirm in the wizard (not at bill-save). If the user later voids the GR, the master retail price change stays — this is intentional (price changes are independent of inventory transactions).
 - **D2 — admin gate is up-front unlock, not per-write.** Non-admin sees the sell-price input `readOnly` + an unlock button; clicking it calls `auth:verifyAdmin(override)`, stashes the credential, then unlocks the field. The stashed override is forwarded when the row is confirmed.
-- **R2 — cost-change alert.** Step 4 shows a banner when typed unit cost differs from `stored_last_cost` (the product's `last_cost_price` snapshotted into `ReceiptRow` at search time). Banner is informational only — does not block save.
+- **R2 — cost-change alert.** ย้ายมาอยู่ **Step 2 (จำนวน & ต้นทุน) ตั้งแต่ 2026-06-18** (เดิม step 4 ที่ถูกลบ). Step 2 โชว์กล่องอ้างอิง "ทุนล่าสุด (`stored_last_cost`) + ราคาขายปัจจุบัน (`default_sell_price`)" + แถบเตือนเมื่อ `cost` ที่กรอกต่างจาก `stored_last_cost` (เพิ่ม=destructive-soft / ลด=success-soft, โชว์ ±ส่วนต่าง + old→new). **เทียบตรง ๆ ไม่คูณ qty_per_base** เพราะ `last_cost_price` เก็บต่อ "หน่วยที่รับเข้า" (ดู purchase.ts ~บรรทัด 253: `last_cost_price = costEx = item.cost_price * costFactor`). Informational only — ไม่บล็อก. **หมายเหตุ:** step 1 โชว์ "ทุนล่าสุด" จาก `stored_cost_price`(weighted-avg)×qty_per_base ซึ่งคนละ basis กับ step 2 (`stored_last_cost` ดิบ) — ยังไม่ align กัน.
 
 ## Phase 2 — all-units price editor (DONE 2026-06-13)
 
