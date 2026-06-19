@@ -807,6 +807,35 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_expenses_no ON expenses(expense_no);
     CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date);
     CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category_id);
+
+    -- GPP environmental monitoring log (บันทึกอุณหภูมิ–ความชื้น).
+    -- One row per (log_date, period): 1=เช้า 2=กลางวัน 3=เย็น. Manual entry —
+    -- numeric cells stay NULL until measured (never coerced to 0).
+    CREATE TABLE IF NOT EXISTS env_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      log_date TEXT NOT NULL,            -- 'YYYY-MM-DD'
+      period   INTEGER NOT NULL,         -- 1=เช้า 2=กลางวัน 3=เย็น
+      store_temp REAL, store_humidity REAL,
+      reserve_temp REAL, reserve_humidity REAL,
+      fridge_temp REAL,
+      note TEXT,
+      recorded_by INTEGER REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      UNIQUE(log_date, period)
+    );
+    CREATE TABLE IF NOT EXISTS env_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      zone_reserve_enabled INTEGER NOT NULL DEFAULT 1,
+      zone_fridge_enabled  INTEGER NOT NULL DEFAULT 1,
+      store_temp_max       REAL NOT NULL DEFAULT 30,
+      store_humidity_max   REAL NOT NULL DEFAULT 75,
+      reserve_temp_max     REAL NOT NULL DEFAULT 30,
+      reserve_humidity_max REAL NOT NULL DEFAULT 75,
+      fridge_temp_min      REAL NOT NULL DEFAULT 2,
+      fridge_temp_max      REAL NOT NULL DEFAULT 8,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
   `)
 
   // Safe column migrations for existing databases

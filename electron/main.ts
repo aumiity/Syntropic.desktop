@@ -6,6 +6,7 @@ import { registerProductHandlers } from './ipc/products'
 import { registerPurchaseHandlers } from './ipc/purchase'
 import { registerPeopleHandlers } from './ipc/people'
 import { registerReportHandlers } from './ipc/reports'
+import { registerEnvHandlers } from './ipc/env'
 import { registerSettingsHandlers } from './ipc/settings'
 import { registerPrinterHandlers } from './ipc/printer'
 import { registerTaxHandlers } from './ipc/tax'
@@ -87,6 +88,7 @@ registerProductHandlers()
 registerPurchaseHandlers()
 registerPeopleHandlers()
 registerReportHandlers()
+registerEnvHandlers()
 registerSettingsHandlers()
 registerPrinterHandlers()
 registerTaxHandlers()

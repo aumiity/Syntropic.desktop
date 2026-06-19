@@ -112,6 +112,15 @@ const api = {
     inactiveCounts:     () => invoke('reports:inactiveCounts'),
     productVelocity:    (filters: any) => invoke('reports:productVelocity', filters),
   },
+  // Environmental log (อุณหภูมิ–ความชื้น)
+  env: {
+    getMonth: (p: { year: number; month: number }) => invoke('env:getMonth', p),
+    saveCell: (p: { log_date: string; period: number; field: string; value: any }) => invoke('env:saveCell', p),
+    generateMonth: (p: { year: number; month: number; mode?: 'fill-empty' | 'all' }) => invoke('env:generateMonth', p),
+    getSettings: () => invoke('env:getSettings'),
+    setZones: (p: { zone_reserve_enabled: number; zone_fridge_enabled: number }) => invoke('env:setZones', p),
+    saveSettings: (data: any) => invoke('env:saveSettings', data),
+  },
   // Settings
   settings: {
     getShop: () => invoke('settings:getShop'),

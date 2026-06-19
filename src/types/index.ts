@@ -195,6 +195,37 @@ export interface DocumentSettings {
   updated_at?: string
 }
 
+// One environmental-log reading slot: a (log_date, period) cell of the GPP
+// temp/humidity grid. Numeric fields are null until measured (never coerced to 0).
+export interface EnvLogRow {
+  id: number
+  log_date: string          // 'YYYY-MM-DD'
+  period: number            // 1=เช้า 2=กลางวัน 3=เย็น
+  store_temp: number | null
+  store_humidity: number | null
+  reserve_temp: number | null
+  reserve_humidity: number | null
+  fridge_temp: number | null
+  note: string | null
+  recorded_by: number | null
+  created_at?: string
+  updated_at?: string
+}
+
+// Singleton GPP thresholds + which measurement zones the shop uses.
+export interface EnvSettings {
+  id: number
+  zone_reserve_enabled: number
+  zone_fridge_enabled: number
+  store_temp_max: number
+  store_humidity_max: number
+  reserve_temp_max: number
+  reserve_humidity_max: number
+  fridge_temp_min: number
+  fridge_temp_max: number
+  updated_at?: string
+}
+
 // Full tax invoice issuance record (ใบกำกับภาษีเต็มรูป, ม.86/4).
 export interface TaxInvoice {
   id: number

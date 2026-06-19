@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { ReportsOutletContext } from './index'
-import { FileText, FileClock, FileBarChart } from 'lucide-react'
+import { FileText, FileClock, FileBarChart, Thermometer } from 'lucide-react'
 
 // Sub-layout for the official FDA / Pharmacy Council registers. A `line` tab row
 // switches inline between ขย.9 (purchase register), ขย.10 (controlled-drug sale
@@ -11,9 +11,10 @@ import { FileText, FileClock, FileBarChart } from 'lucide-react'
 // ReportsLayout so the report pages keep working unchanged, EXTENDED with
 // setActions so each report can mount its print buttons on this sub-tab line.
 const FORMS = [
-  { value: 'khor-yor-9',  to: '/reports/fda/khor-yor-9',  label: 'ข.ย.9 บัญชีการซื้อยา',           icon: FileText },
-  { value: 'khor-yor-10', to: '/reports/fda/khor-yor-10', label: 'ข.ย.10 บัญชีการขายยาควบคุมพิเศษ', icon: FileClock },
-  { value: 'khor-yor-11', to: '/reports/fda/khor-yor-11', label: 'ข.ย.11 บัญชีการขายยาอันตราย',     icon: FileBarChart },
+  { value: 'khor-yor-9',  to: '/reports/fda/khor-yor-9',  label: 'ข.ย.9',  icon: FileText },
+  { value: 'khor-yor-10', to: '/reports/fda/khor-yor-10', label: 'ข.ย.10', icon: FileClock },
+  { value: 'khor-yor-11', to: '/reports/fda/khor-yor-11', label: 'ข.ย.11', icon: FileBarChart },
+  { value: 'environment', to: '/reports/fda/environment', label: 'อุณหภูมิ–ความชื้น', icon: Thermometer },
 ] as const
 
 // Report pages register their toolbar (ฟอร์มเปล่า / พิมพ์) here; it renders on the
@@ -25,6 +26,7 @@ export interface FdaOutletContext extends ReportsOutletContext {
 function resolveForm(pathname: string): string {
   if (pathname.includes('khor-yor-10')) return 'khor-yor-10'
   if (pathname.includes('khor-yor-11')) return 'khor-yor-11'
+  if (pathname.includes('environment')) return 'environment'
   return 'khor-yor-9'
 }
 
@@ -50,7 +52,7 @@ export default function ReportsFdaLayout() {
         >
           <TabsList variant="line" className="inline-grid grid-flow-col auto-cols-fr">
             {FORMS.map(({ value, label, icon: Icon }) => (
-              <TabsTrigger key={value} value={value}>
+              <TabsTrigger key={value} value={value} className="px-8">
                 <Icon /> {label}
               </TabsTrigger>
             ))}

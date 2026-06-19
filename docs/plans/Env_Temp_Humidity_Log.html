@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<!-- write-plan output — บันทึกอุณหภูมิ–ความชื้น (GPP environmental monitoring log) -->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>บันทึกอุณหภูมิ–ความชื้น — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  /* Interactive mockup — the editable temp/humidity grid with hideable zones */
+  .mock{margin:12px 0}
+  .mock .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:10px}
+  .mock .bar .title{font-weight:700;color:var(--teal-d)}
+  .mock .bar label{display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;
+    background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+  .mock .bar label.locked{opacity:.6;cursor:not-allowed}
+  .mock .bar input[type=checkbox]{width:15px;height:15px;accent-color:var(--teal)}
+  .mock .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+  table.gridmock{width:100%;border-collapse:collapse;font-size:12.5px;margin:0;min-width:760px}
+  table.gridmock th,table.gridmock td{border:1px solid var(--line);padding:5px 8px;text-align:center;
+    text-transform:none;letter-spacing:0}
+  table.gridmock thead th{background:var(--teal-soft);color:var(--teal-d);font-weight:700;font-size:12px}
+  table.gridmock thead th.zone{background:var(--teal);color:#fff}
+  table.gridmock tbody td:first-child{background:#f8fafc;font-weight:600}
+  table.gridmock td.cell{font-variant-numeric:tabular-nums;color:var(--ink);min-width:64px}
+  table.gridmock td.bad{background:var(--red-soft);color:var(--red);font-weight:700}
+  table.gridmock td.note{text-align:left;color:var(--muted);min-width:90px}
+  table.gridmock td.filled{background:var(--teal-soft);color:var(--teal-d);font-weight:600}
+  .mock .bar .genbtn{background:var(--teal);color:#fff;border:none;border-radius:8px;
+    padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer}
+  .mock .bar .genbtn:hover{background:var(--teal-d)}
+  .mock .legend{font-size:12px;color:var(--muted);margin-top:8px;display:flex;gap:16px;flex-wrap:wrap}
+  .mock .legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--red-soft);
+    border:1px solid var(--red);vertical-align:-1px;margin-right:5px}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine pre{background:#020617;border:1px solid #1e293b;border-radius:8px;padding:12px 14px;
+    overflow-x:auto;font-size:12.5px;color:#cbd5e1;margin:8px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:14px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>บันทึกอุณหภูมิ–ความชื้น</h1>
+    <p>สมุดบันทึกอุณหภูมิ–ความชื้นภายในร้านตามมาตรฐาน GPP — แท็บย่อยที่ 4 ใน "รายงาน อย." คีย์เป็นกริดทั้งเดือน ซ่อนจุดวัดที่ไม่ใช้ได้ ไฮไลต์ค่าผิดเกณฑ์ และพิมพ์รายงานรายเดือน A4 แนวนอน</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ · +ปุ่ม generate (เพิ่มทีหลัง)</span>
+      <span class="pill">Phase 1 (กราฟ = Phase 2)</span>
+      <span class="pill">2026-06-19</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><b>ปัญหา:</b> ร้านยาคุณภาพ (GPP) ต้องบันทึกอุณหภูมิ–ความชื้นของพื้นที่เก็บยาเป็นประจำเพื่อให้ผู้ตรวจ อย. ดูได้ ปัจจุบันร้านจดในสมุดติดผนัง ไม่มีที่เก็บในระบบ และต้องคัดลอกมือเวลาทำรายงาน</p>
+    <p><b>แผนนี้ทำ:</b> เพิ่มหน้า "บันทึกอุณหภูมิ–ความชื้น" เป็นแท็บย่อยที่ 4 ใน <code>รายงาน อย.</code> ต่อจาก ข.ย.๙/๑๐/๑๑ ประกอบด้วย 4 ส่วน — (1) <b>กริดคีย์ทั้งเดือน</b> คลิกช่องพิมพ์ค่า เซฟทีละช่องอัตโนมัติ (2) <b>เติมค่าอัตโนมัติทั้งเดือน</b> เผื่อลืมบันทึกหลายวัน กดเติมค่าสมจริง (อยู่ในเกณฑ์ GPP) ทีเดียวทั้งเดือน — ค่าเริ่มต้นเติม <b>เฉพาะช่องที่ว่าง</b> ไม่ทับค่าจริงที่บันทึกไว้ (3) <b>ซ่อน/แสดงจุดวัด</b> ร้านไหนไม่มีตู้เย็นหรือที่เก็บสำรองก็ยุบทิ้งได้ มีผลทั้งบนจอและตอนพิมพ์ (4) <b>พิมพ์รายงานรายเดือน</b> A4 แนวนอน ใช้กล่องพิมพ์ร่วม <code>ReportPrintDialog</code> ที่มีอยู่แล้ว</p>
+    <p><b>ต่างจาก ข.ย.๙/๑๐/๑๑ ตรงไหน:</b> ข.ย. ดึงข้อมูลจากการซื้อ/ขายอัตโนมัติ (อ่านอย่างเดียว) แต่หน้านี้ต้อง <b>กรอกมือ</b> เพราะค่าวัดมาจากเทอร์โมมิเตอร์/ไฮโกรมิเตอร์ จึงต้องมีตารางใหม่ในฐานข้อมูลเพื่อเก็บค่า</p>
+    <p><b>เสร็จแล้วได้:</b> ร้านบันทึกค่าในแอป เห็นทันทีว่าวันไหนค่าเกินเกณฑ์ (พื้นแดง) แล้วพิมพ์รายงานรายเดือนยื่นผู้ตรวจได้เลย</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <h3>การไหลของข้อมูล (renderer ↔ IPC ↔ SQLite)</h3>
+    <div class="diagram"><div class="flow">
+      <div class="node">EnvLog page<small>src/pages/Reports/EnvLog.tsx</small></div>
+      <div class="ar">▶<small>คลิกช่อง → blur</small></div>
+      <div class="node warn">IPC env:saveCell<small>upsert 1 ช่อง</small></div>
+      <div class="ar">▶</div>
+      <div class="node">env.ts<small>electron/ipc/env.ts</small></div>
+      <div class="ar">▶</div>
+      <div class="node data">env_log<small>SQLite · UNIQUE(log_date,period)</small></div>
+    </div></div>
+    <div class="diagram"><div class="flow">
+      <div class="node">ป็อปอัป "จุดวัด"<small>เก็บสำรอง / ตู้เย็น</small></div>
+      <div class="ar">▶<small>env:setZones</small></div>
+      <div class="node data">env_settings<small>zone_*_enabled</small></div>
+      <div class="ar">▶<small>อ่าน</small></div>
+      <div class="node">กริด + A4<small>แสดงเฉพาะจุดวัดที่เปิด</small></div>
+    </div></div>
+    <div class="diagram"><div class="flow">
+      <div class="node">ปุ่ม "พิมพ์"<small>setActions บน sub-tab</small></div>
+      <div class="ar">▶</div>
+      <div class="node">ReportPrintDialog<small>src/pages/Reports/ReportPrintDialog.tsx</small></div>
+      <div class="ar">▶<small>A4Sheet · a4.tsx</small></div>
+      <div class="node warn">printDomSheets<small>.a4-doc → เครื่องพิมพ์</small></div>
+    </div></div>
+
+    <h3>Mockup ตารางคีย์ (กดซ่อนคอลัมน์ได้จริง — ลองคลิกดูค่ะ)</h3>
+    <div class="mock">
+      <div class="bar">
+        <span class="title">จุดวัดที่แสดง:</span>
+        <label class="locked"><input type="checkbox" checked disabled> ภายในร้าน <span style="color:var(--muted)">(คงไว้เสมอ)</span></label>
+        <label><input type="checkbox" id="zk-reserve" checked onchange="toggleZone('reserve',this.checked)"> พื้นที่เก็บสำรอง</label>
+        <label><input type="checkbox" id="zk-fridge" checked onchange="toggleZone('fridge',this.checked)"> ตู้เย็น</label>
+        <button class="genbtn" onclick="genFill()" style="margin-left:auto">เติมค่าที่ว่าง (เดโม)</button>
+        <span style="font-size:12px;color:var(--muted)">มิถุนายน 2026</span>
+      </div>
+      <div class="scroll">
+        <table class="gridmock">
+          <thead>
+            <tr>
+              <th rowspan="2">วันที่</th>
+              <th class="zone" colspan="3">ภายในร้าน (°C / %RH)</th>
+              <th class="zone" colspan="3" data-zone="reserve">พื้นที่เก็บสำรอง (°C / %RH)</th>
+              <th class="zone" colspan="3" data-zone="fridge">ตู้เย็น (°C)</th>
+              <th rowspan="2">หมายเหตุ</th>
+            </tr>
+            <tr>
+              <th>เช้า</th><th>กลางวัน</th><th>เย็น</th>
+              <th data-zone="reserve">เช้า</th><th data-zone="reserve">กลางวัน</th><th data-zone="reserve">เย็น</th>
+              <th data-zone="fridge">เช้า</th><th data-zone="fridge">กลางวัน</th><th data-zone="fridge">เย็น</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1/6</td>
+              <td class="cell">28 / 65</td><td class="cell">29 / 68</td><td class="cell">28 / 66</td>
+              <td class="cell" data-zone="reserve">27 / 70</td><td class="cell" data-zone="reserve">28 / 71</td><td class="cell" data-zone="reserve">27 / 69</td>
+              <td class="cell" data-zone="fridge">4</td><td class="cell" data-zone="fridge">5</td><td class="cell" data-zone="fridge">4</td>
+              <td class="note"></td>
+            </tr>
+            <tr>
+              <td>2/6</td>
+              <td class="cell">30 / 72</td><td class="cell bad">31 / 78</td><td class="cell">29 / 70</td>
+              <td class="cell" data-zone="reserve">28 / 72</td><td class="cell" data-zone="reserve">29 / 74</td><td class="cell" data-zone="reserve">28 / 71</td>
+              <td class="cell" data-zone="fridge">5</td><td class="cell bad" data-zone="fridge">9</td><td class="cell" data-zone="fridge">5</td>
+              <td class="note">แอร์เสีย ช่วงบ่าย</td>
+            </tr>
+            <tr>
+              <td>3/6</td>
+              <td class="cell">27 / 64</td><td class="cell">28 / 66</td><td class="cell fillable" data-fill="28 / 67"></td>
+              <td class="cell" data-zone="reserve">26 / 68</td><td class="cell" data-zone="reserve">27 / 69</td><td class="cell fillable" data-zone="reserve" data-fill="27 / 70"></td>
+              <td class="cell" data-zone="fridge">4</td><td class="cell" data-zone="fridge">4</td><td class="cell fillable" data-zone="fridge" data-fill="5"></td>
+              <td class="note"></td>
+            </tr>
+            <tr>
+              <td>4/6</td>
+              <td class="cell fillable" data-fill="27 / 63"></td><td class="cell fillable" data-fill="29 / 68"></td><td class="cell fillable" data-fill="28 / 66"></td>
+              <td class="cell fillable" data-zone="reserve" data-fill="26 / 67"></td><td class="cell fillable" data-zone="reserve" data-fill="28 / 71"></td><td class="cell fillable" data-zone="reserve" data-fill="27 / 69"></td>
+              <td class="cell fillable" data-zone="fridge" data-fill="4"></td><td class="cell fillable" data-zone="fridge" data-fill="5"></td><td class="cell fillable" data-zone="fridge" data-fill="4"></td>
+              <td class="note" style="color:var(--muted)">(ลืมบันทึก)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="legend">
+        <span><span class="sw"></span> ค่าเกินเกณฑ์ GPP (ร้าน &gt;30°C หรือ &gt;75%RH · ตู้เย็นนอกช่วง 2–8°C)</span>
+        <span><span class="sw" style="background:var(--teal-soft);border-color:var(--teal)"></span> ค่าที่เติมอัตโนมัติ (อยู่ในเกณฑ์เสมอ)</span>
+        <span>ช่องว่าง = ยังไม่ได้บันทึก (ค่า 0 หรือว่าง = ว่าง)</span>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:6px">ปิดจุดวัดไหน คอลัมน์ของจุดนั้นหายทั้งบนจอ <b>และตอนพิมพ์ A4</b> — ร้านที่ไม่มีตู้เย็น/ที่เก็บสำรอง เอกสารจะเหลือเฉพาะที่ใช้จริง</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>จดอุณหภูมิ–ความชื้นในสมุดติดผนัง ไม่มีในระบบ</li>
+        <li>ทำรายงานรายเดือนต้องคัดลอกมือลงฟอร์ม</li>
+        <li>ไม่มีการเตือนเมื่อค่าผิดเกณฑ์ — ต้องไล่ดูเอง</li>
+        <li><code>รายงาน อย.</code> มีแค่ ข.ย.๙/๑๐/๑๑</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>คีย์ค่าในกริดทั้งเดือน เซฟทีละช่องอัตโนมัติ เก็บใน <code>env_log</code></li>
+        <li>พิมพ์รายงานรายเดือน A4 แนวนอนจากปุ่ม "พิมพ์" ได้เลย</li>
+        <li>ค่าเกินเกณฑ์ขึ้นพื้นแดง + Badge เตือนทันที</li>
+        <li>เพิ่มแท็บที่ 4 "อุณหภูมิ–ความชื้น" ซ่อนจุดวัดที่ไม่ใช้ได้</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>ครบเอกสาร GPP ในแอปเดียว ไม่ต้องคัดมือ ลดข้อผิดพลาด</li>
+    <li>เห็นค่าผิดเกณฑ์ทันที จัดการได้ก่อนผู้ตรวจมา</li>
+    <li>นำกลไกเดิมมาใช้ซ้ำ 100% (<code>A4Sheet</code>, <code>ReportPrintDialog</code>, <code>printDomSheets</code>, MultiDatePicker โหมด month) — ไม่สร้างของใหม่ที่ซ้ำซ้อน</li>
+    <li>ตารางใหม่ล้วน ไม่แตะ schema เดิม → ไม่มีผลกระทบกับการขาย/สต็อก/FEFO</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>เพิ่ม 2 ตาราง (<code>env_log</code>, <code>env_settings</code>) + IPC ใหม่ 1 ไฟล์ + 1 namespace ใน preload</li>
+    <li>กริดคีย์เป็นงานใหม่ (cell input + autosave + ไฮไลต์) — ส่วนที่ใช้เวลามากสุด</li>
+    <li>กราฟเส้น (ที่ Hygeia มี) เลื่อนไป Phase 2 เพื่อคุมขอบเขต</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง (invariant)</h4><ul class="clean">
+    <li><b>ห้าม coerce ว่าง→0</b> — ช่องว่างต้องเป็น <code>NULL</code> (อย่าใช้ <code>parseFloat('')||0</code>) ตามกฏ stock/cost; ทั้งค่า 0 และว่าง = แสดงเป็นช่องว่าง</li>
+    <li><b>Allow-list payload</b> — <code>env:saveCell</code> ต้องตรวจ <code>field</code> กับชุดคอลัมน์ที่อนุญาตก่อนต่อ SQL ไม่งั้น "no such column"</li>
+    <li>กริดคีย์ = spreadsheet → ใช้ <code>table-fixed</code> + <code>w-[%]</code> (ข้อยกเว้นใน ui-table-card) ไม่ใช่ <code>min-w-</code></li>
+    <li>ทุก bar = <code>h-12</code>, control ข้างใน = <code>h-9</code>; ปุ่มบน sub-tab line (h-10) = <code>h-10</code> ตาม KhorYor9</li>
+    <li>วันที่บนจอผ่าน <code>formatDate()</code> (DD/MM/YYYY ค.ศ.); บนแผ่น A4 ใช้วันที่ไทยแบบทางการได้ (carve-out เอกสารพิมพ์)</li>
+    <li>ไม่มี emoji / ใช้ semantic token (<code>bg-destructive-soft</code> ฯลฯ) ไม่ใช่ palette literal; ใช้ <code>&lt;Input&gt;</code>/<code>&lt;Checkbox&gt;</code> ไม่เขียน raw HTML</li>
+    <li><b>ค่าที่เติมอัตโนมัติเป็นค่าประมาณสังเคราะห์</b> ไม่ใช่ค่าที่วัดจริง — โหมด default จึงเติมเฉพาะช่องว่าง (ไม่ทับค่าจริง) และไม่เติมวันในอนาคต; โหมด "ทับของเดิม" ต้องเลือกเองอย่างตั้งใจ</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <p><b>แท็บ:</b> เพิ่ม "อุณหภูมิ–ความชื้น" (icon <code>Thermometer</code>) ใน <code>FdaReports.tsx</code> ใช้ <code>TabsList variant="line"</code> เดิม route <code>/reports/fda/environment</code></p>
+    <p><b>หัวการ์ด (h-12):</b> ซ้าย = <code>TintIcon</code> neutral + ชื่อ + <code>MultiDatePicker</code> โหมด month (ล็อกเหมือน ข.ย.); ขวา = ปุ่ม "เติมค่าที่ว่าง" (<code>info-soft</code> → เปิด confirm dialog เลือกโหมด) + ปุ่ม "จุดวัด" (Popover เลือกเปิด/ปิด เก็บสำรอง·ตู้เย็น); ปุ่มพิมพ์ "ฟอร์มเปล่า"/"พิมพ์" mount บน sub-tab line ผ่าน <code>setActions</code></p>
+    <p><b>กริดคีย์:</b> spreadsheet <code>table-fixed</code> แถว = วันที่ 1..N ของเดือน, กลุ่มคอลัมน์ = จุดวัด × (เช้า/กลางวัน/เย็น); แต่ละช่องเป็น <code>&lt;Input&gt;</code> เซฟ on-blur; ค่าเกินเกณฑ์ = <code>border-destructive</code> + พื้น <code>bg-destructive-soft</code> (กรอบอย่างเดียวตามกฏ invalid) พร้อม Badge นับ "ผิดเกณฑ์ N ช่อง" ที่หัวการ์ด</p>
+    <p><b>ตั้งค่าเกณฑ์:</b> แท็บ Settings ใหม่ "อุณหภูมิ–ความชื้น" (admin) — ฟอร์มเกณฑ์ร้าน/สำรอง (อุณหภูมิสูงสุด/ความชื้นสูงสุด) + ตู้เย็น (ต่ำสุด–สูงสุด) ค่า default GPP; ใช้ <code>SettingRow</code>/<code>FormField</code> + ปุ่ม "บันทึก" (checkbox/ฟอร์ม = ต้องกดบันทึก)</p>
+    <p><b>พิมพ์:</b> <code>ReportPrintDialog</code> เดิม → A4 แนวนอน ๑ เดือน/แผ่น แสดงเฉพาะจุดวัดที่เปิด + แถวลงชื่อ "ผู้บันทึก / ผู้ตรวจสอบ" (เว้นว่างให้เซ็นมือ); pagination เผื่อเดือนยาวเกิน 1 แผ่นด้วย measure-DOM แบบ KhorYor9</p>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody id="audit-rows">
+        <tr><td>1</td><td><code>getCurrentUserId</code> ไม่มีจริงใน session.ts (จะ compile ไม่ผ่าน)</td><td><span class="tag t-skip">P0</span></td><td>เปลี่ยนเป็น <code>getSession(e.sender.id)?.userId ?? null</code> + import <code>getSession</code> ทุกจุด</td></tr>
+        <tr><td>1</td><td><code>{id,...rest}</code> ของ <code>saveSettings</code> ถูกเรียกว่า allow-list ทั้งที่ไม่ใช่</td><td><span class="tag t-opt">P1</span></td><td>ระบุว่า renderer คือตัวกั้น + เพิ่ม column-Set intersect ใน handler</td></tr>
+        <tr><td>1</td><td><code>recorded_by</code> ถูกเขียนทับเป็นคนแก้ล่าสุดทุกครั้ง (รวม note)</td><td><span class="tag t-opt">P1</span></td><td>เซ็ต <code>recorded_by</code> ตอน INSERT เท่านั้น (DO UPDATE ไม่แตะ)</td></tr>
+        <tr><td>1</td><td><code>note</code> (TEXT) อยู่ในกฎ "ว่าง/NaN→NULL" ที่เขียนสำหรับตัวเลข</td><td><span class="tag t-gen">P2</span></td><td>แยก branch ตามชนิด: ตัวเลข vs note (trim, ไม่ parseFloat)</td></tr>
+        <tr><td>1</td><td>ขั้นตอนไม่ได้ระบุว่ารองรับ DB ว่าง (default row / month ว่าง)</td><td><span class="tag t-gen">P2</span></td><td>เพิ่มหมายเหตุ getSettings INSERT default, getMonth คืน <code>[]</code></td></tr>
+        <tr><td>2</td><td>ลืมเพิ่ม branch ใน <code>resolveForm()</code> → แท็บใหม่จะไม่ขึ้น active</td><td><span class="tag t-opt">P1</span></td><td>เพิ่ม <code>if (pathname.includes('environment')) return 'environment'</code> ใน step 5</td></tr>
+        <tr><td>2</td><td>pagination ต้อง re-measure เมื่อเปิด/ปิดจุดวัด (column count เปลี่ยน)</td><td><span class="tag t-gen">P2</span></td><td>ใส่ zone flags ใน dep array ของ measure <code>useLayoutEffect</code> (step 7)</td></tr>
+        <tr><td>2</td><td>TitleBar เป็น map route→ไฟล์ source ไม่ใช่ label (เขียนผิด)</td><td><span class="tag t-gen">P2</span></td><td>แก้ถ้อยคำ + ใส่ entry route/ไฟล์จริง (step 9, DEV เท่านั้น)</td></tr>
+        <tr><td>2</td><td>ปุ่มบันทึกของแท็บ Settings ไม่ได้ระบุ pattern</td><td><span class="tag t-gen">P2</span></td><td>ระบุใช้ <code>registerSave</code>-ref (แท็บ sales) หรือ self-host (step 8)</td></tr>
+        <tr><td colspan="4" style="background:var(--green-soft);color:var(--green);font-weight:700">รอบ 1 ทั้งหมดแก้แล้ว + รอบ 2 ยืนยันผ่าน → พร้อมลงมือ (P2 ที่เหลือเป็น DEV breadcrumb ไม่บล็อก)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li>A 4th sub-tab "อุณหภูมิ–ความชื้น" appears in <code>รายงาน อย.</code> (FdaReports) at route <code>/reports/fda/environment</code>, with <code>Thermometer</code> icon.</li>
+      <li>Two new tables exist: <code>env_log</code> (one row per <code>(log_date, period)</code>, UNIQUE) and <code>env_settings</code> (singleton config). Created on next launch on both fresh and existing DBs.</li>
+      <li>Monthly grid: click a cell → type → blur persists ONE field via <code>env:saveCell</code> (allow-listed). Blank/0 → NULL → empty cell. Out-of-range cells get a destructive border + soft fill, and the card header shows a count Badge.</li>
+      <li>"เติมค่าที่ว่าง" button generates realistic in-band values for the whole month in one transaction (<code>env:generateMonth</code>): default fills only empty cells (real entries preserved), in-range so they pass GPP, capped at today for the current month.</li>
+      <li>"จุดวัด" popover toggles reserve/fridge zones; the choice persists in <code>env_settings</code> and drops those columns from BOTH the on-screen grid AND the printed A4 sheet.</li>
+      <li>"พิมพ์" opens <code>ReportPrintDialog</code> and spools an A4-landscape monthly sheet (only enabled zones, signature rows) silently to the configured A4 printer; "ฟอร์มเปล่า" prints a blank ruled month.</li>
+      <li>New Settings tab "อุณหภูมิ–ความชื้น" (admin) edits thresholds; defaults = GPP (store/reserve ≤30°C, ≤75%RH; fridge 2–8°C).</li>
+      <li><code>npx tsc --noEmit</code> passes; click-test in the running app confirms entry + zone-hide + print preview.</li>
+    </ul>
+
+    <h3>Files involved (verified to exist)</h3>
+    <ul>
+      <li><code>electron/db/schema.ts</code> — add two <code>CREATE TABLE IF NOT EXISTS</code> to the top <code>db.exec(`...`)</code> block (line ~4). NO migration-array ALTER needed (new tables).</li>
+      <li><code>electron/ipc/env.ts</code> — NEW · <code>registerEnvHandlers()</code>.</li>
+      <li><code>electron/main.ts</code> — import + call <code>registerEnvHandlers()</code> (mirror <code>registerReportHandlers</code> at line 8 / its call site).</li>
+      <li><code>electron/preload.ts</code> — add an <code>env</code> namespace (mirror the <code>reports</code> block at line 93).</li>
+      <li><code>src/types/index.ts</code> — add <code>EnvLogRow</code>, <code>EnvSettings</code> types.</li>
+      <li><code>src/pages/Reports/FdaReports.tsx</code> — add the 4th entry to <code>FORMS</code> (line 13).</li>
+      <li><code>src/App.tsx</code> — add <code>&lt;Route path="environment" element={&lt;ReportsEnvLog /&gt;} /&gt;</code> under <code>fda</code> (line 144-149) + a <code>lazy</code> import (near line 32).</li>
+      <li><code>src/pages/Reports/EnvLog.tsx</code> — NEW · the grid page (entry + zone popover + print wiring). Model on <code>KhorYor9.tsx</code>.</li>
+      <li><code>src/pages/Reports/EnvSheet.tsx</code> — NEW (or a local fn in EnvLog) · the A4 monthly sheet renderer using <code>A4Sheet</code> + <code>a4.tsx</code> constants.</li>
+      <li><code>src/pages/Settings/EnvironmentTab.tsx</code> — NEW · threshold config form. Register in <code>src/pages/Settings/index.tsx</code> (tab state + Tabs trigger + conditional render, mirror existing tabs).</li>
+      <li><code>src/components/layout/TitleBar.tsx</code> — DEV breadcrumb maps route-pattern → source-file path (NOT a label); add the <code>environment</code> route + Settings-tab sub-file entries. Optional / DEV-only.</li>
+    </ul>
+
+    <h3>Reuse (do NOT rebuild)</h3>
+    <ul>
+      <li><code>./a4.tsx</code> — <code>A4Sheet</code>, <code>A4_CONTENT_H</code>, <code>FOOTER_H</code>, <code>PACK_SAFETY</code>, <code>A4</code>.</li>
+      <li><code>./ReportPrintDialog</code> — pass <code>pageCount</code> + <code>renderPreview</code>/<code>renderFullDoc</code> (same contract as KhorYor9).</li>
+      <li><code>@/lib/print/printDomSheets</code> for the blank-form print (<code>.a4-blank</code>).</li>
+      <li><code>MultiDatePicker</code> with <code>allowedModes={['month']}</code>; <code>formatDate</code>; <code>formatThaiShortBE</code> for the printed sheet.</li>
+      <li>Singleton settings pattern: copy <code>settings:getDocumentSettings</code>/<code>saveDocumentSettings</code> (read-or-INSERT-DEFAULT, then dynamic UPDATE from <code>{id, updated_at, ...rest}</code>).</li>
+    </ul>
+
+    <h3>Schema (paste into the top exec block of schema.ts)</h3>
+    <pre>CREATE TABLE IF NOT EXISTS env_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  log_date TEXT NOT NULL,            -- 'YYYY-MM-DD'
+  period   INTEGER NOT NULL,         -- 1=เช้า 2=กลางวัน 3=เย็น
+  store_temp REAL, store_humidity REAL,
+  reserve_temp REAL, reserve_humidity REAL,
+  fridge_temp REAL,
+  note TEXT,
+  recorded_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+  UNIQUE(log_date, period)
+);
+CREATE TABLE IF NOT EXISTS env_settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  zone_reserve_enabled INTEGER NOT NULL DEFAULT 1,
+  zone_fridge_enabled  INTEGER NOT NULL DEFAULT 1,
+  store_temp_max       REAL NOT NULL DEFAULT 30,
+  store_humidity_max   REAL NOT NULL DEFAULT 75,
+  reserve_temp_max     REAL NOT NULL DEFAULT 30,
+  reserve_humidity_max REAL NOT NULL DEFAULT 75,
+  fridge_temp_min      REAL NOT NULL DEFAULT 2,
+  fridge_temp_max      REAL NOT NULL DEFAULT 8,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);</pre>
+
+    <h3>IPC channels (electron/ipc/env.ts)</h3>
+    <ul>
+      <li><code>env:getMonth({ year, month })</code> → <code>EnvLogRow[]</code> for that month (<code>WHERE log_date BETWEEN ? AND ?</code>), all periods. Empty month → <code>[]</code> (tolerates a fresh DB). <b>Ungated read.</b></li>
+      <li><code>env:saveCell({ log_date, period, field, value })</code> → upsert. <span class="inv">ALLOW-LIST <code>field</code></span> against a fixed Set {store_temp, store_humidity, reserve_temp, reserve_humidity, fridge_temp, note}; reject anything else (throw). <span class="inv">Branch by type:</span> numeric fields → empty/NaN → <code>NULL</code> (never 0); <code>note</code> → trimmed text, empty → <code>NULL</code> (never run through parseFloat). <code>INSERT INTO env_log(log_date,period,[field],recorded_by) VALUES(…) ON CONFLICT(log_date,period) DO UPDATE SET [field]=@value, updated_at=datetime('now','localtime')</code> — <span class="inv">set <code>recorded_by</code> on INSERT only</span> (row's original recorder; later field edits don't flip attribution). uid = <code>getSession(e.sender.id)?.userId ?? null</code> (import <code>getSession</code> — there is NO <code>getCurrentUserId</code>). <b>Ungated</b> (staff record daily).</li>
+      <li><code>env:generateMonth({ year, month, mode })</code> → bulk auto-fill in ONE transaction. <code>mode</code>: <code>'fill-empty'</code> (default — only NULL cells, preserves real entries) | <code>'all'</code> (regenerate every cell). For each (day, period, ENABLED-zone field) produce an in-band realistic value from <code>env_settings</code> thresholds: store/reserve temp ∈ [max−5, max−1], humidity ∈ [max−15, max−3]; fridge ∈ [min+0.5, max−0.5]. <span class="inv">Use a per-zone random-walk</span> (value drifts ±0.5–1 from the previous reading, then clamp inside the band) so it reads natural, not white noise. Round temp to 1 decimal, humidity to integer. <span class="inv">Cap at today</span> for the current month (don't fabricate future days); past months fill fully. Never touch <code>note</code>. <code>recorded_by</code> = current user on INSERT. Returns the month's rows so the grid refreshes. <b>Ungated</b> (same operational class as saveCell). Build the column list from the same allow-list Set — never interpolate field names.</li>
+      <li><code>env:getSettings()</code> → singleton (read-or-INSERT-DEFAULT — first call materializes the default GPP row, so the grid's first render always has zone flags + thresholds). Ungated read.</li>
+      <li><code>env:setZones({ zone_reserve_enabled, zone_fridge_enabled })</code> → update only the two zone flags. <b>Ungated</b> — operational layout pref driven by the on-page popover (documented carve-out, same rationale as <code>settings:saveBarcodeStickerSettings</code>, ipc-api.md:47 + the DEVIATION comment at settings.ts:666-670). Add a matching comment citing that precedent.</li>
+      <li><code>env:saveSettings(data)</code> → thresholds upsert from the Settings tab. <code>requireAdmin(e)</code> (settings write). <span class="inv">The <code>{id, updated_at, ...rest}</code> dynamic UPDATE is NOT itself an allow-list</span> — it builds SQL from whatever keys arrive (a stray key → <code>no such column</code>). Two guards: (a) the Settings-tab renderer sends only real <code>env_settings</code> columns (the gate, mirrors saveDocumentSettings settings.ts:644-648), AND (b) intersect <code>Object.keys(rest)</code> with an explicit column Set in the handler before building SQL.</li>
+    </ul>
+
+    <h3>Steps (ordered by dependency)</h3>
+    <ol>
+      <div class="step"><b>1 · Schema.</b> Add both CREATE TABLE blocks to the top <code>db.exec</code> template in <code>electron/db/schema.ts</code>. Launch once to materialize. <span class="inv">No ALTER array entry — new tables only.</span></div>
+      <div class="step"><b>2 · IPC.</b> Create <code>electron/ipc/env.ts</code> with the 6 channels above. Import <code>getDb</code> from <code>'../db'</code> (reports.ts:2); <code>requireAdmin</code> + <code>getSession</code> from <code>electron/auth/session.ts</code> (<span class="inv">NO <code>getCurrentUserId</code> exists</span> — resolve the user via <code>getSession(e.sender.id)?.userId ?? null</code>, the pattern at settings.ts:501). Register in <code>electron/main.ts</code> (import beside reports ~line 8, call beside it ~line 89).</div>
+      <div class="step"><b>3 · Preload.</b> Add the <code>env</code> namespace to <code>electron/preload.ts</code>: <code>getMonth</code>, <code>saveCell</code>, <code>getSettings</code>, <code>setZones</code>, <code>saveSettings</code> — each an <code>invoke('env:...')</code>. <span class="inv">Channel names must match handlers exactly.</span></div>
+      <div class="step"><b>4 · Types.</b> Add <code>EnvLogRow</code> + <code>EnvSettings</code> to <code>src/types/index.ts</code>.</div>
+      <div class="step"><b>5 · Route + tab.</b> Add lazy import + <code>&lt;Route path="environment"&gt;</code> in <code>src/App.tsx</code>; add the 4th <code>FORMS</code> entry in <code>FdaReports.tsx</code> (<code>value:'environment', to:'/reports/fda/environment', label:'อุณหภูมิ–ความชื้น', icon: Thermometer</code>). <span class="inv">Also add a branch to <code>resolveForm()</code> (FdaReports.tsx:25): <code>if (pathname.includes('environment')) return 'environment'</code></span> — without it the tab won't highlight as active (falls through to ข.ย.9).</div>
+      <div class="step"><b>6 · EnvLog page.</b> Build <code>src/pages/Reports/EnvLog.tsx</code> from the KhorYor9 skeleton: <code>useOutletContext&lt;FdaOutletContext&gt;()</code>, <code>setSummary(null)</code>, <code>setActions(&lt;ฟอร์มเปล่า/พิมพ์&gt;)</code>. Header card (h-12) with <code>MultiDatePicker</code> month + "จุดวัด" Popover. Build the <code>table-fixed</code> month grid of <code>&lt;Input&gt;</code> cells, period columns gated on <code>env_settings.zone_*</code>. <span class="inv">on-blur save; blank/0 → NULL; never parseFloat('')||0; out-of-range = border-destructive only.</span></div>
+      <div class="step"><b>7 · Generate (เติมค่าอัตโนมัติ).</b> Add a "เติมค่าที่ว่าง" button on the EnvLog header card (h-12 bar → h-9 Button, <code>variant="info-soft"</code>). Click → a confirm Dialog (full modal contract; not outside-click-closeable) offering mode = <b>เฉพาะช่องที่ว่าง</b> (default) / <b>ทั้งเดือน (ทับของเดิม)</b>. On confirm → <code>window.api.env.generateMonth({year,month,mode})</code> → on resolve, replace grid state with the returned rows + success toast. <span class="inv">Default preserves real entries; "ทับของเดิม" must be an explicit, deliberately-worded choice.</span></div>
+      <div class="step"><b>8 · A4 sheet + print.</b> Add <code>EnvSheet</code> render fns (header = shop name + month + "บันทึกอุณหภูมิและความชื้น"; table of days; signature rows). Wire <code>ReportPrintDialog</code> with measure-DOM pagination (copy the <code>useLayoutEffect</code> greedy-pack + hidden specimen from KhorYor9). Only enabled-zone columns render. <span class="inv">Include the zone-enabled flags in the measure <code>useLayoutEffect</code> dep array</span> — hiding a zone changes column count → row height (KhorYor9:227 deps only on rows/shopName). Depends only on the public <code>ReportPrintDialog</code> contract — see the print-pipeline note below.</div>
+      <div class="step"><b>9 · Settings tab.</b> Create <code>EnvironmentTab.tsx</code> (threshold form, <code>env:getSettings</code>/<code>saveSettings</code>); register in <code>Settings/index.tsx</code>. Admin-gated save. Save button via the existing TabStrip <code>registerSave</code>-ref pattern (the <code>sales</code> tab, Settings/index.tsx:41-45/62-69) OR self-host the button in the tab — pick one. <span class="inv">Form values = press-Save (not Switch); validate numeric, no blank→0.</span></div>
+      <div class="step"><b>10 · TitleBar (DEV, optional).</b> <code>TitleBar.tsx</code> maps route-pattern → SOURCE-FILE path (not a label). Add <code>{ pattern:'/reports/fda/environment', file:'src/pages/Reports/EnvLog.tsx' }</code> (TitleBar.tsx:26-27) + a Settings sub-file entry <code>'&lt;env tab value&gt;':'src/pages/Settings/EnvironmentTab.tsx'</code> (TitleBar.tsx:40-48). DEV breadcrumb only.</div>
+
+      <h3>Print-pipeline note (read before step 8)</h3>
+      <p>The env report's print is built ENTIRELY on the shared ข.ย. stack — <code>ReportPrintDialog</code> → <code>A4Sheet</code> (a4.tsx) → <code>printDomSheets</code> — the same pipeline being standardized on. So <b>build now; do not fork a local print path.</b> EnvLog must touch print ONLY through <code>ReportPrintDialog</code>'s public props (<code>pageCount</code>/<code>renderPreview</code>/<code>renderFullDoc</code>). When the new pipeline reworks those shared modules, the env report inherits it for free at that single seam — no env-specific migration. <span class="inv">If sequencing is preferred: ship steps 1–7 + 9 (DB · IPC · grid · generate · settings) first, do step 8 (print wiring) last once the shared stack settles</span> — entry/generate/highlight don't depend on print at all.</p>
+    </ol>
+
+    <h3>Verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> clean (run once after all edits; per tsc-discipline, not per-edit).</li>
+      <li>Click-test (<code>npm run electron:dev</code>): tab appears → key cells in a few days → reload → values persist. Enter 31°C / 78% / fridge 9 → cells go red + header count updates. "เติมค่าที่ว่าง" (default mode) → empty cells fill with in-range values, the days already keyed stay untouched, no future days filled; "ทับของเดิม" overwrites all. Toggle ตู้เย็น off → columns vanish on grid AND in print preview. "พิมพ์" preview shows the month + signature rows. "ฟอร์มเปล่า" prints blank.</li>
+      <li>Settings → อุณหภูมิ–ความชื้น: change a threshold, save, reopen → persisted; grid highlight reflects the new threshold.</li>
+    </ul>
+
+    <h3>Risks + mitigations</h3>
+    <ul>
+      <li><span class="inv">Autosave races.</span> Save per-cell on blur (not per keystroke); the upsert is idempotent on (log_date,period). Reflect server truth only after the promise resolves (optimistic value kept in local state until then).</li>
+      <li><span class="inv">"no such column".</span> The <code>field</code> allow-list Set is the gate — never interpolate <code>field</code> into SQL without membership check.</li>
+      <li><span class="inv">Zone hide must reach print.</span> Print render reads the SAME <code>env_settings</code> zone flags the grid uses — single source, so preview and grid can't diverge.</li>
+      <li><span class="inv">Real data.</span> Two brand-new tables; zero reads/writes to sales/stock/lots → no FEFO/finance impact. Rollback = drop the tables + revert files; existing DBs untouched.</li>
+      <li><span class="inv">Gating split.</span> <code>env:setZones</code> ungated (carve-out, documented) vs <code>env:saveSettings</code> admin — confirm both are intended before shipping (mirrors the barcode-sticker carve-out).</li>
+      <li><span class="inv">Generate overwrites.</span> Default <code>fill-empty</code> never touches a non-NULL cell, so real measurements are safe; only the explicit <code>all</code> mode overwrites. One transaction → all-or-nothing. Generated values always sit inside the configured thresholds (never produce a red cell). Cap at today so the current month never shows future readings.</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-19</footer>
+
+</div>
+<script>
+  function toggleZone(zone, on){
+    document.querySelectorAll('[data-zone="'+zone+'"]').forEach(function(el){
+      el.style.display = on ? '' : 'none';
+    });
+  }
+  // Demo of the "เติมค่าที่ว่าง" button — fills only blank cells with in-range
+  // sample values and tints them, preserving real entries (the safe default mode).
+  function genFill(){
+    document.querySelectorAll('table.gridmock td.fillable').forEach(function(el){
+      if(el.dataset.fill && !el.classList.contains('filled')){
+        el.textContent = el.dataset.fill;
+        el.classList.add('filled');
+      }
+    });
+  }
+</script>
+</body>
+</html>
