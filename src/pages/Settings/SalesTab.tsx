@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
 import { UpgradeVatDialog } from '@/components/dialogs/UpgradeVatDialog'
 import { DowngradeVatDialog } from '@/components/dialogs/DowngradeVatDialog'
-import { ClockAlert, PackageX, Info, Bell, ReceiptText } from 'lucide-react'
+import { ClockAlert, PackageX, Info, Bell, ReceiptText, Printer } from 'lucide-react'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
 import { formatDate } from '@/lib/utils'
 import type { SalesSettings } from '@/types'
@@ -33,6 +33,10 @@ export function SalesTab({ registerSave, saving, setSaving }: {
 }) {
   const { toast } = useToast()
   const [form, setForm] = useState<SalesForm>(DEFAULT_FORM)
+  // พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน — UI ย้ายมาอยู่ที่นี่ แต่ค่ายังเก็บที่
+  // receipt_settings.auto_print (POS อ่านผ่าน getReceiptSettings) จึงโหลด/บันทึก
+  // แยกผ่าน get/saveReceiptSettings ไม่ใช่ผ่าน sales_settings.
+  const [autoPrint, setAutoPrint] = useState(0)
   // VAT status display (read-only here) — mode itself is changed only through
   // the guarded one-way UpgradeVatDialog, never a toggle on this tab.
   const [vatEnabled, setVatEnabled] = useState(false)
@@ -65,6 +69,9 @@ export function SalesTab({ registerSave, saving, setSaving }: {
         })
       }
     })
+    window.api.settings.getReceiptSettings().then((d: any) => {
+      if (d) setAutoPrint(d.auto_print === 1 ? 1 : 0)
+    }).catch(() => { /* keep default off */ })
     loadVatStatus()
   }, [loadVatStatus])
 
@@ -74,14 +81,19 @@ export function SalesTab({ registerSave, saving, setSaving }: {
   const handleSave = useCallback(async () => {
     setSaving(true)
     try {
-      await window.api.settings.saveSalesSettings(form)
+      // auto_print เก็บคนละตาราง (receipt_settings) จึงบันทึกแยก — partial update
+      // อัปเดตเฉพาะคอลัมน์ auto_print ไม่กระทบค่าตั้งค่าใบเสร็จอื่น
+      await Promise.all([
+        window.api.settings.saveSalesSettings(form),
+        window.api.settings.saveReceiptSettings({ auto_print: autoPrint }),
+      ])
       toast({ title: 'บันทึกการตั้งค่าการขายสำเร็จ', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
     } finally {
       setSaving(false)
     }
-  }, [form, setSaving, toast])
+  }, [form, autoPrint, setSaving, toast])
 
   useEffect(() => { registerSave(handleSave) }, [handleSave, registerSave])
 
@@ -193,6 +205,28 @@ export function SalesTab({ registerSave, saving, setSaving }: {
               ) : (
                 <span>ขณะนี้ระบบ<span className="font-medium text-foreground">ไม่คิด VAT</span> กับการขาย. หากร้านจดทะเบียน VAT ในภายหลัง ให้กด "เปิดใช้ระบบ VAT" — ระบบจะคิด VAT กับทุกบิลนับจากนั้น การเปิด/ปิดถูก<span className="font-medium text-foreground">บันทึกประวัติเพื่อการตรวจสอบทุกครั้ง</span></span>
               )}
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          icon={Printer}
+          title="การพิมพ์ใบเสร็จ"
+          tint="primary"
+        >
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
+              <CheckRow
+                className="w-full h-12 px-3"
+                label="พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน"
+                checked={!!autoPrint}
+                onChange={v => setAutoPrint(v ? 1 : 0)}
+              />
+            </div>
+
+            <div className="rounded-lg border bg-muted/50 px-3 py-2 flex items-start gap-1.5 text-sm text-muted-foreground">
+              <Info className="size-3.5 shrink-0 mt-0.5" />
+              <span>เมื่อเปิด ระบบจะสั่ง<span className="font-medium text-foreground">พิมพ์ใบเสร็จอัตโนมัติ</span>ทันทีหลังชำระเงินเสร็จ — พนักงานยังเลือกพิมพ์/ไม่พิมพ์เป็นรายบิลได้ที่หน้าจอชำระเงิน</span>
             </div>
           </div>
         </SectionCard>

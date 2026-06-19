@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
 import { printDomSheets, parsePageSelection } from '@/lib/print/printDomSheets'
 import { ZoomControl } from '@/components/ui/zoom-control'
-import { A4 } from './a4'
+import { A4, A4_PORTRAIT } from './a4'
 import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
 
 // Preview zoom (multiplier). Default 0.75 (75%) — the whole A4-landscape sheet
@@ -30,21 +30,44 @@ interface ReportPrintDialogProps {
   pageCount: number
   renderPreview: (pageIndex: number) => ReactNode
   renderFullDoc: () => ReactNode
+  // 'landscape' (default) = the ขย. registers. 'portrait' = GR / tax invoice.
+  // Drives the preview-box dimensions AND is forwarded to printDomSheets so the
+  // spooled job matches the on-screen sheet.
+  orientation?: 'portrait' | 'landscape'
+  // Caller-owned print action (tax invoice: issue snapshot → spool → lock). When
+  // provided, the print button runs THIS instead of the built-in printDomSheets +
+  // toast (the caller owns spool + toast + close). Receives the parsed page
+  // selection + copies. Read through a ref (NOT a dep) so a non-memoized handler
+  // can't re-fire the print effect mid-job → double-spool. Omit it → the built-in
+  // path runs unchanged (GR / ข.ย. / EnvLog byte-identical).
+  onPrint?: (sel: { pages: number[] | 'all'; copies: number }) => Promise<void>
+  printDisabled?: boolean
+  printLabel?: string
+  footerNote?: ReactNode
+  // Initial preview zoom (and the value reset to on each open). Default 0.75
+  // (whole landscape sheet fits the dialog width). Portrait docs may want 1.
+  defaultZoom?: number
 }
 
 export default function ReportPrintDialog({
   open, onOpenChange, title, pageCount, renderPreview, renderFullDoc,
+  orientation = 'landscape', onPrint, printDisabled, printLabel, footerNote,
+  defaultZoom = DEFAULT_ZOOM,
 }: ReportPrintDialogProps) {
+  const sheet = orientation === 'portrait' ? A4_PORTRAIT : A4
   const { toast } = useToast()
+  // onPrint via ref so its identity is NOT in the print effect's dep array.
+  const onPrintRef = useRef(onPrint)
+  onPrintRef.current = onPrint
   const [viewPage, setViewPage] = useState(1)       // 1-based page shown
   const [pageInput, setPageInput] = useState('')    // "" = ทุกหน้า; เช่น "1-3,5"
   const [copies, setCopies] = useState(1)           // per-print, default 1, NOT persisted
-  const [zoom, setZoom] = useState(DEFAULT_ZOOM)     // preview zoom %, default 75
+  const [zoom, setZoom] = useState(defaultZoom)     // preview zoom %, default per prop
   const [printRender, setPrintRender] = useState(false)
 
   // Reset controls on the open rising edge so a prior open never carries over.
   useEffect(() => {
-    if (open) { setViewPage(1); setPageInput(''); setCopies(1); setZoom(DEFAULT_ZOOM) }
+    if (open) { setViewPage(1); setPageInput(''); setCopies(1); setZoom(defaultZoom) }
   }, [open])
 
   // Clamp viewPage if the parent recomputes fewer pages while the modal is open.
@@ -55,7 +78,7 @@ export default function ReportPrintDialog({
   const scale = zoom
 
   const handlePrint = () => {
-    if (pageCount === 0) return
+    if (pageCount === 0 || printDisabled) return
     setPrintRender(true)
   }
 
@@ -66,12 +89,22 @@ export default function ReportPrintDialog({
     let cancelled = false
     ;(async () => {
       try {
+        const pages = parsePageSelection(pageInput, pageCount)
+        const copiesN = Math.max(1, Number(copies) || 1)
+        // Caller-owned print path (e.g. tax invoice: issue → spool → lock). It
+        // owns spooling + toast + close; the dialog only mounted `.a4-doc` for it.
+        if (onPrintRef.current) {
+          await onPrintRef.current({ pages, copies: copiesN })
+          return
+        }
+        // Built-in path — spool the chosen pages to the configured A4 printer.
         const ds = (await window.api.settings.getDocumentSettings()) as any
         const res = await printDomSheets({
           docSelector: '.a4-doc',
-          pages: parsePageSelection(pageInput, pageCount),
+          pages,
           printerName: ds?.printer_name || '',
-          copies: Math.max(1, Number(copies) || 1),
+          copies: copiesN,
+          orientation,
         })
         if (cancelled) return
         if (res.success) toast({ title: 'ส่งไปยังเครื่องพิมพ์แล้ว', variant: 'success' })
@@ -81,7 +114,7 @@ export default function ReportPrintDialog({
       }
     })()
     return () => { cancelled = true }
-  }, [printRender, pageInput, pageCount, copies, toast])
+  }, [printRender, pageInput, pageCount, copies, orientation, toast])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,8 +144,8 @@ export default function ReportPrintDialog({
               when zoomed past the viewport width. */}
           <div className="relative flex-1 min-h-0">
             <div className="absolute inset-0 overflow-auto scrollbar-thin bg-muted/30 rounded-lg p-6 [scrollbar-gutter:stable]">
-              <div className="mx-auto" style={{ width: A4.W * scale, height: A4.H * scale }}>
-                <div style={{ width: A4.W, height: A4.H, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+              <div className="mx-auto" style={{ width: sheet.W * scale, height: sheet.H * scale }}>
+                <div style={{ width: sheet.W, height: sheet.H, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
                   {renderPreview(viewPage - 1)}
                 </div>
               </div>
@@ -169,9 +202,10 @@ export default function ReportPrintDialog({
               className="h-9 w-24 shrink-0"
             />
           </div>
+          {footerNote && <div className="shrink min-w-0 text-sm">{footerNote}</div>}
           <Button variant="elevated" className="h-9" onClick={() => onOpenChange(false)}>ยกเลิก</Button>
-          <Button variant="default" className="h-9" onClick={handlePrint} disabled={pageCount === 0}>
-            <Printer className="size-4" /> พิมพ์
+          <Button variant="default" className="h-9" onClick={handlePrint} disabled={pageCount === 0 || printDisabled}>
+            <Printer className="size-4" /> {printLabel ?? 'พิมพ์'}
           </Button>
         </DialogFooter>
 

@@ -8,11 +8,11 @@ metadata:
 
 **เป้าหมาย:** ทำ popup dialog ก่อนพิมพ์จริง (ช่องกำหนดหน้า + จำนวนสำเนา) แทนปุ่ม "ดูตัวอย่าง PDF"/"ดู PDF" ที่กระจายอยู่ และยุบปุ่ม PDF ทิ้งทั้งหมด. ต้นแบบที่มีอยู่แล้ว = `src/pages/Reports/ReportPrintDialog.tsx` (ใช้กับ ข.ย.9/10/11).
 
-## Phase 1 — ยุบปุ่ม PDF (⚠️ PAUSED 2026-06-19 — เคยทำเสร็จ tsc PASS แต่ถูกงานคู่ขนานเขียนทับ)
+## Phase 1 — ยุบปุ่ม PDF (✅ DONE — folded เข้า commit `d7dda8d` โดยงานคู่ขนาน)
 
-หนูลบปุ่ม PDF ครบ 5 ไฟล์แล้ว (tsc ผ่าน) แต่ **งานคู่ขนาน** (ฟีเจอร์ Environment/อุณหภูมิ-ความชื้น + drug-label: `EnvLog.tsx`, `EnvironmentTab.tsx`, `electron/ipc/env.ts`, `LabelPrintDialog.tsx`, `lib/label/*` ฯลฯ) แก้ไฟล์เดียวกันแล้วเขียนทับ → **ปุ่ม PDF กลับมาครบทั้ง 5 จุด**. ผู้ใช้ตัดสินใจ **เว้น Phase 1 ไว้ก่อน รองานคู่ขนานเสร็จ** แล้วค่อยลบปุ่ม PDF ใหม่ทีเดียวบนทรีสะอาด. อย่ารีบ re-apply เอง.
+ปุ่ม "ดูตัวอย่าง PDF"/"ดู PDF" + handler + state + FileText import ที่ไม่ใช้ **ถูกลบครบทั้ง 5 ไฟล์แล้ว** ใน commit `d7dda8d` (`feat(label): ... + print-dialog unification (WIP)` งานคู่ขนาน drug-label/Environment). ครั้งแรกหนูลบเองแต่ถูกเขียนทับชั่วคราว — commit สุดท้ายลบครบและสะอาด (grep ยืนยัน 2026-06-19: ไม่มี `handlePreviewPdf`/`pdfLoading`/`previewHtmlPdf`/`previewLabelPdf`/`clampCopies` ค้าง). คงไว้: live preview + ปุ่ม "ทดสอบพิมพ์"/"พิมพ์". เหลือแค่ comment เก่าพูดถึง "/PDF" 5 จุด (LabelSettingsTab:188,372 / LabelsTab:60,139,194) — ไม่กระทบการทำงาน.
 
-5 ไฟล์ + จุดที่ต้องลบ (อ้างอิงตอน resume):
+(บันทึกเดิม — 5 ไฟล์ + จุดที่ลบ เก็บไว้อ้างอิง):
 
 | File | ลบ |
 |------|-----|
@@ -31,9 +31,32 @@ metadata:
 - **ใบ GR (ใบรับสินค้า)** = ต้องมี popup preview เหมือน ข.ย. (copies + page-range). GR หลายหน้าบ่อย (เช่น 30 รายการ)
 - **ใบกำกับภาษี** = ยุบปุ่ม PDF + ทำ popup preview ในจอแทน, คงกลไก deferred-lock เดิม (`tax.confirmOriginalPrinted` หลังพิมพ์ต้นฉบับสำเร็จเท่านั้น)
 
-## Phase 2 — GR popup preview (แผนพร้อมแล้ว ✅ ผ่าน audit 2 รอบ, ยังไม่ลงมือ)
+## Phase 2 — GR popup preview (✅ DONE 2026-06-19, tsc PASS; in-app/print verify pending)
 
-**SSOT แผน = `docs/plans/GR_Print_Preview.html`** (Section B = ขั้นตอน Claude ทำงาน, ละเอียดพร้อมลงมือ). audit 2 รอบด้วย general-purpose ไม่มี P0/P1.
+**SSOT แผน = `docs/plans/GR_Print_Preview.html`** (Section B = ขั้นตอนที่ทำจริง). audit 2 รอบ ไม่มี P0/P1.
+
+**ไฟล์ที่ทำ:** `a4.tsx` (+`A4_PORTRAIT`/`A4P_CONTENT_W,H` + prop `orientation` บน A4Sheet, default landscape) · `printDomSheets.ts` (+param `orientation`, default landscape → `@page size`/`.a4-sheet` mm/`landscape:!isPortrait`) · `ReportPrintDialog.tsx` (+prop `orientation` → `sheet=A4_PORTRAIT|A4` สำหรับ preview box + ส่งต่อ printDomSheets, ใส่ dep) · **NEW `src/components/dialogs/GoodsReceiptPrintDialog.tsx`** (re-home type `GoodsReceiptForPrint`/`GoodsReceiptLine` มาที่นี่; measure specimen + pack + host ReportPrintDialog portrait) · `PurchaseReceiptDialog.tsx` (ปุ่มพิมพ์→`setPrintOpen`, `builtGr`=useMemo, ลบ toast/printGoodsReceipt) · ลบ `buildGoodsReceiptHtml.ts` + `printGoodsReceipt`/`previewGoodsReceipt` ใน print.ts · อัปเดต carve-out `ui-theming.md`.
+
+**impl notes:** ระยะห่างในแผ่นใช้ **padding ไม่ใช่ margin** (offsetHeight วัด padding ไม่วัด margin → budget ไม่ขาด); ลายเซ็น `pt-6` (วัดได้); specimen mount เฉพาะตอน `open`; pack dep = `[open, lines(memoized), shop]`.
+
+**GR restyle ตาม template TNP (2026-06-19):** เปลี่ยนให้เหมือนใบกำกับ — ตารางบ็อกซ์ (กรอบนอก + `border-l` คอลัมน์ + `border-b` ใต้หัว, ไม่มีเส้นแถว) + `renderTable` มี filler `h-full` ยืดเต็มหน้า (ห่อ `flex-1`); หัวสองภาษา (`\n`+`whitespace-pre-line`); totals = จำนวนเงินตัวอักษร (`bahtText`) ซ้าย + กล่อง summary ขวา; **footer (totals+signature) = หน้าสุดท้ายเท่านั้น** (เลิก signature ทุกหน้า; budget ไม่ลบ signatureH, footerH=totalsH+signatureH); `defaultZoom={1}`.
+
+## Phase 3 — ใบกำกับภาษี popup + ตัด A5 (✅ DONE 2026-06-19, tsc PASS; in-app/print verify pending)
+
+**SSOT แผน = `docs/plans/Tax_Invoice_Print_Preview.html`** (Section B). audit 2 รอบ ไม่มี P0/P1 ค้าง. **ตัด A5 ออกทั้งระบบ → A4 อย่างเดียว** (column `paper_size` = DEAD บังคับ A4, จดใน refine_schema #4 + คอมเมนต์ DEAD COLUMN schema.ts:623/types:197). เลือก **Path B เต็มตัว: ลบ `buildTaxInvoiceHtml` (HTML) → React A4Sheet** ใช้แผ่นเดียว (`taxInvoiceSheet.tsx`) ทั้ง popup พิมพ์จริง + พรีวิว DocumentSettingsTab.
+
+**ไฟล์ที่ทำจริง:** `ReportPrintDialog.tsx` (+props `onPrint`(อ่านผ่าน ref ไม่อยู่ใน dep)/`printDisabled`/`printLabel`/`footerNote`; effect branch: onPrint → ข้าม built-in) · **NEW `src/components/receipt/taxInvoiceSheet.tsx`** (`taxInvoiceSheetParts`) · **รื้อ `TaxInvoiceBuyerDialog.tsx`** (popup preview portrait + measure-pack + `handlePrintGuarded`=issueOrGet→printDomSheets→confirmOriginalPrinted; buyer read-only ในแผ่น) · **รื้อ `DocumentSettingsTab.tsx`** (พรีวิว A4Sheet + ทดสอบพิมพ์ printDomSheets + เอา dropdown A5 + load loop `continue` paper_size) · `PrintTab` A4-only · ลบ `buildTaxInvoiceHtml.ts` + `printTaxInvoice`/`previewTaxInvoice`/`docConfig`/`PAGE_MM` ใน print.ts · carve-out ui-theming.md.
+
+**P0 ที่คงไว้:** preview = transient record (ไม่ issueOrGet); `confirmOriginalPrinted` เฉพาะ `if(success && !isCopy)`; `isCopy` จาก issueOrGet; buyer READ-ONLY. **bug ที่กันไว้:** `await getDocumentSettings()`; money cell ทุกช่อง formatCurrency.
+
+**Layout = clone ฟอร์ม TNP (2026-06-19, ตามรูปจริงที่ผู้ใช้ส่ง):** หัวสองคอลัมน์ (ร้านซ้าย + กล่อง meta ขวา: วันที่/เลขที่) → กล่องผู้ซื้อ (border) → ตารางบ็อกซ์ 5 คอลัมน์ (ลำดับ/จำนวน/รายการ/ราคาต่อหน่วย/จำนวนเงิน; หัวสองภาษา `\n`+`whitespace-pre-line`) **เส้นกรอบนอก + เส้นคอลัมน์เท่านั้น ไม่มีเส้นระหว่างแถว** + เส้นใต้หัวเดียว → **filler row `h-full` ดูดความสูง** ให้เส้นคอลัมน์ลากเต็มหน้า (ตารางห่อ `flex-1`) → ล่าง = จำนวนเงินตัวอักษร (`bahtText`) ซ้าย + กล่องสรุป VAT ขวา (ก่อน VAT/VAT%/รวม VAT) + ลายเซ็น (ผู้รับสินค้า/ผู้รับเงิน + ผู้รับมอบอำนาจ). **footer (totals+signature) = หน้าสุดท้ายเท่านั้น** (pseudo-row `footerH=totalsH+signatureH`; budget ต่อหน้าไม่ลบ signatureH แล้ว). default zoom popup ใบกำกับ = 1.0 (prop `defaultZoom`). **ข้อจำกัดข้อมูล:** ไม่มี รหัสสินค้า/โลโก้/ชื่อร้าน EN/PO/SO/Salesman → คอลัมน์แรกใช้ "ลำดับ", ช่องที่ไม่มีเว้นว่าง.
+
+**งานหลัก:** (1) extend `ReportPrintDialog` +props `onPrint`/`printDisabled`/`printLabel`/`footerNote` (default off → GR/ข.ย./EnvLog ไม่กระทบ; **อ่าน onPrint ผ่าน ref ไม่ใส่ dep array** กัน double-spool; branch ใน effect `printRender` หลัง mount `.a4-doc`) (2) NEW `src/components/receipt/taxInvoiceSheet.tsx` (shared sheet parts) (3) รื้อ `TaxInvoiceBuyerDialog` เป็น popup preview + `onPrint=handlePrintGuarded` (issue→spool→lock) (4) รื้อ `DocumentSettingsTab` พรีวิว→A4Sheet + เอา dropdown A5 ออก + load loop `continue` ที่ paper_size (5) PrintTab A4-only (6) ลบ `buildTaxInvoiceHtml.ts`+`printTaxInvoice`/`previewTaxInvoice`+orphaned `docConfig`/`PAGE_MM`.
+
+**invariant ห้ามพัง (P0):** preview = transient record (ห้าม issueOrGet); `confirmOriginalPrinted` เฉพาะ `if(success && !copy)`; `copy` จาก issueOrGet ไม่ใช่ alreadyOriginal; buyer READ-ONLY (ไม่มี picker). **bug ที่ audit จับ:** `getDocumentSettings()` เป็น Promise ต้อง `await`; money cell ทุกช่อง (รวม qty "5.00") ผ่าน `formatCurrency`; presets.ts/buildPriceTagHtml คง `'A4'|'A5'` (รับ 'A4' ได้, A5 dead).
+
+---
+(แผนเดิมเฟส 2 audit 2 รอบ — รายละเอียดด้านล่างเก็บไว้อ้างอิง)
 
 เลือก **Path B = React `A4Sheet` + `printDomSheets`** (ท่อเดียวกับ ข.ย.) ไม่ใช่ iframe+`printHtml`. เหตุผล: iframe ปล่อย print engine ตัดหน้าเอง → preview มองไม่เห็นรอยตัด + กำหนดหน้าเดามั่วเมื่อหลายหน้า. printDomSheets แบ่งหน้าเอง → preview=พิมพ์ 1:1 + เลือกหน้าแม่น (`.a4-sheet` ฝั่ง client).
 

@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ZoomControl } from '@/components/ui/zoom-control'
-import { Checkbox, CheckRow } from '@/components/ui/checkbox'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { useShopVat } from '@/hooks/useShopVat'
 import { FONTS } from '@/lib/print/fonts'
@@ -27,18 +27,21 @@ import {
 // Form keys are canonical receipt_settings column names — Object.keys(form)
 // flows into the dynamic-SQL UPDATE in settings:saveReceiptSettings, so any key
 // here must be a real column.
-type ReceiptForm = Omit<ReceiptSettings, 'id' | 'updated_at'>
+// auto_print is deliberately NOT owned here — the "พิมพ์ใบเสร็จอัตโนมัติ" toggle
+// lives on the การขาย tab (SalesTab) now; it still persists to this same
+// receipt_settings.auto_print column, just through a different screen.
+type ReceiptForm = Omit<ReceiptSettings, 'id' | 'updated_at' | 'auto_print'>
 
 const DEFAULTS: ReceiptForm = {
   printer_name: '',
   paper_width_mm: 80,
   paper_height_mm: 0,
-  auto_print: 0,
   copies: 1,
   font_family: 'Sarabun',
   font_size: 11,
   footer_note: 'ขอบคุณที่ใช้บริการ',
   abbrev_tax_invoice: 1,
+  items_layout: 'detailed',
   // Per-section style — defaults mirror the receipt_settings column defaults.
   show_shop: 1,         bold_shop: 1,         align_shop: 'center',
   show_shop_contact: 1, bold_shop_contact: 0, align_shop_contact: 'center',
@@ -131,7 +134,9 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
   const setF = <K extends keyof ReceiptForm>(k: K, v: ReceiptForm[K]) =>
     setForm(f => ({ ...f, [k]: v }))
 
-  const settingsForBuild: ReceiptSettings = useMemo(() => ({ id: 1, ...form }), [form])
+  // auto_print isn't used by the slip builder (it's a POS behavior flag, not a
+  // layout flag); supply a placeholder so the spread satisfies ReceiptSettings.
+  const settingsForBuild: ReceiptSettings = useMemo(() => ({ id: 1, auto_print: 0, ...form }), [form])
   // Preview reflects the shop's VAT status (not a manual toggle): a VAT shop
   // sees an abbreviated tax invoice with the VAT line; a NO-VAT shop sees a
   // plain cash receipt with total_vat zeroed out.
@@ -255,20 +260,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
               {/* ความสูง = อัตโนมัติเสมอ (กระดาษม้วนต่อเนื่อง — ตัดพอดีเนื้อหา) และ
                   ไม่พิมพ์สำเนา — ทั้งคู่ไม่เปิดให้ปรับอีกต่อไป (บังคับ auto / 1 ใบ
                   ทุกที่ที่พิมพ์, ดู print.ts). */}
-
-              {/* ตัวเลือกการพิมพ์ — both switches share ONE frame (canonical
-                  grouped-switch box, cf. SalesTab). Lives on the printer tab. */}
-              <div className="pt-1">
-                <p className="pb-2 text-sm font-semibold text-foreground">ตัวเลือก</p>
-                <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
-                  <CheckRow
-                    className="w-full h-12 px-3"
-                    label="พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน"
-                    checked={!!form.auto_print}
-                    onChange={v => setF('auto_print', v ? 1 : 0)}
-                  />
-                </div>
-              </div>
+              {/* "พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน" ย้ายไปอยู่แท็บ การขาย (SalesTab) แล้ว */}
                   </div>
                 </SectionCard>
               </TabsContent>
@@ -298,6 +290,23 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                         />
                       </FormField>
                     </div>
+                  </div>
+                  {/* รูปแบบบล็อกรายการสินค้า — ละเอียด (2 บรรทัด) หรือ ตาราง 1
+                      บรรทัด (ชื่อ | จำนวน+หน่วย | ราคา | รวม). คอลัมน์/ลำดับคงที่,
+                      ไม่อยู่ในรายการ per-section ด้านล่าง (อ่านโดย buildSlipHtml). */}
+                  <div className="mt-3">
+                    {/* Full-width primary segmented toggle (sliding primary pill
+                        via framer-motion). variant="default" = bg-primary pill +
+                        equal-width columns (auto-cols-fr); w-full stretches it
+                        across the row. Controlled Tabs, value = form.items_layout. */}
+                    <FormField label="รูปแบบรายการสินค้า">
+                      <Tabs value={form.items_layout} onValueChange={v => setF('items_layout', v as ReceiptForm['items_layout'])} className="w-full">
+                        <TabsList variant="default" className="w-full">
+                          <TabsTrigger value="detailed">แบบละเอียด (2 บรรทัด)</TabsTrigger>
+                          <TabsTrigger value="table">แบบตาราง (1 บรรทัด)</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </FormField>
                   </div>
                   {/* Per-section style — one row per group: show toggle + bold +
                       alignment (ซ้าย/กลาง/ขวา/กระจาย). Font size is global (above).

@@ -48,7 +48,7 @@ export const RC_SECTIONS: RcSectionDef[] = [
   { key: 'title',        label: 'ชื่อเอกสาร',                   kind: 'text', hrAfter: true },
   { key: 'bill_info',    label: 'เลขที่ / วันที่ / ผู้รับบริการ', kind: 'pair', hrAfter: true },
   { key: 'items',        label: 'รายการขาย',                    kind: 'items', hrAfter: true },
-  { key: 'summary',      label: 'มูลค่า / ส่วนลด / รวมทั้งสิ้น',  kind: 'pair' },
+  { key: 'summary',      label: 'มูลค่า / ส่วนลด / รวมทั้งสิ้น',  kind: 'pair', hrAfter: true },
   { key: 'payment',      label: 'รับเงิน / เงินทอน',             kind: 'pair', hrAfter: true },
   { key: 'footer',       label: 'ข้อความท้ายใบเสร็จ',            kind: 'text' },
   { key: 'salesperson',  label: 'พนักงานขาย',                   kind: 'text' },

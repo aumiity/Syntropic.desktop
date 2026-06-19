@@ -40,6 +40,15 @@
   3. `src/types/index.ts:6` — ถอด `is_hidden` ออกจาก type `Product`
   4. (ตรวจซ้ำ) seed/import: `electron/db/seed.ts`, `scripts/import-hygeia.mjs`, `scripts/gen-products.py` ยังอ้าง `is_hidden` ใน INSERT — ถ้า DB เก่ายัง import อยู่ค่อยถอด ไม่งั้นถอดพร้อมกัน
 
+### 4. `document_settings.paper_size`
+- **ที่มา:** ตัด A5 ออกทั้งระบบ (2026-06-19) — เอกสาร A4 (ใบกำกับภาษี/ใบรับสินค้า) + ป้ายราคา ใช้ A4 ขนาดเดียว. `DocumentSettingsTab` เอา dropdown ออก + load loop `continue` ที่ key นี้ (กันค่า A5 เก่าไหลกลับ); โค้ดทุกที่ force/ส่ง `'A4'` แล้ว
+- **memory:** `.claude/memory/project_print_dialog_unification.md`
+- **ขั้นตอนลบ:**
+  1. `electron/db/schema.ts:623` — ลบคอลัมน์ `paper_size` + คอมเมนต์ DEAD COLUMN; ลบ `ALTER TABLE document_settings ADD COLUMN paper_size ...` (~:1070); เพิ่ม `ALTER TABLE document_settings DROP COLUMN paper_size`
+  2. `src/types/index.ts:197` — ถอด `paper_size` จาก `DocumentSettings` (**สำคัญ:** `settings:saveDocumentSettings` ใช้ dynamic `Object.keys` → ถ้าฟอร์มยังมี key นี้หลัง DROP จะ throw `no such column`; `DocumentSettingsTab` DEFAULTS ต้องถอด `paper_size` ออกด้วย)
+  3. `src/pages/Products/PrintTab/index.tsx` — `type PaperSize` + `A4_DIMS` + `DocSettings.paper_size` เป็น A4 อยู่แล้ว ลบ field ได้เมื่อ type DocumentSettings ไม่มีแล้ว
+  4. (เผื่อ) `src/lib/tags/presets.ts` + `buildPriceTagHtml` ยังรับ `'A4'|'A5'` (A5 branch ตายแล้ว) — เก็บกวาดให้เหลือ A4 ตอนนี้พร้อมกันได้
+
 ---
 
 ## ลบแล้ว (DONE)

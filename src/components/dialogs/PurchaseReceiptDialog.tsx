@@ -1,12 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { AlertTriangle, Printer } from 'lucide-react'
-import { useToast } from '@/components/ui/toast'
-import { printGoodsReceipt } from '@/lib/receipt/print'
+import { GoodsReceiptPrintDialog, type GoodsReceiptForPrint } from '@/components/dialogs/GoodsReceiptPrintDialog'
 import type { ProductLot } from '@/types'
 
 interface ReceiptItem extends ProductLot {
@@ -38,9 +37,9 @@ export function PurchaseReceiptDialog({
   onLoad?: (items: ReceiptItem[]) => void
   refreshKey?: number
 }) {
-  const { toast } = useToast()
   const [items, setItems] = useState<ReceiptItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [printOpen, setPrintOpen] = useState(false)
 
   useEffect(() => {
     if (!open || !invoiceNo) return
@@ -71,9 +70,12 @@ export function PurchaseReceiptDialog({
   const isCancelled = header?.status === 'cancelled'
   const isOverdue = !!header && !isCancelled && header.payment_type === 'credit' && !header.is_paid && !!header.due_date && header.due_date < today
 
-  const handlePrint = async () => {
-    if (!header || !invoiceNo) return
-    const res = await printGoodsReceipt({
+  // Built from the loaded receipt; the portrait print popup renders from this.
+  // Memoized (not built inside handlePrint) so the popup never works off a stale
+  // snapshot if items refresh while it's open. null until the header is loaded.
+  const builtGr = useMemo<GoodsReceiptForPrint | null>(() => {
+    if (!header || !invoiceNo) return null
+    return {
       invoice_no: invoiceNo,
       supplier_name: header.supplier_name,
       supplier_invoice_no: header.supplier_invoice_no,
@@ -92,8 +94,12 @@ export function PurchaseReceiptDialog({
         qty_received: i.qty_received,
         cost_price: i.cost_price,
       })),
-    })
-    if (!res.success) toast({ title: 'พิมพ์ใบรับสินค้าไม่สำเร็จ', description: res.error, variant: 'error' })
+    }
+  }, [header, invoiceNo, discountAmt, surchargeAmt, items])
+
+  const handlePrint = () => {
+    if (!header || !invoiceNo) return
+    setPrintOpen(true)
   }
 
   return (
@@ -248,6 +254,10 @@ export function PurchaseReceiptDialog({
           </>
         )}
       </DialogContent>
+
+      {/* Portrait print-preview popup — opened by the header print button
+          (stacked on top, like SaleDetailDialog stacks TaxInvoiceBuyerDialog). */}
+      <GoodsReceiptPrintDialog open={printOpen} onOpenChange={setPrintOpen} gr={builtGr} />
     </Dialog>
   )
 }

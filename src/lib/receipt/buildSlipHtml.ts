@@ -99,8 +99,20 @@ export async function buildSlipHtml(
     sale.customer_name ? { label: 'ลูกค้า', value: esc(sale.customer_name) } : null,
   ]
 
-  // 6) รายการขาย (fixed layout — not user-styleable)
-  const itemsHtml = sale.items.map(it => {
+  // 6) รายการขาย — two layouts (settings.items_layout; column order/labels fixed,
+  //    not per-section styleable):
+  //    detailed = ชื่อบรรทัดแรก + "จำนวน หน่วย × ราคา … ยอด" บรรทัดสอง (ค่าเริ่มต้น)
+  //    table    = ตาราง 1 บรรทัด/รายการ: ชื่อ | จำนวน+หน่วย | ราคา | รวม. ฟอนต์ของ
+  //               ตารางย่อลงเล็กน้อย (.itbl) ให้ครบ 4 คอลัมน์; ชื่อยาวตัดบรรทัดใน
+  //               คอลัมน์ตัวเอง. คอลัมน์ "รวม" = ยอดสุทธิ (หักส่วนลดแล้ว); ส่วนลด
+  //               รวมโชว์ในสรุปนอกตาราง จึงไม่ทำซ้ำเป็นแถวในตาราง
+  // ตาราง 4 คอลัมน์ต้องการกระดาษกว้าง — บนม้วนแคบ (58 มม.) แน่นเกินไป จึงบังคับ
+  // กลับไปใช้แบบ detailed (2 บรรทัด) ไม่ว่าจะตั้งค่าไว้แบบไหน.
+  const ITEMS_TABLE_MIN_WIDTH_MM = 72
+  const itemsLayout =
+    settings.items_layout === 'table' && widthMm >= ITEMS_TABLE_MIN_WIDTH_MM ? 'table' : 'detailed'
+
+  const itemsDetailed = sale.items.map(it => {
     const discRow = it.discount > 0
       ? `<div class="line"><span>ส่วนลด</span><span class="val">-${money(it.discount)}</span></div>`
       : ''
@@ -110,6 +122,15 @@ export async function buildSlipHtml(
       ${discRow}
     </div>`
   }).join('')
+
+  const itemsTable = `<table class="itbl">
+  <thead><tr><th class="c-name">รายการ</th><th class="c-qty">จำนวน</th><th class="c-price">ราคา</th><th class="c-amt">รวม</th></tr></thead>
+  <tbody>${sale.items.map(it =>
+    `<tr><td class="c-name">${esc(it.item_name)}</td><td class="c-qty">${money(it.qty)} ${esc(it.unit_name)}</td><td class="c-price">${money(it.unit_price)}</td><td class="c-amt">${money(it.line_total)}</td></tr>`
+  ).join('')}</tbody>
+</table>`
+
+  const itemsHtml = itemsLayout === 'table' ? itemsTable : itemsDetailed
 
   // 7) มูลค่า / ส่วนลด / ภาษี / รวมทั้งสิ้น
   const summaryRows: (PairRow | null)[] = [
@@ -131,6 +152,13 @@ export async function buildSlipHtml(
         { label: 'เงินทอน', value: money(sale.change_amount) },
       ]
     : []
+
+  // Rendered summary/payment blocks: a dashed rule separates รวมทั้งสิ้น from
+  // รับเงิน, but only when BOTH blocks are present — skip it on non-cash sales
+  // (empty payment) or when either section is hidden, to avoid a dangling rule.
+  const summaryHtml = pairBlock('summary', summaryRows)
+  const paymentHtml = pairBlock('payment', paymentRows)
+  const summaryPaymentHr = summaryHtml && paymentHtml ? '<hr>' : ''
 
   // 9) ข้อความท้ายใบเสร็จ
   const footerInner = settings.footer_note ? esc(settings.footer_note) : ''
@@ -165,6 +193,14 @@ hr { border: none; border-top: 1px dashed #000; margin: 1.5mm 0; }
 .line { display: flex; justify-content: space-between; gap: 2mm; }
 .item { margin-bottom: 1mm; }
 .iname { font-weight: 600; }
+/* Table layout (items_layout='table'): font shrunk a touch so the 4 columns fit
+   a narrow roll; the name column wraps, the numeric columns stay on one line. */
+.itbl { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 0.85em; }
+.itbl th, .itbl td { padding: 0.3mm 0.5mm; vertical-align: top; }
+.itbl thead th { border-bottom: 1px solid #000; font-weight: 600; }
+.itbl .c-name { width: 50%; text-align: left; word-break: break-word; }
+.itbl .c-qty { width: 18%; text-align: center; }
+.itbl .c-price, .itbl .c-amt { width: 16%; text-align: right; white-space: nowrap; }
 </style></head><body>
   ${textBlock('shop', shopInner)}
   ${textBlock('shop_contact', contactInner)}
@@ -176,8 +212,9 @@ hr { border: none; border-top: 1px dashed #000; margin: 1.5mm 0; }
   <hr>
   ${itemsHtml}
   <hr>
-  ${pairBlock('summary', summaryRows)}
-  ${pairBlock('payment', paymentRows)}
+  ${summaryHtml}
+  ${summaryPaymentHr}
+  ${paymentHtml}
   ${abbrevNote}
   <hr>
   ${textBlock('footer', footerInner)}

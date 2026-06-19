@@ -27,7 +27,8 @@ import { LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
 import { buildBlankLabelHtml, type BlankLabelShop } from '@/lib/label/blankLabel'
 
 type Mode = 'sticker' | 'pricetag' | 'blank'
-type PaperSize = 'A4' | 'A5'
+// A5 removed system-wide → A4 only (document_settings.paper_size is forced 'A4').
+type PaperSize = 'A4'
 
 interface DocSettings {
   printer_name: string
@@ -36,7 +37,6 @@ interface DocSettings {
 
 const A4_DIMS: Record<PaperSize, { w: number; h: number }> = {
   A4: { w: 210, h: 297 },
-  A5: { w: 148, h: 210 },
 }
 
 export default function PrintTab() {
@@ -78,7 +78,7 @@ export default function PrintTab() {
       window.api.settings.getShop(),
     ]).then(([lbl, dc, sk, pt, prs, sh]) => {
       if (lbl) setLabel({ ...LABEL_DEFAULTS, ...lbl })
-      if (dc) setDoc({ printer_name: dc.printer_name ?? '', paper_size: (dc.paper_size as PaperSize) ?? 'A4' })
+      if (dc) setDoc({ printer_name: dc.printer_name ?? '', paper_size: 'A4' })
       if (sk) setStickerCfg({ ...BARCODE_STICKER_DEFAULTS, ...sk })
       if (pt) setPriceCfg({ ...PRICE_TAG_DEFAULTS, ...pt })
       setPrinters(((prs as any[]) ?? []).map((p) => p.name))

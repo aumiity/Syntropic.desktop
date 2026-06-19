@@ -593,6 +593,10 @@ export function initializeSchema(db: Database.Database) {
       -- DEAD COLUMN: โหมดใบกำกับภาษีอย่างย่อตัดสินจาก sale.total_vat>0 (print.ts) แล้ว
       -- ไม่มี UI/โค้ดอ่านค่านี้ → DROP ตอน schema cleanup. ดู docs/refine_schema.md
       abbrev_tax_invoice INTEGER NOT NULL DEFAULT 1,
+      -- รูปแบบบล็อกรายการสินค้า: 'detailed' = 2 บรรทัด/รายการ (ชื่อ + จำนวน×ราคา …
+      -- ยอด, ค่าเริ่มต้น), 'table' = ตาราง 1 บรรทัด/รายการ (ชื่อ | จำนวน+หน่วย |
+      -- ราคา | รวม). อ่านโดย buildSlipHtml.ts.
+      items_layout       TEXT NOT NULL DEFAULT 'detailed',
       -- Per-section style (SSOT: src/lib/receipt/sections.ts). show_/bold_ = 0|1,
       -- align_ = 'left'|'center'|'right'|'justify'. Font SIZE is global above.
       show_shop          INTEGER NOT NULL DEFAULT 1, bold_shop          INTEGER NOT NULL DEFAULT 1, align_shop          TEXT NOT NULL DEFAULT 'center',
@@ -616,6 +620,9 @@ export function initializeSchema(db: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       printer_name TEXT NOT NULL DEFAULT '',
       copies       INTEGER NOT NULL DEFAULT 1,
+      -- DEAD COLUMN: A5 removed system-wide (2026-06-19) — always 'A4' now. Kept
+      -- to avoid mid-dev migration; drop in the pre-launch schema cleanup
+      -- (docs/refine_schema.md). See [[project_print_dialog_unification]].
       paper_size   TEXT NOT NULL DEFAULT 'A4',
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
@@ -1095,6 +1102,8 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE receipt_settings ADD COLUMN show_salesperson   INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE receipt_settings ADD COLUMN bold_salesperson   INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE receipt_settings ADD COLUMN align_salesperson   TEXT NOT NULL DEFAULT 'center'`,
+    // รูปแบบบล็อกรายการสินค้า: 'detailed' (เดิม) | 'table' (ตาราง 1 บรรทัด/รายการ).
+    `ALTER TABLE receipt_settings ADD COLUMN items_layout       TEXT NOT NULL DEFAULT 'detailed'`,
     // Retire the receipt header note (owner doesn't use it). DROP COLUMN needs
     // SQLite 3.35+ (bundled); the loop's per-statement try/catch swallows it on
     // older engines, where the column simply lingers unused (harmless).

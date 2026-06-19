@@ -87,6 +87,11 @@ export async function printDomSheets(opts: {
   pages?: number[] | 'all'
   printerName: string
   copies?: number
+  // 'landscape' (default) = the ขย. registers + EnvLog. 'portrait' = GR / tax
+  // invoice. Drives @page size, the .a4-sheet mm dimensions, and the per-document
+  // landscape flag on printDocument. Default landscape keeps existing callers
+  // (which pass no orientation) byte-identical.
+  orientation?: 'portrait' | 'landscape'
 }): Promise<PrintDomResult> {
   const doc = document.querySelector(opts.docSelector)
   if (!doc) return { success: false, error: 'ไม่พบเนื้อหาที่จะพิมพ์' }
@@ -108,30 +113,39 @@ export async function printDomSheets(opts: {
     return clone.outerHTML
   }).join('')
 
+  // Orientation is per-document. Default landscape (ขย. + EnvLog); portrait for
+  // GR / tax invoice. Drives the @page size, the .a4-sheet mm box, and the
+  // printDocument landscape flag together so the preview maps 1:1 to the page.
+  const isPortrait = opts.orientation === 'portrait'
+  const sheetW = isPortrait ? '210mm' : '297mm'
+  const sheetH = isPortrait ? '297mm' : '210mm'
+  const pageOrient = isPortrait ? 'portrait' : 'landscape'
+
   // No app stylesheet is shipped — the baked inline styles already carry the full
-  // look. These few rules only pin each sheet to one exact A4-landscape page and
-  // lock the font to Sarabun.
+  // look. These few rules only pin each sheet to one exact A4 page (in the chosen
+  // orientation) and lock the font to Sarabun.
   const html = `<!doctype html><html><head><meta charset="utf-8">
 <style>${fontCss}</style>
 <style>
-  @page { size: A4 landscape; margin: 0; }
+  @page { size: A4 ${pageOrient}; margin: 0; }
   html, body { margin: 0; padding: 0; background: #fff; }
   body, .a4-sheet, .a4-sheet * { font-family: 'Sarabun Print', sans-serif !important; }
   /* Keep cell borders single 1px lines (no doubling) so they print thin, not bold. */
   .a4-sheet table { border-collapse: collapse !important; }
-  .a4-sheet { width: 297mm !important; height: 210mm !important; margin: 0 !important; box-shadow: none !important; overflow: hidden; break-inside: avoid; break-after: page; page-break-after: always; }
+  .a4-sheet { width: ${sheetW} !important; height: ${sheetH} !important; margin: 0 !important; box-shadow: none !important; overflow: hidden; break-inside: avoid; break-after: page; page-break-after: always; }
   .a4-sheet:last-child { break-after: auto; page-break-after: auto; }
 </style>
 </head><body>${sheetsHtml}</body></html>`
 
-  // pageFormat 'A4' + landscape:true forces the job landscape regardless of the
-  // printer's portrait default (the shared A4 printer is set up portrait for tax
-  // invoices) — orientation is per-document, not per-printer.
+  // pageFormat 'A4' + the per-document landscape flag forces the job orientation
+  // regardless of the printer's default (the shared A4 printer is set up portrait
+  // for tax invoices; the ขย. registers force landscape) — orientation is
+  // per-document, not per-printer.
   return window.api.printer.printDocument({
     html,
     printerName: opts.printerName,
     pageFormat: 'A4',
-    landscape: true,
+    landscape: !isPortrait,
     copies: Math.max(1, opts.copies ?? 1),
   })
 }

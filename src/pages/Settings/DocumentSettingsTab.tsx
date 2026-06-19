@@ -4,19 +4,22 @@ import { Input } from '@/components/ui/input'
 import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
 import {
-  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+  Select, SelectTrigger, SelectValue, SelectContent,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
-import { buildTaxInvoiceHtml } from '@/lib/receipt/buildTaxInvoiceHtml'
+import { printDomSheets } from '@/lib/print/printDomSheets'
 import { buildPrinterOptions } from '@/lib/print/pdfPrinter'
 import { PrinterSelectItems } from '@/components/ui/printer-select-items'
 import { ZoomControl } from '@/components/ui/zoom-control'
+import { A4Sheet, A4_PORTRAIT } from '@/pages/Reports/a4'
+import { taxInvoiceSheetParts } from '@/components/receipt/taxInvoiceSheet'
 import type { DocumentSettings, SaleForPrint, Setting, TaxInvoice } from '@/types'
 import { Printer, Save } from 'lucide-react'
 
 // Form keys are canonical document_settings column names — Object.keys(form)
 // flows into the dynamic-SQL UPDATE in settings:saveDocumentSettings, so any key
-// here must be a real column.
+// here must be a real column. paper_size is a DEAD column (A5 removed system-wide;
+// always 'A4') — kept until the pre-launch schema cleanup.
 type DocumentForm = Omit<DocumentSettings, 'id' | 'updated_at'>
 
 const DEFAULTS: DocumentForm = {
@@ -58,32 +61,18 @@ const SAMPLE_TAX: TaxInvoice = {
 
 interface PrinterInfo { name: string; displayName: string; isDefault: boolean }
 
-// Physical page dimensions (mm) for the supported document page sizes. The
-// preview renders the real print HTML at true size, then scales DOWN to fit the
-// column width so the whole page width is always visible and the user scrolls
-// the page to see its length. 1mm = 96/25.4 px at 96dpi.
-const PAGE_MM: Record<'A4' | 'A5', { w: number; h: number }> = {
-  A4: { w: 210, h: 297 },
-  A5: { w: 148, h: 210 },
-}
-const mmToPx = (mm: number) => (mm * 96) / 25.4
-
 export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNode) => void }) {
   const { toast } = useToast()
   const [form, setForm] = useState<DocumentForm>(DEFAULTS)
   const [shop, setShop] = useState<Partial<Setting>>({})
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
   const [saving, setSaving] = useState(false)
-  const [printing, setPrinting] = useState(false)
-  const [previewHtml, setPreviewHtml] = useState('')
-  // Preview zoom — on top of the fit-to-column scale (like the receipt/label
-  // tabs). The overflow-auto container scrolls both ways once the zoomed page
-  // grows past the column.
+  const [printRender, setPrintRender] = useState(false)  // mount the hidden .a4-doc only while test-printing
+  // Preview zoom — on top of the fit-to-box scale (like the receipt/label tabs).
   const [zoom, setZoom] = useState(1)
   const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
-  // Track the preview box size (width AND height); fit = shrink the true-size
-  // page so the WHOLE sheet shows inside the box (never up). Recomputed whenever
-  // the box resizes OR the chosen page size changes.
+  // Track the preview box size; fit = shrink the A4-portrait sheet so the WHOLE
+  // page shows inside the box (never up). Zoom multiplies on top.
   const previewWrapRef = useRef<HTMLDivElement>(null)
   const [wrapW, setWrapW] = useState(0)
   const [wrapH, setWrapH] = useState(0)
@@ -96,19 +85,10 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  const dims = PAGE_MM[form.paper_size] ?? PAGE_MM.A4
-  const paperWpx = mmToPx(dims.w)
-  const paperHpx = mmToPx(dims.h)
-  // Fit is ALWAYS referenced to A4 (never the current page) so A5 renders
-  // proportionally smaller (0.705×) inside the same box — showing the real
-  // physical size difference. The base scale fits the FULL A4 sheet inside the
-  // box on BOTH axes (so the whole page is visible without scrolling at 100%);
-  // subtract the p-6 padding (48px each axis) so it fits exactly. Zoom then
-  // multiplies on top — zooming past 100% overflows the box and lets it scroll.
-  const availW = Math.max(0, wrapW - 48)
+  const availW = Math.max(0, wrapW - 48)   // minus p-6 padding (24px each side)
   const availH = Math.max(0, wrapH - 48)
   const fitScale = availW && availH
-    ? Math.min(1, availW / mmToPx(PAGE_MM.A4.w), availH / mmToPx(PAGE_MM.A4.h))
+    ? Math.min(1, availW / A4_PORTRAIT.W, availH / A4_PORTRAIT.H)
     : 1
   const scale = fitScale * zoom
 
@@ -120,6 +100,9 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
       setForm(prev => {
         const next = { ...prev }
         for (const k of Object.keys(prev) as (keyof DocumentForm)[]) {
+          // paper_size is DEAD (A5 removed) — keep the DEFAULT 'A4' so a legacy
+          // stored 'A5' never round-trips back through save.
+          if (k === 'paper_size') continue
           const v = (data as any)[k]
           if (v !== undefined && v !== null) (next as any)[k] = v
         }
@@ -135,14 +118,6 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   const setF = <K extends keyof DocumentForm>(k: K, v: DocumentForm[K]) =>
     setForm(f => ({ ...f, [k]: v }))
 
-  // Rebuild the live preview (iframe srcDoc) when the shop info or page size changes.
-  useEffect(() => {
-    let cancelled = false
-    buildTaxInvoiceHtml(SAMPLE_SALE, shop, SAMPLE_TAX, { copy: false, paperSize: form.paper_size })
-      .then(html => { if (!cancelled) setPreviewHtml(html) })
-    return () => { cancelled = true }
-  }, [shop, form.paper_size])
-
   const handleSave = useCallback(async () => {
     setSaving(true)
     try {
@@ -153,25 +128,53 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
     } finally { setSaving(false) }
   }, [form, toast])
 
-  const handleTestPrint = async () => {
-    if (printing) return
-    setPrinting(true)
-    try {
-      const html = await buildTaxInvoiceHtml(SAMPLE_SALE, shop, SAMPLE_TAX, { copy: false, paperSize: form.paper_size })
-      const res = await window.api.printer.printHtml({
-        html, printerName: form.printer_name || '', paperWidthMm: dims.w, heightMm: dims.h, copies: form.copies || 1,
-      })
-      if (res.success) toast({ title: 'ส่งงานพิมพ์แล้ว', variant: 'success' })
-      else toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'error' })
-    } finally { setPrinting(false) }
-  }
+  // Test print — mount the hidden .a4-doc (the sample sheet), then spool it via
+  // the same printDomSheets path the real tax-invoice print uses.
+  useEffect(() => {
+    if (!printRender) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await printDomSheets({
+          docSelector: '.a4-doc',
+          printerName: form.printer_name || '',
+          copies: form.copies || 1,
+          orientation: 'portrait',
+        })
+        if (cancelled) return
+        if (res.success) toast({ title: 'ส่งงานพิมพ์แล้ว', variant: 'success' })
+        else toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'error' })
+      } finally {
+        if (!cancelled) setPrintRender(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [printRender, form.printer_name, form.copies, toast])
 
   const printerOptions = useMemo(() => buildPrinterOptions(printers), [printers])
 
-  // Lift the action buttons up to the shared sub-tab strip (PrintersTab). Handlers
-  // are read through a ref so the registered node never goes stale without forcing
-  // a re-register on every render — the effect only re-runs when the visible
-  // disabled/label state changes. onActions (setActions) is stable, so no loop.
+  const parts = useMemo(() => taxInvoiceSheetParts({ sale: SAMPLE_SALE, shop, tax: SAMPLE_TAX, copy: false }), [shop])
+
+  // The sample sheet — shared by the on-screen preview and the hidden test-print doc.
+  const sampleSheet = (
+    <A4Sheet orientation="portrait" pageNo={1} pageCount={1} header={parts.headerBlock}>
+      <div className="flex h-full flex-col">
+        {parts.partiesBlock}
+        <div className="flex-1 min-h-0">
+          {parts.renderTable(
+            SAMPLE_SALE.items.map((it, i) => (
+              <tr key={i}>{parts.rowCells(it, i)}</tr>
+            )),
+          )}
+        </div>
+        {parts.totalsBlock}
+        {parts.signatureBlock}
+      </div>
+    </A4Sheet>
+  )
+
+  // Lift บันทึก to the shared sub-tab strip (PrintersTab) via a ref so the node
+  // never goes stale without a re-register every render.
   const actRef = useRef({ handleSave })
   actRef.current = { handleSave }
   useEffect(() => {
@@ -183,53 +186,28 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
     return () => onActions?.(null)
   }, [onActions, saving])
 
-  // Preview/test-print actions live INSIDE the preview card header (beside the
-  // zoom control, like the other print sub-tabs) — only บันทึก rides the top
-  // sub-tab strip.
   const previewActions = (
     <div className="flex items-center gap-2">
       <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
-      <Button className="h-9" onClick={handleTestPrint} disabled={printing} variant="elevated">
-        <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
+      <Button className="h-9" onClick={() => setPrintRender(true)} disabled={printRender} variant="elevated">
+        <Printer className="size-4" />{printRender ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
       </Button>
     </div>
   )
 
   return (
     <div className="flex flex-col gap-3 h-full min-h-0">
-
-      {/* Body: preview (LEFT) + settings (RIGHT). The grid fills the leftover
-          height so the preview card (fill) stretches and its body scrolls — the
-          whole page fits the screen without an outer scrollbar. */}
+      {/* Body: preview (LEFT) + settings (RIGHT). */}
       <div className="grid grid-cols-[31fr_9fr] grid-rows-1 gap-4 items-stretch flex-1 min-h-0">
         <SectionCard title="ตัวอย่างเอกสาร" tint="success" className="min-w-0" right={previewActions} fill>
           <div ref={previewWrapRef} className="h-full bg-muted/30 rounded-lg p-6 overflow-auto">
-            {/* The iframe renders the real print HTML at TRUE page size, then a
-                CSS transform scales the whole thing down to fit the column width.
-                The wrapper is sized to the scaled box so it reserves the right
-                amount of vertical space — the page scrolls to reveal the rest.
-                `mx-auto` (not flex justify-center): centers while the page fits,
-                then left-aligns when zoom overflows so scroll reveals the page,
-                not a blank strip on the right. */}
-            <div
-              className="shrink-0 bg-white overflow-hidden mx-auto"
-              style={{
-                width: `${paperWpx * scale}px`,
-                height: `${paperHpx * scale}px`,
-                // Match the receipt/label preview shadow depth.
-                boxShadow: '0 4px 5px rgb(0 0 0 / 0.20), 0 12px 14px rgb(0 0 0 / 0.16)',
-              }}
-            >
-              <iframe
-                title="document-preview"
-                srcDoc={previewHtml}
-                scrolling="no"
-                className="bg-white border-0 block"
-                style={{
-                  width: `${dims.w}mm`, height: `${dims.h}mm`,
-                  transform: `scale(${scale})`, transformOrigin: 'top left',
-                }}
-              />
+            {/* The A4Sheet renders at TRUE px size, then a CSS transform scales it
+                to fit the column (mx-auto centers while it fits; left-aligns when
+                zoom overflows so scroll reveals the page). */}
+            <div className="mx-auto" style={{ width: A4_PORTRAIT.W * scale, height: A4_PORTRAIT.H * scale }}>
+              <div style={{ width: A4_PORTRAIT.W, height: A4_PORTRAIT.H, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+                {sampleSheet}
+              </div>
             </div>
           </div>
         </SectionCard>
@@ -247,17 +225,6 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
                   </SelectContent>
                 </Select>
               </FormField>
-              <FormField label="ขนาดกระดาษ">
-                <Select value={form.paper_size} onValueChange={v => setF('paper_size', v as 'A4' | 'A5')}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="A4">A4 (210 × 297 มม.)</SelectItem>
-                    <SelectItem value="A5">A5 (148 × 210 มม.)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormField>
               <FormField label="จำนวนสำเนา">
                 <Input
                   type="number" min={1} max={20}
@@ -270,6 +237,13 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
           </SectionCard>
         </div>
       </div>
+
+      {/* Hidden test-print doc — mounted only during the print click. */}
+      {printRender && (
+        <div className="a4-doc" aria-hidden style={{ position: 'absolute', left: -100000, top: 0 }}>
+          {sampleSheet}
+        </div>
+      )}
     </div>
   )
 }

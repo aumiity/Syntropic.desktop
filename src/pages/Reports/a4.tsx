@@ -7,9 +7,16 @@ import type { ReactNode } from 'react'
 // all render on this surface.
 export const A4 = { W: 1123, H: 794, PAD_X: 40, PAD_Y: 32 } as const
 
+// A4 PORTRAIT at 96dpi: 210mm × 297mm = 794 × 1123 CSS px. Same padding as the
+// landscape sheet. Used by portrait documents (ใบรับสินค้า / GR, and later the
+// tax invoice). The ขย. registers stay landscape via the `A4` const above.
+export const A4_PORTRAIT = { W: 794, H: 1123, PAD_X: 40, PAD_Y: 32 } as const
+
 // Inner content box once the sheet padding is removed.
 export const A4_CONTENT_W = A4.W - A4.PAD_X * 2   // 1043
 export const A4_CONTENT_H = A4.H - A4.PAD_Y * 2   // 730
+export const A4P_CONTENT_W = A4_PORTRAIT.W - A4_PORTRAIT.PAD_X * 2   // 714
+export const A4P_CONTENT_H = A4_PORTRAIT.H - A4_PORTRAIT.PAD_Y * 2   // 1059
 
 // Footer (page number) reserved height — fixed (one line) so it never shifts the
 // measured body height. Matches the h-6 footer rendered by <A4Sheet>.
@@ -25,13 +32,18 @@ export const PACK_SAFETY = 6
 // caller's pagination guarantees content fits, and the clip is the last line of
 // defense against an off-by-a-pixel measurement.
 export function A4Sheet({
-  header, children, pageNo, pageCount,
+  header, children, pageNo, pageCount, orientation = 'landscape',
 }: {
   header: ReactNode
   children: ReactNode
   pageNo: number
   pageCount: number
+  // 'landscape' (default) = the ขย. registers + EnvLog (1123×794). 'portrait' =
+  // GR / tax invoice (794×1123). Default landscape keeps every existing prop-less
+  // caller byte-identical.
+  orientation?: 'portrait' | 'landscape'
 }) {
+  const dims = orientation === 'portrait' ? A4_PORTRAIT : A4
   return (
     <div
       className="a4-sheet bg-card text-foreground mx-auto flex flex-col overflow-hidden"
@@ -40,9 +52,9 @@ export function A4Sheet({
       // boxShadow matches the receipt/label/document preview depth (DocumentSettingsTab);
       // it never prints — printDomSheets forces box-shadow:none and doesn't bake it.
       style={{
-        width: A4.W,
-        height: A4.H,
-        padding: `${A4.PAD_Y}px ${A4.PAD_X}px`,
+        width: dims.W,
+        height: dims.H,
+        padding: `${dims.PAD_Y}px ${dims.PAD_X}px`,
         fontFamily: "'Sarabun Print', sans-serif",
         boxShadow: '0 4px 5px rgb(0 0 0 / 0.20), 0 12px 14px rgb(0 0 0 / 0.16)',
       }}

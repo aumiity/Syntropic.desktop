@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tax Invoice Print Preview + ตัด A5 (เฟส 3) — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine ul{padding-left:20px} .machine ul li{margin:4px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>ใบกำกับภาษี — Popup Preview + ตัด A5 (เฟส 3)</h1>
+    <p>เปลี่ยนใบกำกับภาษีเป็น popup พรีวิว A4 (React A4Sheet เหมือน GR/ข.ย.) เลิกใช้ HTML builder, ตัด A5 ออกทั้งระบบ → A4 อย่างเดียว, คงล็อกต้นฉบับทางกฎหมาย + buyer อ่านอย่างเดียว</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ (ไม่มี P0/P1 ค้าง)</span>
+      <span class="pill">เฟส 3 · A4 only</span>
+      <span class="pill">2026-06-19</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p>วันนี้ใบกำกับภาษีสร้างจาก <code>buildTaxInvoiceHtml</code> (HTML string) แล้วพิมพ์เงียบ ส่วนพรีวิวมีแต่ปุ่ม "ดูตัวอย่าง PDF" (ถูกลบไปแล้วในเฟส 1).</p>
+    <p>แผนนี้เปลี่ยนใบกำกับให้เป็น <strong>popup พรีวิว A4 แนวตั้ง</strong> ด้วยกลไกเดียวกับ GR/ข.ย. (React <code>A4Sheet</code> + <code>printDomSheets</code> + <code>ReportPrintDialog</code>) — ซูม/พลิกหน้า/กำหนดหน้า/จำนวนชุดได้, ที่เห็น = ที่พิมพ์ 1:1, ไม่มีปุ่ม PDF.</p>
+    <p>แผ่นใบกำกับ React ตัวเดียว (<code>taxInvoiceSheet.tsx</code>) ใช้ <strong>ทั้งหน้าพิมพ์จริง และพรีวิวหน้า <code>DocumentSettingsTab</code></strong> → จึง <strong>ลบ <code>buildTaxInvoiceHtml</code> ทิ้งทั้งหมด</strong> (พรีวิวตั้งค่า = ของพิมพ์จริง ไม่เพี้ยน).</p>
+    <p><strong>ตัด A5 ออกทั้งระบบ</strong> (DocumentSettings + PrintTab) → ใช้ A4 ขนาดเดียว สะดวกกว่า; column <code>paper_size</code> เก็บเป็น DEAD (บังคับ A4, ลบก่อน launch).</p>
+    <p><strong>คงของเดิมที่ห้ามแตะ:</strong> buyer อ่านอย่างเดียว (ไม่มี picker) + ล็อกต้นฉบับทางกฎหมาย (พรีวิวไม่เผาต้นฉบับ; ล็อกหลังพิมพ์ต้นฉบับสำเร็จเท่านั้น).</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p><strong>flow การพิมพ์ใบกำกับ</strong> — ปุ่มพิมพ์ของ popup ไม่เรียก printDomSheets ตรง ๆ แต่วิ่งผ่าน <code>onPrint</code> hook ที่ทำ issue→spool→lock:</p>
+    <div class="diagram"><div class="flow">
+      <div class="node">SaleDetailDialog<small>taxOpen</small></div>
+      <div class="ar">▶</div>
+      <div class="node warn">TaxInvoiceBuyerDialog<small>preview + onPrint (รื้อใหม่)</small></div>
+      <div class="ar">▶<small>onPrint</small></div>
+      <div class="node">ReportPrintDialog<small>orientation="portrait"</small></div>
+      <div class="ar">▶</div>
+      <div class="node">tax.issueOrGet<small>{record, copy}</small></div>
+      <div class="ar">▶</div>
+      <div class="node">printDomSheets<small>.a4-doc · portrait</small></div>
+      <div class="ar">▶<small>if !copy</small></div>
+      <div class="node data">confirmOriginalPrinted<small>ล็อกบิล</small></div>
+    </div></div>
+    <p style="margin-top:12px"><strong>แผ่น React ตัวเดียว ใช้ 2 ที่:</strong></p>
+    <div class="diagram"><div class="flow">
+      <div class="node">DocumentSettingsTab<small>พรีวิว sample + ทดสอบพิมพ์</small></div>
+      <div class="ar">◀<small>taxInvoiceSheetParts</small></div>
+      <div class="node warn">taxInvoiceSheet.tsx<small>NEW · shared sheet</small></div>
+      <div class="ar">▶<small>taxInvoiceSheetParts</small></div>
+      <div class="node">TaxInvoiceBuyerDialog<small>พิมพ์จริง</small></div>
+    </div></div>
+    <p style="margin-top:14px"><strong>ไฟล์ที่แตะ:</strong></p>
+    <table>
+      <thead><tr><th>ไฟล์</th><th>ทำอะไร</th><th>ป้าย</th></tr></thead>
+      <tbody>
+        <tr><td><code>src/components/receipt/taxInvoiceSheet.tsx</code></td><td>แผ่นใบกำกับ React (shared) — หัว/คู่ค้า/ตาราง/ยอดรวม/ลายเซ็น/stamp</td><td><span class="tag t-gen">new</span></td></tr>
+        <tr><td><code>src/pages/Reports/ReportPrintDialog.tsx</code></td><td>+props <code>onPrint</code>/<code>printDisabled</code>/<code>printLabel</code>/<code>footerNote</code> (default off)</td><td><span class="tag t-gen">extend</span></td></tr>
+        <tr><td><code>src/components/dialogs/TaxInvoiceBuyerDialog.tsx</code></td><td>รื้อเป็น popup พรีวิว + onPrint (issue+lock); buyer อ่านอย่างเดียวเดิม</td><td><span class="tag t-opt">rework</span></td></tr>
+        <tr><td><code>src/pages/Settings/DocumentSettingsTab.tsx</code></td><td>พรีวิว→A4Sheet, ทดสอบพิมพ์→printDomSheets, เอา dropdown A5 ออก</td><td><span class="tag t-opt">rework</span></td></tr>
+        <tr><td><code>src/pages/Products/PrintTab/index.tsx</code></td><td>A4 อย่างเดียว (ตัด A5)</td><td><span class="tag t-opt">edit</span></td></tr>
+        <tr><td><code>src/lib/receipt/buildTaxInvoiceHtml.ts</code></td><td>ลบทิ้ง</td><td><span class="tag t-skip">delete</span></td></tr>
+        <tr><td><code>src/lib/receipt/print.ts</code></td><td>ลบ <code>printTaxInvoice</code>/<code>previewTaxInvoice</code> + <code>docConfig</code>/<code>PAGE_MM</code> ที่กำพร้า</td><td><span class="tag t-skip">delete</span></td></tr>
+        <tr><td><code>docs/claude/ui-theming.md</code></td><td>carve-out วันที่: แทน <code>buildTaxInvoiceHtml</code> ด้วย <code>taxInvoiceSheet.tsx</code></td><td><span class="tag t-opt">doc</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>ใบกำกับ = <code>buildTaxInvoiceHtml</code> (HTML) → พิมพ์เงียบ</li>
+        <li>พรีวิวหน้าตั้งค่า = iframe (builder เดียวกัน)</li>
+        <li>เลือกขนาดกระดาษ A4/A5 ได้ (2 จุด)</li>
+        <li>เลือกหน้า/จำนวนชุด ตอนพิมพ์ไม่ได้</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>ใบกำกับ = popup พรีวิว React A4Sheet (ซูม/พลิกหน้า/กำหนดหน้า/จำนวนชุด)</li>
+        <li>พรีวิวหน้าตั้งค่า = A4Sheet ตัวเดียวกับพิมพ์จริง (ไม่เพี้ยน)</li>
+        <li>A4 ขนาดเดียวทั้งระบบ (ไม่มี A5)</li>
+        <li>เลิกใช้ <code>buildTaxInvoiceHtml</code> ทั้งหมด</li>
+        <li>buyer อ่านอย่างเดียว + ล็อกต้นฉบับ คงเดิมเป๊ะ</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>พรีวิว WYSIWYG + กำหนดหน้า/จำนวนชุด; กลไกพิมพ์เดียวทั้งระบบ (ข.ย./GR/ใบกำกับ)</li>
+    <li>พรีวิวหน้าตั้งค่า = ของพิมพ์จริง (แผ่นเดียวกัน) ไม่มีทางเพี้ยน</li>
+    <li>A4 ขนาดเดียว — ตั้งค่าน้อยลง สับสนน้อยลง</li>
+    <li>ลบ HTML builder ของใบกำกับทิ้ง (โค้ดน้อยลง 1 ระบบ)</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>งานก้อนใหญ่ (แตะ ~8 ไฟล์ + รื้อ 2 dialog + extend primitive ที่ใช้ร่วม)</li>
+    <li>หน้าตาเทียบ HTML เดิมเป็น "ใกล้เคียง" ต้องจูน border/ระยะ + เช็คยอดเงินตรง SaleDetail</li>
+    <li>A5 dead code ใน presets.ts/buildPriceTagHtml คงไว้ (รับ 'A4' ได้) — เก็บกวาดทีหลัง</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><strong>ล็อกต้นฉบับ (P0):</strong> พรีวิวใช้ transient record (ห้าม issueOrGet); <code>confirmOriginalPrinted</code> เฉพาะใน <code>if(res.success &amp;&amp; !copy)</code>; <code>copy</code> มาจาก issueOrGet ไม่ใช่ alreadyOriginal</li>
+    <li><strong>buyer อ่านอย่างเดียว</strong> — ห้ามใส่ picker/ช่องแก้กลับมา (invariant v2)</li>
+    <li><strong>VAT math</strong> ราคารวม VAT — คัดลอกสูตรจาก buildTaxInvoiceHtml เป๊ะ; money cell ทุกช่อง (รวม qty) ผ่าน <code>formatCurrency</code> ("5.00")</li>
+    <li><strong>onPrint timing:</strong> วิ่งผ่าน effect <code>printRender</code> (ไม่ใช่ click handler) + อ่าน onPrint ผ่าน ref (ไม่ใส่ใน dep array) กัน double-spool</li>
+    <li><strong>await <code>getDocumentSettings()</code></strong> (เป็น Promise) ไม่งั้น printerName undefined → ปริ้นเตอร์ผิด</li>
+    <li><strong>load loop</strong> ต้อง <code>continue</code> ที่ <code>paper_size</code> กัน A5 เก่าไหลกลับ; props ใหม่ของ ReportPrintDialog ต้อง default off (ข.ย./GR/EnvLog ไม่กระทบ)</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><strong>popup ใบกำกับ</strong> = <code>ReportPrintDialog</code> portrait (เหมือน GR) — หัวกล่อง "ใบกำกับภาษี"; พรีวิวซูม + พลิกหน้า; footer = ช่องกำหนดหน้า + จำนวนชุด.</li>
+      <li><strong>ปุ่มพิมพ์</strong> label = "พิมพ์ใบกำกับภาษี" (ต้นฉบับ) / "พิมพ์สำเนา" (ถ้าเคยพิมพ์ต้นฉบับแล้ว); <code>variant="default"</code> teal.</li>
+      <li><strong>buyer</strong> แสดงในกล่อง "ลูกค้า/ผู้ซื้อ" ของแผ่นพรีวิว (อ่านอย่างเดียว); ถ้าข้อมูลไม่ครบ (ไม่มีชื่อ/ที่อยู่) → ปุ่มพิมพ์ disabled + คำเตือนใน <code>footerNote</code>.</li>
+      <li><strong>DocumentSettingsTab</strong> โชว์ตัวอย่างใบกำกับ A4Sheet (sample) + ZoomControl + "ทดสอบพิมพ์"; เอา dropdown "ขนาดกระดาษ" ออก เหลือ เครื่องพิมพ์ + จำนวนสำเนา.</li>
+      <li>semantic tokens เท่านั้น; ไม่มี emoji; วันที่ในแผ่น = พ.ศ. ทางการ (<code>'D MMMM BBBB'</code>, carve-out เอกสารพิมพ์).</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>money cell ไม่ได้ระบุว่าใช้ formatCurrency → ยอดอาจไม่ตรง</td><td>P0</td><td>ระบุทุก numeric cell (รวม qty "5.00") ผ่าน formatCurrency; VAT สูตรเป๊ะ</td></tr>
+        <tr><td>1</td><td><code>getDocumentSettings()</code> เป็น Promise แต่เขียนเรียกแบบ sync → ปริ้นเตอร์ผิด</td><td>P1</td><td>เปลี่ยนเป็น <code>await</code> แล้วอ่าน <code>ds?.printer_name</code></td></tr>
+        <tr><td>1</td><td><code>onPrint</code> ต้องวิ่งผ่าน effect <code>printRender</code> + รับ pages ที่ parse แล้ว</td><td>P1</td><td>ระบุ branch ใน effect หลัง mount .a4-doc; ส่ง parsePageSelection(...)</td></tr>
+        <tr><td>1</td><td>sample sheet ขาด props <code>pageNo/pageCount</code> (required)</td><td>P1</td><td>ห่อ sample ใน A4Sheet pageNo=1 pageCount=1 header=...</td></tr>
+        <tr><td>1</td><td>load loop ต้อง skip <code>paper_size</code> (ลบ Select อย่างเดียวไม่พอ)</td><td>P1</td><td>เพิ่ม <code>if(k==='paper_size') continue</code></td></tr>
+        <tr><td>1</td><td>carve-out doc / import swaps / edge tests / PrintTab sites</td><td>P2</td><td>แทน builder ใน doc, ระบุ import, เพิ่มเทสต์ 1-item, แจง PrintTab</td></tr>
+        <tr><td>2</td><td>onPrint branch ต้องครอบ async body ทั้งก้อน (ข้าม getDocumentSettings/printDomSheets/toast เดิม)</td><td>P1</td><td>ระบุ branch ที่ TOP ของ async body; 2 path แชร์แค่ mount + finally</td></tr>
+        <tr><td>2</td><td>onPrint ใน dep array → handler ไม่ memoize อาจ double-spool กลางพิมพ์</td><td>P1</td><td>อ่าน onPrint ผ่าน ref, ไม่ใส่ใน deps (caller ไม่ต้อง useCallback)</td></tr>
+        <tr><td>2</td><td>line cite A1 เก่า, A2 นับ read น้อยไป, .a4-doc ของ settings ควร transient, อย่า trim SAMPLE_SALE</td><td>P2</td><td>แก้ cite, ระบุ read ~8 จุดรับ 'A4', mount transient, คง unit_vat/line_total</td></tr>
+        <tr><td>2</td><td>VAT math / deferred-lock / buyer read-only / deletion completeness / default-off</td><td>—</td><td><strong>PASS</strong> — ตรงโค้ดจริงทุกจุด; print.ts docConfig/PAGE_MM กำพร้าจริง (printSlip ไม่ใช้)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Goal</h3>
+    <p>(1) Remove A5 system-wide → A4 only. (2) Replace the tax-invoice print (`buildTaxInvoiceHtml` HTML) with a React `A4Sheet` PORTRAIT popup preview (GR/ข.ย. stack), sharing ONE React sheet (`taxInvoiceSheet.tsx`) between the print popup AND `DocumentSettingsTab`, then DELETE `buildTaxInvoiceHtml`. Preserve the legal deferred-lock (P0) + READ-ONLY buyer.</p>
+
+    <h3>Definition of done</h3>
+    <ul>
+      <li>No A5 selectable: DocumentSettingsTab paper-size dropdown removed; PrintTab A4-only; `document_settings.paper_size` forced `'A4'` (column kept DEAD).</li>
+      <li>Issuing a tax invoice opens an A4-portrait popup preview (zoom + page-range + copies), not silent, not PDF.</li>
+      <li>DocumentSettingsTab preview renders the React A4 tax sheet (sample); ทดสอบพิมพ์ spools via printDomSheets.</li>
+      <li>`buildTaxInvoiceHtml.ts` + `printTaxInvoice` + `previewTaxInvoice` DELETED; grep: print.ts no longer imports the builder; no `previewHtmlPdf` tax usage; orphaned `docConfig`+`PAGE_MM` removed (printSlip doesn't use them).</li>
+      <li>Buyer READ-ONLY (no picker) — invariant #1.</li>
+      <li>Deferred lock (P0): preview = transient record (never issueOrGet); print = issueOrGet → spool → confirmOriginalPrinted ONLY in `if(success && !copy)`.</li>
+      <li>ข.ย.9/10/11 + GR + EnvLog printing UNCHANGED (ReportPrintDialog new props default-off).</li>
+      <li>`npx tsc --noEmit -p tsconfig.json` → only `Theme/index.tsx:1616` (confirmed current baseline).</li>
+    </ul>
+
+    <h3>Ground truth (verified)</h3>
+    <ul>
+      <li>VAT (prices VAT-INCLUSIVE, buildTaxInvoiceHtml.ts:27-39): `lineExVat=line_total−unit_vat*qty`; `unitExVat=qty>0?lineExVat/qty:0`; `exVatTotal=total_amount−total_vat`; `vatPct=exVatTotal>0?round(total_vat/exVatTotal*100):7`. Money via `formatCurrency` (utils.ts:14 → "5.00"); qty too (builder used `money(it.qty)`). JSX auto-escapes → drop `esc()`.</li>
+      <li>Layout: head (shop / "ใบกำกับภาษี / ใบเสร็จรับเงิน" + "(ต้นฉบับ|สำเนา)"); parties (ลูกค้า/ผู้ซื้อ: name/address/`เลขประจำตัวผู้เสียภาษี: tax_id (branch)` | เลขที่=doc_no / วันที่=`formatDate(sold_at,'D MMMM BBBB')`); 5-col table (ลำดับ/รายการ/จำนวน `qty unit`/ราคา-หน่วย unitExVat/จำนวนเงิน lineExVat); totals (รวมเป็นเงิน exVatTotal / ภาษีมูลค่าเพิ่ม vatPct% / จำนวนเงินรวมทั้งสิ้น total_amount); signature ผู้รับเงิน|ผู้รับสินค้า.</li>
+      <li>Deferred lock (project_tax_invoice_flow.md): `tax.get(saleId)`; `tax.issueOrGet(payload)→{record,copy}` (copy=`!!existing && existing.original_printed===1`); `tax.confirmOriginalPrinted(saleId)`. Preview = transient TaxInvoice (id:0), never issues.</li>
+      <li>TaxInvoiceBuyerDialog props `{open,onOpenChange,saleId,sale,buyer,onIssued}`, opened by SaleDetailDialog (`taxOpen`); buyer fields `<Input readOnly disabled>`; `incomplete=!name.trim()||!address.trim()`; `alreadyOriginal`.</li>
+      <li>ReportPrintDialog print effect = two-phase (`printRender` flag → effect mounts `.a4-doc` at :187 → getDocumentSettings + printDomSheets + toast at :70-91); 4 existing consumers (GR/EnvLog/KhorYor9/KhorYorSaleLedger) pass no new props. `getDocumentSettings()` is a Promise (preload.ts:147).</li>
+      <li>buildTaxInvoiceHtml consumers = print.ts + DocumentSettingsTab only (both reworked). docConfig/PAGE_MM in print.ts used only by the deleted A4-doc fns (printSlip/previewSlip/resolveSlipMode don't). A5 footprint: DocumentSettingsTab Select; PrintTab `PaperSize`/`A4_DIMS`/~8 `doc.paper_size` reads; presets.ts/buildPriceTagHtml `'A4'|'A5'` (tolerate 'A4'); types DocumentSettings.paper_size (keep DEAD).</li>
+    </ul>
+
+    <h3>ขั้นตอน</h3>
+    <ol>
+      <div class="step"><strong>1. Extend `ReportPrintDialog.tsx`</strong> — add optional props `onPrint?: (sel:{pages:number[]|'all';copies:number})=>Promise&lt;void&gt;`, `printDisabled?:boolean`, `printLabel?:string` (default "พิมพ์"), `footerNote?:ReactNode`. <span class="inv">Timing: read `onPrint` via a REF (`onPrintRef.current=onPrint` each render); keep effect deps `[printRender,pageInput,pageCount,copies,orientation,toast]` (do NOT add onPrint). In the print effect, after `.a4-doc` mounts, branch at the TOP of the async body: if `onPrintRef.current` → `await onPrintRef.current({pages:parsePageSelection(pageInput,pageCount),copies})` and nothing else (no getDocumentSettings/printDomSheets/toast); else the existing built-in path. Share only the mount + `finally{setPrintRender(false)}`. Footer button uses `printLabel`, `disabled={printDisabled||pageCount===0}`; render `footerNote` left of the buttons.</span> Default-off → GR/ข.ย./EnvLog byte-identical.</div>
+      <div class="step"><strong>2. Create `src/components/receipt/taxInvoiceSheet.tsx`</strong> — export `taxInvoiceSheetParts({sale,shop,tax,copy})` → `{headerBlock(data-m=header), partiesBlock(data-m=parties), colgroup, theadRow, rowCells(it,idx), totalsBlock(data-m=totals), signatureBlock(data-m=signature)}`. Every money cell incl. qty via `formatCurrency`; VAT math exact (above). Spacing = padding (not margin). Stamp ต้นฉบับ/สำเนา from `copy`. Dates in-sheet `formatDate(x,'D MMMM BBBB')`. Semantic tokens; no emoji. <span class="inv">Update `docs/claude/ui-theming.md` rule #11 (~:61) date carve-out: REPLACE `buildTaxInvoiceHtml` with `taxInvoiceSheet.tsx`.</span></div>
+      <div class="step"><strong>3. Rework `TaxInvoiceBuyerDialog.tsx`</strong> — keep filename/props/SaleDetailDialog wiring + buyer resolution (snapshot|prop) + `alreadyOriginal` + `incomplete`; KEEP buyer READ-ONLY (no picker). Build transient `TaxInvoice` (id:0, original_printed:alreadyOriginal?1:0) for RENDER only. measure-pack the items into portrait pages (copy GoodsReceiptPrintDialog pattern: hidden specimen via `taxInvoiceSheetParts`; budget `A4P_CONTENT_H−headerH−partiesH−theadH−signatureH−FOOTER_H−PACK_SAFETY`; totals = trailing pseudo-row; signature every page; totals last page; keep the over-tall/0-row guards). `renderPage`= `<A4Sheet orientation="portrait" header={headerBlock} pageNo pageCount>` {partiesBlock; table(thead+rows slice); `{isLast&&totalsBlock}`; `<div className="flex-1"/>`; signatureBlock}. Host `<ReportPrintDialog orientation="portrait" title="ใบกำกับภาษี" pageCount renderPreview renderFullDoc printLabel={alreadyOriginal?'พิมพ์สำเนา':'พิมพ์ใบกำกับภาษี'} printDisabled={incomplete} footerNote={incomplete&&<warning/>} onPrint={handlePrintGuarded} open onOpenChange/>` + the hidden measure specimen. Imports: ADD `printDomSheets` + `taxInvoiceSheetParts`; REMOVE `printTaxInvoice`/`previewTaxInvoice`; delete old handlePreview/handlePrint + the small-dialog buyer `<Input>` body. <span class="inv">`handlePrintGuarded = async ({pages,copies}) => { if(incomplete) return; const {record,copy}=await window.api.tax.issueOrGet({sale_id:saleId,buyer_name,buyer_address,buyer_tax_id,buyer_branch,issued_by:getCurrentUserId()}); const ds=await window.api.settings.getDocumentSettings(); const res=await printDomSheets({docSelector:'.a4-doc',pages,printerName:ds?.printer_name||'',copies,orientation:'portrait'}); if(res.success){ if(!copy) await window.api.tax.confirmOriginalPrinted(saleId); toast(copy?'พิมพ์ใบกำกับภาษี (สำเนา) แล้ว':'พิมพ์ใบกำกับภาษี (ต้นฉบับ) แล้ว','success'); onIssued?.(); onOpenChange(false) } else toast('พิมพ์ไม่สำเร็จ',res.error) }` — `copy` from issueOrGet (NOT alreadyOriginal); confirmOriginalPrinted ONLY in `if(success&&!copy)`; `await` getDocumentSettings.</span></div>
+      <div class="step"><strong>4. Rework `DocumentSettingsTab.tsx` (+A5 removal A1)</strong> — remove `import buildTaxInvoiceHtml` + iframe + `PAGE_MM`/`mmToPx`/iframe-fit logic + the "ขนาดกระดาษ" Select (~:250-260). ADD `printDomSheets`, `{A4Sheet,A4_PORTRAIT}`, `taxInvoiceSheetParts`. <span class="inv">In the load loop (:117-133, body :122-126) add `if(k==='paper_size') continue` so a legacy 'A5' never round-trips into save.</span> Render sample = `<A4Sheet orientation="portrait" pageNo={1} pageCount={1} header={headerBlock}>{parts}</A4Sheet>` from `taxInvoiceSheetParts({sale:SAMPLE_SALE,shop,tax:SAMPLE_TAX,copy:false})`, scaled-to-fit (transform wrapper, A4_PORTRAIT.W/H). ทดสอบพิมพ์ → mount a TRANSIENT hidden `.a4-doc` (during the click only) wrapping that sheet → `printDomSheets({docSelector:'.a4-doc',printerName:form.printer_name,copies:form.copies,orientation:'portrait'})`. Do NOT trim SAMPLE_SALE (needs items[].unit_vat/line_total/qty + total_vat/total_amount). Keep ZoomControl + printer + copies.</div>
+      <div class="step"><strong>5. PrintTab A4-only (A2)</strong> — `type PaperSize='A4'`; `A4_DIMS`=A4 only; load `setDoc({...paper_size:'A4'})` (drop `dc.paper_size` read at :81). The ~8 `doc.paper_size` reads (:93/99/113/145/149/173/201) then all receive constant 'A4' — no other change. presets.ts/buildPriceTagHtml keep `'A4'|'A5'` (only 'A4' passed; A5 branches dead — out of scope to rip out).</div>
+      <div class="step"><strong>6. Delete dead code</strong> — delete `src/lib/receipt/buildTaxInvoiceHtml.ts`; in `print.ts` remove `printTaxInvoice`+`previewTaxInvoice`+the `buildTaxInvoiceHtml` import, then remove now-orphaned `docConfig`+`PAGE_MM` (grep-confirm no other user). tsc gates.</div>
+      <div class="step"><strong>7. refine_schema note</strong> — record `document_settings.paper_size` = DEAD COLUMN (forced A4; drop before launch) in `docs/refine_schema.md` + memory [[project_refine_schema_checklist]].</div>
+      <div class="step"><strong>8. Verify</strong> (below).</div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li>`npx tsc --noEmit -p tsconfig.json` → only `Theme/index.tsx:1616`.</li>
+      <li>REGRESSION: print ข.ย.9/10/11 + GR + EnvLog → unchanged (new ReportPrintDialog props default-off).</li>
+      <li>Tax invoice (SaleDetailDialog, VAT bill) → A4 portrait popup; buyer read-only in sheet; page-range + copies work; printed == preview; totals match SaleDetail VAT breakdown.</li>
+      <li><span class="inv">Legal lock (P0):</span> open preview on unissued bill → NOT locked (cancel → still editable/voidable). Print ต้นฉบับ success → locks (void/edit-customer disabled; button→"พิมพ์สำเนา"). Cancel print window → NOT locked. Reprint → สำเนา stamp, no re-lock.</li>
+      <li>Incomplete buyer (no customer) → warning + print disabled.</li>
+      <li>DocumentSettings: A4 React sheet preview; ทดสอบพิมพ์ spools A4; no A5 option; saving normalizes paper_size→A4.</li>
+      <li>PrintTab: price tags A4 only.</li>
+      <li>1-item invoice → single page; ~30-line invoice → paginates, totals last page only, signature every page, last-page-full → totals spill to fresh page (no clip).</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li><span class="inv">P0 deferred-lock</span> → preview transient record; confirmOriginalPrinted only `if(success&&!copy)`; copy from issueOrGet. Mirror current dialog. Explicit lock click-tests.</li>
+      <li><span class="inv">onPrint double-spool</span> → read via ref, not in dep array; branch wraps whole async body.</li>
+      <li><span class="inv">wrong printer</span> → `await getDocumentSettings()`.</li>
+      <li><span class="inv">A5 round-trip</span> → load loop `continue` on paper_size.</li>
+      <li>shared primitives → all new props optional/default-off; regression-test 4 consumers.</li>
+      <li>delete builder → both consumers reworked first; grep zero importer; remove orphaned docConfig/PAGE_MM.</li>
+      <li>VAT drift → copy formulas exactly; click-test totals vs SaleDetail.</li>
+      <li>measure-pack loop → deps stable memoized rows + shop; padding-not-margin.</li>
+    </ul>
+
+    <h3>Out of scope</h3>
+    <ul>
+      <li>Dropping `document_settings.paper_size` column + `'A4'|'A5'` types + presets.ts A5 branches (DEAD; remove before launch).</li>
+      <li>Thermal slip / label printing (unchanged).</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-19 · ผ่าน audit 2 รอบ (general-purpose) · ไม่มี P0/P1 ค้าง</footer>
+
+</div>
+</body>
+</html>

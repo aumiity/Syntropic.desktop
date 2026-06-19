@@ -168,6 +168,9 @@ export interface ReceiptSettings {
   font_size: number         // GLOBAL — one size for the whole slip (no per-section size)
   footer_note: string
   abbrev_tax_invoice: number
+  // รูปแบบบล็อกรายการสินค้า: 'detailed' = 2 บรรทัด/รายการ (ค่าเริ่มต้น),
+  // 'table' = ตาราง 1 บรรทัด/รายการ (ชื่อ | จำนวน+หน่วย | ราคา | รวม).
+  items_layout: 'detailed' | 'table'
   // Per-section style — one trio per controllable section (see
   // src/lib/receipt/sections.ts SSOT). show_/bold_ are 0|1; align_ is one of
   // 'left'|'center'|'right'|'justify'.
@@ -191,6 +194,8 @@ export interface DocumentSettings {
   id: number
   printer_name: string
   copies: number
+  // DEAD COLUMN: A5 removed system-wide (2026-06-19) — always 'A4'. Drop in the
+  // pre-launch schema cleanup (docs/refine_schema.md).
   paper_size: 'A4' | 'A5'
   updated_at?: string
 }
