@@ -1415,6 +1415,18 @@ export default function Theme() {
                     </SectionCard>
                   </div>
                 </DemoRow>
+                <DemoRow label="SectionCard headerless (omit icon/title/right — no header row, no empty top space)">
+                  <div className="grid grid-cols-2 gap-4 w-full">
+                    <SectionCard>
+                      <p className="text-sm text-muted-foreground">
+                        ไม่ส่ง icon/title/right → ไม่มีแถวหัวการ์ด เหลือแค่ body กับ padding ปกติ ใช้กับการ์ดที่เนื้อหาอธิบายตัวเองอยู่แล้ว
+                      </p>
+                    </SectionCard>
+                    <SectionCard>
+                      <Input placeholder="เนื้อหาเริ่มชิดขอบบนเลย ไม่มีช่องว่างค้าง" />
+                    </SectionCard>
+                  </div>
+                </DemoRow>
                 <DemoRow label="MetricCard (read-only KPI · `unit` inline · sub auto-tints to icon color)">
                   <div className="grid grid-cols-3 gap-4 w-full">
                     <MetricCard label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="amber" />

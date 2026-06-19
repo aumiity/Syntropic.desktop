@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
-import { Checkbox, CheckRow } from '@/components/ui/checkbox'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ZoomControl } from '@/components/ui/zoom-control'
 import {
@@ -142,7 +142,7 @@ function NumInput({
   return (
     <div className={cn('relative', className)}>
       {input}
-      <div className="absolute inset-y-0 right-0.5 flex flex-col justify-center">
+      <div className="absolute inset-y-1 right-1 flex flex-col justify-center">
         <Button type="button" variant="ghost" size="icon-xs" tabIndex={-1} disabled={rest.disabled}
           className="h-1/2 w-5 min-h-0 rounded-sm px-0 text-muted-foreground hover:text-foreground"
           {...bindHold(() => bump(1))}
@@ -156,6 +156,53 @@ function NumInput({
           <ChevronDown />
         </Button>
       </div>
+    </div>
+  )
+}
+
+// Position nudger for a section's X/Y offset, kept to a SINGLE line (h-9, same
+// as an input row). The middle is a vertical ▲▼ stepper for Y — the same compact
+// chevron stepper the font-size field uses — flanked by ◄ ► buttons for X. Each
+// click steps ±0.5mm with the shared press-and-hold repeat and the live preview
+// shifts as you go. Y+ is down (matches translate() in buildSectionStyle), so ▲
+// moves up (Y−) and ▼ moves down (Y+).
+function PositionPad({
+  x, y, onNudge, bindHold, disabled,
+}: {
+  x: number
+  y: number
+  onNudge: (axis: 'x' | 'y', dir: 1 | -1) => void
+  bindHold: (fn: () => void) => React.ComponentProps<'button'>
+  disabled?: boolean
+}) {
+  // ◄ / ► — slim full-height side bars that move X (narrow to match the
+  // stepper's chevrons, not chunky squares).
+  const side = (icon: React.ReactNode, label: string, handlers: React.ComponentProps<'button'>) => (
+    <Button
+      type="button" size="icon-lg" variant="elevated" className="h-9 w-6 px-0"
+      disabled={disabled} tooltip={label} {...handlers}
+    >
+      {icon}
+    </Button>
+  )
+  // ▲ / ▼ — half-height ghost steppers stacked inside the framed middle box.
+  const vstep = (icon: React.ReactNode, label: string, handlers: React.ComponentProps<'button'>) => (
+    <Button
+      type="button" size="icon-xs" variant="ghost"
+      className="h-1/2 w-full min-h-0 rounded-none p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+      disabled={disabled} tooltip={label} {...handlers}
+    >
+      {icon}
+    </Button>
+  )
+  return (
+    <div className={cn('inline-flex items-center gap-1', disabled && 'opacity-50')}>
+      {side(<ChevronLeft />, `เลื่อนซ้าย · X ${x} (กดค้างได้)`, bindHold(() => onNudge('x', -1)))}
+      <div className="flex h-9 w-8 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        {vstep(<ChevronUp />, `เลื่อนขึ้น · Y ${y} (กดค้างได้)`, bindHold(() => onNudge('y', -1)))}
+        {vstep(<ChevronDown />, `เลื่อนลง · Y ${y} (กดค้างได้)`, bindHold(() => onNudge('y', 1)))}
+      </div>
+      {side(<ChevronRight />, `เลื่อนขวา · X ${x} (กดค้างได้)`, bindHold(() => onNudge('x', 1)))}
     </div>
   )
 }
@@ -553,22 +600,17 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                               <span className="w-9 shrink-0" />
                             </>
                           )}
-                          {/* Position nudge — ◄ ► move X, ▲ ▼ move Y (±0.5mm
+                          {/* Position nudge — D-pad: ◄► move X, ▲▼ move Y (±0.5mm
                               each); the live preview shifts as you click. Y+ is
                               down (matches translate() in buildSectionStyle). */}
-                          <div className="flex items-center justify-center gap-1 w-28 shrink-0">
-                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} {...bindHold(() => nudge(oxKey, -0.5))} title="เลื่อนซ้าย (กดค้างได้)">
-                              <ChevronLeft />
-                            </Button>
-                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} {...bindHold(() => nudge(oxKey, 0.5))} title="เลื่อนขวา (กดค้างได้)">
-                              <ChevronRight />
-                            </Button>
-                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} {...bindHold(() => nudge(oyKey, -0.5))} title="เลื่อนขึ้น (กดค้างได้)">
-                              <ChevronUp />
-                            </Button>
-                            <Button type="button" size="icon-sm" variant="elevated" disabled={!visible} {...bindHold(() => nudge(oyKey, 0.5))} title="เลื่อนลง (กดค้างได้)">
-                              <ChevronDown />
-                            </Button>
+                          <div className="flex items-center justify-center w-28 shrink-0">
+                            <PositionPad
+                              x={form[oxKey] as number}
+                              y={form[oyKey] as number}
+                              onNudge={(axis, dir) => nudge(axis === 'x' ? oxKey : oyKey, dir * 0.5)}
+                              bindHold={bindHold}
+                              disabled={!visible}
+                            />
                           </div>
                         </div>
                       )
@@ -595,47 +637,48 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                     toggle + size/position here govern only THIS designer preview so
                     the owner can see + position sample bars; the real per-label
                     on/off lives on each product's ฉลาก tab. */}
-                <SectionCard icon={Barcode} title="บาร์โค้ด" tint="info">
-                  <CheckRow
-                    framed
-                    className="w-full h-12"
-                    checked={!!form.show_barcode}
-                    onChange={v => setF('show_barcode', (v ? 1 : 0) as never)}
-                    label="แสดงบาร์โค้ดในตัวอย่าง"
-                  />
-                  {/* รายละเอียดการปรับแต่งแสดงเสมอ แต่ disable เมื่อยังไม่ติ๊ก แสดงบาร์โค้ด.
-                      สูง / กว้าง / ตำแหน่ง on ONE row. Barcode box = สูง × กว้าง; the bars
-                      stretch to fill so every product's barcode keeps the same footprint
-                      regardless of digit count. */}
-                  <div className="flex items-start justify-between gap-3">
-                    <FormField label="ความสูง (มม.)">
+                <SectionCard>
+                  {/* Toggle + สูง / กว้าง / ตำแหน่ง all on ONE row — the checkbox sits
+                      inline with the controls (h-9 pill, aligned to the input baseline).
+                      Size/position controls stay visible but disable until ticked.
+                      Barcode box = สูง × กว้าง; the bars stretch to fill so every product's
+                      barcode keeps the same footprint regardless of digit count. */}
+                  <div className="flex items-end gap-2">
+                    {/* Frameless toggle — bare checkbox + label like the per-section
+                        rows above, so the checkbox column lines up. Held in an h-9
+                        box so items-end drops it to the input baseline. */}
+                    <div className="flex flex-1 items-center gap-2 h-9">
+                      <Checkbox
+                        checked={!!form.show_barcode}
+                        onCheckedChange={v => setF('show_barcode', (v ? 1 : 0) as never)}
+                      />
+                      <span className="text-sm text-foreground">บาร์โค้ด</span>
+                    </div>
+                    <FormField label="สูง (มม.)" labelClassName="text-center">
                       <NumInput stepper value={form.font_size_barcode} onChange={n => setF('font_size_barcode', n)} min={4} max={30} step={1} className="w-20" disabled={!form.show_barcode} />
                     </FormField>
-                    <FormField label="ความกว้าง (มม.)">
+                    <FormField label="กว้าง (มม.)" labelClassName="text-center">
                       <NumInput stepper value={form.barcode_width_mm} onChange={n => setF('barcode_width_mm', n)} min={10} max={120} step={1} className="w-20" disabled={!form.show_barcode} />
                     </FormField>
-                    <FormField label="ตำแหน่ง">
-                      {/* ◄ ► move X, ▲ ▼ move Y (±0.5mm); live preview shifts.
-                          size-9 so the buttons match the input field height. */}
-                      <div className="flex items-center gap-1">
-                        <Button type="button" size="icon-lg" variant="elevated" className="size-9" disabled={!form.show_barcode} {...bindHold(() => nudge('offset_x_barcode', -0.5))} title="เลื่อนซ้าย (กดค้างได้)">
-                          <ChevronLeft />
-                        </Button>
-                        <Button type="button" size="icon-lg" variant="elevated" className="size-9" disabled={!form.show_barcode} {...bindHold(() => nudge('offset_x_barcode', 0.5))} title="เลื่อนขวา (กดค้างได้)">
-                          <ChevronRight />
-                        </Button>
-                        <Button type="button" size="icon-lg" variant="elevated" className="size-9" disabled={!form.show_barcode} {...bindHold(() => nudge('offset_y_barcode', -0.5))} title="เลื่อนขึ้น (กดค้างได้)">
-                          <ChevronUp />
-                        </Button>
-                        <Button type="button" size="icon-lg" variant="elevated" className="size-9" disabled={!form.show_barcode} {...bindHold(() => nudge('offset_y_barcode', 0.5))} title="เลื่อนลง (กดค้างได้)">
-                          <ChevronDown />
-                        </Button>
-                      </div>
-                    </FormField>
+                    {/* ตำแหน่ง column — w-28 to line up with the per-section ตำแหน่ง column above. */}
+                    <div className="w-28 shrink-0">
+                      <FormField label="ตำแหน่ง" labelClassName="text-center">
+                        {/* Compact: ◄► move X, ▲▼ move Y (±0.5mm); live preview shifts. */}
+                        <div className="flex justify-center">
+                          <PositionPad
+                            x={form.offset_x_barcode}
+                            y={form.offset_y_barcode}
+                            onNudge={(axis, dir) => nudge(axis === 'x' ? 'offset_x_barcode' : 'offset_y_barcode', dir * 0.5)}
+                            bindHold={bindHold}
+                            disabled={!form.show_barcode}
+                          />
+                        </div>
+                      </FormField>
+                    </div>
                   </div>
-                  <div className="flex items-start gap-1.5 rounded-lg border border-info/30 bg-info-soft p-2.5 text-sm text-info-soft-foreground">
+                  <div className="flex items-start gap-1.5 rounded-lg border border-info/30 bg-info-soft p-2.5 text-xs text-info-soft-foreground">
                     <Info className="size-4 shrink-0 mt-0.5" />
-                    <span>บาร์โค้ดที่แสดง ใช้เพื่อการปรับรูปแบบเท่านั้น หากต้องการให้แสดงผลบนฉลาก กรุณาตั้งค่าที่สินค้า</span>
+                    <span>บาร์โค้ดที่แสดง ใช้เพื่อการปรับรูปแบบเท่านั้น หากต้องการให้แสดงผลบนฉลาก กรุณาตั้งค่าที่ตัวสินค้า</span>
                   </div>
                 </SectionCard>
               </TabsContent>

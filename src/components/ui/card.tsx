@@ -113,7 +113,9 @@ function SectionCard({
   icon: Icon, title, tint = 'primary', right, children, className, fill = false,
 }: {
   icon?: React.ComponentType<{ className?: string }>
-  title: React.ReactNode
+  /** Optional — omit (with no icon/right) for a headerless card: the header row
+      is skipped entirely so there's no empty top space. */
+  title?: React.ReactNode
   /** SectionCard forwards tint straight to TintIcon, so it accepts the full
       TintIcon palette (e.g. teal/violet) — not just the MetricCard subset. */
   tint?: TintIconTint
@@ -123,13 +125,16 @@ function SectionCard({
   /** Stretch the card to its grid-row height and let the body fill the leftover space. */
   fill?: boolean
 }) {
+  const hasHeader = Icon || title != null || right != null
   return (
     <div className={cn('bg-card rounded-card p-4 space-y-3 shadow-card border border-border', fill && 'flex flex-col h-full', className)}>
-      <div className="flex items-center gap-2.5">
-        {Icon && <TintIcon icon={Icon} tint={tint as TintIconTint} size="sm" bordered />}
-        <h3 className="text-base font-semibold text-foreground flex-1">{title}</h3>
-        {right}
-      </div>
+      {hasHeader && (
+        <div className="flex items-center gap-2.5">
+          {Icon && <TintIcon icon={Icon} tint={tint as TintIconTint} size="sm" bordered />}
+          {title != null && <h3 className="text-base font-semibold text-foreground flex-1">{title}</h3>}
+          {right}
+        </div>
+      )}
       <div className={cn('space-y-3', fill && 'flex-1 min-h-0')}>{children}</div>
     </div>
   )
