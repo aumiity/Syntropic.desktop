@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,15 +11,30 @@ import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
-import { ArrowLeft, FileText, Boxes, Pill, Save, Info, Coins, Package, History, Tag } from 'lucide-react'
+import { ArrowLeft, FileText, Pill, Save, Info, Coins, Package, History, Tag } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import type { ProductCategory, ItemUnit } from '@/types'
+import type { ProductCategory, ItemUnit, ProductBundleItem } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
 import { LabelsTab } from '../EditProduct/LabelsTab'
 import { GeneralTab } from './GeneralTab'
 import { ComponentsTab, type DraftItem } from './ComponentsTab'
 import { HistoryTab } from './HistoryTab'
 import { usePublishDevTab } from '@/stores/devTabStore'
+
+// Map saved bundle_items → the in-progress DraftItem shape ComponentsTab edits.
+// Module-scope pure helper (not a component) — keeps loadAll/refreshProduct
+// seeding in one place without duplicating the mapping.
+function seedDraftItems(prod: FullProduct): DraftItem[] {
+  return (prod.bundle_items ?? []).map((bi: ProductBundleItem) => ({
+    component_product_id: bi.component_product_id,
+    component_name: bi.component_name ?? '—',
+    component_unit_name: bi.component_unit_name,
+    component_cost: Number(bi.component_cost ?? 0),
+    component_sell_price: Number(bi.component_sell_price ?? 0),
+    component_stock: Number(bi.component_stock ?? 0),
+    qty_per_bundle: Number(bi.qty_per_bundle ?? 1),
+  }))
+}
 
 const REQUIRED_FIELDS = ['trade_name', 'unit_id', 'price_retail'] as const
 const REQUIRED_LABEL: Record<string, string> = {
@@ -48,6 +63,10 @@ export default function EditBundlePage() {
   const isNew = !id || id === 'new'
   const productId = isNew ? 0 : Number(id)
 
+  // The "ข้อมูล & รายการ" view (key 'general') stacks the form + the components
+  // table in one vertical scroll, so the operator sees both the prices and the
+  // auto-summed component cost without tab-hopping. New mode locks to it (no tab
+  // strip — single view); edit mode adds ฉลาก / ความเคลื่อนไหว tabs.
   const [tab, setTab] = useState('general')
   usePublishDevTab(tab) // DEV ONLY — surfaces open sub-tab file in TitleBar path
   const [loading, setLoading] = useState(!isNew)
@@ -67,9 +86,12 @@ export default function EditBundlePage() {
   const [errors, setErrors] = useState<Set<string>>(new Set())
   const [isDirty, setIsDirty] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
-  // New-mode only: components live here (controlled). Edit-mode: ComponentsTab
-  // owns its own state and persists via products:saveBundleItems.
+  // Components draft — controlled in BOTH modes now. New mode commits it via
+  // createBundle; edit mode via saveBundleItems (appended to the unified save).
   const [draftItems, setDraftItems] = useState<DraftItem[]>([])
+  // Anchor for scrolling to the components table (replaces the old tab jump).
+  const componentsRef = useRef<HTMLDivElement>(null)
+  const scrollToComponents = () => componentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   const [categories, setCategories] = useState<ProductCategory[]>([])
   const [itemUnits, setItemUnits] = useState<ItemUnit[]>([])
   const [labelFrequencies, setLabelFrequencies] = useState<any[]>([])
@@ -117,6 +139,9 @@ export default function EditBundlePage() {
         return
       }
       setProduct(prod)
+      // Seed the components draft from the saved bundle_items. Raw setter (NOT
+      // handleItemsChange) so the freshly-loaded list never flips isDirty.
+      setDraftItems(seedDraftItems(prod))
       setCategories(cats as ProductCategory[])
       setItemUnits(units as ItemUnit[])
       setLabelFrequencies(freqs as any[])
@@ -152,6 +177,9 @@ export default function EditBundlePage() {
     // so only the product snapshot needs refreshing.
     const updated = await window.api.products.get(productId) as FullProduct
     setProduct(updated)
+    // Re-seed the components draft from the persisted result. Raw setter (NOT
+    // handleItemsChange) so the post-save reload never re-flips isDirty.
+    setDraftItems(seedDraftItems(updated))
   }
 
   const setF = (key: string, v: any) => {
@@ -163,6 +191,13 @@ export default function EditBundlePage() {
       next.delete(key)
       return next
     })
+  }
+
+  // Components edits flow through here so any add/remove/qty change marks the
+  // page dirty (the seed paths use setDraftItems raw to avoid a false dirty).
+  const handleItemsChange = (next: DraftItem[]) => {
+    setDraftItems(next)
+    setIsDirty(true)
   }
 
   // Returns the set of required-field keys missing/invalid (matches EditProduct).
@@ -196,7 +231,6 @@ export default function EditBundlePage() {
       toast({ title: 'กรุณากรอกข้อมูลที่จำเป็น', description: labels.join(', '), variant: 'error' })
       const first = REQUIRED_FIELDS.find(k => missing.has(k))
       if (first) {
-        setTab('general')
         setTimeout(() => {
           const el = document.querySelector(`[data-field="${first}"]`) as HTMLElement | null
           el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -205,12 +239,21 @@ export default function EditBundlePage() {
       }
       return
     }
-    // New mode requires >=2 components in one shot (atomic create) — no
-    // empty draft row ever lands in the DB.
-    if (isNew && draftItems.length < 2) {
+    // A bundle needs >=2 components (atomic create OR an edit save) — no empty
+    // or single-line bundle ever persists. Same rule in both modes now.
+    if (draftItems.length < 2) {
       toast({ title: 'ชุดสินค้าต้องมีรายการอย่างน้อย 2 รายการ', variant: 'error' })
-      setTab('components')
+      scrollToComponents()
       return
+    }
+    // Every component must carry a positive qty-per-bundle (moved here from
+    // ComponentsTab.handleSave when the per-tab save was removed).
+    for (const it of draftItems) {
+      if (!it.qty_per_bundle || it.qty_per_bundle <= 0) {
+        toast({ title: `จำนวนต่อชุดของ "${it.component_name}" ต้องมากกว่า 0`, variant: 'error' })
+        scrollToComponents()
+        return
+      }
     }
     setSaving(true)
     try {
@@ -258,18 +301,29 @@ export default function EditBundlePage() {
         if ((Number(product?.price_wholesale2) || 0) !== payload.price_wholesale2) priceChanges.push({ price_type: 'wholesale2', new_price: payload.price_wholesale2 })
 
         const updatePayload = { ...payload, code: form.code || null, is_bundle: 1, is_stock_item: 0 }
+        // Items payload for saveBundleItems — only the two columns the backend
+        // takes (it deletes+reinserts + recomputeBundleCost in one transaction).
+        const itemsPayload = draftItems.map(it => ({
+          component_product_id: it.component_product_id,
+          qty_per_bundle: it.qty_per_bundle,
+        }))
         const finishSave = async () => {
           setIsDirty(false)
           toast({ title: 'บันทึกสำเร็จ', variant: 'success' })
+          // refreshProduct re-seeds draftItems from the persisted result.
           await refreshProduct()
         }
 
         if (priceChanges.length > 0) {
           overridePrice.run(
+            // update BEFORE saveBundleItems: recomputeBundleCost (inside
+            // saveBundleItems) writes cost_price last, so it isn't clobbered by
+            // the generic update's column write.
             async (ov) => {
               await Promise.all(priceChanges.map(c =>
                 window.api.products.updatePrice(productId, { ...c, note: priceNote }, ov)))
               await window.api.products.update(productId, updatePayload)
+              await window.api.products.saveBundleItems(productId, itemsPayload)
             },
             {
               title: 'แก้ไขราคาขาย',
@@ -282,6 +336,7 @@ export default function EditBundlePage() {
         }
 
         await window.api.products.update(productId, updatePayload)
+        await window.api.products.saveBundleItems(productId, itemsPayload)
         await finishSave()
       }
     } catch (e: any) {
@@ -299,9 +354,9 @@ export default function EditBundlePage() {
     )
   }
 
-  // In new mode `product` is null — derive stats from the in-memory form +
-  // draftItems (cost = sum of component_cost * qty; recomputed live).
-  const componentCount = isNew ? draftItems.length : (product!.bundle_items?.length ?? 0)
+  // Components draft drives the count in both modes (it's seeded from the
+  // saved bundle_items on load and tracks live edits before save).
+  const componentCount = draftItems.length
   const labelCount = isNew ? 0 : (product!.labels?.length ?? 0)
 
   // Derived stats for the 4-card row (mirrors EditProduct). Bundles have no
@@ -327,25 +382,31 @@ export default function EditBundlePage() {
       <PageHeader title={isNew ? 'สร้างชุดสินค้าใหม่' : 'ชุดสินค้า'} />
 
       <TabStrip className="-mb-2">
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="segmented">
-            <TabsTrigger value="general"><FileText /> ข้อมูลทั่วไป</TabsTrigger>
-            <TabsTrigger value="components"><Boxes /> รายการ ({componentCount})</TabsTrigger>
-            {!isNew && <TabsTrigger value="labels"><Pill /> ฉลาก ({labelCount})</TabsTrigger>}
-            {!isNew && <TabsTrigger value="history"><History /> ความเคลื่อนไหว</TabsTrigger>}
-          </TabsList>
-        </Tabs>
+        {/* New mode = single "ข้อมูล & รายการ" view, no tab strip (the form +
+            components table stack in one scroll). Edit mode adds ฉลาก /
+            ความเคลื่อนไหว tabs; the first tab now holds both form + components. */}
+        {!isNew && (
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList variant="segmented">
+              <TabsTrigger value="general"><FileText /> ข้อมูล &amp; รายการ</TabsTrigger>
+              <TabsTrigger value="labels"><Pill /> ฉลาก ({labelCount})</TabsTrigger>
+              <TabsTrigger value="history"><History /> ความเคลื่อนไหว</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <Button variant="primary-soft" size="lg" className="h-10 px-2" onClick={goBack}>
             <ArrowLeft className="size-4" /> ย้อนกลับ
           </Button>
+          {/* Single Save commits the product + components together. Shown on the
+              "ข้อมูล & รายการ" view (always, in new mode — tab is locked there). */}
           {tab === 'general' && (
             <Button
               size="lg"
               className="h-10 px-3"
               onClick={handleSave}
-              disabled={saving || (isNew && draftItems.length < 2)}
-              title={isNew && draftItems.length < 2 ? 'ต้องเพิ่มรายการอย่างน้อย 2 รายการก่อน' : undefined}
+              disabled={saving || draftItems.length < 2}
+              title={draftItems.length < 2 ? 'ต้องเพิ่มรายการอย่างน้อย 2 รายการก่อน' : undefined}
             >
               <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : (isNew ? 'สร้างชุดสินค้า' : 'บันทึก')}
             </Button>
@@ -419,29 +480,21 @@ export default function EditBundlePage() {
           label="รายการ"
           value={componentCount.toLocaleString()}
           unit={componentCount > 0 ? 'รายการ' : undefined}
-          sub="คลิกเพื่อแก้ไข"
+          // New-mode hint: explain the 2-item minimum that gates the create
+          // button (sub turns red automatically via the destructive tint).
+          sub={isNew && componentCount < 2 ? 'ต้องมีอย่างน้อย 2 รายการ' : 'คลิกเพื่อไปยังรายการ'}
           icon={Package}
-          tint={componentCount === 0 ? 'destructive' : 'info-soft'}
-          onClick={() => setTab('components')}
+          tint={componentCount < 2 ? 'destructive' : 'info-soft'}
+          onClick={scrollToComponents}
         />
         </div>
       </div>
 
-      {/* Same scroll model as EditProduct: form tabs (general/price) use an
-          outer overflow-y-auto wrapper; table tabs (components/labels) own
-          their internal sticky-header scroll, so they get flex-col only. */}
+      {/* "ข้อมูล & รายการ" stacks the form + the components table in one outer
+          scroll (form on top, full-width table below). Labels / history keep
+          their own internal sticky-header scroll, so they get flex-col only. */}
       <div className="flex-1 min-h-0 flex flex-col [scrollbar-gutter:stable]">
-        {tab === 'components' ? (
-          <div className="flex-1 min-h-0 flex flex-col">
-            <ComponentsTab
-              product={product}
-              productId={isNew ? null : productId}
-              onRefresh={refreshProduct}
-              controlledItems={isNew ? draftItems : undefined}
-              onControlledItemsChange={isNew ? setDraftItems : undefined}
-            />
-          </div>
-        ) : tab === 'labels' && !isNew ? (
+        {tab === 'labels' && !isNew ? (
           <div className="flex-1 min-h-0 flex flex-col">
             <LabelsTab
               product={product!}
@@ -463,20 +516,25 @@ export default function EditBundlePage() {
             />
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] pb-8">
-            {tab === 'general' && (
-              <GeneralTab
-                form={form}
-                setF={setF}
-                errors={errors}
-                categories={categories}
-                itemUnits={itemUnits}
-                product={product}
-                productId={productId}
-                isNew={isNew}
-                reloadToken={(product as any)?.updated_at ?? ''}
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] pt-4 pb-8 flex flex-col">
+            <GeneralTab
+              form={form}
+              setF={setF}
+              errors={errors}
+              categories={categories}
+              itemUnits={itemUnits}
+              product={product}
+              productId={productId}
+              isNew={isNew}
+              reloadToken={(product as any)?.updated_at ?? ''}
+            />
+            <div ref={componentsRef}>
+              <ComponentsTab
+                productId={isNew ? null : productId}
+                controlledItems={draftItems}
+                onControlledItemsChange={handleItemsChange}
               />
-            )}
+            </div>
           </div>
         )}
       </div>

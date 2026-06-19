@@ -34,7 +34,8 @@ One line per memory. Detail lives in the linked file (read on demand).
 - [Default qty (จำนวนตั้งต้นการขาย)](project_default_qty.md) — **DONE 2026-06-16 (click-test pending)** — `products.default_qty` re-added จาก PHP original; multiplier wins; schema 2 จุด (CREATE+ALTER); coerce→1 ไม่ใช่ 0; sale-only
 - [POS qty multiplier](project_pos_qty_multiplier.md) — **DONE 2026-05-30** — `5*`-then-scan (number-first, `*`=commit); อย่า re-add `*N`-prefix/idle-timer/overlay
 - [POS redesign](project_pos_redesign.md) — **ACTIVE 2026-05-29, paused** — bordered cards + cart slot + customer dialogs done; right rail/payment pending
-- [Edit parity pass](project_edit_parity_pass.md) — **ACTIVE 2026-05-28, paused** — align EditBundle → EditProduct tab-by-tab; Tab 1 DONE, Tab 2 (ComponentsTab) NEXT
+- [Edit parity pass](project_edit_parity_pass.md) — **SUPERSEDED 2026-06-19** — Tab 1 polish DONE; Tab 2 plan ยกเลิก → ดู EditBundle tab collapse แทน
+- [EditBundle tab collapse](project_editbundle_tab_collapse.md) — **DONE 2026-06-19 (tsc PASS; click-test pending)** — ComponentsTab ยุบเข้า Tab 1 "ข้อมูล & รายการ"; save atomic ปุ่มเดียว; edit mode = products:update → saveBundleItems → refresh (ลำดับสำคัญ: recomputeBundleCost ใน saveBundleItems เขียน cost_price ทับสุดท้าย)
 - [Table-pattern refactor](project_table_pattern_refactor.md) — **ACTIVE 2026-05-27, paused** — ProductsList canonical, rolled out 9 list pages; resume on edit/settings sub-tabs
 - [Column-visibility refactor](project_column_visibility.md) — **ACTIVE 2026-05-25, paused** — Settings popover + checkbox per column; shipped ProductsList+BundlesList; more pending (PROGRESS.md)
 - [Manage/Reports restructure](project_manage_restructure.md) — **ACTIVE** — phased split; next = PROGRESS.md top block (Phase 2 = Purchase history → /manage)

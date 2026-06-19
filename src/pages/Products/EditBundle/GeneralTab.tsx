@@ -62,7 +62,7 @@ export function GeneralTab({
   }
 
   return (
-    <div className="grid grid-cols-[3fr_2fr] items-start gap-4 pt-4">
+    <div className="grid grid-cols-[3fr_2fr] items-start gap-4">
 
       {/* LEFT COLUMN */}
       <div className="flex flex-col gap-4">

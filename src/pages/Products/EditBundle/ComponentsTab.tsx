@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -7,23 +7,17 @@ import { QtyDialog } from '@/components/ui/qty-dialog'
 import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
-import { Plus, Trash2, Boxes, Save } from 'lucide-react'
+import { Plus, Trash2, Boxes } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import type { ProductBundleItem } from '@/types'
-import type { FullProduct } from '../EditProduct/shared'
- 
+
 interface Props {
-  // null when creating a brand-new bundle (no DB row yet).
-  product: FullProduct | null
   // null in new-mode — no IPC save here; parent commits atomically.
   productId: number | null
-  onRefresh?: () => Promise<void> | void
-  // New-mode (controlled): when provided, items live in parent state and
-  // no Save button is shown. The parent's main "สร้างชุดสินค้า" calls
-  // products:createBundle with these items. Uncontrolled mode (edit) keeps
-  // the original behavior — local items + products:saveBundleItems.
-  controlledItems?: DraftItem[]
-  onControlledItemsChange?: (items: DraftItem[]) => void
+  // Items always live in parent state (controlled in both modes). The parent's
+  // single Save button (createBundle in new mode, update+saveBundleItems in
+  // edit mode) persists them. This tab only mutates the draft array.
+  controlledItems: DraftItem[]
+  onControlledItemsChange: (items: DraftItem[]) => void
 }
 
 // Local-edit shape — keeps the in-progress form independent of the
@@ -53,21 +47,13 @@ interface SearchRow {
 // A "+ เพิ่มรายการ" button opens the shared ProductSearchDialog (same picker as
 // POS). Backend rejects nested bundles + qty<=0 + disabled components; the
 // filter here (is_bundle=0, include_disabled=false) just hides them.
-export function ComponentsTab({ product, productId, onRefresh, controlledItems, onControlledItemsChange }: Props) {
+export function ComponentsTab({ productId, controlledItems, onControlledItemsChange }: Props) {
   const { toast } = useToast()
-  const isControlled = controlledItems !== undefined && onControlledItemsChange !== undefined
-  const [localItems, setLocalItems] = useState<DraftItem[]>([])
-  const items = isControlled ? controlledItems! : localItems
+  const items = controlledItems
   const setItems = (updater: DraftItem[] | ((prev: DraftItem[]) => DraftItem[])) => {
-    if (isControlled) {
-      const next = typeof updater === 'function' ? (updater as (p: DraftItem[]) => DraftItem[])(controlledItems!) : updater
-      onControlledItemsChange!(next)
-    } else {
-      setLocalItems(updater)
-    }
+    const next = typeof updater === 'function' ? (updater as (p: DraftItem[]) => DraftItem[])(controlledItems) : updater
+    onControlledItemsChange(next)
   }
-  const [saving, setSaving] = useState(false)
-  const [dirty, setDirty] = useState(false)
 
   // Confirm-before-remove — guards against a misclick on the trash button
   // wiping a component. Holds the row index + a snapshot for the dialog copy;
@@ -84,24 +70,6 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   const [q, setQ] = useState('')
   const [results, setResults] = useState<SearchRow[]>([])
   const [searching, setSearching] = useState(false)
-
-  // Seed from server payload on mount / refresh. In controlled (new) mode the
-  // parent owns items — skip seeding entirely.
-  useEffect(() => {
-    if (isControlled) return
-    const seeded: DraftItem[] = (product?.bundle_items ?? []).map((bi: ProductBundleItem) => ({
-      component_product_id: bi.component_product_id,
-      component_name: bi.component_name ?? '—',
-      component_unit_name: bi.component_unit_name,
-      component_cost: Number(bi.component_cost ?? 0),
-      component_sell_price: Number(bi.component_sell_price ?? 0),
-      component_stock: Number(bi.component_stock ?? 0),
-      qty_per_bundle: Number(bi.qty_per_bundle ?? 1),
-    }))
-    setLocalItems(seeded)
-    setDirty(false)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.bundle_items, isControlled])
 
   // Debounced search — products:list with is_bundle=0 filter, excluding items
   // already in the bundle and the bundle product itself.
@@ -155,7 +123,6 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
       component_stock: Number(p.stock_qty ?? 0),
       qty_per_bundle: 1,
     }])
-    setDirty(true)
     // Close after add (POS pattern) — main input auto-refocuses via the
     // searchOpen→false effect above, so the next search is one keystroke away.
     closeSearch()
@@ -164,7 +131,6 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   const removeAt = (idx: number) => {
     const nextLen = items.length - 1
     setItems(prev => prev.filter((_, i) => i !== idx))
-    setDirty(true)
     // Warn the moment removal drops the bundle below the 2-item minimum — the
     // user needs to know the list can't be saved until they add another item,
     // otherwise the Save button just silently greys out with no explanation.
@@ -182,48 +148,17 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
   const applyQty = (idx: number, qty: number) => {
     const next = Math.max(1, Math.round(qty))
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, qty_per_bundle: next } : it))
-    setDirty(true)
   }
 
   const totalCost = items.reduce((s, it) => s + it.component_cost * it.qty_per_bundle, 0)
   const totalSell = items.reduce((s, it) => s + it.component_sell_price * it.qty_per_bundle, 0)
 
-  const handleSave = async () => {
-    // Pre-validate so server-side errors don't surface as toasts only — the
-    // user sees field-level intent immediately.
-    if (items.length < 2) {
-      toast({ title: 'ชุดสินค้าต้องมีรายการอย่างน้อย 2 รายการ', variant: 'error' })
-      return
-    }
-    for (const it of items) {
-      if (!it.qty_per_bundle || it.qty_per_bundle <= 0) {
-        toast({ title: `จำนวนต่อชุดของ "${it.component_name}" ต้องมากกว่า 0`, variant: 'error' })
-        return
-      }
-    }
-    if (!productId) return // sanity — controlled mode hides this button
-    setSaving(true)
-    try {
-      await window.api.products.saveBundleItems(productId, items.map(it => ({
-        component_product_id: it.component_product_id,
-        qty_per_bundle: it.qty_per_bundle,
-      })))
-      toast({ title: 'บันทึกรายการสำเร็จ', variant: 'success' })
-      await onRefresh?.()
-      setDirty(false)
-    } catch (e: any) {
-      toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-    } finally {
-      setSaving(false)
-    }
-  }
-
   return (
-    <div className="pt-4 flex-1 min-h-0 flex flex-col">
-      <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
+    <div className="pt-4">
+      <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex flex-col">
         {/* Card header bar — icon+title+count cluster on the left, a
-            "+ เพิ่มรายการ" button opens the shared search dialog, Save on the
-            right (uncontrolled mode only). */}
+            "+ เพิ่มรายการ" button opens the shared search dialog. The single
+            Save lives in the parent TabStrip (commits product + items together). */}
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Boxes} tint="neutral" size="sm" />
@@ -234,23 +169,9 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
           <Button variant="elevated" size="lg" onClick={openSearch} className="px-2 shrink-0 gap-1.5">
             <Plus className="size-4" /> เพิ่มรายการ
           </Button>
-          {/* Controlled mode: parent's main "สร้างชุดสินค้า" button commits
-              atomically — no per-tab save here (would be a no-op since there's
-              no DB row yet). */}
-          {!isControlled && (
-            <Button
-              size="lg"
-              onClick={handleSave}
-              disabled={saving || !dirty}
-              className="h-9 w-9 p-0 shrink-0"
-              title={items.length < 2 ? 'ต้องมีรายการอย่างน้อย 2 รายการ' : (saving ? 'กำลังบันทึก...' : 'บันทึกรายการ')}
-            >
-              <Save className="size-4" />
-            </Button>
-          )}
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+        <div className="[&>[data-slot=table-container]]:max-h-[420px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -270,7 +191,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground py-16">
                   <Boxes className="size-10 mx-auto mb-2 opacity-30" />
-                  ยังไม่มีรายการ — กดปุ่ม "เพิ่มรายการ" เพื่อเพิ่ม
+                  ยังไม่มีรายการ — กดปุ่ม "เพิ่มรายการ" เพื่อเพิ่ม (ต้องมีอย่างน้อย 2 รายการ)
                 </TableCell>
               </TableRow>
             ) : items.map((it, i) => {
@@ -318,9 +239,7 @@ export function ComponentsTab({ product, productId, onRefresh, controlledItems, 
         <span className="text-muted-foreground">
           {items.length < 2
             ? <span className="text-destructive">ต้องมีรายการอย่างน้อย 2 รายการ ({items.length}/2)</span>
-            : dirty
-              ? <span className="text-amber-strong">มีการเปลี่ยนแปลงที่ยังไม่บันทึก</span>
-              : <>{items.length.toLocaleString()} รายการ</>}
+            : <>{items.length.toLocaleString()} รายการ</>}
         </span>
         <div className="flex items-center gap-6">
           <span className="text-muted-foreground">
