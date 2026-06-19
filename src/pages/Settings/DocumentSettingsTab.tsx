@@ -12,7 +12,7 @@ import { buildPrinterOptions } from '@/lib/print/pdfPrinter'
 import { PrinterSelectItems } from '@/components/ui/printer-select-items'
 import { ZoomControl } from '@/components/ui/zoom-control'
 import type { DocumentSettings, SaleForPrint, Setting, TaxInvoice } from '@/types'
-import { FileText, Printer, Save } from 'lucide-react'
+import { Printer, Save } from 'lucide-react'
 
 // Form keys are canonical document_settings column names — Object.keys(form)
 // flows into the dynamic-SQL UPDATE in settings:saveDocumentSettings, so any key
@@ -75,7 +75,6 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
-  const [pdfLoading, setPdfLoading] = useState(false)
   const [previewHtml, setPreviewHtml] = useState('')
   // Preview zoom — on top of the fit-to-column scale (like the receipt/label
   // tabs). The overflow-auto container scrolls both ways once the zoomed page
@@ -154,16 +153,6 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
     } finally { setSaving(false) }
   }, [form, toast])
 
-  const handlePreviewPdf = async () => {
-    if (pdfLoading) return
-    setPdfLoading(true)
-    try {
-      const html = await buildTaxInvoiceHtml(SAMPLE_SALE, shop, SAMPLE_TAX, { copy: false, paperSize: form.paper_size })
-      const res = await window.api.printer.previewHtmlPdf({ html, pageFormat: form.paper_size })
-      if (!res.success) toast({ title: 'สร้าง PDF ไม่สำเร็จ', description: res.error, variant: 'error' })
-    } finally { setPdfLoading(false) }
-  }
-
   const handleTestPrint = async () => {
     if (printing) return
     setPrinting(true)
@@ -200,9 +189,6 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   const previewActions = (
     <div className="flex items-center gap-2">
       <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
-      <Button className="h-9" onClick={handlePreviewPdf} disabled={pdfLoading} variant="elevated">
-        <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
-      </Button>
       <Button className="h-9" onClick={handleTestPrint} disabled={printing} variant="elevated">
         <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
       </Button>

@@ -97,7 +97,6 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
-  const [pdfLoading, setPdfLoading] = useState(false)
   const [subTab, setSubTab] = useState<'paper' | 'format'>('paper')
   // Preview zoom — the slip renders at true 1:1 mm (small on screen); zoom
   // scales the whole paper via transform inside SlipPreview.
@@ -152,16 +151,6 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     } finally { setSaving(false) }
   }, [form, toast])
 
-  const handlePreviewPdf = async () => {
-    if (pdfLoading) return
-    setPdfLoading(true)
-    try {
-      const html = await buildSlipHtml(previewSale, shop, settingsForBuild, { mode: previewMode })
-      const res = await window.api.printer.previewHtmlPdf({ html, paperWidthMm: form.paper_width_mm || 80, heightMm: 'auto' })
-      if (!res.success) toast({ title: 'สร้าง PDF ไม่สำเร็จ', description: res.error, variant: 'error' })
-    } finally { setPdfLoading(false) }
-  }
-
   const handleTestPrint = async () => {
     if (printing) return
     setPrinting(true)
@@ -196,9 +185,6 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
   const previewActions = (
     <div className="flex items-center gap-2">
       <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
-      <Button className="h-9" onClick={handlePreviewPdf} disabled={pdfLoading} variant="elevated">
-        <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
-      </Button>
       <Button className="h-9" onClick={handleTestPrint} disabled={printing} variant="elevated">
         <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
       </Button>

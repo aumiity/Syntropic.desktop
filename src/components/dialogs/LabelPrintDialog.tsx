@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 import { CircleAlert, Edit, Languages, Minus, PenLine, Plus, Printer, Tag } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
+import { soonestLot } from '@/pages/POS/cartAlerts'
 import type { Product, ProductLabel } from '@/types'
 import { LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
 import { composeLabelContent, todayBE, LANG_OPTIONS, type LabelLang } from '@/lib/label/content'
@@ -38,6 +39,11 @@ interface Row {
   checked: boolean
   selectedLabelId: number | null
   copies: string
+  // Sale context stamped onto the label: qty = total of this product across the
+  // cart's lines (label is per-product); expiry = the FEFO lot's date (the lot
+  // that will actually be dispensed). Both feed composeLabelContent.
+  qty: number
+  expiry: string | null
 }
 
 const emptyLookups: LabelFormLookups = {
@@ -177,9 +183,14 @@ export function LabelPrintDialog({ open, onClose }: Props) {
     let cancelled = false
     const seen = new Set<number>()
     const distinct: Product[] = []
+    // Total qty per product across ALL its cart lines — the label is per-product
+    // (de-duped), so a product split over several lines stamps the summed count.
+    const qtyByProduct = new Map<number, number>()
     for (const it of items) {
       const p = it.product
-      if (!p || p.is_bundle === 1 || seen.has(p.id)) continue
+      if (!p || p.is_bundle === 1) continue
+      qtyByProduct.set(p.id, (qtyByProduct.get(p.id) ?? 0) + (it.qty ?? 0))
+      if (seen.has(p.id)) continue
       seen.add(p.id)
       distinct.push(p)
     }
@@ -197,6 +208,8 @@ export function LabelPrintDialog({ open, onClose }: Props) {
           checked: active.length > 0,
           selectedLabelId: def ? def.id : null,
           copies: '1',
+          qty: qtyByProduct.get(p.id) ?? 0,
+          expiry: soonestLot(p.lots)?.expiry_date ?? null,
         }
       }))
       setActiveProductId(results[0]?.p.id ?? null)
@@ -243,7 +256,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
     ? { ...labelSettings, show_barcode: (activeLabel as any).show_barcode ? 1 : 0 }
     : labelSettings
   const previewContent = activeRow
-    ? composeLabelContent(activeLabel, activeRow.product, shop, lookups, lang)
+    ? composeLabelContent(activeLabel, activeRow.product, shop, lookups, lang, activeRow.qty, activeRow.expiry)
     : {}
 
   // Open the shared label form for a product. null label = add a new one (the
@@ -295,7 +308,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
         const label = r.labels.find(l => l.id === r.selectedLabelId)
         if (!label) continue
         const effective: LabelSettingsForm = { ...labelSettings, show_barcode: (label as any).show_barcode ? 1 : 0 }
-        const content = composeLabelContent(label, r.product, shop, lookups, lang)
+        const content = composeLabelContent(label, r.product, shop, lookups, lang, r.qty, r.expiry)
         const copies = copiesNum(r.copies)
         for (let i = 0; i < copies; i++) entries.push({ settings: effective, content, date: todayBE() })
       }

@@ -13,8 +13,9 @@ const sumStock = (lots?: ProductLot[]) =>
 
 // Returns the lot with the soonest expiry among open lots that actually have stock.
 // pos:searchProducts already orders lots by expiry ASC, but we re-pick defensively
-// in case callers pass an unsorted list.
-const soonestLot = (lots?: ProductLot[]): ProductLot | null => {
+// in case callers pass an unsorted list. Exported as the FEFO-lot SSOT — the POS
+// label-print dialog reuses it to stamp the expiry date that will actually be sold.
+export const soonestLot = (lots?: ProductLot[]): ProductLot | null => {
   if (!lots || lots.length === 0) return null
   let best: ProductLot | null = null
   for (const l of lots) {

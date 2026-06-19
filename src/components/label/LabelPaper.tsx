@@ -3,12 +3,11 @@
 // LabelsTab preview (composeLabelContent). The print path builds an HTML string
 // separately (buildLabelHtml) but iterates the SAME SECTIONS + content map, so
 // preview and print stay 1:1.
-import { useLayoutEffect, useRef, type CSSProperties } from 'react'
+import { type CSSProperties } from 'react'
 import {
   SECTIONS, buildSectionStyle, type SectionKey, type LabelSettingsForm,
 } from '@/lib/label/sections'
 import { barcodeSvg } from '@/lib/label/barcode'
-import { computeFitScale } from '@/lib/label/fit'
 
 interface Props {
   settings: LabelSettingsForm
@@ -22,15 +21,20 @@ export function LabelPaper({ settings, content, date }: Props) {
   // (lines always render). marginTop is killed on the first rendered element so
   // it sits flush at the padding edge (matches the print HTML `div:first-child`
   // rule).
-  // Two sections are never their OWN line — they fold into another section's
+  // Four sections are never their OWN line — they fold into another section's
   // flex row (right side): `print_date` → into `shop`, `barcode` → into
-  // `shop_phone`. Skip them here; the host row shows when EITHER its own text or
-  // its folded-in partner is enabled.
+  // `shop_phone`, `qty` → into `product`, `expiry` → into `dosage`. Skip them
+  // here; the host row shows when EITHER its own text or its folded-in partner
+  // is enabled.
   const visible = SECTIONS.filter(s => {
     if (s.key === 'print_date') return false
     if (s.key === 'barcode') return false
+    if (s.key === 'qty') return false
+    if (s.key === 'expiry') return false
     if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
     if (s.key === 'shop_phone') return !!settings.show_shop_phone || !!settings.show_barcode
+    if (s.key === 'product') return !!settings.show_product || !!settings.show_qty
+    if (s.key === 'dosage') return !!settings.show_dosage || !!settings.show_expiry
     return settings[`show_${s.key}` as keyof LabelSettingsForm]
   })
 
@@ -41,31 +45,13 @@ export function LabelPaper({ settings, content, date }: Props) {
   // Without re-applying inline, the preview silently falls back to the app font.
   const fontFamily = `'${settings.font_family}', sans-serif`
 
-  // Auto shrink-to-fit (mirrors the print path's LABEL_FIT_SCRIPT): measure the
-  // natural content (.label-fit) against the printable area (.label-area) and,
-  // if it overflows the fixed sticker, scale the whole block down uniformly so
-  // the configured font stays the ceiling and the section hierarchy is kept.
-  // The ratio is read from the same DOM under the same CSS zoom, so the preview
-  // and the (un-zoomed) print window land on an identical scale. Transform is
-  // applied imperatively because React owns only the style props it sets.
-  const areaRef = useRef<HTMLDivElement>(null)
-  const fitRef = useRef<HTMLDivElement>(null)
-  useLayoutEffect(() => {
-    const measure = () => {
-      const area = areaRef.current, fit = fitRef.current
-      if (!area || !fit) return
-      fit.style.transform = 'none' // back to natural size before measuring
-      const k = computeFitScale(area.clientWidth, area.clientHeight, fit.scrollWidth, fit.scrollHeight)
-      fit.style.transform = k < 1 ? `scale(${k})` : 'none'
-    }
-    measure()
-    // Web fonts shift glyph metrics once they load — re-fit so the preview keeps
-    // matching the print (which also waits for fonts before fitting).
-    let cancelled = false
-    const fonts = (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts
-    fonts?.ready?.then(() => { if (!cancelled) measure() }).catch(() => {})
-    return () => { cancelled = true }
-  }, [settings, content, date])
+  // NO auto shrink-to-fit (removed 2026-06-19, owner decision): the drug label
+  // renders at the EXACT configured font sizes / offsets so the designer is true
+  // WYSIWYG — what you set + nudge is what prints. If content overflows the fixed
+  // sticker the paper's `overflow:hidden` simply clips it (same as print); the
+  // owner adjusts sizes / positions by hand rather than letting the whole block
+  // get silently scaled down. (The print path drops LABEL_FIT_SCRIPT to match;
+  // tags / stickers / blank form keep their own fit — that's intentional there.)
 
   let first = true
   return (
@@ -89,10 +75,11 @@ export function LabelPaper({ settings, content, date }: Props) {
         overflow:   'hidden',
       }}
     >
-      {/* .label-area = printable box (fills the padded inside); .label-fit =
-          natural content the effect above scales down when it overflows. */}
-      <div ref={areaRef} style={{ width: '100%', height: '100%' }}>
-      <div ref={fitRef} style={{ transformOrigin: 'top left' }}>
+      {/* .label-area / .label-fit wrappers kept to mirror the print HTML
+          structure 1:1 (no scaling here — content renders at its natural,
+          configured size and the paper above clips any overflow). */}
+      <div style={{ width: '100%', height: '100%' }}>
+      <div style={{ transformOrigin: 'top left' }}>
       {visible.map(s => {
         const style: CSSProperties = buildSectionStyle(s, settings)
         if (s.kind === 'line') {
@@ -173,6 +160,65 @@ export function LabelPaper({ settings, content, date }: Props) {
                   style={barStyle}
                 />
               ) : null}
+            </div>
+          )
+        }
+        if (s.key === 'product') {
+          // Special: product name (left, styled by `product`) + qty (right, its
+          // OWN font/bold + offset) on one flex row. Each toggles independently
+          // via show_product / show_qty. Mirrors the shop + print_date row. qty
+          // is "[N]" (no unit); baseline align keeps it on the name's first line.
+          const nameText = settings.show_product ? text : ''
+          const qtyText = settings.show_qty ? (content.qty ?? '') : ''
+          if (!nameText && !qtyText) return null
+          if (first) { style.marginTop = 0; first = false }
+          style.whiteSpace = 'normal'
+          // The product offset must move ONLY the name, not the qty. Lift it off
+          // the flex CONTAINER and re-apply to the name span; qty keeps its own.
+          const productTransform = style.transform
+          style.transform = undefined
+          const qtyStyle: CSSProperties = {
+            fontFamily,
+            fontSize:   `${settings.font_size_qty}pt`,
+            fontWeight: settings.bold_qty ? 'bold' : 'normal',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            transform:  `translate(${settings.offset_x_qty}mm, ${settings.offset_y_qty}mm)`,
+          }
+          return (
+            <div key={s.key} style={{ ...style, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm' }}>
+              <span style={{ fontFamily, transform: productTransform, minWidth: 0 }}>{nameText}</span>
+              {qtyText ? <span style={qtyStyle}>{qtyText}</span> : null}
+            </div>
+          )
+        }
+        if (s.key === 'dosage') {
+          // Special: dosage text (left, styled by `dosage`) + expiry (right, its
+          // OWN font/bold + offset) on one flex row. Each toggles independently
+          // via show_dosage / show_expiry. Mirrors product + qty. expiry is
+          // "EXP.dd/mm/yyyy", right-aligned, adjusted independently of dosage.
+          const dosageText = settings.show_dosage ? text : ''
+          const expiryText = settings.show_expiry ? (content.expiry ?? '') : ''
+          if (!dosageText && !expiryText) return null
+          if (first) { style.marginTop = 0; first = false }
+          style.whiteSpace = 'normal'
+          // The dosage offset must move ONLY the dosage text, not the expiry. Lift
+          // it off the flex CONTAINER and re-apply to the dosage span; expiry keeps
+          // its own offset_*_expiry.
+          const dosageTransform = style.transform
+          style.transform = undefined
+          const expiryStyle: CSSProperties = {
+            fontFamily,
+            fontSize:   `${settings.font_size_expiry}pt`,
+            fontWeight: settings.bold_expiry ? 'bold' : 'normal',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            transform:  `translate(${settings.offset_x_expiry}mm, ${settings.offset_y_expiry}mm)`,
+          }
+          return (
+            <div key={s.key} style={{ ...style, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm' }}>
+              <span style={{ fontFamily, transform: dosageTransform, minWidth: 0 }}>{dosageText}</span>
+              {expiryText ? <span style={expiryStyle}>{expiryText}</span> : null}
             </div>
           )
         }

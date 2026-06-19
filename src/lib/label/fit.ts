@@ -7,32 +7,21 @@
 // only the absolute scale changes. Labels that already fit are never touched
 // (k = 1), so the configured size still drives the common case.
 //
-// Both render paths apply this:
-//   - print  → LABEL_FIT_SCRIPT, embedded in the print HTML, runs in the print
-//              window after fonts load and exposes window.__labelFitReady which
-//              the print handler awaits before snapshotting (preview = print 1:1)
-//   - screen → LabelPaper measures with the same ratio + LABEL_FIT_MIN_SCALE
+// SCOPE (since 2026-06-19): the DRUG LABEL no longer uses this — its designer is
+// now true WYSIWYG (configured sizes/offsets render literally, overflow clips).
+// LABEL_FIT_SCRIPT remains for the FIXED preset layouts that ARE meant to scale
+// onto smaller stickers: price tags (tags/priceTagHtml), barcode stickers
+// (tags/stickerHtml) and the blank write-your-own form (label/blankLabel). Those
+// are print-HTML only, so the screen-side helper (computeFitScale) was removed.
 //
-// The measurement is a pure RATIO of a `.label-fit` block against its
-// `.label-area` parent (the printable content box), both read from the SAME DOM
-// under the SAME zoom, so it is zoom-invariant: the on-screen preview (CSS zoom)
-// and the print window (no zoom) compute an identical scale.
+// LABEL_FIT_SCRIPT, embedded in the print HTML, runs in the print window after
+// fonts load and exposes window.__labelFitReady which the print handler awaits
+// before snapshotting. It measures a pure RATIO of each `.label-fit` block
+// against its `.label-area` parent (the printable content box).
 
 // Don't shrink below this — past it, text is unreadable and clipping the least
 // important trailing line (overflow:hidden on the paper box) is the lesser evil.
 export const LABEL_FIT_MIN_SCALE = 0.5
-
-// Largest scale ≤ 1 that makes content fit BOTH dimensions, floored at MIN.
-// availW/availH = the printable area; contentW/contentH = the natural content.
-export function computeFitScale(
-  availW: number, availH: number,
-  contentW: number, contentH: number,
-): number {
-  let k = 1
-  if (contentH > availH && availH > 0) k = Math.min(k, availH / contentH)
-  if (contentW > availW && availW > 0) k = Math.min(k, availW / contentW)
-  return k < LABEL_FIT_MIN_SCALE ? LABEL_FIT_MIN_SCALE : k
-}
 
 // Self-contained script embedded into the printed label HTML (no backticks /
 // ${} so it survives being interpolated into the builder's template string). It

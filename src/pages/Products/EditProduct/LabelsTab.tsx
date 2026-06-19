@@ -5,7 +5,7 @@ import { useToast } from '@/components/ui/toast'
 import { SectionCard } from '@/components/ui/card'
 import { ZoomControl } from '@/components/ui/zoom-control'
 import { cn } from '@/lib/utils'
-import { Plus, Trash2, Edit, Pill, List, Printer, FileText, Languages } from 'lucide-react'
+import { Plus, Trash2, Edit, Pill, List, Printer, Languages } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { ProductLabel } from '@/types'
 import type { FullProduct } from './shared'
@@ -51,7 +51,6 @@ export function LabelsTab({
   const [labelSettings, setLabelSettings] = useState<LabelSettingsForm>(LABEL_DEFAULTS)
   const [shop, setShop] = useState<any>(null)
   const [printing, setPrinting] = useState(false)
-  const [pdfLoading, setPdfLoading] = useState(false)
   // Preview zoom — the paper renders at true 1:1 mm (small on screen), so let the
   // user magnify it. CSS `zoom` (Chromium) scales the real layout box so the
   // overflow-auto container can scroll to the edges. Mirrors the Settings designer.
@@ -167,23 +166,6 @@ export function LabelsTab({
     }
   }
 
-  const handlePreviewPdf = async () => {
-    if (pdfLoading || !canPrint()) return
-    setPdfLoading(true)
-    try {
-      const res = await window.api.printer.previewLabelPdf({
-        html: await selectedLabelHtml(),
-        paperWidthMm: labelSettings.width_mm,
-        paperHeightMm: labelSettings.height_mm,
-      })
-      if (!res.success) toast({ title: 'สร้าง PDF ไม่สำเร็จ', description: res.error, variant: 'error' })
-    } catch (e: any) {
-      toast({ title: 'สร้าง PDF ไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
-    } finally {
-      setPdfLoading(false)
-    }
-  }
-
   return (
     <>
       <div className="grid grid-cols-[3fr_2fr] gap-4 pt-4 items-start">
@@ -197,9 +179,6 @@ export function LabelsTab({
           right={
             <div className="flex items-center gap-2">
               <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
-              <Button variant="elevated" onClick={handlePreviewPdf} disabled={!selected || pdfLoading} className="h-9 px-3">
-                <FileText className="size-4" /> {pdfLoading ? 'กำลังสร้าง...' : 'ดู PDF'}
-              </Button>
               <Button onClick={handlePrintLabel} disabled={!selected || printing} className="h-9 px-3">
                 <Printer className="size-4" /> {printing ? 'กำลังพิมพ์...' : 'พิมพ์ฉลาก'}
               </Button>

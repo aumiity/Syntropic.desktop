@@ -5,6 +5,7 @@
 // Both feed the same LabelPaper renderer and the print-HTML builder, so the
 // preview and the printed sticker stay 1:1.
 import type { SectionKey } from './sections'
+import { formatDate } from '@/lib/utils'
 
 // Label print language — selectable per print run in POS. Each maps to the
 // `*_th/_en/_mm/_zh` column suffix on the lookup rows + indication fields.
@@ -35,11 +36,14 @@ export const SAMPLE_CONTENT_BY_LANG: Record<LabelLang, Partial<Record<SectionKey
     shop_phone:   'โทร. 02-xxx-xxxx',
     shop_line_id: 'LINE: @syntropic',
     product:      'Paracetamol 500mg tablets',
-    dosage:       'รับประทาน 1–2 เม็ด วันละ 3 ครั้ง',
+    dosage:       'รับประทาน 1–2 เม็ด',
+    frequency:    'วันละ 3 ครั้ง',
     timing:       'หลังอาหาร เช้า-กลางวัน-เย็น',
     indication:   'บรรเทาอาการปวด ลดไข้',
     advice:       'ดื่มน้ำตามมาก ๆ หากแพ้ยาให้หยุดใช้ทันที',
     barcode:      '8851234567890',
+    qty:          '[10]',
+    expiry:       'EXP.10/11/2026',
   },
   en: {
     shop:         'ร้านยา ซินโทรปิก เภสัช',
@@ -47,11 +51,14 @@ export const SAMPLE_CONTENT_BY_LANG: Record<LabelLang, Partial<Record<SectionKey
     shop_phone:   'โทร. 02-xxx-xxxx',
     shop_line_id: 'LINE: @syntropic',
     product:      'Paracetamol 500mg tablets',
-    dosage:       'Take 1–2 tablets, 3 times a day',
+    dosage:       'Take 1–2 tablets',
+    frequency:    '3 times a day',
     timing:       'After meals — morning, noon, evening',
     indication:   'Relieves pain, reduces fever',
     advice:       'Drink plenty of water. Stop if any allergy occurs.',
     barcode:      '8851234567890',
+    qty:          '[10]',
+    expiry:       'EXP.10/11/2026',
   },
   mm: {
     shop:         'ร้านยา ซินโทรปิก เภสัช',
@@ -59,11 +66,14 @@ export const SAMPLE_CONTENT_BY_LANG: Record<LabelLang, Partial<Record<SectionKey
     shop_phone:   'โทร. 02-xxx-xxxx',
     shop_line_id: 'LINE: @syntropic',
     product:      'Paracetamol 500mg tablets',
-    dosage:       'တစ်ကြိမ်လျှင် ၁–၂ လုံး၊ တစ်နေ့ ၃ ကြိမ်',
+    dosage:       'တစ်ကြိမ်လျှင် ၁–၂ လုံး',
+    frequency:    'တစ်နေ့ ၃ ကြိမ်',
     timing:       'အစာစားပြီး — မနက်၊ နေ့လယ်၊ ည',
     indication:   'နာကျင်မှုသက်သာစေပြီး အဖျားကျစေသည်',
     advice:       'ရေများများသောက်ပါ။ ဓာတ်မတည့်ပါက ရပ်ပါ။',
     barcode:      '8851234567890',
+    qty:          '[10]',
+    expiry:       'EXP.10/11/2026',
   },
   zh: {
     shop:         'ร้านยา ซินโทรปิก เภสัช',
@@ -71,11 +81,14 @@ export const SAMPLE_CONTENT_BY_LANG: Record<LabelLang, Partial<Record<SectionKey
     shop_phone:   'โทร. 02-xxx-xxxx',
     shop_line_id: 'LINE: @syntropic',
     product:      'Paracetamol 500mg tablets',
-    dosage:       '每次 1–2 片，每日 3 次',
+    dosage:       '每次 1–2 片',
+    frequency:    '每日 3 次',
     timing:       '饭后服用 — 早、中、晚',
     indication:   '缓解疼痛，退烧',
     advice:       '多喝水。如有过敏请立即停用。',
     barcode:      '8851234567890',
+    qty:          '[10]',
+    expiry:       'EXP.10/11/2026',
   },
 }
 
@@ -146,12 +159,18 @@ function pickName(row: Lookup | undefined, lang: LabelLang): string {
 // Names resolve from the passed lookup lists by id (lang-aware); if a list is
 // omitted, the joined `*_name` (Thai) is the last-resort fallback. lang defaults
 // to 'th' so existing callers render identically.
+// `qty` (how many of this product are being dispensed) and `expiry` (the FEFO
+// lot's expiry date) are SALE context — only the POS print flow knows them, so
+// they're trailing optional params. Omitted ⇒ '' ⇒ the section self-hides, which
+// is correct for the Settings designer and the per-product preview (no sale).
 export function composeLabelContent(
   label: LabelLike | null,
   product: ProductLike,
   shop: ShopLike | null,
   lookups: Lookups,
   lang: LabelLang = 'th',
+  qty?: number | null,
+  expiry?: string | null,
 ): Partial<Record<SectionKey, string>> {
   const out: Partial<Record<SectionKey, string>> = {}
   if (shop?.shop_name) out.shop = shop.shop_name
@@ -161,12 +180,20 @@ export function composeLabelContent(
   out.shop_line_id = shop?.shop_line_id ? `LINE: ${shop.shop_line_id}` : ''
   out.product = product.name_for_print || product.trade_name || ''
   out.barcode = product.barcode || ''
+  // qty → "[10]" (brackets, NO unit, per owner spec); round to kill float drift.
+  // expiry → "EXP.dd/mm/yyyy" in Christian era (formatDate default) — the lone
+  // Christian-era field on a label whose print-date is Buddhist (intentional).
+  if (qty != null && qty > 0) out.qty = `[${Math.round(qty * 1000) / 1000}]`
+  if (expiry) out.expiry = `EXP.${formatDate(expiry)}`
 
   if (label) {
     const dose = label.dose_qty != null && String(label.dose_qty) !== '' ? String(label.dose_qty) : ''
     const dosageName = pickName(lookups.labelDosages?.find(d => d.id === label.dosage_id), lang) || label.dosage_name || ''
-    const frequencyName = pickName(lookups.labelFrequencies?.find(f => f.id === label.frequency_id), lang) || label.frequency_name || ''
-    out.dosage = [dose, dosageName, frequencyName].filter(Boolean).join(' ')
+    // วิธีใช้ (dose + how to take) and ความถี่ (how often) are SEPARATE sections
+    // now (split 2026-06-19) so each positions independently — frequency is no
+    // longer appended onto the dosage string.
+    out.dosage = [dose, dosageName].filter(Boolean).join(' ')
+    out.frequency = pickName(lookups.labelFrequencies?.find(f => f.id === label.frequency_id), lang) || label.frequency_name || ''
 
     const timingName = pickName(lookups.labelMealRelations?.find(m => m.id === label.timing_id), lang) || label.timing_name || ''
     const labelTimeName = pickName(lookups.labelTimes?.find(t => t.id === label.label_time_id), lang)

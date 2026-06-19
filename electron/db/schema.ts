@@ -471,6 +471,13 @@ export function initializeSchema(db: Database.Database) {
       -- renders the same barcode footprint regardless of how many digits it has.
       barcode_width_mm        REAL NOT NULL DEFAULT 40,
       font_size_custom_text   REAL NOT NULL DEFAULT 10,
+      -- qty folds into the product flex row (right, like print_date → shop);
+      -- expiry folds into the dosage row (right). Both = sale context (cart qty /
+      -- FEFO lot) so they print blank outside the POS flow.
+      font_size_qty           REAL NOT NULL DEFAULT 10,
+      font_size_expiry        REAL NOT NULL DEFAULT 10,
+      -- frequency (ความถี่) split out of dosage so it prints on its own line.
+      font_size_frequency     REAL NOT NULL DEFAULT 10,
       font_size_small         REAL NOT NULL DEFAULT 10, -- DEAD: retired shared tier
       -- Per-section bold; only shop name / address / phone / product default on.
       bold_shop          INTEGER NOT NULL DEFAULT 1,
@@ -485,6 +492,9 @@ export function initializeSchema(db: Database.Database) {
       bold_advice        INTEGER NOT NULL DEFAULT 0,
       bold_barcode       INTEGER NOT NULL DEFAULT 0,
       bold_custom_text   INTEGER NOT NULL DEFAULT 0,
+      bold_qty           INTEGER NOT NULL DEFAULT 0,
+      bold_expiry        INTEGER NOT NULL DEFAULT 0,
+      bold_frequency     INTEGER NOT NULL DEFAULT 0,
       line_spacing REAL NOT NULL DEFAULT 1.2,
       section_gap REAL NOT NULL DEFAULT 2,
       printer_name TEXT NOT NULL DEFAULT '',
@@ -503,6 +513,9 @@ export function initializeSchema(db: Database.Database) {
       show_lot_expiry    INTEGER NOT NULL DEFAULT 1,
       show_barcode       INTEGER NOT NULL DEFAULT 0,
       show_custom_text   INTEGER NOT NULL DEFAULT 1,
+      show_qty           INTEGER NOT NULL DEFAULT 1,
+      show_expiry        INTEGER NOT NULL DEFAULT 1,
+      show_frequency     INTEGER NOT NULL DEFAULT 1,
       show_header_line   INTEGER NOT NULL DEFAULT 1,
       show_footer_line   INTEGER NOT NULL DEFAULT 1,
       offset_x_shop       REAL NOT NULL DEFAULT 0,
@@ -517,6 +530,12 @@ export function initializeSchema(db: Database.Database) {
       offset_y_shop_line_id REAL NOT NULL DEFAULT 0,
       offset_x_product    REAL NOT NULL DEFAULT 0,
       offset_y_product    REAL NOT NULL DEFAULT 0,
+      offset_x_qty        REAL NOT NULL DEFAULT 0,
+      offset_y_qty        REAL NOT NULL DEFAULT 0,
+      offset_x_expiry     REAL NOT NULL DEFAULT 0,
+      offset_y_expiry     REAL NOT NULL DEFAULT 0,
+      offset_x_frequency  REAL NOT NULL DEFAULT 0,
+      offset_y_frequency  REAL NOT NULL DEFAULT 0,
       offset_x_dosage     REAL NOT NULL DEFAULT 0,
       offset_y_dosage     REAL NOT NULL DEFAULT 0,
       offset_x_timing     REAL NOT NULL DEFAULT 0,
@@ -968,6 +987,27 @@ export function initializeSchema(db: Database.Database) {
     // Barcode WIDTH (mm) — pairs with font_size_barcode (HEIGHT). The bars stretch
     // to fill this box so a short code and a long code occupy the same footprint.
     `ALTER TABLE label_settings ADD COLUMN barcode_width_mm      REAL NOT NULL DEFAULT 40`,
+    // จำนวน (qty) folds into the product flex row (right, like print_date → shop);
+    // วันหมดอายุ (expiry) folds into the dosage row (right). Both pull sale context —
+    // qty = summed cart qty per product, expiry = the FEFO lot's expiry — so they
+    // render blank outside POS print (no sale). Full per-section column set each.
+    `ALTER TABLE label_settings ADD COLUMN show_qty           INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN font_size_qty      REAL NOT NULL DEFAULT 10`,
+    `ALTER TABLE label_settings ADD COLUMN bold_qty           INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_qty       REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_qty       REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN show_expiry        INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN font_size_expiry   REAL NOT NULL DEFAULT 10`,
+    `ALTER TABLE label_settings ADD COLUMN bold_expiry        INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_expiry    REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_expiry    REAL NOT NULL DEFAULT 0`,
+    // ความถี่ (frequency) split out of วิธีใช้ (dosage) into its own line so the two
+    // position independently. Full per-section column set; default show = 1.
+    `ALTER TABLE label_settings ADD COLUMN show_frequency     INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE label_settings ADD COLUMN font_size_frequency REAL NOT NULL DEFAULT 10`,
+    `ALTER TABLE label_settings ADD COLUMN bold_frequency     INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_x_frequency REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE label_settings ADD COLUMN offset_y_frequency REAL NOT NULL DEFAULT 0`,
     // product_labels restructure: persist the advice + time-of-day lookups and
     // the per-label default / show-barcode toggles. Without these columns the
     // saveLabel UPDATE (dynamic from Object.keys) threw "no such column".

@@ -5,6 +5,38 @@ metadata:
   type: project
 ---
 
+## Status — 2026-06-19c (แยก ความถี่ ออกจาก วิธีใช้) — tsc PASS, in-app verify pending
+
+เดิม `out.dosage = [dose, dosageName, frequencyName].join(' ')` รวม วิธีใช้+ความถี่ บรรทัดเดียว. เจ้าของขอแยก → **section ใหม่ `frequency` (ความถี่)** เป็นบรรทัดของตัวเอง วางถัดจาก dosage (render หลัง dosage row; ใน SECTIONS order = product, qty, dosage, expiry, frequency, timing — expiry พับเข้า dosage จึง render ออกมาเป็น dosage→frequency→timing). 
+- `content.ts`: `out.dosage = [dose, dosageName].join(' ')` (ตัด frequency ออก) + `out.frequency = frequencyName`. แก้ sample ทั้ง 4 ภาษาแยก dosage/frequency.
+- **frequency = section ปกติ (ไม่พับ)** → render path generic จัดการเอง **ไม่ต้องแตะ html.ts/LabelPaper.tsx**. ตาราง "รูปแบบการพิมพ์" ได้แถว "ความถี่" อัตโนมัติ.
+- คอลัมน์ใหม่ครบชุด (`show_/font_size_/bold_/offset_x_/offset_y_frequency`) CREATE+migration + `LabelSettingsForm`/`LABEL_DEFAULTS` (default show=1). ไฟล์: sections.ts, content.ts, schema.ts เท่านั้น.
+
+## Status — 2026-06-19b (ถอด auto shrink-to-fit ออกจากฉลากยา) — tsc PASS, in-app verify pending
+
+เจ้าของไม่เอา auto-shrink: เวลาเนื้อหาเยอะระบบย่อ font ทั้งฉลากเอง → ค่าที่ตั้ง + ตำแหน่งที่เลื่อนไม่ตรงกับที่แสดง (ไม่ WYSIWYG). **ถอดเฉพาะฉลากยา**:
+- `LabelPaper.tsx` — ลบ `useLayoutEffect`/`useRef` + `computeFitScale` ที่ apply `transform:scale(k)`; render ตามขนาดที่ตั้งเป๊ะ, paper `overflow:hidden` ตัดส่วนล้น (เท่าที่พิมพ์จริง).
+- `html.ts` — ลบ `<script>${LABEL_FIT_SCRIPT}</script>` ออกจาก `buildLabelHtml` + `buildLabelSheetHtml` (+ import). `window.__labelFitReady` กลายเป็น undefined → `printer.ts` ข้าม await นั้นเอง (guard `if (window.__labelFitReady)` ทุกจุด — **ไม่แตะ printer.ts**, fonts ยังรอผ่าน `document.fonts.ready` ที่ handler แยกอยู่แล้ว).
+- `fit.ts` — ลบ `computeFitScale` (เหลือ dead หลังถอดจาก LabelPaper) + อัปเดต header. **เก็บ `LABEL_FIT_SCRIPT` + `LABEL_FIT_MIN_SCALE` ไว้** เพราะ **ป้ายราคา (`tags/priceTagHtml`), สติกเกอร์บาร์โค้ด (`tags/stickerHtml`), ฟอร์มเปล่า (`label/blankLabel`)** ยังใช้ (ดีไซน์ที่ตั้งใจให้ย่อลง sticker เล็ก — คนละฟีเจอร์ อย่าถอด).
+
+**กฎใหม่:** ฉลากยา = WYSIWYG เป๊ะ, ล้น = clip (overflow:hidden) ผู้ใช้จัดเอง. ห้าม re-add shrink-to-fit ให้ฉลากยา. (ถ้าอยากเห็นส่วนล้นในตัวออกแบบ ค่อยเปลี่ยน `overflow` ของ LabelPaper เป็น visible ทีหลัง — ยังไม่ทำ เพราะ print clip อยู่ดี + กระทบ 3 พรีวิว).
+
+## Status — 2026-06-19 (จำนวน + วันหมดอายุ บนฉลาก) — tsc PASS, in-app verify pending
+
+เพิ่ม 2 section ใหม่ตามคำขอเจ้าของ ("ฉลากสินค้า") — **ทั้งคู่เป็น folded section** (พับเข้าแถวอื่นชิดขวา) รวมเป็น **4 ตัวที่พับ**: `print_date`→`shop`, `barcode`→`shop_phone`, `qty`→`product`, `expiry`→`dosage`:
+- **`qty` (จำนวน)** = **พับเข้าแถว `product`** ด้านขวา. แสดง `[N]` **ไม่มีหน่วย** (วงเล็บ baked ใน `composeLabelContent`). แถว product = ชื่อซ้าย + จำนวนขวา `justify-content:space-between` + `alignItems:baseline` (อยู่บรรทัดแรกของชื่อแม้ชื่อตก 2 บรรทัด; ชื่อ yield, กล่องจำนวน `flexShrink:0`). offset ของ product ยกออกจาก flex container ไปใส่ span ชื่อ; จำนวนใช้ offset_*_qty ของตัวเอง. แถวโชว์เมื่อ `show_product || show_qty`.
+- **`expiry` (วันหมดอายุ)** = **พับเข้าแถว `dosage` (วิธีใช้/วิธีกิน)** ด้านขวา (เปลี่ยนจากเดิมที่เป็นบรรทัดของตัวเอง — เจ้าของขอ 2026-06-19 "ให้อยู่บรรทัดเดียวกับวิธีกิน ชิดขวา ปรับแยกอิสระ"). แสดง `EXP.dd/mm/yyyy` **ค.ศ.** ผ่าน `formatDate()` (field เดียวบนฉลากที่เป็น ค.ศ. — print_date ยังเป็น พ.ศ. ผ่าน todayBE, ตั้งใจ). โครงสร้าง mirror product+qty เป๊ะ: dosage ซ้าย + expiry ขวา, offset dosage ยกไปใส่ span dosage, expiry ใช้ offset_*_expiry เอง. แถวโชว์เมื่อ `show_dosage || show_expiry`. ตำแหน่งใน `SECTIONS` ย้ายไปต่อจาก `dosage`.
+
+**แหล่งข้อมูลจริง (insight สำคัญ):** ตะกร้า POS พก `it.product.lots` มาด้วยอยู่แล้ว (จาก `pos:searchProducts` เรียง expiry ASC; POS ใช้ทำ expiry warning อยู่แล้ว) → ดึงวันหมดอายุได้! ใช้ `soonestLot()` (export ใหม่จาก `src/pages/POS/cartAlerts.ts` = FEFO-lot-ที่มีสต็อก SSOT). qty = **รวม qty ทุกบรรทัดของสินค้านั้น** (ฉลาก de-dup ต่อสินค้า; ถ้าหลายหน่วยจะรวมดิบ — caveat ยอมรับได้). ทั้งคู่เป็น **trailing optional param** ของ `composeLabelContent(label, product, shop, lookups, lang, qty?, expiry?)` → เว้นว่าง ⇒ section ซ่อนเอง ⇒ LabelsTab/Settings designer (ไม่มี sale context) ไม่โชว์ของจริง (Settings designer โชว์ **sample** `[10]`/`EXP.10/11/2026` จาก `SAMPLE_CONTENT_BY_LANG` ทั้ง 4 ภาษา).
+
+**คอลัมน์ใหม่ (full per-section set ×2):** `show_/font_size_/bold_/offset_x_/offset_y_` ของ `qty`+`expiry` — CREATE TABLE + migration array ใน schema.ts, + `LabelSettingsForm`/`LABEL_DEFAULTS` (default `show_qty=show_expiry=1` → เปิดทันทีบน row เดิมผ่าน migration DEFAULT 1). **ไม่ revive `lot_expiry`** (ยัง DEAD ตามเดิม) — สร้าง `expiry` ใหม่เพื่อความ consistent (ทุก section มีชุดคอลัมน์ครบเท่ากัน).
+
+**ตาราง "รูปแบบการพิมพ์" ได้แถว qty+expiry อัตโนมัติ** (LabelSettingsTab iterate `SECTIONS` กรองออกแค่ `barcode`) → ปรับขนาด/หนา/ตำแหน่งได้อิสระเหมือนหัวข้ออื่นทันที **ไม่ต้องแตะ UI** ตรงนั้นเลย. อัปเดต **ทั้ง 2 render path** (LabelPaper.tsx + html.ts) สำหรับ fold ของ product (qty) + dosage (expiry) (dual-render pitfall — ต้องแก้คู่กันเสมอ). LabelPrintDialog ส่ง qty/expiry เข้า compose ทั้ง preview (`previewContent`) และ print loop.
+
+ไฟล์: schema.ts, sections.ts, content.ts, html.ts, LabelPaper.tsx, cartAlerts.ts (export soonestLot), LabelPrintDialog.tsx. ค้าง: in-app verify (พิมพ์จริง + ตรวจ FEFO expiry ตรงกับล็อตที่ตัดขาย).
+
+---
+
 ## Status — 2026-06-10e (วิธีใช้ยา lookups editable + usage presets) — tsc PASS, in-app verify pending
 
 จาก plan `docs/plans/Label_Usage_Lookups_And_Presets.html` (ผ่าน /write-plan + audit 2 รอบ). 2 เฟส:

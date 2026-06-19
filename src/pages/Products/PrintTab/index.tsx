@@ -172,8 +172,6 @@ export default function PrintTab() {
   const printerMissing = !!printerName && !printers.includes(printerName)
   const paperLabel = mode === 'pricetag' ? doc.paper_size : `${label.width_mm}×${label.height_mm} มม.`
 
-  const clampCopies = () => Math.min(Math.max(1, Math.round(copies) || 1), maxCopies)
-
   const handlePrint = async (n: number) => {
     if (!canPrint || busy) return
     setBusy(true)
@@ -210,34 +208,6 @@ export default function PrintTab() {
         })
         if (res.success) toast('ส่งงานพิมพ์ป้ายราคาแล้ว', 'success')
         else toast(res.error || 'พิมพ์ไม่สำเร็จ', 'error')
-      }
-    } finally { setBusy(false) }
-  }
-
-  const handlePreview = async () => {
-    if (!canPrint || busy) return
-    setBusy(true)
-    try {
-      if (mode === 'blank') {
-        const html = await buildBlankLabelHtml(label, shop, 1)
-        const res = await window.api.printer.previewHtmlPdf({
-          html,
-          paperWidthMm: label.width_mm,
-          heightMm: label.height_mm,
-        })
-        if (!res.success) toast(res.error || 'สร้างตัวอย่างไม่สำเร็จ', 'error')
-      } else if (mode === 'sticker') {
-        const html = await buildBarcodeStickerHtml(label, stickerCfg, cells, clampCopies())
-        const res = await window.api.printer.previewHtmlPdf({
-          html,
-          paperWidthMm: label.width_mm,
-          heightMm: label.height_mm,
-        })
-        if (!res.success) toast(res.error || 'สร้างตัวอย่างไม่สำเร็จ', 'error')
-      } else {
-        const html = await buildPriceTagHtml(priceCfg, cells, doc.paper_size)
-        const res = await window.api.printer.previewHtmlPdf({ html, pageFormat: doc.paper_size })
-        if (!res.success) toast(res.error || 'สร้างตัวอย่างไม่สำเร็จ', 'error')
       }
     } finally { setBusy(false) }
   }
@@ -352,9 +322,6 @@ export default function PrintTab() {
                 {mode !== 'pricetag' && (
                   <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
                 )}
-                <Button variant="elevated" size="lg" className="h-9" disabled={!canPrint || busy} onClick={handlePreview}>
-                  ดูตัวอย่าง PDF
-                </Button>
                 <Button size="lg" className="h-9" disabled={!canPrint || busy} onClick={() => setCopiesOpen(true)}>
                   <Printer className="size-4" /> พิมพ์
                 </Button>

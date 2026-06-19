@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Save, Printer, Bold, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, Info, Barcode, Languages } from 'lucide-react'
+import { Save, Printer, Bold, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, Info, Barcode, Languages } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Bundled fonts + the @font-face/esc helpers are shared with the receipt/tax
@@ -167,7 +167,6 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
   const [form, setForm] = useState<LabelSettingsForm>(LABEL_DEFAULTS)
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
-  const [pdfLoading, setPdfLoading] = useState(false)
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
   const [subTab, setSubTab] = useState<'paper' | 'sections'>('paper')
   const [customSizeMode, setCustomSizeMode] = useState(false)
@@ -281,7 +280,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
     } finally { setSaving(false) }
   }
 
-  // Validate paper size + margins, toasting on failure. Shared by print + PDF.
+  // Validate paper size + margins, toasting on failure. Gates the test print.
   const validatePaper = (): boolean => {
     if (!(form.width_mm > 0) || !(form.height_mm > 0)) {
       toast({ title: 'กรุณาตั้งขนาดกระดาษ (กว้าง × สูง > 0)', variant: 'error' })
@@ -293,23 +292,6 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
       }
     }
     return true
-  }
-
-  const handlePreviewPdf = async () => {
-    if (pdfLoading) return
-    if (!validatePaper()) return
-    const html = await buildLabelHtml(form, previewContent, todayBE())
-    setPdfLoading(true)
-    try {
-      const res = await window.api.printer.previewLabelPdf({
-        html,
-        paperWidthMm: form.width_mm,
-        paperHeightMm: form.height_mm,
-      })
-      if (!res.success) toast({ title: 'สร้าง PDF ไม่สำเร็จ', description: res.error, variant: 'error' })
-    } finally {
-      setPdfLoading(false)
-    }
   }
 
   const handleTestPrint = async () => {
@@ -353,9 +335,6 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
   const previewActions = (
     <div className="flex items-center gap-2">
       <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
-      <Button className="h-9" onClick={handlePreviewPdf} disabled={pdfLoading} variant="elevated">
-        <FileText className="size-4" />{pdfLoading ? 'กำลังสร้าง...' : 'ดูตัวอย่าง PDF'}
-      </Button>
       <Button className="h-9" onClick={handleTestPrint} disabled={printing} variant="elevated">
         <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : 'ทดสอบพิมพ์'}
       </Button>

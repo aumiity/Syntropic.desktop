@@ -17,7 +17,7 @@ import type { CSSProperties } from 'react'
 
 export type SectionKey =
   | 'shop' | 'print_date' | 'shop_address' | 'shop_phone' | 'shop_line_id'
-  | 'product' | 'dosage' | 'timing' | 'indication' | 'advice' | 'barcode'
+  | 'product' | 'qty' | 'expiry' | 'dosage' | 'frequency' | 'timing' | 'indication' | 'advice' | 'barcode'
   | 'custom_text'
   | 'header_line'
 
@@ -33,14 +33,17 @@ export interface SectionDef {
 
 // Single source of truth: drives the "ฟอนต์ & บรรทัด" sub-tab, the preview, and
 // the print-HTML builder. Order is LOCKED (see docs/plans/label-section-split.md).
-// Two flex rows are special-cased in LabelPaper/buildLabelHtml:
+// Four flex rows are special-cased in LabelPaper/buildLabelHtml:
 //   - `shop` row: shop name left + print date right.
 //   - `shop_phone` row: phone left + BARCODE right (bars only).
-// `print_date` and `barcode` keep their OWN settings columns (show/font/offset;
-// for barcode, font_size = height in mm) and appear as their own rows in the
-// settings table, but are NOT rendered as their own line — each is folded into
-// its host row's right side and styled by its own columns. `custom_text` always
-// renders LAST and pulls its text from label_settings.custom_text (config).
+//   - `product` row: product name left + QTY right.
+//   - `dosage` row: dosage text left + EXPIRY right.
+// `print_date`, `barcode`, `qty` and `expiry` keep their OWN settings columns
+// (show/font/bold/offset; for barcode, font_size = height in mm) and appear as
+// their own rows in the settings table, but are NOT rendered as their own line —
+// each is folded into its host row's right side and styled by its own columns.
+// `custom_text` always renders LAST and pulls its text from
+// label_settings.custom_text (config).
 export const SECTIONS: SectionDef[] = [
   { kind: 'text', key: 'shop',         label: 'ชื่อร้าน' },
   { kind: 'text', key: 'print_date',   label: 'วันที่' },
@@ -49,7 +52,10 @@ export const SECTIONS: SectionDef[] = [
   { kind: 'text', key: 'shop_line_id', label: 'LINE ID' },
   { kind: 'line', key: 'header_line',  label: 'เส้นคั่นส่วนหัว' },
   { kind: 'text', key: 'product',      label: 'ชื่อสินค้า' },
+  { kind: 'text', key: 'qty',          label: 'จำนวน' },
   { kind: 'text', key: 'dosage',       label: 'วิธีใช้' },
+  { kind: 'text', key: 'expiry',       label: 'วันหมดอายุ' },
+  { kind: 'text', key: 'frequency',    label: 'ความถี่' },
   { kind: 'text', key: 'timing',       label: 'มื้อ / เวลา' },
   { kind: 'text', key: 'indication',   label: 'สรรพคุณ' },
   { kind: 'text', key: 'advice',       label: 'คำแนะนำ' },
@@ -73,6 +79,9 @@ export interface LabelSettingsForm {
   font_size_shop: number; font_size_print_date: number
   font_size_shop_address: number; font_size_shop_phone: number; font_size_shop_line_id: number
   font_size_product: number; font_size_dosage: number; font_size_timing: number
+  // qty folds into the product row (right); expiry folds into the dosage row (right);
+  // frequency (ความถี่) is its OWN line, split out of dosage so it positions freely.
+  font_size_qty: number; font_size_expiry: number; font_size_frequency: number
   font_size_indication: number; font_size_advice: number; font_size_barcode: number
   // Barcode is sized by a box: font_size_barcode = HEIGHT (mm), barcode_width_mm
   // = WIDTH (mm). Bars stretch to fill so every product's barcode is the same
@@ -84,6 +93,7 @@ export interface LabelSettingsForm {
   bold_shop: number; bold_print_date: number
   bold_shop_address: number; bold_shop_phone: number; bold_shop_line_id: number
   bold_product: number; bold_dosage: number; bold_timing: number
+  bold_qty: number; bold_expiry: number; bold_frequency: number
   bold_indication: number; bold_advice: number; bold_barcode: number
   bold_custom_text: number
   line_spacing: number; section_gap: number
@@ -92,6 +102,7 @@ export interface LabelSettingsForm {
   show_shop: number; show_print_date: number
   show_shop_address: number; show_shop_phone: number; show_shop_line_id: number
   show_product: number; show_dosage: number; show_timing: number
+  show_qty: number; show_expiry: number; show_frequency: number
   show_indication: number; show_advice: number; show_barcode: number
   show_custom_text: number
   show_header_line: number
@@ -101,6 +112,9 @@ export interface LabelSettingsForm {
   offset_x_shop_phone: number; offset_y_shop_phone: number
   offset_x_shop_line_id: number; offset_y_shop_line_id: number
   offset_x_product: number; offset_y_product: number
+  offset_x_qty: number; offset_y_qty: number
+  offset_x_expiry: number; offset_y_expiry: number
+  offset_x_frequency: number; offset_y_frequency: number
   offset_x_dosage: number; offset_y_dosage: number
   offset_x_timing: number; offset_y_timing: number
   offset_x_indication: number; offset_y_indication: number
@@ -124,14 +138,16 @@ export const LABEL_DEFAULTS: LabelSettingsForm = {
   font_size_shop: 10, font_size_print_date: 10,
   font_size_shop_address: 10, font_size_shop_phone: 10, font_size_shop_line_id: 10,
   font_size_product: 10, font_size_dosage: 10, font_size_timing: 10,
-  font_size_indication: 10, font_size_advice: 10, font_size_barcode: 10,
-  barcode_width_mm: 40,
+  font_size_qty: 10, font_size_expiry: 10, font_size_frequency: 10,
+  font_size_indication: 10, font_size_advice: 10, font_size_barcode: 4,
+  barcode_width_mm: 30,
   font_size_custom_text: 10,
   font_size_small: 10, // DEAD
   // Bold only the shop name / address / phone / product name (date not bold).
   bold_shop: 1, bold_print_date: 0,
   bold_shop_address: 1, bold_shop_phone: 1, bold_shop_line_id: 0,
   bold_product: 1, bold_dosage: 0, bold_timing: 0,
+  bold_qty: 0, bold_expiry: 0, bold_frequency: 0,
   bold_indication: 0, bold_advice: 0, bold_barcode: 0,
   bold_custom_text: 0,
   line_spacing: 1.5, section_gap: 2,
@@ -139,6 +155,7 @@ export const LABEL_DEFAULTS: LabelSettingsForm = {
   show_shop: 1, show_print_date: 1,
   show_shop_address: 1, show_shop_phone: 1, show_shop_line_id: 1,
   show_product: 1, show_dosage: 1, show_timing: 1,
+  show_qty: 1, show_expiry: 1, show_frequency: 1,
   show_indication: 1, show_advice: 1, show_barcode: 0,
   show_custom_text: 1,
   show_header_line: 1,
@@ -148,6 +165,9 @@ export const LABEL_DEFAULTS: LabelSettingsForm = {
   offset_x_shop_phone: 0, offset_y_shop_phone: 0,
   offset_x_shop_line_id: 0, offset_y_shop_line_id: 0,
   offset_x_product: 0, offset_y_product: 0,
+  offset_x_qty: 0, offset_y_qty: 0,
+  offset_x_expiry: 0, offset_y_expiry: 0,
+  offset_x_frequency: 0, offset_y_frequency: 0,
   offset_x_dosage: 0, offset_y_dosage: 0,
   offset_x_timing: 0, offset_y_timing: 0,
   offset_x_indication: 0, offset_y_indication: 0,

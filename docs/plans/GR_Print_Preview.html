@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GR Print Preview (เฟส 2) — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine ul{padding-left:20px} .machine ul li{margin:4px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>GR Print Preview — กล่องพรีวิวก่อนพิมพ์ใบรับสินค้า (เฟส 2)</h1>
+    <p>เปลี่ยนการพิมพ์ใบรับสินค้า (GR) จาก "พิมพ์เงียบ" → กล่องพรีวิว A4 แนวตั้งแบบเดียวกับ ข.ย.9/10/11 ปรับจำนวนสำเนา + กำหนดหน้าได้ ไม่มีปุ่ม PDF</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ (ไม่มี P0/P1)</span>
+      <span class="pill">เฟส 2 · GR เท่านั้น (A4 portrait)</span>
+      <span class="pill">2026-06-19</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p>วันนี้ใบรับสินค้า (ใบ GR) <strong>พิมพ์เงียบทันที</strong> ตอนกดปุ่มเครื่องพิมพ์ใน <code>PurchaseReceiptDialog</code> — ผู้ใช้ไม่เห็นหน้าตาก่อน เลือกหน้า/จำนวนสำเนาตอนพิมพ์ไม่ได้.</p>
+    <p>แผนนี้ทำให้ปุ่มพิมพ์ <strong>เปิดกล่องพรีวิว A4 แนวตั้ง</strong> แบบเดียวกับรายงาน ข.ย.9/10/11 — ซูมดูทีละหน้า, ใส่ "กำหนดหน้า" + "จำนวนชุด" ได้, และ <strong>สิ่งที่เห็นบนจอ = สิ่งที่พิมพ์ออกมา 1:1</strong> (สำคัญมากเพราะใบ GR หลายหน้าบ่อย เช่น 30 รายการ).</p>
+    <p>ใช้กลไกพิมพ์ <strong>ตัวเดียวกับ ข.ย.</strong> (React <code>A4Sheet</code> + <code>printDomSheets</code>) โดย generalize ให้รองรับ "แนวตั้ง" — เพราะ ข.ย. เป็นแนวนอน แต่ GR เป็นแนวตั้ง. ตอนนี้ <code>printDomSheets</code> ฮาร์ดโค้ดแนวนอนล้วน.</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p>กดพิมพ์ในกล่อง GR → คอมโพเนนต์ใหม่วัด+แบ่งหน้าเป็นแผ่น A4 แนวตั้ง → กล่องพรีวิวร่วม (<code>ReportPrintDialog</code>) → พิมพ์ผ่าน <code>printDomSheets</code> → IPC. โครงเดียวกับ ข.ย. ต่างแค่ <code>orientation="portrait"</code>:</p>
+    <div class="diagram"><div class="flow">
+      <div class="node">ปุ่มพิมพ์<small>PurchaseReceiptDialog.tsx</small></div>
+      <div class="ar">▶<small>setPrintOpen</small></div>
+      <div class="node warn">GoodsReceiptPrintDialog<small>NEW · วัด+แบ่งหน้า portrait</small></div>
+      <div class="ar">▶<small>renderPreview / renderFullDoc</small></div>
+      <div class="node">ReportPrintDialog<small>orientation="portrait"</small></div>
+      <div class="ar">▶<small>.a4-doc</small></div>
+      <div class="node">printDomSheets<small>src/lib/print/printDomSheets.ts</small></div>
+      <div class="ar">▶<small>IPC landscape:false</small></div>
+      <div class="node data">printer:printDocument<small>electron/ipc/printer.ts</small></div>
+    </div></div>
+    <p style="margin-top:14px"><strong>ไฟล์ที่แตะ:</strong></p>
+    <table>
+      <thead><tr><th>ไฟล์</th><th>ทำอะไร</th><th>ป้าย</th></tr></thead>
+      <tbody>
+        <tr><td><code>src/pages/Reports/a4.tsx</code></td><td>เพิ่มค่าคงที่ + prop <code>orientation</code> ให้ <code>A4Sheet</code> (default landscape)</td><td><span class="tag t-gen">generalize</span></td></tr>
+        <tr><td><code>src/lib/print/printDomSheets.ts</code></td><td>เพิ่มพารามิเตอร์ <code>orientation</code> (default landscape)</td><td><span class="tag t-gen">generalize</span></td></tr>
+        <tr><td><code>src/pages/Reports/ReportPrintDialog.tsx</code></td><td>เพิ่ม prop <code>orientation</code> → preview box + ส่งต่อ printDomSheets</td><td><span class="tag t-gen">generalize</span></td></tr>
+        <tr><td><code>src/components/dialogs/GoodsReceiptPrintDialog.tsx</code></td><td>คอมโพเนนต์ใหม่ — แผ่น GR + วัด+แบ่งหน้า + host ReportPrintDialog</td><td><span class="tag t-gen">new</span></td></tr>
+        <tr><td><code>src/components/dialogs/PurchaseReceiptDialog.tsx</code></td><td>ปุ่มพิมพ์เปิดกล่องใหม่ (เลิกพิมพ์เงียบ)</td><td><span class="tag t-opt">wire</span></td></tr>
+        <tr><td><code>src/lib/receipt/buildGoodsReceiptHtml.ts</code></td><td>ลบทิ้ง (ย้าย type ออกก่อน)</td><td><span class="tag t-skip">delete</span></td></tr>
+        <tr><td><code>src/lib/receipt/print.ts</code></td><td>ลบ <code>printGoodsReceipt</code> + <code>previewGoodsReceipt</code></td><td><span class="tag t-skip">delete</span></td></tr>
+        <tr><td><code>docs/claude/ui-theming.md</code></td><td>อัปเดต carve-out วันที่ (ชี้ไป component ใหม่)</td><td><span class="tag t-opt">doc</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>กดปุ่มพิมพ์ใน <code>PurchaseReceiptDialog</code> → <strong>พิมพ์เงียบทันที</strong> (ไม่มีพรีวิว)</li>
+        <li>เลือกหน้า / จำนวนสำเนา ตอนพิมพ์ <strong>ไม่ได้</strong></li>
+        <li>หลายหน้า: ไม่เห็นรอยตัดหน้าก่อนพิมพ์</li>
+        <li>เรนเดอร์ผ่าน <code>buildGoodsReceiptHtml</code> (HTML string) → <code>printHtml</code></li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>กดปุ่มพิมพ์ → <strong>กล่องพรีวิว A4 แนวตั้ง</strong> (ซูมได้ พลิกหน้าได้)</li>
+        <li>ช่อง <strong>"กำหนดหน้า"</strong> + <strong>"จำนวนชุด"</strong> ใช้ได้จริง</li>
+        <li>เห็นบนจอ = พิมพ์ออกมา 1:1 ทุกหน้า</li>
+        <li>เรนเดอร์เป็น React <code>A4Sheet</code> → <code>printDomSheets</code> (กลไกเดียวกับ ข.ย.)</li>
+        <li>ไม่มีปุ่ม "ดูตัวอย่าง PDF"</li>
+      </ul>
+    </div></div>
+  </div>
+  <p style="font-size:13.5px;color:var(--muted)">หน้าตาแต่ละแผ่น: หัวร้าน + กล่องคู่ค้า (ทุกหน้า) → ตารางรายการ (ไหลต่อ) → ยอดรวมเงิน (ใต้ตาราง, <strong>หน้าสุดท้ายเท่านั้น</strong>) → พื้นที่ว่างเปล่าไม่มีเส้น → ลายเซ็น (<strong>ทุกหน้า</strong> ติดล่างสุด) → "หน้า X / Y".</p>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li><strong>WYSIWYG หลายหน้า</strong> — เห็นรอยตัดหน้าจริง ตรงกับที่พิมพ์ (จุดตายของ iframe ที่เราเลี่ยง)</li>
+    <li><strong>กำหนดหน้าแม่นยำ</strong> — เลือกแผ่น DOM ฝั่ง client ไม่พึ่งการตัดหน้าที่มองไม่เห็น</li>
+    <li><strong>กลไกเดียวทั้งระบบ</strong> — GR ใช้ท่อเดียวกับ ข.ย. (และต่อยอดใบกำกับภาษีในเฟส 3 ได้)</li>
+    <li>ปรับจำนวนสำเนาได้ + reuse <code>ReportPrintDialog</code> ที่พิสูจน์แล้ว</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>ต้องเขียน layout ใบ GR เป็น React ใหม่ (1 ไฟล์ใหม่ + แก้ primitive ที่ใช้ร่วม 3 ไฟล์)</li>
+    <li>หน้าตาเทียบ HTML เดิมเป็น "ใกล้เคียง" ไม่ pixel-identical (ต้องจูน border/ระยะ)</li>
+    <li>qty เปลี่ยนจาก "5.00" → "5" (ตั้งใจ ไม่ใช่ regression)</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><strong>แตะ primitive ที่ ข.ย. + EnvLog ใช้ร่วม</strong> (<code>A4Sheet</code>/<code>ReportPrintDialog</code>/<code>printDomSheets</code>) → <code>orientation</code> ต้อง default เป็น <code>'landscape'</code> เสมอ เพื่อให้ผู้เรียกเดิม (KhorYor9, KhorYorSaleLedger, EnvLog) ไม่เปลี่ยน — แล้ว regression test ทั้ง 4 จุด</li>
+    <li><strong>ยอดรวมหน้าสุดท้าย</strong> = pack เป็น "pseudo-row ต่อท้าย" ด้วย budget เดียว → ไม่มีทางถูก <code>overflow-hidden</code> ตัด</li>
+    <li><strong>วันที่</strong> = <code>formatDate(x, 'D MMMM BBBB')</code> (พ.ศ. ทางการ ตาม carve-out เอกสารพิมพ์) + ต้องอัปเดต <code>ui-theming.md:61</code> เพราะลบ <code>buildGoodsReceiptHtml</code></li>
+    <li><strong>ย้าย type ก่อนลบไฟล์</strong> — <code>GoodsReceiptForPrint</code>/<code>GoodsReceiptLine</code> ย้ายเข้า component ใหม่ก่อน แล้วค่อยลบ builder + 2 ฟังก์ชัน (tsc gate)</li>
+    <li>infinite-loop ของ measure-pack → ผูก <code>useLayoutEffect</code> กับ array ที่ memo เสถียร ไม่ใช่ array ที่ derive ใหม่ทุก render</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><strong>กล่องพรีวิว</strong> = <code>ReportPrintDialog</code> ตัวเดิม (ขนาด full, h-[88vh]) แต่ portrait — พื้นที่พรีวิวเลื่อนแนวตั้งได้, มี ZoomControl ลอยมุมขวาบน, ปุ่มพลิกหน้า "หน้า X / Y" ตรงกลาง.</li>
+      <li><strong>แถบล่าง (DialogFooter):</strong> ช่อง "หน้า" (placeholder <em>ทุกหน้า (1-N)</em>) + ช่อง "จำนวนชุด" (number, min 1) ทางซ้าย; ปุ่ม <strong>ยกเลิก</strong> (<code>variant="elevated"</code> = secondary) + <strong>พิมพ์</strong> (<code>variant="default"</code> = teal CTA หลัก) ทางขวา — ตามกฎปุ่ม dialog 2 ปุ่ม.</li>
+      <li><strong>หัวกล่อง:</strong> "พิมพ์ใบรับสินค้า".</li>
+      <li><strong>สี/โทเคน:</strong> แผ่นกระดาษใช้ semantic token (<code>border-foreground</code>/<code>text-foreground</code>/<code>bg-card</code>) เหมือน KhorYor9 ไม่ใช้ palette literal; ฟอนต์พิมพ์ = Sarabun Print (บังคับใน printDomSheets).</li>
+      <li><strong>ภาษาไทยทั้งหมด</strong>; ไม่มี emoji; วันที่ในเอกสาร = พ.ศ. ทางการ (carve-out เอกสารพิมพ์).</li>
+      <li><strong>ไม่มีปุ่ม PDF</strong> ในทุกจุดของ flow นี้.</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>EnvLog.tsx เป็น A4Sheet consumer ตัวที่ 3 ที่แผนไม่ได้นับ</td><td>P1</td><td>เพิ่ม EnvLog ในลิสต์ consumer + DoD #6 + regression test (orientation default landscape → ไม่กระทบ)</td></tr>
+        <tr><td>1</td><td>วันที่ใน component ใหม่ระบุไม่ชัด + carve-out ระบุชื่อ <code>buildGoodsReceiptHtml</code> ที่กำลังจะลบ</td><td>P1</td><td>pin <code>formatDate(x,'D MMMM BBBB')</code> + เพิ่มสเต็ปอัปเดต <code>ui-theming.md:61</code> ให้ชี้ component ใหม่</td></tr>
+        <tr><td>1</td><td>pack ยอดรวมหน้าสุดท้ายแบบ pop-loop ไม่ validate หน้า spill → totals อาจถูกตัด</td><td>P1</td><td>เปลี่ยนเป็น "totals = pseudo-row ต่อท้าย" pack ด้วย budgetRows เดียว → พิสูจน์ว่าไม่มีทางตัด</td></tr>
+        <tr><td>1</td><td>ลบ <code>buildGoodsReceiptHtml</code> ทำ type <code>GoodsReceiptForPrint</code> กำพร้า (แผนเลื่อนตัดสินใจ)</td><td>P2</td><td>commit เส้นทางชัด: ย้าย type เข้า component ใหม่ → ลบ builder + 2 ฟังก์ชัน + import ที่ตายแล้วใน print.ts</td></tr>
+        <tr><td>1</td><td>คง guard / qty formatter</td><td>P2</td><td>คง <code>!header||!invoiceNo</code> guard; qty ใช้ formatQty (ไม่ใช่ formatCurrency)</td></tr>
+        <tr><td>2</td><td>ตำแหน่ง totals ลอยไปล่างสุด (spacer ก่อน totals) ต่างจากกระดาษเดิม</td><td>P2</td><td>ย้าย spacer ไป "หลัง" totals → totals อยู่ใต้ตารางตามเดิม, ลายเซ็นติดล่าง</td></tr>
+        <tr><td>2</td><td>qty ถูกกรอบเป็น "parity" ทั้งที่เป็นการเปลี่ยนตั้งใจ</td><td>P2</td><td>ระบุชัดว่า "5" แทน "5.00" เป็น intentional ไม่ใช่ regression</td></tr>
+        <tr><td>2</td><td><code>builtGr</code> lifecycle คลุมเครือ ("memo/state")</td><td>P2</td><td>เลือก <code>useMemo</code> over items/header (กัน stale snapshot ตอน items refresh)</td></tr>
+        <tr><td>2</td><td>budget ของ GR ต่างจาก KhorYor9/EnvLog (มี −partiesH −signatureH)</td><td>P2</td><td>ใส่หมายเหตุว่าตั้งใจต่าง (parties+signature ซ้ำทุกหน้า) ห้าม "align to KhorYor9"</td></tr>
+        <tr><td>2</td><td>ตรวจ measure-pack soundness / deletion completeness / regression</td><td>—</td><td><strong>PASS</strong> — แผน sound, ไม่มี importer อื่น, ทุก call site เดิมไม่ส่ง orientation</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Goal</h3>
+    <p>Replace the silent GR (ใบรับสินค้า) print in <code>PurchaseReceiptDialog</code> with a popup PREVIEW dialog mirroring ข.ย.9/10/11 — React <code>A4Sheet</code> + <code>printDomSheets</code> (Path B), generalized to A4 PORTRAIT. Page-range + copies inputs, no PDF button.</p>
+
+    <h3>Definition of done</h3>
+    <ul>
+      <li>Print button in <code>PurchaseReceiptDialog</code> opens a portrait popup preview (via <code>ReportPrintDialog</code>), not a silent print.</li>
+      <li>Preview = print 1:1 (both via <code>printDomSheets</code>), multi-page, with working page-range + copies inputs.</li>
+      <li>Every page: full header (shop + title) + parties boxes; signature on EVERY page; totals on the LAST page only (directly under the table).</li>
+      <li>Empty space below rows = blank whitespace, NO row/column lines.</li>
+      <li>No "ดูตัวอย่าง PDF" button in the GR flow.</li>
+      <li>ข.ย.9/10/11 AND อุณหภูมิ–ความชื้น (<code>EnvLog.tsx</code>) printing UNCHANGED (still landscape) — all are A4Sheet consumers.</li>
+      <li><code>npx tsc --noEmit -p tsconfig.json</code> shows no NEW errors (only pre-existing <code>Theme/index.tsx:1616</code>).</li>
+    </ul>
+
+    <h3>Ground truth (verified)</h3>
+    <ul>
+      <li><code>printDomSheets.ts</code> hardcoded landscape: <code>@page{size:A4 landscape}</code> (:117), <code>.a4-sheet{297mm×210mm}</code> (:122), <code>printDocument({pageFormat:'A4',landscape:true})</code> (:130-135). Orientation lives in its generated HTML — <code>index.css</code> NOT involved.</li>
+      <li><code>printer:printDocument</code> (printer.ts:353) accepts <code>landscape</code> (default false=portrait, :361) + <code>copies</code> (:379). preload :195 matches.</li>
+      <li><code>a4.tsx</code>: <code>A4={W:1123,H:794,PAD_X:40,PAD_Y:32}</code>, <code>A4_CONTENT_W=1043</code>, <code>A4_CONTENT_H=730</code>, <code>FOOTER_H=24</code>, <code>PACK_SAFETY=6</code>. Portrait math: 794−80=714, 1123−64=1059.</li>
+      <li>A4Sheet consumers (prop-less, landscape): <code>KhorYor9.tsx:440</code>, <code>KhorYorSaleLedger.tsx:473</code>, <code>EnvLog.tsx:694</code> (+ EnvLog blank-print <code>printDomSheets</code> at :308). Adding <code>orientation?</code> default <code>'landscape'</code> keeps all byte-identical.</li>
+      <li><code>ReportPrintDialog</code> form-agnostic props <code>{open,onOpenChange,title,pageCount,renderPreview,renderFullDoc}</code>; uses <code>A4.W/A4.H</code> at :114-115; calls <code>printDomSheets({docSelector:'.a4-doc',pages,printerName,copies})</code>; reads printer from <code>getDocumentSettings().printer_name</code>.</li>
+      <li><code>KhorYor9.tsx</code> measure-pack reference: hidden specimen <code>measureRef</code>, <code>useLayoutEffect</code> greedy pack, deps on STABLE memoized array (:225-227) to avoid setState→new-array→loop. Strip-zeros qty via <code>formatQty</code> (:32).</li>
+      <li>GR path: <code>PurchaseReceiptDialog.handlePrint</code> (guard <code>!header||!invoiceNo</code> at :75) builds <code>GoodsReceiptForPrint</code> → <code>printGoodsReceipt</code> (print.ts:110) → <code>buildGoodsReceiptHtml</code> (portrait HTML) → <code>printHtml</code> silent. Opened from <code>Manage/Purchases.tsx:719</code> + <code>EditProduct/HistoryTab.tsx:446</code>.</li>
+      <li>Deletion completeness: <code>printGoodsReceipt</code>/<code>previewGoodsReceipt</code>/<code>buildGoodsReceiptHtml</code>/<code>GoodsReceiptForPrint</code>/<code>GoodsReceiptLine</code> referenced ONLY in buildGoodsReceiptHtml.ts, print.ts, PurchaseReceiptDialog.tsx — nothing in <code>electron/</code>.</li>
+      <li>Date carve-out <code>ui-theming.md:61</code> currently names <code>buildGoodsReceiptHtml</code> as a printed-doc surface allowed <code>'D MMMM BBBB'</code>.</li>
+    </ul>
+
+    <h3>ขั้นตอน</h3>
+    <ol>
+      <div class="step"><strong>1. <code>src/pages/Reports/a4.tsx</code></strong> — add <code>A4_PORTRAIT={W:794,H:1123,PAD_X:40,PAD_Y:32}</code>, <code>A4P_CONTENT_W=714</code>, <code>A4P_CONTENT_H=1059</code> (keep landscape consts unchanged). <code>A4Sheet</code>: add <code>orientation?:'portrait'|'landscape'</code> (default <code>'landscape'</code>); <code>dims = orientation==='portrait'?A4_PORTRAIT:A4</code> for width/height/padding. <span class="inv">INV: default landscape → prop-less calls in KhorYor9/KhorYorSaleLedger/EnvLog byte-identical.</span></div>
+      <div class="step"><strong>2. <code>src/lib/print/printDomSheets.ts</code></strong> — add <code>orientation?:'portrait'|'landscape'</code> to opts (default <code>'landscape'</code>). Derive <code>isPortrait</code>; sheet <code>width=isPortrait?'210mm':'297mm'</code>, <code>height=isPortrait?'297mm':'210mm'</code>; <code>@page{size:A4 ${isPortrait?'portrait':'landscape'}}</code>; <code>printDocument({...,landscape:!isPortrait})</code>. Keep Sarabun-Print font + border-collapse rules. <span class="inv">INV: no orientation arg → generated HTML + printDocument call unchanged → ข.ย. identical.</span></div>
+      <div class="step"><strong>3. <code>src/pages/Reports/ReportPrintDialog.tsx</code></strong> — add <code>orientation?:'portrait'|'landscape'</code> (default <code>'landscape'</code>); <code>dims = orientation==='portrait'?A4_PORTRAIT:A4</code>; replace <code>A4.W</code>/<code>A4.H</code> (both the mx-auto reserved box + inner scaled sheet); forward <code>printDomSheets({...,orientation})</code>. Keep zoom constants (portrait scrolls vertically — acceptable). <span class="inv">INV: default landscape; ข.ย. callers omit prop.</span></div>
+      <div class="step"><strong>4. CREATE <code>src/components/dialogs/GoodsReceiptPrintDialog.tsx</code></strong> — props <code>{open,onOpenChange,gr:GoodsReceiptForPrint|null}</code>. Export the re-homed <code>GoodsReceiptForPrint</code>/<code>GoodsReceiptLine</code> types here. On open: load shop via <code>getShop()</code>. Pieces: <code>headerBlock</code> (shop+title → A4Sheet <code>header</code>, every page); <code>partiesBlock</code> (2 boxes, top of children, every page); <code>theadRow</code> (6 cols); <code>dataRow</code> (รายการ + Lot./exp.; qty via <code>formatQty</code>-style strip-zeros [NOT formatCurrency — intentional change from "5.00"]; price/total via <code>formatCurrency</code>); <code>totalsBlock</code> (60mm right, last page); <code>signatureBlock</code> (every page). Dates via <code>formatDate(date,'D MMMM BBBB')</code>. Hidden off-screen measure specimen (fontFamily 'Sarabun Print') measuring headerH/partiesH/theadH/signatureH/totalsH/rowHs.
+        <br><strong>Measure-pack</strong> (<code>useLayoutEffect</code>; deps = stable memoized lines + shop + measured heights; memoize lines so identity is stable): <code>budgetRows = A4P_CONTENT_H − headerH − partiesH − theadH − signatureH − FOOTER_H − PACK_SAFETY</code> (thead+signature reserved every page — intentionally differs from KhorYor9/EnvLog which omit them). Totals = a TRAILING pseudo-row of height <code>totalsH</code>; greedy-pack <code>[...rowHs,totalsH]</code> with the SINGLE <code>budgetRows</code> → totals lands where there's room, spills to a fresh page if the last data page is full (budgetRows ≫ totalsH → never clips). Output <code>pages:{start,end}[]</code> over data rows; render totals when <code>i===pages.length-1</code>.
+        <br><strong>renderPage(pg,i)</strong>: <code>&lt;A4Sheet orientation="portrait" header={headerBlock} pageNo={i+1} pageCount={pages.length}&gt;</code> → <code>&lt;div className="flex flex-col h-full"&gt;</code>{ partiesBlock; table(thead+rows); <code>{i===last && totalsBlock}</code> (under the table); <code>&lt;div className="flex-1"/&gt;</code> (blank spacer); signatureBlock (bottom) }. Host: <code>&lt;ReportPrintDialog orientation="portrait" title="พิมพ์ใบรับสินค้า" pageCount renderPreview renderFullDoc open onOpenChange /&gt;</code> + always-mounted hidden specimen. Edge: <code>gr==null</code>/0 rows → single page (header+parties+empty table+totals+signature). <span class="inv">INV: no emoji; semantic tokens only; Tailwind v3 brackets; no raw HTML controls (table body plain markup like KhorYor9 is OK; buttons/inputs come from ReportPrintDialog).</span></div>
+      <div class="step"><strong>5. <code>src/components/dialogs/PurchaseReceiptDialog.tsx</code></strong> — add <code>const [printOpen,setPrintOpen]=useState(false)</code>. <code>builtGr</code> = <code>useMemo</code> over items/header → <code>GoodsReceiptForPrint</code> (null when <code>!header</code>); do NOT build inside handlePrint (avoid stale snapshot). <code>handlePrint</code>: KEEP <code>if(!header||!invoiceNo)return</code> guard, then <code>setPrintOpen(true)</code>. Render <code>&lt;GoodsReceiptPrintDialog open={printOpen} onOpenChange={setPrintOpen} gr={builtGr}/&gt;</code> (stacked, like SaleDetailDialog stacks TaxInvoiceBuyerDialog). Remove <code>import {printGoodsReceipt}</code>. Print button styling/position unchanged.</div>
+      <div class="step"><strong>6. Cleanup (one commit, tsc-gated)</strong> — re-home <code>GoodsReceiptForPrint</code>+<code>GoodsReceiptLine</code> into GoodsReceiptPrintDialog.tsx (PurchaseReceiptDialog imports from there); <code>print.ts</code>: delete <code>printGoodsReceipt</code>+<code>previewGoodsReceipt</code> + the now-unused builder/type import line; DELETE <code>src/lib/receipt/buildGoodsReceiptHtml.ts</code>; UPDATE <code>docs/claude/ui-theming.md:61</code> carve-out — replace <code>buildGoodsReceiptHtml</code> ref with <code>GoodsReceiptPrintDialog.tsx</code> (still <code>'D MMMM BBBB'</code>).</div>
+      <div class="step"><strong>7. Verify</strong> (below).</div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit -p tsconfig.json</code> → only pre-existing <code>Theme/index.tsx:1616</code>.</li>
+      <li>REGRESSION click-test: print ข.ย.9/10/11 AND อุณหภูมิ–ความชื้น (EnvLog) → still landscape; page-range + copies still work.</li>
+      <li>GR (Manage/Purchases → open receipt → พิมพ์): portrait popup; full header+parties every page; signature every page; totals last page only (under table); blank area no lines; page-range "2" prints only page 2; copies=2 spools twice; printed == preview.</li>
+      <li>GR multi-page (~30 lines): splits correctly; totals once (last); last data page exactly full → totals spill to fresh final page (no clip).</li>
+      <li>GR from EditProduct → ความเคลื่อนไหว (view-only) → print works.</li>
+      <li>Edge: single-line receipt → one page, totals+signature present.</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li><span class="inv">Shared primitives (A4Sheet/ReportPrintDialog/printDomSheets used by ข.ย. + EnvLog)</span> → orientation DEFAULTS landscape everywhere; existing callers pass nothing → identical. Mitigation: regression-test all 4 consumers.</li>
+      <li><span class="inv">Totals clipping</span> → totals-as-trailing-pseudo-row pack (can't exceed budgetRows on its page). Test 1-page / exactly-full-last-page / 30-line.</li>
+      <li><span class="inv">measure-pack infinite loop</span> → deps on STABLE memoized lines array (KhorYor9 lesson), never a freshly-derived array.</li>
+      <li><span class="inv">Type orphan on delete</span> → re-home <code>GoodsReceiptForPrint</code>/<code>GoodsReceiptLine</code> BEFORE deleting builder; tsc gates.</li>
+      <li>Visual parity approximate (React rebuild) → acceptable (Path B decision); blank no-line filler is the wanted look.</li>
+      <li>printDomSheets forces 'Sarabun Print' + <code>color:false</code> (grayscale) → GR is black-on-white Thai; fine.</li>
+    </ul>
+
+    <h3>Out of scope (this phase)</h3>
+    <ul>
+      <li>Tax invoice popup (Phase 3) — reuses these portrait primitives + adds A5 (user wants A5 for tax invoice; GR stays A4-only).</li>
+      <li>Thermal slip / receipt — stays silent (unchanged).</li>
+      <li>Phase 1 (remove PDF buttons in 5 settings/label screens) — paused per user, pending the concurrent Environment/label work settling.</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-19 · ผ่าน audit 2 รอบ (general-purpose) · ไม่มี P0/P1</footer>
+
+</div>
+</body>
+</html>

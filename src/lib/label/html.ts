@@ -8,7 +8,6 @@ import type { CSSProperties } from 'react'
 import { SECTIONS, buildSectionStyle, type LabelSettingsForm, type SectionKey } from './sections'
 import { esc, buildPrintFontFaceCss, buildFallbackFontFaceCss } from '@/lib/print/fonts'
 import { barcodeSvg } from './barcode'
-import { LABEL_FIT_SCRIPT } from './fit'
 
 // Inline React style object → a CSS declaration string (camelCase → kebab-case).
 export function styleToCss(s: CSSProperties): string {
@@ -33,8 +32,12 @@ export function renderLabelSectionsHtml(
     .filter(s => {
       if (s.key === 'print_date') return false
       if (s.key === 'barcode') return false
+      if (s.key === 'qty') return false
+      if (s.key === 'expiry') return false
       if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
       if (s.key === 'shop_phone') return !!settings.show_shop_phone || !!settings.show_barcode
+      if (s.key === 'product') return !!settings.show_product || !!settings.show_qty
+      if (s.key === 'dosage') return !!settings.show_dosage || !!settings.show_expiry
       return settings[`show_${s.key}` as keyof LabelSettingsForm]
     })
     .map(s => {
@@ -92,6 +95,63 @@ export function renderLabelSectionsHtml(
           : ''
         return `<div style="${styleToCss(style)}"><span style="${styleToCss(phoneStyle)}">${esc(phoneText)}</span>${barImg}</div>`
       }
+      if (s.key === 'product') {
+        // Special: product name (left, `product` style) + qty (right, its OWN
+        // `qty` font/bold + offset) on one flex row; each toggles separately via
+        // show_product / show_qty. Mirrors the shop + print_date row. qty is
+        // "[N]" (no unit). baseline align keeps qty on the name's first line even
+        // when the name wraps; the name yields, the qty box never shrinks.
+        const nameText = settings.show_product ? text : ''
+        const qtyText = settings.show_qty ? (content.qty ?? '') : ''
+        if (!nameText && !qtyText) return ''
+        const secStyle = buildSectionStyle(s, settings)
+        const productTransform = secStyle.transform
+        const style = {
+          ...secStyle, transform: undefined,
+          whiteSpace: 'normal', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm',
+        } as CSSProperties
+        const nameStyle: CSSProperties = { transform: productTransform, minWidth: 0 }
+        const qtyStyle: CSSProperties = {
+          fontSize:   `${settings.font_size_qty}pt`,
+          fontWeight: settings.bold_qty ? 'bold' : 'normal',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          transform:  `translate(${settings.offset_x_qty}mm, ${settings.offset_y_qty}mm)`,
+        }
+        const nameSpan = nameText
+          ? `<span style="${styleToCss(nameStyle)}">${esc(nameText).replace(/\n/g, '<br>')}</span>`
+          : '<span></span>'
+        const qtySpan = qtyText ? `<span style="${styleToCss(qtyStyle)}">${esc(qtyText)}</span>` : ''
+        return `<div style="${styleToCss(style)}">${nameSpan}${qtySpan}</div>`
+      }
+      if (s.key === 'dosage') {
+        // Special: dosage text (left, `dosage` style) + expiry (right, its OWN
+        // `expiry` font/bold + offset) on one flex row; each toggles separately
+        // via show_dosage / show_expiry. Mirrors product + qty. expiry is
+        // "EXP.dd/mm/yyyy", right-aligned, adjusted independently of dosage.
+        const dosageText = settings.show_dosage ? text : ''
+        const expiryText = settings.show_expiry ? (content.expiry ?? '') : ''
+        if (!dosageText && !expiryText) return ''
+        const secStyle = buildSectionStyle(s, settings)
+        const dosageTransform = secStyle.transform
+        const style = {
+          ...secStyle, transform: undefined,
+          whiteSpace: 'normal', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm',
+        } as CSSProperties
+        const dosageStyle: CSSProperties = { transform: dosageTransform, minWidth: 0 }
+        const expiryStyle: CSSProperties = {
+          fontSize:   `${settings.font_size_expiry}pt`,
+          fontWeight: settings.bold_expiry ? 'bold' : 'normal',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          transform:  `translate(${settings.offset_x_expiry}mm, ${settings.offset_y_expiry}mm)`,
+        }
+        const dosageSpan = dosageText
+          ? `<span style="${styleToCss(dosageStyle)}">${esc(dosageText).replace(/\n/g, '<br>')}</span>`
+          : '<span></span>'
+        const expirySpan = expiryText ? `<span style="${styleToCss(expiryStyle)}">${esc(expiryText)}</span>` : ''
+        return `<div style="${styleToCss(style)}">${dosageSpan}${expirySpan}</div>`
+      }
       if (!text) return ''
       const body = esc(text).replace(/\n/g, '<br>')
       return `<div style="${styleToCss(buildSectionStyle(s, settings))}">${body}</div>`
@@ -109,8 +169,10 @@ export async function buildLabelHtml(
   const sectionsHtml = renderLabelSectionsHtml(settings, content, date)
   const fontFaceCss = await buildPrintFontFaceCss(settings.font_family)
   // .label-area = the printable content box (fills the body inside its padding);
-  // .label-fit = the natural-size content the embedded fit script scales down
-  // when it overflows the area (auto shrink-to-fit, configured font = ceiling).
+  // .label-fit = the content wrapper. NO auto shrink-to-fit (removed 2026-06-19):
+  // sections render at their EXACT configured sizes (true WYSIWYG with the
+  // designer) and `overflow: hidden` on the body clips anything that overflows
+  // the fixed sticker — the owner adjusts by hand, nothing is silently scaled.
   return `<!doctype html><html><head><meta charset="utf-8">
 <style>
 ${fontFaceCss}
@@ -125,7 +187,7 @@ body {
   box-sizing: border-box; overflow: hidden;
 }
 .label-fit > div:first-child { margin-top: 0 !important; }
-</style></head><body><div class="label-area" style="width:100%;height:100%"><div class="label-fit">${sectionsHtml}</div></div><script>${LABEL_FIT_SCRIPT}</script></body></html>`
+</style></head><body><div class="label-area" style="width:100%;height:100%"><div class="label-fit">${sectionsHtml}</div></div></body></html>`
 }
 
 // Build a MULTI-PAGE label sheet — one label per page (page-break between),
@@ -151,9 +213,9 @@ export async function buildLabelSheetHtml(
     `padding:${baseSettings.pad_top}mm ${baseSettings.pad_right}mm ${baseSettings.pad_bottom}mm ${baseSettings.pad_left}mm`,
     `box-sizing:border-box`, `overflow:hidden`, `break-after:page`, `page-break-after:always`,
   ].join(';')
-  // Each page wraps its sections in .label-area > .label-fit so the embedded fit
-  // script can shrink an overflowing label to its sticker (per-page, so a long
-  // label scales without touching the others).
+  // Each page wraps its sections in .label-area > .label-fit. NO auto shrink-to-
+  // fit (removed 2026-06-19): every label prints at its EXACT configured sizes;
+  // `overflow:hidden` per page clips any overflow (matches the on-screen designer).
   const pages = entries
     .map(e => `<div class="label-page" style="${pageStyle}"><div class="label-area" style="width:100%;height:100%"><div class="label-fit">${renderLabelSectionsHtml(e.settings, e.content, e.date)}</div></div></div>`)
     .join('')
@@ -167,5 +229,5 @@ html, body { margin: 0; padding: 0; }
 body { font-family: ${familyStack}; line-height: ${baseSettings.line_spacing}; color: #000; background: #fff; }
 .label-page:last-child { break-after: auto; page-break-after: auto; }
 .label-page .label-fit > div:first-child { margin-top: 0 !important; }
-</style></head><body>${pages}<script>${LABEL_FIT_SCRIPT}</script></body></html>`
+</style></head><body>${pages}</body></html>`
 }
