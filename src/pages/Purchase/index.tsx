@@ -247,7 +247,7 @@ export default function PurchasePage() {
 
   // Wizard returns a fully-built ReceiptRow. Keep the parallel search/suggestion
   // arrays length-aligned with `rows` so the paste-import bookkeeping stays valid.
-  const handleWizardConfirm = (row: ReceiptRow) => {
+  const handleWizardConfirm = (row: ReceiptRow, opts?: { addNext?: boolean }) => {
     setBaseRowTotals(null)
     if (editIdx === null) {
       setRows(r => [...r, row])
@@ -259,7 +259,8 @@ export default function PurchasePage() {
       setRows(r => r.map((x, idx) => idx === at ? row : x))
       setSearchQueries(q => q.map((x, idx) => idx === at ? row.trade_name : x))
     }
-    setWizardOpen(false)
+    // addNext = บันทึก & เพิ่มถัดไป → คง wizard เปิดไว้ (wizard รีเซ็ตเองรับสินค้าตัวต่อไป)
+    if (!opts?.addNext) setWizardOpen(false)
     setEditIdx(null)
   }
 
@@ -522,7 +523,8 @@ export default function PurchasePage() {
 
   // ── Totals ────────────────────────────────────────────────────────────────
 
-  const validRows = rows.filter(r => r.product_id && r.lot_number && r.expiry_date && parseFloat(r.qty) > 0)
+  // expiry_optional = ล็อตเดิมที่ตั้งใจไม่มีวันหมดอายุ (merge) → ถือว่าครบ ส่งเข้า backend ได้
+  const validRows = rows.filter(r => r.product_id && r.lot_number && (r.expiry_date || r.expiry_optional) && parseFloat(r.qty) > 0)
   const totalCost = rows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0)
 
   // VAT preview — inclusive: backed out of the line sum (grand total unchanged);
@@ -551,6 +553,26 @@ export default function PurchasePage() {
     if (!supplierId) { toast('กรุณาเลือกผู้จัดจำหน่าย', 'error'); return }
     if (!supplierInvoiceNo.trim()) { toast('กรุณาระบุเลขที่ใบกำกับสินค้า', 'error'); return }
     if (validRows.length === 0) { toast('กรุณาเพิ่มรายการสินค้าให้ครบถ้วน', 'error'); return }
+    // ด่านกั้น: ห้ามบันทึกถ้ายังมีรายการกรอกไม่ครบ (partial) — ไม่งั้น validRows.map จะตัดทิ้งเงียบ ๆ
+    // ทำให้บิลบันทึกผ่านโดยรายการค้างหายไป. ระบุชัดว่าแถวไหนขาดช่องอะไร (partial มาจากทาง paste/import)
+    const partials = rows.map((r, i) => ({ r, i })).filter(({ r }) => rowIsPartial(r))
+    if (partials.length > 0) {
+      const missingFields = (r: ReceiptRow): string[] => {
+        const m: string[] = []
+        if (!r.product_id) m.push('สินค้า')
+        if (!r.lot_number.trim()) m.push('เลขล็อต')
+        if (!(r.expiry_date || r.expiry_optional)) m.push('วันหมดอายุ')
+        if (!(parseFloat(r.qty) > 0)) m.push('จำนวน')
+        if (!(parseFloat(r.total) > 0)) m.push('ยอดรวม')
+        return m
+      }
+      const detail = partials.slice(0, 3).map(({ r, i }) =>
+        `แถวที่ ${i + 1}${r.trade_name ? ` (${r.trade_name})` : ''}: ขาด ${missingFields(r).join(', ')}`,
+      ).join(' · ')
+      const extra = partials.length > 3 ? ` และอีก ${partials.length - 3} รายการ` : ''
+      toast(`มีรายการกรอกไม่ครบ — ${detail}${extra}`, 'error')
+      return
+    }
     // วันที่ของบิลเป็น required. ถ้าเลขมั่ว/พิมพ์ตกตัว/ลืมกรอก DateInput จะคืน '' (ดู
     // date-input.tsx) → ดักที่นี่ ไม่งั้นส่งวันที่ว่างไป backend แบบเงียบ ๆ. เก็บทุกช่องที่
     // ขาดพร้อมกัน → ติดกรอบแดงทุกช่อง (prop `error`) + toast ระบุชื่อช่องชัด ๆ (กรณีลืม
@@ -685,7 +707,7 @@ export default function PurchasePage() {
   }
 
   const rowIsValid = (r: ReceiptRow) =>
-    r.product_id > 0 && r.lot_number.trim() !== '' && r.expiry_date !== '' && parseFloat(r.qty) > 0 && parseFloat(r.total) > 0
+    r.product_id > 0 && r.lot_number.trim() !== '' && (r.expiry_date !== '' || r.expiry_optional === true) && parseFloat(r.qty) > 0 && parseFloat(r.total) > 0
 
   const rowIsPartial = (r: ReceiptRow) =>
     (r.product_id > 0 || r.lot_number || r.expiry_date || r.qty || r.total) && !rowIsValid(r)

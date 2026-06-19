@@ -10,7 +10,7 @@ import { TintIcon } from '@/components/ui/tint-icon'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { ProductLot } from '@/types'
 import {
-  Check, ChevronLeft, ChevronRight, Plus, RotateCcw,
+  Check, ChevronLeft, ChevronRight, Plus, RotateCcw, Save,
   AlertTriangle, ShoppingBag, CalendarClock, Coins, Info, ClipboardCheck, ClockAlert,
 } from 'lucide-react'
 
@@ -50,6 +50,9 @@ export interface ReceiptRow {
   lot_number: string
   manufactured_date: string
   expiry_date: string
+  /** วันหมดอายุว่างได้โดยตั้งใจ — ติดธงเมื่อ row นี้ merge เข้าล็อตเดิม (matchedLot) ที่ไม่มีวันหมดอายุ.
+   *  ทำให้ตาราง GR ไม่ติด badge "ไม่สมบูรณ์" กับล็อตที่จงใจไม่มีวันหมดอายุ (paste/import ที่ไม่มีธงยังเตือนปกติ) */
+  expiry_optional?: boolean
   qty: string
   cost_price: string
   discount: string
@@ -152,7 +155,8 @@ const LAST = STEPS.length - 1
 interface AddProductWizardProps {
   open: boolean
   onClose: () => void
-  onConfirm: (row: ReceiptRow) => void
+  /** opts.addNext = บันทึกแล้วไม่ปิด (parent คงสถานะเปิดไว้) เพื่อให้ wizard รีเซ็ตรับสินค้าตัวถัดไป */
+  onConfirm: (row: ReceiptRow, opts?: { addNext?: boolean }) => void
   /** When set, the wizard opens pre-filled to edit this row instead of adding a new one. */
   editing?: ReceiptRow | null
 }
@@ -382,6 +386,12 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     const variants = (p.purchase_units ?? p.units ?? []).filter(u => u.unit_name !== baseName)
     const units = [baseUnit, ...variants]
     const chosen = picked ?? baseUnit
+    // ค่าตั้งต้น step 2: จำนวน = 1, ต้นทุน/หน่วย = ทุนล่าสุดที่จ่ายจริง (last_cost_price).
+    // ของฟรี/ไม่เคยซื้อ (last_cost ว่างหรือ 0) → คงช่องต้นทุนว่าง ไม่ coerce → 0 (กฏ stock/cost field).
+    const lastCost = p.last_cost_price
+    const qtyDefault = '1'
+    const costDefault = lastCost != null && lastCost > 0 ? lastCost.toFixed(2) : ''
+    const totalDefault = costDefault ? (parseFloat(qtyDefault) * lastCost!).toFixed(2) : ''
     setRow(r => ({
       ...r,
       product_id: p.id,
@@ -393,6 +403,9 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
       stored_cost_price: p.cost_price,
       stored_last_cost: p.last_cost_price,
       sell_units: buildSellUnits(p),
+      qty: qtyDefault,
+      cost_price: costDefault,
+      total: totalDefault,
     }))
     setQuery(p.trade_name)
     setSuggestions([])
@@ -431,7 +444,9 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     switch (s) {
       case 0: return row.product_id > 0
       case 1: return parseFloat(row.qty) > 0 && parseFloat(row.total) > 0   // จำนวน & ต้นทุน
-      case 2: return row.lot_number.trim() !== '' && row.expiry_date !== '' // Lot & วันหมดอายุ
+      // Lot & วันหมดอายุ: ล็อตเดิม (matchedLot) ใช้วันของล็อตตามจริง — ถ้าตั้งใจไม่มีวันหมดอายุก็ข้ามได้;
+      // ล็อตใหม่ยังบังคับกรอกวันหมดอายุเหมือนเดิม
+      case 2: return row.lot_number.trim() !== '' && (matchedLot != null || row.expiry_date !== '')
       case 3: return true                                                   // สรุป
       default: return false
     }
@@ -453,8 +468,33 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
 
   // ราคาขายแยกไปแก้ที่ modal ในตาราง GR ทีหลัง — wizard แค่ส่ง row (default_sell_price
   // = ราคาปลีกของหน่วยที่เลือก ตั้งไว้แล้วใน pickProduct/selectUnit) ไม่เขียนราคาเองที่นี่
+  // ส่ง row พร้อมธง expiry_optional: ล็อตเดิม (matchedLot) → วันหมดอายุว่างได้โดยตั้งใจ
+  const buildRow = (): ReceiptRow => ({ ...row, expiry_optional: matchedLot != null })
   const confirm = () => {
-    onConfirm(row)
+    onConfirm(buildRow())
+  }
+
+  // รีเซ็ต wizard กลับ step 1 สำหรับรับสินค้าตัวถัดไป (open ยังจริงอยู่ → init effect ไม่ยิงเอง
+  // เพราะ deps [open, editing] ไม่เปลี่ยน จึงต้องรีเซ็ต state เองให้ครบเหมือน init).
+  const resetForNext = () => {
+    setRow(emptyRow())
+    setQuery('')
+    setSuggestions([])
+    setSearchOpen(false)
+    setSearching(false)
+    setShowDiscount(false)
+    setStep(0)
+    setShowClosedLots(false)
+    setLotSort({ by: 'expiry_date', dir: 'desc' })
+    setExistingLots([])
+    // โฟกัสช่องค้นหา step 1 ให้สแกนบาร์โค้ด/พิมพ์ตัวถัดไปได้เลย ไม่ต้องจับเมาส์
+    setTimeout(() => searchInputRef.current?.focus(), 60)
+  }
+
+  // บันทึก & เพิ่มถัดไป (โหมดเพิ่มเท่านั้น): ส่ง row พร้อม addNext เพื่อให้ parent คงสถานะเปิดไว้
+  const confirmAndNext = () => {
+    onConfirm(buildRow(), { addNext: true })
+    resetForNext()
   }
 
   // ── derived numbers ──
@@ -656,7 +696,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันหมดอายุ <span className="text-destructive">*</span></label>
+                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันหมดอายุ {!matchedLot && <span className="text-destructive">*</span>}</label>
                     {matchedLot ? (
                       <div className="h-9 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.expiry_date ? formatDate(matchedLot.expiry_date) : '—'}</div>
                     ) : (
@@ -784,6 +824,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       autoFocus type="text" inputMode="decimal"
                       value={row.qty}
                       onChange={e => lineMath('qty', stripCommas(e.target.value))}
+                      onFocus={e => e.currentTarget.select()}
                       placeholder="0" className="h-9 text-base font-bold text-center"
                     />
                   </div>
@@ -878,9 +919,21 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
             <ChevronLeft className="size-4" /> ย้อนกลับ
           </Button>
           {step === LAST ? (
-            <Button ref={confirmBtnRef} type="button" variant="success" size="lg" onClick={confirm} className="gap-1.5">
-              <Check className="size-4" /> {editing ? 'บันทึกการแก้ไข' : 'ยืนยัน'}
-            </Button>
+            editing ? (
+              <Button ref={confirmBtnRef} type="button" variant="success" size="lg" onClick={confirm} className="gap-1.5">
+                <Save className="size-4" /> บันทึกการแก้ไข
+              </Button>
+            ) : (
+              <>
+                <Button type="button" variant="success-soft" size="lg" onClick={confirm} className="gap-1.5">
+                  <Save className="size-4" /> บันทึก
+                </Button>
+                {/* default/Enter → บันทึกแล้ววนรับตัวถัดไป (สแกนต่อได้ทันที); เสร็จแล้วกด Esc ปิด */}
+                <Button ref={confirmBtnRef} type="button" variant="success" size="lg" onClick={confirmAndNext} className="gap-1.5">
+                  <Save className="size-4" /> บันทึกและเพิ่มใหม่
+                </Button>
+              </>
+            )
           ) : (
             <Button ref={nextBtnRef} type="button" size="lg" onClick={goNext} disabled={!canNext} className="gap-1.5">
               ถัดไป <ChevronRight className="size-4" />
