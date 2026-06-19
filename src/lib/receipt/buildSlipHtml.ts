@@ -153,7 +153,7 @@ export async function buildSlipHtml(
       ]
     : []
 
-  // Rendered summary/payment blocks: a dashed rule separates รวมทั้งสิ้น from
+  // Rendered summary/payment blocks: a solid rule separates รวมทั้งสิ้น from
   // รับเงิน, but only when BOTH blocks are present — skip it on non-cash sales
   // (empty payment) or when either section is hidden, to avoid a dangling rule.
   const summaryHtml = pairBlock('summary', summaryRows)
@@ -187,7 +187,7 @@ body {
 .center { text-align: center; }
 .sec { margin: 0.3mm 0; white-space: pre-line; }
 .void { text-align: center; font-weight: 700; margin: 1mm 0; }
-hr { border: none; border-top: 1px dashed #000; margin: 1.5mm 0; }
+hr { border: none; border-top: 1px solid #000; margin: 1.5mm 0; }
 .prow { display: flex; justify-content: space-between; gap: 2mm; }
 .prow .val, .line .val { white-space: nowrap; }
 .line { display: flex; justify-content: space-between; gap: 2mm; }
