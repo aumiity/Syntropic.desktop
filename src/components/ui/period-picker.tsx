@@ -247,11 +247,11 @@ function MonthPanel({ from, onPick }: { from: string; onPick: (f: string, t: str
   return (
     <div className="p-3 min-w-[280px]">
       <div className="flex items-center justify-between pb-3">
-        <Button variant="ghost" size="icon" className="size-8" onClick={() => setYear(y => y - 1)} title="ปีก่อนหน้า">
+        <Button variant="ghost" size="icon" className="size-8" onClick={() => setYear(y => y - 1)} tooltip="ปีก่อนหน้า">
           <ChevronLeft className="size-4" />
         </Button>
         <span className="text-sm font-semibold">{(year + 543).toString()}</span>
-        <Button variant="ghost" size="icon" className="size-8" onClick={() => setYear(y => y + 1)} title="ปีถัดไป">
+        <Button variant="ghost" size="icon" className="size-8" onClick={() => setYear(y => y + 1)} tooltip="ปีถัดไป">
           <ChevronRight className="size-4" />
         </Button>
       </div>
@@ -293,13 +293,13 @@ function YearPanel({ from, onPick }: { from: string; onPick: (f: string, t: stri
   return (
     <div className="p-3 min-w-[280px]">
       <div className="flex items-center justify-between pb-3">
-        <Button variant="ghost" size="icon" className="size-8" onClick={() => setPageStart(p => p - 12)} title="ก่อนหน้า">
+        <Button variant="ghost" size="icon" className="size-8" onClick={() => setPageStart(p => p - 12)} tooltip="ก่อนหน้า">
           <ChevronLeft className="size-4" />
         </Button>
         <span className="text-sm font-semibold">
           {pageStart + 543} – {pageStart + 11 + 543}
         </span>
-        <Button variant="ghost" size="icon" className="size-8" onClick={() => setPageStart(p => p + 12)} title="ถัดไป">
+        <Button variant="ghost" size="icon" className="size-8" onClick={() => setPageStart(p => p + 12)} tooltip="ถัดไป">
           <ChevronRight className="size-4" />
         </Button>
       </div>

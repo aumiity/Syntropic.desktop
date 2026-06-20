@@ -2033,7 +2033,7 @@ export default function POSPage() {
                         <TableCell className="text-right text-sm font-bold text-foreground">{formatCurrency(item.line_total)}</TableCell>
                         <TableCell>
                           <div className="flex justify-center">
-                            <Button size="icon-lg" variant="elevated-destructive-soft" onClick={() => removeAdjustRow(idx)} title="ลบรายการ">
+                            <Button size="icon-lg" variant="elevated-destructive-soft" onClick={() => removeAdjustRow(idx)} tooltip="ลบรายการ">
                               <Trash2 />
                             </Button>
                           </div>
@@ -2179,7 +2179,7 @@ export default function POSPage() {
                         <TableCell className="text-right text-sm font-bold text-foreground">{formatCurrency(item.line_total)}</TableCell>
                         <TableCell>
                           <div className="flex justify-center">
-                            <Button size="icon-lg" variant="elevated-destructive-soft" onClick={() => removeReturnRow(idx)} title="ลบรายการ">
+                            <Button size="icon-lg" variant="elevated-destructive-soft" onClick={() => removeReturnRow(idx)} tooltip="ลบรายการ">
                               <Trash2 />
                             </Button>
                           </div>

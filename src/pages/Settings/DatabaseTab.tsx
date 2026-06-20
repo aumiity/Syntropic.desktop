@@ -181,7 +181,7 @@ export function DatabaseTab() {
               <Folder className="size-4" /> เปลี่ยน
             </Button>
             {backupDir && (
-              <Button variant="ghost" size="lg" className="h-10 shrink-0" onClick={handleResetFolder} title="ใช้โฟลเดอร์เริ่มต้น">
+              <Button variant="ghost" size="lg" className="h-10 shrink-0" onClick={handleResetFolder} tooltip="ใช้โฟลเดอร์เริ่มต้น">
                 <RotateCcw className="size-4" />
               </Button>
             )}

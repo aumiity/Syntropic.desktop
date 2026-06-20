@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Filter, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -32,11 +33,16 @@ export function StatusFilterButton<T extends string = StatusFilterValue>({
 }) {
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button size="lg" variant="elevated" className={cn('h-9 w-9 p-0 shrink-0', className)} title="ตัวกรอง">
-          <Filter className="size-4" />
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <PopoverTrigger asChild>
+          <TooltipTrigger asChild>
+            <Button size="lg" variant="elevated" className={cn('h-9 w-9 p-0 shrink-0', className)}>
+              <Filter className="size-4" />
+            </Button>
+          </TooltipTrigger>
+        </PopoverTrigger>
+        <TooltipContent>ตัวกรอง</TooltipContent>
+      </Tooltip>
       <PopoverContent align="end" className="w-56 p-1 gap-0">
         <PopoverHeader className="px-2">
           <PopoverTitle>{title}</PopoverTitle>

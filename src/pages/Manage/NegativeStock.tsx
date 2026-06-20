@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
@@ -119,11 +120,16 @@ export default function NegativeStockPage() {
           </span>
 
           <Popover>
-            <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 ml-auto" title="จัดการตาราง">
-                <Settings2 className="size-4" />
-              </Button>
-            </PopoverTrigger>
+            <Tooltip>
+              <PopoverTrigger asChild>
+                <TooltipTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 ml-auto">
+                    <Settings2 className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+              </PopoverTrigger>
+              <TooltipContent>จัดการตาราง</TooltipContent>
+            </Tooltip>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
                 <PopoverTitle>จัดการตาราง</PopoverTitle>

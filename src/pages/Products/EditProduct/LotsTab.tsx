@@ -224,11 +224,16 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
           </div>
 
           <Popover>
-            <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 ml-auto" title="ตัวกรอง">
-                <Filter className="size-4" />
-              </Button>
-            </PopoverTrigger>
+            <Tooltip>
+              <PopoverTrigger asChild>
+                <TooltipTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 ml-auto">
+                    <Filter className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+              </PopoverTrigger>
+              <TooltipContent>ตัวกรอง</TooltipContent>
+            </Tooltip>
             <PopoverContent align="end" className="w-56 p-1 gap-0">
               <PopoverHeader className="px-2">
                 <PopoverTitle>สถานะ</PopoverTitle>

@@ -7,6 +7,7 @@ import {
 import { Pagination, type PageSize } from '@/components/ui/pagination'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
 import { MultiDatePicker, type MultiDateMode } from '@/components/ui/multi-date-picker'
 import { SaleDetailDialog, type SaleDetail } from '@/components/dialogs/SaleDetailDialog'
@@ -198,16 +199,21 @@ export function HistoryTab({ productId, isNew, active }: Props) {
             ).length
             return (
               <Popover>
-                <PopoverTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 relative" title="ตัวกรองประเภท">
-                    <Filter className="size-4" />
-                    {isNarrowing && (
-                      <span className="absolute -top-1 -right-1 size-4 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
-                        {activeGroupCount}
-                      </span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
+                <Tooltip>
+                  <PopoverTrigger asChild>
+                    <TooltipTrigger asChild>
+                      <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 relative">
+                        <Filter className="size-4" />
+                        {isNarrowing && (
+                          <span className="absolute -top-1 -right-1 size-4 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                            {activeGroupCount}
+                          </span>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                  </PopoverTrigger>
+                  <TooltipContent>ตัวกรองประเภท</TooltipContent>
+                </Tooltip>
                 <PopoverContent align="end" className="w-56">
                   <PopoverHeader className="flex-row items-center justify-between">
                     <PopoverTitle>ประเภทรายการ</PopoverTitle>
@@ -314,11 +320,16 @@ export function HistoryTab({ productId, isNew, active }: Props) {
                       <div className="flex items-center justify-center gap-1.5">
                         {displayNote ? (
                           <Popover>
-                            <PopoverTrigger asChild>
-                              <Button size="icon-lg" variant="elevated-warning" title="ดูหมายเหตุ">
-                                <StickyNote />
-                              </Button>
-                            </PopoverTrigger>
+                            <Tooltip>
+                              <PopoverTrigger asChild>
+                                <TooltipTrigger asChild>
+                                  <Button size="icon-lg" variant="elevated-warning">
+                                    <StickyNote />
+                                  </Button>
+                                </TooltipTrigger>
+                              </PopoverTrigger>
+                              <TooltipContent>ดูหมายเหตุ</TooltipContent>
+                            </Tooltip>
                             <PopoverContent align="center" className="w-80 max-w-[90vw]">
                               <div className="text-sm whitespace-pre-wrap break-words">{displayNote}</div>
                             </PopoverContent>

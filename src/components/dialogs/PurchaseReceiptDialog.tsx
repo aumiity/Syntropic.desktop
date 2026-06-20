@@ -128,7 +128,7 @@ export function PurchaseReceiptDialog({
                         ? <Badge variant="destructive-outline">เกินกำหนด</Badge>
                         : <Badge variant="warning-outline">เครดิต</Badge>
                     : <Badge variant="info-outline">เงินสด</Badge>}
-                <Button variant="elevated" size="icon-sm" className="h-8 w-8 ml-auto" title="พิมพ์ใบรับสินค้า" onClick={handlePrint}>
+                <Button variant="elevated" size="icon-sm" className="h-8 w-8 ml-auto" tooltip="พิมพ์ใบรับสินค้า" onClick={handlePrint}>
                   <Printer />
                 </Button>
               </DialogTitle>

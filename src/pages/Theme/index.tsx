@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { useToast } from '@/components/ui/toast'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { Input, SearchInput } from '@/components/ui/input'
@@ -1525,11 +1526,16 @@ export default function Theme() {
                     </Select>
                     {/* Filter popover — secondary filters (status, show disabled) */}
                     <Popover>
-                      <PopoverTrigger asChild>
-                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
-                          <Filter className="size-4" />
-                        </Button>
-                      </PopoverTrigger>
+                      <Tooltip>
+                        <PopoverTrigger asChild>
+                          <TooltipTrigger asChild>
+                            <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
+                              <Filter className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                        </PopoverTrigger>
+                        <TooltipContent>ตัวกรอง</TooltipContent>
+                      </Tooltip>
                       <PopoverContent align="end" className="w-56">
                         {(() => {
                           const allOn = tableStatusFilter.ok && tableStatusFilter.low && tableStatusFilter.out && switchOn
@@ -1573,11 +1579,16 @@ export default function Theme() {
                     </Popover>
                     {/* Column settings popover — visibility per column */}
                     <Popover>
-                      <PopoverTrigger asChild>
-                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
-                          <Settings2 className="size-4" />
-                        </Button>
-                      </PopoverTrigger>
+                      <Tooltip>
+                        <PopoverTrigger asChild>
+                          <TooltipTrigger asChild>
+                            <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
+                              <Settings2 className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                        </PopoverTrigger>
+                        <TooltipContent>จัดการตาราง</TooltipContent>
+                      </Tooltip>
                       <PopoverContent align="end" className="w-56">
                         <PopoverHeader>
                           <PopoverTitle>จัดการตาราง</PopoverTitle>
@@ -1646,11 +1657,16 @@ export default function Theme() {
                             {/* Row actions = single ghost more-menu trigger (no bg
                                 so it blends with row). Popover lists the actions. */}
                             <Popover>
-                              <PopoverTrigger asChild>
-                                <Button size="icon-lg" variant="ghost" title="ตัวเลือก">
-                                  <MoreHorizontal />
-                                </Button>
-                              </PopoverTrigger>
+                              <Tooltip>
+                                <PopoverTrigger asChild>
+                                  <TooltipTrigger asChild>
+                                    <Button size="icon-lg" variant="ghost">
+                                      <MoreHorizontal />
+                                    </Button>
+                                  </TooltipTrigger>
+                                </PopoverTrigger>
+                                <TooltipContent>ตัวเลือก</TooltipContent>
+                              </Tooltip>
                               <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
                                 <button type="button" className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
                                   <Edit className="size-4" /> แก้ไข
@@ -2054,7 +2070,7 @@ export default function Theme() {
                       <DialogTitle className="flex items-center gap-2">
                         <History className="size-5" /> ประวัติการเปลี่ยนราคา
                         <Badge variant="neutral-outline" className="ml-1">3</Badge>
-                        <Button size="lg" variant="elevated" className="h-9 px-2 ml-auto" title="รีเฟรช">
+                        <Button size="lg" variant="elevated" className="h-9 px-2 ml-auto" tooltip="รีเฟรช">
                           <RotateCcw className="size-4" />
                         </Button>
                       </DialogTitle>

@@ -16,6 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { CircleDollarSign, History, StickyNote, Info } from 'lucide-react'
@@ -257,11 +258,16 @@ export function PriceHistoryDialog({
                     <TableCell>
                       {h.note ? (
                         <Popover>
-                          <PopoverTrigger asChild>
-                            <Button size="icon-sm" variant="elevated" title="ดูหมายเหตุ">
-                              <StickyNote className="size-3.5" />
-                            </Button>
-                          </PopoverTrigger>
+                          <Tooltip>
+                            <PopoverTrigger asChild>
+                              <TooltipTrigger asChild>
+                                <Button size="icon-sm" variant="elevated">
+                                  <StickyNote className="size-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                            </PopoverTrigger>
+                            <TooltipContent>ดูหมายเหตุ</TooltipContent>
+                          </Tooltip>
                           <PopoverContent side="bottom" align="end" className="w-60 max-w-[90vw]">
                             <div className="text-sm whitespace-pre-wrap break-words">{h.note}</div>
                           </PopoverContent>

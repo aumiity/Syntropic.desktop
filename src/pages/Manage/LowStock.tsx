@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
 import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/QuickStockDialog'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
@@ -222,11 +223,16 @@ export default function ManageLowStockPage() {
             ]
             return (
               <Popover>
-                <PopoverTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรองสถานะ">
-                    <Filter className="size-4" />
-                  </Button>
-                </PopoverTrigger>
+                <Tooltip>
+                  <PopoverTrigger asChild>
+                    <TooltipTrigger asChild>
+                      <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
+                        <Filter className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                  </PopoverTrigger>
+                  <TooltipContent>ตัวกรองสถานะ</TooltipContent>
+                </Tooltip>
                 <PopoverContent align="end" className="w-56 p-1 gap-0">
                   <PopoverHeader className="px-2">
                     <PopoverTitle>สถานะ</PopoverTitle>
@@ -251,11 +257,16 @@ export default function ManageLowStockPage() {
           })()}
 
           <Popover>
-            <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
-                <Settings2 className="size-4" />
-              </Button>
-            </PopoverTrigger>
+            <Tooltip>
+              <PopoverTrigger asChild>
+                <TooltipTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
+                    <Settings2 className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+              </PopoverTrigger>
+              <TooltipContent>จัดการตาราง</TooltipContent>
+            </Tooltip>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
                 <PopoverTitle>จัดการตาราง</PopoverTitle>

@@ -15,6 +15,7 @@ import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead } from '@/components/ui/table'
@@ -515,11 +516,16 @@ export default function ManagePurchasesPage() {
             ]
             return (
               <Popover>
-                <PopoverTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรองสถานะ">
-                    <Filter className="size-4" />
-                  </Button>
-                </PopoverTrigger>
+                <Tooltip>
+                  <PopoverTrigger asChild>
+                    <TooltipTrigger asChild>
+                      <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
+                        <Filter className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                  </PopoverTrigger>
+                  <TooltipContent>ตัวกรองสถานะ</TooltipContent>
+                </Tooltip>
                 <PopoverContent align="end" className="w-56 p-1 gap-0">
                   <PopoverHeader className="px-2">
                     <PopoverTitle>สถานะ</PopoverTitle>
@@ -544,11 +550,16 @@ export default function ManagePurchasesPage() {
           })()}
 
           <Popover>
-            <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
-                <Settings2 className="size-4" />
-              </Button>
-            </PopoverTrigger>
+            <Tooltip>
+              <PopoverTrigger asChild>
+                <TooltipTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
+                    <Settings2 className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+              </PopoverTrigger>
+              <TooltipContent>จัดการตาราง</TooltipContent>
+            </Tooltip>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
                 <PopoverTitle>จัดการตาราง</PopoverTitle>
@@ -645,11 +656,16 @@ export default function ManagePurchasesPage() {
                     <TableCell>
                       <div className="flex justify-center">
                         <Popover>
-                          <PopoverTrigger asChild>
-                            <Button size="icon-lg" variant="elevated" title="ตัวเลือก">
-                              <MoreHorizontal />
-                            </Button>
-                          </PopoverTrigger>
+                          <Tooltip>
+                            <PopoverTrigger asChild>
+                              <TooltipTrigger asChild>
+                                <Button size="icon-lg" variant="elevated">
+                                  <MoreHorizontal />
+                                </Button>
+                              </TooltipTrigger>
+                            </PopoverTrigger>
+                            <TooltipContent>ตัวเลือก</TooltipContent>
+                          </Tooltip>
                           <PopoverContent align="end" sideOffset={4} className="w-44 p-1 gap-0">
                             <button type="button" onClick={() => openReceipt(h.invoice_no)}
                               className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">

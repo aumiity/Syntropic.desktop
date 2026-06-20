@@ -168,7 +168,7 @@ export function LookupDeleteDialog({ open, onClose, kind, item, lookups, onResol
                           <TableCell className="text-sm text-muted-foreground">{r.label_name || 'ฉลากไม่มีชื่อ'}</TableCell>
                           <TableCell>
                             <div className="flex justify-center">
-                              <Button size="icon-lg" variant="elevated" title="แก้ไข" onClick={() => openEditLabel(r)}>
+                              <Button size="icon-lg" variant="elevated" tooltip="แก้ไข" onClick={() => openEditLabel(r)}>
                                 <Edit />
                               </Button>
                             </div>
@@ -182,7 +182,7 @@ export function LookupDeleteDialog({ open, onClose, kind, item, lookups, onResol
                           <TableCell className="text-sm text-muted-foreground">preset วิธีใช้</TableCell>
                           <TableCell>
                             <div className="flex justify-center">
-                              <Button size="icon-lg" variant="elevated" title="แก้ไข" onClick={() => openEditPreset(r)}>
+                              <Button size="icon-lg" variant="elevated" tooltip="แก้ไข" onClick={() => openEditPreset(r)}>
                                 <Edit />
                               </Button>
                             </div>
