@@ -12,7 +12,6 @@ import type { CSSProperties } from 'react'
 import { esc, buildPrintFontFaceCss } from '@/lib/print/fonts'
 import { SECTIONS, buildSectionStyle, type LabelSettingsForm } from './sections'
 import { styleToCss } from './html'
-import { todayBE } from './content'
 
 export interface BlankLabelShop {
   shop_name?: string | null
@@ -88,11 +87,12 @@ function timingRow(sectionCss: string): string {
   )
 }
 
-// The shop name (left) + print date (right) flex row — a 1:1 copy of the real
-// label's shop handling (renderLabelSectionsHtml): lift the shop offset OFF the
-// flex container and re-apply to the name span only so the date keeps its own
-// offset. The date prints today's date (Buddhist era, matching real labels) only
-// when `printDate` is on; otherwise the right side is blank for hand-writing.
+// The shop name (left) + date (right) flex row — a 1:1 copy of the real label's
+// shop handling (renderLabelSectionsHtml): lift the shop offset OFF the flex
+// container and re-apply to the name span only so the date keeps its own offset.
+// On a blank this is a WRITE-IN line — "วันที่ ____" with a rule to fill by hand —
+// not today's printed date (the staff dates it themselves). It shows when
+// `printDate` is on; otherwise the right side is blank.
 function shopRow(settings: LabelSettingsForm, shop: BlankLabelShop | null, printDate: boolean): string {
   const sec = SECTIONS.find(s => s.key === 'shop')!
   const name = settings.show_shop ? (shop?.shop_name?.trim() || '') : ''
@@ -107,12 +107,18 @@ function shopRow(settings: LabelSettingsForm, shop: BlankLabelShop | null, print
   const nameSpan = name
     ? `<span style="${styleToCss({ transform: shopTransform })}">${esc(name)}</span>`
     : '<span></span>'
-  const dateStyle: CSSProperties = {
+  const dateStyle = styleToCss({
     fontSize:   `${settings.font_size_print_date}pt`,
     fontWeight: settings.bold_print_date ? 'bold' : 'normal',
     transform:  `translate(${settings.offset_x_print_date}mm, ${settings.offset_y_print_date}mm)`,
-  }
-  const dateSpan = showDate ? `<span style="${styleToCss(dateStyle)}">${esc(todayBE())}</span>` : ''
+    display: 'flex', alignItems: 'flex-end', gap: '1.5mm', whiteSpace: 'nowrap',
+  } as CSSProperties)
+  const dateSpan = showDate
+    ? `<span style="${dateStyle}">` +
+        `<span>${esc('วันที่')}</span>` +
+        `<span style="width:18mm;border-bottom:0.3mm solid #000;margin-bottom:1mm"></span>` +
+      `</span>`
+    : ''
   return `<div style="${style}">${nameSpan}${dateSpan}</div>`
 }
 
@@ -162,9 +168,9 @@ function renderBlankInner(settings: LabelSettingsForm, shop: BlankLabelShop | nu
       case 'timing':
         if (settings.show_timing) out.push(timingRow(css)); break
       case 'indication':
-        if (settings.show_indication) out.push(fieldRow(css, 'อาการ')); break
+        if (settings.show_indication) out.push(fieldRow(css, 'ข้อบ่งใช้:')); break
       case 'advice':
-        if (settings.show_advice) out.push(fieldRow(css, 'คำแนะนำ')); break
+        if (settings.show_advice) out.push(fieldRow(css, 'คำแนะนำ:')); break
       case 'barcode': break // a barcode needs a real product
       case 'custom_text':
         if (settings.show_custom_text && settings.custom_text?.trim())

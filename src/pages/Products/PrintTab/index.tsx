@@ -248,7 +248,7 @@ export default function PrintTab() {
             <CheckRow
               framed
               className="h-12"
-              label="พิมพ์วันที่ (วันนี้)"
+              label="ใส่ช่องวันที่ (เขียนเอง)"
               checked={printDate}
               onChange={setPrintDate}
             />
