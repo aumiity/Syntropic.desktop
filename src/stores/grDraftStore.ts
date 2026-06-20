@@ -23,7 +23,7 @@ export interface GRDraft {
   receiveDate: string
   paymentType: 'cash' | 'credit'
   dueDate: string
-  vatMode: 'none' | 'inclusive' | 'exclusive'
+  vatMode: 'none' | 'inclusive'
   isPaid: boolean
   paidDate: string
   grNote: string

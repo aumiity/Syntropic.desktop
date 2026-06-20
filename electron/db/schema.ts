@@ -754,8 +754,8 @@ export function initializeSchema(db: Database.Database) {
       surcharge_amount REAL NOT NULL DEFAULT 0,
       -- Input VAT (ภาษีซื้อ) — declared PER BILL because not every supplier is
       -- VAT-registered. vat_mode: 'none' | 'inclusive' (line prices contain
-      -- VAT) | 'exclusive' (VAT added on top of line prices). vat_amount is a
-      -- snapshot computed at save time; the ภาษีซื้อ report reads it directly.
+      -- VAT). vat_amount is a snapshot computed at save time; the ภาษีซื้อ
+      -- report reads it directly.
       vat_mode TEXT NOT NULL DEFAULT 'none',
       vat_rate REAL NOT NULL DEFAULT 0,
       vat_amount REAL NOT NULL DEFAULT 0,

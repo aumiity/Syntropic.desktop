@@ -764,7 +764,12 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                           return (
                             <TableRow
                               key={l.id}
-                              onClick={() => patch({ lot_number: l.lot_number })}
+                              onClick={() => {
+                                // เลือกล็อตเดิม → ย้ายโฟกัสไปปุ่ม "ถัดไป" (หน่วงให้ปุ่มพ้น disabled ก่อน)
+                                // เพื่อให้กด Enter ไปต่อได้ทันที โดยไม่ต้องจับเมาส์ (เหมือน pickProduct ใน step 1)
+                                patch({ lot_number: l.lot_number })
+                                setTimeout(() => nextBtnRef.current?.focus(), 50)
+                              }}
                               data-state={selected ? 'selected' : undefined}
                               className="cursor-pointer"
                             >

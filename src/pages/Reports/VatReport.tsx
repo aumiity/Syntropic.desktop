@@ -36,7 +36,7 @@ interface VatPurchaseRow {
   supplier_invoice_no?: string
   supplier_name?: string
   created_at: string
-  vat_mode: 'inclusive' | 'exclusive'
+  vat_mode: 'inclusive'
   vat_rate: number
   vat_amount: number
   total_cost: number
@@ -214,9 +214,7 @@ export default function VatReportPage() {
                 <TableCell className="text-sm">{r.supplier_name ?? '—'}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{formatDate(r.created_at)}</TableCell>
                 <TableCell>
-                  {r.vat_mode === 'inclusive'
-                    ? <Badge variant="info-outline">รวมในราคา {r.vat_rate}%</Badge>
-                    : <Badge variant="violet-outline">แยกนอกราคา {r.vat_rate}%</Badge>}
+                  <Badge variant="info-outline">รวมในราคา {r.vat_rate}%</Badge>
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">{formatCurrency(r.total_cost)}</TableCell>
                 <TableCell className="text-right pr-4 font-semibold">{formatCurrency(r.vat_amount)}</TableCell>

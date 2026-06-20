@@ -8,7 +8,6 @@ import { Combobox } from '@/components/ui/combobox'
 import { DateInput } from '@/components/ui/date-input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
@@ -24,7 +23,7 @@ import { useShopVat } from '@/hooks/useShopVat'
 import { extractVat } from '@/lib/vat'
 import {
   Plus, Trash2, Package, Pencil,
-  Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle, Settings2,
+  Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle,
   Check, Minus, Info,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
@@ -105,7 +104,7 @@ export default function PurchasePage() {
   // Input VAT (ภาษีซื้อ) — per bill: some suppliers aren't VAT-registered.
   // Only offered when the shop itself is VAT-registered (useShopVat below);
   // the backend re-guards and forces 'none' for NO-VAT shops.
-  const [vatMode, setVatMode] = useState<'none' | 'inclusive' | 'exclusive'>(() => initialDraft?.vatMode ?? 'none')
+  const [vatMode, setVatMode] = useState<'none' | 'inclusive'>(() => initialDraft?.vatMode ?? 'none')
   const [isPaid, setIsPaid] = useState(() => initialDraft?.isPaid ?? false)
   const [paidDate, setPaidDate] = useState(() => initialDraft?.paidDate ?? '')
   const [grNote, setGrNote] = useState(() => initialDraft?.grNote ?? '')
@@ -133,10 +132,6 @@ export default function PurchasePage() {
   const [suggHighlight, setSuggHighlight] = useState(0)
   const [activeRow, setActiveRow] = useState<number | null>(null)
   const searchTimers = useRef<(ReturnType<typeof setTimeout> | null)[]>((initialDraft?.rows ?? []).map(() => null))
-
-  // Optional column toggles (default off — keeps default row compact)
-  const [showMfg, setShowMfg] = useState(false)
-  const [showDiscount, setShowDiscount] = useState(false)
 
   // Tracks which numeric cell is focused — focused cell shows raw "1234.56", others show "1,234.56"
   const [focusedCell, setFocusedCell] = useState<string | null>(null)
@@ -526,13 +521,18 @@ export default function PurchasePage() {
   // expiry_optional = ล็อตเดิมที่ตั้งใจไม่มีวันหมดอายุ (merge) → ถือว่าครบ ส่งเข้า backend ได้
   const validRows = rows.filter(r => r.product_id && r.lot_number && (r.expiry_date || r.expiry_optional) && parseFloat(r.qty) > 0)
   const totalCost = rows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0)
+  // ส่วนลดรวมทุกบรรทัด — ครอบคลุมทั้งส่วนลดรายการ (กรอกใน wizard) และส่วนลดท้ายบิลที่กระจายลงแถว
+  // (ทั้งสองเก็บใน row.discount เหมือนกัน) → สรุปท้ายบิลโชว์ส่วนลดเสมอ ไม่ใช่เฉพาะตอนกด "ปรับยอดท้ายบิล"
+  const lineDiscountTotal = rows.reduce((sum, r) => sum + (parseFloat(r.discount) || 0), 0)
+  // ราคารวมก่อนหักส่วนลด/บวกส่วนเพิ่ม: row.total = qty*cost − discount (ส่วนเพิ่มฝังใน cost) → gross = net + discount − surcharge
+  const grossSubtotal = totalCost + lineDiscountTotal - adjustSurchargeAmt
+  // มีบรรทัดสรุป (ส่วนลด/ส่วนเพิ่ม) ไหม — ใช้คุมทั้งเส้นแบ่งและบล็อกสรุป
+  const hasSummaryBreakdown = lineDiscountTotal > 0 || adjustSurchargeAmt > 0
 
-  // VAT preview — inclusive: backed out of the line sum (grand total unchanged);
-  // exclusive: added on top (grand total = lines + VAT). Mirrors purchase:save.
-  const billVat = vatMode === 'inclusive' ? extractVat(totalCost, shopVatRate)
-    : vatMode === 'exclusive' ? totalCost * shopVatRate / 100
-    : 0
-  const grandTotal = vatMode === 'exclusive' ? totalCost + billVat : totalCost
+  // VAT preview — inclusive: backed out of the line sum (grand total unchanged).
+  // Mirrors purchase:save. (โหมด exclusive/ไม่รวมในบิล เลิกใช้แล้ว → บิลที่มี VAT = inclusive เสมอ)
+  const billVat = vatMode === 'inclusive' ? extractVat(totalCost, shopVatRate) : 0
+  const grandTotal = totalCost
 
   // Duplicate = same product_id + same lot_number (different lots for same product are OK)
   const duplicateNames = (() => {
@@ -810,13 +810,12 @@ export default function PurchasePage() {
                         <TableHeader>
                           <TableRow className="border-0 hover:bg-transparent">
                             <TableHead className="px-3 text-center w-10">#</TableHead>
-                            <TableHead className="px-3 w-[26%]">ชื่อสินค้า</TableHead>
-                            <TableHead className="px-3 text-center w-[11%]">Lot</TableHead>
-                            <TableHead className="px-3 text-center w-[12%]">วันหมดอายุ</TableHead>
+                            <TableHead className="px-3 w-[36%]">ชื่อสินค้า</TableHead>
                             <TableHead className="px-3 text-center w-[10%]">หน่วย</TableHead>
-                            <TableHead className="px-3 text-right w-[9%]">จำนวน</TableHead>
-                            <TableHead className="px-3 text-right w-[11%]">ทุน/หน่วย</TableHead>
-                            <TableHead className="px-3 text-right w-[11%]">ราคาขาย</TableHead>
+                            <TableHead className="px-3 text-right w-[10%]">จำนวน</TableHead>
+                            <TableHead className="px-3 text-right w-[13%]">ทุน/หน่วย</TableHead>
+                            <TableHead className="px-3 text-right w-[13%]">ราคาขาย</TableHead>
+                            <TableHead className="px-3 text-right w-[10%]">ส่วนลด</TableHead>
                             <TableHead className="px-3 text-right w-[12%]">รวม</TableHead>
                             <TableHead className="px-3 text-center w-20">จัดการ</TableHead>
                           </TableRow>
@@ -824,7 +823,7 @@ export default function PurchasePage() {
                         <TableBody>
                             {rows.length === 0 ? (
                               <TableRow className="border-0 hover:bg-transparent">
-                                <TableCell colSpan={10} className="py-16 text-center">
+                                <TableCell colSpan={9} className="py-16 text-center">
                                   <div className="flex flex-col items-center gap-3 text-foreground-subtle">
                                     <TintIcon icon={Package} tint="neutral" size="lg" />
                                     <p className="text-sm leading-relaxed">
@@ -867,14 +866,19 @@ export default function PurchasePage() {
                                         </span>
                                       )}
                                     </div>
+                                    {/* Lot · ผลิต · หมดอายุ — moved under the name (inline edit retired) */}
+                                    <div className="mt-0.5 text-sm text-foreground-subtle overflow-x-clip overflow-y-visible whitespace-nowrap">
+                                      <span>LOT. {row.lot_number || '—'}</span>
+                                      <span> · EXP: {row.expiry_date ? formatDate(row.expiry_date) : '—'}</span>
+                                      <span> · MFG: {row.manufactured_date ? formatDate(row.manufactured_date) : '—'}</span>
+                                    </div>
                                   </TableCell>
 
-                                  <TableCell className="px-3 py-2 text-center text-sm">{row.lot_number || '—'}</TableCell>
-                                  <TableCell className="px-3 py-2 text-center text-sm">{row.expiry_date ? formatDate(row.expiry_date) : '—'}</TableCell>
                                   <TableCell className="px-3 py-2 text-center text-sm">{row.unit_name || '—'}</TableCell>
                                   <TableCell className="px-3 py-2 text-right text-sm">{formatNum(row.qty) || '—'}</TableCell>
                                   <TableCell className="px-3 py-2 text-right text-sm">{row.total ? formatCurrency(costPerUnit) : '—'}</TableCell>
                                   <TableCell className="px-3 py-2 text-right text-sm">{row.product_id ? formatCurrency(row.default_sell_price || 0) : '—'}</TableCell>
+                                  <TableCell className="px-3 py-2 text-right text-sm">{parseFloat(row.discount) > 0 ? formatCurrency(parseFloat(row.discount)) : '—'}</TableCell>
                                   <TableCell className="px-3 py-2 text-right text-sm font-semibold">{row.total ? formatCurrency(totalN) : '—'}</TableCell>
 
                                   <TableCell className="px-2 py-2">
@@ -903,16 +907,21 @@ export default function PurchasePage() {
                             <span className="truncate">{duplicateNames.join(', ')}</span>
                           </div>
                         )}
-                        {adjustSubtotal !== null && (
+                        {/* เส้นแบ่งระหว่างรายการสินค้า ↔ สรุปมูลค่า — โชว์เมื่อมีบรรทัดสรุป (ส่วนลด/VAT);
+                            เคสไม่มีบรรทัดสรุป แถบ "มูลค่ารวมทั้งหมด" มี border-t เป็นเส้นแบ่งอยู่แล้ว */}
+                        {(hasSummaryBreakdown || (vatMode === 'inclusive' && billVat > 0)) && (
+                          <div className="border-t border-border" />
+                        )}
+                        {hasSummaryBreakdown && (
                           <div className="bg-card px-5 py-1 space-y-0.5">
                             <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
                               <span>ราคารวม</span>
-                              <span className="w-32 text-right">{formatCurrency(adjustSubtotal)}</span>
+                              <span className="w-32 text-right">{formatCurrency(grossSubtotal)}</span>
                             </div>
-                            {adjustDiscountAmt > 0 && (
+                            {lineDiscountTotal > 0 && (
                               <div className="flex items-center justify-end gap-6 text-sm text-primary">
                                 <span>ส่วนลด</span>
-                                <span className="w-32 text-right">−{formatCurrency(adjustDiscountAmt)}</span>
+                                <span className="w-32 text-right">−{formatCurrency(lineDiscountTotal)}</span>
                               </div>
                             )}
                             {adjustSurchargeAmt > 0 && (
@@ -923,14 +932,14 @@ export default function PurchasePage() {
                             )}
                           </div>
                         )}
-                        {vatMode !== 'none' && billVat > 0 && (
+                        {vatMode === 'inclusive' && billVat > 0 && (
                           <div className="bg-card px-5 py-1 space-y-0.5">
                             <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
-                              <span>{vatMode === 'inclusive' ? 'มูลค่าก่อนภาษี' : 'ยอดรวมรายการ'}</span>
-                              <span className="w-32 text-right">{formatCurrency(vatMode === 'inclusive' ? totalCost - billVat : totalCost)}</span>
+                              <span>มูลค่าก่อนภาษี</span>
+                              <span className="w-32 text-right">{formatCurrency(totalCost - billVat)}</span>
                             </div>
                             <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
-                              <span>ภาษีมูลค่าเพิ่ม {shopVatRate}%{vatMode === 'inclusive' ? ' (รวมในยอด)' : ''}</span>
+                              <span>ภาษีมูลค่าเพิ่ม {shopVatRate}%</span>
                               <span className="w-32 text-right">{formatCurrency(billVat)}</span>
                             </div>
                           </div>

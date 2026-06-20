@@ -15,7 +15,7 @@ interface ReceiptItem extends ProductLot {
   status?: 'completed' | 'cancelled'
   cancelled_at?: string
   cancel_reason?: string
-  vat_mode?: 'none' | 'inclusive' | 'exclusive'
+  vat_mode?: 'none' | 'inclusive'
   vat_rate?: number
   vat_amount?: number
 }
@@ -61,11 +61,11 @@ export function PurchaseReceiptDialog({
   const surchargeAmt = header?.surcharge_amount ?? 0
   const hasAdjust = discountAmt > 0 || surchargeAmt > 0
   // Input VAT snapshot from the GR header. 'inclusive' VAT sits inside the
-  // line prices (display-only row); 'exclusive' VAT adds on top of the total.
+  // line prices (display-only row).
   const vatMode = header?.vat_mode ?? 'none'
   const vatAmount = header?.vat_amount ?? 0
   const vatRate = header?.vat_rate ?? 0
-  const finalTotal = rawTotal - discountAmt + surchargeAmt + (vatMode === 'exclusive' ? vatAmount : 0)
+  const finalTotal = rawTotal - discountAmt + surchargeAmt
   const today = new Date().toISOString().split('T')[0]
   const isCancelled = header?.status === 'cancelled'
   const isOverdue = !!header && !isCancelled && header.payment_type === 'credit' && !header.is_paid && !!header.due_date && header.due_date < today
@@ -226,8 +226,7 @@ export function PurchaseReceiptDialog({
                       if (hasAdjust) rows.push({ label: 'ราคารวม', value: formatCurrency(rawTotal), cls: 'text-muted-foreground' })
                       if (discountAmt > 0) rows.push({ label: 'ส่วนลด', value: `−${formatCurrency(discountAmt)}`, cls: 'text-amber-strong' })
                       if (surchargeAmt > 0) rows.push({ label: 'ส่วนเพิ่ม', value: `+${formatCurrency(surchargeAmt)}`, cls: 'text-amber-strong' })
-                      if (vatMode === 'inclusive' && vatAmount > 0) rows.push({ label: `ภาษีมูลค่าเพิ่ม ${vatRate}% (รวมในยอด)`, value: formatCurrency(vatAmount), cls: 'text-muted-foreground' })
-                      if (vatMode === 'exclusive' && vatAmount > 0) rows.push({ label: `ภาษีมูลค่าเพิ่ม ${vatRate}%`, value: `+${formatCurrency(vatAmount)}`, cls: 'text-muted-foreground' })
+                      if (vatMode === 'inclusive' && vatAmount > 0) rows.push({ label: `ภาษีมูลค่าเพิ่ม ${vatRate}%`, value: formatCurrency(vatAmount), cls: 'text-muted-foreground' })
                       const BOTTOMS = ['[&>td]:bottom-8', '[&>td]:bottom-16', '[&>td]:bottom-24', '[&>td]:bottom-32', '[&>td]:bottom-40']
                       return rows.map((r, idx) => (
                         <tr key={r.label} className={`[&>td]:sticky [&>td]:h-8 ${BOTTOMS[rows.length - 1 - idx]} [&>td]:z-20 [&>td]:bg-muted [&>td]:border-t [&>td]:border-border`}>

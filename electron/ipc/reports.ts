@@ -349,14 +349,12 @@ export function registerReportHandlers() {
      JOIN sale_item_lots sil ON sil.sale_item_id = si.id
      JOIN product_lots pl ON pl.id = sil.lot_id
      WHERE si.sale_id = s.id AND sil.is_cancelled = 0)`
-  // Money actually owed/paid per GR: line sum − discount + surcharge, plus the
-  // VAT when the bill prices it separately ('exclusive' — VAT on top of lines;
-  // 'inclusive' VAT already sits inside the line prices, add nothing).
+  // Money actually owed/paid per GR: line sum − discount + surcharge.
+  // (VAT is always 'inclusive' — already inside the line prices, add nothing.)
   const PURCHASE_NET_SUB = `
     ((SELECT COALESCE(SUM(pri.qty * pri.cost_price), 0)
       FROM purchase_receipt_items pri WHERE pri.invoice_no = pr.invoice_no)
-     - pr.discount_amount + pr.surcharge_amount
-     + CASE WHEN COALESCE(pr.vat_mode,'none') = 'exclusive' THEN pr.vat_amount ELSE 0 END)`
+     - pr.discount_amount + pr.surcharge_amount)`
 
   // Compute sales+purchase rollup for a date window. Pulled out so we can run
   // it twice (current + previous period) for delta widgets without duplicating

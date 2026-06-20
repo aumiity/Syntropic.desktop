@@ -100,7 +100,7 @@ export function registerPurchaseHandlers() {
     note?: string
     discount_amount?: number
     surcharge_amount?: number
-    vat_mode?: 'none' | 'inclusive' | 'exclusive'
+    vat_mode?: 'none' | 'inclusive'
     vat_rate?: number
     items: Array<{
       product_id: number
@@ -122,19 +122,15 @@ export function registerPurchaseHandlers() {
     // it pays IS cost). The VAT base is the line sum as sent — the renderer
     // already distributes bill discount/surcharge into the line totals.
     const shopVatEnabled = ((db.prepare(`SELECT vat_enabled FROM sales_settings LIMIT 1`).get() as any)?.vat_enabled ?? 0) === 1
-    const vatMode: 'none' | 'inclusive' | 'exclusive' =
-      shopVatEnabled && (payload.vat_mode === 'inclusive' || payload.vat_mode === 'exclusive')
-        ? payload.vat_mode : 'none'
+    const vatMode: 'none' | 'inclusive' =
+      shopVatEnabled && payload.vat_mode === 'inclusive' ? 'inclusive' : 'none'
     const vatRate = vatMode === 'none' ? 0 : (Number(payload.vat_rate) > 0 ? Number(payload.vat_rate) : 7)
     const lineSum = payload.items.reduce((s, it) => s + it.qty * it.cost_price, 0)
-    const vatAmount = vatMode === 'inclusive' ? lineSum * vatRate / (100 + vatRate)
-      : vatMode === 'exclusive' ? lineSum * vatRate / 100
-      : 0
+    const vatAmount = vatMode === 'inclusive' ? lineSum * vatRate / (100 + vatRate) : 0
     // Claimable VAT is not cost: for VAT-inclusive bills the cost model
     // (product_lots, weighted avg, stock_movements, last_cost_price) stores
     // the ex-VAT cost. The purchase_receipt_items ledger keeps the entered
-    // cost untouched — document fidelity with the supplier invoice. For
-    // 'exclusive' bills the entered prices are already ex-VAT.
+    // cost untouched — document fidelity with the supplier invoice.
     const costFactor = vatMode === 'inclusive' ? 100 / (100 + vatRate) : 1
 
     const save = db.transaction(() => {
