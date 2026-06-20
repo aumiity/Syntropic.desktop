@@ -16,7 +16,6 @@ import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
 import { StatusFilterButton, type StatusFilterValue } from '@/components/ui/status-filter'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
@@ -154,16 +153,11 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
 
           {/* Column settings popover */}
           <Popover>
-            <Tooltip>
-              <PopoverTrigger asChild>
-                <TooltipTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
-                    <Settings2 className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-              </PopoverTrigger>
-              <TooltipContent>จัดการตาราง</TooltipContent>
-            </Tooltip>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
                 <PopoverTitle>จัดการตาราง</PopoverTitle>
@@ -415,16 +409,11 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
           <StatusFilterButton value={statusFilter} onChange={setStatusFilter} />
 
           <Popover>
-            <Tooltip>
-              <PopoverTrigger asChild>
-                <TooltipTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
-                    <Settings2 className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-              </PopoverTrigger>
-              <TooltipContent>จัดการตาราง</TooltipContent>
-            </Tooltip>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
                 <PopoverTitle>จัดการตาราง</PopoverTitle>
@@ -718,16 +707,11 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
           <StatusFilterButton value={statusFilter} onChange={setStatusFilter} />
 
           <Popover>
-            <Tooltip>
-              <PopoverTrigger asChild>
-                <TooltipTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
-                    <Settings2 className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-              </PopoverTrigger>
-              <TooltipContent>จัดการตาราง</TooltipContent>
-            </Tooltip>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
                 <PopoverTitle>จัดการตาราง</PopoverTitle>

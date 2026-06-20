@@ -11,7 +11,6 @@ import { usePermission } from '@/hooks/usePermission'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { formatCurrency, cn } from '@/lib/utils'
 import { compareNameBuckets } from '@/lib/sortName'
 import type { MetricTint } from '@/components/ui/card'
@@ -163,16 +162,11 @@ export default function ManageDeadStockPage() {
 
         {/* Threshold-window filter popover — was previously the clickable summary cards */}
         <Popover>
-          <Tooltip>
-            <PopoverTrigger asChild>
-              <TooltipTrigger asChild>
-                <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
-                  <Filter className="size-4" />
-                </Button>
-              </TooltipTrigger>
-            </PopoverTrigger>
-            <TooltipContent>ตัวกรองช่วงเวลา</TooltipContent>
-          </Tooltip>
+          <PopoverTrigger asChild>
+            <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรองช่วงเวลา">
+              <Filter className="size-4" />
+            </Button>
+          </PopoverTrigger>
           <PopoverContent align="end" className="w-56 p-1 gap-0">
             <PopoverHeader className="px-2">
               <PopoverTitle>ช่วงเวลา</PopoverTitle>

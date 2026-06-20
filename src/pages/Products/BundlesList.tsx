@@ -140,16 +140,11 @@ export default function BundlesList() {
 
           {/* Column settings popover */}
           <Popover>
-            <Tooltip>
-              <PopoverTrigger asChild>
-                <TooltipTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0">
-                    <Settings2 className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-              </PopoverTrigger>
-              <TooltipContent>จัดการตาราง</TooltipContent>
-            </Tooltip>
+            <PopoverTrigger asChild>
+              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+                <Settings2 className="size-4" />
+              </Button>
+            </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <PopoverHeader>
                 <PopoverTitle>จัดการตาราง</PopoverTitle>
