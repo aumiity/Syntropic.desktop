@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แปลงหน่วยตอนรับสินค้า (GR) — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine pre{background:rgba(148,163,184,.12);border-radius:8px;padding:10px 12px;overflow-x:auto;
+    font-size:12.5px;line-height:1.5;color:#cbd5e1}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>แปลงหน่วยตอนรับสินค้า (GR) เป็นหน่วยฐาน</h1>
+    <p>หน้าบ้านยังรับเข้าเป็นโหล/กล่องได้ แต่หลังบ้านแตกเป็นหน่วยฐานก่อนเก็บสต็อก/ต้นทุน/FEFO — โดยคงหน่วยที่รับจริงไว้ในประวัติ</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ</span>
+      <span class="pill">ขอบเขต: GR save · cancel · ประวัติ · ข.ย.9 · wizard</span>
+      <span class="pill">2026-06-20</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><b>ปัญหาวันนี้:</b> ตอนรับสินค้า ระบบเก็บจำนวนและต้นทุนที่กรอก <b>ดิบ ๆ ตามหน่วยที่เลือก</b> (กล่อง/โหล) ลง <code>product_lots</code> โดย <b>ไม่แปลงเป็นหน่วยฐานเลย</b> — payload ก็ไม่ได้ส่งหน่วยที่เลือกขึ้น backend ด้วยซ้ำ ผลคือถ้ารับ "1 โหล" (12 ชิ้น) สต็อกขึ้นแค่ 1 ทั้งที่ POS อ่าน <code>qty_on_hand</code> เป็นหน่วยฐาน → สต็อก/ต้นทุนเฉลี่ย/FEFO เพี้ยน</p>
+    <p><b>แผนนี้แก้:</b> ให้ <b>หน้าบ้านรับเข้าเป็นหน่วยอะไรก็ได้เหมือนเดิม</b> แต่ตอนบันทึก backend จะแตกเป็นหน่วยฐานก่อนเก็บ (<code>qtyBase = qty × qty_per_base</code>, <code>costBase = cost ÷ qty_per_base</code>) ส่วน <b>ประวัติการรับ/ใบรับ/ข.ย.9 ยังโชว์หน่วยที่รับจริง</b> (เช่น "2 โหล @ 120") เพื่อความตรงกับบิลผู้ขาย</p>
+    <p><b>หัวใจ:</b> ยอดเงินรวม (จำนวน × ต้นทุน) <b>ไม่เปลี่ยน</b> ไม่ว่าจะคิดเป็นโหลหรือชิ้น → รายงานการเงินทุกตัวไม่กระทบ</p>
+    <div class="grid">
+      <div class="stat"><div class="v">2 โหล</div><div class="l">กรอกหน้าบ้าน (× 120)</div></div>
+      <div class="stat"><div class="v">24 ชิ้น</div><div class="l">สต็อกหน่วยฐาน (× 10)</div></div>
+      <div class="stat"><div class="v">฿240</div><div class="l">ยอดรวม — เท่าเดิมเป๊ะ</div></div>
+    </div>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p>เส้นทางบันทึก GR — จุดแปลงหน่วยอยู่ที่ <b>backend จุดเดียว</b> แล้วแยกออกเป็น 2 ทาง: ประวัติเก็บ "ค่าที่กรอก" (โหล) ส่วนสต็อก/ต้นทุนเก็บ "หน่วยฐาน" (ชิ้น)</p>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 660 270" role="img" aria-label="ผังการแปลงหน่วย GR จาก renderer ผ่าน IPC แยกเป็นประวัติและสต็อกหน่วยฐาน">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+      <rect class="box" x="20" y="100" width="180" height="58" rx="10"/>
+      <text x="110" y="124" text-anchor="middle">GR Wizard / ตาราง</text>
+      <text class="sub" x="110" y="143" text-anchor="middle">Purchase/index.tsx</text>
+
+      <rect class="box warn" x="250" y="100" width="180" height="58" rx="10"/>
+      <text x="340" y="120" text-anchor="middle">purchase:save</text>
+      <text class="sub" x="340" y="137" text-anchor="middle">แปลง: ×÷ qty_per_base</text>
+      <text class="sub" x="340" y="151" text-anchor="middle">electron/ipc/purchase.ts</text>
+
+      <path class="edge" d="M200,129 H246"/>
+      <text class="elabel" x="223" y="92" text-anchor="middle">qty · cost · หน่วย</text>
+
+      <rect class="box data" x="478" y="28" width="172" height="62" rx="10"/>
+      <text x="564" y="50" text-anchor="middle">ประวัติ (โหล)</text>
+      <text class="sub" x="564" y="67" text-anchor="middle">purchase_receipt_items</text>
+      <text class="sub" x="564" y="81" text-anchor="middle">+unit_name +qty_per_base</text>
+
+      <rect class="box data" x="478" y="168" width="172" height="62" rx="10"/>
+      <text x="564" y="190" text-anchor="middle">สต็อก/ต้นทุน (ชิ้น)</text>
+      <text class="sub" x="564" y="207" text-anchor="middle">product_lots · cost_price</text>
+      <text class="sub" x="564" y="221" text-anchor="middle">last_cost · stock_movements</text>
+
+      <path class="edge" d="M430,116 C455,100 455,80 474,66"/>
+      <text class="elabel" x="470" y="104" text-anchor="end">ค่าที่กรอก</text>
+      <path class="edge hot" d="M430,142 C455,158 455,178 474,192"/>
+      <text class="elabel" x="470" y="182" text-anchor="end">หน่วยฐาน</text>
+    </svg>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin:4px 0 0">ผู้บริโภคปลายทาง: <code>ประวัติ/ใบรับ</code> + <code>ข.ย.9</code> อ่านจากกล่องบน (โหล) · <code>POS · FEFO · ต้นทุนเฉลี่ย · ข.ย.10/11</code> อ่านจากกล่องล่าง (ชิ้น)</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง <span style="font-size:13px;font-weight:400;color:var(--muted)">(ตัวอย่าง: รับ 2 โหล, 1 โหล = 12 ชิ้น, @ 120 บาท/โหล)</span></h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li><code>product_lots.qty_on_hand</code> = <b>2</b> <span class="tag t-skip">ผิด</span> (ควร 24)</li>
+        <li><code>product_lots.cost_price</code> = <b>120</b> <span class="tag t-skip">ผิด</span> (ควร 10)</li>
+        <li>POS เห็นสต็อกแค่ 2 ชิ้น · ต้นทุนเฉลี่ย/FEFO เพี้ยน</li>
+        <li>ประวัติไม่บอกหน่วย — qty 2, cost 120 อ่านกำกวม</li>
+        <li>payload ไม่ส่งหน่วยที่เลือกขึ้น backend</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li><code>qty_on_hand</code> = <b>24</b> · <code>cost_price</code> = <b>10</b> <span class="tag t-keep">ถูก</span></li>
+        <li>POS/FEFO/ต้นทุนเฉลี่ย ใช้หน่วยฐานครบ</li>
+        <li>ประวัติ/ใบรับ/ข.ย.9 โชว์ "<b>2 โหล @ 120</b>"</li>
+        <li>ยอดรวม ฿240 เท่าเดิม — รายงานการเงินไม่ขยับ</li>
+        <li>ยกเลิก GR คืนสต็อก −24 (ไม่ใช่ −2)</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>สต็อก/ต้นทุน/FEFO ถูกต้องเมื่อรับเป็นหน่วยใหญ่ — ฟีเจอร์เลือกหน่วยรับเข้าใช้ได้จริงเสียที</li>
+    <li>ประวัติยังตรงกับบิลผู้ขาย (document fidelity) ตามกฎต้นทุนเดิม</li>
+    <li>ยอดเงินรวมไม่เปลี่ยน → ไม่ต้องแตะรายงานการเงิน/แดชบอร์ด</li>
+    <li>ฟรีพ่วง: แก้บั๊กเดิมที่ตอนยกเลิก GR เคย log <code>unit_cost</code> เป็นราคารวม VAT</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>เพิ่ม 2 คอลัมน์ใน <code>purchase_receipt_items</code> + ต้องประกาศ schema 3 จุด</li>
+    <li>แตะหลายไฟล์ (save · cancel · getReceipt · reports · wizard) — ต้อง click-test ครบ</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><b>กฎ blank→0:</b> ตอน re-default ต้นทุนใน <code>selectUnit</code> ห้ามใช้ <code>?? 0</code> — ของฟรี/ไม่เคยซื้อต้องคงช่องว่าง</li>
+    <li><b>is_closed toggle:</b> ทั้ง 4 จุดที่ผูก <code>item.qty</code> ใน UPDATE ตอน merge ต้องเป็น <code>qtyBase</code> พร้อมกัน</li>
+    <li><b>ยกเลิก GR:</b> ต้องแปลง <code>line.qty × qty_per_base</code> เป็นหน่วยฐานก่อนคืนสต็อก ไม่งั้นคืนผิด</li>
+    <li><b>ข้อมูลเก่า:</b> แถวก่อนมีคอลัมน์ใหม่ได้ <code>qty_per_base=1</code>/<code>unit_name=NULL</code> → COALESCE fallback เป็นหน่วยฐาน (ตั้งใจ ใช้กับของใหม่เท่านั้น)</li>
+    <li><b>document fidelity:</b> <code>purchase_receipt_items.cost_price</code> ยังเก็บราคาที่กรอก (รวม VAT สำหรับบิล inclusive) ห้ามแปลงเป็น ex-VAT/หน่วยฐาน</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><b>หน้ารับสินค้า (Wizard):</b> ไม่มีปุ่ม/หน้าจอใหม่ — แค่ช่อง "ต้นทุน/หน่วย" ในขั้นที่ 2 จะเติมค่าตั้งต้นเป็น <b>ต่อหน่วยที่เลือก</b> (เช่น เลือกโหล → เติม <code>ทุนล่าสุด × 12</code>). กล่องอ้างอิง "ทุนล่าสุด" (สีอำพัน amber-soft/amber-strong) ที่ปรับไปก่อนหน้านี้จะกลายเป็นถูกต้องจริง</li>
+      <li><b>ประวัติการรับ / ใบรับ (PurchaseReceiptDialog, Manage/Purchases):</b> คอลัมน์หน่วยจะโชว์หน่วยที่รับจริง (โหล) แทนหน่วยฐาน — ตัวเลขเงินเท่าเดิม</li>
+      <li><b>ข.ย.9:</b> คอลัมน์หน่วยตามหน่วยที่รับจริง; ข.ย.10/11 (ทะเบียนขาย) ยังเป็นหน่วยฐานตามเดิม</li>
+      <li>ไม่มี string/ปุ่มใหม่ที่ต้องใช้ token เพิ่ม — ไม่กระทบ <code>/theme</code></li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>schema จุดที่ 3: <code>purchase.ts:11-45</code> มี migration block + CREATE TABLE ของ purchase_receipt_items เอง</td><td><span class="tag t-skip">major</span></td><td>เพิ่ม ALTER + แก้ inline CREATE ใน purchase.ts ด้วย (รวม 3 จุด)</td></tr>
+        <tr><td>1</td><td><code>dev.ts</code> seed + backfill (purchase.ts:52-63) เป็นผู้บริโภคที่ไม่ได้ลิสต์</td><td><span class="tag t-opt">major</span></td><td>ปลอดภัย (default 1/NULL) — เพิ่มเข้า "ผู้บริโภคที่ verify แล้ว" กันพลาดอนาคต</td></tr>
+        <tr><td>1</td><td>ข.ย.10/11 จะเป็นหน่วยฐาน — DoD ไม่ระบุ</td><td><span class="tag t-gen">minor</span></td><td>เพิ่ม DoD ระบุชัดว่าโชว์ 24 ชิ้น (ตั้งใจ)</td></tr>
+        <tr><td>2</td><td><code>selectUnit</code> ใช้ <code>?? 0</code> → ละเมิดกฎ blank→0 สำหรับของฟรี</td><td><span class="tag t-skip">major</span></td><td>แก้สูตรให้ guard เหมือน pickProduct: null/≤0 → คงค่าว่าง</td></tr>
+        <tr><td>2</td><td>cancel <code>unit_cost</code> เดิม log ราคา incl-VAT (บั๊กเดิม) ต้องคง fix ไว้ใน DoD</td><td><span class="tag t-skip">major</span></td><td>ระบุใน DoD: cancel ใช้ base ex-VAT ตรงกับตอนรับ</td></tr>
+        <tr><td>2</td><td>ข.ย.9 select จริงมี <code>, ''</code> fallback ที่แผนตกไป</td><td><span class="tag t-gen">minor</span></td><td>แก้เป็น <code>COALESCE(pri.unit_name, u.name, '')</code></td></tr>
+        <tr><td>2</td><td>note เรื่อง blocker UI ผิด — Manage/Purchases โชว์แค่ trade_name</td><td><span class="tag t-gen">minor</span></td><td>ลบ note ที่กังวลเกินจริง</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--muted);margin:8px 0 0">หลังแก้: ทั้งสองรอบยืนยัน money invariant, สูตร weighted-avg, ลำดับ VAT, is_closed binds, cancel reversal ถูกต้องครบ · ไม่มี blocker คงเหลือ</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Goal</h3>
+    <p>Receiving can use any unit (กล่อง/โหล) on the front-end, but stock &amp; cost are stored in the BASE unit on the backend, while the originally-entered receiving unit is kept in the ledger (document fidelity). Conversion is applied SERVER-SIDE (single point): <code>qtyBase = qty × qty_per_base</code>; <code>costBase = (cost × VAT costFactor) ÷ qty_per_base</code>. Money total (qty × cost) is invariant.</p>
+
+    <h3>Definition of done</h3>
+    <ul>
+      <li>Receive 2 โหล (qty_per_base=12) @ 120/โหล, NO-VAT → <code>product_lots</code>: qty_received=qty_on_hand=24, cost_price=10; <code>purchase_receipt_items</code>: qty=2, cost_price=120, unit_name='โหล', qty_per_base=12; POS base stock +24; weighted-avg correct.</li>
+      <li>ประวัติการรับ + ใบรับ show "2 โหล @ 120".</li>
+      <li>ข.ย.9 shows "2 โหล"; ข.ย.10/11 (sale ledger) shows lot qty_received in BASE (24 ชิ้น) — intended.</li>
+      <li>Cancel restores qty_on_hand by −24 (not −2); blocker compares base qty; cancel <code>stock_movements.unit_cost</code> = base ex-VAT (matching receive — also corrects the pre-existing incl-VAT bug).</li>
+      <li>Old GRs (qty_per_base default 1, unit_name NULL) behave exactly as before everywhere (COALESCE fallback).</li>
+      <li><code>npx tsc --noEmit</code> clean except the pre-existing <code>src/pages/Theme/index.tsx</code> warning-outline error.</li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>electron/db/schema.ts</code> — purchase_receipt_items CREATE (~772) + ALTER list (~886+)</li>
+      <li><code>electron/ipc/purchase.ts</code> — migration block (11-45) · purchase:save loop (153-252) · cancel (466-552) · getReceipt (385-410)</li>
+      <li><code>electron/ipc/reports.ts</code> — khorYor9 (~1115-1145)</li>
+      <li><code>src/pages/Purchase/index.tsx</code> — handleSave items.map (~607-618)</li>
+      <li><code>src/pages/Purchase/AddProductWizard.tsx</code> — pickProduct (405-410) · selectUnit (454-456)</li>
+      <li>read-only verify: <code>src/components/dialogs/PurchaseReceiptDialog.tsx</code>, <code>src/pages/Manage/Purchases.tsx</code>, <code>electron/db/pricing.ts</code>, <code>electron/ipc/dev.ts</code></li>
+    </ul>
+
+    <h3>ขั้นตอน</h3>
+    <ol>
+      <div class="step"><b>Step 1 — Schema (THREE locations).</b> purchase_receipt_items is declared in 3 places; all must add <code>unit_name TEXT</code> + <code>qty_per_base REAL NOT NULL DEFAULT 1</code>.
+        <ul>
+          <li>(A) <code>schema.ts</code>: CREATE TABLE (~772) add both columns (after sell_price/qty, before note); ALTER list (~886+) append the two <code>ALTER TABLE purchase_receipt_items ADD COLUMN ...</code>.</li>
+          <li>(B) <code>purchase.ts:11-45</code> migration block: update the inline <code>CREATE TABLE IF NOT EXISTS purchase_receipt_items</code> (29-42) AND append the two ALTERs to the same <code>for (const sql of [...])</code> array (try/catch swallows duplicate-column on re-run).</li>
+          <li>The one-time backfill at <code>purchase.ts:52-63</code> stays as-is → old rows get unit_name=NULL, qty_per_base=1 (base). <span class="inv">Never reorder existing columns; ALTER only appends. IF NOT EXISTS / try-catch make init order irrelevant.</span></li>
+        </ul>
+      </div>
+      <div class="step"><b>Step 2 — Renderer passes entered values + factor (NO conversion here).</b> <code>src/pages/Purchase/index.tsx</code> handleSave items.map (~607-618): <code>const su = r.units.find(u =&gt; u.unit_name === r.unit_name); const qpb = su?.qty_per_base ?? 1</code>. Add to payload item: <code>unit_name: r.unit_name, qty_per_base: qpb</code>. KEEP <code>qty: qtyNum</code> (entered) and <code>cost_price: costPerUnit</code> (= totalNum/qtyNum). <span class="inv">blank→0 ban: qpb fallback is 1, never 0.</span></div>
+      <div class="step"><b>Step 3 — Backend conversion in purchase:save.</b>
+        <ul>
+          <li>Payload items type (~105-114): add <code>unit_name?: string; qty_per_base?: number</code>.</li>
+          <li>In loop (~153): <code>const qpb = item.qty_per_base &amp;&amp; item.qty_per_base &gt; 0 ? item.qty_per_base : 1; const qtyBase = item.qty * qpb;</code> (costEx already = item.cost_price × costFactor) <code>const costBaseEx = costEx / qpb;</code></li>
+          <li>product_lots NEW (210-221): qty_received, qty_on_hand ← qtyBase; cost_price ← costBaseEx.</li>
+          <li>product_lots MERGE (186-208): <code>totalQty = existing.qty_received + qtyBase</code>; <code>avgCost = (existing.qty_received*existing.cost_price + qtyBase*costBaseEx)/totalQty</code>; the FOUR <code>item.qty</code> binds in the UPDATE (line 204: qty_received+, qty_on_hand+, two is_closed CASE) ALL become <code>qtyBase</code>.</li>
+          <li>purchase_receipt_items INSERT (224-232): KEEP qty=item.qty, cost_price=item.cost_price (entered, document fidelity). ADD unit_name=item.unit_name ?? null, qty_per_base=qpb.</li>
+          <li>stock_movements (234-238): qty_change=qtyBase, qty_after=qtyBefore+qtyBase, unit_cost=costBaseEx.</li>
+          <li>last_cost_price (249-252): write costBaseEx (keep <code>if (costEx &gt; 0)</code> guard).</li>
+          <li>recomputeAvgCost / propagateCostToBundles unchanged. <span class="inv">Explicit INSERT column lists (no ...spread) — allow-list safe.</span></li>
+        </ul>
+      </div>
+      <div class="step"><b>Step 4 — Cancel reverses base qty.</b> <code>purchase:cancel</code> (466-552): header fetch (472) also select <code>vat_mode, vat_rate</code>; compute costFactor like save (none→1, inclusive→100/(100+rate)). Per line: <code>const qpb = line.qty_per_base &amp;&amp; line.qty_per_base &gt; 0 ? line.qty_per_base : 1; const baseQty = line.qty * qpb;</code>. Blocker (487,492,495-496): need=baseQty, compare <code>lot.qty_on_hand &lt; baseQty - 1e-9</code>. Reversal (513-515): qtyAfter=qtyBefore−baseQty, newReceived=lot.qty_received−baseQty. stock_movements (527-532): qty_change=−baseQty, qty_after=qtyAfter, <code>unit_cost=(line.cost_price * costFactor)/qpb</code>. <span class="inv">is_closed CASE keyed on newReceived — correct.</span></div>
+      <div class="step"><b>Step 5 — Receipt detail shows received unit.</b> <code>purchase:getReceipt</code> line 394: <code>iu.name as unit_name</code> → <code>COALESCE(pri.unit_name, iu.name) as unit_name</code>. No math change in PurchaseReceiptDialog.tsx / Manage/Purchases.tsx (qty×cost invariant); they already render <code>unit_name</code>.</div>
+      <div class="step"><b>Step 6 — ข.ย.9 received unit.</b> <code>reports.ts</code> khorYor9 (~1136) real select is <code>COALESCE(u.name, '') AS unit_name</code> → change to <code>COALESCE(pri.unit_name, u.name, '') AS unit_name</code> (KEEP trailing <code>''</code>). qty stays <code>pri.qty</code>. ข.ย.10/11 (khorYorSale) reads <code>pl.qty_received</code> (now base) — NO change.</div>
+      <div class="step"><b>Step 7 — Wizard default cost per selected unit.</b>
+        <ul>
+          <li>pickProduct (405-410): <code>costDefault = lastCost != null &amp;&amp; lastCost &gt; 0 ? (lastCost * chosen.qty_per_base).toFixed(2) : ''</code>; totalDefault = costDefault ? <code>(1 * lastCost * chosen.qty_per_base).toFixed(2)</code> : ''.</li>
+          <li>selectUnit (454-456): re-default per new unit, MIRROR pickProduct's blank→0 guard — <span class="inv">NEVER <code>?? 0</code></span>:
+<pre>const selectUnit = (u: ProductUnitOption) => {
+  const lc = row.stored_last_cost
+  const q = parseFloat(row.qty) || 0
+  const c = lc != null &amp;&amp; lc > 0 ? (lc * u.qty_per_base).toFixed(2) : ''
+  patch({
+    unit_name: u.unit_name,
+    default_sell_price: u.price_retail ?? row.default_sell_price,
+    cost_price: c,
+    total: c &amp;&amp; q > 0 ? (q * lc! * u.qty_per_base).toFixed(2) : '',
+  })
+}</pre></li>
+          <li>The "ทุนล่าสุด" reference + costChanged baseline already use <code>lastCostForUnit = stored_last_cost × selectedQtyPerBase</code> (earlier edit) — now semantically correct, no double-scale.</li>
+        </ul>
+      </div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> — only the pre-existing Theme/index.tsx error allowed.</li>
+      <li>Click-test: (a) base unit qpb=1 → unchanged behavior everywhere + cancel −qty. (b) โหล qpb=12 → receive 2 gives stock +24, cost/หน่วยฐาน correct; ประวัติ/ใบรับ/ข.ย.9 show "2 โหล"; cancel restores +24→0. (c) merge โหล into an existing base lot → weighted avg correct, is_closed reopens if was closed. (d) VAT-inclusive bill → costBase ex-VAT, ledger keeps incl-VAT entered value.</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li>Merge with OLD lots (pre-change raw) → in practice old receives were base → existing.cost_price effectively base → avg stays correct. Accepted (new only).</li>
+      <li>last_cost_price now strictly per base — existing values already assumed base. OK.</li>
+      <li>Fractional qty_per_base / non-divisible cost → store full REAL; ledger keeps exact entered money; base values derived for stock/avg only → no money rounding loss.</li>
+      <li>Future purchase:save callers omitting unit fields → backend qpb default 1 = base behavior.</li>
+      <li>selectUnit re-default overwrites a manually typed cost when the receiving unit changes — acceptable (per-unit cost meaningless across units).</li>
+      <li>Verified-safe consumers (no change, keep on radar): <code>dev.ts</code> seed (~180-185), purchase.ts backfill (52-63) — explicit-column INSERTs omitting new cols → NULL/1 = base. Do NOT make unit_name NOT-NULL later without updating the seed. product_lots/stock_movements/FEFO/EditProduct lots tab/adjustStock/negative-stock retro-deduction read base — left untouched.</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-20</footer>
+
+</div>
+</body>
+</html>

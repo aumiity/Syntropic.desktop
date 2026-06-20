@@ -780,6 +780,10 @@ export function initializeSchema(db: Database.Database) {
       cost_price REAL NOT NULL DEFAULT 0,
       sell_price REAL NOT NULL DEFAULT 0,
       qty REAL NOT NULL DEFAULT 0,
+      -- Received unit (กล่อง/โหล) kept for document fidelity; qty/cost above are
+      -- in this entered unit. Backend converts to base for stock/cost.
+      unit_name TEXT,
+      qty_per_base REAL NOT NULL DEFAULT 1,
       note TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
@@ -878,6 +882,10 @@ export function initializeSchema(db: Database.Database) {
     // Downgrade flow records why VAT was turned off (DBs created before this
     // column already have the table from the same release).
     `ALTER TABLE vat_audit_log ADD COLUMN reason TEXT`,
+    // GR received unit conversion: keep the entered receiving unit + its
+    // qty_per_base on the ledger (document fidelity); backend stores base.
+    `ALTER TABLE purchase_receipt_items ADD COLUMN unit_name TEXT`,
+    `ALTER TABLE purchase_receipt_items ADD COLUMN qty_per_base REAL NOT NULL DEFAULT 1`,
     // POS quantity multiplier (*N) feature toggle — default on for existing DBs.
     `ALTER TABLE sales_settings ADD COLUMN qty_multiplier_enabled INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE sales_settings ADD COLUMN vat_enabled INTEGER NOT NULL DEFAULT 0`,

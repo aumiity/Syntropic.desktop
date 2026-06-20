@@ -1133,7 +1133,7 @@ export function registerReportHandlers() {
         COALESCE(NULLIF(p.name_for_print,''), p.trade_name)        AS drug_name,
         COALESCE(pri.lot_number, '')                               AS lot_number,
         pri.qty                                                    AS qty,
-        COALESCE(u.name, '')                                       AS unit_name
+        COALESCE(pri.unit_name, u.name, '')                        AS unit_name
       FROM purchase_receipt_items pri
       JOIN purchase_receipts pr ON pr.invoice_no = pri.invoice_no
       JOIN products          p  ON p.id  = pri.product_id

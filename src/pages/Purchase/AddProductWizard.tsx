@@ -406,8 +406,8 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     // ของฟรี/ไม่เคยซื้อ (last_cost ว่างหรือ 0) → คงช่องต้นทุนว่าง ไม่ coerce → 0 (กฏ stock/cost field).
     const lastCost = p.last_cost_price
     const qtyDefault = '1'
-    const costDefault = lastCost != null && lastCost > 0 ? lastCost.toFixed(2) : ''
-    const totalDefault = costDefault ? (parseFloat(qtyDefault) * lastCost!).toFixed(2) : ''
+    const costDefault = lastCost != null && lastCost > 0 ? (lastCost * chosen.qty_per_base).toFixed(2) : ''
+    const totalDefault = costDefault ? (parseFloat(qtyDefault) * lastCost! * chosen.qty_per_base).toFixed(2) : ''
     setRow(r => ({
       ...r,
       product_id: p.id,
@@ -451,8 +451,19 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     setTimeout(() => searchInputRef.current?.focus(), 50)
   }
 
+  // Re-default cost per the newly-chosen unit (= ทุนล่าสุด × qty_per_base).
+  // MIRROR pickProduct's blank→0 guard — free/never-bought (stored_last_cost
+  // null or ≤0) keeps the cost field blank, never ?? 0.
   const selectUnit = (u: ProductUnitOption) => {
-    patch({ unit_name: u.unit_name, default_sell_price: u.price_retail ?? row.default_sell_price })
+    const lc = row.stored_last_cost
+    const q = parseFloat(row.qty) || 0
+    const c = lc != null && lc > 0 ? (lc * u.qty_per_base).toFixed(2) : ''
+    patch({
+      unit_name: u.unit_name,
+      default_sell_price: u.price_retail ?? row.default_sell_price,
+      cost_price: c,
+      total: c && q > 0 ? (q * lc! * u.qty_per_base).toFixed(2) : '',
+    })
   }
 
   // ── per-step validation ──
@@ -520,10 +531,13 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   const cost = isFinite(typedCost) && typedCost > 0 ? typedCost : (qtyNum > 0 ? totalNum / qtyNum : 0)
   const expMonths = monthsToExpiry(row.expiry_date)
 
-  // ทุนเปลี่ยน (step 2): เทียบ "ต้นทุน/หน่วยที่กรอก" (cost) กับ last_cost_price (ทุนล่าสุดที่จ่ายจริง).
-  // last_cost_price เก็บต่อ "หน่วยที่รับเข้า" (purchase.ts) → เทียบตรง ๆ ไม่ต้องคูณ qty_per_base.
-  // baseline = last_cost_price เท่านั้น ไม่ fallback weighted-avg (ของฟรี=0 ต้องคง 0).
-  const prevCost = row.stored_last_cost
+  // ทุนล่าสุดจริง (last_cost_price) ปรับสเกลตามหน่วยที่เลือกรับเข้า — ใช้เป็นทั้งตัวเลขอ้างอิงที่โชว์
+  // (step 1 + step 2) และ baseline เทียบ "ทุนเปลี่ยน" เพื่อให้ทุกจุดอิงค่าเดียวกัน ไม่ขัดกันเอง.
+  // last_cost_price ถือเป็น "ต่อหน่วยฐาน" (ตามธรรมเนียมการโชว์เดิมของ step 1) → คูณ qty_per_base
+  // ของหน่วยที่เลือก. baseline = last_cost_price เท่านั้น ไม่ fallback weighted-avg (ของฟรี=0 ต้องคง 0).
+  const selectedQtyPerBase = row.units.find(u => u.unit_name === row.unit_name)?.qty_per_base ?? 1
+  const lastCostForUnit = row.stored_last_cost != null ? row.stored_last_cost * selectedQtyPerBase : null
+  const prevCost = lastCostForUnit
   const costChanged = prevCost != null && cost > 0 && Math.abs(cost - prevCost) > 0.0001
 
   // sub-label previews for the rail
@@ -656,7 +670,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                     <div className="mt-2.5 grid grid-cols-2 divide-x divide-border overflow-hidden rounded-lg bg-amber-soft/50 border border-amber-strong/25">
                       <div className="px-4 py-2">
                         <div className="text-sm text-muted-foreground">ทุนล่าสุด</div>
-                        <div className="mt-0.5 text-sm font-bold text-amber-strong">{formatCurrency((row.stored_cost_price ?? 0) * (row.units.find(u => u.unit_name === row.unit_name)?.qty_per_base ?? 1))}</div>
+                        <div className="mt-0.5 text-sm font-bold text-amber-strong">{lastCostForUnit != null ? formatCurrency(lastCostForUnit) : '—'}</div>
                       </div>
                       <div className="px-4 py-2">
                         <div className="text-sm text-muted-foreground">ราคาขายปัจจุบัน</div>
@@ -830,7 +844,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                 <div className="mb-4 grid grid-cols-2 divide-x divide-border overflow-hidden rounded-lg bg-amber-soft/50 border border-amber-strong/25">
                   <div className="px-4 py-2">
                     <div className="text-sm text-muted-foreground">ทุนล่าสุด</div>
-                    <div className="mt-0.5 text-sm font-bold text-amber-strong">{row.stored_last_cost != null ? formatCurrency(row.stored_last_cost) : '—'}</div>
+                    <div className="mt-0.5 text-sm font-bold text-amber-strong">{lastCostForUnit != null ? formatCurrency(lastCostForUnit) : '—'}</div>
                   </div>
                   <div className="px-4 py-2">
                     <div className="text-sm text-muted-foreground">ราคาขายปัจจุบัน</div>
@@ -878,7 +892,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                                          : 'border-success/30 bg-success-soft/50 text-success'}`}>
                     <AlertTriangle className="size-4 shrink-0 mt-0.5" />
                     <div className="min-w-0">
-                      <b className="font-semibold">ต้นทุน{cost - prevCost! > 0 ? 'เพิ่มขึ้น' : 'ลดลง'} {formatCurrency(Math.abs(cost - prevCost!))}</b> จากทุนล่าสุด ({formatCurrency(prevCost!)} → {formatCurrency(cost)}) — อย่าลืมทบทวนราคาขายให้เหมาะสม
+                      <b className="font-semibold">ต้นทุน{cost - prevCost! > 0 ? 'เพิ่มขึ้น' : 'ลดลง'} {formatCurrency(Math.abs(cost - prevCost!))} บาท</b> — กรุณาตรวจสอบราคาขาย
                     </div>
                   </div>
                 )}

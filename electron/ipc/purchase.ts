@@ -37,9 +37,13 @@ export function registerPurchaseHandlers() {
       cost_price REAL NOT NULL DEFAULT 0,
       sell_price REAL NOT NULL DEFAULT 0,
       qty REAL NOT NULL DEFAULT 0,
+      unit_name TEXT,
+      qty_per_base REAL NOT NULL DEFAULT 1,
       note TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     )`,
+    `ALTER TABLE purchase_receipt_items ADD COLUMN unit_name TEXT`,
+    `ALTER TABLE purchase_receipt_items ADD COLUMN qty_per_base REAL NOT NULL DEFAULT 1`,
     `CREATE INDEX IF NOT EXISTS idx_pri_invoice ON purchase_receipt_items(invoice_no)`,
     `CREATE INDEX IF NOT EXISTS idx_pri_lot ON purchase_receipt_items(lot_id)`,
   ]) { try { db.exec(sql) } catch {} }
@@ -111,6 +115,8 @@ export function registerPurchaseHandlers() {
       sell_price: number
       qty: number
       note?: string
+      unit_name?: string
+      qty_per_base?: number
     }>
     userId: number
   }) => {
@@ -160,6 +166,13 @@ export function registerPurchaseHandlers() {
         // Cost-model cost (ex-VAT for inclusive bills) — see costFactor above.
         const costEx = item.cost_price * costFactor
 
+        // Convert the entered receiving unit (กล่อง/โหล) to the BASE unit for
+        // stock/cost. qty_per_base falls back to 1 (base), never 0 (blank→0 ban).
+        // Money total is invariant: costBaseEx × qtyBase == costEx × item.qty.
+        const qpb = item.qty_per_base && item.qty_per_base > 0 ? item.qty_per_base : 1
+        const qtyBase = item.qty * qpb
+        const costBaseEx = costEx / qpb
+
         const existing = db.prepare(`SELECT * FROM product_lots WHERE product_id = ? AND lot_number = ?`).get(item.product_id, item.lot_number) as any
 
         let lotId: number
@@ -171,8 +184,8 @@ export function registerPurchaseHandlers() {
         let recMfg: string | null = item.manufactured_date ?? null
 
         if (existing) {
-          const totalQty = existing.qty_received + item.qty
-          const avgCost = (existing.qty_received * existing.cost_price + item.qty * costEx) / totalQty
+          const totalQty = existing.qty_received + qtyBase
+          const avgCost = (existing.qty_received * existing.cost_price + qtyBase * costBaseEx) / totalQty
           qtyBefore = existing.qty_on_hand
           lotId = existing.id
           recExpiry = existing.expiry_date
@@ -201,7 +214,7 @@ export function registerPurchaseHandlers() {
               paid_date = ?,
               updated_at = ?
             WHERE id = ?
-          `).run(item.qty, item.qty, item.qty, item.qty, avgCost, item.sell_price, payload.supplier_id,
+          `).run(qtyBase, qtyBase, qtyBase, qtyBase, avgCost, item.sell_price, payload.supplier_id,
             payload.invoice_no, payload.supplier_invoice_no, payload.order_date ?? null,
             payload.payment_type,
             payload.due_date ?? null, payload.is_paid ? 1 : 0, payload.paid_date ?? null,
@@ -213,7 +226,7 @@ export function registerPurchaseHandlers() {
               invoice_no, supplier_invoice_no, order_date, payment_type, due_date, is_paid, paid_date, note, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(item.product_id, payload.supplier_id, item.lot_number, item.manufactured_date ?? null, item.expiry_date,
-            costEx, item.sell_price, item.qty, item.qty,
+            costBaseEx, item.sell_price, qtyBase, qtyBase,
             payload.invoice_no, payload.supplier_invoice_no, payload.order_date ?? null,
             payload.payment_type,
             payload.due_date ?? null, payload.is_paid ? 1 : 0, payload.paid_date ?? null, item.note ?? '',
@@ -224,17 +237,17 @@ export function registerPurchaseHandlers() {
         db.prepare(`
           INSERT INTO purchase_receipt_items
             (invoice_no, product_id, lot_id, lot_number, manufactured_date, expiry_date,
-             cost_price, sell_price, qty, note, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             cost_price, sell_price, qty, unit_name, qty_per_base, note, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(payload.invoice_no, item.product_id, lotId, item.lot_number,
           recMfg, recExpiry,
-          item.cost_price, item.sell_price, item.qty, item.note ?? null,
+          item.cost_price, item.sell_price, item.qty, item.unit_name ?? null, qpb, item.note ?? null,
           payload.receive_date)
 
         db.prepare(`INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by, created_at)
           VALUES (?, ?, 'receive', 'stock_receive', ?, ?, ?, ?, ?, ?, ?)`).run(
-          item.product_id, lotId, item.qty, qtyBefore, qtyBefore + item.qty,
-          costEx, `รับสินค้า: ${payload.invoice_no}`, payload.userId, payload.receive_date
+          item.product_id, lotId, qtyBase, qtyBefore, qtyBefore + qtyBase,
+          costBaseEx, `รับสินค้า: ${payload.invoice_no}`, payload.userId, payload.receive_date
         )
 
         // ราคาขายหลัก (price_retail) ไม่ตั้งจาก GR แล้ว — เป็นของ products:updatePrice
@@ -248,7 +261,7 @@ export function registerPurchaseHandlers() {
         // recomputed as a weighted average below.
         if (costEx > 0) {
           db.prepare(`UPDATE products SET last_cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
-            .run(costEx, item.product_id)
+            .run(costBaseEx, item.product_id)
         }
       }
 
@@ -391,7 +404,7 @@ export function registerPurchaseHandlers() {
              pri.qty as qty_received, pri.note,
              pri.created_at,
              p.trade_name, p.code as product_code,
-             iu.name as unit_name,
+             COALESCE(pri.unit_name, iu.name) as unit_name,
              pr.supplier_id, pr.supplier_invoice_no, pr.order_date,
              pr.payment_type, pr.due_date, pr.is_paid, pr.paid_date,
              s.name as supplier_name,
@@ -469,9 +482,14 @@ export function registerPurchaseHandlers() {
     const reason = (payload.reason ?? '').trim()
     if (!reason) return { success: false, error: 'reason_required' }
 
-    const header = db.prepare(`SELECT status FROM purchase_receipts WHERE invoice_no = ?`).get(payload.invoice_no) as any
+    const header = db.prepare(`SELECT status, vat_mode, vat_rate FROM purchase_receipts WHERE invoice_no = ?`).get(payload.invoice_no) as any
     if (!header) return { success: false, error: 'not_found' }
     if (header.status === 'cancelled') return { success: false, error: 'already_cancelled' }
+
+    // Reverse in BASE units (matching receive). costFactor backs out claimable
+    // VAT for inclusive bills so the reversal unit_cost equals what receive logged.
+    const vatRate = Number(header.vat_rate) || 0
+    const costFactor = header.vat_mode === 'inclusive' ? 100 / (100 + vatRate) : 1
 
     const lines = db.prepare(`SELECT * FROM purchase_receipt_items WHERE invoice_no = ?`).all(payload.invoice_no) as any[]
     if (lines.length === 0) return { success: false, error: 'no_lines' }
@@ -483,17 +501,19 @@ export function registerPurchaseHandlers() {
 
     const blockers: { product_id: number; lot_id: number | null; lot_number: string; need: number; have: number }[] = []
     for (const line of lines) {
+      const qpb = line.qty_per_base && line.qty_per_base > 0 ? line.qty_per_base : 1
+      const baseQty = line.qty * qpb
       if (!line.lot_id) {
-        blockers.push({ product_id: line.product_id, lot_id: null, lot_number: line.lot_number, need: line.qty, have: 0 })
+        blockers.push({ product_id: line.product_id, lot_id: null, lot_number: line.lot_number, need: baseQty, have: 0 })
         continue
       }
       const lot = db.prepare(`SELECT id, qty_on_hand, qty_received FROM product_lots WHERE id = ?`).get(line.lot_id) as any
       if (!lot) {
-        blockers.push({ product_id: line.product_id, lot_id: line.lot_id, lot_number: line.lot_number, need: line.qty, have: 0 })
+        blockers.push({ product_id: line.product_id, lot_id: line.lot_id, lot_number: line.lot_number, need: baseQty, have: 0 })
         continue
       }
-      if (lot.qty_on_hand < line.qty - 1e-9) {
-        blockers.push({ product_id: line.product_id, lot_id: line.lot_id, lot_number: line.lot_number, need: line.qty, have: lot.qty_on_hand })
+      if (lot.qty_on_hand < baseQty - 1e-9) {
+        blockers.push({ product_id: line.product_id, lot_id: line.lot_id, lot_number: line.lot_number, need: baseQty, have: lot.qty_on_hand })
       }
     }
     if (blockers.length > 0) {
@@ -509,10 +529,12 @@ export function registerPurchaseHandlers() {
     const cancel = db.transaction(() => {
       for (const line of lines) {
         if (!line.lot_id) continue
+        const qpb = line.qty_per_base && line.qty_per_base > 0 ? line.qty_per_base : 1
+        const baseQty = line.qty * qpb
         const lot = db.prepare(`SELECT qty_on_hand, qty_received FROM product_lots WHERE id = ?`).get(line.lot_id) as any
         const qtyBefore = lot.qty_on_hand
-        const qtyAfter = qtyBefore - line.qty
-        const newReceived = lot.qty_received - line.qty
+        const qtyAfter = qtyBefore - baseQty
+        const newReceived = lot.qty_received - baseQty
 
         db.prepare(`
           UPDATE product_lots SET
@@ -528,8 +550,8 @@ export function registerPurchaseHandlers() {
           INSERT INTO stock_movements
             (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, unit_cost, note, created_by, created_at)
           VALUES (?, ?, 'purchase_return', 'gr_cancel', ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
-        `).run(line.product_id, line.lot_id, line.id, -line.qty, qtyBefore, qtyAfter,
-               line.cost_price, `ยกเลิกบิล: ${payload.invoice_no} — ${reason}`, payload.userId)
+        `).run(line.product_id, line.lot_id, line.id, -baseQty, qtyBefore, qtyAfter,
+               (line.cost_price * costFactor) / qpb, `ยกเลิกบิล: ${payload.invoice_no} — ${reason}`, payload.userId)
       }
 
       const productIds = Array.from(new Set(lines.map(l => l.product_id)))

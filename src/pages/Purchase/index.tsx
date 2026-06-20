@@ -609,11 +609,16 @@ export default function PurchasePage() {
           const totalNum = parseFloat(r.total) || 0
           // Use total/qty as effective cost so any per-line discount is baked in
           const costPerUnit = qtyNum > 0 ? totalNum / qtyNum : 0
+          // Pass the entered receiving unit + its base factor; backend converts
+          // to base for stock/cost. Fallback 1 (base), never 0 (blank→0 ban).
+          const su = r.units?.find(u => u.unit_name === r.unit_name)
+          const qpb = su?.qty_per_base ?? 1
           return {
             product_id: r.product_id, lot_number: r.lot_number,
             manufactured_date: r.manufactured_date || undefined, expiry_date: r.expiry_date,
             cost_price: costPerUnit, sell_price: r.default_sell_price || 0,
             qty: qtyNum, note: r.note || undefined,
+            unit_name: r.unit_name, qty_per_base: qpb,
           }
         }),
       }) as { success: boolean; invoice_no: string; negative_stock_alerts?: NegativeStockAlert[] }
@@ -951,11 +956,6 @@ export default function PurchasePage() {
                             <span className="font-semibold shrink-0">พบรายการซ้ำ (สินค้า + Lot เดิม):</span>
                             <span className="truncate">{duplicateNames.join(', ')}</span>
                           </div>
-                        )}
-                        {/* เส้นแบ่งระหว่างรายการสินค้า ↔ สรุปมูลค่า — โชว์เมื่อมีบรรทัดสรุป (ส่วนลด/VAT);
-                            เคสไม่มีบรรทัดสรุป แถบ "มูลค่ารวมทั้งหมด" มี border-t เป็นเส้นแบ่งอยู่แล้ว */}
-                        {(hasSummaryBreakdown || (vatMode === 'inclusive' && billVat > 0)) && (
-                          <div className="border-t border-border" />
                         )}
                         {hasSummaryBreakdown && (
                           <div className="bg-card px-5 py-1 space-y-0.5">
