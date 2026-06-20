@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แยกรหัสไปรษณีย์ออกจากที่อยู่ร้าน — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>แยกรหัสไปรษณีย์ออกจากที่อยู่ร้าน</h1>
+    <p>เพิ่มฟิลด์ <code style="color:#fff;background:rgba(255,255,255,.18)">shop_postcode</code> แยกจาก <code style="color:#fff;background:rgba(255,255,255,.18)">shop_address</code> — ฉลากยาดึงที่อยู่โดยไม่มีรหัส ปณ. ติดมา ส่วนใบเสร็จ/ใบกำกับภาษี/GR ยังแสดงรหัสได้ตามปกติ</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ — execute-ready</span>
+      <span class="pill">ขอบเขต: schema + IPC + 5 จุด UI/เอกสาร</span>
+      <span class="pill">2026-06-20</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><b>ปัญหา:</b> ตอนนี้รหัสไปรษณีย์ถูกพิมพ์รวมอยู่ในช่อง "ที่อยู่ร้าน" (<code>settings.shop_address</code>) ช่องเดียว พอเอาที่อยู่ไปขึ้นฉลากยา รหัส ปณ. ก็ติดไปด้วย ทำให้บรรทัดที่อยู่บนสติกเกอร์ยาวเกินจนเบียดพื้นที่ส่วนอื่น</p>
+    <p><b>วิธีแก้:</b> แยกรหัสไปรษณีย์ออกเป็นฟิลด์ของตัวเอง (<code>settings.shop_postcode</code>) ฉลากยาจะดึงเฉพาะ <code>shop_address</code> (ไม่อ่านรหัส ปณ. เลย → ไม่ต้องแก้โค้ดฉลากแม้แต่บรรทัดเดียว) ส่วนใบเสร็จ/ใบกำกับภาษี/ใบรับของ (GR) จะเอา <code>shop_address</code> + <code>shop_postcode</code> มาต่อกันในบรรทัดเดียว → ยังเห็นรหัสครบเหมือนเดิม</p>
+    <p><b>เสร็จแล้วได้อะไร:</b> ฉลากยาสั้นลง สะอาดขึ้น เอกสารทางการยังครบถ้วน และรหัส ปณ. กลายเป็นข้อมูลที่จัดการแยกได้ชัดเจนในหน้าตั้งค่าร้าน</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p>หัวใจของแผนนี้คือ <b>แหล่งข้อมูลเดียว แตกเป็นสองเส้นทางการแสดงผล</b> — ฉลากตัดรหัสทิ้ง เอกสารต่อรหัสกลับเข้าไป:</p>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 660 250" role="img" aria-label="เส้นทางข้อมูล shop_address และ shop_postcode สู่ฉลากและเอกสาร">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+      <!-- source -->
+      <rect class="box data" x="20" y="95" width="200" height="60" rx="10"/>
+      <text x="120" y="120" text-anchor="middle">settings (SQLite)</text>
+      <text class="sub" x="120" y="138" text-anchor="middle">shop_address + shop_postcode</text>
+      <!-- label path -->
+      <rect class="box" x="430" y="20" width="210" height="58" rx="10"/>
+      <text x="535" y="44" text-anchor="middle">ฉลากยา</text>
+      <text class="sub" x="535" y="62" text-anchor="middle">content.ts / blankLabel.ts</text>
+      <path class="edge" d="M220,110 C320,90 340,60 426,49"/>
+      <text class="elabel" x="330" y="72" text-anchor="middle">อ่าน shop_address อย่างเดียว</text>
+      <!-- docs path -->
+      <rect class="box" x="430" y="170" width="210" height="58" rx="10"/>
+      <text x="535" y="194" text-anchor="middle">ใบเสร็จ / ใบกำกับ / GR</text>
+      <text class="sub" x="535" y="212" text-anchor="middle">buildSlipHtml · taxInvoiceSheet</text>
+      <path class="edge hot" d="M220,140 C320,165 340,190 426,199"/>
+      <text class="elabel" x="330" y="186" text-anchor="middle">address + postcode</text>
+    </svg>
+    </div>
+    <p style="margin-bottom:0">จุดที่ต้องแก้จริงทั้งหมด 8 ไฟล์ (เรียงตามลำดับพึ่งพา):</p>
+    <table>
+      <thead><tr><th>ชั้น</th><th>ไฟล์</th><th>เปลี่ยนอะไร</th></tr></thead>
+      <tbody>
+        <tr><td>DB</td><td><code>electron/db/schema.ts</code></td><td>เพิ่มคอลัมน์ <code>shop_postcode</code> (CREATE + ALTER migration)</td></tr>
+        <tr><td>Type</td><td><code>src/types/index.ts</code></td><td>เพิ่ม <code>shop_postcode?: string</code> ใน <code>Setting</code></td></tr>
+        <tr><td>IPC</td><td><code>electron/ipc/settings.ts</code></td><td>เติมคอลัมน์ใน <code>saveShop</code> (INSERT) + <code>completeSetup</code></td></tr>
+        <tr><td>UI</td><td><code>ShopTab.tsx</code></td><td>ช่อง "รหัสไปรษณีย์" + ข้อความบอกใบ้</td></tr>
+        <tr><td>UI</td><td><code>SetupWizard.tsx</code></td><td>ช่องรหัส ปณ. (ไม่บังคับ) ตอนตั้งค่าครั้งแรก</td></tr>
+        <tr><td>เอกสาร</td><td><code>buildSlipHtml.ts</code></td><td>ต่อรหัส ปณ. ท้ายบรรทัดที่อยู่ (ใบเสร็จ)</td></tr>
+        <tr><td>เอกสาร</td><td><code>taxInvoiceSheet.tsx</code></td><td>ต่อรหัส ปณ. (ใบกำกับภาษี)</td></tr>
+        <tr><td>เอกสาร</td><td><code>GoodsReceiptPrintDialog.tsx</code></td><td>ต่อรหัส ปณ. (ใบรับของ GR)</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-bottom:0"><b>ไม่ต้องแตะ:</b> โค้ดฉลากยา (<code>content.ts</code>/<code>blankLabel.ts</code>/<code>LabelPaper.tsx</code>/<code>html.ts</code>/<code>sections.ts</code>) — ไม่มีไฟล์ไหนอ่าน <code>shop_postcode</code> เลย รหัสจึงหายจากฉลากเองโดยอัตโนมัติ และไม่ต้องแตะไฟล์ <code>electron/**/*.js</code> (เป็น artifact เก่า vite bundle จาก <code>.ts</code> ให้เอง)</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>ที่อยู่ + รหัส ปณ. รวมในช่องเดียว <code>shop_address</code></li>
+        <li>ฉลากยา: <i>123 ถ.สุขุมวิท กรุงเทพฯ <b>10110</b></i> — บรรทัดยาวเบียดพื้นที่</li>
+        <li>ใบเสร็จ/ใบกำกับ: แสดงรหัสได้ (เพราะฝังในที่อยู่)</li>
+        <li>ไม่มีทางเอารหัสออกจากฉลากโดยไม่กระทบเอกสารอื่น</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>ที่อยู่อยู่ <code>shop_address</code>, รหัสอยู่ <code>shop_postcode</code> แยกกัน</li>
+        <li>ฉลากยา: <i>123 ถ.สุขุมวิท กรุงเทพฯ</i> — สั้น สะอาด ไม่มีรหัส</li>
+        <li>ใบเสร็จ/ใบกำกับ/GR: <i>123 ถ.สุขุมวิท กรุงเทพฯ <b>10110</b></i> — ต่อรหัสกลับ</li>
+        <li>หน้าตั้งค่าร้านมีช่อง "รหัสไปรษณีย์" แยกชัดเจน</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>ฉลากยาบรรทัดที่อยู่สั้นลง ไม่มีรหัส ปณ. มากวนพื้นที่</li>
+    <li>โค้ดฉลากไม่ต้องแก้เลย — แค่ไม่อ่านฟิลด์ใหม่ รหัสก็หายเอง</li>
+    <li>เอกสารทางการยังครบ (ต่อรหัสกลับแบบ space-join บรรทัดเดียว)</li>
+    <li>แก้ <code>Setting</code> type ที่เดียว ไหลถึง consumer ทั้ง 3 (<code>Partial&lt;Setting&gt;</code>)</li>
+    <li>migration idempotent — ฐานข้อมูลเดิมได้คอลัมน์ใหม่ไม่กระทบข้อมูล</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>ต้องกรอกรหัส ปณ. ใหม่เองที่หน้า ShopTab หนึ่งครั้ง (ย้ายออกจากช่องที่อยู่เดิม)</li>
+    <li>แตะ schema + IPC → ต้องผ่าน <code>tsc</code> + click-test ในแอปจริง</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><b>Allow-list invariant:</b> <code>saveShop</code> UPDATE สร้าง SQL จาก <code>Object.keys</code> — คอลัมน์ <code>shop_postcode</code> ต้องมีอยู่ใน DB ก่อนฟอร์มส่งค่ามา ไม่งั้น throw <code>no such column</code> (จึงทำ schema ก่อนเป็นสเต็ปแรก และ ship พร้อมกัน)</li>
+    <li><b>สถานะช่วงเปลี่ยนผ่าน:</b> ก่อนพี่ย้ายรหัสออกจากช่องที่อยู่ ฉลากจะยังโชว์รหัสเดิม (เพราะยังฝังใน <code>shop_address</code>) และเอกสารจะโชว์รหัสครั้งเดียว (ฟิลด์ใหม่ว่าง = ต่อแล้วไม่มีอะไร) — ไม่มีรหัสซ้ำ ไม่ crash เป็นสภาพที่คาดไว้ตามการ migrate แบบ manual</li>
+    <li>ห้ามแก้ไฟล์ <code>electron/**/*.js</code> (artifact เก่า) — แก้แค่ <code>.ts</code></li>
+    <li>text-size ขั้นต่ำ <code>text-xs</code>, ใช้ ui-primitive (ห้าม raw HTML), ไม่มี emoji ในข้อความ UI</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <p><b>ShopTab (ตั้งค่า &gt; ข้อมูลร้าน):</b> เพิ่ม <code>FormField</code> "รหัสไปรษณีย์" เป็นช่องครึ่งแถว วางใต้ช่องที่อยู่ จับคู่กับช่องโทรศัพท์ — กริดไหลเป็น [รหัสไปรษณีย์ | โทรศัพท์], [LINE ID | เลขใบอนุญาต], [เลขผู้เสียภาษี | สาขา] ใต้ช่องมีข้อความบอกใบ้สีจาง (<code>text-xs text-muted-foreground</code>): "แยกจากที่อยู่ — รหัสนี้จะไม่แสดงบนฉลากยา แต่จะแสดงในใบเสร็จ/ใบกำกับภาษี" ใช้ <code>&lt;Input variant="elevated"&gt;</code> ตามสไตล์เดิมของไฟล์</p>
+    <p style="margin-bottom:0"><b>SetupWizard (ตั้งค่าครั้งแรก):</b> เพิ่มช่อง "รหัสไปรษณีย์ (ไม่บังคับ)" ใกล้ช่องที่อยู่ ใช้ <code>&lt;Input&gt;</code> เปล่า (default = elevated) ไม่บังคับกรอก (ไม่อยู่ใน <code>validate()</code>) — ทุกอย่างเป็นภาษาไทย ตาม pattern <code>/theme</code> เดิม ไม่มีปุ่ม/สีบทบาทใหม่</p>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>FormField</code> ไม่มี hint/description prop — คำสั่งเดิมกำกวม</td><td><span class="tag t-opt">MAJOR</span></td><td>ระบุชัด: ใส่ helper เป็น <code>&lt;p class="text-xs text-muted-foreground"&gt;</code> เป็น child ที่ 2 ใน <code>FormField</code> หลัง <code>&lt;Input&gt;</code></td></tr>
+        <tr><td>1</td><td>ลำดับฟิลด์ในกริด ShopTab ควรระบุให้ชัด</td><td><span class="tag t-opt">MAJOR</span></td><td>เพิ่มลำดับจริง (โทรศัพท์→LINE ID→ใบอนุญาต→ภาษี→สาขา) ลงสเต็ป 4</td></tr>
+        <tr><td>1</td><td>line numbers drift, INSERT fallback เย็น, summaryRows ไม่โชว์รหัส</td><td><span class="tag t-gen">MINOR</span></td><td>แก้ ref ให้อิงเนื้อหา, เพิ่ม optional summary row, ยืนยัน upgrade/downgradeVat ไม่กระทบ</td></tr>
+        <tr><td>2</td><td>snippet <code>summaryRows</code> ขาด tuple cast → <code>tsc</code> พัง</td><td><span class="tag t-gen">MINOR</span></td><td>เพิ่ม <code>as [string, string]</code> ใน snippet</td></tr>
+        <tr><td>2</td><td>ระบุความต่าง Input variant ระหว่าง ShopTab (elevated) กับ SetupWizard (bare)</td><td><span class="tag t-gen">INFO</span></td><td>ระบุชัดในสเต็ป 5: ShopTab ใส่ variant, SetupWizard ใช้เปล่า</td></tr>
+        <tr><td>2</td><td>ref correctness, label isolation, build-pipeline, seed, invariants</td><td><span class="tag t-keep">PASS</span></td><td>ตรวจกับโค้ดจริงครบ — ไม่มีปัญหา execute-ready</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li>Column <code>settings.shop_postcode TEXT NOT NULL DEFAULT ''</code> exists (CREATE + ALTER migration).</li>
+      <li><code>Setting</code> type carries <code>shop_postcode?: string</code>.</li>
+      <li>ShopTab has a "รหัสไปรษณีย์" input that loads + saves; persists across reload.</li>
+      <li>SetupWizard has an optional "รหัสไปรษณีย์" input wired into <code>settings:completeSetup</code>.</li>
+      <li>Drug label renders the address with NO postcode (zero label code changes).</li>
+      <li>Receipt slip, tax invoice, GR each render <code>shop_address</code> + <code>shop_postcode</code> (space-joined).</li>
+      <li><code>npx tsc --noEmit -p tsconfig.json</code> shows ONLY the pre-existing unrelated error in <code>src/pages/Theme/index.tsx</code> (no new errors).</li>
+    </ul>
+
+    <h3>Build-pipeline fact</h3>
+    <ul>
+      <li><code>vite-plugin-electron</code> bundles <code>electron/main.ts</code> → gitignored <code>dist-electron/</code> at dev time. Committed <code>electron/**/*.js</code> are STALE artifacts (see <code>vite.config.ts</code> comment). <span class="inv">Edit ONLY the .ts sources — never the .js.</span></li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>electron/db/schema.ts</code> — settings CREATE TABLE (~L30-42) + "Safe column migrations" array (~L872-1121; <code>shop_branch</code> ALTER at ~L1042)</li>
+      <li><code>src/types/index.ts</code> — <code>interface Setting</code> (~L151-156)</li>
+      <li><code>electron/ipc/settings.ts</code> — <code>settings:saveShop</code> (~L93-104), <code>settings:completeSetup</code> (~L113-176)</li>
+      <li><code>src/pages/Settings/ShopTab.tsx</code> — shop form grid (~L65-97)</li>
+      <li><code>src/pages/Setup/SetupWizard.tsx</code> — state/load/submit/validate/summaryRows</li>
+      <li><code>src/lib/receipt/buildSlipHtml.ts</code> — <code>contactInner</code> (~L86-90), <code>esc</code> from <code>@/lib/print/fonts</code></li>
+      <li><code>src/components/receipt/taxInvoiceSheet.tsx</code> — address render (~L74)</li>
+      <li><code>src/components/dialogs/GoodsReceiptPrintDialog.tsx</code> — address render (~L93)</li>
+    </ul>
+
+    <h3>ขั้นตอน (ตามลำดับพึ่งพา)</h3>
+    <ol>
+      <div class="step"><b>Step 1 — Schema (electron/db/schema.ts).</b>
+        (a) In <code>CREATE TABLE IF NOT EXISTS settings</code> add after <code>shop_line_id</code>:
+        <code>shop_postcode TEXT NOT NULL DEFAULT '',</code>.
+        (b) In the "Safe column migrations" array, next to the <code>shop_branch</code> ALTER, add:
+        <code>`ALTER TABLE settings ADD COLUMN shop_postcode TEXT NOT NULL DEFAULT ''`</code>
+        (try/catch loop → idempotent; on fresh DB the CREATE column makes this ALTER throw "duplicate column" → swallowed).
+        <span class="inv">Do this FIRST — saveShop's Object.keys UPDATE throws "no such column" if the form sends shop_postcode before the column exists. Do NOT edit schema.js.</span>
+      </div>
+      <div class="step"><b>Step 2 — Type (src/types/index.ts).</b>
+        Add <code>shop_postcode?: string</code> to <code>interface Setting</code> (mirror <code>shop_branch?</code>).
+        This flows to all three <code>Partial&lt;Setting&gt;</code> consumers (slip / taxInvoiceSheet / GR) with no further type edits.
+      </div>
+      <div class="step"><b>Step 3 — IPC (electron/ipc/settings.ts).</b>
+        (a) <code>settings:saveShop</code> INSERT fallback: add <code>shop_postcode</code> to the explicit column list AND <code>@shop_postcode</code> to VALUES. (UPDATE branch is dynamic Object.keys — safe once the column exists.)
+        (b) <code>settings:completeSetup</code>: add <code>shop_postcode: shop.shop_postcode ?? ''</code> to <code>shopData</code>; add <code>shop_postcode = @shop_postcode</code> to the UPDATE SET list; add <code>shop_postcode</code> / <code>@shop_postcode</code> to the INSERT column list + VALUES.
+        <span class="inv">Keep explicit column lists (allow-list invariant) — do NOT switch to a spread. upgradeToVat/downgradeFromVat use a fixed subset, not Object.keys → unaffected, no change.</span>
+      </div>
+      <div class="step"><b>Step 4 — ShopTab (src/pages/Settings/ShopTab.tsx).</b>
+        Current single-col order after the <code>col-span-2</code> address block: โทรศัพท์ → LINE ID → เลขใบอนุญาต → เลขผู้เสียภาษี → สาขา.
+        Insert a new <code>FormField label="รหัสไปรษณีย์"</code> with <code>&lt;Input variant="elevated"&gt;</code> bound to <code>form.shop_postcode ?? ''</code> / <code>setF('shop_postcode' as keyof Setting, e.target.value)</code>, placed AFTER the address block and BEFORE โทรศัพท์ → grid flows [รหัสไปรษณีย์ | โทรศัพท์], [LINE ID | เลขใบอนุญาต], [เลขผู้เสียภาษี | สาขา].
+        <span class="inv">FormField has NO hint prop (label.tsx: only label/required/children/labelClassName). Add the helper as a SECOND child INSIDE the FormField after the Input:</span>
+        <code>&lt;p className="text-xs text-muted-foreground"&gt;แยกจากที่อยู่ — รหัสนี้จะไม่แสดงบนฉลากยา แต่จะแสดงในใบเสร็จ/ใบกำกับภาษี&lt;/p&gt;</code>.
+        No raw HTML; <code>text-xs</code> is the floor; no emojis.
+      </div>
+      <div class="step"><b>Step 5 — SetupWizard (src/pages/Setup/SetupWizard.tsx).</b>
+        Add <code>const [shopPostcode, setShopPostcode] = useState('')</code>; load effect: <code>setShopPostcode(d.shop_postcode ?? '')</code>; submit shop block: <code>shop_postcode: shopPostcode.trim()</code>.
+        Add <code>FormField label="รหัสไปรษณีย์ (ไม่บังคับ)"</code> near the address field, using a BARE <code>&lt;Input&gt;</code> (default = elevated; do NOT add variant here). <span class="inv">Optional — do NOT add to validate().</span>
+        Optional polish — summaryRows (typed <code>[string,string][]</code>, every conditional row casts):
+        <code>...(shopPostcode.trim() ? [['รหัสไปรษณีย์', shopPostcode] as [string, string]] : [])</code> (omitting the cast breaks tsc).
+      </div>
+      <div class="step"><b>Step 6 — Receipt slip (src/lib/receipt/buildSlipHtml.ts).</b>
+        In <code>contactInner</code>, replace the address element with a combined line:
+        <code>const addrLine = [shop.shop_address, shop.shop_postcode].filter(Boolean).map(s =&gt; esc(s)).join(' ')</code>,
+        then use <code>addrLine</code> (falsy → '') as the first element (keep the <code>&lt;br&gt;</code> join with phone).
+      </div>
+      <div class="step"><b>Step 7 — Tax invoice (src/components/receipt/taxInvoiceSheet.tsx).</b>
+        Line ~74: <code>{shop.shop_address ? &lt;div className="mt-0.5 text-xs text-foreground-subtle"&gt;{[shop.shop_address, shop.shop_postcode].filter(Boolean).join(' ')}&lt;/div&gt; : null}</code>.
+      </div>
+      <div class="step"><b>Step 8 — GR print (src/components/dialogs/GoodsReceiptPrintDialog.tsx).</b>
+        Line ~93: <code>{shop.shop_address ? &lt;div className="text-xs text-foreground-subtle"&gt;{[shop.shop_address, shop.shop_postcode].filter(Boolean).join(' ')}&lt;/div&gt; : null}</code>.
+      </div>
+    </ol>
+
+    <h3>Verification</h3>
+    <ul>
+      <li><code>npx tsc --noEmit -p tsconfig.json</code> → only the known <code>Theme/index.tsx</code> error remains.</li>
+      <li>Click-test: ShopTab save+reload persists; move postcode out of the address textarea; drug label preview (<code>/products/print</code> blank + Settings &gt; ฉลากยา sample) shows address WITHOUT postcode; receipt slip / tax invoice (DocumentSettingsTab sample) / GR print preview each show "&lt;address&gt; &lt;postcode&gt;".</li>
+    </ul>
+
+    <h3>Out of scope</h3>
+    <ul>
+      <li>No auto-migration / regex extraction of the embedded postcode (user re-enters manually).</li>
+      <li>No postcode toggle/section on the label template; no label code changes; no seed/preload changes.</li>
+    </ul>
+  </div>
+
+  <footer>Syntropic.desktop · แผนงานสร้างด้วย /write-plan · ผ่าน audit 2 รอบ · 2026-06-20</footer>
+</div>
+</body>
+</html>
