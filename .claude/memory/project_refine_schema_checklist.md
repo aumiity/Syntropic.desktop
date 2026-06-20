@@ -16,3 +16,4 @@ metadata:
 1. `product_units.is_for_purchase` — งานยุบหน่วยซื้อ/ขาย [[project_unit_flag_collapse]]
 2. `receipt_settings.abbrev_tax_invoice` — งานใบเสร็จ per-section [[project_receipt_sections]] (โหมดใบกำกับย่อตัดสินจาก total_vat>0 แล้ว)
 3. `products.is_hidden` (2026-06-16) — dead flag ติดจาก PHP เดิม ไม่มี query กรองเลย, `is_disabled` ครอบคลุมแล้ว (เหมือน `customers.is_hidden` ที่ DROP ไปแล้ว); UI toggle+badge ถอดออกแล้ว เหลือ DROP คอลัมน์+form plumbing
+4. `env_settings` 6 threshold columns (2026-06-20) — ลบ EnvironmentTab แล้วฝังเกณฑ์ GPP เป็น const SSOT `src/lib/env/thresholds.ts`; คอลัมน์ threshold ตาย แต่ **ตาราง env_settings ห้ามลบ** (zone flags ยังใช้) [[project_env_temp_humidity_log]]

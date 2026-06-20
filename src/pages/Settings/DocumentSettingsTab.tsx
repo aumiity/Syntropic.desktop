@@ -69,7 +69,7 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   const [saving, setSaving] = useState(false)
   const [printRender, setPrintRender] = useState(false)  // mount the hidden .a4-doc only while test-printing
   // Preview zoom — on top of the fit-to-box scale (like the receipt/label tabs).
-  const [zoom, setZoom] = useState(1)
+  const [zoom, setZoom] = useState(2)
   const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
   // Track the preview box size; fit = shrink the A4-portrait sheet so the WHOLE
   // page shows inside the box (never up). Zoom multiplies on top.
@@ -198,7 +198,7 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   return (
     <div className="flex flex-col gap-3 h-full min-h-0">
       {/* Body: preview (LEFT) + settings (RIGHT). */}
-      <div className="grid grid-cols-[31fr_9fr] grid-rows-1 gap-4 items-stretch flex-1 min-h-0">
+      <div className="grid grid-cols-[7fr_3fr] grid-rows-1 gap-4 items-stretch flex-1 min-h-0">
         <SectionCard title="ตัวอย่างเอกสาร" tint="success" className="min-w-0" right={previewActions} fill>
           <div ref={previewWrapRef} className="h-full bg-muted/30 rounded-lg p-6 overflow-auto">
             {/* The A4Sheet renders at TRUE px size, then a CSS transform scales it

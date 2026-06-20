@@ -49,6 +49,17 @@
   3. `src/pages/Products/PrintTab/index.tsx` — `type PaperSize` + `A4_DIMS` + `DocSettings.paper_size` เป็น A4 อยู่แล้ว ลบ field ได้เมื่อ type DocumentSettings ไม่มีแล้ว
   4. (เผื่อ) `src/lib/tags/presets.ts` + `buildPriceTagHtml` ยังรับ `'A4'|'A5'` (A5 branch ตายแล้ว) — เก็บกวาดให้เหลือ A4 ตอนนี้พร้อมกันได้
 
+### 5. `env_settings` 6 threshold columns (2026-06-20)
+- **ที่มา:** ลบหน้า Settings → "อุณหภูมิ–ความชื้น" (`EnvironmentTab.tsx`) ออก แล้วฝังค่าเกณฑ์ GPP เป็นค่าคงที่ SSOT ใน `src/lib/env/thresholds.ts` (`GPP_THRESHOLDS`). ค่ามาตรฐานนิ่ง (อย./GPP) ไม่มีวันเปลี่ยน → ไม่ต้องเก็บในตาราง. คอลัมน์ threshold ทั้ง 6 ตายแล้ว แต่ `env_settings` **ห้ามลบ** — ยังถือ `zone_reserve_enabled`/`zone_fridge_enabled` ที่ popover "จุดวัด" ใน EnvLog ใช้
+- **memory:** `.claude/memory/project_env_temp_humidity_log.md`
+- **คอลัมน์ที่ตาย:** `store_temp_max`, `store_humidity_max`, `reserve_temp_max`, `reserve_humidity_max`, `fridge_temp_min`, `fridge_temp_max`
+- **คงไว้:** `zone_reserve_enabled`, `zone_fridge_enabled` (zone flags ยังใช้งานจริง)
+- **ขั้นตอนลบ:**
+  1. `electron/db/schema.ts` — ลบ 6 คอลัมน์ threshold ออกจาก `env_settings` CREATE block + คอมเมนต์ DEAD COLUMN; เพิ่ม `ALTER TABLE env_settings DROP COLUMN ...` ทั้ง 6 (migration DB เก่า)
+  2. `electron/ipc/env.ts` — ถอด 6 keys ออกจาก `SETTINGS_COLUMNS` Set (~17–23) + ลบคอมเมนต์ DEAD COLUMN; ลบ handler `env:saveSettings` (~240, ไม่มี caller แล้ว) + ถอด `requireAdmin` import ถ้าไม่มีที่อื่นใช้
+  3. `src/types/index.ts` — ถอด 6 threshold fields ออกจาก interface `EnvSettings`
+  4. (ตรวจ) `electron/preload.ts` — ถอด `saveSettings` ออกจาก `env` namespace ถ้ามี
+
 ---
 
 ## ลบแล้ว (DONE)

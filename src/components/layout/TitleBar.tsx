@@ -44,7 +44,6 @@ const SUBFILE_MAP: Record<string, Record<string, string>> = {
     'product-mgmt': 'src/pages/Settings/ProductMgmtTab.tsx',
     units: 'src/pages/Settings/UnitsTab.tsx',
     'drug-usage': 'src/pages/Settings/DrugUsageTab.tsx',
-    environment: 'src/pages/Settings/EnvironmentTab.tsx',
     printers: 'src/pages/Settings/PrintersTab.tsx',
     database: 'src/pages/Settings/DatabaseTab.tsx',
   },

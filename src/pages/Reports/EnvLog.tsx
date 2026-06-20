@@ -15,11 +15,12 @@ import { MultiDatePicker, type MultiDateMode, rangeForMultiMode } from '@/compon
 import { useToast } from '@/components/ui/toast'
 import { cn, formatDate } from '@/lib/utils'
 import { printDomSheets } from '@/lib/print/printDomSheets'
+import { GPP_THRESHOLDS, isOutOfRange, type ThreshKind } from '@/lib/env/thresholds'
 import type { Setting, EnvLogRow, EnvSettings } from '@/types'
 import type { FdaOutletContext } from './FdaReports'
 import { A4Sheet, A4_CONTENT_W, A4_CONTENT_H, FOOTER_H, PACK_SAFETY } from './a4'
 import ReportPrintDialog from './ReportPrintDialog'
-import { FileText, Printer, Thermometer, MapPin, Wand2 } from 'lucide-react'
+import { FileText, Printer, Thermometer, MapPin, Wand2, Info } from 'lucide-react'
 
 // ─── Static config ──────────────────────────────────────────────────────────
 
@@ -30,7 +31,6 @@ const PERIODS = [
 ] as const
 
 type EnvField = 'store_temp' | 'store_humidity' | 'reserve_temp' | 'reserve_humidity' | 'fridge_temp'
-type ThreshKind = 'store_temp' | 'store_humidity' | 'reserve_temp' | 'reserve_humidity' | 'fridge'
 
 // A measurement slot inside a zone — one editable column per period.
 interface ZoneField { field: EnvField; short: '°C' | '%RH'; kind: ThreshKind }
@@ -63,19 +63,6 @@ const ALL_ZONES: Zone[] = [
 function formatVal(n: number | null | undefined): string {
   if (n == null || isNaN(n)) return ''
   return n % 1 === 0 ? String(n) : parseFloat(n.toFixed(2)).toString()
-}
-
-// True when a measured value sits outside its GPP band (→ red cell). null/blank
-// is never out-of-range. Generated/real in-band values stay neutral.
-function isOutOfRange(kind: ThreshKind, v: number | null, s: EnvSettings | null): boolean {
-  if (v == null || s == null) return false
-  switch (kind) {
-    case 'store_temp':       return v > s.store_temp_max
-    case 'store_humidity':   return v > s.store_humidity_max
-    case 'reserve_temp':     return v > s.reserve_temp_max
-    case 'reserve_humidity': return v > s.reserve_humidity_max
-    case 'fridge':           return v < s.fridge_temp_min || v > s.fridge_temp_max
-  }
 }
 
 function ymOf(iso: string): { year: number; month: number } {
@@ -221,11 +208,11 @@ export default function EnvLogPage() {
     let n = 0
     for (const row of rowMap.values()) {
       for (const zf of zoneFields) {
-        if (isOutOfRange(zf.kind, row[zf.field] as number | null, settings)) n++
+        if (isOutOfRange(zf.kind, row[zf.field] as number | null)) n++
       }
     }
     return n
-  }, [rowMap, zoneFields, settings])
+  }, [rowMap, zoneFields])
 
   const getRow = (day: number, period: number): EnvLogRow | undefined =>
     rowMap.get(`${dateKey(year, month, day)}|${period}`)
@@ -538,6 +525,17 @@ export default function EnvLogPage() {
                     onChange={v => toggleZone('fridge', v)}
                   />
                 </div>
+
+                <div className="mt-2 rounded-lg border bg-muted/50 px-3 py-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+                  <Info className="size-3.5 shrink-0 mt-0.5" />
+                  <span>
+                    ค่ามาตรฐาน GPP — พื้นที่เก็บยาทั่วไปไม่เกิน{' '}
+                    <span className="font-medium text-foreground">{GPP_THRESHOLDS.store_temp_max}°C</span> และ{' '}
+                    <span className="font-medium text-foreground">{GPP_THRESHOLDS.store_humidity_max}%RH</span>, ตู้เย็นอยู่ในช่วง{' '}
+                    <span className="font-medium text-foreground">{GPP_THRESHOLDS.fridge_temp_min}–{GPP_THRESHOLDS.fridge_temp_max}°C</span>.
+                    {' '}ค่าที่บันทึกเกินเกณฑ์จะถูกไฮไลต์สีแดง
+                  </span>
+                </div>
               </PopoverContent>
             </Popover>
           </div>
@@ -590,7 +588,7 @@ export default function EnvLogPage() {
                           // parses to null/0 → never flagged. Invalid = border only.
                           const parsed = text.trim() === '' ? null : parseFloat(text)
                           const bad = parsed != null && parsed !== 0 && !isNaN(parsed)
-                            && isOutOfRange(zf.kind, parsed, settings)
+                            && isOutOfRange(zf.kind, parsed)
                           return (
                             <TableCell key={`${p.value}-${zf.field}-${ci}`} className="p-0.5">
                               <Input

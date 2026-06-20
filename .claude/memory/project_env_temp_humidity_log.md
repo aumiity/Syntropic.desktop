@@ -47,10 +47,17 @@ blur → save → reconcile display กลับจาก server. Guard: `if (pr
 **Zone show/hide:**
 เปลี่ยน `env_settings.has_reserve / has_fridge` → drop columns จาก grid AND A4 print. **dep ของ measure-DOM `useLayoutEffect` (A4 pagination) ต้องรวม zone flags** — ถ้าไม่รวม พอ toggle zone แล้วหน้าพิมพ์จะแบ่งผิด.
 
-## Settings
+## Thresholds — SSOT const (2026-06-20)
 
-`src/pages/Settings/EnvironmentTab.tsx` (admin-only) แก้ thresholds.
-ค่า default GPP: เก็บทั่วไป ≤30°C ≤75%RH, เก็บสำรอง ≤30°C ≤75%RH, ตู้เย็น 2–8°C.
+`src/pages/Settings/EnvironmentTab.tsx` **ถูกลบแล้ว** — ไม่มีหน้าตั้งค่า threshold อีกต่อไป.
+แทนด้วย **`src/lib/env/thresholds.ts`** (self-contained, ไม่ import อะไร, ไม่ใช้ alias `@/`):
+- export `GPP_THRESHOLDS`: เก็บทั่วไป ≤30°C/≤75%RH, เก็บสำรอง ≤30°C/≤75%RH, ตู้เย็น 2–8°C
+- export `isOutOfRange(kind, v)` + type `ThreshKind`
+- ไม่ใช้ alias `@/` เพราะ import จาก 2 ฝั่ง: renderer (`@/lib/env/thresholds`) + electron main (relative `../../src/lib/env/thresholds`) — electron build ไม่มี `@/` alias
+
+**`env_settings`**: ยังใช้อยู่ผ่าน `env:getSettings` / `env:setZones` (zone flags `has_reserve`/`has_fridge`) — **ห้ามลบตาราง**. 6 threshold columns (`store_temp_lo/hi`, `reserve_temp_lo/hi`, `fridge_temp_lo/hi`, ฯลฯ) = DEAD รอ DROP → [[project_refine_schema_checklist]] #4.
+
+`env:saveSettings` IPC handler ยังคงอยู่ในโค้ดแต่ไม่มี caller แล้ว (renderer ไม่ส่งเรียก).
 
 ## Known layout deviation
 

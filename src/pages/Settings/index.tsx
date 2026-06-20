@@ -3,14 +3,13 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Store, FolderTree, Printer, ShoppingCart, Save, Database, Blocks, Stethoscope, Thermometer } from 'lucide-react'
+import { Store, FolderTree, Printer, ShoppingCart, Save, Database, Blocks, Stethoscope } from 'lucide-react'
 import { ShopTab } from './ShopTab'
 import { ProductMgmtTab } from './ProductMgmtTab'
 import { UnitsTab } from './UnitsTab'
 import { DrugUsageTab } from './DrugUsageTab'
 import { PrintersTab } from './PrintersTab'
 import { SalesTab } from './SalesTab'
-import { EnvironmentTab } from './EnvironmentTab'
 import { DatabaseTab } from './DatabaseTab'
 import { usePublishDevTab } from '@/stores/devTabStore'
 
@@ -19,8 +18,6 @@ export default function SettingsPage() {
   usePublishDevTab(tab) // DEV ONLY — surfaces open sub-tab file in TitleBar path
   const salesSaveFn = useRef<() => void>()
   const [salesSaving, setSalesSaving] = useState(false)
-  const envSaveFn = useRef<() => void>()
-  const [envSaving, setEnvSaving] = useState(false)
   // The active การพิมพ์ sub-tab forwards its บันทึก button up here so it lands on
   // the MAIN tab row (same spot as the การขาย save button), not the sub-tab strip.
   const [printersActions, setPrintersActions] = useState<ReactNode>(null)
@@ -37,7 +34,6 @@ export default function SettingsPage() {
             <TabsTrigger value="product-mgmt"><FolderTree /> หมวดหมู่และประเภท</TabsTrigger>
             <TabsTrigger value="units"><Blocks /> หน่วยนับ</TabsTrigger>
             <TabsTrigger value="drug-usage"><Stethoscope /> วิธีใช้</TabsTrigger>
-            <TabsTrigger value="environment"><Thermometer /> อุณหภูมิ–ความชื้น</TabsTrigger>
             <TabsTrigger value="printers"><Printer /> การพิมพ์</TabsTrigger>
             <TabsTrigger value="database"><Database /> ฐานข้อมูล</TabsTrigger>
           </TabsList>
@@ -45,11 +41,6 @@ export default function SettingsPage() {
         {tab === 'sales' && (
           <Button className="h-10 ml-auto" onClick={() => salesSaveFn.current?.()} disabled={salesSaving}>
             <Save className="size-4" />{salesSaving ? 'กำลังบันทึก...' : 'บันทึก'}
-          </Button>
-        )}
-        {tab === 'environment' && (
-          <Button className="h-10 ml-auto" onClick={() => envSaveFn.current?.()} disabled={envSaving}>
-            <Save className="size-4" />{envSaving ? 'กำลังบันทึก...' : 'บันทึก'}
           </Button>
         )}
         {tab === 'printers' && printersActions && (
@@ -74,15 +65,6 @@ export default function SettingsPage() {
               registerSave={fn => { salesSaveFn.current = fn }}
               saving={salesSaving}
               setSaving={setSalesSaving}
-            />
-          </div>
-        )}
-        {tab === 'environment' && (
-          <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]">
-            <EnvironmentTab
-              registerSave={fn => { envSaveFn.current = fn }}
-              saving={envSaving}
-              setSaving={setEnvSaving}
             />
           </div>
         )}

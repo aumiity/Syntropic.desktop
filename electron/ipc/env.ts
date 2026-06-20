@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { requireAdmin, getSession } from '../auth/session'
+import { GPP_THRESHOLDS } from '../../src/lib/env/thresholds'
 
 // Allow-listed numeric fields in env_log — gates `env:saveCell` and
 // `env:generateMonth` so a stray `field` can never be interpolated into SQL
@@ -16,6 +17,7 @@ const SAVE_FIELDS = new Set([...NUMERIC_FIELDS, 'note'])
 // guard; the Settings renderer is the first gate).
 const SETTINGS_COLUMNS = new Set([
   'zone_reserve_enabled', 'zone_fridge_enabled',
+  // DEAD COLUMN — thresholds ฝังใน src/lib/env/thresholds.ts (SSOT) แล้ว; รอ DROP ก่อน launch
   'store_temp_max', 'store_humidity_max',
   'reserve_temp_max', 'reserve_humidity_max',
   'fridge_temp_min', 'fridge_temp_max',
@@ -131,15 +133,15 @@ export function registerEnvHandlers() {
       return { field, lo: loC, hi: hiC, round }
     }
     const bands: Band[] = [
-      safeBand('store_temp', s.store_temp_max - 5, s.store_temp_max - 1, 'temp'),
-      safeBand('store_humidity', s.store_humidity_max - 15, s.store_humidity_max - 3, 'humid', 100),
+      safeBand('store_temp', GPP_THRESHOLDS.store_temp_max - 5, GPP_THRESHOLDS.store_temp_max - 1, 'temp'),
+      safeBand('store_humidity', GPP_THRESHOLDS.store_humidity_max - 15, GPP_THRESHOLDS.store_humidity_max - 3, 'humid', 100),
     ]
     if (s.zone_reserve_enabled) {
-      bands.push(safeBand('reserve_temp', s.reserve_temp_max - 5, s.reserve_temp_max - 1, 'temp'))
-      bands.push(safeBand('reserve_humidity', s.reserve_humidity_max - 15, s.reserve_humidity_max - 3, 'humid', 100))
+      bands.push(safeBand('reserve_temp', GPP_THRESHOLDS.reserve_temp_max - 5, GPP_THRESHOLDS.reserve_temp_max - 1, 'temp'))
+      bands.push(safeBand('reserve_humidity', GPP_THRESHOLDS.reserve_humidity_max - 15, GPP_THRESHOLDS.reserve_humidity_max - 3, 'humid', 100))
     }
     if (s.zone_fridge_enabled) {
-      bands.push(safeBand('fridge_temp', s.fridge_temp_min + 0.5, s.fridge_temp_max - 0.5, 'temp'))
+      bands.push(safeBand('fridge_temp', GPP_THRESHOLDS.fridge_temp_min + 0.5, GPP_THRESHOLDS.fridge_temp_max - 0.5, 'temp'))
     }
     // Guard: every produced field must be in the allow-list (defends the column
     // interpolation below — same Set as saveCell).
@@ -236,6 +238,7 @@ export function registerEnvHandlers() {
   // Object.keys(rest) with SETTINGS_COLUMNS before building SQL so a stray key
   // can't throw "no such column" (handler-side guard; the renderer is the first
   // gate, mirroring saveDocumentSettings).
+  // NO CALLER after EnvironmentTab removal (2026-06-20) — kept harmless; thresholds now SSOT in src/lib/env/thresholds.ts
   ipcMain.handle('env:saveSettings', (e, data: any) => {
     requireAdmin(e)
     const db = getDb()
