@@ -152,6 +152,7 @@ export interface Setting {
   id: number; shop_name: string; shop_address: string; shop_phone: string
   shop_license_no: string; shop_tax_id: string; shop_line_id: string
   shop_branch?: string
+  shop_postcode?: string
   setup_completed?: number; setup_completed_at?: string; vat_registered_date?: string
 }
 

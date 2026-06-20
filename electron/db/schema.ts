@@ -35,6 +35,7 @@ export function initializeSchema(db: Database.Database) {
       shop_license_no TEXT NOT NULL DEFAULT '',
       shop_tax_id TEXT NOT NULL DEFAULT '',
       shop_line_id TEXT NOT NULL DEFAULT '',
+      shop_postcode TEXT NOT NULL DEFAULT '',
       setup_completed INTEGER NOT NULL DEFAULT 0,
       setup_completed_at TEXT,
       vat_registered_date TEXT,
@@ -1040,6 +1041,7 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE sales_settings DROP COLUMN expiry_danger_months`,
     // Seller branch for tax invoices (ม.86/4 requires "สำนักงานใหญ่"/branch no.).
     `ALTER TABLE settings ADD COLUMN shop_branch TEXT NOT NULL DEFAULT 'สำนักงานใหญ่'`,
+    `ALTER TABLE settings ADD COLUMN shop_postcode TEXT NOT NULL DEFAULT ''`,
     // User-chosen auto-backup destination folder (NULL = default userData/backups).
     `ALTER TABLE backup_settings ADD COLUMN backup_dir TEXT`,
     // First-run setup gate. setup_completed=0 forces the setup wizard before the

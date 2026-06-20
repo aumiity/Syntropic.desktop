@@ -56,6 +56,7 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
   // Step 1 — shop identity
   const [shopName, setShopName] = useState('')
   const [shopAddress, setShopAddress] = useState('')
+  const [shopPostcode, setShopPostcode] = useState('')
   const [shopPhone, setShopPhone] = useState('')
   const [shopLicense, setShopLicense] = useState('')
   const [shopLine, setShopLine] = useState('')
@@ -77,6 +78,7 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
       if (!d) return
       setShopName(d.shop_name ?? '')
       setShopAddress(d.shop_address ?? '')
+      setShopPostcode(d.shop_postcode ?? '')
       setShopPhone(d.shop_phone ?? '')
       setShopLicense(d.shop_license_no ?? '')
       setShopLine(d.shop_line_id ?? '')
@@ -141,6 +143,7 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
         shop: {
           shop_name: shopName.trim(),
           shop_address: shopAddress.trim(),
+          shop_postcode: shopPostcode.trim(),
           shop_phone: shopPhone.trim(),
           shop_license_no: shopLicense.trim(),
           shop_line_id: shopLine.trim(),
@@ -217,6 +220,7 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
   const summaryRows: [string, string][] = [
     ['ชื่อร้าน', shopName],
     ['ที่อยู่', shopAddress],
+    ...(shopPostcode.trim() ? [['รหัสไปรษณีย์', shopPostcode] as [string, string]] : []),
     ['เบอร์โทร', shopPhone],
     ...(shopLicense.trim() ? [['เลขใบอนุญาต', shopLicense] as [string, string]] : []),
     ...(shopLine.trim() ? [['LINE ID', shopLine] as [string, string]] : []),
@@ -248,6 +252,9 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
                   </FormField>
                   <FormField label="ที่อยู่" required>
                     <Textarea data-field="shop_address" rows={3} className="resize-none" value={shopAddress} onChange={e => setShopAddress(e.target.value)} />
+                  </FormField>
+                  <FormField label="รหัสไปรษณีย์ (ไม่บังคับ)">
+                    <Input value={shopPostcode} onChange={e => setShopPostcode(e.target.value)} />
                   </FormField>
                   <div className="grid grid-cols-2 gap-3">
                     <FormField label="เบอร์โทร" required>

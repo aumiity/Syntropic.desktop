@@ -276,7 +276,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
     ...SAMPLE_CONTENT_BY_LANG.th,
     shop:         shop?.shop_name?.trim() || '',
     shop_address: shop?.shop_address?.trim() || '',
-    shop_phone:   shop?.shop_phone?.trim() ? 'โทร. ' + shop.shop_phone.trim() : '',
+    shop_phone:   shop?.shop_phone?.trim() ? shop.shop_phone.trim() : '',
     shop_line_id: shop?.shop_line_id?.trim() ? 'LINE: ' + shop.shop_line_id.trim() : '',
   }), [shop])
 
@@ -618,7 +618,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
                                 variant={form[boldKey] ? 'default' : 'elevated'}
                                 onClick={() => setF(boldKey, (form[boldKey] ? 0 : 1) as never)}
                                 aria-pressed={!!form[boldKey]}
-                                title="ตัวหนา"
+                                tooltip="ตัวหนา"
                                 className="size-9"
                                 disabled={!visible}
                               >

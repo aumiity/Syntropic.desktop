@@ -344,7 +344,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                             variant={form[boldKey] ? 'default' : 'elevated'}
                             onClick={() => setF(boldKey, (form[boldKey] ? 0 : 1) as never)}
                             aria-pressed={!!form[boldKey]}
-                            title="ตัวหนา" className="size-9" disabled={!visible}
+                            tooltip="ตัวหนา" className="size-9" disabled={!visible}
                           >
                             <Bold />
                           </Button>
@@ -361,7 +361,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                                   variant={effAlign === opt.v ? 'default' : 'elevated'}
                                   onClick={() => setF(alignKey, opt.v as never)}
                                   aria-pressed={effAlign === opt.v}
-                                  title={opt.title} className="size-9" disabled={!visible}
+                                  tooltip={opt.title} className="size-9" disabled={!visible}
                                 >
                                   <opt.Icon />
                                 </Button>

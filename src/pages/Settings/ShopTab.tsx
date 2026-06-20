@@ -79,6 +79,10 @@ export function ShopTab() {
               />
             </FormField>
           </div>
+          <FormField label="รหัสไปรษณีย์">
+            <Input variant="elevated" value={form.shop_postcode ?? ''} onChange={e => setF('shop_postcode' as keyof Setting, e.target.value)} />
+            <p className="text-xs text-muted-foreground">แยกจากที่อยู่ — รหัสนี้จะไม่แสดงบนฉลากยา แต่จะแสดงในใบเสร็จ/ใบกำกับภาษี</p>
+          </FormField>
           <FormField label="โทรศัพท์">
             <Input variant="elevated" value={form.shop_phone ?? ''} onChange={e => setF('shop_phone', e.target.value)} />
           </FormField>

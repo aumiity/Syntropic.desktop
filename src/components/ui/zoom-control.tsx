@@ -27,7 +27,7 @@ export function ZoomControl({ value, min, max, step, onChange, className }: Zoom
         disabled={value <= min}
         onClick={() => onChange(Math.max(min, roundZoom(value - step)))}
         className="h-9 w-9 rounded-l-lg rounded-r-none border-r-0 px-0 shadow-none hover:shadow-none"
-        title="ซูมออก"
+        tooltip="ซูมออก"
       >
         <ZoomOut className="size-4" />
       </Button>
@@ -37,7 +37,7 @@ export function ZoomControl({ value, min, max, step, onChange, className }: Zoom
         size="lg"
         onClick={() => onChange(1)}
         className="h-9 w-14 rounded-none px-0 text-muted-foreground shadow-none hover:shadow-none"
-        title="รีเซ็ตเป็นขนาดจริง (100%)"
+        tooltip="รีเซ็ตเป็นขนาดจริง (100%)"
       >
         {Math.round(value * 100)}%
       </Button>
@@ -48,7 +48,7 @@ export function ZoomControl({ value, min, max, step, onChange, className }: Zoom
         disabled={value >= max}
         onClick={() => onChange(Math.min(max, roundZoom(value + step)))}
         className="h-9 w-9 rounded-l-none rounded-r-lg border-l-0 px-0 shadow-none hover:shadow-none"
-        title="ซูมเข้า"
+        tooltip="ซูมเข้า"
       >
         <ZoomIn className="size-4" />
       </Button>

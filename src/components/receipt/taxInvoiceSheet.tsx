@@ -71,7 +71,7 @@ export function taxInvoiceSheetParts({
         {/* Shop (left) */}
         <div className="min-w-0">
           <div className="text-lg font-bold leading-tight">{shop.shop_name ?? ''}</div>
-          {shop.shop_address ? <div className="mt-0.5 text-xs text-foreground-subtle">{shop.shop_address}</div> : null}
+          {shop.shop_address ? <div className="mt-0.5 text-xs text-foreground-subtle">{[shop.shop_address, shop.shop_postcode].filter(Boolean).join(' ')}</div> : null}
           {shop.shop_phone ? <div className="text-xs text-foreground-subtle">โทรศัพท์ / TEL {shop.shop_phone}</div> : null}
           {shop.shop_tax_id ? <div className="text-xs text-foreground-subtle">เลขประจำตัวผู้เสียภาษี / TAX ID {shop.shop_tax_id}{sellerBranch}</div> : null}
           <div className="mt-2 text-sm font-bold">

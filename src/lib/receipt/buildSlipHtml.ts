@@ -38,7 +38,7 @@ export async function buildSlipHtml(
 ): Promise<string> {
   const mode = opts.mode ?? 'receipt'
   const fontFamily = settings.font_family || 'Sarabun'
-  const base = settings.font_size || 11
+  const base = settings.font_size || 10
   const widthMm = settings.paper_width_mm || 80
   const fontFaceCss = await buildPrintFontFaceCss(fontFamily)
 
@@ -84,8 +84,9 @@ export async function buildSlipHtml(
   ].filter(Boolean).join('<br>')
 
   // 2) ที่อยู่ + เบอร์โทร
+  const addrLine = [shop.shop_address, shop.shop_postcode].filter(Boolean).map(s => esc(s as string)).join(' ')
   const contactInner = [
-    shop.shop_address ? esc(shop.shop_address) : '',
+    addrLine || '',
     shop.shop_phone ? `โทร. ${esc(shop.shop_phone)}` : '',
   ].filter(Boolean).join('<br>')
 

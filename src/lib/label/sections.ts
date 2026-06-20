@@ -143,17 +143,17 @@ export interface LabelSettingsForm {
 export const LABEL_DEFAULTS: LabelSettingsForm = {
   printer_name: '',
   width_mm: 80, height_mm: 50,  // GPP-recommended pharmacy standard
-  pad_top: 3, pad_right: 3, pad_bottom: 3, pad_left: 3,
-  font_family: 'Bai Jamjuree',
+  pad_top: 2, pad_right: 2, pad_bottom: 2, pad_left: 2,
+  font_family: 'Sarabun',
   // All sections default to 10pt.
-  font_size_shop: 10, font_size_print_date: 10,
-  font_size_shop_address: 10, font_size_shop_phone: 10, font_size_shop_line_id: 10,
-  font_size_product: 10, font_size_dosage: 10, font_size_timing: 10,
-  font_size_qty: 10, font_size_expiry: 10, font_size_frequency: 10,
-  font_size_indication: 10, font_size_advice: 10, font_size_barcode: 4,
-  barcode_width_mm: 30,
-  font_size_custom_text: 10,
-  font_size_small: 10, // DEAD
+  font_size_shop: 9, font_size_print_date: 8,
+  font_size_shop_address: 9, font_size_shop_phone: 9, font_size_shop_line_id: 9,
+  font_size_product: 9, font_size_dosage: 9, font_size_timing: 9,
+  font_size_qty: 9, font_size_expiry: 9, font_size_frequency: 9,
+  font_size_indication: 9, font_size_advice: 9, font_size_barcode: 4,
+  barcode_width_mm: 26,
+  font_size_custom_text: 9,
+  font_size_small: 9, // DEAD
   // Bold only the shop name / address / phone / product name (date not bold).
   bold_shop: 1, bold_print_date: 0,
   bold_shop_address: 1, bold_shop_phone: 1, bold_shop_line_id: 0,

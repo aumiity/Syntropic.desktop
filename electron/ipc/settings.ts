@@ -98,7 +98,7 @@ export function registerSettingsHandlers() {
       const fields = Object.keys(data).map(k => `${k} = @${k}`).join(', ')
       db.prepare(`UPDATE settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`).run({ ...data, id: existing.id })
     } else {
-      db.prepare(`INSERT INTO settings (shop_name, shop_address, shop_phone, shop_license_no, shop_tax_id, shop_line_id) VALUES (@shop_name, @shop_address, @shop_phone, @shop_license_no, @shop_tax_id, @shop_line_id)`).run(data)
+      db.prepare(`INSERT INTO settings (shop_name, shop_address, shop_phone, shop_license_no, shop_tax_id, shop_line_id, shop_postcode) VALUES (@shop_name, @shop_address, @shop_phone, @shop_license_no, @shop_tax_id, @shop_line_id, @shop_postcode)`).run(data)
     }
     return db.prepare(`SELECT * FROM settings LIMIT 1`).get()
   })
@@ -122,6 +122,7 @@ export function registerSettingsHandlers() {
       shop_line_id: shop.shop_line_id ?? '',
       shop_tax_id: shop.shop_tax_id ?? '',
       shop_branch: shop.shop_branch ?? 'สำนักงานใหญ่',
+      shop_postcode: shop.shop_postcode ?? '',
       vat_registered_date: shop.vat_registered_date ?? null,
     }
     let recoveryCode: string | null = null
@@ -133,6 +134,7 @@ export function registerSettingsHandlers() {
             shop_name = @shop_name, shop_address = @shop_address, shop_phone = @shop_phone,
             shop_license_no = @shop_license_no, shop_line_id = @shop_line_id,
             shop_tax_id = @shop_tax_id, shop_branch = @shop_branch,
+            shop_postcode = @shop_postcode,
             vat_registered_date = @vat_registered_date,
             setup_completed = 1, setup_completed_at = datetime('now','localtime'),
             updated_at = datetime('now','localtime')
@@ -142,11 +144,11 @@ export function registerSettingsHandlers() {
         db.prepare(`
           INSERT INTO settings (
             shop_name, shop_address, shop_phone, shop_license_no, shop_line_id,
-            shop_tax_id, shop_branch, vat_registered_date,
+            shop_tax_id, shop_branch, shop_postcode, vat_registered_date,
             setup_completed, setup_completed_at
           ) VALUES (
             @shop_name, @shop_address, @shop_phone, @shop_license_no, @shop_line_id,
-            @shop_tax_id, @shop_branch, @vat_registered_date,
+            @shop_tax_id, @shop_branch, @shop_postcode, @vat_registered_date,
             1, datetime('now','localtime')
           )
         `).run(shopData)

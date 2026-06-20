@@ -90,7 +90,7 @@ export function GoodsReceiptPrintDialog({
     <div data-m="header" className="flex items-start justify-between pb-3">
       <div className="min-w-0">
         <div className="text-base font-bold">{shop.shop_name ?? ''}</div>
-        {shop.shop_address ? <div className="text-xs text-foreground-subtle">{shop.shop_address}</div> : null}
+        {shop.shop_address ? <div className="text-xs text-foreground-subtle">{[shop.shop_address, shop.shop_postcode].filter(Boolean).join(' ')}</div> : null}
         {shop.shop_phone ? <div className="text-xs text-foreground-subtle">โทร. {shop.shop_phone}</div> : null}
         {shop.shop_tax_id ? <div className="text-xs text-foreground-subtle">เลขประจำตัวผู้เสียภาษี: {shop.shop_tax_id}{sellerBranch}</div> : null}
       </div>
