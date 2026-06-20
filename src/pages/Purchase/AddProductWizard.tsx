@@ -54,8 +54,13 @@ export interface ReceiptRow {
    *  ทำให้ตาราง GR ไม่ติด badge "ไม่สมบูรณ์" กับล็อตที่จงใจไม่มีวันหมดอายุ (paste/import ที่ไม่มีธงยังเตือนปกติ) */
   expiry_optional?: boolean
   qty: string
+  /** ทุน/หน่วยปัจจุบัน (รวมส่วนเพิ่มท้ายบิลที่ commit แล้ว) — ไม่ถูกหักโดยส่วนลด; โชว์เป็น "ทุนก่อนลด" */
   cost_price: string
+  /** ส่วนลดรายตัว (กรอกใน wizard) */
   discount: string
+  /** ส่วนลดท้ายบิลที่กระจายลงแถวนี้ — แยกจาก discount เพื่อ tooltip แยกที่มา (สินค้า/ท้ายบิล) */
+  bill_discount?: string
+  /** ยอดสุทธิของแถว = qty*cost_price − discount − bill_discount (ส่วนเพิ่มฝังใน cost_price แล้ว) */
   total: string
   note: string
   /** หน่วยที่ขายได้ (ฐาน + is_for_sale variants) — capture ตอนเลือกสินค้า ไว้ให้ modal แก้ราคาที่ตาราง GR ใช้ทีหลัง */
@@ -66,7 +71,7 @@ export const emptyRow = (): ReceiptRow => ({
   product_id: 0, trade_name: '', product_code: '',
   unit_name: '', units: [], default_sell_price: 0,
   lot_number: '', manufactured_date: '', expiry_date: '',
-  qty: '', cost_price: '', discount: '', total: '', note: '',
+  qty: '', cost_price: '', discount: '', bill_discount: '0', total: '', note: '',
 })
 
 interface ProductSuggestion {
@@ -190,7 +195,18 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   // ── (re)initialise whenever the dialog opens ──
   useEffect(() => {
     if (!open) return
-    const base = editing ? { ...editing } : emptyRow()
+    // แก้ไขแถว = เริ่มสะอาด: ลบส่วนลด/ส่วนเพิ่มท้ายบิลที่กระจายไว้ (จะกระจายใหม่ตอนปรับยอดท้ายบิล)
+    // แล้วคิดยอดรวมจาก ทุน − ส่วนลดรายตัว เท่านั้น เพื่อให้ cost_price คงเป็นทุนเต็มล้วน ๆ
+    let base: ReceiptRow
+    if (editing) {
+      const q = parseFloat(editing.qty) || 0
+      const c = parseFloat(editing.cost_price)
+      const d = parseFloat(editing.discount) || 0
+      const t = q > 0 && isFinite(c) ? Math.max(q * c - d, 0).toFixed(2) : editing.total
+      base = { ...editing, bill_discount: '0', total: t }
+    } else {
+      base = emptyRow()
+    }
     setRow(base)
     setQuery(editing?.trade_name ?? '')
     setSuggestions([])

@@ -29,12 +29,10 @@ export interface GRDraft {
   grNote: string
   rows: ReceiptRow[]
   searchQueries: string[]
-  // Applied bill-adjustment state (re-applied math baseline + footer summary).
-  adjustSubtotal: number | null
-  adjustDiscountAmt: number
-  adjustSurchargeAmt: number
+  // Bill-adjustment state: discount baseline (baseRowTotals) + last-committed
+  // discount input (appliedDiscount) for restoring the ส่วนลดท้ายบิล dialog.
+  // (Surcharge "เพิ่มต้นทุน" bakes straight into cost_price — nothing to persist.)
   appliedDiscount: { baht: string; pct: string }
-  appliedSurcharge: { baht: string; pct: string }
   baseRowTotals: number[] | null
 }
 
