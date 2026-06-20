@@ -5,6 +5,18 @@ metadata:
   type: project
 ---
 
+## Status — 2026-06-20 (ฉลากเปล่า = template ฉลากยาจริง + Settings designer พรีวิวฉลากเปล่า) — tsc PASS, in-app verify pending
+
+เจ้าของขอ: ฉลากเปล่า (write-your-own) ต้องใช้ **layout/ตำแหน่ง/ฟอนต์/offset เดียวกับฉลากยาจริง** (ตาม `label_settings`) เป๊ะ แล้ว "เขียนทับ" เฉพาะ section ข้อมูลยาด้วยช่องเขียนเอง. **Insight เจ้าของ:** ออกแบบ layout โดยยึดฉลากเปล่า (ข้อความยาวสุด: prompt+เส้น+วงเลือก 2 บรรทัด) ให้พอดี → ฉลากยาจริงที่สั้นกว่าพอดีตามเสมอ → ใช้ฉลากเปล่าเป็น **worst-case design target**.
+
+- **`src/lib/label/blankLabel.ts` เขียนใหม่:** เลิกใช้ layout เฉพาะตัวเดิม. เดิน `SECTIONS` + `buildSectionStyle` (ตัวเดียวกับฉลากยา → ตำแหน่งตรงกันรับประกัน). ส่วนหัวร้าน (shop/address/phone/line_id) = ข้อมูลจริงจาก `getShop()`; drug-info sections (product/dosage/frequency/timing/indication/advice) = แทนด้วย `fieldRow` (prompt + เส้น underline แบบ flex stretch) / `timingRow` (2 แถววงเลือก ก่อน-หลัง-พร้อมอาหาร + เช้า-กลางวัน-เย็น-ก่อนนอน, **ไม่มี label "มื้อ"/"เวลา"** ตามที่เจ้าของขอ); ข้าม qty/expiry/barcode (per-dispense ไม่มีความหมายบน blank). **เคารพ `show_*`** — section ที่ปิดใน Settings ก็ไม่โผล่บน blank. param ใหม่ `printDate` คุมแถววันที่ (true=วันนี้ todayBE / false=เว้นว่างเขียนเอง). **ถอด LABEL_FIT_SCRIPT** (ให้ตรงฉลากยาที่เลิก shrink-to-fit แล้ว).
+- **`PrintTab/index.tsx` (`/products/print` แท็บฉลากเปล่า):** เพิ่ม state `printDate` + CheckRow "พิมพ์วันที่ (วันนี้)" (default true) ส่งเข้า preview+พิมพ์.
+- **`LabelSettingsTab.tsx` (Settings designer) เปลี่ยน preview เป็น "ฉลากเปล่าอย่างเดียว"** (เจ้าของเลือก option นี้ — **ตัด LabelPaper + sample Paracetamol + ตัวเลือกภาษา th/en/mm/zh ทิ้ง**, ยอมเสียการเช็คฟอนต์พม่า/จีน): preview = `<iframe srcDoc={blankHtml}>` (buildBlankLabelHtml, printDate=true ให้เห็นแถววันที่ไว้จัดตำแหน่ง) scale ด้วย `transform:scale(zoom)` (ไม่ใช่ CSS zoom — iframe mm doc ไม่ขยายตาม wrapper zoom, ดู PrintTab). ปุ่ม "ทดสอบพิมพ์" พิมพ์ฉลากเปล่าด้วย. ลบ `previewContent` memo + `lang` state + imports (SAMPLE_CONTENT_BY_LANG/composeLabelContent/LabelPaper/buildLabelHtml/LANG_OPTIONS/Languages/todayBE).
+- **`LabelPrintDialog.tsx` (POS, builder ใช้ร่วม):** ส่ง `printDate=true` (จ่ายยาวันนี้) — กันแถววันที่หายตอน default flip.
+- **เดิม blank มี "วันที่ ____/____/____" เขียนเอง → เลิก** แล้ว: ติ๊กพิมพ์=วันนี้จริง / ไม่ติ๊ก=เว้นว่าง (ไม่มี placeholder underscore).
+
+ค้าง: in-app verify (พิมพ์จริง + เทียบ blank vs ฉลากยาจริงว่าตำแหน่งตรงกัน). **หมายเหตุ:** Architecture table ด้านล่าง (Settings preview shop header / Sample text rows) = ของเก่าก่อนเปลี่ยนเป็นพรีวิวฉลากเปล่า — `LabelPaper` ยังใช้ที่ per-product LabelsTab อยู่ (ไม่ถูกลบ) แต่ **ไม่ใช้ใน Settings designer แล้ว**.
+
 ## Status — 2026-06-19c (แยก ความถี่ ออกจาก วิธีใช้) — tsc PASS, in-app verify pending
 
 เดิม `out.dosage = [dose, dosageName, frequencyName].join(' ')` รวม วิธีใช้+ความถี่ บรรทัดเดียว. เจ้าของขอแยก → **section ใหม่ `frequency` (ความถี่)** เป็นบรรทัดของตัวเอง วางถัดจาก dosage (render หลัง dosage row; ใน SECTIONS order = product, qty, dosage, expiry, frequency, timing — expiry พับเข้า dosage จึง render ออกมาเป็น dosage→frequency→timing). 

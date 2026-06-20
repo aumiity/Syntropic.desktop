@@ -52,6 +52,9 @@ export default function PrintTab() {
 
   const [mode, setMode] = useState<Mode>('sticker')
   const [copies, setCopies] = useState(1)
+  // Blank label: print today's date in the shop row, or leave it blank to write
+  // by hand. Pre-printed stock → uncheck; print-on-demand → keep checked.
+  const [printDate, setPrintDate] = useState(true)
   // Cells are kept per mode so switching back and forth doesn't lose work.
   const [stickerCells, setStickerCells] = useState<(TagCell | null)[]>([])
   const [priceCells, setPriceCells] = useState<(TagCell | null)[]>([])
@@ -141,12 +144,12 @@ export default function PrintTab() {
         mode === 'sticker'
           ? await buildBarcodeStickerHtml(label, stickerCfg, cells, 1)
           : mode === 'blank'
-            ? await buildBlankLabelHtml(label, shop, 1)
+            ? await buildBlankLabelHtml(label, shop, 1, printDate)
             : await buildPriceTagHtml(priceCfg, cells, doc.paper_size)
       if (!cancelled) setPreviewHtml(html)
     }, 300)
     return () => { cancelled = true; clearTimeout(t) }
-  }, [mode, label, stickerCfg, priceCfg, cells, doc.paper_size, shop])
+  }, [mode, label, stickerCfg, priceCfg, cells, doc.paper_size, shop, printDate])
 
   const hasAny = cells.some((c) => c != null)
   // Blank labels need no product cells, so they're always printable. Sticker /
@@ -177,7 +180,7 @@ export default function PrintTab() {
     setBusy(true)
     try {
       if (mode === 'blank') {
-        const html = await buildBlankLabelHtml(label, shop, n)
+        const html = await buildBlankLabelHtml(label, shop, n, printDate)
         const res = await window.api.printer.printLabel({
           html,
           printerName: label.printer_name || '',
@@ -218,10 +221,10 @@ export default function PrintTab() {
           preview card header (same row as ZoomControl), mirroring LabelsTab. */}
       <div className="flex items-center gap-3 h-12 shrink-0">
         <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
-          <TabsList variant="line">
-            <TabsTrigger value="sticker" className="flex-none px-4 py-2"><Printer /> สติ๊กเกอร์บาร์โค้ด</TabsTrigger>
-            <TabsTrigger value="pricetag" className="flex-none px-4 py-2"><FileText /> ป้ายราคา A4</TabsTrigger>
-            <TabsTrigger value="blank" className="flex-none px-4 py-2"><PenLine /> ฉลากเปล่า</TabsTrigger>
+          <TabsList variant="line" className="inline-grid grid-flow-col auto-cols-fr">
+            <TabsTrigger value="sticker" className="px-8"><Printer /> สติ๊กเกอร์บาร์โค้ด</TabsTrigger>
+            <TabsTrigger value="pricetag" className="px-8"><FileText /> ป้ายราคา A4</TabsTrigger>
+            <TabsTrigger value="blank" className="px-8"><PenLine /> ฉลากเปล่า</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -233,15 +236,22 @@ export default function PrintTab() {
           <SectionCard title="ฉลากเปล่า (เขียนเอง)" icon={PenLine} tint="primary">
             <div className="space-y-2 text-sm text-muted-foreground">
               <p className="text-foreground">
-                ฟอร์มฉลากเปล่ารูปแบบมาตรฐาน สำหรับพิมพ์ออกมาแล้วเขียน/วงด้วยปากกาเอง
+                ใช้รูปแบบเดียวกับฉลากยาที่ตั้งค่าไว้ทุกประการ (ตำแหน่ง/ฟอนต์/ขนาด) แต่ช่องข้อมูลยาเว้นว่างไว้ให้เขียน/วงด้วยปากกาเอง
               </p>
               <ul className="list-inside list-disc space-y-1">
-                <li>มีช่องว่างให้เขียน "ชื่อยา/อาการ" และ "รับประทานครั้งละ"</li>
-                <li>มีคำว่า ก่อนอาหาร / หลังอาหาร / พร้อมอาหาร และ เช้า / กลางวัน / เย็น / ก่อนนอน ให้วงเลือกเอง</li>
-                <li>พิมพ์ลงกระดาษฉลากและเครื่องพิมพ์เดียวกับฉลากยา (ตั้งค่าได้ที่ ตั้งค่า &gt; ฉลากยา)</li>
-                <li>กำหนดจำนวนสำเนาได้ที่มุมขวาบน แล้วกด "พิมพ์"</li>
+                <li>ส่วนหัวร้าน (ชื่อร้าน/ที่อยู่/โทร/LINE) ดึงจากที่ตั้งค่าไว้จริง</li>
+                <li>ช่อง "ชื่อยา" "รับประทานครั้งละ" "ความถี่" เว้นเส้นให้เขียนเอง</li>
+                <li>มื้อ (ก่อน/หลัง/พร้อมอาหาร) และ เวลา (เช้า/กลางวัน/เย็น/ก่อนนอน) ให้วงเลือกเอง</li>
+                <li>section ที่ปิดไว้ใน ตั้งค่า &gt; ฉลากยา จะไม่แสดงบนฉลากเปล่าเช่นกัน</li>
               </ul>
             </div>
+            <CheckRow
+              framed
+              className="h-12"
+              label="พิมพ์วันที่ (วันนี้)"
+              checked={printDate}
+              onChange={setPrintDate}
+            />
           </SectionCard>
           ) : (
           <>

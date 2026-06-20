@@ -229,7 +229,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return
     let cancelled = false
-    buildBlankLabelHtml(labelSettings, shop, 1)
+    buildBlankLabelHtml(labelSettings, shop, 1, true)
       .then(h => { if (!cancelled) setBlankHtml(h) })
       .catch(() => {})
     return () => { cancelled = true }
@@ -340,7 +340,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
     }
     setBlankPrinting(true)
     try {
-      const html = await buildBlankLabelHtml(labelSettings, shop, copiesNum(blankCopies))
+      const html = await buildBlankLabelHtml(labelSettings, shop, copiesNum(blankCopies), true)
       const res = await window.api.printer.printLabel({
         html,
         printerName: labelSettings.printer_name,

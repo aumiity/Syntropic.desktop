@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Save, Printer, Bold, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, Info, Barcode, Languages } from 'lucide-react'
+import { Save, Printer, Bold, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Wand2, RotateCcw, Info, Barcode } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Bundled fonts + the @font-face/esc helpers are shared with the receipt/tax
@@ -22,11 +22,9 @@ import { FONTS } from '@/lib/print/fonts'
 // Label anatomy (sections / per-section style / form shape / defaults) is the
 // SSOT shared with the per-product LabelsTab preview — see src/lib/label/sections.ts
 import { SECTIONS, LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
-import { SAMPLE_CONTENT_BY_LANG, composeLabelContent, todayBE, LANG_OPTIONS, type LabelLang } from '@/lib/label/content'
-import { buildLabelHtml } from '@/lib/label/html'
+import { buildBlankLabelHtml } from '@/lib/label/blankLabel'
 import { buildPrinterOptions } from '@/lib/print/pdfPrinter'
 import { PrinterSelectItems } from '@/components/ui/printer-select-items'
-import { LabelPaper } from '@/components/label/LabelPaper'
 
 // Common label sticker sizes sold by Thai suppliers (thermal roll). 80×50 mm is
 // the GPP-recommended pharmacy standard (used as default by Hygeia / EasyPrint).
@@ -230,11 +228,13 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
   // real layout box so the overflow-auto container can scroll to the edges.
   const [zoom, setZoom] = useState(1)
   const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
-  // Preview language — switches the sample body text (product/วิธีใช้/สรรพคุณ/…)
-  // between th/en/mm/zh so the designer can check font rendering + line wrapping
-  // in each script. Drives BOTH the on-screen preview and ทดสอบพิมพ์/PDF, since
-  // those build from `previewContent` (below), keeping preview = print 1:1.
-  const [lang, setLang] = useState<LabelLang>('th')
+  // Live blank-label preview — the designer renders the BLANK label (the
+  // longest-text "write-your-own" form) so positions tuned here fit the real,
+  // shorter drug-label content automatically (real text is always ≤ the blank's
+  // prompts). Rebuilt (debounced) from form + shop via the SAME builder as the
+  // print path → preview = print 1:1. printDate=true so the date row is visible
+  // for positioning the print_date offset.
+  const [blankHtml, setBlankHtml] = useState('')
 
   // Load settings — explicit per-key overwrite to keep stale UI-only keys out
   // of `form` (which would later poison the dynamic-SQL UPDATE).
@@ -262,24 +262,16 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
     window.api.settings.getShop().then((s: any) => setShop(s)).catch(() => {})
   }, [])
 
-  // Preview content: real shop header (ชื่อร้าน / ที่อยู่ / เบอร์ / LINE ID) from
-  // the saved shop settings; the product/วิธีใช้ rows stay as sample text (in the
-  // selected `lang`) because the designer has no specific product. custom_text is
-  // config and is pulled separately by LabelPaper/buildLabelHtml from
-  // form.custom_text. Before shop loads, fall back to the sample so the preview
-  // is never blank.
-  const previewContent = useMemo(() => {
-    const sample = SAMPLE_CONTENT_BY_LANG[lang]
-    if (!shop) return sample
-    const real = composeLabelContent(null, {}, shop, {})
-    return {
-      ...sample,
-      shop:         real.shop || sample.shop,
-      shop_address: real.shop_address ?? '',
-      shop_phone:   real.shop_phone ?? '',
-      shop_line_id: real.shop_line_id ?? '',
-    }
-  }, [shop, lang])
+  // Debounced rebuild of the blank-label preview whenever the form (paper / font /
+  // offsets / show toggles) or the shop header changes.
+  useEffect(() => {
+    let cancelled = false
+    const t = setTimeout(async () => {
+      const html = await buildBlankLabelHtml(form, shop, 1, true)
+      if (!cancelled) setBlankHtml(html)
+    }, 200)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [form, shop])
 
   const setF = <K extends keyof LabelSettingsForm>(k: K, v: LabelSettingsForm[K]) =>
     setForm(f => ({ ...f, [k]: v }))
@@ -344,7 +336,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
   const handleTestPrint = async () => {
     if (printing) return
     if (!validatePaper()) return
-    const html = await buildLabelHtml(form, previewContent, todayBE())
+    const html = await buildBlankLabelHtml(form, shop, 1, true)
 
     setPrinting(true)
     try {
@@ -403,36 +395,41 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
         {/* LEFT — preview, centered, true 1:1 mm scale */}
         <SectionCard
           className="min-w-0 sticky top-0 self-start"
-          title="ตัวอย่างฉลาก"
+          title="ตัวอย่างฉลากเปล่า (จัดตำแหน่ง)"
           tint="success"
           right={previewActions}
         >
-          {/* The label paper itself is rendered by the shared LabelPaper
-              component (also used by the per-product LabelsTab preview), so the
-              designer preview and the printed sticker stay 1:1. The zoom wrapper
-              uses CSS `zoom` (not transform) so the scaled box keeps its layout
-              size and the overflow-auto container can scroll to its edges. */}
-          {/* `mx-auto` (not flex `justify-center`): centers while the zoomed
-              label fits, then left-aligns when it overflows — so scroll reveals
-              the label, not a blank strip on the right. */}
-          {/* Language strip — switches the sample body text (and the
-              ทดสอบพิมพ์/PDF output, which build from previewContent) between
-              th/en/mm/zh so the designer can check font rendering per script. */}
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-              <Languages className="size-4 text-muted-foreground" /> ภาษา
-            </div>
-            <Tabs value={lang} onValueChange={v => setLang(v as LabelLang)}>
-              <TabsList variant="toggle">
-                {LANG_OPTIONS.map(o => (
-                  <TabsTrigger key={o.value} value={o.value} className="text-sm px-3">{o.label}</TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
+          {/* The designer previews the BLANK label (write-your-own form) — the
+              longest-text case — rendered through the SAME builder as the print
+              path (buildBlankLabelHtml) in an isolated <iframe>, so what you tune
+              here is exactly what prints, and any position that fits the blank
+              fits the shorter real drug-label too. UNLIKE the inline-DOM LabelPaper,
+              an iframe's inner mm-laid-out document won't magnify under CSS `zoom`
+              on a wrapper (frame grows, contents stay ~physical) — so we scale the
+              iframe itself with transform:scale and size the wrapper to the scaled
+              box so overflow-auto still scrolls to the edges; mx-auto centers while
+              it fits. (Same approach as PrintTab.) */}
           <div className="bg-muted/30 rounded-lg p-6 overflow-auto max-h-[70vh]">
-            <div className="w-fit mx-auto" style={{ zoom }}>
-              <LabelPaper settings={form} content={previewContent} date={todayBE()} />
+            <div
+              className="mx-auto"
+              style={{
+                width: `calc(${form.width_mm}mm * ${zoom})`,
+                height: `calc(${form.height_mm}mm * ${zoom})`,
+              }}
+            >
+              <iframe
+                title="ตัวอย่างฉลากเปล่า"
+                srcDoc={blankHtml}
+                scrolling="no"
+                className="block border-0 bg-white"
+                style={{
+                  width: `${form.width_mm}mm`,
+                  height: `${form.height_mm}mm`,
+                  transform: `scale(${zoom})`,
+                  transformOrigin: 'top left',
+                  boxShadow: '0 4px 5px rgb(0 0 0 / 0.20), 0 12px 14px rgb(0 0 0 / 0.16)',
+                }}
+              />
             </div>
           </div>
         </SectionCard>
