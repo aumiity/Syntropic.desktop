@@ -35,9 +35,9 @@ export interface SectionDef {
 // the print-HTML builder. Order is LOCKED (see docs/plans/label-section-split.md).
 // Four flex rows are special-cased in LabelPaper/buildLabelHtml:
 //   - `shop` row: shop name left + print date right.
-//   - `shop_phone` row: phone left + BARCODE right (bars only).
-//   - `product` row: product name left + QTY right.
-//   - `dosage` row: dosage text left + EXPIRY right.
+//   - `shop_address` row: address + phone left + QTY right.
+//   - `product` row: product name left + BARCODE right (bars only).
+//   - `dosage` row: dosage text + frequency left + EXPIRY right.
 // `print_date`, `barcode`, `qty` and `expiry` keep their OWN settings columns
 // (show/font/bold/offset; for barcode, font_size = height in mm) and appear as
 // their own rows in the settings table, but are NOT rendered as their own line —
@@ -47,15 +47,24 @@ export interface SectionDef {
 export const SECTIONS: SectionDef[] = [
   { kind: 'text', key: 'shop',         label: 'ชื่อร้าน' },
   { kind: 'text', key: 'print_date',   label: 'วันที่' },
-  { kind: 'text', key: 'shop_address', label: 'ที่อยู่ร้าน' },
-  { kind: 'text', key: 'shop_phone',   label: 'เบอร์โทรร้าน' },
+  { kind: 'text', key: 'shop_address', label: 'ที่อยู่ร้าน / เบอร์โทร' },
+  // `shop_phone` (เบอร์โทร) is NOT its own section as of 2026-06-20: its content
+  // (out.shop_phone) stays SEPARATE (no data merge), but it renders inline on the
+  // `shop_address` row sharing that row's font/bold/show/offset — one combined
+  // "ที่อยู่ร้าน / เบอร์โทร" heading that moves together. The QTY fold (right side)
+  // lives on this row (swapped with the barcode 2026-06-20). shop_phone_* style
+  // columns are kept DEAD so the load-filter round-trips (see LabelSettingsForm).
   { kind: 'text', key: 'shop_line_id', label: 'LINE ID' },
   { kind: 'line', key: 'header_line',  label: 'เส้นคั่นส่วนหัว' },
   { kind: 'text', key: 'product',      label: 'ชื่อสินค้า' },
   { kind: 'text', key: 'qty',          label: 'จำนวน' },
-  { kind: 'text', key: 'dosage',       label: 'วิธีใช้' },
+  { kind: 'text', key: 'dosage',       label: 'วิธีใช้ / ความถี่' },
   { kind: 'text', key: 'expiry',       label: 'วันหมดอายุ' },
-  { kind: 'text', key: 'frequency',    label: 'ความถี่' },
+  // `frequency` (ความถี่) is NOT its own section as of 2026-06-20: its content
+  // (out.frequency) stays a SEPARATE field (no data merge), but it renders inline
+  // on the `dosage` row sharing dosage's font/bold/show/offset — one combined
+  // "วิธีใช้ / ความถี่" heading that moves together. The frequency_* style columns
+  // are kept DEAD so the load-filter round-trips (see LabelSettingsForm comment).
   { kind: 'text', key: 'timing',       label: 'มื้อ / เวลา' },
   { kind: 'text', key: 'indication',   label: 'สรรพคุณ' },
   { kind: 'text', key: 'advice',       label: 'คำแนะนำ' },
@@ -66,9 +75,10 @@ export const SECTIONS: SectionDef[] = [
 // Form keys are canonical DB column names — `Object.keys(form)` flows straight
 // into the dynamic-SQL UPDATE in `settings:saveLabelSettings`, so any key here
 // must be a real column on `label_settings`. `font_size_small` and the
-// notes / footer_line / lot_expiry keys are DEAD (columns kept, sections
-// removed/retired) — they stay in the interface + defaults so the load-filter
-// doesn't drop the real columns and overwrite them as undefined on next save.
+// notes / footer_line / lot_expiry / frequency / shop_phone keys are DEAD
+// (columns kept, sections removed/retired) — they stay in the interface +
+// defaults so the load-filter doesn't drop the real columns and overwrite them
+// as undefined on next save.
 export interface LabelSettingsForm {
   printer_name: string
   width_mm: number
@@ -79,8 +89,9 @@ export interface LabelSettingsForm {
   font_size_shop: number; font_size_print_date: number
   font_size_shop_address: number; font_size_shop_phone: number; font_size_shop_line_id: number
   font_size_product: number; font_size_dosage: number; font_size_timing: number
-  // qty folds into the product row (right); expiry folds into the dosage row (right);
-  // frequency (ความถี่) is its OWN line, split out of dosage so it positions freely.
+  // qty folds into the shop_address row (right); expiry folds into the dosage row (right).
+  // frequency (ความถี่) is DEAD — merged back into the dosage text 2026-06-20 (no
+  // longer its own line/row); its columns are kept so the load-filter round-trips.
   font_size_qty: number; font_size_expiry: number; font_size_frequency: number
   font_size_indication: number; font_size_advice: number; font_size_barcode: number
   // Barcode is sized by a box: font_size_barcode = HEIGHT (mm), barcode_width_mm

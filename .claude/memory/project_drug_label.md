@@ -5,6 +5,45 @@ metadata:
   type: project
 ---
 
+## Status — 2026-06-20e (สลับ fold: barcode → แถวชื่อยา, qty → แถวที่อยู่/เบอร์) — tsc PASS, in-app verify pending
+
+เจ้าของขอย้าย barcode ออกจากแถวที่อยู่/เบอร์ (ยาวไป) → ไปพับขวา**แถวชื่อยา (product)** แทน qty; แล้วเอา **qty (สั้น) ขึ้นไปพับขวาแถว "ที่อยู่ร้าน / เบอร์โทร"** แทนที่ barcode. = **สลับ host ของ qty ↔ barcode**:
+- **fold map ใหม่:** `print_date`→shop, **`qty`→shop_address**, **`barcode`→product**, `expiry`→dosage.
+- `html.ts` + `LabelPaper.tsx` (**dual-render**): บล็อก `product` = name(ซ้าย)+**barcode**(ขวา, alignItems:center); บล็อก `shop_address` = address+phone(ซ้าย)+**qty**(ขวา, alignItems:baseline). filter: product โชว์เมื่อ `show_product||show_barcode`; shop_address โชว์เมื่อ `show_shop_address||show_qty`.
+- qty ใช้ font_size_qty/bold_qty/offset_qty เดิม; barcode ใช้ font_size_barcode(สูง)/barcode_width_mm/offset_barcode เดิม (แค่ย้าย host row). `content.ts`/`sections.ts` SECTIONS คงเดิม (qty/barcode ยัง skip+fold) — แก้แค่ comment fold map.
+- blankLabel ไม่กระทบ (ข้าม qty/barcode อยู่แล้ว).
+
+## Status — 2026-06-20d (เบอร์โทร รวมเข้า ที่อยู่ร้าน บรรทัด/หัวข้อเดียว — DISPLAY merge + ย้าย barcode fold) — tsc PASS, in-app verify pending
+
+เจ้าของขอเอา "เบอร์โทร" (shop_phone) ขึ้นไปรวมกับ "ที่อยู่ร้าน" (shop_address) บรรทัดเดียว + settings หัวข้อเดียว เลื่อนด้วยกัน. **DISPLAY merge แบบเดียวกับ dosage/frequency** (ข้อมูลแยก `out.shop_address`/`out.shop_phone` เหมือนเดิม). **ประเด็นพิเศษ: barcode เคยพับขวาบรรทัด shop_phone → ย้ายมาพับขวาบรรทัด shop_address แทน** (ไม่งั้นหาย):
+- `content.ts` = **คงเดิม** (out.shop_address + out.shop_phone แยก; sample 4 ภาษามี shop_phone).
+- `sections.ts` = เอา `shop_phone` ออกจาก `SECTIONS`; relabel `shop_address` → **"ที่อยู่ร้าน / เบอร์โทร"**; แก้ comment fold (barcode → shop_address); คอลัมน์ `*_shop_phone` = DEAD.
+- `html.ts` + `LabelPaper.tsx` (**dual-render**) = ลบ special-case `shop_phone`, เพิ่ม special-case **`shop_address`**: ซ้าย = `[content.shop_address, content.shop_phone].join('  ')` (สไตล์ shop_address) + ขวา = barcode fold (offset/size ของ barcode เดิม). filter: `shop_address` โชว์เมื่อ `show_shop_address || show_barcode`. `show_shop_address` คุม text ทั้งคู่ (show_shop_phone = DEAD).
+- `blankLabel.ts` = `case 'shop_address'` รวม address+phone บรรทัดเดียว; `case 'shop_phone'` → break.
+
+**Caveat:** address+phone(+barcode) บรรทัดเดียว ถ้ายาวจะ truncate (nowrap+ellipsis ตามแพทเทิร์น host-row เดิม) — เจ้าของปรับ font/ตำแหน่งเอง. ค้าง: in-app verify (เปิด barcode ด้วยดูว่าพับขวาถูก).
+
+## Status — 2026-06-20c (วิธีใช้ + ความถี่ รวมบรรทัด/หัวข้อเดียว — DISPLAY merge ไม่ใช่ data merge) — tsc PASS, in-app verify pending
+
+เจ้าของขอรวม "วิธีใช้" (dosage) + "ความถี่" (frequency) เป็น **บรรทัดเดียว + ตาราง settings หัวข้อเดียว เลื่อนด้วยกัน** แต่ **ห้ามจับข้อมูลใน DB/content มายำรวมเป็น string เดียว** (ย้ำชัด: `out.dosage`/`out.frequency` ต้องแยกกันเหมือนเดิม). วิธี = **display merge**:
+- `content.ts` = **คงเดิม** (ข้อมูลแยก `out.dosage` + `out.frequency`; SAMPLE ก็แยก dosage/frequency 4 ภาษา). **ห้าม revert ไปรวม string** (เคยลองแล้วเจ้าของบอกไม่ใช่).
+- `sections.ts` = เอา `frequency` ออกจาก `SECTIONS` (ไม่มีบรรทัด/แถว settings ของตัวเอง) + เปลี่ยน label `dosage` → **"วิธีใช้ / ความถี่"** (หัวข้อรวม). คอลัมน์ `*_frequency` ทั้งชุด = **DEAD** (เก็บไว้ใน LabelSettingsForm/LABEL_DEFAULTS/load-filter กัน round-trip พัง).
+- `html.ts` + `LabelPaper.tsx` (**dual-render — แก้คู่กันเสมอ**) = ในเคสพิเศษแถว `dosage` เปลี่ยน `dosageText` เป็น `[content.dosage, content.frequency].filter(Boolean).join(' ')` → frequency แสดง inline ต่อท้าย dosage ใช้ font/bold/offset ของ dosage; `show_dosage` คุมทั้งคู่ (show_frequency = DEAD/ไม่อ่าน). expiry ยังพับขวาเหมือนเดิม.
+- `blankLabel.ts` = ฟอร์มเปล่ารวมเป็นบรรทัดเดียวด้วย helper ใหม่ `dosageFreqRow` ("รับประทานครั้งละ ___ วันละ ___ ครั้ง", 2 เส้น flex-share, สไตล์ dosage); `case 'frequency'` → `break` (ตายแล้วเพราะหลุดจาก SECTIONS).
+
+**ผลพิมพ์เท่ากับ data-merge เป๊ะ** แต่ข้อมูลสะอาด (แยกคืนได้ทันที). นี่คือการ**ย้อน split 2026-06-19c** แต่ทำที่ชั้น render/settings ไม่ใช่ชั้นข้อมูล. ค้าง: in-app verify.
+
+## Status — 2026-06-20b (Settings designer พรีวิวสลับ ฉลากเปล่า ↔ ข้อมูลตัวอย่าง) — tsc PASS, in-app verify pending
+
+เจ้าของขอ designer พรีวิวได้ 2 แบบ สลับด้วยสวิตช์ซ้าย-ขวา. แก้ **ไฟล์เดียว `LabelSettingsTab.tsx`** (ไม่แตะ schema/IPC/builder):
+- state `previewMode: 'blank' | 'sample'` (default `'blank'`) + `Tabs variant="toggle"` 2 ช่อง (ฉลากเปล่า | ข้อมูลตัวอย่าง) วางกึ่งกลางเหนือกระดาษพรีวิว (pattern เดียวกับ toggle ภาษาใน LabelsTab).
+- เปลี่ยนชื่อ state `blankHtml`→`previewHtml`. build effect เลือก builder ตามโหมด: blank→`buildBlankLabelHtml(form,shop,1,true)`, sample→`buildLabelHtml(form, sampleContent, todayBE())`. dep เพิ่ม `previewMode`+`sampleContent`.
+- **`sampleContent` (useMemo[shop])** = `SAMPLE_CONTENT_BY_LANG.th` (mockup ยา Paracetamol) **overlay หัวร้านจริง** (shop/address/phone/line) จาก `getShop()` แบบเดียวกับ blank (prefix 'โทร. '/'LINE: ', ว่าง→'' แถวซ่อนเอง) → ทั้ง 2 โหมดหัวร้านตรงกัน, ต่างแค่ส่วนข้อมูลยา. **มติเจ้าของ:** ตัวอย่างฉลาก mock แค่ข้อมูลยา นอกนั้นใช้ค่าจริงหมด.
+- ปุ่ม "ทดสอบพิมพ์" พิมพ์ **ตามโหมดที่พรีวิวอยู่** (preview = print 1:1). หัวการ์ด "ตัวอย่างฉลากเปล่า"→"ตัวอย่างฉลาก".
+- **กลับด้านจาก 2026-06-20 (ฉลากเปล่าอย่างเดียว):** re-import `buildLabelHtml`+`SAMPLE_CONTENT_BY_LANG`+`todayBE` (sample กลับมาแต่ผ่าน `buildLabelHtml`/iframe **ไม่ใช่ LabelPaper** — LabelPaper ยังไม่ revive ที่ designer; ไม่มี toggle ภาษา ใช้ th อย่างเดียว YAGNI).
+
+ค้าง: in-app verify (สลับ 2 โหมด + ทดสอบพิมพ์ทั้งคู่).
+
 ## Status — 2026-06-20 (ฉลากเปล่า = template ฉลากยาจริง + Settings designer พรีวิวฉลากเปล่า) — tsc PASS, in-app verify pending
 
 เจ้าของขอ: ฉลากเปล่า (write-your-own) ต้องใช้ **layout/ตำแหน่ง/ฟอนต์/offset เดียวกับฉลากยาจริง** (ตาม `label_settings`) เป๊ะ แล้ว "เขียนทับ" เฉพาะ section ข้อมูลยาด้วยช่องเขียนเอง. **Insight เจ้าของ:** ออกแบบ layout โดยยึดฉลากเปล่า (ข้อความยาวสุด: prompt+เส้น+วงเลือก 2 บรรทัด) ให้พอดี → ฉลากยาจริงที่สั้นกว่าพอดีตามเสมอ → ใช้ฉลากเปล่าเป็น **worst-case design target**.

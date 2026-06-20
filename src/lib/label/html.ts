@@ -26,17 +26,18 @@ export function renderLabelSectionsHtml(
   date: string,
 ): string {
   return SECTIONS
-    // `print_date` folds into the shop flex row and `barcode` into the
-    // shop_phone flex row (see below), never their own line; each host row shows
-    // when EITHER its own text or its folded-in partner is enabled.
+    // `print_date` folds into the shop flex row, `qty` into the shop_address row,
+    // `barcode` into the product row, `expiry` into the dosage row (see below) —
+    // never their own line; each host row shows when EITHER its own text or its
+    // folded-in partner is enabled.
     .filter(s => {
       if (s.key === 'print_date') return false
       if (s.key === 'barcode') return false
       if (s.key === 'qty') return false
       if (s.key === 'expiry') return false
       if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
-      if (s.key === 'shop_phone') return !!settings.show_shop_phone || !!settings.show_barcode
-      if (s.key === 'product') return !!settings.show_product || !!settings.show_qty
+      if (s.key === 'shop_address') return !!settings.show_shop_address || !!settings.show_qty
+      if (s.key === 'product') return !!settings.show_product || !!settings.show_barcode
       if (s.key === 'dosage') return !!settings.show_dosage || !!settings.show_expiry
       return settings[`show_${s.key}` as keyof LabelSettingsForm]
     })
@@ -71,46 +72,29 @@ export function renderLabelSectionsHtml(
         const dateSpan = showDate ? `<span style="${styleToCss(dateStyle)}">${esc(date)}</span>` : ''
         return `<div style="${styleToCss(style)}"><span style="${styleToCss(nameStyle)}">${esc(nameText)}</span>${dateSpan}</div>`
       }
-      if (s.key === 'shop_phone') {
-        // Special: phone (left, `shop_phone` style) + barcode (right, its OWN
-        // offset + height) on one flex row; each toggles separately via
-        // show_shop_phone / show_barcode. Bars only (no digits). Same SVG
-        // generator as the React preview → print === preview. Mirrors shop+date.
-        const phoneText = settings.show_shop_phone ? text : ''
-        const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false, flat: true }) : ''
-        if (!phoneText && !svg) return ''
-        // Lift the phone offset OFF the flex container (it would drag the barcode
-        // too) and re-apply to the phone span only; the barcode keeps its own.
-        const secStyle = buildSectionStyle(s, settings)
-        const phoneTransform = secStyle.transform
-        const style = {
-          ...secStyle, transform: undefined,
-          whiteSpace: 'normal', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4mm',
-        } as CSSProperties
-        // Phone yields (truncates); barcode renders in a fixed box (width ×
-        // height) that the stretched SVG fills. Mirrors LabelPaper exactly.
-        const phoneStyle: CSSProperties = { transform: phoneTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
-        const barImg = svg
-          ? `<img src="data:image/svg+xml;utf8,${encodeURIComponent(svg)}" style="height:${settings.font_size_barcode}mm;width:${settings.barcode_width_mm}mm;max-width:100%;flex-shrink:0;display:inline-block;transform:translate(${settings.offset_x_barcode}mm, ${settings.offset_y_barcode}mm)" />`
+      if (s.key === 'shop_address') {
+        // Special: ที่อยู่ร้าน + เบอร์โทร share one line (phone merged up
+        // 2026-06-20, DISPLAY only — out.shop_address / out.shop_phone stay
+        // SEPARATE content fields). Left = address + phone (shop_address style);
+        // right = QTY fold (its OWN font/bold + offset), moved here from the
+        // product row 2026-06-20 (swapped with the barcode). show_shop_address
+        // governs the text; show_qty the qty ("[N]", no unit). Must mirror
+        // LabelPaper (dual-render).
+        const addrText = settings.show_shop_address
+          ? [text, content.shop_phone].filter(Boolean).join('  ')
           : ''
-        return `<div style="${styleToCss(style)}"><span style="${styleToCss(phoneStyle)}">${esc(phoneText)}</span>${barImg}</div>`
-      }
-      if (s.key === 'product') {
-        // Special: product name (left, `product` style) + qty (right, its OWN
-        // `qty` font/bold + offset) on one flex row; each toggles separately via
-        // show_product / show_qty. Mirrors the shop + print_date row. qty is
-        // "[N]" (no unit). baseline align keeps qty on the name's first line even
-        // when the name wraps; the name yields, the qty box never shrinks.
-        const nameText = settings.show_product ? text : ''
         const qtyText = settings.show_qty ? (content.qty ?? '') : ''
-        if (!nameText && !qtyText) return ''
+        if (!addrText && !qtyText) return ''
+        // Lift the shop_address offset OFF the flex container (it would drag the
+        // qty too) and re-apply to the text span only; qty keeps its own.
         const secStyle = buildSectionStyle(s, settings)
-        const productTransform = secStyle.transform
+        const addrTransform = secStyle.transform
         const style = {
           ...secStyle, transform: undefined,
           whiteSpace: 'normal', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm',
         } as CSSProperties
-        const nameStyle: CSSProperties = { transform: productTransform, minWidth: 0 }
+        // Text yields (truncates); qty box never shrinks. Mirrors LabelPaper.
+        const addrStyle: CSSProperties = { transform: addrTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
         const qtyStyle: CSSProperties = {
           fontSize:   `${settings.font_size_qty}pt`,
           fontWeight: settings.bold_qty ? 'bold' : 'normal',
@@ -118,18 +102,47 @@ export function renderLabelSectionsHtml(
           flexShrink: 0,
           transform:  `translate(${settings.offset_x_qty}mm, ${settings.offset_y_qty}mm)`,
         }
+        const qtySpan = qtyText ? `<span style="${styleToCss(qtyStyle)}">${esc(qtyText)}</span>` : ''
+        return `<div style="${styleToCss(style)}"><span style="${styleToCss(addrStyle)}">${esc(addrText)}</span>${qtySpan}</div>`
+      }
+      if (s.key === 'product') {
+        // Special: product name (left, `product` style) + BARCODE (right, its OWN
+        // offset + height) on one flex row; show_product / show_barcode toggle
+        // each. Barcode moved here from the shop_address row 2026-06-20 (swapped
+        // with qty). Bars only (no digits). Same SVG generator as the React
+        // preview → print === preview. Must mirror LabelPaper (dual-render).
+        const nameText = settings.show_product ? text : ''
+        const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false, flat: true }) : ''
+        if (!nameText && !svg) return ''
+        // Lift the product offset OFF the flex container (it would drag the barcode
+        // too) and re-apply to the name span only; the barcode keeps its own.
+        const secStyle = buildSectionStyle(s, settings)
+        const nameTransform = secStyle.transform
+        const style = {
+          ...secStyle, transform: undefined,
+          whiteSpace: 'normal', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4mm',
+        } as CSSProperties
+        const nameStyle: CSSProperties = { transform: nameTransform, minWidth: 0 }
         const nameSpan = nameText
           ? `<span style="${styleToCss(nameStyle)}">${esc(nameText).replace(/\n/g, '<br>')}</span>`
           : '<span></span>'
-        const qtySpan = qtyText ? `<span style="${styleToCss(qtyStyle)}">${esc(qtyText)}</span>` : ''
-        return `<div style="${styleToCss(style)}">${nameSpan}${qtySpan}</div>`
+        const barImg = svg
+          ? `<img src="data:image/svg+xml;utf8,${encodeURIComponent(svg)}" style="height:${settings.font_size_barcode}mm;width:${settings.barcode_width_mm}mm;max-width:100%;flex-shrink:0;display:inline-block;transform:translate(${settings.offset_x_barcode}mm, ${settings.offset_y_barcode}mm)" />`
+          : ''
+        return `<div style="${styleToCss(style)}">${nameSpan}${barImg}</div>`
       }
       if (s.key === 'dosage') {
         // Special: dosage text (left, `dosage` style) + expiry (right, its OWN
         // `expiry` font/bold + offset) on one flex row; each toggles separately
         // via show_dosage / show_expiry. Mirrors product + qty. expiry is
         // "EXP.dd/mm/yyyy", right-aligned, adjusted independently of dosage.
-        const dosageText = settings.show_dosage ? text : ''
+        // ความถี่ (frequency) is a SEPARATE content field (out.frequency, data
+        // never merged) sharing the dosage line + dosage's font/bold/offset —
+        // appended inline for DISPLAY only (one settings row 2026-06-20). Must
+        // mirror LabelPaper (dual-render). show_dosage governs both.
+        const dosageText = settings.show_dosage
+          ? [text, content.frequency].filter(Boolean).join(' ')
+          : ''
         const expiryText = settings.show_expiry ? (content.expiry ?? '') : ''
         if (!dosageText && !expiryText) return ''
         const secStyle = buildSectionStyle(s, settings)

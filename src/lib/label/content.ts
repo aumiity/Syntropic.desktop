@@ -33,7 +33,7 @@ export const SAMPLE_CONTENT_BY_LANG: Record<LabelLang, Partial<Record<SectionKey
   th: {
     shop:         'ร้านยา ซินโทรปิก เภสัช',
     shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ',
-    shop_phone:   'โทร. 02-xxx-xxxx',
+    shop_phone:   '02-xxx-xxxx',
     shop_line_id: 'LINE: @syntropic',
     product:      'Paracetamol 500mg tablets',
     dosage:       'รับประทาน 1–2 เม็ด',
@@ -48,7 +48,7 @@ export const SAMPLE_CONTENT_BY_LANG: Record<LabelLang, Partial<Record<SectionKey
   en: {
     shop:         'ร้านยา ซินโทรปิก เภสัช',
     shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ',
-    shop_phone:   'โทร. 02-xxx-xxxx',
+    shop_phone:   '02-xxx-xxxx',
     shop_line_id: 'LINE: @syntropic',
     product:      'Paracetamol 500mg tablets',
     dosage:       'Take 1–2 tablets',
@@ -63,7 +63,7 @@ export const SAMPLE_CONTENT_BY_LANG: Record<LabelLang, Partial<Record<SectionKey
   mm: {
     shop:         'ร้านยา ซินโทรปิก เภสัช',
     shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ',
-    shop_phone:   'โทร. 02-xxx-xxxx',
+    shop_phone:   '02-xxx-xxxx',
     shop_line_id: 'LINE: @syntropic',
     product:      'Paracetamol 500mg tablets',
     dosage:       'တစ်ကြိမ်လျှင် ၁–၂ လုံး',
@@ -78,7 +78,7 @@ export const SAMPLE_CONTENT_BY_LANG: Record<LabelLang, Partial<Record<SectionKey
   zh: {
     shop:         'ร้านยา ซินโทรปิก เภสัช',
     shop_address: '123/4 ถ.สุขุมวิท กรุงเทพ',
-    shop_phone:   'โทร. 02-xxx-xxxx',
+    shop_phone:   '02-xxx-xxxx',
     shop_line_id: 'LINE: @syntropic',
     product:      'Paracetamol 500mg tablets',
     dosage:       '每次 1–2 片',
@@ -176,7 +176,8 @@ export function composeLabelContent(
   if (shop?.shop_name) out.shop = shop.shop_name
   // Address / phone / LINE ID are now independent sections (each its own line).
   out.shop_address = shop?.shop_address || ''
-  out.shop_phone = shop?.shop_phone ? `โทร. ${shop.shop_phone}` : ''
+  // เบอร์โทร แสดงเฉพาะตัวเลข (ไม่มีคำว่า "โทร." นำหน้า — สื่อความได้อยู่แล้ว)
+  out.shop_phone = shop?.shop_phone || ''
   out.shop_line_id = shop?.shop_line_id ? `LINE: ${shop.shop_line_id}` : ''
   out.product = product.name_for_print || product.trade_name || ''
   out.barcode = product.barcode || ''

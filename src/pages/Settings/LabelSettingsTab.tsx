@@ -23,6 +23,8 @@ import { FONTS } from '@/lib/print/fonts'
 // SSOT shared with the per-product LabelsTab preview — see src/lib/label/sections.ts
 import { SECTIONS, LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
 import { buildBlankLabelHtml } from '@/lib/label/blankLabel'
+import { buildLabelHtml } from '@/lib/label/html'
+import { SAMPLE_CONTENT_BY_LANG, todayBE } from '@/lib/label/content'
 import { buildPrinterOptions } from '@/lib/print/pdfPrinter'
 import { PrinterSelectItems } from '@/components/ui/printer-select-items'
 
@@ -144,13 +146,13 @@ function NumInput({
         <Button type="button" variant="ghost" size="icon-xs" tabIndex={-1} disabled={rest.disabled}
           className="h-1/2 w-5 min-h-0 rounded-sm px-0 text-muted-foreground hover:text-foreground"
           {...bindHold(() => bump(1))}
-          title="เพิ่ม (กดค้างได้)">
+          tooltip="เพิ่ม">
           <ChevronUp />
         </Button>
         <Button type="button" variant="ghost" size="icon-xs" tabIndex={-1} disabled={rest.disabled}
           className="h-1/2 w-5 min-h-0 rounded-sm px-0 text-muted-foreground hover:text-foreground"
           {...bindHold(() => bump(-1))}
-          title="ลด (กดค้างได้)">
+          tooltip="ลด">
           <ChevronDown />
         </Button>
       </div>
@@ -195,12 +197,12 @@ function PositionPad({
   )
   return (
     <div className={cn('inline-flex items-center gap-1', disabled && 'opacity-50')}>
-      {side(<ChevronLeft />, `เลื่อนซ้าย · X ${x} (กดค้างได้)`, bindHold(() => onNudge('x', -1)))}
+      {side(<ChevronLeft />, `X ${x}`, bindHold(() => onNudge('x', -1)))}
       <div className="flex h-9 w-8 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-        {vstep(<ChevronUp />, `เลื่อนขึ้น · Y ${y} (กดค้างได้)`, bindHold(() => onNudge('y', -1)))}
-        {vstep(<ChevronDown />, `เลื่อนลง · Y ${y} (กดค้างได้)`, bindHold(() => onNudge('y', 1)))}
+        {vstep(<ChevronUp />, `Y ${y}`, bindHold(() => onNudge('y', -1)))}
+        {vstep(<ChevronDown />, `Y ${y}`, bindHold(() => onNudge('y', 1)))}
       </div>
-      {side(<ChevronRight />, `เลื่อนขวา · X ${x} (กดค้างได้)`, bindHold(() => onNudge('x', 1)))}
+      {side(<ChevronRight />, `X ${x}`, bindHold(() => onNudge('x', 1)))}
     </div>
   )
 }
@@ -226,15 +228,18 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
   // Preview zoom — the paper renders at true 1:1 mm (small on screen), so let the
   // user magnify it to inspect spacing/fonts. CSS `zoom` (Chromium) scales the
   // real layout box so the overflow-auto container can scroll to the edges.
-  const [zoom, setZoom] = useState(1)
+  const [zoom, setZoom] = useState(2)
   const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
-  // Live blank-label preview — the designer renders the BLANK label (the
-  // longest-text "write-your-own" form) so positions tuned here fit the real,
-  // shorter drug-label content automatically (real text is always ≤ the blank's
-  // prompts). Rebuilt (debounced) from form + shop via the SAME builder as the
-  // print path → preview = print 1:1. printDate=true so the date row is visible
-  // for positioning the print_date offset.
-  const [blankHtml, setBlankHtml] = useState('')
+  // Preview mode — the designer can render EITHER the BLANK label (the longest-
+  // text "write-your-own" form, default) OR a SAMPLE drug label populated with
+  // demo content (Paracetamol). Blank is the worst-case design target (positions
+  // that fit it fit the shorter real content too); sample shows how a filled
+  // label actually looks. Left/right toggle above the paper.
+  const [previewMode, setPreviewMode] = useState<'blank' | 'sample'>('blank')
+  // Live preview HTML — rebuilt (debounced) from form + shop (+ mode) via the
+  // SAME builders as the print path → preview = print 1:1. Blank uses
+  // buildBlankLabelHtml; sample uses buildLabelHtml with sampleContent.
+  const [previewHtml, setPreviewHtml] = useState('')
 
   // Load settings — explicit per-key overwrite to keep stale UI-only keys out
   // of `form` (which would later poison the dynamic-SQL UPDATE).
@@ -262,16 +267,31 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
     window.api.settings.getShop().then((s: any) => setShop(s)).catch(() => {})
   }, [])
 
-  // Debounced rebuild of the blank-label preview whenever the form (paper / font /
-  // offsets / show toggles) or the shop header changes.
+  // Sample drug-label content — demo medicine data (Paracetamol) for the drug-info
+  // sections, but the shop header (name / address / phone / LINE) is OVERLAID with
+  // the REAL shop so both preview modes show the same letterhead; only the
+  // product-specific lines are mock. Empty real shop fields collapse to '' (the
+  // row self-hides), matching the blank label's shop handling 1:1.
+  const sampleContent = useMemo(() => ({
+    ...SAMPLE_CONTENT_BY_LANG.th,
+    shop:         shop?.shop_name?.trim() || '',
+    shop_address: shop?.shop_address?.trim() || '',
+    shop_phone:   shop?.shop_phone?.trim() ? 'โทร. ' + shop.shop_phone.trim() : '',
+    shop_line_id: shop?.shop_line_id?.trim() ? 'LINE: ' + shop.shop_line_id.trim() : '',
+  }), [shop])
+
+  // Debounced rebuild of the preview whenever the form (paper / font / offsets /
+  // show toggles), shop header, or the preview mode changes.
   useEffect(() => {
     let cancelled = false
     const t = setTimeout(async () => {
-      const html = await buildBlankLabelHtml(form, shop, 1, true)
-      if (!cancelled) setBlankHtml(html)
+      const html = previewMode === 'sample'
+        ? await buildLabelHtml(form, sampleContent, todayBE())
+        : await buildBlankLabelHtml(form, shop, 1, true)
+      if (!cancelled) setPreviewHtml(html)
     }, 200)
     return () => { cancelled = true; clearTimeout(t) }
-  }, [form, shop])
+  }, [form, shop, previewMode, sampleContent])
 
   const setF = <K extends keyof LabelSettingsForm>(k: K, v: LabelSettingsForm[K]) =>
     setForm(f => ({ ...f, [k]: v }))
@@ -336,7 +356,9 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
   const handleTestPrint = async () => {
     if (printing) return
     if (!validatePaper()) return
-    const html = await buildBlankLabelHtml(form, shop, 1, true)
+    const html = previewMode === 'sample'
+      ? await buildLabelHtml(form, sampleContent, todayBE())
+      : await buildBlankLabelHtml(form, shop, 1, true)
 
     setPrinting(true)
     try {
@@ -395,7 +417,7 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
         {/* LEFT — preview, centered, true 1:1 mm scale */}
         <SectionCard
           className="min-w-0 sticky top-0 self-start"
-          title="ตัวอย่างฉลากเปล่า (จัดตำแหน่ง)"
+          title="ตัวอย่างฉลาก (จัดตำแหน่ง)"
           tint="success"
           right={previewActions}
         >
@@ -409,6 +431,18 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
               iframe itself with transform:scale and size the wrapper to the scaled
               box so overflow-auto still scrolls to the edges; mx-auto centers while
               it fits. (Same approach as PrintTab.) */}
+          {/* Mode strip — left/right toggle: ฉลากเปล่า (write-your-own form, the
+              worst-case position target) vs ข้อมูลตัวอย่าง (a filled sample label).
+              Both modes share the real shop letterhead; only the drug-info lines
+              differ. Switching it also drives ทดสอบพิมพ์ (preview = print 1:1). */}
+          <div className="mb-3 flex justify-center">
+            <Tabs value={previewMode} onValueChange={v => setPreviewMode(v as typeof previewMode)}>
+              <TabsList variant="toggle">
+                <TabsTrigger value="blank" className="text-sm px-3">ฉลากเปล่า</TabsTrigger>
+                <TabsTrigger value="sample" className="text-sm px-3">ข้อมูลตัวอย่าง</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
           <div className="bg-muted/30 rounded-lg p-6 overflow-auto max-h-[70vh]">
             <div
               className="mx-auto"
@@ -418,8 +452,8 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
               }}
             >
               <iframe
-                title="ตัวอย่างฉลากเปล่า"
-                srcDoc={blankHtml}
+                title="ตัวอย่างฉลาก"
+                srcDoc={previewHtml}
                 scrolling="no"
                 className="block border-0 bg-white"
                 style={{

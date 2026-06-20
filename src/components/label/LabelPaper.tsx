@@ -22,18 +22,18 @@ export function LabelPaper({ settings, content, date }: Props) {
   // it sits flush at the padding edge (matches the print HTML `div:first-child`
   // rule).
   // Four sections are never their OWN line — they fold into another section's
-  // flex row (right side): `print_date` → into `shop`, `barcode` → into
-  // `shop_phone`, `qty` → into `product`, `expiry` → into `dosage`. Skip them
-  // here; the host row shows when EITHER its own text or its folded-in partner
-  // is enabled.
+  // flex row (right side): `print_date` → into `shop`, `qty` → into
+  // `shop_address`, `barcode` → into `product`, `expiry` → into `dosage`. Skip
+  // them here; the host row shows when EITHER its own text or its folded-in
+  // partner is enabled.
   const visible = SECTIONS.filter(s => {
     if (s.key === 'print_date') return false
     if (s.key === 'barcode') return false
     if (s.key === 'qty') return false
     if (s.key === 'expiry') return false
     if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
-    if (s.key === 'shop_phone') return !!settings.show_shop_phone || !!settings.show_barcode
-    if (s.key === 'product') return !!settings.show_product || !!settings.show_qty
+    if (s.key === 'shop_address') return !!settings.show_shop_address || !!settings.show_qty
+    if (s.key === 'product') return !!settings.show_product || !!settings.show_barcode
     if (s.key === 'dosage') return !!settings.show_dosage || !!settings.show_expiry
     return settings[`show_${s.key}` as keyof LabelSettingsForm]
   })
@@ -121,61 +121,23 @@ export function LabelPaper({ settings, content, date }: Props) {
             </div>
           )
         }
-        if (s.key === 'shop_phone') {
-          // Special: phone (left, styled by `shop_phone`) + barcode (right, its
-          // OWN offset + height), one flex row. Each toggles independently via
-          // show_shop_phone / show_barcode; the barcode also needs an encodable
-          // value (barcodeSvg → '' when blank). Bars only (no digits). Mirrors
-          // the shop + print_date flex row.
-          const phoneText = settings.show_shop_phone ? text : ''
-          const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false, flat: true }) : ''
-          if (!phoneText && !svg) return null
-          if (first) { style.marginTop = 0; first = false }
-          style.whiteSpace = 'normal'
-          // The shop_phone offset must move ONLY the phone, not the barcode. Lift
-          // the offset off the flex CONTAINER and re-apply to the phone span; the
-          // barcode keeps its OWN offset_*_barcode.
-          const phoneTransform = style.transform
-          style.transform = undefined
-          // Fixed barcode BOX — width (barcode_width_mm) × height
-          // (font_size_barcode). The SVG stretches to fill it (preserveAspectRatio
-          // none, set in barcodeSvg), so a short code and a long code occupy the
-          // SAME footprint. flexShrink:0 keeps the box from being squeezed; the
-          // PHONE is the side that yields (it truncates).
-          const barStyle: CSSProperties = {
-            height:     `${settings.font_size_barcode}mm`,
-            width:      `${settings.barcode_width_mm}mm`,
-            maxWidth:   '100%',
-            flexShrink: 0,
-            display:    'inline-block',
-            transform:  `translate(${settings.offset_x_barcode}mm, ${settings.offset_y_barcode}mm)`,
-          }
-          return (
-            <div key={s.key} style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4mm' }}>
-              <span style={{ fontFamily, transform: phoneTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{phoneText}</span>
-              {svg ? (
-                <img
-                  src={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`}
-                  alt={content.barcode ?? ''}
-                  style={barStyle}
-                />
-              ) : null}
-            </div>
-          )
-        }
-        if (s.key === 'product') {
-          // Special: product name (left, styled by `product`) + qty (right, its
-          // OWN font/bold + offset) on one flex row. Each toggles independently
-          // via show_product / show_qty. Mirrors the shop + print_date row. qty
-          // is "[N]" (no unit); baseline align keeps it on the name's first line.
-          const nameText = settings.show_product ? text : ''
+        if (s.key === 'shop_address') {
+          // Special: ที่อยู่ร้าน + เบอร์โทร share one line (phone merged up
+          // 2026-06-20, DISPLAY only — out.shop_address / out.shop_phone stay
+          // SEPARATE content fields). Left = address + phone, styled by
+          // shop_address; right = QTY fold (its OWN font/bold + offset), moved
+          // here from the product row 2026-06-20 (swapped with the barcode).
+          // show_shop_address governs the text; show_qty the qty ("[N]", no unit).
+          const addrText = settings.show_shop_address
+            ? [text, content.shop_phone].filter(Boolean).join('  ')
+            : ''
           const qtyText = settings.show_qty ? (content.qty ?? '') : ''
-          if (!nameText && !qtyText) return null
+          if (!addrText && !qtyText) return null
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'
-          // The product offset must move ONLY the name, not the qty. Lift it off
-          // the flex CONTAINER and re-apply to the name span; qty keeps its own.
-          const productTransform = style.transform
+          // The shop_address offset must move ONLY the text, not the qty. Lift it
+          // off the flex CONTAINER and re-apply to the text span; qty keeps its own.
+          const addrTransform = style.transform
           style.transform = undefined
           const qtyStyle: CSSProperties = {
             fontFamily,
@@ -187,8 +149,48 @@ export function LabelPaper({ settings, content, date }: Props) {
           }
           return (
             <div key={s.key} style={{ ...style, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm' }}>
-              <span style={{ fontFamily, transform: productTransform, minWidth: 0 }}>{nameText}</span>
+              <span style={{ fontFamily, transform: addrTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{addrText}</span>
               {qtyText ? <span style={qtyStyle}>{qtyText}</span> : null}
+            </div>
+          )
+        }
+        if (s.key === 'product') {
+          // Special: product name (left, styled by `product`) + BARCODE (right,
+          // its OWN offset + height), one flex row. Barcode moved here from the
+          // shop_address row 2026-06-20 (swapped with qty). show_product governs
+          // the name; show_barcode the barcode (needs an encodable value,
+          // barcodeSvg → '' when blank). Bars only (no digits).
+          const nameText = settings.show_product ? text : ''
+          const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false, flat: true }) : ''
+          if (!nameText && !svg) return null
+          if (first) { style.marginTop = 0; first = false }
+          style.whiteSpace = 'normal'
+          // The product offset must move ONLY the name, not the barcode. Lift it
+          // off the flex CONTAINER and re-apply to the name span; the barcode keeps
+          // its OWN offset_*_barcode.
+          const nameTransform = style.transform
+          style.transform = undefined
+          // Fixed barcode BOX — width (barcode_width_mm) × height
+          // (font_size_barcode); the SVG stretches to fill it so any code length
+          // keeps the SAME footprint. flexShrink:0 keeps the box; the NAME yields.
+          const barStyle: CSSProperties = {
+            height:     `${settings.font_size_barcode}mm`,
+            width:      `${settings.barcode_width_mm}mm`,
+            maxWidth:   '100%',
+            flexShrink: 0,
+            display:    'inline-block',
+            transform:  `translate(${settings.offset_x_barcode}mm, ${settings.offset_y_barcode}mm)`,
+          }
+          return (
+            <div key={s.key} style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4mm' }}>
+              <span style={{ fontFamily, transform: nameTransform, minWidth: 0 }}>{nameText}</span>
+              {svg ? (
+                <img
+                  src={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`}
+                  alt={content.barcode ?? ''}
+                  style={barStyle}
+                />
+              ) : null}
             </div>
           )
         }
@@ -197,7 +199,13 @@ export function LabelPaper({ settings, content, date }: Props) {
           // OWN font/bold + offset) on one flex row. Each toggles independently
           // via show_dosage / show_expiry. Mirrors product + qty. expiry is
           // "EXP.dd/mm/yyyy", right-aligned, adjusted independently of dosage.
-          const dosageText = settings.show_dosage ? text : ''
+          // ความถี่ (frequency) is a SEPARATE content field (out.frequency, data
+          // never merged) but shares the dosage line + dosage's font/bold/offset —
+          // appended inline for DISPLAY only (merged into one settings row
+          // 2026-06-20; no own line/control). show_dosage governs both.
+          const dosageText = settings.show_dosage
+            ? [text, content.frequency].filter(Boolean).join(' ')
+            : ''
           const expiryText = settings.show_expiry ? (content.expiry ?? '') : ''
           if (!dosageText && !expiryText) return null
           if (first) { style.marginTop = 0; first = false }

@@ -32,34 +32,58 @@ function fieldRow(sectionCss: string, prompt: string, after = ''): string {
     `<div style="${sectionCss}">` +
     `<div style="display:flex;align-items:flex-end;gap:1.5mm">` +
     `<span style="white-space:nowrap">${esc(prompt)}</span>` +
-    `<span style="flex:1 1 auto;min-width:6mm;border-bottom:0.3mm solid #000"></span>` +
+    `<span style="flex:1 1 auto;min-width:6mm;border-bottom:0.3mm solid #000;margin-bottom:1mm"></span>` +
     tail +
     `</div></div>`
   )
 }
 
+// วิธีใช้ + ความถี่ on ONE write-in line, mirroring the real label where the two
+// (separate) fields share the dosage row 2026-06-20: "รับประทานครั้งละ ___ วันละ
+// ___ ครั้ง". Two underlines flex-share the row; carries the `dosage` template
+// style so it moves with the merged dosage setting.
+function dosageFreqRow(sectionCss: string): string {
+  // First underline flexes to fill the row (dose can be "1 เม็ด", "ครึ่งเม็ด", …);
+  // the frequency underline is a fixed short width — it only ever holds a single
+  // digit (วันละ N ครั้ง), so a long flexing line there just wastes the row.
+  const fill = '<span style="flex:1 1 auto;min-width:6mm;border-bottom:0.3mm solid #000;margin-bottom:1mm"></span>'
+  const digit = '<span style="flex:0 0 6mm;border-bottom:0.3mm solid #000;margin-bottom:1mm"></span>'
+  return (
+    `<div style="${sectionCss}">` +
+    `<div style="display:flex;align-items:flex-end;gap:1.5mm">` +
+    `<span style="white-space:nowrap">${esc('รับประทานครั้งละ')}</span>` +
+    fill +
+    `<span style="white-space:nowrap">${esc('วันละ')}</span>` +
+    digit +
+    `<span style="white-space:nowrap">${esc('ครั้ง')}</span>` +
+    `</div></div>`
+  )
+}
+
 // One group of circle-able choices: each word gets breathing room so a pen circle
-// fits around it. The staff circles the one(s) that apply.
+// fits around it. The staff circles the one(s) that apply. nowrap keeps the whole
+// group on ONE line (มื้อ + เวลา together) — padding/gap are kept tight so the six
+// chips fit the sticker width; anything past the edge is clipped by overflow:hidden.
 function choiceGroup(label: string, words: string[]): string {
   const chips = words
-    .map(w => `<span style="display:inline-block;padding:0.4mm 2mm;white-space:nowrap">${esc(w)}</span>`)
+    .map(w => `<span style="display:inline-block;padding:0.4mm 1mm;white-space:nowrap">${esc(w)}</span>`)
     .join('')
   const lead = label ? `<span style="white-space:nowrap">${esc(label)}</span>` : ''
   return (
     `<div style="display:flex;align-items:baseline;gap:1.5mm">` +
     lead +
-    `<span style="flex:1 1 auto;display:flex;flex-wrap:wrap;gap:0.5mm 1mm">${chips}</span>` +
+    `<span style="flex:1 1 auto;display:flex;flex-wrap:nowrap;gap:0 0.5mm;margin-left:-1mm">${chips}</span>` +
     `</div>`
   )
 }
 
-// The timing section (มื้อ + เวลา) renders TWO circle rows stacked inside the one
-// `timing` template position, mirroring the meal-relation + label-time split.
+// The timing section (มื้อ + เวลา) renders its circle-able choices on ONE line
+// inside the `timing` template position, mirroring the real label where meal-relation
+// + label-time print together on the timing row.
 function timingRow(sectionCss: string): string {
   return (
     `<div style="${sectionCss}">` +
-    `<div>${choiceGroup('', ['ก่อนอาหาร', 'หลังอาหาร', 'พร้อมอาหาร'])}</div>` +
-    `<div style="margin-top:1mm">${choiceGroup('', ['เช้า', 'กลางวัน', 'เย็น', 'ก่อนนอน'])}</div>` +
+    choiceGroup('', ['ก่อนอาหาร', 'หลังอาหาร', 'เช้า', 'เที่ยง', 'เย็น', 'ก่อนนอน']) +
     `</div>`
   )
 }
@@ -107,14 +131,18 @@ function renderBlankInner(settings: LabelSettingsForm, shop: BlankLabelShop | nu
       case 'shop':
         out.push(shopRow(settings, shop, printDate)); break
       case 'print_date': break // folded into the shop row
-      case 'shop_address':
-        if (settings.show_shop_address && shop?.shop_address?.trim())
-          out.push(`<div style="${css}">${esc(shop.shop_address.trim())}</div>`)
+      case 'shop_address': {
+        // ที่อยู่ร้าน + เบอร์โทร share one line (phone merged up 2026-06-20).
+        // Gated by show_shop_address (the merged setting). Barcode never prints
+        // on a blank, so no fold here.
+        if (!settings.show_shop_address) break
+        const addr = shop?.shop_address?.trim() || ''
+        const phone = shop?.shop_phone?.trim() || ''
+        const merged = [addr, phone].filter(Boolean).join('  ')
+        if (merged) out.push(`<div style="${css}">${esc(merged)}</div>`)
         break
-      case 'shop_phone':
-        if (settings.show_shop_phone && shop?.shop_phone?.trim())
-          out.push(`<div style="${css}">${esc('โทร. ' + shop.shop_phone.trim())}</div>`)
-        break
+      }
+      case 'shop_phone': break // merged into the shop_address row (no own line)
       case 'shop_line_id':
         if (settings.show_shop_line_id && shop?.shop_line_id?.trim())
           out.push(`<div style="${css}">${esc('LINE: ' + shop.shop_line_id.trim())}</div>`)
@@ -123,13 +151,14 @@ function renderBlankInner(settings: LabelSettingsForm, shop: BlankLabelShop | nu
         if (settings.show_header_line) out.push(`<div style="${css}"></div>`)
         break
       case 'product':
-        if (settings.show_product) out.push(fieldRow(css, 'ชื่อยา')); break
+        if (settings.show_product) out.push(fieldRow(css, 'ชื่อ')); break
       case 'qty': break // no quantity on a generic blank
       case 'dosage':
-        if (settings.show_dosage) out.push(fieldRow(css, 'รับประทานครั้งละ')); break
+        // วิธีใช้ + ความถี่ on one shared line (frequency is no longer its own
+        // section as of 2026-06-20 — it folds into the dosage row).
+        if (settings.show_dosage) out.push(dosageFreqRow(css)); break
       case 'expiry': break // no lot expiry on a generic blank
-      case 'frequency':
-        if (settings.show_frequency) out.push(fieldRow(css, 'ความถี่ วันละ', 'ครั้ง')); break
+      case 'frequency': break // merged into the dosage row (no own line)
       case 'timing':
         if (settings.show_timing) out.push(timingRow(css)); break
       case 'indication':
