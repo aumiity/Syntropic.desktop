@@ -26,7 +26,7 @@ export function renderLabelSectionsHtml(
   date: string,
 ): string {
   return SECTIONS
-    // `print_date` folds into the shop flex row, `qty` into the shop_address row,
+    // `print_date` folds into the shop flex row, `qty` into the shop_line_id row,
     // `barcode` into the product row, `expiry` into the dosage row (see below) —
     // never their own line; each host row shows when EITHER its own text or its
     // folded-in partner is enabled.
@@ -36,7 +36,8 @@ export function renderLabelSectionsHtml(
       if (s.key === 'qty') return false
       if (s.key === 'expiry') return false
       if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
-      if (s.key === 'shop_address') return !!settings.show_shop_address || !!settings.show_qty
+      if (s.key === 'shop_address') return !!settings.show_shop_address
+      if (s.key === 'shop_line_id') return !!settings.show_shop_line_id || !!settings.show_qty
       if (s.key === 'product') return !!settings.show_product || !!settings.show_barcode
       if (s.key === 'dosage') return !!settings.show_dosage || !!settings.show_expiry
       return settings[`show_${s.key}` as keyof LabelSettingsForm]
@@ -75,26 +76,35 @@ export function renderLabelSectionsHtml(
       if (s.key === 'shop_address') {
         // Special: ที่อยู่ร้าน + เบอร์โทร share one line (phone merged up
         // 2026-06-20, DISPLAY only — out.shop_address / out.shop_phone stay
-        // SEPARATE content fields). Left = address + phone (shop_address style);
-        // right = QTY fold (its OWN font/bold + offset), moved here from the
-        // product row 2026-06-20 (swapped with the barcode). show_shop_address
-        // governs the text; show_qty the qty ("[N]", no unit). Must mirror
-        // LabelPaper (dual-render).
+        // SEPARATE content fields). One combined "ที่อยู่ร้าน / เบอร์โทร" line
+        // styled by shop_address. (The QTY fold moved OFF this row onto the
+        // header_line 2026-06-21.) show_shop_address governs the whole line. Must
+        // mirror LabelPaper (dual-render).
         const addrText = settings.show_shop_address
           ? [text, content.shop_phone].filter(Boolean).join('  ')
           : ''
+        if (!addrText) return ''
+        const style = { ...buildSectionStyle(s, settings), whiteSpace: 'normal' } as CSSProperties
+        return `<div style="${styleToCss(style)}">${esc(addrText)}</div>`
+      }
+      if (s.key === 'shop_line_id') {
+        // Special: LINE ID (left, `shop_line_id` style) + QTY fold (right, its OWN
+        // font/bold + offset) on one flex row — moved here from the shop_address row
+        // 2026-06-21. show_shop_line_id governs the LINE ID text; show_qty the qty
+        // ("[N]", no unit). qty shows even when LINE ID is empty (right-aligned on an
+        // otherwise-blank row). Must mirror LabelPaper (dual-render).
+        const lineIdText = settings.show_shop_line_id ? text : ''
         const qtyText = settings.show_qty ? (content.qty ?? '') : ''
-        if (!addrText && !qtyText) return ''
-        // Lift the shop_address offset OFF the flex container (it would drag the
-        // qty too) and re-apply to the text span only; qty keeps its own.
+        if (!lineIdText && !qtyText) return ''
+        // Lift the shop_line_id offset OFF the flex container (it would drag the qty
+        // too) and re-apply to the text span only; qty keeps its own.
         const secStyle = buildSectionStyle(s, settings)
-        const addrTransform = secStyle.transform
+        const lineIdTransform = secStyle.transform
         const style = {
           ...secStyle, transform: undefined,
           whiteSpace: 'normal', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm',
         } as CSSProperties
-        // Text yields (truncates); qty box never shrinks. Mirrors LabelPaper.
-        const addrStyle: CSSProperties = { transform: addrTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+        const lineIdStyle: CSSProperties = { transform: lineIdTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
         const qtyStyle: CSSProperties = {
           fontSize:   `${settings.font_size_qty}pt`,
           fontWeight: settings.bold_qty ? 'bold' : 'normal',
@@ -103,7 +113,7 @@ export function renderLabelSectionsHtml(
           transform:  `translate(${settings.offset_x_qty}mm, ${settings.offset_y_qty}mm)`,
         }
         const qtySpan = qtyText ? `<span style="${styleToCss(qtyStyle)}">${esc(qtyText)}</span>` : ''
-        return `<div style="${styleToCss(style)}"><span style="${styleToCss(addrStyle)}">${esc(addrText)}</span>${qtySpan}</div>`
+        return `<div style="${styleToCss(style)}"><span style="${styleToCss(lineIdStyle)}">${esc(lineIdText)}</span>${qtySpan}</div>`
       }
       if (s.key === 'product') {
         // Special: product name (left, `product` style) + BARCODE (right, its OWN

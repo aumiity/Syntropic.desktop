@@ -21,7 +21,7 @@ import { FONTS } from '@/lib/print/fonts'
 
 // Label anatomy (sections / per-section style / form shape / defaults) is the
 // SSOT shared with the per-product LabelsTab preview — see src/lib/label/sections.ts
-import { SECTIONS, LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
+import { SECTIONS, LABEL_DEFAULTS, presetDefaults, type LabelSettingsForm } from '@/lib/label/sections'
 import { buildBlankLabelHtml } from '@/lib/label/blankLabel'
 import { buildLabelHtml } from '@/lib/label/html'
 import { SAMPLE_CONTENT_BY_LANG, todayBE } from '@/lib/label/content'
@@ -41,19 +41,10 @@ const PAPER_PRESETS: { w: number; h: number; label: string }[] = [
 ]
 const presetKey = (w: number, h: number) => `${w}x${h}`
 
-// Size-appropriate default styling, scaled with label HEIGHT to the owner-tuned
-// targets: font = round(0.16·h + 2) → 50mm→10pt, 60mm→12pt, 75mm→14pt; lineSpacing
-// stays tight at 1.3 and only loosens to 1.4 on the tall (≥70mm) stickers that
-// have the room. gap 1pt, thin margins. Used by "ใช้ค่าเริ่มต้นของขนาดนี้".
-const clampN = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
-function sizeDefaults(_w: number, h: number) {
-  return {
-    baseFont:    clampN(Math.round(0.16 * h + 2), 10, 16),   // 50→10, 60→12, 75→14
-    pad:         clampN(Math.round((h / 25) * 2) / 2, 2, 3),  // 50→2, 60→2.5, 75→3
-    gap:         1,
-    lineSpacing: h >= 70 ? 1.4 : 1.3,                         // 50/60→1.3, 75→1.4
-  }
-}
+// Per-size default styling now lives in PRESET_DEFAULTS (src/lib/label/sections.ts)
+// — one hand-tuned template per paper size, resolved via presetDefaults(w, h). The
+// old height-scaled formula was replaced so each size looks good independently and
+// a custom size borrows the 80x50 standard.
 
 // Number input with a local string buffer — fixes the "can't delete the 0"
 // problem that controlled `value={number}` inputs have. Strategy: hold the
@@ -304,29 +295,14 @@ export function LabelSettingsTab({ onActions }: { onActions?: (node: React.React
     setForm(f => ({ ...f, [k]: Math.round(((f[k] as number) + delta) * 10) / 10 }))
   const bindHold = useHoldRepeat()
 
-  // FULL reset to defaults for the given paper size. EVERYTHING returns to
-  // LABEL_DEFAULTS — show/bold/offset toggles, custom_text, lookup IDs, the lot —
-  // and only the selected `printer_name` is preserved (hardware choice, not a
-  // style). Size-appropriate font/margins/spacing are then layered on top.
-  // `font_family` is forced to 'Sarabun' so the result is identical on every
-  // machine (it's stored per-machine; bare LABEL_DEFAULTS would differ). NOTE:
-  // this only updates `form` — nothing persists until the user presses บันทึก.
+  // FULL reset to the per-size default template for the given paper size. The
+  // whole form returns to presetDefaults(w, h) — the hand-tuned PRESET_DEFAULTS
+  // entry (or the 80x50 standard for a custom size) layered on LABEL_DEFAULTS —
+  // so show/bold/offset toggles, fonts, margins and spacing all snap to that
+  // size's template. Only `printer_name` is preserved (hardware choice, not a
+  // style). NOTE: this only updates `form` — nothing persists until บันทึก.
   const applySizeTemplate = (w: number, h: number) => {
-    const { baseFont, pad, gap, lineSpacing } = sizeDefaults(w, h)
-    setForm(f => {
-      const next: LabelSettingsForm = {
-        ...LABEL_DEFAULTS,
-        printer_name: f.printer_name,
-        width_mm: w, height_mm: h,
-        font_family: 'Sarabun',
-        pad_top: pad, pad_right: pad, pad_bottom: pad, pad_left: pad,
-        section_gap: gap, line_spacing: lineSpacing,
-      }
-      for (const s of SECTIONS) {
-        if (s.kind === 'text') (next as any)[`font_size_${s.key}`] = baseFont
-      }
-      return next
-    })
+    setForm(f => ({ ...presetDefaults(w, h), printer_name: f.printer_name }))
   }
 
   const handleSave = async () => {

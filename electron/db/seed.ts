@@ -7,6 +7,7 @@ import LABEL_DOSAGES from './seed-data/label-dosages'
 import LABEL_TIMES from './seed-data/label-times'
 import PRODUCTS from './seed-data/products'
 import CUSTOMERS from './seed-data/customers'
+import { presetDefaults } from '../../src/lib/label/sections'
 
 export function seedDatabase(db: Database.Database) {
   // Idempotent staff test user — added to every install so audit trail has a non-admin actor
@@ -145,11 +146,21 @@ export function seedDatabase(db: Database.Database) {
   const insDosageForm = db.prepare(`INSERT OR IGNORE INTO dosage_forms (name_th, name_en) VALUES (?, ?)`)
   for (const [th, en] of dosageForms) insDosageForm.run(th, en)
 
-  // Default label settings (singleton). `INSERT OR IGNORE DEFAULT VALUES` does
-  // NOT enforce singleton-ness here — `id INTEGER PRIMARY KEY AUTOINCREMENT`
-  // never collides on insert, so OR IGNORE never fires. NOT EXISTS is the only
-  // pattern that's actually idempotent across launches.
-  db.prepare(`INSERT INTO label_settings (id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM label_settings)`).run()
+  // Default label settings (singleton). Seeded from presetDefaults(80, 50) — the
+  // hand-tuned 80×50 GPP-standard template (PRESET_DEFAULTS in src/lib/label/
+  // sections.ts is the single source of truth, shared with the in-app "รีเซ็ต"
+  // button) — so a fresh install boots with the tuned look, not the bare schema
+  // column defaults. NOT EXISTS keeps it idempotent: AUTOINCREMENT ids never
+  // collide so OR IGNORE wouldn't fire; this only inserts when the table is empty
+  // (existing installs keep their saved row). Every LabelSettingsForm key is a real
+  // label_settings column (same invariant the dynamic save UPDATE relies on).
+  const labelDefaults = presetDefaults(80, 50) as unknown as Record<string, string | number>
+  const labelCols = Object.keys(labelDefaults)
+  db.prepare(
+    `INSERT INTO label_settings (id, ${labelCols.join(', ')}) ` +
+    `SELECT 1, ${labelCols.map(() => '?').join(', ')} ` +
+    `WHERE NOT EXISTS (SELECT 1 FROM label_settings)`,
+  ).run(...labelCols.map(k => labelDefaults[k]))
 
   // Default receipt/slip settings (singleton) — same NOT EXISTS idempotency.
   db.prepare(`INSERT INTO receipt_settings (id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM receipt_settings)`).run()

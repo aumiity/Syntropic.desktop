@@ -157,8 +157,8 @@ export const LABEL_DEFAULTS: LabelSettingsForm = {
   // Bold only the shop name / address / phone / product name (date not bold).
   bold_shop: 1, bold_print_date: 0,
   bold_shop_address: 1, bold_shop_phone: 1, bold_shop_line_id: 0,
-  bold_product: 1, bold_dosage: 0, bold_timing: 0,
-  bold_qty: 0, bold_expiry: 0, bold_frequency: 0,
+  bold_product: 1, bold_dosage: 1, bold_timing: 1,
+  bold_qty: 0, bold_expiry: 0, bold_frequency: 1,
   bold_indication: 0, bold_advice: 0, bold_barcode: 0,
   bold_custom_text: 0,
   line_spacing: 1.5, section_gap: 2,
@@ -191,6 +191,77 @@ export const LABEL_DEFAULTS: LabelSettingsForm = {
   offset_x_notes: 0, offset_y_notes: 0,
   offset_x_lot_expiry: 0, offset_y_lot_expiry: 0,
   offset_x_footer_line: 0, offset_y_footer_line: 0,
+}
+
+// Per-paper-size default templates — the source of truth for the "รีเซ็ตการตั้งค่า"
+// button (and the "ใช้ค่าเริ่มต้นของขนาดนี้" prompt when picking a preset). Each
+// entry is a PARTIAL override layered on top of LABEL_DEFAULTS: only the keys
+// worth tuning per size are listed; everything omitted falls back to
+// LABEL_DEFAULTS. Keys MUST be real label_settings columns (they flow into the
+// dynamic-SQL UPDATE via the resolved form) — never invent a key here.
+//
+// This replaces the old height-scaled formula (sizeDefaults) so each size can be
+// hand-tuned to look good independently. Edit the numbers below to taste.
+//
+// Key = `${width_mm}x${height_mm}` (see presetDefaults). A custom paper size (no
+// matching key) borrows the 80x50 standard as its starting point, then the user
+// fine-tunes from there.
+export const PRESET_KEY = (w: number, h: number) => `${w}x${h}`
+
+export const PRESET_DEFAULTS: Record<string, Partial<LabelSettingsForm>> = {
+  // 70 × 50 มม. — compact sticker.
+  '70x50': {
+    pad_top: 2, pad_right: 2, pad_bottom: 2, pad_left: 2,
+    section_gap: 6, line_spacing: 1.2,
+    font_size_shop: 10, font_size_print_date: 7,
+    font_size_shop_address: 8, font_size_shop_phone: 8, font_size_shop_line_id: 8,
+    font_size_product: 8, font_size_qty: 7, font_size_dosage: 8, font_size_expiry: 7,
+    font_size_timing: 8, font_size_indication: 8, font_size_advice: 8,
+    font_size_custom_text: 8,
+    font_size_barcode: 4, barcode_width_mm: 24,
+  },
+  // 80 × 50 มม. — มาตรฐาน GPP (also the fallback for custom sizes).
+  '80x50': {
+    pad_top: 2, pad_right: 2, pad_bottom: 2, pad_left: 2,
+    section_gap: 3, line_spacing: 1.4,
+    font_size_shop: 12, font_size_print_date: 7,
+    font_size_shop_address: 9, font_size_shop_phone: 9, font_size_shop_line_id: 9,
+    font_size_product: 9, font_size_qty: 7, font_size_dosage: 9, font_size_expiry: 7,
+    font_size_timing: 9, font_size_indication: 9, font_size_advice: 9,
+    font_size_custom_text: 9,
+    font_size_barcode: 4, barcode_width_mm: 24,
+  },
+  // 80 × 60 มม. — taller; bigger type, looser lines.
+  '80x60': {
+    pad_top: 2, pad_right: 2, pad_bottom: 2, pad_left: 2,
+    section_gap: 3, line_spacing: 1.4,
+    font_size_shop: 12, font_size_print_date: 7,
+    font_size_shop_address: 9, font_size_shop_phone: 9, font_size_shop_line_id: 9,
+    font_size_product: 9, font_size_qty: 7, font_size_dosage: 9, font_size_expiry: 7,
+    font_size_timing: 9, font_size_indication: 9, font_size_advice: 9,
+    font_size_custom_text: 9,
+    font_size_barcode: 4, barcode_width_mm: 24,
+  },
+  // 100 × 75 มม. — ซองยาใหญ่; largest type, widest barcode.
+  '100x75': {
+    pad_top: 2, pad_right: 2, pad_bottom: 2, pad_left: 2,
+    section_gap: 6, line_spacing: 1.4,
+    font_size_shop: 14, font_size_print_date: 9,
+    font_size_shop_address: 11, font_size_shop_phone: 11, font_size_shop_line_id: 11,
+    font_size_product: 11, font_size_qty: 9, font_size_dosage: 11, font_size_expiry: 9,
+    font_size_timing: 11, font_size_indication: 11, font_size_advice: 11,
+    font_size_custom_text: 11,
+    font_size_barcode: 6, barcode_width_mm: 30,
+  },
+}
+
+// Resolve a full LabelSettingsForm of defaults for the given paper size: start
+// from LABEL_DEFAULTS, layer the per-size override (or the 80x50 standard for an
+// unrecognised/custom size), then stamp the actual width/height requested. The
+// caller is responsible for preserving printer_name (hardware, not a style).
+export function presetDefaults(w: number, h: number): LabelSettingsForm {
+  const override = PRESET_DEFAULTS[PRESET_KEY(w, h)] ?? PRESET_DEFAULTS['80x50']
+  return { ...LABEL_DEFAULTS, ...override, width_mm: w, height_mm: h }
 }
 
 export function buildSectionStyle(def: SectionDef, form: LabelSettingsForm): CSSProperties {

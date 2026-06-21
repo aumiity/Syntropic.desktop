@@ -20,18 +20,36 @@ export interface BlankLabelShop {
   shop_line_id?: string | null
 }
 
+// Zero-width space — gives an otherwise-empty rule span a REAL text baseline that
+// matches the prompt's, so the rule pins to the baseline metric (see writeRule).
+const ZWSP = '​'
+
+// A fillable write-on rule. KEY for cross-machine stability: the rule is pinned to
+// the text BASELINE (its row uses align-items:baseline) and its thickness + drop
+// below the baseline are font-relative (em), NOT millimetres. Because the rule
+// shares the glyphs' baseline + font metrics, the browser rasterises both from the
+// same reference — so they snap to the device-pixel grid TOGETHER and stay aligned
+// across OS / display-scaling, instead of drifting a sub-pixel apart the way the
+// old `margin-bottom:1mm` + align-items:flex-end rule did (which keyed off the
+// line-box bottom and a mm offset that round independently of the glyphs).
+// `sizing` is the horizontal flex/width rule (fill, fixed digit, fixed date, …).
+function writeRule(sizing: string): string {
+  return `<span style="${sizing};line-height:1;border-bottom:0.08em solid #000">${ZWSP}</span>`
+}
+
 // A positioned write-in row: leading prompt + a flexible underline to write on,
 // optional trailing text (e.g. a unit hint) after the rule. The OUTER div carries
-// the section's template style (font/offset/gap); the inner flex draws the line.
+// the section's template style (font/offset/gap); the inner flex draws the line,
+// baseline-aligned so prompt + rule rasterise together (writeRule).
 function fieldRow(sectionCss: string, prompt: string, after = ''): string {
   const tail = after
     ? `<span style="white-space:nowrap;margin-left:1.5mm">${esc(after)}</span>`
     : ''
   return (
     `<div style="${sectionCss}">` +
-    `<div style="display:flex;align-items:flex-end;gap:1.5mm">` +
+    `<div style="display:flex;align-items:baseline;gap:1.5mm">` +
     `<span style="white-space:nowrap">${esc(prompt)}</span>` +
-    `<span style="flex:1 1 auto;min-width:6mm;border-bottom:0.3mm solid #000;margin-bottom:1mm"></span>` +
+    writeRule('flex:1 1 auto;min-width:6mm') +
     tail +
     `</div></div>`
   )
@@ -42,18 +60,17 @@ function fieldRow(sectionCss: string, prompt: string, after = ''): string {
 // ___ ครั้ง". Two underlines flex-share the row; carries the `dosage` template
 // style so it moves with the merged dosage setting.
 function dosageFreqRow(sectionCss: string): string {
-  // First underline flexes to fill the row (dose can be "1 เม็ด", "ครึ่งเม็ด", …);
-  // the frequency underline is a fixed short width — it only ever holds a single
-  // digit (วันละ N ครั้ง), so a long flexing line there just wastes the row.
-  const fill = '<span style="flex:1 1 auto;min-width:6mm;border-bottom:0.3mm solid #000;margin-bottom:1mm"></span>'
-  const digit = '<span style="flex:0 0 6mm;border-bottom:0.3mm solid #000;margin-bottom:1mm"></span>'
+  // First rule flexes to fill the row (dose can be "1 เม็ด", "ครึ่งเม็ด", …); the
+  // frequency rule is a fixed short width — it only ever holds a single digit (วันละ
+  // N ครั้ง), so a long flexing line there just wastes the row. Both are baseline-
+  // pinned writeRule()s (cross-machine stable).
   return (
     `<div style="${sectionCss}">` +
-    `<div style="display:flex;align-items:flex-end;gap:1.5mm">` +
+    `<div style="display:flex;align-items:baseline;gap:1.5mm">` +
     `<span style="white-space:nowrap">${esc('รับประทานครั้งละ')}</span>` +
-    fill +
+    writeRule('flex:1 1 auto;min-width:6mm') +
     `<span style="white-space:nowrap">${esc('วันละ')}</span>` +
-    digit +
+    writeRule('flex:0 0 6mm') +
     `<span style="white-space:nowrap">${esc('ครั้ง')}</span>` +
     `</div></div>`
   )
@@ -105,18 +122,22 @@ function shopRow(settings: LabelSettingsForm, shop: BlankLabelShop | null, print
     whiteSpace: 'normal', display: 'flex', justifyContent: 'space-between', gap: '4mm',
   } as CSSProperties)
   const nameSpan = name
-    ? `<span style="${styleToCss({ transform: shopTransform })}">${esc(name)}</span>`
+    ? `<span style="${styleToCss({ transform: shopTransform, whiteSpace: 'nowrap' })}">${esc(name)}</span>`
     : '<span></span>'
+  // The date block stays right-anchored (space-between) but its write-rule can
+  // SHRINK (flex 0 1 18mm, min 6mm) so a wide shop name + "วันที่" + rule never
+  // overflows the paper edge — the rule gives up width first, keeping everything on
+  // the sticker. minWidth:0 lets the container shrink below its content size.
   const dateStyle = styleToCss({
     fontSize:   `${settings.font_size_print_date}pt`,
     fontWeight: settings.bold_print_date ? 'bold' : 'normal',
     transform:  `translate(${settings.offset_x_print_date}mm, ${settings.offset_y_print_date}mm)`,
-    display: 'flex', alignItems: 'flex-end', gap: '1.5mm', whiteSpace: 'nowrap',
+    display: 'flex', alignItems: 'baseline', gap: '1.5mm', whiteSpace: 'nowrap', minWidth: 0,
   } as CSSProperties)
   const dateSpan = showDate
     ? `<span style="${dateStyle}">` +
         `<span>${esc('วันที่')}</span>` +
-        `<span style="width:18mm;border-bottom:0.3mm solid #000;margin-bottom:1mm"></span>` +
+        writeRule('flex:0 1 18mm;min-width:16mm') +
       `</span>`
     : ''
   return `<div style="${style}">${nameSpan}${dateSpan}</div>`

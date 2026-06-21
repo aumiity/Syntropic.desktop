@@ -23,7 +23,7 @@ export function LabelPaper({ settings, content, date }: Props) {
   // rule).
   // Four sections are never their OWN line — they fold into another section's
   // flex row (right side): `print_date` → into `shop`, `qty` → into
-  // `shop_address`, `barcode` → into `product`, `expiry` → into `dosage`. Skip
+  // `shop_line_id`, `barcode` → into `product`, `expiry` → into `dosage`. Skip
   // them here; the host row shows when EITHER its own text or its folded-in
   // partner is enabled.
   const visible = SECTIONS.filter(s => {
@@ -32,7 +32,8 @@ export function LabelPaper({ settings, content, date }: Props) {
     if (s.key === 'qty') return false
     if (s.key === 'expiry') return false
     if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
-    if (s.key === 'shop_address') return !!settings.show_shop_address || !!settings.show_qty
+    if (s.key === 'shop_address') return !!settings.show_shop_address
+    if (s.key === 'shop_line_id') return !!settings.show_shop_line_id || !!settings.show_qty
     if (s.key === 'product') return !!settings.show_product || !!settings.show_barcode
     if (s.key === 'dosage') return !!settings.show_dosage || !!settings.show_expiry
     return settings[`show_${s.key}` as keyof LabelSettingsForm]
@@ -108,6 +109,10 @@ export function LabelPaper({ settings, content, date }: Props) {
           style.transform = undefined
           // Date span uses print_date's font/bold + its own offset nudge. Spans
           // need the family too — the `*` rule hits them directly.
+          // Date span uses print_date's font/bold + its own offset nudge. Spans
+          // need the family too — the `*` rule hits them directly. Right-anchored by
+          // the row's space-between, so its RIGHT edge sits flush at the paper edge —
+          // matching the blank label's date line (both flush-right).
           const dateStyle: CSSProperties = {
             fontFamily,
             fontSize:   `${settings.font_size_print_date}pt`,
@@ -124,20 +129,31 @@ export function LabelPaper({ settings, content, date }: Props) {
         if (s.key === 'shop_address') {
           // Special: ที่อยู่ร้าน + เบอร์โทร share one line (phone merged up
           // 2026-06-20, DISPLAY only — out.shop_address / out.shop_phone stay
-          // SEPARATE content fields). Left = address + phone, styled by
-          // shop_address; right = QTY fold (its OWN font/bold + offset), moved
-          // here from the product row 2026-06-20 (swapped with the barcode).
-          // show_shop_address governs the text; show_qty the qty ("[N]", no unit).
+          // SEPARATE content fields). One combined "ที่อยู่ร้าน / เบอร์โทร" line
+          // styled by shop_address. (The QTY fold moved OFF this row onto the
+          // header_line 2026-06-21.) show_shop_address governs the whole line.
           const addrText = settings.show_shop_address
             ? [text, content.shop_phone].filter(Boolean).join('  ')
             : ''
-          const qtyText = settings.show_qty ? (content.qty ?? '') : ''
-          if (!addrText && !qtyText) return null
+          if (!addrText) return null
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'
-          // The shop_address offset must move ONLY the text, not the qty. Lift it
-          // off the flex CONTAINER and re-apply to the text span; qty keeps its own.
-          const addrTransform = style.transform
+          return <div key={s.key} style={style}>{addrText}</div>
+        }
+        if (s.key === 'shop_line_id') {
+          // Special: LINE ID (left, `shop_line_id` style) + QTY fold (right, its OWN
+          // font/bold + offset) on one flex row — moved here from the shop_address
+          // row 2026-06-21. show_shop_line_id governs the LINE ID text; show_qty the
+          // qty ("[N]", no unit). qty shows even when LINE ID is empty (right-aligned
+          // on an otherwise-blank row). Must mirror renderLabelSectionsHtml.
+          const lineIdText = settings.show_shop_line_id ? text : ''
+          const qtyText = settings.show_qty ? (content.qty ?? '') : ''
+          if (!lineIdText && !qtyText) return null
+          if (first) { style.marginTop = 0; first = false }
+          style.whiteSpace = 'normal'
+          // The shop_line_id offset must move ONLY the text, not the qty. Lift it off
+          // the flex CONTAINER and re-apply to the text span; qty keeps its own.
+          const lineIdTransform = style.transform
           style.transform = undefined
           const qtyStyle: CSSProperties = {
             fontFamily,
@@ -149,7 +165,7 @@ export function LabelPaper({ settings, content, date }: Props) {
           }
           return (
             <div key={s.key} style={{ ...style, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm' }}>
-              <span style={{ fontFamily, transform: addrTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{addrText}</span>
+              <span style={{ fontFamily, transform: lineIdTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lineIdText}</span>
               {qtyText ? <span style={qtyStyle}>{qtyText}</span> : null}
             </div>
           )
