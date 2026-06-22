@@ -988,6 +988,30 @@ export function registerProductHandlers() {
     `).all(productId)
   })
 
+  // ประวัติราคาทุนต่อสินค้า — อ่านจาก ledger ที่ไม่ถูก mutate (purchase_receipt_items)
+  // เพื่อให้เห็นว่าแต่ละครั้งรับเข้า "ผู้จำหน่ายไหน ราคาทุนเท่าไร" (ไม่ใช่ทุนเฉลี่ยที่ผ่าน merge แล้ว).
+  // การยกเลิกอยู่ที่ header (purchase_receipts.status) ไม่ใช่ที่ line item → กรองด้วย status.
+  // เรียงล่าสุดก่อน; limit กันแถวล้น (default 20).
+  ipcMain.handle('products:getPurchaseHistory', (_e, productId: number, limit = 20) => {
+    return getDb().prepare(`
+      SELECT
+        pri.cost_price,
+        pri.qty,
+        pri.unit_name,
+        pri.qty_per_base,
+        pri.created_at,
+        pri.invoice_no,
+        pr.order_date,
+        s.name as supplier_name
+      FROM purchase_receipt_items pri
+      JOIN purchase_receipts pr ON pr.invoice_no = pri.invoice_no
+      LEFT JOIN suppliers s ON s.id = pr.supplier_id
+      WHERE pri.product_id = ? AND COALESCE(pr.status, 'completed') != 'cancelled'
+      ORDER BY pri.created_at DESC, pri.id DESC
+      LIMIT ?
+    `).all(productId, limit)
+  })
+
   // Bundle items — composition of a is_bundle=1 product.
   ipcMain.handle('products:getBundleItems', (_e, bundleId: number) => {
     return getDb().prepare(`

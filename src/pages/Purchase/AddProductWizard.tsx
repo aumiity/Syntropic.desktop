@@ -103,6 +103,19 @@ interface ProductSuggestion {
 // so the user can pick กล่อง/แพ็ค straight from the list (not just in step 1).
 type SearchItem = { product: ProductSuggestion; unit: ProductUnitOption | null }
 
+// ประวัติราคาทุนที่ได้รับจริงต่อสินค้า (จาก ledger purchase_receipt_items) — โชว์ใน step 2
+// ให้ผู้กรอกเทียบว่าเคยซื้อจากผู้จำหน่ายไหน ราคาเท่าไร ก่อนตัดสินใจกรอกต้นทุนรอบนี้.
+interface PurchaseHistoryRow {
+  supplier_name: string | null
+  cost_price: number
+  qty: number
+  unit_name: string | null
+  qty_per_base: number
+  created_at: string
+  order_date: string | null
+  invoice_no: string
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 const stripTrailingZeros = (s: string) =>
@@ -192,6 +205,12 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   const [showClosedLots, setShowClosedLots] = useState(false)
   const [lotSort, setLotSort] = useState<{ by: 'lot_number' | 'expiry_date' | 'qty_on_hand'; dir: 'asc' | 'desc' }>({ by: 'expiry_date', dir: 'desc' })
 
+  // ประวัติราคาทุนที่ได้รับจริง (ผู้จำหน่าย + ราคาทุน) — โชว์ในกล่อง step 2 อ้างอิงตอนกรอกต้นทุน
+  const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistoryRow[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  // แถวประวัติที่กดขยายดูทุนต่อหน่วยย่อย (เฉพาะแถวที่รับเป็นหน่วยใหญ่ qty_per_base > 1)
+  const [expandedHistory, setExpandedHistory] = useState<Set<number>>(new Set())
+
   // ── (re)initialise whenever the dialog opens ──
   useEffect(() => {
     if (!open) return
@@ -231,6 +250,21 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
       .then((rows: ProductLot[]) => { if (!cancelled) setExistingLots(rows) })
       .catch(() => { if (!cancelled) setExistingLots([]) })
       .finally(() => { if (!cancelled) setLotsLoading(false) })
+    return () => { cancelled = true }
+  }, [open, row.product_id])
+
+  // โหลดประวัติราคาทุน (ผู้จำหน่าย + ทุนที่ได้รับ) เมื่อสินค้าเปลี่ยน — ใช้ในกล่องอ้างอิง step 2
+  useEffect(() => {
+    if (!open) return
+    const pid = row.product_id
+    setExpandedHistory(new Set())
+    if (!pid) { setPurchaseHistory([]); return }
+    let cancelled = false
+    setHistoryLoading(true)
+    window.api.products.getPurchaseHistory(pid)
+      .then((rows: PurchaseHistoryRow[]) => { if (!cancelled) setPurchaseHistory(rows) })
+      .catch(() => { if (!cancelled) setPurchaseHistory([]) })
+      .finally(() => { if (!cancelled) setHistoryLoading(false) })
     return () => { cancelled = true }
   }, [open, row.product_id])
 
@@ -911,19 +945,68 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                     />
                   </div>
                 )}
-                <div className="mt-5 rounded-card border border-border overflow-hidden">
-                  <div className="flex justify-between px-4 py-2 text-sm border-b border-border">
-                    <span className="text-foreground-subtle">{formatNum(row.qty) || 0} {row.unit_name} × {formatNum(row.cost_price, true) || '0.00'}</span>
-                    <span className="font-medium">{formatCurrency(qtyNum * (parseFloat(row.cost_price) || 0))}</span>
-                  </div>
-                  <div className="flex justify-between px-4 py-2 text-sm border-b border-border">
-                    <span className="text-foreground-subtle">ส่วนลด</span>
-                    <span className="font-medium text-primary">−{formatCurrency(parseFloat(row.discount) || 0)}</span>
-                  </div>
-                  <div className="flex justify-between px-4 py-2 bg-primary-soft/50">
-                    <span className="font-bold">รวมเป็นเงิน</span>
-                    <span className="font-extrabold text-primary text-base">{formatCurrency(totalNum)}</span>
-                  </div>
+                {/* ประวัติราคาทุนที่ได้รับจริง — ผู้จำหน่าย + ทุนที่จ่ายในแต่ละครั้ง อ่านจาก ledger
+                    (ไม่ใช่ทุนเฉลี่ย) เพื่อเทียบราคาก่อนกรอกต้นทุนรอบนี้ */}
+                <div className="mt-5">
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">ประวัติราคาทุน</h4>
+                  {historyLoading ? (
+                    <div className="rounded-lg border border-border px-4 py-6 text-center text-sm text-foreground-subtle">กำลังโหลดประวัติ…</div>
+                  ) : purchaseHistory.length === 0 ? (
+                    <div className="rounded-lg border border-border px-4 py-6 text-center text-sm text-foreground-subtle">ยังไม่มีประวัติการรับเข้าของสินค้านี้</div>
+                  ) : (
+                    <Table containerClassName="rounded-lg border border-border max-h-60 overflow-auto scrollbar-thin">
+                      <TableHeader>
+                        <TableRow className="[&>th]:h-9">
+                          <TableHead className="w-8 px-1" />
+                          <TableHead>วันที่</TableHead>
+                          <TableHead>ผู้จำหน่าย</TableHead>
+                          <TableHead className="text-right">จำนวน</TableHead>
+                          <TableHead className="text-right">ราคาทุน/หน่วย</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {purchaseHistory.map((h, i) => {
+                          // รับเป็นหน่วยใหญ่กว่าหน่วยฐาน → ขยายดูทุนต่อหน่วยย่อยสุดได้
+                          const expandable = h.qty_per_base > 1
+                          const open = expandedHistory.has(i)
+                          const baseUnitName = row.units[0]?.unit_name ?? ''
+                          return (
+                            <React.Fragment key={`${h.invoice_no}-${i}`}>
+                              <TableRow
+                                onClick={expandable ? () => setExpandedHistory(s => {
+                                  const n = new Set(s); n.has(i) ? n.delete(i) : n.add(i); return n
+                                }) : undefined}
+                                className={expandable ? 'cursor-pointer' : undefined}
+                              >
+                                <TableCell className="w-8 px-1 text-center">
+                                  {expandable && (
+                                    <ChevronRight className={`size-4 text-muted-foreground shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+                                  )}
+                                </TableCell>
+                                <TableCell>{formatDate(h.order_date || h.created_at)}</TableCell>
+                                <TableCell className="font-medium text-foreground">{h.supplier_name || '—'}</TableCell>
+                                <TableCell className="text-right">{formatNum(String(h.qty))} {h.unit_name || ''}</TableCell>
+                                <TableCell className="text-right font-semibold text-primary">{formatCurrency(h.cost_price)}</TableCell>
+                              </TableRow>
+                              {expandable && open && (
+                                <TableRow className="bg-muted/30">
+                                  <TableCell className="w-8 px-1" />
+                                  <TableCell />
+                                  <TableCell />
+                                  <TableCell className="text-right">
+                                    <span className="inline-block text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200">1 {baseUnitName}</span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <span className="inline-block text-xs font-semibold text-primary animate-in fade-in slide-in-from-top-1 duration-200">{formatCurrency(h.cost_price / h.qty_per_base)}</span>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </React.Fragment>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  )}
                 </div>
               </div>
             )}

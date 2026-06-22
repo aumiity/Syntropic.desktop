@@ -46,6 +46,7 @@ const api = {
     deleteLabel: (id: number) => invoke('products:deleteLabel', id),
     searchGenericNames: (q: string) => invoke('products:searchGenericNames', q),
     getLots: (productId: number) => invoke('products:getLots', productId),
+    getPurchaseHistory: (productId: number, limit?: number) => invoke('products:getPurchaseHistory', productId, limit),
     monthlySales: (productId: number) => invoke('products:monthlySales', productId),
     getBundleItems: (bundleId: number) => invoke('products:getBundleItems', bundleId),
     saveBundleItems: (bundleId: number, items: Array<{ component_product_id: number; qty_per_bundle: number }>) =>
