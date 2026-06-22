@@ -7,7 +7,7 @@ metadata:
 
 # POS unit-mismatch checkout guard
 
-**DONE 2026-06-23 — tsc PASS + logic review PASS; in-app verify pending**
+**DONE 2026-06-23 — tsc PASS + logic review PASS + verified Playwright e2e 10/10 (`tests/e2e/verify-pos-unit-guard.mjs`)**
 
 ## ปัญหา
 
@@ -44,3 +44,9 @@ async function openPayment() {
 }
 ```
 เหตุ: `anyModalOpen` ยัง false ระหว่างรอ IPC → กดได้หลายรอบก่อน dialog เปิด
+
+## POS UI e2e notes (Playwright-Electron) — ใช้ซ้ำได้กับเทสต์ POS อื่น
+
+- **ต้องเปิด vite ค้างก่อนรัน** — `isDev = NODE_ENV==='development' || !app.isPackaged` → ลอนช์ `electron.exe` ตรง ๆ = dev เสมอ → โหลด `localhost:5173`; ไม่เปิด vite renderer จะว่าง locator fail (เทสต์ GR เดิม UI เป็น best-effort `check(...,true)` เลยไม่เจอ)
+- **ต้อง `page.reload()` หลัง `completeSetup`+`login` ผ่าน IPC** — `App.tsx` อ่าน setup/login ตอน mount ครั้งเดียว; session อยู่ main process จึงรอด reload (ไม่ reload จะค้าง SetupWizard)
+- **DB เทสต์มี seed อยู่** — `products.create` auto-gen `code` (เช่น P1526 ต่อจาก seed) ไม่สน code ที่ส่ง → อย่า hardcode code, ค้นด้วย `trade_name` unique; หน่วยฐานมาจาก JOIN `item_units` ตาม `unit_id` (ไม่ใช่ `unit_name` ใน payload); `settings.listUnits` เรียงตามชื่อ ตัวแรกไม่ใช่ id 1
