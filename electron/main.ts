@@ -24,9 +24,9 @@ let mainWindow: BrowserWindow | null = null
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1400,
+    width: 1440,
     height: 900,
-    minWidth: 1366,
+    minWidth: 1440,
     minHeight: 800,
     title: 'Rx Desktop',
     backgroundColor: '#065f46',

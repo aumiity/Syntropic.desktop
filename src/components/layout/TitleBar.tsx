@@ -87,11 +87,11 @@ const colors = {
   maximize: { bg: '#FFBD2E', hover: '#FF9F0A', ring: '#DEA123' },
 }
 
+// Presets must respect the locked window min (1440 x 800 in electron/main.ts) —
+// anything smaller would be clamped by the OS and not match its label.
 const PRESETS: { label: string; w: number; h: number; note?: string }[] = [
-  { label: '1024 × 768', w: 1024, h: 768, note: 'เล็กสุด' },
-  { label: '1280 × 720', w: 1280, h: 720, note: 'HD' },
-  { label: '1366 × 768', w: 1366, h: 768, note: 'โน้ตบุ๊ก' },
-  { label: '1440 × 900', w: 1440, h: 900 },
+  { label: '1440 × 800', w: 1440, h: 800, note: 'เล็กสุด' },
+  { label: '1536 × 864', w: 1536, h: 864, note: '1080p @125%' },
   { label: '1600 × 900', w: 1600, h: 900 },
   { label: '1920 × 1080', w: 1920, h: 1080, note: 'FHD' },
 ]

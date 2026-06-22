@@ -1,11 +1,15 @@
 ---
 name: project_min_ui_canvas_scroll
-description: PARKED feature — fixed minimum UI canvas with scrollbars below it (instead of compressing). Approach decided, min-size TBD pending user display research.
+description: Window min-size locked at 1440x800 (electron/main.ts). Scroll-canvas approach dropped — locking the window makes it unnecessary. Parked only as fallback for sub-1440x800 screens.
 metadata:
   type: project
 ---
 
-**PARKED 2026-06-22 — อย่าเริ่มเชิงรุก** เจ้าของขอจดไว้ก่อน รอหาข้อมูลว่าผู้ใช้ส่วนใหญ่ใช้จอแบบไหน/upscale กันไหม แล้วค่อยเคาะขนาดขั้นต่ำ
+**DECIDED + DONE (window-min) 2026-06-22** — เจ้าของเคาะ: ล็อก `BrowserWindow` min = **1440×800** ใน `electron/main.ts` (minWidth 1366→1440, minHeight 800 คงเดิม, default width 1400→1440 เพื่อไม่ต่ำกว่า min). พอ OS บล็อกย่อต่ำกว่านี้ → UI ไม่มีวันเล็กกว่าขนาดออกแบบ → **ไม่หด → ไม่ต้องมี scroll layer**. ตรรกะ: scroll มีไว้สำหรับ "ยอมให้ window เล็กแต่ตรึง UI"; พอเลือกตรึง window แทน เคสนั้นหายไป.
+
+**เหตุผลที่เลือก 1440×800:** กว้าง 1440 < 1536 (จอแคบสุดที่รองรับ = 1080p@125%) เหลือขอบ 96px; สูง 800 < 824 (1080p@125% maximized หัก taskbar ~40px) → จอเจ้าของ 24" 1080p@125% (1536×864) ใช้เต็มจอไม่ติด scrollbar.
+
+**⚠️ ข้อจำกัดที่ยอมรับแล้ว:** จอ **เล็กกว่า 1440×800** (1080p@150%=1280×720, จอเก่า 1366×768) → window ล้นออกนอกจอ กดมุมไม่โดน เพราะไม่มี scroll มากู้. เจ้าของรับได้เพราะฐานจริง ≥125%/1080p. ถ้าวันหน้าเจอลูกค้าจอเล็กกว่านี้ → ค่อยทำ scroll layer ใน `Layout.tsx` (sketch อยู่ท้ายไฟล์) เป็นทางสำรอง.
 
 ## โจทย์
 คง UI ขั้นต่ำไว้ (ออกแบบสำหรับโน้ตบุ๊ก 15"). พอย่อหน้าต่างเล็กกว่าขนาดนั้น **UI ไม่หดตาม** แต่โผล่ scrollbar เลื่อน ↕↔ แทน
