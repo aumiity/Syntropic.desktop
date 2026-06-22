@@ -305,10 +305,11 @@ export function registerPurchaseHandlers() {
   ipcMain.handle('purchase:history', (_e, filters: {
     q?: string; supplier_id?: number; date_from?: string; date_to?: string;
     page?: number; limit?: number | 'all'; payment_type?: string; status?: 'completed' | 'cancelled' | 'all';
+    vat_filter?: 'all' | 'vat' | 'novat';
     sort_by?: 'created_at' | 'invoice_no' | 'total_cost'; sort_dir?: 'ASC' | 'DESC'
   }) => {
     const db = getDb()
-    const { q, supplier_id, date_from, date_to, payment_type, page = 1, limit: limitOpt, status = 'all', sort_by, sort_dir } = filters
+    const { q, supplier_id, date_from, date_to, payment_type, page = 1, limit: limitOpt, status = 'all', vat_filter = 'all', sort_by, sort_dir } = filters
     // Whitelist sort fields to keep ORDER BY injection-proof.
     const SORT_COLS: Record<string, string> = {
       created_at: 'pr.created_at',
@@ -354,6 +355,11 @@ export function registerPurchaseHandlers() {
     }
     if (status === 'completed') { rowConditions.push(`COALESCE(pr.status,'completed') = 'completed'`) }
     else if (status === 'cancelled') { rowConditions.push(`pr.status = 'cancelled'`) }
+    // VAT slice is orthogonal to payment/status — a purchase carries input VAT
+    // when vat_mode = 'inclusive' (the flag purchase:save writes). Narrows rows
+    // only; the summary cards stay on the base q/date set like the other chips.
+    if (vat_filter === 'vat') { rowConditions.push(`COALESCE(pr.vat_mode,'none') = 'inclusive'`) }
+    else if (vat_filter === 'novat') { rowConditions.push(`COALESCE(pr.vat_mode,'none') != 'inclusive'`) }
 
     const rowWhere = rowConditions.length ? `WHERE ${rowConditions.join(' AND ')}` : ``
 
@@ -365,6 +371,7 @@ export function registerPurchaseHandlers() {
              COALESCE(pr.status,'completed') as status,
              pr.cancelled_at, pr.cancel_reason,
              pr.payment_type, pr.is_paid, pr.due_date,
+             COALESCE(pr.vat_mode,'none') as vat_mode,
              s.name as supplier_name,
              COALESCE((SELECT COUNT(*) FROM purchase_receipt_items pri WHERE pri.invoice_no = pr.invoice_no), 0) as item_count,
              COALESCE((SELECT SUM(pri.qty * pri.cost_price) FROM purchase_receipt_items pri WHERE pri.invoice_no = pr.invoice_no), 0) as total_cost

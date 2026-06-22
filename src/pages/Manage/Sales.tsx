@@ -22,9 +22,10 @@ import type { Sale } from '@/types'
 import type { ManageOutletContext } from './index'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
+import { useShopVat } from '@/hooks/useShopVat'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye, Printer } from 'lucide-react'
+import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye, Printer, Percent } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Money lives in the table rows; the summary slot now carries only the count
@@ -49,6 +50,7 @@ const EMPTY_SUMMARY: SaleSummary = {
 }
 
 type StatusFilter = 'all' | 'retail' | 'wholesale' | 'return' | 'voided'
+type VatFilter = 'all' | 'vat' | 'novat'
 
 const SALE_TYPE_LABELS: Record<string, string> = {
   retail: 'ปลีก', wholesale: 'ส่ง', rx: 'ใบสั่งยา', return: 'คืนสินค้า',
@@ -95,6 +97,9 @@ const SALES_DEFAULTS: SalesPrefs = {
 export default function ManageSalesPage() {
   const { toast } = useToast()
   const { setSummary: setSlotSummary } = useOutletContext<ManageOutletContext>()
+  // VAT status column + filter only appear once the shop is VAT-registered —
+  // matches the hide-when-NO-VAT rule used across the app.
+  const { vatEnabled } = useShopVat()
 
   const [prefs, setPrefs] = usePagePrefs<SalesPrefs>('sales', SALES_DEFAULTS)
 
@@ -110,6 +115,7 @@ export default function ManageSalesPage() {
   const [dateFrom, setDateFrom] = useState(initialRange.from)
   const [dateTo, setDateTo] = useState(initialRange.to)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [vatFilter, setVatFilter] = useState<VatFilter>('all')
 
   const sort = prefs.sort
   const setSort = (next: SortState | ((prev: SortState) => SortState)) => {
@@ -165,6 +171,7 @@ export default function ManageSalesPage() {
         sort_by: sort.by,
         sort_dir: sort.dir.toUpperCase(),
         status_filter: statusFilter,
+        vat_filter: vatFilter,
         page: p,
         limit: pageSize,
       }) as any
@@ -175,7 +182,7 @@ export default function ManageSalesPage() {
     } finally {
       setLoading(false)
     }
-  }, [q, dateFrom, dateTo, statusFilter, sort, pageSize])
+  }, [q, dateFrom, dateTo, statusFilter, vatFilter, sort, pageSize])
 
   useEffect(() => {
     const t = setTimeout(() => { load(1) }, 300)
@@ -308,6 +315,44 @@ export default function ManageSalesPage() {
             )
           })()}
 
+          {/* VAT filter — its own icon button beside the status filter
+              (approach A). Hidden until the shop is VAT-registered. */}
+          {vatEnabled && (() => {
+            const VAT_OPTIONS: { value: VatFilter; label: string }[] = [
+              { value: 'all',   label: 'ทั้งหมด' },
+              { value: 'vat',   label: 'มี VAT' },
+              { value: 'novat', label: 'ไม่มี VAT' },
+            ]
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง VAT">
+                    <Percent className="size-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-1 gap-0">
+                  <PopoverHeader className="px-2">
+                    <PopoverTitle>VAT</PopoverTitle>
+                  </PopoverHeader>
+                  {VAT_OPTIONS.map(o => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setVatFilter(o.value)}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                        vatFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
+                      )}
+                    >
+                      <Check className={cn('size-4', vatFilter === o.value ? 'opacity-100' : 'opacity-0')} />
+                      <span className="flex-1 text-left">{o.label}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )
+          })()}
+
           <Popover>
             <PopoverTrigger asChild>
               <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
@@ -407,6 +452,7 @@ export default function ManageSalesPage() {
                         {isVoided
                           ? <Badge variant="destructive-outline">ยกเลิก</Badge>
                           : <Badge variant="success-outline">สำเร็จ</Badge>}
+                        {vatEnabled && (s.total_vat ?? 0) > 0 && <Badge variant="info-outline">VAT</Badge>}
                       </div>
                     </TableCell>
                   )}

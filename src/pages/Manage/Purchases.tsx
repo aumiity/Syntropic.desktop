@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { getCurrentUserId } from '@/stores/userStore'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
+import { useShopVat } from '@/hooks/useShopVat'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
@@ -24,7 +25,7 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import type { ManageOutletContext } from './index'
 import {
-  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Check, Settings2, Eye, Filter, MoreHorizontal,
+  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Check, Settings2, Eye, Filter, MoreHorizontal, Percent,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -41,6 +42,7 @@ interface HistoryRow {
   status: 'completed' | 'cancelled'
   cancelled_at?: string
   cancel_reason?: string
+  vat_mode?: string
 }
 
 interface ReceiptDetail extends ProductLot {
@@ -89,6 +91,9 @@ const PURCHASES_DEFAULTS: PurchasesPrefs = {
 export default function ManagePurchasesPage() {
   const { toast } = useToast()
   const { setSummary: setSlotSummary } = useOutletContext<ManageOutletContext>()
+  // VAT column + filter only surface once the shop is VAT-registered (input VAT
+  // exists). Matches the hide-when-NO-VAT rule used across the app.
+  const { vatEnabled } = useShopVat()
 
   const [prefs, setPrefs] = usePagePrefs<PurchasesPrefs>('purchases', PURCHASES_DEFAULTS)
 
@@ -112,6 +117,7 @@ export default function ManagePurchasesPage() {
   const [histDateFrom, setHistDateFrom] = useState(initialRange.from)
   const [histDateTo, setHistDateTo] = useState(initialRange.to)
   const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'unpaid' | 'cancelled'>('all')
+  const [histVatFilter, setHistVatFilter] = useState<'all' | 'vat' | 'novat'>('all')
   const [histSummary, setHistSummary] = useState({ count: 0, cash_count: 0, credit_count: 0, unpaid_count: 0, cancelled_count: 0 })
   const histSort = prefs.histSort
   const setHistSort = (next: SortState | ((prev: SortState) => SortState)) => {
@@ -191,6 +197,7 @@ export default function ManagePurchasesPage() {
         date_to: dTo || undefined,
         payment_type: (filter === 'cash' || filter === 'credit' || filter === 'unpaid') ? filter : undefined,
         status: filter === 'cancelled' ? 'cancelled' : 'all',
+        vat_filter: histVatFilter,
         sort_by: histSort.by,
         sort_dir: histSort.dir.toUpperCase(),
         page,
@@ -209,7 +216,7 @@ export default function ManagePurchasesPage() {
     } finally {
       setLoadingHist(false)
     }
-  }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, histPageSize, histSort, selectedInvoice])
+  }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, histVatFilter, histPageSize, histSort, selectedInvoice])
 
   // Passive MetricCard snapshot of the q/date set. The status filter lives in
   // the filter strip's Filter popover (no onClick → ManageLayout renders
@@ -246,6 +253,15 @@ export default function ManagePurchasesPage() {
     loadHistory(1, undefined, undefined, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [histSupplierId])
+
+  // Refilter on VAT dropdown change (skip initial mount). Effect (not inline
+  // onValueChange) so the closure sends the up-to-date histVatFilter.
+  const vatEffectMounted = useRef(false)
+  useEffect(() => {
+    if (!vatEffectMounted.current) { vatEffectMounted.current = true; return }
+    loadHistory(1, undefined, undefined, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [histVatFilter])
 
   // Debounced realtime search on histQ change (skip initial mount).
   const qEffectMounted = useRef(false)
@@ -543,6 +559,45 @@ export default function ManagePurchasesPage() {
             )
           })()}
 
+          {/* VAT filter — its own icon button beside the status filter
+              (approach A). Hidden until the shop is VAT-registered. Reload is
+              driven by the histVatFilter effect, so onClick only sets state. */}
+          {vatEnabled && (() => {
+            const VAT_OPTIONS: { value: 'all' | 'vat' | 'novat'; label: string }[] = [
+              { value: 'all',   label: 'ทั้งหมด' },
+              { value: 'vat',   label: 'มี VAT' },
+              { value: 'novat', label: 'ไม่มี VAT' },
+            ]
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง VAT">
+                    <Percent className="size-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-1 gap-0">
+                  <PopoverHeader className="px-2">
+                    <PopoverTitle>VAT</PopoverTitle>
+                  </PopoverHeader>
+                  {VAT_OPTIONS.map(o => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setHistVatFilter(o.value)}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                        histVatFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
+                      )}
+                    >
+                      <Check className={cn('size-4', histVatFilter === o.value ? 'opacity-100' : 'opacity-0')} />
+                      <span className="flex-1 text-left">{o.label}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )
+          })()}
+
           <Popover>
             <PopoverTrigger asChild>
               <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
@@ -630,16 +685,19 @@ export default function ManagePurchasesPage() {
                     )}
                     {showColStatus && (
                       <TableCell className="text-center">
-                        {isCancelled
-                          ? <Badge variant="destructive-outline">ยกเลิก</Badge>
-                          : h.payment_type === 'credit'
-                            ? h.is_paid
-                              ? <Badge variant="success-outline">ชำระแล้ว</Badge>
-                              : isOverdue
-                                ? <Badge variant="destructive-outline">เกินกำหนด</Badge>
-                                : <Badge variant="amber-outline">เครดิต</Badge>
-                            : <Badge variant="info-outline">เงินสด</Badge>
-                        }
+                        <div className="flex items-center justify-center gap-1.5">
+                          {isCancelled
+                            ? <Badge variant="destructive-outline">ยกเลิก</Badge>
+                            : h.payment_type === 'credit'
+                              ? h.is_paid
+                                ? <Badge variant="success-outline">ชำระแล้ว</Badge>
+                                : isOverdue
+                                  ? <Badge variant="destructive-outline">เกินกำหนด</Badge>
+                                  : <Badge variant="amber-outline">เครดิต</Badge>
+                              : <Badge variant="info-outline">เงินสด</Badge>
+                          }
+                          {vatEnabled && h.vat_mode === 'inclusive' && <Badge variant="info-outline">VAT</Badge>}
+                        </div>
                       </TableCell>
                     )}
                     <TableCell>

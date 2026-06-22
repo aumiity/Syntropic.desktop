@@ -10,9 +10,10 @@ export function registerReportHandlers() {
     sort_by?: string; sort_dir?: string; page?: number
     limit?: number | 'all'
     status_filter?: 'all' | 'retail' | 'wholesale' | 'return' | 'voided'
+    vat_filter?: 'all' | 'vat' | 'novat'
   }) => {
     const db = getDb()
-    const { q, date_from, date_to, sort_by = 'sold_at', sort_dir = 'DESC', page = 1, limit: limitOpt, status_filter = 'all' } = filters
+    const { q, date_from, date_to, sort_by = 'sold_at', sort_dir = 'DESC', page = 1, limit: limitOpt, status_filter = 'all', vat_filter = 'all' } = filters
     const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 30)
     const offset = limit ? (page - 1) * limit : 0
 
@@ -34,7 +35,15 @@ export function registerReportHandlers() {
       : status_filter === 'voided' ? `s.status = 'voided'`
       : null // 'all' (includes rx + voided — rx has no dedicated card)
 
-    const rowConditions = statusCond ? [...baseConditions, statusCond] : baseConditions
+    // VAT slice is orthogonal to status — a bill carries VAT when total_vat > 0
+    // (the same source-of-truth resolveSlipMode uses for the abbreviated tax
+    // invoice). Like statusCond it narrows only the rows/total, never the cards.
+    const vatCond =
+      vat_filter === 'vat' ? `COALESCE(s.total_vat, 0) > 0`
+      : vat_filter === 'novat' ? `COALESCE(s.total_vat, 0) = 0`
+      : null
+
+    const rowConditions = [...baseConditions, statusCond, vatCond].filter(Boolean) as string[]
     const where = rowConditions.length ? `WHERE ${rowConditions.join(' AND ')}` : ''
     const baseWhere = baseConditions.length ? `WHERE ${baseConditions.join(' AND ')}` : ''
     const validSorts = ['sold_at', 'invoice_no', 'subtotal', 'total_discount', 'total_amount', 'item_kinds', 'customer_name']
