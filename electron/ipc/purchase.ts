@@ -133,11 +133,8 @@ export function registerPurchaseHandlers() {
     const vatRate = vatMode === 'none' ? 0 : (Number(payload.vat_rate) > 0 ? Number(payload.vat_rate) : 7)
     const lineSum = payload.items.reduce((s, it) => s + it.qty * it.cost_price, 0)
     const vatAmount = vatMode === 'inclusive' ? lineSum * vatRate / (100 + vatRate) : 0
-    // Claimable VAT is not cost: for VAT-inclusive bills the cost model
-    // (product_lots, weighted avg, stock_movements, last_cost_price) stores
-    // the ex-VAT cost. The purchase_receipt_items ledger keeps the entered
-    // cost untouched — document fidelity with the supplier invoice.
-    const costFactor = vatMode === 'inclusive' ? 100 / (100 + vatRate) : 1
+    // VAT snapshot (vat_mode/vat_rate/vat_amount) ยังเก็บลง header ตามเดิม —
+    // รายงานภาษีอ่านจาก snapshot นี้เพื่อ derive ex-VAT เอง.
 
     const save = db.transaction(() => {
       // Header is the authoritative source for GR-level metadata
@@ -163,15 +160,16 @@ export function registerPurchaseHandlers() {
         // backstop. assertNotBundle throws inside the transaction → rollback.
         assertNotBundle(db, item.product_id)
 
-        // Cost-model cost (ex-VAT for inclusive bills) — see costFactor above.
-        const costEx = item.cost_price * costFactor
+        // Cost-model cost = GROSS (รวม VAT) ตามกฏร้านที่ราคาที่แสดงรวม VAT อยู่แล้ว
+        // — ex-VAT จะถูก derive เฉพาะในรายงานภาษีจาก vat_amount snapshot ของ header.
+        const costGross = item.cost_price
 
         // Convert the entered receiving unit (กล่อง/โหล) to the BASE unit for
         // stock/cost. qty_per_base falls back to 1 (base), never 0 (blank→0 ban).
-        // Money total is invariant: costBaseEx × qtyBase == costEx × item.qty.
+        // Money total is invariant: costBaseGross × qtyBase == costGross × item.qty.
         const qpb = item.qty_per_base && item.qty_per_base > 0 ? item.qty_per_base : 1
         const qtyBase = item.qty * qpb
-        const costBaseEx = costEx / qpb
+        const costBaseGross = costGross / qpb
 
         const existing = db.prepare(`SELECT * FROM product_lots WHERE product_id = ? AND lot_number = ?`).get(item.product_id, item.lot_number) as any
 
@@ -185,7 +183,7 @@ export function registerPurchaseHandlers() {
 
         if (existing) {
           const totalQty = existing.qty_received + qtyBase
-          const avgCost = (existing.qty_received * existing.cost_price + qtyBase * costBaseEx) / totalQty
+          const avgCost = (existing.qty_received * existing.cost_price + qtyBase * costBaseGross) / totalQty
           qtyBefore = existing.qty_on_hand
           lotId = existing.id
           recExpiry = existing.expiry_date
@@ -226,7 +224,7 @@ export function registerPurchaseHandlers() {
               invoice_no, supplier_invoice_no, order_date, payment_type, due_date, is_paid, paid_date, note, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(item.product_id, payload.supplier_id, item.lot_number, item.manufactured_date ?? null, item.expiry_date,
-            costBaseEx, item.sell_price, qtyBase, qtyBase,
+            costBaseGross, item.sell_price, qtyBase, qtyBase,
             payload.invoice_no, payload.supplier_invoice_no, payload.order_date ?? null,
             payload.payment_type,
             payload.due_date ?? null, payload.is_paid ? 1 : 0, payload.paid_date ?? null, item.note ?? '',
@@ -247,7 +245,7 @@ export function registerPurchaseHandlers() {
         db.prepare(`INSERT INTO stock_movements (product_id, lot_id, movement_type, ref_type, qty_change, qty_before, qty_after, unit_cost, note, created_by, created_at)
           VALUES (?, ?, 'receive', 'stock_receive', ?, ?, ?, ?, ?, ?, ?)`).run(
           item.product_id, lotId, qtyBase, qtyBefore, qtyBefore + qtyBase,
-          costBaseEx, `รับสินค้า: ${payload.invoice_no}`, payload.userId, payload.receive_date
+          costBaseGross, `รับสินค้า: ${payload.invoice_no}`, payload.userId, payload.receive_date
         )
 
         // ราคาขายหลัก (price_retail) ไม่ตั้งจาก GR แล้ว — เป็นของ products:updatePrice
@@ -259,9 +257,9 @@ export function registerPurchaseHandlers() {
         // non-zero cost. Stays 0 only for products never paid for (new, or
         // only ever received free). cost_price is NOT touched here — it's
         // recomputed as a weighted average below.
-        if (costEx > 0) {
+        if (costGross > 0) {
           db.prepare(`UPDATE products SET last_cost_price = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
-            .run(costBaseEx, item.product_id)
+            .run(costBaseGross, item.product_id)
         }
       }
 
@@ -486,11 +484,8 @@ export function registerPurchaseHandlers() {
     if (!header) return { success: false, error: 'not_found' }
     if (header.status === 'cancelled') return { success: false, error: 'already_cancelled' }
 
-    // Reverse in BASE units (matching receive). costFactor backs out claimable
-    // VAT for inclusive bills so the reversal unit_cost equals what receive logged.
-    const vatRate = Number(header.vat_rate) || 0
-    const costFactor = header.vat_mode === 'inclusive' ? 100 / (100 + vatRate) : 1
-
+    // Reverse in BASE units (matching receive). ต้นทุนเก็บแบบ GROSS (รวม VAT)
+    // ตั้งแต่ตอนรับ → log ต้นทุน gross จาก ledger ตรง ๆ ไม่ต้องถอน VAT.
     const lines = db.prepare(`SELECT * FROM purchase_receipt_items WHERE invoice_no = ?`).all(payload.invoice_no) as any[]
     if (lines.length === 0) return { success: false, error: 'no_lines' }
 
@@ -551,7 +546,7 @@ export function registerPurchaseHandlers() {
             (product_id, lot_id, movement_type, ref_type, ref_id, qty_change, qty_before, qty_after, unit_cost, note, created_by, created_at)
           VALUES (?, ?, 'purchase_return', 'gr_cancel', ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
         `).run(line.product_id, line.lot_id, line.id, -baseQty, qtyBefore, qtyAfter,
-               (line.cost_price * costFactor) / qpb, `ยกเลิกบิล: ${payload.invoice_no} — ${reason}`, payload.userId)
+               line.cost_price / qpb, `ยกเลิกบิล: ${payload.invoice_no} — ${reason}`, payload.userId)
       }
 
       const productIds = Array.from(new Set(lines.map(l => l.product_id)))
