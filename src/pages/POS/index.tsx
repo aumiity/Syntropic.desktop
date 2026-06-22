@@ -233,6 +233,10 @@ export default function POSPage() {
   const [lastInvoice, setLastInvoice] = useState('')
   const [showSuccess, setShowSuccess] = useState(false)
 
+  // Unit-factor mismatch guard — blocks payment when a cart line's snapshot
+  // qty_per_base no longer matches the DB (someone edited it after add-time).
+  const [mismatchItem, setMismatchItem] = useState<{ index: number; name: string; snapshot: number; current: number } | null>(null)
+
   // Sales settings (alert thresholds + toggles) — loaded once on mount.
   const [salesSettings, setSalesSettings] = useState<SalesSettings | null>(null)
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null)
@@ -297,6 +301,7 @@ export default function POSPage() {
   const overrideAdjust = useManagerOverride()
   const adjustInputRef = useRef<HTMLInputElement>(null)
   const adjustSearchInputRef = useRef<HTMLInputElement>(null)
+  const openingPaymentRef = useRef(false)
 
   useEffect(() => {
     loadDailyStats()
@@ -332,7 +337,8 @@ export default function POSPage() {
 
   const anyModalOpen = searchOpen || showPayment || showCustomerSearch || showQuickAdd || showSuccess || showCustomerInfo ||
     showReturn || showAdjust || showLabelPrint ||
-    unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null
+    unitModalIdx !== null || priceModalIdx !== null || discountModalIdx !== null || qtyModalIdx !== null ||
+    mismatchItem !== null
 
   // Refs so focus callbacks always see current modal state without stale closures
   const anyModalOpenRef = useRef(anyModalOpen)
@@ -418,13 +424,46 @@ export default function POSPage() {
 
   // Seeds the payment dialog from the current cart, then opens it. Shared by the
   // big "ชำระเงิน" button and the F9 hotkey.
-  const openPayment = useCallback(() => {
+  const openPayment = useCallback(async () => {
     if (cart.items.length === 0) return
-    setPendingDiscounts(cart.items.map(i => i.discount))
-    setTotalDiscountInput(cart.totalDiscount().toFixed(2))
-    setCashAmount(cart.totalAmount().toFixed(2))
-    setShowBreakdown(false)
-    setShowPayment(true)
+    // In-flight guard: openPayment awaits getUnitFactors, during which anyModalOpen
+    // is still false (mismatchItem/showPayment not set yet) — so a fast double-tap on
+    // the pay button / F9 could run it twice. A ref flag blocks the re-entry.
+    if (openingPaymentRef.current) return
+    openingPaymentRef.current = true
+    try {
+      // Guard: a cart line's snapshot qty_per_base must still match the DB. Someone
+      // may have edited product_units.qty_per_base after the item was added → stale
+      // multiplier would deduct the wrong base-unit stock in pos:saveBill. Compare
+      // ONLY qty_per_base (never price — staff sets prices freely). Base-unit lines
+      // (no selectedUnit) are always factor 1, skip them.
+      const unitIds = cart.items
+        .map(i => i.selectedUnit?.id)
+        .filter((id): id is number => typeof id === 'number' && id > 0)
+      if (unitIds.length > 0) {
+        const fresh = await window.api.pos.getUnitFactors(unitIds)
+        const freshMap = new Map(fresh.map(r => [r.id, r.qty_per_base]))
+        for (let i = 0; i < cart.items.length; i++) {
+          const item = cart.items[i]
+          const uid = item.selectedUnit?.id
+          if (typeof uid !== 'number' || uid <= 0) continue
+          const current = freshMap.get(uid)
+          const snapshot = item.selectedUnit!.qty_per_base
+          if (current !== undefined && current !== snapshot) {
+            setMismatchItem({ index: i, name: item.item_name, snapshot, current })
+            return // block — do NOT open payment
+          }
+        }
+      }
+
+      setPendingDiscounts(cart.items.map(i => i.discount))
+      setTotalDiscountInput(cart.totalDiscount().toFixed(2))
+      setCashAmount(cart.totalAmount().toFixed(2))
+      setShowBreakdown(false)
+      setShowPayment(true)
+    } finally {
+      openingPaymentRef.current = false
+    }
   }, [cart])
 
   // F9 opens the payment dialog — only when nothing else is open, so it never
@@ -2408,6 +2447,46 @@ export default function POSPage() {
         description={lastInvoice}
         confirmLabel="ตกลง"
         onConfirm={() => setShowSuccess(false)}
+      />
+
+      {/* ── UNIT MISMATCH GUARD ── */}
+      <ConfirmDialog
+        open={mismatchItem !== null}
+        onOpenChange={(v) => { if (!v) { setMismatchItem(null); refocusSearch() } }}
+        variant="warning"
+        singleButton
+        icon={AlertTriangle}
+        title="ตัวคูณหน่วยเปลี่ยนไป"
+        confirmLabel="ลบรายการแล้วหยิบใหม่"
+        content={mismatchItem && (
+          <div className="space-y-3">
+            <div className="rounded-xl border bg-card shadow-sm p-3 space-y-2 text-sm">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">สินค้า</span>
+                <span className="font-semibold">{mismatchItem.name}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">ตอนหยิบ</span>
+                <span className="font-semibold">× {mismatchItem.snapshot}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">ปัจจุบัน</span>
+                <span className="font-semibold">× {mismatchItem.current}</span>
+              </div>
+            </div>
+            <div className="rounded-xl bg-amber-soft p-3 text-sm text-amber-strong leading-relaxed">
+              ตัวคูณหน่วยถูกแก้ไขหลังจากหยิบลงตะกร้า เพื่อความถูกต้องของสต็อก กรุณาลบรายการนี้แล้วสแกน/ค้นหาใหม่
+            </div>
+          </div>
+        )}
+        onConfirm={() => {
+          if (mismatchItem) {
+            removeCartItem(mismatchItem.index)
+            toast({ title: `ลบ ${mismatchItem.name} แล้ว กรุณาสแกนใหม่`, variant: 'warning' })
+          }
+          setMismatchItem(null)
+          refocusSearch()
+        }}
       />
 
       {/* ── UNIT DIALOG ── */}

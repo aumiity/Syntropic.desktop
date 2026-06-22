@@ -16,6 +16,7 @@ const api = {
   pos: {
     searchProducts: (q: string) => invoke('pos:searchProducts', q),
     getProductsByIds: (ids: number[]) => invoke('pos:getProductsByIds', ids),
+    getUnitFactors: (unitIds: number[]): Promise<Array<{ id: number; qty_per_base: number }>> => invoke('pos:getUnitFactors', unitIds),
     searchCustomers: (q: string) => invoke('pos:searchCustomers', q),
     saveBill: (payload: any) => invoke('pos:saveBill', payload),
     getDailyStats: () => invoke('pos:getDailyStats'),

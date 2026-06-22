@@ -171,6 +171,19 @@ export function registerPosHandlers() {
     return products
   })
 
+  // Fetch current qty_per_base for a set of product_units ids. POS uses this to
+  // re-validate cart-line unit factors before payment — a snapshot taken at
+  // add-time may be stale if someone edited product_units.qty_per_base since.
+  ipcMain.handle('pos:getUnitFactors', (_e, unitIds: number[]) => {
+    const db = getDb()
+    const unique = Array.from(new Set((unitIds ?? []).filter(n => Number.isInteger(n) && n > 0)))
+    if (unique.length === 0) return []
+    const placeholders = unique.map(() => '?').join(',')
+    return db.prepare(
+      `SELECT id, qty_per_base FROM product_units WHERE id IN (${placeholders})`
+    ).all(...unique) as Array<{ id: number; qty_per_base: number }>
+  })
+
   // Search customers
   ipcMain.handle('pos:searchCustomers', (_e, query: string) => {
     const q = `%${query}%`

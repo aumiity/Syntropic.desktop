@@ -2,6 +2,7 @@ declare const api: {
     pos: {
         searchProducts: (q: string) => Promise<any>;
         getProductsByIds: (ids: number[]) => Promise<any>;
+        getUnitFactors: (unitIds: number[]) => Promise<Array<{ id: number; qty_per_base: number }>>;
         searchCustomers: (q: string) => Promise<any>;
         saveBill: (payload: any) => Promise<any>;
         getDailyStats: () => Promise<any>;
