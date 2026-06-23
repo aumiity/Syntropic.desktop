@@ -125,13 +125,13 @@ function DemoRow({ label, children }: { label?: string; children: React.ReactNod
 const PRODUCTS = [
   { id: 'prd-001', name: 'Amoxicillin 500mg', cat: 'ยาต้านเชื้อ', price: '12.00', stock: 240, status: 'success-outline' as const },
   { id: 'prd-002', name: 'Paracetamol 500mg', cat: 'ยาแก้ปวด', price: '2.50', stock: 800, status: 'success-outline' as const },
-  { id: 'prd-003', name: 'Metformin 500mg', cat: 'ยาเบาหวาน', price: '8.00', stock: 15, status: 'accent-outline' as const },
+  { id: 'prd-003', name: 'Metformin 500mg', cat: 'ยาเบาหวาน', price: '8.00', stock: 15, status: 'warning-outline' as const },
   { id: 'prd-004', name: 'Atorvastatin 10mg', cat: 'ยาลดไขมัน', price: '35.00', stock: 0, status: 'destructive-outline' as const },
 ]
 
 const STATUS_LABEL: Record<string, string> = {
   'success-outline': 'ปกติ',
-  'accent-outline': 'ใกล้หมด',
+  'warning-outline': 'ใกล้หมด',
   'destructive-outline': 'หมดสต็อก',
 }
 
@@ -1625,7 +1625,7 @@ export default function Theme() {
                       {[...PRODUCTS, ...PRODUCTS, ...PRODUCTS]
                         .filter(row =>
                           (row.status === 'success-outline' && tableStatusFilter.ok) ||
-                          (row.status === 'accent-outline' && tableStatusFilter.low) ||
+                          (row.status === 'warning-outline' && tableStatusFilter.low) ||
                           (row.status === 'destructive-outline' && tableStatusFilter.out)
                         )
                         .sort((a, b) => {
