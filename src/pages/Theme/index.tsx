@@ -1624,8 +1624,8 @@ export default function Theme() {
                     <TableBody>
                       {[...PRODUCTS, ...PRODUCTS, ...PRODUCTS]
                         .filter(row =>
-                          (row.status === 'accent-outline' && tableStatusFilter.ok) ||
-                          (row.status === 'warning-outline' && tableStatusFilter.low) ||
+                          (row.status === 'success-outline' && tableStatusFilter.ok) ||
+                          (row.status === 'accent-outline' && tableStatusFilter.low) ||
                           (row.status === 'destructive-outline' && tableStatusFilter.out)
                         )
                         .sort((a, b) => {
