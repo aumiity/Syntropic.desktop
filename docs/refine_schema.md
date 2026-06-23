@@ -60,6 +60,18 @@
   3. `src/types/index.ts` — ถอด 6 threshold fields ออกจาก interface `EnvSettings`
   4. (ตรวจ) `electron/preload.ts` — ถอด `saveSettings` ออกจาก `env` namespace ถ้ามี
 
+### 6. `customers.chronic_diseases` → rename เป็น `note` (RENAME ไม่ใช่ DROP)
+- **ที่มา:** เปลี่ยนช่อง "โรคประจำตัว" (single-line Input) เป็นช่อง **"โน้ต / หมายเหตุ"** Textarea หลายบรรทัด (2026-06-23 ตามคำขอเจ้าของ) — เก็บค่าที่คอลัมน์ `chronic_diseases` เดิมต่อ (`TEXT` รับ newline ได้, ข้อมูลเดิมไม่หาย, เลี่ยง migration กลางคัน). ผลคือ **ชื่อคอลัมน์ไม่ตรงความหมายแล้ว** (ชื่อบอกโรคประจำตัว แต่เก็บโน้ตทั่วไป) → รอ rename ทีเดียวตอน refine
+- **ประเภท:** RENAME (ไม่ใช่ DROP — คอลัมน์ยังใช้งานอยู่ แค่ชื่อเพี้ยน). marker ในโค้ด = `RENAME COLUMN` (ไม่ใช่ `DEAD COLUMN`) → `grep -rn "RENAME COLUMN" electron/ src/`
+- **ชื่อใหม่ที่เสนอ:** `note` (scope แค่ตาราง customers ไม่ชนใคร)
+- **ขั้นตอนเปลี่ยนชื่อ:**
+  1. `electron/db/schema.ts` (~บรรทัด 218) — เปลี่ยน `chronic_diseases TEXT` → `note TEXT` + ลบคอมเมนต์ `RENAME COLUMN`; เพิ่ม `ALTER TABLE customers RENAME COLUMN chronic_diseases TO note` (migration DB เก่า)
+  2. `electron/ipc/people.ts` (~62, 65) — `saveCustomer` INSERT column list + `@chronic_diseases` → `note` / `@note` (getCustomer ใช้ `SELECT *` ไม่ต้องแก้)
+  3. `src/types/index.ts:100` — `chronic_diseases?` → `note?` ใน type `Customer`
+  4. `src/components/dialogs/CustomerFormDialog.tsx` — `blankForm` key, load mapping (~77), และ `form.chronic_diseases`/`setF('chronic_diseases', …)` ใน FormField โน้ต → `note`
+  5. `src/pages/POS/index.tsx` (~1654, 1656, 1661) — `c.chronic_diseases` → `c.note`
+  6. `src/pages/People/index.tsx:208` — `c.chronic_diseases` → `c.note`
+
 ---
 
 ## ลบแล้ว (DONE)

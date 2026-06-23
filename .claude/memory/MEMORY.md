@@ -6,7 +6,7 @@ One line per memory. Detail lives in the linked file (read on demand).
 
 - [UI Redesign Pass](project_ui_redesign_pass.md) — **ACTIVE 2026-06-06** — ปรับ UI ทีละหน้าตาม journey; SSOT = `docs/plans/ui-redesign-pass.md`; เสนอแผนต่อหน้าก่อนลงมือทุกหน้า
 - [Full Program Audit](project_full_program_audit.md) — **PLANNED 2026-06-10, PARKED รอหลัง VAT — อย่าเริ่มเชิงรุก** — แผน = `docs/plans/Full_Program_Audit.html` Section B (R0-R10, report-only)
-- [Refine schema checklist](project_refine_schema_checklist.md) — **ACTIVE 2026-06-12** — SSOT = `docs/refine_schema.md`; เจอ DEAD COLUMN อย่าลบทันที จดต่อท้าย+ฝัง `DEAD COLUMN`, ลบทีเดียวก่อน launch; ค้าง: `is_for_purchase`, `abbrev_tax_invoice`, `products.is_hidden`, `env_settings` 6 threshold cols
+- [Refine schema checklist](project_refine_schema_checklist.md) — **ACTIVE 2026-06-12** — SSOT = `docs/refine_schema.md`; เจอ DEAD COLUMN อย่าลบทันที จดต่อท้าย+ฝัง `DEAD COLUMN`, ลบทีเดียวก่อน launch; ค้าง: `is_for_purchase`, `abbrev_tax_invoice`, `products.is_hidden`, `env_settings` 6 threshold cols, **+ RENAME (ไม่ใช่ DROP, marker `RENAME COLUMN`): `customers.chronic_diseases`→`note` (เปลี่ยนเป็นช่องโน้ต Textarea 2026-06-23)**
 - [Pre-build cleanup](project_prebuild_cleanup.md) — DEV-only code ที่ต้องลบก่อน compile production (previews/seed/role-switch); exact files + tags ในไฟล์
 - [Unit flag collapse](project_unit_flag_collapse.md) — **DONE 2026-06-12** — ยุบหน่วยซื้อ/ขายเหลือ `is_for_sale`; จอ GR โชว์ทุกหน่วย `is_disabled=0`; `is_for_purchase` = DEAD COLUMN รอ DROP
 - [StatusFilterButton primitive](project_status_filter_primitive.md) — **DONE 2026-06-12** — ปุ่มกรองสถานะรวมเป็น `src/components/ui/status-filter.tsx` (default 'all'); people.ts มี `statusFilter` param

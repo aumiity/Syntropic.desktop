@@ -3,12 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
+import { Label, FormField } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { SectionCard } from '@/components/ui/card'
 import { DateInput } from '@/components/ui/date-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
-import { Bell } from 'lucide-react'
+import { UserRound, HeartPulse, Bell } from 'lucide-react'
 import type { Customer, DrugAllergy } from '@/types'
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -106,74 +107,81 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="xl" divided onClose={() => onOpenChange(false)}>
+      <DialogContent size="4xl" divided onClose={() => onOpenChange(false)} className="max-h-[88vh]">
         <DialogHeader>
           <DialogTitle>{isEdit ? `แก้ไข: ${editingName ?? ''}` : 'เพิ่มลูกค้าใหม่'}</DialogTitle>
         </DialogHeader>
-        <DialogBody className="space-y-4" onKeyDown={submitOnEnter(handleSave)}>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>ชื่อ-นามสกุล <span className="text-destructive">*</span></Label>
-              <Input variant="elevated" value={form.full_name ?? ''} onChange={e => setF('full_name', e.target.value)} autoFocus placeholder="ระบุชื่อ-นามสกุล..." />
-            </div>
-            <div className="space-y-1.5">
-              <Label>โทรศัพท์</Label>
-              <Input variant="elevated" value={form.phone ?? ''} onChange={e => setF('phone', e.target.value)} placeholder="08X-XXX-XXXX" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>เลขบัตรประชาชน / เลขประจำตัวผู้เสียภาษี</Label>
-              <Input variant="elevated" inputMode="numeric" maxLength={13}
-                value={form.id_card ?? ''} onChange={e => setF('id_card', e.target.value.replace(/\D/g, ''))}
-                placeholder="13 หลัก" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>วันเกิด</Label>
-              <DateInput variant="elevated" value={form.dob ?? ''} onChange={iso => setF('dob', iso)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>สาขา (สำหรับใบกำกับภาษี)</Label>
-              <Input variant="elevated" value={form.branch ?? ''} onChange={e => setF('branch', e.target.value)} placeholder="สำนักงานใหญ่" />
-            </div>
-            <div className="col-span-2 space-y-1.5">
-              <Label>ที่อยู่</Label>
-              <Textarea variant="elevated" value={form.address ?? ''} onChange={e => setF('address', e.target.value)} rows={3} className="resize-none" />
-            </div>
-          </div>
+        <DialogBody className="grid grid-cols-[3fr_2fr] items-start gap-4 overflow-y-auto min-h-0 scrollbar-thin" onKeyDown={submitOnEnter(handleSave)}>
 
-          <div className="space-y-1.5">
-            <Label>โรคประจำตัว</Label>
-            <Input variant="elevated" value={form.chronic_diseases ?? ''} onChange={e => setF('chronic_diseases', e.target.value)} />
-          </div>
+          {/* ── LEFT: ข้อมูลส่วนตัว ── */}
+          <SectionCard icon={UserRound} title="ข้อมูลส่วนตัว" tint="primary">
+            <FormField label="ชื่อ-นามสกุล" required>
+              <Input value={form.full_name ?? ''} onChange={e => setF('full_name', e.target.value)} autoFocus placeholder="ระบุชื่อ-นามสกุล..." />
+            </FormField>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="โทรศัพท์">
+                <Input value={form.phone ?? ''} onChange={e => setF('phone', e.target.value)} placeholder="08X-XXX-XXXX" />
+              </FormField>
+              <FormField label="เลขบัตรประชาชน / ผู้เสียภาษี">
+                <Input inputMode="numeric" maxLength={13}
+                  value={form.id_card ?? ''} onChange={e => setF('id_card', e.target.value.replace(/\D/g, ''))}
+                  placeholder="13 หลัก" />
+              </FormField>
+              <FormField label="วันเกิด">
+                <DateInput variant="elevated" value={form.dob ?? ''} onChange={iso => setF('dob', iso)} />
+              </FormField>
+              <FormField label={<>สาขา <span className="font-normal normal-case text-muted-foreground">(สำหรับใบกำกับภาษี)</span></>}>
+                <Input value={form.branch ?? ''} onChange={e => setF('branch', e.target.value)} placeholder="เช่น สำนักงานใหญ่" />
+              </FormField>
+            </div>
+            <FormField label="ที่อยู่">
+              <Textarea value={form.address ?? ''} onChange={e => setF('address', e.target.value)} rows={3} className="resize-none" placeholder="" />
+            </FormField>
+          </SectionCard>
 
-          {/* Alert section — switch header + message grouped in one elevated card */}
-          <div className={`rounded-lg border p-3 shadow-sm transition-colors ${form.is_alert ? 'bg-card border-destructive/40' : 'bg-muted/40 border-border'}`}>
-            <label className="flex items-center gap-2 h-12 cursor-pointer select-none">
+          {/* ── RIGHT: ข้อมูลสุขภาพ + การแจ้งเตือน ── */}
+          <div className="flex flex-col gap-4">
+
+          {/* ── สุขภาพ & โน้ต ── */}
+          <SectionCard icon={HeartPulse} title="สุขภาพ & โน้ต" tint="teal">
+            {/* Stored in customers.chronic_diseases — repurposed as a free-form
+                multi-line note (column kept; no schema change). POS renders it
+                with whitespace-pre-line so newlines survive. */}
+            <FormField label="โน้ต / หมายเหตุ">
+              <Textarea value={form.chronic_diseases ?? ''} onChange={e => setF('chronic_diseases', e.target.value)} rows={4} className="resize-none"
+                placeholder="บันทึกเพิ่มเติม เช่น โรคประจำตัว, ข้อควรระวัง, ยาที่ใช้" />
+            </FormField>
+
+            {/* Drug allergies (readonly, edit mode only) */}
+            {isEdit && allergies.length > 0 && (
+              <FormField label="ประวัติแพ้ยา">
+                <div className="space-y-1.5">
+                  {allergies.map(a => (
+                    <div key={a.id} className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2 text-sm">
+                      <Badge variant={SEVERITY_VARIANTS[a.severity ?? 'moderate'] ?? 'secondary'} className="shrink-0">
+                        {SEVERITY_LABELS[a.severity ?? 'moderate']}
+                      </Badge>
+                      <span className="font-medium">{a.generic_name ?? a.drug_name_free ?? '—'}</span>
+                      {a.reaction && <span className="text-muted-foreground">→ {a.reaction}</span>}
+                    </div>
+                  ))}
+                </div>
+              </FormField>
+            )}
+          </SectionCard>
+
+          {/* ── การแจ้งเตือน ── */}
+          <SectionCard icon={Bell} title="การแจ้งเตือน" tint="amber">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <Checkbox checked={!!form.is_alert} onCheckedChange={v => setF('is_alert', v ? 1 : 0)} />
-              <Bell className={`size-4 ${form.is_alert ? 'text-destructive' : 'text-foreground-subtle'}`} />
-              <Label className="cursor-pointer">การแจ้งเตือนลูกค้า</Label>
+              <Label className="cursor-pointer">แสดงข้อความแจ้งเตือนเมื่อขายให้ลูกค้ารายนี้</Label>
             </label>
-            <Input variant="elevated" className="mt-2.5"
+            <Input
               value={form.alert_note ?? ''} onChange={e => setF('alert_note', e.target.value)}
               disabled={!form.is_alert} placeholder="เช่น แพ้ยา, แพ้อาหาร, ลดราคาพิเศษ" />
-          </div>
+          </SectionCard>
 
-          {/* Drug allergies (readonly, edit mode only) */}
-          {isEdit && allergies.length > 0 && (
-            <div className="space-y-1.5">
-              <Label>ประวัติแพ้ยา</Label>
-              <div className="space-y-1.5">
-                {allergies.map(a => (
-                  <div key={a.id} className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2 text-sm">
-                    <Badge variant={SEVERITY_VARIANTS[a.severity ?? 'moderate'] ?? 'secondary'} className="shrink-0">
-                      {SEVERITY_LABELS[a.severity ?? 'moderate']}
-                    </Badge>
-                    <span className="font-medium">{a.generic_name ?? a.drug_name_free ?? '—'}</span>
-                    {a.reaction && <span className="text-muted-foreground">→ {a.reaction}</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          </div>
 
         </DialogBody>
         <DialogFooter>

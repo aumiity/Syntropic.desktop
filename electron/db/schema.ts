@@ -215,7 +215,7 @@ export function initializeSchema(db: Database.Database) {
       phone TEXT,
       address TEXT,
       branch TEXT,
-      chronic_diseases TEXT,
+      chronic_diseases TEXT,  -- RENAME COLUMN -> 'note' (repurposed as free-form customer note 2026-06-23; rename at schema refine — see docs/refine_schema.md #6)
       is_alert INTEGER NOT NULL DEFAULT 0,
       alert_note TEXT,
       is_disabled INTEGER NOT NULL DEFAULT 0,

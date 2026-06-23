@@ -16,7 +16,6 @@ import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { SectionCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -45,7 +44,7 @@ import {
   RotateCcw, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Tag,
   ShoppingBag, Hourglass, RefreshCcw, HandCoins,
   Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
-  Check, SquarePen,
+  Check, SquarePen, CircleSlash2, CircleDollarSign, CirclePercent,
 } from 'lucide-react'
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -1623,12 +1622,13 @@ export default function POSPage() {
 
                   {/* Alert banner */}
                   {hasAlert ? (
-                    <div className="flex items-start gap-3 rounded-card border border-destructive/30 bg-destructive-soft px-4 py-3">
-                      <AlertTriangle className="size-10 shrink-0 mt-0.5 text-destructive" />
-                      <div className="min-w-0 space-y-0.5">
-                        <div className="text-sm font-semibold text-destructive">แจ้งเตือน</div>
-                        <div className="text-base text-foreground whitespace-pre-line break-words">{c.alert_note}</div>
-                      </div>
+                    <div className="flex justify-center">
+                      <Badge variant="destructive" className="h-12 w-auto max-w-full gap-2.5 rounded-xl px-3 text-lg font-semibold whitespace-normal overflow-visible">
+                        <span className="grid size-6 shrink-0 place-items-center">
+                          <AlertTriangle className="size-6" />
+                        </span>
+                        <span className="min-w-0 text-left whitespace-pre-line break-words">{c.alert_note}</span>
+                      </Badge>
                     </div>
                   ) : null}
 
@@ -1652,21 +1652,29 @@ export default function POSPage() {
 
                   {/* Medical */}
                   {(c.chronic_diseases || allergies.length > 0) ? (
-                    <SectionCard icon={HeartPulse} title="ข้อมูลทางการแพทย์" tint="amber">
+                    <div className="space-y-3 px-1">
                       {c.chronic_diseases ? (
-                        <div className="space-y-1">
-                          <div className="text-sm font-semibold text-muted-foreground">โรคประจำตัว</div>
-                          <div className="text-base text-foreground whitespace-pre-line break-words">{c.chronic_diseases}</div>
+                        <div className="flex items-start gap-3">
+                          <HeartPulse className="size-5 shrink-0 mt-0.5 text-foreground-subtle" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm text-muted-foreground">โน้ต</div>
+                            <div className="text-base text-foreground whitespace-pre-line break-words">{c.chronic_diseases}</div>
+                          </div>
                         </div>
                       ) : null}
                       {allergies.length > 0 ? (
                         <div className="space-y-2">
-                          <div className="text-sm font-semibold text-muted-foreground">ประวัติแพ้ยา ({allergies.length})</div>
+                          <div className="flex items-start gap-3">
+                            <Pill className="size-5 shrink-0 mt-0.5 text-foreground-subtle" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm text-muted-foreground">ประวัติแพ้ยา ({allergies.length})</div>
+                            </div>
+                          </div>
                           <div className="space-y-1.5">
                             {allergies.map(a => (
-                              <div key={a.id} className="flex items-start gap-2.5 rounded-lg bg-muted px-3 py-2">
-                                <Pill className="size-4 mt-1 shrink-0 text-muted-foreground" />
-                                <div className="min-w-0 flex-1 space-y-0.5">
+                              <div key={a.id} className="flex items-start gap-3">
+                                <div className="size-5 shrink-0" />
+                                <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
                                     <span className="text-base font-medium text-foreground">{a.generic_name ?? a.drug_name_free ?? '—'}</span>
                                     <Badge variant={SEVERITY_VARIANTS[a.severity ?? 'moderate'] ?? 'secondary'}>
@@ -1680,7 +1688,7 @@ export default function POSPage() {
                           </div>
                         </div>
                       ) : null}
-                    </SectionCard>
+                    </div>
                   ) : null}
                 </>
               )
@@ -1917,7 +1925,7 @@ export default function POSPage() {
                       
                     {netNegative ? (
                       <span className="flex items-center justify-end gap-2 text-2xl font-semibold text-destructive whitespace-nowrap">
-                        <AlertTriangle className="size-6 shrink-0" />
+                      <AlertTriangle className="!size-6 shrink-0" />
                         กรุณาตรวจสอบ
                       </span>
                     ) : (
@@ -2553,7 +2561,7 @@ export default function POSPage() {
             changeCartPrice(priceModalIdx, customPrice)
           }
           return (
-            <DialogContent size="md" divided onClose={() => setPriceModalIdx(null)}>
+            <DialogContent size="sm" divided onClose={() => setPriceModalIdx(null)} className="max-h-[80vh]">
               <DialogHeader>
                 <DialogTitle className="text-2xl">ราคา</DialogTitle>
                 <div className="text-base font-semibold text-foreground">{item?.item_name}</div>
@@ -2580,9 +2588,36 @@ export default function POSPage() {
                       <Button variant="default" onClick={applyCustomPrice} disabled={customPrice <= 0} className="h-12 px-5 text-base">ตกลง</Button>
                     </div>
                     <div className="mt-2.5 border-t border-border/60 pt-2 grid grid-cols-3 gap-2 text-sm">
-                      <span className="text-muted-foreground">ทุน <span className="font-semibold text-foreground">{formatCurrency(cost)}</span></span>
-                      <span className="text-muted-foreground">กำไร <span className={`font-semibold ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(customProfit)}</span></span>
-                      <span className="text-muted-foreground">กำไร% <span className={`font-semibold ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</span></span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <CircleSlash2 className="size-5 text-amber-strong" />:
+                            <span className="sr-only">ทุน</span>
+                            <span className="font-semibold text-foreground">{formatCurrency(cost)}</span>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">ทุน</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <CircleDollarSign className={`size-5 ${customProfit > 0 ? 'text-success' : 'text-destructive'}`} />:
+                            <span className="sr-only">กำไร</span>
+                            <span className={`font-semibold ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(customProfit)}</span>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">กำไร</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <CirclePercent className={`size-5 ${customProfit > 0 ? 'text-success' : 'text-destructive'}`} />:
+                            <span className="sr-only">กำไร%</span>
+                            <span className={`font-semibold ${customProfit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? customMarkupPct.toFixed(1) : '0.0'}%</span>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">กำไร%</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
 
@@ -2606,9 +2641,36 @@ export default function POSPage() {
                         </div>
                         {/* Metrics — anchored to the bottom so the row lines up across all cards (justify-between) */}
                         <div className="w-full border-t border-border/60 pt-2 grid grid-cols-3 gap-2 text-sm font-normal">
-                          <span className="text-muted-foreground">ทุน <span className="font-semibold text-foreground">{formatCurrency(cost)}</span></span>
-                          <span className="text-muted-foreground">กำไร <span className={`font-semibold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(profit)}</span></span>
-                          <span className="text-muted-foreground">กำไร% <span className={`font-semibold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</span></span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex items-center gap-1.5 text-muted-foreground">
+                                <CircleSlash2 className="size-5 text-amber-strong" />:
+                                <span className="sr-only">ทุน</span>
+                                <span className="font-semibold text-foreground">{formatCurrency(cost)}</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">ทุน</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex items-center gap-1.5 text-muted-foreground">
+                                <CircleDollarSign className={`size-5 ${profit > 0 ? 'text-success' : 'text-destructive'}`} />:
+                                <span className="sr-only">กำไร</span>
+                                <span className={`font-semibold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(profit)}</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">กำไร</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex items-center gap-1.5 text-muted-foreground">
+                                <CirclePercent className={`size-5 ${profit > 0 ? 'text-success' : 'text-destructive'}`} />:
+                                <span className="sr-only">กำไร%</span>
+                                <span className={`font-semibold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>{cost > 0 ? markupPct.toFixed(1) : '0.0'}%</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">กำไร%</TooltipContent>
+                          </Tooltip>
                         </div>
                       </Button>
                     )
@@ -2665,14 +2727,14 @@ export default function POSPage() {
             setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
           }
           return (
-            <DialogContent size="md" divided onClose={() => setDiscountModalIdx(null)}>
+            <DialogContent size="sm" divided onClose={() => setDiscountModalIdx(null)}>
               <DialogHeader>
                 <DialogTitle className="text-2xl">ส่วนลด</DialogTitle>
                 <div className="text-base font-semibold text-foreground overflow-x-clip overflow-y-visible">{item?.item_name}</div>
               </DialogHeader>
               <DialogBody className="space-y-4">
                 {/* Reference total — the one value with no editable input below */}
-                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-2.5">
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 h-12 px-4 py-2.5">
                   <span className="text-base font-medium text-muted-foreground">ราคารวม</span>
                   <span className="text-3xl font-bold text-foreground">{formatCurrency(totalPrice)}</span>
                 </div>
@@ -2683,7 +2745,7 @@ export default function POSPage() {
                     const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
                     return (
                       <Button key={pct} variant="ghost" size="sm" onClick={() => applyPercent(pct)}
-                        className={`relative w-full h-9 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'hover:text-destructive-foreground text-destructive-foreground' : 'text-foreground'}`}>
+                        className={`relative w-full h-10 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'hover:text-destructive-foreground text-destructive-foreground' : 'text-foreground'}`}>
                         {isActive && (
                           <motion.div layoutId="discount-pct-pill" aria-hidden
                             className="absolute inset-0 rounded-md bg-destructive shadow-sm"
@@ -2718,7 +2780,7 @@ export default function POSPage() {
                         }}
                         onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                         placeholder="0"
-                        className="h-14 text-right text-3xl font-bold pl-4 pr-10"
+                        className="h-12 text-right text-3xl font-bold pl-4 pr-10"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-subtle text-xl font-bold pointer-events-none">%</span>
                     </div>
@@ -2742,7 +2804,7 @@ export default function POSPage() {
                       }}
                       onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                       placeholder="0.00"
-                      className="h-14 text-right text-3xl font-bold px-4"
+                      className="h-12 text-right text-3xl font-bold px-4"
                     />
                   </div>
                 </div>
@@ -2768,14 +2830,14 @@ export default function POSPage() {
                     }}
                     onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
                     placeholder={formatCurrency(totalPrice)}
-                    className="h-14 text-right text-3xl font-bold px-4"
+                    className="h-12 text-right text-3xl font-bold px-4"
                   />
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="destructive-soft" size="xl" className="mr-auto" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
-                <Button variant="elevated" size="xl" onClick={() => setDiscountModalIdx(null)}>ปิด</Button>
-                <Button size="xl" onClick={() => applyDiscount(d)}>ตกลง</Button>
+                <Button variant="destructive-soft" size="lg" className="mr-auto w-24 h-10" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
+                <Button className="w-24 h-10" variant="elevated" size="lg" onClick={() => setDiscountModalIdx(null)}>ปิด</Button>
+                <Button className="w-24 h-10" size="lg" onClick={() => applyDiscount(d)}>ตกลง</Button>
               </DialogFooter>
             </DialogContent>
           )
