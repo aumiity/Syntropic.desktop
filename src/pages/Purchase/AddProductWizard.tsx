@@ -571,6 +571,9 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   // ของหน่วยที่เลือก. baseline = last_cost_price เท่านั้น ไม่ fallback weighted-avg (ของฟรี=0 ต้องคง 0).
   const selectedQtyPerBase = row.units.find(u => u.unit_name === row.unit_name)?.qty_per_base ?? 1
   const lastCostForUnit = row.stored_last_cost != null ? row.stored_last_cost * selectedQtyPerBase : null
+  const stockOnHand = existingLots
+    .filter(l => l.is_cancelled === 0 && l.is_closed === 0 && l.qty_on_hand > 0)
+    .reduce((sum, l) => sum + l.qty_on_hand, 0)
   const prevCost = lastCostForUnit
   const costChanged = prevCost != null && cost > 0 && Math.abs(cost - prevCost) > 0.0001
 
@@ -693,15 +696,15 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                 ) : (
                   <div>
                     {/* name frame */}
-                    <div className="flex items-center gap-3 rounded-lg border-2 border-primary bg-primary-soft/50 px-4 py-2">
-                      <div className="min-w-0 flex-1 text-base font-bold truncate text-primary">{row.trade_name}</div>
+                    <div className="flex h-14 items-center gap-3 rounded-lg border-2 border-primary bg-primary-soft/50 px-4 py-2">
+                      <div className="min-w-0 flex-1 text-xl font-bold truncate text-primary">{row.trade_name}</div>
                       <Button type="button" variant="elevated" size="icon-sm" onClick={clearProduct} tooltip="เปลี่ยนสินค้า" className="h-8 w-8 shrink-0">
                         <RotateCcw className="size-4" />
                       </Button>
                     </div>
 
-                    {/* price frame — cost / sell, split into two cells */}
-                    <div className="mt-2.5 grid grid-cols-2 divide-x divide-border overflow-hidden rounded-lg bg-amber-soft/50 border border-amber-strong/25">
+                    {/* price frame — cost / sell / stock */}
+                    <div className="mt-2.5 grid h-14 grid-cols-3 divide-x divide-border overflow-hidden rounded-lg bg-amber-soft/50 border border-amber-strong/25">
                       <div className="px-4 py-2">
                         <div className="text-sm text-muted-foreground">ทุนล่าสุด</div>
                         <div className="mt-0.5 text-sm font-bold text-amber-strong">{lastCostForUnit != null ? formatCurrency(lastCostForUnit) : '—'}</div>
@@ -709,6 +712,10 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       <div className="px-4 py-2">
                         <div className="text-sm text-muted-foreground">ราคาขายปัจจุบัน</div>
                         <div className="mt-0.5 text-sm font-bold text-amber-strong">{formatCurrency(row.default_sell_price ?? 0)}</div>
+                      </div>
+                      <div className="px-4 py-2">
+                        <div className="text-sm text-muted-foreground">คงเหลือ</div>
+                        <div className="mt-0.5 text-sm font-bold text-amber-strong">{stockOnHand.toLocaleString()} {row.units[0]?.unit_name ?? ''}</div>
                       </div>
                     </div>
 
