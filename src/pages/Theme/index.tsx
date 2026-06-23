@@ -449,7 +449,7 @@ export default function Theme() {
                 <DemoRow label="Soft + colored border (chip style — matches Badge *-outline)">
                   <Button variant="primary-outline">Primary-outline</Button>
                   <Button variant="success-outline">Success-outline</Button>
-                  <Button variant="accent-outline">accent-outline</Button>
+                  <Button variant="warning-outline">Warning-outline</Button>
                   <Button variant="destructive-outline">Destructive-outline</Button>
                   <Button variant="info-outline">Info-outline</Button>
                   <Button variant="violet-outline">Violet-outline</Button>
@@ -547,7 +547,7 @@ export default function Theme() {
                 <DemoRow label="Soft + colored border (chip style)">
                   <Badge variant="primary-outline">Primary-outline</Badge>
                   <Badge variant="success-outline">Success-outline</Badge>
-                  <Badge variant="accent-outline">accent-outline</Badge>
+                  <Badge variant="warning-outline">Warning-outline</Badge>
                   <Badge variant="destructive-outline">Destructive-outline</Badge>
                   <Badge variant="info-outline">Info-outline</Badge>
                   <Badge variant="violet-outline">Violet-outline</Badge>
