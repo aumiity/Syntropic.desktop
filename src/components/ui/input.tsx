@@ -25,7 +25,7 @@ const Input = React.forwardRef<
         "px-2.5 py-1",
         "text-sm outline-none transition-all",
         "file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
-        "placeholder:text-foreground-subtle",
+        "placeholder:text-foreground-subtle/50",
         "focus:ring-[1px] focus:ring-ring focus:border-ring",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "aria-invalid:ring-destructive/50 aria-invalid:ring-[1px] aria-invalid:border-destructive/50",

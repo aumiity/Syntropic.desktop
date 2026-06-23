@@ -61,9 +61,9 @@ export function QtyDialog({
           <DialogBody className="space-y-4">
             {/* Summary strip — shows the available stock. Omit stockQty to hide it. */}
             {stockQty !== undefined && (
-              <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 h-12">
                 <span className="text-sm text-foreground-subtle">คงเหลือ</span>
-                <span className={`text-base font-semibold ${(stockQty ?? 0) > 0 ? 'text-foreground' : 'text-destructive'}`}>
+                <span className={`text-xl font-semibold ${(stockQty ?? 0) > 0 ? 'text-foreground' : 'text-destructive'}`}>
                   {stockQty} {unitName}
                 </span>
               </div>
@@ -72,8 +72,8 @@ export function QtyDialog({
             {/* Stepper */}
             <div className="space-y-1.5">
               <Label>จำนวน ({unitName})</Label>
-              <div className="flex items-center gap-2">
-                <Button variant="elevated" size="icon-xl" onClick={() => bump(-1)} className="shrink-0">
+              <div className="flex items-center gap-2 pt-2">
+                <Button variant="elevated" size="icon-xl" onClick={() => bump(-1)} className="shrink-0 h-12 w-12">
                   <Minus className="size-5" />
                 </Button>
                 <Input
@@ -86,9 +86,9 @@ export function QtyDialog({
                   onChange={e => setQtyInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') apply() }}
                   placeholder={String(minQty)}
-                  className="h-11 flex-1 text-center text-3xl font-bold"
+                  className="h-12 flex-1 text-center text-3xl font-bold"
                 />
-                <Button variant="elevated" size="icon-xl" onClick={() => bump(1)} className="shrink-0">
+                <Button variant="elevated" size="icon-xl" onClick={() => bump(1)} className="shrink-0 h-12 w-12">
                   <Plus className="size-5" />
                 </Button>
               </div>
@@ -97,13 +97,13 @@ export function QtyDialog({
             {/* Quick presets — segmented track with a sliding pill (shared-layout).
                 Hidden entirely when no presets are supplied. */}
             {presets.length > 0 && (
-            <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
+            <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1 h-12">
               {presets.map(n => {
                 const active = (parseFloat(qtyInput) || 0) === n
                 return (
                   <Button key={n} variant="ghost" size="sm"
                     onClick={() => setQtyInput(String(n))}
-                    className={`relative w-full h-9 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${active ? 'hover:text-primary-foreground text-primary-foreground' : 'text-foreground'}`}>
+                    className={`relative w-full h-10 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${active ? 'hover:text-primary-foreground text-primary-foreground' : 'text-foreground'}`}>
                     {active && (
                       <motion.div layoutId="qty-preset-pill" aria-hidden
                         className="absolute inset-0 rounded-md bg-primary shadow-sm"
