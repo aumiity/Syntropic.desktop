@@ -64,8 +64,11 @@ export function TaxInvoiceBuyerDialog({
     })
   }, [open, saleId, buyer])
 
-  // A full tax invoice needs at least a name + address — block printing otherwise.
-  const incomplete = !name.trim() || !address.trim()
+  // A legal tax invoice (ม.86/4) needs the buyer's name, address, สาขา AND a valid
+  // 13-digit เลขประจำตัวผู้เสียภาษี — block printing unless every buyer field is
+  // filled and the tax id has exactly 13 digits (tolerant of dashes/spaces).
+  const taxIdDigits = taxId.replace(/\D/g, '')
+  const incomplete = !name.trim() || !address.trim() || taxIdDigits.length !== 13 || !branch.trim()
   // The ต้นฉบับ/สำเนา stamp is known at open (a prior original → this print = สำเนา).
   const copy = alreadyOriginal
 
@@ -190,10 +193,15 @@ export function TaxInvoiceBuyerDialog({
     }
   }
 
+  // Pinpoint the reason so the cashier knows exactly what to fix: missing core
+  // fields vs. a tax id that isn't 13 digits (the most common real cause).
+  const incompleteReason = (!name.trim() || !address.trim() || !branch.trim())
+    ? 'กรุณาตรวจสอบข้อมูลลูกค้า'
+    : 'กรุณาตรวจสอบเลขประจำตัวผู้เสียภาษี'
   const incompleteWarning = (
-    <div className="flex items-center gap-2 text-warning-strong">
-      <AlertTriangle className="size-4 shrink-0" />
-      <span>ไม่สามารถดำเนินการได้ เนื่องจากข้อมูลลูกค้าไม่ถูกต้อง</span>
+    <div className="flex items-center gap-2 text-xs">
+      <AlertTriangle className="size-4 shrink-0 text-destructive" />
+      <span className="text-destructive">ไม่สามารถดำเนินการได้ — {incompleteReason}</span>
     </div>
   )
 
