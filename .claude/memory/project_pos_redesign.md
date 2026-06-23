@@ -40,7 +40,7 @@ metadata:
 
 ## Done 2026-06-06 (commit `374b2cc`, part of [[project_ui_redesign_pass]] #3)
 - **Right rail DONE:** quick-action 5 ปุ่ม `variant="outline"`+ad-hoc → **`variant="elevated"`** (ได้ shadow-sm + hover/active จริง); ไอคอนสีตามบทบาท (เปิดลิ้นชัก=primary, พิมพ์ฉลาก/ตัดสต็อก=info-soft-foreground, รับคืน=warm-foreground, ยกเลิกบิล=destructive); เอา `border border-border` ออกจากกล่องยอดสุทธิ (bg-primary) + ปุ่มชำระเงิน (bg-accent)
-- **Cart row inline buttons DONE:** หน่วย/จำนวน/ราคา → **`variant="primary-soft"`**, ส่วนลด(มีค่า+0) → **`variant="destructive2"`** (เดิม outline+ad-hoc soft-bg ที่ hover ไม่เปลี่ยน → ตอนนี้ hover ถูกต้อง); ล้าง double-bg ปุ่มส่วนลด 0. **ค้าง: ปุ่มส่วนลด 0 ยังแดงอ่อน** — เจ้าของอาจอยากให้จาง/นิ่งกว่านี้ตอนยังไม่มีส่วนลด (ถามได้)
+- **Cart row inline buttons DONE:** หน่วย/จำนวน/ราคา → **`variant="primary-soft"`**, ส่วนลด(มีค่า+0) → **`variant="destructive-soft"`** (เดิม outline+ad-hoc soft-bg ที่ hover ไม่เปลี่ยน → ตอนนี้ hover ถูกต้อง); ล้าง double-bg ปุ่มส่วนลด 0. **ค้าง: ปุ่มส่วนลด 0 ยังแดงอ่อน** — เจ้าของอาจอยากให้จาง/นิ่งกว่านี้ตอนยังไม่มีส่วนลด (ถามได้)
 
 ## Done 2026-06-09 (commit `2c8457e`) — Return + Adjust modals = unified cart-table
 

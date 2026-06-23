@@ -11,9 +11,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
+import { DiscountDialog } from '@/components/ui/discount-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { TintIcon } from '@/components/ui/tint-icon'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, NegativeStockAlert } from '@/types'
@@ -118,6 +118,8 @@ export default function PurchasePage() {
   // Add/Edit product wizard (replaces the old per-row inline table editing)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [editIdx, setEditIdx] = useState<number | null>(null)
+  // ส่วนลดรายตัว แก้ในตาราง: index แถวที่เปิด DiscountDialog อยู่ (null = ปิด)
+  const [discountIdx, setDiscountIdx] = useState<number | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
   const [savedInvoice, setSavedInvoice] = useState('')
 
@@ -289,6 +291,26 @@ export default function PurchasePage() {
         if (isFinite(cost)) next.total = Math.max(qty * cost - disc, 0).toFixed(2)
         else if (isFinite(total)) next.cost_price = stripTrailingZeros(((total + disc) / qty).toFixed(4))
       }
+      return next
+    }))
+  }
+
+  // ใช้ส่วนลดรายตัวจาก DiscountDialog ในตาราง — เคลียร์ส่วนลดท้ายบิลของแถวนั้น
+  // (bill_discount → '0') แล้วคิด total ใหม่ = qty*cost − discount; mirror กับตอน
+  // wizard แก้ไขแถว (init effect ก็ strip bill_discount + คิด total ใหม่เหมือนกัน).
+  // baseRowTotals=null → บังคับให้ "ส่วนลดท้ายบิล" กระจายใหม่ถ้าจะใช้อีก.
+  const applyLineDiscount = (i: number, discount: number) => {
+    setBaseRowTotals(null)
+    setRows(rs => rs.map((row, idx) => {
+      if (idx !== i) return row
+      const qty = parseFloat(row.qty)
+      const cost = parseFloat(row.cost_price)
+      const next: ReceiptRow = {
+        ...row,
+        discount: discount > 0 ? discount.toFixed(2) : '',
+        bill_discount: '0',
+      }
+      if (qty > 0 && isFinite(cost)) next.total = Math.max(qty * cost - discount, 0).toFixed(2)
       return next
     }))
   }
@@ -912,22 +934,23 @@ export default function PurchasePage() {
                                   <TableCell className="px-3 py-2 text-right text-sm">{formatNum(row.qty) || '—'}</TableCell>
                                   <TableCell className="px-3 py-2 text-right text-sm">{row.total ? formatCurrency(displayCost) : '—'}</TableCell>
                                   <TableCell className="px-3 py-2 text-right text-sm">{row.product_id ? formatCurrency(row.default_sell_price || 0) : '—'}</TableCell>
-                                  <TableCell className="px-3 py-2 text-right text-sm">
-                                    {mergeCost ? (
-                                      <span className="text-foreground-subtle">—</span>
-                                    ) : rowDiscTotal > 0 ? (
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span className="cursor-help underline decoration-dotted decoration-foreground-subtle/60 underline-offset-2">{formatCurrency(rowDiscTotal)}</span>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="left">
-                                          <div className="space-y-0.5 text-xs">
-                                            <div className="flex justify-between gap-4"><span>ส่วนลดสินค้า</span><span>{formatCurrency(perLineDisc)}</span></div>
-                                            <div className="flex justify-between gap-4"><span>ส่วนลดท้ายบิล</span><span>{formatCurrency(billDisc)}</span></div>
-                                          </div>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    ) : '—'}
+                                  <TableCell className="px-2 py-2 text-right">
+                                    {!row.product_id || mergeCost ? (
+                                      <span className="text-sm text-foreground-subtle pr-1">—</span>
+                                    ) : (
+                                      <Button
+                                        variant="destructive-soft"
+                                        size="sm"
+                                        onClick={() => setDiscountIdx(i)}
+                                        tooltip={billDisc > 0 ? `รายตัว ${formatCurrency(perLineDisc)} · ท้ายบิล ${formatCurrency(billDisc)}` : undefined}
+                                        className="flex items-center justify-end w-full h-9 pl-2.5 pr-2 rounded-md text-sm font-semibold"
+                                      >
+                                        <span className="leading-none">
+                                          {rowDiscTotal > 0 ? formatCurrency(rowDiscTotal) : '0'}
+                                          {billDisc > 0 && <span className="ml-0.5">*</span>}
+                                        </span>
+                                      </Button>
+                                    )}
                                   </TableCell>
                                   <TableCell className="px-3 py-2 text-right text-sm font-semibold">{row.total ? formatCurrency(totalN) : '—'}</TableCell>
 
@@ -1513,6 +1536,18 @@ export default function PurchasePage() {
         onConfirm={handleWizardConfirm}
         editing={editIdx !== null ? rows[editIdx] : null}
       />
+
+      {/* ส่วนลดรายตัว — แก้ตรงคอลัมน์ "ส่วนลด" ในตาราง (ย้ายออกจาก wizard) */}
+      {discountIdx !== null && rows[discountIdx] && (
+        <DiscountDialog
+          open
+          onClose={() => setDiscountIdx(null)}
+          itemName={rows[discountIdx].trade_name}
+          totalPrice={(parseFloat(rows[discountIdx].qty) || 0) * (parseFloat(rows[discountIdx].cost_price) || 0)}
+          initialDiscount={parseFloat(rows[discountIdx].discount) || 0}
+          onApply={(d) => applyLineDiscount(discountIdx, d)}
+        />
+      )}
 
     </div>
   )

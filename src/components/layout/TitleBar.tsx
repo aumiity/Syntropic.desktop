@@ -79,7 +79,7 @@ function matchFilePath(pathname: string, tab: string | null): string {
 const trafficLight =
   'flex items-center justify-center w-4 h-4 rounded-full transition-colors shrink-0'
 const iconBase =
-  'opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold leading-none select-none'
+  'opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold leading-none select-none'
 
 const colors = {
   close: { bg: '#FF5F57', hover: '#FF3B30', ring: '#E0443E' },

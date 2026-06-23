@@ -38,6 +38,7 @@ One line per memory. Detail lives in the linked file (read on demand).
 - [POS redesign](project_pos_redesign.md) — **ACTIVE 2026-05-29, paused** — bordered cards + cart slot + customer dialogs done; right rail/payment pending
 - [Edit parity pass](project_edit_parity_pass.md) — **SUPERSEDED 2026-06-19** — Tab 1 polish DONE; Tab 2 plan ยกเลิก → ดู EditBundle tab collapse แทน
 - [EditBundle tab collapse](project_editbundle_tab_collapse.md) — **DONE 2026-06-19 (tsc PASS; click-test pending)** — ComponentsTab ยุบเข้า Tab 1 "ข้อมูล & รายการ"; save atomic ปุ่มเดียว; edit mode = products:update → saveBundleItems → refresh (ลำดับสำคัญ: recomputeBundleCost ใน saveBundleItems เขียน cost_price ทับสุดท้าย)
+- [DiscountDialog shared primitive](discount-dialog-shared.md) — **DONE 2026-06-23 (tsc PASS; click-test pending)** — `src/components/ui/discount-dialog.tsx` (%/บาท/ราคาสุดท้าย ซิงค์ + preset% + ล้าง) ใช้ร่วม POS cart + GR receive table; ส่วนลดย้ายออกจาก `AddProductWizard` แล้ว; GR `applyLineDiscount` เคลียร์ bill_discount แถวนั้น
 - [Table-pattern refactor](project_table_pattern_refactor.md) — **ACTIVE 2026-05-27, paused** — ProductsList canonical, rolled out 9 list pages; resume on edit/settings sub-tabs
 - [Column-visibility refactor](project_column_visibility.md) — **ACTIVE 2026-05-25, paused** — Settings popover + checkbox per column; shipped ProductsList+BundlesList; more pending (PROGRESS.md)
 - [Manage/Reports restructure](project_manage_restructure.md) — **ACTIVE** — phased split; next = PROGRESS.md top block (Phase 2 = Purchase history → /manage)
@@ -60,6 +61,7 @@ One line per memory. Detail lives in the linked file (read on demand).
 - [Modal interaction rule](feedback_modal_behavior.md) — no outside-click close; Esc closes; Enter triggers primary OK. Enforced in Dialog — do not bypass.
 - [Button icon sizing](feedback_button_icon_size.md) — icons ใน `<Button>` ต้องใช้ `size-N`; `h-N w-N` ถูก override เป็น 16px โดย button.tsx
 - [Min text size = text-sm](feedback_text_size.md) — `text-xs`/smaller ห้ามในโค้ดใหม่ (codified CLAUDE.md theming rule)
+- [Font-relative sizing](feedback_font_relative_sizing.md) — **2026-06-23** — root font-size แปรผัน (ปัจจุบัน 18px, เจ้าของปรับเรื่อย ๆ จนกว่า build); ทุกขนาดเป็น rem ห้าม hardcode px มาชดเชย; modal=`max-h-[Xvh]`, ล็อกแถว=`h-[Nrem]`; กฏ h-12/h-9 ไม่ต้องแก้เมื่อ font เปลี่ยน
 - [Scrollbars thin (6px)](feedback_scrollbar_thin.md) — scrollbar 6px ทั่วแอป ตัวเดียว ไม่มีข้อยกเว้น; global `::-webkit-scrollbar` + `.scrollbar-thin` = 6px แล้ว; ห้ามนิยามความกว้างอื่น (codified CLAUDE.md)
 - [tsc discipline](feedback_tsc_discipline.md) — อย่ารัน tsc ทุก edit; ข้าม markup/className/text-only; type-check เฉพาะ type/logic/import ตอนไม่มั่นใจ
 - [Animation reduced-motion pitfall](feedback_animation_reduced_motion.md) — `onAnimationEnd` ไม่ยิงใต้ `prefers-reduced-motion` → ใช้ `setTimeout`+cleanup ใน `useEffect` แทน

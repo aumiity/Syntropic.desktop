@@ -26,12 +26,12 @@ Visual + UX consistency across all list pages — one filter strip layout, one r
 5. **TableRow** for data — `[&_td]:py-2.5 [&_td]:font-medium` (no per-cell font-medium/font-semibold)
 6. **Row action** — `<TableHead className="text-center">` + `<TableCell><div className="flex justify-center"><Popover>` with MoreHorizontal ghost button → menu items
 7. **Footer** `px-5 h-12` — left = "จำนวนแถว + Select elevated h-9 + แสดง start-end" (computed inline IIFE), right = `<Pagination className="w-auto" />`
-8. **Stat cards (shell-level)** — passive MetricCard (no onClick), `sub: 'รายการ'` + `subClassName: 'text-base text-foreground'` + `valueClassName: 'text-foreground'` (when tint=success/warning otherwise tints the value). Disabled-style card uses `tint: 'destructive2'`.
+8. **Stat cards (shell-level)** — passive MetricCard (no onClick), `sub: 'รายการ'` + `subClassName: 'text-base text-foreground'` + `valueClassName: 'text-foreground'` (when tint=success/warning otherwise tints the value). Disabled-style card uses `tint: 'destructive'`.
 
 ## Components added/changed today
 
 - **`src/components/ui/avatar.tsx`** (NEW) — `<InitialAvatar name size>` renders rounded User icon tinted by name hash (8-color palette). Used in Sales customer column. Initials abandoned: Thai leading vowels (เแโใไ) read awkwardly.
-- **`src/components/ui/card.tsx`** — added `destructive2` to MetricTint, MetricCard inner content uses `justify-start` (label aligns with top of icon-box), value hardcoded `text-3xl` (cqi container query was unreliable).
+- **`src/components/ui/card.tsx`** — uses the `destructive` MetricTint for disabled cards (the old `destructive2` name no longer exists), MetricCard inner content uses `justify-start` (label aligns with top of icon-box), value hardcoded `text-3xl` (cqi container query was unreliable).
 - **`src/components/ui/table.tsx`** — `TableRow` gets `has-[td[colspan]]:hover:bg-transparent` so empty/loading rows skip the hover highlight automatically.
 - **`src/components/ui/date-range-picker.tsx`** + **`src/components/ui/date-input.tsx`** — both got `variant="elevated"` matching SelectTrigger/SearchInput.
 - **`src/pages/Products/index.tsx`** — shell owns shared stats via `refreshSummary()` in outlet context (replaces per-tab `setSummary`).
@@ -70,4 +70,4 @@ Confirm with user first — sub-tabs often use spreadsheet-style `table-fixed` i
 
 ## Related
 
-[[products-list-pattern]] (this is essentially that — keep as the canonical reference) · [[theme-tokenization]] (the elevated/destructive2/border tweaks fed into this) · [[modal-behavior]] (no changes to modals today)
+[[products-list-pattern]] (this is essentially that — keep as the canonical reference) · [[theme-tokenization]] (the elevated/destructive/border tweaks fed into this) · [[modal-behavior]] (no changes to modals today)

@@ -19,7 +19,7 @@ import {
 // 'สินค้าหมดอายุ' is intentionally NOT here — expired goods go through the
 // dedicated หน้าสินค้าหมดอายุ flow, not this manual stock adjustment.
 const QUICK_REASONS = [
-  'ปรับยอดให้ตรงระบบ',
+  'ปรับยอด',
   'สินค้าเสียหาย',
   'สินค้าสูญหาย',
   'ของแถม',
@@ -300,7 +300,7 @@ export function AdjustStockDialog({
         size="4xl"
         divided
         onClose={onClose}
-        className="h-[560px] grid-rows-[auto_1fr_auto]"
+        className="h-[60vh] grid-rows-[auto_1fr_auto]"
       >
         <DialogHeader>
           <DialogTitle className="text-xl">ปรับสต็อก</DialogTitle>

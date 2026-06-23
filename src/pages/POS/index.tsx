@@ -21,6 +21,7 @@ import { InitialAvatar } from '@/components/ui/avatar'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { QtyDialog } from '@/components/ui/qty-dialog'
+import { DiscountDialog } from '@/components/ui/discount-dialog'
 import { LotPickerDialog } from '@/components/ui/lot-picker-dialog'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency } from '@/lib/utils'
@@ -52,16 +53,6 @@ const SEVERITY_LABELS: Record<string, string> = {
 }
 const SEVERITY_VARIANTS: Record<string, any> = {
   mild: 'secondary', moderate: 'warning', severe: 'amber-soft', life_threatening: 'destructive',
-}
-
-const stripCommas = (v: string) => v.replace(/,/g, '')
-const formatNumWithCommas = (raw: string, forceTwoDecimals = false): string => {
-  if (raw === '' || raw == null) return ''
-  const n = parseFloat(raw)
-  if (!isFinite(n)) return raw
-  return forceTwoDecimals
-    ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : n.toLocaleString('en-US', { maximumFractionDigits: 4 })
 }
 
 interface ReturnLineItem {
@@ -258,11 +249,9 @@ export default function POSPage() {
   const [unitModalIdx, setUnitModalIdx] = useState<number | null>(null)
   const [priceModalIdx, setPriceModalIdx] = useState<number | null>(null)
   const [customPriceInput, setCustomPriceInput] = useState<string>('')
+  // ส่วนลดรายตัวแก้ผ่าน DiscountDialog (component กลาง ใช้ร่วมกับตารางรับสินค้า GR);
+  // index แถวที่เปิดอยู่ — dialog seed/sync %/บาท/ราคาสุดท้ายเองภายใน
   const [discountModalIdx, setDiscountModalIdx] = useState<number | null>(null)
-  const [discountInput, setDiscountInput] = useState<string>('')
-  const [discountPctInput, setDiscountPctInput] = useState<string>('')
-  const [discountFocus, setDiscountFocus] = useState<'pct' | 'baht' | 'final' | null>(null)
-  const [finalPriceInput, setFinalPriceInput] = useState<string>('')
   const [qtyModalIdx, setQtyModalIdx] = useState<number | null>(null)
 
   // Return items dialog — cart-table "mini POS": ProductSearchDialog adds a
@@ -1347,13 +1336,13 @@ export default function POSPage() {
                       <TableCell className="text-right">
                         {item.discount ? (
                           <Button variant="destructive-soft" size="sm"
-                            onClick={() => { const totalPrice = item.unit_price * item.qty; setDiscountInput(String(parseFloat(item.discount.toFixed(2)))); setDiscountPctInput(totalPrice > 0 ? String(parseFloat((item.discount / totalPrice * 100).toFixed(2))) : ''); setFinalPriceInput(String(parseFloat((totalPrice - item.discount).toFixed(2)))); setDiscountModalIdx(idx) }}
+                            onClick={() => setDiscountModalIdx(idx)}
                             className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md text-sm font-semibold">
                             <span className="leading-none">{formatCurrency(item.discount)}</span>
                           </Button>
                         ) : (
                           <Button variant="destructive-soft" size="sm"
-                            onClick={() => { setDiscountInput(''); setDiscountPctInput(''); setFinalPriceInput(''); setDiscountModalIdx(idx) }}
+                            onClick={() => setDiscountModalIdx(idx)}
                             className="flex items-center justify-end w-full h-8 pl-2.5 pr-2 rounded-md text-sm font-medium">
                             <span className="text-right">0</span>
                           </Button>
@@ -1719,7 +1708,7 @@ export default function POSPage() {
 
       {/* ── PAYMENT DIALOG ── */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent size="4xl" divided onClose={() => setShowPayment(false)} className="h-[830px] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="4xl" divided onClose={() => setShowPayment(false)} className="h-[88vh] grid-rows-[auto_1fr_auto]">
           <DialogHeader><DialogTitle className="text-2xl">ชำระเงิน</DialogTitle></DialogHeader>
           <DialogBody className="min-h-0 overflow-hidden">
             {(() => {
@@ -1987,7 +1976,7 @@ export default function POSPage() {
       />
 
       <Dialog open={showAdjust} onOpenChange={(v) => { if (!v) closeAdjust() }}>
-        <DialogContent size="4xl" divided onClose={closeAdjust} className="h-[760px] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="3xl" divided onClose={closeAdjust} className="h-[58vh] grid-rows-[auto_1fr_auto]">
           <DialogHeader>
             <DialogTitle>
               ตัดสต็อก
@@ -2142,7 +2131,7 @@ export default function POSPage() {
 
       {/* ── RETURN ITEMS DIALOG (cart-table) ── */}
       <Dialog open={showReturn} onOpenChange={(v) => { if (!v) closeReturn() }}>
-        <DialogContent size="4xl" divided onClose={closeReturn} className="h-[760px] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="4xl" divided onClose={closeReturn} className="h-[58vh] grid-rows-[auto_1fr_auto]">
           <DialogHeader>
             <DialogTitle>
               รับคืนสินค้า
@@ -2706,143 +2695,17 @@ export default function POSPage() {
         )
       })()}
 
-      {/* ── DISCOUNT DIALOG ── */}
-      <Dialog open={discountModalIdx !== null} onOpenChange={(v) => { if (!v) setDiscountModalIdx(null) }}>
-        {discountModalIdx !== null && (() => {
-          const item = cart.items[discountModalIdx]
-          const d = parseFloat(discountInput) || 0
-          const unitPrice = item?.unit_price ?? 0
-          const qty = item?.qty ?? 1
-          const totalPrice = unitPrice * qty
-          const applyDiscount = (totalDisc: number) => {
-            if (!item) return
-            cart.updateItem(discountModalIdx, { discount: totalDisc })
-            setDiscountModalIdx(null)
-            refocusSearch()
-          }
-          const applyPercent = (pct: number) => {
-            const disc = parseFloat((totalPrice * pct / 100).toFixed(2))
-            setDiscountInput(String(disc))
-            setDiscountPctInput(String(pct))
-            setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
-          }
-          return (
-            <DialogContent size="sm" divided onClose={() => setDiscountModalIdx(null)}>
-              <DialogHeader>
-                <DialogTitle className="text-2xl">ส่วนลด</DialogTitle>
-                <div className="text-base font-semibold text-foreground overflow-x-clip overflow-y-visible">{item?.item_name}</div>
-              </DialogHeader>
-              <DialogBody className="space-y-4">
-                {/* Reference total — the one value with no editable input below */}
-                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 h-12 px-4 py-2.5">
-                  <span className="text-base font-medium text-muted-foreground">ราคารวม</span>
-                  <span className="text-3xl font-bold text-foreground">{formatCurrency(totalPrice)}</span>
-                </div>
-
-                {/* Percent presets — segmented track with a sliding pill (shared-layout) */}
-                <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
-                  {[3, 5, 10, 15, 20].map(pct => {
-                    const isActive = totalPrice > 0 && Math.abs(d - totalPrice * pct / 100) < 0.01
-                    return (
-                      <Button key={pct} variant="ghost" size="sm" onClick={() => applyPercent(pct)}
-                        className={`relative w-full h-10 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'hover:text-destructive-foreground text-destructive-foreground' : 'text-foreground'}`}>
-                        {isActive && (
-                          <motion.div layoutId="discount-pct-pill" aria-hidden
-                            className="absolute inset-0 rounded-md bg-destructive shadow-sm"
-                            transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />
-                        )}
-                        <span className="relative z-10">{pct}%</span>
-                      </Button>
-                    )
-                  })}
-                </div>
-
-                {/* ส่วนลด (%)  +  ส่วนลด (บาท) — side by side */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label>ส่วนลด (%)</Label>
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={discountFocus === 'pct' ? discountPctInput : formatNumWithCommas(discountPctInput)}
-                        onFocus={e => { setDiscountFocus('pct'); e.currentTarget.select() }}
-                        onBlur={() => setDiscountFocus(null)}
-                        onChange={e => {
-                          const v = stripCommas(e.target.value)
-                          setDiscountPctInput(v)
-                          const pct = parseFloat(v)
-                          if (!isNaN(pct)) {
-                            const disc = parseFloat((totalPrice * pct / 100).toFixed(2))
-                            setDiscountInput(String(disc))
-                            setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
-                          }
-                        }}
-                        onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
-                        placeholder="0"
-                        className="h-12 text-right text-3xl font-bold pl-4 pr-10"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-subtle text-xl font-bold pointer-events-none">%</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label>ส่วนลด (บาท)</Label>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      autoFocus
-                      value={discountFocus === 'baht' ? discountInput : formatNumWithCommas(discountInput, true)}
-                      onFocus={e => { setDiscountFocus('baht'); e.currentTarget.select() }}
-                      onBlur={() => setDiscountFocus(null)}
-                      onChange={e => {
-                        const v = stripCommas(e.target.value)
-                        setDiscountInput(v)
-                        const disc = parseFloat(v) || 0
-                        if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
-                        setFinalPriceInput(String(parseFloat((totalPrice - disc).toFixed(2))))
-                      }}
-                      onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
-                      placeholder="0.00"
-                      className="h-12 text-right text-3xl font-bold px-4"
-                    />
-                  </div>
-                </div>
-
-                {/* Final price reverse-calc input */}
-                <div className="space-y-1.5">
-                  <Label>ราคาสุดท้าย (บาท)</Label>
-                  <Input
-                    type="text"
-                    inputMode="decimal"
-                    value={discountFocus === 'final' ? finalPriceInput : formatNumWithCommas(finalPriceInput, true)}
-                    onFocus={e => { setDiscountFocus('final'); e.currentTarget.select() }}
-                    onBlur={() => setDiscountFocus(null)}
-                    onChange={e => {
-                      const v = stripCommas(e.target.value)
-                      setFinalPriceInput(v)
-                      const fp = parseFloat(v)
-                      if (!isNaN(fp)) {
-                        const disc = Math.max(0, parseFloat((totalPrice - fp).toFixed(2)))
-                        setDiscountInput(String(disc))
-                        if (totalPrice > 0) setDiscountPctInput(String(parseFloat((disc / totalPrice * 100).toFixed(2))))
-                      }
-                    }}
-                    onKeyDown={e => { if (e.key === 'Enter') applyDiscount(d) }}
-                    placeholder={formatCurrency(totalPrice)}
-                    className="h-12 text-right text-3xl font-bold px-4"
-                  />
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <Button variant="destructive-soft" size="lg" className="mr-auto w-24 h-10" onClick={() => { setDiscountInput('0'); applyDiscount(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
-                <Button className="w-24 h-10" variant="elevated" size="lg" onClick={() => setDiscountModalIdx(null)}>ปิด</Button>
-                <Button className="w-24 h-10" size="lg" onClick={() => applyDiscount(d)}>ตกลง</Button>
-              </DialogFooter>
-            </DialogContent>
-          )
-        })()}
-      </Dialog>
+      {/* ── DISCOUNT DIALOG (shared component — also used by GR receive table) ── */}
+      {discountModalIdx !== null && cart.items[discountModalIdx] && (
+        <DiscountDialog
+          open
+          onClose={() => { setDiscountModalIdx(null); refocusSearch() }}
+          itemName={cart.items[discountModalIdx].item_name}
+          totalPrice={cart.items[discountModalIdx].unit_price * cart.items[discountModalIdx].qty}
+          initialDiscount={cart.items[discountModalIdx].discount}
+          onApply={(disc) => cart.updateItem(discountModalIdx, { discount: disc })}
+        />
+      )}
 
       {overrideAdjust.dialog}
     </div>

@@ -209,7 +209,7 @@ export function SaleDetailDialog({
                     tbody can absorb the slack — without it, sticky tfoot only
                     "sticks" when content overflows, otherwise it floats below
                     the last data row leaving a big blank band underneath. */}
-                <Table containerClassName="h-[450px] scrollbar-thin" className=" scrollbar-thin border-separate border-spacing-0 table-fixed h-full">
+                <Table containerClassName="h-[25rem] scrollbar-thin" className=" scrollbar-thin border-separate border-spacing-0 table-fixed h-full">
                   {/* Divider rides with the sticky header — works because the
                       <Table> is border-separate (collapse model strands cell
                       borders behind sticking cells). Same pattern as the

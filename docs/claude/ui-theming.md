@@ -35,9 +35,11 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - If a needed variant is missing, add it to the existing component file (e.g., new entry in `buttonVariants.variant`). Do not work around it with raw elements.
 5. **Dialog structure is mandatory.** Every `<DialogContent>` must contain `<DialogHeader>` + `<DialogTitle>` (accessible title — Radix requirement), `<DialogBody>` (main content), `<DialogFooter>` (action buttons). Body layout inside `DialogBody` may use flex/grid as needed. Override default padding with `className` (twMerge handles conflicts).
 
-5a. **Dialog height is ALWAYS fixed — never auto/content-driven (HARD).** Every `<DialogContent>` must declare an explicit height (e.g. `className="h-[520px]"`) or a capped max-height (e.g. `className="max-h-[80vh]"`). The `<DialogBody>` then handles overflow with `overflow-y-auto` so long content scrolls *inside* the dialog, not the whole dialog resizing.
+5a. **Dialog height is ALWAYS fixed — never auto/content-driven (HARD).** Every `<DialogContent>` must declare a bounded height. The `<DialogBody>` then handles overflow with `overflow-y-auto` (or `overflow-hidden` + an inner scroll area) so long content scrolls *inside* the dialog, not the whole dialog resizing.
    - **Never** omit the height and let the dialog grow/shrink with its content — this causes jarring layout jumps when state changes (e.g. validation errors appearing, list items loading, tabs switching).
-   - For dialogs with multiple steps or tabs, fix the height to the tallest expected step so the dialog frame stays still.
+   - **Prefer a viewport cap `max-h-[Xvh]` (e.g. `max-h-[80vh]`, `max-h-[88vh]`) over a fixed-px `h-[Npx]`.** The body inside is rem-based, so it grows ~1.13× when the root font goes 16px→18px (and the operator changes the root up/down to taste until the real build — see [Font-relative sizing](#font-relative-sizing)). A fixed `h-[560px]` frame does NOT grow with it → the content overflows the frame. `vh` is tied to the window, not the font, so the frame stays safe at any font size while `1fr`/`overflow` scroll the body. Avoid `h-[Nvh]` *forced* full-height too unless the dialog is genuinely meant to fill — `max-h` lets it shrink to content when short. (Confirmed-broken examples we fixed: POS payment/adjust/return + AdjustStock all moved `h-[Npx]`→`max-h-[Xvh]`.)
+   - If a dialog's height is deliberately tied to a **row count** (e.g. "show ~10 rows then scroll"), use a **rem** height (`h-[25rem]`), not px — rem scales with the rows (which are also rem) so the visible row count stays constant at every font size. (Example: `SaleDetailDialog` table container.)
+   - For dialogs with multiple steps or tabs, cap the height to the tallest expected step so the dialog frame stays still.
    - The one exception is a dead-simple confirm/alert dialog (no body content, just a message + 2 buttons) — those may be `h-auto` but must still have `max-h-[80vh]`.
 
 6. **Modal interaction contract (HARD).** Applies to every modal — no exceptions.
@@ -67,8 +69,22 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
     - **กรณีลืมกรอก (required แต่ว่าง) `rawInvalid` เป็น `false` → กรอบแดงในตัวไม่ขึ้น** (ต้องมี text ก่อน). prop `error?: boolean` (parent-driven) บังคับกรอบแดงให้ — parent set ตอน submit ที่ขาด, **ล้างตอน `onChange`**. แนวที่ถูก: เก็บ flag ทุกช่องที่ขาด → ติดกรอบแดง **ทุกช่อง**พร้อมกัน + **toast ระบุชื่อช่องชัด ๆ** (เช่น `กรุณาระบุวันที่รับสินค้า · วันครบกำหนดให้ถูกต้อง`) ไม่ใช่ข้อความรวม `'รูปแบบวันที่ไม่ถูกต้อง'` แบบเดิมที่ผู้ใช้ต้องไล่หาช่องเอง. ref: `src/pages/Purchase/index.tsx` (`dateErrors` state). ยังคงกรอบแดงอย่างเดียว ไม่มีข้อความใต้ช่อง.
 
 13. **ขอบกล่อง framed/stat/tinted — ใช้ `border` ทั้งหมด ไม่ใช่ `ring` (HARD).** ทุกกล่องมีกรอบ (stat/profit/cost/แถว setting มีกรอบ, Card, Input, กล่อง tinted) ใช้ `border` (`border border-success/30`, `border-border`, …) — **`ring` สงวนไว้เคสเดียว = TabStrip `toggle`** (ปุ่มต้อง `h-full` เต็ม h-9 bar โดยขอบไม่กินความสูง — มี doc ใน `ui-components.md`). อย่าเอา ring ไปใช้กับกล่อง framed อื่น (ทน print/overflow กว่า + เป็น norm ของแอป).
-    - **นิยามความสูง: `h-N` บน element ที่มีขอบ = ความสูง "นอก" รวมขอบแล้ว** (`box-sizing: border-box` ทั้งแอป, `html { font-size:16px }` → rem=16px). ขอบ 1px บน+ล่าง กิน 2px เข้าใน → **content = h−2px เป็นปกติ ไม่ใช่บั๊ก** (`h-14`=56px นอก/54 content; `h-9`=36px นอก/34 content). เวลาวัด/เทียบความสูงให้เลือก element นอกสุด.
+    - **นิยามความสูง: `h-N` บน element ที่มีขอบ = ความสูง "นอก" รวมขอบแล้ว** (`box-sizing: border-box` ทั้งแอป). ขอบ 1px บน+ล่าง กิน 2px เข้าใน → **content = h−2px เป็นปกติ ไม่ใช่บั๊ก**. ตัวเลข px ของ `h-N` ขึ้นกับ root font-size: ที่ root 16px → `h-9`≈36px, `h-14`≈56px; ที่ root 18px (ค่าปัจจุบัน) → `h-9`≈40.5px, `h-14`≈63px. **ค่า rem คงที่ สัดส่วนคงที่ ตัวเลข px เปลี่ยนตาม font — ดู [Font-relative sizing](#font-relative-sizing)**. เวลาวัด/เทียบความสูงให้เลือก element นอกสุด.
     - **วาง `h-N` ตรงไหน:** กล่องเดี่ยวมีขอบเอง (profitBox/cost box/แถว switch มีกรอบ) → `h-N` บนตัวกล่อง = นอก h-N. แถวใน list `divide-y` (ขอบอยู่ wrapper) → `h-N` บน "แถว" (แถวไม่มีขอบเอง = วัดได้ h-N พอดี), wrapper บวกขอบนอกอีก ~2px. ดู [[feedback_border_over_ring]], [[checkbox-row-conventions]].
+
+## Font-relative sizing (HARD)
+
+**ขนาดทุกอย่างใน UI เป็น font-relative (rem) — ห้าม hardcode px มาชดเชยเวลา font เปลี่ยน.**
+
+root font-size อยู่ที่ `html { font-size: … }` ใน `src/index.css` (ปัจจุบัน **18px**) และ **เจ้าของปรับขึ้น/ลงเรื่อย ๆ ตามความเหมาะกับสายตา จนกว่าจะ build จริง** (เปลี่ยนผ่านหน้า `/css` → `settings:saveThemeFontSize` ซึ่งเขียนทับบรรทัดนี้). ดังนั้น:
+
+- คลาส Tailwind spacing/size/typography (`h-9`, `h-12`, `text-sm`, `size-4`, `gap-2`, `p-4`, …) เป็นหน่วย **rem** → สเกลตาม root อัตโนมัติ. **กฏความสูงทั้งหมด (บาร์ `h-12` / control `h-9`, ดู `ui-table-card.md`) ไม่ต้องแก้เมื่อ font เปลี่ยน** — บาร์กับ control ขยายพร้อมกัน สัดส่วนคงเดิมทุกขนาด.
+- **ห้าม hardcode px เพื่อ "ตรึง" ขนาดกลับ** เช่นเห็นปุ่มสูง 40.5px แล้วใส่ `h-[36px]` ให้เท่าเดิม — ตัวนั้นจะกลายเป็นตัวเดียวที่ไม่สเกล แล้วเพี้ยนกับของรอบข้าง. คิดเป็น rem-token เสมอ ไม่ใช่ px.
+- **ตัวเลข px ใด ๆ ที่อ้างใน doc/โค้ดคอมเมนต์เป็นค่า "ที่ root 16px" เพื่อยกตัวอย่างเท่านั้น ไม่ใช่กฏ** (`h-9`=36px จริงเฉพาะตอน 16px; ตอนนี้ 18px → 40.5px). กฏคือชื่อคลาส rem ไม่ใช่ตัวเลข px.
+- **px ที่ถูกต้องใช้ได้** = ค่าที่ตั้งใจให้ "ไม่สเกลตาม font" เท่านั้น: งานพิมพ์ A4/สลิป/label (px/pt เชิงกายภาพ), เส้นขอบ/divider 1-2px, scrollbar 6px, ความสูงกราฟ, มิติ window chrome (TitleBar). อย่าเอา px ไปใช้กับโครง layout ที่มีตัวอักษร rem อยู่ข้างใน.
+- **เลือกหน่วยเมื่อต้อง bound ขนาด:** modal/dialog ต้องไม่ล้นจอ → `max-h-[Xvh]` (อิง viewport ไม่อิง font); กล่องที่ล็อกจำนวนแถว → `h-[Nrem]` (สเกลพร้อมแถว, คงจำนวนแถวที่เห็น). ดู §5a.
+
+> Incident (2026-06-23): เปลี่ยน root 16px→18px แล้ว Dialog ที่ตั้ง `h-[Npx]` คงที่ (POS payment/adjust/return + AdjustStock) เนื้อในล้นกรอบ; แก้เป็น `max-h-[Xvh]` + ตาราง 10 แถวใน `SaleDetailDialog` เป็น `h-[25rem]`; `TitleBar` `text-[10px]`→`text-xs`. รากเหง้า = px ตายตัวปนกับเนื้อหา rem.
 
 ## ELEVATED — the primary surface treatment (HARD)
 
@@ -108,7 +124,7 @@ Soft / tinted:
 - `primary-soft` — light teal soft · subtle brand emphasis (this absorbed the old `brand-soft`)
 - `info-soft` — light blue · info-style action, e.g. "ปรับสต็อก"
 - `accent-soft` — soft amber/yellow · warm secondary (this is the former `warm`, renamed)
-- `destructive2` — soft red tint · destructive secondary (the slot next to a `destructive` primary)
+- `destructive-soft` — soft red tint · destructive secondary (the slot next to a `destructive` primary; this is the real variant — the old `destructive2` name does NOT exist in `button.tsx`)
 - `success-soft` / `violet-soft` / `teal-soft` / `amber-soft` / `sand-soft`
 
 Outline family (soft fill + role-colored hairline border) — `primary-outline`, `accent-outline`, `success-outline`, `info-outline`, `warning-outline`, `destructive-outline`, `violet-outline`, `teal-outline`, `amber-outline`, `sand-outline`, `neutral-outline`, `muted-outline`.
@@ -154,6 +170,6 @@ These are baked into the components — **no override needed**:
 - **`Tabs`** — default variant = segmented (equal-width grid, sliding `primary` pill via `framer-motion` `layoutId` per-`TabsList` `useId()`). `pill` for sub-nav, `line` for tight underline. All variants use `primary` as the active color. Three variants only — `segmented` was renamed to `default`.
 - **`Select`** — popper position with `sideOffset={6}`, chevron rotates 180° when open (via `group-data-[state=open]:rotate-180`), panel width = trigger width, items have inset highlight (panel `p-2`), check icon on the right when selected (`pr-9` on items).
 - **`Table`** — `TableHead` is `sticky top-0 z-10 bg-muted text-foreground-subtle shadow-[0_1px_0_var(--border)]`. `TableRow` hover `bg-primary-soft/60`, selected `bg-primary-soft`. `TableCell` `py-1 px-2`. `<Table containerClassName="max-h-[NNNpx]">` makes the body scroll while the header stays.
-- **`Dialog`** — `DialogTitle` `text-xl` aligned with the X close button (`min-h-8 flex items-center`). Footer buttons commonly `size="xl"`. **Button roles by footer shape:** a *lone* button = primary role → `default` for neutral/positive ("ปิด/ตกลง/บันทึก/รับทราบ"), `destructive` for negative; *two* buttons = primary (`default`/`destructive`) + a secondary `elevated` ("ยกเลิก/กลับ"). `elevated` is never the only button; `destructive2` is the secondary slot beside a `destructive` primary. `Switch` inside modals = `size="lg"`. → see [[dialog-button-convention]] in `docs/claude/ui-theming.md`.
+- **`Dialog`** — `DialogTitle` `text-xl` aligned with the X close button (`min-h-8 flex items-center`). Footer buttons commonly `size="xl"`. **Button roles by footer shape:** a *lone* button = primary role → `default` for neutral/positive ("ปิด/ตกลง/บันทึก/รับทราบ"), `destructive` for negative; *two* buttons = primary (`default`/`destructive`) + a secondary `elevated` ("ยกเลิก/กลับ"). `elevated` is never the only button; `destructive-soft` is the soft-red tinted secondary slot beside a `destructive` primary (the old `destructive2` name does NOT exist in `button.tsx`). `Switch` inside modals = `size="lg"`. → see [[dialog-button-convention]] in `docs/claude/ui-theming.md`.
 - **`DateInput` / `DateRangePicker`** — `h-10` wrapper default, `bg-input rounded-lg`, calendar icon absolute on the right (`right-2.5`). **`className` targets the wrapper** (sizes the whole component); the inner Input/Button is `h-full w-full`. Don't pass `className="h-X"` to the Input — it'll desync the calendar button position.
 - **Card radius** — every floating panel-card uses `rounded-card` (`--radius-card`, 1rem). Every control / control-panel (Button, Input, SelectContent, PopoverContent) uses `rounded-lg` / `rounded-control` (`--radius`, 0.5rem). Don't mix `rounded-xl` / `rounded-2xl` literals; reach for the tokens.

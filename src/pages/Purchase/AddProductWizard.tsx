@@ -195,9 +195,6 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
   const confirmBtnRef = useRef<HTMLButtonElement>(null)   // footer confirm (focused on the last step)
   const nextBtnRef = useRef<HTMLButtonElement>(null)      // footer next (focused after a product is picked on step 1)
 
-  // optional fields revealed on demand
-  const [showDiscount, setShowDiscount] = useState(false)
-
   // existing open lots for the chosen product — FEFO reference shown in step 2
   // so staff can sanity-check the new lot against what's already on the shelf.
   const [existingLots, setExistingLots] = useState<ProductLot[]>([])
@@ -231,7 +228,6 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     setSuggestions([])
     setSearchOpen(false)
     setSearching(false)
-    setShowDiscount(!!editing && parseFloat(editing.discount) > 0)
     setStep(0)
     setShowClosedLots(false)
     setLotSort({ by: 'expiry_date', dir: 'desc' })
@@ -543,7 +539,6 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
     setSuggestions([])
     setSearchOpen(false)
     setSearching(false)
-    setShowDiscount(false)
     setStep(0)
     setShowClosedLots(false)
     setLotSort({ by: 'expiry_date', dir: 'desc' })
@@ -938,20 +933,6 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                   </div>
                 )}
 
-                {!showDiscount ? (
-                  <Button type="button" variant="link" onClick={() => setShowDiscount(true)} className="mt-3 h-auto p-0 text-sm font-semibold text-primary">+ เพิ่มส่วนลดรายการ (ไม่บังคับ)</Button>
-                ) : (
-                  <div className="mt-4 max-w-[calc(33%-0.5rem)]">
-                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">ส่วนลด (บาท)</label>
-                    <Input
-                      type="text" inputMode="decimal"
-                      value={row.discount}
-                      onChange={e => lineMath('discount', stripCommas(e.target.value))}
-                      onBlur={() => { const n = parseFloat(row.discount); if (isFinite(n)) lineMath('discount', n.toFixed(2)) }}
-                      placeholder="0.00" className="h-9 text-right"
-                    />
-                  </div>
-                )}
                 {/* ประวัติราคาทุนที่ได้รับจริง — ผู้จำหน่าย + ทุนที่จ่ายในแต่ละครั้ง อ่านจาก ledger
                     (ไม่ใช่ทุนเฉลี่ย) เพื่อเทียบราคาก่อนกรอกต้นทุนรอบนี้ */}
                 <div className="mt-5">
