@@ -200,7 +200,10 @@ export function composeLabelContent(
     const labelTimeName = pickName(lookups.labelTimes?.find(t => t.id === label.label_time_id), lang)
     out.timing = [timingName, labelTimeName].filter(Boolean).join(' ')
 
-    out.indication = label[`indication_${lang}` as const] || label.indication_th || ''
+    // สรรพคุณ = ข้อความอิสระต่อภาษา — โชว์เฉพาะค่าของภาษานั้น ๆ เท่านั้น
+    // ห้าม fallback เป็นไทยเมื่อภาษาอื่นเว้นว่าง (ไม่งั้นฉลากภาษาอื่นจะโชว์ไทยปนมา).
+    // ภาษา 'th' เองก็คือ indication_th อยู่แล้ว เลยไม่เสียพฤติกรรมเดิม.
+    out.indication = (label[`indication_${lang}` as const] || '') as string
 
     out.advice = pickName(lookups.labelAdvices?.find(a => a.id === label.advice_id), lang)
   }
