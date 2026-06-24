@@ -6,7 +6,7 @@ import { TintIcon, type TintIconTint } from '@/components/ui/tint-icon'
 import { ExportButton } from '@/components/ui/export-button'
 import type { ReportsOutletContext } from './index'
 import { usePermission } from '@/hooks/usePermission'
-import { ReceiptText, ShoppingCart, Landmark, Wallet, ShieldAlert } from 'lucide-react'
+import { ReceiptText, ShoppingCart, Landmark, Wallet, ShieldAlert, CalendarClock, PackageX } from 'lucide-react'
 
 // Central Export Hub (/reports/export). One date window drives every dataset.
 // Body is SELF-GATED on isAdmin — the /reports route itself is NOT role-guarded
@@ -14,11 +14,13 @@ import { ReceiptText, ShoppingCart, Landmark, Wallet, ShieldAlert } from 'lucide
 // IPC requireAdmin gate blocks the actual data anyway.
 
 interface DatasetRow {
-  key: 'sales' | 'purchases' | 'vat' | 'expenses'
+  key: 'sales' | 'purchases' | 'vat' | 'expenses' | 'expiry' | 'lowStock'
   label: string
   desc: string
   icon: ComponentType<{ className?: string }>
   tint: TintIconTint
+  /** true = a snapshot dataset that ignores the date window (expiry/low-stock). */
+  noDate?: boolean
 }
 
 const DATASETS: DatasetRow[] = [
@@ -26,6 +28,8 @@ const DATASETS: DatasetRow[] = [
   { key: 'purchases', label: 'บิลซื้อ',      desc: 'หัวบิล + รายการรับเข้า (2 ชีต)', icon: ShoppingCart, tint: 'info' },
   { key: 'vat',       label: 'ภาษี (VAT)',  desc: 'ภาษีขาย / ภาษีซื้อ-รับสินค้า / ค่าใช้จ่าย (3 ชีต)', icon: Landmark, tint: 'success' },
   { key: 'expenses',  label: 'ค่าใช้จ่าย',  desc: 'รายการค่าใช้จ่ายทั้งหมดในช่วง (1 ชีต)', icon: Wallet, tint: 'violet' },
+  { key: 'expiry',    label: 'วันหมดอายุ',  desc: 'ล็อตที่ยังมีของ พร้อมวันหมดอายุ (ไม่ขึ้นกับช่วงเวลา)', icon: CalendarClock, tint: 'warning', noDate: true },
+  { key: 'lowStock',  label: 'สต็อกเหลือน้อย', desc: 'สินค้าต่ำกว่าจุดสั่งซื้อ + จำนวนที่ควรซื้อเพิ่ม (ไม่ขึ้นกับช่วงเวลา)', icon: PackageX, tint: 'destructive', noDate: true },
 ]
 
 export default function ExportHubPage() {
@@ -79,7 +83,7 @@ export default function ExportHubPage() {
             <div className="text-base font-semibold text-foreground">{d.label}</div>
             <div className="text-sm text-muted-foreground">{d.desc}</div>
           </div>
-          <ExportButton onExport={() => (window.api as any).exports[d.key](range)} />
+          <ExportButton onExport={() => (window.api as any).exports[d.key](d.noDate ? {} : range)} />
         </Card>
       ))}
     </div>

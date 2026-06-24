@@ -29,4 +29,6 @@ metadata:
 
 **หมายเหตุ scope:** ตอน build ฟีเจอร์นี้ working tree มีงาน **ส่วนลด GR ที่กำลังทำคู่ขนาน** ปนอยู่ (`src/pages/Purchase/index.tsx` + `docs/plans/discount_logic_purchase.md` + stale `electron/db/schema.js` artifact) — ไม่ใช่ส่วนหนึ่งของ export, อย่า commit รวมกัน. ดู [[discount-dialog-shared]].
 
-เหลือ: in-app click-test (เปิดไฟล์ .xlsx จริง — ต้องรันแอป). เฟส 2 (ยังไม่ทำ) = staff export วันหมดอายุ/สต็อกเหลือน้อย (ตัดคอลัมน์ต้นทุน). ดู [[feedback_vat_inclusive_display]], [[project_invoice_matcher_csv]] (CSV เดิม BOM pattern).
+**เฟส 2 DONE + VERIFIED 2026-06-24 (real-Electron e2e 16/16 — `tests/e2e/verify-excel-export-phase2.mjs`).** staff export ได้ **วันหมดอายุ + สต็อกเหลือน้อย** (ไว้สั่งของ) — handler `export:expiry`/`export:lowStock` **ไม่มี requireAdmin** แต่ strip คอลัมน์ต้นทุนเมื่อ `getSessionRole(e)!=='admin'` (สร้าง `columns[]` แล้ว `if(isAdmin) columns.push(cost...)` — exceljs เขียนเฉพาะ key ที่มีใน columns → cost ไม่หลุดลงไฟล์). expiry เขียน query เอง (expiringLots บังคับ LIMIT เสมอ — ตัด LIMIT ออก); lowStock คืน full-set อยู่แล้ว. ปุ่มในหน้า Expiry/LowStock **ไม่ gate isAdmin** (staff เห็น/ใช้ได้); ExportHub เพิ่ม 2 row (`noDate:true` → ส่ง `{}` ไม่ส่ง date range; admin-only ใน hub = ได้ cost). verify: admin 10 คอลัมน์ (มีต้นทุน) / staff 8 คอลัมน์ (ไม่มีต้นทุน) + staff ยังโดน FORBIDDEN ที่ finance. SheetColumn ต้อง export จาก excel.ts.
+
+เหลือ: pure in-app click-test ผ่าน UI (ปุ่มจริง) — โค้ด+ไฟล์ verify แล้วครบ. ดู [[feedback_vat_inclusive_display]], [[project_invoice_matcher_csv]] (CSV เดิม BOM pattern).

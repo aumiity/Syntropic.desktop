@@ -1,15 +1,20 @@
 import { ipcMain, dialog } from 'electron'
 import dayjs from 'dayjs'
 import { getDb } from '../db'
-import { requireAdmin } from '../auth/session'
+import { requireAdmin, getSessionRole } from '../auth/session'
 import { computeVatSummary } from './reports'
-import { writeWorkbook, fmtDate, type SheetSpec } from '../services/excel'
+import { writeWorkbook, fmtDate, type SheetSpec, type SheetColumn } from '../services/excel'
 
-// Excel export handlers (phase 1 — all finance, admin-only). Each handler:
-//   1. requireAdmin(e)  ← first line; the REAL gate (hiding the button is UX only)
-//   2. queries the FULL set for the given filters (NO pagination — the on-screen
-//      list is paginated, so reading screen rows would export one page)
-//   3. opens a save dialog, writes the .xlsx, returns {ok,path} / {ok:false,canceled}
+// Excel export handlers. Two tiers:
+//   • Phase 1 (finance) — admin-only: requireAdmin(e) as the FIRST line (the REAL
+//     gate; hiding the button is UX only). sales/purchases/vat/expenses.
+//   • Phase 2 (operational) — staff-allowed: expiry/lowStock, for reordering. NO
+//     requireAdmin, but COST columns are stripped when the caller is not admin
+//     (same defence as DeadStock's cost_value:null) so staff can't pull cost out.
+//
+// Every handler queries the FULL set for the given filters (NO pagination — the
+// on-screen list is paginated, so reading screen rows would export one page),
+// opens a save dialog, writes the .xlsx, returns {ok,path} / {ok:false,canceled}.
 //
 // Bills export as a 2-sheet workbook (header + line items) so each can be
 // pivoted independently. Dates → DD/MM/YYYY text; barcode/lot/code/tax-id →
@@ -335,5 +340,112 @@ export function registerExportHandlers() {
       },
     ]
     return saveAndWrite('expenses', sheets)
+  })
+
+  // ── วันหมดอายุ (expiry) — staff-allowed, cost stripped for non-admin ─────────
+  ipcMain.handle('export:expiry', async (e, filters: {
+    filter?: 'expired' | 30 | 90 | 180; category_id?: number; q?: string
+  } = {}) => {
+    const db = getDb()
+    const isAdmin = getSessionRole(e) === 'admin'
+    const { filter, category_id, q } = filters
+
+    // Mirror reports:expiringLots' rows query, but WITHOUT the LIMIT (full set).
+    const conds = [`pl.qty_on_hand > 0`, `pl.is_closed = 0`, `pl.expiry_date IS NOT NULL`]
+    const params: any[] = []
+    if (category_id) { conds.push(`p.category_id = ?`); params.push(category_id) }
+    if (q) { conds.push(`(p.trade_name LIKE ? OR pl.lot_number LIKE ?)`); const lq = `%${q}%`; params.push(lq, lq) }
+    if (filter === 'expired') { conds.push(`date(pl.expiry_date) < date('now')`) }
+    else if (typeof filter === 'number') { conds.push(`date(pl.expiry_date) <= date('now', '+' || ? || ' days')`); params.push(filter) }
+
+    const rows = db.prepare(`
+      SELECT pl.lot_number, pl.expiry_date, pl.qty_on_hand, pl.cost_price,
+             ROUND(pl.qty_on_hand * pl.cost_price, 2) AS total_cost,
+             p.trade_name, u.name AS unit_name, c.name AS category_name, s.name AS supplier_name,
+             CAST(julianday(date(pl.expiry_date)) - julianday(date('now')) AS INTEGER) AS days_remaining
+      FROM product_lots pl
+      JOIN products p ON p.id = pl.product_id
+      LEFT JOIN item_units u ON u.id = p.unit_id
+      LEFT JOIN product_categories c ON c.id = p.category_id
+      LEFT JOIN suppliers s ON s.id = pl.supplier_id
+      WHERE ${conds.join(' AND ')}
+      ORDER BY pl.expiry_date ASC, p.trade_name ASC
+    `).all(...params) as any[]
+
+    const columns: SheetColumn[] = [
+      { header: 'เลขล็อต', key: 'lot_number', type: 'text', width: 16 },
+      { header: 'สินค้า', key: 'trade_name', type: 'text', width: 30 },
+      { header: 'หมวด', key: 'category_name', type: 'text', width: 18 },
+      { header: 'หน่วย', key: 'unit_name', type: 'text', width: 12 },
+      { header: 'คงเหลือ', key: 'qty_on_hand', type: 'number', width: 10 },
+      { header: 'วันหมดอายุ', key: 'expiry_date', type: 'text', width: 14 },
+      { header: 'เหลือ (วัน)', key: 'days_remaining', type: 'number', width: 10 },
+      { header: 'ผู้จัดจำหน่าย', key: 'supplier_name', type: 'text', width: 24 },
+    ]
+    // Cost columns admin-only — staff exports this to reorder, not to read cost.
+    if (isAdmin) columns.push(
+      { header: 'ต้นทุน/หน่วย', key: 'cost_price', type: 'currency', width: 14 },
+      { header: 'มูลค่ารวม', key: 'total_cost', type: 'currency', width: 14 },
+    )
+
+    return saveAndWrite('expiry', [{
+      name: 'วันหมดอายุ',
+      columns,
+      rows: rows.map(r => ({ ...r, expiry_date: fmtDate(r.expiry_date) })),
+    }])
+  })
+
+  // ── สต็อกเหลือน้อย (low stock) — staff-allowed, cost stripped for non-admin ──
+  ipcMain.handle('export:lowStock', async (e, filters: {
+    q?: string; category_id?: number; include_disabled?: boolean
+  } = {}) => {
+    const db = getDb()
+    const isAdmin = getSessionRole(e) === 'admin'
+    const { q, category_id, include_disabled } = filters
+
+    // Same shape as products:lowStock (already returns the full set, no LIMIT).
+    const conds: string[] = []
+    const params: any[] = []
+    if (!include_disabled) conds.push(`p.is_disabled = 0`)
+    if (q) { conds.push(`(p.trade_name LIKE ? OR p.barcode LIKE ? OR p.code LIKE ? OR p.search_keywords LIKE ?)`); const lq = `%${q}%`; params.push(lq, lq, lq, lq) }
+    if (category_id) { conds.push(`p.category_id = ?`); params.push(category_id) }
+    const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
+    conds.push(`p.is_bundle = 0`, `p.reorder_point > 0`, `${stockExpr} <= p.reorder_point`)
+    const buyMoreExpr = `MAX(0, CASE
+      WHEN p.safety_stock IS NOT NULL AND p.safety_stock > 0 THEN p.safety_stock - ${stockExpr}
+      ELSE p.reorder_point - ${stockExpr} END)`
+    const cheapestWhere = `pl.product_id = p.id AND pl.supplier_id IS NOT NULL AND pl.is_cancelled = 0 AND pl.created_at >= date('now','-3 months')`
+    const cheapestOrder = `ORDER BY pl.cost_price ASC, pl.created_at DESC LIMIT 1`
+
+    const rows = db.prepare(`
+      SELECT p.code, p.trade_name, p.reorder_point, p.safety_stock,
+             p.cost_price AS cost_avg, u.name AS unit_name,
+             ${stockExpr} AS stock_qty, ${buyMoreExpr} AS buy_more,
+             (SELECT s.name FROM product_lots pl JOIN suppliers s ON s.id = pl.supplier_id
+               WHERE ${cheapestWhere} ${cheapestOrder}) AS cheapest_supplier_name,
+             (SELECT pl.cost_price FROM product_lots pl
+               WHERE ${cheapestWhere} ${cheapestOrder}) AS cheapest_supplier_cost
+      FROM products p
+      LEFT JOIN item_units u ON u.id = p.unit_id
+      WHERE ${conds.join(' AND ')}
+      ORDER BY buy_more DESC, p.trade_name ASC
+    `).all(...params) as any[]
+
+    const columns: SheetColumn[] = [
+      { header: 'รหัส', key: 'code', type: 'text', width: 14 },
+      { header: 'สินค้า', key: 'trade_name', type: 'text', width: 30 },
+      { header: 'หน่วย', key: 'unit_name', type: 'text', width: 12 },
+      { header: 'คงเหลือ', key: 'stock_qty', type: 'number', width: 10 },
+      { header: 'จุดสั่งซื้อ', key: 'reorder_point', type: 'number', width: 12 },
+      { header: 'สต็อกปลอดภัย', key: 'safety_stock', type: 'number', width: 12 },
+      { header: 'ซื้อเพิ่ม', key: 'buy_more', type: 'number', width: 10 },
+      { header: 'ผู้ขายถูกสุด', key: 'cheapest_supplier_name', type: 'text', width: 24 },
+    ]
+    if (isAdmin) columns.push(
+      { header: 'ต้นทุน/หน่วย', key: 'cost_avg', type: 'currency', width: 14 },
+      { header: 'ราคาผู้ขายถูกสุด', key: 'cheapest_supplier_cost', type: 'currency', width: 16 },
+    )
+
+    return saveAndWrite('lowstock', [{ name: 'สต็อกเหลือน้อย', columns, rows }])
   })
 }

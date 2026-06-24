@@ -291,6 +291,9 @@ const api = {
     purchases: (filters?: any) => invoke('export:purchases', filters) as Promise<{ ok: boolean; path?: string; canceled?: boolean }>,
     vat: (filters?: any) => invoke('export:vat', filters) as Promise<{ ok: boolean; path?: string; canceled?: boolean }>,
     expenses: (filters?: any) => invoke('export:expenses', filters) as Promise<{ ok: boolean; path?: string; canceled?: boolean }>,
+    // Phase 2 — staff-allowed (cost stripped main-side when caller is not admin)
+    expiry: (filters?: any) => invoke('export:expiry', filters) as Promise<{ ok: boolean; path?: string; canceled?: boolean }>,
+    lowStock: (filters?: any) => invoke('export:lowStock', filters) as Promise<{ ok: boolean; path?: string; canceled?: boolean }>,
   },
   // Auth — login picker + password verify (no session persisted)
   auth: {
