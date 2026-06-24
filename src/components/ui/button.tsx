@@ -77,7 +77,7 @@ const buttonVariants = cva(
         info: "bg-info text-info-foreground hover:bg-info/85",
         violet: "bg-violet text-violet-foreground hover:bg-violet/85",
         teal: "bg-teal text-teal-foreground hover:bg-teal/85",
-        amber: "bg-amber text-amber-foreground hover:bg-amber/85",
+        amber: "bg-amber text-amber-soft hover:bg-amber/85",
         sand: "bg-sand text-sand-foreground hover:bg-sand/85",
         "success-soft": "bg-success-soft text-success hover:bg-success-soft/80",
         // warning-soft = pale ORANGE (distinct from `accent-soft` which is cream)

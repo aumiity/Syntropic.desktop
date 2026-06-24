@@ -3,6 +3,7 @@ import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { DateInput } from '@/components/ui/date-input'
@@ -150,9 +151,9 @@ export default function PurchasePage() {
   // Unit swap modal (per row)
   const [unitModalIdx, setUnitModalIdx] = useState<number | null>(null)
 
-  // มุมมองตาราง: toggle "รวมส่วนลดในต้นทุน" → ทุน/หน่วยโชว์เป็นทุนสุทธิ (รวมส่วนลดเข้าไปแล้ว)
-  // เป็นแค่การแสดงผล ไม่แตะข้อมูลจริง — บันทึกได้ผลเท่ากันทุกกรณี
-  const [mergeCost, setMergeCost] = useState(false)
+  // "รวมส่วนลดในต้นทุน" = ยุบส่วนลดรายตัวเข้าไปใน cost_price จริง (ทุน/หน่วย = ทุนสุทธิ),
+  // แล้วล้างช่องส่วนลด — ทางเดียว ย้อนกลับไม่ได้ (mirror "เพิ่มต้นทุน"). มี confirm ก่อนทำ
+  const [showMergeConfirm, setShowMergeConfirm] = useState(false)
 
   // Bulk import modal
   const [showImport, setShowImport] = useState(false)
@@ -160,20 +161,16 @@ export default function PurchasePage() {
   const [importing, setImporting] = useState(false)
   const [importColumns, setImportColumns] = useState<string[]>(['key', 'qty', 'lot', 'mfg', 'exp', 'total'])
 
-  // ส่วนลดท้ายบิล modal (ลดอย่างเดียว — reversible)
+  // ส่วนลดท้ายบิล modal (ลดอย่างเดียว — reversible) — ใช้ DiscountDialog ร่วม
   const [showBillAdjust, setShowBillAdjust] = useState(false)
-  const [billDiscountBaht, setBillDiscountBaht] = useState('')
-  const [billDiscountPct, setBillDiscountPct]   = useState('')
   // เพิ่มต้นทุน (ส่วนเพิ่มท้ายบิล) modal — รวมเข้าต้นทุนทันที ทางเดียว ย้อนกลับไม่ได้
   const [showSurcharge, setShowSurcharge] = useState(false)
   const [surchargeBaht, setSurchargeBaht] = useState('')
   const [surchargePct, setSurchargePct]   = useState('')
-  // Pre-adjustment sum shown in the modal preview
-  const [adjustModalSum, setAdjustModalSum] = useState(0)
-  // Controlled value for the editable ยอดสุทธิ input in the modal
-  const [billNetInput, setBillNetInput] = useState('')
-  // Which adjust-modal input is focused — shows raw value while editing, comma-formatted when blurred
-  const [adjFocus, setAdjFocus] = useState<'baht' | 'pct' | 'net' | null>(null)
+  // ต้นทุนรวมใหม่ (แก้ได้ → คำนวณส่วนเพิ่มย้อนกลับ) — mirror ช่องยอดสุทธิใน DiscountDialog
+  const [surTotalInput, setSurTotalInput] = useState('')
+  // ช่องที่กำลังโฟกัสใน modal เพิ่มต้นทุน — โชว์ค่าดิบตอนพิมพ์ คั่นจุลภาคตอน blur (mirror DiscountDialog)
+  const [surFocus, setSurFocus] = useState<'baht' | 'pct' | 'total' | null>(null)
 
   useEffect(() => {
     // Keep the draft's GR number when restoring a receive with line items;
@@ -670,29 +667,18 @@ export default function PurchasePage() {
   }
 
   // ปุ่มส่วนลดท้ายบิล = เครื่องมือกระจายส่วนลดรวมทั้งบิลลงทุกแถวตามสัดส่วน qty×cost
-  // เขียนผลลง row.discount ทันที (กระจายใหม่ทับของเดิมทั้งหมด — มีคำเตือนใน modal).
-  // base เดียวทั้ง open/apply = grossSubtotal (ราคารวมก่อนลด).
-  const openBillAdjust = () => {
-    const base = grossSubtotal
-    const current = lineDiscountTotal
-    const currentText = current > 0 ? current.toFixed(2) : ''
-    const currentPctText = current > 0 && base > 0
-      ? String(parseFloat(((current / base) * 100).toFixed(4)))
-      : ''
-    setAdjustModalSum(base)
-    setBillNetInput(Math.max(base - current, 0).toFixed(2))
-    setBillDiscountBaht(currentText)
-    setBillDiscountPct(currentPctText)
-    setShowBillAdjust(true)
-  }
+  // เขียนผลลง row.discount ทันที (กระจายใหม่ทับของเดิมทั้งหมด). ใช้ DiscountDialog ร่วม:
+  // totalPrice = grossSubtotal (ราคารวมก่อนลด), initialDiscount = lineDiscountTotal,
+  // onApply(disc) → กระจาย disc ลงทุกแถว. base เดียวทั้ง open/apply = grossSubtotal.
+  const openBillAdjust = () => { setShowBillAdjust(true) }
 
   const closeBillAdjust = () => { setShowBillAdjust(false) }
 
-  const applyBillAdjust = () => {
-    // ฐานกระจาย = ราคารวมก่อนลด (qty×cost รวมทุกแถว) ตัวเดียวกับ openBillAdjust
+  const applyBillAdjust = (discAmtRaw: number) => {
+    // ฐานกระจาย = ราคารวมก่อนลด (qty×cost รวมทุกแถว) ตัวเดียวกับที่ส่งเป็น totalPrice
     const sumW = grossSubtotal
     if (sumW === 0) { toast('ยอดรวมเป็น 0 ไม่สามารถปรับยอดได้', 'error'); return }
-    const discAmt = Math.min(Math.max(parseFloat(billDiscountBaht) || 0, 0), sumW)
+    const discAmt = Math.min(Math.max(discAmtRaw || 0, 0), sumW)
     setRows(rs => rs.map(row => {
       const qty = parseFloat(row.qty) || 0
       const cost = parseFloat(row.cost_price) || 0
@@ -710,7 +696,7 @@ export default function PurchasePage() {
   }
 
   // ── เพิ่มต้นทุน (ส่วนเพิ่มท้ายบิล) — ทางเดียว รวมเข้า cost_price ถาวร ──
-  const openSurcharge = () => { setSurchargeBaht(''); setSurchargePct(''); setShowSurcharge(true) }
+  const openSurcharge = () => { setSurchargeBaht(''); setSurchargePct(''); setSurTotalInput(''); setSurFocus(null); setShowSurcharge(true) }
   const closeSurcharge = () => setShowSurcharge(false)
   const applySurcharge = () => {
     const amt = parseFloat(surchargeBaht) || 0
@@ -730,6 +716,22 @@ export default function PurchasePage() {
       return { ...row, cost_price: newCost, total: newTotal.toFixed(2) }
     }))
     setShowSurcharge(false)
+  }
+
+  // ── รวมส่วนลดในต้นทุน — ยุบ row.discount เข้า cost_price จริง (ทางเดียว) ──
+  // cost_price ใหม่ = ทุนสุทธิต่อหน่วย (total/qty) แล้วล้าง discount; total คงเดิม.
+  // ผลบันทึกเท่าเดิม (save ใช้ total/qty อยู่แล้ว) แต่ฟอร์ม/เอกสารจะไม่มีบรรทัดส่วนลดแยก.
+  const applyMergeDiscount = () => {
+    setRows(rs => rs.map(row => {
+      const qty = parseFloat(row.qty) || 0
+      const disc = parseFloat(row.discount) || 0
+      // ยุบเฉพาะแถวที่มีส่วนลดจริง — กันเขียนทับ cost_price แถวที่ไม่เกี่ยว (กฎ blank→0)
+      if (qty <= 0 || disc <= 0) return row
+      const totalN = parseFloat(row.total)
+      const netCost = isFinite(totalN) ? totalN / qty : (parseFloat(row.cost_price) || 0)
+      return { ...row, cost_price: stripTrailingZeros(netCost.toFixed(4)), discount: '' }
+    }))
+    setShowMergeConfirm(false)
   }
 
   const resetForm = () => {
@@ -839,11 +841,11 @@ export default function PurchasePage() {
                           </Button>
                           <Button
                             size="lg"
-                            variant={mergeCost ? 'default' : 'elevated'}
-                            onClick={() => setMergeCost(v => !v)}
-                            disabled={rows.length === 0}
+                            variant="elevated"
+                            onClick={() => setShowMergeConfirm(true)}
+                            disabled={lineDiscountTotal <= 0}
                             className="h-9 rounded-lg text-sm gap-1.5"
-                            tooltip="สลับ ทุน/หน่วย ให้โชว์เป็นทุนสุทธิ (รวมส่วนลดเข้าไปในต้นทุนแล้ว)"
+                            tooltip="ยุบส่วนลดรายตัวเข้าไปในทุน/หน่วย แล้วล้างช่องส่วนลด (ย้อนกลับไม่ได้)"
                           >
                             รวมส่วนลดในต้นทุน
                           </Button>
@@ -887,14 +889,10 @@ export default function PurchasePage() {
                             ) : rows.map((row, i) => {
                               const isValid = rowIsValid(row)
                               const isPartial = rowIsPartial(row)
-                              const qtyN = parseFloat(row.qty)
-                              const totalN = parseFloat(row.total)
-                              const netCost = qtyN > 0 && isFinite(totalN) ? totalN / qtyN : (parseFloat(row.cost_price) || 0)
-                              // ทุน/หน่วยปัจจุบัน (รวมส่วนเพิ่มที่ commit แล้ว, ก่อนหักส่วนลด)
-                              const grossCost = parseFloat(row.cost_price) || 0
                               const perLineDisc = parseFloat(row.discount) || 0
-                              // toggle "รวมส่วนลดในต้นทุน": โชว์ทุนสุทธิ (total/qty); ปกติ: ทุนก่อนลด
-                              const displayCost = mergeCost ? netCost : grossCost
+                              // ทุน/หน่วยปัจจุบัน (รวมส่วนเพิ่มที่ commit แล้ว, ก่อนหักส่วนลด)
+                              // หลัง "รวมส่วนลดในต้นทุน" cost_price จะกลายเป็นทุนสุทธิจริงอยู่แล้ว
+                              const displayCost = parseFloat(row.cost_price) || 0
                               return (
                                 <TableRow
                                   key={i}
@@ -930,7 +928,7 @@ export default function PurchasePage() {
                                   <TableCell className="px-3 py-2 text-right text-sm">{row.total ? formatCurrency(displayCost) : '—'}</TableCell>
                                   <TableCell className="px-3 py-2 text-right text-sm">{row.product_id ? formatCurrency(row.default_sell_price || 0) : '—'}</TableCell>
                                   <TableCell className="px-2 py-2 text-right">
-                                    {!row.product_id || mergeCost ? (
+                                    {!row.product_id ? (
                                       <span className="text-sm text-foreground-subtle pr-1">—</span>
                                     ) : (
                                       <Button
@@ -945,7 +943,7 @@ export default function PurchasePage() {
                                       </Button>
                                     )}
                                   </TableCell>
-                                  <TableCell className="px-3 py-2 text-right text-sm font-semibold">{row.total ? formatCurrency(totalN) : '—'}</TableCell>
+                                  <TableCell className="px-3 py-2 text-right text-sm font-semibold">{row.total ? formatCurrency(parseFloat(row.total) || 0) : '—'}</TableCell>
 
                                   <TableCell className="px-2 py-2">
                                     <div className="flex items-center justify-center gap-1">
@@ -1206,143 +1204,17 @@ export default function PurchasePage() {
         />
       )}
 
-      {/* ── Bill adjustment modal ── */}
-      <Dialog open={showBillAdjust} onOpenChange={(o) => { if (!o) closeBillAdjust() }}>
-        <DialogContent size="sm" divided>
-          {showBillAdjust && (() => {
-            const calcNet = (dB: string) => Math.max(adjustModalSum - (parseFloat(dB) || 0), 0).toFixed(2)
-            const bahtToPct = (b: string) => {
-              const v = adjustModalSum > 0 ? (parseFloat(b) || 0) / adjustModalSum * 100 : 0
-              return v > 0 ? String(parseFloat(v.toFixed(4))) : ''
-            }
-            const pctToBaht = (p: string) => {
-              const v = (parseFloat(p) || 0) / 100 * adjustModalSum
-              return v > 0 ? v.toFixed(2) : ''
-            }
-            const previewDisc = parseFloat(billDiscountBaht) || 0
-            const PCTS = ['3', '5', '10', '15', '20']
-            const handleNetChange = (val: string) => {
-              setBillNetInput(val)
-              const needed = Math.max(adjustModalSum - (parseFloat(val) || 0), 0)
-              const newBaht = needed > 0 ? needed.toFixed(2) : ''
-              setBillDiscountBaht(newBaht); setBillDiscountPct(bahtToPct(newBaht))
-            }
-            return (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="text-xl">ส่วนลดท้ายบิล</DialogTitle>
-                </DialogHeader>
-                <DialogBody className="space-y-4">
-                  {/* คำเตือน: กดตกลงจะกระจายส่วนลดทั้งหมดลงทุกแถวตามสัดส่วนใหม่ทับของเดิม */}
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-strong/25 bg-amber-soft/50 p-3 text-sm text-amber-strong">
-                    <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-                    <span>ส่วนลดทั้งหมดจะถูก<b>กระจายลงสินค้าตามสัดส่วนใหม่ทั้งหมด</b> กดตกลงเพื่อยืนยัน</span>
-                  </div>
-                  {/* Quick percent buttons */}
-                  <div className="flex gap-1.5">
-                    {PCTS.map(p => {
-                      const active = billDiscountPct === p
-                      return (
-                        <Button
-                          key={p}
-                          type="button"
-                          variant={active ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => {
-                            const newPct = active ? '' : p
-                            const newBaht = pctToBaht(newPct)
-                            setBillDiscountPct(newPct); setBillDiscountBaht(newBaht); setBillNetInput(calcNet(newBaht))
-                          }}
-                          className="flex-1 h-8 rounded-lg text-sm font-semibold px-0"
-                        >
-                          {p}%
-                        </Button>
-                      )
-                    })}
-                  </div>
-
-                  {/* Inputs: baht + percent side by side */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-sm font-semibold text-muted-foreground">จำนวนเงิน (บาท)</label>
-                      <Input
-                        autoFocus
-                        variant="elevated"
-                        type="text"
-                        inputMode="decimal"
-                        value={adjFocus === 'baht' ? billDiscountBaht : formatNum(billDiscountBaht, true)}
-                        onChange={e => {
-                          const newBaht = stripCommas(e.target.value)
-                          setBillDiscountBaht(newBaht); setBillDiscountPct(bahtToPct(newBaht)); setBillNetInput(calcNet(newBaht))
-                        }}
-                        onFocus={() => setAdjFocus('baht')}
-                        onBlur={() => setAdjFocus(null)}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyBillAdjust() } }}
-                        placeholder="0.00"
-                        className="h-10 text-sm text-right"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-semibold text-muted-foreground">เปอร์เซ็นต์ (%)</label>
-                      <div className="relative">
-                        <Input
-                          variant="elevated"
-                          type="text"
-                          inputMode="decimal"
-                          value={adjFocus === 'pct' ? billDiscountPct : formatNum(billDiscountPct)}
-                          onChange={e => {
-                            const newPct = stripCommas(e.target.value)
-                            const newBaht = pctToBaht(newPct)
-                            setBillDiscountPct(newPct); setBillDiscountBaht(newBaht); setBillNetInput(calcNet(newBaht))
-                          }}
-                          onFocus={() => setAdjFocus('pct')}
-                          onBlur={() => setAdjFocus(null)}
-                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyBillAdjust() } }}
-                          placeholder="0.00"
-                          className="h-10 text-sm text-right pr-7"
-                        />
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-foreground-subtle">%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Total preview */}
-                  <div className="rounded-lg bg-primary-soft/50 border border-primary/30 px-4 py-3 space-y-1.5 text-sm">
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>ยอดรวมเดิม</span>
-                      <span className="pr-2.5">{formatCurrency(adjustModalSum)}</span>
-                    </div>
-                    <div className="flex justify-between text-primary">
-                      <span>ส่วนลด</span>
-                      <span className="pr-2.5">{previewDisc > 0 ? '−' : ''}{formatCurrency(previewDisc)}</span>
-                    </div>
-                    <div className="flex items-center justify-between font-semibold text-foreground pt-1.5 mt-1">
-                      <span>ยอดสุทธิ</span>
-                      <div className="relative w-36">
-                        <Input
-                          variant="elevated"
-                          type="text"
-                          inputMode="decimal"
-                          value={adjFocus === 'net' ? billNetInput : formatNum(billNetInput, true)}
-                          onChange={e => handleNetChange(stripCommas(e.target.value))}
-                          onFocus={() => setAdjFocus('net')}
-                          onBlur={() => { setAdjFocus(null); setBillNetInput(calcNet(billDiscountBaht)) }}
-                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyBillAdjust() } }}
-                          className="h-9 text-sm font-semibold text-right"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </DialogBody>
-                <DialogFooter>
-                  <Button variant="elevated" size="xl" className="flex-1" onClick={closeBillAdjust}>ยกเลิก</Button>
-                  <Button size="xl" className="flex-1" onClick={applyBillAdjust}>ตกลง</Button>
-                </DialogFooter>
-              </>
-            )
-          })()}
-        </DialogContent>
-      </Dialog>
+      {/* ── ส่วนลดท้ายบิล — ใช้ DiscountDialog ร่วมกับ POS/GR (กระจายลงทุกแถวตามสัดส่วน) ── */}
+      {showBillAdjust && (
+        <DiscountDialog
+          open
+          onClose={closeBillAdjust}
+          note={<>ส่วนลดสินค้าเดิมจะถูก<b>รวมและกระจายลงสินค้าตามสัดส่วนใหม่ทั้งหมด</b> กดตกลงเพื่อดำเนินการ</>}
+          totalPrice={grossSubtotal}
+          initialDiscount={lineDiscountTotal}
+          onApply={applyBillAdjust}
+        />
+      )}
 
       {/* ── เพิ่มต้นทุน (ส่วนเพิ่มท้ายบิล) — ทางเดียว รวมเข้าต้นทุน ── */}
       <Dialog open={showSurcharge} onOpenChange={(o) => { if (!o) closeSurcharge() }}>
@@ -1351,86 +1223,141 @@ export default function PurchasePage() {
             <DialogTitle className="text-xl">เพิ่มต้นทุน (ส่วนเพิ่มท้ายบิล)</DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-4">
-            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive-soft p-3 text-sm text-destructive">
+            <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary-soft p-3 text-sm text-primary">
               <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-              <span>ส่วนเพิ่มนี้จะ<b>มีผลทันที</b> ทำให้ทุนต่อหน่วยสูงขึ้น และ<b>ย้อนกลับไม่ได้</b></span>
+              <span>ส่วนนี้จะทำให้ ต้นทุนของสินค้าทุกรายการ <b>เพิ่มขึ้นทันที</b> โดยไม่สามารถย้อนกลับได้ <b>กรุณายืนยันเพื่อดำเนินการ</b></span>
             </div>
-            {/* Quick percent */}
-            <div className="flex gap-1.5">
-              {['3', '5', '10', '15', '20'].map(p => {
-                const active = surchargePct === p
+            {/* preset % — iOS-style segmented control (mirror DiscountDialog, โทน primary) */}
+            <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
+              {[3, 5, 10, 15, 20].map(p => {
+                const sur = parseFloat(surchargeBaht) || 0
+                const isActive = surchargeBase > 0 && Math.abs(sur - surchargeBase * p / 100) < 0.01
                 return (
-                  <Button
-                    key={p}
-                    type="button"
-                    variant={active ? 'default' : 'outline'}
-                    size="sm"
+                  <Button key={p} variant="ghost" size="sm"
                     onClick={() => {
-                      const np = active ? '' : p
-                      setSurchargePct(np)
-                      setSurchargeBaht(np ? ((parseFloat(np) || 0) / 100 * surchargeBase).toFixed(2) : '')
+                      const baht = parseFloat((surchargeBase * p / 100).toFixed(2))
+                      setSurchargeBaht(String(baht)); setSurchargePct(String(p))
+                      setSurTotalInput(String(parseFloat((surchargeBase + baht).toFixed(2))))
                     }}
-                    className="flex-1 h-8 rounded-lg text-sm font-semibold px-0"
-                  >
-                    {p}%
+                    className={`relative w-full h-8 rounded-md text-sm font-medium transition-colors hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'text-primary-foreground hover:text-primary-foreground' : 'text-foreground/60 hover:text-foreground'}`}>
+                    {isActive && (
+                      <motion.div layoutId="surcharge-pct-pill" aria-hidden
+                        className="absolute inset-0 rounded-md bg-primary shadow-md"
+                        transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />
+                    )}
+                    <span className="relative z-10">{p}%</span>
                   </Button>
                 )
               })}
             </div>
-            {/* Inputs */}
+
+            {/* ส่วนเพิ่ม (%)  +  ส่วนเพิ่ม (บาท) — เคียงกัน */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-muted-foreground">จำนวนเงิน (บาท)</label>
-                <Input
-                  autoFocus
-                  variant="elevated"
-                  type="text"
-                  inputMode="decimal"
-                  value={surchargeBaht}
-                  onChange={e => {
-                    const v = stripCommas(e.target.value)
-                    setSurchargeBaht(v)
-                    setSurchargePct(surchargeBase > 0 && parseFloat(v) > 0 ? String(parseFloat((parseFloat(v) / surchargeBase * 100).toFixed(4))) : '')
-                  }}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applySurcharge() } }}
-                  placeholder="0.00"
-                  className="h-10 text-sm text-right"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-muted-foreground">เปอร์เซ็นต์ (%)</label>
+              <div className="space-y-1.5">
+                <Label>ส่วนเพิ่ม (%)</Label>
                 <div className="relative">
                   <Input
-                    variant="elevated"
-                    type="text"
-                    inputMode="decimal"
-                    value={surchargePct}
+                    type="text" inputMode="decimal"
+                    value={surFocus === 'pct' ? surchargePct : formatNum(surchargePct)}
+                    onFocus={e => { setSurFocus('pct'); e.currentTarget.select() }}
+                    onBlur={() => setSurFocus(null)}
                     onChange={e => {
                       const v = stripCommas(e.target.value)
                       setSurchargePct(v)
-                      setSurchargeBaht(parseFloat(v) > 0 ? ((parseFloat(v) || 0) / 100 * surchargeBase).toFixed(2) : '')
+                      const p = parseFloat(v)
+                      if (!isNaN(p)) {
+                        const baht = parseFloat((surchargeBase * p / 100).toFixed(2))
+                        setSurchargeBaht(String(baht))
+                        setSurTotalInput(String(parseFloat((surchargeBase + baht).toFixed(2))))
+                      }
                     }}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applySurcharge() } }}
-                    placeholder="0.00"
-                    className="h-10 text-sm text-right pr-7"
+                    onKeyDown={e => { if (e.key === 'Enter') applySurcharge() }}
+                    placeholder="0"
+                    className="h-10 text-right text-xl font-bold leading-none pl-4 pr-10"
                   />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-foreground-subtle">%</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-subtle text-lg font-bold pointer-events-none">%</span>
                 </div>
               </div>
+
+              <div className="space-y-1.5">
+                <Label>ส่วนเพิ่ม (บาท)</Label>
+                <Input
+                  type="text" inputMode="decimal" autoFocus
+                  value={surFocus === 'baht' ? surchargeBaht : formatNum(surchargeBaht, true)}
+                  onFocus={e => { setSurFocus('baht'); e.currentTarget.select() }}
+                  onBlur={() => setSurFocus(null)}
+                  onChange={e => {
+                    const v = stripCommas(e.target.value)
+                    setSurchargeBaht(v)
+                    const baht = parseFloat(v) || 0
+                    if (surchargeBase > 0) setSurchargePct(String(parseFloat((baht / surchargeBase * 100).toFixed(2))))
+                    setSurTotalInput(String(parseFloat((surchargeBase + baht).toFixed(2))))
+                  }}
+                  onKeyDown={e => { if (e.key === 'Enter') applySurcharge() }}
+                  placeholder="0.00"
+                  className="h-10 text-right text-xl font-bold leading-none px-6"
+                />
+              </div>
             </div>
-            {/* Preview */}
-            <div className="rounded-lg bg-amber-soft/50 border border-amber-strong/25 px-4 py-3 space-y-1.5 text-sm">
-              <div className="flex justify-between text-muted-foreground"><span>ต้นทุนรวมเดิม</span><span className="pr-2.5">{formatCurrency(surchargeBase)}</span></div>
-              <div className="flex justify-between text-amber-strong"><span>ส่วนเพิ่ม</span><span className="pr-2.5">+{formatCurrency(parseFloat(surchargeBaht) || 0)}</span></div>
-              <div className="flex justify-between font-semibold text-foreground pt-1.5 mt-1 border-t border-amber-strong/20"><span>ต้นทุนรวมใหม่</span><span className="pr-2.5">{formatCurrency(surchargeBase + (parseFloat(surchargeBaht) || 0))}</span></div>
+
+            {/* กล่องสรุป — ต้นทุนรวมเดิม / ส่วนเพิ่ม / ต้นทุนรวมใหม่ (แก้ย้อนกลับได้) */}
+            <div className="rounded-lg border border-primary/20 bg-primary-soft/50">
+              <div className="flex items-center justify-between pl-4 pr-6 h-9">
+                <span className="text-sm text-muted-foreground">ต้นทุนรวมเดิม</span>
+                <span className="text-xl font-semibold text-foreground">{formatCurrency(surchargeBase)}</span>
+              </div>
+              <div className="flex items-center justify-between pl-4 pr-6 h-9">
+                <span className="text-sm text-muted-foreground">ส่วนเพิ่ม</span>
+                <span className="text-xl font-semibold text-primary">{(parseFloat(surchargeBaht) || 0) > 0 ? '+' : ''}{formatCurrency(parseFloat(surchargeBaht) || 0)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pl-4 pr-4 py-2.5">
+                <span className="text-sm font-semibold text-foreground">ต้นทุนรวมใหม่</span>
+                <Input
+                  type="text" inputMode="decimal"
+                  value={surFocus === 'total' ? surTotalInput : formatNum(surTotalInput, true)}
+                  onFocus={e => { setSurFocus('total'); e.currentTarget.select() }}
+                  onBlur={() => setSurFocus(null)}
+                  onChange={e => {
+                    const v = stripCommas(e.target.value)
+                    setSurTotalInput(v)
+                    const tp = parseFloat(v)
+                    if (!isNaN(tp)) {
+                      const baht = Math.max(0, parseFloat((tp - surchargeBase).toFixed(2)))
+                      setSurchargeBaht(String(baht))
+                      if (surchargeBase > 0) setSurchargePct(String(parseFloat((baht / surchargeBase * 100).toFixed(2))))
+                    }
+                  }}
+                  onKeyDown={e => { if (e.key === 'Enter') applySurcharge() }}
+                  placeholder={formatCurrency(surchargeBase)}
+                  className="h-10 w-36 text-right text-xl font-bold leading-none px-2"
+                />
+              </div>
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive-soft" size="xl" className="flex-1" onClick={closeSurcharge}>ยกเลิก</Button>
-            <Button variant="destructive" size="xl" className="flex-1" onClick={applySurcharge}>ยืนยัน</Button>
+            <Button variant="elevated" size="xl" className="flex-1" onClick={closeSurcharge}>ยกเลิก</Button>
+            <Button size="xl" className="flex-1" onClick={applySurcharge}>ยืนยัน</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── รวมส่วนลดในต้นทุน — confirm (ทางเดียว) ── */}
+      <ConfirmDialog
+        open={showMergeConfirm}
+        onOpenChange={setShowMergeConfirm}
+        variant="warning"
+        title="รวมส่วนลดในต้นทุน"
+        description={<>ส่วนลดทั้งหมดจะถูก <b>รวมเข้าในต้นทุนสินค้าโดยอัตโนมัติ</b> และ<b>ไม่สามารถย้อนกลับได้</b> กรุณายืนยันเพื่อทำรายการ</>}
+        content={
+          <div className="rounded-lg border border-amber/25 bg-amber-soft/50 px-4 py-3 space-y-1.5 text-sm">
+            <div className="flex justify-between text-muted-foreground"><span>ราคารวมก่อนลด</span><span className="pr-2.5">{formatCurrency(grossSubtotal)}</span></div>
+            <div className="flex justify-between text-muted-foreground"><span>ส่วนลดรวม</span><span className="pr-2.5">−{formatCurrency(lineDiscountTotal)}</span></div>
+            <div className="flex justify-between font-semibold text-foreground pt-1.5 mt-0.5 border-t border-amber/20"><span>ราคารวมต้นทุนใหม่</span><span className="pr-2.5">{formatCurrency(totalCost)}</span></div>
+          </div>
+        }
+        confirmLabel="ยืนยัน"
+        onConfirm={applyMergeDiscount}
+      />
 
       {/* ── Import paste modal ── */}
       <Dialog open={showImport} onOpenChange={(o) => { if (!o && !importing) { setShowImport(false); setImportText('') } }}>

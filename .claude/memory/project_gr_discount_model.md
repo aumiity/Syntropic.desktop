@@ -1,6 +1,6 @@
 ---
 name: project_gr_discount_model
-description: GR line-item discount/bill-adjust cost model — invariants, display toggle, one-way surcharge, reports net-sum fix
+description: GR line-item discount/bill-adjust cost model — invariants, one-way merge-discount-into-cost, one-way surcharge, reports net-sum fix
 metadata:
   type: project
 ---
@@ -21,7 +21,7 @@ There is **no `bill_surcharge` field** — surcharge bakes into `cost_price` (se
 
 ```
 net total = qty * cost_price − discount
-gross cost displayed = cost_price (toggle off) | total/qty (toggle on, net)
+cost/unit displayed = cost_price (always; becomes net after "รวมส่วนลดในต้นทุน" fold)
 ```
 
 `grossSubtotal = Σ (qty * cost_price)` (before any discount)
@@ -43,9 +43,11 @@ Drafts created before 2026-06-24 may carry old `bill_discount` per row. The rows
 
 SEPARATE dialog (not the discount modal), RED "ย้อนกลับไม่ได้" warning + `destructive` confirm. `applySurcharge` distributes by cost-value weight (`qty*cost_price`), ADDS into each row's `cost_price` permanently (one-way — no undo path). **Guards weight-0 rows** so a blank cost field is never coerced to `'0'`. Surcharge is shown ONLY via the raised "ทุน/หน่วย" column. `surcharge_amount` save payload was REMOVED previously (surcharge is inside `cost_price`).
 
-## `mergeCost` display toggle
+## "รวมส่วนลดในต้นทุน" — real one-way fold (was display toggle, changed 2026-06-24)
 
-`mergeCost` ("รวมส่วนลดในต้นทุน") is DISPLAY-ONLY — flips cost column to net (`total/qty`) and blanks the discount cell. **Saved values are identical regardless of toggle.** Saved item cost is always net (`total/qty`), so inventory cost and `last_cost_price` are unaffected. See [[project_cost_model]].
+NO LONGER a display toggle. Now a one-way ACTION (`applyMergeDiscount`) behind a `warning` ConfirmDialog ("ย้อนกลับไม่ได้"): for each row with `discount>0`, sets `cost_price = total/qty` (ทุนสุทธิต่อหน่วย) and clears `discount` to `''`; `total` unchanged. Guards `qty<=0 || disc<=0` rows (blank→0 ban). Button `disabled={lineDiscountTotal<=0}`. `mergeCost` display-state + the `netCost`/`displayCost` toggle branches were REMOVED — `displayCost` is now always `cost_price` (which becomes net after fold).
+
+**Saved item cost is unchanged by this** — `purchase:save` already uses `total/qty` (line ~624), so folding before save produces the identical inventory cost / `last_cost_price`. The real effect: the form/document `discount_amount` header drops to 0 (no separate discount line — it lives inside the cost now). See [[project_cost_model]].
 
 ## Bill-header stored amounts
 

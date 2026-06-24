@@ -24,7 +24,7 @@ interface VariantSpec {
 const VARIANT_SPEC: Record<ConfirmVariant, VariantSpec> = {
   default:     { icon: HelpCircle,    tint: 'primary-strong',     confirmVariant: 'default',     cancelVariant: 'elevated' },
   destructive: { icon: AlertTriangle, tint: 'destructive-strong', confirmVariant: 'destructive', cancelVariant: 'destructive-soft' },
-  warning:     { icon: AlertTriangle, tint: 'amber',              confirmVariant: 'amber-soft',  cancelVariant: 'elevated' },
+  warning:     { icon: AlertTriangle, tint: 'amber',              confirmVariant: 'amber',  cancelVariant: 'elevated' },
   success:     { icon: CheckCircle2,  tint: 'success-strong',     confirmVariant: 'success',     cancelVariant: 'elevated' },
 }
 

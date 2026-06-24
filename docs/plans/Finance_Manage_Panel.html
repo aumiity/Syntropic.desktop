@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Panel — Manage › Sales (Phase 1) — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>แผงภาพรวมการเงิน — หน้า การจัดการ › ประวัติการขาย</h1>
+    <p>ปุ่มพับ/กางแผงการเงิน (admin เท่านั้น) เหนือตารางขาย แสดงยอดขาย/ต้นทุน/กำไร/มาร์จิ้น + กราฟแนวโน้ม อิงช่วงวันที่ที่เลือก โดยใช้ IPC และกราฟที่มีอยู่เดิม ไม่แตะ backend</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ</span>
+      <span class="pill">Phase 1 — Sales เท่านั้น</span>
+      <span class="pill">renderer-only · ไม่แก้ DB/IPC</span>
+      <span class="pill">2026-06-24</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><b>ปัญหา/โจทย์:</b> หน้า <code>การจัดการ › ประวัติการขาย</code> ตอนนี้โชว์แค่ "การ์ดนับจำนวนบิล" ส่วนเงินกระจายอยู่ในแถวตาราง — แอดมินมองภาพการเงินรวมของช่วงเวลาไม่เห็นในหน้าเดียว ต้องเด้งไปหน้า Dashboard</p>
+    <p><b>แผนนี้ทำ:</b> เพิ่ม <b>ปุ่มพับ/กางแผง "ภาพรวมการเงิน"</b> ในแถบเครื่องมือของหน้า Sales (เห็นเฉพาะ admin) กดแล้วกางแผงระหว่างแถบเครื่องมือกับตาราง โชว์การ์ด KPI (ยอดขายสุทธิ · ต้นทุนขาย · กำไรขั้นต้น · อัตรากำไร) พร้อมลูกศรเทียบช่วงก่อนหน้า และกราฟแนวโน้มยอดขาย/กำไร</p>
+    <p><b>เสร็จแล้วได้:</b> แอดมินเห็นสุขภาพการเงินของช่วงวันที่ที่กำลังดูได้ทันทีในหน้าเดียว โดยพนักงาน (staff) ไม่เห็นปุ่มและไม่เห็นข้อมูลเลย — และ <b>ไม่ต้องเขียน backend ใหม่</b> เพราะ reuse <code>reports:financeSummary</code> + <code>reports:salesPurchaseTrend</code> (ทั้งคู่ admin-only อยู่แล้ว) กับชุดกราฟ/การ์ดที่ Dashboard ใช้</p>
+    <p><b>ตัดสินใจที่ล็อกแล้ว (จากการสัมภาษณ์):</b> ตัวเลขในแผง <b>อิงช่วงวันที่อย่างเดียว</b> (ตั้งใจ reuse ของเดิม) ไม่ผูกกับช่องค้นหา/ตัวกรองสถานะ/VAT ของตาราง · เริ่มทำ <b>หน้า Sales ก่อน</b> หน้าอื่น (Purchases / สต็อก) ค่อยขยายเฟสถัดไป</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p>ทุกชิ้นมีอยู่แล้ว — งานนี้คือต่อสายในไฟล์ <code>src/pages/Manage/Sales.tsx</code> ไฟล์เดียว ให้เรียก IPC เดิม 2 ตัว แล้ววาดด้วยการ์ด/กราฟเดิม:</p>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 660 250" role="img" aria-label="แผงการเงิน Sales เรียก IPC เดิมแล้ววาดด้วยกราฟเดิม">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+
+      <rect class="box" x="20" y="20" width="210" height="58" rx="10"/>
+      <text x="125" y="44" text-anchor="middle">Sales.tsx (renderer)</text>
+      <text class="sub" x="125" y="62" text-anchor="middle">แผงการเงิน + ปุ่ม toggle (admin)</text>
+
+      <rect class="box" x="430" y="14" width="210" height="46" rx="10"/>
+      <text x="535" y="33" text-anchor="middle">reports:financeSummary</text>
+      <text class="sub" x="535" y="50" text-anchor="middle">requireAdmin · reports.ts:522</text>
+
+      <rect class="box" x="430" y="74" width="210" height="46" rx="10"/>
+      <text x="535" y="93" text-anchor="middle">reports:salesPurchaseTrend</text>
+      <text class="sub" x="535" y="110" text-anchor="middle">requireAdmin · reports.ts:563</text>
+
+      <path class="edge hot" d="M230,40 H426"/>
+      <text class="elabel" x="328" y="30" text-anchor="middle">date_from/to + with_compare</text>
+      <path class="edge hot" d="M230,52 C320,52 340,97 426,97"/>
+      <text class="elabel" x="330" y="118" text-anchor="middle">date_from/to + granularity</text>
+
+      <rect class="box data" x="430" y="140" width="210" height="46" rx="10"/>
+      <text x="535" y="166" text-anchor="middle">SQLite · sales / lots</text>
+      <path class="edge" d="M535,120 V136"/>
+      <text class="elabel" x="556" y="133">SALE_COST_SUB</text>
+
+      <rect class="box" x="20" y="150" width="360" height="80" rx="10"/>
+      <text x="200" y="176" text-anchor="middle">แผงในการ์ด: KPI + กราฟ + โน้ตขอบเขต</text>
+      <text class="sub" x="200" y="196" text-anchor="middle">MetricCard · TrendChart · GranularityTabs</text>
+      <text class="sub" x="200" y="212" text-anchor="middle">delta() เทียบช่วงก่อนหน้า · info-soft note</text>
+      <path class="edge" d="M430,150 C300,140 240,150 200,148"/>
+      <text class="elabel" x="330" y="150" text-anchor="middle">ผลลัพธ์ → state</text>
+    </svg>
+    </div>
+
+    <h3>ชิ้นส่วนที่ reuse (ยืนยันว่ามีจริงแล้ว)</h3>
+    <table>
+      <thead><tr><th>ชิ้น</th><th>ที่อยู่</th><th>บทบาทในแผง</th></tr></thead>
+      <tbody>
+        <tr><td><code>reports.financeSummary</code></td><td>preload.ts:102 · reports.ts:519</td><td>ยอดขาย/ต้นทุน/กำไร/จำนวนบิล + <code>previous</code> (เทียบช่วงก่อน)</td></tr>
+        <tr><td><code>reports.salesPurchaseTrend</code></td><td>preload.ts:103 · reports.ts:559</td><td>ข้อมูลกราฟ <code>{date, sales_net, sales_cost, sales_profit}</code></td></tr>
+        <tr><td><code>TrendChart</code> / <code>TrendDatum</code></td><td>components/ui/charts/trend-chart.tsx</td><td>กราฟพื้นที่ ยอดขาย+กำไร</td></tr>
+        <tr><td><code>GranularityTabs</code> / <code>Granularity</code></td><td>components/ui/charts/granularity-tabs.tsx</td><td>สลับหน่วยเวลา ชม./วัน/สัปดาห์/เดือน/ปี</td></tr>
+        <tr><td><code>MetricCard</code></td><td>components/ui/card.tsx</td><td>การ์ด KPI (รองรับ <code>subIcon</code> สำหรับลูกศร delta)</td></tr>
+        <tr><td><code>delta()</code></td><td>lib/delta.ts</td><td>คำนวณ % เทียบช่วงก่อน + เลือกสี/ลูกศร</td></tr>
+        <tr><td>แพตเทิร์นอ้างอิง</td><td>src/pages/Reports/Dashboard.tsx</td><td>ต้นแบบการต่อสายทั้งหมด (fetch → delta → KPI grid → TrendChart)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>เหนือตาราง = การ์ดนับจำนวนบิลล้วน (จำนวนบิล/ปลีก/ส่ง/รับคืน/ยกเลิก)</li>
+        <li>เงินอยู่ในแถวตารางทีละบิล — ไม่มีภาพรวมการเงินของช่วง</li>
+        <li>แอดมินอยากดูกำไร/มาร์จิ้นรวมต้องไปหน้า Dashboard (ภาพรวมทั้งร้าน ไม่ใช่ช่วงที่กำลังกรอง)</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>มีปุ่มไอคอน "ภาพรวมการเงิน" ในแถบเครื่องมือ (admin เท่านั้น) · ปิดเป็นค่าเริ่มต้น</li>
+        <li>กดแล้วกางแผง: KPI 4 ใบ + กราฟแนวโน้ม + โน้ตบอกขอบเขต</li>
+        <li>ตัวเลขสะท้อน <b>ช่วงวันที่ที่เลือกอยู่</b> ทันที (Dashboard ทำไม่ได้) · พับเก็บได้ จำสถานะข้ามการสลับแท็บ</li>
+        <li>staff ไม่เห็นปุ่ม ไม่ยิง IPC เลย</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>ไม่แตะ backend เลย — reuse IPC + กราฟ + การ์ดเดิม ความเสี่ยงต่ำ งานอยู่ในไฟล์เดียว</li>
+    <li>ให้คุณค่าที่ Dashboard ให้ไม่ได้: ตัวเลขผูกกับ "ช่วงวันที่ที่กำลังดู" ไม่ใช่ภาพรวมทั้งร้าน</li>
+    <li>โหลดแบบ lazy (เฉพาะตอน admin เปิดแผง) — ไม่กระทบ perf ของการใช้งานปกติ/พนักงาน</li>
+    <li>เป็นต้นแบบที่ขยายไป Purchases / สต็อก ในเฟสถัดไปได้ทันที</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>แผงกินพื้นที่แนวตั้งตอนกาง — ที่จอเล็กสุด 1440×800 ตารางจะเตี้ยลง (คุมด้วยกราฟสูง 180 + ปิดเป็นค่าเริ่มต้น)</li>
+    <li>ช่วงวันที่กว้างมาก (เช่น custom ทั้งปี) คิวรีต้นทุนต่อล็อตจะหนัก (ดู "ข้อควรระวัง")</li>
+    <li>ตัวเลขแผงอิงวันที่อย่างเดียว — อาจไม่ตรงกับยอดในตารางตอนกรองสถานะ/ค้นหา (จัดการด้วยโน้ต)</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><b>บิลยกเลิก vs ตัวกรอง:</b> <code>financeSummary</code> ตัดบิล voided ออกจากยอดขาย (reports.ts:458) แต่ตารางกรองเป็น "ยกเลิก" ได้ → ถ้าผู้ใช้กรองตารางเหลือเฉพาะบิลยกเลิก แผงจะโชว์ยอดขาย (ที่ไม่นับ voided) ขัดกับตาราง. กันด้วย <b>โน้ต info-soft</b> ที่ระบุชัดว่าแผงเป็น "ภาพรวมทั้งช่วง ไม่ขึ้นกับตัวกรอง และไม่นับบิลยกเลิก" — <i>ทางเลือกถ้าพี่ต้องการ: ปิด/หรี่แผงเมื่อมีการกรอง (q/status/VAT) แทนการใช้โน้ต — ยังไม่ทำในเฟส 1 เว้นแต่พี่สั่ง</i></li>
+    <li><b>perf ช่วงกว้าง:</b> ไม่เหมือน Dashboard (ที่จำกัดกราฟเป็นหน้าต่าง 7/30/90 วันถอยหลัง). แผงนี้รันทั้งช่วงที่เลือก + <code>with_compare</code> รัน window ซ้ำ 2 รอบ → ช่วงปีเต็มหนักกว่าที่ Dashboard เคยยิง. ยอมรับเพราะ lazy + ช่วงปกติคือวัน/เดือน</li>
+    <li><b>สิทธิ์:</b> ปุ่ม + การ fetch ต้อง gate ด้วย <code>isAdmin</code> ทั้งคู่ (IPC ก็ <code>requireAdmin</code> ซ้ำอีกชั้น) — staff ห้ามยิงไม่งั้น throw</li>
+    <li><b>invariant:</b> ปุ่มต้องเป็น <b>ไอคอนล้วน h-9 w-9</b> ให้เข้ากับปุ่มอื่นในแถบ (ปุ่มมีป้ายความกว้างมากจะล้นแถบที่ 1440px) · token สีใช้ semantic เท่านั้น · ไม่มี emoji · ไอคอนใน Button ใช้ <code>size-4</code></li>
+    <li><b>null guard:</b> preload คืน <code>any</code> — ต้อง <code>?? null</code> / <code>?? []</code> และรีเซ็ต trend ตอน error เลียนแบบ Dashboard</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><b>ปุ่ม toggle:</b> ไอคอน <code>LineChart</code> อย่างเดียว <code>size="lg" className="h-9 w-9 p-0"</code> + <code>tooltip="ภาพรวมการเงิน"</code> วางต่อท้ายปุ่ม Settings2 ในแถบ h-12 · เปิดอยู่ = <code>variant="default"</code> (เขียว teal เด่น), ปิด = <code>variant="elevated"</code> เหมือนปุ่มพี่น้อง · เห็นเฉพาะ admin</li>
+      <li><b>แผง:</b> กาง/พับด้วย AnimatePresence height (แพทเทิร์นเดียวกับ <code>Manage/index.tsx</code>) อยู่ใน card ระหว่างแถบเครื่องมือกับตาราง · เป็นแถบ <code>border-b border-border p-4</code> ให้แยกขาดจากตาราง</li>
+      <li><b>KPI grid</b> (<code>grid-cols-2 md:grid-cols-4</code>): ยอดขายสุทธิ (teal, +ลูกศร delta) · ต้นทุนขาย (amber) · กำไรขั้นต้น (success, +delta) · อัตรากำไร % (info-soft) — ทุกตัวเงินผ่าน <code>formatCurrency</code></li>
+      <li><b>กราฟ:</b> <code>TrendChart</code> สูง 180 โชว์เส้นยอดขาย+กำไร · มี <code>GranularityTabs</code> สลับหน่วยเวลา</li>
+      <li><b>โน้ตขอบเขต (info-soft):</b> "ภาพรวมการเงินของทั้งช่วงวันที่ที่เลือก — รวมทุกบิลในช่วง ไม่ขึ้นกับช่องค้นหา / ตัวกรองสถานะ / VAT ด้านล่าง (บิลที่ยกเลิกไม่ถูกนับเป็นยอดขาย)"</li>
+      <li><b>สถานะ:</b> กำลังโหลด → แถวจาง · ก่อนโหลดครั้งแรก → ไม่วาด · มีข้อมูลแต่ว่าง → "ไม่มีข้อมูลการขายในช่วงนี้"</li>
+      <li>ภาษาไทยทั้งหมด · อ้างแพทเทิร์น <code>/theme</code> + Dashboard เป็น SSOT ของหน้าตา</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>granularity ที่ผู้ใช้เลือกเองอาจไม่ตรงกับช่วง (เช่น 'week' บนช่วง 1 วัน)</td><td>P1</td><td>ระบุชัดในแผนว่าเป็น manual override ที่ตั้งใจให้เลือกได้ ไม่ clamp; ยืนยัน 2 union type ถูกต้อง</td></tr>
+        <tr><td>1</td><td>เงื่อนไข empty-state เสี่ยง null-deref บน <code>finance</code></td><td>P1</td><td>เขียน 3 branch ชัดเจน (loading / null / loaded) เข้าถึง field เฉพาะใน branch loaded</td></tr>
+        <tr><td>1</td><td>โน้ตขอบเขต date-only เป็นมาตรการเดียว ต้องคงไว้</td><td>P1</td><td>คงโน้ตเป็น MANDATORY (ภายหลังยกระดับเป็น info-soft ในรอบ 2)</td></tr>
+        <tr><td>1</td><td>อ้างเลขบรรทัด Dashboard ไม่เป๊ะ · <code>purchase_total</code> ดึงมาแต่ไม่ใช้</td><td>P2</td><td>คลายการอ้างเป็นเชิงพรรณนา; ระบุว่า purchase_total ไม่ถูกวาดโดยตั้งใจ</td></tr>
+        <tr><td>2</td><td><b>ปุ่ม toggle แบบมีป้าย size=lg จะล้นแถบ h-12 ที่ 1440px</b></td><td>P0</td><td>เปลี่ยนเป็นปุ่มไอคอนล้วน <code>h-9 w-9 p-0</code> + tooltip ให้เข้ากับปุ่มพี่น้องในแถบ</td></tr>
+        <tr><td>2</td><td>บิล voided ถูกตัดจากยอดขาย แต่ตารางกรอง "ยกเลิก" ได้ → ขัดแย้ง โน้ตจางไป</td><td>P1</td><td>ยกโน้ตเป็นกล่อง info-soft framing ว่าเป็น "ภาพรวมทั้งช่วง ไม่นับ voided"; เสนอทางเลือกปิดแผงตอนกรองให้พี่ตัดสิน</td></tr>
+        <tr><td>2</td><td>คำกล่าว "คิวรีเท่า Dashboard" ไม่จริง — Dashboard จำกัดหน้าต่าง trend</td><td>P1</td><td>แก้คำอธิบาย perf ให้ถูก; ยอมรับช่วงกว้างหนักเพราะ lazy + ช่วงปกติคือวัน/เดือน</td></tr>
+        <tr><td>2</td><td>ขาด <code>?? []</code>/null-reset หลัง fetch/error</td><td>P1</td><td>ระบุ <code>setFinance(f ?? null)</code> / <code>setTrend(tr ?? [])</code> + reset trend ตอน error</td></tr>
+        <tr><td>2</td><td>งบความสูงที่ 1440×800 แน่นกว่าที่ประเมิน (มีแถวการ์ดสรุปอยู่ด้วย)</td><td>P1</td><td>ลดกราฟเหลือสูง 180; บังคับ click-test ที่ 1440×800 ตอนเปิดแผง</td></tr>
+        <tr><td>2</td><td>effect re-seed granularity ต้องผูก <code>[dateMode]</code> เท่านั้น</td><td>P2</td><td>ระบุ key เป็น <code>[dateMode]</code> ล้วน ไม่รวม dateFrom/dateTo</td></tr>
+        <tr><td>+</td><td>token <code>info-soft-border</code> ไม่มีจริง</td><td>P2</td><td>ตรวจ index.css/tailwind.config → ใช้ <code>border-info-soft</code> (DEFAULT) แทน</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:10px;color:var(--muted);font-size:13px">สรุป: ไม่มี P0 เหลือค้าง — P0 รอบ 2 (รูปทรงปุ่ม) แก้แล้ว · ทุก P1/P2 ฝังลงแผนปฏิบัติงานด้านล่างครบ</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li>Toggle button "ภาพรวมการเงิน" (icon-only) shows in the Sales filter strip ONLY when <code>isAdmin</code>.</li>
+      <li>Click expands/collapses a panel between the filter strip and the table (animated height).</li>
+      <li>Open state persists via <code>usePagePrefs</code> (<code>SalesPrefs.showFinancePanel</code>, default <code>false</code>).</li>
+      <li>When open + admin: fetch <code>reports.financeSummary({date_from, date_to, with_compare:true})</code> + <code>reports.salesPurchaseTrend({date_from, date_to, granularity})</code> for the page's current date range.</li>
+      <li>KPI cards: ยอดขายสุทธิ (sales_net), ต้นทุนขาย (sales_cost), กำไรขั้นต้น (sales_profit), อัตรากำไร (profit/net %). net + profit carry a delta vs previous period.</li>
+      <li><code>TrendChart</code> renders sales_net + sales_profit; <code>GranularityTabs</code> switches bucket size.</li>
+      <li>An <code>info-soft</code> note discloses date-only / filter-independent / voided-excluded scope.</li>
+      <li>Staff never trigger the admin IPC (button + fetch both gated by <code>isAdmin</code>).</li>
+      <li>Three render branches (loading / null / loaded) — no null-deref on <code>finance</code>.</li>
+      <li><code>npx tsc --noEmit</code> passes; click-test in-app for admin + staff at 1440×800.</li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>src/pages/Manage/Sales.tsx</code> — the ONLY file edited (prefs + state + fetch + render + imports).</li>
+      <li>read-only refs: <code>src/pages/Reports/Dashboard.tsx</code> (pattern), <code>electron/ipc/reports.ts</code> (financeSummary 519, salesPurchaseTrend 559, computeFinanceWindow 456, SALE_COST_SUB 438), <code>components/ui/charts/trend-chart.tsx</code>, <code>components/ui/charts/granularity-tabs.tsx</code>, <code>components/ui/card.tsx</code>, <code>lib/delta.ts</code>, <code>src/index.css</code> + <code>tailwind.config.js</code> (token check).</li>
+      <li>NO backend / preload / schema changes. Both IPCs already exist and are admin-gated.</li>
+    </ul>
+
+    <h3>ขั้นตอน</h3>
+    <ol>
+      <div class="step"><b>Step 1 — extend SalesPrefs</b> (Sales.tsx ~70-97): add <code>showFinancePanel: boolean</code> to the <code>SalesPrefs</code> interface and <code>SALES_DEFAULTS</code> (<code>false</code>). <span class="inv">usePagePrefs shallow-merges <code>{...defaults, ...parsed}</code> (usePagePrefs.ts:14) → old persisted prefs auto-inherit false. Safe.</span></div>
+      <div class="step"><b>Step 2 — state + granularity</b>: <code>const showFinancePanel = prefs.showFinancePanel</code>. Add <code>const [gran, setGran] = useState&lt;Granularity&gt;(seed)</code> seeded from <code>dateMode</code>: <code>day→'hour'</code>, <code>month→'day'</code>, <code>year→'month'</code>, <code>custom→'day'</code>. Re-seed via a <code>useEffect</code> keyed on <span class="inv"><code>[dateMode]</code> ONLY</span> (not dateFrom/dateTo, else editing a custom range wipes a manual GranularityTabs choice). Declare explicit interfaces (preload is <code>any</code>): <code>finance: FinanceSummary | null</code> (subset: sales_net, sales_cost, sales_profit, sale_count, previous), <code>trend: TrendDatum[]</code>, <code>finLoading: boolean</code>. <span class="inv">Both unions are type-valid; GranularityTabs is a deliberate manual override — do NOT clamp.</span></div>
+      <div class="step"><b>Step 3 — lazy admin fetch</b>: <code>useEffect</code> keyed <code>[isAdmin, showFinancePanel, dateFrom, dateTo, gran]</code>. Guard <code>if (!isAdmin || !showFinancePanel) return</code>. <code>Promise.all([financeSummary({...,with_compare:true}), salesPurchaseTrend({...,granularity:gran})])</code>. On success <code>setFinance(f ?? null)</code>, <code>setTrend(tr ?? [])</code>. try/finally with <code>finLoading</code>; <span class="inv">on error: toast AND <code>setTrend([])</code> so a stale chart doesn't linger.</span> PERF: not identical to Dashboard (which bounds trend to 7/30/90d); wide custom ranges are heavy — accepted (lazy + common windows day/month). dateFrom/dateTo already exist (Sales.tsx:118-119).</div>
+      <div class="step"><b>Step 4 — render</b>. (a) <b>Toggle</b> after Settings2 popover, <code>{isAdmin &amp;&amp; (...)}</code>: <code>&lt;Button size="lg" variant={showFinancePanel ? 'default' : 'elevated'} className="h-9 w-9 p-0 shrink-0" tooltip="ภาพรวมการเงิน" onClick={() =&gt; setPrefs({ showFinancePanel: !showFinancePanel })}&gt;&lt;LineChart className="size-4"/&gt;&lt;/Button&gt;</code> — <span class="inv">icon-only to match siblings (Sales.tsx:294/332/375); a labelled button overflows the strip at 1440px. No chevron.</span> (b) <b>Panel</b> between filter strip and table scroll: <code>{isAdmin &amp;&amp; &lt;AnimatePresence initial={false}&gt;{showFinancePanel &amp;&amp; &lt;motion.div key="sales-finance" initial/animate/exit height+opacity className="shrink-0 overflow-hidden"&gt;...&lt;/motion.div&gt;}&lt;/AnimatePresence&gt;}</code> (mirror Manage/index.tsx:129-159). Content wrap <code>p-4 border-b border-border</code>: header row (title + <code>GranularityTabs value={gran} onChange={setGran}</code>); KPI grid <code>grid-cols-2 md:grid-cols-4 gap-3</code> with <code>MetricCard</code> (Wallet/ShoppingCart/TrendingUp/Percent icons; tints primary/amber/success/info-soft; net+profit pass <code>sub/subIcon/subClassName</code> from <code>delta(curr, previous?.x)</code>, <code>subIcon={d?.icon ?? undefined}</code>); margin = <code>net>0 ? (profit/net*100).toFixed(1)+'%' : '—'</code>; <code>&lt;TrendChart data={trend} granularity={gran} height={180}/&gt;</code> in a <code>SectionCard</code>; info-soft note <code>&lt;div className="rounded-lg border border-info-soft bg-info-soft/40 px-3 py-2 text-sm text-info-soft-foreground"&gt;</code> (<span class="inv">no <code>info-soft-border</code> token exists — use <code>border-info-soft</code></span>). <b>Three branches:</b> finLoading→"กำลังโหลด..."; <code>!finLoading &amp;&amp; finance==null</code>→nothing; <code>finance!=null</code>→KPI+chart, with <code>sales_net===0 &amp;&amp; trend.length===0</code>→"ไม่มีข้อมูลการขายในช่วงนี้". <span class="inv">All <code>finance.*</code> access lives in the loaded branch only.</span></div>
+      <div class="step"><b>Step 5 — imports</b>: add lucide <code>LineChart</code>, <code>Wallet</code>, <code>TrendingUp</code> (ShoppingCart, Percent already line 30; no ChevronDown). Add <code>MetricCard</code> from card, <code>TrendChart</code>+<code>TrendDatum</code>, <code>GranularityTabs</code>+<code>Granularity</code>, <code>delta</code>, <code>AnimatePresence, motion</code> from framer-motion. <span class="inv"><code>formatCurrency</code> already imported (line 18) — no duplicate.</span></div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> passes (cast IPC results via local interfaces; guard <code>?? null</code>/<code>?? []</code>).</li>
+      <li>Click-test <code>npm run electron:dev</code> at <b>1440×800</b>: admin sees toggle → open → KPI + chart + note render; granularity switch refetches; delta arrows show; collapse persists across tab switch; table stays usable height with panel open.</li>
+      <li>Staff login: NO toggle, NO panel, no admin-IPC call (no thrown error in console).</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li>Staff → admin IPC: button render + fetch both gated by <code>isAdmin</code>; IPC <code>requireAdmin</code> (defense in depth).</li>
+      <li>Voided-vs-filter contradiction: info-soft note frames the panel as whole-period + voided-excluded. (Optional future: disable panel when q/status/VAT active — not in Phase 1 unless requested.)</li>
+      <li>Wide-range perf: lazy fetch only; documented; revisit if it bites.</li>
+      <li>Layout squeeze: panel <code>shrink-0</code>, table <code>flex-1 min-h-0</code>, chart 180; click-test at 1440×800; if table collapses, give panel <code>max-h</code> + scroll.</li>
+      <li>tsc/null: preload returns <code>any</code> → local interfaces + <code>?? null</code>/<code>?? []</code> + error resets trend.</li>
+    </ul>
+
+    <h3>Out of scope (เฟสถัดไป)</h3>
+    <ul>
+      <li>Purchases, LowStock/DeadStock/Expiry, NegativeStock — Phase 1 = Sales only.</li>
+      <li>Honoring q/status/VAT filters in finance numbers — deliberately date-only.</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-24 · ผ่าน audit 2 รอบ</footer>
+
+</div>
+</body>
+</html>

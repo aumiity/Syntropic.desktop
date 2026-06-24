@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { Button } from './button'
 import { Input } from './input'
 import { Label } from './label'
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw, Info } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { formatCurrency } from '@/lib/utils'
 
@@ -27,6 +28,8 @@ interface DiscountDialogProps {
   totalPrice: number
   /** ส่วนลด (บาท) ปัจจุบัน — seed ทุกครั้งที่เปิด */
   initialDiscount: number
+  /** ข้อความอธิบาย/คำเตือน — render เป็นกล่องเหนือปุ่มเลือก % (เว้นว่าง = ไม่โชว์) */
+  note?: ReactNode
   onApply: (discount: number) => void
 }
 
@@ -38,7 +41,7 @@ interface DiscountDialogProps {
  * receive table.
  */
 export function DiscountDialog({
-  open, onClose, itemName, totalPrice, initialDiscount, onApply,
+  open, onClose, itemName, totalPrice, initialDiscount, note, onApply,
 }: DiscountDialogProps) {
   const [baht, setBaht] = useState('')
   const [pct, setPct] = useState('')
@@ -75,6 +78,12 @@ export function DiscountDialog({
             {itemName && <div className="text-base font-semibold text-foreground overflow-x-clip overflow-y-visible">{itemName}</div>}
           </DialogHeader>
           <DialogBody className="space-y-4">
+            {note && (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive-soft/50 p-3 text-sm text-destructive">
+                <Info className="size-4 shrink-0 mt-0.5" />
+                <span>{note}</span>
+              </div>
+            )}
             {/* preset % — iOS-style segmented control (แพทเทิร์น TabsList segmented:
                 track bg-muted + sliding card pill ขาว, ตัวอักษร active = foreground) */}
             <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
