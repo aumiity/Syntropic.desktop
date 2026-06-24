@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<!-- write-plan output — Discount logic (GR receive): single row.discount model -->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ส่วนลดการรับสินค้า — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  .mono-tbl{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12px;white-space:pre;margin:6px 0;color:var(--slate)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>ส่วนลดการรับสินค้า — ยุบเหลือ <code style="color:#fff;background:rgba(255,255,255,.18)">row.discount</code> ก้อนเดียว</h1>
+    <p>ลบส่วนลดท้ายบิลที่ซ่อนอยู่ (bill_discount) — เหลือส่วนลดต่อแถวก้อนเดียว, ปุ่มท้ายบิลกลายเป็นเครื่องมือกระจายส่วนลดตามสัดส่วน</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ</span>
+      <span class="pill">ขอบเขต: GR receive (Purchase)</span>
+      <span class="pill">2026-06-24</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><b>ปัญหาเดิม:</b> หน้ารับสินค้ามีส่วนลด 2 ก้อนซ่อนอยู่ในคอลัมน์เดียว — ส่วนลดสินค้า (<code>row.discount</code>) กับ
+    ส่วนลดท้ายบิลที่กระจายลงแถว (<code>bill_discount</code>) คอลัมน์โชว์ผลรวมของทั้งคู่ พอผู้ใช้กด "ล้างส่วนลด" ของแถว
+    ช่องกลับ<b>ไม่เป็น 0</b> เพราะยังมีท้ายบิลเกาะอยู่ → สับสนมาก</p>
+    <p><b>แผนนี้แก้โดย:</b> ยุบให้เหลือ<b>ส่วนลดก้อนเดียวต่อแถว</b> (<code>row.discount</code>) เท่านั้น ทิ้งฟิลด์
+    <code>bill_discount</code> และกลไกสำรอง (<code>baseRowTotals</code>, <code>appliedDiscount</code>) ออกหมด</p>
+    <ul class="clean">
+      <li><b>แก้ส่วนลดรายตัว</b> (คลิกที่คอลัมน์ส่วนลดของแถว) → กระทบ<b>แถวนั้นแถวเดียว</b> กดล้าง = 0 จริง</li>
+      <li><b>ปุ่มส่วนลดท้ายบิล</b> = เครื่องมือ "ตั้งยอดส่วนลดรวมทั้งบิล แล้วกระจายลงทุกแถวตามสัดส่วน <code>qty×ทุน</code> ใหม่ทั้งหมด" → เขียนผลลง <code>row.discount</code> ทันที จบเลย ไม่เก็บร่องรอย</li>
+      <li>มี<b>คำเตือนใน modal ท้ายบิล</b>ว่าจะกระจายส่วนลดทั้งหมดใหม่ตามสัดส่วน กดตกลงเพื่อยืนยัน</li>
+      <li><b>บัญชี/สรุปท้ายตาราง</b> = ผลรวม <code>row.discount</code> ก้อนเดียว</li>
+    </ul>
+    <p><b>เสร็จแล้วได้:</b> ทุกตัวเลขในตารางคูณ/ลบกันลงตัว ตรวจสอบเองได้ ไม่มี <code>*</code> ไม่มี tooltip ลับ ๆ และพฤติกรรม "กดล้าง = 0" ตรงสามัญสำนึก</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p>มี 2 ทางที่เขียนค่าลง <code>row.discount</code> — ทางรายตัว (กระทบแถวเดียว) กับทางท้ายบิล (กระจายทุกแถว) แล้วบัญชีอ่านจากที่เดียว:</p>
+
+    <div class="diagram"><div class="flow">
+      <div class="node">คลิกคอลัมน์ส่วนลดของแถว<small>setDiscountIdx(i)</small></div>
+      <div class="ar">▶<small>DiscountDialog</small></div>
+      <div class="node warn">applyLineDiscount(i, d)<small>แถว i เท่านั้น</small></div>
+      <div class="ar">▶</div>
+      <div class="node data">row.discount[i]<small>ReceiptRow</small></div>
+    </div></div>
+
+    <div class="diagram"><div class="flow">
+      <div class="node">ปุ่ม "ส่วนลดท้ายบิล"<small>openBillAdjust()</small></div>
+      <div class="ar">▶<small>+ คำเตือน</small></div>
+      <div class="node warn">applyBillAdjust()<small>กระจายตาม qty×ทุน</small></div>
+      <div class="ar">▶<small>ทุกแถว (w&gt;0)</small></div>
+      <div class="node data">row.discount[*]<small>ReceiptRow</small></div>
+    </div></div>
+
+    <div class="diagram"><div class="flow">
+      <div class="node data">row.discount[*]<small>src/pages/Purchase/index.tsx</small></div>
+      <div class="ar">▶<small>Σ</small></div>
+      <div class="node">footer + handleSave<small>discount_amount = Σ row.discount</small></div>
+      <div class="ar">▶<small>purchase:save</small></div>
+      <div class="node data">purchase_receipts<small>electron/ipc/purchase.ts</small></div>
+    </div></div>
+
+    <p style="margin-top:14px"><b>ทุน/ล็อตยังถูกต้องเสมอ:</b> ตอนบันทึก ส่ง <code>cost_price = total / qty</code> (สุทธิหลังหักส่วนลด) เหมือนเดิมเป๊ะ — รายงาน <code>PURCHASE_NET_SUB</code> อ่าน <code>pri.cost_price</code> อยู่แล้ว ไม่แตะ <code>discount_amount</code> ซ้ำ → ไม่นับซ้ำ</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>2 ฟิลด์: <code>discount</code> + <code>bill_discount</code></li>
+        <li>คอลัมน์โชว์ <b>ผลรวม</b> + เครื่องหมาย <code>*</code> + tooltip "รายตัว X · ท้ายบิล Y"</li>
+        <li>กดล้างส่วนลดรายตัว → ช่อง<b>ไม่เป็น 0</b> (ยังมี bill_discount)</li>
+        <li>เปิด modal รายตัวกดตกลงค่าเดิม → bill_discount โดนยุบรวม</li>
+        <li>กลไกสำรอง <code>baseRowTotals</code> / <code>appliedDiscount</code> ต้องดูแลตลอด</li>
+      </ul>
+      <div class="mono-tbl">แถวเดียว gross 100, รายตัว 5, ท้ายบิล 10
+คอลัมน์: "15 *"  tooltip: รายตัว 5 · ท้ายบิล 10
+ตั้งรายตัว = 0 → คอลัมน์ "10 *"  (ไม่ใช่ 0)</div>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>1 ฟิลด์: <code>discount</code> เท่านั้น</li>
+        <li>คอลัมน์โชว์ <code>row.discount</code> ตรง ๆ ไม่มี <code>*</code> ไม่มี tooltip</li>
+        <li>กดล้างส่วนลดรายตัว → ช่อง<b>เป็น 0 จริง</b></li>
+        <li>ปุ่มท้ายบิล = กระจายตามสัดส่วนใหม่ทั้งหมด (มีคำเตือน)</li>
+        <li>ไม่มีกลไกสำรอง — อ่าน/เขียนที่เดียว</li>
+      </ul>
+      <div class="mono-tbl">แถวเดียว gross 100
+ตั้งรายตัว 5 → คอลัมน์ 5, total 95
+ท้ายบิล: เห็น 5 → ตั้ง 15 → total 85, คอลัมน์ 15
+ตั้งรายตัว = 0 → คอลัมน์ 0, total 100  ✓</div>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>พฤติกรรม "กดล้าง = 0" ตรงสามัญสำนึก — จบปัญหาความสับสนหลัก</li>
+    <li>ลดความซับซ้อนของโค้ดมาก: ลบ 1 ฟิลด์ + 2 state + helper + การ์ด tooltip ทิ้ง</li>
+    <li>ทุกตัวเลขในตารางตรวจสอบเองได้ (กระทบแถวเดียว = แถวเดียว)</li>
+    <li>ต้นทุน/ล็อต/รายงานไม่กระทบ — <code>cost_price = total/qty</code> เหมือนเดิม</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>ส่วนลดท้ายบิล<b>ย้อนกลับแบบแยกก้อนไม่ได้</b>อีก — มันยุบลง <code>row.discount</code> ทันที (เลิก reversible model เดิม)</li>
+    <li>ตั้งส่วนลดรายตัวเองหลายแถว แล้วไปแตะ modal ท้ายบิลทีหลัง → <b>กระจายใหม่ทับของเดิมทั้งหมด</b> (ตามที่เจ้าของยืนยัน + มีคำเตือน)</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><b>การ fold draft เก่าต้องอยู่ใน lazy initializer ของ <code>useState</code> (บรรทัด 111) เท่านั้น</b> ห้ามทำใน effect — ไม่งั้น persist effect เขียนทับก่อน ทำให้ bill_discount เก่าหาย/นับซ้ำ</li>
+    <li><b>อย่าแก้ <code>discount-dialog.tsx</code></b> — เป็น primitive ใช้ร่วมกับ POS เปลี่ยนแค่ props ที่ GR ส่งเข้าไป</li>
+    <li>บิลโมดัลต้องใช้ <code>grossSubtotal</code> ตัวเดียวกันทั้ง open/apply (อย่าสร้าง helper คู่ขนาน — กัน preview เพี้ยน)</li>
+    <li>blank→0 ban: เขียนแค่ <code>discount</code>/<code>total</code> ห้าม coerce <code>cost_price</code>/<code>qty</code> ที่ว่างเป็น 0; แถว <code>w&lt;=0</code> ข้ามไปเลย</li>
+    <li>ใช้ semantic token เท่านั้น (กล่องคำเตือน amber = <code>bg-amber-soft</code>/<code>border-amber-strong</code>)</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><b>คอลัมน์ "ส่วนลด"</b> ในตาราง GR — ยังเป็นปุ่ม <code>variant="destructive-soft"</code> โชว์ <code>row.discount</code> ตรง ๆ (ตัด <code>*</code> + tooltip ออก); เปิดโหมด "รวมส่วนลดในต้นทุน" (mergeCost) → โชว์ "—" กดไม่ได้ เหมือนเดิม</li>
+      <li><b>modal ส่วนลดรายตัว</b> = <code>DiscountDialog</code> เดิม (ใช้ร่วม POS) — % / บาท / ราคาสุดท้าย + preset; seed จาก <code>row.discount</code></li>
+      <li><b>modal ส่วนลดท้ายบิล</b> = เพิ่มกล่องคำเตือน amber + <code>AlertTriangle</code> ด้านบน: "ส่วนลดทั้งหมดจะถูกกระจายลงสินค้าตามสัดส่วนใหม่ทั้งหมด กดตกลงเพื่อยืนยัน" — ปุ่ม <b>ตกลง</b> = การยืนยัน; ช่องโชว์ยอดรวมส่วนลดปัจจุบัน</li>
+      <li><b>สรุปท้ายตาราง</b> — บรรทัดเดียว: ราคารวมก่อนลด / ส่วนลด / มูลค่ารวมทั้งหมด (ไม่ต้องแยกสินค้า/ท้ายบิลแล้ว)</li>
+      <li>ทุกอย่างคุม token + กฏ bar=h-12 / control=h-9 เดิม ไม่แตะความสูง</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>amber-soft/amber-strong เป็น token จริงไหม</td><td>ตรวจ</td><td>ยืนยันเป็น semantic token จริง (index.css + tailwind.config) — ใช้ได้</td></tr>
+        <tr><td>1</td><td>open/applyBillAdjust ต้องใช้ฐานเดียวกัน</td><td>P1</td><td>สั่งใช้ฐาน <code>Σ qty×cost</code> ตัวเดียวทั้งสองฟังก์ชัน</td></tr>
+        <tr><td>1</td><td>mergeCost interaction ไม่ระบุ</td><td>P1</td><td>เพิ่มหมายเหตุ + click-test กรณี mergeCost ON</td></tr>
+        <tr><td>1</td><td>distribute loop ไม่ข้ามแถว w&lt;=0</td><td>P2</td><td>เพิ่ม guard ข้ามแถวไม่มีต้นทุน (mirror applySurcharge)</td></tr>
+        <tr><td>1</td><td>.bak risk เขียนผิด (ไม่ได้ import ReceiptRow)</td><td>P2</td><td>แก้ถ้อยคำ + แนะนำลบ .bak (ถามก่อน)</td></tr>
+        <tr><td>1</td><td>JSDoc bill_discount/total ค้าง</td><td>P2</td><td>เพิ่มขั้นลบ JSDoc (61) + แก้ total JSDoc (63)</td></tr>
+        <tr><td>2</td><td>fold draft เก่าต้องอยู่ใน lazy initializer</td><td>P0</td><td>ระบุชัด: fold ใน <code>useState(()=>...)</code> บรรทัด 111 เท่านั้น ห้าม effect</td></tr>
+        <tr><td>2</td><td>ควรใช้ grossSubtotal ซ้ำ ไม่สร้าง helper คู่ขนาน</td><td>P1</td><td>เปลี่ยนเป็นใช้ <code>grossSubtotal</code> (line 555) ทั้ง open/apply</td></tr>
+        <tr><td>2</td><td>persist ต้องแก้ทั้ง object (200) + deps (206)</td><td>P1</td><td>ระบุชัดให้แก้ทั้งสองจุด กัน half-edit</td></tr>
+        <tr><td>2</td><td>อ้างอิงกล่องคำเตือนชี้กล่องสีแดง</td><td>P2</td><td>เปลี่ยนให้ชี้กล่อง amber (1442) — action นี้ reversible ไม่ destructive</td></tr>
+        <tr><td>2</td><td>ความถูกต้อง logic/ทุน/รายงาน</td><td>PASS</td><td>capping, fold (ไม่นับซ้ำ), PURCHASE_NET_SUB ปลอดภัย — ยืนยันแล้ว</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li><code>ReceiptRow</code> has no <code>bill_discount</code>; <code>GRDraft</code> has no <code>appliedDiscount</code>/<code>baseRowTotals</code>.</li>
+      <li>Per-row discount column opens DiscountDialog seeded with <code>row.discount</code> ONLY; applying changes only that row (<code>total = qty*cost − discount</code>); other rows untouched; clearing yields 0.</li>
+      <li>Bill modal: opening seeds from <code>Σ row.discount</code>; applying distributes the entered total across rows by <code>qty*cost</code> proportion into <code>row.discount</code> and recomputes each <code>total</code>; shows an amber warning that it redistributes proportionally.</li>
+      <li>Footer: ราคารวมก่อนลด (=Σ qty*cost), ส่วนลด (=Σ row.discount), มูลค่ารวมทั้งหมด (=Σ total). No <code>*</code>/dual-source tooltip.</li>
+      <li>Save sends <code>discount_amount = Σ row.discount</code>, <code>items.cost_price = total/qty</code> (unchanged).</li>
+      <li><code>npx tsc --noEmit</code> passes; no live (non-<code>.bak</code>) reference to <code>bill_discount</code>/<code>baseRowTotals</code>/<code>appliedDiscount</code> remains.</li>
+      <li>Legacy in-progress drafts with <code>bill_discount</code> fold cleanly into <code>row.discount</code> on hydrate (no double-subtraction).</li>
+    </ul>
+
+    <h3>Files</h3>
+    <ul>
+      <li><code>src/pages/Purchase/AddProductWizard.tsx</code> — ReceiptRow type, emptyRow(), wizard editing init (~212-234).</li>
+      <li><code>src/pages/Purchase/index.tsx</code> — states, totals, applyLineDiscount, open/applyBillAdjust, applySurcharge, table cell, footer, DiscountDialog usage, handleSave, resetForm, rows lazy-init.</li>
+      <li><code>src/stores/grDraftStore.ts</code> — GRDraft interface.</li>
+      <li><code>src/components/ui/discount-dialog.tsx</code> — <span class="inv">NO CHANGE</span> (shared with POS).</li>
+      <li>Memory: <code>.claude/memory/discount-dialog-shared.md</code>, <code>.claude/memory/project_gr_discount_model.md</code>.</li>
+    </ul>
+
+    <h3>ขั้นตอน</h3>
+    <ol>
+      <div class="step"><b>1 — Type + draft shape.</b> AddProductWizard.tsx: remove <code>bill_discount?: string</code> (field line 62) AND its JSDoc (line 61); fix <code>total</code> JSDoc (line 63) → <code>= qty*cost_price − discount</code>; <code>emptyRow()</code> drop <code>bill_discount:'0'</code>; wizard editing init (~222) <code>base = { ...editing, total: t }</code> with <code>t = qty*cost − discount</code>. grDraftStore.ts: drop <code>appliedDiscount</code> + <code>baseRowTotals</code> from <code>GRDraft</code> (+ comment 32-36). <span class="inv">blank→0 ban applies to stock/cost, not discount.</span></div>
+      <div class="step"><b>2 — Remove dead state + bill_discount math (index.tsx).</b> Remove states <code>appliedDiscount</code>/<code>baseRowTotals</code> (169,171). Remove from BOTH persist object literal (200) AND deps array (206). Remove all <code>setBaseRowTotals(null)</code> calls (222,231,246,264,272,278) + the <code>&& baseRowTotals</code> guards. Totals (~546-569): <code>lineDiscountTotal = Σ(parseFloat(r.discount)||0)</code>; delete <code>billDiscountTotal</code> + <code>billDiscountBaseTotals</code>; keep <code>grossSubtotal = totalCost + lineDiscountTotal</code> + <code>hasSummaryBreakdown</code>.</div>
+      <div class="step"><b>3 — applyLineDiscount (per-row only).</b> <code>gross = qty>0&&isFinite(cost)?qty*cost:0</code>; <code>capped = min(max(discount,0),gross)</code>; <code>next.discount = capped>0?capped.toFixed(2):''</code>; <code>next.total = gross>0?max(gross−capped,0).toFixed(2):row.total</code>. <span class="inv">Do NOT touch other rows; remove bill_discount write.</span></div>
+      <div class="step"><b>4 — Bill modal: distribute + warning.</b> Reuse existing <code>grossSubtotal</code> (line 555) as the SINGLE base in BOTH funcs — do NOT add a parallel helper. <code>openBillAdjust</code>: <code>base=grossSubtotal</code>, <code>current=Σ row.discount</code>; <code>setAdjustModalSum(base)</code>; seed baht=current, pct=current/base, net=base−current. <code>applyBillAdjust</code>: <code>sumW=grossSubtotal</code>; if 0 → toast+return; <code>discAmt=min(max(baht,0),sumW)</code>; per row: <span class="inv">if w&lt;=0 return row UNTOUCHED</span> else <code>rowDisc=discAmt*w/sumW</code>, <code>discount=rowDisc>0?toFixed(2):''</code>, <code>total=max(w−rowDisc,0).toFixed(2)</code>; close. JSX: add amber warning callout (AlertTriangle) above inputs — visual ref = amber preview box at index.tsx:1442 (<code>bg-amber-soft/50 border border-amber-strong/25</code>), NOT the red one at 1374.</div>
+      <div class="step"><b>5 — applySurcharge cleanup.</b> <code>newTotal = max(qty*newCost − disc, 0)</code> (drop <code>− billDisc</code>); remove the <code>setBaseRowTotals(prev=>...)</code> push (749-750).</div>
+      <div class="step"><b>6 — Table cell (discount column ~911-973).</b> Remove <code>billDisc</code>, <code>rowDiscTotal</code>; keep <code>perLineDisc=parseFloat(row.discount)||0</code>. Button label = <code>perLineDisc>0?formatCurrency(perLineDisc):'0'</code>; remove <code>*</code> span + dual-source <code>tooltip</code>. <code>displayCost</code> unchanged (mergeCost?net:gross). mergeCost ON still shows "—".</div>
+      <div class="step"><b>7 — DiscountDialog usage (~1559-1568).</b> <code>totalPrice = qty*cost_price</code> (unchanged); <code>initialDiscount = parseFloat(row.discount)||0</code> (drop bill_discount term); <code>onApply = applyLineDiscount(discountIdx, d)</code>.</div>
+      <div class="step"><b>8 — Footer (1001-1014).</b> Keep single-discount footer: "ราคารวม"(=grossSubtotal), "ส่วนลด"(=lineDiscountTotal). Optionally rename "ราคารวม" → "ราคารวมก่อนลด". No สินค้า/ท้ายบิล split.</div>
+      <div class="step"><b>9 — Save + reset.</b> handleSave: <code>discount_amount: lineDiscountTotal || undefined</code> (now = Σ discount); cost = total/qty unchanged. Remove <code>setAppliedDiscount</code>/<code>setBaseRowTotals</code> from success-reset (680-681) + resetForm (759-760).</div>
+      <div class="step"><b>10 — Legacy draft fold.</b> <span class="inv">Inside the <code>useState(() => initialDraft?.rows ...)</code> lazy initializer at line 111 ONLY — never a post-mount effect.</span> Map each row: <code>discount = ((parseFloat(r.discount)||0)+(parseFloat((r as any).bill_discount??'0')||0))</code> → <code>>0?toFixed(2):''</code>; <code>total</code> stays (already net → no double-subtract). suggestions(132)/searchTimers(136) unaffected.</div>
+      <div class="step"><b>11 — Comments + memory.</b> Update comments 298-302 + 547 to new model (716 is inside the rewritten applyBillAdjust — no separate edit). Update <code>discount-dialog-shared.md</code> + <code>project_gr_discount_model.md</code>: single <code>row.discount</code>, bill modal = proportional redistribute, no reversible bill_discount.</div>
+      <div class="step"><b>12 — .bak (ask first).</b> <code>src/pages/Purchase/index.rowmode.bak.tsx</code> is dead, self-contained, but type-checked by tsconfig. Do NOT edit. After implementation, propose deleting it to the user (do not delete unprompted).</div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> PASS (baseline passes clean; .bak self-contained → zero new errors from field removal; also confirms POS build via shared DiscountDialog).</li>
+      <li>Click-test: (a) 1 row gross 100 — รายตัว 5→col 5/total 95; bill modal shows 5→set 15→total 85/col 15; รายตัว set 0→col 0/total 100. (b) 2 rows 60/40 — bill 10→discounts 6/4, totals 54/36, footer ส่วนลด 10; edit row A รายตัว→0 → only A changes (total 60), footer ส่วนลด 4. (c) เพิ่มต้นทุน then bill — surcharge raises cost, bill redistributes off new cost. (d) mergeCost ON + bill — column "—", ทุน/หน่วย = net shifts, รวม+footer reconcile. (e) cost-less/partial row left UNTOUCHED by bill distribute.</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li><span class="inv">Legacy bill_discount lost/double-applied</span> → fold strictly in lazy initializer (Step 10).</li>
+      <li><span class="inv">Bill preview lies</span> → both bill funcs use the same <code>grossSubtotal</code> (Step 4).</li>
+      <li><span class="inv">Half-removed persist keys</span> → edit object (200) + deps (206) (Step 2).</li>
+      <li><span class="inv">POS regression</span> → do not edit discount-dialog.tsx; tsc covers it.</li>
+      <li>Reports/FEFO/cost — <code>cost_price=total/qty</code> unchanged; <code>PURCHASE_NET_SUB</code> reads cost_price, never discount_amount → no double-count.</li>
+      <li>GRDraft is in-memory (no schema) → dropping keys safe; stale keys on an old draft are ignored.</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-24</footer>
+
+</div>
+</body>
+</html>

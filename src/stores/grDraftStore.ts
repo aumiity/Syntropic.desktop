@@ -29,11 +29,6 @@ export interface GRDraft {
   grNote: string
   rows: ReceiptRow[]
   searchQueries: string[]
-  // Bill-adjustment state: discount baseline (baseRowTotals) + last-committed
-  // discount input (appliedDiscount) for restoring the ส่วนลดท้ายบิล dialog.
-  // (Surcharge "เพิ่มต้นทุน" bakes straight into cost_price — nothing to persist.)
-  appliedDiscount: { baht: string; pct: string }
-  baseRowTotals: number[] | null
 }
 
 interface GRDraftStore {

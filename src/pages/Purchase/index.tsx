@@ -108,7 +108,16 @@ export default function PurchasePage() {
   const [isPaid, setIsPaid] = useState(() => initialDraft?.isPaid ?? false)
   const [paidDate, setPaidDate] = useState(() => initialDraft?.paidDate ?? '')
   const [grNote, setGrNote] = useState(() => initialDraft?.grNote ?? '')
-  const [rows, setRows] = useState<ReceiptRow[]>(() => initialDraft?.rows ?? [])
+  // Legacy drafts carried a separate bill_discount field. Fold it into the single
+  // row.discount on hydrate (total already net → no double-subtract). MUST be here
+  // in the lazy initializer, never a post-mount effect — else the persist effect
+  // would overwrite before the fold and the old bill_discount would be lost.
+  const [rows, setRows] = useState<ReceiptRow[]>(() =>
+    (initialDraft?.rows ?? []).map(r => {
+      const merged = (parseFloat(r.discount) || 0) + (parseFloat((r as any).bill_discount ?? '0') || 0)
+      return { ...r, discount: merged > 0 ? merged.toFixed(2) : '' }
+    }),
+  )
   const [saving, setSaving] = useState(false)
   // Per-field red-border flags for required date fields. Set on a failed save,
   // cleared as soon as that field changes — so a forgotten/blank date lights up
@@ -165,10 +174,6 @@ export default function PurchasePage() {
   const [billNetInput, setBillNetInput] = useState('')
   // Which adjust-modal input is focused — shows raw value while editing, comma-formatted when blurred
   const [adjFocus, setAdjFocus] = useState<'baht' | 'pct' | 'net' | null>(null)
-  // Last committed discount input — restored into the dialog on next open
-  const [appliedDiscount, setAppliedDiscount] = useState(() => initialDraft?.appliedDiscount ?? { baht: '', pct: '' })
-  // Original per-row totals before any bill adjustment — re-applying always starts from here
-  const [baseRowTotals, setBaseRowTotals] = useState<number[] | null>(() => initialDraft?.baseRowTotals ?? null)
 
   useEffect(() => {
     // Keep the draft's GR number when restoring a receive with line items;
@@ -197,13 +202,12 @@ export default function PurchasePage() {
       invoiceNo, supplierId, supplierName, supplierInvoiceNo,
       orderDate, receiveDate, paymentType, dueDate, vatMode,
       isPaid, paidDate, grNote, rows, searchQueries,
-      appliedDiscount, baseRowTotals,
     })
   }, [
     invoiceNo, supplierId, supplierName, supplierInvoiceNo,
     orderDate, receiveDate, paymentType, dueDate, vatMode,
     isPaid, paidDate, grNote, rows, searchQueries,
-    appliedDiscount, baseRowTotals, setDraft,
+    setDraft,
   ])
 
   const loadNextGR = async () => {
@@ -219,7 +223,6 @@ export default function PurchasePage() {
   // ── Row management ────────────────────────────────────────────────────────
 
   const addRow = useCallback(() => {
-    setBaseRowTotals(null)
     setRows(r => [...r, emptyRow()])
     setSearchQueries(q => [...q, ''])
     setSuggestions(s => [...s, []])
@@ -228,7 +231,6 @@ export default function PurchasePage() {
 
   const removeRow = (i: number) => {
     if (rows.length === 1) return
-    setBaseRowTotals(null)
     setRows(r => r.filter((_, idx) => idx !== i))
     setSearchQueries(q => q.filter((_, idx) => idx !== i))
     setSuggestions(s => s.filter((_, idx) => idx !== i))
@@ -243,7 +245,6 @@ export default function PurchasePage() {
   // Wizard returns a fully-built ReceiptRow. Keep the parallel search/suggestion
   // arrays length-aligned with `rows` so the paste-import bookkeeping stays valid.
   const handleWizardConfirm = (row: ReceiptRow, opts?: { addNext?: boolean }) => {
-    setBaseRowTotals(null)
     if (editIdx === null) {
       setRows(r => [...r, row])
       setSearchQueries(q => [...q, row.trade_name])
@@ -261,7 +262,6 @@ export default function PurchasePage() {
 
   // Delete a committed row (no minimum-row guard — the list can be empty).
   const deleteRow = (i: number) => {
-    setBaseRowTotals(null)
     setRows(r => r.filter((_, idx) => idx !== i))
     setSearchQueries(q => q.filter((_, idx) => idx !== i))
     setSuggestions(s => s.filter((_, idx) => idx !== i))
@@ -269,13 +269,11 @@ export default function PurchasePage() {
   }
 
   const updateRow = (i: number, field: keyof ReceiptRow, value: string | number) => {
-    if ((field === 'total' || field === 'cost_price' || field === 'qty') && baseRowTotals) setBaseRowTotals(null)
     setRows(r => r.map((row, idx) => idx === i ? { ...row, [field]: value } : row))
   }
 
   // total = qty * cost_price − discount. Editing any field auto-fills dependents.
   const updateLineMath = (i: number, field: 'qty' | 'cost_price' | 'discount' | 'total', value: string) => {
-    if (baseRowTotals) setBaseRowTotals(null)
     setRows(rs => rs.map((row, idx) => {
       if (idx !== i) return row
       const next: ReceiptRow = { ...row, [field]: value }
@@ -295,22 +293,20 @@ export default function PurchasePage() {
     }))
   }
 
-  // ใช้ส่วนลดรายตัวจาก DiscountDialog ในตาราง — เคลียร์ส่วนลดท้ายบิลของแถวนั้น
-  // (bill_discount → '0') แล้วคิด total ใหม่ = qty*cost − discount; mirror กับตอน
-  // wizard แก้ไขแถว (init effect ก็ strip bill_discount + คิด total ใหม่เหมือนกัน).
-  // baseRowTotals=null → บังคับให้ "ส่วนลดท้ายบิล" กระจายใหม่ถ้าจะใช้อีก.
+  // ช่อง "ส่วนลด" ในตาราง = row.discount ก้อนเดียวต่อแถว. modal seed/apply จาก row.discount
+  // ตรง ๆ และกระทบเฉพาะแถวนั้น — กดล้าง = 0 จริง. total = qty*cost − discount.
   const applyLineDiscount = (i: number, discount: number) => {
-    setBaseRowTotals(null)
     setRows(rs => rs.map((row, idx) => {
       if (idx !== i) return row
       const qty = parseFloat(row.qty)
       const cost = parseFloat(row.cost_price)
+      const gross = qty > 0 && isFinite(cost) ? qty * cost : 0
+      const cappedDiscount = Math.min(Math.max(discount || 0, 0), gross)
       const next: ReceiptRow = {
         ...row,
-        discount: discount > 0 ? discount.toFixed(2) : '',
-        bill_discount: '0',
+        discount: cappedDiscount > 0 ? cappedDiscount.toFixed(2) : '',
       }
-      if (qty > 0 && isFinite(cost)) next.total = Math.max(qty * cost - discount, 0).toFixed(2)
+      if (gross > 0) next.total = Math.max(gross - cappedDiscount, 0).toFixed(2)
       return next
     }))
   }
@@ -541,11 +537,9 @@ export default function PurchasePage() {
   // expiry_optional = ล็อตเดิมที่ตั้งใจไม่มีวันหมดอายุ (merge) → ถือว่าครบ ส่งเข้า backend ได้
   const validRows = rows.filter(r => r.product_id && r.lot_number && (r.expiry_date || r.expiry_optional) && parseFloat(r.qty) > 0)
   const totalCost = rows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0)
-  // ส่วนลดรวมทุกบรรทัด = ส่วนลดรายตัว (discount) + ส่วนลดท้ายบิลที่กระจาย (bill_discount)
-  // → โชว์รวมในคอลัมน์ส่วนลด + footer (tooltip แยกที่มาต่อแถว)
-  const lineDiscountTotal = rows.reduce((sum, r) => sum + (parseFloat(r.discount) || 0) + (parseFloat(r.bill_discount ?? '0') || 0), 0)
-  // ส่วนลดท้ายบิลรวม (row-derived) — ใช้เป็น discount_amount ตอนบันทึก ให้ตรงกับแถวเสมอแม้แก้แถวภายหลัง
-  const billDiscountTotal = rows.reduce((sum, r) => sum + (parseFloat(r.bill_discount ?? '0') || 0), 0)
+  // ส่วนลดรวมทุกบรรทัด = ส่วนลดรายตัว (discount) ก้อนเดียว — ส่วนลดท้ายบิลกระจายลง discount แล้ว
+  // → โชว์ในคอลัมน์ส่วนลด + footer; ใช้เป็น discount_amount ตอนบันทึก
+  const lineDiscountTotal = rows.reduce((sum, r) => sum + (parseFloat(r.discount) || 0), 0)
   // ฐานกระจายส่วนเพิ่ม = มูลค่าต้นทุนรวม (qty × cost_price ปัจจุบัน)
   const surchargeBase = rows.reduce((sum, r) => sum + (parseFloat(r.qty) || 0) * (parseFloat(r.cost_price) || 0), 0)
   // ราคารวมก่อนหักส่วนลด (ทุนเต็ม รวมส่วนเพิ่มที่ฝังในทุนแล้ว): total = qty*cost − ส่วนลด → gross = net + ส่วนลด
@@ -622,7 +616,7 @@ export default function PurchasePage() {
         receive_date: receiveDate, order_date: orderDate || undefined, payment_type: paymentType,
         due_date: dueDate || undefined, is_paid: isPaid, paid_date: paidDate || undefined,
         note: grNote || undefined,
-        discount_amount: billDiscountTotal || undefined,
+        discount_amount: lineDiscountTotal || undefined,
         vat_mode: vatMode,
         vat_rate: shopVatRate,
         userId: getCurrentUserId(),
@@ -667,8 +661,6 @@ export default function PurchasePage() {
       setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
       setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode(shopVatEnabled ? 'inclusive' : 'none')
       setRows([]); setSearchQueries([]); setSuggestions([])
-      setAppliedDiscount({ baht: '', pct: '' })
-      setBaseRowTotals(null)
       clearDraft()
     } catch (e: any) {
       toast(e?.message ? `บันทึกไม่สำเร็จ: ${e.message}` : 'บันทึกไม่สำเร็จ', 'error')
@@ -677,33 +669,43 @@ export default function PurchasePage() {
     }
   }
 
+  // ปุ่มส่วนลดท้ายบิล = เครื่องมือกระจายส่วนลดรวมทั้งบิลลงทุกแถวตามสัดส่วน qty×cost
+  // เขียนผลลง row.discount ทันที (กระจายใหม่ทับของเดิมทั้งหมด — มีคำเตือนใน modal).
+  // base เดียวทั้ง open/apply = grossSubtotal (ราคารวมก่อนลด).
   const openBillAdjust = () => {
-    const origTotals = baseRowTotals ?? rows.map(r => parseFloat(r.total) || 0)
-    const sum = origTotals.reduce((a, b) => a + b, 0)
-    setAdjustModalSum(sum)
-    setBillNetInput(sum.toFixed(2))
-    setBillDiscountBaht(appliedDiscount.baht)
-    setBillDiscountPct(appliedDiscount.pct)
+    const base = grossSubtotal
+    const current = lineDiscountTotal
+    const currentText = current > 0 ? current.toFixed(2) : ''
+    const currentPctText = current > 0 && base > 0
+      ? String(parseFloat(((current / base) * 100).toFixed(4)))
+      : ''
+    setAdjustModalSum(base)
+    setBillNetInput(Math.max(base - current, 0).toFixed(2))
+    setBillDiscountBaht(currentText)
+    setBillDiscountPct(currentPctText)
     setShowBillAdjust(true)
   }
 
   const closeBillAdjust = () => { setShowBillAdjust(false) }
 
   const applyBillAdjust = () => {
-    // คิดส่วนลดจากยอดตั้งต้นก่อนปรับท้ายบิลเสมอ (กัน stack ซ้ำตอนเปิด-กดซ้ำ)
-    const origTotals = baseRowTotals ?? rows.map(r => parseFloat(r.total) || 0)
-    const sumRaw = origTotals.reduce((a, b) => a + b, 0)
-    if (sumRaw === 0) { toast('ยอดรวมเป็น 0 ไม่สามารถปรับยอดได้', 'error'); return }
-    const discAmt = parseFloat(billDiscountBaht) || 0
-    setRows(rs => rs.map((row, i) => {
-      const base = origTotals[i] ?? 0   // = qty*cost_price − discount (ยอดสุทธิรายตัวก่อนปรับท้ายบิล)
-      const rowDisc = (base / sumRaw) * discAmt
-      // ไม่แตะ cost_price (ทุน) / discount (ส่วนลดรายตัว) — เก็บส่วนลดท้ายบิลแยกที่ bill_discount
-      const newTotal = Math.max(base - rowDisc, 0)
-      return { ...row, total: newTotal.toFixed(2), bill_discount: rowDisc > 0 ? rowDisc.toFixed(2) : '0' }
+    // ฐานกระจาย = ราคารวมก่อนลด (qty×cost รวมทุกแถว) ตัวเดียวกับ openBillAdjust
+    const sumW = grossSubtotal
+    if (sumW === 0) { toast('ยอดรวมเป็น 0 ไม่สามารถปรับยอดได้', 'error'); return }
+    const discAmt = Math.min(Math.max(parseFloat(billDiscountBaht) || 0, 0), sumW)
+    setRows(rs => rs.map(row => {
+      const qty = parseFloat(row.qty) || 0
+      const cost = parseFloat(row.cost_price) || 0
+      const w = qty * cost
+      // แถวไม่มีต้นทุน (w<=0) → ปล่อยไว้เดิม (กฏ blank→0: ห้ามเขียน '0' ทับช่องว่าง)
+      if (w <= 0) return row
+      const rowDisc = (w / sumW) * discAmt
+      return {
+        ...row,
+        discount: rowDisc > 0 ? rowDisc.toFixed(2) : '',
+        total: Math.max(w - rowDisc, 0).toFixed(2),
+      }
     }))
-    if (!baseRowTotals) setBaseRowTotals(origTotals)
-    setAppliedDiscount({ baht: billDiscountBaht, pct: billDiscountPct })
     setShowBillAdjust(false)
   }
 
@@ -724,12 +726,9 @@ export default function PurchasePage() {
       const rowSur = (weights[i] / sumW) * amt
       const newCost = stripTrailingZeros(((parseFloat(row.cost_price) || 0) + rowSur / qty).toFixed(4))
       const disc = parseFloat(row.discount) || 0
-      const billDisc = parseFloat(row.bill_discount ?? '0') || 0
-      const newTotal = Math.max(qty * parseFloat(newCost) - disc - billDisc, 0)
+      const newTotal = Math.max(qty * parseFloat(newCost) - disc, 0)
       return { ...row, cost_price: newCost, total: newTotal.toFixed(2) }
     }))
-    // ถ้ามีส่วนลดท้ายบิล active → ดันยอดตั้งต้น (baseRowTotals) ตามส่วนเพิ่ม เพื่อให้ "ลบส่วนลด" ยังคงส่วนเพิ่มไว้
-    setBaseRowTotals(prev => prev ? prev.map((b, i) => b + (weights[i] / sumW) * amt) : prev)
     setShowSurcharge(false)
   }
 
@@ -738,8 +737,6 @@ export default function PurchasePage() {
     setOrderDate(today); setReceiveDate(today); setPaymentType('cash'); setDueDate('')
     setIsPaid(false); setPaidDate(''); setGrNote(''); setVatMode(shopVatEnabled ? 'inclusive' : 'none')
     setRows([]); setSearchQueries([]); setSuggestions([])
-    setAppliedDiscount({ baht: '', pct: '' })
-    setBaseRowTotals(null)
     clearDraft()
     loadNextGR()
   }
@@ -896,8 +893,6 @@ export default function PurchasePage() {
                               // ทุน/หน่วยปัจจุบัน (รวมส่วนเพิ่มที่ commit แล้ว, ก่อนหักส่วนลด)
                               const grossCost = parseFloat(row.cost_price) || 0
                               const perLineDisc = parseFloat(row.discount) || 0
-                              const billDisc = parseFloat(row.bill_discount ?? '0') || 0
-                              const rowDiscTotal = perLineDisc + billDisc
                               // toggle "รวมส่วนลดในต้นทุน": โชว์ทุนสุทธิ (total/qty); ปกติ: ทุนก่อนลด
                               const displayCost = mergeCost ? netCost : grossCost
                               return (
@@ -942,12 +937,10 @@ export default function PurchasePage() {
                                         variant="destructive-soft"
                                         size="sm"
                                         onClick={() => setDiscountIdx(i)}
-                                        tooltip={billDisc > 0 ? `รายตัว ${formatCurrency(perLineDisc)} · ท้ายบิล ${formatCurrency(billDisc)}` : undefined}
                                         className="flex items-center justify-end w-full h-9 pl-2.5 pr-2 rounded-md text-sm font-semibold"
                                       >
                                         <span className="leading-none">
-                                          {rowDiscTotal > 0 ? formatCurrency(rowDiscTotal) : '0'}
-                                          {billDisc > 0 && <span className="ml-0.5">*</span>}
+                                          {perLineDisc > 0 ? formatCurrency(perLineDisc) : '0'}
                                         </span>
                                       </Button>
                                     )}
@@ -983,7 +976,7 @@ export default function PurchasePage() {
                         {hasSummaryBreakdown && (
                           <div className="bg-card px-5 py-1 space-y-0.5">
                             <div className="flex items-center justify-end gap-6 text-sm text-muted-foreground">
-                              <span>ราคารวม</span>
+                              <span>ราคารวมก่อนลด</span>
                               <span className="w-32 text-right">{formatCurrency(grossSubtotal)}</span>
                             </div>
                             {lineDiscountTotal > 0 && (
@@ -1240,6 +1233,11 @@ export default function PurchasePage() {
                   <DialogTitle className="text-xl">ส่วนลดท้ายบิล</DialogTitle>
                 </DialogHeader>
                 <DialogBody className="space-y-4">
+                  {/* คำเตือน: กดตกลงจะกระจายส่วนลดทั้งหมดลงทุกแถวตามสัดส่วนใหม่ทับของเดิม */}
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-strong/25 bg-amber-soft/50 p-3 text-sm text-amber-strong">
+                    <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+                    <span>ส่วนลดทั้งหมดจะถูก<b>กระจายลงสินค้าตามสัดส่วนใหม่ทั้งหมด</b> กดตกลงเพื่อยืนยัน</span>
+                  </div>
                   {/* Quick percent buttons */}
                   <div className="flex gap-1.5">
                     {PCTS.map(p => {
