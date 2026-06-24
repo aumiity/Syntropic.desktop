@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { useToast } from '@/components/ui/toast'
+import { usePermission } from '@/hooks/usePermission'
+import { ExportButton } from '@/components/ui/export-button'
 import { SaleDetailDialog } from '@/components/dialogs/SaleDetailDialog'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
 import type { ReportsOutletContext } from './index'
@@ -69,6 +71,7 @@ const SALE_TYPE_LABELS: Record<string, string> = {
 
 export default function VatReportPage() {
   const { toast } = useToast()
+  const { isAdmin } = usePermission()
   const { setSummary, setToolbar } = useOutletContext<ReportsOutletContext>()
 
   const initial = rangeForMultiMode('month')
@@ -94,16 +97,25 @@ export default function VatReportPage() {
   // Toolbar — date window picker, right-aligned on the TabStrip
   useEffect(() => {
     setToolbar(
-      <MultiDatePicker
-        mode={dateMode}
-        from={dateFrom}
-        to={dateTo}
-        onChange={(m, f, t) => { setDateMode(m); setDateFrom(f); setDateTo(t) }}
-        className="shrink-0"
-      />,
+      <>
+        <MultiDatePicker
+          mode={dateMode}
+          from={dateFrom}
+          to={dateTo}
+          onChange={(m, f, t) => { setDateMode(m); setDateFrom(f); setDateTo(t) }}
+          className="shrink-0"
+        />
+        {isAdmin && (
+          <ExportButton
+            iconOnly
+            tooltip="ส่งออก Excel"
+            onExport={() => (window.api as any).exports.vat({ date_from: dateFrom, date_to: dateTo })}
+          />
+        )}
+      </>,
     )
     return () => setToolbar(null)
-  }, [setToolbar, dateMode, dateFrom, dateTo])
+  }, [setToolbar, dateMode, dateFrom, dateTo, isAdmin])
 
   // Summary cards — output / input / ภ.พ.30 net
   useEffect(() => {

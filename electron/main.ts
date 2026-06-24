@@ -15,6 +15,7 @@ import { registerDevHandlers } from './ipc/dev'
 import { registerMatcherHandlers } from './ipc/matcher'
 import { registerNegativeStockHandlers } from './ipc/negativeStock'
 import { registerExpenseHandlers } from './ipc/expenses'
+import { registerExportHandlers } from './ipc/exports'
 import { registerBackupHandlers, runCloseBackup, scheduleDailyBackup } from './ipc/backup'
 import { clearSessionById } from './auth/session'
 
@@ -96,6 +97,7 @@ registerAuthHandlers()
 registerMatcherHandlers()
 registerNegativeStockHandlers()
 registerExpenseHandlers()
+registerExportHandlers()
 registerBackupHandlers()
 if (isDev) registerDevHandlers()
 

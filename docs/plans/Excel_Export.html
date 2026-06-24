@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ส่งออก Excel (.xlsx) — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine pre{background:#0b1220;border:1px solid #1e293b;border-radius:8px;padding:12px 14px;
+    overflow-x:auto;font-size:12.5px;color:#cbd5e1;margin:8px 0}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>ส่งออก Excel (.xlsx)</h1>
+    <p>เพิ่มการส่งออกข้อมูลบิลขาย บิลซื้อ รายงาน VAT และค่าใช้จ่าย เป็นไฟล์ Excel — ผ่านปุ่มในแต่ละหน้า + หน้าศูนย์รวมส่งออก</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ</span>
+      <span class="pill">เฟส 1 — 4 dataset การเงิน</span>
+      <span class="pill">2026-06-24</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><b>ปัญหา:</b> ตอนนี้ข้อมูลในระบบ (บิลขาย/ซื้อ รายงานต่าง ๆ) ดูได้แต่ในแอป เอาออกไปทำบัญชี ส่งสรรพากร หรือวิเคราะห์ต่อใน Excel ไม่ได้</p>
+    <p><b>แผนนี้แก้:</b> เพิ่มความสามารถ "ส่งออก Excel" โดยใช้ไลบรารี <code>exceljs</code> ที่<b>ติดตั้งอยู่แล้ว</b>ในโปรเจกต์ (v4.4.0 — <b>ไม่ต้อง <code>npm install</code></b> เลย ความเสี่ยง better-sqlite3 พังจึงไม่มี). มี 2 ทางเข้าใช้งาน — ปุ่ม "ส่งออก Excel" ในแต่ละหน้า และหน้าศูนย์รวมส่งออก</p>
+    <p><b>เสร็จแล้วได้:</b> กดปุ่มเดียว ได้ไฟล์ <code>.xlsx</code> จริง (ไม่ใช่ CSV ที่ barcode/วันที่เพี้ยน) — บิลออกมาเป็น 2 ชีต (หัวบิล + รายการสินค้า), วันที่เป็น <code>DD/MM/YYYY</code>, barcode/เลขล็อตเป็นข้อความไม่กลายเป็น <code>8.4E+11</code></p>
+    <div class="grid">
+      <div class="stat"><div class="v">4</div><div class="l">dataset เฟสแรก (ขาย/ซื้อ/VAT/ค่าใช้จ่าย)</div></div>
+      <div class="stat"><div class="v">0</div><div class="l">แพ็กเกจที่ต้องลงเพิ่ม</div></div>
+      <div class="stat"><div class="v">2</div><div class="l">ทางเข้า (ปุ่มในหน้า + ศูนย์รวม)</div></div>
+      <div class="stat"><div class="v">admin</div><div class="l">เท่านั้นที่ export การเงินได้</div></div>
+    </div>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p>ทุกการส่งออกเดินทางเดียวกัน — ปุ่มฝั่งหน้าจอเรียกผ่าน preload ไปยัง handler ฝั่ง main ที่ <b>ตรวจสิทธิ์ admin → ดึงข้อมูลครบทุกแถวตามตัวกรอง (ไม่แบ่งหน้า) → สร้างไฟล์ผ่าน excel service → เปิดกล่องบันทึกไฟล์</b>. หัวใจคือดึงข้อมูลที่ฝั่ง main เพราะหน้า Manage แบ่งหน้า (paginate) — ถ้าดูดแถวบนจอจะได้แค่หน้าเดียว</p>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 980 250" role="img" aria-label="สถาปัตยกรรมการส่งออก Excel">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+
+      <rect class="box" x="14" y="24" width="210" height="58" rx="10"/>
+      <text x="119" y="48" text-anchor="middle">ปุ่ม ExportButton</text>
+      <text class="sub" x="119" y="66" text-anchor="middle">components/ui/export-button</text>
+
+      <rect class="box" x="14" y="150" width="210" height="58" rx="10"/>
+      <text x="119" y="174" text-anchor="middle">หน้าศูนย์รวมส่งออก</text>
+      <text class="sub" x="119" y="192" text-anchor="middle">Reports/ExportHub.tsx</text>
+
+      <rect class="box" x="300" y="88" width="180" height="58" rx="10"/>
+      <text x="390" y="112" text-anchor="middle">preload (bridge)</text>
+      <text class="sub" x="390" y="130" text-anchor="middle">window.api.exports.*</text>
+
+      <rect class="box warn" x="556" y="88" width="190" height="58" rx="10"/>
+      <text x="651" y="108" text-anchor="middle">export:* handler</text>
+      <text class="sub" x="651" y="126" text-anchor="middle">ipc/exports.ts · requireAdmin</text>
+
+      <rect class="box data" x="556" y="186" width="190" height="46" rx="10"/>
+      <text x="651" y="213" text-anchor="middle">SQLite (ดึงครบทุกแถว)</text>
+
+      <rect class="box" x="812" y="88" width="156" height="58" rx="10"/>
+      <text x="890" y="108" text-anchor="middle">excel service</text>
+      <text class="sub" x="890" y="126" text-anchor="middle">services/excel.ts</text>
+
+      <path class="edge" d="M224,58 H298 V92"/>
+      <path class="edge" d="M224,179 H300 V144"/>
+      <path class="edge hot" d="M480,117 H554"/>
+      <text class="elabel" x="517" y="108" text-anchor="middle">IPC</text>
+      <path class="edge" d="M651,146 V184"/>
+      <text class="elabel" x="690" y="170">query</text>
+      <path class="edge hot" d="M746,117 H810"/>
+      <text class="elabel" x="778" y="108" text-anchor="middle">rows</text>
+    </svg>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin:4px 0 0">จาก excel service → <code>dialog.showSaveDialog</code> → <code>workbook.xlsx.writeFile</code> → คืน <code>{ok, path}</code> (เลียนแบบ pattern เดิมของ <code>matcher:exportCSV</code>)</p>
+
+    <h3>dataset เฟส 1 → มาจากตารางไหน</h3>
+    <table>
+      <thead><tr><th>Dataset</th><th>ช่องทาง</th><th>ตาราง / ที่มา</th><th>ผลลัพธ์</th></tr></thead>
+      <tbody>
+        <tr><td>บิลขาย</td><td>ปุ่มในหน้า ประวัติการขาย + ศูนย์รวม</td><td><code>sales</code> + <code>sale_items</code></td><td>2 ชีต: หัวบิล + รายการ</td></tr>
+        <tr><td>บิลซื้อ/GR</td><td>ปุ่มในหน้า ประวัติการซื้อ + ศูนย์รวม</td><td><code>purchase_receipts</code> + <code>purchase_receipt_items</code> (JOIN products)</td><td>2 ชีต: หัวบิล + รายการรับ</td></tr>
+        <tr><td>ภาษี VAT</td><td>ปุ่มในหน้า ภาษี + ศูนย์รวม</td><td><code>computeVatSummary()</code> (ขาย/ซื้อ/ค่าใช้จ่าย)</td><td>3 ชีต</td></tr>
+        <tr><td>ค่าใช้จ่าย</td><td>ปุ่มในหน้า ค่าใช้จ่าย + ศูนย์รวม</td><td><code>expenses</code> (ดึงครบ ไม่ตันที่ 50)</td><td>1 ชีต</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>ข้อมูลดูได้แต่ในแอป เอาออกไม่ได้</li>
+        <li>ถ้าจะส่งบัญชี ต้องพิมพ์มือ/แคปจอ</li>
+        <li>มีแค่ CSV ของ Invoice Matcher (barcode/วันที่เพี้ยนใน Excel)</li>
+        <li><code>exceljs</code> ติดตั้งไว้แต่ไม่มีใครเรียกใช้</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>กดปุ่มเดียวได้ไฟล์ <code>.xlsx</code> จริง</li>
+        <li>บิล = 2 ชีต (หัวบิล + รายการ), เอาไป pivot ต่อได้</li>
+        <li>barcode/ล็อตเป็นข้อความ, วันที่ <code>DD/MM/YYYY</code>, ยอดเงินบวกได้</li>
+        <li>finance = admin เท่านั้น (กันต้นทุนรั่ว)</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>ไม่ต้องลงแพ็กเกจใหม่ — <code>exceljs</code> มีอยู่แล้ว ความเสี่ยง better-sqlite3 พัง = 0</li>
+    <li>ใช้โครงเดิม (<code>showSaveDialog</code> + handler pattern ของ matcher) ต่อยอดน้อย</li>
+    <li>รายงานเกือบทุกตัวมี query อยู่แล้ว (<code>salesList limit:'all'</code>, <code>vatSummary</code>, <code>purchase:history</code>) — ดึงครบได้ทันที</li>
+    <li>ปุ่มในหน้า + ศูนย์รวม ใช้ handler ฝั่ง main ตัวเดียวกัน — เขียนครั้งเดียวใช้ 2 ที่</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>วันที่เก็บเป็นข้อความ <code>DD/MM/YYYY</code> → Excel sort ตามวันที่ไม่ได้ (แลกกับกฎรูปแบบวันที่เดียวทั้งแอป — ยอมรับ)</li>
+    <li>ต้อง refactor core ของ <code>vatSummary</code>/<code>expenses:list</code> เป็นฟังก์ชันใช้ร่วม (ระวัง return shape เดิมต้องไม่เปลี่ยน)</li>
+    <li>ช่วงวันที่กว้างมาก (หลายหมื่นแถว) จะกินหน่วยความจำ/เวลาบ้าง — เฟสนี้รับได้ ค่อย stream ทีหลัง</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง (invariant)</h4><ul class="clean">
+    <li><b>ห้าม <code>npm install</code> เปล่า</b> — exceljs มีอยู่แล้ว; เช็ค <code>better_sqlite3.node</code> หลัง build</li>
+    <li><b><code>requireAdmin(e)</code> คือการ์ดจริง</b> — บรรทัดแรกของทุก handler การเงิน; ซ่อนปุ่ม = UX เท่านั้น</li>
+    <li><b>route <code>/reports</code> ไม่ได้ guard</b> — staff พิมพ์ URL เข้าหน้า hub ได้ → หน้า hub ต้อง self-gate ด้วย <code>isAdmin</code></li>
+    <li><b>แก้ <code>.ts</code> เท่านั้น</b> — <code>vite.config.js</code>/<code>.d.ts</code>, <code>preload.js</code> เป็น build artifact</li>
+    <li><b>barcode/ล็อต/tax_id = cell ข้อความ</b> (<code>numFmt='@'</code>); ยอดเงิน = number จริง (SUM ได้)</li>
+    <li>ไม่มี emoji ในข้อความที่ ship; ปุ่ม/ตัวกรองตามกฎ filter strip <code>h-12</code> / control <code>h-9</code></li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><b>ปุ่มในหน้า:</b> ปุ่มไอคอน <code>Download</code> (lucide) แบบ <code>variant="elevated"</code> วางในแถบตัวกรอง (<code>h-12</code>, ปุ่ม <code>h-9 w-9 p-0</code>) ข้างปุ่ม "จัดการตาราง" — มี <code>tooltip="ส่งออก Excel"</code>. สำหรับหน้า ภาษี วางในแถบ toolbar ของ TabStrip ข้าง MultiDatePicker</li>
+      <li><b>ปุ่มโผล่เฉพาะ admin</b> (<code>usePermission().isAdmin</code>) — staff ไม่เห็นปุ่มการเงินเลย</li>
+      <li><b>หน้าศูนย์รวมส่งออก</b> (<code>/reports/export</code>): MultiDatePicker ร่วม (ดีฟอลต์เดือนนี้) + รายการ dataset เป็นแถว (ไอคอน + ชื่อไทย + คำอธิบายสั้น + ปุ่มส่งออก). ถ้าไม่ใช่ admin โชว์สถานะ "เฉพาะผู้ดูแล"</li>
+      <li><b>หลังกด:</b> เปิดกล่องบันทึกไฟล์มาตรฐานของ Windows/Mac → สำเร็จ toast เขียว (โชว์ path), ยกเลิก = เงียบ, ผิดพลาด = toast แดง</li>
+      <li>primitive ใหม่ <code>src/components/ui/export-button.tsx</code> (ไม่ทำ helper ในหน้า ตามกฎ) — โหลดดิ้งระหว่างเขียนไฟล์, จัดการ <code>{ok,path,canceled}</code> + toast เอง</li>
+      <li>ทุกข้อความภาษาไทย, สีตาม semantic token; หัวชีตในไฟล์ Excel = ตัวหนา + แช่แถวบน + autofilter</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>เข้าใจผิดว่ามี vite config 2 ตัวจะ drift; เสนอแก้ทั้งคู่</td><td><span class="tag t-skip">blocker</span></td><td>มีตัวเดียวที่ใช้จริง (<code>vite.config.ts</code>); <code>.js/.d.ts</code> = artifact — แก้ <code>vite.config.ts:23</code> ที่เดียว</td></tr>
+        <tr><td>1</td><td><code>expenses:list</code> ตันที่ 50 แถว → export ตกหล่น</td><td><span class="tag t-skip">blocker</span></td><td>เรียกด้วย <code>pageSize:0</code> (→ no LIMIT) ดึงครบ; เพิ่ม verify >50 แถว</td></tr>
+        <tr><td>1</td><td>query บิลซื้อใช้ join key/คอลัมน์ผิด (<code>is_cancelled</code>/<code>supplier_name</code> ไม่มี)</td><td><span class="tag t-opt">major</span></td><td>join ด้วย <code>invoice_no</code>; supplier จาก header; กรอง cancelled จาก <code>pr.status</code>; mirror <code>reports.ts:507-515</code></td></tr>
+        <tr><td>1</td><td>อ้างว่า Reports admin-gated แล้ว แต่ route ไม่ได้ guard</td><td><span class="tag t-opt">major</span></td><td>หน้า hub self-gate ด้วย <code>isAdmin</code> (IPC <code>requireAdmin</code> เป็นการ์ดข้อมูลจริง)</td></tr>
+        <tr><td>1</td><td>แท็บใหม่ต้องแก้ <code>resolveTab()</code> ด้วย ไม่ใช่แค่ <code>TABS</code></td><td><span class="tag t-opt">major</span></td><td>ระบุชัด: แก้ทั้ง <code>TABS</code> + เพิ่ม branch ใน <code>resolveTab</code></td></tr>
+        <tr><td>2</td><td>query รายการบิลซื้อขาด <code>JOIN products</code> + ใช้ <code>p.name</code> แทน <code>p.trade_name</code></td><td><span class="tag t-opt">major</span></td><td>เขียน SQL เต็มลง Step 3: <code>JOIN products p</code>, <code>p.trade_name</code>, <code>COALESCE(pri.unit_name, iu.name)</code> mirror <code>purchase.ts:406-423</code></td></tr>
+        <tr><td>2</td><td>query รายการบิลขายถ้าใช้ <code>q</code> จะชน <code>c.full_name</code> ที่ไม่มีใน join</td><td><span class="tag t-gen">minor</span></td><td>scope รายการด้วยชุด <code>invoice_no</code> ของหัวบิล (<code>WHERE s.invoice_no IN(...)</code>) — ไม่ก๊อปคำสั่ง q</td></tr>
+        <tr><td>2</td><td><code>export:vat</code> ต้องคง <code>requireAdmin</code> ใน handler ไม่ใช่ในฟังก์ชัน pure</td><td><span class="tag t-gen">minor</span></td><td>ระบุ: <code>computeVatSummary(db,range)</code> ทำแค่ query; ทั้ง 2 handler เรียก <code>requireAdmin(_e)</code> เองก่อน</td></tr>
+        <tr><td>2</td><td>อื่น ๆ: exceljs CJS import, toast object form, pageSize:0, ทุก path/บรรทัด</td><td><span class="tag t-keep">PASS</span></td><td>ตรวจแล้วถูกต้องทั้งหมด ไม่ต้องแก้</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--muted);margin:8px 0 0">สรุป: รอบ 2 ยืนยันว่าทุก path/IPC/ตาราง/คอลัมน์/บรรทัดในแผนตรงโค้ดจริง; แก้ครบทุก finding แล้ว → พร้อมลงมือ</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Goal</h3>
+    <p>Add an "Export to Excel (.xlsx)" capability using <code>exceljs</code> (already a dep, v4.4.0 — NO npm install). Two entry points: per-page "ส่งออก Excel" buttons + a central Export Hub. Phase-1 datasets (all finance, admin-only): sales bills, purchase bills (GR), VAT report, expenses. Bills export as a 2-sheet workbook (header + line items).</p>
+
+    <h3>Definition of done</h3>
+    <ul>
+      <li><code>exceljs</code> imported in main; <code>npm install</code> never run; <code>node_modules/better-sqlite3/build/Release/better_sqlite3.node</code> still present after a build.</li>
+      <li><code>'exceljs'</code> added to the electron-main rollup <code>external</code> (<code>vite.config.ts:23</code>).</li>
+      <li><code>electron/services/excel.ts</code> builds multi-sheet <code>.xlsx</code> (text/number/currency/date columns; bold+frozen header; autofilter).</li>
+      <li><code>electron/ipc/exports.ts</code> registered in <code>main.ts</code>; handlers <code>export:sales</code>/<code>export:purchases</code>/<code>export:vat</code>/<code>export:expenses</code> — each <code>requireAdmin(e)</code> first line, full (no-pagination) query, save dialog, write, return <code>{ok,path}</code>/<code>{ok:false,canceled:true}</code>.</li>
+      <li><code>exports</code> namespace in <code>electron/preload.ts</code> (<code>.ts</code> only).</li>
+      <li>Shared <code>src/components/ui/export-button.tsx</code> (no local page helper).</li>
+      <li>Per-page export button on Manage/Sales, Manage/Purchases, Reports/VatReport, Manage/Expenses — hidden when <code>!isAdmin</code>.</li>
+      <li>Central <code>src/pages/Reports/ExportHub.tsx</code>: lazy route + Reports tab (TABS + resolveTab) + App route; body self-gated on <code>isAdmin</code>.</li>
+      <li>Both tsc pass; click-test all four exports open in Excel with Thai, <code>DD/MM/YYYY</code>, text barcodes, 2-sheet bills, summable currency; staff cannot export (button hidden + IPC FORBIDDEN).</li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>vite.config.ts:23</code> — main rollup external (add <code>'exceljs'</code>)</li>
+      <li><code>electron/services/excel.ts</code> — NEW workbook builder</li>
+      <li><code>electron/ipc/exports.ts</code> — NEW export handlers</li>
+      <li><code>electron/ipc/reports.ts</code> — extract <code>computeVatSummary()</code>; mirror salesList/purchases queries</li>
+      <li><code>electron/ipc/expenses.ts</code> — full-set query for export (pageSize:0)</li>
+      <li><code>electron/main.ts</code> — register handlers</li>
+      <li><code>electron/preload.ts</code> — <code>exports</code> namespace</li>
+      <li><code>src/components/ui/export-button.tsx</code> — NEW shared primitive</li>
+      <li><code>src/pages/Manage/Sales.tsx</code>, <code>Purchases.tsx</code>, <code>Expenses.tsx</code>; <code>src/pages/Reports/VatReport.tsx</code> — add buttons</li>
+      <li><code>src/pages/Reports/ExportHub.tsx</code> — NEW hub; <code>src/pages/Reports/index.tsx</code> (TABS + resolveTab); <code>src/App.tsx</code> (route)</li>
+    </ul>
+
+    <h3>ขั้นตอน</h3>
+    <ol>
+      <div class="step"><b>Step 0 — deps sanity (no install).</b> Confirm <code>exceljs</code> 4.4.0 present + <code>better_sqlite3.node</code> intact. <span class="inv">Do NOT run npm install.</span></div>
+
+      <div class="step"><b>Step 1 — vite externals.</b> Edit <code>vite.config.ts:23</code> ONLY → <code>external:['better-sqlite3','electron','exceljs']</code>. <span class="inv">Never edit vite.config.js/.d.ts (artifacts, regenerated by build). Preload external (line 35) must NOT get exceljs.</span> Verify dev launch + <code>require('exceljs')</code> resolves in main.</div>
+
+      <div class="step"><b>Step 2 — excel service</b> (<code>electron/services/excel.ts</code>, NEW). <code>import ExcelJS from 'exceljs'</code> (CJS — default import resolves to module.exports; do NOT use <code>import * as</code>). <code>import dayjs from 'dayjs'</code>.
+        <ul>
+          <li>Types: <code>SheetColumn{header,key,width?,type?:'text'|'number'|'currency'|'date'}</code>, <code>SheetSpec{name,columns,rows}</code>.</li>
+          <li><code>fmtDate(iso?)</code> → dayjs valid ? <code>DD/MM/YYYY</code> : <code>''</code> (Christian era).</li>
+          <li><code>async writeWorkbook(filePath, sheets)</code>: per sheet <code>ws.columns=...</code>; header bold+fill, <code>ws.views=[{state:'frozen',ySplit:1}]</code>, <code>ws.autoFilter</code>; <code>type==='text'</code>→<code>getColumn(key).numFmt='@'</code>, <code>'currency'</code>→<code>'#,##0.00'</code>, <code>'number'</code>→<code>'#,##0'</code>; addRow; <code>await wb.xlsx.writeFile(filePath)</code>.</li>
+          <li>Dates passed in as <code>fmtDate()</code> strings (text columns). Numbers stay numeric.</li>
+        </ul>
+        <span class="inv">No emoji in headers. text-sm floor N/A (xlsx). DD/MM/YYYY only.</span>
+      </div>
+
+      <div class="step"><b>Step 3 — export IPC</b> (<code>electron/ipc/exports.ts</code>, NEW). <code>registerExportHandlers()</code>. Helper <code>saveAndWrite(base, sheets)</code> = <code>dialog.showSaveDialog({title:'ส่งออก Excel', defaultPath:`${base}-${dayjs().format('YYYYMMDD-HHmmss')}.xlsx`, filters:[{name:'Excel',extensions:['xlsx']}]})</code> → cancel guard → <code>writeWorkbook</code> → <code>{ok,path}</code>.
+        <ul>
+          <li><code>export:sales</code> — <code>requireAdmin(e)</code>. Header rows = salesList SELECT with <code>limit=null</code>. Lines = collect header <code>invoice_no</code>s then:
+            <pre>SELECT s.invoice_no, si.item_name, si.unit_name, si.qty,
+       si.unit_price, si.discount, si.unit_vat, si.line_total
+  FROM sale_items si JOIN sales s ON s.id=si.sale_id
+ WHERE s.invoice_no IN (&lt;header set&gt;) AND si.is_cancelled=0
+ ORDER BY s.sold_at, s.invoice_no</pre>
+            <span class="inv">Do NOT copy salesList's q clause (refs c.full_name via a customers join the line query lacks → no such column).</span> 2 sheets "บิลขาย"+"รายการสินค้า".</li>
+          <li><code>export:purchases</code> — <code>requireAdmin(e)</code>. Header from <code>purchase_receipts</code> (supplier via <code>LEFT JOIN suppliers</code>; exclude cancelled <code>COALESCE(pr.status,'completed')!='cancelled'</code>). Lines:
+            <pre>SELECT pr.invoice_no, p.trade_name AS product_name,
+       COALESCE(pri.unit_name, iu.name) AS unit_name,
+       pri.qty, pri.cost_price, pri.lot_number, pri.expiry_date
+  FROM purchase_receipt_items pri
+  JOIN products p          ON p.id = pri.product_id
+  LEFT JOIN item_units iu  ON iu.id = p.unit_id
+  JOIN purchase_receipts pr ON pr.invoice_no = pri.invoice_no
+ WHERE &lt;date/filter on pr&gt; AND COALESCE(pr.status,'completed')!='cancelled'
+ ORDER BY pr.created_at, pr.invoice_no</pre>
+            <span class="inv">Link key = invoice_no (no numeric id). Use p.trade_name (not p.name/item_name). purchase_receipt_items has no is_cancelled/supplier_name. Mirror purchase.ts:406-423.</span> 2 sheets "บิลซื้อ"+"รายการรับ".</li>
+          <li><code>export:vat</code> — extract <code>export function computeVatSummary(db,{date_from,date_to})</code> in <code>reports.ts</code> (queries only, no event/gate). Both <code>reports:vatSummary</code> (return shape UNCHANGED) and <code>export:vat</code> call <code>requireAdmin(_e)</code> first, then <code>computeVatSummary</code>. <code>exports.ts</code> does <code>import { computeVatSummary } from './reports'</code>. 3 sheets (ภาษีขาย/ภาษีซื้อ-รับสินค้า/ภาษีซื้อ-ค่าใช้จ่าย). <span class="inv">requireAdmin stays in each handler, not in the pure fn.</span></li>
+          <li><code>export:expenses</code> — <code>requireAdmin(e)</code>. <span class="inv">expenses:list caps at 50 — call with pageSize:0 (→ no LIMIT) or a shared no-LIMIT fn.</span> 1 sheet "ค่าใช้จ่าย".</li>
+          <li>Register in <code>main.ts</code> (import + <code>registerExportHandlers()</code>).</li>
+        </ul>
+      </div>
+
+      <div class="step"><b>Step 4 — preload bridge.</b> Add <code>exports:{sales,purchases,vat,expenses}</code> namespace to <code>electron/preload.ts</code> (each <code>(f)=>invoke('export:*',f)</code>). <span class="inv">.ts only; renderer casts (window.api as any).exports.</span></div>
+
+      <div class="step"><b>Step 5 — shared ExportButton</b> (<code>src/components/ui/export-button.tsx</code>, NEW). Props <code>{onExport:()=&gt;Promise&lt;{ok,path?,canceled?}&gt;, label?, iconOnly?, tooltip?, disabled?, className?}</code>. <code>Button variant="elevated"</code> + <code>Download</code> icon (<code>size-4</code>); loading state; success(!canceled)→success toast(path), canceled→silent, throw→error toast. iconOnly → <code>h-9 w-9 p-0</code> + tooltip. <span class="inv">Button icon uses size-N; tooltip prop (not native title) per convention.</span></div>
+
+      <div class="step"><b>Step 6 — per-page buttons</b> (gate <code>const {isAdmin}=usePermission()</code>).
+        <ul>
+          <li>Manage/Sales.tsx — filter strip (near Settings2), <code>{isAdmin && &lt;ExportButton iconOnly onExport={()=&gt;(window.api as any).exports.sales({q,date_from:dateFrom,date_to:dateTo,status_filter,vat_filter})} tooltip="ส่งออก Excel"/&gt;}</code>.</li>
+          <li>Manage/Purchases.tsx, Manage/Expenses.tsx — same with their live filters.</li>
+          <li>Reports/VatReport.tsx — add button INSIDE the existing <code>setToolbar(...)</code> effect JSX next to MultiDatePicker (<code>:96-106</code>); keep <code>return ()=&gt;setToolbar(null)</code>; deps already include dateFrom/dateTo. <span class="inv">Not in render — no toolbar slot there. TabStrip control height.</span></li>
+        </ul>
+      </div>
+
+      <div class="step"><b>Step 7 — Export Hub</b> (<code>src/pages/Reports/ExportHub.tsx</code>, NEW). Self-gate body on <code>isAdmin</code> (route not guarded — <code>App.tsx:143-153</code>). Shared MultiDatePicker (month) + dataset rows (icon+label+desc+ExportButton with <code>{date_from,date_to}</code>): บิลขาย/บิลซื้อ/ภาษี VAT/ค่าใช้จ่าย. Wire: <code>App.tsx</code> lazy import + <code>&lt;Route path="export" .../&gt;</code> under Reports layout. <code>Reports/index.tsx</code> — add to <code>TABS</code> (<code>:22-26</code>) AND a branch to <code>resolveTab()</code> (<code>:30-34</code>): <code>if(pathname.startsWith('/reports/export')) return 'export'</code>.</div>
+
+      <div class="step"><b>Step 8 — verify.</b> <code>tsc -p tsconfig.node.json</code> + web tsc PASS. Build once; re-check better_sqlite3.node. Click-test 4 exports (Thai, DD/MM/YYYY, text barcode/lot, 2-sheet bills, SUM). Empty-set export → valid header-only sheet + success toast. >50-row expense month → all rows. Staff: buttons hidden, hub shows "เฉพาะผู้ดูแล", direct <code>exports.sales({})</code> → FORBIDDEN.</div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li>Type: both tsc green.</li>
+      <li>Native: <code>better_sqlite3.node</code> present post-build (exceljs externalized).</li>
+      <li>Functional: each .xlsx opens correctly (Thai/date/text-barcode/2-sheet/SUM); empty set + >50 expenses.</li>
+      <li>Security: staff buttons hidden + IPC FORBIDDEN; VAT report still works after the computeVatSummary refactor.</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li>exceljs not externalized → build breaks. → Step 1 adds it to <code>vite.config.ts:23</code>; verify dev launch.</li>
+      <li>vatSummary/expenses refactor regressing behaviour. → extract pure fn; existing handler wraps with identical shape; VAT click-test.</li>
+      <li>expenses 50-row cap → silent loss. → pageSize:0 path; verify >50.</li>
+      <li>/reports route un-guarded → staff URL-reach. → ExportHub self-gates; IPC requireAdmin is the data gate.</li>
+      <li>Dates as text → no Excel date-sort. → accepted for the one-format invariant; documented in-sheet.</li>
+    </ul>
+
+    <h3>Dependency order</h3>
+    <p>0 → 1 → 2 → 3 → 4 → (5 → 6) and (5 → 7) → 8.</p>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-24</footer>
+
+</div>
+</body>
+</html>

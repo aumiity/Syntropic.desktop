@@ -20,7 +20,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['better-sqlite3', 'electron'],
+              external: ['better-sqlite3', 'electron', 'exceljs'],
             },
           },
           resolve: resolveConfig,

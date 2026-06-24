@@ -22,6 +22,8 @@ import type { Sale } from '@/types'
 import type { ManageOutletContext } from './index'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
+import { usePermission } from '@/hooks/usePermission'
+import { ExportButton } from '@/components/ui/export-button'
 import { useShopVat } from '@/hooks/useShopVat'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -100,6 +102,7 @@ export default function ManageSalesPage() {
   // VAT status column + filter only appear once the shop is VAT-registered —
   // matches the hide-when-NO-VAT rule used across the app.
   const { vatEnabled } = useShopVat()
+  const { isAdmin } = usePermission()
 
   const [prefs, setPrefs] = usePagePrefs<SalesPrefs>('sales', SALES_DEFAULTS)
 
@@ -352,6 +355,20 @@ export default function ManageSalesPage() {
               </Popover>
             )
           })()}
+
+          {isAdmin && (
+            <ExportButton
+              iconOnly
+              tooltip="ส่งออก Excel"
+              onExport={() => (window.api as any).exports.sales({
+                q: q.trim() || undefined,
+                date_from: dateFrom || undefined,
+                date_to: dateTo || undefined,
+                status_filter: statusFilter,
+                vat_filter: vatFilter,
+              })}
+            />
+          )}
 
           <Popover>
             <PopoverTrigger asChild>

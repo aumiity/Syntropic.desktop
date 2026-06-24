@@ -34,6 +34,7 @@ const ReportsKhorYor10 = lazy(() => import('./pages/Reports/KhorYor10'))
 const ReportsKhorYor11 = lazy(() => import('./pages/Reports/KhorYor11'))
 const ReportsEnvLog = lazy(() => import('./pages/Reports/EnvLog'))
 const ReportsVat = lazy(() => import('./pages/Reports/VatReport'))
+const ReportsExport = lazy(() => import('./pages/Reports/ExportHub'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Theme = lazy(() => import('./pages/Theme'))
 const CSSPage = lazy(() => import('./pages/CSS'))
@@ -150,6 +151,7 @@ export default function App() {
                   <Route path="environment" element={<ReportsEnvLog />} />
                 </Route>
                 <Route path="vat" element={<ReportsVat />} />
+                <Route path="export" element={<ReportsExport />} />
               </Route>
               <Route path="settings" element={<Settings />} />
               <Route path="theme" element={<Theme />} />

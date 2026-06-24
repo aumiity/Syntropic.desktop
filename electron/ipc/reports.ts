@@ -3,6 +3,89 @@ import { getDb } from '../db'
 import { orderByBucket } from '../db/sortName'
 import { requireAdmin, getSessionRole, type Override } from '../auth/session'
 import { walkInCustomerId } from './codes'
+import type Database from 'better-sqlite3'
+// (type-only — value side never used here; matches backup.ts's Database.Database type)
+
+// VAT summary (ภาษีขาย / ภาษีซื้อ / ภ.พ.30) for a date window. Pure queries —
+// NO event, NO requireAdmin gate. The gate stays in each CALLER (reports:vatSummary
+// + export:vat both call requireAdmin first), so this can be shared by the export
+// handler without re-deriving the role. Return shape is the contract VatReport.tsx
+// + the export reader rely on — do NOT change it.
+// Output VAT reads per-sale snapshots (sales.total_vat, voided excluded; returns
+// write total_vat = 0 so they don't reduce output here). Input VAT = GR headers
+// (vat_mode != 'none', not cancelled) + expenses with a full tax invoice.
+export function computeVatSummary(db: Database.Database, filters: { date_from?: string; date_to?: string }) {
+  const { date_from, date_to } = filters
+
+  const sCond: string[] = [`s.status != 'voided'`]
+  const sParams: any[] = []
+  if (date_from) { sCond.push(`date(s.sold_at) >= ?`); sParams.push(date_from) }
+  if (date_to) { sCond.push(`date(s.sold_at) <= ?`); sParams.push(date_to) }
+  const output = db.prepare(`
+    SELECT COALESCE(SUM(s.total_vat), 0) AS vat_total,
+           COALESCE(SUM(CASE WHEN s.total_vat > 0 THEN s.total_amount ELSE 0 END), 0) AS amount_total,
+           COUNT(CASE WHEN s.total_vat > 0 THEN 1 END) AS bill_count
+    FROM sales s WHERE ${sCond.join(' AND ')}
+  `).get(...sParams) as any
+  const salesRows = db.prepare(`
+    SELECT s.id AS sale_id, s.invoice_no, s.sold_at, s.sale_type,
+           s.total_amount, s.total_vat, s.customer_id, s.customer_name_free,
+           c.full_name AS customer_name, c.address AS customer_address,
+           c.id_card AS customer_tax_id, c.branch AS customer_branch,
+           CASE WHEN ti.sale_id IS NOT NULL THEN 1 ELSE 0 END AS tax_invoice_issued
+    FROM sales s
+    LEFT JOIN customers c ON c.id = s.customer_id
+    LEFT JOIN tax_invoices ti ON ti.sale_id = s.id
+    WHERE ${sCond.join(' AND ')} AND s.total_vat > 0
+    ORDER BY s.sold_at
+  `).all(...sParams)
+
+  const pCond: string[] = [`COALESCE(pr.status,'completed') != 'cancelled'`, `COALESCE(pr.vat_mode,'none') != 'none'`]
+  const pParams: any[] = []
+  if (date_from) { pCond.push(`date(pr.created_at) >= ?`); pParams.push(date_from) }
+  if (date_to) { pCond.push(`date(pr.created_at) <= ?`); pParams.push(date_to) }
+  const purchase = db.prepare(`
+    SELECT COALESCE(SUM(pr.vat_amount), 0) AS vat_total, COUNT(*) AS bill_count
+    FROM purchase_receipts pr WHERE ${pCond.join(' AND ')}
+  `).get(...pParams) as any
+  const purchaseRows = db.prepare(`
+    SELECT pr.invoice_no, pr.supplier_invoice_no, pr.created_at, pr.vat_mode, pr.vat_rate, pr.vat_amount,
+           s.name AS supplier_name,
+           COALESCE((SELECT SUM(pri.qty * pri.cost_price) FROM purchase_receipt_items pri WHERE pri.invoice_no = pr.invoice_no), 0) AS total_cost
+    FROM purchase_receipts pr
+    LEFT JOIN suppliers s ON s.id = pr.supplier_id
+    WHERE ${pCond.join(' AND ')}
+    ORDER BY pr.created_at
+  `).all(...pParams)
+
+  const eCond: string[] = [`e.has_tax_invoice = 1`, `e.vat_amount > 0`]
+  const eParams: any[] = []
+  if (date_from) { eCond.push(`date(e.expense_date) >= ?`); eParams.push(date_from) }
+  if (date_to) { eCond.push(`date(e.expense_date) <= ?`); eParams.push(date_to) }
+  const expense = db.prepare(`
+    SELECT COALESCE(SUM(e.vat_amount), 0) AS vat_total, COUNT(*) AS bill_count
+    FROM expenses e WHERE ${eCond.join(' AND ')}
+  `).get(...eParams) as any
+  const expenseRows = db.prepare(`
+    SELECT e.expense_no, e.expense_date, e.amount, e.vat_amount, ec.name AS category_name
+    FROM expenses e
+    LEFT JOIN expense_categories ec ON ec.id = e.category_id
+    WHERE ${eCond.join(' AND ')}
+    ORDER BY e.expense_date
+  `).all(...eParams)
+
+  const inputTotal = (purchase.vat_total as number) + (expense.vat_total as number)
+  return {
+    output: { vat_total: output.vat_total, amount_total: output.amount_total, bill_count: output.bill_count },
+    input: {
+      purchase_vat: purchase.vat_total, purchase_count: purchase.bill_count,
+      expense_vat: expense.vat_total, expense_count: expense.bill_count,
+      vat_total: inputTotal,
+    },
+    net_vat: (output.vat_total as number) - inputTotal,
+    sales_rows: salesRows, purchase_rows: purchaseRows, expense_rows: expenseRows,
+  }
+}
 
 export function registerReportHandlers() {
   ipcMain.handle('reports:salesList', (_e, filters: {
@@ -470,77 +553,7 @@ export function registerReportHandlers() {
   // ขอคืน/ยกยอด).
   ipcMain.handle('reports:vatSummary', (_e, filters: { date_from?: string; date_to?: string }) => {
     requireAdmin(_e)
-    const db = getDb()
-    const { date_from, date_to } = filters
-
-    const sCond: string[] = [`s.status != 'voided'`]
-    const sParams: any[] = []
-    if (date_from) { sCond.push(`date(s.sold_at) >= ?`); sParams.push(date_from) }
-    if (date_to) { sCond.push(`date(s.sold_at) <= ?`); sParams.push(date_to) }
-    const output = db.prepare(`
-      SELECT COALESCE(SUM(s.total_vat), 0) AS vat_total,
-             COALESCE(SUM(CASE WHEN s.total_vat > 0 THEN s.total_amount ELSE 0 END), 0) AS amount_total,
-             COUNT(CASE WHEN s.total_vat > 0 THEN 1 END) AS bill_count
-      FROM sales s WHERE ${sCond.join(' AND ')}
-    `).get(...sParams) as any
-    const salesRows = db.prepare(`
-      SELECT s.id AS sale_id, s.invoice_no, s.sold_at, s.sale_type,
-             s.total_amount, s.total_vat, s.customer_id, s.customer_name_free,
-             c.full_name AS customer_name, c.address AS customer_address,
-             c.id_card AS customer_tax_id, c.branch AS customer_branch,
-             CASE WHEN ti.sale_id IS NOT NULL THEN 1 ELSE 0 END AS tax_invoice_issued
-      FROM sales s
-      LEFT JOIN customers c ON c.id = s.customer_id
-      LEFT JOIN tax_invoices ti ON ti.sale_id = s.id
-      WHERE ${sCond.join(' AND ')} AND s.total_vat > 0
-      ORDER BY s.sold_at
-    `).all(...sParams)
-
-    const pCond: string[] = [`COALESCE(pr.status,'completed') != 'cancelled'`, `COALESCE(pr.vat_mode,'none') != 'none'`]
-    const pParams: any[] = []
-    if (date_from) { pCond.push(`date(pr.created_at) >= ?`); pParams.push(date_from) }
-    if (date_to) { pCond.push(`date(pr.created_at) <= ?`); pParams.push(date_to) }
-    const purchase = db.prepare(`
-      SELECT COALESCE(SUM(pr.vat_amount), 0) AS vat_total, COUNT(*) AS bill_count
-      FROM purchase_receipts pr WHERE ${pCond.join(' AND ')}
-    `).get(...pParams) as any
-    const purchaseRows = db.prepare(`
-      SELECT pr.invoice_no, pr.supplier_invoice_no, pr.created_at, pr.vat_mode, pr.vat_rate, pr.vat_amount,
-             s.name AS supplier_name,
-             COALESCE((SELECT SUM(pri.qty * pri.cost_price) FROM purchase_receipt_items pri WHERE pri.invoice_no = pr.invoice_no), 0) AS total_cost
-      FROM purchase_receipts pr
-      LEFT JOIN suppliers s ON s.id = pr.supplier_id
-      WHERE ${pCond.join(' AND ')}
-      ORDER BY pr.created_at
-    `).all(...pParams)
-
-    const eCond: string[] = [`e.has_tax_invoice = 1`, `e.vat_amount > 0`]
-    const eParams: any[] = []
-    if (date_from) { eCond.push(`date(e.expense_date) >= ?`); eParams.push(date_from) }
-    if (date_to) { eCond.push(`date(e.expense_date) <= ?`); eParams.push(date_to) }
-    const expense = db.prepare(`
-      SELECT COALESCE(SUM(e.vat_amount), 0) AS vat_total, COUNT(*) AS bill_count
-      FROM expenses e WHERE ${eCond.join(' AND ')}
-    `).get(...eParams) as any
-    const expenseRows = db.prepare(`
-      SELECT e.expense_no, e.expense_date, e.amount, e.vat_amount, ec.name AS category_name
-      FROM expenses e
-      LEFT JOIN expense_categories ec ON ec.id = e.category_id
-      WHERE ${eCond.join(' AND ')}
-      ORDER BY e.expense_date
-    `).all(...eParams)
-
-    const inputTotal = (purchase.vat_total as number) + (expense.vat_total as number)
-    return {
-      output: { vat_total: output.vat_total, amount_total: output.amount_total, bill_count: output.bill_count },
-      input: {
-        purchase_vat: purchase.vat_total, purchase_count: purchase.bill_count,
-        expense_vat: expense.vat_total, expense_count: expense.bill_count,
-        vat_total: inputTotal,
-      },
-      net_vat: (output.vat_total as number) - inputTotal,
-      sales_rows: salesRows, purchase_rows: purchaseRows, expense_rows: expenseRows,
-    }
+    return computeVatSummary(getDb(), filters ?? {})
   })
 
   ipcMain.handle('reports:salesPurchaseTrend', (_e, filters: {

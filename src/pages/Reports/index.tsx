@@ -5,8 +5,9 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { ShieldCheck, LayoutDashboard, Landmark } from 'lucide-react'
+import { ShieldCheck, LayoutDashboard, Landmark, Download } from 'lucide-react'
 import { useShopVat } from '@/hooks/useShopVat'
+import { usePermission } from '@/hooks/usePermission'
 
 // Reports = แดชบอร์ด (operational + financial overview, the /reports index) +
 // รายงาน อย. The dashboard is the single analytics surface (Dashboard): KPIs,
@@ -23,6 +24,7 @@ const TABS = [
   { value: 'dashboard', to: '/reports',           label: 'แดชบอร์ด',       icon: LayoutDashboard },
   { value: 'vat',       to: '/reports/vat',       label: 'ภาษี (VAT)',     icon: Landmark },
   { value: 'fda',       to: '/reports/fda',       label: 'รายงาน อย.',     icon: ShieldCheck },
+  { value: 'export',    to: '/reports/export',    label: 'ส่งออก Excel',    icon: Download },
 ] as const
 
 type TabValue = typeof TABS[number]['value']
@@ -30,6 +32,7 @@ type TabValue = typeof TABS[number]['value']
 function resolveTab(pathname: string): TabValue {
   if (pathname.startsWith('/reports/fda')) return 'fda'
   if (pathname.startsWith('/reports/vat')) return 'vat'
+  if (pathname.startsWith('/reports/export')) return 'export'
   return 'dashboard'
 }
 
@@ -64,6 +67,7 @@ export default function ReportsLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { vatEnabled } = useShopVat()
+  const { isAdmin } = usePermission()
   const [hasVatHistory, setHasVatHistory] = useState(false)
   useEffect(() => {
     let alive = true
@@ -72,7 +76,9 @@ export default function ReportsLayout() {
       .catch(() => {})
     return () => { alive = false }
   }, [])
-  const visibleTabs = TABS.filter(t => t.value !== 'vat' || vatEnabled || hasVatHistory)
+  const visibleTabs = TABS.filter(t =>
+    (t.value !== 'vat' || vatEnabled || hasVatHistory) &&
+    (t.value !== 'export' || isAdmin))
   const current = resolveTab(location.pathname)
   const [summaryState, setSummaryState] = useState<{ tab: TabValue; cards: ReportsSummaryCard[] } | null>(null)
   const [toolbarState, setToolbarState] = useState<{ tab: TabValue; node: React.ReactNode } | null>(null)

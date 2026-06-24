@@ -285,6 +285,13 @@ const api = {
     saveCategory: (data: any) => invoke('expenses:saveCategory', data),
     reorderCategories: (ids: number[]) => invoke('expenses:reorderCategories', ids),
   },
+  // Excel export (admin-only finance datasets) → { ok, path? } / { ok:false, canceled }
+  exports: {
+    sales: (filters?: any) => invoke('export:sales', filters) as Promise<{ ok: boolean; path?: string; canceled?: boolean }>,
+    purchases: (filters?: any) => invoke('export:purchases', filters) as Promise<{ ok: boolean; path?: string; canceled?: boolean }>,
+    vat: (filters?: any) => invoke('export:vat', filters) as Promise<{ ok: boolean; path?: string; canceled?: boolean }>,
+    expenses: (filters?: any) => invoke('export:expenses', filters) as Promise<{ ok: boolean; path?: string; canceled?: boolean }>,
+  },
   // Auth — login picker + password verify (no session persisted)
   auth: {
     listLoginUsers: () => invoke('auth:listLoginUsers'),
