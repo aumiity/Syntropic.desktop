@@ -50,3 +50,6 @@ Thumbs.db
 
 # TypeScript cache
 *.tsbuildinfo
+
+# e2e screenshot artifacts
+tests/e2e/_shots/
