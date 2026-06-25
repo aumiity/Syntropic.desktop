@@ -40,6 +40,8 @@ interface FinanceWindow {
   sales_net: number
   sales_profit: number
   sale_count: number
+  purchase_count: number
+  purchase_total: number
 }
 interface FinanceSummary extends FinanceWindow {
   previous: (FinanceWindow & { date_from: string; date_to: string }) | null
@@ -77,7 +79,7 @@ interface LowStockRow {
 interface ExpiryCounts { expired: number; d30: number; d90: number; d180: number }
 interface ExpenseRow { category_id: number | null; category_name: string | null; amount: number }
 
-const EMPTY_FIN: FinanceSummary = { sales_net: 0, sales_profit: 0, sale_count: 0, previous: null }
+const EMPTY_FIN: FinanceSummary = { sales_net: 0, sales_profit: 0, sale_count: 0, purchase_count: 0, purchase_total: 0, previous: null }
 const EMPTY_STATS: SalesStats = {
   counts: { all: 0, retail: 0, wholesale: 0, rx: 0, return: 0, voided: 0 },
   new_customers: 0, unique_customers: 0, returning_customers: 0, avg_basket: 0,
@@ -261,7 +263,8 @@ export default function DashboardPage() {
   const dSales = delta(fin.sales_net, fin.previous?.sales_net)
   const dProfit = delta(fin.sales_profit, fin.previous?.sales_profit)
   const dOrders = delta(fin.sale_count, fin.previous?.sale_count)
-  const lowStockCount = lowStock.length
+  const dPurCount = delta(fin.purchase_count, fin.previous?.purchase_count)
+  const dPurTotal = delta(fin.purchase_total, fin.previous?.purchase_total)
 
   // Donut — sales mix by bill type (counts, not revenue). Tokens only.
   const donut = useMemo(() => {
@@ -354,34 +357,35 @@ export default function DashboardPage() {
       {/* 1 — KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 p-0.5">
         <MetricCard
-          label="ยอดขายรวม" value={baht(fin.sales_net)}
+          label="ยอดขาย" value={baht(fin.sales_net)}
           sub={dSales?.sub ?? `${fin.sale_count.toLocaleString()} บิล`}
           subIcon={dSales?.icon ?? undefined} subClassName={dSales?.cls}
           subTitle={dSales ? 'เทียบช่วงก่อนหน้า' : undefined}
           icon={ShoppingBag} tint="primary"
         />
         <MetricCard
-          label="กำไรสุทธิ" value={baht(fin.sales_profit)}
+          label="กำไร" value={baht(fin.sales_profit)}
           sub={dProfit?.sub} subIcon={dProfit?.icon ?? undefined} subClassName={dProfit?.cls}
           subTitle={dProfit ? 'เทียบช่วงก่อนหน้า' : undefined}
           icon={TrendingUp} tint={fin.sales_profit >= 0 ? 'success' : 'destructive'}
         />
         <MetricCard
-          label="จำนวนบิล" value={fin.sale_count.toLocaleString()}
+          label="จำนวนบิลขาย" value={fin.sale_count.toLocaleString()}
           sub={dOrders?.sub} subIcon={dOrders?.icon ?? undefined} subClassName={dOrders?.cls}
           subTitle={dOrders ? 'เทียบช่วงก่อนหน้า' : undefined}
           icon={ReceiptText} tint="info-soft"
         />
         <MetricCard
-          label="ลูกค้าใหม่" value={stats.new_customers.toLocaleString()}
-          sub={`จาก ${stats.unique_customers.toLocaleString()} ราย`}
-          icon={Users} tint="violet"
+          label="จำนวนบิลซื้อ" value={fin.purchase_count.toLocaleString()}
+          sub={dPurCount?.sub} subIcon={dPurCount?.icon ?? undefined} subClassName={dPurCount?.cls}
+          subTitle={dPurCount ? 'เทียบช่วงก่อนหน้า' : undefined}
+          icon={Truck} tint="violet"
         />
         <MetricCard
-          label="ต้องสั่งซื้อ" value={lowStockCount.toLocaleString()}
-          sub={lowStockCount > 0 ? 'สินค้าต่ำกว่าจุดสั่งซื้อ' : 'สต็อกปกติ'}
-          subClassName={lowStockCount > 0 ? 'text-amber-strong' : undefined}
-          icon={PackageX} tint={lowStockCount > 0 ? 'amber' : 'secondary'}
+          label="ยอดรวมสั่งซื้อ" value={baht(fin.purchase_total)}
+          sub={dPurTotal?.sub} subIcon={dPurTotal?.icon ?? undefined} subClassName={dPurTotal?.cls}
+          subTitle={dPurTotal ? 'เทียบช่วงก่อนหน้า' : undefined}
+          icon={Wallet} tint="amber"
         />
       </div>
 
