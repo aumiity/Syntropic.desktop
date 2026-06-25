@@ -15,6 +15,18 @@ export function formatCurrency(value: number): string {
   return value.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+// Sanitize a typed QUANTITY string to whole-number only. Quantities entered by
+// staff (รับเข้า/ขาย/ปรับสต็อก/แก้ล็อต) are countable units → integers; the
+// decimal layer lives only in qty_per_base / dose_qty / cost (not here).
+// Strips commas, then keeps the integer part before any dot ("5.5" → "5",
+// "1,234" → "1234", "007" → "7"). Returns '' for blank/non-numeric input so the
+// caller can still detect "not entered" — NEVER coerces blank → 0 (stock/cost
+// field invariant; validation gates stay the caller's job).
+export function toIntegerInput(raw: string): string {
+  const m = raw.replace(/,/g, '').match(/\d+/)
+  return m ? String(parseInt(m[0], 10)) : ''
+}
+
 // Spell a money amount as Thai words (e.g. 4200 → "สี่พันสองร้อยบาทถ้วน").
 // Handles millions via recursion, the สิบ/ยี่สิบ/เอ็ด rules, and satang.
 export function bahtText(value: number): string {

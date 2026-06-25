@@ -10,6 +10,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
+import { toIntegerInput } from '@/lib/utils'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
@@ -191,7 +192,7 @@ export function GeneralTab({
               </Field>
             </div>
             <Field label="จำนวนตั้งต้นการขาย">
-              <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', e.target.value)} min={1} step="any" />
+              <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', toIntegerInput(e.target.value))} min={1} step={1} />
             </Field>
           </div>
         </SectionCard>

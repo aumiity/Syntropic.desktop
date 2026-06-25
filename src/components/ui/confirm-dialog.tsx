@@ -14,7 +14,7 @@ interface VariantSpec {
   icon: ComponentType<{ className?: string }>
   tint: TintIconTint
   confirmVariant:
-    | 'default' | 'destructive' | 'success' | 'amber-soft'
+    | 'default' | 'destructive' | 'success' | 'amber' | 'amber-soft'
   cancelVariant:
     | 'elevated' | 'destructive-soft'
 }

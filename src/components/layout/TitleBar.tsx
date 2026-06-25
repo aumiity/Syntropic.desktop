@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Minus, Plus, X, Maximize2, Copy, Check, ShieldCheck, User } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useDevTabStore } from '@/stores/devTabStore'
 import { useUserStore } from '@/stores/userStore'
 
@@ -101,6 +102,7 @@ export function TitleBar() {
   const [hovered, setHovered] = useState<'close' | 'minimize' | 'maximize' | null>(null)
   const [resizeOpen, setResizeOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [confirmClose, setConfirmClose] = useState(false)
   const location = useLocation()
   const devTab = useDevTabStore((s) => s.tab)
   // DEV ONLY — role switch (admin <-> staff) for testing. REMOVE before release.
@@ -130,7 +132,7 @@ export function TitleBar() {
   const minimize = () => window.api.window.minimize()
   const maximize = () =>
     window.api.window.maximize().then(() => window.api.window.isMaximized().then(setMaximized))
-  const close = () => window.api.window.close()
+  const close = () => setConfirmClose(true)
   const setSize = (w: number, h: number) => {
     window.api.window.setSize(w, h)
     setResizeOpen(false)
@@ -276,6 +278,20 @@ export function TitleBar() {
           <X className={`${iconBase} text-[#4A0000]`} size={12} strokeWidth={4} />
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmClose}
+        onOpenChange={setConfirmClose}
+        variant="warning"
+        title="ปิดโปรแกรม?"
+        description="ต้องการปิดโปรแกรมใช่หรือไม่คะ ระบบจะสำรองข้อมูลอัตโนมัติก่อนปิด"
+        confirmLabel="ปิดโปรแกรม"
+        cancelLabel="ยกเลิก"
+        onConfirm={() => {
+          setConfirmClose(false)
+          window.api.window.close()
+        }}
+      />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { SettingRow } from '@/components/ui/setting-row'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { SectionCard } from '@/components/ui/card'
+import { toIntegerInput } from '@/lib/utils'
 import { Package, ScanBarcode, Settings, Plus, Trash2 } from 'lucide-react'
 import type { ProductCategory, ItemUnit } from '@/types'
 import type { FullProduct } from '../EditProduct/shared'
@@ -130,7 +131,7 @@ export function GeneralTab({
               </Field>
             </div>
             <Field label="จำนวนตั้งต้นการขาย">
-              <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', e.target.value)} min={1} step="any" />
+              <Input type="number" value={form.default_qty} onChange={e => setF('default_qty', toIntegerInput(e.target.value))} min={1} step={1} />
             </Field>
           </div>
         </SectionCard>

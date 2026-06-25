@@ -20,7 +20,7 @@ import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { getCurrentUserId } from '@/stores/userStore'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
-import { formatCurrency, formatDate, formatExpiry, cn } from '@/lib/utils'
+import { formatCurrency, formatDate, formatExpiry, cn, toIntegerInput } from '@/lib/utils'
 import dayjs from 'dayjs'
 import { Edit, Package, Filter, Check, Clock, ClockFading, ClockAlert, Info } from 'lucide-react'
 import type { ProductLot } from '@/types'
@@ -389,8 +389,8 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                   </Field>
                   <Field label={<>จำนวนคงเหลือ{unitSuffix(baseUnit)}</>}>
                     <Input variant="elevated" type="number" value={lotEditForm.qty_on_hand}
-                      onChange={e => setLotEditForm(f => ({ ...f, qty_on_hand: e.target.value }))}
-                      className="text-right" min={0} />
+                      onChange={e => setLotEditForm(f => ({ ...f, qty_on_hand: toIntegerInput(e.target.value) }))}
+                      className="text-right" min={0} step={1} />
                   </Field>
                 </div>
 

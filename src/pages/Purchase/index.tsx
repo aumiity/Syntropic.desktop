@@ -15,7 +15,7 @@ import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { DiscountDialog } from '@/components/ui/discount-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { TintIcon } from '@/components/ui/tint-icon'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, toIntegerInput } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { Supplier, NegativeStockAlert } from '@/types'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
@@ -25,7 +25,7 @@ import { extractVat } from '@/lib/vat'
 import {
   Plus, Trash2, Package, Pencil,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle,
-  Check, Minus, Info,
+  Check, Minus, Info, Receipt,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { motion } from 'framer-motion'
@@ -423,7 +423,7 @@ export default function PurchasePage() {
         const pick = (f: string) => colIdx[f] !== undefined ? (cells[colIdx[f]] ?? '') : ''
         const key = pick('key')
         if (!key) continue
-        const qtyClean = pick('qty').replace(/,/g, '')
+        const qtyClean = toIntegerInput(pick('qty'))   // จำนวนรับเข้าเป็นจำนวนเต็มเท่านั้น
         const totalClean = pick('total').replace(/,/g, '')
         const costClean = pick('cost').replace(/,/g, '')
         const qtyN = parseFloat(qtyClean)
@@ -767,7 +767,22 @@ export default function PurchasePage() {
 
                     {/* Header fields */}
                     <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-3 shrink-0">
-                      <div className="grid grid-cols-[1fr_200px_200px] gap-3">
+                      <div className="grid grid-cols-[170px_1fr_200px_200px] gap-3">
+
+                        {/* GR receipt no — auto-generated, read-only (โชว์เฉย ๆ) */}
+                        <div>
+                          <label className="block text-base font-semibold text-muted-foreground mb-1.5">เลขที่ใบรับ</label>
+                          <div className="relative">
+                            <Receipt className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground-subtle pointer-events-none" />
+                            <Input
+                              variant="filled"
+                              value={invoiceNo}
+                              readOnly
+                              tabIndex={-1}
+                              className="h-9 text-sm font-semibold cursor-default"
+                            />
+                          </div>
+                        </div>
 
                         {/* Supplier selector */}
                         <div>
@@ -799,7 +814,7 @@ export default function PurchasePage() {
                               value={supplierInvoiceNo}
                               onChange={e => setSupplierInvoiceNo(e.target.value)}
                               placeholder="PO-123456"
-                              className="h-10 text-sm"
+                              className="h-9 text-sm"
                             />
                           </div>
                         </div>
@@ -812,7 +827,7 @@ export default function PurchasePage() {
                             value={orderDate}
                             onChange={v => { setOrderDate(v); setDateErrors(e => ({ ...e, order: false })) }}
                             error={dateErrors.order}
-                            className="h-10 text-sm"
+                            className="h-9 text-sm"
                           />
                         </div>
                       </div>

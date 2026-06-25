@@ -9,7 +9,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Sortable
 import { useToast } from '@/components/ui/toast'
 import { getCurrentUserId } from '@/stores/userStore'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, cn, toIntegerInput } from '@/lib/utils'
 import type { ProductLot } from '@/types'
 import {
   ArrowUpCircle, ArrowDownCircle, Minus,
@@ -344,9 +344,10 @@ export function AdjustStockDialog({
                     variant="elevated"
                     type="number"
                     value={adjustTarget}
-                    onChange={e => setAdjustTarget(e.target.value)}
+                    onChange={e => setAdjustTarget(toIntegerInput(e.target.value))}
                     placeholder="0"
                     min={0}
+                    step={1}
                     className="h-10 rounded-lg text-lg font-semibold text-right"
                     autoFocus
                   />

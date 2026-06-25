@@ -5,6 +5,7 @@ import { Input } from './input'
 import { Label } from './label'
 import { Minus, Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { toIntegerInput } from '@/lib/utils'
 
 interface QtyDialogProps {
   open: boolean
@@ -81,9 +82,10 @@ export function QtyDialog({
                   autoFocus
                   value={qtyInput}
                   min={minQty}
+                  step={1}
                   style={{ MozAppearance: 'textfield' }}
                   onFocus={e => e.currentTarget.select()}
-                  onChange={e => setQtyInput(e.target.value)}
+                  onChange={e => setQtyInput(toIntegerInput(e.target.value))}
                   onKeyDown={e => { if (e.key === 'Enter') apply() }}
                   placeholder={String(minQty)}
                   className="h-12 flex-1 text-center text-3xl font-bold"
