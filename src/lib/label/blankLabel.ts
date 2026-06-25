@@ -143,10 +143,53 @@ function shopRow(settings: LabelSettingsForm, shop: BlankLabelShop | null, print
   return `<div style="${style}">${nameSpan}${dateSpan}</div>`
 }
 
+// LINE ID (left) + qty box (right) on ONE flex row — a 1:1 copy of the real
+// label's shop_line_id row (renderLabelSectionsHtml in html.ts), where the qty fold
+// sits on the right of the LINE row. On a blank, qty is per-dispense so it becomes a
+// compact "[ ___ ]" fill-in box (mirrors the real "[N]" format), styled with qty's OWN font/bold/offset so
+// the row height matches the filled label 1:1. CRITICAL: the row renders whenever
+// EITHER the LINE id text OR qty would show (mirrors the real label's
+// `show_shop_line_id || show_qty` filter). The old code gated the row on the LINE id
+// alone — so with LINE id hidden but qty on, the blank dropped this row while the
+// sample kept it, and every row below drifted up out of alignment.
+function lineIdQtyRow(settings: LabelSettingsForm, shop: BlankLabelShop | null): string {
+  const lineIdText = settings.show_shop_line_id && shop?.shop_line_id?.trim()
+    ? 'LINE: ' + shop.shop_line_id.trim()
+    : ''
+  const showQty = !!settings.show_qty
+  if (!lineIdText && !showQty) return ''
+  const sec = SECTIONS.find(s => s.key === 'shop_line_id')!
+  const secStyle = buildSectionStyle(sec, settings)
+  // Lift the LINE id offset OFF the flex container (it would drag the qty too) and
+  // re-apply to the LINE id span only; the qty write-in keeps its own offset.
+  const lineIdTransform = secStyle.transform
+  const style = styleToCss({
+    ...secStyle, transform: undefined,
+    whiteSpace: 'normal', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm',
+  } as CSSProperties)
+  const lineIdSpan =
+    `<span style="${styleToCss({ transform: lineIdTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}">${esc(lineIdText)}</span>`
+  const qtyStyle = styleToCss({
+    fontSize:   `${settings.font_size_qty}pt`,
+    fontWeight: settings.bold_qty ? 'bold' : 'normal',
+    whiteSpace: 'nowrap', flexShrink: 0,
+    display: 'flex', alignItems: 'baseline', gap: '0.3mm',
+    transform:  `translate(${settings.offset_x_qty}mm, ${settings.offset_y_qty}mm)`,
+  } as CSSProperties)
+  // Compact "[ ___ ]" fill-in box — mirrors the real label's "[N]" qty format and
+  // stays short so it never crowds the LINE id. ("จำนวน ___" was too wide.)
+  const qtySpan = showQty
+    ? `<span style="${qtyStyle}"><span>${esc('[')}</span>${writeRule('flex:0 0 6mm;min-width:5mm')}<span>${esc(']')}</span></span>`
+    : ''
+  return `<div style="${style}">${lineIdSpan}${qtySpan}</div>`
+}
+
 // Walk SECTIONS in the LOCKED template order, rendering each at its configured
 // position (buildSectionStyle). Shop rows carry REAL shop data; drug-info sections
-// become blank write-in rows / circle choices; qty / expiry / barcode are skipped
-// (per-dispense data that is meaningless on a generic blank). Visibility honours
+// become blank write-in rows / circle choices; qty becomes a compact "[ ___ ]" box on
+// the shop_line_id row (lineIdQtyRow); expiry / barcode are skipped (per-dispense data
+// meaningless on a generic blank, and they fold onto host rows that still render so
+// alignment holds). Visibility honours
 // the same show_* toggles as the real label, so a section hidden in Settings is
 // hidden here too. Empty rows are filtered so the `.label-fit > :first-child`
 // margin reset lands on the true first row.
@@ -171,15 +214,16 @@ function renderBlankInner(settings: LabelSettingsForm, shop: BlankLabelShop | nu
       }
       case 'shop_phone': break // merged into the shop_address row (no own line)
       case 'shop_line_id':
-        if (settings.show_shop_line_id && shop?.shop_line_id?.trim())
-          out.push(`<div style="${css}">${esc('LINE: ' + shop.shop_line_id.trim())}</div>`)
-        break
+        // LINE id (left) + จำนวน write-in (right) — mirrors the real label's
+        // shop_line_id row so the blank keeps the same vertical rhythm (see
+        // lineIdQtyRow). Empty string when neither would show → filtered below.
+        out.push(lineIdQtyRow(settings, shop)); break
       case 'header_line':
         if (settings.show_header_line) out.push(`<div style="${css}"></div>`)
         break
       case 'product':
         if (settings.show_product) out.push(fieldRow(css, 'ชื่อ')); break
-      case 'qty': break // no quantity on a generic blank
+      case 'qty': break // qty folds onto the shop_line_id row (จำนวน write-in) — no own line
       case 'dosage':
         // วิธีใช้ + ความถี่ on one shared line (frequency is no longer its own
         // section as of 2026-06-20 — it folds into the dosage row).
