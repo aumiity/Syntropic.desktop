@@ -1,15 +1,28 @@
 ---
 name: project-finance-manage-panel
-description: Finance overview panel (พับ/กางได้) ใน Manage › ประวัติการขาย — Phase 1 Sales
+description: Finance overview ใน Manage › ประวัติการขาย — admin แสดงตลอด+เลื่อนทั้งหน้า (rework 2026-06-25), staff เต็มจอเดิม
 metadata:
   type: project
 ---
 
 ## Finance overview panel — Manage › Sales
 
-**สถานะ:** DONE 2026-06-24 (tsc PASS; verified Playwright e2e 15/15 — `tests/e2e/verify-finance-panel.mjs`, ขับแอปจริงที่ viewport 1440×800 บังคับผ่าน CDP `Emulation.setDeviceMetricsOverride`: admin เห็น/กางแผง KPI+กราฟ+โน้ต ค่าตรง, สลับ granularity, จำสถานะข้ามแท็บ, staff ไม่เห็น+0 console error)
+**สถานะ:** DONE 2026-06-24; **REWORK layout 2026-06-25 (tsc PASS; in-app verify pending)** — เลิก toggle/animated band, เปลี่ยนเป็นการ์ดแยกแสดงตลอด + เลื่อนทั้งหน้า (ดู §Layout rework ล่าง)
 **SSOT:** `docs/plans/Finance_Manage_Panel.html`
 **ไฟล์เดียว:** `src/pages/Manage/Sales.tsx` (renderer-only, ไม่แตะ backend)
+
+### Layout rework 2026-06-25 (เจ้าของสั่ง)
+
+- **เลิกปุ่ม toggle + pref `showFinancePanel` + AnimatePresence band ทิ้งทั้งหมด** (ลบ import `framer-motion` ด้วย) — admin เห็นภาพรวมการเงิน **แสดงตลอด** ไม่มีพับ/กาง
+- **แก้ 2 ไฟล์:** `Sales.tsx` + **`Manage/index.tsx`** (scroll container ต้องอยู่ที่ layout เพื่อให้การ์ดสรุป 5 ใบ "เลื่อนรวม" ไปด้วย — ถ้า scroll อยู่ใน Sales.tsx การ์ดสรุปที่ render ใน slot นอก Outlet จะปักนิ่ง; เจ้าของขอให้เลื่อนด้วย)
+- **`Manage/index.tsx`:** `const scrollPage = current === 'sales' && isAdmin`; ครอบ [summary block + Outlet] ใน region เดียว — `scrollPage ? 'flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2' : 'flex-1 min-h-0 flex flex-col gap-2'`; outlet wrapper sizing สลับด้วย `scrollPage ? 'flex flex-col shrink-0 …' : 'flex flex-1 min-h-0 flex-col …'` (shrink-0 = สูงตามเนื้อหา → overflow → region scroll พา summary ไปด้วย; flex-1 = เต็มจอ ไม่ overflow แท็บอื่นไม่กระทบ)
+- **แยกตาม role ตรง ๆ ด้วย `isAdmin`:**
+  - **staff (ไม่ admin):** หน้า Sales เดิมเป๊ะ — การ์ดเดียว `flex flex-1 flex-col min-h-0` เต็มจอ, ตาราง scroll ในตัว, footer ติดล่าง (ไม่มีภาพรวมการเงินอยู่แล้ว)
+  - **admin:** Sales outer = **stack ธรรมดา `flex flex-col gap-3`** (ไม่ใช่ scroll container เอง — parent layout เลื่อนแทน); ลูก 2 ใบ = (1) การ์ดภาพรวมการเงิน `shrink-0` แสดงตลอด (2) การ์ดประวัติการขาย `shrink-0` พื้นที่ตาราง **สูงตายตัว `h-[34rem]` (~10 แถว)** scroll ในตัว
+- **ความสูงตาราง = `h-[34rem]`** (rem ตาม font-relative invariant, ห้าม px); แถวเปิดคอลัมน์ "รายการ" → 2 บรรทัด สูง ~3.5rem ดังนั้น 28rem ได้แค่ ~7-8 แถว ต้อง 34rem ถึงได้ ~10 — จุดจูนถ้าเจ้าของอยากได้มาก/น้อยกว่านี้
+- table area + history card open ใช้ ternary `isAdmin ? ... : ...` สลับ className (fixed-h vs flex-1) — staff path = string เดิมทุกตัว
+- finance fetch effect เลิก gate `showFinancePanel` เหลือ `if (!isAdmin) return` + dep `[isAdmin, dateFrom, dateTo, gran, toast]`
+- **หมายเหตุ:** e2e `verify-finance-panel.mjs` เดิมเช็ค toggle/persist → **ล้าสมัย ต้องรื้อก่อนรันซ้ำ**
 
 ### ขอบเขตเจตนา
 
@@ -41,7 +54,7 @@ metadata:
 
 ### Persistence
 
-- `showFinancePanel` เก็บผ่าน `usePagePrefs` key `SalesPrefs.showFinancePanel` (default `false`) — พับโดย default ไม่กวนคนที่ไม่ต้องการ
+- ~~`showFinancePanel` เก็บผ่าน `usePagePrefs`~~ — **ลบทิ้งแล้ว 2026-06-25** (ดู §Layout rework); admin เห็นตลอด ไม่ต้องจำสถานะเปิด/ปิดอีก
 
 ### Related memories
 

@@ -84,6 +84,9 @@ export default function ManageLayout() {
 
   const ctx = useMemo<ManageOutletContext>(() => ({ setSummary }), [setSummary])
   const summary = summaryState?.tab === current ? summaryState.cards : null
+  // Admin's Sales tab scrolls the whole page together (summary cards + finance
+  // card + history table). Every other tab keeps the fixed full-height card.
+  const scrollPage = current === 'sales' && isAdmin
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
@@ -126,6 +129,12 @@ export default function ManageLayout() {
           breathing room collapses together with the card row. The inner
           AnimatePresence still cross-fades the card set when moving between two
           tabs that both have cards. */}
+      {/* scrollPage (admin Sales) makes this region the page scroller so the
+          summary cards scroll away with the finance card + table. Other tabs
+          stay fixed-height (no overflow) — unchanged behaviour. */}
+      <div className={scrollPage
+        ? 'flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2'
+        : 'flex-1 min-h-0 flex flex-col gap-2'}>
       <AnimatePresence initial={false}>
         {summary && summary.length > 0 && (
           <motion.div
@@ -161,8 +170,11 @@ export default function ManageLayout() {
       {/* Tabs without summary cards (สต๊อคติดลบ, ค่าใช้จ่าย) would otherwise butt
           right up against the TabStrip divider — the summary block's pt-3 is what
           gives the other tabs their breathing room. Restore that gap here. */}
-      <div className={`flex flex-1 min-h-0 flex-col ${summary && summary.length > 0 ? '' : 'pt-3'}`}>
+      <div className={scrollPage
+        ? `flex flex-col shrink-0 ${summary && summary.length > 0 ? '' : 'pt-3'}`
+        : `flex flex-1 min-h-0 flex-col ${summary && summary.length > 0 ? '' : 'pt-3'}`}>
         <Outlet context={ctx} />
+      </div>
       </div>
     </div>
   )

@@ -32,7 +32,6 @@ import { MetricCard, SectionCard } from '@/components/ui/card'
 import { TrendChart, type TrendDatum } from '@/components/ui/charts/trend-chart'
 import { GranularityTabs, type Granularity } from '@/components/ui/charts/granularity-tabs'
 import { delta } from '@/lib/delta'
-import { AnimatePresence, motion } from 'framer-motion'
 
 // Money lives in the table rows; the summary slot now carries only the count
 // cards, which double as the status filter. rx (ใบสั่งยา) bills have no
@@ -109,7 +108,6 @@ interface SalesPrefs {
   showColItems: boolean
   showColTotal: boolean
   showColStatus: boolean
-  showFinancePanel: boolean
 }
 
 const SALES_DEFAULTS: SalesPrefs = {
@@ -123,7 +121,6 @@ const SALES_DEFAULTS: SalesPrefs = {
   showColItems: true,
   showColTotal: true,
   showColStatus: true,
-  showFinancePanel: false,
 }
 
 export default function ManageSalesPage() {
@@ -163,9 +160,8 @@ export default function ManageSalesPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
 
-  // Finance overview panel (admin-only). Open state persists; the trend's
+  // Finance overview (admin-only) — always shown, no toggle. The trend's
   // granularity re-seeds from the date mode but stays a manual override.
-  const showFinancePanel = prefs.showFinancePanel
   const [gran, setGran] = useState<Granularity>(() => granularityForMode(prefs.dateMode))
   const [finance, setFinance] = useState<FinanceSummary | null>(null)
   const [trend, setTrend] = useState<TrendDatum[]>([])
@@ -178,10 +174,10 @@ export default function ManageSalesPage() {
     setGran(granularityForMode(dateMode))
   }, [dateMode])
 
-  // Lazy admin fetch — only runs when an admin has the panel open. Both the
-  // button and this fetch gate on isAdmin (the IPCs also requireAdmin).
+  // Admin-only fetch — the panel is always shown for admins. Gated on isAdmin
+  // (the IPCs also requireAdmin).
   useEffect(() => {
-    if (!isAdmin || !showFinancePanel) return
+    if (!isAdmin) return
     let cancelled = false
     const r = window.api.reports as any
     setFinLoading(true)
@@ -201,7 +197,7 @@ export default function ManageSalesPage() {
       })
       .finally(() => { if (!cancelled) setFinLoading(false) })
     return () => { cancelled = true }
-  }, [isAdmin, showFinancePanel, dateFrom, dateTo, gran, toast])
+  }, [isAdmin, dateFrom, dateTo, gran, toast])
 
   // Detail modal — SaleDetailDialog owns the fetch lifecycle; we just pass invoice_no
   const [detailInvoice, setDetailInvoice] = useState<string | null>(null)
@@ -319,10 +315,89 @@ export default function ManageSalesPage() {
     return () => setSlotSummary(null)
   }, [setSlotSummary])
 
+  // Admin: a natural-height stack (finance card above the history table). The
+  // scroll lives in the parent Manage layout so the summary cards scroll too.
+  // Staff keeps the original single full-height card.
   return (
     <>
-      {/* List card */}
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
+      <div className={isAdmin
+        ? 'flex flex-col gap-3'
+        : 'flex flex-1 flex-col min-h-0'}>
+
+        {/* Finance overview card — admin only, always shown (no toggle). The
+            whole page scrolls; the history table below keeps its own fixed
+            height (~10 rows) and scrolls internally. */}
+        {isAdmin && (
+          <div className="shrink-0 bg-card rounded-card shadow-card border border-border p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <TintIcon icon={LineChart} tint="primary" size="sm" />
+                <h4 className="text-base font-semibold text-foreground">ภาพรวมการเงิน</h4>
+              </div>
+              <GranularityTabs value={gran} onChange={setGran} />
+            </div>
+
+            {finLoading ? (
+              <div className="h-[180px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
+            ) : finance == null ? null : (() => {
+              const net = finance.sales_net
+              const profit = finance.sales_profit
+              const prev = finance.previous
+              const dNet = delta(net, prev?.sales_net)
+              const dProfit = delta(profit, prev?.sales_profit)
+              const margin = net > 0 ? `${((profit / net) * 100).toFixed(1)}%` : '—'
+              const empty = net === 0 && trend.length === 0
+              if (empty) {
+                return (
+                  <div className="h-[180px] flex flex-col items-center justify-center text-sm text-muted-foreground">
+                    <LineChart className="size-10 mb-2 opacity-30" />
+                    ไม่มีข้อมูลการขายในช่วงนี้
+                  </div>
+                )
+              }
+              return (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <MetricCard
+                      label="ยอดขายสุทธิ" value={formatCurrency(net)}
+                      sub={dNet?.sub} subIcon={dNet?.icon ?? undefined} subClassName={dNet?.cls}
+                      subTitle={dNet ? 'เทียบช่วงก่อนหน้า' : undefined}
+                      icon={Wallet} tint="primary"
+                    />
+                    <MetricCard
+                      label="ต้นทุนขาย" value={formatCurrency(finance.sales_cost)}
+                      icon={ShoppingCart} tint="amber"
+                    />
+                    <MetricCard
+                      label="กำไรขั้นต้น" value={formatCurrency(profit)}
+                      sub={dProfit?.sub} subIcon={dProfit?.icon ?? undefined} subClassName={dProfit?.cls}
+                      subTitle={dProfit ? 'เทียบช่วงก่อนหน้า' : undefined}
+                      icon={TrendingUp} tint="success"
+                    />
+                    <MetricCard
+                      label="อัตรากำไร" value={margin}
+                      icon={Percent} tint="info-soft"
+                    />
+                  </div>
+
+                  <SectionCard icon={LineChart} title="แนวโน้มยอดขาย-กำไร" tint="primary">
+                    <TrendChart data={trend} granularity={gran} height={180} />
+                  </SectionCard>
+
+                  <div className="rounded-lg border border-info-soft bg-info-soft/40 px-3 py-2 text-sm text-info-soft-foreground">
+                    ภาพรวมการเงินของทั้งช่วงวันที่ที่เลือก — รวมทุกบิลในช่วง ไม่ขึ้นกับช่องค้นหา / ตัวกรองสถานะ / VAT ด้านล่าง (บิลที่ยกเลิกไม่ถูกนับเป็นยอดขาย)
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+        )}
+
+        {/* History table card — admin: fixed height, scrolls internally; staff:
+            fills the viewport (original behaviour). */}
+        <div className={isAdmin
+          ? 'shrink-0 bg-card rounded-card shadow-card border border-border overflow-hidden flex flex-col'
+          : 'flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden'}>
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={ReceiptText} tint="neutral" size="sm" />
@@ -459,103 +534,11 @@ export default function ManageSalesPage() {
             </PopoverContent>
           </Popover>
 
-          {/* Finance overview toggle — admin only, icon-only to fit the h-12
-              strip (a labelled button overflows at 1440px). */}
-          {isAdmin && (
-            <Button
-              size="lg"
-              variant={showFinancePanel ? 'default' : 'elevated'}
-              className="h-9 w-9 p-0 shrink-0"
-              tooltip="ภาพรวมการเงิน"
-              onClick={() => setPrefs({ showFinancePanel: !showFinancePanel })}
-            >
-              <LineChart className="size-4" />
-            </Button>
-          )}
         </div>
 
-        {/* Finance overview panel — between the filter strip and the table.
-            Animated height (mirrors Manage/index.tsx). Admin only. */}
-        {isAdmin && (
-          <AnimatePresence initial={false}>
-            {showFinancePanel && (
-              <motion.div
-                key="sales-finance"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.22, ease: 'easeOut' }}
-                className="shrink-0 overflow-hidden"
-              >
-                <div className="p-4 border-b border-border flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <TintIcon icon={LineChart} tint="primary" size="sm" />
-                      <h4 className="text-base font-semibold text-foreground">ภาพรวมการเงิน</h4>
-                    </div>
-                    <GranularityTabs value={gran} onChange={setGran} />
-                  </div>
-
-                  {finLoading ? (
-                    <div className="h-[180px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
-                  ) : finance == null ? null : (() => {
-                    const net = finance.sales_net
-                    const profit = finance.sales_profit
-                    const prev = finance.previous
-                    const dNet = delta(net, prev?.sales_net)
-                    const dProfit = delta(profit, prev?.sales_profit)
-                    const margin = net > 0 ? `${((profit / net) * 100).toFixed(1)}%` : '—'
-                    const empty = net === 0 && trend.length === 0
-                    if (empty) {
-                      return (
-                        <div className="h-[180px] flex flex-col items-center justify-center text-sm text-muted-foreground">
-                          <LineChart className="size-10 mb-2 opacity-30" />
-                          ไม่มีข้อมูลการขายในช่วงนี้
-                        </div>
-                      )
-                    }
-                    return (
-                      <>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          <MetricCard
-                            label="ยอดขายสุทธิ" value={formatCurrency(net)}
-                            sub={dNet?.sub} subIcon={dNet?.icon ?? undefined} subClassName={dNet?.cls}
-                            subTitle={dNet ? 'เทียบช่วงก่อนหน้า' : undefined}
-                            icon={Wallet} tint="primary"
-                          />
-                          <MetricCard
-                            label="ต้นทุนขาย" value={formatCurrency(finance.sales_cost)}
-                            icon={ShoppingCart} tint="amber"
-                          />
-                          <MetricCard
-                            label="กำไรขั้นต้น" value={formatCurrency(profit)}
-                            sub={dProfit?.sub} subIcon={dProfit?.icon ?? undefined} subClassName={dProfit?.cls}
-                            subTitle={dProfit ? 'เทียบช่วงก่อนหน้า' : undefined}
-                            icon={TrendingUp} tint="success"
-                          />
-                          <MetricCard
-                            label="อัตรากำไร" value={margin}
-                            icon={Percent} tint="info-soft"
-                          />
-                        </div>
-
-                        <SectionCard icon={LineChart} title="แนวโน้มยอดขาย-กำไร" tint="primary">
-                          <TrendChart data={trend} granularity={gran} height={180} />
-                        </SectionCard>
-
-                        <div className="rounded-lg border border-info-soft bg-info-soft/40 px-3 py-2 text-sm text-info-soft-foreground">
-                          ภาพรวมการเงินของทั้งช่วงวันที่ที่เลือก — รวมทุกบิลในช่วง ไม่ขึ้นกับช่องค้นหา / ตัวกรองสถานะ / VAT ด้านล่าง (บิลที่ยกเลิกไม่ถูกนับเป็นยอดขาย)
-                        </div>
-                      </>
-                    )
-                  })()}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        )}
-
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+        <div className={isAdmin
+          ? 'h-[34rem] [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card'
+          : 'flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card'}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -693,6 +676,7 @@ export default function ManageSalesPage() {
             )
           })()}
           <Pagination page={page} totalPages={totalPages} onPageChange={load} className="w-auto" />
+        </div>
         </div>
       </div>
 
