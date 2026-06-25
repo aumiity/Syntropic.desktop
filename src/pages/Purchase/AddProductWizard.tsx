@@ -751,14 +751,6 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                     <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} maxLength={30} placeholder="เช่น A2401" className="h-9" />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันผลิต</label>
-                    {matchedLot ? (
-                      <div className="h-9 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.manufactured_date ? formatDate(matchedLot.manufactured_date) : '—'}</div>
-                    ) : (
-                      <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} className="h-9" />
-                    )}
-                  </div>
-                  <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันหมดอายุ {!matchedLot && <span className="text-destructive">*</span>}</label>
                     {matchedLot ? (
                       <div className="h-9 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.expiry_date ? formatDate(matchedLot.expiry_date) : '—'}</div>
@@ -766,19 +758,27 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       <DateInput value={row.expiry_date} onChange={v => patch({ expiry_date: v })} className="h-9" />
                     )}
                   </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันผลิต</label>
+                    {matchedLot ? (
+                      <div className="h-9 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.manufactured_date ? formatDate(matchedLot.manufactured_date) : '—'}</div>
+                    ) : (
+                      <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} className="h-9" />
+                    )}
+                  </div>
                 </div>
 
-                {/* chip ยาวเท่าข้อความ บรรทัดเดียวกัน: ล็อตซ้ำชิดซ้าย (amber) + อายุคงเหลือชิดขวาให้ตรงวันหมดอายุ (สีตามความเร่งด่วน) */}
+                {/* แถวป้าย = grid 3 คอลัมน์ตรงกับช่องด้านบน: ล็อตซ้ำใต้ Lot No. (คอลัมน์ 1) + อายุคงเหลือใต้วันหมดอายุ (คอลัมน์ 2, สีตามความเร่งด่วน) */}
                 {(matchedLot || expMonths !== null) && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="mt-3 grid grid-cols-3 gap-3">
                     {matchedLot && (
-                      <div className="inline-flex items-center gap-1.5 rounded-lg border border-amber-strong/30 bg-amber-soft/50 px-3 py-1.5 text-xs text-amber-strong">
+                      <div className="col-start-1 inline-flex items-center gap-1.5 rounded-lg border border-amber-strong/30 bg-amber-soft/50 px-3 py-1.5 text-xs text-amber-strong">
                         <AlertTriangle className="size-3.5 shrink-0" />
                         <span>ล็อต {matchedLot.lot_number} มีอยู่แล้วในสต็อก</span>
                       </div>
                     )}
                     {expMonths !== null && (
-                      <div className={`ml-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs ${
+                      <div className={`col-start-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs ${
                         expMonths <= 0 ? 'border-destructive bg-destructive text-destructive-foreground'
                         : expMonths <= 6 ? 'border-destructive/30 bg-destructive-soft/50 text-destructive'
                         : expMonths <= 12 ? 'border-border bg-muted/50 text-foreground-subtle'
