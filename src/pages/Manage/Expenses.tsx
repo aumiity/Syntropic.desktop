@@ -11,8 +11,6 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, SortableTableHead,
 } from '@/components/ui/table'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
-import { usePermission } from '@/hooks/usePermission'
-import { ExportButton } from '@/components/ui/export-button'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Expense, ExpenseCategory } from '@/types'
 import { ReceiptText, Plus, Edit, Trash2 } from 'lucide-react'
@@ -57,7 +55,6 @@ function sortCmp(a: string | number | null, b: string | number | null, dir: Sort
 // sorted/filtered client-side (no server pagination needed).
 export default function ManageExpensesPage() {
   const { toast } = useToast()
-  const { isAdmin } = usePermission()
 
   const [prefs, setPrefs] = usePagePrefs<ExpensesPrefs>('expenses', EXPENSES_DEFAULTS)
   const initialRange = prefs.dateMode === 'custom'
@@ -169,18 +166,6 @@ export default function ManageExpensesPage() {
             }}
             className="shrink-0"
           />
-
-          {isAdmin && (
-            <ExportButton
-              iconOnly
-              tooltip="ส่งออก Excel"
-              onExport={() => (window.api as any).exports.expenses({
-                date_from: dateFrom || undefined,
-                date_to: dateTo || undefined,
-                category_id: catFilter === 'all' ? undefined : Number(catFilter),
-              })}
-            />
-          )}
 
           <Button size="lg" variant="elevated" className="h-9 px-2 shrink-0" onClick={openAdd}>
             <Plus className="size-4" /> เพิ่มค่าใช้จ่าย

@@ -1,6 +1,6 @@
 ---
 name: project_excel_export
-description: Export-to-Excel (.xlsx) feature — exceljs (already installed), main-side export:* handlers (requireAdmin + full-set queries), per-page ExportButton + central ExportHub
+description: Export-to-Excel (.xlsx) feature — exceljs (already installed), main-side export:* handlers (requireAdmin + full-set queries); central ExportHub reworked into a grouped card dashboard (2026-06-25); per-page ExportButton REMOVED from Manage
 metadata:
   type: project
 ---
@@ -32,3 +32,11 @@ metadata:
 **เฟส 2 DONE + VERIFIED 2026-06-24 (real-Electron e2e 16/16 — `tests/e2e/verify-excel-export-phase2.mjs`).** staff export ได้ **วันหมดอายุ + สต็อกเหลือน้อย** (ไว้สั่งของ) — handler `export:expiry`/`export:lowStock` **ไม่มี requireAdmin** แต่ strip คอลัมน์ต้นทุนเมื่อ `getSessionRole(e)!=='admin'` (สร้าง `columns[]` แล้ว `if(isAdmin) columns.push(cost...)` — exceljs เขียนเฉพาะ key ที่มีใน columns → cost ไม่หลุดลงไฟล์). expiry เขียน query เอง (expiringLots บังคับ LIMIT เสมอ — ตัด LIMIT ออก); lowStock คืน full-set อยู่แล้ว. ปุ่มในหน้า Expiry/LowStock **ไม่ gate isAdmin** (staff เห็น/ใช้ได้); ExportHub เพิ่ม 2 row (`noDate:true` → ส่ง `{}` ไม่ส่ง date range; admin-only ใน hub = ได้ cost). verify: admin 10 คอลัมน์ (มีต้นทุน) / staff 8 คอลัมน์ (ไม่มีต้นทุน) + staff ยังโดน FORBIDDEN ที่ finance. SheetColumn ต้อง export จาก excel.ts.
 
 เหลือ: pure in-app click-test ผ่าน UI (ปุ่มจริง) — โค้ด+ไฟล์ verify แล้วครบ. ดู [[feedback_vat_inclusive_display]], [[project_invoice_matcher_csv]] (CSV เดิม BOM pattern).
+
+**REWORK 2026-06-25 (tsc PASS; click-test pending; ยังไม่ commit).** ยกเครื่อง `Reports/ExportHub.tsx` จาก list การ์ดแบน ๆ ปุ่มเดียว → **แดชบอร์ดการ์ดจัดกลุ่มตามหมวด** (สไตล์ Hygeia, ขยายได้). Plan SSOT = `docs/plans/Report_Export_Dashboard.html` (ผ่าน write-plan audit 2 รอบ + priest). การเปลี่ยนแปลงหลัก:
+- **ถอดปุ่ม `ExportButton` + import ออกจาก Manage 5 หน้า** (Sales/Purchases/Expenses/Expiry/LowStock). Purchases+Expenses ปุ่ม gate `isAdmin` ที่ใช้ที่เดียว → ลบ `isAdmin`/`usePermission` ที่ตายด้วย; Sales เก็บ `isAdmin` (ใช้ที่อื่น 185/479/494); Expiry/LowStock ปุ่มไม่ได้ gate อยู่แล้ว. (VatReport ปุ่มใน setToolbar **ไม่ได้แตะ** — ยังอยู่.)
+- **แท็บ "ส่งออก" เปิดให้ทุก role เห็น** (เดิม gate `isAdmin` ใน `index.tsx` visibleTabs → ลบ clause นั้น + ลบ `isAdmin`/`usePermission` ที่ตายใน index.tsx). เหตุผล HARD: staff เคยส่งออก หมดอายุ/เหลือน้อย ผ่านปุ่มใน Manage ที่เพิ่งถอด → ต้องให้ staff เข้าถึง hub แทน ไม่งั้นเสียสิทธิ์เฟส 2.
+- **ExportHub ไม่ full-page admin-gate แล้ว** (ลบ block "เฉพาะผู้ดูแล") → self-gate ราย "หมวด": 4 หมวด = การขาย/การซื้อ/บัญชี-ภาษี (adminOnly) + สต็อก (ทุก role). staff เห็นเฉพาะหมวดสต็อก 2 การ์ด.
+- **การ์ดมีตัวเลขสรุป + ปุ่ม Export** (ประกอบจาก primitive `Card`/`CardHeader`/`CardTitle`/`CardAction`/`CardDescription`/`CardContent`/`CardFooter` ไม่สร้าง primitive ใหม่). ตัวเลข: ขาย/ซื้อ/ค่าใช้จ่าย จาก `reports.financeSummary` (sales_net/sale_count/purchase_total/purchase_count/expense_total), VAT จาก `reports.vatSummary.net_vat` — **ยิงเฉพาะ admin** (2 ตัวนี้ requireAdmin จะ throw ถ้า staff); หมดอายุ จาก `reports.expiringLots({count_only:true}).counts` (d90/expired), เหลือน้อย จาก `products.lowStock({}).count` (**คืน object `{rows,count,...}` ไม่ใช่ array — อย่าอ่าน `.length`**) — 2 ตัวนี้ไม่ gate, staff เรียกได้. เงินแสดง `฿${formatCurrency(...)}`.
+- **การ์ด VAT ซ่อนเมื่อร้านไม่เคยมี VAT** (`vatEnabled || hasVatHistory` เหมือนแท็บ VAT) + gate การยิง vatSummary ด้วยเงื่อนไขเดียวกัน.
+- กับดัก: `tsconfig` `noUnusedLocals:false` → tsc ไม่จับ dead var ต้อง grep เอง.

@@ -7,7 +7,6 @@ import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
 import { ShieldCheck, LayoutDashboard, Landmark, Download } from 'lucide-react'
 import { useShopVat } from '@/hooks/useShopVat'
-import { usePermission } from '@/hooks/usePermission'
 
 // Reports = แดชบอร์ด (operational + financial overview, the /reports index) +
 // รายงาน อย. The dashboard is the single analytics surface (Dashboard): KPIs,
@@ -67,7 +66,6 @@ export default function ReportsLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { vatEnabled } = useShopVat()
-  const { isAdmin } = usePermission()
   const [hasVatHistory, setHasVatHistory] = useState(false)
   useEffect(() => {
     let alive = true
@@ -76,9 +74,12 @@ export default function ReportsLayout() {
       .catch(() => {})
     return () => { alive = false }
   }, [])
+  // The export/report hub is visible to ALL roles: staff still need to export
+  // วันหมดอายุ / สต็อกเหลือน้อย (the per-page buttons that used to carry that were
+  // removed). The hub self-gates its admin-only card groups by role, and the
+  // financial IPC stays requireAdmin-gated, so staff only see the สต็อก group.
   const visibleTabs = TABS.filter(t =>
-    (t.value !== 'vat' || vatEnabled || hasVatHistory) &&
-    (t.value !== 'export' || isAdmin))
+    (t.value !== 'vat' || vatEnabled || hasVatHistory))
   const current = resolveTab(location.pathname)
   const [summaryState, setSummaryState] = useState<{ tab: TabValue; cards: ReportsSummaryCard[] } | null>(null)
   const [toolbarState, setToolbarState] = useState<{ tab: TabValue; node: React.ReactNode } | null>(null)

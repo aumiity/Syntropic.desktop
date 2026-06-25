@@ -8,7 +8,6 @@ import {
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
-import { ExportButton } from '@/components/ui/export-button'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/QuickStockDialog'
@@ -213,16 +212,6 @@ export default function ManageLowStockPage() {
               ))}
             </SelectContent>
           </Select>
-
-          {/* Export — staff-allowed (cost columns stripped main-side for non-admin) */}
-          <ExportButton
-            iconOnly
-            tooltip="ส่งออก Excel"
-            onExport={() => (window.api as any).exports.lowStock({
-              q: q.trim() || undefined,
-              category_id: categoryId !== '0' ? Number(categoryId) : undefined,
-            })}
-          />
 
           {/* Status filter popover — was previously the clickable summary cards */}
           {(() => {

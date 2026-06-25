@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ศูนย์รวมรายงาน/ส่งออก แบบการ์ด — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>ศูนย์รวมรายงาน/ส่งออก แบบการ์ด</h1>
+    <p>ยกเครื่องแท็บ "ส่งออก" ใน /reports ให้เป็นแดชบอร์ดการ์ดจัดกลุ่มตามหมวด — แต่ละการ์ดมีตัวเลขสรุป + ปุ่ม Export Excel; ถอดปุ่มส่งออกออกจากหน้า Manage 5 หน้า</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ</span>
+      <span class="pill">6 ชุดข้อมูลเดิม · ไม่แตะ backend</span>
+      <span class="pill">2026-06-25</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><strong>ปัญหา:</strong> ปุ่ม "ส่งออก Excel" กระจายอยู่ในหน้า <code>การจัดการ</code> หลายหน้า (Sales/Purchases/Expenses/Expiry/LowStock) ปนกับงาน operate/แก้ไข ทำให้รก และหน้าศูนย์รวม (<code>/reports/export</code>) เดิมเป็นแค่การ์ดเรียงยาว ๆ ปุ่มเดียว ดูแล้วจืด ไม่มีบริบท</p>
+    <p><strong>แผนนี้แก้โดย:</strong> ยกเครื่องเนื้อหาแท็บ <code>ส่งออก</code> (ไฟล์ <code>ExportHub.tsx</code>) ให้เป็น "แดชบอร์ดรายงานแบบการ์ด" จัดกลุ่มตามหมวดสไตล์ Hygeia (การขาย / การซื้อ / บัญชี-ภาษี / สต็อก) แต่ละรายงาน = การ์ด 1 ใบที่มี <em>ตัวเลขสรุป</em> (เช่น ยอดขายรวม + จำนวนบิล) แล้วมีปุ่ม Export Excel ในการ์ด — แล้วถอดปุ่มส่งออกออกจากหน้า Manage ทั้ง 5 หน้า</p>
+    <p><strong>เสร็จแล้วได้:</strong> ที่เดียวจบสำหรับการส่งออก/ดูสรุปย่อ, หน้า Manage สะอาดขึ้น, และโครงการ์ดเป็น config array ที่เพิ่มรายงานใหม่ทีหลังได้ด้วยการเพิ่ม 1 entry (เมื่ออยากได้พรีวิว/พิมพ์สวยค่อยมาเติม) — รอบนี้ <strong>ไม่แตะ backend เลย</strong> (reuse IPC อ่าน + handler export เดิมทั้งหมด)</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p>การ์ดดึง "ตัวเลขสรุป" จาก IPC สรุปที่มีอยู่แล้ว (admin) และ snapshot count (ทุก role) — ปุ่มส่งออกเรียก handler <code>exports.*</code> เดิม:</p>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 660 270" role="img" aria-label="ผังการดึงตัวเลขสรุปและการส่งออกของศูนย์รวมรายงาน">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+      <rect class="box" x="20" y="100" width="190" height="60" rx="10"/>
+      <text x="115" y="126" text-anchor="middle">ExportHub (renderer)</text>
+      <text class="sub" x="115" y="146" text-anchor="middle">Reports/ExportHub.tsx</text>
+
+      <rect class="box" x="430" y="14" width="210" height="48" rx="10"/>
+      <text x="535" y="34" text-anchor="middle">financeSummary</text>
+      <text class="sub" x="535" y="51" text-anchor="middle">ขาย/ซื้อ/ค่าใช้จ่าย (admin)</text>
+
+      <rect class="box" x="430" y="74" width="210" height="48" rx="10"/>
+      <text x="535" y="94" text-anchor="middle">vatSummary · net_vat</text>
+      <text class="sub" x="535" y="111" text-anchor="middle">ภาษีสุทธิ (admin)</text>
+
+      <rect class="box" x="430" y="134" width="210" height="48" rx="10"/>
+      <text x="535" y="154" text-anchor="middle">expiringLots / lowStock</text>
+      <text class="sub" x="535" y="171" text-anchor="middle">count (ทุก role)</text>
+
+      <rect class="box warn" x="430" y="200" width="210" height="48" rx="10"/>
+      <text x="535" y="220" text-anchor="middle">exports.&lt;key&gt;</text>
+      <text class="sub" x="535" y="237" text-anchor="middle">บันทึก .xlsx (เดิม)</text>
+
+      <path class="edge" d="M210,118 C300,90 340,55 426,42"/>
+      <text class="elabel" x="318" y="72" text-anchor="middle">ตัวเลข</text>
+      <path class="edge" d="M210,124 C300,118 350,100 426,98"/>
+      <path class="edge" d="M210,134 C300,150 350,158 426,158"/>
+      <path class="edge hot" d="M210,150 C300,200 350,222 426,224"/>
+      <text class="elabel" x="318" y="205" text-anchor="middle">กดปุ่มในการ์ด</text>
+    </svg>
+    </div>
+
+    <h3>การจับคู่ หมวด → การ์ด → IPC</h3>
+    <table>
+      <thead><tr><th>หมวด</th><th>การ์ด</th><th>role</th><th>ตัวเลขบนการ์ด</th><th>IPC อ่าน (ตัวเลข)</th><th>ปุ่มส่งออก</th></tr></thead>
+      <tbody>
+        <tr><td>การขาย</td><td>บิลขาย</td><td>admin</td><td>ยอดขายรวม · จำนวนบิล</td><td><code>reports.financeSummary</code> → <code>sales_net</code>, <code>sale_count</code></td><td><code>exports.sales</code></td></tr>
+        <tr><td>การซื้อ</td><td>บิลซื้อ</td><td>admin</td><td>ยอดซื้อรวม · จำนวนบิล</td><td><code>reports.financeSummary</code> → <code>purchase_total</code>, <code>purchase_count</code></td><td><code>exports.purchases</code></td></tr>
+        <tr><td>บัญชี-ภาษี</td><td>ค่าใช้จ่าย</td><td>admin</td><td>ยอดค่าใช้จ่ายรวม</td><td><code>reports.financeSummary</code> → <code>expense_total</code></td><td><code>exports.expenses</code></td></tr>
+        <tr><td>บัญชี-ภาษี</td><td>ภาษี (VAT)</td><td>admin</td><td>ภาษีสุทธิ (ขาย−ซื้อ)</td><td><code>reports.vatSummary</code> → <code>net_vat</code></td><td><code>exports.vat</code></td></tr>
+        <tr><td>สต็อก</td><td>วันหมดอายุ</td><td>ทุก role</td><td>ล็อตใกล้หมดอายุ (90 วัน) · หมดอายุแล้ว</td><td><code>reports.expiringLots</code> <code>{count_only:true}</code> → <code>counts.d90 / counts.expired</code></td><td><code>exports.expiry</code></td></tr>
+        <tr><td>สต็อก</td><td>สต็อกเหลือน้อย</td><td>ทุก role</td><td>จำนวนรายการต่ำกว่าจุดสั่งซื้อ</td><td><code>products.lowStock</code> → <code>count</code> (ผลลัพธ์เป็น object <code>{rows,count,...}</code> ไม่ใช่ array)</td><td><code>exports.lowStock</code></td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--muted)">หมายเหตุ: การ์ดที่อิงวันที่ (ขาย/ซื้อ/ค่าใช้จ่าย/VAT) ใช้ช่วงเวลาจาก MultiDatePicker บนแถบ TabStrip; การ์ดสต็อก (หมดอายุ/เหลือน้อย) เป็น snapshot ไม่อิงช่วงเวลา</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>หน้า Manage 5 หน้า มีปุ่ม ExportButton (iconOnly) อยู่ใน filter strip</li>
+        <li>แท็บ <code>ส่งออก</code> = การ์ดเรียงแถวยาว 6 ใบ ปุ่มเดียวต่อใบ ไม่มีตัวเลข</li>
+        <li>แท็บ <code>ส่งออก</code> ซ่อนจาก staff; staff ส่งออก หมดอายุ/เหลือน้อย ผ่านปุ่มใน Manage</li>
+        <li>ทั้งหน้า ExportHub gate ด้วย <code>isAdmin</code> (staff เห็น "เฉพาะผู้ดูแล")</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>หน้า Manage ไม่มีปุ่มส่งออกแล้ว (สะอาดขึ้น)</li>
+        <li>แท็บ <code>ส่งออก</code> = การ์ดจัดกลุ่ม 4 หมวด แต่ละการ์ดมีตัวเลขสรุปเด่น + ปุ่ม Export Excel</li>
+        <li>แท็บ <code>ส่งออก</code> เห็นได้ทุก role; staff เห็นเฉพาะหมวด "สต็อก" (2 การ์ด) → ยังส่งออก หมดอายุ/เหลือน้อย ได้เหมือนเดิม</li>
+        <li>เพิ่มรายงานใหม่ = เพิ่ม 1 entry ใน config array</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>ที่เดียวจบสำหรับส่งออก + เห็นตัวเลขสรุปย่อ ๆ ก่อนส่งออก</li>
+    <li>หน้า Manage โล่งขึ้น โฟกัสงาน operate</li>
+    <li>ไม่แตะ backend → ความเสี่ยงต่ำ, รีวิวง่าย</li>
+    <li>โครง config ขยายได้ตามวิสัยทัศน์ Hygeia โดยไม่ต้องรื้อ</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>การ์ดต้องยิง IPC สรุปเพิ่ม (financeSummary + vatSummary สำหรับ admin) ตอนเปิดหน้า/เปลี่ยนวันที่ — เบามาก (aggregate 2 query)</li>
+    <li><code>products.lowStock</code> รันคิวรีเต็มเพื่ออ่าน <code>count</code> ที่ handler คืนมาในผลลัพธ์ object (ยอมรับได้; รายการ low-stock ปกติไม่เยอะ)</li>
+    <li>หมวดที่มีการ์ดเดียว (การขาย/การซื้อ) จะดูโล่งช่วงแรก — แลกกับโครงที่ขยายได้</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง (invariant)</h4><ul class="clean">
+    <li><strong>สิทธิ์ staff ส่งออก หมดอายุ/เหลือน้อย ต้องไม่หาย</strong> (เฟส 2 ของ Excel Export ตั้งใจให้ staff ทำได้) → ต้องเปิดแท็บ <code>ส่งออก</code> ให้ staff เห็น และโชว์หมวดสต็อกให้ staff</li>
+    <li><code>financeSummary</code> + <code>vatSummary</code> ติด <code>requireAdmin</code> → ห้ามเรียกเมื่อ <code>!isAdmin</code> (จะ throw) — guard ด้วย isAdmin</li>
+    <li>No emojis / semantic tokens เท่านั้น / ใช้ primitive จาก <code>components/ui</code> (Card/CardFooter/ExportButton/TintIcon) — ห้าม raw HTML</li>
+    <li>ทุก bar = h-12, control ข้างใน = h-9 (MultiDatePicker บน TabStrip คงเดิม); ปุ่ม ExportButton เป็น h-9 อยู่แล้ว</li>
+    <li>เงินแสดงผ่าน <code>formatCurrency()</code> เสมอ (รวม VAT ตามกฏ display)</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <p><strong>เลย์เอาต์:</strong> หน้าเดียวเลื่อนลงได้ (page-scroll เดิมของ Reports). บนแถบ TabStrip ด้านขวา = <code>MultiDatePicker</code> (admin เท่านั้น, default mode <code>month</code>) ขับตัวเลขการ์ดที่อิงวันที่ + args การ export.</p>
+    <p><strong>กลุ่ม:</strong> แต่ละหมวดมีหัวข้อ (<code>text-base font-semibold</code>) + grid การ์ด (<code>grid grid-cols-2 md:grid-cols-3 gap-3</code>). render เฉพาะหมวดที่ <code>!adminOnly || isAdmin</code>.</p>
+    <p><strong>การ์ด:</strong> ประกอบจาก primitive <code>Card</code> เดิม — <code>CardHeader</code> (CardTitle = ชื่อ + CardAction = <code>TintIcon</code> มุมขวา + CardDescription = คำอธิบายสั้น) / <code>CardContent</code> (ตัวเลขเด่น <code>text-3xl font-bold</code> + บรรทัด sub <code>text-sm text-muted-foreground</code>) / <code>CardFooter</code> (ปุ่ม <code>ExportButton</code> เต็มความกว้าง). อ้างอิง /theme ส่วน Cards.</p>
+    <p><strong>สี (tint ตาม role ของข้อมูล):</strong> ขาย=<code>primary</code>, ซื้อ=<code>info</code>, ค่าใช้จ่าย=<code>violet</code>, VAT=<code>success</code>, หมดอายุ=<code>warning</code>/amber, เหลือน้อย=<code>destructive</code>. ใช้ semantic token ทั้งหมด.</p>
+    <p><strong>สถานะ:</strong> ระหว่างโหลดตัวเลข (admin) แสดง <code>—</code> หรือ skeleton ในช่องตัวเลข; ถ้าโหลด summary ไม่สำเร็จ ปุ่มส่งออกยังกดได้ (ไม่ผูกกัน). staff ไม่เห็นข้อความ "เฉพาะผู้ดูแล" อีกต่อไป — เห็นหมวดสต็อกเลย.</p>
+    <p><strong>ภาษาไทย:</strong> ป้ายทั้งหมดภาษาไทย; ปุ่มใช้ default label "ส่งออก Excel" ของ ExportButton.</p>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody id="audit-rows">
+        <tr><td>1</td><td><code>products.lowStock</code> คืน object <code>{rows,count,...}</code> ไม่ใช่ array — แผนเดิมอ่าน <code>.length</code> → ได้ <code>undefined</code></td><td>P0</td><td>เปลี่ยนเป็นอ่าน <code>res.count</code> (ทั้งตารางหมวด→การ์ด และ step 2)</td></tr>
+        <tr><td>1</td><td>แผนเดิมบอกว่า Purchases/Expenses ยังใช้ <code>isAdmin</code> ที่อื่น (ให้เก็บ) — จริง ๆ ถูกใช้แค่ตรงปุ่ม export</td><td>P1</td><td>แก้ step 1: Purchases + Expenses → <code>isAdmin</code>/<code>usePermission</code> ตาย ต้องลบ; Sales เก็บไว้ (ใช้ที่ 185/479/494)</td></tr>
+        <tr><td>1</td><td><code>tsc</code> จับ unused vars ไม่ได้ (<code>tsconfig</code> <code>noUnusedLocals:false</code>) — DoD/Risk พึ่ง tsc</td><td>P2</td><td>เปลี่ยนถ้อยคำ DoD + Risk ให้พึ่ง grep แบบ manual</td></tr>
+        <tr><td>1</td><td>field <code>exportKey</code> ใน config ไม่ถูกใช้ (markup เรียก <code>exports[card.key]</code>)</td><td>P2</td><td>ตัด <code>exportKey</code> ออกจาก config shape (key = ทั้ง id และ channel suffix)</td></tr>
+        <tr><td>1</td><td><code>formatCurrency</code> ไม่มีสัญลักษณ์ ฿ — ตัวเลขเงินบนการ์ดจะดูไม่ชัด</td><td>P2</td><td>เติม prefix <code>฿</code> หน้าตัวเลขเงินทุกการ์ด (ขาย/ซื้อ/ค่าใช้จ่าย/VAT)</td></tr>
+        <tr><td>2</td><td>ยืนยัน fix รอบ 1 ครบ (lowStock count, dead isAdmin, field shapes, admin gating, primitives) — ไม่มี P0/logic ใหม่</td><td>PASS</td><td>—</td></tr>
+        <tr><td>2</td><td><code>truncate</code> บน grid child อาจไม่ตัดถ้าไม่มี <code>min-w-0</code></td><td>P2</td><td>เพิ่มโน้ตใน step 2: ใส่ <code>min-w-0</code> ที่ช่องตัวเลข/parent ถ้าตัวเลขยาวล้น</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> passes. (Note: <code>tsconfig.json</code> has <code>noUnusedLocals:false</code>, so tsc will NOT flag leftover dead vars — dead-import cleanup is verified by manual grep, not tsc.)</li>
+      <li>Admin opens <code>/reports/export</code>: sees 4 grouped sections (การขาย / การซื้อ / บัญชี-ภาษี / สต็อก), each card shows a summary number; changing the date picker updates the date-bound numbers; every Export button writes a .xlsx and toasts.</li>
+      <li>Staff opens <code>/reports/export</code>: the tab is visible; sees ONLY the สต็อก group (วันหมดอายุ + เหลือน้อย) with counts; both Export buttons work. No "เฉพาะผู้ดูแล" block. No date picker in the toolbar.</li>
+      <li>Manage pages Sales/Purchases/Expenses/Expiry/LowStock no longer render an Export button and still compile + render correctly.</li>
+    </ul>
+
+    <h3>Files touched</h3>
+    <ul>
+      <li><code>src/pages/Reports/ExportHub.tsx</code> — full content rewrite (grouped cards + summary fetch + role gating).</li>
+      <li><code>src/pages/Reports/index.tsx</code> — make the <code>export</code> tab visible to all roles (remove the <code>|| isAdmin</code> gate); drop now-unused <code>usePermission</code>/<code>isAdmin</code> if no longer referenced.</li>
+      <li><code>src/pages/Manage/Sales.tsx</code>, <code>Purchases.tsx</code>, <code>Expenses.tsx</code>, <code>Expiry.tsx</code>, <code>LowStock.tsx</code> — remove the ExportButton usage + its import.</li>
+    </ul>
+    <p>Reuse (DO NOT modify): <code>reports:financeSummary</code>, <code>reports:vatSummary</code>, <code>reports:expiringLots</code> (<code>count_only</code>), <code>products:lowStock</code>, <code>exports.*</code> handlers, <code>src/components/ui/card.tsx</code> (Card/CardHeader/CardTitle/CardAction/CardDescription/CardContent/CardFooter), <code>export-button.tsx</code>, <code>tint-icon.tsx</code>, <code>multi-date-picker.tsx</code>, <code>formatCurrency</code> (src/lib/utils.ts).</p>
+
+    <h3>Steps (in dependency order)</h3>
+    <ol>
+      <div class="step"><strong>1. Remove Export buttons from the 5 Manage pages.</strong> In each file delete the <code>&lt;ExportButton .../&gt;</code> block and its <code>import { ExportButton } from '@/components/ui/export-button'</code>:
+        <ul>
+          <li><code>Sales.tsx</code> (~line 430): remove the <code>{isAdmin &amp;&amp; (&lt;ExportButton ... /&gt;)}</code> block + import (line 26).</li>
+          <li><code>Purchases.tsx</code> (~line 604): remove the <code>{isAdmin &amp;&amp; (&lt;ExportButton ... /&gt;)}</code> block + import (line 9).</li>
+          <li><code>Expenses.tsx</code> (~line 173): remove the <code>{isAdmin &amp;&amp; (&lt;ExportButton ... /&gt;)}</code> block + import (line 15).</li>
+          <li><code>Expiry.tsx</code> (~line 269): remove the comment + <code>&lt;ExportButton iconOnly ... /&gt;</code> (NOT isAdmin-wrapped) + import (line 16). Keep <code>formatCurrency, formatDate</code> import (still used elsewhere).</li>
+          <li><code>LowStock.tsx</code> (~line 217): remove the comment + <code>&lt;ExportButton ... /&gt;</code> (NOT isAdmin-wrapped) + import (line 11).</li>
+        </ul>
+        <span class="inv">After removal, grep each file for now-unused identifiers (tsc will NOT flag these — <code>tsconfig.json</code> has <code>noUnusedLocals:false</code>, so this is a manual check):
+        <br>• <strong>Sales.tsx</strong>: <code>isAdmin</code> is used elsewhere (lines 185/205/479/494) → KEEP <code>usePermission</code>.
+        <br>• <strong>Purchases.tsx</strong>: the hook's <code>isAdmin</code> (line 99) was used ONLY by the export wrapper (line 604) — note line 468 is <code>overrideCancel.isAdmin</code>, a different object — so after removal <code>isAdmin</code>+<code>usePermission</code> are DEAD → remove them + the import.
+        <br>• <strong>Expenses.tsx</strong>: <code>isAdmin</code> (line 60) was used ONLY by the export wrapper (line 173) → after removal DEAD → remove it + the <code>usePermission</code> import.
+        <br>• <strong>Expiry.tsx / LowStock.tsx</strong>: buttons were NOT isAdmin-wrapped → nothing else changes. Keep Expiry's <code>formatCurrency, formatDate</code> import (used at lines 411/462/493).</span>
+      </div>
+
+      <div class="step"><strong>2. Rewrite <code>ExportHub.tsx</code>.</strong> Replace the flat <code>DATASETS</code> list + admin-gated body with a grouped, role-aware card dashboard.
+        <ul>
+          <li>Define a <code>CARD</code> config array; each entry: <code>{ key, group, label, desc, icon, tint, noDate? }</code> where <code>key</code> is BOTH the dataset id and the <code>exports.&lt;key&gt;</code> channel suffix (they match, so no separate exportKey field). Groups in order: <code>การขาย</code> (sales), <code>การซื้อ</code> (purchases), <code>บัญชี-ภาษี</code> (expenses, vat), <code>สต็อก</code> (expiry [noDate], lowStock [noDate]). Mark groups การขาย/การซื้อ/บัญชี-ภาษี as <code>adminOnly</code>; สต็อก as all-roles.</li>
+          <li>State: <code>dateMode/dateFrom/dateTo</code> (default <code>rangeForMultiMode('month')</code>); <code>fin</code> (financeSummary result | null); <code>vat</code> (vatSummary result | null); <code>expiryCount</code> (number | null); <code>lowCount</code> (number | null); <code>loading</code> flags as needed.</li>
+          <li><code>useEffect</code>: <code>setSummary(null)</code> (no MetricCard summary row). Toolbar: when <code>isAdmin</code>, <code>setToolbar(&lt;MultiDatePicker .../&gt;)</code>; else <code>setToolbar(null)</code>. Cleanup returns <code>setToolbar(null)</code>. Deps: <code>[isAdmin, dateMode, dateFrom, dateTo, setToolbar]</code>.</li>
+          <li>Fetch effect (admin, date-bound): when <code>isAdmin</code>, call <code>window.api.reports.financeSummary({date_from,date_to})</code> and <code>window.api.reports.vatSummary({date_from,date_to})</code>; store results. Re-run on <code>[isAdmin, dateFrom, dateTo]</code>. Use a cancelled flag. Wrap in try/catch (silent or toast).</li>
+          <li>Fetch effect (snapshot, all roles, once): <code>window.api.reports.expiringLots({count_only:true})</code> → store <code>res.counts</code> (use <code>counts.d90</code> + <code>counts.expired</code>); <code>window.api.products.lowStock({})</code> → store <code>res.count</code> (the handler returns an object <code>{rows,count,...}</code>, NOT an array — do not read <code>.length</code>). Run on mount.</li>
+          <li>Per-card value/sub (money prefixed with <code>฿</code> for headline clarity): sales → <code>`฿${formatCurrency(fin.sales_net)}`</code> / <code>`${fin.sale_count} บิล`</code>; purchases → <code>`฿${formatCurrency(fin.purchase_total)}`</code> / <code>`${fin.purchase_count} บิล`</code>; expenses → <code>`฿${formatCurrency(fin.expense_total)}`</code>; vat → <code>`฿${formatCurrency(vat.net_vat)}`</code> / <code>`ภาษีสุทธิ (ขาย−ซื้อ)`</code>; expiry → <code>String(counts.d90)</code> / <code>`หมดอายุแล้ว ${counts.expired}`</code>; lowStock → <code>String(lowCount)</code> / <code>`ต่ำกว่าจุดสั่งซื้อ`</code>. While the needed value is <code>null</code> (pre-load), render <code>—</code>. (<code>formatCurrency</code> returns a number string without a currency mark, so the <code>฿</code> prefix is added here.)</li>
+          <li>Render: <code>&lt;div className="flex flex-col gap-6"&gt;</code> → for each group where <code>!adminOnly || isAdmin</code>: a section with an <code>&lt;h3 className="text-base font-semibold text-foreground"&gt;</code> label + a <code>&lt;div className="grid grid-cols-2 md:grid-cols-3 gap-3"&gt;</code> of cards.</li>
+          <li>Card markup (compose existing primitives): <code>&lt;Card&gt;&lt;CardHeader&gt;&lt;CardTitle&gt;{label}&lt;/CardTitle&gt;&lt;CardAction&gt;&lt;TintIcon icon={icon} tint={tint} size="md" bordered/&gt;&lt;/CardAction&gt;&lt;CardDescription&gt;{desc}&lt;/CardDescription&gt;&lt;/CardHeader&gt;&lt;CardContent className="min-w-0"&gt;&lt;div className="text-3xl font-bold text-foreground truncate"&gt;{value}&lt;/div&gt;{sub &amp;&amp; &lt;div className="text-sm text-muted-foreground mt-1 truncate"&gt;{sub}&lt;/div&gt;}&lt;/CardContent&gt; <em>(min-w-0 on the content so a long value like ฿1,234,567.00 actually ellipsizes inside the grid cell)</em>&lt;CardFooter&gt;&lt;ExportButton className="w-full justify-center" onExport={() =&gt; (window.api as any).exports[card.key](card.noDate ? {} : {date_from:dateFrom,date_to:dateTo})}/&gt;&lt;/CardFooter&gt;&lt;/Card&gt;</code>.</li>
+        </ul>
+        <span class="inv">Guard: only call financeSummary/vatSummary when isAdmin (both requireAdmin → throw for staff). Snapshot calls (expiringLots count_only, lowStock) are NOT admin-gated and run for everyone. Do not coerce blank→0 anywhere. Use semantic tokens only. No emojis. CardTitle is text-base (title role ok); value text-3xl; description/sub text-sm (≥ text-xs ok).</span>
+      </div>
+
+      <div class="step"><strong>3. Open the export tab to staff in <code>index.tsx</code>.</strong> Change <code>visibleTabs</code> so the <code>export</code> entry is no longer gated by <code>isAdmin</code>:
+        <ul>
+          <li>From <code>(t.value !== 'export' || isAdmin)</code> → drop that clause entirely, leaving only the VAT-visibility clause.</li>
+          <li>After the edit, <code>isAdmin</code> from <code>usePermission()</code> may be unused in index.tsx (it was used only in that filter). If so, remove <code>const { isAdmin } = usePermission()</code> and the <code>usePermission</code> import. Confirm by grepping the file first.</li>
+        </ul>
+        <span class="inv">This is what preserves the staff export capability after step 1 removes the Manage buttons. The /reports route is NOT role-guarded, so staff can reach /reports/export.</span>
+      </div>
+
+      <div class="step"><strong>4. Self-check against /theme + docs.</strong> Confirm the card composition matches the Cards section in <code>src/pages/Theme/index.tsx</code> (no new primitive added; if a reusable ReportCard were extracted it would need a showcase demo — we intentionally compose inline to avoid that). Re-read <code>docs/claude/ui-theming.md</code> rules touched (tokens, h-12/h-9, modal n/a here).</div>
+    </ol>
+
+    <h3>Verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> → clean.</li>
+      <li>Run app (<code>npm run electron:dev</code>). As admin: /reports → ส่งออก shows 4 groups; numbers present; switch month → date-bound numbers change; click each of the 6 Export buttons → save dialog → success toast.</li>
+      <li>Switch to a staff user (or role-switch in DEV): /reports shows the ส่งออก tab; only the สต็อก group renders with 2 cards + counts; both exports succeed; no date picker; no "เฉพาะผู้ดูแล".</li>
+      <li>Open each of the 5 Manage pages → no Export button; pages render; existing filters/actions intact.</li>
+    </ul>
+
+    <h3>Risks &amp; mitigations</h3>
+    <ul>
+      <li><span class="inv">Staff loses expiry/lowStock export</span> → mitigated by step 3 (tab visible to staff) + step 2 (สต็อก group shown to staff).</li>
+      <li><span class="inv">financeSummary/vatSummary throw for staff</span> → mitigated by isAdmin guard on the fetch effect.</li>
+      <li><span class="inv">Dead imports/vars after removals (tsc will NOT catch — noUnusedLocals:false)</span> → grep each edited file for isAdmin/usePermission/ExportButton before deleting imports. Confirmed: Purchases.tsx + Expenses.tsx → isAdmin becomes dead (remove); Sales.tsx → isAdmin still used (keep).</li>
+      <li>Empty/zero data → numbers render as <code>0</code>/<code>฿0.00</code> naturally; null (pre-load) renders <code>—</code>. No crash.</li>
+      <li>Backward compat: route/tab value <code>export</code> + path <code>/reports/export</code> unchanged; only content + visibility change. No router/schema/IPC change → trivially reversible.</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-25</footer>
+
+</div>
+</body>
+</html>

@@ -13,7 +13,6 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } 
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
-import { ExportButton } from '@/components/ui/export-button'
 import { getCurrentUserId } from '@/stores/userStore'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { usePagePrefs } from '@/hooks/usePagePrefs'
@@ -265,17 +264,6 @@ export default function ManageExpiryPage() {
               ))}
             </SelectContent>
           </Select>
-
-          {/* Export — staff-allowed (cost columns stripped main-side for non-admin) */}
-          <ExportButton
-            iconOnly
-            tooltip="ส่งออก Excel"
-            onExport={() => (window.api as any).exports.expiry({
-              filter,
-              category_id: categoryId !== '0' ? Number(categoryId) : undefined,
-              q: q.trim() || undefined,
-            })}
-          />
 
           {/* Time-range filter popover — was previously the clickable summary cards */}
           {(() => {

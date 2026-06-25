@@ -5,8 +5,6 @@ import { useToast } from '@/components/ui/toast'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { getCurrentUserId } from '@/stores/userStore'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
-import { usePermission } from '@/hooks/usePermission'
-import { ExportButton } from '@/components/ui/export-button'
 import { useShopVat } from '@/hooks/useShopVat'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
@@ -96,7 +94,6 @@ export default function ManagePurchasesPage() {
   // VAT column + filter only surface once the shop is VAT-registered (input VAT
   // exists). Matches the hide-when-NO-VAT rule used across the app.
   const { vatEnabled } = useShopVat()
-  const { isAdmin } = usePermission()
 
   const [prefs, setPrefs] = usePagePrefs<PurchasesPrefs>('purchases', PURCHASES_DEFAULTS)
 
@@ -600,19 +597,6 @@ export default function ManagePurchasesPage() {
               </Popover>
             )
           })()}
-
-          {isAdmin && (
-            <ExportButton
-              iconOnly
-              tooltip="ส่งออก Excel"
-              onExport={() => (window.api as any).exports.purchases({
-                q: histQ || undefined,
-                supplier_id: histSupplierId || undefined,
-                date_from: histDateFrom || undefined,
-                date_to: histDateTo || undefined,
-              })}
-            />
-          )}
 
           <Popover>
             <PopoverTrigger asChild>
