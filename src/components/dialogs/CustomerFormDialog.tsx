@@ -31,7 +31,7 @@ const submitOnEnter = (fn: () => void) => (e: React.KeyboardEvent) => {
 const blankForm = (defaultName = '') => ({
   full_name: defaultName, id_card: '', dob: '', phone: '', address: '',
   branch: '',
-  chronic_diseases: '', is_alert: 0, alert_note: '', is_disabled: 0,
+  note: '', is_alert: 0, alert_note: '', is_disabled: 0,
 })
 
 export interface CustomerFormDialogProps {
@@ -74,7 +74,7 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
           phone: data.phone ?? '',
           address: data.address ?? '',
           branch: data.branch ?? '',
-          chronic_diseases: data.chronic_diseases ?? '',
+          note: data.note ?? '',
           is_alert: data.is_alert ?? 0,
           alert_note: data.alert_note ?? '',
           is_disabled: data.is_disabled ?? 0,
@@ -144,11 +144,10 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
 
           {/* ── สุขภาพ & โน้ต ── */}
           <SectionCard icon={HeartPulse} title="สุขภาพ & โน้ต" tint="teal">
-            {/* Stored in customers.chronic_diseases — repurposed as a free-form
-                multi-line note (column kept; no schema change). POS renders it
+            {/* Stored in customers.note — free-form multi-line note. POS renders it
                 with whitespace-pre-line so newlines survive. */}
             <FormField label="โน้ต / หมายเหตุ">
-              <Textarea value={form.chronic_diseases ?? ''} onChange={e => setF('chronic_diseases', e.target.value)} rows={4} className="resize-none"
+              <Textarea value={form.note ?? ''} onChange={e => setF('note', e.target.value)} rows={4} className="resize-none"
                 placeholder="บันทึกเพิ่มเติม เช่น โรคประจำตัว, ข้อควรระวัง, ยาที่ใช้" />
             </FormField>
 

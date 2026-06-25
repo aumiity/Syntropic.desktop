@@ -14,7 +14,23 @@
 
 ---
 
+## ✅ เคลียร์รอบที่ 1 — DONE 2026-06-25
+
+ทั้ง 6 รายการลบ/เปลี่ยนชื่อออกจาก **schema CREATE + IPC + types + UI + seed** เรียบร้อย (รายละเอียดเดิมเก็บไว้ในหัวข้อ "ลบแล้ว (DONE)" ด้านล่าง). type-check ผ่านสะอาด (error เดียวที่เหลือ = `confirm-dialog.tsx` variant `amber` เป็นงาน Dashboard/confirm-dialog ที่ค้างอยู่ก่อน ไม่เกี่ยวกัน).
+
+**Carve-outs (ตั้งใจไม่ทำตามคำสั่งเจ้าของ "DB จะลบทิ้ง → ไม่ต้อง migration"):**
+- **ไม่เขียน `ALTER TABLE … DROP/RENAME COLUMN` migration** — DB ใหม่สร้างจาก CREATE block ที่แก้แล้วตรง ๆ. (ลบ `ALTER … ADD COLUMN paper_size` เก่าทิ้งด้วย ไม่งั้นมัน re-add)
+- **PrintTab A4/A5 ภายใน** (`src/pages/Products/PrintTab/index.tsx` + `src/lib/tags/presets.ts`/`priceTagHtml.ts`) — ใช้ type `DocSettings` ภายในตัวเอง force `'A4'` อยู่แล้ว ไม่พึ่ง `DocumentSettings.paper_size` → ไม่ break, branch A5 ตายเฉย ๆ. เก็บกวาดทีหลังได้ (optional, ไม่จำเป็น)
+- **scripts แยก** (`scripts/import-hygeia.mjs`, `scripts/gen-products.py`) ยังอ้าง `is_hidden`/`is_for_purchase`/`chronic_diseases` — เป็น manual dev script ไม่รันตอนเปิดแอป. ⚠️ ถ้า**รื้อ Hygeia import กลับมาใช้** ต้องแก้ก่อน ไม่งั้น INSERT จะ throw `no such column`
+- **seed.ts** (`electron/db/seed.ts`) แก้แล้ว (รันบน DB ใหม่) — INSERT products ถอด `is_hidden`, destructure ใช้ hole `,` คงตำแหน่ง tuple ใน `seed-data/products.ts` (ไฟล์ generated ยังมีค่า is_hidden ใน tuple ได้ เพราะ seed ข้าม slot)
+
+---
+
 ## ค้างลบ (TODO)
+
+_(เคลียร์หมดแล้วรอบ 2026-06-25 — ถ้าเจอ dead schema ใหม่ มาจดต่อที่นี่)_
+
+<details><summary>รายการเดิม (ลบแล้ว — เก็บไว้อ้างอิงขั้นตอน)</summary>
 
 ### 1. `product_units.is_for_purchase`
 - **ที่มา:** งานยุบหน่วยซื้อ/ขายเหลือธงเดียว (2026-06-12) — เก็บแค่ `is_for_sale` (คุมจอขาย POS), จอรับสินค้าโชว์ทุกหน่วยที่ `is_disabled=0` ผ่าน `enrichProduct.purchase_units` ไม่อิงธงนี้แล้ว
@@ -72,8 +88,30 @@
   5. `src/pages/POS/index.tsx` (~1654, 1656, 1661) — `c.chronic_diseases` → `c.note`
   6. `src/pages/People/index.tsx:208` — `c.chronic_diseases` → `c.note`
 
+</details>
+
 ---
 
 ## ลบแล้ว (DONE)
 
-_(ยังไม่มี — เก็บไว้ลบทีเดียวตอน schema cleanup)_
+- **2026-06-25 — เคลียร์รอบที่ 1 (ทั้ง 6 รายการ):** `product_units.is_for_purchase`, `receipt_settings.abbrev_tax_invoice`, `products.is_hidden`, `document_settings.paper_size`, `env_settings` 6 threshold cols (เก็บตาราง+zone flags), `customers.chronic_diseases` → `note` (RENAME). ทำที่ schema CREATE + IPC + types + UI + seed; **ไม่มี migration** (DB จะลบทิ้ง). ดู carve-outs ด้านบนหัวข้อ "เคลียร์รอบที่ 1".
+- **2026-06-25 — audit schema เพิ่ม:**
+  - `label_settings.font_size_small` (DEAD: retired shared tier) — ลบจาก schema CREATE + `src/lib/label/sections.ts` (interface + DEFAULTS + comments). ไม่มี `ADD COLUMN` migration ของมัน → หายสนิท
+  - **FIX desync:** `settings.shop_branch` เคยอยู่ใน **migration อย่างเดียว ไม่มีใน CREATE** ทั้งที่ใช้งานจริง (สาขาผู้ขายใบกำกับภาษี ม.86/4) → เติมเข้า settings CREATE block แล้ว (default `'สำนักงานใหญ่'`). เป็นคอลัมน์เดียวทั้ง schema ที่ migration-only
+
+---
+
+## ⚠️ Migration block (schema.ts ~852–1099 array + 1100+ guarded) — อย่าลบด้วยมือ
+
+ผล audit: บล็อก `ALTER TABLE … ADD/DROP COLUMN` + backfill มีไว้ **อัปเกรด DB เก่าเท่านั้น** บน DB ใหม่ ADD ซ้ำ→"duplicate column" / DROP→"no such column" โดน `try/catch` กลืน = no-op. **แต่ห้ามลบทั้งบล็อกแบบมือเปล่า** เพราะ:
+1. **interweave กับ setup ที่รันทุก DB ใหม่** (ตั้งแต่ ~1159 "Ensure a fallback unit", walk-in customer C0000, `CREATE UNIQUE INDEX idx_users_username`, `user_version` font/username backfill) — **ต้องเก็บ**
+2. ก่อนแก้รอบนี้มีคอลัมน์ที่ **migration-only** (`settings.shop_branch`) — ลบ migration ดื้อ ๆ = DB ใหม่ขาดคอลัมน์ (ตอนนี้ปิดช่องนี้แล้ว แต่เป็นหลักฐานว่า CREATE/migration ยังไม่ sync 100%)
+
+**วิธี squash ที่ถูกต้อง (งาน pre-launch แยก):** ล้าง DB ทุกเครื่อง → boot 1 ครั้งให้ migration รันครบ → dump `.schema` จริง → เอา realized schema นั้นเป็น CREATE baseline ใหม่ → ลบเฉพาะ array ALTER (เก็บ runtime setup) → diff boot ใหม่ว่าได้ schema เป๊ะเดิม
+
+## label_settings dead columns — DONE 2026-06-25
+ลบ dead columns กลุ่ม **notes / lot_expiry / footer_line** (section ถอดทั้งหมด) + **shop_phone / frequency** (section ยุบ — content ยัง render inline บนแถว host ใช้ style ของ host) รวม **19 คอลัมน์** ออกจาก:
+- `electron/db/schema.ts` — CREATE block (19) + migration ADD COLUMN (19) = 38 บรรทัด + comment ค้าง
+- `src/lib/label/sections.ts` — `LabelSettingsForm` interface + `LABEL_DEFAULTS` + `PRESET_DEFAULTS` (font_size_shop_phone ×4) + comments. **คง `shop_phone`/`frequency` ใน `SectionKey`** (content ยังใช้)
+
+**Verify:** schema executed ใน sqlite3 in-memory ผ่าน (label_settings 101→82 คอลัมน์, header_line คงอยู่); cross-check `LABEL_DEFAULTS` 80 keys = 80 คอลัมน์จริง (form ⟷ schema sync เป๊ะ ไม่มี dynamic-save throw); tsc PASS. gotcha ที่เจอ: `font_size_shop_phone` อยู่ใน `PRESET_DEFAULTS` ทั้ง 4 ขนาดด้วย (ไม่ใช่แค่ interface/defaults) — ลบครบแล้ว

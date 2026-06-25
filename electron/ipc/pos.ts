@@ -77,8 +77,6 @@ function enrichProduct(db: any, prod: any): any {
   // not a POS sell unit, so it'd be hidden by the is_for_sale filter on `units`.
   // Decision (2026-06-12): the purchase/sale split was dropped — only is_for_sale
   // earns its keep (controls the POS picker); any defined unit is receivable.
-  // NOTE: the `is_for_purchase` column is now dead and will be DROPPed in the
-  // pre-release schema cleanup — this query no longer reads it.
   prod.purchase_units = db.prepare(`
     SELECT pu.*, u.name as unit_name FROM product_units pu
     JOIN item_units u ON u.id = pu.unit_id

@@ -7,7 +7,7 @@
 // bold_<key> + show_<key> + offset_x/y_<key> column — nothing is shared. Add a
 // section here and (a) add the matching columns to label_settings (schema.ts
 // CREATE TABLE + migration), (b) add the keys to LabelSettingsForm/LABEL_DEFAULTS
-// below. The old shared "font_size_small" tier is retired (kept as a DEAD column).
+// below.
 //
 // Sample/real text per section lives in ./content.ts (SAMPLE_CONTENT /
 // composeLabelContent) — SECTIONS only carries layout metadata. EXCEPTION:
@@ -52,8 +52,8 @@ export const SECTIONS: SectionDef[] = [
   // (out.shop_phone) stays SEPARATE (no data merge), but it renders inline on the
   // `shop_address` row sharing that row's font/bold/show/offset — one combined
   // "ที่อยู่ร้าน / เบอร์โทร" heading that moves together. The QTY fold (right side)
-  // lives on this row (swapped with the barcode 2026-06-20). shop_phone_* style
-  // columns are kept DEAD so the load-filter round-trips (see LabelSettingsForm).
+  // lives on this row (swapped with the barcode 2026-06-20). It has no style
+  // columns of its own (its old shop_phone_* columns were dropped at schema refine).
   { kind: 'text', key: 'shop_line_id', label: 'LINE ID' },
   { kind: 'line', key: 'header_line',  label: 'เส้นคั่นส่วนหัว' },
   { kind: 'text', key: 'product',      label: 'ชื่อสินค้า' },
@@ -63,8 +63,8 @@ export const SECTIONS: SectionDef[] = [
   // `frequency` (ความถี่) is NOT its own section as of 2026-06-20: its content
   // (out.frequency) stays a SEPARATE field (no data merge), but it renders inline
   // on the `dosage` row sharing dosage's font/bold/show/offset — one combined
-  // "วิธีใช้ / ความถี่" heading that moves together. The frequency_* style columns
-  // are kept DEAD so the load-filter round-trips (see LabelSettingsForm comment).
+  // "วิธีใช้ / ความถี่" heading that moves together. It has no style columns of its
+  // own (its old frequency_* columns were dropped at schema refine).
   { kind: 'text', key: 'timing',       label: 'มื้อ / เวลา' },
   { kind: 'text', key: 'indication',   label: 'สรรพคุณ' },
   { kind: 'text', key: 'advice',       label: 'คำแนะนำ' },
@@ -74,11 +74,9 @@ export const SECTIONS: SectionDef[] = [
 
 // Form keys are canonical DB column names — `Object.keys(form)` flows straight
 // into the dynamic-SQL UPDATE in `settings:saveLabelSettings`, so any key here
-// must be a real column on `label_settings`. `font_size_small` and the
-// notes / footer_line / lot_expiry / frequency / shop_phone keys are DEAD
-// (columns kept, sections removed/retired) — they stay in the interface +
-// defaults so the load-filter doesn't drop the real columns and overwrite them
-// as undefined on next save.
+// must be a real column on `label_settings`. (The retired notes / footer_line /
+// lot_expiry / frequency / shop_phone style columns were dropped at schema refine
+// — shop_phone & frequency content now renders on its host row's style.)
 export interface LabelSettingsForm {
   printer_name: string
   width_mm: number
@@ -87,45 +85,40 @@ export interface LabelSettingsForm {
   font_family: string
   // Per-section font size — one column per text section.
   font_size_shop: number; font_size_print_date: number
-  font_size_shop_address: number; font_size_shop_phone: number; font_size_shop_line_id: number
+  font_size_shop_address: number; font_size_shop_line_id: number
   font_size_product: number; font_size_dosage: number; font_size_timing: number
   // qty folds into the shop_address row (right); expiry folds into the dosage row (right).
-  // frequency (ความถี่) is DEAD — merged back into the dosage text 2026-06-20 (no
-  // longer its own line/row); its columns are kept so the load-filter round-trips.
-  font_size_qty: number; font_size_expiry: number; font_size_frequency: number
+  font_size_qty: number; font_size_expiry: number
   font_size_indication: number; font_size_advice: number; font_size_barcode: number
   // Barcode is sized by a box: font_size_barcode = HEIGHT (mm), barcode_width_mm
   // = WIDTH (mm). Bars stretch to fill so every product's barcode is the same
   // footprint regardless of digit count.
   barcode_width_mm: number
   font_size_custom_text: number
-  font_size_small: number // DEAD — retired shared tier, kept for round-trip.
   // Per-section bold — one column per text section.
   bold_shop: number; bold_print_date: number
-  bold_shop_address: number; bold_shop_phone: number; bold_shop_line_id: number
+  bold_shop_address: number; bold_shop_line_id: number
   bold_product: number; bold_dosage: number; bold_timing: number
-  bold_qty: number; bold_expiry: number; bold_frequency: number
+  bold_qty: number; bold_expiry: number
   bold_indication: number; bold_advice: number; bold_barcode: number
   bold_custom_text: number
   line_spacing: number; section_gap: number
   // Free-text last line (config, not content). '' = nothing printed.
   custom_text: string
   show_shop: number; show_print_date: number
-  show_shop_address: number; show_shop_phone: number; show_shop_line_id: number
+  show_shop_address: number; show_shop_line_id: number
   show_product: number; show_dosage: number; show_timing: number
-  show_qty: number; show_expiry: number; show_frequency: number
+  show_qty: number; show_expiry: number
   show_indication: number; show_advice: number; show_barcode: number
   show_custom_text: number
   show_header_line: number
   offset_x_shop: number; offset_y_shop: number
   offset_x_print_date: number; offset_y_print_date: number
   offset_x_shop_address: number; offset_y_shop_address: number
-  offset_x_shop_phone: number; offset_y_shop_phone: number
   offset_x_shop_line_id: number; offset_y_shop_line_id: number
   offset_x_product: number; offset_y_product: number
   offset_x_qty: number; offset_y_qty: number
   offset_x_expiry: number; offset_y_expiry: number
-  offset_x_frequency: number; offset_y_frequency: number
   offset_x_dosage: number; offset_y_dosage: number
   offset_x_timing: number; offset_y_timing: number
   offset_x_indication: number; offset_y_indication: number
@@ -133,11 +126,6 @@ export interface LabelSettingsForm {
   offset_x_barcode: number; offset_y_barcode: number
   offset_x_custom_text: number; offset_y_custom_text: number
   offset_x_header_line: number; offset_y_header_line: number
-  // DEAD columns — sections removed but columns kept (see comment above).
-  show_notes: number; show_lot_expiry: number; show_footer_line: number
-  offset_x_notes: number; offset_y_notes: number
-  offset_x_lot_expiry: number; offset_y_lot_expiry: number
-  offset_x_footer_line: number; offset_y_footer_line: number
 }
 
 export const LABEL_DEFAULTS: LabelSettingsForm = {
@@ -147,38 +135,35 @@ export const LABEL_DEFAULTS: LabelSettingsForm = {
   font_family: 'Sarabun',
   // All sections default to 10pt.
   font_size_shop: 9, font_size_print_date: 8,
-  font_size_shop_address: 9, font_size_shop_phone: 9, font_size_shop_line_id: 9,
+  font_size_shop_address: 9, font_size_shop_line_id: 9,
   font_size_product: 9, font_size_dosage: 9, font_size_timing: 9,
-  font_size_qty: 9, font_size_expiry: 9, font_size_frequency: 9,
+  font_size_qty: 9, font_size_expiry: 9,
   font_size_indication: 9, font_size_advice: 9, font_size_barcode: 4,
   barcode_width_mm: 26,
   font_size_custom_text: 9,
-  font_size_small: 9, // DEAD
   // Bold only the shop name / address / phone / product name (date not bold).
   bold_shop: 1, bold_print_date: 0,
-  bold_shop_address: 1, bold_shop_phone: 1, bold_shop_line_id: 0,
+  bold_shop_address: 1, bold_shop_line_id: 0,
   bold_product: 1, bold_dosage: 1, bold_timing: 1,
-  bold_qty: 0, bold_expiry: 0, bold_frequency: 1,
+  bold_qty: 0, bold_expiry: 0,
   bold_indication: 0, bold_advice: 0, bold_barcode: 0,
   bold_custom_text: 0,
   line_spacing: 1.5, section_gap: 2,
   custom_text: '',
   show_shop: 1, show_print_date: 1,
-  show_shop_address: 1, show_shop_phone: 1, show_shop_line_id: 1,
+  show_shop_address: 1, show_shop_line_id: 1,
   show_product: 1, show_dosage: 1, show_timing: 1,
-  show_qty: 1, show_expiry: 1, show_frequency: 1,
+  show_qty: 1, show_expiry: 1,
   show_indication: 1, show_advice: 1, show_barcode: 0,
   show_custom_text: 1,
   show_header_line: 1,
   offset_x_shop: 0, offset_y_shop: 0,
   offset_x_print_date: 0, offset_y_print_date: 0,
   offset_x_shop_address: 0, offset_y_shop_address: 0,
-  offset_x_shop_phone: 0, offset_y_shop_phone: 0,
   offset_x_shop_line_id: 0, offset_y_shop_line_id: 0,
   offset_x_product: 0, offset_y_product: 0,
   offset_x_qty: 0, offset_y_qty: 0,
   offset_x_expiry: 0, offset_y_expiry: 0,
-  offset_x_frequency: 0, offset_y_frequency: 0,
   offset_x_dosage: 0, offset_y_dosage: 0,
   offset_x_timing: 0, offset_y_timing: 0,
   offset_x_indication: 0, offset_y_indication: 0,
@@ -186,11 +171,6 @@ export const LABEL_DEFAULTS: LabelSettingsForm = {
   offset_x_barcode: 0, offset_y_barcode: 0,
   offset_x_custom_text: 0, offset_y_custom_text: 0,
   offset_x_header_line: 0, offset_y_header_line: 0,
-  // DEAD columns kept so load-filter preserves them on round-trip.
-  show_notes: 0, show_lot_expiry: 0, show_footer_line: 0,
-  offset_x_notes: 0, offset_y_notes: 0,
-  offset_x_lot_expiry: 0, offset_y_lot_expiry: 0,
-  offset_x_footer_line: 0, offset_y_footer_line: 0,
 }
 
 // Per-paper-size default templates — the source of truth for the "รีเซ็ตการตั้งค่า"
@@ -214,7 +194,7 @@ export const PRESET_DEFAULTS: Record<string, Partial<LabelSettingsForm>> = {
     pad_top: 2, pad_right: 2, pad_bottom: 2, pad_left: 2,
     section_gap: 6, line_spacing: 1.2,
     font_size_shop: 10, font_size_print_date: 7,
-    font_size_shop_address: 8, font_size_shop_phone: 8, font_size_shop_line_id: 8,
+    font_size_shop_address: 8, font_size_shop_line_id: 8,
     font_size_product: 8, font_size_qty: 7, font_size_dosage: 8, font_size_expiry: 7,
     font_size_timing: 8, font_size_indication: 8, font_size_advice: 8,
     font_size_custom_text: 8,
@@ -225,7 +205,7 @@ export const PRESET_DEFAULTS: Record<string, Partial<LabelSettingsForm>> = {
     pad_top: 2, pad_right: 2, pad_bottom: 2, pad_left: 2,
     section_gap: 3, line_spacing: 1.4,
     font_size_shop: 12, font_size_print_date: 7,
-    font_size_shop_address: 9, font_size_shop_phone: 9, font_size_shop_line_id: 9,
+    font_size_shop_address: 9, font_size_shop_line_id: 9,
     font_size_product: 9, font_size_qty: 7, font_size_dosage: 9, font_size_expiry: 7,
     font_size_timing: 9, font_size_indication: 9, font_size_advice: 9,
     font_size_custom_text: 9,
@@ -236,7 +216,7 @@ export const PRESET_DEFAULTS: Record<string, Partial<LabelSettingsForm>> = {
     pad_top: 2, pad_right: 2, pad_bottom: 2, pad_left: 2,
     section_gap: 3, line_spacing: 1.4,
     font_size_shop: 12, font_size_print_date: 7,
-    font_size_shop_address: 9, font_size_shop_phone: 9, font_size_shop_line_id: 9,
+    font_size_shop_address: 9, font_size_shop_line_id: 9,
     font_size_product: 9, font_size_qty: 7, font_size_dosage: 9, font_size_expiry: 7,
     font_size_timing: 9, font_size_indication: 9, font_size_advice: 9,
     font_size_custom_text: 9,
@@ -247,7 +227,7 @@ export const PRESET_DEFAULTS: Record<string, Partial<LabelSettingsForm>> = {
     pad_top: 2, pad_right: 2, pad_bottom: 2, pad_left: 2,
     section_gap: 6, line_spacing: 1.4,
     font_size_shop: 14, font_size_print_date: 9,
-    font_size_shop_address: 11, font_size_shop_phone: 11, font_size_shop_line_id: 11,
+    font_size_shop_address: 11, font_size_shop_line_id: 11,
     font_size_product: 11, font_size_qty: 9, font_size_dosage: 11, font_size_expiry: 9,
     font_size_timing: 11, font_size_indication: 11, font_size_advice: 11,
     font_size_custom_text: 11,

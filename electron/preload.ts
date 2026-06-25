@@ -121,7 +121,6 @@ const api = {
     generateMonth: (p: { year: number; month: number; mode?: 'fill-empty' | 'all' }) => invoke('env:generateMonth', p),
     getSettings: () => invoke('env:getSettings'),
     setZones: (p: { zone_reserve_enabled: number; zone_fridge_enabled: number }) => invoke('env:setZones', p),
-    saveSettings: (data: any) => invoke('env:saveSettings', data),
   },
   // Settings
   settings: {

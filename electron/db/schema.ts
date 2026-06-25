@@ -36,6 +36,8 @@ export function initializeSchema(db: Database.Database) {
       shop_tax_id TEXT NOT NULL DEFAULT '',
       shop_line_id TEXT NOT NULL DEFAULT '',
       shop_postcode TEXT NOT NULL DEFAULT '',
+      -- Seller branch for tax invoices (ม.86/4: "สำนักงานใหญ่"/branch no.)
+      shop_branch TEXT NOT NULL DEFAULT 'สำนักงานใหญ่',
       setup_completed INTEGER NOT NULL DEFAULT 0,
       setup_completed_at TEXT,
       vat_registered_date TEXT,
@@ -106,9 +108,6 @@ export function initializeSchema(db: Database.Database) {
       is_stock_item INTEGER NOT NULL DEFAULT 1,
       is_bundle INTEGER NOT NULL DEFAULT 0,
       is_disabled INTEGER NOT NULL DEFAULT 0,
-      -- DEAD COLUMN: ไม่มี query ไหนกรอง products.is_hidden เลย (UI ถูกถอดแล้ว) — is_disabled
-      -- ครอบคลุมทุกเคส; รอ DROP ทีเดียวตอน schema cleanup. ดู docs/refine_schema.md
-      is_hidden INTEGER NOT NULL DEFAULT 0,
       price_retail REAL NOT NULL DEFAULT 0,
       price_wholesale1 REAL NOT NULL DEFAULT 0,
       price_wholesale2 REAL NOT NULL DEFAULT 0,
@@ -146,11 +145,6 @@ export function initializeSchema(db: Database.Database) {
       price_wholesale1 REAL NOT NULL DEFAULT 0,
       price_wholesale2 REAL NOT NULL DEFAULT 0,
       is_for_sale INTEGER NOT NULL DEFAULT 1,
-      -- DEAD COLUMN (2026-06-12): purchase/sale unit split dropped. Receiving now
-      -- shows every enabled unit; only is_for_sale is honored (POS picker). Kept to
-      -- avoid an immediate migration — DROP in the pre-release schema cleanup.
-      -- See docs/refine_schema.md
-      is_for_purchase INTEGER NOT NULL DEFAULT 1,
       is_disabled INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -215,7 +209,7 @@ export function initializeSchema(db: Database.Database) {
       phone TEXT,
       address TEXT,
       branch TEXT,
-      chronic_diseases TEXT,  -- RENAME COLUMN -> 'note' (repurposed as free-form customer note 2026-06-23; rename at schema refine — see docs/refine_schema.md #6)
+      note TEXT,  -- free-form customer note (renderers show with whitespace-pre-line)
       is_alert INTEGER NOT NULL DEFAULT 0,
       alert_note TEXT,
       is_disabled INTEGER NOT NULL DEFAULT 0,
@@ -459,7 +453,6 @@ export function initializeSchema(db: Database.Database) {
       font_size_shop          REAL NOT NULL DEFAULT 10,
       font_size_print_date    REAL NOT NULL DEFAULT 10,
       font_size_shop_address  REAL NOT NULL DEFAULT 10,
-      font_size_shop_phone    REAL NOT NULL DEFAULT 10,
       font_size_shop_line_id  REAL NOT NULL DEFAULT 10,
       font_size_product       REAL NOT NULL DEFAULT 10,
       font_size_dosage        REAL NOT NULL DEFAULT 10,
@@ -477,14 +470,10 @@ export function initializeSchema(db: Database.Database) {
       -- FEFO lot) so they print blank outside the POS flow.
       font_size_qty           REAL NOT NULL DEFAULT 10,
       font_size_expiry        REAL NOT NULL DEFAULT 10,
-      -- frequency (ความถี่) split out of dosage so it prints on its own line.
-      font_size_frequency     REAL NOT NULL DEFAULT 10,
-      font_size_small         REAL NOT NULL DEFAULT 10, -- DEAD: retired shared tier
       -- Per-section bold; only shop name / address / phone / product default on.
       bold_shop          INTEGER NOT NULL DEFAULT 1,
       bold_print_date    INTEGER NOT NULL DEFAULT 0,
       bold_shop_address  INTEGER NOT NULL DEFAULT 1,
-      bold_shop_phone    INTEGER NOT NULL DEFAULT 1,
       bold_shop_line_id  INTEGER NOT NULL DEFAULT 0,
       bold_product       INTEGER NOT NULL DEFAULT 1,
       bold_dosage        INTEGER NOT NULL DEFAULT 0,
@@ -495,7 +484,6 @@ export function initializeSchema(db: Database.Database) {
       bold_custom_text   INTEGER NOT NULL DEFAULT 0,
       bold_qty           INTEGER NOT NULL DEFAULT 0,
       bold_expiry        INTEGER NOT NULL DEFAULT 0,
-      bold_frequency     INTEGER NOT NULL DEFAULT 0,
       line_spacing REAL NOT NULL DEFAULT 1.2,
       section_gap REAL NOT NULL DEFAULT 2,
       printer_name TEXT NOT NULL DEFAULT '',
@@ -503,30 +491,23 @@ export function initializeSchema(db: Database.Database) {
       show_shop          INTEGER NOT NULL DEFAULT 1,
       show_print_date    INTEGER NOT NULL DEFAULT 1,
       show_shop_address  INTEGER NOT NULL DEFAULT 1,
-      show_shop_phone    INTEGER NOT NULL DEFAULT 1,
       show_shop_line_id  INTEGER NOT NULL DEFAULT 1,
       show_product       INTEGER NOT NULL DEFAULT 1,
       show_dosage        INTEGER NOT NULL DEFAULT 1,
       show_timing        INTEGER NOT NULL DEFAULT 1,
       show_indication    INTEGER NOT NULL DEFAULT 1,
       show_advice        INTEGER NOT NULL DEFAULT 1,
-      show_notes         INTEGER NOT NULL DEFAULT 1,
-      show_lot_expiry    INTEGER NOT NULL DEFAULT 1,
       show_barcode       INTEGER NOT NULL DEFAULT 0,
       show_custom_text   INTEGER NOT NULL DEFAULT 1,
       show_qty           INTEGER NOT NULL DEFAULT 1,
       show_expiry        INTEGER NOT NULL DEFAULT 1,
-      show_frequency     INTEGER NOT NULL DEFAULT 1,
       show_header_line   INTEGER NOT NULL DEFAULT 1,
-      show_footer_line   INTEGER NOT NULL DEFAULT 1,
       offset_x_shop       REAL NOT NULL DEFAULT 0,
       offset_y_shop       REAL NOT NULL DEFAULT 0,
       offset_x_print_date REAL NOT NULL DEFAULT 0,
       offset_y_print_date REAL NOT NULL DEFAULT 0,
       offset_x_shop_address REAL NOT NULL DEFAULT 0,
       offset_y_shop_address REAL NOT NULL DEFAULT 0,
-      offset_x_shop_phone   REAL NOT NULL DEFAULT 0,
-      offset_y_shop_phone   REAL NOT NULL DEFAULT 0,
       offset_x_shop_line_id REAL NOT NULL DEFAULT 0,
       offset_y_shop_line_id REAL NOT NULL DEFAULT 0,
       offset_x_product    REAL NOT NULL DEFAULT 0,
@@ -535,8 +516,6 @@ export function initializeSchema(db: Database.Database) {
       offset_y_qty        REAL NOT NULL DEFAULT 0,
       offset_x_expiry     REAL NOT NULL DEFAULT 0,
       offset_y_expiry     REAL NOT NULL DEFAULT 0,
-      offset_x_frequency  REAL NOT NULL DEFAULT 0,
-      offset_y_frequency  REAL NOT NULL DEFAULT 0,
       offset_x_dosage     REAL NOT NULL DEFAULT 0,
       offset_y_dosage     REAL NOT NULL DEFAULT 0,
       offset_x_timing     REAL NOT NULL DEFAULT 0,
@@ -545,18 +524,12 @@ export function initializeSchema(db: Database.Database) {
       offset_y_indication REAL NOT NULL DEFAULT 0,
       offset_x_advice     REAL NOT NULL DEFAULT 0,
       offset_y_advice     REAL NOT NULL DEFAULT 0,
-      offset_x_notes      REAL NOT NULL DEFAULT 0,
-      offset_y_notes      REAL NOT NULL DEFAULT 0,
-      offset_x_lot_expiry REAL NOT NULL DEFAULT 0,
-      offset_y_lot_expiry REAL NOT NULL DEFAULT 0,
       offset_x_barcode    REAL NOT NULL DEFAULT 0,
       offset_y_barcode    REAL NOT NULL DEFAULT 0,
       offset_x_custom_text REAL NOT NULL DEFAULT 0,
       offset_y_custom_text REAL NOT NULL DEFAULT 0,
       offset_x_header_line REAL NOT NULL DEFAULT 0,
       offset_y_header_line REAL NOT NULL DEFAULT 0,
-      offset_x_footer_line REAL NOT NULL DEFAULT 0,
-      offset_y_footer_line REAL NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -591,9 +564,6 @@ export function initializeSchema(db: Database.Database) {
       font_family        TEXT NOT NULL DEFAULT 'Sarabun',
       font_size          REAL NOT NULL DEFAULT 11,
       footer_note        TEXT NOT NULL DEFAULT 'ขอบคุณที่ใช้บริการ',
-      -- DEAD COLUMN: โหมดใบกำกับภาษีอย่างย่อตัดสินจาก sale.total_vat>0 (print.ts) แล้ว
-      -- ไม่มี UI/โค้ดอ่านค่านี้ → DROP ตอน schema cleanup. ดู docs/refine_schema.md
-      abbrev_tax_invoice INTEGER NOT NULL DEFAULT 1,
       -- รูปแบบบล็อกรายการสินค้า: 'detailed' = 2 บรรทัด/รายการ (ชื่อ + จำนวน×ราคา …
       -- ยอด, ค่าเริ่มต้น), 'table' = ตาราง 1 บรรทัด/รายการ (ชื่อ | จำนวน+หน่วย |
       -- ราคา | รวม). อ่านโดย buildSlipHtml.ts.
@@ -613,18 +583,13 @@ export function initializeSchema(db: Database.Database) {
     );
 
     -- A4 document printing (singleton). Covers every full-page document that
-    -- shares the A4 printer: ใบกำกับภาษีเต็มรูป, ใบรับสินค้า, ใบเสนอราคา, ฯลฯ.
-    -- One physical printer for all of them (operator decision). paper_size picks
-    -- the page size the print helpers emit ('A4' 210×297 / 'A5' 148×210 mm);
-    -- printer_name = '' falls back to the OS default printer.
+    -- shares the A4 printer: ใบกำกับภาษีเต็มรูป, ใบรับสินค้า, ฯลฯ — A4 only
+    -- (A5 removed system-wide 2026-06-19). printer_name = '' falls back to the
+    -- OS default printer.
     CREATE TABLE IF NOT EXISTS document_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       printer_name TEXT NOT NULL DEFAULT '',
       copies       INTEGER NOT NULL DEFAULT 1,
-      -- DEAD COLUMN: A5 removed system-wide (2026-06-19) — always 'A4' now. Kept
-      -- to avoid mid-dev migration; drop in the pre-launch schema cleanup
-      -- (docs/refine_schema.md). See [[project_print_dialog_unification]].
-      paper_size   TEXT NOT NULL DEFAULT 'A4',
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -644,10 +609,10 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
-    -- Price-tag print-page preference (singleton). Printer + paper SIZE (A4/A5)
-    -- come from document_settings (printer_name + paper_size). This table only
-    -- stores the chosen LAYOUT PRESET + content toggles. preset resolves per paper
-    -- size via src/lib/tags/presets.ts (e.g. A4 '8up' = 2×4; A5 fewer).
+    -- Price-tag print-page preference (singleton). Printer comes from
+    -- document_settings (printer_name); pages are A4 only. This table stores the
+    -- chosen LAYOUT PRESET + content toggles. preset resolves via
+    -- src/lib/tags/presets.ts (e.g. A4 '8up' = 2×4).
     CREATE TABLE IF NOT EXISTS price_tag_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       preset         TEXT NOT NULL DEFAULT '8up',
@@ -855,16 +820,12 @@ export function initializeSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
       UNIQUE(log_date, period)
     );
+    -- GPP thresholds are a fixed SSOT const (src/lib/env/thresholds.ts), so this
+    -- table only holds which measurement zones the shop uses.
     CREATE TABLE IF NOT EXISTS env_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       zone_reserve_enabled INTEGER NOT NULL DEFAULT 1,
       zone_fridge_enabled  INTEGER NOT NULL DEFAULT 1,
-      store_temp_max       REAL NOT NULL DEFAULT 30,
-      store_humidity_max   REAL NOT NULL DEFAULT 75,
-      reserve_temp_max     REAL NOT NULL DEFAULT 30,
-      reserve_humidity_max REAL NOT NULL DEFAULT 75,
-      fridge_temp_min      REAL NOT NULL DEFAULT 2,
-      fridge_temp_max      REAL NOT NULL DEFAULT 8,
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
   `)
@@ -925,8 +886,6 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE label_settings ADD COLUMN show_product       INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE label_settings ADD COLUMN show_dosage        INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE label_settings ADD COLUMN show_indication    INTEGER NOT NULL DEFAULT 1`,
-    `ALTER TABLE label_settings ADD COLUMN show_notes         INTEGER NOT NULL DEFAULT 1`,
-    `ALTER TABLE label_settings ADD COLUMN show_lot_expiry    INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE label_settings ADD COLUMN show_barcode       INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_shop       REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_shop       REAL NOT NULL DEFAULT 0`,
@@ -936,18 +895,11 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE label_settings ADD COLUMN offset_y_dosage     REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_indication REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_indication REAL NOT NULL DEFAULT 0`,
-    `ALTER TABLE label_settings ADD COLUMN offset_x_notes      REAL NOT NULL DEFAULT 0`,
-    `ALTER TABLE label_settings ADD COLUMN offset_y_notes      REAL NOT NULL DEFAULT 0`,
-    `ALTER TABLE label_settings ADD COLUMN offset_x_lot_expiry REAL NOT NULL DEFAULT 0`,
-    `ALTER TABLE label_settings ADD COLUMN offset_y_lot_expiry REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_barcode    REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_barcode    REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN show_header_line    INTEGER NOT NULL DEFAULT 1`,
-    `ALTER TABLE label_settings ADD COLUMN show_footer_line    INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_header_line REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_header_line REAL NOT NULL DEFAULT 0`,
-    `ALTER TABLE label_settings ADD COLUMN offset_x_footer_line REAL NOT NULL DEFAULT 0`,
-    `ALTER TABLE label_settings ADD COLUMN offset_y_footer_line REAL NOT NULL DEFAULT 0`,
     // Label restructure: new sections shop_address / timing / advice each get a
     // show toggle + X/Y nudge. shop_address & advice split out of the old
     // shop/notes lines; timing splits dose+frequency off into its own line.
@@ -961,14 +913,12 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE label_settings ADD COLUMN offset_x_advice       REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_advice       REAL NOT NULL DEFAULT 0`,
     // Label section-split: every text section now owns its own font_size_<key> +
-    // bold_<key>; new sections shop_phone / shop_line_id / custom_text get the
-    // full show + X/Y set too. The retired shared "font_size_small" tier stays as
-    // a DEAD column. (font_size_shop/product/dosage + bold_shop/product/dosage
-    // already exist; ADD COLUMN on them throws "duplicate column" and is swallowed
-    // by the try/catch — defaults for fresh DBs live in the CREATE TABLE above.)
+    // bold_<key>; new sections shop_line_id / custom_text get the full show + X/Y
+    // set too. (font_size_shop/product/dosage + bold_shop/product/dosage already
+    // exist; ADD COLUMN on them throws "duplicate column" and is swallowed by the
+    // try/catch — defaults for fresh DBs live in the CREATE above.)
     `ALTER TABLE label_settings ADD COLUMN custom_text TEXT NOT NULL DEFAULT ''`,
     `ALTER TABLE label_settings ADD COLUMN font_size_shop_address  REAL NOT NULL DEFAULT 10`,
-    `ALTER TABLE label_settings ADD COLUMN font_size_shop_phone    REAL NOT NULL DEFAULT 10`,
     `ALTER TABLE label_settings ADD COLUMN font_size_shop_line_id  REAL NOT NULL DEFAULT 10`,
     `ALTER TABLE label_settings ADD COLUMN font_size_timing        REAL NOT NULL DEFAULT 10`,
     `ALTER TABLE label_settings ADD COLUMN font_size_indication    REAL NOT NULL DEFAULT 10`,
@@ -976,18 +926,14 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE label_settings ADD COLUMN font_size_barcode       REAL NOT NULL DEFAULT 10`,
     `ALTER TABLE label_settings ADD COLUMN font_size_custom_text   REAL NOT NULL DEFAULT 10`,
     `ALTER TABLE label_settings ADD COLUMN bold_shop_address  INTEGER NOT NULL DEFAULT 1`,
-    `ALTER TABLE label_settings ADD COLUMN bold_shop_phone    INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE label_settings ADD COLUMN bold_shop_line_id  INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN bold_timing        INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN bold_indication    INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN bold_advice        INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN bold_barcode       INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN bold_custom_text   INTEGER NOT NULL DEFAULT 0`,
-    `ALTER TABLE label_settings ADD COLUMN show_shop_phone    INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE label_settings ADD COLUMN show_shop_line_id  INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE label_settings ADD COLUMN show_custom_text   INTEGER NOT NULL DEFAULT 1`,
-    `ALTER TABLE label_settings ADD COLUMN offset_x_shop_phone   REAL NOT NULL DEFAULT 0`,
-    `ALTER TABLE label_settings ADD COLUMN offset_y_shop_phone   REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_shop_line_id REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_shop_line_id REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_custom_text  REAL NOT NULL DEFAULT 0`,
@@ -1017,13 +963,6 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE label_settings ADD COLUMN bold_expiry        INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_expiry    REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_expiry    REAL NOT NULL DEFAULT 0`,
-    // ความถี่ (frequency) split out of วิธีใช้ (dosage) into its own line so the two
-    // position independently. Full per-section column set; default show = 1.
-    `ALTER TABLE label_settings ADD COLUMN show_frequency     INTEGER NOT NULL DEFAULT 1`,
-    `ALTER TABLE label_settings ADD COLUMN font_size_frequency REAL NOT NULL DEFAULT 10`,
-    `ALTER TABLE label_settings ADD COLUMN bold_frequency     INTEGER NOT NULL DEFAULT 0`,
-    `ALTER TABLE label_settings ADD COLUMN offset_x_frequency REAL NOT NULL DEFAULT 0`,
-    `ALTER TABLE label_settings ADD COLUMN offset_y_frequency REAL NOT NULL DEFAULT 0`,
     // product_labels restructure: persist the advice + time-of-day lookups and
     // the per-label default / show-barcode toggles. Without these columns the
     // saveLabel UPDATE (dynamic from Object.keys) threw "no such column".
@@ -1078,9 +1017,6 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE users ADD COLUMN last_name TEXT NOT NULL DEFAULT ''`,
     `ALTER TABLE users ADD COLUMN username TEXT`,
     `ALTER TABLE users ADD COLUMN phone TEXT`,
-    // A4 documents can now be issued on A4 or A5 — page size is configurable
-    // per the document_settings singleton (was hard-locked to A4).
-    `ALTER TABLE document_settings ADD COLUMN paper_size TEXT NOT NULL DEFAULT 'A4'`,
     // receipt_settings: per-section style (SSOT src/lib/receipt/sections.ts).
     // show_/bold_ = 0|1, align_ = 'left'|'center'|'right'|'justify'. Font size
     // stays the single global `font_size` column. header_note is retired (dropped

@@ -5,7 +5,9 @@ metadata:
   type: project
 ---
 
-**ACTIVE 2026-06-12** — checklist กลางสำหรับ schema cleanup ก่อนปล่อยโปรแกรม = **`docs/refine_schema.md`**
+**เคลียร์รอบที่ 1 DONE 2026-06-25 (tsc PASS เฉพาะงานนี้)** — checklist กลางสำหรับ schema cleanup ก่อนปล่อยโปรแกรม = **`docs/refine_schema.md`**
+
+> ทั้ง 6 รายการค้างลบ/เปลี่ยนชื่อออกจาก schema CREATE + IPC + types + UI + seed แล้ว. เจ้าของสั่ง **ไม่ทำ migration** (จะลบ DB ทิ้ง → CREATE block สร้างใหม่ตรง ๆ; ลบ `ALTER … ADD COLUMN paper_size` เก่าทิ้งด้วย). Carve-outs ที่ตั้งใจไม่แตะ: PrintTab/presets A4/A5 ภายใน (force 'A4' อยู่แล้ว ไม่ break), `scripts/import-hygeia.mjs`+`gen-products.py` (manual dev script — ⚠️ ถ้ารื้อ Hygeia import กลับมาต้องแก้ก่อน). รายละเอียดเต็ม + ขั้นตอนเดิม = `docs/refine_schema.md` หัวข้อ "เคลียร์รอบที่ 1".
 
 ## กฏ (ทำตามทุกครั้งที่เจอ dead schema)
 - เจอ **DEAD COLUMN / DEAD TABLE / dead field** ระหว่างพัฒนา → **อย่าลบทันที** (เลี่ยง migration กลางคัน) ให้ไปจดต่อท้าย `docs/refine_schema.md` พร้อมขั้นตอนลบครบทุกจุด

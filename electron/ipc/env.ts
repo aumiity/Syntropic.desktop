@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
-import { requireAdmin, getSession } from '../auth/session'
+import { getSession } from '../auth/session'
 import { GPP_THRESHOLDS } from '../../src/lib/env/thresholds'
 
 // Allow-listed numeric fields in env_log — gates `env:saveCell` and
@@ -11,17 +11,6 @@ const NUMERIC_FIELDS = new Set([
   'store_temp', 'store_humidity', 'reserve_temp', 'reserve_humidity', 'fridge_temp',
 ])
 const SAVE_FIELDS = new Set([...NUMERIC_FIELDS, 'note'])
-
-// Explicit column allow-list for env_settings — the saveSettings dynamic UPDATE
-// intersects Object.keys(rest) against this before building SQL (the handler-side
-// guard; the Settings renderer is the first gate).
-const SETTINGS_COLUMNS = new Set([
-  'zone_reserve_enabled', 'zone_fridge_enabled',
-  // DEAD COLUMN — thresholds ฝังใน src/lib/env/thresholds.ts (SSOT) แล้ว; รอ DROP ก่อน launch
-  'store_temp_max', 'store_humidity_max',
-  'reserve_temp_max', 'reserve_humidity_max',
-  'fridge_temp_min', 'fridge_temp_max',
-])
 
 // First/last day of a (year, month) as 'YYYY-MM-DD' bounds for BETWEEN.
 function monthBounds(year: number, month: number) {
@@ -230,30 +219,6 @@ export function registerEnvHandlers() {
       fridge: zone_fridge_enabled ? 1 : 0,
       id: row.id,
     })
-    return db.prepare(`SELECT * FROM env_settings ORDER BY id LIMIT 1`).get()
-  })
-
-  // Threshold upsert from the Settings tab (admin write). The {id,updated_at,
-  // ...rest} dynamic UPDATE is NOT itself an allow-list — intersect
-  // Object.keys(rest) with SETTINGS_COLUMNS before building SQL so a stray key
-  // can't throw "no such column" (handler-side guard; the renderer is the first
-  // gate, mirroring saveDocumentSettings).
-  // NO CALLER after EnvironmentTab removal (2026-06-20) — kept harmless; thresholds now SSOT in src/lib/env/thresholds.ts
-  ipcMain.handle('env:saveSettings', (e, data: any) => {
-    requireAdmin(e)
-    const db = getDb()
-    db.transaction(() => {
-      const row = ensureSettings(db)
-      const { id, updated_at, ...rest } = data ?? {}
-      const cols = Object.keys(rest).filter(k => SETTINGS_COLUMNS.has(k))
-      if (cols.length) {
-        const fields = cols.map(k => `${k} = @${k}`).join(', ')
-        const params: Record<string, any> = { id: row.id }
-        for (const k of cols) params[k] = rest[k]
-        db.prepare(`UPDATE env_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`)
-          .run(params)
-      }
-    })()
     return db.prepare(`SELECT * FROM env_settings ORDER BY id LIMIT 1`).get()
   })
 }

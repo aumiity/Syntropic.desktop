@@ -205,7 +205,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
                       <InitialAvatar name={c.full_name} size="sm" />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm text-foreground truncate" title={c.full_name}>{c.full_name}</div>
-                        {c.chronic_diseases && <div className="text-sm text-muted-foreground truncate">{c.chronic_diseases}</div>}
+                        {c.note && <div className="text-sm text-muted-foreground truncate">{c.note}</div>}
                       </div>
                     </div>
                   </TableCell>

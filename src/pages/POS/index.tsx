@@ -1640,14 +1640,14 @@ export default function POSPage() {
                   </div>
 
                   {/* Medical */}
-                  {(c.chronic_diseases || allergies.length > 0) ? (
+                  {(c.note || allergies.length > 0) ? (
                     <div className="space-y-3 px-1">
-                      {c.chronic_diseases ? (
+                      {c.note ? (
                         <div className="flex items-start gap-3">
                           <HeartPulse className="size-5 shrink-0 mt-0.5 text-foreground-subtle" />
                           <div className="min-w-0 flex-1">
                             <div className="text-sm text-muted-foreground">โน้ต</div>
-                            <div className="text-base text-foreground whitespace-pre-line break-words">{c.chronic_diseases}</div>
+                            <div className="text-base text-foreground whitespace-pre-line break-words">{c.note}</div>
                           </div>
                         </div>
                       ) : null}

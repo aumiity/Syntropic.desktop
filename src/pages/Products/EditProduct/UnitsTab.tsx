@@ -55,11 +55,6 @@ export function UnitsTab({
       price_wholesale1: 0,
       price_wholesale2: 0,
       is_for_sale: 1,
-      // DEAD COLUMN: the purchase/sale unit split was dropped (2026-06-12) — every
-      // enabled unit is now receivable, so receiving ignores this flag. Still written
-      // (default 1) only to satisfy the existing IPC payload until the column is
-      // DROPped in the pre-release schema cleanup. No UI toggle for it anymore.
-      is_for_purchase: 1,
       is_disabled: 0,
     })
     setUnitDialog(true)
@@ -75,7 +70,6 @@ export function UnitsTab({
       price_wholesale1: u.price_wholesale1,
       price_wholesale2: u.price_wholesale2,
       is_for_sale: u.is_for_sale,
-      is_for_purchase: u.is_for_purchase,
       is_disabled: u.is_disabled,
     })
     setUnitDialog(true)
@@ -93,7 +87,6 @@ export function UnitsTab({
           price_wholesale1: parseFloat(unitForm.price_wholesale1) || 0,
           price_wholesale2: parseFloat(unitForm.price_wholesale2) || 0,
           is_for_sale: unitForm.is_for_sale ? 1 : 0,
-          is_for_purchase: unitForm.is_for_purchase ? 1 : 0,
           is_disabled: unitForm.is_disabled ? 1 : 0,
         })
       } else {
@@ -106,7 +99,6 @@ export function UnitsTab({
           price_wholesale1: parseFloat(unitForm.price_wholesale1) || 0,
           price_wholesale2: parseFloat(unitForm.price_wholesale2) || 0,
           is_for_sale: unitForm.is_for_sale ? 1 : 0,
-          is_for_purchase: unitForm.is_for_purchase ? 1 : 0,
           is_disabled: unitForm.is_disabled ? 1 : 0,
         })
       }

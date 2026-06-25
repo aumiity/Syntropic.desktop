@@ -3,7 +3,7 @@ export interface Product {
   barcode?: string; barcode2?: string; barcode3?: string; barcode4?: string
   code?: string; trade_name: string; name_for_print?: string
   category_id?: number
-  is_stock_item: number; is_bundle: number; is_disabled: number; is_hidden: number
+  is_stock_item: number; is_bundle: number; is_disabled: number
   price_retail: number; price_wholesale1: number; price_wholesale2: number; cost_price: number; last_cost_price: number
   has_wholesale1: number; has_wholesale2: number
   unit_id?: number
@@ -54,7 +54,7 @@ export interface ProductUnit {
   id: number; product_id: number; unit_id: number
   barcode?: string; qty_per_base: number
   price_retail: number; price_wholesale1: number; price_wholesale2: number
-  is_for_sale: number; is_for_purchase: number; is_disabled: number
+  is_for_sale: number; is_disabled: number
   unit_name?: string
 }
 
@@ -97,7 +97,7 @@ export interface Customer {
   id: number; code: string; full_name: string
   id_card?: string; dob?: string; phone?: string; address?: string
   branch?: string
-  chronic_diseases?: string
+  note?: string
   is_alert: number; alert_note?: string
   is_disabled: number
   allergies?: DrugAllergy[]
@@ -168,7 +168,6 @@ export interface ReceiptSettings {
   font_family: string
   font_size: number         // GLOBAL — one size for the whole slip (no per-section size)
   footer_note: string
-  abbrev_tax_invoice: number
   // รูปแบบบล็อกรายการสินค้า: 'detailed' = 2 บรรทัด/รายการ (ค่าเริ่มต้น),
   // 'table' = ตาราง 1 บรรทัด/รายการ (ชื่อ | จำนวน+หน่วย | ราคา | รวม).
   items_layout: 'detailed' | 'table'
@@ -195,9 +194,6 @@ export interface DocumentSettings {
   id: number
   printer_name: string
   copies: number
-  // DEAD COLUMN: A5 removed system-wide (2026-06-19) — always 'A4'. Drop in the
-  // pre-launch schema cleanup (docs/refine_schema.md).
-  paper_size: 'A4' | 'A5'
   updated_at?: string
 }
 
@@ -223,12 +219,6 @@ export interface EnvSettings {
   id: number
   zone_reserve_enabled: number
   zone_fridge_enabled: number
-  store_temp_max: number
-  store_humidity_max: number
-  reserve_temp_max: number
-  reserve_humidity_max: number
-  fridge_temp_min: number
-  fridge_temp_max: number
   updated_at?: string
 }
 

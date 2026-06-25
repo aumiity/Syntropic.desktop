@@ -207,9 +207,9 @@ export function seedDatabase(db: Database.Database) {
       code, trade_name, name_for_print, search_keywords,
       barcode, barcode2, barcode3, barcode4,
       unit_id, cost_price, price_retail, price_wholesale1, price_wholesale2,
-      is_disabled, is_hidden, is_stock_item, is_drug,
+      is_disabled, is_stock_item, is_drug,
       tmt_id, note, reorder_point, safety_stock
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   const nz = (v: string) => (v ? v : null)
   db.transaction(() => {
@@ -221,7 +221,7 @@ export function seedDatabase(db: Database.Database) {
         trade_name, name_for_print, search_keywords,
         barcode, barcode2, barcode3, barcode4,
         unit_name, cost_price, price_retail, price_wholesale1, price_wholesale2,
-        is_disabled, is_hidden, is_stock_item, is_drug,
+        is_disabled, /* is_hidden (dropped column — skip slot) */, is_stock_item, is_drug,
         tmt_id, note, reorder_point, safety_stock,
       ] = p
       const code = `P${String(++codeSeq).padStart(4, '0')}`
@@ -230,7 +230,7 @@ export function seedDatabase(db: Database.Database) {
         nz(barcode), nz(barcode2), nz(barcode3), nz(barcode4),
         unitMap.get(unit_name) ?? fallbackUnitId,
         cost_price, price_retail, price_wholesale1, price_wholesale2,
-        is_disabled, is_hidden, is_stock_item, is_drug,
+        is_disabled, is_stock_item, is_drug,
         nz(tmt_id), nz(note),
         reorder_point > 0 ? reorder_point : null,
         safety_stock > 0 ? safety_stock : null,

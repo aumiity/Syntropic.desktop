@@ -18,14 +18,12 @@ import { Printer, Save } from 'lucide-react'
 
 // Form keys are canonical document_settings column names — Object.keys(form)
 // flows into the dynamic-SQL UPDATE in settings:saveDocumentSettings, so any key
-// here must be a real column. paper_size is a DEAD column (A5 removed system-wide;
-// always 'A4') — kept until the pre-launch schema cleanup.
+// here must be a real column.
 type DocumentForm = Omit<DocumentSettings, 'id' | 'updated_at'>
 
 const DEFAULTS: DocumentForm = {
   printer_name: '',
   copies: 1,
-  paper_size: 'A4',
 }
 
 // Sample sale + tax record for the live A4 preview / test print.
@@ -100,9 +98,6 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
       setForm(prev => {
         const next = { ...prev }
         for (const k of Object.keys(prev) as (keyof DocumentForm)[]) {
-          // paper_size is DEAD (A5 removed) — keep the DEFAULT 'A4' so a legacy
-          // stored 'A5' never round-trips back through save.
-          if (k === 'paper_size') continue
           const v = (data as any)[k]
           if (v !== undefined && v !== null) (next as any)[k] = v
         }

@@ -40,7 +40,6 @@ const DEFAULTS: ReceiptForm = {
   font_family: 'Sarabun',
   font_size: 11,
   footer_note: 'ขอบคุณที่ใช้บริการ',
-  abbrev_tax_invoice: 1,
   items_layout: 'detailed',
   // Per-section style — defaults mirror the receipt_settings column defaults.
   show_shop: 1,         bold_shop: 1,         align_shop: 'center',
