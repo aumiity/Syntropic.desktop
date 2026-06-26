@@ -63,7 +63,7 @@ One line per memory. Detail lives in the linked file (read on demand).
 - [Button icon sizing](feedback_button_icon_size.md) — icons ใน `<Button>` ต้องใช้ `size-N`; `h-N w-N` ถูก override เป็น 16px โดย button.tsx
 - [Min text size = text-sm](feedback_text_size.md) — `text-xs`/smaller ห้ามในโค้ดใหม่ (codified CLAUDE.md theming rule)
 - [Font-relative sizing](feedback_font_relative_sizing.md) — **2026-06-23** — root font-size แปรผัน (ปัจจุบัน 18px, เจ้าของปรับเรื่อย ๆ จนกว่า build); ทุกขนาดเป็น rem ห้าม hardcode px มาชดเชย; modal=`max-h-[Xvh]`, ล็อกแถว=`h-[Nrem]`; กฏ h-12/h-9 ไม่ต้องแก้เมื่อ font เปลี่ยน
-- [Scrollbars thin (6px)](feedback_scrollbar_thin.md) — scrollbar 6px ทั่วแอป ตัวเดียว ไม่มีข้อยกเว้น; global `::-webkit-scrollbar` + `.scrollbar-thin` = 6px แล้ว; ห้ามนิยามความกว้างอื่น (codified CLAUDE.md)
+- [Scrollbars thin (7px)](feedback_scrollbar_thin.md) — scrollbar 7px ทั่วแอป ตัวเดียว ไม่มีข้อยกเว้น (เดิม 6px → 7px 2026-06-27); global `::-webkit-scrollbar` + `.scrollbar-thin` = 7px แล้ว; ห้ามนิยามความกว้างอื่น (codified CLAUDE.md)
 - [tsc discipline](feedback_tsc_discipline.md) — อย่ารัน tsc ทุก edit; ข้าม markup/className/text-only; type-check เฉพาะ type/logic/import ตอนไม่มั่นใจ
 - [Animation reduced-motion pitfall](feedback_animation_reduced_motion.md) — `onAnimationEnd` ไม่ยิงใต้ `prefers-reduced-motion` → ใช้ `setTimeout`+cleanup ใน `useEffect` แทน
 - [Modifier vs className specificity](feedback_modifier_className_specificity.md) — `className="h-9"` แพ้ base modifier (`group-data-[…]:h-8`) ใน cva; override ต้องระดับ modifier เดียวกัน

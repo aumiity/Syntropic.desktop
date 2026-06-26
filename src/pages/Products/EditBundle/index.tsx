@@ -377,10 +377,18 @@ export default function EditBundlePage() {
   const displayCode = isNew ? null : product!.code
   const displayDisabled = isNew ? !!form.is_disabled : !!product!.is_disabled
 
-  return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
-      <PageHeader title={isNew ? 'สร้างชุดสินค้าใหม่' : 'ชุดสินค้า'} />
+  // Full-bleed like Manage: page runs full width so the form scrollbar sits at the
+  // window edge; CAP re-centers each region (header, tabs, metric cards, form body,
+  // table tabs) at max-w-7xl so content + tables look unchanged.
+  const CAP = 'w-full max-w-7xl mx-auto px-8'
 
+  return (
+    <div className="flex flex-col h-full pt-4 pb-4 gap-2">
+      <div className={CAP}>
+        <PageHeader title={isNew ? 'สร้างชุดสินค้าใหม่' : 'ชุดสินค้า'} />
+      </div>
+
+      <div className={CAP}>
       <TabStrip className="-mb-2">
         {/* New mode = single "ข้อมูล & รายการ" view, no tab strip (the form +
             components table stack in one scroll). Edit mode adds ฉลาก /
@@ -413,6 +421,7 @@ export default function EditBundlePage() {
           )}
         </div>
       </TabStrip>
+      </div>
 
       {/* 4 cards: meta + cost + price + components. Layout mirrors
           EditProduct's top row (default-size h-32 cards, absolute-icon meta
@@ -424,7 +433,7 @@ export default function EditBundlePage() {
           lots). Live-value preview in new mode is intentionally preserved —
           drafted cost / retail / count give the operator immediate feedback
           before save, which EditProduct can't do (no values exist there yet). */}
-      <div className="shrink-0 pt-3">
+      <div className={`shrink-0 pt-3 ${CAP}`}>
         <div className="grid grid-cols-4 gap-3 p-0.5">
         {/* Meta card — hand-rolled to match MetricCard default-size proportions
             (h-32, icon absolute top-right). Badges row sits at the bottom via
@@ -495,7 +504,7 @@ export default function EditBundlePage() {
           their own internal sticky-header scroll, so they get flex-col only. */}
       <div className="flex-1 min-h-0 flex flex-col [scrollbar-gutter:stable]">
         {tab === 'labels' && !isNew ? (
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className={`flex-1 min-h-0 flex flex-col ${CAP}`}>
             <LabelsTab
               product={product!}
               productId={productId}
@@ -508,7 +517,7 @@ export default function EditBundlePage() {
             />
           </div>
         ) : tab === 'history' && !isNew ? (
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className={`flex-1 min-h-0 flex flex-col ${CAP}`}>
             <HistoryTab
               productId={productId}
               isNew={isNew}
@@ -517,6 +526,7 @@ export default function EditBundlePage() {
           </div>
         ) : (
           <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] pt-4 pb-8 flex flex-col">
+            <div className={`${CAP} flex flex-col`}>
             <GeneralTab
               form={form}
               setF={setF}
@@ -534,6 +544,7 @@ export default function EditBundlePage() {
                 controlledItems={draftItems}
                 onControlledItemsChange={handleItemsChange}
               />
+            </div>
             </div>
           </div>
         )}

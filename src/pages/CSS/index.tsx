@@ -260,11 +260,13 @@ export default function CSSPage() {
   }
 
   return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
-      <PageHeader title="CSS" />
+    <div className="flex flex-col h-full pt-4 pb-4 gap-2">
+      <div className="px-8">
+        <PageHeader title="CSS" />
+      </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="grid grid-cols-2 gap-4">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+        <div className="grid grid-cols-2 gap-4 px-8 max-w-7xl mx-auto">
           {/* ── FONTS ── */}
           <Section title="Fonts" path="--font-latin / --font-thai" full>
             <div className="flex items-center justify-between gap-3">

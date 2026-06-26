@@ -364,10 +364,18 @@ export default function EditProductPage() {
   const profitPct = refCost > 0 ? (profit / refCost) * 100 : 0
   const updatedShort = (product as any).updated_at ? String((product as any).updated_at).slice(0, 10) : null
 
-  return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
-      <PageHeader title={isNew ? 'เพิ่มสินค้าใหม่' : 'สินค้า'} />
+  // Full-bleed like Manage: page runs full width so the form scrollbar sits at the
+  // window edge; CAP re-centers each region (header, tabs, metric cards, form body,
+  // table tabs) at max-w-7xl so content + tables look unchanged.
+  const CAP = 'w-full max-w-7xl mx-auto px-8'
 
+  return (
+    <div className="flex flex-col h-full pt-4 pb-4 gap-2">
+      <div className={CAP}>
+        <PageHeader title={isNew ? 'เพิ่มสินค้าใหม่' : 'สินค้า'} />
+      </div>
+
+      <div className={CAP}>
       <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList variant="segmented">
@@ -397,12 +405,13 @@ export default function EditProductPage() {
           )}
         </div>
       </TabStrip>
+      </div>
 
       {(() => {
         // 4 cards: meta + 3 stats. In create mode, MetricCards stay in place
         // but are grayed out — values aren't meaningful until the product exists.
         const metricCardsGrid = (
-          <div className="shrink-0 pt-3">
+          <div className={`shrink-0 pt-3 ${CAP}`}>
             <div className="grid grid-cols-4 gap-3 p-0.5">
             {/* Meta card — hand-rolled to match MetricCard default-size
                 proportions (h-32, icon top-right). Custom layout because we
@@ -481,7 +490,7 @@ export default function EditProductPage() {
           return (
             <>
               {metricCardsGrid}
-              <div className="flex-1 min-h-0 flex flex-col">
+              <div className={`flex-1 min-h-0 flex flex-col ${CAP}`}>
                 {tab === 'lots' ? (
                   <LotsTab
                     product={product}
@@ -505,6 +514,7 @@ export default function EditProductPage() {
         return (
           <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] pb-8 space-y-2">
             {metricCardsGrid}
+            <div className={CAP}>
             {tab === 'general' && (
               <GeneralTab
                 form={form}
@@ -543,6 +553,7 @@ export default function EditProductPage() {
                 onRefresh={refreshProduct}
               />
             )}
+            </div>
           </div>
         )
       })()}

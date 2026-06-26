@@ -282,10 +282,10 @@ export function TitleBar() {
       <ConfirmDialog
         open={confirmClose}
         onOpenChange={setConfirmClose}
-        variant="warning"
-        title="ปิดโปรแกรม?"
-        description="ต้องการปิดโปรแกรมใช่หรือไม่คะ ระบบจะสำรองข้อมูลอัตโนมัติก่อนปิด"
-        confirmLabel="ปิดโปรแกรม"
+        variant="destructive"
+        title="ออกจากโปรแกรม?"
+        description="คุณต้องการออกจากโปรแกรม ระบบจะสำรองข้อมูลอัตโนมัติก่อนปิด"
+        confirmLabel="ยืนยัน"
         cancelLabel="ยกเลิก"
         onConfirm={() => {
           setConfirmClose(false)

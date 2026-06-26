@@ -22,10 +22,23 @@ export default function SettingsPage() {
   // the MAIN tab row (same spot as the การขาย save button), not the sub-tab strip.
   const [printersActions, setPrintersActions] = useState<ReactNode>(null)
 
-  return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
-      <PageHeader title="ตั้งค่า" />
+  // Full-bleed like Manage: the page runs full width so the form scrollers' bars
+  // sit at the window edge. CAP re-centers each region (header, tab strip, form
+  // body, table tabs) at max-w-7xl so content + tables look unchanged.
+  const CAP = 'w-full max-w-7xl mx-auto px-8'
+  // Form tabs (natural height) own a full-bleed scroll wrapper; the inner CAP keeps
+  // the form centered while the scrollbar hugs the window edge.
+  const formScroll = 'flex-1 min-h-0 overflow-y-auto scrollbar-thin pb-8 [scrollbar-gutter:stable]'
+  // Table/hub tabs (h-full) fill the column but stay capped+centered (look identical).
+  const tableTab = `flex flex-1 min-h-0 flex-col ${CAP}`
 
+  return (
+    <div className="flex flex-col h-full pt-4 pb-4 gap-2">
+      <div className={CAP}>
+        <PageHeader title="ตั้งค่า" />
+      </div>
+
+      <div className={CAP}>
       <TabStrip className="-mb-2">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList variant="segmented">
@@ -47,29 +60,30 @@ export default function SettingsPage() {
           <div className="ml-auto flex items-center gap-2">{printersActions}</div>
         )}
       </TabStrip>
+      </div>
 
-      {/* Manage-style content area: a flex column that fills the leftover height
-          (flex-1 min-h-0, NO outer scroll). Table-card tabs (h-full) stretch to
-          the bottom edge and scroll internally; natural-height form tabs get
-          their OWN scroll wrapper (overflow-y-auto + pb-8 breathing room) so they
-          can scroll without making the whole page scroll. Bottom margin is the
-          root's pb-4 for every tab — same as the Manage page. */}
+      {/* Content area fills the leftover height (flex-1 min-h-0, NO outer scroll).
+          Form tabs use a full-bleed scroll wrapper (formScroll) with an inner CAP;
+          table/hub tabs (h-full) stay capped+centered (tableTab) and scroll
+          internally. Bottom margin is the root's pb-4 for every tab. */}
       <div className="flex flex-1 min-h-0 flex-col pt-3">
-        {tab === 'shop' && <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]"><ShopTab /></div>}
-        {tab === 'product-mgmt' && <ProductMgmtTab />}
-        {tab === 'units' && <UnitsTab />}
-        {tab === 'drug-usage' && <DrugUsageTab />}
+        {tab === 'shop' && <div className={formScroll}><div className={CAP}><ShopTab /></div></div>}
+        {tab === 'product-mgmt' && <div className={tableTab}><ProductMgmtTab /></div>}
+        {tab === 'units' && <div className={tableTab}><UnitsTab /></div>}
+        {tab === 'drug-usage' && <div className={tableTab}><DrugUsageTab /></div>}
         {tab === 'sales' && (
-          <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]">
-            <SalesTab
-              registerSave={fn => { salesSaveFn.current = fn }}
-              saving={salesSaving}
-              setSaving={setSalesSaving}
-            />
+          <div className={formScroll}>
+            <div className={CAP}>
+              <SalesTab
+                registerSave={fn => { salesSaveFn.current = fn }}
+                saving={salesSaving}
+                setSaving={setSalesSaving}
+              />
+            </div>
           </div>
         )}
-        {tab === 'printers' && <PrintersTab onActions={setPrintersActions} />}
-        {tab === 'database' && <div className="flex-1 min-h-0 overflow-y-auto pb-8 [scrollbar-gutter:stable]"><DatabaseTab /></div>}
+        {tab === 'printers' && <div className={tableTab}><PrintersTab onActions={setPrintersActions} /></div>}
+        {tab === 'database' && <div className={formScroll}><div className={CAP}><DatabaseTab /></div></div>}
       </div>
     </div>
   )

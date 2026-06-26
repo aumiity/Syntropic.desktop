@@ -260,10 +260,10 @@
   body { @apply bg-background text-foreground font-sans; }
   ::selection { background: var(--selection-bg); }
   html { font-size: 17px; }
-  /* Thin (6px) is the ONE scrollbar size across the whole app — global default
+  /* Thin (7px) is the ONE scrollbar size across the whole app — global default
      matches the .scrollbar-thin utility. Never define a different width anywhere. */
   ::-webkit-scrollbar {
-    @apply w-[6px] h-[6px];
+    @apply w-[7px] h-[7px];
   }
   ::-webkit-scrollbar-track { 
     @apply bg-transparent; 
@@ -293,7 +293,7 @@
 }
 
 @layer utilities {
-  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar { width: 7px; height: 7px; }
   .scrollbar-thin::-webkit-scrollbar-track { @apply bg-transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb { @apply bg-muted-foreground/30 rounded-full; }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/50; }

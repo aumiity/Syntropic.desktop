@@ -55,10 +55,10 @@ export function LotPickerDialog<T extends LotPickerOption>({
             <div className="text-base font-semibold text-foreground">{productName || '-'}</div>
           </DialogHeader>
           <DialogBody>
-            {/* Toggle's right inset (pr-2 = 8px) = list padding (p-0.5 = 2px) +
-                reserved scrollbar gutter (6px), so both edges align whether or
-                not the lot list is scrolling. */}
-            <div className="pl-0.5 pr-2 mb-2.5">
+            {/* Toggle's right inset (pr-[9px]) = list padding (p-0.5 = 2px) +
+                reserved scrollbar gutter (7px), so both edges align whether or
+                not the lot list is scrolling. (Tracks the global 7px scrollbar.) */}
+            <div className="pl-0.5 pr-[9px] mb-2.5">
               <Toggle
                 framed
                 disabled={!anyDepleted}

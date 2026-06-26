@@ -876,7 +876,7 @@ function statusCard(opts: {
         <TintIcon icon={ShoppingCart} tint="neutral" size="sm" />
         <div className="min-w-0">
           <h3 className="text-base font-semibold text-foreground leading-snug">สถานะการขาย</h3>
-          <p className="text-sm text-muted-foreground">{total.toLocaleString()} บิลในช่วงนี้</p>
+          <p className="text-sm text-muted-foreground">{total.toLocaleString()} บิล</p>
         </div>
       </div>
 

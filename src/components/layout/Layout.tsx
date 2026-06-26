@@ -23,6 +23,18 @@ export function Layout() {
     location.pathname === '/purchase' ||
     location.pathname === '/purchase-intake' ||
     location.pathname.startsWith('/reports') ||
+    // Theme/CSS showcases own a page-level scroll like Manage/Reports, so they run
+    // full-bleed too — the scrollbar then sits at the window edge (content stays
+    // capped/centered by the page's own inner wrapper), matching the Sales page.
+    location.pathname === '/theme' ||
+    location.pathname === '/css' ||
+    // Settings + the product/bundle edit forms also own a page-level form scroll;
+    // full-bleed puts their scrollbar at the window edge. Each re-centers content
+    // (and keeps table tabs capped) via its own inner CAP wrapper. The product/
+    // bundle EDIT/NEW pages match by suffix so the list/print tabs stay capped.
+    location.pathname === '/settings' ||
+    (location.pathname.startsWith('/products/') &&
+      (location.pathname.endsWith('/edit') || location.pathname.endsWith('/new'))) ||
     // Admin's การจัดการ (Manage) is data/analytics-heavy (finance dashboard +
     // wide history tables) and owns a page-level scroll, so it stretches full
     // width — the scrollbar then sits at the window edge. Staff keeps the capped

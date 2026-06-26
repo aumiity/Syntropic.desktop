@@ -55,7 +55,7 @@ The app must be re-themable by editing one file (`src/index.css`). To keep that 
    - **`text-xs` = ข้อความที่ *รองจากเนื้อหา*** — อนุญาตให้ใช้ได้กับ: คำอธิบายย่อย/helper text, caption, status bar แสดงสถานะ, meta/timestamp, chip & status ใน `<Badge>`. อย่าใช้ `text-xs` กับเนื้อหาหลักหรือหัวข้อ.
    - ห้ามใช้เล็กกว่า `text-xs` (เช่น `text-[10px]`, `text-[11px]`, `text-[13px]`) — `text-xs` คือเล็กสุด.
 
-10. **Scrollbar — บาง(6px) ทั้งโปรแกรม ขนาดเดียว ห้ามมีขนาดอื่น (HARD).** global `::-webkit-scrollbar` ใน `src/index.css` ตั้งเป็น `w-[6px] h-[6px]` แล้ว ทั้งแอปจึงบางโดยอัตโนมัติ — ไม่ต้องคอยใส่คลาสเอง. utility `.scrollbar-thin` (6px เท่ากัน, ใช้อยู่ ~40 จุด) ใช้ต่อได้เพื่อความชัดเจน. **ห้าม** กำหนดความกว้าง scrollbar อื่น หรือเขียน `::-webkit-scrollbar` ขนาดอื่นที่ใดก็ตาม.
+10. **Scrollbar — บาง(7px) ทั้งโปรแกรม ขนาดเดียว ห้ามมีขนาดอื่น (HARD).** global `::-webkit-scrollbar` ใน `src/index.css` ตั้งเป็น `w-[7px] h-[7px]` แล้ว ทั้งแอปจึงบางโดยอัตโนมัติ — ไม่ต้องคอยใส่คลาสเอง. utility `.scrollbar-thin` (7px เท่ากัน, ใช้อยู่ ~40 จุด) ใช้ต่อได้เพื่อความชัดเจน. **ห้าม** กำหนดความกว้าง scrollbar อื่น หรือเขียน `::-webkit-scrollbar` ขนาดอื่นที่ใดก็ตาม.
 
 11. **รูปแบบวันที่ — `DD/MM/YYYY` รูปแบบเดียวทั้งโปรแกรม (HARD).** วันที่ที่แสดงต่อผู้ใช้ **ต้อง** ผ่าน `formatDate()` (`src/lib/utils`, default `DD/MM/YYYY`) เสมอ — หรือ `formatDateTime()` เมื่อมีเวลา (`DD/MM/YYYY HH:mm`). ใช้ **ค.ศ.** ไม่ใช่ พ.ศ.
     - **ห้าม** render ISO ดิบ (เช่น `{row.expiry_date}` → โชว์ `2026-06-13`), ห้าม `toLocaleDateString`, ห้ามใส่ `formatDate(x, '…')` ด้วย pattern แสดงผลอื่น (เช่น `'D MMMM BBBB'`, `'D MMM BB'`) สำหรับ date field.
@@ -81,7 +81,7 @@ root font-size อยู่ที่ `html { font-size: … }` ใน `src/index
 - คลาส Tailwind spacing/size/typography (`h-9`, `h-12`, `text-sm`, `size-4`, `gap-2`, `p-4`, …) เป็นหน่วย **rem** → สเกลตาม root อัตโนมัติ. **กฏความสูงทั้งหมด (บาร์ `h-12` / control `h-9`, ดู `ui-table-card.md`) ไม่ต้องแก้เมื่อ font เปลี่ยน** — บาร์กับ control ขยายพร้อมกัน สัดส่วนคงเดิมทุกขนาด.
 - **ห้าม hardcode px เพื่อ "ตรึง" ขนาดกลับ** เช่นเห็นปุ่มสูง 40.5px แล้วใส่ `h-[36px]` ให้เท่าเดิม — ตัวนั้นจะกลายเป็นตัวเดียวที่ไม่สเกล แล้วเพี้ยนกับของรอบข้าง. คิดเป็น rem-token เสมอ ไม่ใช่ px.
 - **ตัวเลข px ใด ๆ ที่อ้างใน doc/โค้ดคอมเมนต์เป็นค่า "ที่ root 16px" เพื่อยกตัวอย่างเท่านั้น ไม่ใช่กฏ** (`h-9`=36px จริงเฉพาะตอน 16px; ตอนนี้ 18px → 40.5px). กฏคือชื่อคลาส rem ไม่ใช่ตัวเลข px.
-- **px ที่ถูกต้องใช้ได้** = ค่าที่ตั้งใจให้ "ไม่สเกลตาม font" เท่านั้น: งานพิมพ์ A4/สลิป/label (px/pt เชิงกายภาพ), เส้นขอบ/divider 1-2px, scrollbar 6px, ความสูงกราฟ, มิติ window chrome (TitleBar). อย่าเอา px ไปใช้กับโครง layout ที่มีตัวอักษร rem อยู่ข้างใน.
+- **px ที่ถูกต้องใช้ได้** = ค่าที่ตั้งใจให้ "ไม่สเกลตาม font" เท่านั้น: งานพิมพ์ A4/สลิป/label (px/pt เชิงกายภาพ), เส้นขอบ/divider 1-2px, scrollbar 7px, ความสูงกราฟ, มิติ window chrome (TitleBar). อย่าเอา px ไปใช้กับโครง layout ที่มีตัวอักษร rem อยู่ข้างใน.
 - **เลือกหน่วยเมื่อต้อง bound ขนาด:** modal/dialog ต้องไม่ล้นจอ → `max-h-[Xvh]` (อิง viewport ไม่อิง font); กล่องที่ล็อกจำนวนแถว → `h-[Nrem]` (สเกลพร้อมแถว, คงจำนวนแถวที่เห็น). ดู §5a.
 
 > Incident (2026-06-23): เปลี่ยน root 16px→18px แล้ว Dialog ที่ตั้ง `h-[Npx]` คงที่ (POS payment/adjust/return + AdjustStock) เนื้อในล้นกรอบ; แก้เป็น `max-h-[Xvh]` + ตาราง 10 แถวใน `SaleDetailDialog` เป็น `h-[25rem]`; `TitleBar` `text-[10px]`→`text-xs`. รากเหง้า = px ตายตัวปนกับเนื้อหา rem.

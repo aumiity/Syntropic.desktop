@@ -224,11 +224,14 @@ export default function Theme() {
   const [pickerUnit, setPickerUnit] = useState('เม็ด')
 
   return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
-      <PageHeader title="ธีม" />
+    <div className="flex flex-col h-full pt-4 pb-4 gap-2">
+      <div className="px-8">
+        <PageHeader title="ธีม" />
+      </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <Tabs defaultValue="components" className="w-full max-w-6xl rounded-xl border border-border bg-card overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+        <div className="px-8">
+        <Tabs defaultValue="components" className="w-full max-w-6xl mx-auto rounded-xl border border-border bg-card overflow-hidden">
           <div className="border-b border-border bg-muted/30 px-4 py-3">
             <TabsList variant="pill" className="mb-0">
               {/* <TabsTrigger value="theme">ธีม</TabsTrigger> */}
@@ -2540,6 +2543,7 @@ export default function Theme() {
           </TabsContent>
 
         </Tabs>
+        </div>
       </div>
 
       <ConfirmDialog
