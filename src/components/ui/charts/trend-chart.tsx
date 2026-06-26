@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
 } from 'recharts'
 import dayjs from 'dayjs'
 import { formatCurrency } from '@/lib/utils'
@@ -50,13 +50,49 @@ function ChartTooltip({ active, payload, label, granularity }: any) {
 interface Props {
   data: TrendDatum[]
   granularity: Granularity
-  height?: number
+  /** Number (px) or a percent like "100%" to fill a flex/grid parent. */
+  height?: number | `${number}%`
+  /** 'area' (default) = filled curves; 'bar' = grouped vertical bars. */
+  variant?: 'area' | 'bar'
 }
 
-export function TrendChart({ data, granularity, height = 300 }: Props) {
+export function TrendChart({ data, granularity, height = 300, variant = 'area' }: Props) {
   const uid = useId().replace(/:/g, '')
   const gSales = `tc-sales-${uid}`
   const gProfit = `tc-profit-${uid}`
+
+  // Shared axis + tooltip config so the two variants stay visually identical
+  // apart from the series shape.
+  const xAxis = (
+    <XAxis
+      dataKey="date"
+      tickFormatter={(v) => formatBucket(v, granularity)}
+      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+      tickLine={false}
+      axisLine={false}
+      tickMargin={8}
+    />
+  )
+
+  if (variant === 'bar') {
+    return (
+      <ResponsiveContainer width="100%" height={height}>
+        <BarChart data={data} margin={{ top: 16, right: 16, bottom: 4, left: 0 }} barGap={2} barCategoryGap="22%">
+          {xAxis}
+          {/* domain [0, dataMax] (no "nice" rounding) so the tallest bar reaches
+              the top of the plot — bars fill the full chart height. */}
+          <YAxis hide domain={[0, 'dataMax']} />
+          <Tooltip
+            content={<ChartTooltip granularity={granularity} />}
+            cursor={{ fill: 'hsl(var(--muted))', fillOpacity: 0.4 }}
+          />
+          <Bar dataKey="sales_net" name="ยอดขาย" fill="hsl(var(--primary))" radius={[5, 5, 0, 0]} maxBarSize={40} />
+          <Bar dataKey="sales_profit" name="กำไร" fill="hsl(var(--info-soft-foreground))" radius={[5, 5, 0, 0]} maxBarSize={40} />
+        </BarChart>
+      </ResponsiveContainer>
+    )
+  }
+
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 16, right: 16, bottom: 4, left: 0 }}>

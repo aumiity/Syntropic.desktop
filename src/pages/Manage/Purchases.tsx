@@ -90,7 +90,7 @@ const PURCHASES_DEFAULTS: PurchasesPrefs = {
 
 export default function ManagePurchasesPage() {
   const { toast } = useToast()
-  const { setSummary: setSlotSummary } = useOutletContext<ManageOutletContext>()
+  const { setSummary: setSlotSummary, setTabActions } = useOutletContext<ManageOutletContext>()
   // VAT column + filter only surface once the shop is VAT-registered (input VAT
   // exists). Matches the hide-when-NO-VAT rule used across the app.
   const { vatEnabled } = useShopVat()
@@ -236,6 +236,32 @@ export default function ManagePurchasesPage() {
   useEffect(() => {
     return () => setSlotSummary(null)
   }, [setSlotSummary])
+
+  // The date range picker lives in the page's TabStrip row (aligned right beside
+  // the main tabs), not the table top bar. Re-inject on every range change so the
+  // injected node reflects the current mode/from/to; clear on unmount.
+  useEffect(() => {
+    setTabActions(
+      <MultiDatePicker
+        size="lg"
+        mode={histDateMode}
+        from={histDateFrom}
+        to={histDateTo}
+        onChange={(m, from, to) => {
+          setHistDateMode(m)
+          setHistDateFrom(from)
+          setHistDateTo(to)
+          setPrefs({ dateMode: m, dateFrom: from, dateTo: to })
+          loadHistory(1, undefined, { from, to }, true)
+        }}
+        className="shrink-0"
+      />,
+    )
+  }, [histDateMode, histDateFrom, histDateTo, setPrefs, loadHistory, setTabActions])
+
+  useEffect(() => {
+    return () => setTabActions(null)
+  }, [setTabActions])
 
   useEffect(() => {
     loadSuppliers()
@@ -506,20 +532,6 @@ export default function ManagePurchasesPage() {
               emptyText="ไม่พบผู้จัดจำหน่าย"
             />
           </div>
-          <MultiDatePicker
-            mode={histDateMode}
-            from={histDateFrom}
-            to={histDateTo}
-            onChange={(m, from, to) => {
-              setHistDateMode(m)
-              setHistDateFrom(from)
-              setHistDateTo(to)
-              setPrefs({ dateMode: m, dateFrom: from, dateTo: to })
-              loadHistory(1, undefined, { from, to }, true)
-            }}
-            className="shrink-0"
-          />
-
           {/* Status filter popover — was previously the clickable summary cards */}
           {(() => {
             const STATUS_OPTIONS: { value: typeof histPaymentFilter; label: string }[] = [

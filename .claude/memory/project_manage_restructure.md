@@ -22,3 +22,13 @@ Still pending: click-test Phase 1–4; Phase 5 (blocked on spec); delete DEV-ONL
 - The ค่าใช้จ่าย **register** (table + add/edit/delete via `ExpenseFormDialog`, category filter, sort) moved OUT of the dashboard into its own page **`Manage/Expenses.tsx`** → route `/manage/expenses`, tab "ค่าใช้จ่าย" (Wallet icon), placed **last**. NO summary/MetricCard band — it's a bare table-card tab like NegativeStock (count + total live in the table footer; the page never calls setSummary). The dashboard keeps only a read-only ค่าใช้จ่าย breakdown card.
 - `Manage` page header renamed **"ประวัติ & สต็อก" → "การจัดการ"** (matches the folder); Sidebar link + two toast strings (Purchase/POS) updated to match. `/manage` now has 6 tabs in order: ประวัติการขาย · ประวัติการซื้อ · ต่ำกว่าจุดสั่งซื้อ · วันหมดอายุ · สต๊อคติดลบ · ค่าใช้จ่าย.
 - NewDashboard absorbed the rest of old Dashboard's content at the bottom: ทำกำไรสูงสุด (topProducts by profit), ผู้จัดจำหน่ายยอดซื้อสูงสุด (topSuppliers), สรุปลูกค้า (salesStats rollup), and the สินค้าค้างสต็อก dead-stock table (own N-month window, client-sortable). NOT carried over: hourly Traffic chart.
+
+**Update 2026-06-26 — ยุบ 4 แท็บ stock เป็นแท็บแม่เดียว "สต็อคสินค้า" (tsc PASS; click-test pending):**
+
+- แตะไฟล์เดียว `src/pages/Manage/index.tsx` เท่านั้น — **ไม่แตะ route ใน App.tsx** (path `/manage/dead-stock`, `/manage/low-stock`, `/manage/expiry`, `/manage/negative-stock` คงเดิมทุกตัว → Dashboard deep-link + TitleBar map ทำงานต่อ)
+- โครงสร้างใหม่: `TOP_TABS` (4: sales / purchases / stock / expenses) + `STOCK_SUBTABS` (4: dead-stock / low-stock / expiry / negative-stock)
+- กุญแจปลอดภัย: **ไม่แตะ `resolveTab()`/`current`** — ยังคืน 4 ค่า stock แยกตามเดิม เพื่อรักษา owner-guard granularity ของ `setSummary`/`setTabActions`; เพิ่มแค่ `resolveTopTab(current)→topTab` สำหรับไฮไลต์แท็บแม่ + `isStock` gate การ render sub strip
+- TabsList สองชั้น: top `value={topTab}` / sub `value={current}`; sub strip วางนอก scroll wrapper → stock route `scrollPage=false` เสมอ
+- badge `negativeStock` โชว์ 2 จุด: แท็บแม่ 'stock' + sub 'negative-stock' (เขียนทับด้วย badge เดียวกัน)
+- Manage ปัจจุบันมี 4 TOP_TABS: ประวัติการขาย · ประวัติการซื้อ · สต็อคสินค้า · ค่าใช้จ่าย (6 tabs เก่า → 4 tabs ใหม่ รวม stock เข้ากลุ่ม)
+- pattern เดียวกับ [[project_editbundle_tab_collapse]] (tab collapse into parent)

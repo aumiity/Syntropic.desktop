@@ -83,11 +83,16 @@ interface FinanceSummary extends FinanceWindow {
   previous: (FinanceWindow & { date_from: string; date_to: string }) | null
 }
 
+// Granularities offered on the finance chart — hour/week dropped, leaving the
+// day/month/year set.
+const SALES_GRAN_OPTIONS: Granularity[] = ['day', 'month', 'year']
+
 // Seed the trend granularity from the page's date mode. The user can override it
-// via GranularityTabs (a deliberate manual choice — never clamped).
+// via GranularityTabs (a deliberate manual choice — never clamped). Stays within
+// SALES_GRAN_OPTIONS so the segmented tab always has an active match.
 function granularityForMode(mode: MultiDateMode): Granularity {
   switch (mode) {
-    case 'day': return 'hour'
+    case 'day': return 'day'
     case 'month': return 'day'
     case 'year': return 'month'
     default: return 'day'
@@ -125,7 +130,7 @@ const SALES_DEFAULTS: SalesPrefs = {
 
 export default function ManageSalesPage() {
   const { toast } = useToast()
-  const { setSummary: setSlotSummary } = useOutletContext<ManageOutletContext>()
+  const { setSummary: setSlotSummary, setTabActions } = useOutletContext<ManageOutletContext>()
   // VAT status column + filter only appear once the shop is VAT-registered —
   // matches the hide-when-NO-VAT rule used across the app.
   const { vatEnabled } = useShopVat()
@@ -296,10 +301,11 @@ export default function ManageSalesPage() {
     )
   }
 
-  // Passive MetricCard snapshot of the q/date set. The status filter lives in
-  // the filter strip's Filter popover (no onClick → ManageLayout renders
-  // MetricCard instead of the clickable StatCard).
+  // Staff keeps the ORIGINAL layout: the five count MetricCards in the parent
+  // summary slot. Admin instead renders the in-page "การ์ดสถานะ" (soft-tone
+  // tiles, beside the trend chart), so the parent slot is cleared for admins.
   useEffect(() => {
+    if (isAdmin) { setSlotSummary(null); return }
     setSlotSummary([
       { label: 'จำนวนบิล', value: summary.count_all.toLocaleString(),       icon: ReceiptText,  tint: 'primary',   sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'ขายปลีก',   value: summary.count_retail.toLocaleString(),    icon: ShoppingCart, tint: 'success',   sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
@@ -307,13 +313,47 @@ export default function ManageSalesPage() {
       { label: 'รับคืน',    value: summary.count_return.toLocaleString(),    icon: RotateCcw,    tint: 'violet',    sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'ยกเลิก',    value: summary.count_voided.toLocaleString(),    icon: Ban,          tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     ])
-  }, [summary, setSlotSummary])
+  }, [isAdmin, summary, setSlotSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).
   useEffect(() => {
     return () => setSlotSummary(null)
   }, [setSlotSummary])
+
+  // Status tiles — one per filter value (counts come from `summary`). Clicking a
+  // tile sets the status filter (active = ring), mirroring the clickable alert
+  // tiles on the Dashboard. Tone = soft fill + matching foreground via tokens.
+  const statusTiles = [
+    { value: 'all',       label: 'จำนวนบิล', icon: ReceiptText,  count: summary.count_all,       tone: 'bg-info-soft text-info-soft-foreground' },
+    { value: 'retail',    label: 'ขายปลีก',   icon: ShoppingCart, count: summary.count_retail,    tone: 'bg-primary-soft text-primary' },
+    { value: 'wholesale', label: 'ขายส่ง',    icon: ShoppingBag,  count: summary.count_wholesale, tone: 'bg-amber-soft text-amber-strong' },
+    { value: 'return',    label: 'รับคืน',    icon: RotateCcw,    count: summary.count_return,    tone: 'bg-violet-soft text-violet-strong' },
+    { value: 'voided',    label: 'ยกเลิก',    icon: Ban,          count: summary.count_voided,    tone: 'bg-destructive-soft text-destructive' },
+  ] as const
+
+  // The date range picker lives in the page's TabStrip row (aligned right beside
+  // the main tabs), not the table top bar. Re-inject on every range change so the
+  // injected node reflects the current mode/from/to; clear on unmount.
+  useEffect(() => {
+    setTabActions(
+      <MultiDatePicker
+        size="lg"
+        mode={dateMode}
+        from={dateFrom}
+        to={dateTo}
+        onChange={(m, f, t) => {
+          setDateMode(m); setDateFrom(f); setDateTo(t)
+          setPrefs({ dateMode: m, dateFrom: f, dateTo: t })
+        }}
+        className="shrink-0"
+      />,
+    )
+  }, [dateMode, dateFrom, dateTo, setPrefs, setTabActions])
+
+  useEffect(() => {
+    return () => setTabActions(null)
+  }, [setTabActions])
 
   // Admin: a natural-height stack (finance card above the history table). The
   // scroll lives in the parent Manage layout so the summary cards scroll too.
@@ -324,19 +364,12 @@ export default function ManageSalesPage() {
         ? 'flex flex-col gap-3'
         : 'flex flex-1 flex-col min-h-0'}>
 
-        {/* Finance overview card — admin only, always shown (no toggle). The
-            whole page scrolls; the history table below keeps its own fixed
-            height (~10 rows) and scrolls internally. */}
+        {/* Finance overview — admin only, always shown (no toggle). No wrapping
+            card frame: the title row, metric cards, trend, and note stand on
+            their own. The whole page scrolls; the history table below keeps its
+            own fixed height (~10 rows) and scrolls internally. */}
         {isAdmin && (
-          <div className="shrink-0 bg-card rounded-card shadow-card border border-border p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <TintIcon icon={LineChart} tint="primary" size="sm" />
-                <h4 className="text-base font-semibold text-foreground">ภาพรวมการเงิน</h4>
-              </div>
-              <GranularityTabs value={gran} onChange={setGran} />
-            </div>
-
+          <div className="shrink-0 flex flex-col gap-3">
             {finLoading ? (
               <div className="h-[180px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
             ) : finance == null ? null : (() => {
@@ -346,15 +379,6 @@ export default function ManageSalesPage() {
               const dNet = delta(net, prev?.sales_net)
               const dProfit = delta(profit, prev?.sales_profit)
               const margin = net > 0 ? `${((profit / net) * 100).toFixed(1)}%` : '—'
-              const empty = net === 0 && trend.length === 0
-              if (empty) {
-                return (
-                  <div className="h-[180px] flex flex-col items-center justify-center text-sm text-muted-foreground">
-                    <LineChart className="size-10 mb-2 opacity-30" />
-                    ไม่มีข้อมูลการขายในช่วงนี้
-                  </div>
-                )
-              }
               return (
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -380,12 +404,18 @@ export default function ManageSalesPage() {
                     />
                   </div>
 
-                  <SectionCard icon={LineChart} title="แนวโน้มยอดขาย-กำไร" tint="primary">
-                    <TrendChart data={trend} granularity={gran} height={180} />
-                  </SectionCard>
-
-                  <div className="rounded-lg border border-info-soft bg-info-soft/40 px-3 py-2 text-sm text-info-soft-foreground">
-                    ภาพรวมการเงินของทั้งช่วงวันที่ที่เลือก — รวมทุกบิลในช่วง ไม่ขึ้นกับช่องค้นหา / ตัวกรองสถานะ / VAT ด้านล่าง (บิลที่ยกเลิกไม่ถูกนับเป็นยอดขาย)
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                    <SectionCard
+                      icon={LineChart} title="แนวโน้มยอดขาย-กำไร" tint="primary"
+                      className="lg:col-span-2"
+                      fill
+                      right={<GranularityTabs value={gran} onChange={setGran} options={SALES_GRAN_OPTIONS} />}
+                    >
+                      <div className="h-full min-h-[180px]">
+                        <TrendChart data={trend} granularity={gran} height="100%" variant="bar" />
+                      </div>
+                    </SectionCard>
+                    {statusCard({ tiles: statusTiles, active: statusFilter, onPick: setStatusFilter, vertical: true, className: 'lg:col-span-1' })}
                   </div>
                 </>
               )
@@ -413,18 +443,8 @@ export default function ManageSalesPage() {
             onChange={e => setQ(e.target.value)}
             placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
           />
-          <MultiDatePicker
-            mode={dateMode}
-            from={dateFrom}
-            to={dateTo}
-            onChange={(m, f, t) => {
-              setDateMode(m); setDateFrom(f); setDateTo(t)
-              setPrefs({ dateMode: m, dateFrom: f, dateTo: t })
-            }}
-            className="shrink-0"
-          />
-
-          {/* Status filter popover — was previously the clickable summary cards */}
+          {/* Status filter popover — kept alongside the status-card tiles; both
+              drive the same `statusFilter` state, so they stay in sync. */}
           {(() => {
             const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
               { value: 'all',       label: 'ทั้งหมด' },
@@ -463,8 +483,8 @@ export default function ManageSalesPage() {
             )
           })()}
 
-          {/* VAT filter — its own icon button beside the status filter
-              (approach A). Hidden until the shop is VAT-registered. */}
+          {/* VAT filter — its own icon button beside the status filter.
+              Hidden until the shop is VAT-registered. */}
           {vatEnabled && (() => {
             const VAT_OPTIONS: { value: VatFilter; label: string }[] = [
               { value: 'all',   label: 'ทั้งหมด' },
@@ -698,5 +718,66 @@ export default function ManageSalesPage() {
       />
       {overrideVoid.dialog}
     </>
+  )
+}
+
+// "สถานะการขาย" card — soft-tone tiles (Dashboard alert-card style) that double
+// as the status filter (active = ring). `vertical` stacks the tiles and fills
+// the card height (sits to the right of the trend chart); the default grid lays
+// them out horizontally (staff top-of-page, no chart). Lowercase render helper
+// called inline — not a component, so the "no local components" rule is moot.
+interface StatusTile {
+  value: StatusFilter
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  count: number
+  tone: string
+}
+function statusCard(opts: {
+  tiles: readonly StatusTile[]
+  active: StatusFilter
+  onPick: (v: StatusFilter) => void
+  vertical?: boolean
+  className?: string
+}) {
+  const { tiles, active, onPick, vertical, className } = opts
+  return (
+    <SectionCard
+      icon={ReceiptText}
+      title="สถานะการขาย"
+      tint="primary"
+      className={cn('shrink-0', className)}
+      right={<Badge variant="neutral-outline">{(tiles[0]?.count ?? 0).toLocaleString()} บิล</Badge>}
+    >
+      {/* Vertical tiles keep their NATURAL height — the status card is then the
+          tallest in its row and defines the row height, letting the paired chart
+          card fill to match (bars reach full height). */}
+      <div className={vertical
+        ? 'flex flex-col gap-2'
+        : 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2'}>
+        {tiles.map(t => {
+          const Icon = t.icon
+          const isActive = active === t.value
+          return (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => onPick(t.value)}
+              className={cn(
+                'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left ring-inset transition-all hover:ring-2 hover:ring-current',
+                t.tone,
+                isActive ? 'ring-2 ring-current' : 'ring-0',
+              )}
+            >
+              <Icon className="size-8 shrink-0" />
+              <div className="flex-1 min-w-0 overflow-x-clip overflow-y-visible">
+                <div className="text-sm font-semibold whitespace-nowrap">{t.label}</div>
+                <div className="text-xs opacity-80 whitespace-nowrap">{t.count.toLocaleString()} รายการ</div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </SectionCard>
   )
 }

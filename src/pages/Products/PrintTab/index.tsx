@@ -221,10 +221,10 @@ export default function PrintTab() {
           preview card header (same row as ZoomControl), mirroring LabelsTab. */}
       <div className="flex items-center gap-3 h-12 shrink-0">
         <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
-          <TabsList variant="line" className="inline-grid grid-flow-col auto-cols-fr">
-            <TabsTrigger value="sticker" className="px-8"><Printer /> สติ๊กเกอร์บาร์โค้ด</TabsTrigger>
-            <TabsTrigger value="pricetag" className="px-8"><FileText /> ป้ายราคา A4</TabsTrigger>
-            <TabsTrigger value="blank" className="px-8"><PenLine /> ฉลากเปล่า</TabsTrigger>
+          <TabsList variant="line">
+            <TabsTrigger value="sticker" className="flex-none px-4 py-2"><Printer /> สติ๊กเกอร์บาร์โค้ด</TabsTrigger>
+            <TabsTrigger value="pricetag" className="flex-none px-4 py-2"><FileText /> ป้ายราคา A4</TabsTrigger>
+            <TabsTrigger value="blank" className="flex-none px-4 py-2"><PenLine /> ฉลากเปล่า</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>

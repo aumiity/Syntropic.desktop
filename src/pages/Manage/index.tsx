@@ -1,28 +1,34 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
-import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus, Wallet, Box } from 'lucide-react'
+import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus, Wallet, Box, Boxes } from 'lucide-react'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { usePermission } from '@/hooks/usePermission'
 
 // Phase 1: ประวัติการขาย + ใกล้หมดอายุ. Phase 2: + ประวัติการซื้อ.
 // Phase 3: + ต่ำกว่าจุดสั่งซื้อ. See PROGRESS.md.
 // adminOnly tabs are hidden from staff (ค่าใช้จ่าย is all expenses:* — admin-gated IPC).
-const TABS = [
-  { value: 'sales',          to: '/manage',                label: 'ประวัติการขาย', icon: Receipt },
-  { value: 'purchases',      to: '/manage/purchases',      label: 'ประวัติการซื้อ', icon: PackagePlus },
-  { value: 'dead-stock',     to: '/manage/dead-stock',     label: 'สินค้าค้างสต็อก', icon: Box },
-  { value: 'low-stock',      to: '/manage/low-stock',      label: 'ต่ำกว่าจุดสั่งซื้อ', icon: PackageX },
-  { value: 'expiry',         to: '/manage/expiry',         label: 'วันหมดอายุ',   icon: CalendarClock },
-  { value: 'negative-stock', to: '/manage/negative-stock', label: 'สต๊อคติดลบ',    icon: PackageMinus },
-  { value: 'expenses',       to: '/manage/expenses',       label: 'ค่าใช้จ่าย',    icon: Wallet, adminOnly: true },
+const TOP_TABS = [
+  { value: 'sales',     to: '/manage',            label: 'ประวัติการขาย', icon: Receipt },
+  { value: 'purchases', to: '/manage/purchases',  label: 'ประวัติการซื้อ', icon: PackagePlus },
+  { value: 'stock',     to: '/manage/dead-stock', label: 'สต็อคสินค้า',   icon: Boxes },
+  { value: 'expenses',  to: '/manage/expenses',   label: 'ค่าใช้จ่าย',     icon: Wallet, adminOnly: true },
 ] as const
 
-type TabValue = typeof TABS[number]['value']
+const STOCK_SUBTABS = [
+  { value: 'dead-stock',     to: '/manage/dead-stock',     label: 'ค้างสต็อก',        icon: Box },
+  { value: 'low-stock',      to: '/manage/low-stock',      label: 'ต่ำกว่าจุดสั่งซื้อ', icon: PackageX },
+  { value: 'expiry',         to: '/manage/expiry',         label: 'วันหมดอายุ',        icon: CalendarClock },
+  { value: 'negative-stock', to: '/manage/negative-stock', label: 'ติดลบ',            icon: PackageMinus },
+] as const
+
+type TopTabValue = typeof TOP_TABS[number]['value']
+type SubTabValue = typeof STOCK_SUBTABS[number]['value']
+type TabValue = TopTabValue | SubTabValue
 
 function resolveTab(pathname: string): TabValue {
   if (pathname.startsWith('/manage/expiry')) return 'expiry'
@@ -32,6 +38,11 @@ function resolveTab(pathname: string): TabValue {
   if (pathname.startsWith('/manage/low-stock')) return 'low-stock'
   if (pathname.startsWith('/manage/negative-stock')) return 'negative-stock'
   return 'sales'
+}
+
+function resolveTopTab(t: TabValue): TopTabValue {
+  if (t === 'dead-stock' || t === 'low-stock' || t === 'expiry' || t === 'negative-stock') return 'stock'
+  return t as TopTabValue
 }
 
 export interface ManageSummaryCard {
@@ -51,6 +62,9 @@ export interface ManageSummaryCard {
 
 export interface ManageOutletContext {
   setSummary: (cards: ManageSummaryCard[] | null) => void
+  // A child page can inject a control (e.g. a date picker) into the TabStrip
+  // row, aligned right beside the tabs. Pass null to clear (do this on unmount).
+  setTabActions: (node: React.ReactNode | null) => void
 }
 
 // Tailwind needs literal class strings to be discoverable in source.
@@ -61,13 +75,24 @@ const COLS_BY_COUNT: Record<number, string> = {
   6: 'xl:grid-cols-6',
 }
 
+// Centered content column. The scroller runs full-bleed (scrollbar at the window
+// edge, empty side margins still scrollable) while every content row sits in this
+// capped, centered column — so tables stay 1280px wide, not stretched. On staff
+// the parent layout already caps the page at max-w-7xl, so this is a no-op there.
+const CAP = 'w-full max-w-7xl mx-auto px-8'
+
 export default function ManageLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isAdmin } = usePermission()
-  const visibleTabs = useMemo(() => TABS.filter(t => isAdmin || !('adminOnly' in t && t.adminOnly)), [isAdmin])
+  const visibleTopTabs = useMemo(() => TOP_TABS.filter(t => isAdmin || !('adminOnly' in t && t.adminOnly)), [isAdmin])
   const current = resolveTab(location.pathname)
+  const topTab = resolveTopTab(current)
+  const isStock = topTab === 'stock'
   const [summaryState, setSummaryState] = useState<{ tab: TabValue; cards: ManageSummaryCard[] } | null>(null)
+  // Tab-row injected control, scoped to its owner tab so it can't leak into a
+  // sibling tab while the child unmounts (mirrors the setSummary owner guard).
+  const [tabActionsState, setTabActionsState] = useState<{ tab: TabValue; node: React.ReactNode } | null>(null)
   // overflow-hidden is required during the enter/exit height animation to clip
   // the collapsing content, but it also clips the StatCard active-ring (extends
   // 2px outside). Flip overflow back to visible once the animation settles.
@@ -82,27 +107,51 @@ export default function ManageLayout() {
     })
   }, [current])
 
-  const ctx = useMemo<ManageOutletContext>(() => ({ setSummary }), [setSummary])
+  const setTabActions = useCallback((node: React.ReactNode | null) => {
+    const ownerTab = current
+    setTabActionsState(prev => {
+      if (node != null) return { tab: ownerTab, node }
+      return prev?.tab === ownerTab ? null : prev
+    })
+  }, [current])
+
+  const ctx = useMemo<ManageOutletContext>(() => ({ setSummary, setTabActions }), [setSummary, setTabActions])
   const summary = summaryState?.tab === current ? summaryState.cards : null
+  const tabActions = tabActionsState?.tab === current ? tabActionsState.node : null
   // Admin's Sales tab scrolls the whole page together (summary cards + finance
   // card + history table). Every other tab keeps the fixed full-height card.
   const scrollPage = current === 'sales' && isAdmin
 
-  return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
-      <PageHeader title="การจัดการ" />
+  // The header + tab strip sit ABOVE the page scroller (they don't scroll), so
+  // wheeling over them wouldn't move the page. Forward those wheel events into the
+  // scroller. Only active on the admin Sales page-scroll; pointers already over
+  // the scroller — including its empty side margins and the nested history table —
+  // are left to native scroll.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const forwardWheel = useCallback((e: React.WheelEvent) => {
+    const el = scrollRef.current
+    if (!el || el.contains(e.target as Node)) return
+    el.scrollTop += e.deltaY
+  }, [])
 
-      <TabStrip className="-mb-2">
+  return (
+    <div className="flex flex-col h-full pt-4 pb-4 gap-2" onWheel={scrollPage ? forwardWheel : undefined}>
+      <div className={CAP}>
+        <PageHeader title="การจัดการ" />
+      </div>
+
+      <div className={CAP}>
+        <TabStrip className="-mb-2">
         <Tabs
-          value={current}
+          value={topTab}
           onValueChange={(v) => {
-            const tab = TABS.find(t => t.value === v)
+            const tab = TOP_TABS.find(t => t.value === v)
             if (tab) navigate(tab.to)
           }}
         >
           <TabsList variant="segmented">
-            {visibleTabs.map(({ value, label, icon: Icon }) => {
-              const showBadge = value === 'negative-stock' && negativeStockCount > 0
+            {visibleTopTabs.map(({ value, label, icon: Icon }) => {
+              const showBadge = value === 'stock' && negativeStockCount > 0
               return (
                 <TabsTrigger key={value} value={value}>
                   <Icon />
@@ -119,7 +168,36 @@ export default function ManageLayout() {
             })}
           </TabsList>
         </Tabs>
-      </TabStrip>
+        {tabActions && <div className="ml-auto flex items-center">{tabActions}</div>}
+        </TabStrip>
+      </div>
+
+      {isStock && (
+        <div className={CAP}>
+        <div className="flex items-center gap-3 h-12 shrink-0">
+          <Tabs value={current} onValueChange={(v) => { const sub = STOCK_SUBTABS.find(t => t.value === v); if (sub) navigate(sub.to) }}>
+            <TabsList variant="line">
+              {STOCK_SUBTABS.map(({ value, label, icon: Icon }) => {
+                const showBadge = value === 'negative-stock' && negativeStockCount > 0
+                return (
+                  <TabsTrigger key={value} value={value} className="flex-none px-4 py-2">
+                    <Icon />
+                    <span className="relative inline-block">
+                      {label}
+                      {showBadge && (
+                        <span className="absolute -top-2 -right-4 grid place-items-center min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold leading-none ring-2 ring-card">
+                          {negativeStockCount > 99 ? '99+' : negativeStockCount}
+                        </span>
+                      )}
+                    </span>
+                  </TabsTrigger>
+                )
+              })}
+            </TabsList>
+          </Tabs>
+        </div>
+        </div>
+      )}
 
       {/* The summary block animates its HEIGHT on both enter and exit (wrapped
           in AnimatePresence with a stable key), so switching to a tab without
@@ -132,9 +210,15 @@ export default function ManageLayout() {
       {/* scrollPage (admin Sales) makes this region the page scroller so the
           summary cards scroll away with the finance card + table. Other tabs
           stay fixed-height (no overflow) — unchanged behaviour. */}
-      <div className={scrollPage
-        ? 'flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2'
-        : 'flex-1 min-h-0 flex flex-col gap-2'}>
+      {/* scrollPage: the scroller is full-bleed so its scrollbar sits at the
+          window edge and the empty side margins are scrollable; the inner CAP
+          column keeps the content centered at max-w-7xl (tables don't stretch). */}
+      <div
+        ref={scrollRef}
+        className={scrollPage
+          ? 'flex-1 min-h-0 overflow-y-auto scrollbar-thin'
+          : 'flex-1 min-h-0 flex flex-col'}>
+      <div className={`${CAP} flex flex-col gap-2 ${scrollPage ? '' : 'flex-1 min-h-0'}`}>
       <AnimatePresence initial={false}>
         {summary && summary.length > 0 && (
           <motion.div
@@ -174,6 +258,7 @@ export default function ManageLayout() {
         ? `flex flex-col shrink-0 ${summary && summary.length > 0 ? '' : 'pt-3'}`
         : `flex flex-1 min-h-0 flex-col ${summary && summary.length > 0 ? '' : 'pt-3'}`}>
         <Outlet context={ctx} />
+      </div>
       </div>
       </div>
     </div>

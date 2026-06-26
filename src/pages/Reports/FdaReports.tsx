@@ -40,9 +40,9 @@ export default function ReportsFdaLayout() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 gap-3">
-      {/* Sub-tab line (h-10): forms on the left, the active report's print
+      {/* Sub-tab line (h-12 bar): forms on the left, the active report's print
           actions on the right. */}
-      <div className="no-print shrink-0 flex items-center gap-3">
+      <div className="no-print flex items-center gap-3 h-12 shrink-0">
         <Tabs
           value={current}
           onValueChange={(v) => {
@@ -50,9 +50,9 @@ export default function ReportsFdaLayout() {
             if (form) navigate(form.to)
           }}
         >
-          <TabsList variant="line" className="inline-grid grid-flow-col auto-cols-fr">
+          <TabsList variant="line">
             {FORMS.map(({ value, label, icon: Icon }) => (
-              <TabsTrigger key={value} value={value} className="px-8">
+              <TabsTrigger key={value} value={value} className="flex-none px-4 py-2">
                 <Icon /> {label}
               </TabsTrigger>
             ))}
