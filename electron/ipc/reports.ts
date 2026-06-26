@@ -471,7 +471,8 @@ export function registerReportHandlers() {
         COALESCE(SUM(s.card_amount), 0)     AS card_amount,
         COALESCE(SUM(s.transfer_amount), 0) AS transfer_amount,
         COALESCE(SUM(CASE WHEN s.is_credit = 1 THEN 1 ELSE 0 END), 0) AS credit_count,
-        COUNT(*) AS sale_count
+        COUNT(*) AS sale_count,
+        COUNT(DISTINCT date(s.sold_at)) AS selling_days
       FROM sales s ${sWhere}
     `).get(...sParams) as any
     sales.sales_profit = sales.sales_net - sales.sales_cost
@@ -518,10 +519,14 @@ export function registerReportHandlers() {
 
   ipcMain.handle('reports:financeSummary', (_e, filters: {
     date_from?: string; date_to?: string; with_compare?: boolean
+    // Optional explicit comparison window. When omitted (but with_compare set),
+    // falls back to previousWindow() — the equal-length window before the range.
+    // The Sales finance panel passes these to compare day/month/year-over-period.
+    prev_from?: string; prev_to?: string
   }) => {
     requireAdmin(_e)
     const db = getDb()
-    const { date_from, date_to, with_compare } = filters
+    const { date_from, date_to, with_compare, prev_from, prev_to } = filters
     const current = computeFinanceWindow(date_from, date_to)
 
     // Accounts payable is CURRENT outstanding — never date-bound.
@@ -538,7 +543,9 @@ export function registerReportHandlers() {
     // round of aggregation when not needed).
     let previous: any = null
     if (with_compare && date_from && date_to) {
-      const prev = previousWindow(date_from, date_to)
+      const prev = (prev_from && prev_to)
+        ? { from: prev_from, to: prev_to }
+        : previousWindow(date_from, date_to)
       previous = { ...computeFinanceWindow(prev.from, prev.to), date_from: prev.from, date_to: prev.to }
     }
     return { ...current, ...payable, previous }
@@ -592,7 +599,8 @@ export function registerReportHandlers() {
     const salesByBucket = db.prepare(`
       SELECT ${keyForSales} AS d,
              COALESCE(SUM(s.total_amount), 0)   AS sales_net,
-             COALESCE(SUM(${SALE_COST_SUB}), 0) AS sales_cost
+             COALESCE(SUM(${SALE_COST_SUB}), 0) AS sales_cost,
+             COUNT(*)                           AS bill_count
       FROM sales s
       WHERE ${sCond.join(' AND ')}
       GROUP BY ${keyForSales}
@@ -611,14 +619,14 @@ export function registerReportHandlers() {
       GROUP BY ${keyForPurchase}
     `).all(...pParams) as any[]
 
-    const map = new Map<string, { date: string; sales_net: number; sales_cost: number; sales_profit: number; purchase_total: number }>()
+    const map = new Map<string, { date: string; sales_net: number; sales_cost: number; sales_profit: number; bill_count: number; purchase_total: number }>()
     for (const r of salesByBucket) {
-      map.set(r.d, { date: r.d, sales_net: r.sales_net, sales_cost: r.sales_cost, sales_profit: r.sales_net - r.sales_cost, purchase_total: 0 })
+      map.set(r.d, { date: r.d, sales_net: r.sales_net, sales_cost: r.sales_cost, sales_profit: r.sales_net - r.sales_cost, bill_count: r.bill_count, purchase_total: 0 })
     }
     for (const r of purchaseByBucket) {
       const e = map.get(r.d)
       if (e) e.purchase_total = r.purchase_total
-      else map.set(r.d, { date: r.d, sales_net: 0, sales_cost: 0, sales_profit: 0, purchase_total: r.purchase_total })
+      else map.set(r.d, { date: r.d, sales_net: 0, sales_cost: 0, sales_profit: 0, bill_count: 0, purchase_total: r.purchase_total })
     }
     return Array.from(map.values()).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
   })

@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import {
-  ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts'
 import dayjs from 'dayjs'
 import { formatCurrency } from '@/lib/utils'
@@ -11,7 +11,25 @@ export interface TrendDatum {
   sales_net: number
   sales_cost: number
   sales_profit: number
+  bill_count?: number
   purchase_total?: number
+}
+
+/** How tooltip + Y-axis render a value: full currency, or a plain integer count. */
+type ValueFormat = 'currency' | 'int'
+
+function fmtValue(v: number, vf: ValueFormat): string {
+  return vf === 'int' ? Math.round(v).toLocaleString() : formatCurrency(v)
+}
+
+// Compact Y-axis ticks: counts plain, money abbreviated (190k / 1.2M) so the
+// axis stays narrow.
+function formatAxisTick(v: number, vf: ValueFormat): string {
+  if (vf === 'int') return v.toLocaleString()
+  const a = Math.abs(v)
+  if (a >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+  if (a >= 1_000) return `${Math.round(v / 1_000)}k`
+  return v.toLocaleString()
 }
 
 function formatBucket(key: string, granularity: Granularity): string {
@@ -25,21 +43,27 @@ function formatBucket(key: string, granularity: Granularity): string {
   return dayjs(key).format('D MMM')
 }
 
-// Dark pill tooltip à la modern dashboards (Linear / Vercel-style). Header is
-// the bucket label; rows show colored dot + series name + currency value.
-function ChartTooltip({ active, payload, label, granularity }: any) {
+// White elevated tooltip. Header is the bucket label; rows show colored dot +
+// series name + currency value. The profit row also carries the margin %
+// (profit ÷ sales) for that bucket.
+function ChartTooltip({ active, payload, label, granularity, valueFormat = 'currency' }: any) {
   if (!active || !payload?.length) return null
+  const d = payload[0]?.payload ?? {}
+  const margin = d.sales_net > 0 ? (d.sales_profit / d.sales_net) * 100 : 0
   return (
-    <div className="rounded-lg bg-foreground text-background shadow-xl overflow-hidden text-sm min-w-[140px]">
-      <div className="px-3 py-1.5 text-center font-medium border-b border-background/15">
+    <div className="rounded-lg bg-card text-foreground border border-border shadow-xl overflow-hidden text-sm min-w-[160px]">
+      <div className="px-3 py-1.5 text-center font-medium border-b border-border">
         {formatBucket(label, granularity)}
       </div>
       <div className="px-3 py-2 space-y-1">
         {payload.map((p: any, i: number) => (
           <div key={i} className="flex items-center gap-2 whitespace-nowrap">
             <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-            <span className="text-background/70 flex-1">{p.name}</span>
-            <span className="font-semibold">{formatCurrency(p.value)}</span>
+            <span className="text-muted-foreground flex-1">{p.name}</span>
+            <span className="font-semibold">{fmtValue(p.value, valueFormat)}</span>
+            {p.dataKey === 'sales_profit' && d.sales_net > 0 && (
+              <span className="text-muted-foreground">({margin.toFixed(1)}%)</span>
+            )}
           </div>
         ))}
       </div>
@@ -52,11 +76,16 @@ interface Props {
   granularity: Granularity
   /** Number (px) or a percent like "100%" to fill a flex/grid parent. */
   height?: number | `${number}%`
-  /** 'area' (default) = filled curves; 'bar' = grouped vertical bars. */
+  /** 'area' (default) = filled curves; 'bar' = vertical bars. */
   variant?: 'area' | 'bar'
+  /** Bar variant only — series to plot. Defaults to ยอดขาย + กำไร. Pass a single
+      entry for a one-metric chart (e.g. just จำนวนบิล). */
+  bars?: { key: string; name: string; color: string }[]
+  /** How tooltip + Y-axis format values (bar variant). */
+  valueFormat?: ValueFormat
 }
 
-export function TrendChart({ data, granularity, height = 300, variant = 'area' }: Props) {
+export function TrendChart({ data, granularity, height = 300, variant = 'area', bars, valueFormat = 'currency' }: Props) {
   const uid = useId().replace(/:/g, '')
   const gSales = `tc-sales-${uid}`
   const gProfit = `tc-profit-${uid}`
@@ -75,19 +104,29 @@ export function TrendChart({ data, granularity, height = 300, variant = 'area' }
   )
 
   if (variant === 'bar') {
+    const barList = bars ?? [
+      { key: 'sales_net', name: 'ยอดขาย', color: 'hsl(var(--primary))' },
+      { key: 'sales_profit', name: 'กำไร', color: 'hsl(var(--primary-soft-border))' },
+    ]
     return (
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} margin={{ top: 16, right: 16, bottom: 4, left: 0 }} barGap={2} barCategoryGap="22%">
+        <BarChart data={data} margin={{ top: 16, right: 16, bottom: 4, left: 4 }} barGap={2} barCategoryGap="28%">
+          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
           {xAxis}
-          {/* domain [0, dataMax] (no "nice" rounding) so the tallest bar reaches
-              the top of the plot — bars fill the full chart height. */}
-          <YAxis hide domain={[0, 'dataMax']} />
+          <YAxis
+            tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+            tickLine={false}
+            axisLine={false}
+            width={44}
+            tickFormatter={(v) => formatAxisTick(v, valueFormat)}
+          />
           <Tooltip
-            content={<ChartTooltip granularity={granularity} />}
+            content={<ChartTooltip granularity={granularity} valueFormat={valueFormat} />}
             cursor={{ fill: 'hsl(var(--muted))', fillOpacity: 0.4 }}
           />
-          <Bar dataKey="sales_net" name="ยอดขาย" fill="hsl(var(--primary))" radius={[5, 5, 0, 0]} maxBarSize={40} />
-          <Bar dataKey="sales_profit" name="กำไร" fill="hsl(var(--info-soft-foreground))" radius={[5, 5, 0, 0]} maxBarSize={40} />
+          {barList.map((bar) => (
+            <Bar key={bar.key} dataKey={bar.key} name={bar.name} fill={bar.color} radius={[5, 5, 0, 0]} maxBarSize={40} />
+          ))}
         </BarChart>
       </ResponsiveContainer>
     )

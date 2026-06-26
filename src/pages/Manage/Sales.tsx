@@ -28,10 +28,12 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } 
 import { Checkbox } from '@/components/ui/checkbox'
 import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye, Printer, Percent, LineChart, Wallet, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MetricCard, SectionCard } from '@/components/ui/card'
+import { MetricStrip, SectionCard } from '@/components/ui/card'
 import { TrendChart, type TrendDatum } from '@/components/ui/charts/trend-chart'
-import { GranularityTabs, type Granularity } from '@/components/ui/charts/granularity-tabs'
+import { type Granularity } from '@/components/ui/charts/granularity-tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { delta } from '@/lib/delta'
+import dayjs from 'dayjs'
 
 // Money lives in the table rows; the summary slot now carries only the count
 // cards, which double as the status filter. rx (ใบสั่งยา) bills have no
@@ -71,32 +73,73 @@ type SortDir = 'asc' | 'desc'
 interface SortState { by: SortField; dir: SortDir }
 
 // Finance panel — preload returns `any`, so cast the IPC payload through a local
-// subset interface. Mirrors reports:financeSummary's shape (sales_net/cost/
-// profit/count + previous window for the delta).
-interface FinanceWindow {
+// subset interface. Subset of reports:financeSummary's shape. The panel shows
+// raw totals + averages (no period comparison), so `selling_days` (distinct days
+// with a sale) and `sales_discount` are the fields beyond the basic four.
+interface FinanceSummary {
   sales_net: number
   sales_cost: number
   sales_profit: number
+  sales_discount: number
   sale_count: number
-}
-interface FinanceSummary extends FinanceWindow {
-  previous: (FinanceWindow & { date_from: string; date_to: string }) | null
+  selling_days: number
+  // Previous equal-length window — drives the "vs ช่วงก่อน" trend line.
+  previous: { sales_net: number; sales_cost: number; sales_profit: number } | null
 }
 
-// Granularities offered on the finance chart — hour/week dropped, leaving the
-// day/month/year set.
-const SALES_GRAN_OPTIONS: Granularity[] = ['day', 'month', 'year']
+// Turn delta()'s magnitude + direction into the MetricStrip trend fields: a
+// signed string + color + the trailing up/down icon. null delta → no trend line.
+function trendOf(d: ReturnType<typeof delta>): { delta?: string; deltaClassName?: string; deltaIcon?: React.ComponentType<{ className?: string }> } {
+  if (!d) return {}
+  const sign = d.icon === TrendingUp ? '+' : d.icon ? '-' : ''
+  return { delta: `${sign}${d.sub}`, deltaClassName: d.cls, deltaIcon: d.icon ?? undefined }
+}
 
-// Seed the trend granularity from the page's date mode. The user can override it
-// via GranularityTabs (a deliberate manual choice — never clamped). Stays within
-// SALES_GRAN_OPTIONS so the segmented tab always has an active match.
+// Comparison window + label adapt to the date-picker mode: day → yesterday,
+// month → same dates last calendar month, year → last year, custom → the
+// equal-length window before the range (backend default, no explicit prev).
+function compareLabelForMode(mode: MultiDateMode): string {
+  switch (mode) {
+    case 'day': return 'vs เมื่อวาน'
+    case 'month': return 'vs เดือนก่อน'
+    case 'year': return 'vs ปีก่อน'
+    default: return 'vs ช่วงก่อน'
+  }
+}
+function prevWindowForMode(mode: MultiDateMode, from: string, to: string): { prev_from?: string; prev_to?: string } {
+  const f = dayjs(from), t = dayjs(to)
+  const fmt = (x: dayjs.Dayjs) => x.format('YYYY-MM-DD')
+  switch (mode) {
+    case 'day': return { prev_from: fmt(f.subtract(1, 'day')), prev_to: fmt(f.subtract(1, 'day')) }
+    case 'month': return { prev_from: fmt(f.subtract(1, 'month')), prev_to: fmt(t.subtract(1, 'month')) }
+    case 'year': return { prev_from: fmt(f.subtract(1, 'year')), prev_to: fmt(t.subtract(1, 'year')) }
+    default: return {} // custom → backend equal-length window
+  }
+}
+
+// Bucket granularity for the chart, derived from the page's date mode — always a
+// unit SMALLER than the selected period so the period shows multiple bars (day →
+// hours, month → days, year → months). The chart uses the page's own date range.
 function granularityForMode(mode: MultiDateMode): Granularity {
   switch (mode) {
-    case 'day': return 'day'
+    case 'day': return 'hour'
     case 'month': return 'day'
     case 'year': return 'month'
     default: return 'day'
   }
+}
+
+// The chart has 3 modes — each plots one metric over the selected range. Color +
+// value format per metric (counts are integers, money is currency).
+type ChartMetric = 'sales' | 'profit' | 'bills'
+const CHART_METRICS: Record<ChartMetric, {
+  label: string
+  bar: { key: string; name: string; color: string }
+  valueFormat: 'currency' | 'int'
+}> = {
+  sales:  { label: 'ยอดขาย',   bar: { key: 'sales_net',    name: 'ยอดขาย',   color: 'hsl(var(--primary))' }, valueFormat: 'currency' },
+  profit: { label: 'กำไร',     bar: { key: 'sales_profit', name: 'กำไร',     color: 'hsl(var(--success))' }, valueFormat: 'currency' },
+  bills:  { label: 'จำนวนบิล', bar: { key: 'bill_count',   name: 'จำนวนบิล', color: 'hsl(var(--info))' },    valueFormat: 'int' },
 }
 
 interface SalesPrefs {
@@ -165,19 +208,14 @@ export default function ManageSalesPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
 
-  // Finance overview (admin-only) — always shown, no toggle. The trend's
-  // granularity re-seeds from the date mode but stays a manual override.
-  const [gran, setGran] = useState<Granularity>(() => granularityForMode(prefs.dateMode))
+  // Finance overview (admin-only) — always shown, no toggle. Chart bucket size is
+  // derived from the date mode (not user-selectable); chartMetric picks which of
+  // the 3 series the bar chart shows.
+  const gran = granularityForMode(dateMode)
+  const [chartMetric, setChartMetric] = useState<ChartMetric>('sales')
   const [finance, setFinance] = useState<FinanceSummary | null>(null)
   const [trend, setTrend] = useState<TrendDatum[]>([])
   const [finLoading, setFinLoading] = useState(false)
-
-  // Re-seed granularity when the date MODE changes (day↔month↔year↔custom) —
-  // keyed on dateMode ONLY so editing a custom from/to doesn't wipe a manual
-  // GranularityTabs choice.
-  useEffect(() => {
-    setGran(granularityForMode(dateMode))
-  }, [dateMode])
 
   // Admin-only fetch — the panel is always shown for admins. Gated on isAdmin
   // (the IPCs also requireAdmin).
@@ -187,7 +225,7 @@ export default function ManageSalesPage() {
     const r = window.api.reports as any
     setFinLoading(true)
     Promise.all([
-      r.financeSummary({ date_from: dateFrom, date_to: dateTo, with_compare: true }),
+      r.financeSummary({ date_from: dateFrom, date_to: dateTo, with_compare: true, ...prevWindowForMode(dateMode, dateFrom, dateTo) }),
       r.salesPurchaseTrend({ date_from: dateFrom, date_to: dateTo, granularity: gran }),
     ])
       .then(([f, tr]) => {
@@ -202,7 +240,7 @@ export default function ManageSalesPage() {
       })
       .finally(() => { if (!cancelled) setFinLoading(false) })
     return () => { cancelled = true }
-  }, [isAdmin, dateFrom, dateTo, gran, toast])
+  }, [isAdmin, dateMode, dateFrom, dateTo, gran, toast])
 
   // Detail modal — SaleDetailDialog owns the fetch lifecycle; we just pass invoice_no
   const [detailInvoice, setDetailInvoice] = useState<string | null>(null)
@@ -374,48 +412,67 @@ export default function ManageSalesPage() {
               <div className="h-[180px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
             ) : finance == null ? null : (() => {
               const net = finance.sales_net
+              const cost = finance.sales_cost
               const profit = finance.sales_profit
+              const discount = finance.sales_discount
+              const bills = finance.sale_count
+              const days = finance.selling_days
+              const marginPct = net > 0 ? (profit / net) * 100 : 0
+              // Averages guard against divide-by-zero (no sales → 0, not NaN/∞).
+              const perDay = (v: number) => (days > 0 ? v / days : 0)
+              const perBill = (v: number) => (bills > 0 ? v / bills : 0)
+              // No ฿ symbol — bare numbers read cleaner in the dense strip.
+              const fmt = (v: number) => formatCurrency(v)
+              // Bold only the figures on the average/supplementary line so the
+              // numbers pop while units (/บิล, /วัน, …) stay in the muted weight.
+              const b = (s: React.ReactNode) => <span className="font-semibold text-foreground">{s}</span>
+              // Trend vs the previous equal-length window (sub line 2). Cost is
+              // cost-style (a rise reads red) → invert. Margin compares ratios.
               const prev = finance.previous
               const dNet = delta(net, prev?.sales_net)
+              const dCost = delta(cost, prev?.sales_cost, { invert: true })
               const dProfit = delta(profit, prev?.sales_profit)
-              const margin = net > 0 ? `${((profit / net) * 100).toFixed(1)}%` : '—'
+              const prevMarginPct = prev ? (prev.sales_net > 0 ? (prev.sales_profit / prev.sales_net) * 100 : 0) : null
+              const dMargin = delta(marginPct, prevMarginPct)
+              const cmp = compareLabelForMode(dateMode)
               return (
                 <>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <MetricCard
-                      label="ยอดขายสุทธิ" value={formatCurrency(net)}
-                      sub={dNet?.sub} subIcon={dNet?.icon ?? undefined} subClassName={dNet?.cls}
-                      subTitle={dNet ? 'เทียบช่วงก่อนหน้า' : undefined}
-                      icon={Wallet} tint="primary"
-                    />
-                    <MetricCard
-                      label="ต้นทุนขาย" value={formatCurrency(finance.sales_cost)}
-                      icon={ShoppingCart} tint="amber"
-                    />
-                    <MetricCard
-                      label="กำไรขั้นต้น" value={formatCurrency(profit)}
-                      sub={dProfit?.sub} subIcon={dProfit?.icon ?? undefined} subClassName={dProfit?.cls}
-                      subTitle={dProfit ? 'เทียบช่วงก่อนหน้า' : undefined}
-                      icon={TrendingUp} tint="success"
-                    />
-                    <MetricCard
-                      label="อัตรากำไร" value={margin}
-                      icon={Percent} tint="info-soft"
-                    />
-                  </div>
+                  {/* 4 headline cards — sub line 1 = colored trend vs the previous
+                      window (label adapts to mode), sub line 2 = supplementary figure. */}
+                  <MetricStrip
+                    className="h-[10.2rem]"
+                    items={[
+                      { label: 'ยอดขายรวม', value: fmt(net),    icon: Wallet,       note: <>{b(fmt(perBill(net)))}/บิล · {b(fmt(perDay(net)))}/วัน</>, compare: cmp, ...trendOf(dNet) },
+                      { label: 'ต้นทุนรวม', value: fmt(cost),   icon: ShoppingCart, note: net > 0 ? <>{b(`${((cost / net) * 100).toFixed(1)}%`)} ของยอดขาย</> : '—', compare: cmp, ...trendOf(dCost) },
+                      { label: 'กำไรรวม',   value: fmt(profit), icon: TrendingUp,   valueClassName: profit < 0 ? 'text-destructive' : undefined, note: <>{b(fmt(perBill(profit)))}/บิล · {b(fmt(perDay(profit)))}/วัน</>, compare: cmp, ...trendOf(dProfit) },
+                      { label: 'กำไร %',    value: net > 0 ? `${marginPct.toFixed(1)}%` : '—', icon: Percent, valueClassName: profit < 0 ? 'text-destructive' : undefined, note: <>{b(days.toLocaleString())} วัน · ส่วนลด {b(fmt(discount))}</>, compare: cmp, ...trendOf(dMargin) },
+                    ]}
+                  />
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                     <SectionCard
-                      icon={LineChart} title="แนวโน้มยอดขาย-กำไร" tint="primary"
+                      icon={LineChart} title="แนวโน้ม" tint="primary"
                       className="lg:col-span-2"
                       fill
-                      right={<GranularityTabs value={gran} onChange={setGran} options={SALES_GRAN_OPTIONS} />}
+                      right={
+                        <Tabs value={chartMetric} onValueChange={(v) => setChartMetric(v as ChartMetric)}>
+                          <TabsList variant="segmented">
+                            {(Object.keys(CHART_METRICS) as ChartMetric[]).map(m => (
+                              <TabsTrigger key={m} value={m} className="text-sm px-3">{CHART_METRICS[m].label}</TabsTrigger>
+                            ))}
+                          </TabsList>
+                        </Tabs>
+                      }
                     >
                       <div className="h-full min-h-[180px]">
-                        <TrendChart data={trend} granularity={gran} height="100%" variant="bar" />
+                        <TrendChart
+                          data={trend} granularity={gran} height="100%" variant="bar"
+                          bars={[CHART_METRICS[chartMetric].bar]}
+                          valueFormat={CHART_METRICS[chartMetric].valueFormat}
+                        />
                       </div>
                     </SectionCard>
-                    {statusCard({ tiles: statusTiles, active: statusFilter, onPick: setStatusFilter, vertical: true, className: 'lg:col-span-1' })}
+                    {statusCard({ tiles: statusTiles, active: statusFilter, onPick: setStatusFilter, total: summary.count_all, className: 'lg:col-span-1' })}
                   </div>
                 </>
               )
@@ -733,47 +790,87 @@ interface StatusTile {
   count: number
   tone: string
 }
+
+// Status colors — match the table's status Badge hues (SALE_TYPE_VARIANTS):
+// retail=primary, wholesale=accent, return=violet, voided=destructive.
+const STATUS_COLOR: Record<string, string> = {
+  retail: 'hsl(var(--primary))',
+  wholesale: 'hsl(var(--accent))',
+  return: 'hsl(var(--violet))',
+  voided: 'hsl(var(--destructive))',
+}
+
+// "สถานะการขาย" card — headline total + a proportion bar / legend / table broken
+// down by sale status. Rows are clickable status filters (click the active row
+// again to clear back to ทั้งหมด).
 function statusCard(opts: {
   tiles: readonly StatusTile[]
   active: StatusFilter
   onPick: (v: StatusFilter) => void
-  vertical?: boolean
+  total: number
   className?: string
 }) {
-  const { tiles, active, onPick, vertical, className } = opts
+  const { tiles, active, onPick, total, className } = opts
+  const parts = tiles.filter(t => t.value !== 'all')
+  const sum = parts.reduce((s, t) => s + t.count, 0) || 1
   return (
-    <SectionCard
-      icon={ReceiptText}
-      title="สถานะการขาย"
-      tint="primary"
-      className={cn('shrink-0', className)}
-      right={<Badge variant="neutral-outline">{(tiles[0]?.count ?? 0).toLocaleString()} บิล</Badge>}
-    >
-      {/* Vertical tiles keep their NATURAL height — the status card is then the
-          tallest in its row and defines the row height, letting the paired chart
-          card fill to match (bars reach full height). */}
-      <div className={vertical
-        ? 'flex flex-col gap-2'
-        : 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2'}>
-        {tiles.map(t => {
-          const Icon = t.icon
+    <SectionCard icon={ReceiptText} title="สถานะการขาย" tint="primary" className={cn('shrink-0', className)}>
+      {/* Headline — total bills in the selected range */}
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <span className="text-3xl font-bold text-foreground leading-none">{total.toLocaleString()}</span>
+        <span className="text-sm text-muted-foreground">บิลทั้งหมด</span>
+      </div>
+
+      {/* Proportion bar — only the outer ends are rounded; segments meet with a
+          straight edge (container rounds + clips, segments are flush). */}
+      <div className="flex h-2.5 rounded-full overflow-hidden">
+        {parts.map(t => (
+          <div
+            key={t.value}
+            style={{ width: `${(t.count / sum) * 100}%`, minWidth: t.count > 0 ? 4 : 0, backgroundColor: STATUS_COLOR[t.value] }}
+          />
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+        {parts.map(t => (
+          <div key={t.value} className="flex items-center gap-1.5 text-sm">
+            <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLOR[t.value] }} />
+            <span className="text-foreground">{t.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Table — click a row to filter; click the active row again to clear */}
+      <div>
+        <div className="flex items-center justify-between text-xs text-muted-foreground px-2 pb-1.5 border-b border-border">
+          <span>สถานะ</span>
+          <span className="flex">
+            <span className="w-16 text-right">บิล</span>
+            <span className="w-14 text-right">สัดส่วน</span>
+          </span>
+        </div>
+        {parts.map(t => {
           const isActive = active === t.value
           return (
             <button
               key={t.value}
               type="button"
-              onClick={() => onPick(t.value)}
+              onClick={() => onPick(isActive ? 'all' : t.value)}
               className={cn(
-                'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left ring-inset transition-all hover:ring-2 hover:ring-current',
-                t.tone,
-                isActive ? 'ring-2 ring-current' : 'ring-0',
+                'w-full flex items-center justify-between py-2 px-2 rounded-md text-sm transition-colors',
+                isActive ? 'bg-muted' : 'hover:bg-muted/60',
               )}
             >
-              <Icon className="size-8 shrink-0" />
-              <div className="flex-1 min-w-0 overflow-x-clip overflow-y-visible">
-                <div className="text-sm font-semibold whitespace-nowrap">{t.label}</div>
-                <div className="text-xs opacity-80 whitespace-nowrap">{t.count.toLocaleString()} รายการ</div>
-              </div>
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLOR[t.value] }} />
+                <span className="text-foreground truncate">{t.label}</span>
+              </span>
+              <span className="flex shrink-0">
+                <span className="w-16 text-right font-semibold text-foreground">{t.count.toLocaleString()}</span>
+                <span className="w-14 text-right text-muted-foreground">{((t.count / sum) * 100).toFixed(0)}%</span>
+              </span>
             </button>
           )
         })}

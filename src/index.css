@@ -276,6 +276,22 @@
   }
 }
 
+/* Recharts focuses its root <svg> (it carries a tabindex) on click, which paints
+   a stray focus ring across the whole chart card. The charts here aren't
+   keyboard-operated, so drop the outline on the wrapper, the surface, and any
+   focusable descendant. !important to beat the browser's :focus-visible UA ring
+   and recharts' emotion-injected styles regardless of source order. */
+.recharts-wrapper,
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:focus-visible,
+.recharts-surface,
+.recharts-surface:focus,
+.recharts-surface:focus-visible {
+  outline: none !important;
+}
+
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
   .scrollbar-thin::-webkit-scrollbar-track { @apply bg-transparent; }

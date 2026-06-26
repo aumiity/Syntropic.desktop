@@ -22,7 +22,7 @@ import { SettingRow } from '@/components/ui/setting-row'
 import {
   Card, CardHeader, CardTitle, CardDescription,
   CardContent, CardFooter, CardAction,
-  SectionCard, MetricCard, StatCard,
+  SectionCard, MetricCard, MetricStrip, StatCard,
 } from '@/components/ui/card'
 import { TintIcon, type TintIconTint, type TintIconSize } from '@/components/ui/tint-icon'
 import { LogoMark } from '@/components/ui/logo-mark'
@@ -53,7 +53,7 @@ import {
   AlertTriangle, CheckCircle, Package, ChevronRight,
   TrendingUp, TrendingDown, FileText, Boxes, AlertCircle, Coins, Building2,
   Settings2, Filter, Wallet, MoreHorizontal, Clock, PackageOpen,
-  RotateCcw, Printer, History, EyeOff,
+  RotateCcw, Printer, History, EyeOff, ClipboardList, Users, CreditCard,
 } from 'lucide-react'
 import { Combobox } from '@/components/ui/combobox'
 import { PriceInput } from '@/components/ui/price-input'
@@ -1448,6 +1448,24 @@ export default function Theme() {
                     <MetricCard label="ค่าใช้จ่าย" value="฿18,200" sub="5.8%" subIcon={TrendingDown} icon={Coins} tint="destructive" />
                     <MetricCard label="กำไรสุทธิ" value="฿24,300" sub="ใหม่ในช่วงนี้" icon={TrendingUp} tint="primary" />
                   </div>
+                </DemoRow>
+                <DemoRow label="MetricCard with subIcon · tall (h-[9rem] ≈ 153px @ 18px root — rem so it scales with font)">
+                  <div className="grid grid-cols-3 gap-4 w-full">
+                    <MetricCard className="h-[9rem]" label="ยอดขาย" value="฿42,500" sub="12.3%" subIcon={TrendingUp} subTitle="เทียบช่วงก่อนหน้า" icon={Wallet} tint="success" />
+                    <MetricCard className="h-[9rem]" label="ค่าใช้จ่าย" value="฿18,200" sub="5.8%" subIcon={TrendingDown} subTitle="เทียบช่วงก่อนหน้า" icon={Coins} tint="destructive" />
+                    <MetricCard className="h-[9rem]" label="กำไรสุทธิ" value="฿24,300" sub="ใหม่ในช่วงนี้" subIcon={TrendingUp} icon={TrendingUp} tint="primary" />
+                  </div>
+                </DemoRow>
+                <DemoRow label="MetricStrip (joined KPI band — value / trend line (whole line colored + up-down icon) / muted supplementary line)">
+                  <MetricStrip
+                    className="w-full h-[11rem]"
+                    items={[
+                      { label: 'รายได้เดือนนี้', value: '189,540.75', icon: Wallet,        delta: '+27.9%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '8.68/บิล · 6,318/วัน' },
+                      { label: 'จำนวนบิล',       value: '21,847',     icon: ClipboardList, delta: '+18.4%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '728/วัน' },
+                      { label: 'ลูกค้าใหม่',      value: '4,975',      icon: Users,         delta: '+20.8%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '166/วัน' },
+                      { label: 'ยอดคืนเงิน',      value: '8,473.00',   icon: CreditCard,    delta: '-13.7%', deltaClassName: 'text-destructive', deltaIcon: TrendingDown, compare: 'vs เดือนก่อน', note: '12 รายการ' },
+                    ]}
+                  />
                 </DemoRow>
                 <DemoRow label="MetricCard size='sm' (compact — icon-right · 3 stacked lines: label / value+unit / sub)">
                   <div className="grid grid-cols-3 gap-4 w-full">

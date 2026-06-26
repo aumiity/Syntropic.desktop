@@ -381,6 +381,81 @@ function StatCard({
   )
 }
 
+// MetricStrip — a row of KPI cells JOINED into one bordered panel: a single outer
+// border + rounded corners, cells split by internal vertical dividers (no gaps).
+// Each cell: inline icon + label, a big value, then an optional colored delta with
+// a muted comparison note. Distinct from MetricCard (standalone card, tinted icon
+// box) — use when several KPIs should read as one connected band.
+interface MetricStripItem {
+  label: string
+  value: string
+  icon: React.ComponentType<{ className?: string }>
+  /** Color token class for the VALUE, e.g. "text-success" / "text-destructive"
+      — use for sign-meaningful figures (profit/margin). Defaults to foreground. */
+  valueClassName?: string
+  /** Muted supplementary sub line. ReactNode so callers can bold parts (e.g.
+      the numbers) while keeping units in the muted weight. */
+  note?: React.ReactNode
+  /** Trend value on the trend line, e.g. "+27.9%". The WHOLE trend line (value +
+      compare + icon) is colored via `deltaClassName`. */
+  delta?: string
+  /** Color token class for the trend line, e.g. "text-success" / "text-destructive". */
+  deltaClassName?: string
+  /** Label after the delta on the trend line, e.g. "vs เดือนก่อน". */
+  compare?: string
+  /** Trailing direction icon for the trend line (TrendingUp / TrendingDown). */
+  deltaIcon?: React.ComponentType<{ className?: string }>
+}
+function MetricStrip({
+  items,
+  className,
+}: {
+  items: MetricStripItem[]
+  className?: string
+}) {
+  return (
+    <div
+      data-slot="metric-strip"
+      className={cn(
+        "flex divide-x divide-border rounded-card border border-border bg-card shadow-card overflow-hidden h-[9.2rem]",
+        className,
+      )}
+    >
+      {items.map((it, i) => {
+        const Icon = it.icon
+        const DeltaIcon = it.deltaIcon
+        return (
+          <div key={i} className="flex-1 min-w-0 px-5 py-4 flex flex-col justify-between gap-3">
+            {/* label pinned top, value+delta grouped at the bottom — justify-between
+                balances them across the card's fixed height. */}
+            <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+              <Icon className="size-4 shrink-0" />
+              {/* overflow-x-clip (not truncate) so Thai upper tone marks aren't cut */}
+              <span className="text-base font-bold overflow-x-clip overflow-y-visible whitespace-nowrap text-ellipsis" title={it.label}>{it.label}</span>
+            </div>
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className={cn("text-3xl font-bold text-foreground leading-none truncate", it.valueClassName)} title={it.value}>{it.value}</div>
+              {/* Sub line 1 — trend: the whole line takes the delta color, with a
+                  trailing up/down icon. */}
+              {it.delta && (
+                <span className={cn("text-sm inline-flex items-center gap-1.5 min-w-0 whitespace-nowrap font-semibold", it.deltaClassName)}>
+                  <span title={it.delta}>{it.delta}</span>
+                  {it.compare && <span className="font-normal opacity-80 overflow-x-clip overflow-y-visible text-ellipsis">{it.compare}</span>}
+                  {DeltaIcon && <DeltaIcon className="size-4 shrink-0" />}
+                </span>
+              )}
+              {/* Sub line 2 — muted supplementary figure (callers may bold parts) */}
+              {it.note && (
+                <span className="text-sm text-muted-foreground min-w-0 overflow-x-clip overflow-y-visible whitespace-nowrap text-ellipsis">{it.note}</span>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export {
   Card,
   CardHeader,
@@ -390,7 +465,8 @@ export {
   CardDescription,
   CardContent,
   MetricCard,
+  MetricStrip,
   SectionCard,
   StatCard,
 }
-export type { MetricTint, SectionTint }
+export type { MetricTint, SectionTint, MetricStripItem }
