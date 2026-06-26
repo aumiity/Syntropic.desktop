@@ -390,6 +390,9 @@ interface MetricStripItem {
   label: string
   value: string
   icon: React.ComponentType<{ className?: string }>
+  /** Tint for the TintIcon box beside the label — same palette as MetricCard /
+      SectionCard. Defaults to "primary". */
+  tint?: TintIconTint
   /** Color token class for the VALUE, e.g. "text-success" / "text-destructive"
       — use for sign-meaningful figures (profit/margin). Defaults to foreground. */
   valueClassName?: string
@@ -425,15 +428,14 @@ function MetricStrip({
         const Icon = it.icon
         const DeltaIcon = it.deltaIcon
         return (
-          <div key={i} className="flex-1 min-w-0 px-5 py-4 flex flex-col justify-between gap-3">
-            {/* label pinned top, value+delta grouped at the bottom — justify-between
-                balances them across the card's fixed height. */}
-            <div className="flex items-center gap-2 text-muted-foreground min-w-0">
-              <Icon className="size-4 shrink-0" />
+          <div key={i} className="flex-1 min-w-0 px-5 py-4 flex items-start gap-3">
+            {/* Text column: label pinned top, value+delta grouped at the bottom —
+                justify-between balances them across the card's fixed height. The
+                tinted icon sits top-right (size lg, matching MetricCard). */}
+            <div className="flex-1 min-w-0 h-full flex flex-col justify-between gap-3">
               {/* overflow-x-clip (not truncate) so Thai upper tone marks aren't cut */}
-              <span className="text-base font-bold overflow-x-clip overflow-y-visible whitespace-nowrap text-ellipsis" title={it.label}>{it.label}</span>
-            </div>
-            <div className="flex flex-col gap-1 min-w-0">
+              <span className="text-base font-bold text-foreground overflow-x-clip overflow-y-visible whitespace-nowrap text-ellipsis" title={it.label}>{it.label}</span>
+              <div className="flex flex-col gap-1 min-w-0">
               <div className={cn("text-3xl font-bold text-foreground leading-none truncate", it.valueClassName)} title={it.value}>{it.value}</div>
               {/* Sub line 1 — trend: the whole line takes the delta color, with a
                   trailing up/down icon. */}
@@ -448,7 +450,9 @@ function MetricStrip({
               {it.note && (
                 <span className="text-sm text-muted-foreground min-w-0 overflow-x-clip overflow-y-visible whitespace-nowrap text-ellipsis">{it.note}</span>
               )}
+              </div>
             </div>
+            <TintIcon icon={Icon} tint={it.tint ?? "primary"} size="lg" bordered />
           </div>
         )
       })}

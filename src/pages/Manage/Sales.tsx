@@ -25,8 +25,9 @@ import { useManagerOverride } from '@/hooks/useManagerOverride'
 import { usePermission } from '@/hooks/usePermission'
 import { useShopVat } from '@/hooks/useShopVat'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye, Printer, Percent, LineChart, Wallet, TrendingUp } from 'lucide-react'
+import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filter, Check, MoreHorizontal, Eye, Printer, Percent, LineChart, DollarSign, Coins, TrendingUp, ListChecks } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MetricStrip, SectionCard } from '@/components/ui/card'
 import { TrendChart, type TrendDatum } from '@/components/ui/charts/trend-chart'
@@ -213,6 +214,9 @@ export default function ManageSalesPage() {
   // the 3 series the bar chart shows.
   const gran = granularityForMode(dateMode)
   const [chartMetric, setChartMetric] = useState<ChartMetric>('sales')
+  // Hovered status in the breakdown card — links the proportion bar to its legend
+  // so hovering either highlights that status in BOTH and fades the rest.
+  const [hoveredStatus, setHoveredStatus] = useState<string | null>(null)
   const [finance, setFinance] = useState<FinanceSummary | null>(null)
   const [trend, setTrend] = useState<TrendDatum[]>([])
   const [finLoading, setFinLoading] = useState(false)
@@ -423,9 +427,6 @@ export default function ManageSalesPage() {
               const perBill = (v: number) => (bills > 0 ? v / bills : 0)
               // No ฿ symbol — bare numbers read cleaner in the dense strip.
               const fmt = (v: number) => formatCurrency(v)
-              // Bold only the figures on the average/supplementary line so the
-              // numbers pop while units (/บิล, /วัน, …) stay in the muted weight.
-              const b = (s: React.ReactNode) => <span className="font-semibold text-foreground">{s}</span>
               // Trend vs the previous equal-length window (sub line 2). Cost is
               // cost-style (a rise reads red) → invert. Margin compares ratios.
               const prev = finance.previous
@@ -437,21 +438,22 @@ export default function ManageSalesPage() {
               const cmp = compareLabelForMode(dateMode)
               return (
                 <>
-                  {/* 4 headline cards — sub line 1 = colored trend vs the previous
-                      window (label adapts to mode), sub line 2 = supplementary figure. */}
+                  {/* 4 headline cards — label + value + a colored trend line vs the
+                      previous window. The per-bill/per-day breakdown that used to sit
+                      on a 3rd note line now lives in the "สรุปการขาย" card below. */}
                   <MetricStrip
-                    className="h-[10.2rem]"
+                    className="h-[9.1rem]"
                     items={[
-                      { label: 'ยอดขายรวม', value: fmt(net),    icon: Wallet,       note: <>{b(fmt(perBill(net)))}/บิล · {b(fmt(perDay(net)))}/วัน</>, compare: cmp, ...trendOf(dNet) },
-                      { label: 'ต้นทุนรวม', value: fmt(cost),   icon: ShoppingCart, note: net > 0 ? <>{b(`${((cost / net) * 100).toFixed(1)}%`)} ของยอดขาย</> : '—', compare: cmp, ...trendOf(dCost) },
-                      { label: 'กำไรรวม',   value: fmt(profit), icon: TrendingUp,   valueClassName: profit < 0 ? 'text-destructive' : undefined, note: <>{b(fmt(perBill(profit)))}/บิล · {b(fmt(perDay(profit)))}/วัน</>, compare: cmp, ...trendOf(dProfit) },
-                      { label: 'กำไร %',    value: net > 0 ? `${marginPct.toFixed(1)}%` : '—', icon: Percent, valueClassName: profit < 0 ? 'text-destructive' : undefined, note: <>{b(days.toLocaleString())} วัน · ส่วนลด {b(fmt(discount))}</>, compare: cmp, ...trendOf(dMargin) },
+                      { label: 'ยอดขายรวม', value: fmt(net),    icon: DollarSign,   tint: 'primary', compare: cmp, ...trendOf(dNet) },
+                      { label: 'ต้นทุนรวม', value: fmt(cost),   icon: Coins,        tint: 'amber',   compare: cmp, ...trendOf(dCost) },
+                      { label: 'กำไรรวม',   value: fmt(profit), icon: TrendingUp,   tint: 'success', valueClassName: profit < 0 ? 'text-destructive' : undefined, compare: cmp, ...trendOf(dProfit) },
+                      { label: 'กำไร %',    value: net > 0 ? `${marginPct.toFixed(1)}%` : '—', icon: Percent, tint: 'violet', valueClassName: profit < 0 ? 'text-destructive' : undefined, compare: cmp, ...trendOf(dMargin) },
                     ]}
                   />
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                     <SectionCard
-                      icon={LineChart} title="แนวโน้ม" tint="primary"
+                      icon={LineChart} title="แนวโน้ม" tint="neutral"
                       className="lg:col-span-2"
                       fill
                       right={
@@ -472,7 +474,19 @@ export default function ManageSalesPage() {
                         />
                       </div>
                     </SectionCard>
-                    {statusCard({ tiles: statusTiles, active: statusFilter, onPick: setStatusFilter, total: summary.count_all, className: 'lg:col-span-1' })}
+                    {/* Right column — status breakdown card stacked above the
+                        sales-summary card (per-bill/per-day collapsed to one line each). */}
+                    <div className="lg:col-span-1 flex flex-col gap-3">
+                      {statusCard({ tiles: statusTiles, total: summary.count_all, hovered: hoveredStatus, onHover: setHoveredStatus })}
+                      {summaryCard({
+                        rows: [
+                          { label: 'จำนวนวันที่ขาย', value: `${days.toLocaleString()} วัน` },
+                          { label: 'ยอดขายเฉลี่ย',   value: `${fmt(perBill(net))}/บิล · ${fmt(perDay(net))}/วัน` },
+                          { label: 'กำไรเฉลี่ย',     value: `${fmt(perBill(profit))}/บิล · ${fmt(perDay(profit))}/วัน` },
+                          { label: 'ส่วนลดรวม',      value: fmt(discount) },
+                        ],
+                      })}
+                    </div>
                   </div>
                 </>
               )
@@ -791,6 +805,29 @@ interface StatusTile {
   tone: string
 }
 
+// "สรุปการขาย" card — a flat key–value list: each averaged/supplementary figure on
+// its own row (description left, figure right). Fed pre-formatted rows so the helper
+// stays presentational; these per-bill/per-day breakdowns used to ride a 3rd note
+// line on the MetricStrip cells and were lifted out to declutter the strip.
+function summaryCard(opts: {
+  rows: { label: string; value: string }[]
+  className?: string
+}) {
+  const { rows, className } = opts
+  return (
+    <SectionCard icon={ListChecks} title="สรุปการขาย" tint="neutral" className={cn('shrink-0', className)}>
+      <div className="flex flex-col gap-2">
+        {rows.map((r, i) => (
+          <div key={i} className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="text-muted-foreground min-w-0 truncate">{r.label}</span>
+            <span className="shrink-0 font-semibold text-foreground">{r.value}</span>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  )
+}
+
 // Status colors — match the table's status Badge hues (SALE_TYPE_VARIANTS):
 // retail=primary, wholesale=accent, return=violet, voided=destructive.
 const STATUS_COLOR: Record<string, string> = {
@@ -800,81 +837,106 @@ const STATUS_COLOR: Record<string, string> = {
   voided: 'hsl(var(--destructive))',
 }
 
-// "สถานะการขาย" card — headline total + a proportion bar / legend / table broken
-// down by sale status. Rows are clickable status filters (click the active row
-// again to clear back to ทั้งหมด).
+// "สถานะการขาย" card — a compact status breakdown (read-only, no filtering): a
+// plain icon + title over the bill count, one proportion bar, the per-segment
+// percentages spread beneath it, then a color legend. Status FILTERING lives in
+// the history table's toolbar popover, so this card stays purely informational.
 function statusCard(opts: {
   tiles: readonly StatusTile[]
-  active: StatusFilter
-  onPick: (v: StatusFilter) => void
   total: number
+  hovered: string | null
+  onHover: (v: string | null) => void
   className?: string
 }) {
-  const { tiles, active, onPick, total, className } = opts
+  const { tiles, total, hovered, onHover, className } = opts
   const parts = tiles.filter(t => t.value !== 'all')
   const sum = parts.reduce((s, t) => s + t.count, 0) || 1
+  // Bar segments = only non-zero statuses (so gaps don't double up on empties).
+  // Kept as its own list so the map knows first/last for end-only rounding.
+  const segs = parts.filter(t => t.count > 0)
+  // Shared highlight: when any status is hovered, the non-hovered ones fade — in
+  // BOTH the bar and the legend, keyed off the same `hovered` value.
+  const dim = (v: string) => (hovered != null && hovered !== v ? 'opacity-40' : 'opacity-100')
+  // Two-line tooltip body (shared by bar + legend): color dot + label + share on
+  // the first line, bill count on the second.
+  const tip = (t: StatusTile) => (
+    <>
+      <div className="flex items-center gap-2">
+        <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLOR[t.value] }} />
+        <span className="font-semibold text-popover-foreground">{t.label}</span>
+        <span className="text-muted-foreground">{((t.count / sum) * 100).toFixed(1)}%</span>
+      </div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{t.count.toLocaleString()} บิล</div>
+    </>
+  )
   return (
-    <SectionCard icon={ReceiptText} title="สถานะการขาย" tint="primary" className={cn('shrink-0', className)}>
-      {/* Headline — total bills in the selected range */}
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-3xl font-bold text-foreground leading-none">{total.toLocaleString()}</span>
-        <span className="text-sm text-muted-foreground">บิลทั้งหมด</span>
-      </div>
-
-      {/* Proportion bar — only the outer ends are rounded; segments meet with a
-          straight edge (container rounds + clips, segments are flush). */}
-      <div className="flex h-2.5 rounded-full overflow-hidden">
-        {parts.map(t => (
-          <div
-            key={t.value}
-            style={{ width: `${(t.count / sum) * 100}%`, minWidth: t.count > 0 ? 4 : 0, backgroundColor: STATUS_COLOR[t.value] }}
-          />
-        ))}
-      </div>
-
-      {/* Legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-        {parts.map(t => (
-          <div key={t.value} className="flex items-center gap-1.5 text-sm">
-            <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLOR[t.value] }} />
-            <span className="text-foreground">{t.label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Table — click a row to filter; click the active row again to clear */}
-      <div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground px-2 pb-1.5 border-b border-border">
-          <span>สถานะ</span>
-          <span className="flex">
-            <span className="w-16 text-right">บิล</span>
-            <span className="w-14 text-right">สัดส่วน</span>
-          </span>
+    <SectionCard className={cn('shrink-0', className)}>
+      {/* Header — plain (neutral) icon box + title over a muted bill-count line */}
+      <div className="flex items-center gap-3">
+        <TintIcon icon={ShoppingCart} tint="neutral" size="sm" />
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold text-foreground leading-snug">สถานะการขาย</h3>
+          <p className="text-sm text-muted-foreground">{total.toLocaleString()} บิลในช่วงนี้</p>
         </div>
-        {parts.map(t => {
-          const isActive = active === t.value
-          return (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => onPick(isActive ? 'all' : t.value)}
-              className={cn(
-                'w-full flex items-center justify-between py-2 px-2 rounded-md text-sm transition-colors',
-                isActive ? 'bg-muted' : 'hover:bg-muted/60',
-              )}
-            >
-              <span className="flex items-center gap-2 min-w-0">
-                <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLOR[t.value] }} />
-                <span className="text-foreground truncate">{t.label}</span>
-              </span>
-              <span className="flex shrink-0">
-                <span className="w-16 text-right font-semibold text-foreground">{t.count.toLocaleString()}</span>
-                <span className="w-14 text-right text-muted-foreground">{((t.count / sum) * 100).toFixed(0)}%</span>
-              </span>
-            </button>
-          )
-        })}
       </div>
+
+      {/* Bar + legend share one TooltipProvider and one `hovered` state: pointing
+          at EITHER a bar segment or a legend label highlights that status in BOTH
+          and fades the rest. Each item is a button (tooltip trigger) that sets the
+          shared hover on enter/leave. Provider renders no DOM node, so SectionCard's
+          space-y-3 spacing between the bar and legend is unaffected. */}
+      <TooltipProvider>
+        {/* Proportion bar — segments split by a gap; only the bar's two outer ends
+            are rounded (first segment's left, last segment's right), inner edges
+            square. Only non-zero statuses render. */}
+        <div className="flex h-3 gap-1">
+          {segs.map((t, i) => {
+            const ends = i === 0 && i === segs.length - 1 ? 'rounded-full'
+              : i === 0 ? 'rounded-l-full'
+              : i === segs.length - 1 ? 'rounded-r-full'
+              : ''
+            return (
+            <Tooltip key={t.value}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onMouseEnter={() => onHover(t.value)}
+                  onMouseLeave={() => onHover(null)}
+                  className={cn('h-full cursor-default border-0 p-0 transition-opacity', ends, dim(t.value))}
+                  style={{ width: `${(t.count / sum) * 100}%`, minWidth: 6, backgroundColor: STATUS_COLOR[t.value] }}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {tip(t)}
+              </TooltipContent>
+            </Tooltip>
+            )
+          })}
+        </div>
+
+        {/* Legend — color dot + label; hover highlights this status (and its bar
+            segment) while fading the rest, and reveals the bill count + share. */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          {parts.map(t => (
+            <Tooltip key={t.value}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onMouseEnter={() => onHover(t.value)}
+                  onMouseLeave={() => onHover(null)}
+                  className={cn('flex cursor-default items-center gap-1.5 text-sm transition-opacity', dim(t.value))}
+                >
+                  <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLOR[t.value] }} />
+                  <span className="text-muted-foreground">{t.label}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {tip(t)}
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      </TooltipProvider>
     </SectionCard>
   )
 }
