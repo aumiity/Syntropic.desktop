@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบสิทธิ์ตาม Role — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit;margin:0 auto}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd .box.ok{stroke:var(--green)}
+  svg.sd .box.bad{stroke:var(--red)}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine h4{color:#fcd34d;margin:14px 0 4px;font-size:14px}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine ul{padding-left:20px}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine .chk{color:#86efac}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>ระบบสิทธิ์ตาม Role (เจ้าของร้าน · เภสัชกร · พนักงาน)</h1>
+    <p>เปลี่ยนสิทธิ์จาก "โค้ดฮาร์ดโค้ด" เป็น "ข้อมูลที่ตั้งค่าได้" — มีหน้า Settings เดียวคุมว่าใครทำอะไรได้ 3 สถานะ (ปิด / เปิด / ต้องขออนุมัติ)</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ</span>
+      <span class="pill">3 เฟส (มี checkpoint)</span>
+      <span class="pill">แตะ ~63 จุด gate</span>
+      <span class="pill">2026-06-28</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p><b>ปัญหา:</b> ตอนนี้ "สิทธิ์การใช้งาน" ไม่ใช่ข้อมูล แต่เป็นโค้ด <code>requireAdmin()</code> ที่ฮาร์ดโค้ดกระจายอยู่ ~63 จุดทั่ว <code>electron/ipc/*.ts</code> และมี role แค่ 2 ตัวตายตัว (<code>admin</code>/<code>staff</code>) แก้สิทธิ์ไม่ได้เลย พอฟังก์ชันเริ่มเยอะ การคุมว่าใครทำอะไรได้เลยกระจัดกระจายและขยายยาก</p>
+    <p><b>แผนนี้แก้โดย:</b> เพิ่ม role ตรงกลาง (เภสัชกร) เป็น 3 role, ย้ายสิทธิ์ทั้งหมดมาเก็บเป็นข้อมูลในตาราง <code>role_permissions</code>, สร้างชั้นบังคับสิทธิ์ตัวใหม่ <code>requirePermission()</code> แทน <code>requireAdmin()</code>, แล้วทำหน้า Settings เมทริกซ์ให้เจ้าของร้านเปิด/ปิดสิทธิ์ของแต่ละ role ได้เอง</p>
+    <p><b>เสร็จแล้วได้:</b> เจ้าของร้านกำหนดเองได้ว่าเภสัชกร/พนักงาน ทำอะไรได้บ้าง แต่ละสิทธิ์เลือกได้ 3 สถานะ — <b>ปิด</b> (ทำไม่ได้), <b>เปิด</b> (ทำได้เลย), <b>ต้องขออนุมัติ</b> (ทำได้ถ้ามีคนสิทธิ์สูงกว่ามากดยืนยัน)</p>
+    <div class="grid">
+      <div class="stat"><div class="v">3</div><div class="l">role (เจ้าของร้าน·เภสัชกร·พนักงาน)</div></div>
+      <div class="stat"><div class="v">15</div><div class="l">สิทธิ์ จัดกลุ่มตามงาน</div></div>
+      <div class="stat"><div class="v">3</div><div class="l">สถานะต่อสิทธิ์</div></div>
+      <div class="stat"><div class="v">3</div><div class="l">เฟส execute ทีละขั้น</div></div>
+    </div>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p>ทุกการกระทำที่มีสิทธิ์ ไหลผ่าน 3 ชั้น: หน้าจอ (ซ่อนปุ่ม = UX) → IPC ฝั่ง main (ด่านจริง) → ตารางสิทธิ์ + registry. ด่านจริงคือ <code>requirePermission()</code> ตัดสินจาก 3 สถานะ:</p>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 720 330" role="img" aria-label="การไหลของการบังคับสิทธิ์ผ่าน 3 ชั้น">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+
+      <!-- layer row -->
+      <rect class="box" x="16" y="24" width="190" height="56" rx="10"/>
+      <text x="111" y="46" text-anchor="middle">หน้าจอ · useCan(key)</text>
+      <text class="sub" x="111" y="64" text-anchor="middle">src/hooks/useCan.ts</text>
+
+      <rect class="box warn" x="266" y="24" width="190" height="56" rx="10"/>
+      <text x="361" y="46" text-anchor="middle">requirePermission()</text>
+      <text class="sub" x="361" y="64" text-anchor="middle">electron/auth/permissions.ts</text>
+
+      <rect class="box data" x="516" y="24" width="188" height="56" rx="10"/>
+      <text x="610" y="46" text-anchor="middle">role_permissions</text>
+      <text class="sub" x="610" y="64" text-anchor="middle">+ registry.ts (SQLite)</text>
+
+      <path class="edge" d="M206,52 H262"/>
+      <text class="elabel" x="234" y="44" text-anchor="middle">IPC (+override?)</text>
+      <path class="edge" d="M456,52 H512"/>
+      <text class="elabel" x="484" y="44" text-anchor="middle">stateFor</text>
+
+      <!-- decision fan-out -->
+      <path class="edge" d="M330,80 V120 H150 V150"/>
+      <path class="edge" d="M352,80 V135 H360 V150"/>
+      <path class="edge hot" d="M392,80 V120 H575 V150"/>
+
+      <rect class="box ok" x="60" y="150" width="180" height="54" rx="10"/>
+      <text x="150" y="172" text-anchor="middle">PASS</text>
+      <text class="sub" x="150" y="190" text-anchor="middle">owner | state=allow</text>
+
+      <rect class="box bad" x="270" y="150" width="180" height="54" rx="10"/>
+      <text x="360" y="172" text-anchor="middle">FORBIDDEN</text>
+      <text class="sub" x="360" y="190" text-anchor="middle">state=off</text>
+
+      <rect class="box warn" x="485" y="150" width="190" height="54" rx="10"/>
+      <text x="580" y="170" text-anchor="middle">state=override</text>
+      <text class="sub" x="580" y="188" text-anchor="middle">ต้องมีผู้อนุมัติ</text>
+
+      <!-- override sub-flow -->
+      <path class="edge hot" d="M580,204 V236"/>
+      <rect class="box" x="430" y="236" width="300" height="64" rx="10"/>
+      <text x="580" y="260" text-anchor="middle">ผู้อนุมัติ role มีสิทธิ์นี้ = allow ?</text>
+      <text class="sub" x="580" y="280" text-anchor="middle">verify password + lockout → PASS / NEEDS_OVERRIDE</text>
+    </svg>
+    </div>
+    <p style="margin:10px 0 0;font-size:13px;color:var(--muted)">เจ้าของร้าน (owner) ผ่านทุกด่านอัตโนมัติ ไม่เก็บใน DB. หน้าจอเป็นแค่ UX — ความปลอดภัยจริงอยู่ที่ <code>requirePermission</code> ฝั่ง main เสมอ.</p>
+
+    <h3>15 สิทธิ์ จัดกลุ่มตามงาน</h3>
+    <table>
+      <thead><tr><th>กลุ่ม</th><th>สิทธิ์</th><th>ชนิด</th><th>เภสัชกร</th><th>พนักงาน</th></tr></thead>
+      <tbody>
+        <tr><td>สินค้า/สต็อก</td><td>แก้ราคาสินค้า</td><td>การกระทำ</td><td><span class="tag t-keep">เปิด</span></td><td><span class="tag t-opt">ขออนุมัติ</span></td></tr>
+        <tr><td>สินค้า/สต็อก</td><td>ปรับสต็อก/ล็อต</td><td>การกระทำ</td><td><span class="tag t-keep">เปิด</span></td><td><span class="tag t-opt">ขออนุมัติ</span></td></tr>
+        <tr><td>สินค้า/สต็อก</td><td>ยกเลิกใบรับของ</td><td>การกระทำ</td><td><span class="tag t-keep">เปิด</span></td><td><span class="tag t-opt">ขออนุมัติ</span></td></tr>
+        <tr><td>สินค้า/สต็อก</td><td>เห็นต้นทุน</td><td>ดู</td><td><span class="tag t-keep">เปิด</span></td><td><span class="tag t-skip">ปิด</span></td></tr>
+        <tr><td>การขาย</td><td>ยกเลิกบิล (void)</td><td>การกระทำ</td><td><span class="tag t-keep">เปิด</span></td><td><span class="tag t-opt">ขออนุมัติ</span></td></tr>
+        <tr><td>การขาย</td><td>เปลี่ยนลูกค้าในบิล</td><td>การกระทำ</td><td><span class="tag t-keep">เปิด</span></td><td><span class="tag t-opt">ขออนุมัติ</span></td></tr>
+        <tr><td>รายงาน/เงิน</td><td>ดูรายงานการเงิน</td><td>ดู</td><td><span class="tag t-keep">เปิด</span></td><td><span class="tag t-skip">ปิด</span></td></tr>
+        <tr><td>รายงาน/เงิน</td><td>ดูรายงานภาษี VAT</td><td>ดู</td><td><span class="tag t-keep">เปิด</span></td><td><span class="tag t-skip">ปิด</span></td></tr>
+        <tr><td>รายงาน/เงิน</td><td>ส่งออก Excel การเงิน</td><td>การกระทำ</td><td><span class="tag t-keep">เปิด</span></td><td><span class="tag t-skip">ปิด</span></td></tr>
+        <tr><td>ค่าใช้จ่าย</td><td>จัดการค่าใช้จ่าย</td><td>การกระทำ</td><td><span class="tag t-keep">เปิด</span></td><td><span class="tag t-skip">ปิด</span></td></tr>
+        <tr><td>ระบบ</td><td>จัดการพนักงาน/ผู้ใช้</td><td>การกระทำ</td><td><span class="tag t-skip">ปิด</span></td><td><span class="tag t-skip">ปิด</span></td></tr>
+        <tr><td>ระบบ</td><td>ตั้งค่าร้าน/ระบบ</td><td>การกระทำ</td><td><span class="tag t-skip">ปิด</span></td><td><span class="tag t-skip">ปิด</span></td></tr>
+        <tr><td>ระบบ</td><td>สำรอง/กู้คืนข้อมูล</td><td>การกระทำ</td><td><span class="tag t-skip">ปิด</span></td><td><span class="tag t-skip">ปิด</span></td></tr>
+        <tr><td>ระบบ</td><td>เปิด/ปิดโหมด VAT</td><td>การกระทำ</td><td><span class="tag t-skip">ปิด</span></td><td><span class="tag t-skip">ปิด</span></td></tr>
+        <tr><td>ระบบ</td><td>จัดการสิทธิ์ (หน้านี้)</td><td>การกระทำ</td><td colspan="2"><span class="tag t-gen">เจ้าของร้านเท่านั้น — ล็อก ไม่แสดงเป็นแถวแก้ได้</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin:6px 0 0;font-size:13px;color:var(--muted)">เจ้าของร้าน = เปิดทุกสิทธิ์ ล็อกตายตัว. สิทธิ์ชนิด "ดู" มีแค่ ปิด/เปิด (ไม่มีขออนุมัติ).</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>role ตายตัว 2 ตัว: <code>admin</code> / <code>staff</code></li>
+        <li>สิทธิ์ฮาร์ดโค้ดด้วย <code>requireAdmin()</code> ~63 จุด แก้ไม่ได้</li>
+        <li>staff ทำงานพิเศษได้เฉพาะ 4 อย่าง (ผ่าน manager override ที่ฝังในโค้ด)</li>
+        <li>อยากเปลี่ยน "ใครทำอะไรได้" = ต้องแก้โค้ด</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>3 role: เจ้าของร้าน / เภสัชกร / พนักงาน</li>
+        <li>สิทธิ์เป็นข้อมูลในตาราง <code>role_permissions</code> ปรับผ่านหน้า Settings</li>
+        <li>ทุกสิทธิ์ "การกระทำ" ตั้งเป็น "ต้องขออนุมัติ" ได้ (ขยายแนวคิด override ให้ครบ)</li>
+        <li>เจ้าของร้านเปลี่ยนสิทธิ์เองได้ ไม่ต้องแก้โค้ด</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>คุมสิทธิ์รวมศูนย์ที่เดียว — เลิกตามแก้โค้ดกระจาย</li>
+    <li>มี role เภสัชกรเป็นมือขวา (เห็นต้นทุน/รายงาน/แก้ราคา/ปรับสต็อกได้ โดยไม่ต้องเป็นเจ้าของร้าน)</li>
+    <li>workflow "ขออนุมัติ" ยืดหยุ่นขึ้น — ใครก็ตามที่ role อนุญาตสิทธิ์นั้น อนุมัติได้ (ไม่จำกัดเจ้าของร้าน)</li>
+    <li>fail-safe: คีย์แปลกปลอม/ค่าพัง = ปฏิเสธไว้ก่อน</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>งานใหญ่: แตะ ~63 จุด gate + หลาย layer (จึงแบ่ง 3 เฟส มี checkpoint)</li>
+    <li>สิทธิ์ฝั่งหน้าจอถูก snapshot ตอน login — แก้เมทริกซ์แล้ว ผู้ที่ login ค้างต้อง login ใหม่จึงเห็นผล (ข้อจำกัดที่ยอมรับได้)</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><code>schema.ts:1095 base='admin'</code> = <b>username</b> ของเจ้าของร้าน ไม่ใช่ role → ห้ามเปลี่ยน; <code>seed.ts:78</code> มี <code>'admin'</code> สองตัว เปลี่ยนแค่ตัวหลัง (role) ตัวแรก (password) ห้ามแตะ</li>
+    <li>จุดเทียบ <code>role === 'admin'</code> กระจายทั้ง main+renderer — ต้องไล่เปลี่ยนเป็น <code>'owner'</code> ให้ครบ (รวม key ในออบเจ็กต์ที่ grep จับยาก เช่น <code>ROLE_LABEL</code>)</li>
+    <li>กันเจ้าของร้านล็อกตัวเอง: ล็อกช่อง role ในฟอร์ม + guard ฝั่ง main (ห้าม demote/disable บัญชี owner ที่ผูกอีเมล)</li>
+    <li>invariant allow-list payload: <code>permissions:save</code> เขียนจากชุดคีย์ที่ validate แล้ว ไม่ spread ดิบ</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <p>แท็บใหม่ใต้ <b>ตั้งค่า</b> ชื่อ "สิทธิ์การใช้งาน" (เห็นเฉพาะเจ้าของร้าน) เป็นตารางเมทริกซ์: แถว = สิทธิ์ (จัดกลุ่ม), คอลัมน์ = เจ้าของร้าน · เภสัชกร · พนักงาน</p>
+    <ul class="clean">
+      <li>คอลัมน์เจ้าของร้าน = ติ๊กเต็มทุกแถว ปิดการแก้ (เทา)</li>
+      <li>ช่องเภสัชกร/พนักงาน: สิทธิ์ "การกระทำ" = dropdown 3 ค่า (ปิด/เปิด/ต้องขออนุมัติ); สิทธิ์ "ดู" = 2 ค่า (ปิด/เปิด)</li>
+      <li>บันทึกแบบ explicit — ปุ่ม "บันทึก" + "ยกเลิก" (ไม่ auto-save) ตาม convention dropdown/checkbox ของแอป</li>
+      <li>กล่อง manager-override เดิม เปลี่ยนข้อความเป็น "ต้องขออนุมัติ / ผู้อนุมัติ" และโหลดรายชื่อผู้มีสิทธิ์อนุมัติตามสิทธิ์นั้น</li>
+    </ul>
+    <p style="margin:8px 0 0">ยึดตาม <code>/theme</code>: bar <code>h-12</code> / control <code>h-9</code>, semantic token เท่านั้น, ไม่มี emoji, ใช้ <code>src/components/ui/*</code> ล้วน, ไม่เพิ่ม primitive ใหม่ (ใช้ Select/Table เดิม → ไม่ต้องแก้ showcase)</p>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>reports:hourlyTraffic</code> (จุดที่ 12 ของ reports.ts) ไม่ถูก map</td><td>P1</td><td>เพิ่ม <code>hourlyTraffic (:768) → report.finance</code></td></tr>
+        <tr><td>1</td><td>settings.ts shorthand "save*" ตก handler label/delete ~7 ตัว</td><td>P1</td><td>แจกแจง handler ทั้งหมดชัดเจน → <code>settings.manage</code></td></tr>
+        <tr><td>1</td><td>ฟอร์ม People ไม่ล็อกช่อง role ของเจ้าของร้าน → demote ตัวเองได้</td><td>P1</td><td>ล็อก Select เป็น owner เมื่อ <code>isOwnerAdmin</code> + เพิ่ม guard ฝั่ง main (รอบ 2)</td></tr>
+        <tr><td>1</td><td>นับ exports ผิด (4 calls ไม่ใช่ 5), fail-safe ขัดกันเอง, override branching แตกตามจุด, copy dialog</td><td>P2</td><td>แก้ตัวเลข, reconcile fail-safe (คีย์แปลก→off, ไม่มีแถว→default), ย้าย logic เข้า hook, แก้ข้อความ dialog</td></tr>
+        <tr><td>2</td><td>เลขบรรทัด VAT ผิด (<code>:539/:606</code>) — จริงคือ upgrade <code>:490</code>, downgrade <code>:539</code>, ส่วน <code>:606</code> = saveReceiptSettings</td><td>P1</td><td>แก้เลขให้ถูก + ระบุ saveReceiptSettings = <code>settings.manage</code> ไม่ใช่ vat</td></tr>
+        <tr><td>2</td><td>4 จุดใช้ <code>!overrideX.isAdmin</code> ตัดสิน sync/async — เภสัชกร allow จะ reset busy ผิด</td><td>P1</td><td>hook เลิก expose <code>isAdmin</code> เพื่อการนี้ ย้าย busy-flag เข้า hook; แก้ EditProduct/EditBundle/POS/LotsTab</td></tr>
+        <tr><td>2</td><td><code>downgradeFromVat :559</code> เช็ค <code>role==='admin'</code> ขัดกับการ map เป็น <code>vat.toggle</code></td><td>P1</td><td>เฟส 2 ตัด role check ที่ :559 เหลือ verify รหัส session user (requirePermission คุม role แล้ว)</td></tr>
+        <tr><td>2</td><td>Dashboard/VatReport/Manage:123(scrollPage)/SidebarUser(map 2 ทาง)/seed วางหลัง early-return/owner guard ฝั่ง main/barcode-pricetag settings ไม่มี gate</td><td>P2</td><td>เพิ่มทุกจุดเข้าแผน: enumerate isAdmin ในหน้าเหล่านี้, seed ก่อน <code>:74</code> ด้วย INSERT OR IGNORE, guard owner ใน people.ts, ระบุ barcode/pricetag = out of scope</td></tr>
+        <tr><td>—</td><td>Invariants, fail-safe, กัน self-approval, owner-lock เชิงตรรกะ, '<code>admin</code>' literals ฝั่ง main, registry vs spec §6</td><td>PASS</td><td>ยืนยันถูกต้องทั้งสองรอบ</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li>3 fixed roles: <code>owner</code> (full+locked), <code>pharmacist</code>, <code>staff</code>.</li>
+      <li>Per (role × permission) state in DB <code>role_permissions</code>, state ∈ <code>off|allow|override</code>.</li>
+      <li>Owner-only Settings tab "สิทธิ์การใช้งาน" edits the matrix (explicit save).</li>
+      <li>All ~63 <code>requireAdmin</code> sites replaced by <code>requirePermission(e,key,override?)</code>; renderer uses <code>useCan(key)</code> (UX only).</li>
+      <li><span class="chk">tsc passes</span>; <code>grep requireAdmin(</code> → 0 in <code>electron/ipc</code> after Phase 2; matrix toggles change behavior per role; owner can never lock self out of <code>permission.manage</code> (renderer lock + main guard).</li>
+    </ul>
+
+    <h3>Source of truth</h3>
+    <ul>
+      <li>Design spec: <code>docs/superpowers/specs/2026-06-27-role-permissions-design.md</code></li>
+      <li>This plan supersedes the spec where they differ (see "export key divergence" note).</li>
+    </ul>
+
+    <h3>Permission registry (15 keys) — new <code>src/lib/permissions/registry.ts</code></h3>
+    <ul>
+      <li>Pure data + helpers, importable by BOTH renderer and main (precedent: <code>electron/db/seed.ts</code> imports <code>../../src/lib/label/sections</code>; <code>electron/ipc/env.ts</code> imports <code>../../src/lib/env/thresholds</code>). NO React/DOM. Will be bundled (vite main external = <code>['better-sqlite3','electron','exceljs']</code> only).</li>
+      <li>Types: <code>PermState='off'|'allow'|'override'</code>; <code>Role='owner'|'pharmacist'|'staff'</code>; <code>PermKind='action'|'view'</code> (view → off|allow only).</li>
+      <li>Exports: <code>PERMISSIONS: PermDef[]</code>, <code>EDITABLE_ROLES=['pharmacist','staff']</code>, <code>permDefault(role,key)</code>, <code>isViewPerm(key)</code>.</li>
+      <li>15 entries (key | group | kind | pharmacist | staff): <code>product.editPrice</code>|สินค้า/สต็อก|action|allow|override · <code>stock.adjust</code>|action|allow|override · <code>purchase.cancel</code>|action|allow|override · <code>cost.view</code>|view|allow|off · <code>sale.void</code>|การขาย|action|allow|override · <code>sale.editCustomer</code>|action|allow|override · <code>report.finance</code>|รายงาน/เงิน|view|allow|off · <code>report.vat</code>|view|allow|off · <code>export.finance</code>|action|allow|off · <code>expense.manage</code>|ค่าใช้จ่าย|action|allow|off · <code>user.manage</code>|ระบบ|action|off|off · <code>settings.manage</code>|action|off|off · <code>data.backup</code>|action|off|off · <code>vat.toggle</code>|action|off|off · <code>permission.manage</code>|action|off|off (owner-only; NOT an editable matrix row).</li>
+    </ul>
+
+    <h3>PHASE 1 — Foundation</h3>
+    <div class="step"><b>1.1 schema</b> — <code>electron/db/schema.ts</code>: add <code>CREATE TABLE IF NOT EXISTS role_permissions (role TEXT NOT NULL, permission TEXT NOT NULL, state TEXT NOT NULL, PRIMARY KEY(role,permission))</code>. Do NOT touch <code>users</code> table. <span class="inv">DO NOT change line ~1095 <code>base='admin'</code> (owner username, not role).</span></div>
+    <div class="step"><b>1.2 seed</b> — <code>electron/db/seed.ts</code>: line 78 has TWO <code>'admin'</code> literals (<code>…,'admin','admin')</code> = password then role). Change ONLY the LAST (role) → <code>'owner'</code>. <span class="inv">password literal 'admin' and username 'ADMIN' stay.</span> Seed <code>role_permissions</code> from registry defaults for pharmacist+staff <b>BEFORE the <code>if (userCount>0) return</code> at :74</b> (next to STARTER_PRESETS :62-70), <code>INSERT OR IGNORE</code> in a transaction (idempotent, back-fills existing DB). Import <code>PERMISSIONS</code>.</div>
+    <div class="step"><b>1.3 enforcement primitive</b> — new <code>electron/auth/permissions.ts</code>: <code>stateFor(role,key)</code> [owner→'allow'; unknown key→'off'; row exists→state; known key no row→<code>permDefault</code>; unparseable→'off'] and <code>requirePermission(e,key,override?)</code> [owner→return; allow→return; off→throw FORBIDDEN; override→if no cred throw NEEDS_OVERRIDE, else lockout+fetch user(<code>is_disabled=0</code>)+verifySecret (reuse session.ts:46-72 logic), approver ok iff <code>row.role==='owner'</code> OR <code>stateFor(row.role,key)==='allow'</code> else recordFailure+throw 'รหัสผ่านไม่ถูกต้อง']. Add <code>permissionSnapshot(role)</code> (owner→all 'allow'; else DB+defaults). Keep <code>requireAdmin</code> in session.ts until Phase 3 cleanup.</div>
+    <div class="step"><b>1.4 role rename 'admin'→'owner' (main)</b> — <code>session.ts:44</code> <code>==='owner'</code>; <code>:60</code> <code>!=='owner'</code>. <code>auth.ts:67</code> devLogin <code>WHERE role='owner'</code>. <code>settings.ts:559</code>: Phase1 <code>!=='owner'</code> → Phase2 RECONCILED in 2.1b. Extend <code>auth:login/devLogin/devSetRole</code> responses with <code>permissions</code> snapshot (new helper).</div>
+    <div class="step"><b>1.5 renderer plumbing</b> — <code>userStore.ts</code>: add <code>permissions?: Record&lt;string,PermState&gt;</code> to <code>CurrentUser</code>. <code>usePermission.ts</code>: <code>isAdmin: role==='owner'</code>; add <code>useCan(key):PermState</code> (owner→'allow'; reads <code>current.permissions[key] ?? permDefault</code>). Login flow + TitleBar devSetRole store/refresh <code>permissions</code>.</div>
+    <div class="step"><b>1.6 People form</b> — <code>People/index.tsx:855-863</code>: add <code>&lt;SelectItem value="pharmacist"&gt;เภสัชกร</code>; <code>value="admin"</code>→<code>value="owner"</code> label "เจ้าของร้าน". <b>Lock role Select to owner+disabled when <code>isOwnerAdmin</code></b> (:627). <span class="inv">Server guard (round 2): people.ts:176 ALLOWED includes 'role' + setStaffStatus :196 → reject demoting/disabling the email-pinned owner (admin@syntropic.local).</span></div>
+    <div class="step"><b>1.7 labels/badges</b> — <code>SidebarUser.tsx:28</code> RoleBadge is BINARY ternary → 3-way map; <code>ROLE_LABEL :20</code> has key <code>admin:</code> → change to <code>owner</code> + add <code>pharmacist</code>. <code>LoginScreen.tsx</code> role type+sort (owner first). <code>TitleBar.tsx:117</code> DEV switch cycle owner→pharmacist→staff; badge <code>:216-225</code> show 3 labels. (DEV-only.)</div>
+    <div class="step"><b>Checkpoint 1</b> — <code>npx tsc -p tsconfig.json --noEmit</code> passes; app boots; owner login works; People shows 3 roles; behavior unchanged.</div>
+
+    <h3>PHASE 2 — Swap gates (~63 sites) + renderer fine-grained</h3>
+    <div class="step"><b>2.1 replace requireAdmin → requirePermission by file</b>:
+      <ul>
+        <li><code>products.ts</code> (7): updatePrice/updateUnitPrice→<code>product.editPrice</code>; adjustStock/adjustLot/adjustLotBatch/updateLot/expireLot→<code>stock.adjust</code>.</li>
+        <li><code>purchase.ts</code> (1): cancel→<code>purchase.cancel</code>.</li>
+        <li><code>reports.ts</code> (12): voidSale→<code>sale.void</code>; updateSaleCustomer→<code>sale.editCustomer</code>; financeSummary/salesPurchaseTrend/accountsPayable/topProducts/topSuppliers/cashierLeaderboard/salesStats/productVelocity/<b>hourlyTraffic(:768)</b>→<code>report.finance</code>; vatSummary→<code>report.vat</code>; cost-strip <code>:955</code> <code>==='admin'</code>→<code>stateFor(role,'cost.view')==='allow'</code>.</li>
+        <li><code>settings.ts</code> (20)→<code>settings.manage</code>: saveShop, saveSalesSettings, saveLabelSettings, saveReceiptSettings (<b>handler :605 / req :606 — settings.manage NOT vat</b>), saveCategory, saveUnit, deleteUnit(:248), saveDrugType, reorderCategories, saveTheme*, saveLabelLookup(:326), reassignLabelLookup(:367), deleteLabelLookup(:385), saveLabelPreset(:399), deleteLabelPreset(:422), saveLabelSettings(:433). →<code>vat.toggle</code>: upgradeToVat(handler :489/req :490), downgradeFromVat(handler :538/req :539). <span class="inv">OUT OF SCOPE: saveBarcodeStickerSettings(:673)+savePriceTagSettings(:707) have NO requireAdmin today — leave ungated.</span></li>
+        <li><code>expenses.ts</code> (8)→<code>expense.manage</code>; <code>backup.ts</code> (5)→<code>data.backup</code>; <code>people.ts</code> (4)→<code>user.manage</code>.</li>
+        <li><code>exports.ts</code> (4 calls + 2 strips): sales(:41)/purchases(:139)→<code>export.finance</code>; vat(:225)→<code>report.vat</code>; expenses(:297)→<code>expense.manage</code>; cost-strips :350,:403→<code>stateFor(role,'cost.view')</code>.</li>
+        <li><code>auth.ts:99</code> verifyAdmin→<code>requirePermission(e,'product.editPrice',override)</code>.</li>
+      </ul>
+    </div>
+    <div class="step"><b>2.1b settings.ts:559 reconcile</b> — once <code>requirePermission(e,'vat.toggle',ov)</code> gates downgradeFromVat, the <code>role==='admin'</code> check at :559 conflicts (owner could grant vat.toggle to pharmacist). Drop the role requirement at :559; keep verifying the SESSION user's password + lockout only.</div>
+    <div class="step"><b>2.2 override approver + hook</b> — Create <code>electron/ipc/permissions.ts</code> + register in main + add <code>window.api.permissions</code> in preload <b>now in Phase 2</b>. New IPC <code>permissions:listApprovers({permKey})</code> → active users where <code>role==='owner'</code> OR <code>stateFor(role,permKey)==='allow'</code>. <code>manager-override-dialog.tsx</code>: replace <code>auth.listLoginUsers()+filter(role==='admin')</code> (:49,:52) with <code>permissions.listApprovers(permKey)</code>; add <code>permKey</code> prop; <code>AdminUser.role</code>→string; copy → "ต้องขออนุมัติ"/"ผู้อนุมัติ"/"ไม่พบผู้มีสิทธิ์อนุมัติรายการนี้". <code>useManagerOverride.tsx</code>: <code>run(action,{permKey})</code> resolves <code>useCan(permKey)</code> internally (allow→inline, override→dialog, off→no-op); <span class="inv">STOP exposing <code>isAdmin</code> for sync/async decision — move busy-flag reset into hook (onDone/onError). Update 4 consumers replacing <code>!overrideX.isAdmin</code>: EditProduct/index.tsx:337, EditBundle/index.tsx:334, POS/index.tsx:766, LotsTab.tsx:213.</span> Pass permKey at call sites: Sales void→sale.void; Expiry expireLot→stock.adjust; Purchases cancel→purchase.cancel; GR price (EditProduct/EditBundle)→product.editPrice; POS adjust + LotsTab→stock.adjust.</div>
+    <div class="step"><b>2.3 renderer fine-grained gates</b> — <code>Sidebar.tsx</code>: nav adminOnly→perm; /reports show if <code>useCan('report.finance')!=='off'</code>, /settings if owner OR <code>useCan('settings.manage')!=='off'</code>. <code>Sales.tsx</code>: finance panel sites → <code>useCan('report.finance')==='off'</code> (enumerate :181/:224/:227/:350/:405/:413/:499/:630 deliberately; staff MetricCard slot stays). <code>Manage/index.tsx</code>: expenses tab → <code>useCan('expense.manage')!=='off'</code>; <b>:123 scrollPage → <code>&& useCan('report.finance')!=='off'</code></b>. <code>DeadStock.tsx</code>: cost col :143/:198/:224/:251 AND default sort :72 → <code>useCan('cost.view')!=='off'</code>. <code>ExportHub.tsx</code> finance groups → useCan. <code>People/index.tsx:1020</code> staff-tab redirect → <code>useCan('user.manage')==='off'</code>. <code>Dashboard.tsx :148,:149,:253</code> → useCan('report.finance'); <code>VatReport.tsx :74,:108</code> → useCan('report.vat'). Buttons: show when <code>!=='off'</code>; override routes via useManagerOverride.</div>
+    <div class="step"><b>Checkpoint 2</b> — tsc passes; <code>grep requireAdmin(</code> → 0 in electron/ipc; click-test grid 3 roles × representative keys (allow runs / override prompts approver / off hides+blocks).</div>
+
+    <h3>PHASE 3 — Settings matrix UI</h3>
+    <div class="step"><b>3.1 IPC (extend permissions.ts from Phase 2)</b> — <code>permissions:getMatrix</code> (requirePermission 'permission.manage') → merged <code>{role,permission,state}[]</code> for pharmacist+staff (DB over registry defaults, every key present). <code>permissions:save</code> (requirePermission 'permission.manage') → validate role∈EDITABLE_ROLES, key∈registry, state∈allowed-for-kind (view→off|allow); ONE transaction UPSERT. <span class="inv">Allow-list keys — never trust arbitrary keys (CLAUDE.md invariant).</span> preload: extend <code>window.api.permissions</code> with getMatrix, save.</div>
+    <div class="step"><b>3.2 UI</b> — new <code>src/pages/Settings/PermissionsTab.tsx</code> wired into <code>Settings/index.tsx</code> (TabsTrigger "สิทธิ์การใช้งาน", icon ShieldCheck, render only for owner). Matrix grouped by <code>group</code>; columns owner(locked Check, muted)|pharmacist|staff; action→3-option Select, view→2-option. Explicit save (บันทึก+ยกเลิก, draft local, toast). <span class="inv">UI: bar h-12/control h-9; semantic tokens; no emoji; src/components/ui/* only; modal contract; text ≥ text-xs. No new primitive → no /theme showcase change.</span></div>
+    <div class="step"><b>3.3 cleanup</b> — delete <code>requireAdmin</code> from session.ts once zero call sites (grep to confirm); update <code>session.d.ts</code> if hand-maintained. Keep <code>auth.listLoginUsers</code> (still used by login screen).</div>
+    <div class="step"><b>Checkpoint 3</b> — tsc passes; owner edits+saves matrix, re-login reflects; pharmacist/staff see effects; owner cannot disable permission.manage; e2e click-test all 3 roles.</div>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc -p tsconfig.json --noEmit</code> after each phase.</li>
+      <li><code>grep requireAdmin(</code> → 0 in electron/ipc after Phase 2; def removed after Phase 3.</li>
+      <li>Click-test matrix: 3 roles × keys (void allow/override/off; cost.view on/off; settings hidden non-owner; backup blocked for pharmacist).</li>
+      <li>Override flow: staff void with pharmacist approver (void=allow) succeeds; with another staff fails; self-approval impossible.</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li><span class="inv">Scattered 'admin' comparisons</span> → grep <code>['"]admin['"]</code> before &amp; after each phase; checklist in 1.4/1.7/2.x. Watch object KEYS (ROLE_LABEL) grep may miss.</li>
+      <li><span class="inv">schema.ts:1095 base='admin'</span> = username; <span class="inv">seed.ts:78 first 'admin'</span> = password → DO NOT change.</li>
+      <li><span class="inv">fail-safe</span> (reconciled): unknown key/unparseable → off; known key no row → permDefault (intentional).</li>
+      <li><span class="inv">owner lockout</span>: permission.manage owner-only never editable + renderer role lock + main guard in people.ts.</li>
+      <li><span class="inv">allow-list payload</span>: permissions:save from validated key set, not raw spread.</li>
+      <li>Snapshot staleness: perms cached at login; matrix save needs re-login to affect others (documented limitation).</li>
+      <li>Export key divergence from spec §5 is INTENTIONAL: export:vat→report.vat, export:expenses→expense.manage, sales/purchases→export.finance (gate by the data each exposes).</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-28 · ผ่าน audit 2 รอบ</footer>
+
+</div>
+</body>
+</html>
