@@ -21,8 +21,8 @@ const TOP_TABS = [
 
 const STOCK_SUBTABS = [
   { value: 'dead-stock',     to: '/manage/dead-stock',     label: 'ค้างสต็อก',        icon: Box },
-  { value: 'low-stock',      to: '/manage/low-stock',      label: 'ต่ำกว่าจุดสั่งซื้อ', icon: PackageX },
   { value: 'expiry',         to: '/manage/expiry',         label: 'วันหมดอายุ',        icon: CalendarClock },
+  { value: 'low-stock',      to: '/manage/low-stock',      label: 'ต่ำกว่าจุดสั่งซื้อ', icon: PackageX },
   { value: 'negative-stock', to: '/manage/negative-stock', label: 'ติดลบ',            icon: PackageMinus },
 ] as const
 

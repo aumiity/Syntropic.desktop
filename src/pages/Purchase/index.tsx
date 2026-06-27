@@ -773,7 +773,6 @@ export default function PurchasePage() {
                         <div>
                           <label className="block text-base font-semibold text-muted-foreground mb-1.5">เลขที่ใบรับ</label>
                           <div className="relative">
-                            <Receipt className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground-subtle pointer-events-none" />
                             <Input
                               variant="filled"
                               value={invoiceNo}

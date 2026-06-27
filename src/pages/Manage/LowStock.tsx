@@ -14,7 +14,7 @@ import { QuickStockDialog, type QuickStockTarget } from '@/components/dialogs/Qu
 import { usePagePrefs } from '@/hooks/usePagePrefs'
 import { compareNameBuckets } from '@/lib/sortName'
 import type { ManageOutletContext } from './index'
-import { PackageX, Package, ShoppingCart, TrendingDown, Edit, Boxes, Settings2, Filter, Check } from 'lucide-react'
+import { PackageX, ShoppingCart, Edit, Boxes, Settings2, Filter, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -71,8 +71,6 @@ export default function ManageLowStockPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [rows, setRows] = useState<LowStockRow[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [outCount, setOutCount] = useState(0)
-  const [totalBuyMore, setTotalBuyMore] = useState(0)
   const [loading, setLoading] = useState(false)
   const [quickTarget, setQuickTarget] = useState<QuickStockTarget | null>(null)
   const showSupplier = prefs.showSupplier
@@ -116,8 +114,6 @@ export default function ManageLowStockPage() {
         category_id: categoryId !== '0' ? Number(categoryId) : undefined,
       }) as { rows: LowStockRow[]; count: number; out_count: number; total_buy_more: number }
       setRows(res.rows)
-      setOutCount(res.out_count)
-      setTotalBuyMore(res.total_buy_more)
     } catch (e: any) {
       toast(e?.message ?? 'โหลดข้อมูลไม่สำเร็จ', 'error')
     } finally {
@@ -134,17 +130,6 @@ export default function ManageLowStockPage() {
     const t = setTimeout(() => { load() }, 300)
     return () => clearTimeout(t)
   }, [load])
-
-  // Passive MetricCard snapshot of the q/category set. The status filter lives
-  // in the filter strip's Filter popover (no onClick → ManageLayout renders
-  // MetricCard instead of the clickable StatCard).
-  useEffect(() => {
-    setSummary([
-      { label: 'รายการทั้งหมด', value: rows.length.toLocaleString(),                  icon: Package,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'หมดสต็อก',      value: outCount.toLocaleString(),                     icon: PackageX,     tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-      { label: 'ใกล้หมด',       value: Math.max(0, rows.length - outCount).toLocaleString(), icon: TrendingDown, tint: 'amber',  sub: 'รายการ', subClassName: 'text-base text-foreground' },
-    ])
-  }, [rows.length, outCount, setSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).
