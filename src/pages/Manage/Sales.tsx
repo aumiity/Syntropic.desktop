@@ -349,9 +349,9 @@ export default function ManageSalesPage() {
   useEffect(() => {
     if (isAdmin) { setSlotSummary(null); return }
     setSlotSummary([
-      { label: 'จำนวนบิล', value: summary.count_all.toLocaleString(),       icon: ReceiptText,  tint: 'primary',   sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ขายปลีก',   value: summary.count_retail.toLocaleString(),    icon: ShoppingCart, tint: 'success',   sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-      { label: 'ขายส่ง',    value: summary.count_wholesale.toLocaleString(), icon: ShoppingBag,  tint: 'info-soft', sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'จำนวนบิล', value: summary.count_all.toLocaleString(),       icon: ReceiptText,  tint: 'info-soft', sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ขายปลีก',   value: summary.count_retail.toLocaleString(),    icon: ShoppingCart, tint: 'primary',   sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+      { label: 'ขายส่ง',    value: summary.count_wholesale.toLocaleString(), icon: ShoppingBag,  tint: 'amber',     sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'รับคืน',    value: summary.count_return.toLocaleString(),    icon: RotateCcw,    tint: 'violet',    sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'ยกเลิก',    value: summary.count_voided.toLocaleString(),    icon: Ban,          tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     ])
@@ -481,8 +481,8 @@ export default function ManageSalesPage() {
                       {summaryCard({
                         rows: [
                           { label: 'จำนวนวันที่ขาย', value: `${days.toLocaleString()} วัน` },
-                          { label: 'ยอดขายเฉลี่ย',   value: `${fmt(perBill(net))}/บิล · ${fmt(perDay(net))}/วัน` },
-                          { label: 'กำไรเฉลี่ย',     value: `${fmt(perBill(profit))}/บิล · ${fmt(perDay(profit))}/วัน` },
+                          { label: 'ยอดขายเฉลี่ย',   cells: [`${fmt(perBill(net))}/บิล`, `${fmt(perDay(net))}/วัน`] },
+                          { label: 'กำไรเฉลี่ย',     cells: [`${fmt(perBill(profit))}/บิล`, `${fmt(perDay(profit))}/วัน`] },
                           { label: 'ส่วนลดรวม',      value: fmt(discount) },
                         ],
                       })}
@@ -810,18 +810,28 @@ interface StatusTile {
 // stays presentational; these per-bill/per-day breakdowns used to ride a 3rd note
 // line on the MetricStrip cells and were lifted out to declutter the strip.
 function summaryCard(opts: {
-  rows: { label: string; value: string }[]
+  // A row is either a single value (spans the two value columns) or a pair of
+  // cells (per-bill / per-day) split across the 2nd and 3rd columns so the
+  // numbers line up vertically instead of cramming onto one line.
+  rows: { label: string; value?: string; cells?: [string, string] }[]
   className?: string
 }) {
   const { rows, className } = opts
   return (
     <SectionCard icon={ListChecks} title="สรุปการขาย" tint="neutral" className={cn('shrink-0', className)}>
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-4 gap-y-2 text-sm">
         {rows.map((r, i) => (
-          <div key={i} className="flex items-baseline justify-between gap-3 text-sm">
+          <React.Fragment key={i}>
             <span className="text-muted-foreground min-w-0 truncate">{r.label}</span>
-            <span className="shrink-0 font-semibold text-foreground">{r.value}</span>
-          </div>
+            {r.cells ? (
+              <>
+                <span className="text-right font-semibold text-foreground">{r.cells[0]}</span>
+                <span className="text-right font-semibold text-foreground">{r.cells[1]}</span>
+              </>
+            ) : (
+              <span className="col-span-2 text-right font-semibold text-foreground">{r.value}</span>
+            )}
+          </React.Fragment>
         ))}
       </div>
     </SectionCard>
