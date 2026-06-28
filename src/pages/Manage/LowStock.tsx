@@ -16,6 +16,7 @@ import { compareNameBuckets } from '@/lib/sortName'
 import type { ManageOutletContext } from './index'
 import { PackageX, ShoppingCart, Edit, Boxes, Settings2, Filter, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { ExportButton } from '@/components/ui/export-button'
 import { cn } from '@/lib/utils'
 
 type StatusFilter = 'all' | 'out' | 'low'
@@ -234,6 +235,15 @@ export default function ManageLowStockPage() {
               </Popover>
             )
           })()}
+
+          <ExportButton
+            iconOnly
+            tooltip="ส่งออก Excel"
+            onExport={() => window.api.exports.lowStock({
+              q: q.trim() || undefined,
+              category_id: categoryId !== '0' ? Number(categoryId) : undefined,
+            })}
+          />
 
           <Popover>
             <PopoverTrigger asChild>

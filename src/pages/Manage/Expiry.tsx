@@ -20,6 +20,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import type { ManageOutletContext } from './index'
 import { PackageX, ClockAlert, ClockFading, Clock, Settings2, CalendarClock, Filter, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { ExportButton } from '@/components/ui/export-button'
 import { cn } from '@/lib/utils'
 
 type FilterType = 'expired' | 30 | 90 | 180
@@ -303,6 +304,16 @@ export default function ManageExpiryPage() {
               </Popover>
             )
           })()}
+
+          <ExportButton
+            iconOnly
+            tooltip="ส่งออก Excel"
+            onExport={() => window.api.exports.expiry({
+              filter,
+              category_id: categoryId !== '0' ? Number(categoryId) : undefined,
+              q: q.trim() || undefined,
+            })}
+          />
 
           <Popover>
             <PopoverTrigger asChild>
