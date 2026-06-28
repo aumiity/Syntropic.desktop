@@ -13,6 +13,7 @@ export interface TrendDatum {
   sales_profit: number
   bill_count?: number
   purchase_total?: number
+  purchase_count?: number
 }
 
 /** How tooltip + Y-axis render a value: full currency, or a plain integer count. */

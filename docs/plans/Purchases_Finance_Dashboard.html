@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purchases Finance Dashboard — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
+  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
+  svg.sd .box.warn{stroke:var(--amber)}
+  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
+  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
+  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
+  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
+  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine pre{background:#020617;border:1px solid #1e293b;border-radius:8px;padding:12px 14px;
+    overflow-x:auto;font-size:12px;line-height:1.5;color:#cbd5e1}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Purchases Finance Dashboard</h1>
+    <p>เพิ่มแผงภาพรวมการเงินฝั่งซื้อ (admin) ที่หน้า <code>Manage › ประวัติการซื้อ</code> ให้สอดคล้องกับหน้า Sales — staff ใช้หน้าเดิมทุกอย่าง</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ — ไม่มี P0/P1 ค้าง</span>
+      <span class="pill">Layout A · มิเรอร์ Sales</span>
+      <span class="pill">renderer + backend 1 บรรทัด</span>
+      <span class="pill">2026-06-28</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p>วันนี้หน้า <strong>ประวัติการขาย</strong> มีแผงภาพรวมการเงินสำหรับ admin (การ์ดสรุป + กราฟแนวโน้ม + การ์ดสถานะ/สรุป) แต่หน้า <strong>ประวัติการซื้อ</strong> ยังมีแค่ตารางประวัติเปล่า ๆ — admin ต้องเดาภาพรวมเอาเองว่าช่วงนี้ซื้อไปเท่าไหร่ จ่ายสดเท่าไหร่ ติดเครดิตเท่าไหร่ และยังค้างจ่ายเจ้าหนี้อยู่เท่าไหร่</p>
+    <p>แผนนี้เพิ่ม <strong>dashboard ภาพรวมการซื้อ (เฉพาะ admin)</strong> ที่หน้า <code>src/pages/Manage/Purchases.tsx</code> โดยลอกโครงจากหน้า Sales เป๊ะ ๆ แต่เปลี่ยนเนื้อหาเป็นมุมมองการซื้อ ข้อมูลทั้งหมดดึงจาก IPC ที่มีอยู่แล้ว (<code>reports.financeSummary</code> + <code>reports.salesPurchaseTrend</code>) ซึ่ง <code>requirePermission('report.finance')</code> อยู่แล้ว → <strong>staff มองไม่เห็นแผงนี้เลย และหน้าของ staff คงเดิมทุกพิกเซล</strong></p>
+    <p>แตะ backend แค่ <strong>1 บรรทัด</strong> (เพิ่ม <code>COUNT(*) AS purchase_count</code> ต่อช่วงเวลาในกราฟ) เพื่อให้กราฟสลับดู "ยอดซื้อ / จำนวนบิล" ได้ — เป็นการเพิ่มฟิลด์แบบ backward-compatible ไม่กระทบหน้า Sales/Dashboard ที่ใช้ IPC ตัวเดียวกัน</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <div class="card">
+    <p>การไหลของข้อมูล: หน้าจอ Purchases (admin) ยิง IPC 2 ตัวตามช่วงวันที่ของ MultiDatePicker → main process รวมยอดจากตาราง SQLite → ส่งกลับมาวาดเป็น MetricStrip + กราฟ + การ์ดสถานะ/สรุป</p>
+    <div class="diagram">
+    <svg class="sd" viewBox="0 0 980 330" role="img" aria-label="ผังการไหลของข้อมูล Purchases dashboard">
+      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
+
+      <!-- renderer -->
+      <rect class="box" x="20" y="120" width="220" height="80" rx="10"/>
+      <text x="130" y="150" text-anchor="middle">Purchases (admin)</text>
+      <text class="sub" x="130" y="170" text-anchor="middle">src/pages/Manage/</text>
+      <text class="sub" x="130" y="185" text-anchor="middle">Purchases.tsx</text>
+
+      <!-- IPC handlers -->
+      <rect class="box" x="380" y="30" width="240" height="74" rx="10"/>
+      <text x="500" y="60" text-anchor="middle">reports:financeSummary</text>
+      <text class="sub" x="500" y="80" text-anchor="middle">electron/ipc/reports.ts</text>
+      <text class="sub" x="500" y="94" text-anchor="middle">requirePermission report.finance</text>
+
+      <rect class="box warn" x="380" y="138" width="240" height="74" rx="10"/>
+      <text x="500" y="166" text-anchor="middle">reports:salesPurchaseTrend</text>
+      <text class="sub" x="500" y="186" text-anchor="middle">+ COUNT(*) AS purchase_count</text>
+      <text class="sub" x="500" y="200" text-anchor="middle">(backend 1 บรรทัด)</text>
+
+      <rect class="box" x="380" y="246" width="240" height="64" rx="10"/>
+      <text x="500" y="274" text-anchor="middle">purchase:history</text>
+      <text class="sub" x="500" y="294" text-anchor="middle">histSummary (มีอยู่แล้ว)</text>
+
+      <!-- DB -->
+      <rect class="box data" x="760" y="120" width="200" height="80" rx="10"/>
+      <text x="860" y="150" text-anchor="middle">SQLite</text>
+      <text class="sub" x="860" y="170" text-anchor="middle">purchase_receipts</text>
+      <text class="sub" x="860" y="185" text-anchor="middle">purchase_receipt_items</text>
+
+      <!-- edges renderer -> handlers -->
+      <path class="edge" d="M240,150 C300,110 320,80 376,67"/>
+      <text class="elabel" x="312" y="96" text-anchor="middle">date-only</text>
+      <path class="edge hot" d="M240,160 H376"/>
+      <text class="elabel" x="308" y="152" text-anchor="middle">granularity</text>
+      <path class="edge" d="M240,170 C300,210 320,250 376,272"/>
+
+      <!-- edges handlers -> DB -->
+      <path class="edge" d="M620,67 C690,90 710,110 760,140"/>
+      <path class="edge hot" d="M620,175 H756"/>
+      <path class="edge" d="M620,278 C690,250 710,220 760,182"/>
+    </svg>
+    </div>
+
+    <h3>การ์ดที่จะแสดง (Layout A)</h3>
+    <table>
+      <thead><tr><th>โซน</th><th>การ์ด</th><th>ค่า / แหล่งข้อมูล</th><th>สี (tint)</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="4">MetricStrip (แถวบน)</td><td>ยอดซื้อรวม</td><td><code>purchase_total</code> · trend vs ช่วงก่อน</td><td>primary</td></tr>
+        <tr><td>เงินสด</td><td><code>purchase_cash</code> · trend</td><td>success</td></tr>
+        <tr><td>เครดิต</td><td><code>purchase_credit</code> · trend</td><td>info-soft</td></tr>
+        <tr><td>ค้างชำระ</td><td><code>payable_total</code> + "X บิล" (ยอดคงค้างปัจจุบัน)</td><td>amber</td></tr>
+        <tr><td>ซ้าย (2/3)</td><td>แนวโน้มการซื้อ</td><td>กราฟแท่ง <code>purchase_total</code> ต่อช่วงเวลา + toggle <span class="tag t-opt">ยอดซื้อ / จำนวนบิล</span></td><td>neutral</td></tr>
+        <tr><td rowspan="2">ขวา (1/3)</td><td>สถานะการซื้อ</td><td>สัดส่วน เงินสด / เครดิต(จ่ายแล้ว) / ค้างชำระ / ยกเลิก (จาก <code>histSummary</code>)</td><td>—</td></tr>
+        <tr><td>สรุปการซื้อ</td><td>ยอดซื้อเฉลี่ย/บิล · เงินสด · เครดิต · ค้างชำระ</td><td>neutral</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:10px"><strong>สำคัญ — สถานะการซื้อไม่นับซ้ำ:</strong> <code>unpaid_count</code> เป็น subset ของ <code>credit_count</code> (เครดิต+ยังไม่จ่าย) จึงแยกเป็น เงินสด / เครดิต(จ่ายแล้ว = credit − unpaid) / ค้างชำระ / ยกเลิก ซึ่งรวมกัน = บิลทั้งหมดพอดี ไม่มีการนับซ้ำ</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li><strong>admin:</strong> หน้าประวัติการซื้อ = ตารางเปล่า + การ์ดนับจำนวน 5 ใบใน slot บน</li>
+        <li>ไม่มีภาพรวมยอดเงิน/แนวโน้ม/เจ้าหนี้คงค้าง — ต้องเปิดหน้า Finance แยก</li>
+        <li>หน้าไม่เลื่อน (ตารางสูงเต็มจอ)</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li><strong>admin:</strong> เห็นแผงภาพรวมการเงินด้านบน (เหมือนหน้า Sales) แล้วตามด้วยตารางประวัติ สูง <code>h-[34rem]</code> เลื่อนในตัว</li>
+        <li>เห็นยอดซื้อ/สด/เครดิต/ค้างชำระ + แนวโน้ม + สัดส่วนสถานะ ในที่เดียว</li>
+        <li>ทั้งหน้าเลื่อนรวมกัน (การ์ด + กราฟ + ตาราง)</li>
+        <li><strong>staff:</strong> <span class="tag t-keep">เหมือนเดิมทุกพิกเซล</span> — การ์ดนับ 5 ใบ + ตารางเต็มจอ</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>admin เห็นสุขภาพการซื้อ/กระแสเงินสด/เจ้าหนี้คงค้างทันที โดยไม่ต้องสลับหน้า</li>
+    <li>เลย์เอาต์เดียวกับ Sales → สลับแท็บแล้วไม่ต้องเรียนรู้ใหม่</li>
+    <li>reuse สูง: ใช้ IPC/คอมโพเนนต์เดิมเกือบทั้งหมด, ดึง 4 ฟังก์ชัน pure ออกเป็น lib ร่วม (ลดโค้ดซ้ำ)</li>
+    <li>backend เพิ่มแค่ 1 ฟิลด์ backward-compatible — Sales/Dashboard ไม่กระทบ</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>เพิ่มการ fetch 2 ครั้งต่อการเปลี่ยนช่วงวันที่ (เฉพาะ admin) — เบา เพราะเป็น aggregate query</li>
+    <li>render-helper <code>statusCard</code>/<code>summaryCard</code> ถูกลอกมาไว้ในไฟล์ Purchases (ตามแบบ Sales) — โค้ดซ้ำเล็กน้อย รอ extract เป็น shared component ในอนาคต</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><span class="tag t-skip">invariant</span> ห้ามแตะ experience ของ staff — ทุกอย่าง gate ด้วย <code>isAdmin</code>/<code>canFinancePanel</code></li>
+    <li><span class="tag t-skip">invariant</span> hooks ต้องเรียกไม่มีเงื่อนไข (hoist เหนือ early-return) — กันจอขาวตอนสลับ role</li>
+    <li><span class="tag t-skip">invariant</span> font-relative: ใช้ rem (<code>h-[34rem]</code>, <code>h-[9.1rem]</code>) ห้าม hardcode px ชดเชย</li>
+    <li><code>toast</code> ของ Purchases เป็นแบบ positional <code>toast(msg, 'error')</code> ไม่ใช่ object เหมือน Sales</li>
+    <li>ดึง 4 ฟังก์ชันออกจาก Sales → ต้องลบ import <code>dayjs</code> + <code>type Granularity</code> ที่กลายเป็น orphan</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><strong>เฉพาะ admin</strong> (role ที่ <code>useCan('report.finance') !== 'off'</code>): แผงภาพรวมแสดงตลอด ไม่มีปุ่มพับ/กาง ทั้งหน้าเลื่อนรวมกัน — ตารางประวัติสูงตายตัว <code>h-[34rem]</code> (~10 แถว) เลื่อนในตัว</li>
+      <li><strong>staff:</strong> หน้าเดิม — การ์ดนับ 5 ใบใน slot บน + ตารางเต็มจอ</li>
+      <li>ตัวเลขใน MetricStrip <strong>อิงช่วงวันที่อย่างเดียว</strong> (จาก MultiDatePicker) ไม่ผูกช่องค้นหา/ตัวกรองของตาราง — ตรงตามเจตนาแผง Finance ของ Sales</li>
+      <li>กราฟใช้ <code>TrendChart variant="bar"</code> + segmented Tabs สลับ "ยอดซื้อ / จำนวนบิล"; granularity อิง dateMode (วัน→ชม., เดือน→วัน, ปี→เดือน)</li>
+      <li>สีทั้งหมดใช้ semantic token (<code>hsl(var(--primary))</code> ฯลฯ) ไม่มี palette literal, ไม่มี emoji, ไม่มี raw HTML — ใช้ <code>MetricStrip</code>/<code>SectionCard</code>/<code>TrendChart</code> จาก <code>src/components/ui/</code></li>
+      <li>โทนสีการ์ดสถานะตั้งใจให้ตรงกับ MetricStrip ที่อยู่เหนือมัน (เงินสด=success, เครดิต=info, ค้างชำระ=amber, ยกเลิก=destructive) ไม่ใช่ตาม badge ในตาราง</li>
+      <li>headline delta ใช้ <code>{ invert: true }</code> แบบต้นทุน (ซื้อเพิ่ม = แดงเตือน) เหมือนการ์ด "ต้นทุนรวม" ของ Sales — ปรับให้ขึ้น=เขียวได้ง่ายโดยถอด arg นี้</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>MetricStrip ไม่ได้ override <code>h-[9.1rem]</code> (มิเรอร์ Sales ไม่ครบ) + typo 9.2rem ในร่าง</td><td>P2</td><td>เพิ่ม <code>className="h-[9.1rem]"</code> + แก้ note</td></tr>
+        <tr><td>1</td><td>Sales เหลือ import <code>dayjs</code> + <code>type Granularity</code> ค้าง หลังย้าย 4 ฟังก์ชัน</td><td>P2</td><td>ระบุให้ลบทั้งสอง import ใน STEP 2</td></tr>
+        <tr><td>1</td><td><code>TrendDatum</code> ไม่มีฟิลด์ <code>purchase_count</code></td><td>P2</td><td>เพิ่ม <code>purchase_count?: number</code> ใน interface (STEP 1e)</td></tr>
+        <tr><td>1</td><td>header ของการ์ดสถานะอาจ undercount ถ้าใช้ผลรวม segment</td><td>P2</td><td>ใช้ <code>histSummary.count</code> เป็น total (เหมือน Sales)</td></tr>
+        <tr><td>1</td><td>ความเสี่ยง state <code>override</code> ของ report.finance</td><td>P2</td><td>เป็นของเดิมที่แชร์กับ Sales — บันทึกไว้ ไม่ต้องแก้</td></tr>
+        <tr><td>2</td><td><code>purchaseStatusCard</code> ต้องใช้ tile type แบบลดรูป (ไม่ใช่ <code>StatusTile</code> ที่บังคับ icon/tone)</td><td>P1</td><td>ระบุ type เป็น <code>{value,label,count}</code> ล้วน, สีจาก color map</td></tr>
+        <tr><td>2</td><td>import <code>type Granularity</code> ใน Purchases ไม่ถูกใช้</td><td>P2</td><td>ตัดออกจากรายการ import ของ STEP 4</td></tr>
+        <tr><td>2</td><td>polarity ของ <code>invert</code> + ชุดสีการ์ดสถานะ = design choice</td><td>P2</td><td>ยืนยันเจตนา + เขียน comment กำกับในโค้ด</td></tr>
+        <tr><td>2</td><td>อื่น ๆ (STEP 1/2/3/4, hooks, segment math, tints, backward-compat)</td><td>PASS</td><td>ยืนยันถูกต้องครบ ไม่มี P0/P1 ค้าง</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li>Admin Purchases tab renders: MetricStrip(4) + trend chart (toggle ยอดซื้อ/จำนวนบิล) + สถานะการซื้อ + สรุปการซื้อ; whole page scrolls; history table fixed <code>h-[34rem]</code> scrolls internally.</li>
+      <li>Staff Purchases tab unchanged (5 slot MetricCards + full-height table).</li>
+      <li>Typecheck passes (<code>npx tsc --noEmit</code>).</li>
+      <li>No new IPC channel; only 1 additive field (<code>purchase_count</code>) added to existing <code>salesPurchaseTrend</code>.</li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>electron/ipc/reports.ts</code> — handler <code>reports:salesPurchaseTrend</code> (~567-633), <code>computeFinanceWindow</code> (~457-507)</li>
+      <li><code>src/components/ui/charts/trend-chart.tsx</code> — <code>TrendDatum</code> interface (~9-16)</li>
+      <li><code>src/lib/finance-panel.ts</code> — NEW shared pure helpers</li>
+      <li><code>src/pages/Manage/Sales.tsx</code> — remove 4 local helpers + orphaned imports</li>
+      <li><code>src/pages/Manage/index.tsx</code> — <code>scrollPage</code> (line ~138)</li>
+      <li><code>src/pages/Manage/Purchases.tsx</code> — the dashboard itself</li>
+    </ul>
+
+    <h3>ขั้นตอน (เรียงตาม dependency)</h3>
+    <ol>
+      <div class="step"><strong>STEP 1 — backend: purchase_count ต่อ bucket.</strong> ใน <code>electron/ipc/reports.ts</code> handler <code>reports:salesPurchaseTrend</code>:
+        <br>1a. <code>purchaseByBucket</code> SELECT (~615): เพิ่ม <code>COUNT(*) AS purchase_count</code>.
+        <br>1b. Map value type (~623): เพิ่ม <code>purchase_count: number</code>.
+        <br>1c. sales-seeded entries (~625): เพิ่ม <code>purchase_count: 0</code>.
+        <br>1d. purchase merge (~627-630): มี entry → <code>e.purchase_count = r.purchase_count</code>; entry ใหม่ → ใส่ <code>purchase_count: r.purchase_count</code> (+ sales_* zeros เดิม).
+        <br>1e. เพิ่ม <code>purchase_count?: number</code> ใน <code>TrendDatum</code> (<code>trend-chart.tsx</code> ~9-16).
+        <br><span class="inv">backward-compatible: Dashboard.tsx + Sales.tsx อ่านผ่าน window.api (any) ไม่สนฟิลด์ใหม่ — ยืนยันแล้วว่า consumer มีแค่ 2 ไฟล์นี้.</span></div>
+
+      <div class="step"><strong>STEP 2 — extract shared pure helpers.</strong> สร้าง <code>src/lib/finance-panel.ts</code> ย้าย VERBATIM 4 ฟังก์ชันจาก Sales.tsx: <code>trendOf</code>, <code>compareLabelForMode</code>, <code>prevWindowForMode</code>, <code>granularityForMode</code>.
+        <br>imports ที่ lib ต้องมี: <code>{ TrendingUp } from 'lucide-react'</code>, <code>type React from 'react'</code>, <code>{ type MultiDateMode } from '@/components/ui/multi-date-picker'</code>, <code>{ type Granularity } from '@/components/ui/charts/granularity-tabs'</code>, <code>{ delta } from '@/lib/delta'</code>, <code>dayjs from 'dayjs'</code>.
+        <br>ใน Sales.tsx: ลบ 4 def (~93-131) + เพิ่ม import จาก lib.
+        <br><span class="inv">ลบ orphaned imports จาก Sales: <code>import dayjs</code> (line 37) + <code>type Granularity</code> (line 34). คงไว้: delta (ใช้ render 437-441), TrendingUp (icon 453), MultiDateMode (state/prefs).</span></div>
+
+      <div class="step"><strong>STEP 3 — Manage/index.tsx scrollPage.</strong> line ~138: เปลี่ยน <code>const scrollPage = current === 'sales' && canFinancePanel</code> → <code>const scrollPage = (current === 'sales' || current === 'purchases') && canFinancePanel</code>. ไม่ต้องแก้อย่างอื่น (forwardWheel + scroller region + outlet wrapper อิง scrollPage อยู่แล้ว).</div>
+
+      <div class="step"><strong>STEP 4 — Purchases.tsx dashboard.</strong>
+        <br>4a. imports เพิ่ม: <code>React</code> (default, สำหรับ <code>&lt;React.Fragment&gt;</code>), <code>useCan</code>, <code>{ MetricStrip, SectionCard }</code>, <code>{ TrendChart, type TrendDatum }</code>, <code>{ Tabs, TabsList, TabsTrigger }</code>, <code>{ Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }</code>, <code>{ delta }</code>, <code>{ trendOf, compareLabelForMode, prevWindowForMode, granularityForMode } from '@/lib/finance-panel'</code>, lucide <code>Coins, LineChart, ListChecks</code>. <span class="inv">อย่า import type Granularity (ไม่ได้ใช้ตรง ๆ).</span>
+        <br>4b. module-scope types/consts:
+<pre>interface PurchaseFinanceSummary {
+  purchase_total: number; purchase_cash: number; purchase_credit: number; purchase_count: number
+  payable_total: number; payable_count: number
+  previous: { purchase_total: number; purchase_cash: number; purchase_credit: number } | null
+}
+type PurchaseChartMetric = 'purchase' | 'bills'
+const PURCHASE_CHART_METRICS: Record&lt;PurchaseChartMetric, { label:string; bar:{key:string;name:string;color:string}; valueFormat:'currency'|'int' }&gt; = {
+  purchase: { label:'ยอดซื้อ',  bar:{key:'purchase_total',name:'ยอดซื้อ',color:'hsl(var(--primary))'}, valueFormat:'currency' },
+  bills:    { label:'จำนวนบิล', bar:{key:'purchase_count',name:'จำนวนบิล',color:'hsl(var(--info))'},  valueFormat:'int' },
+}
+// สีตรงกับ MetricStrip tints (ไม่ใช่ badge ตาราง)
+const PURCHASE_STATUS_COLOR: Record&lt;string,string&gt; = {
+  cash:'hsl(var(--success))', credit_paid:'hsl(var(--info))', unpaid:'hsl(var(--accent))', cancelled:'hsl(var(--destructive))',
+}</pre>
+        4c. ใน component หลัง <code>useShopVat()</code>: <code>const isAdmin = useCan('report.finance') !== 'off'</code> + states <code>chartMetric</code>('purchase'), <code>hoveredStatus</code>(null), <code>finance</code>(null), <code>trend</code>([]), <code>finLoading</code>(false) + <code>const gran = granularityForMode(histDateMode)</code>. <span class="inv">hooks ทั้งหมดต้อง unconditional ที่ top.</span>
+        <br>4d. finance fetch effect (หลัง loadHistory) — admin-only, ใช้ histDate* state:
+<pre>useEffect(() => {
+  if (!isAdmin) return
+  let cancelled = false
+  const r = window.api.reports as any
+  setFinLoading(true)
+  Promise.all([
+    r.financeSummary({ date_from: histDateFrom, date_to: histDateTo, with_compare: true, ...prevWindowForMode(histDateMode, histDateFrom, histDateTo) }),
+    r.salesPurchaseTrend({ date_from: histDateFrom, date_to: histDateTo, granularity: gran }),
+  ]).then(([f, tr]) => { if (cancelled) return
+    setFinance((f ?? null) as PurchaseFinanceSummary | null); setTrend((tr ?? []) as TrendDatum[]) })
+   .catch((e:any) => { if (cancelled) return
+    toast(e?.message ? `โหลดภาพรวมการเงินไม่สำเร็จ: ${e.message}` : 'โหลดภาพรวมการเงินไม่สำเร็จ', 'error'); setTrend([]) })
+   .finally(() => { if (!cancelled) setFinLoading(false) })
+  return () => { cancelled = true }
+}, [isAdmin, histDateMode, histDateFrom, histDateTo, gran, toast])</pre>
+        <span class="inv">toast = positional form <code>toast(msg, 'error')</code> (ไม่ใช่ object).</span>
+        <br>4e. slot summary effect (เดิม ~224): นำหน้าด้วย <code>if (isAdmin) { setSlotSummary(null); return }</code> แล้วค่อย set การ์ด 5 ใบเดิม; dep เพิ่ม <code>isAdmin</code>.
+        <br>4f. RENDER: ครอบ finance block + history card ด้วย outer <code>&lt;div className={isAdmin ? 'flex flex-col gap-3' : 'flex flex-1 flex-col min-h-0'}&gt;</code>. finance block (gate <code>isAdmin</code>) ลอก Sales: loading → finance==null → IIFE ที่อ่านค่า + <code>delta(x, prev?.x, { invert:true })</code> สำหรับ total/cash/credit, <code>compareLabelForMode(histDateMode)</code>, <code>creditPaid = Math.max(0, histSummary.credit_count - histSummary.unpaid_count)</code>, statusTiles 4 ตัว ({value,label,count}), <code>statusTotal = histSummary.count</code>. MetricStrip ใส่ <code>className="h-[9.1rem]"</code> + 4 items (ยอดซื้อรวม/Coins/primary, เงินสด/Banknote/success, เครดิต/CreditCard/info-soft, ค้างชำระ/AlertTriangle/amber + <code>note: `${payable_count} บิล`</code>). grid 3-col: SectionCard "แนวโน้มการซื้อ"(LineChart, col-span-2, fill, right=Tabs segmented) + TrendChart; คอลัมน์ขวา = <code>purchaseStatusCard</code> + <code>purchaseSummaryCard</code>. history card: <code>&lt;div className={isAdmin ? 'shrink-0 bg-card rounded-card shadow-card border border-border overflow-hidden flex flex-col' : 'flex flex-1 flex-col min-h-0 bg-card ...'}&gt;</code>. table-container wrapper: ternary <code>isAdmin ? 'h-[34rem] [&amp;>[data-slot=table-container]]:h-full ...' : 'flex-1 min-h-0 [&amp;>...]'</code> (ลอก Sales 634-636). dialogs ทั้งหมดอยู่เดิม.
+        <br>4g. render helpers (module scope, lowercase):
+        <br>• <code>purchaseStatusCard</code> — ลอกโครง Sales <code>statusCard</code> แต่ <span class="inv">tile type ลดรูป</span>: <code>interface PurchaseStatusTile { value:string; label:string; count:number }</code> (ตัด icon/tone ที่ statusCard ไม่เคยอ่าน). header <code>TintIcon icon={FileText} tint="neutral" size="sm"</code> + "สถานะการซื้อ" + "{total} บิล"; bar+legend จาก non-zero segments; สีจาก <code>PURCHASE_STATUS_COLOR[t.value]</code>; sum (ฐาน %) คำนวณภายในจาก tiles แยกจาก header total.
+        <br>• <code>purchaseSummaryCard</code> — ลอก Sales <code>summaryCard</code> (icon ListChecks, "สรุปการซื้อ", grid <code>grid-cols-[1fr_auto_auto]</code>); rows = {label,value} เท่านั้น (ยอดซื้อเฉลี่ย `${fmt(perBill(total))}/บิล`, เงินสด, เครดิต, "ค้างชำระ (ปัจจุบัน)"); คง branch cells ไว้เพื่อ parity (dead, harmless).</div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> ผ่าน (ระวัง unused import จาก STEP 2; tile type ลดรูปจาก STEP 4g).</li>
+      <li>Click-test admin: หน้า Purchases เห็น dashboard, ทั้งหน้าเลื่อนได้, toggle กราฟทำงาน, เปลี่ยนช่วงวันที่แล้วตัวเลขอัปเดต, การ์ดสถานะสัดส่วนถูก.</li>
+      <li>Click-test staff: หน้า Purchases เหมือนเดิม (การ์ด 5 ใบ + ตารางเต็มจอ).</li>
+      <li>สลับแท็บ Sales↔Purchases↔Stock: ไม่มีการ์ดสรุปค้าง, scroll รีเซ็ตถูก.</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li>R1 page scroll: reuse class string จาก Sales เป๊ะ → region scroll ของ Manage จัดการเอง.</li>
+      <li>R2 toast API ต่าง: ใช้ positional <code>toast(msg,'error')</code> ใน effect ใหม่.</li>
+      <li>R3 แก้ Sales พัง: ย้าย verbatim + tsc + ลบ dayjs/Granularity orphan.</li>
+      <li>R4 TrendDatum: เพิ่ม purchase_count? แล้ว; chart อ่าน by string key cast <code>as TrendDatum[]</code>.</li>
+      <li>R5 statusCard อิงตัวกรองตาราง (histSummary) — ยอมรับ (ตรงกับ Sales); MetricStrip อิงวันที่ล้วน (financeSummary).</li>
+      <li>R6 hooks-order: hoist hooks เหนือ guard; <code>if(!isAdmin) return</code> อยู่ในตัว effect เท่านั้น.</li>
+      <li>R7 (inherited, ไม่ต้องแก้): ถ้า report.finance = 'override' isAdmin ยัง true แต่ IPC จะ throw — pattern เดิมร่วมกับ Sales, registry ไม่มี override state.</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-28</footer>
+
+</div>
+</body>
+</html>

@@ -614,20 +614,21 @@ export function registerReportHandlers() {
 
     const purchaseByBucket = db.prepare(`
       SELECT ${keyForPurchase} AS d,
-             COALESCE(SUM(${PURCHASE_NET_SUB}), 0) AS purchase_total
+             COALESCE(SUM(${PURCHASE_NET_SUB}), 0) AS purchase_total,
+             COUNT(*)                              AS purchase_count
       FROM purchase_receipts pr
       WHERE ${pCond.join(' AND ')}
       GROUP BY ${keyForPurchase}
     `).all(...pParams) as any[]
 
-    const map = new Map<string, { date: string; sales_net: number; sales_cost: number; sales_profit: number; bill_count: number; purchase_total: number }>()
+    const map = new Map<string, { date: string; sales_net: number; sales_cost: number; sales_profit: number; bill_count: number; purchase_total: number; purchase_count: number }>()
     for (const r of salesByBucket) {
-      map.set(r.d, { date: r.d, sales_net: r.sales_net, sales_cost: r.sales_cost, sales_profit: r.sales_net - r.sales_cost, bill_count: r.bill_count, purchase_total: 0 })
+      map.set(r.d, { date: r.d, sales_net: r.sales_net, sales_cost: r.sales_cost, sales_profit: r.sales_net - r.sales_cost, bill_count: r.bill_count, purchase_total: 0, purchase_count: 0 })
     }
     for (const r of purchaseByBucket) {
       const e = map.get(r.d)
-      if (e) e.purchase_total = r.purchase_total
-      else map.set(r.d, { date: r.d, sales_net: 0, sales_cost: 0, sales_profit: 0, bill_count: 0, purchase_total: r.purchase_total })
+      if (e) { e.purchase_total = r.purchase_total; e.purchase_count = r.purchase_count }
+      else map.set(r.d, { date: r.d, sales_net: 0, sales_cost: 0, sales_profit: 0, bill_count: 0, purchase_total: r.purchase_total, purchase_count: r.purchase_count })
     }
     return Array.from(map.values()).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
   })

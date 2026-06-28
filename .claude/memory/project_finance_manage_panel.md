@@ -24,9 +24,27 @@ metadata:
 - finance fetch effect เลิก gate `showFinancePanel` เหลือ `if (!isAdmin) return` + dep `[isAdmin, dateFrom, dateTo, gran, toast]`
 - **หมายเหตุ:** e2e `verify-finance-panel.mjs` เดิมเช็ค toggle/persist → **ล้าสมัย ต้องรื้อก่อนรันซ้ำ**
 
+### Phase 2 — Purchases (DONE 2026-06-28; tsc PASS exit 0; click-test pending)
+
+**SSOT แผน:** `docs/plans/Purchases_Finance_Dashboard.html` (ผ่าน /write-plan + audit 2 รอบ ไม่มี P0/P1)
+**Layout A = มิเรอร์ Sales เป๊ะ** สำหรับ admin (`useCan('report.finance') !== 'off'`), staff คงหน้าเดิมทุกพิกเซล (การ์ดนับ 5 ใบ + ตารางเต็มจอ)
+- **แตะ 5 ไฟล์:**
+  1. `electron/ipc/reports.ts` — เพิ่ม `COUNT(*) AS purchase_count` ต่อ bucket ใน `salesPurchaseTrend` (+ ใส่ใน Map type/seed/merge) — backward-compatible (Dashboard/Sales ไม่สน field ใหม่)
+  2. `src/components/ui/charts/trend-chart.tsx` — เพิ่ม `purchase_count?: number` ใน `TrendDatum`
+  3. **`src/lib/finance-panel.ts` (ไฟล์ใหม่)** — ดึง 4 pure helper ออกจาก Sales: `trendOf` / `compareLabelForMode` / `prevWindowForMode` / `granularityForMode` (ลดโค้ดซ้ำ; Sales import จาก lib นี้แทน + ลบ orphan import `dayjs` + `type Granularity`)
+  4. `src/pages/Manage/index.tsx` — `scrollPage = (current === 'sales' || current === 'purchases') && canFinancePanel`
+  5. `src/pages/Manage/Purchases.tsx` — dashboard: MetricStrip 4 (ยอดซื้อรวม/เงินสด/เครดิต/ค้างชำระ) + กราฟ toggle ยอดซื้อ/จำนวนบิล + `purchaseStatusCard` + `purchaseSummaryCard` (lowercase render helper ในไฟล์ ตาม precedent Sales)
+- **gotchas เฉพาะ Purchases:**
+  - `toast` ของ Purchases = **positional** `toast(msg, 'error')` (ไม่ใช่ object เหมือน Sales)
+  - **`unpaid_count` ⊂ `credit_count`** (purchase.ts history summary) → proportion bar ต้องแยก เงินสด/เครดิต(จ่ายแล้ว=credit−unpaid)/ค้างชำระ/ยกเลิก = disjoint รวม=ทุกบิล (อย่าใส่ unpaid เป็น segment แยกข้าง credit ตรง ๆ จะนับซ้ำ)
+  - header การ์ดสถานะใช้ `histSummary.count` (ทุกบิล) เป็น total; ฐาน % คำนวณจากผลรวม segment ภายในการ์ดเอง
+  - headline delta ใช้ `{ invert: true }` (ซื้อเพิ่ม = แดง, cost-style เหมือนการ์ด "ต้นทุนรวม" ของ Sales) — ถอด arg ถ้าอยากให้ขึ้น=เขียว
+  - การ์ดสถานะ = ค้างชำระ (`payable_total`) อิงยอดคงค้าง **ปัจจุบัน** (ไม่ผูกช่วงวันที่); ที่เหลืออิงช่วงวันที่
+- ยังเหลือเฟสถัดไป: LowStock / DeadStock / Expiry / NegativeStock
+
 ### ขอบเขตเจตนา
 
-- Phase 1 = Sales เท่านั้น; เฟสถัดไปขยายไป Purchases / LowStock / DeadStock / Expiry / NegativeStock
+- Phase 1 = Sales; **Phase 2 = Purchases (DONE)**; เฟสถัดไปขยายไป LowStock / DeadStock / Expiry / NegativeStock
 - แผงตัวเลข **อิงช่วงวันที่อย่างเดียว** (ตั้งใจ) — ไม่ผูกช่องค้นหา / ตัวกรองสถานะ / VAT ของตาราง; ไม่ปิดแผงตอนผู้ใช้กรองข้อมูล
 - `financeSummary` ตัดบิล voided ออกจากยอดขาย → ใช้ info-soft note กำกับขอบเขตให้ชัด
 

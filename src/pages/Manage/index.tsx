@@ -132,10 +132,10 @@ export default function ManageLayout() {
   const summary = summaryState?.tab === current ? summaryState.cards : null
   const tabActions = tabActionsState?.tab === current ? tabActionsState.node : null
   const subTabActions = subTabActionsState?.tab === current ? subTabActionsState.node : null
-  // The Sales tab scrolls the whole page together (summary cards + finance card
-  // + history table) for roles that see the finance panel. Every other tab keeps
-  // the fixed full-height card.
-  const scrollPage = current === 'sales' && canFinancePanel
+  // The Sales + Purchases tabs scroll the whole page together (summary cards +
+  // finance card + history table) for roles that see the finance panel. Every
+  // other tab keeps the fixed full-height card.
+  const scrollPage = (current === 'sales' || current === 'purchases') && canFinancePanel
 
   // The header + tab strip sit ABOVE the page scroller (they don't scroll), so
   // wheeling over them wouldn't move the page. Forward those wheel events into the

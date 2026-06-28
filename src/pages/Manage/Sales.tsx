@@ -31,10 +31,9 @@ import { ReceiptText, Ban, ShoppingCart, ShoppingBag, RotateCcw, Settings2, Filt
 import { cn } from '@/lib/utils'
 import { MetricStrip, SectionCard } from '@/components/ui/card'
 import { TrendChart, type TrendDatum } from '@/components/ui/charts/trend-chart'
-import { type Granularity } from '@/components/ui/charts/granularity-tabs'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { delta } from '@/lib/delta'
-import dayjs from 'dayjs'
+import { trendOf, compareLabelForMode, prevWindowForMode, granularityForMode } from '@/lib/finance-panel'
 
 // Money lives in the table rows; the summary slot now carries only the count
 // cards, which double as the status filter. rx (ใบสั่งยา) bills have no
@@ -88,47 +87,8 @@ interface FinanceSummary {
   previous: { sales_net: number; sales_cost: number; sales_profit: number } | null
 }
 
-// Turn delta()'s magnitude + direction into the MetricStrip trend fields: a
-// signed string + color + the trailing up/down icon. null delta → no trend line.
-function trendOf(d: ReturnType<typeof delta>): { delta?: string; deltaClassName?: string; deltaIcon?: React.ComponentType<{ className?: string }> } {
-  if (!d) return {}
-  const sign = d.icon === TrendingUp ? '+' : d.icon ? '-' : ''
-  return { delta: `${sign}${d.sub}`, deltaClassName: d.cls, deltaIcon: d.icon ?? undefined }
-}
-
-// Comparison window + label adapt to the date-picker mode: day → yesterday,
-// month → same dates last calendar month, year → last year, custom → the
-// equal-length window before the range (backend default, no explicit prev).
-function compareLabelForMode(mode: MultiDateMode): string {
-  switch (mode) {
-    case 'day': return 'vs เมื่อวาน'
-    case 'month': return 'vs เดือนก่อน'
-    case 'year': return 'vs ปีก่อน'
-    default: return 'vs ช่วงก่อน'
-  }
-}
-function prevWindowForMode(mode: MultiDateMode, from: string, to: string): { prev_from?: string; prev_to?: string } {
-  const f = dayjs(from), t = dayjs(to)
-  const fmt = (x: dayjs.Dayjs) => x.format('YYYY-MM-DD')
-  switch (mode) {
-    case 'day': return { prev_from: fmt(f.subtract(1, 'day')), prev_to: fmt(f.subtract(1, 'day')) }
-    case 'month': return { prev_from: fmt(f.subtract(1, 'month')), prev_to: fmt(t.subtract(1, 'month')) }
-    case 'year': return { prev_from: fmt(f.subtract(1, 'year')), prev_to: fmt(t.subtract(1, 'year')) }
-    default: return {} // custom → backend equal-length window
-  }
-}
-
-// Bucket granularity for the chart, derived from the page's date mode — always a
-// unit SMALLER than the selected period so the period shows multiple bars (day →
-// hours, month → days, year → months). The chart uses the page's own date range.
-function granularityForMode(mode: MultiDateMode): Granularity {
-  switch (mode) {
-    case 'day': return 'hour'
-    case 'month': return 'day'
-    case 'year': return 'month'
-    default: return 'day'
-  }
-}
+// trendOf / compareLabelForMode / prevWindowForMode / granularityForMode now live
+// in @/lib/finance-panel (shared with the Purchases finance panel).
 
 // The chart has 3 modes — each plots one metric over the selected range. Color +
 // value format per metric (counts are integers, money is currency).
