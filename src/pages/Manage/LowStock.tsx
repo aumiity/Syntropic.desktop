@@ -145,8 +145,6 @@ export default function ManageLowStockPage() {
   useEffect(() => {
     setSubTabActions(
       <ExportButton
-        iconOnly
-        tooltip="ส่งออก Excel"
         onExport={() => window.api.exports.lowStock({
           q: q.trim() || undefined,
           category_id: categoryId !== '0' ? Number(categoryId) : undefined,

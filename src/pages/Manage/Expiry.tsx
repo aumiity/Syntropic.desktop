@@ -243,8 +243,6 @@ export default function ManageExpiryPage() {
   useEffect(() => {
     setSubTabActions(
       <ExportButton
-        iconOnly
-        tooltip="ส่งออก Excel"
         onExport={() => window.api.exports.expiry({
           filter,
           category_id: categoryId !== '0' ? Number(categoryId) : undefined,

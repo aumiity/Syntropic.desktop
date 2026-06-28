@@ -76,7 +76,7 @@ async function getMainPage(app) {
 //   that same row — NOT inside the card's filter strip which has the SearchInput.
 async function checkBtnPosition(page, searchPlaceholder) {
   return page.evaluate((placeholder) => {
-    const btn = document.querySelector('[aria-label="ส่งออก Excel"]')
+    const btn = [...document.querySelectorAll('button')].find(b => b.textContent.includes('ส่งออก Excel'))
     if (!btn) return { btnFound: false, inSubTabRow: false, inFilterStrip: false }
 
     // Sub-tab strip: tablist whose text includes "ค้างสต็อก" (STOCK_SUBTABS)
@@ -126,15 +126,15 @@ try {
   // Boot into expiry tab; reload so devLogin fires
   await page.evaluate(() => { window.location.hash = '#/manage/expiry' })
   await page.reload()
-  await page.waitForSelector('[aria-label="ส่งออก Excel"]', { timeout: 30000 })
+  await page.waitForSelector('button:has-text("ส่งออก Excel")', { timeout: 30000 })
 
   // ── E1: Manage › Expiry ─────────────────────────────────────────────────────
   console.log('\n=== E1: Manage › Expiry ===')
 
-  const e1Visible = await page.locator('[aria-label="ส่งออก Excel"]').first().isVisible().catch(() => false)
-  check('E1a: ปุ่ม export ปรากฏ (aria-label="ส่งออก Excel")', e1Visible)
+  const e1Visible = await page.locator('button:has-text("ส่งออก Excel")').first().isVisible().catch(() => false)
+  check('E1a: ปุ่ม export ปรากฏ (text="ส่งออก Excel")', e1Visible)
 
-  const e1Enabled = await page.locator('[aria-label="ส่งออก Excel"]').first().isEnabled().catch(() => false)
+  const e1Enabled = await page.locator('button:has-text("ส่งออก Excel")').first().isEnabled().catch(() => false)
   check('E1b: ปุ่ม enabled', e1Enabled)
 
   const e1Pos = await checkBtnPosition(page, 'ชื่อสินค้า')
@@ -144,12 +144,12 @@ try {
   // ── E2: Manage › LowStock ───────────────────────────────────────────────────
   console.log('\n=== E2: Manage › LowStock ===')
   await page.evaluate(() => { window.location.hash = '#/manage/low-stock' })
-  await page.waitForSelector('[aria-label="ส่งออก Excel"]', { timeout: 15000 })
+  await page.waitForSelector('button:has-text("ส่งออก Excel")', { timeout: 15000 })
 
-  const e2Visible = await page.locator('[aria-label="ส่งออก Excel"]').first().isVisible().catch(() => false)
+  const e2Visible = await page.locator('button:has-text("ส่งออก Excel")').first().isVisible().catch(() => false)
   check('E2a: ปุ่ม export ปรากฏ', e2Visible)
 
-  const e2Enabled = await page.locator('[aria-label="ส่งออก Excel"]').first().isEnabled().catch(() => false)
+  const e2Enabled = await page.locator('button:has-text("ส่งออก Excel")').first().isEnabled().catch(() => false)
   check('E2b: ปุ่ม enabled', e2Enabled)
 
   const e2Pos = await checkBtnPosition(page, 'ชื่อสินค้า')
@@ -169,7 +169,7 @@ try {
     { timeout: 10000 },
   ).catch(() => {})
 
-  const e3DeadCount = await page.locator('[aria-label="ส่งออก Excel"]').count()
+  const e3DeadCount = await page.locator('button:has-text("ส่งออก Excel")').count()
   check('E3a: dead-stock — ไม่มีปุ่ม export ใน DOM (owner-scoping)', e3DeadCount === 0,
     `found ${e3DeadCount} button(s)`)
 
@@ -182,7 +182,7 @@ try {
     { timeout: 10000 },
   ).catch(() => {})
 
-  const e3NegCount = await page.locator('[aria-label="ส่งออก Excel"]').count()
+  const e3NegCount = await page.locator('button:has-text("ส่งออก Excel")').count()
   check('E3b: negative-stock — ไม่มีปุ่ม export ใน DOM (owner-scoping)', e3NegCount === 0,
     `found ${e3NegCount} button(s)`)
 
