@@ -6,5 +6,5 @@ import { useUserStore } from '@/stores/userStore'
 // on this to protect data — a determined caller can invoke IPC directly.
 export function usePermission() {
   const role = useUserStore((s) => s.current?.role)
-  return { role, isAdmin: role === 'admin' }
+  return { role, isAdmin: role === 'owner' }
 }

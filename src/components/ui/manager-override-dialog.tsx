@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 export type ManagerOverride = { userId: number; password: string }
 
-type AdminUser = { id: number; name: string; role: 'admin' | 'staff' }
+type AdminUser = { id: number; name: string; role: string }
 
 // Reusable manager-override prompt. A staff member triggering an admin-only
 // action (void / price / stock-lot / GR-cancel) supplies an admin's credential
@@ -49,7 +49,7 @@ export function ManagerOverrideDialog({
     window.api.auth.listLoginUsers()
       .then((list: AdminUser[]) => {
         if (!alive) return
-        const onlyAdmins = (list ?? []).filter(u => u.role === 'admin')
+        const onlyAdmins = (list ?? []).filter(u => u.role === 'owner')
         setAdmins(onlyAdmins)
         setUserId(onlyAdmins[0]?.id ?? null)
       })

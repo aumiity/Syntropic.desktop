@@ -828,6 +828,17 @@ export function initializeSchema(db: Database.Database) {
       zone_fridge_enabled  INTEGER NOT NULL DEFAULT 1,
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
+    -- Role-based permissions. One row per (role × permission); state ∈
+    -- off|allow|override. The owner role is NEVER stored here — it implicitly
+    -- passes every gate (see electron/auth/permissions.ts). Only editable roles
+    -- (pharmacist, staff) get rows; a missing row falls back to the registry
+    -- default (src/lib/permissions/registry.ts). Seeded in seed.ts.
+    CREATE TABLE IF NOT EXISTS role_permissions (
+      role       TEXT NOT NULL,
+      permission TEXT NOT NULL,
+      state      TEXT NOT NULL,
+      PRIMARY KEY (role, permission)
+    );
   `)
 
   // Safe column migrations for existing databases
@@ -1111,6 +1122,13 @@ export function initializeSchema(db: Database.Database) {
   // De-dup above guarantees uniqueness; create the index defensively (never
   // hard-crash boot — keep the file's swallow convention).
   try { db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)`) } catch {}
+
+  // Role-permissions rollout: the owner role is now 'owner' (was 'admin'). Flip
+  // the email-pinned owner account on existing databases so it keeps full
+  // authority after the rename. Idempotent + self-limiting (only matches the
+  // pinned email still on the legacy 'admin' role); fresh installs seed 'owner'
+  // directly. Other 'admin' user rows (if any) are left untouched on purpose.
+  try { db.exec(`UPDATE users SET role = 'owner' WHERE email = 'admin@syntropic.local' AND role = 'admin'`) } catch {}
 
   // Migration: drop the vestigial item_units.multiply column. Never read by any
   // business logic — per-product conversion lives in product_units.qty_per_base.

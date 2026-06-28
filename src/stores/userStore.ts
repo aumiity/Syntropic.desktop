@@ -1,9 +1,14 @@
 import { create } from 'zustand'
+import type { PermState } from '@/lib/permissions/registry'
 
 export interface CurrentUser {
   id: number
   name: string
   role: string
+  // Permission snapshot captured at login (UX gating via useCan). Real
+  // enforcement lives in main (requirePermission). Optional: a refresh path or
+  // older login response may omit it → useCan falls back to registry defaults.
+  permissions?: Record<string, PermState>
 }
 
 interface UserStore {

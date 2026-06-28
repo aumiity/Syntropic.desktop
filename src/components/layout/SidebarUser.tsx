@@ -17,7 +17,7 @@ import { InitialAvatar } from '@/components/ui/avatar'
 import { useToast } from '@/components/ui/toast'
 import { useUserStore } from '@/stores/userStore'
 
-const ROLE_LABEL: Record<string, string> = { admin: 'ผู้ดูแลระบบ', staff: 'พนักงาน' }
+const ROLE_LABEL: Record<string, string> = { owner: 'เจ้าของร้าน', pharmacist: 'เภสัชกร', staff: 'พนักงาน' }
 
 interface MyProfile {
   id: number; name: string; first_name: string; last_name: string
@@ -25,9 +25,10 @@ interface MyProfile {
 }
 
 function RoleBadge({ role }: { role: string }) {
-  return role === 'admin'
-    ? <Badge variant="primary-soft">ผู้ดูแลระบบ</Badge>
-    : <Badge variant="secondary">พนักงาน</Badge>
+  const label = ROLE_LABEL[role] ?? role
+  if (role === 'owner') return <Badge variant="primary-soft">{label}</Badge>
+  if (role === 'pharmacist') return <Badge variant="info-soft">{label}</Badge>
+  return <Badge variant="secondary">{label}</Badge>
 }
 
 const menuItem =

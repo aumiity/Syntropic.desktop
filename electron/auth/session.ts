@@ -41,7 +41,7 @@ export type Override = { userId: number; password: string }
 // Throws 'FORBIDDEN' (renderer maps to a Thai toast) or the override failure
 // message. See §4.3.
 export function requireAdmin(e: IpcMainInvokeEvent, override?: Override): void {
-  if (getSessionRole(e) === 'admin') return
+  if (getSessionRole(e) === 'owner') return
 
   if (override && override.userId && override.password) {
     const db = getDb()
@@ -57,7 +57,7 @@ export function requireAdmin(e: IpcMainInvokeEvent, override?: Override): void {
       .prepare(`SELECT id, role, password FROM users WHERE id = ? AND is_disabled = 0`)
       .get(override.userId) as { id: number; role: string; password: string } | undefined
 
-    if (!row || row.role !== 'admin') {
+    if (!row || row.role !== 'owner') {
       recordFailure(db, override.userId)
       throw new Error('รหัสผ่านไม่ถูกต้อง')
     }

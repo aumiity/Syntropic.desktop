@@ -556,7 +556,7 @@ export function registerSettingsHandlers() {
     }
     const userRow = db.prepare(`SELECT id, role, password FROM users WHERE id = ? AND is_disabled = 0`)
       .get(session.userId) as { id: number; role: string; password: string } | undefined
-    if (!userRow || userRow.role !== 'admin' || !verifySecret(password, userRow.password).ok) {
+    if (!userRow || userRow.role !== 'owner' || !verifySecret(password, userRow.password).ok) {
       if (userRow) recordFailure(db, userRow.id)
       throw new Error('รหัสผ่านไม่ถูกต้อง')
     }

@@ -952,7 +952,7 @@ export function registerReportHandlers() {
     date_from?: string; date_to?: string; limit?: number
   }) => {
     const db = getDb()
-    const isAdmin = getSessionRole(_e) === 'admin'
+    const isAdmin = getSessionRole(_e) === 'owner'
     const { date_from, date_to } = filters
     const limit = filters.limit ?? 50
     const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`

@@ -112,11 +112,14 @@ export function TitleBar() {
 
   // DEV ONLY — flip both the renderer store (UI gating) AND the authoritative
   // main-side session (IPC enforcement) so the whole stack reflects the new role.
-  const switchRole = () => {
+  const switchRole = async () => {
     if (!currentUser) return
-    const next = currentUser.role === 'admin' ? 'staff' : 'admin'
-    window.api.auth.devSetRole(next)
-    useUserStore.getState().login({ ...currentUser, role: next })
+    const next = currentUser.role === 'owner' ? 'pharmacist'
+      : currentUser.role === 'pharmacist' ? 'staff' : 'owner'
+    const res = await window.api.auth.devSetRole(next)
+    // Pull the fresh permission snapshot back so useCan reflects the new role
+    // (not the stale owner snapshot). res is null only when packaged (no-op).
+    useUserStore.getState().login({ ...currentUser, role: next, permissions: res?.permissions })
   }
 
   const copyPath = () => {
@@ -204,25 +207,27 @@ export function TitleBar() {
           </PopoverContent>
         </Popover>
 
-        {/* DEV ONLY — role switch (admin/staff) for testing. REMOVE before release. */}
+        {/* DEV ONLY — role switch (owner/pharmacist/staff) for testing. REMOVE before release. */}
         {import.meta.env.DEV && currentUser && (
           <>
             <div className="w-px h-3.5 bg-border mx-0.5" />
             <button
               type="button"
               onClick={switchRole}
-              title="สลับ role (admin/staff) สำหรับทดสอบ"
+              title="สลับ role (เจ้าของร้าน/เภสัชกร/พนักงาน) สำหรับทดสอบ"
               className={`inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-xs transition-colors ${
-                currentUser.role === 'admin'
+                currentUser.role === 'owner'
                   ? 'text-primary hover:bg-primary-soft/60'
-                  : 'text-accent-foreground hover:bg-amber-soft/60'
+                  : currentUser.role === 'pharmacist'
+                    ? 'text-info hover:bg-info-soft/60'
+                    : 'text-accent-foreground hover:bg-amber-soft/60'
               }`}
             >
-              {currentUser.role === 'admin'
+              {currentUser.role === 'owner'
                 ? <ShieldCheck className="size-3.5" />
                 : <User className="size-3.5" />
               }
-              <span>{currentUser.role === 'admin' ? 'Admin' : 'Staff'}</span>
+              <span>{currentUser.role === 'owner' ? 'เจ้าของร้าน' : currentUser.role === 'pharmacist' ? 'เภสัชกร' : 'พนักงาน'}</span>
             </button>
           </>
         )}

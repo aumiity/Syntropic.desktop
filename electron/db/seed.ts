@@ -8,6 +8,7 @@ import LABEL_TIMES from './seed-data/label-times'
 import PRODUCTS from './seed-data/products'
 import CUSTOMERS from './seed-data/customers'
 import { presetDefaults } from '../../src/lib/label/sections'
+import { PERMISSIONS, EDITABLE_ROLES, permDefault } from '../../src/lib/permissions/registry'
 
 export function seedDatabase(db: Database.Database) {
   // Idempotent staff test user — added to every install so audit trail has a non-admin actor
@@ -69,13 +70,27 @@ export function seedDatabase(db: Database.Database) {
   ]
   db.transaction(() => { for (const p of STARTER_PRESETS) insPreset.run(p) })()
 
+  // Role permissions — seed the registry defaults for the editable roles
+  // (pharmacist, staff). MUST run BEFORE the "fresh DB" guard below so it
+  // back-fills existing databases too. Fully idempotent: INSERT OR IGNORE keyed
+  // on (role, permission), so a row the owner later edits is never overwritten.
+  // owner is NOT seeded — it implicitly passes every gate (no row needed).
+  const insRolePerm = db.prepare(`INSERT OR IGNORE INTO role_permissions (role, permission, state) VALUES (?, ?, ?)`)
+  db.transaction(() => {
+    for (const role of EDITABLE_ROLES) {
+      for (const perm of PERMISSIONS) {
+        insRolePerm.run(role, perm.key, permDefault(role, perm.key))
+      }
+    }
+  })()
+
   // Only seed the rest if tables are empty
   const userCount = (db.prepare(`SELECT COUNT(*) as c FROM users WHERE email = 'admin@syntropic.local'`).get() as { c: number }).c
   if (userCount > 0) return
 
   // Default admin user
   db.prepare(`INSERT INTO users (name, first_name, username, email, password, role) VALUES (?, ?, ?, ?, ?, ?)`).run(
-    'ผู้ดูแลระบบ', 'ผู้ดูแลระบบ', 'ADMIN', 'admin@syntropic.local', 'admin', 'admin'
+    'ผู้ดูแลระบบ', 'ผู้ดูแลระบบ', 'ADMIN', 'admin@syntropic.local', 'admin', 'owner'
   )
 
   // Default settings — blank shop identity on purpose: setup_completed defaults

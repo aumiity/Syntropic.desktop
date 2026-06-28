@@ -5,7 +5,9 @@ metadata:
   type: project
 ---
 
-**PLANNED 2026-06-28 — แผนเสร็จ ผ่าน audit 4 รอบ (CLEAN) ยังไม่เริ่ม execute. รออนุญาตเริ่มเฟส 1.**
+**PHASE 1 DONE 2026-06-28 (tsc PASS; in-app boot verify pending). PHASE 2+3 รอเริ่ม.** แผนผ่าน audit 4 รอบ (CLEAN).
+
+**เฟส 1 ลงแล้ว (foundation):** `src/lib/permissions/registry.ts` (15 keys) · ตาราง `role_permissions` (schema.ts) + seed defaults (idempotent ก่อน userCount guard) · `electron/auth/permissions.ts` (`stateFor`/`requirePermission`/`permissionSnapshot`) · rename role `admin`→`owner` (seed.ts:78 ตัวหลัง + session.ts:44/:60 + auth.ts devLogin + settings.ts:559) · **+ migration กันDBเก่า: `UPDATE users SET role='owner' WHERE email='admin@syntropic.local' AND role='admin'` (schema.ts ~1131)** · login/devLogin/devSetRole คืน `permissions` snapshot · renderer: userStore.CurrentUser.permissions, usePermission.isAdmin=`owner`, ใหม่ `src/hooks/useCan.ts` · People form 3 role + lock owner Select + people.ts guard (saveStaff role + setStaffStatus กัน demote/disable owner ที่ผูกอีเมล) · labels: SidebarUser RoleBadge+ROLE_LABEL, People ROLES, LoginScreen type+PREVIEW_USERS+owner-first sort, TitleBar DEV switch 3-way owner→pharmacist→staff (ดึง permissions กลับ). **interim-safe (กันพังช่วงคาบเฟส 1↔2):** cost-strip reports.ts:955/exports.ts:350,403 + manager-override-dialog filter → rename `'admin'`→`'owner'` ชั่วคราว (เฟส 2 จะแปลงเป็น stateFor/listApprovers). requireAdmin ยังอยู่ (ลบเฟส 3).
 
 เปลี่ยนสิทธิ์จากฮาร์ดโค้ด `requireAdmin()` (62 จุดใน electron/ipc) → data-driven ตั้งค่าได้.
 

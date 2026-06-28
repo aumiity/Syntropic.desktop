@@ -672,7 +672,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
 
   const setF = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
-  const ROLES: Record<string, string> = { admin: 'ผู้ดูแลระบบ', staff: 'พนักงาน' }
+  const ROLES: Record<string, string> = { owner: 'เจ้าของร้าน', pharmacist: 'เภสัชกร', staff: 'พนักงาน' }
 
   // Client-side search — staff list is small, no need for round-trip per keystroke.
   const filtered = q.trim()
@@ -852,12 +852,13 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
               </div>
               <div className="space-y-1.5">
                 <Label>ตำแหน่ง</Label>
-                <Select value={form.role ?? 'staff'} onValueChange={v => setF('role', v)}>
+                <Select value={form.role ?? 'staff'} onValueChange={v => setF('role', v)} disabled={isOwnerAdmin}>
                   <SelectTrigger variant="elevated" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
+                    <SelectItem value="owner">เจ้าของร้าน</SelectItem>
+                    <SelectItem value="pharmacist">เภสัชกร</SelectItem>
                     <SelectItem value="staff">พนักงาน</SelectItem>
                   </SelectContent>
                 </Select>

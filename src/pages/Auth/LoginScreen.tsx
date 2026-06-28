@@ -6,7 +6,7 @@ import { FormField } from '@/components/ui/label'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { useToast } from '@/components/ui/toast'
 import { useThemeStore } from '@/stores/themeStore'
-import { useUserStore } from '@/stores/userStore'
+import { useUserStore, type CurrentUser } from '@/stores/userStore'
 import { BrandPanel, BrandLogo } from '@/components/ui/brand'
 import { cn } from '@/lib/utils'
 import { Eye, EyeOff, LogIn, ArrowLeft, ChevronRight, ShieldCheck, Check, Sun, Moon, KeyRound, Copy } from 'lucide-react'
@@ -20,10 +20,10 @@ import { Eye, EyeOff, LogIn, ArrowLeft, ChevronRight, ShieldCheck, Check, Sun, M
 // ยืนยันด้วย window.api.auth.login — lockout จริงนับฝั่ง main; ตัวนับ/นาฬิกาใน UI
 // เป็นแค่ feedback ระหว่างรอ. (Phase 2.5 จะเพิ่ม flow กู้รหัสจริง)
 
-type LoginUser = { id: number; name: string; username: string; email: string; role: 'admin' | 'staff' }
+type LoginUser = { id: number; name: string; username: string; email: string; role: 'owner' | 'pharmacist' | 'staff' }
 
 const PREVIEW_USERS: LoginUser[] = [
-  { id: 1, name: 'อุ้ม', username: 'aum', email: 'aum@syntropic.local', role: 'admin' },
+  { id: 1, name: 'อุ้ม', username: 'aum', email: 'aum@syntropic.local', role: 'owner' },
   { id: 2, name: 'บี', username: 'bee', email: 'bee@syntropic.local', role: 'staff' },
   { id: 3, name: 'มินต์', username: 'mint', email: 'mint@syntropic.local', role: 'staff' },
 ]
@@ -31,10 +31,10 @@ const PREVIEW_PASSWORD = '1234'
 const LOCK_THRESHOLD = 5
 const LOCK_SECONDS = 30
 
-// Admin accounts always sort to the top of the picker; same-role order is
+// The owner account always sorts to the top of the picker; same-role order is
 // preserved (Array.prototype.sort is stable).
 const adminFirst = (list: LoginUser[]) =>
-  [...list].sort((a, b) => (a.role === b.role ? 0 : a.role === 'admin' ? -1 : 1))
+  [...list].sort((a, b) => (a.role === b.role ? 0 : a.role === 'owner' ? -1 : 1))
 
 export function LoginScreen({ onComplete, preview = false }: { onComplete?: () => void; preview?: boolean }) {
   const { toast } = useToast()
@@ -171,7 +171,7 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
 
     const user = selected
     window.api.auth.login(user.id, pw)
-      .then((authed: { id: number; name: string; role: string }) => {
+      .then((authed: CurrentUser) => {
         setChecking(false)
         useUserStore.getState().login(authed)
         setError(false)

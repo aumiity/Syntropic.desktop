@@ -347,7 +347,7 @@ export function registerExportHandlers() {
     filter?: 'expired' | 30 | 90 | 180; category_id?: number; q?: string
   } = {}) => {
     const db = getDb()
-    const isAdmin = getSessionRole(e) === 'admin'
+    const isAdmin = getSessionRole(e) === 'owner'
     const { filter, category_id, q } = filters
 
     // Mirror reports:expiringLots' rows query, but WITHOUT the LIMIT (full set).
@@ -400,7 +400,7 @@ export function registerExportHandlers() {
     q?: string; category_id?: number; include_disabled?: boolean
   } = {}) => {
     const db = getDb()
-    const isAdmin = getSessionRole(e) === 'admin'
+    const isAdmin = getSessionRole(e) === 'owner'
     const { q, category_id, include_disabled } = filters
 
     // Same shape as products:lowStock (already returns the full set, no LIMIT).

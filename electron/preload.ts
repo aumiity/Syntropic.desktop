@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { PermState } from '../src/lib/permissions/registry'
 
 // Electron ห่อ error จาก main เป็น "Error invoking remote method 'X': Error: <ของจริง>".
 // ครอบ invoke ทุกครั้งตรงนี้จุดเดียว เพื่อตัด prefix สองชั้นนั้นออกให้เหลือแค่ข้อความ
@@ -299,9 +300,9 @@ const api = {
     listLoginUsers: () => invoke('auth:listLoginUsers'),
     login: (userId: number, password: string) => invoke('auth:login', { userId, password }),
     // DEV-only auto-login (no password) — main rejects when packaged. See auth.ts.
-    devLogin: () => invoke('auth:devLogin') as Promise<{ id: number; name: string; role: string } | null>,
+    devLogin: () => invoke('auth:devLogin') as Promise<{ id: number; name: string; role: string; permissions: Record<string, PermState> } | null>,
     // DEV-only role switcher — rebinds the caller's session role (main rejects when packaged). REMOVE before release.
-    devSetRole: (role: string) => invoke('auth:devSetRole', { role }) as Promise<{ id: number; role: string } | null>,
+    devSetRole: (role: string) => invoke('auth:devSetRole', { role }) as Promise<{ id: number; role: string; permissions: Record<string, PermState> } | null>,
     logout: () => invoke('auth:logout'),
     verifyAdmin: (override?: { userId: number; password: string }) =>
       invoke('auth:verifyAdmin', override) as Promise<{ ok: true }>,

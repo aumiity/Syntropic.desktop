@@ -154,9 +154,18 @@ export function registerPeopleHandlers() {
     // The owner admin's username is locked to 'ADMIN' (avoids confusion; admin
     // lookups elsewhere are email-keyed).
     let finalUsername = username
+    let isPinnedOwner = false
     if (data.id) {
       const existing = db.prepare(`SELECT email FROM users WHERE id = ?`).get(data.id) as { email: string } | undefined
-      if (existing?.email === 'admin@syntropic.local') finalUsername = 'ADMIN'
+      if (existing?.email === 'admin@syntropic.local') { finalUsername = 'ADMIN'; isPinnedOwner = true }
+    }
+
+    // Server guard: the email-pinned owner can NEVER be demoted or disabled —
+    // that would strip the shop of owner-only authority (incl. the permissions
+    // matrix) with no way back. The renderer also locks the role Select, but
+    // enforcement must live here too (a direct IPC call must not bypass it).
+    if (isPinnedOwner && (String(data.role ?? 'owner') !== 'owner' || Number(data.is_disabled) === 1)) {
+      throw new Error('ไม่สามารถเปลี่ยนตำแหน่งหรือปิดบัญชีเจ้าของร้านได้')
     }
 
     // Unique username (excluding self).
@@ -200,7 +209,13 @@ export function registerPeopleHandlers() {
 
   ipcMain.handle('people:setStaffStatus', (_e, payload: { id: number; disabled: boolean }) => {
     requireAdmin(_e)
-    getDb().prepare(`UPDATE users SET is_disabled = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
+    const db = getDb()
+    // Same owner guard as saveStaff: never disable the email-pinned owner.
+    if (payload.disabled) {
+      const row = db.prepare(`SELECT email FROM users WHERE id = ?`).get(payload.id) as { email: string } | undefined
+      if (row?.email === 'admin@syntropic.local') throw new Error('ไม่สามารถปิดบัญชีเจ้าของร้านได้')
+    }
+    db.prepare(`UPDATE users SET is_disabled = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
       .run(payload.disabled ? 1 : 0, payload.id)
     return true
   })

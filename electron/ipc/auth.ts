@@ -6,6 +6,7 @@ import {
   checkRecoveryLocked, recordRecoveryFailure, clearRecoveryFailures,
 } from '../auth/lockout'
 import { bindSession, clearSession, getSession, requireAdmin, type Override } from '../auth/session'
+import { permissionSnapshot } from '../auth/permissions'
 
 export function registerAuthHandlers() {
   // Users shown on the Login picker. The picker now displays @username + email
@@ -54,7 +55,10 @@ export function registerAuthHandlers() {
     // identity for IPC role enforcement (BL-1). In-memory only.
     bindSession(_e, row.id, row.role)
     // Return only what the session/UI needs — email stays in main (defence-in-depth).
-    return { id: row.id, name: row.name, role: row.role }
+    // permissions = a snapshot for renderer UX gating (useCan); real enforcement
+    // is requirePermission in main. Cached at login → a matrix edit needs the
+    // affected user to re-login to take effect (documented limitation).
+    return { id: row.id, name: row.name, role: row.role, permissions: permissionSnapshot(row.role) }
   })
 
   // DEV-ONLY auto-login — binds a session for the first admin WITHOUT a password
@@ -64,11 +68,11 @@ export function registerAuthHandlers() {
   ipcMain.handle('auth:devLogin', (_e) => {
     if (app.isPackaged) return null
     const row = getDb()
-      .prepare(`SELECT id, name, role FROM users WHERE role = 'admin' AND is_disabled = 0 ORDER BY id LIMIT 1`)
+      .prepare(`SELECT id, name, role FROM users WHERE role = 'owner' AND is_disabled = 0 ORDER BY id LIMIT 1`)
       .get() as { id: number; name: string; role: string } | undefined
     if (!row) return null
     bindSession(_e, row.id, row.role)
-    return row
+    return { ...row, permissions: permissionSnapshot(row.role) }
   })
 
   // DEV-ONLY role switcher — flips the CALLER'S session role (admin <-> staff)
@@ -83,7 +87,7 @@ export function registerAuthHandlers() {
     const s = getSession(_e.sender.id)
     if (!s) return null
     bindSession(_e, s.userId, role)
-    return { id: s.userId, role }
+    return { id: s.userId, role, permissions: permissionSnapshot(role) }
   })
 
   // Clear the main-side session for this renderer (logout / lock screen).
