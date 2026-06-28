@@ -457,11 +457,12 @@ export default function ManagePurchasesPage() {
     if (!reason) { toast('กรุณาระบุเหตุผล', 'error'); return }
     setCancelling(true)
     let res: any
-    overrideCancel.run(
+    const mode = overrideCancel.run(
       async (ov) => {
         res = await window.api.purchase.cancel({ invoice_no: invoiceNo, reason, userId: getCurrentUserId() }, ov)
       },
       {
+        permKey: 'purchase.cancel',
         title: 'ยกเลิกการรับสินค้า',
         onDone: async () => {
           setCancelling(false)
@@ -488,7 +489,7 @@ export default function ManagePurchasesPage() {
         },
       },
     )
-    if (!overrideCancel.isAdmin) setCancelling(false)
+    if (mode !== 'inline') setCancelling(false)
   }
 
   const histSupplier = suppliers.find(s => s.id === histSupplierId) ?? null

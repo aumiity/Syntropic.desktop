@@ -23,12 +23,16 @@ type AdminUser = { id: number; name: string; role: string }
 export function ManagerOverrideDialog({
   open,
   onOpenChange,
-  title = 'ต้องการสิทธิ์ผู้ดูแล',
-  description = 'การทำรายการนี้ต้องได้รับอนุญาตจากผู้ดูแล กรุณาเลือกผู้ดูแลและกรอกรหัสผ่าน',
+  permKey,
+  title = 'ต้องขออนุมัติ',
+  description = 'การทำรายการนี้ต้องได้รับอนุมัติ กรุณาเลือกผู้อนุมัติและกรอกรหัสผ่าน',
   onSubmit,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  // The permission key being approved — only users whose role grants this key
+  // (or the owner) are offered as approvers.
+  permKey: string
   title?: string
   description?: string
   onSubmit: (cred: ManagerOverride) => Promise<void>
@@ -41,21 +45,22 @@ export function ManagerOverrideDialog({
   const [error, setError] = useState<string | null>(null)
   const pwRef = useRef<HTMLInputElement>(null)
 
-  // Load the admin shortlist each time the dialog opens; reset transient state.
+  // Load the approver shortlist each time the dialog opens; reset transient
+  // state. Approvers = users whose role grants THIS permKey as 'allow' (or the
+  // owner) — resolved server-side so the picker matches what main will accept.
   useEffect(() => {
     if (!open) return
     setPw(''); setShowPw(false); setBusy(false); setError(null)
     let alive = true
-    window.api.auth.listLoginUsers()
+    window.api.permissions.listApprovers(permKey)
       .then((list: AdminUser[]) => {
         if (!alive) return
-        const onlyAdmins = (list ?? []).filter(u => u.role === 'owner')
-        setAdmins(onlyAdmins)
-        setUserId(onlyAdmins[0]?.id ?? null)
+        setAdmins(list ?? [])
+        setUserId(list?.[0]?.id ?? null)
       })
       .catch(() => { if (alive) { setAdmins([]); setUserId(null) } })
     return () => { alive = false }
-  }, [open])
+  }, [open, permKey])
 
   useEffect(() => {
     if (open) setTimeout(() => pwRef.current?.focus(), 0)
@@ -95,10 +100,10 @@ export function ManagerOverrideDialog({
           <div className="text-sm text-muted-foreground">{description}</div>
 
           {admins.length === 0 ? (
-            <div className="text-sm text-destructive">ไม่พบบัญชีผู้ดูแลที่เปิดใช้งาน</div>
+            <div className="text-sm text-destructive">ไม่พบผู้มีสิทธิ์อนุมัติรายการนี้</div>
           ) : (
             <>
-              <FormField label="ผู้ดูแล">
+              <FormField label="ผู้อนุมัติ">
                 <NativeSelect
                   value={userId ?? ''}
                   onChange={v => setUserId(Number(v))}

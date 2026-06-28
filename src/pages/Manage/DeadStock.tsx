@@ -7,7 +7,7 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableTableHead,
 } from '@/components/ui/table'
 import { useToast } from '@/components/ui/toast'
-import { usePermission } from '@/hooks/usePermission'
+import { useCan } from '@/hooks/useCan'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
@@ -59,7 +59,7 @@ function cmp(a: string | number | null, b: string | number | null, dir: SortDir)
 
 export default function ManageDeadStockPage() {
   const { toast } = useToast()
-  const { isAdmin } = usePermission()
+  const canCost = useCan('cost.view') !== 'off'
   const { setSummary } = useOutletContext<ManageOutletContext>()
   const navigate = useNavigate()
 
@@ -69,7 +69,7 @@ export default function ManageDeadStockPage() {
   const [q, setQ] = useState('')
   // Staff never see the cost column, so the default sort can't reference it.
   const [sort, setSort] = useState<SortState>(
-    isAdmin ? { by: 'cost_value', dir: 'desc' } : { by: 'last_sold_at', dir: 'asc' },
+    canCost ? { by: 'cost_value', dir: 'desc' } : { by: 'last_sold_at', dir: 'asc' },
   )
   const [loading, setLoading] = useState(false)
 
@@ -140,7 +140,7 @@ export default function ManageDeadStockPage() {
   }, [setSummary])
 
   // Cost column only renders for admins, so the empty/loading row spans vary.
-  const colCount = isAdmin ? 6 : 5
+  const colCount = canCost ? 6 : 5
 
   return (
     <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
@@ -195,7 +195,7 @@ export default function ManageDeadStockPage() {
             <TableRow>
               <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[260px]">สินค้า</SortableTableHead>
               <SortableTableHead field="qty_on_hand" align="right" sort={sort} onToggle={toggleSort} className="min-w-24">คงเหลือ</SortableTableHead>
-              {isAdmin && (
+              {canCost && (
                 <SortableTableHead field="cost_value" align="right" sort={sort} onToggle={toggleSort} className="min-w-28">มูลค่าทุน</SortableTableHead>
               )}
               <SortableTableHead field="avg_monthly_6m" align="right" sort={sort} onToggle={toggleSort} className="min-w-28">เฉลี่ย 6 ด.</SortableTableHead>
@@ -221,7 +221,7 @@ export default function ManageDeadStockPage() {
                 <TableCell className="text-right text-sm">
                   {(r.qty_on_hand ?? 0).toLocaleString()} {r.unit_name ?? ''}
                 </TableCell>
-                {isAdmin && (
+                {canCost && (
                   <TableCell className="text-right text-sm">{baht(r.cost_value ?? 0)}</TableCell>
                 )}
                 <TableCell className="text-right text-sm">
@@ -248,7 +248,7 @@ export default function ManageDeadStockPage() {
         <span className="text-muted-foreground">
           {loading ? 'กำลังโหลด...' : <>แสดง <span className="font-semibold text-foreground">{filteredRows.length.toLocaleString()}</span> รายการ</>}
         </span>
-        {isAdmin && (
+        {canCost && (
           <span className="text-muted-foreground">
             มูลค่าทุนรวม <span className="font-semibold text-foreground">{baht(costTotal)}</span>
           </span>

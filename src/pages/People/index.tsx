@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
-import { usePermission } from '@/hooks/usePermission'
+import { useCan } from '@/hooks/useCan'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
@@ -973,7 +973,9 @@ const ADD_BUTTON: Record<string, string> = {
 const VALID_TABS = ['customers', 'suppliers', 'staff'] as const
 
 export default function PeoplePage() {
-  const { isAdmin } = usePermission()
+  // Staff management is gated on user.manage (owner by default; the owner can
+  // grant it). Drives the staff tab, its metric card, the fetch, and the redirect.
+  const isAdmin = useCan('user.manage') !== 'off'
   // Deep-linkable tab via ?tab= (e.g. sidebar "แก้ไขโปรไฟล์" → /people?tab=staff).
   const [searchParams] = useSearchParams()
   const [tab, setTab] = useState(() => {

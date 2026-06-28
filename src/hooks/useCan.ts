@@ -1,5 +1,14 @@
-import { useUserStore } from '@/stores/userStore'
+import { useUserStore, type CurrentUser } from '@/stores/userStore'
 import { permDefault, type PermState } from '@/lib/permissions/registry'
+
+// Pure resolver (no hook) — same logic as useCan, callable imperatively from
+// non-render code (e.g. inside an event handler that already has the store via
+// useUserStore.getState()). Keeps the rule in one place.
+export function resolveCan(current: CurrentUser | null, key: string): PermState {
+  if (!current) return 'off'
+  if (current.role === 'owner') return 'allow'
+  return current.permissions?.[key] ?? permDefault(current.role, key)
+}
 
 // Renderer-side permission resolver — UX ONLY (which buttons/tabs/columns to
 // show, and whether an action runs inline vs. behind a manager-override dialog).
@@ -18,7 +27,5 @@ import { permDefault, type PermState } from '@/lib/permissions/registry'
 //   useCan(key) === 'override' → route through useManagerOverride
 export function useCan(key: string): PermState {
   const current = useUserStore((s) => s.current)
-  if (!current) return 'off'
-  if (current.role === 'owner') return 'allow'
-  return current.permissions?.[key] ?? permDefault(current.role, key)
+  return resolveCan(current, key)
 }

@@ -3,7 +3,7 @@ import { getDb } from '../db'
 import { nextCustomerCode, walkInCustomerId, WALKIN_CUSTOMER_CODE } from './codes'
 import { orderByBucket } from '../db/sortName'
 import { hashSecret } from '../auth/hash'
-import { requireAdmin } from '../auth/session'
+import { requirePermission } from '../auth/permissions'
 
 export function registerPeopleHandlers() {
   // --- CUSTOMERS ---
@@ -127,7 +127,7 @@ export function registerPeopleHandlers() {
 
   // --- STAFF ---
   ipcMain.handle('people:listStaff', (_e, filters?: { includeDisabled?: boolean; statusFilter?: 'all' | 'enabled' | 'disabled' }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'user.manage')
     const { includeDisabled = false, statusFilter } = filters ?? {}
     const where = statusFilter === 'enabled' ? `WHERE is_disabled = 0`
       : statusFilter === 'disabled' ? `WHERE is_disabled = 1`
@@ -137,7 +137,7 @@ export function registerPeopleHandlers() {
   })
 
   ipcMain.handle('people:saveStaff', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'user.manage')
     const db = getDb()
 
     // Required identity fields. username is app-required (the column is nullable +
@@ -208,7 +208,7 @@ export function registerPeopleHandlers() {
   })
 
   ipcMain.handle('people:setStaffStatus', (_e, payload: { id: number; disabled: boolean }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'user.manage')
     const db = getDb()
     // Same owner guard as saveStaff: never disable the email-pinned owner.
     if (payload.disabled) {
@@ -224,7 +224,7 @@ export function registerPeopleHandlers() {
   // that's the self-service auth:changePassword flow). Hashing happens here; the
   // renderer only ever sends plaintext.
   ipcMain.handle('people:resetStaffPassword', (_e, payload: { id: number; password: string }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'user.manage')
     const pw = String(payload?.password ?? '')
     if (pw.length < 4) throw new Error('รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร')
     const res = getDb()

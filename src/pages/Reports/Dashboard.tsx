@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/toast'
 import {
   MultiDatePicker, defaultMultiDateFor, allowedModesFor, type MultiDateMode,
 } from '@/components/ui/multi-date-picker'
-import { usePermission } from '@/hooks/usePermission'
+import { useCan } from '@/hooks/useCan'
 import { MetricCard, SectionCard } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -145,7 +145,7 @@ export default function DashboardPage() {
   const { toast } = useToast()
   const { setToolbar } = useOutletContext<ReportsOutletContext>()
 
-  const { isAdmin } = usePermission()
+  const isAdmin = useCan('report.finance') !== 'off'
   const initial = defaultMultiDateFor(isAdmin)
   const [mode, setMode] = useState<MultiDateMode>(initial.mode)
   const [dateFrom, setDateFrom] = useState(initial.from)

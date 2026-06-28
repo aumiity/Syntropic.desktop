@@ -22,7 +22,7 @@ import type { Sale } from '@/types'
 import type { ManageOutletContext } from './index'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
-import { usePermission } from '@/hooks/usePermission'
+import { useCan } from '@/hooks/useCan'
 import { useShopVat } from '@/hooks/useShopVat'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
@@ -178,7 +178,10 @@ export default function ManageSalesPage() {
   // VAT status column + filter only appear once the shop is VAT-registered —
   // matches the hide-when-NO-VAT rule used across the app.
   const { vatEnabled } = useShopVat()
-  const { isAdmin } = usePermission()
+  // The finance overview panel (and its page-level scroll) shows for any role
+  // that can see finance reports — not just the owner. The staff MetricCard slot
+  // stays regardless.
+  const isAdmin = useCan('report.finance') !== 'off'
 
   const [prefs, setPrefs] = usePagePrefs<SalesPrefs>('sales', SALES_DEFAULTS)
 
@@ -325,6 +328,7 @@ export default function ManageSalesPage() {
     overrideVoid.run(
       async (ov) => { await window.api.reports.voidSale(target.id, reason, ov) },
       {
+        permKey: 'sale.void',
         title: 'ยกเลิกบิล',
         onDone: () => {
           toast({ title: 'ยกเลิกบิลสำเร็จ', variant: 'success' })

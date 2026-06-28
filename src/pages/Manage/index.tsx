@@ -7,7 +7,7 @@ import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
 import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus, Wallet, Box, Boxes } from 'lucide-react'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
-import { usePermission } from '@/hooks/usePermission'
+import { useCan } from '@/hooks/useCan'
 
 // Phase 1: ประวัติการขาย + ใกล้หมดอายุ. Phase 2: + ประวัติการซื้อ.
 // Phase 3: + ต่ำกว่าจุดสั่งซื้อ. See PROGRESS.md.
@@ -84,8 +84,9 @@ const CAP = 'w-full max-w-7xl mx-auto px-8'
 export default function ManageLayout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { isAdmin } = usePermission()
-  const visibleTopTabs = useMemo(() => TOP_TABS.filter(t => isAdmin || !('adminOnly' in t && t.adminOnly)), [isAdmin])
+  const canExpense = useCan('expense.manage') !== 'off'
+  const canFinancePanel = useCan('report.finance') !== 'off'
+  const visibleTopTabs = useMemo(() => TOP_TABS.filter(t => !('adminOnly' in t && t.adminOnly) || canExpense), [canExpense])
   const current = resolveTab(location.pathname)
   const topTab = resolveTopTab(current)
   const isStock = topTab === 'stock'
@@ -118,9 +119,10 @@ export default function ManageLayout() {
   const ctx = useMemo<ManageOutletContext>(() => ({ setSummary, setTabActions }), [setSummary, setTabActions])
   const summary = summaryState?.tab === current ? summaryState.cards : null
   const tabActions = tabActionsState?.tab === current ? tabActionsState.node : null
-  // Admin's Sales tab scrolls the whole page together (summary cards + finance
-  // card + history table). Every other tab keeps the fixed full-height card.
-  const scrollPage = current === 'sales' && isAdmin
+  // The Sales tab scrolls the whole page together (summary cards + finance card
+  // + history table) for roles that see the finance panel. Every other tab keeps
+  // the fixed full-height card.
+  const scrollPage = current === 'sales' && canFinancePanel
 
   // The header + tab strip sit ABOVE the page scroller (they don't scroll), so
   // wheeling over them wouldn't move the page. Forward those wheel events into the

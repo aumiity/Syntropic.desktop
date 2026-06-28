@@ -2,7 +2,8 @@ import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { assertNotBundle, recomputeAvgCost, propagateCostToBundles } from '../db/pricing'
 import dayjs from 'dayjs'
-import { requireAdmin, type Override } from '../auth/session'
+import { type Override } from '../auth/session'
+import { requirePermission } from '../auth/permissions'
 
 export function registerPurchaseHandlers() {
   const db = getDb()
@@ -482,7 +483,7 @@ export function registerPurchaseHandlers() {
   })
 
   ipcMain.handle('purchase:cancel', (_e, payload: { invoice_no: string; reason: string; userId: number }, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'purchase.cancel', override)
     const db = getDb()
     const reason = (payload.reason ?? '').trim()
     if (!reason) return { success: false, error: 'reason_required' }

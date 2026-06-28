@@ -315,7 +315,7 @@ export default function EditBundlePage() {
         }
 
         if (priceChanges.length > 0) {
-          overridePrice.run(
+          const mode = overridePrice.run(
             // update BEFORE saveBundleItems: recomputeBundleCost (inside
             // saveBundleItems) writes cost_price last, so it isn't clobbered by
             // the generic update's column write.
@@ -326,12 +326,13 @@ export default function EditBundlePage() {
               await window.api.products.saveBundleItems(productId, itemsPayload)
             },
             {
+              permKey: 'product.editPrice',
               title: 'แก้ไขราคาขาย',
               onDone: () => { setSaving(false); finishSave() },
               onError: (e: any) => { setSaving(false); toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }) },
             },
           )
-          if (!overridePrice.isAdmin) setSaving(false)
+          if (mode !== 'inline') setSaving(false)
           return
         }
 

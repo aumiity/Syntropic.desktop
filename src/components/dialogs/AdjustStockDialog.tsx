@@ -267,9 +267,10 @@ export function AdjustStockDialog({
     }
 
     setAdjusting(true)
-    override.run(
+    const mode = override.run(
       async (ov) => { await window.api.products.adjustStock(target.id, payload, ov) },
       {
+        permKey: 'stock.adjust',
         title: 'ปรับสต็อก',
         onDone: () => {
           setAdjusting(false)
@@ -285,7 +286,7 @@ export function AdjustStockDialog({
     )
     // Staff path: the override dialog is now open; clear the busy flag so the
     // underlying form isn't stuck disabled while they enter the credential.
-    if (!override.isAdmin) setAdjusting(false)
+    if (mode !== 'inline') setAdjusting(false)
   }
 
   const formatExp = (iso?: string | null) => {

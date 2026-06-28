@@ -4,7 +4,7 @@ import { MultiDatePicker, rangeForMultiMode, type MultiDateMode } from '@/compon
 import { Card, CardHeader, CardTitle, CardAction, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { TintIcon, type TintIconTint } from '@/components/ui/tint-icon'
 import { ExportButton } from '@/components/ui/export-button'
-import { usePermission } from '@/hooks/usePermission'
+import { useCan } from '@/hooks/useCan'
 import { useShopVat } from '@/hooks/useShopVat'
 import { formatCurrency } from '@/lib/utils'
 import type { ReportsOutletContext } from './index'
@@ -71,7 +71,15 @@ function cardDisplay(
 }
 
 export default function ExportHubPage() {
-  const { isAdmin } = usePermission()
+  // Per-card fine-grained gating (replaces the old single isAdmin gate). Each
+  // export card maps to the permission its data exposes — see the export-key
+  // divergence note in the plan: sales/purchases = export.finance, expenses =
+  // expense.manage, vat = report.vat. financeSummary (headline numbers) needs
+  // report.finance.
+  const canExportFinance = useCan('export.finance') !== 'off'
+  const canExpense = useCan('expense.manage') !== 'off'
+  const canVat = useCan('report.vat') !== 'off'
+  const canFinanceData = useCan('report.finance') !== 'off'
   const { vatEnabled } = useShopVat()
   const { setSummary, setToolbar } = useOutletContext<ReportsOutletContext>()
 
@@ -89,6 +97,19 @@ export default function ExportHubPage() {
   }, [])
   const vatVisible = vatEnabled || hasVatHistory
 
+  // Which cards this role may see. Snapshot stock cards (expiry/lowStock) are
+  // visible to everyone — they're staff's entry point for those exports.
+  const cardAllowed: Record<CardKey, boolean> = {
+    sales: canExportFinance,
+    purchases: canExportFinance,
+    expenses: canExpense,
+    vat: canVat && vatVisible,
+    expiry: true,
+    lowStock: true,
+  }
+  // The date toolbar + date-bound fetches matter only if a date-bound card shows.
+  const hasDateCards = canExportFinance || canExpense || (canVat && vatVisible)
+
   const initial = rangeForMultiMode('month')
   const [dateMode, setDateMode] = useState<MultiDateMode>('month')
   const [dateFrom, setDateFrom] = useState(initial.from)
@@ -102,9 +123,10 @@ export default function ExportHubPage() {
   // Hub draws no MetricCard summary row at the top.
   useEffect(() => { setSummary(null) }, [setSummary])
 
-  // Shared date window — admin only (staff see only the snapshot สต็อก cards).
+  // Shared date window — only when a date-bound card is visible (otherwise the
+  // role sees just the snapshot สต็อก cards).
   useEffect(() => {
-    if (!isAdmin) { setToolbar(null); return }
+    if (!hasDateCards) { setToolbar(null); return }
     setToolbar(
       <MultiDatePicker
         mode={dateMode}
@@ -115,19 +137,22 @@ export default function ExportHubPage() {
       />,
     )
     return () => setToolbar(null)
-  }, [isAdmin, dateMode, dateFrom, dateTo, setToolbar])
+  }, [hasDateCards, dateMode, dateFrom, dateTo, setToolbar])
 
-  // Date-bound summary numbers — admin only (financeSummary + vatSummary are
-  // requireAdmin; calling them as staff would throw). Re-fetch on date change.
+  // Date-bound summary numbers — financeSummary needs report.finance, vatSummary
+  // needs report.vat (both requirePermission-gated; calling them without the
+  // permission would throw). Re-fetch on date change.
   useEffect(() => {
-    if (!isAdmin) return
+    if (!canFinanceData && !(canVat && vatVisible)) return
     let cancelled = false
     ;(async () => {
-      try {
-        const f = await (window.api.reports as any).financeSummary({ date_from: dateFrom, date_to: dateTo })
-        if (!cancelled) setFin(f)
-      } catch { /* silent — the export buttons still work without the headline number */ }
-      if (vatVisible) {
+      if (canFinanceData) {
+        try {
+          const f = await (window.api.reports as any).financeSummary({ date_from: dateFrom, date_to: dateTo })
+          if (!cancelled) setFin(f)
+        } catch { /* silent — the export buttons still work without the headline number */ }
+      }
+      if (canVat && vatVisible) {
         try {
           const v = await (window.api.reports as any).vatSummary({ date_from: dateFrom, date_to: dateTo })
           if (!cancelled) setVat(v)
@@ -135,7 +160,7 @@ export default function ExportHubPage() {
       }
     })()
     return () => { cancelled = true }
-  }, [isAdmin, vatVisible, dateFrom, dateTo])
+  }, [canFinanceData, canVat, vatVisible, dateFrom, dateTo])
 
   // Snapshot counts — all roles (these handlers are NOT admin-gated). Fetch once.
   useEffect(() => {
@@ -157,16 +182,16 @@ export default function ExportHubPage() {
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground">
-        {isAdmin
+        {hasDateCards
           ? 'เลือกช่วงเวลาจากแถบด้านบน ดูยอดสรุปย่อ แล้วกดส่งออกแต่ละชุดข้อมูลเป็นไฟล์ Excel (.xlsx) ค่ะ'
           : 'กดส่งออกข้อมูลสต็อกเป็นไฟล์ Excel (.xlsx) ค่ะ'}
       </p>
 
-      {GROUPS.filter(g => !g.adminOnly || isAdmin).map(group => (
+      {GROUPS.filter(g => CARDS.some(c => c.group === g.key && cardAllowed[c.key])).map(group => (
         <div key={group.key} className="flex flex-col gap-3">
           <h3 className="text-base font-semibold text-foreground">{group.label}</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {CARDS.filter(c => c.group === group.key && (c.key !== 'vat' || vatVisible)).map(card => {
+            {CARDS.filter(c => c.group === group.key && cardAllowed[c.key]).map(card => {
               const d = cardDisplay(card.key, fin, vat, expiry, lowCount)
               const range = { date_from: dateFrom, date_to: dateTo }
               return (

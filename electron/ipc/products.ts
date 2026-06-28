@@ -2,7 +2,8 @@ import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { assertNotBundle, recomputeAvgCost, recomputeBundleCost, propagateCostToBundles } from '../db/pricing'
 import { orderByBucket } from '../db/sortName'
-import { requireAdmin, type Override } from '../auth/session'
+import { type Override } from '../auth/session'
+import { requirePermission } from '../auth/permissions'
 
 // Stock expression aware of bundles: regular products sum open lots,
 // bundles derive MIN(component_open_stock / qty_per_bundle). Used by
@@ -483,7 +484,7 @@ export function registerProductHandlers() {
   })
 
   ipcMain.handle('products:updatePrice', (_e, productId: number, data: { price_type?: 'retail' | 'wholesale1' | 'wholesale2'; new_price: number; note?: string }, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'product.editPrice', override)
     const db = getDb()
     const type = data.price_type ?? 'retail'
     const col = type === 'retail' ? 'price_retail' : type === 'wholesale1' ? 'price_wholesale1' : 'price_wholesale2'
@@ -504,7 +505,7 @@ export function registerProductHandlers() {
   // ตั้งใจ NOT log price_logs — ประวัติราคาเก็บเฉพาะหน่วยฐานเท่านั้น (decision R5).
   // Allow-list: เขียนได้แค่ 3 คอลัมน์ราคา ห้าม build SQL จาก key อื่น (กฎ HARD).
   ipcMain.handle('products:updateUnitPrice', (_e, productUnitId: number, data: { price_retail?: number; price_wholesale1?: number; price_wholesale2?: number }, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'product.editPrice', override)
     const db = getDb()
     const allowed = ['price_retail', 'price_wholesale1', 'price_wholesale2'] as const
     const sets: string[] = []
@@ -700,7 +701,7 @@ export function registerProductHandlers() {
     target_lot_id?: number
     added_cost_price?: number
   }, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'stock.adjust', override)
     if (!data.userId) throw new Error('ไม่พบผู้ใช้งาน')
     if (!data.note || !data.note.trim()) throw new Error('กรุณาระบุหมายเหตุ')
     if (!data.qty || data.qty <= 0) throw new Error('จำนวนต้องมากกว่า 0')
@@ -1073,7 +1074,7 @@ export function registerProductHandlers() {
     note: string
     user_id: number
   }, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'stock.adjust', override)
     if (!payload.qty || payload.qty <= 0) throw new Error('จำนวนต้องมากกว่า 0')
     if (!payload.user_id) throw new Error('ไม่พบผู้ใช้งาน')
 
@@ -1110,7 +1111,7 @@ export function registerProductHandlers() {
     reason: string
     user_id: number
   }, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'stock.adjust', override)
     if (!payload.user_id) throw new Error('ไม่พบผู้ใช้งาน')
     if (!payload.reason || !payload.reason.trim()) throw new Error('กรุณาระบุสาเหตุ')
     if (!payload.items || payload.items.length === 0) throw new Error('ไม่มีรายการที่จะตัด')
@@ -1156,7 +1157,7 @@ export function registerProductHandlers() {
     cost_price?: number
     user_id: number
   }, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'stock.adjust', override)
     if (!data.user_id) throw new Error('ไม่พบผู้ใช้งาน')
 
     const db = getDb()
@@ -1246,7 +1247,7 @@ export function registerProductHandlers() {
   //   near_expiry  → expiry_date >  today (or expiry_date IS NULL — disposed without expiry tracking)
   // Used ONLY by the Expiry / Expiring Products page. Other disposal flows are unaffected.
   ipcMain.handle('products:expireLot', (_e, lot_id: number, user_id: number, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'stock.adjust', override)
     if (!user_id) throw new Error('ไม่พบผู้ใช้งาน')
 
     const db = getDb()

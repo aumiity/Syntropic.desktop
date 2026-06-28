@@ -10,6 +10,7 @@ import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useGRDraftStore } from '@/stores/grDraftStore'
 import { usePermission } from '@/hooks/usePermission'
+import { useCan } from '@/hooks/useCan'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { LogoMark } from '@/components/ui/logo-mark'
 import { SidebarUser } from './SidebarUser'
@@ -100,7 +101,17 @@ export function Sidebar() {
   const isDark = theme === 'dark'
   const collapsed = isSidebarCollapsed
   const { isAdmin } = usePermission()
-  const visibleNavItems = mainNavItems.filter(item => isAdmin || !item.adminOnly)
+  // Per-route fine-grained gates: the finance reports landing shows when the
+  // role can see any finance report; settings shows for the owner or any role
+  // granted settings.manage.
+  const canReports = useCan('report.finance') !== 'off'
+  const canSettings = isAdmin || useCan('settings.manage') !== 'off'
+  const visibleNavItems = mainNavItems.filter(item => {
+    if (!item.adminOnly) return true
+    if (item.to === '/reports') return canReports
+    if (item.to === '/settings') return canSettings
+    return isAdmin
+  })
 
   // Hydrate the negative-stock badge once on mount; every mutation site
   // (POS save, GR save, void, reconcile, dismiss) calls refresh() too.

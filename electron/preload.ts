@@ -312,6 +312,12 @@ const api = {
     resetAdminPassword: (recoveryCode: string, newPassword: string) =>
       invoke('auth:resetAdminPassword', { recoveryCode, newPassword }) as Promise<{ recoveryCode: string }>,
   },
+  // Role-based permissions
+  permissions: {
+    // Active users allowed to approve an override for a given permission key.
+    listApprovers: (permKey: string) =>
+      invoke('permissions:listApprovers', { permKey }) as Promise<Array<{ id: number; name: string; username: string; email: string; role: string }>>,
+  },
   // Dev (only registered when isDev=true in main.ts; will reject otherwise)
   dev: {
     seedSalesHistory: (days?: number) => invoke('dev:seedSalesHistory', { days }),

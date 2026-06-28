@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { useToast } from '@/components/ui/toast'
-import { usePermission } from '@/hooks/usePermission'
+import { useCan } from '@/hooks/useCan'
 import { ExportButton } from '@/components/ui/export-button'
 import { SaleDetailDialog } from '@/components/dialogs/SaleDetailDialog'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
@@ -71,7 +71,7 @@ const SALE_TYPE_LABELS: Record<string, string> = {
 
 export default function VatReportPage() {
   const { toast } = useToast()
-  const { isAdmin } = usePermission()
+  const isAdmin = useCan('report.vat') !== 'off'
   const { setSummary, setToolbar } = useOutletContext<ReportsOutletContext>()
 
   const initial = rangeForMultiMode('month')

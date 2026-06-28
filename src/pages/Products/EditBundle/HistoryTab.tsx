@@ -131,6 +131,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
     overrideVoid.run(
       async (ov) => { await window.api.reports.voidSale(target.id, reason, ov) },
       {
+        permKey: 'sale.void',
         title: 'ยกเลิกบิล',
         onDone: () => {
           toast({ title: 'ยกเลิกบิลสำเร็จ', variant: 'success' })

@@ -747,9 +747,10 @@ export default function POSPage() {
       user_id: getCurrentUserId(),
     }
     setAdjustSaving(true)
-    overrideAdjust.run(
+    const mode = overrideAdjust.run(
       async (ov) => { await window.api.products.adjustLotBatch(payload, ov) },
       {
+        permKey: 'stock.adjust',
         title: 'ตัดสต็อก',
         onDone: () => {
           setAdjustSaving(false)
@@ -763,7 +764,7 @@ export default function POSPage() {
         },
       },
     )
-    if (!overrideAdjust.isAdmin) setAdjustSaving(false)
+    if (mode !== 'inline') setAdjustSaving(false)
   }
 
   // Typing in either input (return header or the ProductSearchDialog input)

@@ -322,19 +322,20 @@ export default function EditProductPage() {
       }
 
       if (priceChanges.length > 0) {
-        overridePrice.run(
+        const mode = overridePrice.run(
           async (ov) => {
             await Promise.all(priceChanges.map(c =>
               window.api.products.updatePrice(productId, { ...c, note: priceNote }, ov)))
             await window.api.products.update(productId, payload)
           },
           {
+            permKey: 'product.editPrice',
             title: 'แก้ไขราคาขาย',
             onDone: () => { setSaving(false); finishSave() },
             onError: (e: any) => { setSaving(false); toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' }) },
           },
         )
-        if (!overridePrice.isAdmin) setSaving(false)
+        if (mode !== 'inline') setSaving(false)
         return
       }
 

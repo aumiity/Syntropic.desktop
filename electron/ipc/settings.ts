@@ -5,7 +5,8 @@ import path from 'path'
 import { getDb } from '../db'
 import { orderByBucket } from '../db/sortName'
 import { hashSecret, genRecoveryCode, verifySecret } from '../auth/hash'
-import { requireAdmin, getSession } from '../auth/session'
+import { getSession } from '../auth/session'
+import { requirePermission } from '../auth/permissions'
 import { checkLocked, recordFailure, clearFailures } from '../auth/lockout'
 
 type ThemeColorPayload = {
@@ -91,7 +92,7 @@ export function registerSettingsHandlers() {
     return getDb().prepare(`SELECT * FROM settings LIMIT 1`).get()
   })
   ipcMain.handle('settings:saveShop', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     const existing = db.prepare(`SELECT id FROM settings LIMIT 1`).get() as any
     if (existing) {
@@ -190,7 +191,7 @@ export function registerSettingsHandlers() {
     `).all()
   })
   ipcMain.handle('settings:saveCategory', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     if (data.id) {
       const { id, ...rest } = data
@@ -204,7 +205,7 @@ export function registerSettingsHandlers() {
   // Drag-and-drop reorder: renumber sort_order to 1..n by the given id order,
   // in one transaction so listCategories (ORDER BY sort_order, id) is stable.
   ipcMain.handle('settings:reorderCategories', (_e, ids: number[]) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     const upd = db.prepare(`UPDATE product_categories SET sort_order = ?, updated_at = datetime('now','localtime') WHERE id = ?`)
     db.transaction((order: number[]) => {
@@ -232,7 +233,7 @@ export function registerSettingsHandlers() {
     `).all()
   })
   ipcMain.handle('settings:saveUnit', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     if (data.id) {
       db.prepare(`UPDATE item_units SET name = ? WHERE id = ?`).run(data.name, data.id)
@@ -245,7 +246,7 @@ export function registerSettingsHandlers() {
   // Guard server-side so a stale renderer count can never strand a product's
   // unit_id FK on a deleted row.
   ipcMain.handle('settings:deleteUnit', (_e, id: number) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     const asBase = db.prepare(`SELECT COUNT(*) AS n FROM products WHERE unit_id = ?`).get(id) as any
     const asVariant = db.prepare(`SELECT COUNT(*) AS n FROM product_units WHERE unit_id = ?`).get(id) as any
@@ -278,7 +279,7 @@ export function registerSettingsHandlers() {
     ).get() as { c: number }).c
   })
   ipcMain.handle('settings:saveDrugType', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     if (data.id) {
       const { id, ...rest } = data
@@ -323,7 +324,7 @@ export function registerSettingsHandlers() {
   }
 
   ipcMain.handle('settings:saveLabelLookup', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const { table, prefix } = lookupKind(data?.kind)
     const db = getDb()
     const name_th = String(data?.name_th ?? '').trim()
@@ -364,7 +365,7 @@ export function registerSettingsHandlers() {
 
   // Bulk reassign (or clear → NULL) every reference in one transaction.
   ipcMain.handle('settings:reassignLabelLookup', (_e, { kind, fromId, toId }: { kind: string; fromId: number; toId: number | null }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const { table, fk } = lookupKind(kind)
     const db = getDb()
     // Guard: a non-null target MUST belong to the SAME lookup table — otherwise we
@@ -382,7 +383,7 @@ export function registerSettingsHandlers() {
   })
 
   ipcMain.handle('settings:deleteLabelLookup', (_e, { kind, id }: { kind: string; id: number }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const { table, fk } = lookupKind(kind)
     const db = getDb()
     const labels = (db.prepare(`SELECT COUNT(*) AS c FROM product_labels WHERE ${fk} = ?`).get(id) as any).c
@@ -396,7 +397,7 @@ export function registerSettingsHandlers() {
   ipcMain.handle('settings:listLabelPresets', () => getDb().prepare(`SELECT * FROM label_presets ORDER BY sort_order, id`).all())
 
   ipcMain.handle('settings:saveLabelPreset', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     const name = String(data?.name ?? '').trim()
     if (!name) throw new Error('กรุณาระบุชื่อ preset')
@@ -419,7 +420,7 @@ export function registerSettingsHandlers() {
   })
 
   ipcMain.handle('settings:deleteLabelPreset', (_e, id: number) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     getDb().prepare(`DELETE FROM label_presets WHERE id = ?`).run(id)
     return true
   })
@@ -430,7 +431,7 @@ export function registerSettingsHandlers() {
     return getDb().prepare(`SELECT * FROM label_settings ORDER BY id LIMIT 1`).get()
   })
   ipcMain.handle('settings:saveLabelSettings', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     const existing = db.prepare(`SELECT id FROM label_settings ORDER BY id LIMIT 1`).get() as any
     if (existing) {
@@ -458,7 +459,7 @@ export function registerSettingsHandlers() {
     return row
   })
   ipcMain.handle('settings:saveSalesSettings', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     db.transaction(() => {
       // Ensure the singleton row exists, then UPDATE with the submitted form —
@@ -487,7 +488,7 @@ export function registerSettingsHandlers() {
   // transition in vat_audit_log. There is deliberately NO downgrade handler —
   // a VAT shop charges VAT from the effective date onward, period.
   ipcMain.handle('settings:upgradeToVat', (e, payload: any) => {
-    requireAdmin(e)
+    requirePermission(e, 'vat.toggle')
     const db = getDb()
     const taxId = String(payload?.tax_id ?? '').trim()
     const branch = String(payload?.branch ?? '').trim() || 'สำนักงานใหญ่'
@@ -536,7 +537,7 @@ export function registerSettingsHandlers() {
   // in settings so a later re-upgrade prefills. Old bills keep their VAT
   // snapshots untouched — past ภาษีขาย stays reportable.
   ipcMain.handle('settings:downgradeFromVat', (e, payload: { password?: string; reason?: string }) => {
-    requireAdmin(e)
+    requirePermission(e, 'vat.toggle')
     const db = getDb()
     const session = getSession(e.sender.id)
     if (!session) throw new Error('FORBIDDEN')
@@ -554,9 +555,14 @@ export function registerSettingsHandlers() {
       err.remainingMs = lock.remainingMs
       throw err
     }
-    const userRow = db.prepare(`SELECT id, role, password FROM users WHERE id = ? AND is_disabled = 0`)
-      .get(session.userId) as { id: number; role: string; password: string } | undefined
-    if (!userRow || userRow.role !== 'owner' || !verifySecret(password, userRow.password).ok) {
+    // requirePermission('vat.toggle') above already gates the ROLE (owner, or a
+    // role the owner granted vat.toggle). Here we only re-verify the SESSION
+    // user's own password (deliberate friction for a destructive one-way action)
+    // + lockout — no role re-check, else granting vat.toggle to a pharmacist
+    // would still be blocked by a stale 'owner' requirement.
+    const userRow = db.prepare(`SELECT id, password FROM users WHERE id = ? AND is_disabled = 0`)
+      .get(session.userId) as { id: number; password: string } | undefined
+    if (!userRow || !verifySecret(password, userRow.password).ok) {
       if (userRow) recordFailure(db, userRow.id)
       throw new Error('รหัสผ่านไม่ถูกต้อง')
     }
@@ -603,7 +609,7 @@ export function registerSettingsHandlers() {
     return row
   })
   ipcMain.handle('settings:saveReceiptSettings', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     db.transaction(() => {
       let row = db.prepare(`SELECT id FROM receipt_settings ORDER BY id LIMIT 1`).get() as any
@@ -635,7 +641,7 @@ export function registerSettingsHandlers() {
     return row
   })
   ipcMain.handle('settings:saveDocumentSettings', (_e, data: any) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const db = getDb()
     db.transaction(() => {
       let row = db.prepare(`SELECT id FROM document_settings ORDER BY id LIMIT 1`).get() as any
@@ -757,7 +763,7 @@ export function registerSettingsHandlers() {
   })
 
   ipcMain.handle('settings:saveThemeColors', (_e, payload: ThemeColorPayload[]) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const cssPath = resolveThemeCssPath()
     const css = fs.readFileSync(cssPath, 'utf8')
 
@@ -788,7 +794,7 @@ export function registerSettingsHandlers() {
   })
 
   ipcMain.handle('settings:saveThemeFontSize', (_e, fontSize: string) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const value = String(fontSize ?? '').trim()
     if (!/^\d+(\.\d+)?px$/i.test(value)) {
       throw new Error('รูปแบบขนาดฟอนต์ไม่ถูกต้อง (ตัวอย่าง: 18px)')
@@ -812,7 +818,7 @@ export function registerSettingsHandlers() {
   })
 
   ipcMain.handle('settings:saveThemeFonts', (_e, payload: { latin: string; thai: string }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'settings.manage')
     const latin = String(payload?.latin ?? '').trim()
     const thai = String(payload?.thai ?? '').trim()
     if (!latin || !thai) {

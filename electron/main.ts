@@ -11,6 +11,7 @@ import { registerSettingsHandlers } from './ipc/settings'
 import { registerPrinterHandlers } from './ipc/printer'
 import { registerTaxHandlers } from './ipc/tax'
 import { registerAuthHandlers } from './ipc/auth'
+import { registerPermissionHandlers } from './ipc/permissions'
 import { registerDevHandlers } from './ipc/dev'
 import { registerMatcherHandlers } from './ipc/matcher'
 import { registerNegativeStockHandlers } from './ipc/negativeStock'
@@ -94,6 +95,7 @@ registerSettingsHandlers()
 registerPrinterHandlers()
 registerTaxHandlers()
 registerAuthHandlers()
+registerPermissionHandlers()
 registerMatcherHandlers()
 registerNegativeStockHandlers()
 registerExpenseHandlers()

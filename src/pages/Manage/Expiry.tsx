@@ -193,11 +193,12 @@ export default function ManageExpiryPage() {
     if (!lot) return
     setExpiring(true)
     let res: { classification: 'expired' | 'near_expiry' } | undefined
-    overrideExpire.run(
+    const mode = overrideExpire.run(
       async (ov) => {
         res = await window.api.products.expireLot(lot.lot_id, getCurrentUserId(), ov) as { classification: 'expired' | 'near_expiry' }
       },
       {
+        permKey: 'stock.adjust',
         title: 'ตัดออกล็อตหมดอายุ',
         onDone: () => {
           setExpiring(false)
@@ -212,7 +213,7 @@ export default function ManageExpiryPage() {
         },
       },
     )
-    if (!overrideExpire.isAdmin) setExpiring(false)
+    if (mode !== 'inline') setExpiring(false)
   }
 
   // Passive MetricCard snapshot of the q/category set. The time-range filter

@@ -5,8 +5,8 @@ import {
   checkLocked, recordFailure, clearFailures,
   checkRecoveryLocked, recordRecoveryFailure, clearRecoveryFailures,
 } from '../auth/lockout'
-import { bindSession, clearSession, getSession, requireAdmin, type Override } from '../auth/session'
-import { permissionSnapshot } from '../auth/permissions'
+import { bindSession, clearSession, getSession, type Override } from '../auth/session'
+import { permissionSnapshot, requirePermission } from '../auth/permissions'
 
 export function registerAuthHandlers() {
   // Users shown on the Login picker. The picker now displays @username + email
@@ -100,7 +100,7 @@ export function registerAuthHandlers() {
   // wrong credential is rejected immediately instead of at write time. Throws
   // on failure (requireAdmin), resolves { ok:true } on success.
   ipcMain.handle('auth:verifyAdmin', (_e, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'product.editPrice', override)
     return { ok: true as const }
   })
 

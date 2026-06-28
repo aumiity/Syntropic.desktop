@@ -1,7 +1,8 @@
 import { ipcMain, dialog } from 'electron'
 import dayjs from 'dayjs'
 import { getDb } from '../db'
-import { requireAdmin, getSessionRole } from '../auth/session'
+import { getSessionRole } from '../auth/session'
+import { requirePermission, stateFor } from '../auth/permissions'
 import { computeVatSummary } from './reports'
 import { writeWorkbook, fmtDate, type SheetSpec, type SheetColumn } from '../services/excel'
 
@@ -38,7 +39,7 @@ export function registerExportHandlers() {
     status_filter?: 'all' | 'retail' | 'wholesale' | 'return' | 'voided'
     vat_filter?: 'all' | 'vat' | 'novat'
   } = {}) => {
-    requireAdmin(e)
+    requirePermission(e, 'export.finance')
     const db = getDb()
     const { q, date_from, date_to, status_filter = 'all', vat_filter = 'all' } = filters
 
@@ -136,7 +137,7 @@ export function registerExportHandlers() {
   ipcMain.handle('export:purchases', async (e, filters: {
     q?: string; supplier_id?: number; date_from?: string; date_to?: string
   } = {}) => {
-    requireAdmin(e)
+    requirePermission(e, 'export.finance')
     const db = getDb()
     const { q, supplier_id, date_from, date_to } = filters
 
@@ -222,7 +223,7 @@ export function registerExportHandlers() {
 
   // ── ภาษี VAT (3 sheets) ──────────────────────────────────────────────────────
   ipcMain.handle('export:vat', async (e, filters: { date_from?: string; date_to?: string } = {}) => {
-    requireAdmin(e)
+    requirePermission(e, 'report.vat')
     const data = computeVatSummary(getDb(), filters ?? {})
 
     const SALE_TYPE_LABELS: Record<string, string> = { retail: 'ปลีก', wholesale: 'ส่ง', rx: 'ใบสั่งยา', return: 'คืนสินค้า' }
@@ -294,7 +295,7 @@ export function registerExportHandlers() {
   ipcMain.handle('export:expenses', async (e, filters: {
     date_from?: string; date_to?: string; category_id?: number
   } = {}) => {
-    requireAdmin(e)
+    requirePermission(e, 'expense.manage')
     const db = getDb()
     const { date_from, date_to, category_id } = filters
 
@@ -347,7 +348,7 @@ export function registerExportHandlers() {
     filter?: 'expired' | 30 | 90 | 180; category_id?: number; q?: string
   } = {}) => {
     const db = getDb()
-    const isAdmin = getSessionRole(e) === 'owner'
+    const isAdmin = stateFor(getSessionRole(e) ?? '', 'cost.view') === 'allow'
     const { filter, category_id, q } = filters
 
     // Mirror reports:expiringLots' rows query, but WITHOUT the LIMIT (full set).
@@ -400,7 +401,7 @@ export function registerExportHandlers() {
     q?: string; category_id?: number; include_disabled?: boolean
   } = {}) => {
     const db = getDb()
-    const isAdmin = getSessionRole(e) === 'owner'
+    const isAdmin = stateFor(getSessionRole(e) ?? '', 'cost.view') === 'allow'
     const { q, category_id, include_disabled } = filters
 
     // Same shape as products:lowStock (already returns the full set, no LIMIT).

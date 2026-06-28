@@ -1,7 +1,8 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { orderByBucket } from '../db/sortName'
-import { requireAdmin, getSessionRole, type Override } from '../auth/session'
+import { getSessionRole, type Override } from '../auth/session'
+import { requirePermission, stateFor } from '../auth/permissions'
 import { walkInCustomerId } from './codes'
 import type Database from 'better-sqlite3'
 // (type-only — value side never used here; matches backup.ts's Database.Database type)
@@ -249,7 +250,7 @@ export function registerReportHandlers() {
   })
 
   ipcMain.handle('reports:voidSale', (_e, id: number, reason: string, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'sale.void', override)
     const db = getDb()
     const voidSale = db.transaction(() => {
       const sale = db.prepare(`SELECT * FROM sales WHERE id = ?`).get(id) as any
@@ -316,7 +317,7 @@ export function registerReportHandlers() {
   // customer_id and clears customer_name_free — never spreads a form. Rejects
   // locked (printed-original) / voided / return bills and the walk-in customer.
   ipcMain.handle('reports:updateSaleCustomer', (_e, p: { sale_id: number; customer_id: number }, override?: Override) => {
-    requireAdmin(_e, override)
+    requirePermission(_e, 'sale.editCustomer', override)
     const db = getDb()
     const sale = db.prepare(`SELECT id, status, sale_type FROM sales WHERE id = ?`).get(p?.sale_id) as any
     if (!sale) throw new Error('ไม่พบรายการขาย')
@@ -524,7 +525,7 @@ export function registerReportHandlers() {
     // The Sales finance panel passes these to compare day/month/year-over-period.
     prev_from?: string; prev_to?: string
   }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'report.finance')
     const db = getDb()
     const { date_from, date_to, with_compare, prev_from, prev_to } = filters
     const current = computeFinanceWindow(date_from, date_to)
@@ -559,7 +560,7 @@ export function registerReportHandlers() {
   // invoice. net_vat = output − input (ภ.พ.30: positive → นำส่ง, negative →
   // ขอคืน/ยกยอด).
   ipcMain.handle('reports:vatSummary', (_e, filters: { date_from?: string; date_to?: string }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'report.vat')
     return computeVatSummary(getDb(), filters ?? {})
   })
 
@@ -567,7 +568,7 @@ export function registerReportHandlers() {
     date_from?: string; date_to?: string;
     granularity?: 'hour' | 'day' | 'week' | 'month' | 'year';
   }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'report.finance')
     const db = getDb()
     const { date_from, date_to } = filters
     const granularity = filters.granularity ?? 'day'
@@ -632,7 +633,7 @@ export function registerReportHandlers() {
   })
 
   ipcMain.handle('reports:accountsPayable', (_e) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'report.finance')
     const db = getDb()
     const rows = db.prepare(`
       SELECT pr.invoice_no, pr.supplier_invoice_no, pr.created_at AS received_at,
@@ -671,7 +672,7 @@ export function registerReportHandlers() {
     by?: 'qty' | 'revenue' | 'profit' | 'low_profit' | 'margin'
     limit?: number
   }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'report.finance')
     const db = getDb()
     const { date_from, date_to } = filters
     const by = filters.by ?? 'revenue'
@@ -732,7 +733,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:topSuppliers', (_e, filters: {
     date_from?: string; date_to?: string; limit?: number
   }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'report.finance')
     const db = getDb()
     const { date_from, date_to } = filters
     const limit = filters.limit ?? 10
@@ -765,7 +766,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:hourlyTraffic', (_e, filters: {
     date_from?: string; date_to?: string
   }) => {
-    requireAdmin(_e) // hourly sales = revenue → admin-only (staff never see money)
+    requirePermission(_e, 'report.finance') // hourly sales = revenue → admin-only (staff never see money)
     const db = getDb()
     const { date_from, date_to } = filters
     const mode: 'single_day' | 'aggregated' =
@@ -799,7 +800,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:cashierLeaderboard', (_e, filters: {
     date_from?: string; date_to?: string; limit?: number
   }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'report.finance')
     const db = getDb()
     const { date_from, date_to } = filters
     const limit = filters.limit ?? 10
@@ -833,7 +834,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:salesStats', (_e, filters: {
     date_from?: string; date_to?: string
   }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'report.finance')
     const db = getDb()
     const { date_from, date_to } = filters
     const sCond: string[] = []
@@ -952,7 +953,7 @@ export function registerReportHandlers() {
     date_from?: string; date_to?: string; limit?: number
   }) => {
     const db = getDb()
-    const isAdmin = getSessionRole(_e) === 'owner'
+    const isAdmin = stateFor(getSessionRole(_e) ?? '', 'cost.view') === 'allow'
     const { date_from, date_to } = filters
     const limit = filters.limit ?? 50
     const stockExpr = `COALESCE((SELECT SUM(qty_on_hand) FROM product_lots WHERE product_id = p.id AND is_closed=0), 0)`
@@ -1052,7 +1053,7 @@ export function registerReportHandlers() {
   ipcMain.handle('reports:productVelocity', (_e, filters: {
     q?: string; limit?: number; sort_by?: 'days_cover' | 'avg_monthly'
   }) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'report.finance')
     const db = getDb()
     const limit = filters.limit ?? 50
     const sort_by = filters.sort_by ?? 'days_cover'

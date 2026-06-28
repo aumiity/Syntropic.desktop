@@ -4,7 +4,7 @@ import fs from 'fs'
 import dayjs from 'dayjs'
 import Database from 'better-sqlite3'
 import { getDb, getDbPath, closeDb, lockDb } from '../db'
-import { requireAdmin } from '../auth/session'
+import { requirePermission } from '../auth/permissions'
 
 interface BackupConfig {
   id: number
@@ -151,7 +151,7 @@ export function registerBackupHandlers() {
   // Export a full snapshot to a user-chosen location. Uses the SQLite online
   // backup API (WAL-safe — captures committed data without a manual checkpoint).
   ipcMain.handle('backup:export', async (_e) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'data.backup')
     const { canceled, filePath } = await dialog.showSaveDialog({
       title: 'สำรองฐานข้อมูล',
       defaultPath: `syntropic-backup-${fullStamp()}.db`,
@@ -172,7 +172,7 @@ export function registerBackupHandlers() {
   // STAGES the chosen file as <db>.incoming and relaunches — the actual swap
   // happens at next boot via applyPendingRestore(), before getDb() reopens.
   ipcMain.handle('backup:restore', async (_e) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'data.backup')
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'เลือกไฟล์สำรองเพื่อกู้คืน',
       properties: ['openFile'],
@@ -217,7 +217,7 @@ export function registerBackupHandlers() {
   ipcMain.handle(
     'backup:saveSettings',
     (_e, data: { auto_enabled: boolean; retention_count: number }) => {
-      requireAdmin(_e)
+      requirePermission(_e, 'data.backup')
       const db = getDb()
       const auto_enabled = data.auto_enabled ? 1 : 0
       const retention_count = Math.max(1, Math.floor(Number(data.retention_count) || 7))
@@ -242,7 +242,7 @@ export function registerBackupHandlers() {
   // Pick + persist the auto-backup destination folder. Rejects a non-writable
   // choice so a backup never silently fails later.
   ipcMain.handle('backup:pickFolder', async (_e) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'data.backup')
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'เลือกโฟลเดอร์สำรองข้อมูล',
       properties: ['openDirectory', 'createDirectory'],
@@ -260,7 +260,7 @@ export function registerBackupHandlers() {
   })
 
   ipcMain.handle('backup:resetFolder', (_e) => {
-    requireAdmin(_e)
+    requirePermission(_e, 'data.backup')
     saveBackupDir(null)
     return { ok: true, path: defaultBackupsDir() }
   })

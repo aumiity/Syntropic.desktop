@@ -3,12 +3,15 @@ import { useOutlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sidebar } from './Sidebar'
 import { TitleBar } from './TitleBar'
-import { usePermission } from '@/hooks/usePermission'
+import { useCan } from '@/hooks/useCan'
 
 export function Layout() {
   const location = useLocation()
   const outlet = useOutlet()
-  const { isAdmin } = usePermission()
+  // Manage runs full-bleed for roles that see its finance dashboard; others keep
+  // the capped width. Aligned with the Manage finance-panel gate so a
+  // pharmacist's scroll matches the owner's (cosmetic).
+  const canManageFull = useCan('report.finance') !== 'off'
   // Key by top-level section so sub-route changes (report tabs, product edit)
   // don't replay the full-page transition — only major section switches do.
   const sectionKey = location.pathname.split('/')[1] || 'home'
@@ -39,7 +42,7 @@ export function Layout() {
     // wide history tables) and owns a page-level scroll, so it stretches full
     // width — the scrollbar then sits at the window edge. Staff keeps the capped
     // width (unchanged).
-    (location.pathname.startsWith('/manage') && isAdmin)
+    (location.pathname.startsWith('/manage') && canManageFull)
   const widthClass = isFullWidth ? 'h-full' : 'h-full w-full max-w-7xl mx-auto'
 
   return (

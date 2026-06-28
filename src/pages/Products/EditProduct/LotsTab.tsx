@@ -193,9 +193,10 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
       user_id: getCurrentUserId(),
     }
     setLotSaving(true)
-    overrideLot.run(
+    const mode = overrideLot.run(
       async (ov) => { await window.api.products.updateLot(lotId, data, ov) },
       {
+        permKey: 'stock.adjust',
         title: 'แก้ไขล็อต',
         onDone: async () => {
           setLotSaving(false)
@@ -210,7 +211,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
         },
       },
     )
-    if (!overrideLot.isAdmin) setLotSaving(false)
+    if (mode !== 'inline') setLotSaving(false)
   }
 
   return (

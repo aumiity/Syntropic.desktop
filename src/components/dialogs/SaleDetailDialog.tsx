@@ -107,6 +107,7 @@ export function SaleDetailDialog({
     ov.run(
       async (o) => { await window.api.reports.updateSaleCustomer({ sale_id: detail.id, customer_id: c.id }, o) },
       {
+        permKey: 'sale.editCustomer',
         title: 'แก้ไขลูกค้าของบิล',
         onDone: () => {
           toast({ title: 'แก้ไขลูกค้าของบิลแล้ว', variant: 'success' })
