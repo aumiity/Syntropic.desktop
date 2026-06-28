@@ -62,7 +62,7 @@ const LOWSTOCK_DEFAULTS: LowStockPrefs = {
 
 export default function ManageLowStockPage() {
   const { toast } = useToast()
-  const { setSummary } = useOutletContext<ManageOutletContext>()
+  const { setSummary, setSubTabActions } = useOutletContext<ManageOutletContext>()
   const navigate = useNavigate()
 
   const [prefs, setPrefs] = usePagePrefs<LowStockPrefs>('lowStock', LOWSTOCK_DEFAULTS)
@@ -137,6 +137,27 @@ export default function ManageLowStockPage() {
   useEffect(() => {
     return () => setSummary(null)
   }, [setSummary])
+
+  // Export-to-Excel lives in the STOCK sub-tab strip (right-aligned), not the
+  // filter bar. Re-inject on search/category change so onExport reads the current
+  // filter. statusFilter is a client-only narrowing — the export covers the full
+  // low-stock set, matching the previous filter-bar behaviour.
+  useEffect(() => {
+    setSubTabActions(
+      <ExportButton
+        iconOnly
+        tooltip="ส่งออก Excel"
+        onExport={() => window.api.exports.lowStock({
+          q: q.trim() || undefined,
+          category_id: categoryId !== '0' ? Number(categoryId) : undefined,
+        })}
+      />,
+    )
+  }, [q, categoryId, setSubTabActions])
+
+  useEffect(() => {
+    return () => setSubTabActions(null)
+  }, [setSubTabActions])
 
   const colCount = 2
     + (showColStockBar ? 1 : 0)
@@ -235,15 +256,6 @@ export default function ManageLowStockPage() {
               </Popover>
             )
           })()}
-
-          <ExportButton
-            iconOnly
-            tooltip="ส่งออก Excel"
-            onExport={() => window.api.exports.lowStock({
-              q: q.trim() || undefined,
-              category_id: categoryId !== '0' ? Number(categoryId) : undefined,
-            })}
-          />
 
           <Popover>
             <PopoverTrigger asChild>

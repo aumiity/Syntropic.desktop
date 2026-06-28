@@ -65,6 +65,9 @@ export interface ManageOutletContext {
   // A child page can inject a control (e.g. a date picker) into the TabStrip
   // row, aligned right beside the tabs. Pass null to clear (do this on unmount).
   setTabActions: (node: React.ReactNode | null) => void
+  // A child page can also inject a control into the STOCK sub-tab strip row,
+  // aligned right beside the sub-tabs (e.g. an Export button). Pass null to clear.
+  setSubTabActions: (node: React.ReactNode | null) => void
 }
 
 // Tailwind needs literal class strings to be discoverable in source.
@@ -94,6 +97,7 @@ export default function ManageLayout() {
   // Tab-row injected control, scoped to its owner tab so it can't leak into a
   // sibling tab while the child unmounts (mirrors the setSummary owner guard).
   const [tabActionsState, setTabActionsState] = useState<{ tab: TabValue; node: React.ReactNode } | null>(null)
+  const [subTabActionsState, setSubTabActionsState] = useState<{ tab: TabValue; node: React.ReactNode } | null>(null)
   // overflow-hidden is required during the enter/exit height animation to clip
   // the collapsing content, but it also clips the StatCard active-ring (extends
   // 2px outside). Flip overflow back to visible once the animation settles.
@@ -116,9 +120,18 @@ export default function ManageLayout() {
     })
   }, [current])
 
-  const ctx = useMemo<ManageOutletContext>(() => ({ setSummary, setTabActions }), [setSummary, setTabActions])
+  const setSubTabActions = useCallback((node: React.ReactNode | null) => {
+    const ownerTab = current
+    setSubTabActionsState(prev => {
+      if (node != null) return { tab: ownerTab, node }
+      return prev?.tab === ownerTab ? null : prev
+    })
+  }, [current])
+
+  const ctx = useMemo<ManageOutletContext>(() => ({ setSummary, setTabActions, setSubTabActions }), [setSummary, setTabActions, setSubTabActions])
   const summary = summaryState?.tab === current ? summaryState.cards : null
   const tabActions = tabActionsState?.tab === current ? tabActionsState.node : null
+  const subTabActions = subTabActionsState?.tab === current ? subTabActionsState.node : null
   // The Sales tab scrolls the whole page together (summary cards + finance card
   // + history table) for roles that see the finance panel. Every other tab keeps
   // the fixed full-height card.
@@ -197,6 +210,7 @@ export default function ManageLayout() {
               })}
             </TabsList>
           </Tabs>
+          {subTabActions && <div className="ml-auto flex items-center">{subTabActions}</div>}
         </div>
         </div>
       )}

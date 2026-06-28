@@ -108,7 +108,7 @@ const EXPIRY_DEFAULTS: ExpiryPrefs = {
 
 export default function ManageExpiryPage() {
   const { toast } = useToast()
-  const { setSummary } = useOutletContext<ManageOutletContext>()
+  const { setSummary, setSubTabActions } = useOutletContext<ManageOutletContext>()
 
   const [prefs, setPrefs] = usePagePrefs<ExpiryPrefs>('expiry', EXPIRY_DEFAULTS)
 
@@ -235,6 +235,29 @@ export default function ManageExpiryPage() {
     return () => setSummary(null)
   }, [setSummary])
 
+  // Export-to-Excel lives in the STOCK sub-tab strip (right-aligned), not the
+  // filter bar. Re-inject on filter/search/category change so onExport reads the
+  // current filter (re-publishing an element of the SAME type at the SAME JSX
+  // slot reconciles in place — ExportButton's internal busy state is preserved,
+  // so no ref needed). Clear on unmount.
+  useEffect(() => {
+    setSubTabActions(
+      <ExportButton
+        iconOnly
+        tooltip="ส่งออก Excel"
+        onExport={() => window.api.exports.expiry({
+          filter,
+          category_id: categoryId !== '0' ? Number(categoryId) : undefined,
+          q: q.trim() || undefined,
+        })}
+      />,
+    )
+  }, [filter, categoryId, q, setSubTabActions])
+
+  useEffect(() => {
+    return () => setSubTabActions(null)
+  }, [setSubTabActions])
+
   return (
     <>
       {/* List card */}
@@ -304,16 +327,6 @@ export default function ManageExpiryPage() {
               </Popover>
             )
           })()}
-
-          <ExportButton
-            iconOnly
-            tooltip="ส่งออก Excel"
-            onExport={() => window.api.exports.expiry({
-              filter,
-              category_id: categoryId !== '0' ? Number(categoryId) : undefined,
-              q: q.trim() || undefined,
-            })}
-          />
 
           <Popover>
             <PopoverTrigger asChild>

@@ -1,9 +1,15 @@
-// Lightweight E2E: verify ExportButton renders in Manage/Expiry + Manage/LowStock.
-// Checks: button visible in filter strip, aria-label correct, window.api callable.
-// Does NOT drive the native save dialog (cannot in headless Playwright).
+// E2E: verify ExportButton is on the STOCK sub-tab strip (right-aligned),
+// NOT in the filter strip — and that it disappears on dead-stock/negative-stock
+// (owner-scoping via setSubTabActions ownerTab guard).
+//
+// Checks:
+//   E1a-c  Expiry page: button visible, enabled, in sub-tab row (not filter strip)
+//   E2a-c  LowStock page: same structural checks
+//   E3a-b  dead-stock + negative-stock: no export button (owner-scoping)
+//   E4a-b  window.api.exports.expiry / .lowStock callable
 //
 // Run: node tests/e2e/verify-manage-export.mjs
-// Prereq: npm run dev running (or just: npx electron . in dev mode)
+// Prereq: playwright-core installed under ../.pw-tools or globally
 
 import pathMod from 'node:path'
 import os from 'node:os'
@@ -64,6 +70,40 @@ async function getMainPage(app) {
   throw new Error('main window with window.api never appeared')
 }
 
+// Returns { btnFound, inSubTabRow, inFilterStrip } from the live DOM.
+// Sub-tab row = the flex container that holds the STOCK_SUBTABS tablist
+//   (contains "ค้างสต็อก"). Export button must be a sibling/descendant of
+//   that same row — NOT inside the card's filter strip which has the SearchInput.
+async function checkBtnPosition(page, searchPlaceholder) {
+  return page.evaluate((placeholder) => {
+    const btn = document.querySelector('[aria-label="ส่งออก Excel"]')
+    if (!btn) return { btnFound: false, inSubTabRow: false, inFilterStrip: false }
+
+    // Sub-tab strip: tablist whose text includes "ค้างสต็อก" (STOCK_SUBTABS)
+    const stockTablist = [...document.querySelectorAll('[role="tablist"]')]
+      .find(el => el.textContent.includes('ค้างสต็อก'))
+    // Parent of that tablist is the flex row in ManageLayout that also slots subTabActions
+    const subTabRow = stockTablist ? stockTablist.parentElement?.parentElement ?? null : null
+    const inSubTabRow = subTabRow ? subTabRow.contains(btn) : false
+
+    // Filter strip: walk up from the search input to the first h-12 ancestor
+    const searchInput = document.querySelector(`input[placeholder*="${placeholder}"]`)
+    let filterStrip = searchInput ? searchInput.parentElement : null
+    while (filterStrip && !filterStrip.classList.contains('h-12')) {
+      filterStrip = filterStrip.parentElement
+    }
+    const inFilterStrip = filterStrip ? filterStrip.contains(btn) : false
+
+    return {
+      btnFound: true,
+      inSubTabRow,
+      inFilterStrip,
+      subTabRowClass: subTabRow?.className ?? '(none)',
+      filterStripClass: filterStrip?.className ?? '(none)',
+    }
+  }, searchPlaceholder)
+}
+
 const app = await electron.launch({
   executablePath: resolveElectronExe(),
   args: ['.', `--user-data-dir=${userDataDir}`],
@@ -83,49 +123,88 @@ try {
   })
   if (!setup.ok) throw new Error('completeSetup: ' + setup.error)
 
-  // Navigate to expiry and reload so devLogin fires on load
+  // Boot into expiry tab; reload so devLogin fires
   await page.evaluate(() => { window.location.hash = '#/manage/expiry' })
   await page.reload()
-
-  // Wait for the page to hydrate — look for any h-9 button (filter strip loads quickly)
   await page.waitForSelector('[aria-label="ส่งออก Excel"]', { timeout: 30000 })
 
-  // ── E1: Expiry page — Export button visible ──────────────────────────────────
+  // ── E1: Manage › Expiry ─────────────────────────────────────────────────────
   console.log('\n=== E1: Manage › Expiry ===')
-  const expiryExportBtn = page.locator('[aria-label="ส่งออก Excel"]').first()
-  const e1Visible = await expiryExportBtn.isVisible().catch(() => false)
-  check('E1a: ExportButton มีใน filter strip (aria-label="ส่งออก Excel")', e1Visible)
 
-  const e1Enabled = await expiryExportBtn.isEnabled().catch(() => false)
-  check('E1b: ปุ่ม enabled (ไม่ disabled)', e1Enabled)
+  const e1Visible = await page.locator('[aria-label="ส่งออก Excel"]').first().isVisible().catch(() => false)
+  check('E1a: ปุ่ม export ปรากฏ (aria-label="ส่งออก Excel")', e1Visible)
 
-  // ── E2: LowStock page — Export button visible ────────────────────────────────
+  const e1Enabled = await page.locator('[aria-label="ส่งออก Excel"]').first().isEnabled().catch(() => false)
+  check('E1b: ปุ่ม enabled', e1Enabled)
+
+  const e1Pos = await checkBtnPosition(page, 'ชื่อสินค้า')
+  check('E1c: ปุ่มอยู่บนแถว sub-tab (ไม่ใช่ filter strip)', e1Pos.inSubTabRow && !e1Pos.inFilterStrip,
+    e1Pos.btnFound ? `inSubTabRow=${e1Pos.inSubTabRow} inFilterStrip=${e1Pos.inFilterStrip}` : 'button not found')
+
+  // ── E2: Manage › LowStock ───────────────────────────────────────────────────
   console.log('\n=== E2: Manage › LowStock ===')
   await page.evaluate(() => { window.location.hash = '#/manage/low-stock' })
   await page.waitForSelector('[aria-label="ส่งออก Excel"]', { timeout: 15000 })
 
-  const lowstockExportBtn = page.locator('[aria-label="ส่งออก Excel"]').first()
-  const e2Visible = await lowstockExportBtn.isVisible().catch(() => false)
-  check('E2a: ExportButton มีใน filter strip', e2Visible)
+  const e2Visible = await page.locator('[aria-label="ส่งออก Excel"]').first().isVisible().catch(() => false)
+  check('E2a: ปุ่ม export ปรากฏ', e2Visible)
 
-  const e2Enabled = await lowstockExportBtn.isEnabled().catch(() => false)
+  const e2Enabled = await page.locator('[aria-label="ส่งออก Excel"]').first().isEnabled().catch(() => false)
   check('E2b: ปุ่ม enabled', e2Enabled)
 
-  // ── E3: IPC methods accessible via window.api ────────────────────────────────
-  console.log('\n=== E3: window.api.exports callable ===')
+  const e2Pos = await checkBtnPosition(page, 'ชื่อสินค้า')
+  check('E2c: ปุ่มอยู่บนแถว sub-tab (ไม่ใช่ filter strip)', e2Pos.inSubTabRow && !e2Pos.inFilterStrip,
+    e2Pos.btnFound ? `inSubTabRow=${e2Pos.inSubTabRow} inFilterStrip=${e2Pos.inFilterStrip}` : 'button not found')
+
+  // ── E3: owner-scoping — dead-stock + negative-stock must NOT show export ─────
+  console.log('\n=== E3: owner-scoping (dead-stock + negative-stock) ===')
+
+  await page.evaluate(() => { window.location.hash = '#/manage/dead-stock' })
+  // Wait for sub-tab to change (TabsTrigger "ค้างสต็อก" becomes active)
+  await page.waitForFunction(
+    () => {
+      const tabs = [...document.querySelectorAll('[role="tab"]')]
+      return tabs.some(t => t.getAttribute('data-state') === 'active' && t.textContent.includes('ค้างสต็อก'))
+    },
+    { timeout: 10000 },
+  ).catch(() => {})
+
+  const e3DeadCount = await page.locator('[aria-label="ส่งออก Excel"]').count()
+  check('E3a: dead-stock — ไม่มีปุ่ม export ใน DOM (owner-scoping)', e3DeadCount === 0,
+    `found ${e3DeadCount} button(s)`)
+
+  await page.evaluate(() => { window.location.hash = '#/manage/negative-stock' })
+  await page.waitForFunction(
+    () => {
+      const tabs = [...document.querySelectorAll('[role="tab"]')]
+      return tabs.some(t => t.getAttribute('data-state') === 'active' && t.textContent.includes('ติดลบ'))
+    },
+    { timeout: 10000 },
+  ).catch(() => {})
+
+  const e3NegCount = await page.locator('[aria-label="ส่งออก Excel"]').count()
+  check('E3b: negative-stock — ไม่มีปุ่ม export ใน DOM (owner-scoping)', e3NegCount === 0,
+    `found ${e3NegCount} button(s)`)
+
+  // ── E4: IPC methods accessible via window.api ────────────────────────────────
+  console.log('\n=== E4: window.api.exports callable ===')
   const apiCheck = await page.evaluate(() => ({
     expiryFn: typeof window.api?.exports?.expiry === 'function',
     lowStockFn: typeof window.api?.exports?.lowStock === 'function',
   }))
-  check('E3a: window.api.exports.expiry เป็น function', apiCheck.expiryFn)
-  check('E3b: window.api.exports.lowStock เป็น function', apiCheck.lowStockFn)
+  check('E4a: window.api.exports.expiry เป็น function', apiCheck.expiryFn)
+  check('E4b: window.api.exports.lowStock เป็น function', apiCheck.lowStockFn)
+
+  // ── E5: better-sqlite3 native module still present ──────────────────────────
+  console.log('\n=== E5: native module integrity ===')
+  const nodeFile = pathMod.join(projectRoot, 'node_modules', 'better-sqlite3', 'build', 'Release', 'better_sqlite3.node')
+  check('E5: better_sqlite3.node ยังอยู่ครบ', fsSync.existsSync(nodeFile))
 
 } catch (err) {
   console.error('\nFATAL:', err.message)
   failed++
 } finally {
   await app.close().catch(() => {})
-  // clean up tmp userdata
   fsSync.rmSync(userDataDir, { recursive: true, force: true })
 
   console.log(`\n── Result: ${passed} passed, ${failed} failed ──`)
