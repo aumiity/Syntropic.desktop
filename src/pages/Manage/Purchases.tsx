@@ -120,14 +120,14 @@ const PURCHASE_CHART_METRICS: Record<PurchaseChartMetric, {
   bills:    { label: 'จำนวนบิล', bar: { key: 'purchase_count', name: 'จำนวนบิล', color: 'hsl(var(--info))' },    valueFormat: 'int' },
 }
 
-// Status-breakdown colors — matched to the history table status badge hues so the
-// whole page reads in one color language: เงินสด=info (info-outline), เครดิต(จ่ายแล้ว)=
-// success (ชำระแล้ว badge), ค้างชำระ=amber (เครดิต/at-risk), ยกเลิก=destructive. unpaid
-// ⊂ credit, so the proportion uses เครดิต(จ่ายแล้ว)=credit−unpaid.
+// Status-breakdown colors — one color language across MetricStrip/MetricCard/this
+// card, all 4 distinct (no dup): เงินสด=info (info-outline badge), เครดิต(จ่ายแล้ว)=amber
+// (เครดิต family), ค้างชำระ=violet (distinct at-risk), ยกเลิก=destructive. unpaid ⊂ credit,
+// so the proportion uses เครดิต(จ่ายแล้ว)=credit−unpaid.
 const PURCHASE_STATUS_COLOR: Record<string, string> = {
   cash:        'hsl(var(--info))',
-  credit_paid: 'hsl(var(--success))',
-  unpaid:      'hsl(var(--amber))',
+  credit_paid: 'hsl(var(--amber))',
+  unpaid:      'hsl(var(--violet))',
   cancelled:   'hsl(var(--destructive))',
 }
 
@@ -313,7 +313,7 @@ export default function ManagePurchasesPage() {
       { label: 'จำนวนบิล', value: histSummary.count.toLocaleString(),           icon: FileText,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'เงินสด',    value: histSummary.cash_count.toLocaleString(),      icon: Banknote,      tint: 'info-soft',    sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'เครดิต',    value: histSummary.credit_count.toLocaleString(),    icon: CreditCard,    tint: 'amber',        sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ค้างชำระ',  value: histSummary.unpaid_count.toLocaleString(),    icon: AlertTriangle, tint: 'amber',         sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ค้างชำระ',  value: histSummary.unpaid_count.toLocaleString(),    icon: AlertTriangle, tint: 'violet',        sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     ])
   }, [isAdmin, histSummary, setSlotSummary])
@@ -628,7 +628,7 @@ export default function ManagePurchasesPage() {
                       { label: 'ยอดซื้อรวม', value: fmt(total),  icon: Coins,        tint: 'primary',   compare: cmp, ...trendOf(dTotal) },
                       { label: 'เงินสด',     value: fmt(cash),   icon: Banknote,     tint: 'info-soft', compare: cmp, ...trendOf(dCash) },
                       { label: 'เครดิต',     value: fmt(credit), icon: CreditCard,   tint: 'amber',     compare: cmp, ...trendOf(dCredit) },
-                      { label: 'ค้างชำระ',   value: fmt(finance.payable_total), icon: AlertTriangle, tint: 'amber', note: `${finance.payable_count.toLocaleString()} บิล` },
+                      { label: 'ค้างชำระ',   value: fmt(finance.payable_total), icon: AlertTriangle, tint: 'violet', note: `${finance.payable_count.toLocaleString()} บิล` },
                     ]}
                   />
 
@@ -885,7 +885,7 @@ export default function ManagePurchasesPage() {
                               ? h.is_paid
                                 ? <Badge variant="success-outline">ชำระแล้ว</Badge>
                                 : isOverdue
-                                  ? <Badge variant="destructive-outline">เกินกำหนด</Badge>
+                                  ? <Badge variant="violet-outline">เกินกำหนด</Badge>
                                   : <Badge variant="amber-outline">เครดิต</Badge>
                               : <Badge variant="info-outline">เงินสด</Badge>
                           }
